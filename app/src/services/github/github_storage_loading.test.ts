@@ -8,7 +8,7 @@ import {
     createStatusResponse,
     project,
     queueProjectTree,
-} from '.././test_support/github_storage_test_support'
+} from '../test_support/github_storage_test_support'
 
 describe('GithubStorageService', () => {
     beforeEach(() => {

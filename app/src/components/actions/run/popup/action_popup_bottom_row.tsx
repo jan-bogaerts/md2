@@ -5,11 +5,11 @@ import { Box, Button, IconButton, Tooltip } from '@mui/material'
 import CalendarOutline from 'mdi-material-ui/CalendarOutline'
 import Play from 'mdi-material-ui/Play'
 import { useSyncExternalStore } from 'react'
-import type { ActionContext } from '../../../data/action_context'
-import type { ActionDefinition } from '../../../data/action_types'
-import { useActionRunSelector } from '../../hooks/use_action_runs'
-import type { ActionConversationStore } from '../conversation/action_conversation_store'
-import type { ActionHistoryStore } from './action_history_store'
+import type { ActionContext } from '../../../../data/action_context'
+import type { ActionDefinition } from '../../../../data/action_types'
+import { useActionRunSelector } from '../../../hooks/use_action_runs'
+import type { ActionConversationStore } from '../../conversation/action_conversation_store'
+import type { ActionHistoryStore } from '../state/action_history_store'
 import {
     cancelPopupAction,
     convertPromptToAction,
@@ -19,11 +19,11 @@ import {
     saveAndRunPopupAction,
 } from './action_popup_operations'
 import { actionPopupRunDisabled } from './action_popup_run_disabled'
-import type { ActionRunInputStore } from './action_run_input_store'
-import type { ActionRunResultStore } from './action_run_result_store'
-import type { ActionScheduleStore } from './action_schedule_store'
+import type { ActionRunInputStore } from '../state/action_run_input_store'
+import type { ActionRunResultStore } from '../state/action_run_result_store'
+import type { ActionScheduleStore } from '../schedule/action_schedule_store'
 import { ActionUsageSummaryOwner } from './action_usage_summary_owner'
-import { useActionRunSettings } from '../shared/use_action_run_settings'
+import { useActionRunSettings } from '../../shared/use_action_run_settings'
 
 interface ActionPopupBottomRowProps {
     action: ActionDefinition

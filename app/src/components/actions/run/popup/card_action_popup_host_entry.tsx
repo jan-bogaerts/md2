@@ -1,7 +1,7 @@
 import {
     cardActionPopupService,
     type CardActionPopupEntry,
-} from '../../../services/actions/card_action_popup_service'
+} from '../../../../services/actions/card_action_popup_service'
 import { ActionPopup } from './action_popup'
 
 interface CardActionPopupHostEntryProps {

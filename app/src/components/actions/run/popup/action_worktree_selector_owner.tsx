@@ -1,7 +1,7 @@
-import type { ActionContext } from '../../../data/action_context'
-import type { WorktreeAssignment, WorktreeAssignmentTarget } from '../../worktree_selector'
-import { WorktreeSelector } from '../../worktree_selector'
-import { useActionRunSelector } from '../../hooks/use_action_runs'
+import type { ActionContext } from '../../../../data/action_context'
+import type { WorktreeAssignment, WorktreeAssignmentTarget } from '../../../worktree_selector'
+import { WorktreeSelector } from '../../../worktree_selector'
+import { useActionRunSelector } from '../../../hooks/use_action_runs'
 
 interface ActionWorktreeSelectorOwnerProps {
     actionId: string

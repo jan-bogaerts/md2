@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react'
-import type { ActionContext } from '../../../data/action_context'
-import { useActionRunSelector } from '../../hooks/use_action_runs'
-import { statusColor } from './action_popup_defaults'
+import type { ActionContext } from '../../../../data/action_context'
+import { useActionRunSelector } from '../../../hooks/use_action_runs'
+import { statusColor } from '../popup/action_popup_defaults'
 import type { ActionRunResultStore } from './action_run_result_store'
 import { ActionRunStatus } from './action_run_status'
 

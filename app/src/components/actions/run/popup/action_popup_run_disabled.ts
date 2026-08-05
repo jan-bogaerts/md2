@@ -1,5 +1,5 @@
-import { CUSTOM_PROMPT_ACTION_ID, type ActionDefinition } from '../../../data/action_types'
-import type { ActionPromptPreparationStatus } from '../../../services/actions/action_prompt_draft_service'
+import { CUSTOM_PROMPT_ACTION_ID, type ActionDefinition } from '../../../../data/action_types'
+import type { ActionPromptPreparationStatus } from '../../../../services/actions/action_prompt_draft_service'
 
 interface ActionPopupRunState {
     agentActive: boolean

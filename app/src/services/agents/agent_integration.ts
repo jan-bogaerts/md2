@@ -14,11 +14,11 @@ import { actionService } from '../actions/action_service'
 import { actionRunRegistry } from '../actions/action_run_registry'
 import { loadAgentConversation } from './agent_conversation_service'
 import { runElectronAction } from '../actions/electron_action_runner'
-import { mapWithConcurrency } from '.././concurrency'
+import { mapWithConcurrency } from '../concurrency'
 import { type RequiredDataServiceDependencies } from '../data/data_service_context'
 import { markdownParsingService } from '../data/markdown_parsing_service'
 import { telemetryService } from '../telemetry/telemetry_service'
-import { dialogService } from '.././dialog_service'
+import { dialogService } from '../dialog_service'
 
 const AGENT_CONVERSATION_LOAD_CONCURRENCY = 8
 const ON_STATE_ACTION_ERROR_PATH_PREFIX = 'onState'

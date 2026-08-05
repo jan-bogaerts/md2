@@ -1,7 +1,7 @@
-import type { ActionContext } from '../../../data/action_context'
-import type { ActionDefinition } from '../../../data/action_types'
-import type { ActionRunHistoryEntry } from '../../../data/electron_action_bridge'
-import { defaultLoadHistory } from './action_popup_defaults'
+import type { ActionContext } from '../../../../data/action_context'
+import type { ActionDefinition } from '../../../../data/action_types'
+import type { ActionRunHistoryEntry } from '../../../../data/electron_action_bridge'
+import { defaultLoadHistory } from '../popup/action_popup_defaults'
 
 interface ActionHistorySnapshot {
     entries: ActionRunHistoryEntry[]

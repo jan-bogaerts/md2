@@ -11,7 +11,7 @@ import {
 } from '../../../data/agent_profiles'
 import { useActionRunSelector } from '../../hooks/use_action_runs'
 import { ActionAgentSelectors } from './action_agent_selectors'
-import type { ActionRunInputStore } from '../run/action_run_input_store'
+import type { ActionRunInputStore } from '../run/state/action_run_input_store'
 import { useActionRunSettings } from '../shared/use_action_run_settings'
 
 interface ActionAgentSelectorsOwnerProps {

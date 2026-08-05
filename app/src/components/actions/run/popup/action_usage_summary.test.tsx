@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import type { AgentConversation } from '../../../data/data_types'
-import type { ActionRunHistoryEntry, CommitReference } from '../../../data/electron_action_bridge'
+import type { AgentConversation } from '../../../../data/data_types'
+import type { ActionRunHistoryEntry, CommitReference } from '../../../../data/electron_action_bridge'
 import { ActionUsageSummary } from './action_usage_summary'
 
 function conversation(actionId: string, cardInternalId: string, totalTokens: number): AgentConversation {

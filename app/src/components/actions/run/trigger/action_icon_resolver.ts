@@ -1,4 +1,4 @@
-import { dataService } from '../../../services/data/data_service'
+import { dataService } from '../../../../services/data/data_service'
 
 const BLOCKED_SVG_CONTENT_PATTERN = /<\s*(script|foreignObject)\b|on[a-z]+\s*=|javascript:/iu
 const DATA_URI_SAFE_CHARACTERS = /[\u007F-\uFFFF]/gu

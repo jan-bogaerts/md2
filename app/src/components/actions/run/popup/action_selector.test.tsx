@@ -1,15 +1,15 @@
 import { ThemeProvider, type PaletteMode } from '@mui/material'
 import { cleanup, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { ActionContext } from '../../../data/action_context'
-import { BUILTIN_CUSTOM_PROMPT, type ActionDefinition } from '../../../data/action_types'
-import type { ActiveActionRun } from '../../../services/actions/action_run_registry'
-import { createAppTheme } from '../../../theme/app_theme'
+import type { ActionContext } from '../../../../data/action_context'
+import { BUILTIN_CUSTOM_PROMPT, type ActionDefinition } from '../../../../data/action_types'
+import type { ActiveActionRun } from '../../../../services/actions/action_run_registry'
+import { createAppTheme } from '../../../../theme/app_theme'
 import { ActionSelector } from './action_selector'
 
 const activeRuns = vi.hoisted(() => ({ value: [] as ActiveActionRun[] }))
 
-vi.mock('../../hooks/use_action_runs', () => ({useActiveActionRunsForContext: () => activeRuns.value}))
+vi.mock('../../../hooks/use_action_runs', () => ({useActiveActionRunsForContext: () => activeRuns.value}))
 
 const context: ActionContext = { file: 'design/F-105.md', kind: 'card', state: 'design', type: 'feature' }
 const actions: ActionDefinition[] = [

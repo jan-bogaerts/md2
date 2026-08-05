@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { GithubPendingCommitConflictError, GithubStorageService } from './github_storage_service'
-import { createRawResponse, createResponse, createStatusResponse, project, queueProjectTree } from '.././test_support/github_storage_test_support'
+import { createRawResponse, createResponse, createStatusResponse, project, queueProjectTree } from '../test_support/github_storage_test_support'
 
 describe('GithubStorageService', () => {
     beforeEach(() => {

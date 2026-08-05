@@ -1,6 +1,6 @@
 import { Typography } from '@mui/material'
 import { useEffect, useRef, useState } from 'react'
-import type { PopupRunStatus } from '../run/action_popup_defaults'
+import type { PopupRunStatus } from '../run/popup/action_popup_defaults'
 import { formatDuration } from './conversation_duration'
 
 interface ConversationTimerProps {

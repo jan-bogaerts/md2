@@ -1,8 +1,8 @@
 import { Box, Stack, Tooltip, Typography } from '@mui/material'
-import type { AgentConversation } from '../../../data/data_types'
-import type { ActionRunHistoryEntry, CommitReference } from '../../../data/electron_action_bridge'
-import { actionCardAgentTokenUsage } from '../../../services/agents/agent_usage'
-import { AgentUsageDisplay } from '../../agents/agent_usage_display'
+import type { AgentConversation } from '../../../../data/data_types'
+import type { ActionRunHistoryEntry, CommitReference } from '../../../../data/electron_action_bridge'
+import { actionCardAgentTokenUsage } from '../../../../services/agents/agent_usage'
+import { AgentUsageDisplay } from '../../../agents/agent_usage_display'
 
 const NUMBER_FORMAT = new Intl.NumberFormat('en-US')
 

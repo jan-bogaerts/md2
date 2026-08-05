@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { ActionContext } from '../../../data/action_context'
-import type { ActionRunEvent } from '../../../data/action_run_types'
-import type { ActionDefinition } from '../../../data/action_types'
-import { setActionBridgeOverride, type ElectronActionBridge } from '../../../data/electron_action_bridge'
-import { actionPromptDraftService } from '../../../services/actions/action_prompt_draft_service'
-import { actionRunRegistry } from '../../../services/actions/action_run_registry'
-import { dialogService } from '../../../services/dialog_service'
+import type { ActionContext } from '../../../../data/action_context'
+import type { ActionRunEvent } from '../../../../data/action_run_types'
+import type { ActionDefinition } from '../../../../data/action_types'
+import { setActionBridgeOverride, type ElectronActionBridge } from '../../../../data/electron_action_bridge'
+import { actionPromptDraftService } from '../../../../services/actions/action_prompt_draft_service'
+import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
+import { dialogService } from '../../../../services/dialog_service'
 import { currentActionPromptDraft, runPopupAction, type ActionPopupOperationInput } from './action_popup_operations'
-import { ActionRunInputStore } from './action_run_input_store'
+import { ActionRunInputStore } from '../state/action_run_input_store'
 
 const action = { id: 'stream', label: 'Stream', streaming: true, type: 'agent' } as ActionDefinition
 const context: ActionContext = { file: 'design/F-1.md', kind: 'card' }

@@ -1,4 +1,4 @@
-import type { ThinkingLevel } from '../../../data/agent_profiles'
+import type { ThinkingLevel } from '../../../../data/agent_profiles'
 
 interface ActionRunInputSnapshot {
     accessLevelOverride: string | null

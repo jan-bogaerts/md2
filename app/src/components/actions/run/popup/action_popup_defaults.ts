@@ -1,26 +1,26 @@
-import type { ActionContext } from '../../../data/action_context'
-import type { ActionScheduleTrigger } from '../../../data/action_schedule_types'
-import type { ActionDefinition } from '../../../data/action_types'
+import type { ActionContext } from '../../../../data/action_context'
+import type { ActionScheduleTrigger } from '../../../../data/action_schedule_types'
+import type { ActionDefinition } from '../../../../data/action_types'
 import type {
     ActionRunInput,
     ActionRunResult,
     AgentApprovalDecision,
     AgentApprovalRequestId,
-} from '../../../data/action_run_types'
-import type { AgentConversation } from '../../../data/data_types'
-import { getElectronActionBridge, type ActionRunHistoryEntry } from '../../../data/electron_action_bridge'
-import { defaultActionHistoryLoader, loadActionHistory } from '../../../services/actions/action_history'
-import { actionFilePath, createActionDefinition, type ConvertPromptToActionInput } from '../../../services/actions/action_definition_writer'
-import { dataService } from '../../../services/data/data_service'
-import { projectPersistenceService } from '../../../services/project/project_persistence_service'
-import { cancelElectronAction, restartElectronAction, runElectronAction } from '../../../services/actions/electron_action_runner'
+} from '../../../../data/action_run_types'
+import type { AgentConversation } from '../../../../data/data_types'
+import { getElectronActionBridge, type ActionRunHistoryEntry } from '../../../../data/electron_action_bridge'
+import { defaultActionHistoryLoader, loadActionHistory } from '../../../../services/actions/action_history'
+import { actionFilePath, createActionDefinition, type ConvertPromptToActionInput } from '../../../../services/actions/action_definition_writer'
+import { dataService } from '../../../../services/data/data_service'
+import { projectPersistenceService } from '../../../../services/project/project_persistence_service'
+import { cancelElectronAction, restartElectronAction, runElectronAction } from '../../../../services/actions/electron_action_runner'
 import {
     answerActionApproval,
     answerActionQuestion,
     finishActionRun,
     sendActionMessage,
-} from '../../../services/actions/action_run_registry'
-import { flushMarkdownEditors } from '../../editor/markdown_editor_flush'
+} from '../../../../services/actions/action_run_registry'
+import { flushMarkdownEditors } from '../../../editor/markdown_editor_flush'
 
 export type PopupRunStatus = 'idle' | 'queued' | 'running' | 'waitingForInput' | ActionRunResult['status']
 export type CancelAction = (runId: string) => Promise<void>

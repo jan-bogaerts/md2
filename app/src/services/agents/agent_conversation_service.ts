@@ -5,7 +5,7 @@
     AgentRunEvent,
     StorageService,
 } from '../../data/data_types'
-import { register } from '.././service_injector'
+import { register } from '../service_injector'
 import { parseAgentConversation } from '../../../../shared/agent_conversations.mjs'
 
 type Listener = () => void

@@ -9,7 +9,7 @@ import {
     type RawActionDefinitionEntry,
 } from '../../data/action_types'
 import { generateUuid } from '../../data/uuid'
-import { getService, register } from '.././service_injector'
+import { getService, register } from '../service_injector'
 import {
     loadTolerantActionDefinitionGraph,
     validateActionDefinitionGraph,

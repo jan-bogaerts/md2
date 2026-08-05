@@ -1,4 +1,4 @@
-import type { ActionScheduleTrigger } from '../../../data/action_schedule_types'
+import type { ActionScheduleTrigger } from '../../../../data/action_schedule_types'
 
 /** Validate a local date/time input and create its absolute scheduler timestamp. */
 export function createScheduleTrigger(timestampInput: string, now = Date.now()): ActionScheduleTrigger {

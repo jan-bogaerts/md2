@@ -1,7 +1,7 @@
 import { Stack, Typography } from '@mui/material'
 import { useLayoutEffect, useRef, type UIEvent } from 'react'
 import type { AgentConversation } from '../../../data/data_types'
-import type { PopupRunStatus } from '../run/action_popup_defaults'
+import type { PopupRunStatus } from '../run/popup/action_popup_defaults'
 import { ActionConversationEventRow } from './action_conversation_event_row'
 import { ActionConversationMessage } from './action_conversation_message'
 import { actionStatusLabel } from '../shared/action_status'

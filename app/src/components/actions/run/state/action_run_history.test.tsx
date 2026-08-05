@@ -1,10 +1,10 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { ActionRunHistoryEntry } from '../../../data/electron_action_bridge'
-import { DialogDisplay } from '../../dialog_display'
+import type { ActionRunHistoryEntry } from '../../../../data/electron_action_bridge'
+import { DialogDisplay } from '../../../dialog_display'
 import { ActionRunHistory } from './action_run_history'
 
-vi.mock('../conversation/diff_view', () => ({DiffView: ({ commitReference }: { commitReference: { commit: string } }) => <div>Diff {commitReference.commit}</div>}))
+vi.mock('../../conversation/diff_view', () => ({DiffView: ({ commitReference }: { commitReference: { commit: string } }) => <div>Diff {commitReference.commit}</div>}))
 
 describe('ActionRunHistory', () => {
     afterEach(cleanup)

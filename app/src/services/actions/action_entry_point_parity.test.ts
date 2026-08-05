@@ -4,7 +4,7 @@ import { actionService } from './action_service'
 import { actionRunRegistry } from './action_run_registry'
 import { configService } from '../config/config_service'
 import { runElectronAction } from './electron_action_runner'
-import { createDataService, createStorage } from '.././test_support/data_service_test_support'
+import { createDataService, createStorage } from '../test_support/data_service_test_support'
 
 describe('action entry-point parity', () => {
     afterEach(() => {

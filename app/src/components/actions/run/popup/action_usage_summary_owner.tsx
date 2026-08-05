@@ -1,8 +1,8 @@
 import { useEffect, useSyncExternalStore } from 'react'
-import type { ActionContext } from '../../../data/action_context'
-import type { ActionDefinition } from '../../../data/action_types'
-import type { ActionConversationStore } from '../conversation/action_conversation_store'
-import type { ActionHistoryStore } from './action_history_store'
+import type { ActionContext } from '../../../../data/action_context'
+import type { ActionDefinition } from '../../../../data/action_types'
+import type { ActionConversationStore } from '../../conversation/action_conversation_store'
+import type { ActionHistoryStore } from '../state/action_history_store'
 import { ActionUsageSummary } from './action_usage_summary'
 
 interface ActionUsageSummaryOwnerProps {

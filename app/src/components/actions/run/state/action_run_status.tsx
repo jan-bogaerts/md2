@@ -1,6 +1,6 @@
 import { Box, Stack, Typography } from '@mui/material'
-import type { ActionRunLogEntry } from '../../../data/action_run_types'
-import { actionStatusLabel } from '../shared/action_status'
+import type { ActionRunLogEntry } from '../../../../data/action_run_types'
+import { actionStatusLabel } from '../../shared/action_status'
 
 interface ActionRunStatusProps {
     color: string

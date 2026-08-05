@@ -1,8 +1,8 @@
 import { Box, Stack, Typography } from '@mui/material'
 import { useEffect, useRef } from 'react'
-import type { ActionRunHistoryEntry } from '../../../data/electron_action_bridge'
-import { dialogService } from '../../../services/dialog_service'
-import { CommitReferenceRow } from '../conversation/commit_reference_row'
+import type { ActionRunHistoryEntry } from '../../../../data/electron_action_bridge'
+import { dialogService } from '../../../../services/dialog_service'
+import { CommitReferenceRow } from '../../conversation/commit_reference_row'
 
 interface HistoryEntryRowProps {
     entry: ActionRunHistoryEntry

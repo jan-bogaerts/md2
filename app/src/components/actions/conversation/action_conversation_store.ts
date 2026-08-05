@@ -4,7 +4,7 @@ import { actionPromptDraftService } from '../../../services/actions/action_promp
 import { actionRunRegistry } from '../../../services/actions/action_run_registry'
 import { dialogService } from '../../../services/dialog_service'
 import type { ConversationPickerConversation } from './action_conversation_picker_data'
-import { defaultLoadConversation, defaultLoadConversations } from '../run/action_popup_defaults'
+import { defaultLoadConversation, defaultLoadConversations } from '../run/popup/action_popup_defaults'
 
 interface ActionConversationSnapshot {
     conversations: AgentConversation[]

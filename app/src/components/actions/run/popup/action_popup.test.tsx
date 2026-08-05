@@ -1,17 +1,17 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { ActionContext } from '../../../data/action_context'
-import type { ActionRunEvent } from '../../../data/action_run_types'
-import type { ActionFile } from '../../../data/action_types'
-import type { ProjectReference, StorageService, WorktreeRecord } from '../../../data/data_types'
-import { actionService } from '../../../services/actions/action_service'
-import { actionRunRegistry } from '../../../services/actions/action_run_registry'
-import { actionPromptDraftService } from '../../../services/actions/action_prompt_draft_service'
-import { dialogService } from '../../../services/dialog_service'
-import { worktreeService } from '../../../services/project/worktree_service'
-import { AppThemeProvider } from '../../../theme/theme_provider'
+import type { ActionContext } from '../../../../data/action_context'
+import type { ActionRunEvent } from '../../../../data/action_run_types'
+import type { ActionFile } from '../../../../data/action_types'
+import type { ProjectReference, StorageService, WorktreeRecord } from '../../../../data/data_types'
+import { actionService } from '../../../../services/actions/action_service'
+import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
+import { actionPromptDraftService } from '../../../../services/actions/action_prompt_draft_service'
+import { dialogService } from '../../../../services/dialog_service'
+import { worktreeService } from '../../../../services/project/worktree_service'
+import { AppThemeProvider } from '../../../../theme/theme_provider'
 import { ActionPopup, CARD_RUN_POPUP_SIZE_STORAGE_KEY, PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY } from './action_popup'
-import { useMarkdownTypeaheadStackPosition } from '../../editor/markdown_typeahead_layer_context'
+import { useMarkdownTypeaheadStackPosition } from '../../../editor/markdown_typeahead_layer_context'
 
 const renderProbes = vi.hoisted(() => ({
     agentPrompt: vi.fn(),
@@ -25,8 +25,8 @@ const renderProbes = vi.hoisted(() => ({
     selector: vi.fn(),
 }))
 
-vi.mock('../agent/action_agent_prompt', async (importOriginal) => {
-    const actual = await importOriginal<typeof import('../agent/action_agent_prompt')>()
+vi.mock('../../agent/action_agent_prompt', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('../../agent/action_agent_prompt')>()
 
     return {
         ...actual,
@@ -38,8 +38,8 @@ vi.mock('../agent/action_agent_prompt', async (importOriginal) => {
     }
 })
 
-vi.mock('../agent/action_agent_selectors', async (importOriginal) => {
-    const actual = await importOriginal<typeof import('../agent/action_agent_selectors')>()
+vi.mock('../../agent/action_agent_selectors', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('../../agent/action_agent_selectors')>()
 
     return {
         ...actual,
@@ -51,8 +51,8 @@ vi.mock('../agent/action_agent_selectors', async (importOriginal) => {
     }
 })
 
-vi.mock('../conversation/action_conversation_picker', async (importOriginal) => {
-    const actual = await importOriginal<typeof import('../conversation/action_conversation_picker')>()
+vi.mock('../../conversation/action_conversation_picker', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('../../conversation/action_conversation_picker')>()
 
     return {
         ...actual,
@@ -66,8 +66,8 @@ vi.mock('../conversation/action_conversation_picker', async (importOriginal) => 
     }
 })
 
-vi.mock('../conversation/action_log_error_display', async (importOriginal) => {
-    const actual = await importOriginal<typeof import('../conversation/action_log_error_display')>()
+vi.mock('../../conversation/action_log_error_display', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('../../conversation/action_log_error_display')>()
 
     return {
         ...actual,
@@ -79,8 +79,8 @@ vi.mock('../conversation/action_log_error_display', async (importOriginal) => {
     }
 })
 
-vi.mock('../editor/action_phrase_buttons', async (importOriginal) => {
-    const actual = await importOriginal<typeof import('../editor/action_phrase_buttons')>()
+vi.mock('../../editor/action_phrase_buttons', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('../../editor/action_phrase_buttons')>()
 
     return {
         ...actual,
@@ -118,8 +118,8 @@ vi.mock('./action_selector', async (importOriginal) => {
     }
 })
 
-vi.mock('../conversation/action_conversation_chat', async (importOriginal) => {
-    const actual = await importOriginal<typeof import('../conversation/action_conversation_chat')>()
+vi.mock('../../conversation/action_conversation_chat', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('../../conversation/action_conversation_chat')>()
 
     return {
         ...actual,

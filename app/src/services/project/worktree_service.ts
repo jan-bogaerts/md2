@@ -9,7 +9,7 @@ import type {
     WorktreeState,
     WorktreeStatus,
 } from '../../data/data_types'
-import { register } from '.././service_injector'
+import { register } from '../service_injector'
 
 interface WorktreeServiceDependencies {
     assignCardWorktree: (path: string, worktree: number | null) => void

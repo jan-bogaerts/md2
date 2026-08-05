@@ -1,5 +1,5 @@
-import type { ActionRunResult } from '../../../data/action_run_types'
-import type { PopupRunStatus } from './action_popup_defaults'
+import type { ActionRunResult } from '../../../../data/action_run_types'
+import type { PopupRunStatus } from '../popup/action_popup_defaults'
 
 interface ActionRunResultSnapshot {
     result: ActionRunResult | null

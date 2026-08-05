@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { ActionDefinition } from '../../../data/action_types'
-import type { ElectronActionBridge } from '../../../data/electron_action_bridge'
-import { projectPersistenceService } from '../../../services/project/project_persistence_service'
-import { registerMarkdownEditorFlush } from '../../editor/markdown_editor_flush'
+import type { ActionDefinition } from '../../../../data/action_types'
+import type { ElectronActionBridge } from '../../../../data/electron_action_bridge'
+import { projectPersistenceService } from '../../../../services/project/project_persistence_service'
+import { registerMarkdownEditorFlush } from '../../../editor/markdown_editor_flush'
 import { defaultPreparePrompt } from './action_popup_defaults'
 
 const action = {id: 'review'} as ActionDefinition

@@ -7,7 +7,7 @@ import type {
 import { resolveProjectConfigPaths } from '../../data/data_types'
 import type { RemarkableBridge } from '../../data/remarkable_bridge'
 import { configService } from '../config/config_service'
-import { dialogService } from '.././dialog_service'
+import { dialogService } from '../dialog_service'
 import { telemetryService } from '../telemetry/telemetry_service'
 
 export interface DataServiceDependencies {

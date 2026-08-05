@@ -2,8 +2,8 @@ import { Box, IconButton, Popover, Stack, Tooltip, Typography } from '@mui/mater
 import SourceCommit from 'mdi-material-ui/SourceCommit'
 import type { MouseEvent } from 'react'
 import { useState } from 'react'
-import type { CommitReference } from '../../../data/electron_action_bridge'
-import { CommitReferenceRow } from '../conversation/commit_reference_row'
+import type { CommitReference } from '../../../../data/electron_action_bridge'
+import { CommitReferenceRow } from '../../conversation/commit_reference_row'
 
 interface ActionCommitDropdownProps {
     commits: CommitReference[]

@@ -1,5 +1,5 @@
 import { CARD_PATH_CHANGED_EVENT, dataService, type CardPathChangedEventDetail, type DataService } from '../data/data_service'
-import { register } from '.././service_injector'
+import { register } from '../service_injector'
 
 export type WorkspaceViewMode = 'cards' | 'text'
 

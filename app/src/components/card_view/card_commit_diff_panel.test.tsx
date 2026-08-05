@@ -19,7 +19,7 @@ vi.mock('../editor/markdown_editor', () => ({
     ),
 }))
 
-vi.mock('../actions/diff_view', () => ({DiffView: ({ initialPath }: { initialPath: string }) => <div aria-label={`Whole commit diff ${initialPath}`} />}))
+vi.mock('../actions/conversation/diff_view', () => ({DiffView: ({ initialPath }: { initialPath: string }) => <div aria-label={`Whole commit diff ${initialPath}`} />}))
 
 vi.mock('../hooks/use_active_card', () => ({ useActiveCard: () => ({ path: 'design/F-060.md' }) }))
 

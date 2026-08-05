@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { GithubStorageService } from './github_storage_service'
-import { createResponse, createStatusResponse } from '.././test_support/github_storage_test_support'
+import { createResponse, createStatusResponse } from '../test_support/github_storage_test_support'
 
 describe('GithubStorageService', () => {
     beforeEach(() => {

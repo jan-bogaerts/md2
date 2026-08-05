@@ -17,7 +17,7 @@ import { fileContext, folderContext, type ActionContext } from '../../data/actio
 import { getCardIdPrefix } from '../../data/card_identifiers'
 import { defaultColumnAccent, type CardTypeConfig, type ProjectCard } from '../../data/data_types'
 import type { TreeNode, TreeNodeKind } from '../../data/file_tree'
-import { ActionEntryPoints } from '../actions/action_entry_points'
+import { ActionEntryPoints } from '../actions/run/trigger/action_entry_points'
 import { useIsActiveDocument } from '../hooks/use_active_document'
 import { useFileTreeContext } from './file_tree_context'
 

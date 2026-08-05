@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { dataService } from '../../../services/data/data_service'
+import { dataService } from '../../../../services/data/data_service'
 import { resolveActionIcon, sanitizeInlineSvg } from './action_icon_resolver'
 
 describe('action icon resolution', () => {

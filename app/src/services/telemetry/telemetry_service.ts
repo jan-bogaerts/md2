@@ -1,4 +1,4 @@
-import { register } from '.././service_injector'
+import { register } from '../service_injector'
 
 export type TelemetryRuntime = 'react_web' | 'react_electron'
 

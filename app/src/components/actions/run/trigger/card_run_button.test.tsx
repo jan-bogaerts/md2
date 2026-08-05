@@ -1,21 +1,21 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cardContext } from '../../../data/action_context'
-import type { ActionRunEvent, ActionRunUpdate, AgentApproval } from '../../../data/action_run_types'
-import type { ActionFile } from '../../../data/action_types'
-import { DEFAULT_CARD_TYPES, type AgentConversation, type AgentConversationEvent, type ProjectCard, type ProjectSnapshot } from '../../../data/data_types'
-import { actionRunRegistry } from '../../../services/actions/action_run_registry'
-import { actionService } from '../../../services/actions/action_service'
-import { agentAcknowledgementService } from '../../../services/agents/agent_acknowledgement_service'
-import { cardActionPopupService } from '../../../services/actions/card_action_popup_service'
-import { dataService } from '../../../services/data/data_service'
-import { AppThemeProvider } from '../../../theme/theme_provider'
-import { CardActionPopupHost } from './card_action_popup_host'
+import { cardContext } from '../../../../data/action_context'
+import type { ActionRunEvent, ActionRunUpdate, AgentApproval } from '../../../../data/action_run_types'
+import type { ActionFile } from '../../../../data/action_types'
+import { DEFAULT_CARD_TYPES, type AgentConversation, type AgentConversationEvent, type ProjectCard, type ProjectSnapshot } from '../../../../data/data_types'
+import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
+import { actionService } from '../../../../services/actions/action_service'
+import { agentAcknowledgementService } from '../../../../services/agents/agent_acknowledgement_service'
+import { cardActionPopupService } from '../../../../services/actions/card_action_popup_service'
+import { dataService } from '../../../../services/data/data_service'
+import { AppThemeProvider } from '../../../../theme/theme_provider'
+import { CardActionPopupHost } from '../popup/card_action_popup_host'
 import { CardRunButton } from './card_run_button'
 
 const projectState = vi.hoisted(() => ({ snapshot: null as ProjectSnapshot | null }))
 
-vi.mock('../../hooks/use_project_state', () => ({
+vi.mock('../../../hooks/use_project_state', () => ({
     useProjectState: () => ({
         project: { branch: 'main', id: 'project', rootPath: 'C:\\project' },
         runningAgents: [],

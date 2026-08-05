@@ -1,5 +1,5 @@
 import type { CommitRequest, DeleteFileRequest, DeleteFolderRequest, MarkdownFile, MoveFilesRequest, ProjectReference } from '../../data/data_types'
-import { mapWithConcurrency } from '.././concurrency'
+import { mapWithConcurrency } from '../concurrency'
 import {
     deleteStoredPendingCommitHead,
     GithubPendingCommitConflictError,

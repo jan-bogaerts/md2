@@ -1,10 +1,10 @@
-import type { ActionContext } from '../../../data/action_context'
-import type { ActionDefinition } from '../../../data/action_types'
-import type { ThinkingLevel } from '../../../data/agent_profiles'
-import { actionPromptDraftService } from '../../../services/actions/action_prompt_draft_service'
-import { actionRunRegistry } from '../../../services/actions/action_run_registry'
-import { dataService } from '../../../services/data/data_service'
-import { dialogService } from '../../../services/dialog_service'
+import type { ActionContext } from '../../../../data/action_context'
+import type { ActionDefinition } from '../../../../data/action_types'
+import type { ThinkingLevel } from '../../../../data/agent_profiles'
+import { actionPromptDraftService } from '../../../../services/actions/action_prompt_draft_service'
+import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
+import { dataService } from '../../../../services/data/data_service'
+import { dialogService } from '../../../../services/dialog_service'
 import {
     defaultCancelAction,
     defaultCloseWaitingConversation,
@@ -13,10 +13,10 @@ import {
     defaultRestartAction,
     defaultRunAction,
 } from './action_popup_defaults'
-import type { ActionConversationStore } from '../conversation/action_conversation_store'
-import type { ActionHistoryStore } from './action_history_store'
-import type { ActionRunInputStore } from './action_run_input_store'
-import type { ActionRunResultStore } from './action_run_result_store'
+import type { ActionConversationStore } from '../../conversation/action_conversation_store'
+import type { ActionHistoryStore } from '../state/action_history_store'
+import type { ActionRunInputStore } from '../state/action_run_input_store'
+import type { ActionRunResultStore } from '../state/action_run_result_store'
 
 const DEFAULT_CONVERT_LABEL_LENGTH = 40
 

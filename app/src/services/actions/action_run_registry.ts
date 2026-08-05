@@ -19,7 +19,7 @@ import { getElectronActionBridge } from '../../data/electron_action_bridge'
 import type { ElectronActionBridge } from '../../data/electron_action_bridge'
 import { actionService } from './action_service'
 import { actionPromptDraftService } from './action_prompt_draft_service'
-import { register } from '.././service_injector'
+import { register } from '../service_injector'
 
 const TERMINAL_STATUSES = new Set<ActionRunTerminalStatus>(['cancelled', 'completed', 'failed', 'okButNotAfter'])
 const ACTIVE_STATUSES = new Set<ActionRunStatus>(['queued', 'running', 'waitingForInput'])

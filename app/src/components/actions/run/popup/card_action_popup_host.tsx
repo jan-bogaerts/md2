@@ -2,7 +2,7 @@ import { useSyncExternalStore } from 'react'
 import {
     cardActionPopupService,
     subscribeCardActionPopups,
-} from '../../../services/actions/card_action_popup_service'
+} from '../../../../services/actions/card_action_popup_service'
 import { CardActionPopupHostEntry } from './card_action_popup_host_entry'
 
 /** Stable renderer for all service-owned card action popups. */

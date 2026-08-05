@@ -9,7 +9,7 @@ import {
 import { hasActionRunBackend } from '../../../data/electron_action_bridge'
 import { useAgentCapabilities } from '../../hooks/use_agent_capabilities'
 import { useConfigValueOrFallback } from '../../hooks/use_config_value'
-import type { ActionRunInputStore } from '../run/action_run_input_store'
+import type { ActionRunInputStore } from '../run/state/action_run_input_store'
 
 /** Resolve agent input and backend state only for controls that consume it. */
 export function useActionRunSettings(action: ActionDefinition, store: ActionRunInputStore) {

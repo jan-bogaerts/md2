@@ -23,7 +23,7 @@ import {
     mergeStoredReactValues,
     writeStoredReactValues,
 } from './config_persistence'
-import { register } from '.././service_injector'
+import { register } from '../service_injector'
 
 export {
     CONFIG_ENTRIES,
