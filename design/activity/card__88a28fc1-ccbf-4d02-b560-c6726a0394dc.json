@@ -4592,7 +4592,7 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": "88a28fc1-ccbf-4d02-b560-c6726a0394dc",
       "cardPath": "design/feature_descriptions/F_129_unknown_agent_events.md",
-      "completedAt": null,
+      "completedAt": "2026-08-05T17:34:48.549Z",
       "entries": [
         {
           "content": "related to: C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature\\_descriptions/F\\_129\\_unknown\\_agent\\_events.md\nthere is still a serious error here. when the chatlog conversation of a historical conversation is opened, there are sometimes 100+ unknown agent events containing single lines of data. It appears that these are file updates the agent did.\nso, many things going wrong:\nhistorical data is still showing lots of sequences of single line unknown agent events that are not grouped\r\nsome unknown agent events are clearly labeled wrong, ex: file changes\r\nthe first and last event are strange:\r\nfirst: codex --model gpt-5.6-sol -c model\\_reasoning\\_effort\\=medium --sandbox workspace-write --ask-for-approval on-request app-server --stdio why are we storing this as event?\r\nlast: 0 seems the output of the process? why are we even storing this?\ncan you fix this?\nKeep it short and to the point. use $caveman skill",
@@ -13671,7 +13671,7 @@
         }
       ],
       "startedAt": "2026-08-05T14:26:03.669Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "title": "Custom prompt",
       "usage": {
         "cachedInputTokens": 111360,
@@ -13680,7 +13680,7 @@
         "reasoningTokens": 82,
         "totalTokens": 224211
       },
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
