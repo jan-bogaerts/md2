@@ -6,6 +6,7 @@ title: Block release when cards have assigned worktrees
 after: 903157da-1625-4516-b5c9-b4880ef7fc40
 agents:
   - design/activity/card__18fd04d3-5df7-4f54-ab7a-94d96f210f13.json#conversation=agent-1ae20cc4-a8ed-4a3a-916b-8b15465bfaf3
+worktree: 3
 ---
 
 # Block release when cards have assigned worktrees
