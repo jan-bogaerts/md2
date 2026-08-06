@@ -3,7 +3,7 @@ author:
 id: F_128
 internalId: efdaf96e-da6f-4d8f-874f-042f30965276
 title: Allow auto delete branch
-status: design
+status: ready
 owner: 
 affects:
 agents:
