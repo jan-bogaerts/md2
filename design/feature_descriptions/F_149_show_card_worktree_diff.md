@@ -16,6 +16,7 @@ affects:
   - app/src/components/card_view/card_commit_diff_panel.tsx
   - app/src/components/card_view/card_body_popover.tsx
 agents:
+  - design/activity/card__290f3413-3d14-4ec2-b97d-e2522c3c1057.json#conversation=agent-14d9ac4c-511b-4a31-9aa5-5426d3082bc2
 policy:
 branch: f_149_show_card_worktree_diff_before_integration
 worktree: 1
