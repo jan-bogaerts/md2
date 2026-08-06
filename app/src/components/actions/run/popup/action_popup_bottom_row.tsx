@@ -114,7 +114,7 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
     const handleToggleSchedule = () => scheduleStore.toggle()
 
     return (
-        <Box sx={{ alignItems: 'center', bgcolor: 'background.default', borderTop: 1, borderColor: 'divider', display: 'flex', gap: 1, px: 2, py: 1.5 }}>
+        <Box sx={{ alignItems: 'center', bgcolor: 'background.default', borderTop: 1, borderColor: 'divider', display: 'flex', flexShrink: 0, gap: 1, px: 2, py: 1.5 }}>
             <ActionUsageSummaryOwner
                 action={action}
                 context={assignmentContext}

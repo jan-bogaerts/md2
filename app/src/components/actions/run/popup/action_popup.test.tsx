@@ -146,9 +146,23 @@ function agentDefinition(id: string, overrides: Record<string, unknown> = {}) {
 
 const context: ActionContext = { file: 'design/F-010.md', kind: 'card', state: 'design', type: 'feature' }
 const project: ProjectReference = { branch: 'main', id: 'project', rootPath: 'C:\\project' }
+const originalMatchMedia = window.matchMedia
 const validWorktree: WorktreeRecord = {
     branch: 'feature', error: null, parkingBranch: 'md2/parking/feature', path: 'C:\\feature',
     status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false }, valid: true,
+}
+
+function setMobileBreakpoint(matches: boolean) {
+    window.matchMedia = ((query: string) => ({
+        addEventListener: vi.fn(),
+        addListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+        matches: matches && query.includes('max-width'),
+        media: query,
+        onchange: null,
+        removeEventListener: vi.fn(),
+        removeListener: vi.fn(),
+    })) as unknown as typeof window.matchMedia
 }
 
 function worktreeStorage(): StorageService {
@@ -178,6 +192,7 @@ function renderPopup(contextOverride: ActionContext = context, onClose = vi.fn()
 
 describe('ActionPopup', () => {
     beforeEach(async () => {
+        setMobileBreakpoint(false)
         Object.values(renderProbes).forEach((probe) => probe.mockClear())
         window.md2Actions = {
             onActionRun: vi.fn(() => vi.fn()),
@@ -207,6 +222,7 @@ describe('ActionPopup', () => {
         actionService.clear()
         worktreeService.clear()
         window.localStorage.clear()
+        window.matchMedia = originalMatchMedia
         cleanup()
         vi.restoreAllMocks()
     })
@@ -1022,6 +1038,49 @@ describe('ActionPopup', () => {
         )
         expect(CARD_RUN_POPUP_SIZE_STORAGE_KEY).not.toBe(PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY)
         expect(screen.getByRole('dialog')).toHaveStyle({ height: '450px', width: '400px' })
+    })
+
+    it('uses a full-screen mobile card layout without desktop controls or size persistence', () => {
+        setMobileBreakpoint(true)
+        const storedSize = JSON.stringify({ height: 640, width: 720 })
+        window.localStorage.setItem(CARD_RUN_POPUP_SIZE_STORAGE_KEY, storedSize)
+        const getStoredValue = vi.spyOn(Storage.prototype, 'getItem')
+        const setStoredValue = vi.spyOn(Storage.prototype, 'setItem')
+        const { onClose } = renderPopup()
+        const dialog = screen.getByRole('dialog')
+
+        expect(dialog).toHaveStyle({
+            borderRadius: '0px', height: '100vh', left: '0px', margin: '0px', maxHeight: 'none', maxWidth: 'none',
+            top: '0px', width: '100vw',
+        })
+        expect(screen.queryByRole('separator', { name: /Resize action popup/u })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /Expand upward|Collapse downward/u })).not.toBeInTheDocument()
+        expect(screen.getByTestId('action-popup-scroll-body')).toHaveStyle({ minHeight: '0', overflow: 'auto' })
+        expect(screen.getByRole('button', { name: 'Run' })).toBeInTheDocument()
+
+        const actionGroup = screen.getByRole('group', { name: 'Actions' })
+        fireEvent.click(within(actionGroup).getByRole('button', { name: 'Second action' }))
+        expect(within(actionGroup).getByRole('button', { name: 'Second action' })).toHaveAttribute('aria-pressed', 'true')
+        fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+
+        expect(onClose).toHaveBeenCalledOnce()
+        expect(getStoredValue).not.toHaveBeenCalledWith(CARD_RUN_POPUP_SIZE_STORAGE_KEY)
+        expect(setStoredValue).not.toHaveBeenCalledWith(CARD_RUN_POPUP_SIZE_STORAGE_KEY, expect.any(String))
+        expect(window.localStorage.getItem(CARD_RUN_POPUP_SIZE_STORAGE_KEY)).toBe(storedSize)
+    })
+
+    it('keeps project conversation controls usable in the mobile layout', () => {
+        setMobileBreakpoint(true)
+        actionService.loadFromFiles([
+            file(agentDefinition('review', { appliesTo: { kind: 'project' }, label: 'Review project' })),
+        ])
+
+        renderPopup({ kind: 'project' })
+
+        expect(screen.getByRole('dialog')).toHaveStyle({ height: '100vh', left: '0px', top: '0px', width: '100vw' })
+        expect(screen.getByRole('combobox', { name: 'Conversation history' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument()
+        expect(screen.queryByRole('separator', { name: /Resize action popup/u })).not.toBeInTheDocument()
     })
 
     it('expands upward and restores the anchored size after collapse', () => {

@@ -1,4 +1,4 @@
-import { Box, IconButton, Stack, Tooltip, Typography } from '@mui/material'
+import { Box, IconButton, Stack, Tooltip, Typography, useMediaQuery, useTheme } from '@mui/material'
 import ArrowCollapseVertical from 'mdi-material-ui/ArrowCollapseVertical'
 import ArrowExpandVertical from 'mdi-material-ui/ArrowExpandVertical'
 import Close from 'mdi-material-ui/Close'
@@ -113,6 +113,8 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
         onClose, onSelectAction, onToggleFullHeight, open, primaryPath, showSaveControls, stackPosition, target, titleId,
         popupEntryId, readOnlyMessage,
     } = props
+    const theme = useTheme()
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'))
     const bindings = useMemo(
         () => createActionPopupBindings(action, assignmentContext),
         [action, assignmentContext],
@@ -136,8 +138,8 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
     return (
         <ResizablePopper
             anchorElement={anchorElement}
-            draggable={draggable}
-            fullHeight={fullHeight}
+            draggable={isMobile ? false : draggable}
+            fullHeight={isMobile || fullHeight}
             initialSize={{ height: 450, width: 400 }}
             labelId={titleId}
             onActivate={onActivate}
@@ -147,14 +149,22 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                 bgcolor: 'background.paper',
                 border: 1,
                 borderColor: 'divider',
-                borderRadius: '14px',
+                borderRadius: isMobile ? 0 : '14px',
                 boxShadow: '0 24px 60px rgba(16,24,40,0.28)',
                 flexDirection: 'column',
+                height: isMobile ? '100vh !important' : undefined,
+                left: isMobile ? '0 !important' : undefined,
+                margin: isMobile ? '0 !important' : undefined,
+                maxHeight: isMobile ? 'none' : undefined,
+                maxWidth: isMobile ? 'none' : undefined,
+                top: isMobile ? '0 !important' : undefined,
+                transform: isMobile ? 'none !important' : undefined,
+                width: isMobile ? '100vw !important' : undefined,
             }}
             resizeFromAllSides
             resizeLabel="Resize action popup"
             stackPosition={stackPosition}
-            storageKey={sizeStorageKey}
+            storageKey={isMobile ? undefined : sizeStorageKey}
         >
             <MarkdownTypeaheadLayerProvider stackPosition={stackPosition ?? 0}>
                 <Typography
@@ -164,10 +174,10 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                     {target ? `Run actions for ${target}` : 'Run actions'}
                 </Typography>
                 <Box
-                    data-drag-handle={draggable ? 'true' : undefined}
+                    data-drag-handle={!isMobile && draggable ? 'true' : undefined}
                     sx={{
-                        borderBottom: 1, borderColor: 'divider', cursor: draggable ? 'move' : undefined,
-                        display: 'flex', flexDirection: 'column', gap: 1, px: 1.5, py: 1.5,
+                        borderBottom: 1, borderColor: 'divider', cursor: !isMobile && draggable ? 'move' : undefined,
+                        display: 'flex', flexDirection: 'column', flexShrink: 0, gap: 1, px: 1.5, py: 1.5,
                     }}
                 >
                     <Box data-testid="action-popup-toolbar" sx={{ alignItems: 'center', display: 'flex', gap: 1 }}>
@@ -200,18 +210,20 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                             />
                         ) : null}
                         <Box sx={{ flex: 1 }} />
-                        <Tooltip title={fullHeight ? 'Collapse downward' : 'Expand upward'}>
-                            <IconButton
-                                aria-label={fullHeight ? 'Collapse downward' : 'Expand upward'}
-                                onClick={onToggleFullHeight}
-                                size="small"
-                                sx={{ flexShrink: 0, height: 30, width: 30 }}
-                            >
-                                {fullHeight
-                                    ? <ArrowCollapseVertical sx={{ fontSize: 18 }} />
-                                    : <ArrowExpandVertical sx={{ fontSize: 18 }} />}
-                            </IconButton>
-                        </Tooltip>
+                        {!isMobile ? (
+                            <Tooltip title={fullHeight ? 'Collapse downward' : 'Expand upward'}>
+                                <IconButton
+                                    aria-label={fullHeight ? 'Collapse downward' : 'Expand upward'}
+                                    onClick={onToggleFullHeight}
+                                    size="small"
+                                    sx={{ flexShrink: 0, height: 30, width: 30 }}
+                                >
+                                    {fullHeight
+                                        ? <ArrowCollapseVertical sx={{ fontSize: 18 }} />
+                                        : <ArrowExpandVertical sx={{ fontSize: 18 }} />}
+                                </IconButton>
+                            </Tooltip>
+                        ) : null}
                         <IconButton aria-label="Close" onClick={onClose} size="small" sx={{ flexShrink: 0, height: 30, width: 30 }}>
                             <Close sx={{ fontSize: 18 }} />
                         </IconButton>
@@ -227,7 +239,7 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                     />
                 </Box>
                 {readOnlyMessage ? (
-                    <Stack spacing={2} sx={{ flex: 1, minHeight: 0, overflow: 'auto', px: 1.5, py: 1 }}>
+                    <Stack data-testid="action-popup-scroll-body" spacing={2} sx={{ flex: 1, minHeight: 0, overflow: 'auto', px: 1.5, py: 1 }}>
                         {action.type === 'agent' ? (
                             <ActionConversationChatOwner
                                 actionId={action.id}
@@ -239,7 +251,7 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                         <Typography color="text.secondary" role="note" variant="caption">{readOnlyMessage}</Typography>
                     </Stack>
                 ) : <>
-                    <Stack spacing={2} sx={{ flex: 1, minHeight: 0, overflow: 'auto', px: 1.5, py: 1 }}>
+                    <Stack data-testid="action-popup-scroll-body" spacing={2} sx={{ flex: 1, minHeight: 0, overflow: 'auto', px: 1.5, py: 1 }}>
                         <ActionAgentInteractionVisibility action={action} context={assignmentContext}>
                             <Stack spacing={1} sx={{ flex: 1, minHeight: 0 }}>
                                 {showSaveControls ? (
