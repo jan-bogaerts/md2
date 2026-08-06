@@ -17,6 +17,8 @@ affects:
   - app/src/components/card_view/card_body_popover.tsx
 agents:
 policy:
+branch: f_149_show_card_worktree_diff_before_integration
+worktree: 1
 ---
 
 ## Problem

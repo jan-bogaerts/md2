@@ -10,8 +10,6 @@ agents:
   - design/activity/card__63ee96f0-2707-4a40-80df-dab5b0efda35.json#conversation=agent-93fc4ca8-571c-43d7-b26b-6344375dc02c
   - design/activity/card__63ee96f0-2707-4a40-80df-dab5b0efda35.json#conversation=agent-1b850d62-92a8-4702-823c-fa3801ac01e8
 policy:
-branch: b_99_mobile_status_change_no_update
-worktree: 1
 ---
 
 When connected through a websocket, when the backend changes the state of a card, the react side is not notified. A reload is currently needed. Most likely a missing message
