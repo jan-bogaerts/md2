@@ -3,7 +3,7 @@ author:
 id: B_99
 internalId: 63ee96f0-2707-4a40-80df-dab5b0efda35
 title: Mobile status change no update
-status: new
+status: ready
 owner: 
 affects:
 agents:

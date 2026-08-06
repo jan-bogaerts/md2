@@ -3,7 +3,7 @@ author:
 id: B_98
 internalId: b8e6a902-e78b-43d3-9896-e43146873ba5
 title: action-responses no longer show when app restarted
-status: new
+status: ready
 owner: 
 affects:
 agents:
