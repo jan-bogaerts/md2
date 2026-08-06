@@ -351,7 +351,7 @@ class AgentRunnerService {
 
         const id = `agent-turn-${crypto.randomUUID()}`;
         const startedAt = new Date().toISOString();
-        const conversationId = request.conversation?.id ?? `agent-${crypto.randomUUID()}`;
+        const conversationId = request.conversation?.id ?? request.conversationId ?? `agent-${crypto.randomUUID()}`;
         const reference = request.reference ?? conversationReference(request, conversationId);
         const conversation = createConversation(request, conversationId, startedAt, reference);
         let nextSequence = nextConversationSequence(conversation);

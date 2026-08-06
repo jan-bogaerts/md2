@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import type { MarkdownFile, ProjectCard } from './data_types'
+import type { MarkdownFile, Card } from './data_types'
 import { buildReleaseMoves } from './release_archiving'
 
-function card(path: string, agentLogReferences: string[] = []): ProjectCard {
+function card(path: string, agentLogReferences: string[] = []): Card {
     return {
         agentConversationErrors: [],
         agentConversations: [],
@@ -19,7 +19,7 @@ function card(path: string, agentLogReferences: string[] = []): ProjectCard {
             status: 'active',
             title: path,
         },
-        headerFields: {},
+        hasFrontmatter:true,
         isActive: true,
         path,
     }

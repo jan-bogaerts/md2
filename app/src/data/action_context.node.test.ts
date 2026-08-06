@@ -13,7 +13,7 @@ import {
     validateActionContextFilterValue,
 } from './action_context'
 import { BUILTIN_CUSTOM_PROMPT, BUILTIN_REMARKABLE_CONVERT, type ActionDefinition } from './action_types'
-import { DEFAULT_CARD_TYPES, type ProjectCard } from './data_types'
+import { DEFAULT_CARD_TYPES, type Card } from './data_types'
 
 function action(name: string, appliesTo: ActionDefinition['appliesTo']): ActionDefinition {
     return {
@@ -43,16 +43,16 @@ function action(name: string, appliesTo: ActionDefinition['appliesTo']): ActionD
     }
 }
 
-function card(id: string, status: string | null): ProjectCard {
+function card(id: string, status: string | null): Card {
     return {
         agentConversationErrors: [],
         agentConversations: [],
-        headerFields: {},
         content: '',
         header: {
             affects: [], after: null, agentLogReferences: [], author: null, id, internalId: id.toLowerCase(), owner: null,
             policy: {}, status, title: id,
         },
+        hasFrontmatter:true,
         isActive: true,
         path: `design/${id}.md`,
     }

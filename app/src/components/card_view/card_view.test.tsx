@@ -7,7 +7,7 @@ import { CardColumn } from './card_column'
 import * as cardColumnModule from './card_column'
 import { actionService } from '../../services/actions/action_service'
 import type { ActionFile } from '../../data/action_types'
-import { DEFAULT_CARD_TYPES, type CardTypeConfig, type ProjectCard } from '../../data/data_types'
+import { DEFAULT_CARD_TYPES, type CardTypeConfig, type Card } from '../../data/data_types'
 import { telemetryService } from '../../services/telemetry/telemetry_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { dataService } from '../../services/data/data_service'
@@ -16,10 +16,13 @@ import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
 import { openFilesService } from '../../services/open_files_service'
 import { workspaceViewService } from '../../services/project/workspace_view_service'
 import { cardDragDropService } from './card_drag_drop_service'
+import { CardDragOverlay } from './card_drag_overlay'
 
 const dragContextHandlers = vi.hoisted(() => ({
     onDragCancel: null as DndContextProps['onDragCancel'] | null,
     onDragEnd: null as DndContextProps['onDragEnd'] | null,
+    onDragOver: null as DndContextProps['onDragOver'] | null,
+    onDragStart: null as DndContextProps['onDragStart'] | null,
 }))
 
 vi.mock('@dnd-kit/core', async (importOriginal) => {
@@ -31,23 +34,25 @@ vi.mock('@dnd-kit/core', async (importOriginal) => {
         DndContext: (props: DndContextProps) => {
             dragContextHandlers.onDragCancel = props.onDragCancel ?? null
             dragContextHandlers.onDragEnd = props.onDragEnd ?? null
+            dragContextHandlers.onDragOver = props.onDragOver ?? null
+            dragContextHandlers.onDragStart = props.onDragStart ?? null
 
             return createElement(actual.DndContext, props)
         },
     }
 })
 
-function card(id: string, title: string, status: string, policy: Record<string, boolean> = {}): ProjectCard {
+function card(id: string, title: string, status: string, policy: Record<string, boolean> = {}): Card {
     return {
         agentConversationErrors: [],
         agentConversations: [],
-        headerFields: { id, status, title },
         content: `# ${title}\n\nBody of ${id}`,
         header: {
             affects: [], after: null, agentLogReferences: [], author: null, id, internalId: id.toLowerCase(), owner: null,
             policy, status, title,
             worktree: null, worktreeError: null, worktreeValue: null,
         },
+        hasFrontmatter:true,
         isActive: true,
         path: `design/${id}.md`,
     }
@@ -58,7 +63,7 @@ const cards = [
     card('F-2', 'Second', 'done'),
 ]
 
-function setProjectCards(activeCards: ProjectCard[], repositoryFiles = ['app/src/app.tsx', 'design/F-1.md']) {
+function setCards(activeCards: Card[], repositoryFiles = ['app/src/app.tsx', 'design/F-1.md']) {
     vi.mocked(dataService.getState).mockReturnValue({
         project: { branch: 'main', id: 'project', rootPath: 'C:\\project' },
         runningAgents: [],
@@ -84,7 +89,7 @@ function renderCardView(
     activeCards = cards,
     repositoryFiles = ['app/src/app.tsx', 'design/F-1.md'],
 ) {
-    setProjectCards(activeCards, repositoryFiles)
+    setCards(activeCards, repositoryFiles)
     render(
         <AppThemeProvider>
             <CardView
@@ -105,7 +110,7 @@ describe('CardView', () => {
         workspaceViewService.setViewMode('cards')
         cardDragDropService.endDrag()
         vi.spyOn(dataService, 'getState')
-        setProjectCards(cards)
+        setCards(cards)
         vi.spyOn(dataService.cards, 'deleteCard').mockResolvedValue(null)
         vi.spyOn(dataService.cards, 'moveCard').mockResolvedValue([])
         vi.spyOn(dataService.cards, 'toggleCardPolicy').mockReturnValue(cards[0])
@@ -188,7 +193,7 @@ describe('CardView', () => {
 
     it('inserts a card-sized drop position between target-column cards', () => {
         const handlers = createColumnHandlers()
-        setProjectCards([card('F-1', 'First', 'done'), card('F-2', 'Second', 'done')])
+        setCards([card('F-1', 'First', 'done'), card('F-2', 'Second', 'done')])
         cardDragDropService.startDrag('design/F-1.md', 123, 235)
         cardDragDropService.setDropPreview({ targetIndex: 1, targetStatus: 'done' })
         render(
@@ -244,6 +249,48 @@ describe('CardView', () => {
         expect(dragButton).toBeEmptyDOMElement()
         expect(dragButton).toHaveStyle({ backgroundColor: 'rgba(0, 0, 0, 0)', inset: '0', position: 'absolute' })
         expect(dragButton).toHaveStyle({ touchAction: 'none' })
+    })
+
+    it('keeps the full card visual in the drag overlay', () => {
+        renderCardView()
+
+        act(() => dragContextHandlers.onDragStart?.({
+            active: {
+                id: 'design/F-1.md',
+                rect: { current: { initial: { height: 107, width: 235 } } },
+            },
+        } as Parameters<NonNullable<DndContextProps['onDragStart']>>[0]))
+        render(
+            <AppThemeProvider>
+                <CardDragOverlay cardTypes={DEFAULT_CARD_TYPES} />
+            </AppThemeProvider>,
+        )
+
+        const overlay = screen.getByLabelText('Dragging F-1')
+        expect(overlay).toHaveTextContent('F-1')
+        expect(overlay).toHaveTextContent('First')
+        expect(overlay).toHaveStyle({ width: '235px' })
+    })
+
+    it('updates the drop preview only when the hovered target changes', () => {
+        const setDropPreview = vi.spyOn(cardDragDropService, 'setDropPreview')
+        renderCardView()
+        act(() => dragContextHandlers.onDragStart?.({
+            active: {
+                id: 'design/F-1.md',
+                rect: { current: { initial: { height: 107, width: 235 } } },
+            },
+        } as Parameters<NonNullable<DndContextProps['onDragStart']>>[0]))
+        const dragOverEvent = {
+            active: { id: 'design/F-1.md' },
+            over: { id: 'design/F-2.md' },
+        } as Parameters<NonNullable<DndContextProps['onDragOver']>>[0]
+
+        act(() => dragContextHandlers.onDragOver?.(dragOverEvent))
+        act(() => dragContextHandlers.onDragOver?.(dragOverEvent))
+
+        expect(setDropPreview).toHaveBeenCalledOnce()
+        expect(setDropPreview).toHaveBeenCalledWith({ targetIndex: 0, targetStatus: 'done' })
     })
 
     it('renders one policy led per policy flag and toggles on click', () => {
@@ -384,7 +431,7 @@ describe('CardView', () => {
         const document = openFilesService.findDocument(cards[0])
         if (!document || document.kind !== 'card') throw new Error('Missing open card document')
 
-        act(() => document.updateDraft({ ...document.getDraft(), content: 'Edited' }))
+        act(() => document.updateDraft({ content: 'Edited' }))
         expect(within(screen.getByRole('dialog')).getByText('Dirty')).toBeInTheDocument()
 
         act(() => document.createSaveReference().acknowledge())

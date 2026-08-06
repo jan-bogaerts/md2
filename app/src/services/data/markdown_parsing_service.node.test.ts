@@ -99,17 +99,12 @@ describe('markdownParsingService.parseCard', () => {
         expect(card.header.agentLogReferences).toEqual(['.md2-agent-logs/one.json', '.md2-agent-logs/two.json'])
     })
 
-    it('exposes raw header fields including unknown keys', () => {
+    it('keeps raw header fields private while preserving unknown keys', () => {
         const content = '---\nid: F-2\ntitle: Second\ncustomField: keep me\nextras:\n  - one\n---\n\n# Second'
         const card = markdownParsingService.parseCard({ content, path: 'design/F-2-second.md' }, 'design')
 
-        expect(card.headerFields).toEqual({ customField: 'keep me', extras: ['one'], id: 'F-2', title: 'Second' })
-    })
-
-    it('exposes empty raw header fields for headerless files', () => {
-        const card = markdownParsingService.parseCard({ content: '# Note', path: 'design/note.md' }, 'design')
-
-        expect(card.headerFields).toEqual({})
+        expect(card).not.toHaveProperty('headerFields')
+        expect(markdownParsingService.serializeCard(card).content).toBe(content)
     })
 
     it('defaults after to null and policy to an empty map when absent', () => {
@@ -139,7 +134,6 @@ describe('markdownParsingService card serialization', () => {
         const content = '---\ncustom: keep\n# retain comment\nid: F-1\nunknownMap:\n  child: value\nstatus: design\n---\n\n# Card\n\nBody';
         const card = markdownParsingService.parseCard({ content, path: 'design/F-1-card.md' }, 'design');
         card.header.status = 'ready';
-        card.headerFields.status = 'ready';
 
         expect(markdownParsingService.serializeCard(card).content).toBe(
             '---\ncustom: keep\n# retain comment\nid: F-1\nunknownMap:\n  child: value\nstatus: ready\n---\n\n# Card\n\nBody',

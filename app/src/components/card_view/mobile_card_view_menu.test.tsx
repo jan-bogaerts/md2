@@ -1,12 +1,12 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { ProjectCard } from '../../data/data_types'
+import type { Card } from '../../data/data_types'
 import { dataService } from '../../services/data/data_service'
 import { mobileCardViewService } from '../../services/project/mobile_card_view_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { MobileCardViewMenu } from './mobile_card_view_menu'
 
-function card(id: string, status: string): ProjectCard {
+function card(id: string, status: string): Card {
     return {
         agentConversationErrors: [],
         agentConversations: [],
@@ -15,7 +15,7 @@ function card(id: string, status: string): ProjectCard {
             affects: [], after: null, agentLogReferences: [], author: null, id, internalId: id, owner: null,
             policy: {}, status, title: id,
         },
-        headerFields: { id, status, title: id },
+        hasFrontmatter:true,
         isActive: true,
         path: `design/${id}.md`,
     }

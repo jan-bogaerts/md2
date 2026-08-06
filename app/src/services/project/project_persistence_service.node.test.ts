@@ -81,7 +81,7 @@ describe('ProjectPersistenceService', () => {
         expect(changed).toHaveBeenCalledOnce()
     })
 
-    it('flushes action drafts, canonical card drafts, then physical batches', async () => {
+    it('flushes action drafts, card drafts, then physical batches', async () => {
         const { actionService, dataService, openFilesService, service } = initService()
         const calls: string[] = []
         actionService.pendingDrafts = true

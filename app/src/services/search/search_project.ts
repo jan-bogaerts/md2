@@ -1,4 +1,4 @@
-import type { CardHeader, ProjectCard, ProjectSnapshot } from '../../data/data_types'
+import type { CardHeader, Card, ProjectSnapshot } from '../../data/data_types'
 import type { ActionDefinition } from '../../data/action_types'
 import type {
     ActionSearchMatch, BackgroundGroup, SearchMatch, SearchOptions, SearchRegexpAgent, SearchResults,
@@ -102,7 +102,7 @@ function buildContext(text: string, location: MatchLocation): string {
     return `${prefix}${slice}${suffix}`
 }
 
-function matchCard(card: ProjectCard, matcher: Matcher, searchBody: boolean): SearchMatch | null {
+function matchCard(card: Card, matcher: Matcher, searchBody: boolean): SearchMatch | null {
     const headerFields = collectHeaderFields(card.header)
 
     for (const { field, value } of headerFields) {

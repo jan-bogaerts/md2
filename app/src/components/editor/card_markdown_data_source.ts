@@ -37,11 +37,10 @@ function readCardMarkdown(target: MarkdownDocumentTarget) {
 function editCardMarkdown(binding: MarkdownBindingKind, target: MarkdownDocumentTarget, markdown: string) {
     if (binding === 'list-action') throw new Error('Card Markdown source cannot use list-action binding')
     cardTarget(target)
-    const card = target.document.getDraft()
-    target.document.updateDraft({ ...card, content: markdown }, binding)
+    target.document.updateDraft({ content: markdown }, binding)
 }
 
-/** Reads and writes card body Markdown through canonical card documents. */
+/** Reads and writes card body Markdown through focused card operations. */
 export class CardMarkdownDataSource extends MarkdownDataSourceBase {
     private listCardOwner: ListCardOwner | null = null
     private service: CardMarkdownOwner | null = null
@@ -69,7 +68,7 @@ export class CardMarkdownDataSource extends MarkdownDataSourceBase {
     }
 
     getActiveCard(binding: CardBinding) {
-        return this.getActiveDocument(binding)?.getDraft() ?? null
+        return this.getActiveDocument(binding)?.getObject() ?? null
     }
 
     getProjectKey() {
@@ -81,9 +80,7 @@ export class CardMarkdownDataSource extends MarkdownDataSourceBase {
 
     updateActiveCardTitle(binding: CardBinding, title: string) {
         const document = this.requireActiveDocument(binding)
-        const card = document.getDraft()
-        document.updateDraft({ ...card, header: { ...card.header, title } }, this)
-        this.requireService().cards.updateCardTitle(document.path, title, document.createSaveReference())
+        this.requireService().cards.updateCardTitle(document.path, title)
             .catch((error: unknown) => {
                 dialogService.error(error, { fallbackMessage: `Title update failed: ${document.path}` })
             })
@@ -100,17 +97,14 @@ export class CardMarkdownDataSource extends MarkdownDataSourceBase {
 
     updateActiveCardHeaderField(binding: CardBinding, key: string, value: string) {
         const document = this.requireActiveDocument(binding)
-        const card = document.getDraft()
-        document.updateDraft({ ...card, headerFields: { ...card.headerFields, [key]: value } }, this)
-        this.requireService().cards.updateCardHeaderFields(document.path, { [key]: value }, document.createSaveReference())
+        if (key !== 'author') throw new Error(`Unsupported editable card header field: ${key}`)
+
+        this.requireService().cards.updateCardHeaderFields(document.path, { [key]: value })
     }
 
     toggleActiveCardPolicy(binding: CardBinding, policyKey: string) {
         const document = this.requireActiveDocument(binding)
-        const card = document.getDraft()
-        const policy = { ...card.header.policy, [policyKey]: !card.header.policy[policyKey] }
-        document.updateDraft({ ...card, header: { ...card.header, policy } }, this)
-        this.requireService().cards.toggleCardPolicy(document.path, policyKey, document.createSaveReference())
+        this.requireService().cards.toggleCardPolicy(document.path, policyKey)
     }
 
     readonly getMarkdown = readCardMarkdown
@@ -120,8 +114,8 @@ export class CardMarkdownDataSource extends MarkdownDataSourceBase {
         CardMarkdownDataSource.requireCardBinding(binding)
         cardTarget(target)
         try {
-            const card = target.document.getDraft()
-            if (card.content !== markdown) target.document.updateDraft({ ...card, content: markdown }, binding)
+            const draft = target.document.getDraft()
+            if (draft.content !== markdown) target.document.updateDraft({ content: markdown }, binding)
             this.requireService().cards.updateCardBody(
                 target.document.path,
                 markdown,
@@ -140,11 +134,16 @@ export class CardMarkdownDataSource extends MarkdownDataSourceBase {
 
     private readonly handleDocumentChanged = (event: Event) => {
         const { document, origin, type } = (event as CustomEvent<OpenDocumentChangedDetail>).detail
-        if (document.kind !== 'card' || type !== 'draft') return
+        if (document.kind !== 'card') return
+
+        if (type === 'renewed') {
+            this.dispatchEvent(new Event('cardsChanged'))
+            return
+        }
+        if (type !== 'draft') return
 
         const originBinding = typeof origin === 'string' ? origin as MarkdownBindingKind : null
         this.dispatchMarkdownReplaced({ originBinding, target: { document } })
-        this.dispatchEvent(new Event('cardsChanged'))
     }
 
     private readonly handleListCardsChanged = () => this.syncListCardBinding()

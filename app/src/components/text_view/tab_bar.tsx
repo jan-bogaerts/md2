@@ -7,7 +7,7 @@ import LightningBolt from 'mdi-material-ui/LightningBolt'
 import { useEffect, type MouseEvent, type SyntheticEvent } from 'react'
 import { fileLabel } from '../../data/file_tree'
 import { getCardIdPrefix } from '../../data/card_identifiers'
-import type { CardTypeConfig, ProjectCard } from '../../data/data_types'
+import type { CardTypeConfig, Card } from '../../data/data_types'
 import { markdownParsingService } from '../../services/data/markdown_parsing_service'
 import { openFilesService, type OpenDocument } from '../../services/open_files_service'
 import { dialogService } from '../../services/dialog_service'
@@ -31,7 +31,7 @@ interface TabBarProps {
     cardTypes: CardTypeConfig[]
 }
 
-function cardTypeColor(card: ProjectCard, cardTypes: CardTypeConfig[]) {
+function cardTypeColor(card: Card, cardTypes: CardTypeConfig[]) {
     const idPrefix = getCardIdPrefix(card.header.id)
     const cardType = cardTypes.find((candidate) => candidate.idPrefix === idPrefix)
 
@@ -45,9 +45,9 @@ function isPathInFolder(path: string, folder: string) {
     return normalizedPath.startsWith(`${normalizedFolder}/`)
 }
 
-function tabKind(card: ProjectCard, actionsFolder: string): OpenTabKind {
+function tabKind(card: Card, actionsFolder: string): OpenTabKind {
     if (isPathInFolder(card.path, actionsFolder)) return 'action'
-    if (typeof card.headerFields.id === 'string' || markdownParsingService.followsCardNamingConvention(card.path)) return 'card'
+    if (card.hasFrontmatter || markdownParsingService.followsCardNamingConvention(card.path)) return 'card'
 
     return 'markdown'
 }

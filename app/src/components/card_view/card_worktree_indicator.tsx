@@ -1,35 +1,42 @@
-import type { ProjectCard } from '../../data/data_types'
 import { useEffect, useRef } from 'react'
 import { hasRunningConversation } from '../../services/agents/card_agent_state'
 import { dialogService } from '../../services/dialog_service'
 import { worktreeService } from '../../services/project/worktree_service'
 import { WorktreeSelector } from '../worktree_selector'
+import { useCardConversations, useCardWorktree } from './use_project_card'
+import { dataService, type DataService } from '../../services/data/data_service'
 
 interface CardWorktreeIndicatorProps {
-    card: ProjectCard
+    cardId: string
+    cardPath: string
     primaryPath: string
+    service?: DataService
 }
 
 export function CardWorktreeIndicator(props: CardWorktreeIndicatorProps) {
-    const { card, primaryPath } = props
-    const isRunning = hasRunningConversation(card.agentConversations)
+    const { cardId, cardPath, primaryPath, service = dataService } = props
+    const activity = useCardConversations(cardPath, service)
+    const assignment = useCardWorktree(cardPath, service)
+    const isRunning = hasRunningConversation(activity?.conversations ?? [])
     const wasRunning = useRef(isRunning)
 
     useEffect(() => {
         const completed = wasRunning.current && !isRunning
         wasRunning.current = isRunning
-        if (!completed || card.header.worktree === null || card.header.worktree === undefined) return
+        if (!completed || assignment?.worktree === null || assignment?.worktree === undefined) return
 
         void worktreeService.refresh().catch((error: unknown) => {
             dialogService.error(error, { fallbackMessage: 'Could not refresh worktree status' })
         })
-    }, [card.header.worktree, isRunning])
+    }, [assignment?.worktree, isRunning])
+
+    if (!assignment) return null
 
     return (
         <WorktreeSelector
-            assignment={card.header}
-            assignmentTarget={{ kind: 'card', path: card.path }}
-            labelPrefix={card.header.id}
+            assignment={{ worktree: assignment.worktree, worktreeError: assignment.error, worktreeValue: assignment.value }}
+            assignmentTarget={{ kind: 'card', path: cardPath }}
+            labelPrefix={cardId}
             primaryPath={primaryPath}
         />
     )

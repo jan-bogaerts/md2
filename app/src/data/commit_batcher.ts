@@ -1,21 +1,19 @@
 ﻿import { AUTO_COMMIT_DELAY_MS, type CommitRequest, type MarkdownFile } from './data_types'
 
+import { markdownParsingService } from '../services/data/markdown_parsing_service'
 import type { OpenDocumentSaveReference } from '../services/open_files_service'
-import type { CanonicalCard } from './data_types'
+import type { Card } from './data_types'
 
 type DelayId = number
 
-interface CommitBatcherDependencies {
-    acknowledgeCard?: (card: CanonicalCard, file: MarkdownFile) => void
-    afterCommit?: (request: CommitRequest) => Promise<unknown>
-    clearDelay: (delayId: DelayId) => void
-    commit: (request: CommitRequest) => Promise<unknown>
-    delayMs?: number
-    onFlushError?: (error: unknown) => void
-    onPendingChange: () => void
-    setDelay: (callback: () => void, delayMs: number) => DelayId
-    serializeCard?: (card: CanonicalCard) => MarkdownFile
+interface CommitBatcherOperations {
+    commitFiles(request: CommitRequest): Promise<unknown>
+    pushCommittedFiles(request: CommitRequest): Promise<unknown>
+    requireCardByInternalId(internalId: string): Card
 }
+
+export const COMMIT_BATCHER_FLUSH_FAILED_EVENT = 'flushFailed'
+export const COMMIT_BATCHER_PENDING_CHANGED_EVENT = 'pendingChanged'
 
 interface PendingFileChange {
     change: CommitChange
@@ -32,8 +30,9 @@ export interface CommitFileChange extends MarkdownFile {
 }
 
 export interface CommitCardChange {
-    card: CanonicalCard
+    cardInternalId: string
     onPersisted?: () => void
+    path: string
     saveReference?: OpenDocumentSaveReference
     targetPath?: string
 }
@@ -41,44 +40,56 @@ export interface CommitCardChange {
 export type CommitChange = CommitFileChange | CommitCardChange
 
 function isCardChange(change: CommitChange): change is CommitCardChange {
-    return 'card' in change
+    return 'cardInternalId' in change
 }
 
 function changePath(change: CommitChange) {
-    return isCardChange(change) ? change.targetPath ?? change.card.path : change.path
+    return isCardChange(change) ? change.targetPath ?? change.path : change.path
 }
 
-export class CommitBatcher {
-    private readonly acknowledgeCard: ((card: CanonicalCard, file: MarkdownFile) => void) | null
+interface SerializedChange {
+    card: Card | null
+    file: MarkdownFile
+}
+
+function serializeChange(change: CommitChange, cardOperations: CommitBatcherOperations): SerializedChange {
+    if (!isCardChange(change)) {
+        const file = {
+            content: change.content,
+            ...(change.encoding ? { encoding: change.encoding } : {}),
+            path: change.path,
+            ...(change.sha ? { sha: change.sha } : {}),
+        }
+
+        return { card: null, file }
+    }
+
+    const card = cardOperations.requireCardByInternalId(change.cardInternalId)
+    const file = { ...markdownParsingService.serializeCard(card), path: changePath(change) }
+
+    return { card, file }
+}
+
+export class CommitBatcher extends EventTarget {
     private activeFlush: Promise<void> | null
-    private readonly afterCommit: ((request: CommitRequest) => Promise<unknown>) | null
-    private readonly clearDelay
-    private readonly commit
+    private automaticFlushDeferrals: number
+    private readonly cardOperations: CommitBatcherOperations
     private readonly delayMs
     private pendingBranch: string | null
     private readonly pendingChanges
     private readonly pendingMessagesByPath
-    private readonly onFlushError: ((error: unknown) => void) | null
-    private readonly onPendingChange: () => void
     private scheduledDelayId: DelayId | null
-    private readonly setDelay
-    private readonly serializeCard: ((card: CanonicalCard) => MarkdownFile) | null
 
-    constructor(dependencies: CommitBatcherDependencies) {
-        this.acknowledgeCard = dependencies.acknowledgeCard ?? null
+    constructor(cardOperations: CommitBatcherOperations, delayMs = AUTO_COMMIT_DELAY_MS) {
+        super()
         this.activeFlush = null
-        this.afterCommit = dependencies.afterCommit ?? null
-        this.clearDelay = dependencies.clearDelay
-        this.commit = dependencies.commit
-        this.delayMs = dependencies.delayMs ?? AUTO_COMMIT_DELAY_MS
+        this.automaticFlushDeferrals = 0
+        this.cardOperations = cardOperations
+        this.delayMs = delayMs
         this.pendingBranch = null
         this.pendingChanges = new Map<string, PendingFileChange>()
         this.pendingMessagesByPath = new Map<string, string[]>()
-        this.onFlushError = dependencies.onFlushError ?? null
-        this.onPendingChange = dependencies.onPendingChange
         this.scheduledDelayId = null
-        this.setDelay = dependencies.setDelay
-        this.serializeCard = dependencies.serializeCard ?? null
     }
 
     schedule(branch: string, changes: CommitChange[], message: string) {
@@ -122,8 +133,27 @@ export class CommitBatcher {
 
     private scheduleFlush() {
         this.clearScheduledDelay()
-        this.scheduledDelayId = this.setDelay(this.createFlushCallback(), this.delayMs)
-        this.onPendingChange()
+        if (this.automaticFlushDeferrals > 0) {
+            this.dispatchEvent(new Event(COMMIT_BATCHER_PENDING_CHANGED_EVENT))
+            return
+        }
+        this.scheduledDelayId = window.setTimeout(this.createFlushCallback(), this.delayMs)
+        this.dispatchEvent(new Event(COMMIT_BATCHER_PENDING_CHANGED_EVENT))
+    }
+
+    /** Pauses timer-driven flushes while one caller adds fields that must share a card version. */
+    deferAutomaticFlush() {
+        this.automaticFlushDeferrals += 1
+        this.clearScheduledDelay()
+        let released = false
+
+        return () => {
+            if (released) return
+
+            released = true
+            this.automaticFlushDeferrals -= 1
+            if (this.automaticFlushDeferrals === 0 && this.hasPending()) this.scheduleFlush()
+        }
     }
 
     hasPending() {
@@ -150,7 +180,7 @@ export class CommitBatcher {
             this.pendingBranch = null
             this.clearScheduledDelay()
         }
-        this.onPendingChange()
+        this.dispatchEvent(new Event(COMMIT_BATCHER_PENDING_CHANGED_EVENT))
     }
 
     async flush() {
@@ -163,16 +193,16 @@ export class CommitBatcher {
 
         this.clearScheduledDelay()
         const pendingChanges = [...this.pendingChanges.values()]
-        const serializedFilesByChange = new Map(
-            pendingChanges.map((change) => [change, this.serializeChange(change.change)]),
+        const serializedChanges = new Map(
+            pendingChanges.map((change) => [change, serializeChange(change.change, this.cardOperations)]),
         )
         const files = pendingChanges
             .filter(({ moveSource }) => !moveSource)
-            .map((change) => serializedFilesByChange.get(change) as MarkdownFile)
+            .map((change) => (serializedChanges.get(change) as SerializedChange).file)
         const moves = pendingChanges
             .filter(({ moveSource }) => moveSource)
             .map((change) => {
-                const file = serializedFilesByChange.get(change) as MarkdownFile
+                const { file } = serializedChanges.get(change) as SerializedChange
 
                 return {
                     content: file.content,
@@ -189,7 +219,7 @@ export class CommitBatcher {
             ...(moves.length > 0 ? { moves } : {}),
         }
 
-        this.activeFlush = this.commitSnapshot(request, pendingChanges, serializedFilesByChange)
+        this.activeFlush = this.commitSnapshot(request, pendingChanges, serializedChanges)
         try {
             await this.activeFlush
         } finally {
@@ -207,12 +237,12 @@ export class CommitBatcher {
     private async commitSnapshot(
         request: CommitRequest,
         changes: PendingFileChange[],
-        serializedFilesByChange: Map<PendingFileChange, MarkdownFile>,
+        serializedChanges: Map<PendingFileChange, SerializedChange>,
     ) {
-        await this.commit(request)
+        await this.cardOperations.commitFiles(request)
         for (const change of changes) {
             const { fromPath, onCommitted, onPersisted, saveReference } = change
-            const file = serializedFilesByChange.get(change) as MarkdownFile
+            const { card, file } = serializedChanges.get(change) as SerializedChange
             const current = this.pendingChanges.get(fromPath)
             if (current === change) {
                 this.pendingChanges.delete(fromPath)
@@ -224,28 +254,14 @@ export class CommitBatcher {
                 this.pendingMessagesByPath.delete(fromPath)
                 if (messages) this.pendingMessagesByPath.set(file.path, messages)
             }
-            if (isCardChange(change.change)) this.acknowledgeCard?.(change.change.card, file)
+            if (card) markdownParsingService.acknowledgeSerializedCard(card, file)
             saveReference?.acknowledge()
             onPersisted?.()
             onCommitted?.(fromPath, file.path)
         }
         if (this.pendingChanges.size === 0) this.pendingBranch = null
-        this.onPendingChange()
-        await this.afterCommit?.(request)
-    }
-
-    private serializeChange(change: CommitChange): MarkdownFile {
-        if (!isCardChange(change)) {
-            return {
-                content: change.content,
-                ...(change.encoding ? { encoding: change.encoding } : {}),
-                path: change.path,
-                ...(change.sha ? { sha: change.sha } : {}),
-            }
-        }
-        if (!this.serializeCard) throw new Error('Cannot commit a card without a serializer')
-
-        return { ...this.serializeCard(change.card), path: changePath(change) }
+        this.dispatchEvent(new Event(COMMIT_BATCHER_PENDING_CHANGED_EVENT))
+        await this.cardOperations.pushCommittedFiles(request)
     }
 
     private createCommitMessage() {
@@ -260,14 +276,16 @@ export class CommitBatcher {
 
     private createFlushCallback() {
         return () => {
-            void this.flush().catch((error: unknown) => this.onFlushError?.(error))
+            void this.flush().catch((error: unknown) => {
+                this.dispatchEvent(new CustomEvent(COMMIT_BATCHER_FLUSH_FAILED_EVENT, { detail: error }))
+            })
         }
     }
 
     private clearScheduledDelay() {
         if (this.scheduledDelayId === null) return
 
-        this.clearDelay(this.scheduledDelayId)
+        window.clearTimeout(this.scheduledDelayId)
         this.scheduledDelayId = null
     }
 }

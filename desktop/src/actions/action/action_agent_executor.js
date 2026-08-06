@@ -88,7 +88,7 @@ class ActionAgentExecutor {
             : '';
         const reference = input.runInput.continueFrom
             ? continuationReferencePath(input.runInput.continueFrom)
-            : undefined;
+            : input.conversationReservation?.reference;
         const request = {
             actionId: input.action.id,
             agent: resolvedAgent.agent,
@@ -97,6 +97,9 @@ class ActionAgentExecutor {
             ...(input.context.file ? { cardPath: input.context.file } : {}),
             command,
             ...(sourceConversation ? { conversation: sourceConversation, reference } : {}),
+            ...(!sourceConversation && input.conversationReservation
+                ? { conversationId: input.conversationReservation.conversationId, reference }
+                : {}),
             ...(contextInput ? { contextInput } : {}),
             actionRunId: input.runId,
             prompt,

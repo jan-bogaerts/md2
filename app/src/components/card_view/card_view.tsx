@@ -1,8 +1,7 @@
 import { Box } from '@mui/material'
 import { DndContext, DragOverlay, PointerSensor, closestCorners, useSensor, useSensors } from '@dnd-kit/core'
-import type { DragEndEvent, DragMoveEvent, DragStartEvent } from '@dnd-kit/core'
+import type { DragEndEvent, DragOverEvent, DragStartEvent } from '@dnd-kit/core'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { flushSync } from 'react-dom'
 import { buildCardColumns } from '../../data/card_ordering'
 import type { CardTypeConfig, StateConfig } from '../../data/data_types'
 import { dataService } from '../../services/data/data_service'
@@ -50,6 +49,8 @@ export function CardView(props: CardViewProps) {
     const columns = useCardViewColumns(states)
     const [openAffectsPath, setOpenAffectsPath] = useState<string | null>(null)
     const rootElementRef = useRef<HTMLDivElement>(null)
+    const dragColumnsRef = useRef<ReturnType<typeof currentCardColumns> | null>(null)
+    const lastOverIdRef = useRef<string | null>(null)
     const missingRootReportedRef = useRef(false)
     const wasVisibleRef = useRef<boolean | null>(null)
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: DRAG_ACTIVATION_DISTANCE } }))
@@ -63,6 +64,8 @@ export function CardView(props: CardViewProps) {
     }
 
     const clearActiveCard = useCallback(() => {
+        dragColumnsRef.current = null
+        lastOverIdRef.current = null
         cardDragDropService.endDrag()
     }, [])
 
@@ -100,26 +103,34 @@ export function CardView(props: CardViewProps) {
     useEffect(() => () => cardBodyPopoverService.close(), [])
 
     const handleDragStart = useCallback((event: DragStartEvent) => {
+        dragColumnsRef.current = currentCardColumns(states)
+        lastOverIdRef.current = null
         cardDragDropService.startDrag(
             String(event.active.id),
             event.active.rect.current.initial?.height ?? null,
             event.active.rect.current.initial?.width ?? null,
         )
-    }, [])
+    }, [states])
 
-    const handleDragMove = useCallback((event: DragMoveEvent) => {
+    const handleDragOver = useCallback((event: DragOverEvent) => {
         const { active, over } = event
+        const overId = over ? String(over.id) : null
+        if (lastOverIdRef.current === overId) return
+
+        lastOverIdRef.current = overId
         if (!over) {
             cardDragDropService.setDropPreview(null)
             return
         }
 
-        const dragColumns = currentCardColumns(states)
+        const dragColumns = dragColumnsRef.current
+        if (!dragColumns) throw new Error('Cannot update a card drop target before dragging starts')
+
         const drop = resolveCardDragEvent(dragColumns, event)
         const sourceColumn = dragColumns.find((column) => column.cards.some((card) => card.path === String(active.id)))
         const dropPreview = drop && sourceColumn?.status !== drop.targetStatus ? drop : null
         cardDragDropService.setDropPreview(dropPreview)
-    }, [states])
+    }, [])
 
     const handleDragEnd = useCallback((event: DragEndEvent) => {
         const { active, over } = event
@@ -130,10 +141,8 @@ export function CardView(props: CardViewProps) {
             return
         }
 
-        flushSync(() => {
-            void runCardEdit(() => dataService.cards.moveCard(path, drop.targetStatus, drop.targetIndex), `Card move failed: ${path}`)
-            clearActiveCard()
-        })
+        clearActiveCard()
+        void runCardEdit(() => dataService.cards.moveCard(path, drop.targetStatus, drop.targetIndex), `Card move failed: ${path}`)
     }, [clearActiveCard, states])
 
     const handleOpenInFileMode = (path: string) => {
@@ -179,7 +188,7 @@ export function CardView(props: CardViewProps) {
                 collisionDetection={closestCorners}
                 onDragCancel={clearActiveCard}
                 onDragEnd={handleDragEnd}
-                onDragMove={handleDragMove}
+                onDragOver={handleDragOver}
                 onDragStart={handleDragStart}
                 sensors={sensors}
             >

@@ -33,6 +33,13 @@ describe('validateStartRequest', () => {
         expect(validateStartRequest({ actionId: 'main', context: { kind: 'project' }, runInput }).runInput).toEqual(runInput);
     });
 
+    it('accepts a validated conversation reservation', () => {
+        const conversationReservation = { conversationId: 'agent-1', reference: 'activity.json#conversation=agent-1' };
+
+        expect(validateStartRequest({ actionId: 'main', context: { kind: 'project' }, conversationReservation }))
+            .toMatchObject({ conversationReservation });
+    });
+
     it.each(['accessLevel', 'agent', 'approvalPolicy', 'continueFrom', 'extraPrompt', 'model', 'prompt', 'thinkingLevel'])('rejects non-string %s', (fieldName) => {
         const request = { actionId: 'main', context: { kind: 'project' }, runInput: { [fieldName]: 1 } };
 

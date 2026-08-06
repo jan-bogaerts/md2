@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { ProjectCard } from '../data/data_types'
+import type { Card } from '../data/data_types'
 import type { RemarkableBridge, RemarkableDeviceFile } from '../data/remarkable_bridge'
 import { recordImports, remarkableDeviceKey, serializeImportMetadata, parseImportMetadata } from '../data/remarkable_import_metadata'
 import { DialogDisplay } from './dialog_display'
@@ -11,13 +11,13 @@ const DEVICE_FILE: RemarkableDeviceFile = { modifiedTime: '2026-07-01T10:00:00.0
 
 const SETTINGS = { host: 'remarkable.local', imageFolder: '/img', password: 'secret', port: 22, username: 'root' }
 
-function card(): ProjectCard {
+function card(): Card {
     return {
         agentConversationErrors: [],
         agentConversations: [],
-        headerFields: {},
         content: '# Goal',
         header: { affects: [], after: null, agentLogReferences: [], author: null, id: 'F-1', internalId: null, owner: null, policy: {}, status: 'new', title: 'Card' },
+        hasFrontmatter:true,
         isActive: true,
         path: 'design/F-1-card.md',
     }

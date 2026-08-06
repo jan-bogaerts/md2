@@ -39,7 +39,7 @@ export function CardPropertiesControl(props: CardPropertiesControlProps) {
     }, [binding])
     const handleClose = useCallback(() => setPropertiesAnchor(null), [])
 
-    if (!card || !documentId || Object.keys(card.headerFields).length === 0) return null
+    if (!card || !documentId || !card.hasFrontmatter) return null
 
     return (
         <>

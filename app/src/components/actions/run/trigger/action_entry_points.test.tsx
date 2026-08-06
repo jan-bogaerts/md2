@@ -7,7 +7,7 @@ import { actionService } from '../../../../services/actions/action_service'
 import { dataService } from '../../../../services/data/data_service'
 import type { ActionFile } from '../../../../data/action_types'
 import { cardContext, folderContext } from '../../../../data/action_context'
-import { DEFAULT_CARD_TYPES, type ProjectCard } from '../../../../data/data_types'
+import { DEFAULT_CARD_TYPES, type Card } from '../../../../data/data_types'
 import type { ActionRunEvent } from '../../../../data/action_run_types'
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
 import { AppThemeProvider } from '../../../../theme/theme_provider'
@@ -25,16 +25,16 @@ function commandDefinition(id: string, overrides: Record<string, unknown> = {}) 
     return { command: 't', description: id, id, label: id, type: 'command', ...overrides }
 }
 
-function card(id: string, status: string | null, title = id): ProjectCard {
+function card(id: string, status: string | null, title = id): Card {
     return {
         agentConversationErrors: [],
         agentConversations: [],
-        headerFields: {},
         content: '',
         header: {
             affects: [], after: null, agentLogReferences: [], author: null, id, internalId: id.toLowerCase(), owner: null,
             policy: {}, status, title,
         },
+        hasFrontmatter:true,
         isActive: true,
         path: `design/${id}.md`,
     }

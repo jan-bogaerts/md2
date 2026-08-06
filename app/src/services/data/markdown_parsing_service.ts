@@ -1,4 +1,4 @@
-import type { CanonicalCard, CardHeader, MarkdownFile, ProjectCard } from '../../data/data_types'
+import type { Card, CardHeader, MarkdownFile } from '../../data/data_types'
 import { generateUuid } from '../../data/uuid'
 
 const HEADER_DELIMITER = '---'
@@ -40,6 +40,74 @@ interface HeaderSplit {
     body: string
     hasHeader: boolean
     rawHeader: string
+}
+
+interface CardSourceState {
+    body: string
+    content: string
+    header: CardHeader
+    headerFields: MarkdownHeaderFields
+}
+
+const sourceByCard = new WeakMap<Card, CardSourceState>()
+
+function cloneCardHeader(header: CardHeader): CardHeader {
+    return {
+        ...header,
+        affects: [...header.affects],
+        agentLogReferences: [...header.agentLogReferences],
+        policy: { ...header.policy },
+    }
+}
+
+function requireCardSource(card: Card) {
+    const source = sourceByCard.get(card)
+    if (!source) throw new Error(`Cannot serialize card without parser source metadata: ${card.path}`)
+
+    return source
+}
+
+function sameStringArray(left: string[], right: string[]) {
+    return left.length === right.length && left.every((value, index) => value === right[index])
+}
+
+function sameBooleanMap(left: Record<string, boolean>, right: Record<string, boolean>) {
+    const leftEntries = Object.entries(left)
+    const rightEntries = Object.entries(right)
+
+    return leftEntries.length === rightEntries.length && leftEntries.every(([key, value]) => right[key] === value)
+}
+
+function serializePolicy(policy: Record<string, boolean>) {
+    return Object.fromEntries(Object.entries(policy).map(([key, enabled]) => [key, enabled ? 'true' : 'false']))
+}
+
+function setNullableHeaderField(fields: MarkdownHeaderFields, key: string, value: string | null) {
+    if (value === null) delete fields[key]
+    else fields[key] = value
+}
+
+function currentHeaderFields(card: Card, source: CardSourceState): MarkdownHeaderFields {
+    const fields = cloneHeaderFields(source.headerFields)
+    const { header } = card
+    const sourceHeader = source.header
+
+    if (!sameStringArray(header.affects, sourceHeader.affects)) fields.affects = [...header.affects]
+    if (header.after !== sourceHeader.after) setNullableHeaderField(fields, 'after', header.after)
+    if (!sameStringArray(header.agentLogReferences, sourceHeader.agentLogReferences)) fields.agents = [...header.agentLogReferences]
+    if (header.author !== sourceHeader.author) setNullableHeaderField(fields, 'author', header.author)
+    if (header.id !== sourceHeader.id) fields.id = header.id
+    if (header.internalId !== sourceHeader.internalId) setNullableHeaderField(fields, 'internalId', header.internalId)
+    if (header.owner !== sourceHeader.owner) setNullableHeaderField(fields, 'owner', header.owner)
+    if (!sameBooleanMap(header.policy, sourceHeader.policy)) fields.policy = serializePolicy(header.policy)
+    if (header.status !== sourceHeader.status) setNullableHeaderField(fields, 'status', header.status)
+    if (header.title !== sourceHeader.title) fields.title = header.title
+    if (header.worktree !== sourceHeader.worktree || header.worktreeError !== sourceHeader.worktreeError) {
+        if (header.worktree === null || header.worktree === undefined) delete fields.worktree
+        else fields.worktree = String(header.worktree)
+    }
+
+    return fields
 }
 
 function detectLineEnding(content: string) {
@@ -415,48 +483,62 @@ export const markdownParsingService = {
      * all other markdown is a regular document that never receives one.
      * See the card classification rule in design/architecture/current_data_model.md.
      */
-    parseCard(file: MarkdownFile, workingFolder: string): CanonicalCard {
-        const { body, rawHeader } = splitHeader(file.content)
+    parseCard(file: MarkdownFile, workingFolder: string): Card {
+        const { body, hasHeader, rawHeader } = splitHeader(file.content)
         const fields = parseHeaderFields(rawHeader)
-
-        return {
+        const header = parseCardHeader(fields, file, body)
+        const card: Card = {
             agentConversationErrors: [],
             agentConversations: [],
             content: body,
-            header: parseCardHeader(fields, file, body),
-            headerFields: fields,
+            hasFrontmatter: hasHeader,
+            header,
             isActive: isRootWorkingFolderFile(file.path, workingFolder),
             path: file.path,
             sha: file.sha,
-            source: { body, content: file.content, headerFields: cloneHeaderFields(fields) },
         }
+        sourceByCard.set(card, { body, content: file.content, header: cloneCardHeader(header), headerFields: cloneHeaderFields(fields) })
+
+        return card
     },
 
-    serializeCard(card: CanonicalCard): MarkdownFile {
-        const keys = [...new Set([...Object.keys(card.source.headerFields), ...Object.keys(card.headerFields)])];
-        let content = card.source.content;
+    serializeCard(card: Card): MarkdownFile {
+        const source = requireCardSource(card)
+        const headerFields = currentHeaderFields(card, source)
+        const keys = [...new Set([...Object.keys(source.headerFields), ...Object.keys(headerFields)])]
+        let content = source.content
 
         for (const key of keys) {
-            const sourceValue = card.source.headerFields[key];
-            const currentValue = card.headerFields[key];
-            if (sameHeaderValue(sourceValue, currentValue)) continue;
+            const sourceValue = source.headerFields[key]
+            const currentValue = headerFields[key]
+            if (sameHeaderValue(sourceValue, currentValue)) continue
 
-            content = rewriteHeaderValue(content, key, currentValue);
+            content = rewriteHeaderValue(content, key, currentValue)
         }
-        if (card.content !== card.source.body) content = this.replaceBody(content, card.content);
+        if (card.content !== source.body) content = this.replaceBody(content, card.content)
 
-        return { content, path: card.path, ...(card.sha ? { sha: card.sha } : {}) };
+        return { content, path: card.path, ...(card.sha ? { sha: card.sha } : {}) }
     },
 
-    acknowledgeSerializedCard(card: CanonicalCard, file: MarkdownFile) {
-        const { body, rawHeader } = splitHeader(file.content);
-        card.source = { body, content: file.content, headerFields: cloneHeaderFields(parseHeaderFields(rawHeader)) };
+    acknowledgeSerializedCard(card: Card, file: MarkdownFile) {
+        const { body, rawHeader } = splitHeader(file.content)
+        const headerFields = parseHeaderFields(rawHeader)
+        sourceByCard.set(card, {
+            body,
+            content: file.content,
+            header: parseCardHeader(headerFields, file, body),
+            headerFields: cloneHeaderFields(headerFields),
+        })
+    },
+
+    hasSourceContent(card: Card, content: string) {
+        return sourceByCard.get(card)?.content === content
     },
 
     splitCards(files: MarkdownFile[], workingFolder: string) {
         const markdownFiles = files.filter((file) => isMarkdownFile(file.path))
-        const activeCards: ProjectCard[] = []
-        const backgroundCards: ProjectCard[] = []
+        const activeCards: Card[] = []
+        const backgroundCards: Card[] = []
         const parseErrors: CardParseError[] = []
 
         for (const file of markdownFiles) {

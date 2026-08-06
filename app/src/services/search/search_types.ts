@@ -1,5 +1,5 @@
 import type { ActionDefinition } from '../../data/action_types'
-import type { ProjectCard } from '../../data/data_types'
+import type { Card } from '../../data/data_types'
 
 export type SearchMode = 'text' | 'regexp'
 
@@ -15,7 +15,7 @@ export interface SearchOptions {
 }
 
 export interface SearchMatch {
-    card: ProjectCard
+    card: Card
     /** Snippet of the matched text with surrounding context. */
     context: string
     /** Header field the match came from, or `body`. */

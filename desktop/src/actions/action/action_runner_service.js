@@ -51,6 +51,7 @@ class ActionRunnerService {
         this.actionsFolder = null;
         this.actionCacheReady = null;
         this.completedRunResults = new Map();
+        this.conversationReservations = new Map();
         this.configuredStates = [];
         this.runEvents = new Map();
         this.runs = new Map();
@@ -117,6 +118,7 @@ class ActionRunnerService {
         this.projectFolder = null;
         this.releasesFolder = null;
         this.configuredStates = [];
+        this.conversationReservations.clear();
         this.actionDefinitionCache?.stop();
     }
 
@@ -138,11 +140,13 @@ class ActionRunnerService {
         if (options.interactive === false && hasStreamingAction(rootAction)) {
             throw new Error(`Streaming action requires an interactive manual run: ${rootAction.label}`);
         }
+        const conversationReservation = this.consumeConversationReservation(startRequest, rootAction);
         const runId = createRunId();
         const run = new ActionRun({
             actionsFolder,
             activityOrigin: origin,
             context: startRequest.context,
+            conversationReservation,
             runId,
             project,
             projectFolder: this.projectFolder,
@@ -163,6 +167,37 @@ class ActionRunnerService {
         run.start(this.finalizeRun.bind(this, run));
 
         return runId;
+    }
+
+    async reserveConversation(request) {
+        const startRequest = validateStartRequest(request);
+        this.requireReady();
+        assertReleasedCardActionAllowed(startRequest.context, this.releasesFolder);
+        if (startRequest.runInput.continueFrom) throw new Error('Continuing an agent conversation does not require a reservation');
+        const action = await this.loadRootAction(startRequest.actionId);
+        if (action.type !== 'agent') throw new Error('Cannot reserve a conversation for a command action');
+        const origin = activityOrigin(startRequest.context);
+        const project = { ...this.project };
+        const conversationId = `agent-${crypto.randomUUID()}`;
+        const reference = this.localGitService.activityConversationReference(this.projectFolder, origin, conversationId);
+        await this.localGitService.ensureActivityFile(project, this.projectFolder, origin);
+        const reservation = { conversationId, reference };
+        this.conversationReservations.set(reference, reservation);
+
+        return reservation;
+    }
+
+    consumeConversationReservation(startRequest, rootAction) {
+        const reservation = startRequest.conversationReservation;
+        if (!reservation) return null;
+        if (rootAction.type !== 'agent') throw new Error('Command action cannot use an agent conversation reservation');
+        const stored = this.conversationReservations.get(reservation.reference);
+        if (!stored || stored.conversationId !== reservation.conversationId) {
+            throw new Error('Unknown agent conversation reservation');
+        }
+        this.conversationReservations.delete(reservation.reference);
+
+        return reservation;
     }
 
     async prepareActionPrompt(request) {

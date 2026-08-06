@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { buildCardColumns, computeMove, deriveStatesFromCards, groupByStatus, mergeStatesWithDefaults, orderByAfter } from './card_ordering'
-import { defaultColumnAccent, type ProjectCard } from './data_types'
+import { defaultColumnAccent, type Card } from './data_types'
 
-function card(internalId: string, options: { after?: string | null; status?: string } = {}): ProjectCard {
+function card(internalId: string, options: { after?: string | null; status?: string } = {}): Card {
     return {
         agentConversationErrors: [],
         agentConversations: [],
-        headerFields: {},
         content: '',
         header: {
             affects: [],
@@ -20,12 +19,13 @@ function card(internalId: string, options: { after?: string | null; status?: str
             status: options.status ?? 'active',
             title: internalId,
         },
+        hasFrontmatter:true,
         isActive: true,
         path: `design/${internalId}.md`,
     }
 }
 
-function paths(cards: ProjectCard[]) {
+function paths(cards: Card[]) {
     return cards.map((entry) => entry.header.internalId)
 }
 

@@ -27,8 +27,14 @@ export interface PreparedActionPrompt {
     prompt: string
 }
 
+export interface AgentConversationReservation {
+    conversationId: string
+    reference: string
+}
+
 export interface ActionStartRequest {
     actionId: string
+    conversationReservation?: AgentConversationReservation
     context: ActionContext
     runInput: ActionRunInput
 }

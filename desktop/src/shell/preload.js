@@ -75,6 +75,7 @@ const ACTION_METHODS = [
     'prepareActionPrompt',
     'readFileAtCommit',
     'registerActionSchedule',
+    'reserveActionConversation',
     'restartActionRun',
     'runSearchRegexpAgent',
     'sendActionMessage',

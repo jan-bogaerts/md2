@@ -1,6 +1,6 @@
 import { createCardFile } from '../../data/card_naming'
 import { computeMove, type CardMoveUpdate } from '../../data/card_ordering'
-import type { CardDraft, CardType, MarkdownFile, ProjectCard } from '../../data/data_types'
+import type { CardDraft, CardType, MarkdownFile, Card } from '../../data/data_types'
 import type { OpenDocumentSaveReference } from '../open_files_service'
 import { telemetryService } from '../telemetry/telemetry_service'
 import { CardArchiveOperations } from './card_archive_operations'
@@ -19,7 +19,7 @@ import {
     setCardHeaderFields,
     setCardWorktree,
     toggleCardPolicy,
-} from './canonical_card'
+} from './card_mutations'
 
 export type { CardOperationsDeps }
 
@@ -83,7 +83,7 @@ export class CardOperations {
         return this.context.saveCardChange(path, (card) => setCardBody(card, body), saveReference)
     }
 
-    updateCardAffects(path: string, affects: string[]): ProjectCard {
+    updateCardAffects(path: string, affects: string[]): Card {
         return this.context.saveCardChange(path, (card) => setCardAffects(card, affects))
     }
 
@@ -95,12 +95,14 @@ export class CardOperations {
         return this.context.saveCardChange(path, (card) => setCardWorktree(card, worktree))
     }
 
-    toggleCardPolicy(path: string, policyKey: string, saveReference?: OpenDocumentSaveReference): ProjectCard {
+    toggleCardPolicy(path: string, policyKey: string, saveReference?: OpenDocumentSaveReference): Card {
         return this.context.saveCardChange(path, (card) => toggleCardPolicy(card, policyKey), saveReference)
     }
 
     addAgentLogReference(path: string, reference: string) {
         const card = this.context.dependencies.requireCard(path)
+        if (card.header.agentLogReferences.includes(reference)) return card.header.internalId
+
         const references = [...new Set([...card.header.agentLogReferences, reference])]
         this.context.saveCardChange(path, (currentCard) => setCardAgentLogReferences(currentCard, references))
 
@@ -140,12 +142,18 @@ export class CardOperations {
 
         const { commitBatcher, project } = this.context.requireProject('move a card')
         const updatedCards = this.context.applyOrderingUpdates(updates)
-        const changes = updatedCards.map((card) => ({
-            card,
-            saveReference: this.context.findOpenCardDocument(card.path)?.createSaveReference(),
-        }))
+        const changes = updatedCards.map((card) => {
+            const cardInternalId = card.header.internalId
+            if (!cardInternalId) throw new Error(`Cannot move a card without an internal ID: ${card.path}`)
+
+            return {
+                cardInternalId,
+                path: card.path,
+                saveReference: this.context.findOpenCardDocument(card.path)?.createSaveReference(),
+            }
+        })
         commitBatcher.schedule(project.branch, changes, `Move ${cardPath}`)
-        this.context.dependencies.dispatchChanged()
+        this.context.dependencies.dispatchPersistenceChanged()
     }
 
     async deleteCard(path: string) {
@@ -182,6 +190,12 @@ export class CardOperations {
         return this.context.flushPendingCommits()
     }
 
+    deferAutomaticCommit() {
+        const { commitBatcher } = this.context.requireProject('defer automatic card commits')
+
+        return commitBatcher.deferAutomaticFlush()
+    }
+
     commitFiles(request: CommitRequest) {
         return this.context.commitFiles(request)
     }
@@ -192,5 +206,9 @@ export class CardOperations {
 
     commitAndMergeFiles(request: CommitRequest, fallbackFiles: MarkdownFile[] = []) {
         return this.context.commitAndMergeFiles(request, fallbackFiles)
+    }
+
+    requireCardByInternalId(internalId: string) {
+        return this.context.dependencies.requireCardByInternalId(internalId)
     }
 }

@@ -1,4 +1,4 @@
-import type { MarkdownFile, MoveFile, ProjectCard } from './data_types'
+import type { MarkdownFile, MoveFile, Card } from './data_types'
 import { isSafeAssetFileName, isSupportedAssetFileName, resolveCardAssetPath } from './asset_paths'
 import { markdownParsingService } from '../services/data/markdown_parsing_service'
 import { parseActivityFile } from '../../../shared/card_activity.mjs'
@@ -59,7 +59,7 @@ function createMove(file: MarkdownFile, fromPath: string, toPath: string, encodi
     return move
 }
 
-function releaseActivitySource(card: ProjectCard, projectFolder: string) {
+function releaseActivitySource(card: Card, projectFolder: string) {
     const cardInternalId = card.header.internalId
     if (!cardInternalId) throw new Error(`Cannot release a card without an internal ID: ${card.path}`)
 
@@ -77,7 +77,7 @@ function releaseActivitySource(card: ProjectCard, projectFolder: string) {
 }
 
 export function findReleaseActivityPaths(
-    releaseCards: ProjectCard[],
+    releaseCards: Card[],
     projectFolder: string,
     repositoryFiles: string[],
 ) {
@@ -107,7 +107,7 @@ export function validateReleaseName(releaseName: string) {
     return trimmedName
 }
 
-export function findArchiveAssetPaths(files: MarkdownFile[], archivedCards: ProjectCard[]) {
+export function findArchiveAssetPaths(files: MarkdownFile[], archivedCards: Card[]) {
     const archivedSourcePaths = new Set(archivedCards.map((card) => normalizePath(card.path)))
     const nonArchivedAssetPaths = new Set(
         files
@@ -135,7 +135,7 @@ export function findArchiveAssetPaths(files: MarkdownFile[], archivedCards: Proj
 
 export function buildReleaseMoves(
     files: MarkdownFile[],
-    activeCards: ProjectCard[],
+    activeCards: Card[],
     projectFolder: string,
     releasesFolder: string,
     safeReleaseName: string,
@@ -220,7 +220,7 @@ export function buildReleaseMoves(
 
 export function buildCardArchiveMoves(
     files: MarkdownFile[],
-    archivedCards: ProjectCard[],
+    archivedCards: Card[],
     targetFolder: string,
     repositoryFiles: string[] = [],
 ): MoveFile[] {

@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { StrictMode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { DEFAULT_CARD_TYPES, type ProjectCard } from '../../data/data_types'
+import { DEFAULT_CARD_TYPES, type Card } from '../../data/data_types'
 import { openFilesService } from '../../services/open_files_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { CardBodyPopover } from './card_body_popover'
@@ -41,7 +41,7 @@ vi.mock('./card_commit_diff_panel', () => ({CardCommitDiffPanel: () => <div aria
 vi.mock('./card_body_save_status', () => ({ CardBodySaveStatus: () => null }))
 vi.mock('./card_body_editor', () => ({ CardBodyEditor: () => <div aria-label="Live card editor" /> }))
 
-const card: ProjectCard = {
+const card: Card = {
     agentConversationErrors: [],
     agentConversations: [],
     content: '# Card\n\nBody',
@@ -49,7 +49,7 @@ const card: ProjectCard = {
         affects: [], after: null, agentLogReferences: [], author: null, id: 'F-060', internalId: 'card-060',
         owner: null, policy: {}, status: 'ready', title: 'Card', worktree: null, worktreeError: null, worktreeValue: null,
     },
-    headerFields: {},
+    hasFrontmatter:true,
     isActive: true,
     path: 'design/F-060.md',
 }

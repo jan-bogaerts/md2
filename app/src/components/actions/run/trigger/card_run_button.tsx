@@ -4,14 +4,14 @@ import HelpCircleOutline from 'mdi-material-ui/HelpCircleOutline'
 import Play from 'mdi-material-ui/Play'
 import type { MouseEvent } from 'react'
 import type { ActionContext } from '../../../../data/action_context'
-import type { ProjectCard } from '../../../../data/data_types'
+import type { CardHeader } from '../../../../data/data_types'
 import { cardActionPopupService } from '../../../../services/actions/card_action_popup_service'
 import { agentStateDescription } from '../../../../services/agents/card_agent_state'
 import { useCardAgentState } from '../../../hooks/use_agent_acknowledgements'
 import { useRunningActionForContext } from '../../../hooks/use_action_runs'
 
 interface CardRunButtonProps {
-    card: ProjectCard
+    card: { header: Pick<CardHeader, 'internalId'> }
     context: ActionContext
 }
 

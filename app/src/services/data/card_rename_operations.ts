@@ -1,9 +1,9 @@
 import { cardPathForId, desiredCardPath, getNextCardNumber } from '../../data/card_naming'
 import { buildCardId, getCardIdPrefix } from '../../data/card_identifiers'
-import type { CanonicalCard, CardType, MarkdownFile } from '../../data/data_types'
+import type { Card, CardType, MarkdownFile } from '../../data/data_types'
 import type { OpenDocumentSaveReference } from '../open_files_service'
 import type { CardOperationContext } from './card_operation_context'
-import { setCardHeaderFields, setCardTitle } from './canonical_card'
+import { setCardHeaderFields, setCardTitle } from './card_mutations'
 import { markdownParsingService } from './markdown_parsing_service'
 
 /**
@@ -87,7 +87,7 @@ export class CardRenameOperations {
     private async renameCard(
         path: string,
         targetPath: string,
-        mutation: (card: CanonicalCard) => void,
+        mutation: (card: Card) => void,
         saveReference?: OpenDocumentSaveReference,
     ) {
         const { dependencies } = this.context
@@ -95,12 +95,14 @@ export class CardRenameOperations {
 
         await this.context.flushPendingCommits()
 
-        const card = dependencies.mutateCard(path, mutation, config.workingFolder)
+        const card = this.context.mutateCardPreservingOpenBody(path, mutation, config.workingFolder)
+        const cardInternalId = card.header.internalId
+        if (!cardInternalId) throw new Error(`Cannot rename a card without an internal ID: ${path}`)
         const documentSaveReference = saveReference ?? this.context.findOpenCardDocument(path)?.createSaveReference()
         commitBatcher.schedulePathChange(
             project.branch,
             path,
-            { card, saveReference: documentSaveReference, targetPath },
+            { cardInternalId, path, saveReference: documentSaveReference, targetPath },
             `Rename ${path} to ${targetPath}`,
             (fromPath, toPath) => this.reconcileCardPath(fromPath, toPath),
         )

@@ -78,33 +78,20 @@ export interface CardHeader {
     worktreeValue?: string | null
 }
 
-export interface ProjectCard {
+export interface Card {
     agentConversationErrors: AgentConversationError[]
     agentConversations: AgentConversation[]
     content: string
+    hasFrontmatter: boolean
     header: CardHeader
-    /** Raw frontmatter fields as written in the file, including unknown keys. */
-    headerFields: Record<string, string | string[] | Record<string, string>>
     isActive: boolean
     path: string
     sha?: string
 }
 
-/** Original parsed document state retained so a mutable card can serialize only changed fields. */
-export interface CardSourceState {
-    body: string
-    content: string
-    headerFields: Record<string, string | string[] | Record<string, string>>
-}
-
-/** Canonical mutable card owned by project state. */
-export interface CanonicalCard extends ProjectCard {
-    source: CardSourceState
-}
-
 export interface ProjectSnapshot {
-    activeCards: ProjectCard[]
-    backgroundCards: ProjectCard[]
+    activeCards: Card[]
+    backgroundCards: Card[]
     repositoryFiles: string[]
     workingFolder: string
 }

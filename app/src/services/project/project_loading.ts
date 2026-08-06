@@ -116,6 +116,7 @@ export interface ProjectLoadingDeps {
     flushPendingChanges(): Promise<void>
     isCommittedContent(path: string, content: string): boolean
     isCurrentLoad(project: ProjectReference, projectLoadToken: number): boolean
+    mergeBackgroundProjectFiles(files: MarkdownFile[], workingFolder: string, repositoryFiles: string[]): void
     project(): ProjectReference | null
     replaceFiles(files: MarkdownFile[], workingFolder: string): void
     replaceProject(project: ProjectReference | null): void
@@ -536,7 +537,7 @@ export class ProjectLoading {
         if (!projectFilesLoaded && repositoryFilesResult.status === 'rejected') return
         if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
 
-        this.dependencies.replaceProjectFiles(nextFiles, workingFolder, repositoryFiles)
+        this.dependencies.mergeBackgroundProjectFiles(nextFiles, workingFolder, repositoryFiles)
         await this.dependencies.ensureCardInternalIds()
         this.dependencies.dispatchChanged()
         const currentSnapshot = this.dependencies.snapshot()

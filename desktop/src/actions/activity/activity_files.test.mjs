@@ -1,4 +1,5 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import fs from 'node:fs';
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createRequire } from 'node:module';
@@ -7,6 +8,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 const require = createRequire(import.meta.url);
 const {
     closeWaitingActivityConversation,
+    ensureActivityFile,
     listAgentConversationReferences,
     loadActivityConversation,
     readActivityFile,
@@ -36,6 +38,24 @@ function waitingConversation() {
 describe('project activity conversations', () => {
     afterEach(() => vi.useRealTimers());
 
+    it('creates an empty card activity file without replacing an existing file', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-activity-reservation-'));
+        const project = { branch: 'main', id: 'local', rootPath };
+        const origin = { cardInternalId: 'card-1', kind: 'card' };
+        try {
+            await mkdir(join(rootPath, '.git'));
+            const relativePath = await ensureActivityFile(project, 'design', origin);
+            const filePath = join(rootPath, relativePath);
+            const firstContent = await readFile(filePath, 'utf8');
+            await ensureActivityFile(project, 'design', origin);
+
+            expect(JSON.parse(firstContent)).toEqual({ conversations: [], origin, records: [], version: 2 });
+            expect(await readFile(filePath, 'utf8')).toBe(firstContent);
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
     it('writes migrated schema and viewed state once when reading legacy activity', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-activity-migration-'));
         const filePath = join(rootPath, 'project.json');
@@ -58,6 +78,62 @@ describe('project activity conversations', () => {
             expect(persisted.records[0]).not.toHaveProperty('history');
             expect(persisted.records[0]).toMatchObject({ rootConversationId: conversation.id });
         } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('migrates legacy activity once when concurrent readers race', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-activity-migration-race-'));
+        const filePath = join(rootPath, 'project.json');
+        const conversation = waitingConversation();
+        const legacyRecord = {
+            commits: [], completedAt: terminalTime, conversationIds: [conversation.id],
+            history: { agent: 'codex', completedAt: terminalTime, output: 'answer', prompt: 'question', status: 'completed' },
+            origin: { kind: 'project' }, rootActionId: conversation.actionId, rootActionLabel: 'Review', runId: 'run-1',
+            startedAt: conversation.startedAt, status: 'completed',
+        };
+        const rename = vi.spyOn(fs.promises, 'rename');
+        try {
+            await writeFile(filePath, JSON.stringify({ conversations: [conversation], origin: { kind: 'project' }, records: [legacyRecord], version: 1 }));
+
+            const activities = await Promise.all([
+                readActivityFile(filePath, { kind: 'project' }),
+                readActivityFile(filePath, { kind: 'project' }),
+                readActivityFile(filePath, { kind: 'project' }),
+            ]);
+
+            expect(activities.map(({ version }) => version)).toEqual([2, 2, 2]);
+            expect(rename).toHaveBeenCalledTimes(1);
+            await expect(readdir(rootPath)).resolves.toEqual(['project.json']);
+        } finally {
+            rename.mockRestore();
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('keeps an unwritten activity for the next write instead of losing it', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-activity-write-failure-'));
+        const activityFolder = join(rootPath, 'design', 'activity');
+        const project = { branch: 'main', rootPath };
+        const seed = { ...waitingConversation(), id: 'conversation-seed', title: 'Seed' };
+        const unwritten = { ...waitingConversation(), id: 'conversation-unwritten', title: 'Unwritten' };
+        const recovered = { ...waitingConversation(), id: 'conversation-recovered', title: 'Recovered' };
+        const rename = vi.spyOn(fs.promises, 'rename');
+        try {
+            await mkdir(join(rootPath, '.git'));
+            await upsertActivityConversation(project, 'design', { kind: 'project' }, seed);
+
+            rename.mockRejectedValueOnce(Object.assign(new Error('rename failed'), { code: 'EPERM' }));
+            await expect(upsertActivityConversation(project, 'design', { kind: 'project' }, unwritten))
+                .rejects.toThrow('rename failed');
+            expect((await readdir(activityFolder)).filter((name) => name.endsWith('.tmp'))).toEqual([]);
+
+            await upsertActivityConversation(project, 'design', { kind: 'project' }, recovered);
+            const persisted = JSON.parse(await readFile(join(activityFolder, 'project.json'), 'utf8'));
+
+            expect(persisted.conversations.map(({ id }) => id)).toEqual([seed.id, unwritten.id, recovered.id]);
+        } finally {
+            rename.mockRestore();
             await rm(rootPath, { force: true, recursive: true });
         }
     });

@@ -18,6 +18,7 @@ class ActionRun {
         this.actionsFolder = snapshot.actionsFolder;
         this.activityOrigin = snapshot.activityOrigin;
         this.context = snapshot.context;
+        this.conversationReservation = snapshot.conversationReservation;
         this.runId = snapshot.runId;
         this.project = snapshot.project;
         this.projectFolder = snapshot.projectFolder;
@@ -468,6 +469,7 @@ class ActionRun {
             action,
             activityOrigin: this.activityOrigin,
             context: this.context,
+            conversationReservation: isRoot ? this.conversationReservation : null,
             runId: this.runId,
             onActiveRunChange,
             onEvent,

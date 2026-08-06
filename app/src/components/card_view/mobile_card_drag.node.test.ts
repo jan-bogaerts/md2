@@ -1,10 +1,10 @@
 import type { DragMoveEvent } from '@dnd-kit/core'
 import { describe, expect, it } from 'vitest'
 import type { CardColumn } from '../../data/card_ordering'
-import type { ProjectCard } from '../../data/data_types'
+import type { Card } from '../../data/data_types'
 import { resolveMobileCardDragEvent } from './mobile_card_drag'
 
-function card(path: string, status: string): ProjectCard {
+function card(path: string, status: string): Card {
     return {
         agentConversationErrors: [],
         agentConversations: [],
@@ -13,7 +13,7 @@ function card(path: string, status: string): ProjectCard {
             affects: [], after: null, agentLogReferences: [], author: null, id: path, internalId: path, owner: null,
             policy: {}, status, title: path,
         },
-        headerFields: {},
+        hasFrontmatter:true,
         isActive: true,
         path,
     }

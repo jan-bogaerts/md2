@@ -1,7 +1,7 @@
 import { slugifyTitle } from '../../data/card_naming'
 import type { CardSeparator } from '../../data/card_identifiers'
 import type {
-    ProjectCard,
+    Card,
     ProjectReference,
     ProjectSnapshot,
     StorageService,
@@ -388,7 +388,7 @@ export class WorktreeService extends EventTarget {
         return projectFolder
     }
 
-    private requireCard(path: string): ProjectCard {
+    private requireCard(path: string): Card {
         const snapshot = this.snapshotProvider?.()
         const cards = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]
         const card = cards.find((candidate) => candidate.path === path)

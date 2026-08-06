@@ -6,7 +6,7 @@ interface CardBodySaveStatusProps {
     document: CardOpenDocument
 }
 
-/** Canonical card-file dirty-state presentation. */
+/** Card-file dirty-state presentation. */
 export function CardBodySaveStatus(props: CardBodySaveStatusProps) {
     const { document } = props
     const subscribe = useCallback((onStoreChange: () => void) => {

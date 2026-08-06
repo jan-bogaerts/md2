@@ -1,11 +1,11 @@
 import { Avatar, Box, Stack, Typography, useTheme } from '@mui/material'
 import { alpha } from '@mui/material/styles'
 import { useSyncExternalStore } from 'react'
-import type { CardTypeConfig, ProjectCard } from '../../data/data_types'
+import type { CardTypeConfig } from '../../data/data_types'
 import { cardContext } from '../../data/action_context'
 import { getCardTypeColor } from './card_drag'
 import { useRunningActionForContext } from '../hooks/use_action_runs'
-import { useProjectCard } from './use_project_card'
+import { useCardMetadata, type CardMetadataSnapshot } from './use_project_card'
 import { cardDragDropService } from './card_drag_drop_service'
 
 interface CardDragOverlayProps {
@@ -13,7 +13,7 @@ interface CardDragOverlayProps {
 }
 
 interface CardDragOverlayContentProps {
-    card: ProjectCard
+    card: CardMetadataSnapshot
     cardTypes: CardTypeConfig[]
     width: number | null
 }
@@ -33,7 +33,7 @@ export function CardDragOverlay(props: CardDragOverlayProps) {
         cardDragDropService.getOverlaySnapshot,
         cardDragDropService.getOverlaySnapshot,
     )
-    const card = useProjectCard(cardPath)
+    const card = useCardMetadata(cardPath)
     if (!card) return null
 
     return <CardDragOverlayContent card={card} cardTypes={cardTypes} width={width} />

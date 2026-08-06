@@ -1,9 +1,10 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { AgentConversation, AgentConversationEvent, ProjectCard, WorktreeRecord } from '../../data/data_types'
+import type { AgentConversation, AgentConversationEvent, Card, WorktreeRecord } from '../../data/data_types'
 import { worktreeService } from '../../services/project/worktree_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { CardWorktreeIndicator } from './card_worktree_indicator'
+import type { DataService } from '../../services/data/data_service'
 
 function conversation(status: AgentConversation['status'], events: AgentConversationEvent[] = []): AgentConversation {
     return {
@@ -21,7 +22,7 @@ function conversation(status: AgentConversation['status'], events: AgentConversa
     }
 }
 
-function card(worktree: number | null, conversations: AgentConversation[] = []): ProjectCard {
+function card(worktree: number | null, conversations: AgentConversation[] = []): Card {
     return {
         agentConversationErrors: [],
         agentConversations: conversations,
@@ -31,7 +32,7 @@ function card(worktree: number | null, conversations: AgentConversation[] = []):
             policy: {}, status: 'design', title: 'Card', worktree, worktreeError: null,
             worktreeValue: worktree === null ? null : String(worktree),
         },
-        headerFields: {},
+        hasFrontmatter:true,
         isActive: true,
         path: 'design/F-1.md',
     }
@@ -42,11 +43,12 @@ const validWorktree: WorktreeRecord = {
     status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false }, valid: true,
 }
 
-function renderIndicator(projectCard: ProjectCard, worktrees: WorktreeRecord[] = [validWorktree]) {
+function renderIndicator(Card: Card, worktrees: WorktreeRecord[] = [validWorktree]) {
     vi.spyOn(worktreeService, 'getRecords').mockReturnValue(worktrees)
+    const service = Object.assign(new EventTarget(), {getState: () => ({ project: null, runningAgents: [], snapshot: { activeCards: [Card], backgroundCards: [], repositoryFiles: [], workingFolder: 'design' } })}) as unknown as DataService
     render(
         <AppThemeProvider>
-            <CardWorktreeIndicator card={projectCard} primaryPath="C:\\primary" />
+            <CardWorktreeIndicator cardId={Card.header.id} cardPath={Card.path} primaryPath="C:\\primary" service={service} />
         </AppThemeProvider>,
     )
 }
@@ -97,11 +99,15 @@ describe('CardWorktreeIndicator', () => {
     it('does not request worktree state while an assigned card agent is running', () => {
         const refresh = vi.spyOn(worktreeService, 'refresh').mockResolvedValue(undefined)
         vi.spyOn(worktreeService, 'getRecords').mockReturnValue([validWorktree])
+        const Card = card(1, [conversation('running')])
+        const service = Object.assign(new EventTarget(), {getState: () => ({ project: null, runningAgents: [], snapshot: { activeCards: [Card], backgroundCards: [], repositoryFiles: [], workingFolder: 'design' } })}) as unknown as DataService
         render(
             <AppThemeProvider>
                 <CardWorktreeIndicator
-                    card={card(1, [conversation('running')])}
+                    cardId={Card.header.id}
+                    cardPath={Card.path}
                     primaryPath="project"
+                    service={service}
                 />
             </AppThemeProvider>,
         )

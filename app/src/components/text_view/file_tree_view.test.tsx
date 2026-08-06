@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { TreeNode } from '../../data/file_tree'
-import type { ProjectCard } from '../../data/data_types'
+import type { Card } from '../../data/data_types'
 import { dataService } from '../../services/data/data_service'
 import { openFilesService } from '../../services/open_files_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
@@ -13,9 +13,9 @@ function fileNode(index: number, directoryPath = 'design'): TreeNode {
     return { children: [], directoryPath, id: path, kind: 'file', label: `File ${index}`, path, status: null }
 }
 
-function projectCard(path: string, title: string): ProjectCard {
+function Card(path: string, title: string): Card {
     return {
-        agentConversationErrors: [], agentConversations: [], content: '', headerFields: {}, isActive: true, path,
+        agentConversationErrors: [], agentConversations: [], content: '', hasFrontmatter: true, isActive: true, path,
         header: {
             affects: [], after: null, agentLogReferences: [], author: null, id: 'F-0', internalId: path,
             owner: null, policy: {}, status: null, title,
@@ -31,7 +31,7 @@ function renderTree(nodes: TreeNode[]) {
     const cards = filePaths(nodes).map((path) => {
         const index = Number(path.match(/F-(\d+)/u)?.[1] ?? 0)
 
-        return projectCard(path, `File ${index}`)
+        return Card(path, `File ${index}`)
     })
     const activeCards = nodes.every((node) => node.kind === 'file') ? cards : []
     const backgroundCards = activeCards.length > 0 ? [] : cards
@@ -95,12 +95,12 @@ describe('FileTreeView', () => {
         const nodes = [fileNode(1), fileNode(2)]
         renderTree(nodes)
 
-        act(() => openFilesService.openDocument(projectCard(nodes[0].path!, 'File 1')))
+        act(() => openFilesService.openDocument(Card(nodes[0].path!, 'File 1')))
 
         expect(screen.getByRole('button', { name: 'File 1' }).parentElement).toHaveAttribute('data-selected', 'true')
         expect(screen.getByRole('button', { name: 'File 2' }).parentElement).not.toHaveAttribute('data-selected')
 
-        act(() => openFilesService.openDocument(projectCard(nodes[1].path!, 'File 2')))
+        act(() => openFilesService.openDocument(Card(nodes[1].path!, 'File 2')))
 
         expect(screen.getByRole('button', { name: 'File 1' }).parentElement).not.toHaveAttribute('data-selected')
         expect(screen.getByRole('button', { name: 'File 2' }).parentElement).toHaveAttribute('data-selected', 'true')

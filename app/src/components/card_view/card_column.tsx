@@ -7,7 +7,7 @@ import type { CardTypeConfig } from '../../data/data_types'
 import { requestOpenNewCardDialog } from '../project_command_events'
 import { CardColumnEndDropTarget } from './card_column_end_drop_target'
 import { cardDragDropService } from './card_drag_drop_service'
-import { ProjectCardView, type CardHandlers } from './project_card_view'
+import { CardView, type CardHandlers } from './project_card_view'
 import type { VisibleCardColumn } from './use_card_view_columns'
 import { useCardColumnCards } from './use_card_column_cards'
 
@@ -62,7 +62,7 @@ export function CardColumn(props: CardColumnProps) {
         if (!cardPath) continue
 
         cardElements.push(
-            <ProjectCardView
+            <CardView
                 key={cardPath}
                 cardPath={cardPath}
                 cardTypes={cardTypes}

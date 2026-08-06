@@ -1,7 +1,7 @@
 import { parseAgentConversation } from './agent_conversations.mjs'
 
 const ACTIVITY_VERSION = 2
-const LEGACY_ACTIVITY_VERSION = 1
+export const LEGACY_ACTIVITY_VERSION = 1
 const ACTION_ACTIVITY_STATUSES = new Set(['cancelled', 'completed', 'failed', 'okButNotAfter'])
 
 function requiredString(value, fieldName, allowEmpty = false) {

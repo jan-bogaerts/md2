@@ -368,6 +368,42 @@ describe('ProjectLoading', () => {
         })
     })
 
+    it('merges a stale background load without replacing newer owned card state', async () => {
+        configService.init()
+        configService.set('react.autoCommitDelayMs', 30000)
+        const rootFile = files[0]
+        const backgroundFile = files[1]
+        const fullProject = createDeferred<StorageProjectFiles>()
+        const commit = vi.fn<StorageService['commit']>(async (request) => request.files)
+        const storage = createStorage({
+            commit,
+            listRepositoryFiles: vi.fn(async () => [rootFile.path, backgroundFile.path]),
+            loadProject: vi.fn(async () => fullProject.promise),
+            loadProjectRoot: vi.fn(async () => ({ files: [rootFile], workingFolder: 'design' })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const ownedCard = service.getState().snapshot?.activeCards[0]
+        if (!ownedCard) throw new Error('Expected loaded card')
+        const reference = 'design/activity/card__root-card.json#conversation=agent-1'
+
+        await service.cards.moveCard(ownedCard.path, 'ready', 0)
+        service.cards.addAgentLogReference(ownedCard.path, reference)
+        fullProject.resolve({ files: [rootFile, backgroundFile], workingFolder: 'design' })
+
+        await vi.waitFor(() => expect(service.getState().snapshot?.backgroundCards).toHaveLength(1))
+        const mergedCard = service.getState().snapshot?.activeCards[0]
+        expect(mergedCard).toBe(ownedCard)
+        expect(mergedCard?.header.status).toBe('ready')
+        expect(mergedCard?.header.agentLogReferences).toEqual([reference])
+
+        await service.cards.flushPendingCommits()
+        const persisted = commit.mock.calls.at(-1)?.[0].files.find(({ path }) => path === ownedCard.path)
+        expect(persisted?.content).toContain('status: ready')
+        expect(persisted?.content).toContain(`  - ${reference}`)
+    })
+
     it('reports background project load failures while keeping the root snapshot available', async () => {
         configService.init()
         const error = new Error('network down')
@@ -1085,7 +1121,7 @@ describe('ProjectLoading', () => {
         if (!projectCard) throw new Error('Expected loaded card')
         const document = openFilesService.openDocument(projectCard)
         if (document.kind !== 'card') throw new Error('Expected card document')
-        document.updateDraft({ ...projectCard, content: '# Root\n\nLocal draft' }, 'list-card')
+        document.updateDraft({ content: '# Root\n\nLocal draft' }, 'list-card')
 
         try {
             watchChange({ changeKind: 'changed', path: projectCard.path })

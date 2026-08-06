@@ -1,11 +1,11 @@
 import { alpha, Box, Button, Divider, IconButton, InputBase, Tooltip, Typography } from '@mui/material'
 import type { ChangeEvent, KeyboardEvent } from 'react'
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
 import Close from 'mdi-material-ui/Close'
 import DeleteOutline from 'mdi-material-ui/DeleteOutline'
 import FileDocumentOutline from 'mdi-material-ui/FileDocumentOutline'
 import FolderSearchOutline from 'mdi-material-ui/FolderSearchOutline'
-import type { CardTypeConfig, ProjectCard } from '../../data/data_types'
+import type { CardTypeConfig } from '../../data/data_types'
 import type { ActionContext } from '../../data/action_context'
 import { POPOVER_SIDE_MARGIN, POPOVER_TOP_MARGIN, ResizablePopover } from '../resizable_popover'
 import { useRunningActionForContext } from '../hooks/use_action_runs'
@@ -21,7 +21,7 @@ import { CardCommitDiffPanel } from './card_commit_diff_panel'
 import { useCardCommits } from '../hooks/use_card_commits'
 import type { CardCommit } from '../../services/actions/card_commit_history'
 import { openFilesService, type CardOpenDocument } from '../../services/open_files_service'
-import { useProjectCard } from './use_project_card'
+import { getProjectCard, useCardConversations, useCardMetadata } from './use_project_card'
 import { cardBodyPopoverService, subscribeCardBodyPopover } from './card_body_popover_service'
 import { useDialogError } from '../hooks/use_dialog_error'
 import { dialogService } from '../../services/dialog_service'
@@ -40,10 +40,13 @@ function subscribeOpenDocuments(onStoreChange: () => void) {
     }
 }
 
-function useBoardDocument(card: ProjectCard | null, visible: boolean) {
-    const getSnapshot = useCallback(() => visible && card?.header.internalId
-        ? openFilesService.findDocument(card) as CardOpenDocument | null
-        : null, [card, visible])
+function useBoardDocument(cardPath: string | null, cardInternalId: string | null | undefined, visible: boolean) {
+    const getSnapshot = useCallback(() => {
+        if (!visible || !cardPath || !cardInternalId) return null
+        const card = getProjectCard(cardPath)
+
+        return card ? openFilesService.findDocument(card) as CardOpenDocument | null : null
+    }, [cardInternalId, cardPath, visible])
 
     return useSyncExternalStore(subscribeOpenDocuments, getSnapshot, getSnapshot)
 }
@@ -84,12 +87,12 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
         () => cardBodyPopoverService.getSnapshot(),
         () => cardBodyPopoverService.getSnapshot(),
     )
-    const card = useProjectCard(cardPath)
+    const card = useCardMetadata(cardPath)
+    const activity = useCardConversations(cardPath)
     const [deleteCardPath, setDeleteCardPath] = useState<string | null>(null)
     const [historyStore] = useState(() => new MarkdownDocumentHistoryStore())
-    const cardRef = useRef(card)
     const cardIdentity = card?.header.internalId
-    const boardDocument = useBoardDocument(card, visible)
+    const boardDocument = useBoardDocument(card?.path ?? null, cardIdentity, visible)
     const [isFullscreen, setIsFullscreen] = useState(false)
     const [popupContentElement, setPopupContentElement] = useState<HTMLDivElement | null>(null)
     const [selectedCardCommit, setSelectedCardCommit] = useState<SelectedCardCommit | null>(null)
@@ -105,17 +108,14 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
     useDialogError(missingCardIdentityError, 'Card details could not be opened')
 
     useEffect(() => {
-        cardRef.current = card
-    }, [card])
-
-    useEffect(() => {
-        const currentCard = cardRef.current
-        if (!visible || !currentCard) {
+        if (!visible || !cardPath) {
             cardMarkdownDataSource.setBoardDocument(null)
             historyStore.clear()
             return
         }
         if (!cardIdentity) return
+        const currentCard = getProjectCard(cardPath)
+        if (!currentCard) return
 
         const document = openFilesService.openBoardDocument(currentCard)
         cardMarkdownDataSource.setBoardDocument(document)
@@ -125,7 +125,7 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
             historyStore.discardDocument(document)
             openFilesService.closeBoardDocument(document)
         }
-    }, [cardIdentity, historyStore, visible])
+    }, [cardIdentity, cardPath, historyStore, visible])
 
     useEffect(() => () => {
         cardMarkdownDataSource.setBoardDocument(null)
@@ -404,7 +404,7 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
                                     <Button onClick={openInFileMode} startIcon={<FileDocumentOutline />} variant="outlined">Open in file mode</Button>
                                 </>
                             )}
-                            <AgentUsageDisplay usage={cardAgentTokenUsage(card)} />
+                            <AgentUsageDisplay usage={cardAgentTokenUsage(activity?.conversations ?? [])} />
                             <Box sx={{ flex: 1 }} />
                             {!isMobile ? <Button onClick={closePopover} variant="contained">Close</Button> : null}
                         </Box>

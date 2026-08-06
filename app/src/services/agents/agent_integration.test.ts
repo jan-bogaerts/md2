@@ -475,7 +475,7 @@ describe('AgentIntegration', () => {
         configService.init()
         const sourceConversation = { ...conversation(), actionId: 'md2.custom-prompt' }
         const cardFile = {
-            content: '---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - design/activity/card__root-card.json#conversation=agent-1\n---\n\n# Root',
+            content: '---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nworktree: 3\nagents:\n  - design/activity/card__root-card.json#conversation=agent-1\n---\n\n# Root',
             path: 'design/F-1-root.md',
         }
         const storage = createStorage({
@@ -492,7 +492,7 @@ describe('AgentIntegration', () => {
 
         expect(runElectronAction).toHaveBeenCalledWith(
             expect.objectContaining({ id: 'md2.custom-prompt' }),
-            expect.objectContaining({ file: 'design/F-1-root.md', kind: 'file' }),
+            expect.objectContaining({ file: 'design/F-1-root.md', kind: 'file', worktree: '3' }),
             { continueFrom: 'design/activity/card__root-card.json#conversation=agent-1' },
         )
     })
@@ -539,6 +539,8 @@ describe('AgentIntegration', () => {
         const service = createDataService()
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        service.cards.updateCardWorktree('design/F-1-root.md', 3)
+        service.cards.toggleCardPolicy('design/F-1-root.md', 'allowNetwork')
         if (!actionRunCallback) throw new Error('Action run callback not registered')
         const emitActionRun = actionRunCallback as (event: ActionRunEvent) => void
 
@@ -563,6 +565,8 @@ describe('AgentIntegration', () => {
 
         await vi.waitFor(() => expect(storage.loadAgentConversation).toHaveBeenCalledTimes(1))
         expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual([reference])
+        expect(service.getState().snapshot?.activeCards[0].header.worktree).toBe(3)
+        expect(service.getState().snapshot?.activeCards[0].header.policy).toEqual({ allowNetwork: true })
     })
 
     it('links the final conversation reference and loads it once', async () => {

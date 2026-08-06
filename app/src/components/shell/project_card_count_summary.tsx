@@ -3,7 +3,7 @@ import CardsOutline from 'mdi-material-ui/CardsOutline'
 import { useProjectState } from '../hooks/use_project_state'
 
 /** Status-bar totals for all project cards and active cards. */
-export function ProjectCardCountSummary() {
+export function CardCountSummary() {
     const { snapshot } = useProjectState()
     const activeCardCount = snapshot?.activeCards.length ?? 0
     const totalCardCount = activeCardCount + (snapshot?.backgroundCards.length ?? 0)

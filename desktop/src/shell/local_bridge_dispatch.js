@@ -320,6 +320,11 @@ function createLocalBridgeDispatch(dependencies) {
 
             return actionSchedulerService.registerActionSchedule(request);
         },
+        reserveActionConversation: (request) => {
+            if (!actionRunnerService) throw new Error('Action runner is not available');
+
+            return actionRunnerService.reserveConversation(request);
+        },
         restartActionRun: (runId, request) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 

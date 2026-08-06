@@ -1,4 +1,4 @@
-import type { CanonicalCard, MarkdownFile, ProjectCard, ProjectReference, ProjectSnapshot } from '../../data/data_types'
+import type { Card, MarkdownFile, ProjectReference, ProjectSnapshot } from '../../data/data_types'
 import { markdownParsingService, type CardParseError } from '../data/markdown_parsing_service'
 import { mergeFiles } from '../data/data_service_context'
 
@@ -6,7 +6,7 @@ type CardCollections = Pick<ProjectSnapshot, 'activeCards' | 'backgroundCards'>
 
 type AttachAgentConversations = (cards: CardCollections) => CardCollections
 type ReportCardParseErrors = (errors: CardParseError[]) => void
-type ActiveCardsChanged = (previousCards: ProjectCard[], nextCards: ProjectCard[]) => void
+type ActiveCardsChanged = (previousCards: Card[], nextCards: Card[]) => void
 
 const ignoreCardParseErrors: ReportCardParseErrors = () => undefined
 
@@ -33,16 +33,7 @@ function isSameProjectReference(left: ProjectReference | null, right: ProjectRef
         && left.rootPath === right.rootPath
 }
 
-function cloneHeaderFields(card: ProjectCard) {
-    return Object.fromEntries(Object.entries(card.headerFields).map(([key, value]) => {
-        if (Array.isArray(value)) return [key, [...value]]
-        if (typeof value === 'object') return [key, { ...value }]
-
-        return [key, value]
-    }))
-}
-
-function cloneCard(card: ProjectCard): ProjectCard {
+function cloneCard(card: Card): Card {
     return {
         ...card,
         agentConversationErrors: [...card.agentConversationErrors],
@@ -53,14 +44,13 @@ function cloneCard(card: ProjectCard): ProjectCard {
             agentLogReferences: [...card.header.agentLogReferences],
             policy: { ...card.header.policy },
         },
-        headerFields: cloneHeaderFields(card),
     }
 }
 
 export class ProjectState {
     private agentConversationLoadToken = 0
     private currentFiles: MarkdownFile[] = []
-    private currentCardsByPath = new Map<string, CanonicalCard>()
+    private currentCardsByPath = new Map<string, Card>()
     private currentProject: ProjectReference | null = null
     private currentSnapshot: ProjectSnapshot | null = null
     private readonly inFlightCommitPaths: Set<string> = new Set()
@@ -109,6 +99,17 @@ export class ProjectState {
         this.currentFiles = files
         this.reconcileCards(files, workingFolder)
         this.currentSnapshot = this.createSnapshot(workingFolder, repositoryFiles, true)
+        if (previousActiveCards !== this.currentSnapshot.activeCards) {
+            this.activeCardsChanged(previousActiveCards, this.currentSnapshot.activeCards)
+        }
+    }
+
+    /** Adds files discovered by the full load without replacing cards already owned by the root snapshot. */
+    mergeBackgroundProjectFiles(files: MarkdownFile[], workingFolder: string, repositoryFiles: string[]) {
+        const previousActiveCards = this.currentSnapshot?.activeCards ?? []
+        this.currentFiles = files
+        this.reconcileCards(this.currentFiles, workingFolder, true)
+        this.currentSnapshot = this.createSnapshot(workingFolder, repositoryFiles)
         if (previousActiveCards !== this.currentSnapshot.activeCards) {
             this.activeCardsChanged(previousActiveCards, this.currentSnapshot.activeCards)
         }
@@ -210,14 +211,21 @@ export class ProjectState {
         return existingFile
     }
 
-    requireCard(path: string): CanonicalCard {
+    requireCard(path: string): Card {
         const card = this.currentCardsByPath.get(path)
         if (!card) throw new Error(`Cannot update a card that is not loaded: ${path}`)
 
         return card
     }
 
-    mutateCard(path: string, mutation: (card: CanonicalCard) => void, workingFolder: string) {
+    requireCardByInternalId(internalId: string): Card {
+        const card = [...this.currentCardsByPath.values()].find(({ header }) => header.internalId === internalId)
+        if (!card) throw new Error(`Cannot update a card that is not loaded: ${internalId}`)
+
+        return card
+    }
+
+    mutateCard(path: string, mutation: (card: Card) => void, workingFolder: string) {
         const card = this.requireCard(path)
         const previousCard = cloneCard(card)
         const previousActiveCards = this.currentSnapshot?.activeCards ?? []
@@ -243,13 +251,13 @@ export class ProjectState {
     }
 
     private createSnapshot(workingFolder: string, repositoryFiles: string[], forceNew = false): ProjectSnapshot {
-        const canonicalCards = [...this.currentCardsByPath.values()]
-        const cards = this.attachAgentConversations({
-            activeCards: canonicalCards.filter(({ isActive }) => isActive),
-            backgroundCards: canonicalCards.filter(({ isActive }) => !isActive),
+        const cards = [...this.currentCardsByPath.values()]
+        const cardsWithConversations = this.attachAgentConversations({
+            activeCards: cards.filter(({ isActive }) => isActive),
+            backgroundCards: cards.filter(({ isActive }) => !isActive),
         })
-        const activeCards = cards.activeCards
-        const backgroundCards = cards.backgroundCards
+        const activeCards = cardsWithConversations.activeCards
+        const backgroundCards = cardsWithConversations.backgroundCards
 
         const previous = this.currentSnapshot
         const snapshot: ProjectSnapshot = {
@@ -269,15 +277,19 @@ export class ProjectState {
         return !forceNew && isSameSnapshot ? previous : snapshot
     }
 
-    private reconcileCards(files: MarkdownFile[], workingFolder: string) {
-        const nextCardsByPath = new Map<string, CanonicalCard>()
+    private reconcileCards(files: MarkdownFile[], workingFolder: string, preserveExisting = false) {
+        const nextCardsByPath = new Map<string, Card>()
         const parseErrors: CardParseError[] = []
 
         for (const file of files) {
             if (!markdownParsingService.isMarkdownFile(file.path)) continue
 
             const existingCard = this.currentCardsByPath.get(file.path)
-            if (existingCard?.source.content === file.content) {
+            if (preserveExisting && existingCard) {
+                nextCardsByPath.set(file.path, existingCard)
+                continue
+            }
+            if (existingCard && markdownParsingService.hasSourceContent(existingCard, file.content)) {
                 existingCard.sha = file.sha
                 existingCard.isActive = markdownParsingService.isRootWorkingFolderFile(file.path, workingFolder)
                 nextCardsByPath.set(file.path, existingCard)

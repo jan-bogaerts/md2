@@ -1,6 +1,6 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { DEFAULT_CARD_TYPES, type ProjectCard } from '../../data/data_types'
+import { DEFAULT_CARD_TYPES, type Card } from '../../data/data_types'
 import { actionService } from '../../services/actions/action_service'
 import { cardActionPopupService } from '../../services/actions/card_action_popup_service'
 import { dataService } from '../../services/data/data_service'
@@ -12,7 +12,7 @@ import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
 import { cardDragDropService } from './card_drag_drop_service'
 import { MobileCardView } from './mobile_card_view'
 
-function card(id: string, title: string, status: string): ProjectCard {
+function card(id: string, title: string, status: string): Card {
     return {
         agentConversationErrors: [],
         agentConversations: [],
@@ -21,7 +21,7 @@ function card(id: string, title: string, status: string): ProjectCard {
             affects: [], after: null, agentLogReferences: [], author: null, id, internalId: id.toLowerCase(), owner: null,
             policy: {}, status, title, worktree: null, worktreeError: null, worktreeValue: null,
         },
-        headerFields: { id, status, title },
+        hasFrontmatter:true,
         isActive: true,
         path: `design/${id}.md`,
     }

@@ -1,6 +1,6 @@
-import type { CanonicalCard } from '../../data/data_types'
+import type { Card } from '../../data/data_types'
 import type { CardOperationContext } from './card_operation_context'
-import { setCardHeaderFields } from './canonical_card'
+import { setCardHeaderFields } from './card_mutations'
 import { markdownParsingService } from './markdown_parsing_service'
 
 /**
@@ -38,7 +38,7 @@ export class CardInternalIdOperations {
         const cardsWithoutInternalId = cards.filter(({ header }) => !header.internalId)
         if (cardsWithoutInternalId.length === 0) return 0
 
-        const cardsToPersist: CanonicalCard[] = []
+        const cardsToPersist: Card[] = []
         for (const card of cardsWithoutInternalId) {
             const generatedInternalId = this.generatedInternalIdsByPath.get(card.path)
             const internalId = generatedInternalId ?? markdownParsingService.generateInternalId()
@@ -51,7 +51,13 @@ export class CardInternalIdOperations {
             if (!generatedInternalId) cardsToPersist.push(updatedCard)
         }
         if (cardsToPersist.length > 0) {
-            commitBatcher.schedule(project.branch, cardsToPersist.map((card) => ({ card })), 'Add missing card internal IDs')
+            const changes = cardsToPersist.map((card) => {
+                const cardInternalId = card.header.internalId
+                if (!cardInternalId) throw new Error(`Generated card identity was not applied: ${card.path}`)
+
+                return { cardInternalId, path: card.path }
+            })
+            commitBatcher.schedule(project.branch, changes, 'Add missing card internal IDs')
         }
         dependencies.dispatchChanged()
 

@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const {
+    LEGACY_ACTIVITY_VERSION,
     createActivityFile,
     findActivityConversation,
     migrateActivityValue,
@@ -24,6 +25,7 @@ const {
 } = require('../../git/git_commands');
 
 const activityWriteQueues = new Map();
+const unwrittenActivityValues = new Map();
 const VISIBILITY_CHECK_CONCURRENCY = 8;
 
 function requireProjectFolder(value) {
@@ -45,24 +47,51 @@ function resolveActivityPath(rootPath, projectFolder, origin) {
     };
 }
 
-async function readActivityFile(filePath, origin) {
-    if (!await pathExists(filePath)) return createActivityFile(origin);
+async function readStoredActivity(filePath, origin) {
+    const unwritten = unwrittenActivityValues.get(filePath);
+    if (unwritten) return { legacy: false, value: unwritten };
+    if (!await pathExists(filePath)) return { legacy: false, value: null };
     const value = JSON.parse(await fs.promises.readFile(filePath, 'utf8'));
-    if (value.version === 1) {
-        const migrated = migrateActivityValue(value, origin);
-        await writeActivityFile(filePath, migrated);
+    if (value.version !== LEGACY_ACTIVITY_VERSION) return { legacy: false, value };
 
-        return migrated;
-    }
+    return { legacy: true, value: migrateActivityValue(value, origin) };
+}
 
-    return parseActivityValue(value, origin);
+function activityValue(stored, origin) {
+    return stored.value === null ? createActivityFile(origin) : parseActivityValue(stored.value, origin);
+}
+
+async function loadActivityValue(filePath, origin) {
+    return activityValue(await readStoredActivity(filePath, origin), origin);
+}
+
+async function readActivityFile(filePath, origin) {
+    const stored = await readStoredActivity(filePath, origin);
+    if (!stored.legacy) return activityValue(stored, origin);
+
+    return queueActivityUpdate(filePath, async () => {
+        const current = await readStoredActivity(filePath, origin);
+        const activity = activityValue(current, origin);
+        if (current.legacy) await writeActivityFile(filePath, activity);
+
+        return activity;
+    });
 }
 
 async function writeActivityFile(filePath, activity) {
     const temporaryPath = `${filePath}.${crypto.randomUUID()}.tmp`;
     await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
-    await fs.promises.writeFile(temporaryPath, `${JSON.stringify(activity, null, 2)}\n`);
-    await fs.promises.rename(temporaryPath, filePath);
+    try {
+        await fs.promises.writeFile(temporaryPath, `${JSON.stringify(activity, null, 2)}\n`);
+        await fs.promises.rename(temporaryPath, filePath);
+        unwrittenActivityValues.delete(filePath);
+    } catch (error) {
+        unwrittenActivityValues.set(filePath, activity);
+
+        throw error;
+    } finally {
+        await fs.promises.rm(temporaryPath, { force: true });
+    }
 }
 
 function queueActivityUpdate(filePath, update) {
@@ -82,7 +111,7 @@ async function updateActivity(project, projectFolder, origin, update) {
     await assertGitRoot(rootPath);
     const { absolutePath, relativePath } = resolveActivityPath(rootPath, projectFolder, origin);
     const activity = await queueActivityUpdate(absolutePath, async () => {
-        const current = await readActivityFile(absolutePath, origin);
+        const current = await loadActivityValue(absolutePath, origin);
         const next = update(current);
         await writeActivityFile(absolutePath, next);
 
@@ -92,13 +121,26 @@ async function updateActivity(project, projectFolder, origin, update) {
     return { activity, relativePath };
 }
 
+async function ensureActivityFile(project, projectFolder, origin) {
+    const rootPath = requireRootPath(project);
+    await assertGitRoot(rootPath);
+    const { absolutePath, relativePath } = resolveActivityPath(rootPath, projectFolder, origin);
+    await queueActivityUpdate(absolutePath, async () => {
+        if (await pathExists(absolutePath)) return;
+
+        await writeActivityFile(absolutePath, createActivityFile(origin));
+    });
+
+    return relativePath;
+}
+
 async function updateAndCommitActivity(project, projectFolder, origin, update, message) {
     const rootPath = requireRootPath(project);
     await assertGitRoot(rootPath);
     const { absolutePath, relativePath } = resolveActivityPath(rootPath, projectFolder, origin);
 
     return queueActivityUpdate(absolutePath, async () => {
-        const current = await readActivityFile(absolutePath, origin);
+        const current = await loadActivityValue(absolutePath, origin);
         const next = update(current);
         await writeActivityFile(absolutePath, next);
         const commit = await commitTrackedPaths(rootPath, [relativePath], message);
@@ -166,10 +208,11 @@ async function updateActivityConversationViewed(project, reference, viewed) {
     const absolutePath = ensureInsideRoot(rootPath, path.join(rootPath, activityPath));
 
     return queueActivityUpdate(absolutePath, async () => {
-        const activity = await readActivityFile(absolutePath);
+        const stored = await readStoredActivity(absolutePath);
+        const activity = activityValue(stored);
         const conversation = findActivityConversation(activity, conversationId);
         const updatedConversation = { ...conversation, viewed };
-        const storedActivity = JSON.parse(await fs.promises.readFile(absolutePath, 'utf8'));
+        const storedActivity = stored.value;
         const updatedActivity = {
             ...storedActivity,
             conversations: storedActivity.conversations.map((current) => (
@@ -203,14 +246,15 @@ async function closeWaitingActivityConversation(project, reference, status) {
     const absolutePath = ensureInsideRoot(rootPath, path.join(rootPath, activityPath));
 
     return queueActivityUpdate(absolutePath, async () => {
-        const activity = await readActivityFile(absolutePath);
+        const stored = await readStoredActivity(absolutePath);
+        const activity = activityValue(stored);
         const conversation = findActivityConversation(activity, conversationId);
         if (conversation.status !== 'waitingForInput') {
             throw new Error(`Agent conversation is no longer waiting for input: ${reference}`);
         }
 
         const completedAt = new Date().toISOString();
-        const storedActivity = JSON.parse(await fs.promises.readFile(absolutePath, 'utf8'));
+        const storedActivity = stored.value;
         const updatedActivity = {
             ...storedActivity,
             conversations: storedActivity.conversations.map((storedConversation) => (
@@ -299,6 +343,7 @@ module.exports = {
     appendAndCommitSystemActivity,
     appendActionActivity,
     closeWaitingActivityConversation,
+    ensureActivityFile,
     listAgentConversationReferences,
     loadCardActivity,
     loadActivityConversation,

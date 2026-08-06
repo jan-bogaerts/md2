@@ -38,6 +38,8 @@ function createRunner(actionFiles = [actionFile('main')], overrides = {}) {
             return { relativePath: 'design/activity/card__card-010.json' };
         }),
         appendActionRunHistory,
+        activityConversationReference: vi.fn((_projectFolder, _origin, conversationId) => `design/activity/card__card-010.json#conversation=${conversationId}`),
+        ensureActivityFile: vi.fn(async () => 'design/activity/card__card-010.json'),
         loadActionFile: vi.fn(async (_project, actionPath) => actionFiles.find(({ path }) => path === actionPath)),
         loadActionFiles: vi.fn(async () => actionFiles),
         loadAgentConversation: vi.fn(),
@@ -75,6 +77,20 @@ async function runToCompletion(runner, request = { actionId: 'main', context, ru
 }
 
 describe('ActionRunnerService', () => {
+    it('reserves a root agent conversation before the action starts', async () => {
+        const files = [actionFile('main', { agent: 'codex', command: undefined, prompt: 'Run', type: 'agent' })];
+        const { localGitService, runner } = createRunner(files);
+
+        const reservation = await runner.reserveConversation({ actionId: 'main', context, runInput: {} });
+
+        expect(localGitService.ensureActivityFile).toHaveBeenCalledWith(
+            project,
+            'design',
+            { cardInternalId: context.cardInternalId, kind: 'card' },
+        );
+        expect(reservation.reference).toBe(`design/activity/card__card-010.json#conversation=${reservation.conversationId}`);
+    });
+
     const releasedContext = {
         ...context,
         file: 'design/releases/v1/F-010.md',

@@ -1,12 +1,12 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { DEFAULT_CARD_TYPES, type ProjectCard } from '../../data/data_types'
+import { DEFAULT_CARD_TYPES, type Card } from '../../data/data_types'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
 import { CardPropertiesPanel } from './card_properties_panel'
 
-const card: ProjectCard = {
-    agentConversationErrors: [], agentConversations: [], content: '', headerFields: { author: 'JB' }, isActive: true,
+const card: Card = {
+    agentConversationErrors: [], agentConversations: [], content: '', hasFrontmatter: true, isActive: true,
     header: {
         affects: [], after: null, agentLogReferences: [], author: 'JB', id: 'F-1', internalId: 'card-1',
         owner: null, policy: {}, status: 'design', title: 'Alpha', worktree: null, worktreeError: null, worktreeValue: null,
@@ -14,7 +14,7 @@ const card: ProjectCard = {
     path: 'design/F-1.md',
 }
 
-function renderPanel(activeCard: ProjectCard = card, cardTypes = DEFAULT_CARD_TYPES) {
+function renderPanel(activeCard: Card = card, cardTypes = DEFAULT_CARD_TYPES) {
     vi.spyOn(cardMarkdownDataSource, 'getActiveCard').mockReturnValue(activeCard)
     const updateAuthor = vi.spyOn(cardMarkdownDataSource, 'updateActiveCardHeaderField').mockImplementation(() => undefined)
     const updateTitle = vi.spyOn(cardMarkdownDataSource, 'updateActiveCardTitle').mockImplementation(() => undefined)

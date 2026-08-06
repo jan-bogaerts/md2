@@ -81,6 +81,21 @@ describe('ActionAgentExecutor', () => {
         expect(input.onActiveRunChange.mock.calls.map(([runId]) => runId)).toEqual(['active-run', null]);
     });
 
+    it('starts the first agent turn with its reserved conversation identity', async () => {
+        const { agentRunnerService, executor } = createExecutor();
+        const conversationReservation = {
+            conversationId: 'agent-reserved',
+            reference: 'design/activity/card__card-1.json#conversation=agent-reserved',
+        };
+
+        await executor.execute(executionInput({ conversationReservation }));
+
+        expect(agentRunnerService.start.mock.calls[0][1]).toMatchObject({
+            conversationId: conversationReservation.conversationId,
+            reference: conversationReservation.reference,
+        });
+    });
+
     it('resolves run permission overrides before action and desktop defaults', async () => {
         const agentConfigProvider = () => ({accessLevel: 'workspace-write', agent: 'codex', agentProfiles: [], approvalPolicy: 'on-request', model: ''});
         const { agentRunnerService, executor } = createExecutor({ agentConfigProvider });

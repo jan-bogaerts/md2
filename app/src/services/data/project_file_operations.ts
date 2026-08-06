@@ -3,7 +3,7 @@ import type { MarkdownFile } from '../../data/data_types'
 import { newFolderPath, newMarkdownFilePath } from '../../data/project_tree_paths'
 import type { CardOperationContext } from './card_operation_context'
 import { markdownParsingService } from './markdown_parsing_service'
-import { setCardHeaderFields } from './canonical_card'
+import { setCardHeaderFields } from './card_mutations'
 
 const FOLDER_PLACEHOLDER_NAME = '.gitkeep'
 

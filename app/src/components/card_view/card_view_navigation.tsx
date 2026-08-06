@@ -1,10 +1,10 @@
 import { Badge, List, ListItemButton, ListItemText } from '@mui/material'
 import { useMemo } from 'react'
 import { buildCardColumns } from '../../data/card_ordering'
-import type { ProjectCard, StateConfig } from '../../data/data_types'
+import type { Card, StateConfig } from '../../data/data_types'
 
 interface CardViewNavigationProps {
-    cards: ProjectCard[]
+    cards: Card[]
     onNavigate: () => void
     states: StateConfig[]
 }

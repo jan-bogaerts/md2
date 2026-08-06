@@ -1,13 +1,13 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ProjectSnapshot } from '../../data/data_types'
-import { ProjectCardCountSummary } from './project_card_count_summary'
+import { CardCountSummary } from './project_card_count_summary'
 
 const projectState = vi.hoisted(() => ({ snapshot: null as ProjectSnapshot | null }))
 
 vi.mock('../hooks/use_project_state', () => ({ useProjectState: () => projectState }))
 
-describe('ProjectCardCountSummary', () => {
+describe('CardCountSummary', () => {
     afterEach(() => {
         cleanup()
         projectState.snapshot = null
@@ -21,7 +21,7 @@ describe('ProjectCardCountSummary', () => {
             workingFolder: 'design',
         } as unknown as ProjectSnapshot
 
-        render(<ProjectCardCountSummary />)
+        render(<CardCountSummary />)
 
         expect(screen.getByText('5')).toBeInTheDocument()
         expect(screen.getByText('cards')).toBeInTheDocument()

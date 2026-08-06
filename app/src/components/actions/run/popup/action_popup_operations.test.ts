@@ -10,7 +10,7 @@ import { currentActionPromptDraft, runPopupAction, type ActionPopupOperationInpu
 import { ActionRunInputStore } from '../state/action_run_input_store'
 
 const action = { id: 'stream', label: 'Stream', streaming: true, type: 'agent' } as ActionDefinition
-const context: ActionContext = { file: 'design/F-1.md', kind: 'card' }
+const context: ActionContext = { file: 'design/F-1.md', kind: 'card', worktree: '3' }
 const restartAction = vi.hoisted(() => vi.fn())
 
 vi.mock('./action_popup_defaults', async (importOriginal) => {
@@ -89,7 +89,7 @@ describe('runPopupAction waiting follow-up', () => {
         vi.restoreAllMocks()
     })
 
-    it('sends unchanged settings through existing streaming process', async () => {
+    it('sends follow-up through same live process and assigned worktree', async () => {
         const inputStore = new ActionRunInputStore()
         const run = actionRunRegistry.getActionRunStore(action.id, context)?.getSnapshot() ?? null
         actionPromptDraftService.getDraft(action.id, context, run, { prepare: false }).edit('Next request')
@@ -97,6 +97,7 @@ describe('runPopupAction waiting follow-up', () => {
         await runPopupAction(operationInput(inputStore))
 
         expect(bridge.sendActionQueuedMessage).toHaveBeenCalledWith('run-1', 4, 1)
+        expect(actionRunRegistry.getActionRunStore(action.id, context)?.getSnapshot()?.context.worktree).toBe('3')
         expect(restartAction).not.toHaveBeenCalled()
     })
 

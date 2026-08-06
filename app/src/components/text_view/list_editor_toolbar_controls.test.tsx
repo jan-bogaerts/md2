@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { CardCommit } from '../../services/actions/card_commit_history'
 import { cardActionPopupService } from '../../services/actions/card_action_popup_service'
-import type { ProjectCard } from '../../data/data_types'
+import type { Card } from '../../data/data_types'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { listCardCommitDiffDataSource } from '../card_view/list_card_commit_diff_data_source'
 import { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
@@ -49,8 +49,8 @@ afterEach(() => {
     vi.restoreAllMocks()
 })
 
-const card: ProjectCard = {
-    agentConversationErrors: [], agentConversations: [], content: '', headerFields: { author: 'JB' }, isActive: true,
+const card: Card = {
+    agentConversationErrors: [], agentConversations: [], content: '', hasFrontmatter: true, isActive: true,
     header: {
         affects: [], after: null, agentLogReferences: [], author: null, id: 'F-060', internalId: 'card-060',
         owner: null, policy: {}, status: 'ready', title: 'Card', worktree: null, worktreeError: null, worktreeValue: null,

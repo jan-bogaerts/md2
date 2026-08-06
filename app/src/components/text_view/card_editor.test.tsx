@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { ProjectCard } from '../../data/data_types'
+import type { Card } from '../../data/data_types'
 import type { CardCommit } from '../../services/actions/card_commit_history'
 import { openFilesService } from '../../services/open_files_service'
 import { listCardCommitDiffDataSource } from '../card_view/list_card_commit_diff_data_source'
@@ -49,7 +49,7 @@ vi.mock('./list_editor_toolbar_controls', () => ({
 
 vi.mock('../card_view/card_commit_diff_panel', () => ({CardCommitDiffPanel: () => <div aria-label="File card commit diff" />}))
 
-const card: ProjectCard = {
+const card: Card = {
     agentConversationErrors: [],
     agentConversations: [],
     content: '# Card\n\nBody',
@@ -57,7 +57,7 @@ const card: ProjectCard = {
         affects: [], after: null, agentLogReferences: [], author: null, id: 'F-060', internalId: 'card-060',
         owner: null, policy: {}, status: 'ready', title: 'Card', worktree: null, worktreeError: null, worktreeValue: null,
     },
-    headerFields: {},
+    hasFrontmatter:true,
     isActive: true,
     path: 'design/F-060.md',
 }
@@ -67,7 +67,7 @@ const editorProps = {
     statusColors: new Map<string, string>(),
 }
 
-const secondCard: ProjectCard = {
+const secondCard: Card = {
     ...card,
     header: { ...card.header, id: 'F-061', internalId: 'card-061', title: 'Second card' },
     path: 'design/F-061.md',

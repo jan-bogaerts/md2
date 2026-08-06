@@ -391,9 +391,15 @@ describe('CardOperations', () => {
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const broadChanged = vi.fn()
+        const cardChanged = vi.fn()
+        service.addEventListener('changed', broadChanged)
+        service.addEventListener(CARD_CHANGED_EVENT, cardChanged)
         const updates = await service.cards.moveCard('design/B-1-b.md', 'done', 1)
-        await service.cards.flushPendingCommits()
 
+        expect(broadChanged).not.toHaveBeenCalled()
+        expect(cardChanged).toHaveBeenCalled()
+        await service.cards.flushPendingCommits()
         expect(updates).toContainEqual({ after: 'p', path: 'design/B-1-b.md', status: 'done' })
         const committed = (storage.commit as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0] as CommitRequest
         const committedPaths = committed.files.map((file) => file.path)
@@ -433,6 +439,88 @@ describe('CardOperations', () => {
         expect(todoCards.find((card) => card.header.internalId === 'c')?.header.after).toBeNull()
         expect(todoCards.find((card) => card.header.internalId === 'a')?.header.after).toBe('c')
         expect(todoCards.find((card) => card.header.internalId === 'd')?.header.after).toBe('b')
+    })
+
+    it('persists dirty body, worktree, ordering, and unknown frontmatter together', async () => {
+        configService.init()
+        const firstFile = activeCardFile('a')
+        firstFile.content = firstFile.content.replace('title: A', 'title: A\ncustom: keep')
+        const files = [firstFile, activeCardFile('b', { after: 'a' })]
+        const { commit, storage } = createMovePersistenceStorage(files)
+        const service = createDataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const card = service.getState().snapshot?.activeCards.find(({ path }) => path === firstFile.path)
+        if (!card) throw new Error('Expected loaded card')
+        const document = openFilesService.openDocument(card)
+        if (document.kind !== 'card') throw new Error('Expected card document')
+        const body = '# A\n\nDirty body'
+        document.updateDraft({ content: body }, 'test')
+        service.cards.updateCardWorktree(card.path, 3)
+        await service.cards.moveCard(card.path, 'todo', 1)
+        await service.cards.flushPendingCommits()
+
+        const persistedCard = commit.mock.calls[0][0].files.find(({ path }) => path === card.path)
+        expect(persistedCard?.content).toContain('custom: keep')
+        expect(persistedCard?.content).toContain('worktree: 3')
+        expect(persistedCard?.content).toContain('after: b')
+        expect(persistedCard?.content).toContain('Dirty body')
+        expect(document.dirty).toBe(false)
+    })
+
+    it('persists a status move and reserved agent reference in one card version', async () => {
+        configService.init()
+        const files = [activeCardFile('a')]
+        const { commit, storage } = createMovePersistenceStorage(files)
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const reference = 'design/activity/card__a.json#conversation=agent-1'
+
+        await service.cards.moveCard(files[0].path, 'doing', 0)
+        service.cards.addAgentLogReference(files[0].path, reference)
+        await service.cards.flushPendingCommits()
+
+        expect(commit).toHaveBeenCalledOnce()
+        const persisted = commit.mock.calls[0][0].files[0].content
+        expect(persisted).toContain('status: doing')
+        expect(persisted).toContain(`  - ${reference}`)
+    })
+
+    it('serializes combined latest card state after a change during an in-flight commit', async () => {
+        configService.init()
+        const firstCommit = createDeferred<MarkdownFile[]>()
+        const commit = vi.fn<StorageService['commit']>()
+            .mockImplementationOnce(async () => firstCommit.promise)
+            .mockImplementationOnce(async (request) => request.files)
+        const files = [activeCardFile('a'), activeCardFile('b', { after: 'a' })]
+        const storage = createStorage({
+            commit,
+            loadProject: vi.fn(async () => ({ files, workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files, workingFolder: 'design' })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const path = files[0].path
+        service.cards.updateCardWorktree(path, 4)
+        const flush = service.cards.flushPendingCommits()
+        await vi.waitFor(() => expect(commit).toHaveBeenCalledOnce())
+
+        service.cards.updateCardBody(path, '# A\n\nLatest body')
+        await service.cards.moveCard(path, 'todo', 1)
+        const latestFlush = service.cards.flushPendingCommits()
+        firstCommit.resolve(commit.mock.calls[0][0].files)
+        await flush
+        await latestFlush
+
+        expect(commit).toHaveBeenCalledTimes(2)
+        const latestFile = commit.mock.calls[1][0].files.find((file) => file.path === path)
+        expect(latestFile?.content).toContain('worktree: 4')
+        expect(latestFile?.content).toContain('after: b')
+        expect(latestFile?.content).toContain('Latest body')
     })
 
     it('persists a cross-column move to first place and repairs both chains', async () => {
@@ -924,8 +1012,8 @@ describe('CardOperations', () => {
         expect(renamedFile.content).toContain('affects:\n  - app/src/app.tsx')
         expect(renamedFile.content).toContain('# Root\n\nBody')
         expect(document.path).toBe('design/B_5_root.md')
-        expect(document.getDraft().header.id).toBe('B_5')
-        expect(document.getDraft().header.internalId).toBe('root-card')
+        expect(document.getObject().header.id).toBe('B_5')
+        expect(document.getObject().header.internalId).toBe('root-card')
         const committed = vi.mocked(storage.commit).mock.calls.at(-1)?.[0] as CommitRequest
         expect(committed.moves).toEqual([expect.objectContaining({
             fromPath: 'design/F-1-root.md',
@@ -1033,7 +1121,7 @@ describe('CardOperations', () => {
         if (!projectCard) throw new Error('Expected loaded card')
         const document = openFilesService.openDocument(projectCard)
         if (document.kind !== 'card') throw new Error('Expected card document')
-        document.updateDraft({ ...projectCard, content: '# Root\n\nUnflushed body' }, 'list-card')
+        document.updateDraft({ content: '# Root\n\nUnflushed body' }, 'list-card')
 
         await service.cards.updateCardTitle(projectCard.path, 'Renamed')
 
@@ -1143,7 +1231,7 @@ describe('CardOperations', () => {
         const document = openFilesService.openDocument(card)
         if (document.kind !== 'card') throw new Error('Expected card document')
         const content = '# Root\n\nLocal edit'
-        document.updateDraft({ ...card, content }, 'test')
+        document.updateDraft({ content }, 'test')
         service.cards.updateCardBody(card.path, content, document.createSaveReference())
 
         const flush = service.cards.flushPendingCommits()

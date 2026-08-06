@@ -6,6 +6,7 @@ import type {
     AgentApproval,
     AgentApprovalDecision,
     AgentApprovalRequestId,
+    AgentConversationReservation,
     AgentQuestion,
     ActionRunEvent,
     ActionRunStatus,
@@ -441,6 +442,7 @@ export class ActionRunRegistry extends EventTarget {
         runInput: ActionRunInput = {},
         onStarted?: (runId: string) => void,
         interactive = true,
+        conversationReservation?: AgentConversationReservation,
     ) {
         const bridge = getElectronActionBridge()
         if (!bridge) throw new Error('Action run requires Electron')
@@ -450,7 +452,7 @@ export class ActionRunRegistry extends EventTarget {
         this.startsInProgress += 1
         let runId: string
         try {
-            runId = await start({ actionId: action.id, context, runInput })
+            runId = await start({ actionId: action.id, ...(conversationReservation ? { conversationReservation } : {}), context, runInput })
         } finally {
             this.startsInProgress -= 1
         }

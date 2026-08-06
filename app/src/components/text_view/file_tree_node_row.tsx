@@ -15,13 +15,13 @@ import { type MouseEvent, useState } from 'react'
 import type { NodeRendererProps } from 'react-arborist'
 import { fileContext, folderContext, type ActionContext } from '../../data/action_context'
 import { getCardIdPrefix } from '../../data/card_identifiers'
-import { defaultColumnAccent, type CardTypeConfig, type ProjectCard } from '../../data/data_types'
+import { defaultColumnAccent, type CardTypeConfig, type Card } from '../../data/data_types'
 import type { TreeNode, TreeNodeKind } from '../../data/file_tree'
 import { ActionEntryPoints } from '../actions/run/trigger/action_entry_points'
 import { useIsActiveDocument } from '../hooks/use_active_document'
 import { useFileTreeContext } from './file_tree_context'
 
-function nodeContext(node: TreeNode, cardTypes: CardTypeConfig[], cardsByPath: Map<string, ProjectCard>): ActionContext | null {
+function nodeContext(node: TreeNode, cardTypes: CardTypeConfig[], cardsByPath: Map<string, Card>): ActionContext | null {
     if (node.kind === 'file') {
         const card = node.path ? cardsByPath.get(node.path) : undefined
 
@@ -32,7 +32,7 @@ function nodeContext(node: TreeNode, cardTypes: CardTypeConfig[], cardsByPath: M
     return null
 }
 
-function cardTypeColor(card: ProjectCard | undefined, cardTypes: CardTypeConfig[], fallback: string) {
+function cardTypeColor(card: Card | undefined, cardTypes: CardTypeConfig[], fallback: string) {
     const idPrefix = card ? getCardIdPrefix(card.header.id) : undefined
     const cardType = cardTypes.find((candidate) => candidate.idPrefix === idPrefix)
 

@@ -1,8 +1,11 @@
 import type { ActionDefinition, RawActionDefinition } from '../data/action_types'
-import type { ProjectCard } from '../data/data_types'
+import type { Card } from '../data/data_types'
 
-export type OpenDocumentObject = ProjectCard | ActionDefinition
-export type OpenDocumentDraft = ProjectCard | RawActionDefinition
+export type OpenDocumentObject = Card | ActionDefinition
+export interface CardBodyDraft {
+    content: string
+}
+export type OpenDocumentDraft = CardBodyDraft | RawActionDefinition
 export type OpenDocumentOrigin = object | string | null
 
 export interface OpenDocumentSaveReference {
@@ -31,7 +34,7 @@ export interface ActionOpenDocument extends OpenDocumentBase<ActionDefinition, R
     readonly kind: 'action'
 }
 
-export interface CardOpenDocument extends OpenDocumentBase<ProjectCard, ProjectCard> {
+export interface CardOpenDocument extends OpenDocumentBase<Card, CardBodyDraft> {
     readonly kind: 'card'
 }
 

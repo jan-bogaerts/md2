@@ -1,5 +1,5 @@
 import type { CardMoveUpdate } from '../../data/card_ordering'
-import type { CanonicalCard, MarkdownFile, ProjectCard, ProjectReference, ProjectSnapshot, StorageService } from '../../data/data_types'
+import type { Card, MarkdownFile, ProjectReference, ProjectSnapshot, StorageService } from '../../data/data_types'
 import type { CardOpenDocument, OpenDocumentSaveReference } from '../open_files_service'
 import { openFilesService } from '../open_files_service'
 import { telemetryService } from '../telemetry/telemetry_service'
@@ -9,7 +9,7 @@ import {
     reportCommitFlushFailure,
     reportWorkspaceError,
 } from './data_service_context'
-import { setCardHeaderFields } from './canonical_card'
+import { setCardHeaderFields } from './card_mutations'
 
 export type CommitRequest = Parameters<StorageService['commit']>[0]
 type PendingCommitFile = MarkdownFile & { saveReference?: OpenDocumentSaveReference }
@@ -22,14 +22,15 @@ export interface CardOperationsDeps {
     dispatchPersistenceChanged(): void
     files(): MarkdownFile[]
     mergeCommittedFiles(files: MarkdownFile[], workingFolder: string): void
-    mutateCard(path: string, mutation: (card: CanonicalCard) => void, workingFolder: string): CanonicalCard
+    mutateCard(path: string, mutation: (card: Card) => void, workingFolder: string): Card
     project(): ProjectReference | null
     recordCommittedContent(files: MarkdownFile[]): void
     refreshSnapshot(workingFolder: string): void
     reloadCurrentProjectSnapshot(): Promise<ProjectSnapshot | null>
     renameFile(fromPath: string, toPath: string, workingFolder: string): void
     requireDependencies(): RequiredDataServiceDependencies
-    requireCard(path: string): CanonicalCard
+    requireCard(path: string): Card
+    requireCardByInternalId(internalId: string): Card
     requireFile(path: string): MarkdownFile
     replaceFiles(files: MarkdownFile[], workingFolder: string): void
     snapshot(): ProjectSnapshot | null
@@ -51,7 +52,7 @@ function attachSaveReference(file: MarkdownFile, saveReference: OpenDocumentSave
 export class CardOperationContext {
     readonly dependencies: CardOperationsDeps
     /** Path index per snapshot instance so repeated card lookups do not rescan both card lists. */
-    private readonly cardsBySnapshot = new WeakMap<ProjectSnapshot, Map<string, ProjectCard>>()
+    private readonly cardsBySnapshot = new WeakMap<ProjectSnapshot, Map<string, Card>>()
 
     constructor(dependencies: CardOperationsDeps) {
         this.dependencies = dependencies
@@ -66,7 +67,7 @@ export class CardOperationContext {
         return { commitBatcher, config, project, storage }
     }
 
-    findCard(path: string): ProjectCard | null {
+    findCard(path: string): Card | null {
         const snapshot = this.dependencies.snapshot()
         if (!snapshot) return null
 
@@ -98,8 +99,19 @@ export class CardOperationContext {
         this.dependencies.replaceFiles(this.mergeUpdatedFiles(updatedFiles), config.workingFolder)
     }
 
+    /** Applies a focused card mutation while carrying any unsaved editor body into owned state. */
+    mutateCardPreservingOpenBody(path: string, mutation: (card: Card) => void, workingFolder: string) {
+        const openDocument = this.findOpenCardDocument(path)
+        const dirtyBody = openDocument?.dirty ? openDocument.getDraft().content : null
+
+        return this.dependencies.mutateCard(path, (ownedCard) => {
+            if (dirtyBody !== null) ownedCard.content = dirtyBody
+            mutation(ownedCard)
+        }, workingFolder)
+    }
+
     /** Mutates the `after`/`status` fields for every ordering link produced by a move. */
-    applyOrderingUpdates(updates: CardMoveUpdate[]): CanonicalCard[] {
+    applyOrderingUpdates(updates: CardMoveUpdate[]): Card[] {
         const { config } = this.dependencies.requireDependencies()
 
         return updates.map((update) => {
@@ -184,18 +196,21 @@ export class CardOperationContext {
         return file
     }
 
-    /** Mutates one canonical card and queues its reference for serialization at flush. */
+    /** Mutates one owned card and queues its reference for serialization at flush. */
     saveCardChange(
         path: string,
-        mutation: (card: CanonicalCard) => void,
+        mutation: (card: Card) => void,
         saveReference?: OpenDocumentSaveReference,
         message = `Update ${path}`,
     ) {
         const { commitBatcher, config, project } = this.requireProject('save a card')
-        const card = this.dependencies.mutateCard(path, mutation, config.workingFolder)
-        const documentSaveReference = saveReference ?? this.findOpenCardDocument(path)?.createSaveReference()
+        const openDocument = this.findOpenCardDocument(path)
+        const card = this.mutateCardPreservingOpenBody(path, mutation, config.workingFolder)
+        const cardInternalId = card.header.internalId
+        if (!cardInternalId) throw new Error(`Cannot save a card without an internal ID: ${path}`)
+        const documentSaveReference = saveReference ?? openDocument?.createSaveReference()
 
-        commitBatcher.schedule(project.branch, [{ card, saveReference: documentSaveReference }], message)
+        commitBatcher.schedule(project.branch, [{ cardInternalId, path: card.path, saveReference: documentSaveReference }], message)
         this.dependencies.dispatchChanged()
 
         return card

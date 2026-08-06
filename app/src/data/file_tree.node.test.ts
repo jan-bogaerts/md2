@@ -1,13 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { buildFileTree, fileLabel, type FileTreeOptions, type TreeNode } from './file_tree'
-import type { ProjectCard } from './data_types'
+import type { Card } from './data_types'
 import type { ActionDefinition } from './action_types'
 
-function card(path: string, overrides: Partial<ProjectCard['header']> = {}): ProjectCard {
+function card(path: string, overrides: Partial<Card['header']> = {}): Card {
     return {
         agentConversationErrors: [],
         agentConversations: [],
-        headerFields: {},
         content: '',
         header: {
             affects: [],
@@ -22,6 +21,7 @@ function card(path: string, overrides: Partial<ProjectCard['header']> = {}): Pro
             title: 'Untitled',
             ...overrides,
         },
+        hasFrontmatter:true,
         isActive: false,
         path,
     }

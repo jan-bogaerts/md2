@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { ProjectCard, ProjectReference, ProjectSnapshot, StorageService, WorktreeRecord, WorktreeState } from '../../data/data_types'
+import type { Card, ProjectReference, ProjectSnapshot, StorageService, WorktreeRecord, WorktreeState } from '../../data/data_types'
 import { createDeferred } from '../test_support/data_service_test_support'
 import { WorktreeService } from './worktree_service'
 
@@ -13,16 +13,16 @@ const second: WorktreeRecord = {
     status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false }, valid: true,
 }
 
-function card(path: string, title: string, worktree: number | null): ProjectCard {
+function card(path: string, title: string, worktree: number | null): Card {
     return {
         agentConversationErrors: [], agentConversations: [], content: '', header: {
             affects: [], after: null, agentLogReferences: [], author: null, id: path, internalId: path,
             owner: null, policy: {}, status: 'ready', title, worktree, worktreeError: null, worktreeValue: worktree ? String(worktree) : null,
-        }, headerFields: {}, isActive: true, path,
+        }, hasFrontmatter: true, isActive: true, path,
     }
 }
 
-function snapshot(activeCards: ProjectCard[] = [], backgroundCards: ProjectCard[] = []): ProjectSnapshot {
+function snapshot(activeCards: Card[] = [], backgroundCards: Card[] = []): ProjectSnapshot {
     return { activeCards, backgroundCards, repositoryFiles: [], workingFolder: 'design' }
 }
 

@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cardContext } from '../../../../data/action_context'
 import type { ActionRunEvent, ActionRunUpdate, AgentApproval } from '../../../../data/action_run_types'
 import type { ActionFile } from '../../../../data/action_types'
-import { DEFAULT_CARD_TYPES, type AgentConversation, type AgentConversationEvent, type ProjectCard, type ProjectSnapshot } from '../../../../data/data_types'
+import { DEFAULT_CARD_TYPES, type AgentConversation, type AgentConversationEvent, type Card, type ProjectSnapshot } from '../../../../data/data_types'
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
 import { actionService } from '../../../../services/actions/action_service'
 import { agentAcknowledgementService } from '../../../../services/agents/agent_acknowledgement_service'
@@ -57,15 +57,15 @@ function agentDefinition(id: string, overrides: Record<string, unknown> = {}) {
     return { description: id, id, label: id, prompt: 't', type: 'agent', ...overrides }
 }
 
-const card: ProjectCard = {
+const card: Card = {
     agentConversationErrors: [],
     agentConversations: [],
     content: '',
-    headerFields: {},
     header: {
         affects: [], after: null, agentLogReferences: [], author: null, id: 'F-010', internalId: 'f-010', owner: null,
         policy: {}, status: 'design', title: 'Feature',
     },
+    hasFrontmatter:true,
     isActive: true,
     path: 'design/F-010.md',
 }
@@ -83,15 +83,15 @@ const approval: AgentApproval = {
 
 const conversationsByCardInternalId = new Map<string, AgentConversation[]>()
 
-function cardWith(conversations: AgentConversation[]): ProjectCard {
+function cardWith(conversations: AgentConversation[]): Card {
     conversationsByCardInternalId.set('f-010', conversations)
 
     return { ...card, agentConversations: conversations }
 }
 
-function renderCardRunButton(projectCard: ProjectCard = card) {
+function renderCardRunButton(Card: Card = card) {
     projectState.snapshot = {
-        activeCards: [projectCard],
+        activeCards: [Card],
         backgroundCards: [],
         repositoryFiles: [],
         workingFolder: 'design',
@@ -99,8 +99,8 @@ function renderCardRunButton(projectCard: ProjectCard = card) {
     render(
         <>
             <CardRunButton
-                card={projectCard}
-                context={cardContext(projectCard, DEFAULT_CARD_TYPES)}
+                card={Card}
+                context={cardContext(Card, DEFAULT_CARD_TYPES)}
             />
             <CardActionPopupHost />
         </>,
@@ -443,10 +443,10 @@ describe('CardRunButton', () => {
 
     it('loads unseen result and clears its popup LED after display', async () => {
         const completedConversation = { ...conversation('completed', [], 'implement'), viewed: false }
-        const projectCard = cardWith([completedConversation])
+        const Card = cardWith([completedConversation])
         vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([completedConversation])
         vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(completedConversation)
-        renderCardRunButton(projectCard)
+        renderCardRunButton(Card)
 
         fireEvent.click(screen.getByRole('button', { name: 'Run — New agent result available' }))
         const actionGroup = within(screen.getByRole('group', { name: 'Actions' }))
