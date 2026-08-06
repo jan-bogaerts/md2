@@ -3,6 +3,7 @@ import type {
     ActionRunEvent,
     ActionPromptRequest,
     ActionStartRequest,
+    AgentConversationReservation,
     AgentApprovalDecision,
     AgentApprovalRequestId,
     PreparedActionPrompt,
@@ -463,6 +464,10 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
 
     async finishActionRun(runId: string): Promise<void> {
         await this.request('finishActionRun', [runId])
+    }
+
+    async reserveActionConversation(request: ActionStartRequest): Promise<AgentConversationReservation> {
+        return this.request<AgentConversationReservation>('reserveActionConversation', [request])
     }
 
     async restartActionRun(runId: string, request: ActionStartRequest): Promise<string> {

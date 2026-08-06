@@ -367,6 +367,26 @@ describe('RemoteControlStorageService', () => {
         await expect(request).resolves.toBe('run-1')
     })
 
+    it('reserves card agent conversations through remote control', async () => {
+        installWebSocket()
+        const service = createService()
+        const actionRequest = actionStartRequest()
+        const reservationRequest = service.reserveActionConversation(actionRequest)
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const sentRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
+        expect(sentRequest).toMatchObject({ method: 'reserveActionConversation', params: [actionRequest] })
+        const reservation = {
+            conversationId: 'conversation-1',
+            reference: 'design/activity/card.json#conversation=conversation-1',
+        }
+        socket.receive({ id: sentRequest.id, result: reservation })
+
+        await expect(reservationRequest).resolves.toEqual(reservation)
+    })
+
     it('routes streaming interaction methods through remote control', async () => {
         installWebSocket()
         const service = createService()
