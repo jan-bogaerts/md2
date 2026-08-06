@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ActionContext } from '../../../../data/action_context'
 import type { ActionRunEvent } from '../../../../data/action_run_types'
 import type { ActionFile } from '../../../../data/action_types'
-import type { ProjectReference, StorageService, WorktreeRecord } from '../../../../data/data_types'
+import type { AgentConversation, ProjectReference, StorageService, WorktreeRecord } from '../../../../data/data_types'
 import { actionService } from '../../../../services/actions/action_service'
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
 import { actionPromptDraftService } from '../../../../services/actions/action_prompt_draft_service'
@@ -570,6 +570,44 @@ describe('ActionPopup', () => {
                 status: 'completed', type: 'run',
             })
         })
+
+        await waitFor(() => expect(prompt).toHaveValue(''))
+        expect(prepareActionPrompt).toHaveBeenCalledOnce()
+    })
+
+    it('keeps the prompt empty when selecting a completed historical conversation', async () => {
+        const historicalContext = { ...context, cardInternalId: 'card-1' }
+        const historicalConversation: AgentConversation = {
+            actionId: 'review',
+            cardInternalId: 'card-1',
+            cardPath: context.file ?? null,
+            completedAt: '2026-08-01T12:01:00.000Z',
+            entries: [],
+            hasExplicitTitle: true,
+            id: 'conversation-1',
+            path: 'conversation-1.json',
+            providerSessions: [],
+            startedAt: '2026-08-01T12:00:00.000Z',
+            status: 'completed',
+            title: 'Historical review',
+            viewed: true,
+        }
+        const prepareActionPrompt = vi.fn(async () => ({ prompt: 'Stored prompt' }))
+        window.md2Actions = {
+            onActionRun: vi.fn(() => vi.fn()),
+            prepareActionPrompt,
+        } as unknown as typeof window.md2Actions
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([historicalConversation])
+        vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(historicalConversation)
+        actionService.loadFromFiles([file(agentDefinition('review', { label: 'Review' }))])
+        renderPopup(historicalContext)
+        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
+        await waitFor(() => expect(prompt).toHaveValue('Stored prompt'))
+
+        const conversationPicker = await screen.findByRole('combobox', { name: 'Conversation history' })
+        await waitFor(() => expect(conversationPicker).toBeEnabled())
+        fireEvent.mouseDown(conversationPicker)
+        fireEvent.click(screen.getByRole('option', { name: /Historical review/u }))
 
         await waitFor(() => expect(prompt).toHaveValue(''))
         expect(prepareActionPrompt).toHaveBeenCalledOnce()
