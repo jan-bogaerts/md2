@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
   - design/activity/card__b8e6a902-e78b-43d3-9896-e43146873ba5.json#conversation=agent-b3dab3c8-7f99-4dda-af57-05cde26be3a3
+  - design/activity/card__b8e6a902-e78b-43d3-9896-e43146873ba5.json#conversation=agent-e750a2db-21b5-47f8-b3a7-26057d84435c
 policy:
 after: 02a44ecf-5974-4822-8e07-8a00f2c889c8
 branch: b_98_action_responses_no_longer_show_when_app_restarted
