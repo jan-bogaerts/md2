@@ -91,7 +91,7 @@ describe('ReleaseOperations', () => {
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
-        await expect(service.releases.completeRelease('v1')).rejects.toThrow(
+        await expect(service.releases.completeRelease('v1', [])).rejects.toThrow(
             'Cannot complete release. Unassign worktrees from cards: F-1.',
         )
         expect(storage.moveFiles).not.toHaveBeenCalled()
@@ -124,7 +124,7 @@ describe('ReleaseOperations', () => {
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
-        await expect(service.releases.completeRelease('v1')).rejects.toThrow(
+        await expect(service.releases.completeRelease('v1', [])).rejects.toThrow(
             'Cannot complete release. Unassign worktrees from cards: F-1, B-12.',
         )
         expect(storage.moveFiles).not.toHaveBeenCalled()

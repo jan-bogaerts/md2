@@ -74,9 +74,12 @@ describe('CardOperations', () => {
         service.cards.updateCardWorktree(files[0].path, null)
 
         const card = service.getState().snapshot?.activeCards.find(({ path }) => path === files[0].path)
-        expect(card?.header).toMatchObject({ branch: 'f-1-root', worktree: null })
-        expect(storageFiles.get(files[0].path)).toContain('branch: f-1-root')
-        expect(storageFiles.get(files[0].path)).not.toContain('worktree:')
+        if (!card) throw new Error('Expected assigned card')
+
+        const serializedCard = markdownParsingService.serializeCard(card)
+        expect(card.header).toMatchObject({ branch: 'f-1-root', worktree: null })
+        expect(serializedCard.content).toContain('branch: f-1-root')
+        expect(serializedCard.content).not.toContain('worktree:')
     })
 
     it('adds and persists a missing card internal ID during project load', async () => {
