@@ -1,7 +1,7 @@
 import { Box, Typography } from '@mui/material'
 import { useEffect, useRef, useState, type Ref } from 'react'
 import DiffViewer from 'react-diff-viewer-continued'
-import type { DiffFile, DiffResult, OpenInEditorRequest } from '../../../data/electron_action_bridge'
+import type { DiffFile, DiffResult, OpenInEditorRequest, WorktreeDiffResult } from '../../../data/electron_action_bridge'
 import { dialogService } from '../../../services/dialog_service'
 import {
     generateDiff as defaultGenerateDiff,
@@ -14,10 +14,12 @@ type GenerateDiff = (commitReference: DiffCommitReference) => Promise<DiffResult
 type OpenDiffLine = (request: OpenInEditorRequest) => Promise<void>
 
 interface DiffViewProps {
-    commitReference: DiffCommitReference
+    commitReference?: DiffCommitReference
     generateDiff?: GenerateDiff
     initialPath?: string
+    label?: string
     openDiffLine?: OpenDiffLine
+    result?: WorktreeDiffResult
 }
 
 interface DiffFileViewProps {
@@ -41,7 +43,7 @@ function DiffFileView(props: DiffFileViewProps) {
             </Typography>
             <DiffViewer
                 disableWorker
-                leftTitle={file.path}
+                leftTitle={file.oldPath ?? file.path}
                 newValue={file.newValue}
                 oldValue={file.oldValue}
                 onLineNumberClick={handleLineNumberClick}
@@ -56,10 +58,10 @@ function DiffFileView(props: DiffFileViewProps) {
  * through configured Electron commands and opens external editor when a changed line is clicked.
  */
 export function DiffView(props: DiffViewProps) {
-    const { commitReference, initialPath } = props
+    const { commitReference, initialPath, label = 'Commit diff', result: providedResult } = props
     const generateDiff = props.generateDiff ?? defaultGenerateDiff
     const openDiffLine = props.openDiffLine ?? defaultOpenDiffLine
-    const [result, setResult] = useState<DiffResult | null>(null)
+    const [result, setResult] = useState<DiffResult | WorktreeDiffResult | null>(providedResult ?? null)
     const [isUnavailable, setIsUnavailable] = useState(false)
     const initialFileRef = useRef<HTMLDivElement | null>(null)
 
@@ -71,6 +73,16 @@ export function DiffView(props: DiffViewProps) {
         let isActive = true
 
         async function loadDiff() {
+            if (providedResult) {
+                setIsUnavailable(false)
+                setResult(providedResult)
+                return
+            }
+            if (!commitReference) {
+                setIsUnavailable(true)
+                dialogService.error(new Error('Missing commit diff reference'), { fallbackMessage: 'Could not load diff' })
+                return
+            }
             setIsUnavailable(false)
             setResult(null)
             try {
@@ -89,7 +101,7 @@ export function DiffView(props: DiffViewProps) {
         return () => {
             isActive = false
         }
-    }, [commitReference, generateDiff])
+    }, [commitReference, generateDiff, providedResult])
 
     const handleOpenLine = async (request: OpenInEditorRequest) => {
         try {
@@ -117,7 +129,7 @@ export function DiffView(props: DiffViewProps) {
     }
 
     return (
-        <Box role="region" aria-label="Commit diff">
+        <Box role="region" aria-label={label}>
             {result.files.map((file) => (
                 <DiffFileView
                     containerRef={file.path === initialPath ? initialFileRef : undefined}

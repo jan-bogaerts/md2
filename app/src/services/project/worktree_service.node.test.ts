@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Card, ProjectReference, ProjectSnapshot, StorageService, WorktreeRecord, WorktreeState } from '../../data/data_types'
+import { setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge'
 import { createDeferred } from '../test_support/data_service_test_support'
 import { WorktreeService } from './worktree_service'
 
@@ -81,7 +82,10 @@ function initService(
 }
 
 describe('WorktreeService', () => {
-    afterEach(() => vi.restoreAllMocks())
+    afterEach(() => {
+        setActionBridgeOverride(null)
+        vi.restoreAllMocks()
+    })
 
     it('replaces records from pushed state and preserves identity for equal records', () => {
         const { emit, storage } = createStorage()
@@ -206,6 +210,27 @@ describe('WorktreeService', () => {
         expect(storage.pushWorktree).not.toHaveBeenCalled()
         expect(storage.parkWorktree).not.toHaveBeenCalled()
         expect(assignCardWorktree).not.toHaveBeenCalled()
+    })
+
+    it('uses one outgoing-status rule for integration availability and worktree diff loading', async () => {
+        const { emit, storage } = createStorage()
+        const service = new WorktreeService()
+        const assignedCard = card('design/F-1.md', 'Assigned', 1)
+        initService(service, storage, snapshot([assignedCard]))
+        const generateWorktreeDiff = vi.fn(async () => ({ files: [], repositoryRoot: first.path }))
+        setActionBridgeOverride({ generateWorktreeDiff } as unknown as ElectronActionBridge)
+
+        emit(project, [first])
+        expect(service.canIntegrateCardWorktree(assignedCard.path)).toBe(false)
+        await expect(service.generateCardWorktreeDiff(assignedCard.path)).rejects.toThrow('no changes to integrate')
+
+        emit(project, [{ ...first, status: { ...first.status, dirty: true } }])
+        expect(service.canIntegrateCardWorktree(assignedCard.path)).toBe(true)
+        await expect(service.generateCardWorktreeDiff(assignedCard.path)).resolves.toEqual({ files: [], repositoryRoot: first.path })
+        expect(generateWorktreeDiff).toHaveBeenCalledWith({ worktree: 1 })
+
+        emit(project, [{ ...first, status: { ...first.status, baseAhead: 1, dirty: false } }])
+        expect(service.canIntegrateCardWorktree(assignedCard.path)).toBe(true)
     })
 
     it('flushes project changes before updating a card worktree', async () => {

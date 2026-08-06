@@ -19,7 +19,7 @@ describe('CardBodyPopoverService', () => {
 
         cardBodyPopoverService.toggle('design/F-1.md', anchorElement)
 
-        expect(cardBodyPopoverService.getSnapshot()).toEqual({ anchorElement, cardPath: 'design/F-1.md' })
+        expect(cardBodyPopoverService.getSnapshot()).toEqual({ anchorElement, cardPath: 'design/F-1.md', diffSelection: null })
         expect(changed).toHaveBeenCalledOnce()
     })
 
@@ -29,7 +29,7 @@ describe('CardBodyPopoverService', () => {
 
         cardBodyPopoverService.toggle('design/F-1.md', anchorElement)
 
-        expect(cardBodyPopoverService.getSnapshot()).toEqual({ anchorElement: null, cardPath: null })
+        expect(cardBodyPopoverService.getSnapshot()).toEqual({ anchorElement: null, cardPath: null, diffSelection: null })
     })
 
     it('switches directly to another card', () => {
@@ -39,7 +39,7 @@ describe('CardBodyPopoverService', () => {
 
         cardBodyPopoverService.toggle('design/F-2.md', secondAnchor)
 
-        expect(cardBodyPopoverService.getSnapshot()).toEqual({ anchorElement: secondAnchor, cardPath: 'design/F-2.md' })
+        expect(cardBodyPopoverService.getSnapshot()).toEqual({ anchorElement: secondAnchor, cardPath: 'design/F-2.md', diffSelection: null })
     })
 
     it('closes only when the matching path is requested', () => {
@@ -50,7 +50,7 @@ describe('CardBodyPopoverService', () => {
         expect(cardBodyPopoverService.getSnapshot().cardPath).toBe('design/F-1.md')
 
         cardBodyPopoverService.closePath('design/F-1.md')
-        expect(cardBodyPopoverService.getSnapshot()).toEqual({ anchorElement: null, cardPath: null })
+        expect(cardBodyPopoverService.getSnapshot()).toEqual({ anchorElement: null, cardPath: null, diffSelection: null })
     })
 
     it('stays open on the renamed card file', () => {
@@ -61,6 +61,20 @@ describe('CardBodyPopoverService', () => {
         expect(cardBodyPopoverService.getSnapshot().cardPath).toBe('design/F-1.md')
 
         publishCardPathChange('design/F-1.md', 'design/F-1-renamed.md')
-        expect(cardBodyPopoverService.getSnapshot()).toEqual({ anchorElement, cardPath: 'design/F-1-renamed.md' })
+        expect(cardBodyPopoverService.getSnapshot()).toEqual({ anchorElement, cardPath: 'design/F-1-renamed.md', diffSelection: null })
+    })
+
+    it('opens and clears current worktree diff on same card popup', () => {
+        const anchorElement = document.createElement('button')
+
+        cardBodyPopoverService.openWorktreeDiff('design/F-1.md', anchorElement)
+        expect(cardBodyPopoverService.getSnapshot()).toEqual({
+            anchorElement,
+            cardPath: 'design/F-1.md',
+            diffSelection: { kind: 'worktree' },
+        })
+
+        cardBodyPopoverService.clearDiff()
+        expect(cardBodyPopoverService.getSnapshot().diffSelection).toBeNull()
     })
 })

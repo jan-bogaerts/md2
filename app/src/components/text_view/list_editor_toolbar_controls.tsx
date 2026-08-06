@@ -16,6 +16,10 @@ import { useCardCommits } from '../hooks/use_card_commits'
 import { useProjectState } from '../hooks/use_project_state'
 import { CardPropertiesControl } from './card_properties_control'
 
+function ignoreUnavailableWorktreeSelection() {
+    // List editor exposes historical commits only.
+}
+
 interface ListEditorToolbarControlsProps {
     cardTypes: CardTypeConfig[]
     historyStore: MarkdownDocumentHistoryStore
@@ -60,7 +64,13 @@ export function ListEditorToolbarControls(props: ListEditorToolbarControlsProps)
             <Button onClick={handleToggleAgentPopup} size="small" variant={isAgentPopupOpen ? 'contained' : 'outlined'}>
                 Agents{card.agentConversations.length > 0 ? ` (${card.agentConversations.length})` : ''}
             </Button>
-            <CardCommitMenu commits={cardCommits.commits} error={cardCommits.error} onSelect={listCardCommitDiffDataSource.select} />
+            <CardCommitMenu
+                commits={cardCommits.commits}
+                currentWorktreeAvailable={false}
+                error={cardCommits.error}
+                onSelectCommit={listCardCommitDiffDataSource.select}
+                onSelectWorktree={ignoreUnavailableWorktreeSelection}
+            />
             <CardPropertiesControl
                 binding="list-card"
                 cardTypes={cardTypes}

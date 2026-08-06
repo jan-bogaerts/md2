@@ -1,13 +1,14 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { StrictMode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { DEFAULT_CARD_TYPES, type Card } from '../../data/data_types'
+import { DEFAULT_CARD_TYPES, type Card, type WorktreeRecord } from '../../data/data_types'
 import { openFilesService } from '../../services/open_files_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { CardBodyPopover } from './card_body_popover'
 import { dataService } from '../../services/data/data_service'
 import { cardBodyPopoverService } from './card_body_popover_service'
 import { dialogService } from '../../services/dialog_service'
+import { worktreeService } from '../../services/project/worktree_service'
 
 vi.mock('../hooks/use_card_commits', () => ({
     useCardCommits: () => ({
@@ -36,7 +37,11 @@ vi.mock('../hooks/use_card_commits', () => ({
     }),
 }))
 
-vi.mock('./card_commit_diff_panel', () => ({CardCommitDiffPanel: () => <div aria-label="Card commit diff" />}))
+vi.mock('./card_commit_diff_panel', () => ({
+    CardCommitDiffPanel: ({ selection }: { selection: { kind: string } }) => (
+        <div aria-label={selection.kind === 'worktree' ? 'Card worktree diff' : 'Card commit diff'} />
+    ),
+}))
 
 vi.mock('./card_body_save_status', () => ({ CardBodySaveStatus: () => null }))
 vi.mock('./card_body_editor', () => ({ CardBodyEditor: () => <div aria-label="Live card editor" /> }))
@@ -169,5 +174,49 @@ describe('CardBodyPopover commit diff', () => {
 
         fireEvent.keyDown(dialog, { key: 'Escape' })
         expect(cardBodyPopoverService.getSnapshot().cardPath).toBeNull()
+    })
+
+    it('uses same worktree panel from menu action and popup entry, then removes it when eligibility is lost', async () => {
+        const assignedCard = { ...card, header: { ...card.header, worktree: 1, worktreeValue: '1' } }
+        vi.spyOn(dataService, 'getState').mockReturnValue({
+            project: null,
+            runningAgents: [],
+            snapshot: { activeCards: [assignedCard], backgroundCards: [], repositoryFiles: [], workingFolder: 'design' },
+        })
+        let records: WorktreeRecord[] = [{
+            branch: 'feature', error: null, parkingBranch: 'md2/parking/feature', path: 'C:/worktree',
+            status: { ahead: 0, baseAhead: 1, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false }, valid: true,
+        }]
+        vi.spyOn(worktreeService, 'getRecords').mockImplementation(() => records)
+        const anchorElement = document.createElement('button')
+        document.body.append(anchorElement)
+        cardBodyPopoverService.openWorktreeDiff(assignedCard.path, anchorElement)
+        render(
+            <AppThemeProvider>
+                <CardBodyPopover
+                    cardTypes={DEFAULT_CARD_TYPES}
+                    isMobile={false}
+                    onDeleteCard={vi.fn(async () => undefined)}
+                    onOpenAffects={vi.fn()}
+                    onOpenInFileMode={vi.fn()}
+                    statusColors={new Map()}
+                    visible
+                />
+            </AppThemeProvider>,
+        )
+
+        expect(screen.getByLabelText('Card worktree diff')).toBeInTheDocument()
+        cardBodyPopoverService.clearDiff()
+        fireEvent.click(screen.getByRole('button', { name: 'Card commit history' }))
+        fireEvent.click(screen.getByRole('button', { name: /Current worktree changes/ }))
+        expect(screen.getByLabelText('Card worktree diff')).toBeInTheDocument()
+
+        records = [{ ...records[0], status: { ...records[0].status, baseAhead: 0 } }]
+        worktreeService.dispatchEvent(new CustomEvent('changed'))
+
+        await waitFor(() => expect(screen.queryByLabelText('Card worktree diff')).not.toBeInTheDocument())
+        fireEvent.click(screen.getByRole('button', { name: 'Card commit history' }))
+        expect(screen.queryByRole('button', { name: /Current worktree changes/ })).not.toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /Implement/ })).toBeInTheDocument()
     })
 })

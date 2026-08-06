@@ -73,4 +73,14 @@ describe('DiffView', () => {
         await waitFor(() => expect(screen.getByText('Diff command failed: fatal: bad object')).toBeInTheDocument())
         expect(screen.getByText('Diff unavailable.')).toBeInTheDocument()
     })
+
+    it('renders an already loaded worktree result with old and new rename paths', () => {
+        const file = diffFile({ changeType: 'renamed', oldPath: 'design/old.md', path: 'design/new.md' })
+
+        render(<DiffView label="Worktree diff" openDiffLine={vi.fn()} result={{ files: [file], repositoryRoot: 'C:/worktree' }} />)
+
+        expect(screen.getByRole('region', { name: 'Worktree diff' })).toBeInTheDocument()
+        expect(screen.getAllByText('design/old.md').length).toBeGreaterThan(0)
+        expect(screen.getAllByText('design/new.md').length).toBeGreaterThan(0)
+    })
 })

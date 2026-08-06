@@ -110,7 +110,7 @@ function createDispatch(options = {}) {
         synchronize: vi.fn(async () => undefined),
     };
     const desktopConfig = options.desktopConfig ?? {agent: 'codex', agentProfiles: [{ command: ['codex'], models: ['gpt-5'], name: 'codex' }], editorCommand: 'code -g "{{file}}:{{line}}"', model: 'gpt-5'};
-    const diffService = { generateDiff: vi.fn(), openInEditor: vi.fn() };
+    const diffService = { generateDiff: vi.fn(), generateWorktreeDiff: vi.fn(), openInEditor: vi.fn() };
     const dispatch = createLocalBridgeDispatch({
         actionRunnerService,
         actionSchedulerService,
@@ -158,6 +158,19 @@ describe('createLocalBridgeDispatch', () => {
             editorCommand,
             worktreeRoots: ['C:/worktree'],
         });
+    });
+
+    it('generates worktree diff only through current project and WorktreeService', async () => {
+        const { diffService, dispatch, localGitService, worktreeService } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        const result = { files: [], repositoryRoot: 'C:/worktree' };
+        diffService.generateWorktreeDiff.mockResolvedValue(result);
+        await dispatch.dataBridge.loadProject(project, 'design');
+
+        await expect(dispatch.actionBridge.generateWorktreeDiff({ worktree: 1 })).resolves.toBe(result);
+
+        expect(diffService.generateWorktreeDiff).toHaveBeenCalledWith(project, { worktree: 1 }, worktreeService);
+        expect(localGitService.appendAndCommitSystemActivity).not.toHaveBeenCalled();
     });
 
     it('exposes account-wide Codex runtime state without execution context', () => {

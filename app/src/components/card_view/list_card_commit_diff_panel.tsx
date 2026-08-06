@@ -34,9 +34,9 @@ export function ListCardCommitDiffPanel(props: ListCardCommitDiffPanelProps) {
             {selection ? (
                 <CardCommitDiffPanel
                     binding="list-card"
-                    commit={selection.commit}
                     key={selection.commit.commit}
                     onExit={listCardCommitDiffDataSource.clear}
+                    selection={{ commit: selection.commit, kind: 'commit' }}
                 />
             ) : null}
             <Box

@@ -67,6 +67,7 @@ const ACTION_METHODS = [
     'closeWaitingActionConversation',
     'finishActionRun',
     'generateDiff',
+    'generateWorktreeDiff',
     'loadActionRunHistory',
     'loadActiveActionRunEvents',
     'notifyActionCardStateChange',

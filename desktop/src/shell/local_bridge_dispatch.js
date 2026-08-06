@@ -255,6 +255,11 @@ function createLocalBridgeDispatch(dependencies) {
 
             return { ...result, repositoryRoot: currentLocalProject.rootPath };
         },
+        generateWorktreeDiff: async (request) => {
+            if (!request || typeof request !== 'object') throw new Error('Missing worktree diff request');
+
+            return diffService.generateWorktreeDiff(currentLocalProject, request, worktreeService);
+        },
         loadActionRunHistory: async (request) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 

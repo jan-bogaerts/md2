@@ -1,14 +1,20 @@
 import { CARD_PATH_CHANGED_EVENT, dataService, type CardPathChangedEventDetail } from '../../services/data/data_service'
 import { register } from '../../services/service_injector'
+import type { CardCommit } from '../../services/actions/card_commit_history'
 
 const CARD_BODY_POPOVER_CHANGED_EVENT = 'changed'
 
 export interface CardBodyPopoverSnapshot {
     anchorElement: HTMLElement | null
     cardPath: string | null
+    diffSelection: CardBodyPopoverDiffSelection | null
 }
 
-const CLOSED_SNAPSHOT: CardBodyPopoverSnapshot = { anchorElement: null, cardPath: null }
+export type CardBodyPopoverDiffSelection =
+    | { cardInternalId: string, commit: CardCommit, kind: 'commit' }
+    | { kind: 'worktree' }
+
+const CLOSED_SNAPSHOT: CardBodyPopoverSnapshot = { anchorElement: null, cardPath: null, diffSelection: null }
 
 /** Owns transient card-body popover state without involving the card-view render tree. */
 class CardBodyPopoverService extends EventTarget {
@@ -35,7 +41,25 @@ class CardBodyPopoverService extends EventTarget {
         if (!cardPath) throw new Error('Cannot open card body without a card path')
 
         const isClosing = this.snapshot.cardPath === cardPath
-        this.setSnapshot(isClosing ? CLOSED_SNAPSHOT : { anchorElement, cardPath })
+        this.setSnapshot(isClosing ? CLOSED_SNAPSHOT : { anchorElement, cardPath, diffSelection: null })
+    }
+
+    openWorktreeDiff(cardPath: string, anchorElement: HTMLElement) {
+        if (!cardPath) throw new Error('Cannot open worktree diff without a card path')
+
+        this.setSnapshot({ anchorElement, cardPath, diffSelection: { kind: 'worktree' } })
+    }
+
+    selectDiff(diffSelection: CardBodyPopoverDiffSelection) {
+        if (!this.snapshot.cardPath || !this.snapshot.anchorElement) throw new Error('Cannot select diff while card body is closed')
+
+        this.setSnapshot({ ...this.snapshot, diffSelection })
+    }
+
+    clearDiff() {
+        if (!this.snapshot.diffSelection) return
+
+        this.setSnapshot({ ...this.snapshot, diffSelection: null })
     }
 
     close() {

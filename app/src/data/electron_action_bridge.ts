@@ -94,9 +94,11 @@ export interface DiffRequest {
  * `oldLineNumbers`/`newLineNumbers` map each rendered side line back to its real file line.
  */
 export interface DiffFile {
+    changeType?: 'added' | 'deleted' | 'modified' | 'renamed'
     newLineNumbers: number[]
     newValue: string
     oldLineNumbers: number[]
+    oldPath?: string
     oldValue: string
     path: string
 }
@@ -105,6 +107,15 @@ export interface DiffResult {
     commit: string
     files: DiffFile[]
     repositoryRoot?: string
+}
+
+export interface WorktreeDiffRequest {
+    worktree: number
+}
+
+export interface WorktreeDiffResult {
+    files: DiffFile[]
+    repositoryRoot: string
 }
 
 /** Request to open a local file in configured external editor. */
@@ -122,6 +133,7 @@ export interface ElectronActionBridge {
     closeWaitingActionConversation?(reference: string, status: 'cancelled' | 'completed'): Promise<AgentConversation>
     finishActionRun?(runId: string): Promise<void>
     generateDiff(request: DiffRequest): Promise<DiffResult>
+    generateWorktreeDiff(request: WorktreeDiffRequest): Promise<WorktreeDiffResult>
     loadActionRunHistory(request: ActionRunHistoryRequest): Promise<ActionRunHistoryEntry[]>
     loadActiveActionRunEvents?(): Promise<ActionRunEvent[]>
     notifyActionCardStateChange?(cardInternalId: string, state: string): Promise<void>

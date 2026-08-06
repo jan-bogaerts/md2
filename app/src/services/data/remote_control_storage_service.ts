@@ -19,6 +19,8 @@ import type {
     HistoricalFileContent,
     OpenInEditorRequest,
     ReadFileAtCommitRequest,
+    WorktreeDiffRequest,
+    WorktreeDiffResult,
 } from '../../data/electron_action_bridge'
 import type { CardActivityFile } from '../../../../shared/card_activity.mjs'
 import type {
@@ -476,6 +478,10 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
 
     async generateDiff(request: DiffRequest): Promise<DiffResult> {
         return this.request<DiffResult>('generateDiff', [request])
+    }
+
+    async generateWorktreeDiff(request: WorktreeDiffRequest): Promise<WorktreeDiffResult> {
+        return this.request<WorktreeDiffResult>('generateWorktreeDiff', [request])
     }
 
     async loadActionRunHistory(request: ActionRunHistoryRequest): Promise<ActionRunHistoryEntry[]> {

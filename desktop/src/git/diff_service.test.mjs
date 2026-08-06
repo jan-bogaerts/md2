@@ -1,17 +1,23 @@
 import { createRequire } from 'node:module';
-import path from 'node:path';
+import { mkdir, mkdtemp, readFile, rename, rm, unlink, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path, { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
 const {
     buildEditorLaunch,
     generateDiff,
+    generateWorktreeDiff,
     openInEditor,
+    parseNameStatus,
     parseEditorTarget,
     parseUnifiedDiff,
     resolveDiffCommand,
     resolveEditorTarget,
 } = require('./diff_service');
+const { runGit } = require('./git_commands');
+const { WorktreeService } = require('./worktree_service');
 
 const SAMPLE_DIFF = [
     'diff --git a/design/F-010.md b/design/F-010.md',
@@ -27,6 +33,15 @@ const SAMPLE_DIFF = [
 ].join('\n');
 
 describe('diff-service', () => {
+    it('parses added, modified, deleted, and renamed null-separated statuses', () => {
+        expect(parseNameStatus('A\0added.txt\0M\0modified.txt\0D\0deleted.txt\0R100\0old.txt\0new.txt\0')).toEqual([
+            { changeType: 'added', path: 'added.txt' },
+            { changeType: 'modified', path: 'modified.txt' },
+            { changeType: 'deleted', path: 'deleted.txt' },
+            { changeType: 'renamed', oldPath: 'old.txt', path: 'new.txt' },
+        ]);
+    });
+
     it('parses unified diff into per-file sides with real line numbers', () => {
         const files = parseUnifiedDiff(SAMPLE_DIFF);
 
@@ -141,6 +156,95 @@ describe('diff-service', () => {
             { branch: 'main', commit: '', filePath: '', projectFolder: '', template: 'git show {{commit}}' },
             vi.fn(),
         )).rejects.toThrow('Missing diff commit hash');
+    });
+
+    it('reads complete worktree contribution without changing HEAD, index, or files', async () => {
+        const folderPath = await mkdtemp(join(tmpdir(), 'md2-worktree-diff-'));
+        const primaryPath = join(folderPath, 'primary');
+        const linkedPath = join(folderPath, 'linked');
+        await mkdir(primaryPath);
+        const service = new WorktreeService({ clearTimeout: () => {}, runGit, setTimeout: () => 1 });
+        const project = { branch: 'main', id: primaryPath, rootPath: primaryPath };
+
+        try {
+            await runGit(primaryPath, ['init', '-b', 'main']);
+            await runGit(primaryPath, ['config', 'user.email', 'test@example.com']);
+            await runGit(primaryPath, ['config', 'user.name', 'MD2 Test']);
+            await writeFile(join(primaryPath, 'modified.txt'), 'old modified\n');
+            await writeFile(join(primaryPath, 'deleted.txt'), 'old deleted\n');
+            await writeFile(join(primaryPath, 'rename-old.txt'), 'rename content\n');
+            await runGit(primaryPath, ['add', '.']);
+            await runGit(primaryPath, ['commit', '-m', 'Initial']);
+            await runGit(primaryPath, ['worktree', 'add', '-b', 'feature', linkedPath, 'main']);
+            await service.startProject(project);
+            await writeFile(join(primaryPath, 'primary-only.txt'), 'incoming project change\n');
+            await runGit(primaryPath, ['add', 'primary-only.txt']);
+            await runGit(primaryPath, ['commit', '-m', 'Project-only change']);
+
+            await writeFile(join(linkedPath, 'modified.txt'), 'new modified\n');
+            await unlink(join(linkedPath, 'deleted.txt'));
+            await rename(join(linkedPath, 'rename-old.txt'), join(linkedPath, 'rename-new.txt'));
+            await runGit(linkedPath, ['add', 'rename-old.txt', 'rename-new.txt']);
+            await writeFile(join(linkedPath, 'added.txt'), 'new file\n');
+            const before = {
+                cached: await runGit(linkedPath, ['diff', '--cached']),
+                head: await runGit(linkedPath, ['rev-parse', 'HEAD']),
+                status: await runGit(linkedPath, ['status', '--porcelain=v1']),
+            };
+
+            const result = await generateWorktreeDiff(project, { worktree: 1 }, service);
+
+            expect(result.repositoryRoot).toBe(path.resolve(linkedPath));
+            expect(result.files.some(({ path: filePath }) => filePath === 'primary-only.txt')).toBe(false);
+            expect(result.files.map(({ changeType, oldPath, path: filePath }) => ({ changeType, oldPath, path: filePath }))).toEqual([
+                { changeType: 'deleted', oldPath: undefined, path: 'deleted.txt' },
+                { changeType: 'modified', oldPath: undefined, path: 'modified.txt' },
+                { changeType: 'renamed', oldPath: 'rename-old.txt', path: 'rename-new.txt' },
+                { changeType: 'added', oldPath: undefined, path: 'added.txt' },
+            ]);
+            expect(result.files.find(({ path: filePath }) => filePath === 'modified.txt')).toMatchObject({
+                newValue: 'new modified\n',
+                oldValue: 'old modified\n',
+            });
+            expect(await readFile(join(linkedPath, 'added.txt'), 'utf8')).toBe('new file\n');
+            await expect(Promise.resolve({
+                cached: await runGit(linkedPath, ['diff', '--cached']),
+                head: await runGit(linkedPath, ['rev-parse', 'HEAD']),
+                status: await runGit(linkedPath, ['status', '--porcelain=v1']),
+            })).resolves.toEqual(before);
+        } finally {
+            service.stopProject();
+            await rm(folderPath, { force: true, recursive: true });
+        }
+    }, 30_000);
+
+    it('reports invalid worktree resolution and Git content failures without another repository fallback', async () => {
+        const readFileValue = vi.fn();
+        const invalidService = {readDiffContext: vi.fn(async () => { throw new Error('Configured worktree 3 does not exist'); })};
+
+        await expect(generateWorktreeDiff(
+            { branch: 'main', id: 'local', rootPath: 'C:/primary' },
+            { worktree: 3 },
+            invalidService,
+            { readFile: readFileValue },
+        )).rejects.toThrow('Configured worktree 3 does not exist');
+        expect(readFileValue).not.toHaveBeenCalled();
+
+        const removedService = {
+            readDiffContext: vi.fn(async () => ({
+                baseCommit: 'abc123',
+                changes: 'M\0file.txt\0',
+                path: 'C:/removed-worktree',
+                untracked: '',
+            })),
+        };
+        await expect(generateWorktreeDiff(
+            { branch: 'main', id: 'local', rootPath: 'C:/primary' },
+            { worktree: 1 },
+            removedService,
+            { readFile: readFileValue, readRevisionFile: vi.fn(async () => { throw new Error('fatal: not a git repository'); }) },
+        )).rejects.toThrow('fatal: not a git repository');
+        expect(readFileValue).not.toHaveBeenCalledWith(expect.stringContaining('primary'), expect.anything());
     });
 
     it('substitutes default and custom editor command placeholders', () => {

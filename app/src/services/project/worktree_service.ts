@@ -1,5 +1,6 @@
 import { slugifyTitle } from '../../data/card_naming'
 import type { CardSeparator } from '../../data/card_identifiers'
+import { getElectronActionBridge, type WorktreeDiffResult } from '../../data/electron_action_bridge'
 import type {
     Card,
     ProjectReference,
@@ -21,6 +22,11 @@ interface WorktreeServiceDependencies {
     snapshotProvider: () => ProjectSnapshot | null
     storageProvider: () => StorageService | null
     unassignCardWorktree: (path: string) => void
+}
+
+/** Same outgoing-status condition used by worktree integration and diff controls. */
+export function isWorktreeIntegratable(record: WorktreeRecord | null | undefined) {
+    return !!record?.valid && (record.status.dirty || record.status.baseAhead > 0)
 }
 
 export class WorktreeService extends EventTarget {
@@ -86,6 +92,26 @@ export class WorktreeService extends EventTarget {
         if (pendingOwner && pendingOwner !== cardPath) return false
 
         return !this.activeCards().some((card) => card.path !== cardPath && card.header.worktree === worktree)
+    }
+
+    /** Whether card has same valid outgoing worktree state required by integration. */
+    canIntegrateCardWorktree(path: string) {
+        const card = this.findCard(path)
+        const worktree = card?.header.worktree
+        if (!Number.isInteger(worktree) || !worktree || worktree <= 0 || card?.header.worktreeError) return false
+        const record = this.records[worktree - 1]
+
+        return isWorktreeIntegratable(record)
+    }
+
+    /** Load current diff for card's assigned worktree without changing operation state. */
+    async generateCardWorktreeDiff(path: string): Promise<WorktreeDiffResult> {
+        const { worktree } = this.requireCardOperation(path)
+        if (!this.canIntegrateCardWorktree(path)) throw new Error('Card worktree has no changes to integrate')
+        const bridge = getElectronActionBridge()
+        if (!bridge?.generateWorktreeDiff) throw new Error('Worktree diff requires Electron local mode')
+
+        return bridge.generateWorktreeDiff({ worktree })
     }
 
     /** Whether the active storage backend can list worktrees (local desktop or a remote-controlled desktop). */
@@ -423,12 +449,17 @@ export class WorktreeService extends EventTarget {
     }
 
     private requireCard(path: string): Card {
-        const snapshot = this.snapshotProvider?.()
-        const cards = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]
-        const card = cards.find((candidate) => candidate.path === path)
+        const card = this.findCard(path)
         if (!card) throw new Error(`Cannot assign a worktree to an unknown card: ${path}`)
 
         return card
+    }
+
+    private findCard(path: string) {
+        const snapshot = this.snapshotProvider?.()
+        const cards = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]
+
+        return cards.find((candidate) => candidate.path === path)
     }
 
     private requireCardSeparator() {

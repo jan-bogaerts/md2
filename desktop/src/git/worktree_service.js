@@ -119,6 +119,19 @@ class WorktreeService {
         return this.records;
     }
 
+    /** Read Git metadata needed to compare one linked worktree with its project-branch merge base. */
+    async readDiffContext(project, index) {
+        const activeProject = this.requireActiveProject(project);
+        const record = this.resolve(activeProject, index);
+        const baseCommit = await this.runGit(record.path, ['merge-base', activeProject.branch, 'HEAD']);
+        if (baseCommit.length === 0) throw new Error(`Cannot find merge base for linked worktree: ${record.path}`);
+
+        const changes = await this.runGit(record.path, ['diff', '--name-status', '-z', '--find-renames', baseCommit, '--']);
+        const untracked = await this.runGit(record.path, ['ls-files', '--others', '--exclude-standard', '-z']);
+
+        return { baseCommit, changes, path: record.path, untracked };
+    }
+
     resolve(project, index) {
         if (!Number.isInteger(index) || index <= 0) throw new Error(`Invalid card worktree index: ${String(index)}`);
         const record = this.getRecords(project)[index - 1];

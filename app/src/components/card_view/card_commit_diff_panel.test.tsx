@@ -4,7 +4,9 @@ import type { CardActivityFile } from '../../../../shared/card_activity.mjs'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge'
 import type { CardCommit } from '../../services/actions/card_commit_history'
 import { AppThemeProvider } from '../../theme/theme_provider'
-import { CardCommitDiffPanel } from './card_commit_diff_panel'
+import { dialogService } from '../../services/dialog_service'
+import { worktreeService } from '../../services/project/worktree_service'
+import { CardCommitDiffPanel, type CardDiffSelection } from './card_commit_diff_panel'
 
 vi.mock('../editor/markdown_editor', () => ({
     MarkdownEditor: (props: Record<string, unknown>) => (
@@ -19,7 +21,11 @@ vi.mock('../editor/markdown_editor', () => ({
     ),
 }))
 
-vi.mock('../actions/conversation/diff_view', () => ({DiffView: ({ initialPath }: { initialPath: string }) => <div aria-label={`Whole commit diff ${initialPath}`} />}))
+vi.mock('../actions/conversation/diff_view', () => ({
+    DiffView: ({ initialPath, result }: { initialPath: string, result?: unknown }) => (
+        <div aria-label={`${result ? 'Whole worktree' : 'Whole commit'} diff ${initialPath}`} />
+    ),
+}))
 
 vi.mock('../hooks/use_active_card', () => ({ useActiveCard: () => ({ path: 'design/F-060.md' }) }))
 
@@ -57,10 +63,10 @@ function installBridge(readFileAtCommit: ElectronActionBridge['readFileAtCommit'
     setActionBridgeOverride({ readFileAtCommit } as ElectronActionBridge)
 }
 
-function renderPanel(commit = cardCommit()) {
+function renderPanel(selection: CardDiffSelection = { commit: cardCommit(), kind: 'commit' }) {
     render(
         <AppThemeProvider>
-            <CardCommitDiffPanel binding="board-card" commit={commit} onExit={vi.fn()} />
+            <CardCommitDiffPanel binding="board-card" onExit={vi.fn()} selection={selection} />
         </AppThemeProvider>,
     )
 }
@@ -68,6 +74,7 @@ function renderPanel(commit = cardCommit()) {
 afterEach(() => {
     cleanup()
     setActionBridgeOverride(null)
+    vi.restoreAllMocks()
 })
 
 describe('CardCommitDiffPanel', () => {
@@ -102,7 +109,7 @@ describe('CardCommitDiffPanel', () => {
         const readFileAtCommit = vi.fn()
         installBridge(readFileAtCommit)
 
-        renderPanel(cardCommit({ available: false }))
+        renderPanel({ commit: cardCommit({ available: false }), kind: 'commit' })
 
         expect(screen.getByRole('alert')).toHaveTextContent('Commit is no longer available in this repository')
         expect(readFileAtCommit).not.toHaveBeenCalled()
@@ -122,11 +129,57 @@ describe('CardCommitDiffPanel', () => {
         const readFileAtCommit = vi.fn()
         installBridge(readFileAtCommit)
 
-        renderPanel(cardCommit({ filePaths: ['app/other.ts'] }))
+        renderPanel({ commit: cardCommit({ filePaths: ['app/other.ts'] }), kind: 'commit' })
 
         expect(screen.getByText('Also changed (1)')).toBeInTheDocument()
         expect(screen.queryByText('Loading diff…')).not.toBeInTheDocument()
         expect(readFileAtCommit).not.toHaveBeenCalled()
         await waitFor(() => expect(screen.getByRole('button', { name: 'app/other.ts' })).toBeEnabled())
+    })
+
+    it('renders current worktree card body and renamed-file navigation from one loaded result', async () => {
+        vi.spyOn(worktreeService, 'generateCardWorktreeDiff').mockResolvedValue({
+            files: [
+                {
+                    changeType: 'modified',
+                    newLineNumbers: [1, 2, 3, 4],
+                    newValue: '---\ntitle: New\n---\nNew body',
+                    oldLineNumbers: [1, 2, 3, 4],
+                    oldValue: '---\ntitle: Old\n---\nOld body',
+                    path: cardPath,
+                },
+                {
+                    changeType: 'renamed',
+                    newLineNumbers: [1],
+                    newValue: 'content',
+                    oldLineNumbers: [1],
+                    oldPath: 'app/old.ts',
+                    oldValue: 'content',
+                    path: 'app/new.ts',
+                },
+            ],
+            repositoryRoot: 'C:/worktree',
+        })
+
+        renderPanel({ kind: 'worktree' })
+
+        const editor = await screen.findByLabelText('Historical Markdown diff')
+        expect(editor).toHaveAttribute('data-old-markdown', 'Old body')
+        expect(editor).toHaveAttribute('data-new-markdown', 'New body')
+        expect(screen.getByText('Also changed (1)')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'app/old.ts — app/new.ts' }))
+        expect(screen.getByLabelText('Whole worktree diff app/new.ts')).toBeInTheDocument()
+    })
+
+    it('reports worktree loading failure and leaves safe unavailable state', async () => {
+        const failure = new Error('assigned worktree missing')
+        vi.spyOn(worktreeService, 'generateCardWorktreeDiff').mockRejectedValue(failure)
+        const reportError = vi.spyOn(dialogService, 'error')
+
+        renderPanel({ kind: 'worktree' })
+
+        expect(await screen.findByRole('alert')).toHaveTextContent('assigned worktree missing')
+        expect(reportError).toHaveBeenCalledWith(failure, { fallbackMessage: 'Could not load worktree diff' })
+        expect(screen.queryByLabelText('Historical Markdown diff')).not.toBeInTheDocument()
     })
 })

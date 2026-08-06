@@ -7,6 +7,7 @@ import { projectPersistenceService } from '../services/project/project_persisten
 import { worktreeService } from '../services/project/worktree_service'
 import { AppThemeProvider } from '../theme/theme_provider'
 import { WorktreeSelector } from './worktree_selector'
+import { cardBodyPopoverService } from './card_view/card_body_popover_service'
 
 const worktrees: WorktreeRecord[] = [
     {
@@ -127,6 +128,7 @@ describe('WorktreeSelector', () => {
         expect(screen.getByRole('menuitem', { name: /Primary — C:.*primary/u })).toBeInTheDocument()
         expect(screen.getByRole('menuitem', { name: 'Commit' })).toHaveAttribute('aria-disabled', 'true')
         expect(screen.getByRole('menuitem', { name: 'Update worktree' })).toHaveAttribute('aria-disabled', 'true')
+        expect(screen.getByRole('menuitem', { name: 'View diff' })).toHaveAttribute('aria-disabled', 'true')
         expect(screen.getByRole('menuitem', { name: 'Integrate into project' })).toHaveAttribute('aria-disabled', 'true')
         expect(screen.queryByRole('menuitem', { name: /1 — C:\\feature/u })).not.toBeInTheDocument()
     })
@@ -155,6 +157,8 @@ describe('WorktreeSelector', () => {
         renderAssignedWorktree(aheadWorktree)
 
         fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
+
+        expect(screen.getByRole('menuitem', { name: 'View diff' })).not.toHaveAttribute('aria-disabled', 'true')
         fireEvent.click(screen.getByRole('menuitem', { name: 'Integrate into project' }))
         expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
         expect(screen.getByRole('checkbox', { name: 'Delete branch' })).not.toBeChecked()
@@ -165,6 +169,17 @@ describe('WorktreeSelector', () => {
         await vi.waitFor(() => {
             expect(screen.queryByRole('dialog', { name: 'Integrate into project' })).not.toBeInTheDocument()
         })
+    })
+
+    it('opens current diff from same availability condition as integration', () => {
+        const aheadWorktree = { ...worktrees[0], status: { ...worktrees[0].status, baseAhead: 1 } }
+        const openWorktreeDiff = vi.spyOn(cardBodyPopoverService, 'openWorktreeDiff')
+        renderAssignedWorktree(aheadWorktree)
+
+        fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'View diff' }))
+
+        expect(openWorktreeDiff).toHaveBeenCalledWith('design/F-1.md', expect.any(HTMLElement))
     })
 
     it('commits and integrates a dirty worktree from one dialog', async () => {

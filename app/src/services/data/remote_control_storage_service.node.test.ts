@@ -126,6 +126,21 @@ describe('RemoteControlStorageService', () => {
         await expect(load).resolves.toEqual({ content: '{"version":2}', path })
     })
 
+    it('loads current worktree diff through remote control', async () => {
+        installWebSocket()
+        const service = createService()
+        const load = service.generateWorktreeDiff({ worktree: 2 })
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const request = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
+        expect(request).toMatchObject({ method: 'generateWorktreeDiff', params: [{ worktree: 2 }] })
+        socket.receive({ id: request.id, result: { files: [], repositoryRoot: 'C:/worktree' } })
+
+        await expect(load).resolves.toEqual({ files: [], repositoryRoot: 'C:/worktree' })
+    })
+
     it('receives account-wide Codex runtime snapshots through dedicated remote subscription', async () => {
         installWebSocket()
         const service = createService()

@@ -7,8 +7,10 @@ import { dialogService } from '../../services/dialog_service'
 
 interface CardCommitMenuProps {
     commits: CardCommit[]
+    currentWorktreeAvailable: boolean
     error: Error | null
-    onSelect: (commit: CardCommit) => void
+    onSelectCommit: (commit: CardCommit) => void
+    onSelectWorktree: () => void
 }
 
 function commitDate(timestamp: string) {
@@ -17,7 +19,7 @@ function commitDate(timestamp: string) {
 
 /** Commit-history menu shared by board-card and file-card surfaces. */
 export function CardCommitMenu(props: CardCommitMenuProps) {
-    const { commits, error, onSelect } = props
+    const { commits, currentWorktreeAvailable, error, onSelectCommit, onSelectWorktree } = props
     const [anchorElement, setAnchorElement] = useState<HTMLElement | null>(null)
     const handleOpen = (event: MouseEvent<HTMLElement>) => setAnchorElement(event.currentTarget)
     const handleClose = () => setAnchorElement(null)
@@ -26,17 +28,21 @@ export function CardCommitMenu(props: CardCommitMenuProps) {
             const commitIndex = Number(event.currentTarget.dataset.commitIndex)
             const commit = commits[commitIndex]
             if (!Number.isInteger(commitIndex) || !commit) throw new Error(`Card commit menu selection not found: ${commitIndex}`)
-            onSelect(commit)
+            onSelectCommit(commit)
             handleClose()
         } catch (caught) {
             dialogService.error(caught, { fallbackMessage: 'Card commit could not be selected' })
         }
     }
+    const selectWorktree = () => {
+        onSelectWorktree()
+        handleClose()
+    }
 
-    if (error) {
+    if (error && !currentWorktreeAvailable) {
         return <Typography color="error" role="alert" title={error.message} variant="caption">Commit history unavailable</Typography>
     }
-    if (commits.length === 0) return null
+    if (commits.length === 0 && !currentWorktreeAvailable) return null
 
     return (
         <>
@@ -50,6 +56,27 @@ export function CardCommitMenu(props: CardCommitMenuProps) {
             <Divider orientation="vertical" sx={{ borderColor: 'divider', height: 20 }} />
             <Popover anchorEl={anchorElement} onClose={handleClose} open={!!anchorElement}>
                 <Stack sx={{ maxHeight: 360, minWidth: 340, overflowY: 'auto', p: 1 }}>
+                    {currentWorktreeAvailable ? (
+                        <Box
+                            component="button"
+                            onClick={selectWorktree}
+                            sx={{
+                                '&:hover': { bgcolor: 'action.hover' },
+                                background: 'none',
+                                border: 0,
+                                borderRadius: 1,
+                                color: 'text.primary',
+                                cursor: 'pointer',
+                                p: 1,
+                                textAlign: 'left',
+                            }}
+                            type="button"
+                        >
+                            <Typography variant="body2">Current worktree changes</Typography>
+                            <Typography color="text.secondary" variant="caption">Not committed</Typography>
+                        </Box>
+                    ) : null}
+                    {error ? <Typography color="error" role="alert" title={error.message} variant="caption">Commit history unavailable</Typography> : null}
                     {commits.map((commit, commitIndex) => (
                         <Box
                             component="button"

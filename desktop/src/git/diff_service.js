@@ -1,17 +1,19 @@
-const { exec, spawn } = require('node:child_process');
-const { stat } = require('node:fs/promises');
+const { exec, execFile, spawn } = require('node:child_process');
+const { readFile, stat } = require('node:fs/promises');
 const path = require('node:path');
 const { promisify } = require('node:util');
 
 const { requireRootPath } = require('./git_commands');
 
 const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 const DIFF_PLACEHOLDER_PATTERN = /\{\{\s*(worktree-folder|repository-folder|project-folder|releases-folder|commit|branch|file)\s*\}\}/g;
 const HUNK_HEADER_PATTERN = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/;
 const DIFF_FILE_HEADER = 'diff --git ';
 const OLD_PATH_HEADER = '--- ';
 const NEW_PATH_HEADER = '+++ ';
 const FILE_URL_PATTERN = /^file:\/+/iu;
+const NAME_STATUS_RENAME_PATTERN = /^[RC]\d+$/u;
 
 function resolveProjectFolder(rootPath, projectFolder) {
     if (typeof projectFolder !== 'string') return null;
@@ -132,6 +134,102 @@ async function generateDiff(project, request, runner = execAsync) {
     return { commit: request.commit, files: parseUnifiedDiff(stdout) };
 }
 
+function parseNullSeparatedValues(output) {
+    if (typeof output !== 'string') throw new Error('Git path output must be a string');
+
+    return output.split('\0').filter((value) => value.length > 0);
+}
+
+/** Parse `git diff --name-status -z` without losing paths containing whitespace. */
+function parseNameStatus(output) {
+    const values = parseNullSeparatedValues(output);
+    const changes = [];
+    for (let index = 0; index < values.length;) {
+        const status = values[index++];
+        if (!status) throw new Error('Git diff returned an empty file status');
+        if (NAME_STATUS_RENAME_PATTERN.test(status)) {
+            const oldPath = values[index++];
+            const newPath = values[index++];
+            if (!oldPath || !newPath) throw new Error(`Git diff returned incomplete ${status} metadata`);
+            changes.push({ changeType: status.startsWith('R') ? 'renamed' : 'added', oldPath, path: newPath });
+            continue;
+        }
+
+        const filePath = values[index++];
+        if (!filePath) throw new Error(`Git diff returned no path for status ${status}`);
+        const changeType = status === 'A' ? 'added' : status === 'D' ? 'deleted' : 'modified';
+        changes.push({ changeType, path: filePath });
+    }
+
+    return changes;
+}
+
+function lineNumbers(value) {
+    if (value.length === 0) return [];
+
+    return value.split(/\r?\n/u).map((_line, index) => index + 1);
+}
+
+function normalizeWorktreeFile(change, oldValue, newValue) {
+    return {
+        changeType: change.changeType,
+        newLineNumbers: lineNumbers(newValue),
+        newValue,
+        oldLineNumbers: lineNumbers(oldValue),
+        oldPath: change.oldPath,
+        oldValue,
+        path: change.path,
+    };
+}
+
+async function readWorktreeFile(worktreePath, filePath, readFileValue) {
+    const targetPath = path.resolve(worktreePath, filePath);
+    if (!isInsideRoot(targetPath, worktreePath)) throw new Error(`Worktree diff path escapes assigned worktree: ${filePath}`);
+
+    return readFileValue(targetPath, 'utf8');
+}
+
+async function readRevisionFile(worktreePath, revision, filePath, runner) {
+    const { stdout } = await runner('git', ['show', `${revision}:${filePath}`], {
+        cwd: worktreePath,
+        maxBuffer: 1024 * 1024 * 32,
+        windowsHide: true,
+    });
+
+    return stdout;
+}
+
+/** Generate normalized current-worktree data without staging or otherwise mutating Git state. */
+async function generateWorktreeDiff(project, request, worktreeService, dependencies = {}) {
+    if (!request || !Number.isInteger(request.worktree) || request.worktree <= 0) throw new Error('Missing worktree diff index');
+    if (!worktreeService?.readDiffContext) throw new Error('Worktree diff service is unavailable');
+    const readFileValue = dependencies.readFile ?? readFile;
+    const readRevisionFileValue = dependencies.readRevisionFile
+        ?? ((worktreePath, revision, filePath) => readRevisionFile(worktreePath, revision, filePath, execFileAsync));
+
+    const context = await worktreeService.readDiffContext(project, request.worktree);
+    const changes = parseNameStatus(context.changes);
+    const trackedPaths = new Set(changes.map(({ path: filePath }) => filePath));
+    for (const filePath of parseNullSeparatedValues(context.untracked)) {
+        if (!trackedPaths.has(filePath)) changes.push({ changeType: 'added', path: filePath });
+    }
+    if (changes.length === 0) throw new Error('Linked worktree has no changes to view');
+
+    const files = await Promise.all(changes.map(async (change) => {
+        const oldPath = change.oldPath ?? change.path;
+        const oldValue = change.changeType === 'added'
+            ? ''
+            : await readRevisionFileValue(context.path, context.baseCommit, oldPath);
+        const newValue = change.changeType === 'deleted'
+            ? ''
+            : await readWorktreeFile(context.path, change.path, readFileValue);
+
+        return normalizeWorktreeFile(change, oldValue, newValue);
+    }));
+
+    return { files, repositoryRoot: context.path };
+}
+
 function pathKey(filePath) {
     return path.resolve(filePath).toLowerCase();
 }
@@ -249,7 +347,9 @@ async function openInEditor(project, request, options) {
 module.exports = {
     buildEditorLaunch,
     generateDiff,
+    generateWorktreeDiff,
     openInEditor,
+    parseNameStatus,
     parseUnifiedDiff,
     parseEditorTarget,
     resolveEditorTarget,

@@ -7,12 +7,13 @@ import type { MouseEvent } from 'react'
 import type { WorktreeRecord } from '../data/data_types'
 import { dialogService } from '../services/dialog_service'
 import { configService } from '../services/config/config_service'
-import { worktreeService } from '../services/project/worktree_service'
+import { isWorktreeIntegratable, worktreeService } from '../services/project/worktree_service'
 import { useConfigValueOrFallback } from './hooks/use_config_value'
 import { useWorktreeSelectorState } from './hooks/use_worktree_selector_state'
 import { WorktreeCommitDialog } from './worktree_commit_dialog'
 import { WorktreeIntegrationDialog } from './worktree_integration_dialog'
 import { WorktreeUnassignDialog } from './worktree_unassign_dialog'
+import { cardBodyPopoverService } from './card_view/card_body_popover_service'
 
 export interface WorktreeAssignment {
     worktree?: number | null
@@ -72,6 +73,7 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
     const canCommit = !!assignedRecord?.status.dirty
     const hasOutgoingChanges = !!assignedRecord
         && (assignedRecord.status.dirty || assignedRecord.status.baseAhead > 0)
+    const canIntegrate = isWorktreeIntegratable(assignedRecord)
     const hasIncomingChanges = !!assignedRecord && (hasPendingProjectChanges || assignedRecord.status.baseBehind > 0)
     const hasWorktreeChanges = hasOutgoingChanges || hasIncomingChanges
     const projectBranch = worktreeService.getProjectBranch()
@@ -180,6 +182,18 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
             await worktreeService.integrateProjectWorktree()
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Could not integrate worktree into project' })
+        }
+    }
+    const handleViewDiffMenu = () => {
+        try {
+            if (assignmentTarget.kind !== 'card') throw new Error('Worktree diff requires a card assignment')
+            if (!anchorElement) throw new Error('Worktree diff requires a card popup anchor')
+            if (!canIntegrate) throw new Error('Card worktree has no changes to integrate')
+            const popupAnchorElement = anchorElement
+            handleClose()
+            cardBodyPopoverService.openWorktreeDiff(assignmentTarget.path, popupAnchorElement)
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Could not open worktree diff' })
         }
     }
     const handleUpdateMenu = async () => {
@@ -355,7 +369,12 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
                     <>
                         <MenuItem disabled={!canCommit} onClick={handleCommitMenu}>Commit</MenuItem>
                         <MenuItem disabled={!hasIncomingChanges} onClick={handleUpdateMenu}>Update worktree</MenuItem>
-                        <MenuItem disabled={!hasOutgoingChanges} onClick={handleIntegrateMenu}>Integrate into project</MenuItem>
+                        {assignmentTarget.kind === 'card' ? (
+                            <MenuItem disabled={!canIntegrate} onClick={handleViewDiffMenu}>View diff</MenuItem>
+                        ) : null}
+                        <MenuItem disabled={assignmentTarget.kind === 'card' ? !canIntegrate : !hasOutgoingChanges} onClick={handleIntegrateMenu}>
+                            Integrate into project
+                        </MenuItem>
                     </>
                 ) : worktrees.map((record, index) => (record.valid ? (
                     <MenuItem
