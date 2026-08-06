@@ -1797,12 +1797,12 @@
         "agent-e750a2db-21b5-47f8-b3a7-26057d84435c"
       ],
       "details": {
+        "type": "agent",
         "accessLevel": "workspace-write",
         "agent": "codex",
         "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
-        "thinkingLevel": "none",
-        "type": "agent"
+        "thinkingLevel": "none"
       },
       "runId": "action-2acd40ce-7c42-4c44-93d1-445d2e9ac974",
       "origin": {
@@ -1811,9 +1811,32 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-e750a2db-21b5-47f8-b3a7-26057d84435c",
       "startedAt": "2026-08-06T18:50:16.211Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-e750a2db-21b5-47f8-b3a7-26057d84435c"
+    },
+    {
+      "commits": [
+        {
+          "commit": "587455c43f0e7d73fb29b4f7b041f487cce85e43",
+          "committedAt": "2026-08-06T20:58:22+02:00",
+          "deletions": 1,
+          "filePaths": [
+            "app/src/components/actions/editor/action_phrase_buttons_owner.tsx",
+            "app/src/components/actions/run/popup/action_popup.test.tsx"
+          ],
+          "filesChanged": 2,
+          "insertions": 127,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-06T20:58:22+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "b8e6a902-e78b-43d3-9896-e43146873ba5",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 2
