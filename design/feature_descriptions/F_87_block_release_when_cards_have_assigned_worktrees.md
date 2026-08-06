@@ -7,6 +7,7 @@ after:
 agents:
   - design/activity/card__18fd04d3-5df7-4f54-ab7a-94d96f210f13.json#conversation=agent-1ae20cc4-a8ed-4a3a-916b-8b15465bfaf3
   - design/activity/card__18fd04d3-5df7-4f54-ab7a-94d96f210f13.json#conversation=agent-5109655c-f657-45a6-88bb-b4d86313b0aa
+worktree: 3
 ---
 
 # Block release when cards have assigned worktrees
