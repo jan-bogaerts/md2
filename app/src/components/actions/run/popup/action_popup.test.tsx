@@ -152,6 +152,34 @@ const validWorktree: WorktreeRecord = {
     status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false }, valid: true,
 }
 
+function agentConversation(overrides: Partial<AgentConversation> = {}): AgentConversation {
+    return {
+        actionId: 'respond',
+        cardInternalId: 'card-1',
+        cardPath: 'design/F-010.md',
+        completedAt: null,
+        entries: [],
+        hasExplicitTitle: true,
+        id: 'conversation-1',
+        path: 'conversation-1.json',
+        providerSessions: [],
+        startedAt: '2026-08-01T12:00:00.000Z',
+        status: 'waitingForInput',
+        title: 'Waiting response',
+        viewed: true,
+        ...overrides,
+    }
+}
+
+function deferredValue<T>() {
+    let resolveValue: (value: T) => void = () => undefined
+    const promise = new Promise<T>((resolve) => {
+        resolveValue = resolve
+    })
+
+    return { promise, resolve: resolveValue }
+}
+
 function setMobileBreakpoint(matches: boolean) {
     window.matchMedia = ((query: string) => ({
         addEventListener: vi.fn(),
@@ -832,6 +860,87 @@ describe('ActionPopup', () => {
         act(() => runListener?.({ ...eventBase, status: 'completed', type: 'run' }))
         expect(screen.getByRole('group', { name: 'Predefined phrases' })).toBeInTheDocument()
         await waitFor(() => expect(screen.queryByRole('group', { name: 'Predefined phrases' })).not.toBeInTheDocument())
+    })
+
+    it('restores response prompts from a scoped persisted waiting conversation after restart', async () => {
+        actionRunRegistry.stop()
+        let runListener: ((event: ActionRunEvent) => void) | null = null
+        const conversations = deferredValue<AgentConversation[]>()
+        const startAction = vi.fn(async () => 'continued-run')
+        window.md2Actions = {
+            loadActionRunHistory: vi.fn(async () => []),
+            onActionRun: vi.fn((listener) => {
+                runListener = listener
+                return vi.fn()
+            }),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
+            startAction,
+        } as unknown as typeof window.md2Actions
+        vi.spyOn(dataService, 'listAgentConversations').mockReturnValue(conversations.promise)
+        actionRunRegistry.start()
+        actionService.loadFromFiles([file(agentDefinition('respond', {
+            label: 'Respond',
+            phrases: [{ text: 'Continue with tests', title: 'Continue' }],
+            streaming: true,
+        }))])
+        const persistedContext = { ...context, cardInternalId: 'card-1' }
+        renderPopup(persistedContext)
+        await waitFor(() => expect(runListener).not.toBeNull())
+
+        expect(screen.queryByRole('group', { name: 'Predefined phrases' })).not.toBeInTheDocument()
+        conversations.resolve([
+            agentConversation({ actionId: 'other-action', id: 'other-action', path: 'other-action.json' }),
+            agentConversation({ cardInternalId: 'card-2', id: 'other-context', path: 'other-context.json' }),
+            agentConversation({ id: 'completed', path: 'completed.json', status: 'completed' }),
+            agentConversation(),
+        ])
+
+        const promptSurface = screen.getByLabelText('Prompt')
+        const phraseGroup = await within(promptSurface).findByRole('group', { name: 'Predefined phrases' })
+        const phraseButton = within(phraseGroup).getByRole('button', { name: 'Continue' })
+        fireEvent.click(phraseButton)
+        await waitFor(() => expect(within(promptSurface).getByRole('textbox')).toHaveValue('Continue with tests'))
+
+        fireEvent.doubleClick(phraseButton)
+        await waitFor(() => expect(startAction).toHaveBeenCalledWith({
+            actionId: 'respond',
+            context: persistedContext,
+            runInput: expect.objectContaining({ continueFrom: 'conversation-1.json', prompt: 'Continue with tests' }),
+        }))
+
+        const eventBase = {
+            actionId: 'respond', context: persistedContext, phase: 'main' as const,
+            rootActionId: 'respond', runId: 'continued-run',
+        }
+        act(() => runListener?.({ ...eventBase, status: 'queued', type: 'run' }))
+        await waitFor(() => expect(screen.queryByRole('group', { name: 'Predefined phrases' })).not.toBeInTheDocument())
+        act(() => runListener?.({ ...eventBase, status: 'running', type: 'run' }))
+        expect(screen.queryByRole('group', { name: 'Predefined phrases' })).not.toBeInTheDocument()
+        act(() => runListener?.({ ...eventBase, status: 'waitingForInput', type: 'run' }))
+        expect(await screen.findByRole('group', { name: 'Predefined phrases' })).toBeInTheDocument()
+    })
+
+    it('does not restore response prompts from mismatched or non-waiting persisted conversations', async () => {
+        const persistedContext = { ...context, cardInternalId: 'card-1' }
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([
+            agentConversation({ actionId: 'other-action', id: 'other-action', path: 'other-action.json' }),
+            agentConversation({ cardInternalId: 'card-2', id: 'other-context', path: 'other-context.json' }),
+            agentConversation({ id: 'running', path: 'running.json', status: 'running' }),
+            agentConversation({ id: 'completed', path: 'completed.json', status: 'completed' }),
+            agentConversation({ id: 'cancelled', path: 'cancelled.json', status: 'cancelled' }),
+            agentConversation({ id: 'failed', path: 'failed.json', status: 'failed' }),
+        ])
+        actionService.loadFromFiles([file(agentDefinition('respond', {
+            label: 'Respond',
+            phrases: [{ text: 'Continue', title: 'Continue' }],
+            streaming: true,
+        }))])
+
+        renderPopup(persistedContext)
+        const conversationPicker = await screen.findByRole('combobox', { name: 'Conversation history' })
+        await waitFor(() => expect(conversationPicker).toBeEnabled())
+
+        expect(screen.queryByRole('group', { name: 'Predefined phrases' })).not.toBeInTheDocument()
     })
 
     it.each([

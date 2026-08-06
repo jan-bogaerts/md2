@@ -1,6 +1,8 @@
 import { Paper, Slide, useMediaQuery } from '@mui/material'
+import { useSyncExternalStore } from 'react'
 import type { ActionContext } from '../../../data/action_context'
 import type { ActionDefinition } from '../../../data/action_types'
+import type { ActionRun } from '../../../services/actions/action_run_registry'
 import { dialogService } from '../../../services/dialog_service'
 import { useActionRunSelector } from '../../hooks/use_action_runs'
 import type { ActionConversationStore } from '../conversation/action_conversation_store'
@@ -21,12 +23,27 @@ interface ActionPhraseButtonsOwnerProps {
     runValidationError: string | null
 }
 
+function selectActiveRunStatus(run: ActionRun | null) {
+    if (run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput') return run.status
+
+    return null
+}
+
 /** Owns follow-up visibility and phrase actions. */
 export function ActionPhraseButtonsOwner(props: ActionPhraseButtonsOwnerProps) {
     const { action, context, conversationStore, historyStore, inputStore, resultStore, runValidationError } = props
-    const waitingForInput = useActionRunSelector(action.id, context, (run) => run?.status === 'waitingForInput')
+    const activeRunStatus = useActionRunSelector(action.id, context, selectActiveRunStatus)
+    const conversationSnapshot = useSyncExternalStore(
+        conversationStore.subscribe,
+        conversationStore.getSnapshot,
+        conversationStore.getSnapshot,
+    )
     const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
     const settings = useActionRunSettings(action, inputStore)
+    const waitingForInput = activeRunStatus === 'waitingForInput'
+        || (activeRunStatus === null
+            && !conversationSnapshot.loading
+            && conversationSnapshot.selectedConversation?.status === 'waitingForInput')
     if (action.type !== 'agent' || action.phrases.length === 0) return null
 
     const handleSelect = (text: string) => {
