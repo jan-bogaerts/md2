@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
   - design/activity/card__81dcbcc1-3401-4927-a76e-2f3ef4874190.json#conversation=agent-5ebd95bb-3bc3-40e5-a0b1-d5a14aa29c4b
+  - design/activity/card__81dcbcc1-3401-4927-a76e-2f3ef4874190.json#conversation=agent-6e9f7570-a8a2-4bdc-a925-7c334dbe4a17
 policy:
 branch: f_150_integrate_into_project_2_popups
 worktree: 2
