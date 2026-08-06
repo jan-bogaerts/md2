@@ -19,7 +19,6 @@ import { ActionConversationPickerOwner } from '../../conversation/action_convers
 import { ActionConversationStore } from '../../conversation/action_conversation_store'
 import { ActionHistoryStore } from '../state/action_history_store'
 import { ActionLogErrorOwner } from '../../conversation/action_log_error_owner'
-import { ActionPhraseButtonsOwner } from '../../editor/action_phrase_buttons_owner'
 import { ActionPopupBottomRow } from './action_popup_bottom_row'
 import { ActionRunDisabledMessage } from './action_run_disabled_message'
 import { ActionRunHistoryOwner } from '../state/action_run_history_owner'
@@ -284,15 +283,6 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                                 <ActionAgentQuestionOwner actionId={action.id} context={assignmentContext} />
                             </Stack>
                         </ActionAgentInteractionVisibility>
-                        <ActionPhraseButtonsOwner
-                            action={action}
-                            context={assignmentContext}
-                            conversationStore={conversationStore}
-                            historyStore={historyStore}
-                            inputStore={inputStore}
-                            resultStore={resultStore}
-                            runValidationError={runValidationError}
-                        />
                         <ActionScheduleOwner action={action} context={baseContext} store={scheduleStore} />
                         {action.type !== 'agent' ? (
                             <ActionRunStatusOwner actionId={action.id} context={assignmentContext} resultStore={resultStore} />

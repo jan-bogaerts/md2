@@ -375,11 +375,12 @@ describe('ActionPopup', () => {
                 },
             })
         })
-        await waitFor(() => expect(renderProbes.phraseButtons).toHaveBeenCalled())
+        await waitFor(() => expect(renderProbes.agentPrompt).toHaveBeenCalled())
         expect(renderProbes.agentPrompt).toHaveBeenCalled()
         expect(renderProbes.agentSelectors).toHaveBeenCalled()
         expect(renderProbes.conversationPicker).toHaveBeenCalled()
         expect(renderProbes.logError).toHaveBeenCalled()
+        expect(renderProbes.phraseButtons).not.toHaveBeenCalled()
         Object.values(renderProbes).forEach((probe) => probe.mockClear())
 
         act(() => runListener?.({
@@ -720,6 +721,94 @@ describe('ActionPopup', () => {
         expect(screen.getByRole('button', { name: 'Stop' })).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Finish' }))
         await waitFor(() => expect(finishActionRun).toHaveBeenCalledWith('run-1'))
+    })
+
+    it('shows response prompts only while scoped run waits and keeps them inside prompt surface', async () => {
+        actionRunRegistry.stop()
+        let runListener: ((event: ActionRunEvent) => void) | null = null
+        const sendActionQueuedMessage = vi.fn(async () => ({ sent: true }))
+        const setActionQueuedMessage = vi.fn(async () => ({ accepted: true }))
+        window.md2Actions = {
+            beginActionPromptDraft: vi.fn(async () => 1),
+            loadActionRunHistory: vi.fn(async () => []),
+            onActionRun: vi.fn((listener) => {
+                runListener = listener
+                return vi.fn()
+            }),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
+            sendActionQueuedMessage,
+            setActionQueuedMessage,
+        } as unknown as typeof window.md2Actions
+        actionRunRegistry.start()
+        actionService.loadFromFiles([
+            file(agentDefinition('respond', {
+                label: 'Respond',
+                phrases: [{ text: 'Continue with tests', title: 'Continue' }],
+                streaming: true,
+            })),
+        ])
+        renderPopup()
+        await waitFor(() => expect(runListener).not.toBeNull())
+        const eventBase = {
+            actionId: 'respond', actionType: 'agent' as const, autoFinish: null, context, interactionReady: true,
+            phase: 'main' as const, rootActionId: 'respond', runId: 'run-1', streaming: true,
+        }
+
+        expect(screen.queryByRole('group', { name: 'Predefined phrases' })).not.toBeInTheDocument()
+        act(() => runListener?.({ ...eventBase, status: 'queued', type: 'action' }))
+        expect(screen.queryByRole('group', { name: 'Predefined phrases' })).not.toBeInTheDocument()
+        act(() => runListener?.({ ...eventBase, status: 'running', type: 'agentState' }))
+        expect(screen.queryByRole('group', { name: 'Predefined phrases' })).not.toBeInTheDocument()
+
+        act(() => runListener?.({ ...eventBase, status: 'waitingForInput', type: 'agentState' }))
+        const promptSurface = screen.getByLabelText('Prompt')
+        const phraseGroup = await within(promptSurface).findByRole('group', { name: 'Predefined phrases' })
+        const phraseButton = within(phraseGroup).getByRole('button', { name: 'Continue' })
+
+        fireEvent.click(phraseButton)
+        await waitFor(() => expect(within(promptSurface).getByRole('textbox')).toHaveValue('Continue with tests'))
+        await waitFor(() => expect(setActionQueuedMessage).toHaveBeenCalled())
+        expect(sendActionQueuedMessage).not.toHaveBeenCalled()
+
+        fireEvent.doubleClick(phraseButton)
+        await waitFor(() => expect(sendActionQueuedMessage).toHaveBeenCalled())
+
+        act(() => runListener?.({ ...eventBase, status: 'completed', type: 'run' }))
+        expect(screen.getByRole('group', { name: 'Predefined phrases' })).toBeInTheDocument()
+        await waitFor(() => expect(screen.queryByRole('group', { name: 'Predefined phrases' })).not.toBeInTheDocument())
+    })
+
+    it.each([
+        ['agent action without phrases', agentDefinition('guarded', { label: 'Guarded', phrases: [], streaming: true }), 'agent'],
+        ['non-agent action with phrases', commandDefinition('guarded', {label: 'Guarded', phrases: [{text: 'Unexpected', title: 'Unexpected'}]}), 'command'],
+    ])('does not show response prompts for %s', async (_case, definition, actionType) => {
+        actionRunRegistry.stop()
+        let runListener: ((event: ActionRunEvent) => void) | null = null
+        window.md2Actions = {
+            loadActionRunHistory: vi.fn(async () => []),
+            onActionRun: vi.fn((listener) => {
+                runListener = listener
+                return vi.fn()
+            }),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
+        } as unknown as typeof window.md2Actions
+        actionRunRegistry.start()
+        actionService.loadFromFiles([file(definition)])
+        renderPopup()
+        await waitFor(() => expect(runListener).not.toBeNull())
+
+        act(() => runListener?.({
+            actionId: 'guarded',
+            actionType: actionType as 'agent' | 'command',
+            context,
+            phase: 'main',
+            rootActionId: 'guarded',
+            runId: 'run-1',
+            status: 'waitingForInput',
+            type: 'action',
+        }))
+
+        expect(screen.queryByRole('group', { name: 'Predefined phrases' })).not.toBeInTheDocument()
     })
 
     it('enables agent selectors only while waiting for input', async () => {
