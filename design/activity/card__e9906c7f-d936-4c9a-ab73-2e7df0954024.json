@@ -1496,12 +1496,12 @@
         "agent-ddf1da60-c9fd-4df1-8d44-b320317ae950"
       ],
       "details": {
+        "type": "agent",
         "accessLevel": "workspace-write",
         "agent": "codex",
         "approvalPolicy": "on-request",
         "model": "gpt-5.5",
-        "thinkingLevel": "none",
-        "type": "agent"
+        "thinkingLevel": "none"
       },
       "runId": "action-0b33d4c2-f50e-4bb9-b9af-14e4d301421f",
       "origin": {
@@ -1510,9 +1510,32 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-ddf1da60-c9fd-4df1-8d44-b320317ae950",
       "startedAt": "2026-08-06T18:54:50.620Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-ddf1da60-c9fd-4df1-8d44-b320317ae950"
+    },
+    {
+      "commits": [
+        {
+          "commit": "b1dbda01bd9facc75e609c32b918e874b63ab0d8",
+          "committedAt": "2026-08-06T20:56:47+02:00",
+          "deletions": 4,
+          "filePaths": [
+            "app/src/components/actions/agent/action_agent_approval.test.tsx",
+            "app/src/components/actions/agent/action_agent_approval.tsx"
+          ],
+          "filesChanged": 2,
+          "insertions": 9,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-06T20:56:47+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "e9906c7f-d936-4c9a-ab73-2e7df0954024",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 2
