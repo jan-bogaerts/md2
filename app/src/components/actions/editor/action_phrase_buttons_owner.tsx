@@ -1,7 +1,6 @@
-import { useSyncExternalStore } from 'react'
+import { Paper, Slide, useMediaQuery } from '@mui/material'
 import type { ActionContext } from '../../../data/action_context'
 import type { ActionDefinition } from '../../../data/action_types'
-import type { ActionRun } from '../../../services/actions/action_run_registry'
 import { dialogService } from '../../../services/dialog_service'
 import { useActionRunSelector } from '../../hooks/use_action_runs'
 import type { ActionConversationStore } from '../conversation/action_conversation_store'
@@ -22,22 +21,13 @@ interface ActionPhraseButtonsOwnerProps {
     runValidationError: string | null
 }
 
-function selectSessionActive(run: ActionRun | null) {
-    return run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'
-}
-
 /** Owns follow-up visibility and phrase actions. */
 export function ActionPhraseButtonsOwner(props: ActionPhraseButtonsOwnerProps) {
     const { action, context, conversationStore, historyStore, inputStore, resultStore, runValidationError } = props
-    const sessionActive = useActionRunSelector(action.id, context, selectSessionActive)
-    const activeActionType = useActionRunSelector(action.id, context, (run) => run?.activeActionType ?? null)
-    const liveConversationPath = useActionRunSelector(action.id, context, (run) => run?.conversation?.path ?? null)
-    useSyncExternalStore(conversationStore.subscribe, conversationStore.getSnapshot, conversationStore.getSnapshot)
+    const waitingForInput = useActionRunSelector(action.id, context, (run) => run?.status === 'waitingForInput')
+    const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
     const settings = useActionRunSettings(action, inputStore)
-    const agentActive = sessionActive && activeActionType === 'agent'
-    const continuationPath = liveConversationPath ?? conversationStore.continuationPath(null)
-    const isFollowUp = action.type === 'agent' && (agentActive || (!sessionActive && !!continuationPath))
-    if (!isFollowUp || action.phrases.length === 0) return null
+    if (action.type !== 'agent' || action.phrases.length === 0) return null
 
     const handleSelect = (text: string) => {
         const promptDraft = currentActionPromptDraft(action, context, false)
@@ -61,5 +51,23 @@ export function ActionPhraseButtonsOwner(props: ActionPhraseButtonsOwnerProps) {
         })
     }
 
-    return <ActionPhraseButtons onDoubleClick={handleDoubleClick} onSelect={handleSelect} phrases={action.phrases} />
+    return (
+        <Slide direction="up" in={waitingForInput} mountOnEnter timeout={reduceMotion ? 0 : undefined} unmountOnExit>
+            <Paper
+                elevation={4}
+                sx={{
+                    bgcolor: 'background.paper',
+                    border: 1,
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                    flexShrink: 0,
+                    mx: 1,
+                    mb: 1,
+                    p: 1,
+                }}
+            >
+                <ActionPhraseButtons onDoubleClick={handleDoubleClick} onSelect={handleSelect} phrases={action.phrases} />
+            </Paper>
+        </Slide>
+    )
 }

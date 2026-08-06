@@ -1,5 +1,7 @@
 import { Box, Typography } from '@mui/material'
-import { useEffect, useRef, useState, useSyncExternalStore, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import {
+    useEffect, useRef, useState, useSyncExternalStore, type KeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode,
+} from 'react'
 import { ACTION_PROMPT_PLACEHOLDERS } from '../../../data/action_placeholders'
 import { dialogService } from '../../../services/dialog_service'
 import type { ActionPromptDraft } from '../../../services/actions/action_prompt_draft_service'
@@ -23,11 +25,12 @@ interface ActionAgentPromptProps {
     disabled: boolean
     onRunShortcut?: () => void
     promptDraft: ActionPromptDraft
+    responsePrompts?: ReactNode
 }
 
 /** Resizable prompt editor shown below an agent conversation. */
 export function ActionAgentPrompt(props: ActionAgentPromptProps) {
-    const {convertMessage, disabled, onRunShortcut, promptDraft} = props
+    const {convertMessage, disabled, onRunShortcut, promptDraft, responsePrompts} = props
     const promptEditorRef = useRef<MarkdownEditorHandle>(null)
     const promptHeightStartRef = useRef(0)
     const pointerStartYRef = useRef(0)
@@ -146,27 +149,31 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
                 sx={{
                     borderRadius: '9px',
                     border: 1,
-                    borderColor: (theme) => theme.palette.mode === 'dark' ? '#364152' : '#d5dbe3',
+                    borderColor: 'custom.borderStrong',
+                    display: 'flex',
+                    flexDirection: 'column',
                     flexShrink: 0,
                     height: promptHeight,
-                    overflowY: 'auto',
-                    px: 1,
+                    overflow: 'hidden',
                     '&:focus-within': {
                         borderColor: 'primary.main',
                         boxShadow: (theme) => `0 0 0 3px ${theme.palette.action.selected}`,
                     },
                 }}
             >
-                <MarkdownEditor
-                    flushOnBlur
-                    hideToolbar
-                    markdown={promptDraft.getSnapshot()}
-                    onChange={handlePromptChange}
-                    onLiveChange={promptDraft.edit}
-                    placeholders={ACTION_PROMPT_PLACEHOLDERS}
-                    readOnly={disabled || editorSnapshot.preparationStatus !== 'ready'}
-                    ref={promptEditorRef}
-                />
+                <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', px: 1 }}>
+                    <MarkdownEditor
+                        flushOnBlur
+                        hideToolbar
+                        markdown={promptDraft.getSnapshot()}
+                        onChange={handlePromptChange}
+                        onLiveChange={promptDraft.edit}
+                        placeholders={ACTION_PROMPT_PLACEHOLDERS}
+                        readOnly={disabled || editorSnapshot.preparationStatus !== 'ready'}
+                        ref={promptEditorRef}
+                    />
+                </Box>
+                {responsePrompts}
             </Box>
             {convertMessage ? (
                 <Typography color="text.secondary" role="status" variant="caption">

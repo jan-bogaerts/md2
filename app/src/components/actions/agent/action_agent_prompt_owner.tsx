@@ -13,6 +13,7 @@ import type { ActionRunInputStore } from '../run/state/action_run_input_store'
 import type { ActionRunResultStore } from '../run/state/action_run_result_store'
 import { defaultPreparePrompt } from '../run/popup/action_popup_defaults'
 import { useActionRunSettings } from '../shared/use_action_run_settings'
+import { ActionPhraseButtonsOwner } from '../editor/action_phrase_buttons_owner'
 
 interface ActionAgentPromptOwnerProps {
     action: ActionDefinition
@@ -97,6 +98,17 @@ export function ActionAgentPromptOwner(props: ActionAgentPromptOwnerProps) {
             disabled={false}
             onRunShortcut={handleRunShortcut}
             promptDraft={promptDraft}
+            responsePrompts={(
+                <ActionPhraseButtonsOwner
+                    action={action}
+                    context={context}
+                    conversationStore={conversationStore}
+                    historyStore={historyStore}
+                    inputStore={inputStore}
+                    resultStore={resultStore}
+                    runValidationError={runValidationError}
+                />
+            )}
         />
     )
 }
