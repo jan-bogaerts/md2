@@ -1217,7 +1217,7 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "63ee96f0-2707-4a40-80df-dab5b0efda35",
       "cardPath": "design/feature_descriptions/B_99_mobile_status_change_no_update.md",
-      "completedAt": null,
+      "completedAt": "2026-08-06T18:57:53.361Z",
       "entries": [
         {
           "content": "Read and implement the feature/job described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_99_mobile_status_change_no_update.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests.\n5. After implementation is done, update the field `status` in the markdown feature description file to \\`ready\\`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_99_mobile_status_change_no_update.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria.&#x20;\n\nYou should only run the related tests, do not run the entire test suite, that will be done manually later on.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill",
@@ -2587,9 +2587,86 @@
           "label": "File changes",
           "providerItemId": "exec-b56784df-d161-4266-8d6b-1f68962ec610",
           "sequence": 104,
-          "status": "inProgress",
-          "timestamp": "2026-08-06T18:55:57.042Z",
+          "status": "completed",
+          "timestamp": "2026-08-06T18:57:25.811Z",
           "type": "fileChange"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-2ac71d18-ed36-4542-825d-0f89bbfef276-event-105",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_082a57b401d9a736016a74d9191c0c8191917d70c01fb3e464",
+          "sequence": 105,
+          "status": "completed",
+          "timestamp": "2026-08-06T18:57:27.641Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "content": "",
+          "id": "agent-turn-2ac71d18-ed36-4542-825d-0f89bbfef276-event-106",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_082a57b401d9a736016a74d91bdff881919e177475da61267f",
+          "sequence": 106,
+          "status": "completed",
+          "timestamp": "2026-08-06T18:57:34.877Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "content": "\r\nC:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_99_mobile_status_change_no_update.md:6:status: ready\r\napp\\src\\components\\card_view\\mobile_card_view.test.tsx:130:    it('moves a remotely changed card between mobile columns and updates its open status control without remounting', () => {\napp\\src\\services\\project\\project_loading.test.ts:982:    it('publishes granular card and collection events for a remotely watched status change', async () => {\n\r\n\r\n",
+          "id": "agent-turn-2ac71d18-ed36-4542-825d-0f89bbfef276-event-107",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Select-String -Path 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\B_99_mobile_status_change_no_update.md' -Pattern '\"'^status:'\"'; rg -n \\\"publishes granular card|moves a remotely changed card\\\" app\\\\src\\\\services\\\\project\\\\project_loading.test.ts app\\\\src\\\\components\\\\card_view\\\\mobile_card_view.test.tsx\"",
+          "providerItemId": "exec-b033f1eb-2ac1-4870-b2e6-410d5229a2b8",
+          "sequence": 107,
+          "status": "completed",
+          "timestamp": "2026-08-06T18:57:36.107Z",
+          "type": "commandExecution",
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Select-String -Path 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\B_99_mobile_status_change_no_update.md' -Pattern '\"'^status:'\"'; rg -n \\\"publishes granular card|moves a remotely changed card\\\" app\\\\src\\\\services\\\\project\\\\project_loading.test.ts app\\\\src\\\\components\\\\card_view\\\\mobile_card_view.test.tsx\"",
+          "durationMs": 342,
+          "exitCode": 0,
+          "output": "\r\nC:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_99_mobile_status_change_no_update.md:6:status: ready\r\napp\\src\\components\\card_view\\mobile_card_view.test.tsx:130:    it('moves a remotely changed card between mobile columns and updates its open status control without remounting', () => {\napp\\src\\services\\project\\project_loading.test.ts:982:    it('publishes granular card and collection events for a remotely watched status change', async () => {\n\r\n\r\n",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-2ac71d18-ed36-4542-825d-0f89bbfef276-event-108",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_082a57b401d9a736016a74d924b56081919b09c98f585d06fa",
+          "sequence": 108,
+          "status": "completed",
+          "timestamp": "2026-08-06T18:57:39.214Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "content": "",
+          "id": "agent-turn-2ac71d18-ed36-4542-825d-0f89bbfef276-event-109",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_082a57b401d9a736016a74d92c2d488191919771a21ce701b6",
+          "sequence": 109,
+          "status": "completed",
+          "timestamp": "2026-08-06T18:57:50.235Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "agent": "codex",
+          "content": "Implemented. Existing production event path already works; missing regression coverage caused uncertainty.\n\n- Added remote `watchProject` status/event coverage in [project_loading.test.ts](C:/Users/janbo/Documents/dev/md2_workers/dev1/app/src/services/project/project_loading.test.ts:982).\n- Added mobile column, open status control, and no-remount coverage in [mobile_card_view.test.tsx](C:/Users/janbo/Documents/dev/md2_workers/dev1/app/src/components/card_view/mobile_card_view.test.tsx:130).\n- 43 related tests pass. ESLint and TypeScript pass.\n- Set feature [status to ready](C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/B_99_mobile_status_change_no_update.md:6).\n\n",
+          "id": "agent-turn-2ac71d18-ed36-4542-825d-0f89bbfef276-turn-1-assistant-11",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 110,
+          "timestamp": "2026-08-06T18:57:53.361Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -2599,21 +2676,21 @@
           "agent": "codex",
           "conversationId": "019fd865-b0ee-7983-8089-3139fd92ca1b",
           "createdAt": "2026-08-06T18:48:13.241Z",
-          "lastUsedAt": "2026-08-06T18:48:46.284Z",
-          "synchronizedThroughMessageId": "agent-turn-23caf86b-22cb-496c-ade9-92c968605861-turn-1-assistant-3"
+          "lastUsedAt": "2026-08-06T18:57:53.361Z",
+          "synchronizedThroughMessageId": "agent-turn-2ac71d18-ed36-4542-825d-0f89bbfef276-turn-1-assistant-11"
         }
       ],
       "startedAt": "2026-08-06T18:46:10.721Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "title": "implement",
       "usage": {
-        "cachedInputTokens": 97024,
-        "inputTokens": 98855,
-        "outputTokens": 204,
-        "reasoningTokens": 64,
-        "totalTokens": 196147
+        "cachedInputTokens": 253440,
+        "inputTokens": 256736,
+        "outputTokens": 600,
+        "reasoningTokens": 299,
+        "totalTokens": 511075
       },
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
