@@ -3,12 +3,11 @@ author:
 id: B_92
 internalId: c9e7dccb-d263-4ba6-98fc-b4361a01bf4d
 title: click on link to code not working
-status: new
+status: design
 owner: 
 affects:
 agents:
 policy:
-after: edda4ba9-0e14-414b-8da7-aa252093661c
 ---
 
 error:
