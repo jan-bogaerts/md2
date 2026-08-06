@@ -3,7 +3,7 @@ author: JB
 id: F_149
 internalId: 290f3413-3d14-4ec2-b97d-e2522c3c1057
 title: Show card worktree diff before integration
-status: new
+status: ready
 owner:
 affects:
   - desktop/src/git/diff_service.js
