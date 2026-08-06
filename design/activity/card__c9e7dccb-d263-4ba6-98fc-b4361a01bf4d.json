@@ -3689,12 +3689,12 @@
         "agent-aae77199-0ad2-4afd-adf3-c5c9dfbf4284"
       ],
       "details": {
+        "type": "agent",
         "accessLevel": "workspace-write",
         "agent": "codex",
         "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-186a9aca-df7c-4a5a-8300-72a4b8eee653",
       "origin": {
@@ -3703,9 +3703,51 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-aae77199-0ad2-4afd-adf3-c5c9dfbf4284",
       "startedAt": "2026-08-06T14:10:04.871Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-aae77199-0ad2-4afd-adf3-c5c9dfbf4284"
+    },
+    {
+      "commits": [
+        {
+          "commit": "dbf2378ad3287f354564442ee90a82548fb5d86a",
+          "committedAt": "2026-08-06T17:39:06+02:00",
+          "deletions": 88,
+          "filePaths": [
+            "app/src/components/actions/conversation/action_conversation_chat.test.tsx",
+            "app/src/components/actions/conversation/action_conversation_chat.tsx",
+            "app/src/components/actions/conversation/action_conversation_link.tsx",
+            "app/src/components/actions/conversation/action_conversation_link_context.ts",
+            "app/src/components/actions/conversation/action_conversation_link_navigation.node.test.ts",
+            "app/src/components/actions/conversation/action_conversation_link_navigation.ts",
+            "app/src/components/actions/conversation/action_conversation_message.tsx",
+            "app/src/components/actions/conversation/diff_view.tsx",
+            "app/src/components/config/config_page.test.tsx",
+            "app/src/data/electron_action_bridge.ts",
+            "app/src/services/config/config_entries.ts",
+            "app/src/services/config/config_persistence.test.ts",
+            "app/src/services/config/config_service.test.ts",
+            "app/src/services/config/config_service.ts",
+            "app/src/services/data/diff_service.ts",
+            "desktop/src/git/diff_service.js",
+            "desktop/src/git/diff_service.test.mjs",
+            "desktop/src/shell/config.js",
+            "desktop/src/shell/config.test.mjs",
+            "desktop/src/shell/local_bridge_dispatch.js",
+            "desktop/src/shell/local_bridge_dispatch.test.mjs"
+          ],
+          "filesChanged": 21,
+          "insertions": 398,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-06T17:39:06+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "c9e7dccb-d263-4ba6-98fc-b4361a01bf4d",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 2
