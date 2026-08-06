@@ -123,3 +123,56 @@ describe('WorktreeService integration synchronization', () => {
         }
     }, 30_000);
 });
+
+describe('WorktreeService local branch deletion', () => {
+    it('force-deletes a valid local branch after its worktree is parked', async () => {
+        const repository = await createRepository();
+        const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };
+        const service = createService();
+
+        try {
+            await service.startProject(project);
+            await service.park(project, 1);
+            await service.deleteBranch(project, 'feature');
+
+            expect(await runGit(repository.primaryPath, ['branch', '--list', 'feature'])).toBe('');
+        } finally {
+            service.stopProject();
+            await rm(repository.folderPath, { force: true, recursive: true });
+        }
+    }, 30_000);
+
+    it('rejects project, parking, and checked-out branches', async () => {
+        const repository = await createRepository();
+        const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };
+        const service = createService();
+
+        try {
+            await service.startProject(project);
+            const parkingBranch = service.getRecords(project)[0].parkingBranch;
+
+            await expect(service.deleteBranch(project, 'main')).rejects.toThrow('Project branch cannot be deleted');
+            await expect(service.deleteBranch(project, parkingBranch)).rejects.toThrow('Parking branch cannot be deleted');
+            await expect(service.deleteBranch(project, 'feature')).rejects.toThrow('Branch is checked out by a worktree');
+        } finally {
+            service.stopProject();
+            await rm(repository.folderPath, { force: true, recursive: true });
+        }
+    }, 30_000);
+
+    it('rejects invalid and missing local branch names', async () => {
+        const repository = await createRepository();
+        const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };
+        const service = createService();
+
+        try {
+            await service.startProject(project);
+
+            await expect(service.deleteBranch(project, 'bad name')).rejects.toThrow();
+            await expect(service.deleteBranch(project, 'missing')).rejects.toThrow();
+        } finally {
+            service.stopProject();
+            await rm(repository.folderPath, { force: true, recursive: true });
+        }
+    }, 30_000);
+});

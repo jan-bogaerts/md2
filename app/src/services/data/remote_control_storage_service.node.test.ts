@@ -166,6 +166,7 @@ describe('RemoteControlStorageService', () => {
         const push = service.pushWorktree(operationRequest)
         const refresh = service.refreshWorktrees(project)
         const removal = service.removeWorktree(project, 'C:/feature')
+        const deletion = service.deleteLocalBranch(project, 'feature')
         const socket = lastSocket()
 
         socket.open()
@@ -180,6 +181,7 @@ describe('RemoteControlStorageService', () => {
         const pushRequest = JSON.parse(socket.sent[7]) as { id: string, method: string, params: unknown[] }
         const refreshRequest = JSON.parse(socket.sent[8]) as { id: string, method: string, params: unknown[] }
         const removeRequest = JSON.parse(socket.sent[9]) as { id: string, method: string, params: unknown[] }
+        const deleteRequest = JSON.parse(socket.sent[10]) as { id: string, method: string, params: unknown[] }
         expect(addRequest).toMatchObject({ method: 'addWorktree', params: [project] })
         expect(commitSentRequest).toMatchObject({ method: 'commitWorktree', params: [commitRequest] })
         expect(discardRequest).toMatchObject({ method: 'discardWorktreeChanges', params: [operationRequest] })
@@ -190,9 +192,10 @@ describe('RemoteControlStorageService', () => {
         expect(pushRequest).toMatchObject({ method: 'pushWorktree', params: [operationRequest] })
         expect(refreshRequest).toMatchObject({ method: 'refreshWorktrees', params: [project] })
         expect(removeRequest).toMatchObject({ method: 'removeWorktree', params: [project, 'C:/feature'] })
+        expect(deleteRequest).toMatchObject({ method: 'deleteLocalBranch', params: [project, 'feature'] })
         for (const request of [
             addRequest, commitSentRequest, discardRequest, integrateRequest, parkRequest, prepareRequest,
-            pullRequest, pushRequest, refreshRequest, removeRequest,
+            pullRequest, pushRequest, refreshRequest, removeRequest, deleteRequest,
         ]) socket.receive({ id: request.id, result: request === addRequest })
 
         await expect(addition).resolves.toBe(true)
@@ -205,6 +208,7 @@ describe('RemoteControlStorageService', () => {
         await expect(push).resolves.toBeUndefined()
         await expect(refresh).resolves.toBeUndefined()
         await expect(removal).resolves.toBeUndefined()
+        await expect(deletion).resolves.toBeUndefined()
     })
 
     it('proxies primary pull', async () => {

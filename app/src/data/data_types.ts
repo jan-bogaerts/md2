@@ -67,6 +67,7 @@ export interface CardHeader {
     /** Terminal conversation references inside activity files; the name mirrors the persisted `agents` field. */
     agentLogReferences: string[]
     author: string | null
+    branch?: string | null
     id: string
     internalId: string | null
     owner: string | null
@@ -169,6 +170,12 @@ export interface RepositoryReference extends ProjectReference {
 
 export interface BranchReference {
     name: string
+}
+
+export interface ReleaseBranchCandidate {
+    branchName: string
+    cardId: string
+    cardPath: string
 }
 
 export interface TopLevelFolderReference {
@@ -352,6 +359,7 @@ export interface StorageService {
     createProject(project: ProjectReference, workingFolder: string): Promise<ProjectReference>
     deleteFile(request: DeleteFileRequest): Promise<void>
     deleteFolder(request: DeleteFolderRequest): Promise<void>
+    deleteLocalBranch?(project: ProjectReference, branchName: string): Promise<void>
     discardWorktreeChanges?(request: WorktreeOperationRequest): Promise<void>
     discardPendingCommits?(project: ProjectReference): void
     hasPendingPush?(project: ProjectReference): boolean

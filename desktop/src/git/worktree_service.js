@@ -168,6 +168,23 @@ class WorktreeService {
         });
     }
 
+    deleteBranch(project, branchName) {
+        return this.enqueueMutation(async () => {
+            const activeProject = this.requireActiveProject(project);
+            if (typeof branchName !== 'string' || branchName.length === 0) throw new Error('Missing local branch name');
+            await this.runGit(activeProject.rootPath, ['check-ref-format', '--branch', branchName]);
+            if (branchName === activeProject.branch) throw new Error(`Project branch cannot be deleted: ${branchName}`);
+            if (branchName.startsWith(PARKING_BRANCH_PREFIX)) throw new Error(`Parking branch cannot be deleted: ${branchName}`);
+
+            const worktrees = parseWorktreeList(await this.runGit(activeProject.rootPath, ['worktree', 'list', '--porcelain']));
+            const checkedOut = worktrees.find((worktree) => worktree.branch === branchName);
+            if (checkedOut) throw new Error(`Branch is checked out by a worktree: ${branchName} (${checkedOut.path})`);
+
+            await this.runGit(activeProject.rootPath, ['branch', '-D', branchName]);
+            await this.refreshAfterMutation();
+        });
+    }
+
     refreshRemote(project) {
         return this.enqueueMutation(async () => {
             const activeProject = this.requireActiveProject(project);

@@ -320,8 +320,12 @@ export class ProjectSessionService extends EventTarget {
         this.dispatchChanged()
     }
 
-    async completeRelease(releaseName: string) {
-        await this.withLoading('Release completion failed', () => dataService.releases.completeRelease(releaseName))
+    async getReleaseBranchCandidates() {
+        return this.withLoading('Release preparation failed', () => dataService.releases.getReleaseBranchCandidates())
+    }
+
+    async completeRelease(releaseName: string, selectedBranchNames: string[]) {
+        await this.withLoading('Release completion failed', () => dataService.releases.completeRelease(releaseName, selectedBranchNames))
     }
 
     async createCard(draft: CardDraft, initialState: string) {

@@ -13,11 +13,13 @@ import {
 import { CardRenameOperations } from './card_rename_operations'
 import { ProjectFileOperations } from './project_file_operations'
 import {
+    clearCardBranch,
     setCardAffects,
     setCardAgentLogReferences,
     setCardBody,
     setCardHeaderFields,
     setCardWorktree,
+    setCardWorktreeAssignment,
     toggleCardPolicy,
 } from './card_mutations'
 
@@ -93,6 +95,14 @@ export class CardOperations {
 
     updateCardWorktree(path: string, worktree: number | null) {
         return this.context.saveCardChange(path, (card) => setCardWorktree(card, worktree))
+    }
+
+    assignCardWorktree(path: string, worktree: number, branch: string) {
+        return this.context.saveCardChange(path, (card) => setCardWorktreeAssignment(card, worktree, branch))
+    }
+
+    clearCardBranch(path: string) {
+        return this.context.saveCardChange(path, clearCardBranch)
     }
 
     toggleCardPolicy(path: string, policyKey: string, saveReference?: OpenDocumentSaveReference): Card {

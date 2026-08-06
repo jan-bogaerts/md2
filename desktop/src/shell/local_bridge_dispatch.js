@@ -154,6 +154,7 @@ function createLocalBridgeDispatch(dependencies) {
 
             return worktreeService.discard(request.project, request.worktree);
         },
+        deleteLocalBranch: (project, branchName) => worktreeService.deleteBranch(project, branchName),
         integrateWorktree: async (request) => {
             if (!request || typeof request !== 'object') throw new Error('Missing worktree integration request');
             const tracking = cardIntegrationTracking(request);

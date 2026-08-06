@@ -53,6 +53,7 @@ describe('LocalGitStorageService binary write path', () => {
         const addWorktree = vi.fn().mockResolvedValue(true)
         const commitWorktree = vi.fn().mockResolvedValue(undefined)
         const discardWorktreeChanges = vi.fn().mockResolvedValue(undefined)
+        const deleteLocalBranch = vi.fn().mockResolvedValue(undefined)
         const integrateWorktree = vi.fn().mockResolvedValue(undefined)
         const parkWorktree = vi.fn().mockResolvedValue(undefined)
         const prepareWorktree = vi.fn().mockResolvedValue(undefined)
@@ -63,7 +64,7 @@ describe('LocalGitStorageService binary write path', () => {
         const service = new LocalGitStorageService()
         service.init({
             bridge: createBridge({
-                addWorktree, commitWorktree, discardWorktreeChanges, integrateWorktree, parkWorktree, prepareWorktree,
+                addWorktree, commitWorktree, deleteLocalBranch, discardWorktreeChanges, integrateWorktree, parkWorktree, prepareWorktree,
                 pullWorktree, pushWorktree, refreshWorktrees, removeWorktree,
             }),
         })
@@ -74,6 +75,7 @@ describe('LocalGitStorageService binary write path', () => {
         await expect(service.addWorktree(project)).resolves.toBe(true)
         await expect(service.commitWorktree(commitRequest)).resolves.toBeUndefined()
         await expect(service.discardWorktreeChanges(operationRequest)).resolves.toBeUndefined()
+        await expect(service.deleteLocalBranch(project, 'feature')).resolves.toBeUndefined()
         await expect(service.integrateWorktree(operationRequest)).resolves.toBeUndefined()
         await expect(service.parkWorktree(operationRequest)).resolves.toBeUndefined()
         await expect(service.prepareWorktree(preparationRequest)).resolves.toBeUndefined()
@@ -84,6 +86,7 @@ describe('LocalGitStorageService binary write path', () => {
         expect(addWorktree).toHaveBeenCalledWith(project)
         expect(commitWorktree).toHaveBeenCalledWith(commitRequest)
         expect(discardWorktreeChanges).toHaveBeenCalledWith(operationRequest)
+        expect(deleteLocalBranch).toHaveBeenCalledWith(project, 'feature')
         expect(integrateWorktree).toHaveBeenCalledWith(operationRequest)
         expect(service.hasPendingPush(project)).toBe(true)
         expect(parkWorktree).toHaveBeenCalledWith(operationRequest)

@@ -1,18 +1,26 @@
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField } from '@mui/material'
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField, Typography } from '@mui/material'
 import type { ChangeEvent } from 'react'
 import { useState } from 'react'
+import type { ReleaseBranchCandidate } from '../../../data/data_types'
+import { ReleaseBranchCheckbox } from './release_branch_checkbox'
 
 interface CompleteReleaseDialogProps {
+    branchCandidates: ReleaseBranchCandidate[]
+    defaultSelectAll: boolean
     isLoading: boolean
     open: boolean
     onClose: () => void
-    onCompleteRelease: (releaseName: string) => Promise<void>
+    onCompleteRelease: (releaseName: string, selectedBranchNames: string[]) => Promise<void>
+    onSelectAllDefaultChange: (selected: boolean) => void
 }
 
 /** Dialog for confirming and naming release completion. */
 export function CompleteReleaseDialog(props: CompleteReleaseDialogProps) {
-    const { isLoading, onClose, onCompleteRelease, open } = props
+    const { branchCandidates, defaultSelectAll, isLoading, onClose, onCompleteRelease, onSelectAllDefaultChange, open } = props
     const [releaseName, setReleaseName] = useState('')
+    const [selectedBranchNames, setSelectedBranchNames] = useState<Set<string>>(
+        defaultSelectAll ? new Set(branchCandidates.map(({ branchName }) => branchName)) : new Set(),
+    )
 
     const handleReleaseNameChange = (event: ChangeEvent<HTMLInputElement>) => {
         setReleaseName(event.target.value)
@@ -21,8 +29,25 @@ export function CompleteReleaseDialog(props: CompleteReleaseDialogProps) {
     const handleCompleteClick = async () => {
         if (releaseName.length === 0) return
 
-        await onCompleteRelease(releaseName)
+        const selectedBranches = branchCandidates
+            .map(({ branchName }) => branchName)
+            .filter((branchName) => selectedBranchNames.has(branchName))
+        await onCompleteRelease(releaseName, selectedBranches)
         setReleaseName('')
+    }
+    const handleBranchChange = (branchName: string, checked: boolean) => {
+        const nextSelectedBranchNames = new Set(selectedBranchNames)
+        if (checked) nextSelectedBranchNames.add(branchName)
+        else nextSelectedBranchNames.delete(branchName)
+        setSelectedBranchNames(nextSelectedBranchNames)
+    }
+    const handleSelectAll = () => {
+        setSelectedBranchNames(new Set(branchCandidates.map(({ branchName }) => branchName)))
+        onSelectAllDefaultChange(true)
+    }
+    const handleClearAll = () => {
+        setSelectedBranchNames(new Set())
+        onSelectAllDefaultChange(false)
     }
 
     return (
@@ -31,6 +56,24 @@ export function CompleteReleaseDialog(props: CompleteReleaseDialogProps) {
             <DialogContent>
                 <Stack spacing={2} sx={{ pt: 1 }}>
                     <TextField label="Release name" onChange={handleReleaseNameChange} size="small" value={releaseName} />
+                    {branchCandidates.length > 0 ? (
+                        <Stack spacing={1}>
+                            <Typography color="text.secondary">Delete local branches</Typography>
+                            <Stack direction="row" spacing={1}>
+                                <Button disabled={isLoading} onClick={handleSelectAll} size="small">Select all</Button>
+                                <Button disabled={isLoading} onClick={handleClearAll} size="small">Clear all</Button>
+                            </Stack>
+                            {branchCandidates.map((candidate) => (
+                                <ReleaseBranchCheckbox
+                                    candidate={candidate}
+                                    checked={selectedBranchNames.has(candidate.branchName)}
+                                    disabled={isLoading}
+                                    key={candidate.branchName}
+                                    onChange={handleBranchChange}
+                                />
+                            ))}
+                        </Stack>
+                    ) : null}
                 </Stack>
             </DialogContent>
             <DialogActions>

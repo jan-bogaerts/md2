@@ -5,7 +5,7 @@ import { configService } from '../config/config_service'
 import { projectPersistenceService } from '../project/project_persistence_service'
 import { DIALOG_SERVICE_EVENT, dialogService, type DialogServiceMessage, type DialogSeverity } from '../dialog_service'
 import { telemetryService } from '../telemetry/telemetry_service'
-import { activeCardFile, createDataService, createDeferred, createStorage } from '../test_support/data_service_test_support'
+import { activeCardFile, createDataService, createDeferred, createStorage, files } from '../test_support/data_service_test_support'
 import { openFilesService } from '../open_files_service'
 import { actionService } from '../actions/action_service'
 import {
@@ -62,6 +62,21 @@ describe('CardOperations', () => {
         vi.useRealTimers()
         delete window.md2Actions
         configService.clear()
+    })
+
+    it('stores branch identity with assignment and retains it after ordinary unassignment', async () => {
+        configService.init()
+        const service = createDataService()
+        service.init({ storage: createStorage() })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        service.cards.assignCardWorktree(files[0].path, 1, 'f-1-root')
+        service.cards.updateCardWorktree(files[0].path, null)
+
+        const card = service.getState().snapshot?.activeCards.find(({ path }) => path === files[0].path)
+        expect(card?.header).toMatchObject({ branch: 'f-1-root', worktree: null })
+        expect(storageFiles.get(files[0].path)).toContain('branch: f-1-root')
+        expect(storageFiles.get(files[0].path)).not.toContain('worktree:')
     })
 
     it('adds and persists a missing card internal ID during project load', async () => {

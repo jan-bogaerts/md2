@@ -44,6 +44,8 @@ interface ConfigServiceInitDependencies {
     desktopConfig?: Partial<DesktopConfigValues> | null
 }
 
+type ReactConfigKey = Extract<ConfigKey, `react.${string}`>
+
 function requireString(value: unknown, fieldName: string) {
     if (typeof value !== 'string' || value.length === 0) throw new Error(`Missing config field: ${fieldName}`)
 
@@ -272,6 +274,13 @@ export class ConfigService extends EventTarget {
     set<K extends ConfigKey>(key: K, value: ConfigValueTypes[K]) {
         this.requireInitialized()
         this.values = mergeValue(this.values, key, value)
+        this.dispatchChanged()
+    }
+
+    setReactPreference<K extends ReactConfigKey>(key: K, value: ConfigValueTypes[K]) {
+        this.requireInitialized()
+        this.values = mergeValue(this.values, key, value)
+        writeStoredReactValues(this.values)
         this.dispatchChanged()
     }
 

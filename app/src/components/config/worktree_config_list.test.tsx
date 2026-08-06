@@ -20,11 +20,13 @@ function initWorktreeService(storage: StorageService) {
     worktreeService.init({
         assignCardWorktree: vi.fn(),
         cardSeparatorProvider: () => '-',
+        clearCardBranch: vi.fn(),
         flushPendingChanges: vi.fn(async () => undefined),
         projectFolderProvider: () => 'design',
         projectProvider: () => project,
         snapshotProvider: () => null,
         storageProvider: () => storage,
+        unassignCardWorktree: vi.fn(),
     })
 }
 
