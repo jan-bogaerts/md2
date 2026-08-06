@@ -3,7 +3,7 @@ author:
 id: F_150
 internalId: 81dcbcc1-3401-4927-a76e-2f3ef4874190
 title: Integrate into project 2 popups
-status: new
+status: ready
 owner: 
 affects:
 agents:
