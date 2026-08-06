@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: b8e6a902-e78b-43d3-9896-e43146873ba5
 ---
 
 currently, when the markdown editor toolbar doesn't fit in the window (horizontally), it shows a standard horizontal scrollbar and also a vertical scrollbar cause the hor scrollbar takes up too much space.
