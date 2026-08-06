@@ -15,14 +15,6 @@
           "timestamp": "2026-08-05T12:50:47.440Z"
         },
         {
-          "content": "codex --model gpt-5.6-sol -c model_reasoning_effort=medium --sandbox workspace-write --ask-for-approval on-request app-server --stdio",
-          "id": "agent-turn-59bbb3ee-5262-4f7a-a253-c12a61877427-started",
-          "kind": "event",
-          "sequence": 2,
-          "timestamp": "2026-08-05T12:50:47.440Z",
-          "type": "started"
-        },
-        {
           "agent": "codex",
           "content": "Using `caveman`; concise updates and document. First inspect target, every non-agent reference, relevant code flow, architecture/style guidance.\n\n",
           "id": "agent-turn-59bbb3ee-5262-4f7a-a253-c12a61877427-turn-1-assistant-1",
@@ -228,14 +220,6 @@
           "timestamp": "2026-08-05T12:51:29.611Z"
         },
         {
-          "content": "",
-          "id": "agent-turn-59bbb3ee-5262-4f7a-a253-c12a61877427-turn-1-completed",
-          "kind": "event",
-          "sequence": 18,
-          "timestamp": "2026-08-05T12:51:29.611Z",
-          "type": "turnCompleted"
-        },
-        {
           "content": "1 line preview, clicking can indeed toggle full text",
           "id": "agent-turn-59bbb3ee-5262-4f7a-a253-c12a61877427-user-18",
           "kind": "message",
@@ -326,22 +310,6 @@
           "role": "assistant",
           "sequence": 26,
           "timestamp": "2026-08-05T13:10:51.194Z"
-        },
-        {
-          "content": "",
-          "id": "agent-turn-59bbb3ee-5262-4f7a-a253-c12a61877427-turn-2-completed",
-          "kind": "event",
-          "sequence": 27,
-          "timestamp": "2026-08-05T12:52:44.040Z",
-          "type": "turnCompleted"
-        },
-        {
-          "content": "1",
-          "id": "agent-turn-59bbb3ee-5262-4f7a-a253-c12a61877427-closed",
-          "kind": "event",
-          "sequence": 28,
-          "timestamp": "2026-08-05T13:10:51.194Z",
-          "type": "closed"
         }
       ],
       "hasExplicitTitle": true,
@@ -380,22 +348,6 @@
           "role": "user",
           "sequence": 1,
           "timestamp": "2026-08-05T13:29:20.242Z"
-        },
-        {
-          "content": "codex --model gpt-5.6-sol -c model_reasoning_effort=medium --sandbox workspace-write --ask-for-approval on-request app-server --stdio",
-          "id": "agent-turn-fd3abf3b-ceb9-470b-ab41-bb041f7313b7-started",
-          "kind": "event",
-          "sequence": 2,
-          "timestamp": "2026-08-05T13:29:20.242Z",
-          "type": "started"
-        },
-        {
-          "content": "1",
-          "id": "agent-turn-fd3abf3b-ceb9-470b-ab41-bb041f7313b7-closed",
-          "kind": "event",
-          "sequence": 3,
-          "timestamp": "2026-08-05T13:29:23.393Z",
-          "type": "closed"
         }
       ],
       "hasExplicitTitle": true,
@@ -410,7 +362,7 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "e9906c7f-d936-4c9a-ab73-2e7df0954024",
       "cardPath": "design/feature_descriptions/B_96_approval_required_command_text_too_long.md",
-      "completedAt": "2026-08-05T13:45:00.635Z",
+      "completedAt": "2026-08-06T18:56:32.930Z",
       "entries": [
         {
           "content": "Read and implement the feature/job described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_96_approval_required_command_text_too_long.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests.\n5. After implementation is done, update the field `status` in the markdown feature description file to \\`ready\\`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_96_approval_required_command_text_too_long.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria.&#x20;\n\nYou should only run the related tests, do not run the entire test suite, that will be done manually later on.\n\nKeep it short and to the point. use $caveman skill",
@@ -419,14 +371,6 @@
           "role": "user",
           "sequence": 1,
           "timestamp": "2026-08-05T13:31:34.128Z"
-        },
-        {
-          "content": "codex --model gpt-5.6-sol -c model_reasoning_effort=medium --sandbox workspace-write --ask-for-approval on-request app-server --stdio",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-started",
-          "kind": "event",
-          "sequence": 2,
-          "timestamp": "2026-08-05T13:31:34.128Z",
-          "type": "started"
         },
         {
           "content": "",
@@ -765,14 +709,6 @@
           "timestamp": "2026-08-05T13:32:43.988Z"
         },
         {
-          "content": "",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-turn-1-completed",
-          "kind": "event",
-          "sequence": 27,
-          "timestamp": "2026-08-05T13:32:43.988Z",
-          "type": "turnCompleted"
-        },
-        {
           "content": "go",
           "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-user-27",
           "kind": "message",
@@ -898,326 +834,6 @@
           "timestamp": "2026-08-05T13:36:14.487Z",
           "type": "commandExecution",
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2\\app"
-        },
-        {
-          "content": "\u001b[2m2026-08-05T13:36:14.484688Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_core::tools::router\u001b[0m\u001b[2m:\u001b[0m \u001b[3merror\u001b[0m\u001b[2m=\u001b[0mExit code: 1\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-38",
-          "kind": "event",
-          "sequence": 39,
-          "timestamp": "2026-08-05T13:36:14.484Z",
-          "type": "error"
-        },
-        {
-          "content": "Wall time: 3.3 seconds\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-39",
-          "kind": "event",
-          "sequence": 40,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": "Output:\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-40",
-          "kind": "event",
-          "sequence": 41,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": "\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-41",
-          "kind": "event",
-          "sequence": 42,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": "> app@0.0.7 test\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-42",
-          "kind": "event",
-          "sequence": 43,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": "> vitest run src/components/actions/agent/action_agent_approval.test.tsx\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-43",
-          "kind": "event",
-          "sequence": 44,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": "\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-44",
-          "kind": "event",
-          "sequence": 45,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": "\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-45",
-          "kind": "event",
-          "sequence": 46,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": " RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev2/app\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-46",
-          "kind": "event",
-          "sequence": 47,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": "\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-47",
-          "kind": "event",
-          "sequence": 48,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": " ❯ |ui| src/components/actions/agent/action_agent_approval.test.tsx (6 tests | 1 failed) 344ms\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-48",
-          "kind": "event",
-          "sequence": 49,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": "     × clips command to one line and toggles exact full command 35ms\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-49",
-          "kind": "event",
-          "sequence": 50,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": "\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-50",
-          "kind": "event",
-          "sequence": 51,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": " Test Files  1 failed (1)\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-51",
-          "kind": "event",
-          "sequence": 52,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": "      Tests  1 failed | 5 passed (6)\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-52",
-          "kind": "event",
-          "sequence": 53,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": "   Start at  15:36:12\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-53",
-          "kind": "event",
-          "sequence": 54,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": "   Duration  2.29s (transform 48ms, setup 100ms, import 955ms, tests 344ms, environment 772ms)\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-54",
-          "kind": "event",
-          "sequence": 55,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": "\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-55",
-          "kind": "event",
-          "sequence": 56,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": "\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-56",
-          "kind": "event",
-          "sequence": 57,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": "⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-57",
-          "kind": "event",
-          "sequence": 58,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": "\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-58",
-          "kind": "event",
-          "sequence": 59,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": " FAIL  |ui| src/components/actions/agent/action_agent_approval.test.tsx > ActionAgentApproval > clips command to one line and toggles exact full command\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-59",
-          "kind": "event",
-          "sequence": 60,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": "Error: \u001b[2mexpect(\u001b[22m\u001b[31melement\u001b[39m\u001b[2m).toHaveTextContent()\u001b[22m\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-60",
-          "kind": "event",
-          "sequence": 61,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": "\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-61",
-          "kind": "event",
-          "sequence": 62,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": "Expected element to have text content:\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-62",
-          "kind": "event",
-          "sequence": 63,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": "\u001b[32m  powershell -Command \"Get-ChildItem\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-63",
-          "kind": "event",
-          "sequence": 64,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": "  | Select-Object -First 20\"\u001b[39m\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-64",
-          "kind": "event",
-          "sequence": 65,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": "Received:\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-65",
-          "kind": "event",
-          "sequence": 66,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": "\u001b[31m  powershell -Command \"Get-ChildItem | Select-Object -First 20\"\u001b[39m\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-66",
-          "kind": "event",
-          "sequence": 67,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": " ❯ src/components/actions/agent/action_agent_approval.test.tsx:57:31\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-67",
-          "kind": "event",
-          "sequence": 68,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": "     55|         expect(commandButton).toHaveAttribute('aria-expanded', 'false')\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-68",
-          "kind": "event",
-          "sequence": 69,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": "     56|         expect(commandButton).toHaveStyle({ overflow: 'hidden', textOv…\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-69",
-          "kind": "event",
-          "sequence": 70,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": "     57|         expect(commandButton).toHaveTextContent(command)\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-70",
-          "kind": "event",
-          "sequence": 71,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": "       |                               ^\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-71",
-          "kind": "event",
-          "sequence": 72,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": "     58|         commandButton.focus()\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-72",
-          "kind": "event",
-          "sequence": 73,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": "     59|         expect(commandButton).toHaveFocus()\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-73",
-          "kind": "event",
-          "sequence": 74,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": "\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-74",
-          "kind": "event",
-          "sequence": 75,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-75",
-          "kind": "event",
-          "sequence": 76,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": "\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-76",
-          "kind": "event",
-          "sequence": 77,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
-        },
-        {
-          "content": "\n",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-error-77",
-          "kind": "event",
-          "sequence": 78,
-          "timestamp": "2026-08-05T13:36:14.485Z",
-          "type": "error"
         },
         {
           "content": "",
@@ -1472,12 +1088,278 @@
           "timestamp": "2026-08-05T13:45:00.635Z"
         },
         {
-          "content": "0",
-          "id": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-closed",
-          "kind": "event",
+          "content": "Text seems shorter but still multiple lines long",
+          "id": "agent-turn-1e6ccbbf-d3fb-44b1-9b36-d28d36c1b312-user",
+          "kind": "message",
+          "role": "user",
           "sequence": 98,
-          "timestamp": "2026-08-05T13:45:00.635Z",
-          "type": "closed"
+          "timestamp": "2026-08-06T18:54:50.639Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-1e6ccbbf-d3fb-44b1-9b36-d28d36c1b312-event-99",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04fc9d4e79b23942016a74d884dd1c819191338d5df3d689db",
+          "sequence": 99,
+          "status": "completed",
+          "timestamp": "2026-08-06T18:55:09.315Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "agent": "codex",
+          "content": "Likely duplicate `Actions` entry: `Command` now clips, but unknown command action still renders same full command with wrapping. Inspecting approval payload rendering, then tighten only raw command duplication.\n\n",
+          "id": "agent-turn-1e6ccbbf-d3fb-44b1-9b36-d28d36c1b312-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 100,
+          "timestamp": "2026-08-06T18:55:10.469Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-1e6ccbbf-d3fb-44b1-9b36-d28d36c1b312-event-101",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04fc9d4e79b23942016a74d890a4e08191a267a80727cdc721",
+          "sequence": 101,
+          "status": "completed",
+          "timestamp": "2026-08-06T18:55:12.129Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "content": "app/src\\data\\action_run_types.ts:64:export type AgentCommandAction =\napp/src\\data\\action_run_types.ts:85:    commandActions?: AgentCommandAction[] | null\ndesktop\\src\\actions\\agent\\agent_streaming_adapter.test.mjs:415:                commandActions: [{ command: 'npm test', type: 'unknown' }],\ndesktop\\src\\actions\\agent\\agent_streaming_adapter.test.mjs:559:            commandActions: [],\ndesktop\\src\\actions\\agent\\agent_streaming_adapter.test.mjs:600:            commandActions: [],\napp/src\\components\\actions\\agent\\action_agent_approval.tsx:6:    AgentCommandAction,\napp/src\\components\\actions\\agent\\action_agent_approval.tsx:36:function commandActionLabel(action: AgentCommandAction) {\napp/src\\components\\actions\\agent\\action_agent_approval.tsx:75:    if (approval.commandActions?.length) {\napp/src\\components\\actions\\agent\\action_agent_approval.tsx:76:        details.push({ label: 'Actions', values: approval.commandActions.map(commandActionLabel) })\napp/src\\components\\actions\\agent\\action_agent_approval.test.tsx:18:    commandActions: [{ command: 'npm publish', type: 'unknown' }],\napp/src\\components\\actions\\agent\\action_agent_approval.test.tsx:110:            commandActions: null,\n",
+          "id": "agent-turn-1e6ccbbf-d3fb-44b1-9b36-d28d36c1b312-event-102",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"commandActions|AgentCommandAction\\\" app/src desktop --glob '\"'!**/node_modules/**'\"'\"",
+          "providerItemId": "exec-087359a9-cbe3-4d94-9a8c-52cc6a1a318d",
+          "sequence": 102,
+          "status": "completed",
+          "timestamp": "2026-08-06T18:55:13.618Z",
+          "type": "commandExecution",
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"commandActions|AgentCommandAction\\\" app/src desktop --glob '\"'!**/node_modules/**'\"'\"",
+          "durationMs": 271,
+          "exitCode": 0,
+          "output": "app/src\\data\\action_run_types.ts:64:export type AgentCommandAction =\napp/src\\data\\action_run_types.ts:85:    commandActions?: AgentCommandAction[] | null\ndesktop\\src\\actions\\agent\\agent_streaming_adapter.test.mjs:415:                commandActions: [{ command: 'npm test', type: 'unknown' }],\ndesktop\\src\\actions\\agent\\agent_streaming_adapter.test.mjs:559:            commandActions: [],\ndesktop\\src\\actions\\agent\\agent_streaming_adapter.test.mjs:600:            commandActions: [],\napp/src\\components\\actions\\agent\\action_agent_approval.tsx:6:    AgentCommandAction,\napp/src\\components\\actions\\agent\\action_agent_approval.tsx:36:function commandActionLabel(action: AgentCommandAction) {\napp/src\\components\\actions\\agent\\action_agent_approval.tsx:75:    if (approval.commandActions?.length) {\napp/src\\components\\actions\\agent\\action_agent_approval.tsx:76:        details.push({ label: 'Actions', values: approval.commandActions.map(commandActionLabel) })\napp/src\\components\\actions\\agent\\action_agent_approval.test.tsx:18:    commandActions: [{ command: 'npm publish', type: 'unknown' }],\napp/src\\components\\actions\\agent\\action_agent_approval.test.tsx:110:            commandActions: null,\n",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2"
+        },
+        {
+          "content": "export type AgentNetworkProtocol = 'http' | 'https' | 'socks5Tcp' | 'socks5Udp'\r\nexport type AgentFileSystemPath =\r\n    | { path: string, type: 'path' }\r\n    | { pattern: string, type: 'glob_pattern' }\r\n    | { type: 'special', value: string }\r\nexport interface AgentAdditionalPermissions {\r\n    fileSystem: {\r\n        entries?: { access: 'deny' | 'read' | 'write', path: AgentFileSystemPath }[]\r\n        read: string[] | null\r\n        write: string[] | null\r\n    } | null\r\n    network: { enabled: boolean | null } | null\r\n}\r\nexport type AgentCommandAction =\r\n    | { command: string, name: string, path: string, type: 'read' }\r\n    | { command: string, path: string | null, type: 'listFiles' }\r\n    | { command: string, path: string | null, query: string | null, type: 'search' }\r\n    | { command: string, type: 'unknown' }\r\nexport interface AgentNetworkPolicyAmendment {\r\n    action: 'allow' | 'deny'\r\n    host: string\r\n}\r\nexport type AgentApprovalDecision =\r\n    | 'accept'\r\n    | 'acceptForSession'\r\n    | 'cancel'\r\n    | 'decline'\r\n    | { acceptWithExecpolicyAmendment: { execpolicy_amendment: string[] } }\r\n    | { applyNetworkPolicyAmendment: { network_policy_amendment: AgentNetworkPolicyAmendment } }\r\nexport interface AgentApproval {\r\n    additionalPermissions?: AgentAdditionalPermissions | null\r\n    approvalId?: string | null\r\n    availableDecisions?: AgentApprovalDecision[] | null\r\n    command?: string | null\r\n    commandActions?: AgentCommandAction[] | null\r\n    cwd?: string | null\r\n    environmentId?: string | null\r\n    filePaths: string[]\r\n    grantRoot?: string | null\r\n    input?: Record<string, unknown> | null\r\n    itemId: string\r\n    kind: 'commandExecution' | 'fileChange' | 'toolUse'\r\n    networkApprovalContext?: { host: string, protocol: AgentNetworkProtocol } | null\r\n    proposedExecpolicyAmendment?: string[] | null\r\n    proposedNetworkPolicyAmendments?: AgentNetworkPolicyAmendment[] | null\r\n    provider?: 'claude' | 'codex'\r\n    permissionSuggestions?: unknown[] | null\r\n    reason?: string | null\r\n    requestId: AgentApprovalRequestId\r\n    startedAtMs: number\r\n",
+          "id": "agent-turn-1e6ccbbf-d3fb-44b1-9b36-d28d36c1b312-event-103",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app\\\\src\\\\data\\\\action_run_types.ts' | Select-Object -Skip 50 -First 50\"",
+          "providerItemId": "exec-e42be610-6636-483b-8083-219d910f65a6",
+          "sequence": 103,
+          "status": "completed",
+          "timestamp": "2026-08-06T18:55:21.011Z",
+          "type": "commandExecution",
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app\\\\src\\\\data\\\\action_run_types.ts' | Select-Object -Skip 50 -First 50\"",
+          "durationMs": 358,
+          "exitCode": 0,
+          "output": "export type AgentNetworkProtocol = 'http' | 'https' | 'socks5Tcp' | 'socks5Udp'\r\nexport type AgentFileSystemPath =\r\n    | { path: string, type: 'path' }\r\n    | { pattern: string, type: 'glob_pattern' }\r\n    | { type: 'special', value: string }\r\nexport interface AgentAdditionalPermissions {\r\n    fileSystem: {\r\n        entries?: { access: 'deny' | 'read' | 'write', path: AgentFileSystemPath }[]\r\n        read: string[] | null\r\n        write: string[] | null\r\n    } | null\r\n    network: { enabled: boolean | null } | null\r\n}\r\nexport type AgentCommandAction =\r\n    | { command: string, name: string, path: string, type: 'read' }\r\n    | { command: string, path: string | null, type: 'listFiles' }\r\n    | { command: string, path: string | null, query: string | null, type: 'search' }\r\n    | { command: string, type: 'unknown' }\r\nexport interface AgentNetworkPolicyAmendment {\r\n    action: 'allow' | 'deny'\r\n    host: string\r\n}\r\nexport type AgentApprovalDecision =\r\n    | 'accept'\r\n    | 'acceptForSession'\r\n    | 'cancel'\r\n    | 'decline'\r\n    | { acceptWithExecpolicyAmendment: { execpolicy_amendment: string[] } }\r\n    | { applyNetworkPolicyAmendment: { network_policy_amendment: AgentNetworkPolicyAmendment } }\r\nexport interface AgentApproval {\r\n    additionalPermissions?: AgentAdditionalPermissions | null\r\n    approvalId?: string | null\r\n    availableDecisions?: AgentApprovalDecision[] | null\r\n    command?: string | null\r\n    commandActions?: AgentCommandAction[] | null\r\n    cwd?: string | null\r\n    environmentId?: string | null\r\n    filePaths: string[]\r\n    grantRoot?: string | null\r\n    input?: Record<string, unknown> | null\r\n    itemId: string\r\n    kind: 'commandExecution' | 'fileChange' | 'toolUse'\r\n    networkApprovalContext?: { host: string, protocol: AgentNetworkProtocol } | null\r\n    proposedExecpolicyAmendment?: string[] | null\r\n    proposedNetworkPolicyAmendments?: AgentNetworkPolicyAmendment[] | null\r\n    provider?: 'claude' | 'codex'\r\n    permissionSuggestions?: unknown[] | null\r\n    reason?: string | null\r\n    requestId: AgentApprovalRequestId\r\n    startedAtMs: number\r\n",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2"
+        },
+        {
+          "content": "        expect(writes.at(-1)).toEqual({ id: 99, result: { answers: { confirm: { answers: ['Yes'] } } } });\r\n    });\r\n\r\n    it('tracks concurrent approval requests and writes only supported decisions', async () => {\r\n        const { adapter, events, writes } = harness('codex');\r\n        const policyDecision = { acceptWithExecpolicyAmendment: { execpolicy_amendment: ['npm', 'test'] } };\r\n        await adapter.start('plan');\r\n        await adapter.handleMessage({ id: 1, result: {} });\r\n        await adapter.handleMessage({ id: 3, result: { thread: { id: 'thread-1' } } });\r\n        await adapter.handleMessage({ method: 'turn/started', params: { turn: { id: 'turn-1' } } });\r\n        await adapter.handleMessage({\r\n            method: 'item/started',\r\n            params: { item: { command: 'npm test', cwd: 'C:\\\\repo', id: 'command-1', type: 'commandExecution' } },\r\n        });\r\n        await adapter.handleMessage({\r\n            method: 'item/started',\r\n            params: { item: { changes: [{ kind: 'update', path: 'app/src/main.ts' }], id: 'file-1', type: 'fileChange' } },\r\n        });\r\n        await adapter.handleMessage({\r\n            id: 41,\r\n            method: 'item/commandExecution/requestApproval',\r\n            params: {\r\n                availableDecisions: ['decline', policyDecision],\r\n                command: 'npm test',\r\n                commandActions: [{ command: 'npm test', type: 'unknown' }],\r\n                cwd: 'C:\\\\repo',\r\n                itemId: 'command-1',\r\n                networkApprovalContext: { host: 'registry.npmjs.org', protocol: 'https' },\r\n                reason: 'Needs network',\r\n                startedAtMs: 1,\r\n                threadId: 'thread-1',\r\n                turnId: 'turn-1',\r\n            },\r\n        });\r\n        await adapter.handleMessage({\r\n            id: 'file-request',\r\n            method: 'item/fileChange/requestApproval',\r\n            params: { itemId: 'file-1', reason: 'Write file', startedAtMs: 2, threadId: 'thread-1', turnId: 'turn-1' },\r\n        });\r\n\r\n        await expect(adapter.answerApproval(41, 'accept')).rejects.toThrow('Unsupported');\r\n        await adapter.answerApproval(41, policyDecision);\r\n        await expect(adapter.answerApproval(41, policyDecision)).rejects.toThrow('already submitted');\r\n        await adapter.answerApproval('file-request', 'acceptForSession');\r\n        await adapter.handleMessage({\r\n",
+          "id": "agent-turn-1e6ccbbf-d3fb-44b1-9b36-d28d36c1b312-event-104",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'desktop\\\\src\\\\actions\\\\agent\\\\agent_streaming_adapter.test.mjs' | Select-Object -Skip 390 -First 45\"",
+          "providerItemId": "exec-97c7db41-a1d0-4f0b-b40e-dfb74f9fb353",
+          "sequence": 104,
+          "status": "completed",
+          "timestamp": "2026-08-06T18:55:21.020Z",
+          "type": "commandExecution",
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'desktop\\\\src\\\\actions\\\\agent\\\\agent_streaming_adapter.test.mjs' | Select-Object -Skip 390 -First 45\"",
+          "durationMs": 366,
+          "exitCode": 0,
+          "output": "        expect(writes.at(-1)).toEqual({ id: 99, result: { answers: { confirm: { answers: ['Yes'] } } } });\r\n    });\r\n\r\n    it('tracks concurrent approval requests and writes only supported decisions', async () => {\r\n        const { adapter, events, writes } = harness('codex');\r\n        const policyDecision = { acceptWithExecpolicyAmendment: { execpolicy_amendment: ['npm', 'test'] } };\r\n        await adapter.start('plan');\r\n        await adapter.handleMessage({ id: 1, result: {} });\r\n        await adapter.handleMessage({ id: 3, result: { thread: { id: 'thread-1' } } });\r\n        await adapter.handleMessage({ method: 'turn/started', params: { turn: { id: 'turn-1' } } });\r\n        await adapter.handleMessage({\r\n            method: 'item/started',\r\n            params: { item: { command: 'npm test', cwd: 'C:\\\\repo', id: 'command-1', type: 'commandExecution' } },\r\n        });\r\n        await adapter.handleMessage({\r\n            method: 'item/started',\r\n            params: { item: { changes: [{ kind: 'update', path: 'app/src/main.ts' }], id: 'file-1', type: 'fileChange' } },\r\n        });\r\n        await adapter.handleMessage({\r\n            id: 41,\r\n            method: 'item/commandExecution/requestApproval',\r\n            params: {\r\n                availableDecisions: ['decline', policyDecision],\r\n                command: 'npm test',\r\n                commandActions: [{ command: 'npm test', type: 'unknown' }],\r\n                cwd: 'C:\\\\repo',\r\n                itemId: 'command-1',\r\n                networkApprovalContext: { host: 'registry.npmjs.org', protocol: 'https' },\r\n                reason: 'Needs network',\r\n                startedAtMs: 1,\r\n                threadId: 'thread-1',\r\n                turnId: 'turn-1',\r\n            },\r\n        });\r\n        await adapter.handleMessage({\r\n            id: 'file-request',\r\n            method: 'item/fileChange/requestApproval',\r\n            params: { itemId: 'file-1', reason: 'Write file', startedAtMs: 2, threadId: 'thread-1', turnId: 'turn-1' },\r\n        });\r\n\r\n        await expect(adapter.answerApproval(41, 'accept')).rejects.toThrow('Unsupported');\r\n        await adapter.answerApproval(41, policyDecision);\r\n        await expect(adapter.answerApproval(41, policyDecision)).rejects.toThrow('already submitted');\r\n        await adapter.answerApproval('file-request', 'acceptForSession');\r\n        await adapter.handleMessage({\r\n",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-1e6ccbbf-d3fb-44b1-9b36-d28d36c1b312-event-105",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04fc9d4e79b23942016a74d89ea8f4819185797fa4555f90be",
+          "sequence": 105,
+          "status": "completed",
+          "timestamp": "2026-08-06T18:55:34.832Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "content": "",
+          "id": "agent-turn-1e6ccbbf-d3fb-44b1-9b36-d28d36c1b312-event-106",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04fc9d4e79b23942016a74d8a901948191b940eefe71897293",
+          "sequence": 106,
+          "status": "completed",
+          "timestamp": "2026-08-06T18:55:47.992Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "agent": "codex",
+          "content": "Confirmed: `commandActions` repeats raw command under `Actions`; that copy still wraps. Fix will suppress only exact duplicate, preserving distinct structured actions. Regression test added.\n\n",
+          "id": "agent-turn-1e6ccbbf-d3fb-44b1-9b36-d28d36c1b312-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 107,
+          "timestamp": "2026-08-06T18:55:49.846Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-1e6ccbbf-d3fb-44b1-9b36-d28d36c1b312-event-108",
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-a509387d-53ee-4ffd-9f80-898327aca392",
+          "sequence": 108,
+          "status": "completed",
+          "timestamp": "2026-08-06T18:55:55.680Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-1e6ccbbf-d3fb-44b1-9b36-d28d36c1b312-event-109",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04fc9d4e79b23942016a74d8bed0308191b60af4d71ab26d02",
+          "sequence": 109,
+          "status": "completed",
+          "timestamp": "2026-08-06T18:55:59.622Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "content": "",
+          "id": "agent-turn-1e6ccbbf-d3fb-44b1-9b36-d28d36c1b312-event-110",
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-59c133e5-f611-441b-83c2-53f3bd1095e2",
+          "sequence": 110,
+          "status": "completed",
+          "timestamp": "2026-08-06T18:56:03.485Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "Fix it",
+          "id": "agent-turn-1e6ccbbf-d3fb-44b1-9b36-d28d36c1b312-user-68",
+          "kind": "message",
+          "role": "user",
+          "sequence": 111,
+          "timestamp": "2026-08-06T18:56:04.645Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-1e6ccbbf-d3fb-44b1-9b36-d28d36c1b312-event-112",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04fc9d4e79b23942016a74d8c71c6c81918411e4e438bf580d",
+          "sequence": 112,
+          "status": "completed",
+          "timestamp": "2026-08-06T18:56:07.891Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "content": "",
+          "id": "agent-turn-1e6ccbbf-d3fb-44b1-9b36-d28d36c1b312-event-113",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npx eslint src/components/actions/agent/action_agent_approval.tsx src/components/actions/agent/action_agent_approval.test.tsx --fix'",
+          "providerItemId": "exec-447abcf6-393a-4c15-9dc6-24cf3a996fd5",
+          "sequence": 113,
+          "status": "completed",
+          "timestamp": "2026-08-06T18:56:10.775Z",
+          "type": "commandExecution",
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npx eslint src/components/actions/agent/action_agent_approval.tsx src/components/actions/agent/action_agent_approval.test.tsx --fix'",
+          "durationMs": 2155,
+          "exitCode": 0,
+          "output": "",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2\\app"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-1e6ccbbf-d3fb-44b1-9b36-d28d36c1b312-event-114",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04fc9d4e79b23942016a74d8cfc53c819185302a71acb5f77b",
+          "sequence": 114,
+          "status": "completed",
+          "timestamp": "2026-08-06T18:56:13.896Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "agent": "codex",
+          "content": "Fix applied. Exact duplicate `Actions` command removed; distinct action summaries remain. Running focused validation now.\n\n",
+          "id": "agent-turn-1e6ccbbf-d3fb-44b1-9b36-d28d36c1b312-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 115,
+          "timestamp": "2026-08-06T18:56:14.491Z"
+        },
+        {
+          "content": "\n> app@0.0.7 test\n> vitest run src/components/actions/agent/action_agent_approval.test.tsx\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev2/app\n\n\n Test Files  1 passed (1)\n      Tests  6 passed (6)\n   Start at  20:56:17\n   Duration  2.05s (transform 39ms, setup 93ms, import 811ms, tests 320ms, environment 715ms)\n\n",
+          "id": "agent-turn-1e6ccbbf-d3fb-44b1-9b36-d28d36c1b312-event-116",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- --run src/components/actions/agent/action_agent_approval.test.tsx'",
+          "providerItemId": "exec-bca07b59-df63-41a3-94ad-ef0d8b56656e",
+          "sequence": 116,
+          "status": "completed",
+          "timestamp": "2026-08-06T18:56:19.981Z",
+          "type": "commandExecution",
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- --run src/components/actions/agent/action_agent_approval.test.tsx'",
+          "durationMs": 2963,
+          "exitCode": 0,
+          "output": "\n> app@0.0.7 test\n> vitest run src/components/actions/agent/action_agent_approval.test.tsx\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev2/app\n\n\n Test Files  1 passed (1)\n      Tests  6 passed (6)\n   Start at  20:56:17\n   Duration  2.05s (transform 39ms, setup 93ms, import 811ms, tests 320ms, environment 715ms)\n\n",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2\\app"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-1e6ccbbf-d3fb-44b1-9b36-d28d36c1b312-event-117",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npx eslint src/components/actions/agent/action_agent_approval.tsx src/components/actions/agent/action_agent_approval.test.tsx'",
+          "providerItemId": "exec-03f35173-14b2-4b51-8bae-0a87a07a39f7",
+          "sequence": 117,
+          "status": "completed",
+          "timestamp": "2026-08-06T18:56:19.254Z",
+          "type": "commandExecution",
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npx eslint src/components/actions/agent/action_agent_approval.tsx src/components/actions/agent/action_agent_approval.test.tsx'",
+          "durationMs": 2234,
+          "exitCode": 0,
+          "output": "",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2\\app"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-1e6ccbbf-d3fb-44b1-9b36-d28d36c1b312-event-118",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04fc9d4e79b23942016a74d8d89dc88191a3e73e4a4ddb2cfa",
+          "sequence": 118,
+          "status": "completed",
+          "timestamp": "2026-08-06T18:56:22.725Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "agent": "codex",
+          "content": "Fixed. Duplicate raw command under `Actions` caused extra wrapped lines. Exact duplicate now hidden; distinct action summaries remain.\n\nScoped ESLint clean. Targeted tests: 6/6 pass.\n\n",
+          "id": "agent-turn-1e6ccbbf-d3fb-44b1-9b36-d28d36c1b312-turn-1-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 119,
+          "timestamp": "2026-08-06T18:56:32.930Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1487,21 +1369,21 @@
           "agent": "codex",
           "conversationId": "019fd21f-4ca2-7461-9f23-f0649cd0c17e",
           "createdAt": "2026-08-05T13:32:43.988Z",
-          "lastUsedAt": "2026-08-05T13:45:00.635Z",
-          "synchronizedThroughMessageId": "agent-turn-480e6c1f-d660-4ef9-ab6d-72c48bac1122-turn-2-assistant-5"
+          "lastUsedAt": "2026-08-06T18:56:23.545Z",
+          "synchronizedThroughMessageId": "agent-turn-1e6ccbbf-d3fb-44b1-9b36-d28d36c1b312-turn-1-assistant-4"
         }
       ],
       "startedAt": "2026-08-05T13:31:34.128Z",
-      "status": "completed",
+      "status": "cancelled",
       "title": "implement",
       "usage": {
-        "cachedInputTokens": 94720,
-        "inputTokens": 96343,
-        "outputTokens": 313,
-        "reasoningTokens": 43,
-        "totalTokens": 191419
+        "cachedInputTokens": 153856,
+        "inputTokens": 156970,
+        "outputTokens": 372,
+        "reasoningTokens": 57,
+        "totalTokens": 311255
       },
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
@@ -1587,6 +1469,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "93623d925564de5c29a0ee56a536c5f3dff85413",
           "committedAt": "2026-08-05T15:49:08+02:00",
           "deletions": 7,
@@ -1595,8 +1478,7 @@
             "app/src/components/actions/agent/action_agent_approval.tsx"
           ],
           "filesChanged": 2,
-          "insertions": 64,
-          "branch": "dev_main"
+          "insertions": 64
         }
       ],
       "completedAt": "2026-08-05T15:49:08+02:00",
