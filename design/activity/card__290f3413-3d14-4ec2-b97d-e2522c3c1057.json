@@ -3590,12 +3590,12 @@
         "agent-14d9ac4c-511b-4a31-9aa5-5426d3082bc2"
       ],
       "details": {
+        "type": "agent",
         "accessLevel": "workspace-write",
         "agent": "codex",
         "approvalPolicy": "on-request",
         "model": "gpt-5.5",
-        "thinkingLevel": "none",
-        "type": "agent"
+        "thinkingLevel": "none"
       },
       "runId": "action-eeb960d1-b249-4f31-ab24-c5bf5d75f05b",
       "origin": {
@@ -3604,9 +3604,62 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-14d9ac4c-511b-4a31-9aa5-5426d3082bc2",
       "startedAt": "2026-08-06T18:59:09.584Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-14d9ac4c-511b-4a31-9aa5-5426d3082bc2"
+    },
+    {
+      "commits": [
+        {
+          "commit": "65455077cd232c3f6eb2c48411fd305dc6866bd6",
+          "committedAt": "2026-08-06T21:24:40+02:00",
+          "deletions": 107,
+          "filePaths": [
+            "app/src/components/actions/conversation/diff_view.test.tsx",
+            "app/src/components/actions/conversation/diff_view.tsx",
+            "app/src/components/card_view/card_body_popover.tsx",
+            "app/src/components/card_view/card_body_popover_commit.test.tsx",
+            "app/src/components/card_view/card_body_popover_service.test.ts",
+            "app/src/components/card_view/card_body_popover_service.ts",
+            "app/src/components/card_view/card_commit_diff_panel.test.tsx",
+            "app/src/components/card_view/card_commit_diff_panel.tsx",
+            "app/src/components/card_view/card_commit_menu.test.tsx",
+            "app/src/components/card_view/card_commit_menu.tsx",
+            "app/src/components/card_view/list_card_commit_diff_panel.tsx",
+            "app/src/components/shell/main_window.test.tsx",
+            "app/src/components/text_view/list_editor_toolbar_controls.tsx",
+            "app/src/components/worktree_selector.test.tsx",
+            "app/src/components/worktree_selector.tsx",
+            "app/src/data/electron_action_bridge.test.ts",
+            "app/src/data/electron_action_bridge.ts",
+            "app/src/data/project_session.test.ts",
+            "app/src/services/actions/electron_action_runner.node.test.ts",
+            "app/src/services/data/remote_control_storage_service.node.test.ts",
+            "app/src/services/data/remote_control_storage_service.ts",
+            "app/src/services/project/project_session_service.test.ts",
+            "app/src/services/project/worktree_service.node.test.ts",
+            "app/src/services/project/worktree_service.ts",
+            "app/src/services/search/search_regexp_agent.node.test.ts",
+            "desktop/src/git/diff_service.js",
+            "desktop/src/git/diff_service.test.mjs",
+            "desktop/src/git/worktree_service.js",
+            "desktop/src/shell/local_bridge_dispatch.js",
+            "desktop/src/shell/local_bridge_dispatch.test.mjs",
+            "desktop/src/shell/preload.js",
+            "desktop/src/shell/preload.test.mjs"
+          ],
+          "filesChanged": 32,
+          "insertions": 817,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-06T21:24:40+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "290f3413-3d14-4ec2-b97d-e2522c3c1057",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 2
