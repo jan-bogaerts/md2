@@ -41,6 +41,13 @@ export class ReleaseOperations {
         if (!finalState) throw new Error('Cannot complete a release without configured states')
 
         const activeCards = this.dependencies.snapshot()?.activeCards ?? []
+        const assignedWorktreeCardIds = activeCards
+            .filter((card) => typeof card.header.worktree === 'number')
+            .map((card) => card.header.id)
+        if (assignedWorktreeCardIds.length > 0) {
+            throw new Error(`Cannot complete release. Unassign worktrees from cards: ${assignedWorktreeCardIds.join(', ')}.`)
+        }
+
         const releaseCards = activeCards.filter((card) => statusOf(card) === finalState.state)
         if (releaseCards.length === 0) throw new Error(`Cannot complete a release without cards in the final column: ${finalState.state}`)
 

@@ -15,7 +15,7 @@ describe('ReleaseOperations', () => {
         configService.clear()
     })
 
-    it('completes a release under the configured project releases folder and refreshes the snapshot', async () => {
+    it('completes a release with no assigned worktrees under the configured releases folder', async () => {
         configService.init()
         const finalColumnFile = {
             ...files[0],
@@ -73,6 +73,62 @@ describe('ReleaseOperations', () => {
 
         expect(snapshot.activeCards.map((card) => card.path)).toEqual(['design/active/F-2-imported.md'])
         expect(snapshot.backgroundCards.map((card) => card.path)).toContain('design/releases/v1/F-1-root.md')
+    })
+
+    it('blocks release completion when one active card has an assigned worktree', async () => {
+        configService.init()
+        const assignedCard: MarkdownFile = {
+            content: '---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: done\nworktree: 1\n---\n\n# Root',
+            path: 'design/F-1-root.md',
+        }
+        const storage = createStorage({
+            loadProject: vi.fn(async () => ({ files: [assignedCard], workingFolder: 'design' })),
+            loadProjectConfig: vi.fn(async () => ({ projectFolder: '', states: RELEASE_STATES, workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [assignedCard], workingFolder: 'design' })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        await expect(service.releases.completeRelease('v1')).rejects.toThrow(
+            'Cannot complete release. Unassign worktrees from cards: F-1.',
+        )
+        expect(storage.moveFiles).not.toHaveBeenCalled()
+        expect(storage.push).not.toHaveBeenCalled()
+    })
+
+    it('lists every assigned active card and blocks release completion before moving or pushing', async () => {
+        configService.init()
+        const activeCards: MarkdownFile[] = [
+            {
+                content: '---\nid: F-1\ninternalId: first-card\ntitle: First\nstatus: active\nworktree: 1\n---\n\n# First',
+                path: 'design/F-1-first.md',
+            },
+            {
+                content: '---\nid: B-12\ninternalId: second-card\ntitle: Second\nstatus: done\nworktree: 2\n---\n\n# Second',
+                path: 'design/B-12-second.md',
+            },
+            {
+                content: '---\nid: F-3\ninternalId: primary-card\ntitle: Primary\nstatus: done\n---\n\n# Primary',
+                path: 'design/F-3-primary.md',
+            },
+        ]
+        const storage = createStorage({
+            loadProject: vi.fn(async () => ({ files: activeCards, workingFolder: 'design' })),
+            loadProjectConfig: vi.fn(async () => ({ projectFolder: '', states: RELEASE_STATES, workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: activeCards, workingFolder: 'design' })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        await expect(service.releases.completeRelease('v1')).rejects.toThrow(
+            'Cannot complete release. Unassign worktrees from cards: F-1, B-12.',
+        )
+        expect(storage.moveFiles).not.toHaveBeenCalled()
+        expect(storage.push).not.toHaveBeenCalled()
     })
 
     it('loads referenced assets and includes them in the release move batch', async () => {
