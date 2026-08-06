@@ -862,6 +862,37 @@ describe('ProjectLoading', () => {
         expect(card?.content).toContain('Externally changed')
     })
 
+    it('keeps a committed worktree assignment when another markdown file reloads', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        let watchChange: (event: { changeKind: 'added' | 'changed' | 'removed' | 'unknown'; path: string }) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const changedBackgroundFile = {
+            content: '---\ninternalId: old-card\n---\n\n# Externally changed',
+            path: 'design/history/F-3-old.md',
+        }
+        const storage = createStorage({
+            loadFile: vi.fn(async () => changedBackgroundFile),
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        service.cards.updateCardWorktree('design/F-1-root.md', 1)
+        await service.cards.flushPendingCommits()
+        watchChange({ changeKind: 'changed', path: changedBackgroundFile.path })
+        await vi.advanceTimersByTimeAsync(150)
+
+        const card = service.getState().snapshot?.activeCards.find((candidate) => candidate.path === 'design/F-1-root.md')
+        expect(card?.header.worktree).toBe(1)
+    })
+
     it('refreshes mobile project state for remotely watched markdown additions, changes, and removals', async () => {
         vi.useFakeTimers()
         ProjectLoadingMockWebSocket.instances = []

@@ -146,9 +146,12 @@ export class CardOperationContext {
     async commitFiles(request: CommitRequest) {
         const { config } = this.dependencies.requireDependencies()
         const updatedFiles = await this.commitTrackingPaths(request)
+        const loadedPaths = new Set(this.dependencies.files().map(({ path }) => path))
+        const fallbackFiles = request.files.filter(({ path }) => loadedPaths.has(path))
+        const committedFiles = updatedFiles.length > 0 ? updatedFiles : fallbackFiles
 
-        if (updatedFiles.length > 0) {
-            this.dependencies.mergeCommittedFiles(updatedFiles, config.workingFolder)
+        if (committedFiles.length > 0) {
+            this.dependencies.mergeCommittedFiles(committedFiles, config.workingFolder)
             this.dependencies.refreshSnapshot(config.workingFolder)
         }
 
