@@ -3,7 +3,7 @@ author:
 id: F_145
 internalId: 451ece87-dccb-44dd-9783-a22c2709a8e2
 title: Action popup on mobile
-status: design
+status: ready
 owner: 
 affects:
 agents:
