@@ -49,12 +49,16 @@ describe('ActionAgentApproval', () => {
 
     it('clips command to one line and toggles exact full command', () => {
         const command = 'powershell -Command "Get-ChildItem\n| Select-Object -First 20"'
-        render(<ActionAgentApproval approval={{ ...approval, command }} onDecision={vi.fn()} />)
+        render(<ActionAgentApproval
+            approval={{ ...approval, command, commandActions: [{ command, type: 'unknown' }] }}
+            onDecision={vi.fn()}
+        />)
         const commandButton = screen.getByRole('button', { name: 'Toggle full command' })
 
         expect(commandButton).toHaveAttribute('aria-expanded', 'false')
         expect(commandButton).toHaveStyle({ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' })
         expect(commandButton.textContent).toBe(command)
+        expect(screen.queryByText('Actions')).not.toBeInTheDocument()
         commandButton.focus()
         expect(commandButton).toHaveFocus()
 

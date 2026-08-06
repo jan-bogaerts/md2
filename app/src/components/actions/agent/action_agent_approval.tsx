@@ -72,9 +72,10 @@ function approvalDetails(approval: LiveAgentApproval) {
     if (approval.command) details.push({ label: 'Command', values: [approval.command] })
     if (approval.cwd) details.push({ label: 'Working directory', values: [approval.cwd] })
     if (approval.environmentId) details.push({ label: 'Environment', values: [approval.environmentId] })
-    if (approval.commandActions?.length) {
-        details.push({ label: 'Actions', values: approval.commandActions.map(commandActionLabel) })
-    }
+    const commandActionLabels = approval.commandActions
+        ?.map(commandActionLabel)
+        .filter((label) => label !== approval.command) ?? []
+    if (commandActionLabels.length > 0) details.push({ label: 'Actions', values: commandActionLabels })
     if (approval.networkApprovalContext) {
         const { host, protocol } = approval.networkApprovalContext
         details.push({ label: 'Network', values: [`${protocol}://${host}`] })
