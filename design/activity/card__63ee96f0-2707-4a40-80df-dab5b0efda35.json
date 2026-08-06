@@ -2767,12 +2767,12 @@
         "agent-1b850d62-92a8-4702-823c-fa3801ac01e8"
       ],
       "details": {
+        "type": "agent",
         "accessLevel": "workspace-write",
         "agent": "codex",
         "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
-        "thinkingLevel": "none",
-        "type": "agent"
+        "thinkingLevel": "none"
       },
       "runId": "action-88faf4f2-6b9f-4f66-b534-0510c542860a",
       "origin": {
@@ -2781,9 +2781,32 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-1b850d62-92a8-4702-823c-fa3801ac01e8",
       "startedAt": "2026-08-06T18:48:47.058Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-1b850d62-92a8-4702-823c-fa3801ac01e8"
+    },
+    {
+      "commits": [
+        {
+          "commit": "33d0ca181f309db97031afdb4c7d3b1b0dec8384",
+          "committedAt": "2026-08-06T20:58:34+02:00",
+          "deletions": 5,
+          "filePaths": [
+            "app/src/components/card_view/mobile_card_view.test.tsx",
+            "app/src/services/project/project_loading.test.ts"
+          ],
+          "filesChanged": 2,
+          "insertions": 109,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-06T20:58:34+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "63ee96f0-2707-4a40-80df-dab5b0efda35",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 2
