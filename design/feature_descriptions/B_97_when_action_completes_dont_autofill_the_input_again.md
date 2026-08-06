@@ -11,6 +11,8 @@ agents:
   - design/activity/card__963bef1f-5a53-4f16-8941-13f9be36b88a.json#conversation=agent-2381b098-316e-4282-b15c-a6e4982600e7
 policy:
 after: 
+branch: b_97_when_action_completes_dont_autofill_the_input_again
+worktree: 2
 ---
 
 In the action-popup, when an action switches to 'completed' the input box is auto-filled again with a new input which should not happen.
