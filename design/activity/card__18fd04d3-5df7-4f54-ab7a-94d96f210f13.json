@@ -462,7 +462,7 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "18fd04d3-5df7-4f54-ab7a-94d96f210f13",
       "cardPath": "design/feature_descriptions/F_87_block_release_when_cards_have_assigned_worktrees.md",
-      "completedAt": "2026-08-05T17:50:30.215Z",
+      "completedAt": null,
       "entries": [
         {
           "content": "Read and implement the feature/job described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/F_87_block_release_when_cards_have_assigned_worktrees.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests.\n5. After implementation is done, update the field `status` in the markdown feature description file to \\`ready\\`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/F_87_block_release_when_cards_have_assigned_worktrees.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria.&#x20;\n\nYou should only run the related tests, do not run the entire test suite, that will be done manually later on.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill",
@@ -1014,6 +1014,213 @@
           "summary": [],
           "timestamp": "2026-08-05T17:50:22.662Z",
           "type": "reasoning"
+        },
+        {
+          "content": "continue",
+          "id": "agent-turn-3e7f7edb-f2fb-4fe6-8fdc-13f8d681ad86-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 40,
+          "timestamp": "2026-08-06T07:44:34.475Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-3e7f7edb-f2fb-4fe6-8fdc-13f8d681ad86-event-41",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0466b7c91b69f592016a743b6917fc81919247ca2e5560542c",
+          "sequence": 41,
+          "status": "completed",
+          "timestamp": "2026-08-06T07:44:47.617Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "agent": "codex",
+          "content": "Approval received. Starting Block 1. Guard checks all active cards, including cards outside final column. Existing `ProjectSessionService` then reports thrown error through `dialogService`.\n\n",
+          "id": "agent-turn-3e7f7edb-f2fb-4fe6-8fdc-13f8d681ad86-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 42,
+          "timestamp": "2026-08-06T07:44:49.393Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-3e7f7edb-f2fb-4fe6-8fdc-13f8d681ad86-event-43",
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-2c9ee90c-3490-40e5-8b19-10638827508e",
+          "sequence": 43,
+          "status": "completed",
+          "timestamp": "2026-08-06T07:45:00.318Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-3e7f7edb-f2fb-4fe6-8fdc-13f8d681ad86-event-44",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0466b7c91b69f592016a743b7d9e4c81919908218137496e8e",
+          "sequence": 44,
+          "status": "completed",
+          "timestamp": "2026-08-06T07:45:07.141Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "content": "",
+          "id": "agent-turn-3e7f7edb-f2fb-4fe6-8fdc-13f8d681ad86-event-45",
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-e4ca134e-16d0-437f-aaa8-b922b85b150c",
+          "sequence": 45,
+          "status": "completed",
+          "timestamp": "2026-08-06T07:45:23.028Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-3e7f7edb-f2fb-4fe6-8fdc-13f8d681ad86-event-46",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0466b7c91b69f592016a743b95336481918658fb0f7a0c28bb",
+          "sequence": 46,
+          "status": "completed",
+          "timestamp": "2026-08-06T07:45:26.747Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "agent": "codex",
+          "content": "Blocks 1–2 coded. Tests cover Primary-only success, one assignment, and multiple assignments across final/non-final columns. Running only related test file now.\n\n",
+          "id": "agent-turn-3e7f7edb-f2fb-4fe6-8fdc-13f8d681ad86-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 47,
+          "timestamp": "2026-08-06T07:45:28.154Z"
+        },
+        {
+          "content": "\n> app@0.0.7 test\n> vitest run src/services/release_operations.test.ts\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev3/app\n\n\n Test Files  1 passed (1)\n      Tests  10 passed (10)\n   Start at  09:45:36\n   Duration  1.46s (transform 268ms, setup 109ms, import 315ms, tests 27ms, environment 887ms)\n\n",
+          "id": "agent-turn-3e7f7edb-f2fb-4fe6-8fdc-13f8d681ad86-event-48",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm test -- --run src/services/release_operations.test.ts'",
+          "providerItemId": "exec-855a6379-8e06-4c96-827e-38a86ffedeb3",
+          "sequence": 48,
+          "status": "completed",
+          "timestamp": "2026-08-06T07:45:38.234Z",
+          "type": "commandExecution",
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm test -- --run src/services/release_operations.test.ts'",
+          "durationMs": 2488,
+          "exitCode": 0,
+          "output": "\n> app@0.0.7 test\n> vitest run src/services/release_operations.test.ts\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev3/app\n\n\n Test Files  1 passed (1)\n      Tests  10 passed (10)\n   Start at  09:45:36\n   Duration  1.46s (transform 268ms, setup 109ms, import 315ms, tests 27ms, environment 887ms)\n\n",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\app"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-3e7f7edb-f2fb-4fe6-8fdc-13f8d681ad86-event-49",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0466b7c91b69f592016a743ba58b5881919e4012fff9f38fd9",
+          "sequence": 49,
+          "status": "completed",
+          "timestamp": "2026-08-06T07:45:44.382Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "content": "",
+          "id": "agent-turn-3e7f7edb-f2fb-4fe6-8fdc-13f8d681ad86-event-50",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm exec eslint -- src/services/release_operations.ts src/services/release_operations.test.ts --fix'",
+          "providerItemId": "exec-86bb2209-0dfe-4c82-9796-d9e2dfb10b39",
+          "sequence": 50,
+          "status": "completed",
+          "timestamp": "2026-08-06T07:45:59.545Z",
+          "type": "commandExecution",
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm exec eslint -- src/services/release_operations.ts src/services/release_operations.test.ts --fix'",
+          "durationMs": 14359,
+          "exitCode": 0,
+          "output": "",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\app"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-3e7f7edb-f2fb-4fe6-8fdc-13f8d681ad86-event-51",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0466b7c91b69f592016a743bb5841c8191999a1d7777ecfcaf",
+          "sequence": 51,
+          "status": "completed",
+          "timestamp": "2026-08-06T07:45:57.366Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "content": "",
+          "id": "agent-turn-3e7f7edb-f2fb-4fe6-8fdc-13f8d681ad86-event-52",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0466b7c91b69f592016a743bb914c881919b611a7f302cbae8",
+          "sequence": 52,
+          "status": "completed",
+          "timestamp": "2026-08-06T07:46:01.244Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "content": "\n> app@0.0.7 test\n> vitest run src/services/release_operations.test.ts\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev3/app\n\n\n Test Files  1 passed (1)\n      Tests  10 passed (10)\n   Start at  09:46:03\n   Duration  1.25s (transform 257ms, setup 86ms, import 304ms, tests 26ms, environment 707ms)\n\n",
+          "id": "agent-turn-3e7f7edb-f2fb-4fe6-8fdc-13f8d681ad86-event-53",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm test -- --run src/services/release_operations.test.ts'",
+          "providerItemId": "exec-1fdab936-5d4f-4d25-83c3-c9500c6fb0f8",
+          "sequence": 53,
+          "status": "completed",
+          "timestamp": "2026-08-06T07:46:04.664Z",
+          "type": "commandExecution",
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm test -- --run src/services/release_operations.test.ts'",
+          "durationMs": 2111,
+          "exitCode": 0,
+          "output": "\n> app@0.0.7 test\n> vitest run src/services/release_operations.test.ts\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev3/app\n\n\n Test Files  1 passed (1)\n      Tests  10 passed (10)\n   Start at  09:46:03\n   Duration  1.25s (transform 257ms, setup 86ms, import 304ms, tests 26ms, environment 707ms)\n\n",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\app"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-3e7f7edb-f2fb-4fe6-8fdc-13f8d681ad86-event-54",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0466b7c91b69f592016a743bbe6ee08191b369f0e26830d38f",
+          "sequence": 54,
+          "status": "completed",
+          "timestamp": "2026-08-06T07:46:07.047Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "agent": "codex",
+          "content": "Related tests pass: 10/10. Scoped auto-fix lint passes. Re-run after lint also 10/10. Starting final block: update source feature status only.\n\n",
+          "id": "agent-turn-3e7f7edb-f2fb-4fe6-8fdc-13f8d681ad86-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 55,
+          "timestamp": "2026-08-06T08:04:41.033Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-3e7f7edb-f2fb-4fe6-8fdc-13f8d681ad86-event-56",
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-343d8630-c1bf-4e34-99fc-0829492c7994",
+          "sequence": 56,
+          "status": "inProgress",
+          "timestamp": "2026-08-06T07:46:14.923Z",
+          "type": "fileChange"
         }
       ],
       "hasExplicitTitle": true,
@@ -1028,7 +1235,7 @@
         }
       ],
       "startedAt": "2026-08-05T17:41:32.383Z",
-      "status": "cancelled",
+      "status": "waitingForInput",
       "title": "implement",
       "usage": {
         "cachedInputTokens": 57088,
@@ -1037,7 +1244,7 @@
         "reasoningTokens": 0,
         "totalTokens": 116183
       },
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
@@ -1077,12 +1284,12 @@
         "agent-5109655c-f657-45a6-88bb-b4d86313b0aa"
       ],
       "details": {
+        "type": "agent",
         "accessLevel": "workspace-write",
         "agent": "codex",
         "approvalPolicy": "on-request",
         "model": "gpt-5.5",
-        "thinkingLevel": "none",
-        "type": "agent"
+        "thinkingLevel": "none"
       },
       "runId": "action-0ea5bfe2-12af-4f48-8ca1-1630d83268ba",
       "origin": {
@@ -1091,9 +1298,9 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-5109655c-f657-45a6-88bb-b4d86313b0aa",
       "startedAt": "2026-08-05T17:41:32.382Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-5109655c-f657-45a6-88bb-b4d86313b0aa"
     }
   ],
   "version": 2
