@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
   - design/activity/card__c9e7dccb-d263-4ba6-98fc-b4361a01bf4d.json#conversation=agent-98813ed6-0907-475d-a831-9e4c10492ddb
+  - design/activity/card__c9e7dccb-d263-4ba6-98fc-b4361a01bf4d.json#conversation=agent-aae77199-0ad2-4afd-adf3-c5c9dfbf4284
 policy:
 branch: b_92_click_on_link_to_code_not_working
 worktree: 1
