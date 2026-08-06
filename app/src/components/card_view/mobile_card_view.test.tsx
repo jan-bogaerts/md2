@@ -1,9 +1,14 @@
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { DEFAULT_CARD_TYPES, type Card } from '../../data/data_types'
 import { actionService } from '../../services/actions/action_service'
 import { cardActionPopupService } from '../../services/actions/card_action_popup_service'
-import { dataService } from '../../services/data/data_service'
+import {
+    CARD_CHANGED_EVENT,
+    cardCollectionFieldChangedEvent,
+    cardFieldChangedEvent,
+    dataService,
+} from '../../services/data/data_service'
 import { openFilesService } from '../../services/open_files_service'
 import { mobileCardViewService } from '../../services/project/mobile_card_view_service'
 import { workspaceViewService } from '../../services/project/workspace_view_service'
@@ -28,13 +33,32 @@ function card(id: string, title: string, status: string): Card {
 }
 
 const cards = [card('F-1', 'First', 'todo'), card('F-2', 'Second', 'done')]
+let activeCards = cards
 
-function renderMobileCardView() {
+function setActiveCards(cardsToPublish: Card[]) {
+    activeCards = cardsToPublish
     vi.mocked(dataService.getState).mockReturnValue({
         project: { branch: 'main', id: 'project', rootPath: 'C:\\project' },
         runningAgents: [],
-        snapshot: { activeCards: cards, backgroundCards: [], repositoryFiles: [], workingFolder: 'design' },
+        snapshot: { activeCards, backgroundCards: [], repositoryFiles: [], workingFolder: 'design' },
     })
+}
+
+function publishRemoteStatusChange(path: string, status: string) {
+    const previousCard = activeCards.find((candidate) => candidate.path === path)
+    if (!previousCard) throw new Error(`Cannot change missing card status: ${path}`)
+
+    const changedCard = { ...previousCard, header: { ...previousCard.header, status } }
+    setActiveCards(activeCards.map((candidate) => candidate.path === path ? changedCard : candidate))
+    dataService.dispatchEvent(new CustomEvent(CARD_CHANGED_EVENT, { detail: { card: changedCard, previousCard } }))
+    dataService.dispatchEvent(new Event(cardFieldChangedEvent(path, 'ordering')))
+    dataService.dispatchEvent(new Event(cardCollectionFieldChangedEvent('ordering')))
+    dataService.dispatchEvent(new Event(cardFieldChangedEvent(path, 'status')))
+    dataService.dispatchEvent(new Event(cardCollectionFieldChangedEvent('status')))
+}
+
+function renderMobileCardView() {
+    setActiveCards(activeCards)
 
     return render(
         <AppThemeProvider>
@@ -56,11 +80,15 @@ function touch(identifier: number, clientX: number, clientY: number) {
 
 describe('MobileCardView', () => {
     beforeEach(() => {
+        activeCards = cards
         workspaceViewService.setViewMode('cards')
         mobileCardViewService.selectVisibleColumn([])
         cardDragDropService.endDrag()
         cardActionPopupService.clear()
         vi.spyOn(dataService, 'getState')
+        setActiveCards(activeCards)
+        openFilesService.init({ actionService, dataService })
+        cardMarkdownDataSource.init(dataService)
         vi.spyOn(dataService.cards, 'deleteCard').mockResolvedValue(null)
         vi.spyOn(dataService.cards, 'moveCard').mockResolvedValue([])
         vi.spyOn(dataService.cards, 'toggleCardPolicy').mockReturnValue(cards[0])
@@ -81,6 +109,7 @@ describe('MobileCardView', () => {
         cardDragDropService.endDrag()
         cardActionPopupService.clear()
         mobileCardViewService.selectVisibleColumn([])
+        for (const document of openFilesService.getRegisteredDocuments()) openFilesService.discardDocument(document)
         actionService.clear()
         vi.restoreAllMocks()
     })
@@ -96,6 +125,24 @@ describe('MobileCardView', () => {
 
         expect(screen.getByLabelText('done column')).toBeInTheDocument()
         expect(screen.queryByLabelText('todo column')).not.toBeInTheDocument()
+    })
+
+    it('moves a remotely changed card between mobile columns and updates its open status control without remounting', () => {
+        renderMobileCardView()
+        const board = screen.getByLabelText('Mobile card board')
+        fireEvent.click(screen.getByRole('button', { name: 'Drag F-1' }))
+        const cardDialog = within(screen.getByRole('dialog'))
+        fireEvent.click(cardDialog.getByRole('button', { name: 'Properties' }))
+        const properties = within(screen.getByLabelText('Card properties'))
+        expect(properties.getByText('todo')).toBeInTheDocument()
+
+        act(() => publishRemoteStatusChange('design/F-1.md', 'done'))
+
+        expect(screen.getByLabelText('Mobile card board')).toBe(board)
+        expect(within(board).queryByLabelText('todo column')).not.toBeInTheDocument()
+        expect(within(board).getByLabelText('done column')).toBeInTheDocument()
+        expect(within(board).getByRole('button', { hidden: true, name: 'Drag F-1' })).toBeInTheDocument()
+        expect(properties.getByText('done')).toBeInTheDocument()
     })
 
     it('keeps vertical touch gestures native and does not open card actions', () => {

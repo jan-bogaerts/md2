@@ -3,7 +3,8 @@ import { DEFAULT_STATES, defaultColumnAccent, type MarkdownFile, type StoragePro
 import type { RawActionDefinition } from '../../data/action_types'
 import { actionService } from '../actions/action_service'
 import { configService } from '../config/config_service'
-import type { DataService } from '../data/data_service'
+import { cardCollectionFieldChangedEvent, cardFieldChangedEvent, type DataService } from '../data/data_service'
+import { CARD_FIELDS } from '../data/card_events'
 import { DIALOG_SERVICE_EVENT, dialogService, type DialogServiceMessage, type DialogSeverity } from '../dialog_service'
 import { telemetryService } from '../telemetry/telemetry_service'
 import { GLOBAL_PROGRESS_EVENT, globalProgressService, type GlobalProgress } from '../global_progress_service'
@@ -976,6 +977,62 @@ describe('ProjectLoading', () => {
         await vi.advanceTimersByTimeAsync(800)
 
         expect(service.getState().snapshot?.activeCards.some(({ path }) => path === 'design/F-1-root.md')).toBe(false)
+    })
+
+    it('publishes granular card and collection events for a remotely watched status change', async () => {
+        vi.useFakeTimers()
+        ProjectLoadingMockWebSocket.instances = []
+        vi.stubGlobal('WebSocket', ProjectLoadingMockWebSocket)
+        configService.init()
+        const remoteStorage = new RemoteControlStorageService()
+        remoteStorage.init({ endpoint: 'ws://127.0.0.1:1234', token: 'token-1' })
+        const storage = createStorage({
+            loadFile: remoteStorage.loadFile.bind(remoteStorage),
+            watchProject: remoteStorage.watchProject.bind(remoteStorage),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const socket = ProjectLoadingMockWebSocket.instances[0]
+        if (!socket) throw new Error('Remote-control socket was not created')
+        const cardPath = 'design/F-1-root.md'
+        const publishedEvents: string[] = []
+        const recordEvent = (event: Event) => publishedEvents.push(event.type)
+        for (const field of CARD_FIELDS) {
+            service.addEventListener(cardFieldChangedEvent(cardPath, field), recordEvent)
+            service.addEventListener(cardCollectionFieldChangedEvent(field), recordEvent)
+        }
+
+        socket.open()
+        await flushPromises()
+        const watchRequest = JSON.parse(socket.sent[0]) as { id: string, method: string }
+        socket.receive({ id: watchRequest.id, result: { subscriptionId: 'watch-1' } })
+        await vi.advanceTimersByTimeAsync(0)
+        publishedEvents.length = 0
+        socket.receive({
+            event: 'watchProject',
+            payload: {
+                event: { changeKind: 'changed', path: cardPath },
+                requestId: watchRequest.id,
+                subscriptionId: 'watch-1',
+            },
+        })
+        await vi.advanceTimersByTimeAsync(50)
+        const loadRequest = JSON.parse(socket.sent[1]) as { id: string }
+        socket.receive({
+            id: loadRequest.id,
+            result: { ...files[0], content: files[0].content.replace('status: active', 'status: ready') },
+        })
+        await vi.advanceTimersByTimeAsync(0)
+
+        const card = service.getState().snapshot?.activeCards.find(({ path }) => path === cardPath)
+        expect(card?.header.status).toBe('ready')
+        expect(publishedEvents).toEqual([
+            cardFieldChangedEvent(cardPath, 'ordering'),
+            cardCollectionFieldChangedEvent('ordering'),
+            cardFieldChangedEvent(cardPath, 'status'),
+            cardCollectionFieldChangedEvent('status'),
+        ])
     })
 
     it('removes a markdown card when the watcher reports deletion', async () => {
