@@ -205,6 +205,13 @@ export class LocalGitStorageService implements StorageService {
         this.pendingPushBranches.add(request.branch)
     }
 
+    async deleteLocalBranch(project: ProjectReference, branchName: string): Promise<void> {
+        const bridge = this.requireBridge()
+        if (!bridge.deleteLocalBranch) throw new Error('Electron local Git bridge cannot delete local branches')
+
+        await bridge.deleteLocalBranch(project, branchName)
+    }
+
     async discardWorktreeChanges(request: WorktreeOperationRequest): Promise<void> {
         const bridge = this.requireBridge()
         if (!bridge.discardWorktreeChanges) throw new Error('Electron local Git bridge cannot discard worktree changes')

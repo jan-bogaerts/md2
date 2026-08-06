@@ -92,6 +92,7 @@ function createDispatch(options = {}) {
     const worktreeService = {
         add: vi.fn(async () => undefined),
         commit: vi.fn(async () => undefined),
+        deleteBranch: vi.fn(async () => undefined),
         discard: vi.fn(async () => undefined),
         getRecords: vi.fn(() => []),
         integrate: vi.fn(async () => ({ branch: 'main', commit: 'a'.repeat(40) })),
@@ -234,6 +235,14 @@ describe('createLocalBridgeDispatch', () => {
 
         await expect(dispatch.dataBridge.removeWorktree(project, 'C:/feature')).resolves.toBeUndefined();
         expect(worktreeService.remove).toHaveBeenCalledWith(project, 'C:/feature');
+    });
+
+    it('delegates local branch deletion', async () => {
+        const { dispatch, worktreeService } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+
+        await expect(dispatch.dataBridge.deleteLocalBranch(project, 'f-1-card')).resolves.toBeUndefined();
+        expect(worktreeService.deleteBranch).toHaveBeenCalledWith(project, 'f-1-card');
     });
 
     it('delegates card worktree preparation', async () => {

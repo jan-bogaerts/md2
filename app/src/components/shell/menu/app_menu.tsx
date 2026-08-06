@@ -138,7 +138,7 @@ export function AppMenu(props: AppMenuProps) {
     }
 
     const handleOpenReleaseDialog = () => {
-        openDialog('release')
+        void actions.openReleaseDialog()
     }
 
     const handleOpenCardDialog = () => {
@@ -499,9 +499,13 @@ export function AppMenu(props: AppMenuProps) {
                 selectedBranch={actions.switchBranch}
             />
             <CompleteReleaseDialog
+                branchCandidates={actions.releaseBranchCandidates}
+                defaultSelectAll={actions.releaseSelectAllDefault}
                 isLoading={actions.isLoading}
+                key={dialogMode === 'release' ? 'release-open' : 'release-closed'}
                 onClose={actions.closeDialog}
                 onCompleteRelease={actions.completeRelease}
+                onSelectAllDefaultChange={actions.setReleaseSelectAllDefault}
                 open={dialogMode === 'release'}
             />
             <NewCardDialog

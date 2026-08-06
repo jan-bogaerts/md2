@@ -135,13 +135,15 @@ export class DataService extends EventTarget {
         this.remarkableBridge = dependencies.remarkableBridge ?? null
         this.storage = withSaveStateTracking(dependencies.storage, this.saveStateService)
         worktreeService.init({
-            assignCardWorktree: (path, worktree) => this.cards.updateCardWorktree(path, worktree),
+            assignCardWorktree: (path, worktree, branch) => this.cards.assignCardWorktree(path, worktree, branch),
             cardSeparatorProvider: () => this.requireDependencies().config.cardSeparator,
+            clearCardBranch: (path) => this.cards.clearCardBranch(path),
             flushPendingChanges: flushAggregatePendingChanges,
             projectFolderProvider: () => this.requireDependencies().config.projectFolder,
             projectProvider: () => this.projectState.project,
             snapshotProvider: () => this.projectState.snapshot,
             storageProvider: () => this.storage,
+            unassignCardWorktree: (path) => this.cards.updateCardWorktree(path, null),
         })
         this.agents.startScheduledRunWatch()
         const delayMs = configService.get('react.autoCommitDelayMs')

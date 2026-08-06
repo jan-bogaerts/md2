@@ -12,19 +12,22 @@ import type {
 import { register } from '../service_injector'
 
 interface WorktreeServiceDependencies {
-    assignCardWorktree: (path: string, worktree: number | null) => void
+    assignCardWorktree: (path: string, worktree: number, branch: string) => void
     cardSeparatorProvider: () => CardSeparator
+    clearCardBranch: (path: string) => void
     flushPendingChanges: () => Promise<void>
     projectFolderProvider: () => string
     projectProvider: () => ProjectReference | null
     snapshotProvider: () => ProjectSnapshot | null
     storageProvider: () => StorageService | null
+    unassignCardWorktree: (path: string) => void
 }
 
 export class WorktreeService extends EventTarget {
     private adding = false
-    private assignCardWorktreeValue: ((path: string, worktree: number | null) => void) | null = null
+    private assignCardWorktreeValue: ((path: string, worktree: number, branch: string) => void) | null = null
     private cardSeparatorProvider: (() => CardSeparator) | null = null
+    private clearCardBranchValue: ((path: string) => void) | null = null
     private error: string | null = null
     private flushPendingChanges: (() => Promise<void>) | null = null
     private pendingAssignments = new Map<number, string>()
@@ -38,6 +41,7 @@ export class WorktreeService extends EventTarget {
     private snapshotProvider: (() => ProjectSnapshot | null) | null = null
     private storageProvider: (() => StorageService | null) | null = null
     private subscriptionCleanup: (() => void) | null = null
+    private unassignCardWorktreeValue: ((path: string) => void) | null = null
 
     constructor() {
         super()
@@ -93,11 +97,13 @@ export class WorktreeService extends EventTarget {
         this.subscriptionCleanup?.()
         this.assignCardWorktreeValue = dependencies.assignCardWorktree
         this.cardSeparatorProvider = dependencies.cardSeparatorProvider
+        this.clearCardBranchValue = dependencies.clearCardBranch
         this.flushPendingChanges = dependencies.flushPendingChanges
         this.projectFolderProvider = dependencies.projectFolderProvider
         this.projectProvider = dependencies.projectProvider
         this.snapshotProvider = dependencies.snapshotProvider
         this.storageProvider = dependencies.storageProvider
+        this.unassignCardWorktreeValue = dependencies.unassignCardWorktree
         this.clear()
         this.subscriptionCleanup = dependencies.storageProvider()?.onWorktreesChanged?.((state) => this.handleState(state)) ?? null
     }
@@ -130,7 +136,7 @@ export class WorktreeService extends EventTarget {
 
         if (worktree === null) {
             if (card.header.worktreeError || card.header.worktree === null || card.header.worktree === undefined) {
-                this.requireAssignmentWriter()(path, null)
+                this.requireUnassignmentWriter()(path)
                 return
             }
 
@@ -140,7 +146,7 @@ export class WorktreeService extends EventTarget {
             this.startCardOperation(path)
             try {
                 await storage.parkWorktree({ project, worktree: card.header.worktree })
-                this.requireAssignmentWriter()(path, null)
+                this.requireUnassignmentWriter()(path)
             } finally {
                 this.finishCardOperation(path)
             }
@@ -162,7 +168,7 @@ export class WorktreeService extends EventTarget {
             await storage.prepareWorktree(request)
             if (this.requireProject() !== project) throw new Error('Opened project changed during worktree preparation')
 
-            this.requireAssignmentWriter()(path, worktree)
+            this.requireAssignmentWriter()(path, worktree, branchName)
         } finally {
             this.pendingAssignments.delete(worktree)
             this.finishCardOperation(path)
@@ -194,16 +200,32 @@ export class WorktreeService extends EventTarget {
         }
     }
 
-    async integrateCardWorktree(path: string) {
+    async integrateCardWorktree(path: string, deleteBranch: boolean) {
         const { card, project, storage, worktree } = this.requireCardOperation(path)
         if (!storage.integrateWorktree) throw new Error('Worktree integration requires Electron local mode')
         if (!card.header.internalId) throw new Error(`Cannot integrate card without an internal ID: ${path}`)
+        const branch = card.header.branch
+        if (deleteBranch && !branch) throw new Error(`Cannot delete branch without stored branch identity: ${path}`)
+        if (deleteBranch && !storage.parkWorktree) throw new Error('Worktree parking requires Electron local mode')
+        if (deleteBranch && !storage.deleteLocalBranch) throw new Error('Local branch deletion requires Electron local mode')
         const projectFolder = this.requireProjectFolder()
 
         this.startCardOperation(path)
         try {
             await this.requirePendingChangesFlusher()()
             await storage.integrateWorktree({ cardInternalId: card.header.internalId, project, projectFolder, worktree })
+            if (deleteBranch && branch) {
+                try {
+                    if (!storage.parkWorktree || !storage.deleteLocalBranch) throw new Error('Branch cleanup is not available')
+                    await storage.parkWorktree({ project, worktree })
+                    this.requireUnassignmentWriter()(path)
+                    await storage.deleteLocalBranch(project, branch)
+                    this.requireBranchClearer()(path)
+                } catch (error) {
+                    const message = error instanceof Error ? error.message : String(error)
+                    throw new Error(`Worktree integrated, but branch cleanup failed: ${message}`, { cause: error })
+                }
+            }
         } finally {
             this.finishCardOperation(path)
         }
@@ -273,7 +295,7 @@ export class WorktreeService extends EventTarget {
         try {
             await storage.discardWorktreeChanges({ project, worktree })
             await storage.parkWorktree({ project, worktree })
-            this.requireAssignmentWriter()(path, null)
+            this.requireUnassignmentWriter()(path)
         } finally {
             this.finishCardOperation(path)
         }
@@ -379,6 +401,18 @@ export class WorktreeService extends EventTarget {
         if (!this.assignCardWorktreeValue) throw new Error('Worktree card assignment is not initialized')
 
         return this.assignCardWorktreeValue
+    }
+
+    private requireBranchClearer() {
+        if (!this.clearCardBranchValue) throw new Error('Worktree card branch cleanup is not initialized')
+
+        return this.clearCardBranchValue
+    }
+
+    private requireUnassignmentWriter() {
+        if (!this.unassignCardWorktreeValue) throw new Error('Worktree card unassignment is not initialized')
+
+        return this.unassignCardWorktreeValue
     }
 
     private requireProjectFolder() {

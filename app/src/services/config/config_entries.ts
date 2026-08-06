@@ -40,6 +40,8 @@ export interface ConfigValueTypes {
     'project.states': StateConfig[]
     'project.workingFolder': string
     'react.autoCommitDelayMs': number
+    'react.deleteBranchAfterIntegration': boolean
+    'react.deleteBranchesAfterRelease': boolean
     'react.showStartupSplash': boolean
 }
 
@@ -97,6 +99,26 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         editable: true,
         key: 'react.showStartupSplash',
         label: 'Startup splash',
+        section: 'react',
+        source: 'react',
+        type: 'boolean',
+    },
+    {
+        defaultValue: false,
+        description: 'Delete card branch after successful worktree integration.',
+        editable: false,
+        key: 'react.deleteBranchAfterIntegration',
+        label: 'Delete integrated card branch',
+        section: 'react',
+        source: 'react',
+        type: 'boolean',
+    },
+    {
+        defaultValue: false,
+        description: 'Select all pending card branches by default when completing a release.',
+        editable: false,
+        key: 'react.deleteBranchesAfterRelease',
+        label: 'Delete released card branches',
         section: 'react',
         source: 'react',
         type: 'boolean',

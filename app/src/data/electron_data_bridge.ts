@@ -35,6 +35,7 @@ export interface ElectronDataBridge {
     deleteFile(request: DeleteFileRequest): Promise<void>
     deleteFolder(request: DeleteFolderRequest): Promise<void>
     discardWorktreeChanges?(request: WorktreeOperationRequest): Promise<void>
+    deleteLocalBranch?(project: ProjectReference, branchName: string): Promise<void>
     hasPendingPush(project: ProjectReference): Promise<boolean>
     integrateWorktree?(request: WorktreeOperationRequest): Promise<void>
     loadAgentAvailability?(): Promise<Record<string, AgentAvailability>>

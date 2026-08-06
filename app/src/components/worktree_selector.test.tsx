@@ -1,7 +1,8 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { WorktreeRecord } from '../data/data_types'
 import { dialogService } from '../services/dialog_service'
+import { configService } from '../services/config/config_service'
 import { projectPersistenceService } from '../services/project/project_persistence_service'
 import { worktreeService } from '../services/project/worktree_service'
 import { AppThemeProvider } from '../theme/theme_provider'
@@ -37,8 +38,12 @@ function renderAssignedWorktree(record: WorktreeRecord) {
 }
 
 describe('WorktreeSelector', () => {
+    beforeEach(() => configService.init())
+
     afterEach(() => {
         cleanup()
+        configService.clear()
+        window.localStorage.clear()
         vi.restoreAllMocks()
     })
 
@@ -150,8 +155,10 @@ describe('WorktreeSelector', () => {
 
         fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
         fireEvent.click(screen.getByRole('menuitem', { name: 'Integrate into project' }))
+        expect(screen.getByRole('checkbox', { name: 'Delete branch' })).not.toBeChecked()
+        fireEvent.click(screen.getByRole('button', { name: 'Integrate' }))
 
-        await vi.waitFor(() => expect(integrateCardWorktree).toHaveBeenCalledWith('design/F-1.md'))
+        await vi.waitFor(() => expect(integrateCardWorktree).toHaveBeenCalledWith('design/F-1.md', false))
     })
 
     it('updates a clean worktree when it is behind the project branch', async () => {
@@ -227,6 +234,7 @@ describe('WorktreeSelector', () => {
 
         await vi.waitFor(() => expect(setCardWorktree).toHaveBeenCalledWith('design/F-1.md', null))
         expect(commitCardWorktree.mock.invocationCallOrder[0]).toBeLessThan(integrateCardWorktree.mock.invocationCallOrder[0])
+        expect(integrateCardWorktree).toHaveBeenCalledWith('design/F-1.md', false)
         expect(integrateCardWorktree.mock.invocationCallOrder[0]).toBeLessThan(setCardWorktree.mock.invocationCallOrder[0])
     })
 
@@ -351,6 +359,7 @@ describe('WorktreeSelector', () => {
 
         fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
         fireEvent.click(screen.getByRole('menuitem', { name: 'Integrate into project' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Integrate' }))
         fireEvent.click(screen.getByRole('button', { name: 'Commit & integrate' }))
 
         await vi.waitFor(() => expect(reportError).toHaveBeenCalledWith(error, {fallbackMessage: 'Changes were committed, but the worktree could not be integrated into the project'}))
@@ -389,7 +398,22 @@ describe('WorktreeSelector', () => {
 
         fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
         fireEvent.click(screen.getByRole('menuitem', { name: 'Integrate into project' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Integrate' }))
 
         await vi.waitFor(() => expect(reportError).toHaveBeenCalledWith(error, {fallbackMessage: 'Could not integrate worktree into project'}))
+    })
+
+    it('restores and applies the persisted delete-branch integration choice', async () => {
+        configService.setReactPreference('react.deleteBranchAfterIntegration', true)
+        const aheadWorktree = { ...worktrees[0], status: { ...worktrees[0].status, baseAhead: 1 } }
+        const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue(undefined)
+        renderAssignedWorktree(aheadWorktree)
+
+        fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Integrate into project' }))
+
+        expect(screen.getByRole('checkbox', { name: 'Delete branch' })).toBeChecked()
+        fireEvent.click(screen.getByRole('button', { name: 'Integrate' }))
+        await vi.waitFor(() => expect(integrateCardWorktree).toHaveBeenCalledWith('design/F-1.md', true))
     })
 })

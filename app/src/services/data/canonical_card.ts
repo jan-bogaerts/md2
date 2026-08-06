@@ -10,6 +10,7 @@ function setKnownStringField(card: CanonicalCard, key: string, value: string) {
     switch (key) {
         case 'after': card.header.after = nullableValue(value); break
         case 'author': card.header.author = nullableValue(value); break
+        case 'branch': card.header.branch = nullableValue(value); break
         case 'id': card.header.id = value; break
         case 'internalId': card.header.internalId = nullableValue(value); break
         case 'owner': card.header.owner = nullableValue(value); break
@@ -66,4 +67,17 @@ export function setCardWorktree(card: CanonicalCard, worktree: number | null) {
     card.header.worktreeValue = worktree === null ? null : String(worktree)
     if (worktree === null) delete card.headerFields.worktree
     else card.headerFields.worktree = String(worktree)
+}
+
+export function setCardWorktreeAssignment(card: CanonicalCard, worktree: number, branch: string) {
+    if (branch.length === 0) throw new Error('Missing card branch name')
+
+    setCardWorktree(card, worktree)
+    card.header.branch = branch
+    card.headerFields.branch = branch
+}
+
+export function clearCardBranch(card: CanonicalCard) {
+    card.header.branch = null
+    delete card.headerFields.branch
 }

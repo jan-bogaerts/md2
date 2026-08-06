@@ -237,6 +237,19 @@ describe('ConfigService', () => {
         reloaded.clear()
     })
 
+    it('persists integration and release branch cleanup preferences immediately', () => {
+        service.init()
+        service.setReactPreference('react.deleteBranchAfterIntegration', true)
+        service.setReactPreference('react.deleteBranchesAfterRelease', true)
+
+        const reloaded = new ConfigService()
+        reloaded.init()
+
+        expect(reloaded.get('react.deleteBranchAfterIntegration')).toBe(true)
+        expect(reloaded.get('react.deleteBranchesAfterRelease')).toBe(true)
+        reloaded.clear()
+    })
+
     it('falls back to defaults when stored react config is corrupted', () => {
         window.localStorage.setItem(REACT_CONFIG_STORAGE_KEY, 'not-json')
 

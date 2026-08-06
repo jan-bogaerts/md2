@@ -286,6 +286,14 @@ describe('markdownParsingService.setAffects', () => {
 })
 
 describe('markdownParsingService worktree frontmatter', () => {
+    it('parses persisted card branch identity', () => {
+        const content = '---\nid: F-1\nbranch: f-1-card\nworktree: 2\n---\n# Card\n'
+        const card = markdownParsingService.parseCard({ content, path: 'design/F-1-card.md' }, 'design')
+
+        expect(card.header.branch).toBe('f-1-card')
+        expect(markdownParsingService.setBranch(content, null)).not.toContain('branch:')
+    })
+
     it('parses and rewrites a positive one-based worktree index', () => {
         const content = '---\nid: F-1\nworktree: 2\n---\n# Card\n'
         const card = markdownParsingService.parseCard({ content, path: 'design/F-1-card.md' }, 'design')

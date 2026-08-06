@@ -249,6 +249,7 @@ function parseCardHeader(fields: MarkdownHeaderFields, file: MarkdownFile, body:
         after: getStringField(fields, 'after'),
         agentLogReferences: getListField(fields, 'agents'),
         author: getStringField(fields, 'author'),
+        branch: getStringField(fields, 'branch'),
         id,
         internalId: getStringField(fields, 'internalId'),
         owner: getStringField(fields, 'owner'),
@@ -528,6 +529,21 @@ export const markdownParsingService = {
         const lineEnding = detectLineEnding(content)
         const startingLines = hasHeader ? rawHeader.split('\n') : []
         const nextLines = rewriteListLines(startingLines, 'affects', affects)
+
+        if (hasHeader) return frameDocument(nextLines, body, lineEnding)
+
+        return frameDocument(nextLines, `${lineEnding}${content}`, lineEnding)
+    },
+
+    setBranch(content: string, branch: string | null) {
+        if (branch !== null && branch.length === 0) throw new Error('Missing card branch name')
+
+        const { body, hasHeader, rawHeader } = splitHeader(content)
+        const lineEnding = detectLineEnding(content)
+        const startingLines = hasHeader ? rawHeader.split('\n') : []
+        const nextLines = branch === null
+            ? removeHeaderField(startingLines, 'branch')
+            : rewriteHeaderLine(startingLines, 'branch', branch)
 
         if (hasHeader) return frameDocument(nextLines, body, lineEnding)
 

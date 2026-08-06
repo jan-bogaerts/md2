@@ -26,6 +26,7 @@ const DATA_METHODS = [
     'deleteFile',
     'deleteFolder',
     'discardWorktreeChanges',
+    'deleteLocalBranch',
     'hasPendingPush',
     'integrateWorktree',
     'listBranches',

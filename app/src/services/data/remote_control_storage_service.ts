@@ -208,6 +208,10 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         this.pendingPushBranches.add(request.branch)
     }
 
+    async deleteLocalBranch(project: ProjectReference, branchName: string): Promise<void> {
+        await this.request('deleteLocalBranch', [project, branchName])
+    }
+
     /** Returns the project currently open in the connected desktop app, or null if none is loaded. */
     async getActiveProject(): Promise<ProjectReference | null> {
         return this.request<ProjectReference | null>('getActiveProject', [])
