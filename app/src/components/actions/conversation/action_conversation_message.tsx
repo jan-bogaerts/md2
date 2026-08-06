@@ -5,16 +5,20 @@ import remarkGfm from 'remark-gfm'
 import type { AgentConversationMessageEntry } from '../../../data/data_types'
 import { useAppTheme } from '../../../theme/use_app_theme'
 import { ActionConversationLink } from './action_conversation_link'
+import { ActionConversationLinkContext } from './action_conversation_link_context'
 import { actionConversationUrlTransform } from './action_conversation_url_transform'
 
 const MARKDOWN_COMPONENTS = { a: ActionConversationLink }
 
 interface ActionConversationMessageProps {
+    cardInternalId: string | null
     entry: AgentConversationMessageEntry
 }
 
 /** Renders one referentially stable transcript message. */
-export const ActionConversationMessage = memo(function ActionConversationMessage({ entry }: ActionConversationMessageProps) {
+export const ActionConversationMessage = memo(function ActionConversationMessage(
+    { cardInternalId, entry }: ActionConversationMessageProps,
+) {
     const { markdownContentSx } = useAppTheme()
 
     return (
@@ -32,15 +36,17 @@ export const ActionConversationMessage = memo(function ActionConversationMessage
                 ...markdownContentSx,
             }}
         >
-            <Box className="mdxeditor-content">
-                <ReactMarkdown
-                    components={MARKDOWN_COMPONENTS}
-                    remarkPlugins={[remarkGfm]}
-                    urlTransform={actionConversationUrlTransform}
-                >
-                    {entry.content}
-                </ReactMarkdown>
-            </Box>
+            <ActionConversationLinkContext value={cardInternalId}>
+                <Box className="mdxeditor-content">
+                    <ReactMarkdown
+                        components={MARKDOWN_COMPONENTS}
+                        remarkPlugins={[remarkGfm]}
+                        urlTransform={actionConversationUrlTransform}
+                    >
+                        {entry.content}
+                    </ReactMarkdown>
+                </Box>
+            </ActionConversationLinkContext>
         </Box>
     )
 })

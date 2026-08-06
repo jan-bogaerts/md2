@@ -107,9 +107,9 @@ export interface DiffResult {
     repositoryRoot?: string
 }
 
-/** Request to open VS Code at a project file and line clicked in the diff view. */
+/** Request to open a local file in configured external editor. */
 export interface OpenInEditorRequest {
-    line: number
+    line?: number
     path: string
     repositoryRoot?: string
 }

@@ -1,4 +1,5 @@
 const { exec, spawn } = require('node:child_process');
+const { stat } = require('node:fs/promises');
 const path = require('node:path');
 const { promisify } = require('node:util');
 
@@ -10,18 +11,7 @@ const HUNK_HEADER_PATTERN = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/;
 const DIFF_FILE_HEADER = 'diff --git ';
 const OLD_PATH_HEADER = '--- ';
 const NEW_PATH_HEADER = '+++ ';
-
-/** Resolve an in-root file path, rejecting paths that escape the project root. */
-function resolveInsideRoot(rootPath, targetPath) {
-    const resolvedRoot = path.resolve(rootPath);
-    const resolvedTarget = path.resolve(resolvedRoot, targetPath);
-
-    if (resolvedTarget !== resolvedRoot && !resolvedTarget.startsWith(`${resolvedRoot}${path.sep}`)) {
-        throw new Error('Diff file path escapes project root');
-    }
-
-    return resolvedTarget;
-}
+const FILE_URL_PATTERN = /^file:\/+/iu;
 
 function resolveProjectFolder(rootPath, projectFolder) {
     if (typeof projectFolder !== 'string') return null;
@@ -142,21 +132,95 @@ async function generateDiff(project, request, runner = execAsync) {
     return { commit: request.commit, files: parseUnifiedDiff(stdout) };
 }
 
-/** Build the validated `code -g` command that opens a diff file at a line inside the project. */
-function buildEditorLaunch(rootPath, request) {
-    if (!request || typeof request.path !== 'string' || request.path.length === 0) throw new Error('Missing editor file path');
-    if (typeof request.line !== 'number' || !Number.isInteger(request.line) || request.line < 1) throw new Error('Invalid editor line number');
-
-    const resolvedTarget = resolveInsideRoot(rootPath, request.path);
-
-    return `code -g "${resolvedTarget}:${request.line}"`;
+function pathKey(filePath) {
+    return path.resolve(filePath).toLowerCase();
 }
 
-/** Open VS Code at the clicked diff file/line, rejecting paths that escape the project root. */
-function openInEditor(project, request, spawnProcess = spawn) {
-    const rootPath = requireRootPath(project);
-    const command = buildEditorLaunch(rootPath, request);
-    const child = spawnProcess(command, { cwd: rootPath, shell: true });
+function isInsideRoot(targetPath, rootPath) {
+    const relativePath = path.relative(path.resolve(rootPath), path.resolve(targetPath));
+
+    return relativePath === '' || (!relativePath.startsWith(`..${path.sep}`) && relativePath !== '..' && !path.isAbsolute(relativePath));
+}
+
+function decodeEditorPath(value) {
+    try {
+        const decoded = decodeURIComponent(value.trim());
+        if (!FILE_URL_PATTERN.test(decoded)) return decoded;
+
+        const filePath = decoded.replace(FILE_URL_PATTERN, '');
+
+        return filePath.startsWith('/') && /^[a-z]:[\\/]/iu.test(filePath.slice(1)) ? filePath.slice(1) : filePath;
+    } catch {
+        throw new Error(`Invalid local file link: ${value}`);
+    }
+}
+
+/** Split optional trailing `:line` from a local link. Explicit diff lines remain authoritative. */
+function parseEditorTarget(request) {
+    if (!request || typeof request.path !== 'string' || request.path.trim().length === 0) throw new Error('Missing editor file path');
+    const decodedPath = decodeEditorPath(request.path);
+    if (request.line !== undefined) {
+        if (!Number.isInteger(request.line) || request.line < 1) throw new Error('Invalid editor line number');
+
+        return { line: request.line, path: decodedPath };
+    }
+
+    const lastSeparator = Math.max(decodedPath.lastIndexOf('/'), decodedPath.lastIndexOf('\\'));
+    const lastColon = decodedPath.lastIndexOf(':');
+    if (lastColon <= lastSeparator || (lastColon === 1 && /^[a-z]:/iu.test(decodedPath))) return { line: 1, path: decodedPath };
+
+    const lineText = decodedPath.slice(lastColon + 1);
+    if (!/^\d+$/u.test(lineText) || Number(lineText) < 1) throw new Error(`Invalid editor line suffix: ${decodedPath.slice(lastColon)}`);
+
+    return { line: Number(lineText), path: decodedPath.slice(0, lastColon) };
+}
+
+/** Substitute validated file and line values into global editor command. */
+function buildEditorLaunch(editorCommand, filePath, line) {
+    if (typeof editorCommand !== 'string' || editorCommand.length === 0) throw new Error('Missing editor command template');
+    if (!editorCommand.includes('{{file}}')) throw new Error('Editor command template requires {{file}} placeholder');
+    if (!Number.isInteger(line) || line < 1) throw new Error('Invalid editor line number');
+
+    return editorCommand.replaceAll('{{file}}', filePath).replaceAll('{{line}}', String(line));
+}
+
+async function resolveEditorTarget(project, request, worktreeRoots, statFile) {
+    const primaryRoot = requireRootPath(project);
+    if (!request || typeof request.repositoryRoot !== 'string' || request.repositoryRoot.length === 0) {
+        throw new Error('Missing editor execution repository root');
+    }
+    const allowedRoots = [primaryRoot, ...worktreeRoots].map((rootPath) => path.resolve(rootPath));
+    const repositoryRoot = path.resolve(request.repositoryRoot);
+    if (!allowedRoots.some((rootPath) => pathKey(rootPath) === pathKey(repositoryRoot))) {
+        throw new Error('Editor execution repository is not active or registered');
+    }
+
+    const parsed = parseEditorTarget(request);
+    const targetPath = path.resolve(repositoryRoot, parsed.path);
+    if (!allowedRoots.some((rootPath) => isInsideRoot(targetPath, rootPath))) {
+        throw new Error('Local file link points outside active repository and registered worktrees');
+    }
+
+    let fileStats;
+    try {
+        fileStats = await statFile(targetPath);
+    } catch {
+        throw new Error(`Local file link target does not exist: ${targetPath}`);
+    }
+    if (!fileStats.isFile()) throw new Error(`Local file link target is not a regular file: ${targetPath}`);
+
+    return { filePath: targetPath, line: parsed.line, repositoryRoot };
+}
+
+/** Open validated local file through configured external editor. */
+async function openInEditor(project, request, options) {
+    const editorCommand = options?.editorCommand;
+    const spawnProcess = options?.spawnProcess ?? spawn;
+    const statFile = options?.statFile ?? stat;
+    const worktreeRoots = options?.worktreeRoots ?? [];
+    const target = await resolveEditorTarget(project, request, worktreeRoots, statFile);
+    const command = buildEditorLaunch(editorCommand, target.filePath, target.line);
+    const child = spawnProcess(command, { cwd: target.repositoryRoot, shell: true });
 
     return new Promise((resolve, reject) => {
         let isSettled = false;
@@ -187,5 +251,7 @@ module.exports = {
     generateDiff,
     openInEditor,
     parseUnifiedDiff,
+    parseEditorTarget,
+    resolveEditorTarget,
     resolveDiffCommand,
 };

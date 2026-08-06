@@ -53,7 +53,7 @@ function DiffFileView(props: DiffFileViewProps) {
 
 /**
  * Diff view for an action log entry that carries commit metadata. Loads normalized diff data
- * through the configured Electron command and opens VS Code when a changed line is clicked.
+ * through configured Electron commands and opens external editor when a changed line is clicked.
  */
 export function DiffView(props: DiffViewProps) {
     const { commitReference, initialPath } = props
@@ -96,7 +96,7 @@ export function DiffView(props: DiffViewProps) {
             if (!result?.repositoryRoot) throw new Error('Diff result is missing execution repository root')
             await openDiffLine({ ...request, repositoryRoot: result.repositoryRoot })
         } catch (openError) {
-            dialogService.error(openError, { fallbackMessage: 'Could not open VS Code' })
+            dialogService.error(openError, { fallbackMessage: 'Could not open local file' })
         }
     }
 

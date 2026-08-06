@@ -447,6 +447,7 @@ describe('ConfigPage', () => {
 
         renderConfigPage('#desktop')
         configService.setDraftValue('desktop.agent', 'claude')
+        fireEvent.change(screen.getByLabelText('Editor command'), { target: { value: 'notepad "{{file}}"' } })
         fireEvent.click(screen.getByRole('switch', { name: 'Codex web search' }))
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
@@ -456,6 +457,7 @@ describe('ConfigPage', () => {
             agentProfiles: BUILTIN_AGENT_PROFILES,
             approvalPolicy: 'on-request',
             codexSearchEnabled: false,
+            editorCommand: 'notepad "{{file}}"',
             model: '',
             thinkingLevel: 'none',
         })

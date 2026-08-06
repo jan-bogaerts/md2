@@ -309,7 +309,14 @@ function createLocalBridgeDispatch(dependencies) {
 
             return actionRunnerService.subscribe(callback);
         },
-        openInEditor: async (request) => diffService.openInEditor(currentLocalProject, request),
+        openInEditor: async (request) => {
+            const { editorCommand } = readDesktopConfig(desktopConfigStore);
+            const worktreeRoots = worktreeService.getRecords(currentLocalProject)
+                .filter(({ valid }) => valid)
+                .map(({ path: worktreePath }) => worktreePath);
+
+            return diffService.openInEditor(currentLocalProject, request, { editorCommand, worktreeRoots });
+        },
         prepareActionPrompt: (request) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 

@@ -109,7 +109,8 @@ function createDispatch(options = {}) {
         subscribe: vi.fn(() => vi.fn()),
         synchronize: vi.fn(async () => undefined),
     };
-    const desktopConfig = options.desktopConfig ?? {agent: 'codex', agentProfiles: [{ command: ['codex'], models: ['gpt-5'], name: 'codex' }], model: 'gpt-5'};
+    const desktopConfig = options.desktopConfig ?? {agent: 'codex', agentProfiles: [{ command: ['codex'], models: ['gpt-5'], name: 'codex' }], editorCommand: 'code -g "{{file}}:{{line}}"', model: 'gpt-5'};
+    const diffService = { generateDiff: vi.fn(), openInEditor: vi.fn() };
     const dispatch = createLocalBridgeDispatch({
         actionRunnerService,
         actionSchedulerService,
@@ -118,7 +119,7 @@ function createDispatch(options = {}) {
         agentRunnerService,
         codexRuntimeService,
         desktopConfigStore: {},
-        diffService: { generateDiff: vi.fn(), openInEditor: vi.fn() },
+        diffService,
         localGitService,
         openProjectFolder: options.openProjectFolder,
         openWorktreeFolder: options.openWorktreeFolder,
@@ -133,12 +134,32 @@ function createDispatch(options = {}) {
         agentRunnerService,
         codexRuntimeService,
         dispatch,
+        diffService,
         localGitService,
         worktreeService,
     };
 }
 
 describe('createLocalBridgeDispatch', () => {
+    it('opens chat and diff files through shared configured editor launcher inputs', async () => {
+        const editorCommand = 'notepad "{{file}}"';
+        const { diffService, dispatch, worktreeService } = createDispatch({ desktopConfig: { agent: 'codex', agentProfiles: [], editorCommand, model: '' } });
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        worktreeService.getRecords.mockReturnValue([
+            { path: 'C:/worktree', valid: true },
+            { path: 'C:/broken', valid: false },
+        ]);
+        await dispatch.dataBridge.loadProject(project, 'design');
+        const request = { line: 7, path: 'src/file.js', repositoryRoot: 'C:/worktree' };
+
+        await dispatch.actionBridge.openInEditor(request);
+
+        expect(diffService.openInEditor).toHaveBeenCalledWith(project, request, {
+            editorCommand,
+            worktreeRoots: ['C:/worktree'],
+        });
+    });
+
     it('exposes account-wide Codex runtime state without execution context', () => {
         const { codexRuntimeService, dispatch } = createDispatch();
         const callback = vi.fn();

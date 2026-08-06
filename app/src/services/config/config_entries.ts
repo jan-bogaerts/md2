@@ -25,6 +25,7 @@ export interface ConfigValueTypes {
     'desktop.agentProfiles': AgentProfile[]
     'desktop.approvalPolicy': string
     'desktop.codexSearchEnabled': boolean
+    'desktop.editorCommand': string
     'desktop.model': string
     'desktop.thinkingLevel': ThinkingLevel
     'project.actionsFolder': string
@@ -78,6 +79,7 @@ export interface DesktopConfigValues {
     agentProfiles: AgentProfile[]
     approvalPolicy?: string
     codexSearchEnabled?: boolean
+    editorCommand: string
     model: string
     thinkingLevel?: ThinkingLevel
 }
@@ -91,6 +93,7 @@ export const CONFIG_SECTIONS = [
 const DEFAULT_AUTO_COMMIT_DELAY_MS = 30000
 const MIN_AUTO_COMMIT_DELAY_MS = 1000
 const MAX_AUTO_COMMIT_DELAY_MS = 120000
+export const DEFAULT_EDITOR_COMMAND = 'code -g "{{file}}:{{line}}"'
 
 export const CONFIG_ENTRIES: ConfigEntry[] = [
     {
@@ -312,6 +315,16 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         section: 'desktop',
         source: 'desktop',
         type: 'boolean',
+    },
+    {
+        defaultValue: DEFAULT_EDITOR_COMMAND,
+        description: 'Command template used to open local files. Required placeholder: {{file}}. Optional placeholder: {{line}}.',
+        editable: true,
+        key: 'desktop.editorCommand',
+        label: 'Editor command',
+        section: 'desktop',
+        source: 'desktop',
+        type: 'string',
     },
     {
         defaultValue: '',

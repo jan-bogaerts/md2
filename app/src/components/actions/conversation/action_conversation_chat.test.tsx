@@ -8,6 +8,7 @@ import type {
     AgentConversationEventEntry,
     AgentConversationMessageEntry,
 } from '../../../data/data_types'
+import { setActionBridgeOverride, type ElectronActionBridge } from '../../../data/electron_action_bridge'
 import { dataService } from '../../../services/data/data_service'
 import { dialogService } from '../../../services/dialog_service'
 import { AppThemeProvider } from '../../../theme/theme_provider'
@@ -103,6 +104,7 @@ describe('ActionConversationChat', () => {
 
     afterEach(() => {
         cleanup()
+        setActionBridgeOverride(null)
         vi.restoreAllMocks()
         restoreProperty('clientHeight', originalClientHeight)
         restoreProperty('scrollHeight', originalScrollHeight)
@@ -246,6 +248,11 @@ describe('ActionConversationChat', () => {
             },
         })
         const reportError = vi.spyOn(dialogService, 'error')
+        setActionBridgeOverride({
+            openInEditor: vi.fn(async () => {
+                throw new Error('Local file link target does not exist: C:/repo/design/missing.md')
+            }),
+        } as unknown as ElectronActionBridge)
         const bubbledClick = vi.fn()
         renderChat(conversation('links.json', [message('message-1', '[Missing](design/missing.md)')]))
         document.addEventListener('click', bubbledClick)

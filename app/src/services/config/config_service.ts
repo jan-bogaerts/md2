@@ -180,6 +180,12 @@ function validateValue<K extends ConfigKey>(key: K, value: unknown): ConfigValue
         return value as ConfigValueTypes[K]
     }
     if (key === 'desktop.thinkingLevel') return validateThinkingLevel(value, entry.key) as ConfigValueTypes[K]
+    if (key === 'desktop.editorCommand') {
+        const editorCommand = requireString(value, entry.key)
+        if (!editorCommand.includes('{{file}}')) throw new Error('Config field desktop.editorCommand requires {{file}} placeholder')
+
+        return editorCommand as ConfigValueTypes[K]
+    }
 
     return validateOption(requireString(value, entry.key), entry) as ConfigValueTypes[K]
 }
@@ -244,6 +250,7 @@ export class ConfigService extends EventTarget {
         if (desktopConfig?.codexSearchEnabled !== undefined) {
             nextValues = mergeValue(nextValues, 'desktop.codexSearchEnabled', desktopConfig.codexSearchEnabled)
         }
+        if (desktopConfig?.editorCommand !== undefined) nextValues = mergeValue(nextValues, 'desktop.editorCommand', desktopConfig.editorCommand)
         if (desktopConfig?.model !== undefined) nextValues = mergeValue(nextValues, 'desktop.model', desktopConfig.model)
         if (desktopConfig?.thinkingLevel !== undefined) {
             nextValues = mergeValue(nextValues, 'desktop.thinkingLevel', desktopConfig.thinkingLevel)
@@ -348,6 +355,7 @@ export class ConfigService extends EventTarget {
             agentProfiles: this.values['desktop.agentProfiles'],
             approvalPolicy: this.values['desktop.approvalPolicy'],
             codexSearchEnabled: this.values['desktop.codexSearchEnabled'],
+            editorCommand: this.values['desktop.editorCommand'],
             model: this.values['desktop.model'],
             thinkingLevel: this.values['desktop.thinkingLevel'],
         }

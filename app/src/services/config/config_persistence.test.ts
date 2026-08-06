@@ -32,6 +32,8 @@ describe('config persistence', () => {
 
         expect(JSON.parse(window.localStorage.getItem(REACT_CONFIG_STORAGE_KEY) ?? '{}')).toEqual({
             'react.autoCommitDelayMs': 5000,
+            'react.deleteBranchAfterIntegration': false,
+            'react.deleteBranchesAfterRelease': false,
             'react.showStartupSplash': true,
         })
     })
@@ -58,6 +60,7 @@ describe('config persistence', () => {
             agent: 'codex',
             agentProfiles: BUILTIN_AGENT_PROFILES,
             approvalPolicy: 'on-request',
+            editorCommand: 'code -g "{{file}}:{{line}}"',
             model: '',
         }
         const setDesktopConfig = vi.fn()

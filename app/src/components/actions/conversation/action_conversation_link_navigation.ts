@@ -3,6 +3,8 @@ import { actionService } from '../../../services/actions/action_service'
 import { dataService } from '../../../services/data/data_service'
 import { workspaceNavigationService } from '../../../services/project/workspace_navigation_service'
 import { workspaceViewService } from '../../../services/project/workspace_view_service'
+import { worktreeService } from '../../../services/project/worktree_service'
+import type { ProjectSnapshot, WorktreeRecord } from '../../../data/data_types'
 
 const ABSOLUTE_WINDOWS_PATH_PATTERN = /^[a-z]:\//iu
 const ENCODED_ABSOLUTE_WINDOWS_PATH_PATTERN = /^[a-z]:(?:%2f|%5c)/iu
@@ -51,6 +53,37 @@ function isPathInsideFolder(path: string, folder: string) {
     return path.toLowerCase().startsWith(`${folder.toLowerCase()}/`)
 }
 
+function stripNumericLineSuffix(path: string) {
+    const match = /:(\d+)$/u.exec(path)
+    if (!match || Number(match[1]) < 1) return path
+
+    return path.slice(0, -match[0].length)
+}
+
+/** Select current repository folder for a conversation when its link is clicked. */
+export function resolveConversationRepositoryRoot(
+    cardInternalId: string | null,
+    primaryRepositoryRoot: string,
+    snapshot: ProjectSnapshot,
+    worktrees: readonly WorktreeRecord[],
+) {
+    if (!primaryRepositoryRoot) throw new Error('Cannot open a local file link without an active repository path')
+    if (!cardInternalId) return primaryRepositoryRoot
+
+    const cards = [...snapshot.activeCards, ...snapshot.backgroundCards]
+    const card = cards.find(({ header }) => header.internalId === cardInternalId)
+    const worktree = card?.header.worktree
+    if (worktree === null || worktree === undefined) return primaryRepositoryRoot
+    if (!Number.isInteger(worktree) || worktree < 1) throw new Error(`Card has invalid worktree assignment: ${String(worktree)}`)
+
+    const record = worktrees[worktree - 1]
+    if (!record) throw new Error(`Assigned worktree ${worktree} does not exist`)
+    if (!record.valid) throw new Error(`Assigned worktree ${worktree} is invalid: ${record.error ?? 'unknown error'}`)
+    if (!record.path) throw new Error(`Assigned worktree ${worktree} has no folder path`)
+
+    return record.path
+}
+
 /** True when a Markdown href represents a repository file rather than normal browser navigation. */
 export function isLocalFileLink(href: string) {
     const normalizedHref = href.trim().replace(/\\/gu, '/')
@@ -64,39 +97,52 @@ export function isLocalFileLink(href: string) {
     return !URL_SCHEME_PATTERN.test(normalizedHref)
 }
 
-/** Resolve a chat link to the canonical repository-relative path from the loaded file index. */
+/** Resolve an internally loaded chat link to its canonical repository-relative path. */
 export function resolveActionConversationLinkPath(href: string, repositoryRoot: string, repositoryFiles: readonly string[]) {
-    if (!repositoryRoot) throw new Error('Cannot open a local file link without an active repository path')
+    if (!repositoryRoot) return null
 
-    const decodedPath = fileUrlPath(decodeLinkPath(href.trim())).replace(/\\/gu, '/')
-    const normalizedRoot = normalizePathSegments(repositoryRoot, true).replace(/\/+$/u, '')
-    const normalizedTarget = normalizePathSegments(decodedPath, true)
+    const decodedPath = stripNumericLineSuffix(fileUrlPath(decodeLinkPath(href.trim()))).replace(/\\/gu, '/')
+    let normalizedRoot: string
+    let normalizedTarget: string
+    try {
+        normalizedRoot = normalizePathSegments(repositoryRoot, true).replace(/\/+$/u, '')
+        normalizedTarget = normalizePathSegments(decodedPath, true)
+    } catch {
+        return null
+    }
     let relativePath = normalizedTarget
     if (ABSOLUTE_WINDOWS_PATH_PATTERN.test(normalizedTarget)) {
         const normalizedRootLower = normalizedRoot.toLowerCase()
         const normalizedTargetLower = normalizedTarget.toLowerCase()
-        if (!normalizedTargetLower.startsWith(`${normalizedRootLower}/`)) {
-            throw new Error('Local file link points outside the active repository')
-        }
+        if (!normalizedTargetLower.startsWith(`${normalizedRootLower}/`)) return null
         relativePath = normalizedTarget.slice(normalizedRoot.length + 1)
     }
     const canonicalPath = repositoryFiles.find((candidate) => (
         normalizePathSegments(candidate, false).toLowerCase() === relativePath.toLowerCase()
     ))
-    if (!canonicalPath) throw new Error(`Local file link target does not exist: ${relativePath}`)
+    if (!canonicalPath) return null
 
     return canonicalPath.replace(/\\/gu, '/')
 }
 
-/** Open one validated local chat link in the internal list editor or VS Code. */
-export async function openActionConversationLink(href: string) {
+/** Open local chat link in internal project editor or configured external editor. */
+export async function openActionConversationLink(href: string, cardInternalId: string | null) {
     const { project, snapshot } = dataService.getState()
     if (!project || !snapshot) throw new Error('Cannot open a local file link before a project is loaded')
 
-    const repositoryPath = resolveActionConversationLinkPath(href, project.rootPath ?? '', snapshot.repositoryFiles)
+    const repositoryRoot = resolveConversationRepositoryRoot(
+        cardInternalId,
+        project.rootPath ?? '',
+        snapshot,
+        worktreeService.getRecords(),
+    )
+    const repositoryPath = resolveActionConversationLinkPath(href, repositoryRoot, snapshot.repositoryFiles)
     const projectFolder = normalizePathSegments(dataService.getConfig()?.projectFolder ?? '', false)
-    const isProjectMarkdown = isPathInsideFolder(repositoryPath, projectFolder) && repositoryPath.toLowerCase().endsWith('.md')
-    const isLoadedProjectAction = isPathInsideFolder(repositoryPath, projectFolder)
+    const isProjectMarkdown = repositoryPath !== null
+        && isPathInsideFolder(repositoryPath, projectFolder)
+        && repositoryPath.toLowerCase().endsWith('.md')
+    const isLoadedProjectAction = repositoryPath !== null
+        && isPathInsideFolder(repositoryPath, projectFolder)
         && actionService.getActionByPath(repositoryPath) !== null
     if (isProjectMarkdown || isLoadedProjectAction) {
         workspaceViewService.setViewMode('text')
@@ -105,7 +151,7 @@ export async function openActionConversationLink(href: string) {
     }
 
     const bridge = getElectronActionBridge()
-    if (!bridge) throw new Error('Opening local project files in VS Code requires Electron local mode')
+    if (!bridge) throw new Error('Opening local project files requires Electron local mode')
 
-    await bridge.openInEditor({ line: 1, path: repositoryPath })
+    await bridge.openInEditor({ path: href, repositoryRoot })
 }

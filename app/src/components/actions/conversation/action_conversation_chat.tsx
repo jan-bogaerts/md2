@@ -67,7 +67,7 @@ export function ActionConversationChat({ conversation, status }: ActionConversat
             sx={{ flex: 1, minHeight: MIN_CHAT_HEIGHT, overflowX: 'hidden', overflowY: 'auto' }}
         >
             {entries.map((entry) => entry.kind === 'message' ? (
-                <ActionConversationMessage entry={entry} key={entry.id} />
+                <ActionConversationMessage cardInternalId={conversation?.cardInternalId ?? null} entry={entry} key={entry.id} />
             ) : (
                 <ActionConversationEventRow entry={entry} key={eventIdentity(entry)} />
             ))}
