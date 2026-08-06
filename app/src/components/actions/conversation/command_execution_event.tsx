@@ -8,6 +8,7 @@ const COMMAND_DETAIL_MAX_HEIGHT = 320
 
 interface CommandExecutionEventProps {
     event: AgentConversationEvent
+    grouped: boolean
 }
 
 function detailValue(value: string | number) {
@@ -28,7 +29,7 @@ function detailValue(value: string | number) {
 }
 
 /** Collapsed command lifecycle entry with exact execution detail on demand. */
-export function CommandExecutionEvent({ event }: CommandExecutionEventProps) {
+export function CommandExecutionEvent({ event, grouped }: CommandExecutionEventProps) {
     const [expanded, setExpanded] = useState(false)
     const preview = commandPreview(event.command) || 'Command'
     const hasError = eventHasError(event.status)
@@ -45,9 +46,9 @@ export function CommandExecutionEvent({ event }: CommandExecutionEventProps) {
     return (
         <Box
             sx={{
-                border: '1px solid',
+                border: grouped ? 'none' : '1px solid',
                 borderColor: hasError ? 'error.main' : 'divider',
-                borderRadius: 1,
+                borderRadius: grouped ? 0 : 1,
                 flexShrink: 0,
                 minWidth: 0,
                 overflow: 'hidden',

@@ -8,10 +8,11 @@ const TOOL_DETAIL_MAX_HEIGHT = 240
 
 interface AgentToolEventProps {
     event: AgentConversationEvent
+    grouped: boolean
 }
 
 /** Generic compact renderer for normalized Codex tool and system events. */
-export function AgentToolEvent({ event }: AgentToolEventProps) {
+export function AgentToolEvent({ event, grouped }: AgentToolEventProps) {
     const [expanded, setExpanded] = useState(false)
     const label = event.label ?? 'Agent event'
     const hasError = eventHasError(event.status)
@@ -28,9 +29,9 @@ export function AgentToolEvent({ event }: AgentToolEventProps) {
     return (
         <Box
             sx={{
-                border: '1px solid',
+                border: grouped ? 'none' : '1px solid',
                 borderColor: hasError ? 'error.main' : 'divider',
-                borderRadius: 1,
+                borderRadius: grouped ? 0 : 1,
                 flexShrink: 0,
                 minWidth: 0,
                 overflow: 'hidden',

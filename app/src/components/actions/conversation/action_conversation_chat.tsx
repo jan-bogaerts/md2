@@ -6,7 +6,8 @@ import { ActionConversationEventRow } from './action_conversation_event_row'
 import { ActionConversationMessage } from './action_conversation_message'
 import { actionStatusLabel } from '../shared/action_status'
 import { ConversationTimer } from './conversation_timer'
-import { eventIdentity } from './event_display'
+import { buildActionConversationRenderGroups, type ActionConversationRenderGroup } from './action_conversation_render_groups'
+import { CompletedToolCallGroup } from './completed_tool_call_group'
 
 const CHAT_END_TOLERANCE = 4
 const MIN_CHAT_HEIGHT = 96
@@ -26,17 +27,25 @@ function hasAgentActivity(conversation: AgentConversation) {
         || conversation.entries.some((entry) => entry.kind === 'event' && !!entry.providerItemId)
 }
 
-function visibleConversationEntries(conversation: AgentConversation | null) {
+function renderGroupIsVisible(group: ActionConversationRenderGroup, showEvents: boolean) {
+    if (group.kind === 'completedToolCalls') return showEvents
+    const { entry } = group
+
+    return entry.kind === 'message'
+        || (showEvents && (entry.type !== 'reasoning' || entry.status !== 'completed'))
+}
+
+function visibleConversationGroups(conversation: AgentConversation | null) {
     if (!conversation) return []
     const showEvents = hasAgentActivity(conversation)
 
-    return conversation.entries.filter((entry) => entry.kind === 'message'
-        || (showEvents && (entry.type !== 'reasoning' || entry.status !== 'completed')))
+    return buildActionConversationRenderGroups(conversation.entries)
+        .filter((group) => renderGroupIsVisible(group, showEvents))
 }
 
 /** Ordered user/assistant transcript shown above the popup prompt. */
 export function ActionConversationChat({ conversation, status }: ActionConversationChatProps) {
-    const entries = visibleConversationEntries(conversation)
+    const groups = visibleConversationGroups(conversation)
     const viewportRef = useRef<HTMLDivElement>(null)
     const conversationPathRef = useRef<string | null | undefined>(undefined)
     const stuckToEndRef = useRef(true)
@@ -66,11 +75,18 @@ export function ActionConversationChat({ conversation, status }: ActionConversat
             spacing={1}
             sx={{ flex: 1, minHeight: MIN_CHAT_HEIGHT, overflowX: 'hidden', overflowY: 'auto' }}
         >
-            {entries.map((entry) => entry.kind === 'message' ? (
-                <ActionConversationMessage cardInternalId={conversation?.cardInternalId ?? null} entry={entry} key={entry.id} />
-            ) : (
-                <ActionConversationEventRow entry={entry} key={eventIdentity(entry)} />
-            ))}
+            {groups.map((group) => {
+                if (group.kind === 'completedToolCalls') {
+                    return <CompletedToolCallGroup entries={group.entries} key={group.key} />
+                }
+
+                const { entry } = group
+                if (entry.kind === 'message') {
+                    return <ActionConversationMessage cardInternalId={conversation?.cardInternalId ?? null} entry={entry} key={group.key} />
+                }
+
+                return <ActionConversationEventRow entry={entry} grouped={false} key={group.key} />
+            })}
             {status !== 'idle' ? (
                 <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexShrink: 0 }}>
                     <Typography color={status === 'failed' ? 'error.main' : 'text.secondary'} role="status" variant="caption">

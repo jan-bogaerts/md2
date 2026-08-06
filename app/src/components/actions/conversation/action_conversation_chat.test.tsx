@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type {
@@ -29,6 +29,24 @@ function message(id: string, content: string): AgentConversationMessageEntry {
 
 function eventEntry(event: AgentConversationEvent): AgentConversationEventEntry {
     return { ...event, kind: 'event' }
+}
+
+function toolEvent(
+    id: string,
+    type: string,
+    status = 'completed',
+    overrides: Partial<AgentConversationEvent> = {},
+): AgentConversationEventEntry {
+    return eventEntry({
+        content: `${id} input`,
+        id,
+        label: id,
+        providerItemId: id,
+        status,
+        timestamp: 'now',
+        type,
+        ...overrides,
+    })
 }
 
 function conversation(
@@ -414,6 +432,152 @@ describe('ActionConversationChat', () => {
 
         expect(screen.getByRole('button', { name: 'Web search details' })).toBeInTheDocument()
         expect(screen.getByText('Completed')).toBeInTheDocument()
+        expect(screen.queryByRole('group', { name: 'Completed tool calls' })).not.toBeInTheDocument()
+    })
+
+    it('groups every supported completed tool type in canonical order', () => {
+        const entries = [
+            toolEvent('Command call', 'commandExecution', 'completed', { command: 'Command call' }),
+            toolEvent('File change', 'fileChange'),
+            toolEvent('MCP call', 'mcpToolCall'),
+            toolEvent('Dynamic call', 'dynamicToolCall'),
+            toolEvent('Collaboration call', 'collabAgentToolCall'),
+            toolEvent('Web search', 'webSearch'),
+            toolEvent('Image view', 'imageView'),
+            toolEvent('Claude read', 'tool.Read'),
+        ]
+
+        renderChat(conversation('tool-types.json', entries, 'codex'))
+
+        const group = screen.getByRole('group', { name: 'Completed tool calls' })
+        const buttons = within(group).getAllByRole('button')
+        expect(buttons).toHaveLength(entries.length)
+        expect(buttons.map(({ textContent }) => textContent)).toEqual([
+            'Command callCompleted',
+            'File changeCompleted',
+            'MCP callCompleted',
+            'Dynamic callCompleted',
+            'Collaboration callCompleted',
+            'Web searchCompleted',
+            'Image viewCompleted',
+            'Claude readCompleted',
+        ])
+    })
+
+    it('keeps grouped tool details independently expandable', () => {
+        const command = toolEvent('Command call', 'commandExecution', 'completed', {
+            command: 'npm test',
+            durationMs: 42,
+            exitCode: 0,
+            output: 'Command output',
+            workingDirectory: 'C:\\repo',
+        })
+        const search = toolEvent('Web search', 'webSearch', 'completed', {
+            content: 'Search input',
+            durationMs: 8,
+            output: 'Search output',
+        })
+        renderChat(conversation('tool-details.json', [command, search], 'codex'))
+        const commandButton = screen.getByRole('button', { name: 'Command details: npm test' })
+        const searchButton = screen.getByRole('button', { name: 'Web search details' })
+
+        fireEvent.click(commandButton)
+
+        expect(commandButton).toHaveAttribute('aria-expanded', 'true')
+        expect(searchButton).toHaveAttribute('aria-expanded', 'false')
+        expect(screen.getByText('Command output')).toBeInTheDocument()
+        expect(screen.queryByText('Search output')).not.toBeInTheDocument()
+
+        fireEvent.click(searchButton)
+
+        expect(commandButton).toHaveAttribute('aria-expanded', 'true')
+        expect(searchButton).toHaveAttribute('aria-expanded', 'true')
+        expect(screen.getByText('Search input')).toBeInTheDocument()
+        expect(screen.getByText('Search output')).toBeInTheDocument()
+        expect(screen.getByText('Working directory').parentElement?.querySelector('pre')?.textContent).toBe('C:\\repo')
+        expect(screen.getByText('Exit code: 0')).toBeInTheDocument()
+        expect(screen.getByText('Duration: 42 ms')).toBeInTheDocument()
+        expect(screen.getByText('Duration: 8 ms')).toBeInTheDocument()
+    })
+
+    it('splits groups at hidden events and messages', () => {
+        const hiddenReasoning: AgentConversationEventEntry = {
+            content: 'Hidden boundary',
+            id: 'reasoning-boundary',
+            kind: 'event',
+            providerItemId: 'reasoning-boundary',
+            status: 'completed',
+            timestamp: 'now',
+            type: 'reasoning',
+        }
+        const entries: AgentConversationEntry[] = [
+            toolEvent('First search', 'webSearch'),
+            toolEvent('First MCP', 'mcpToolCall'),
+            hiddenReasoning,
+            toolEvent('Second search', 'webSearch'),
+            toolEvent('Second MCP', 'mcpToolCall'),
+            message('boundary-message', 'Visible boundary'),
+            toolEvent('Third search', 'webSearch'),
+            toolEvent('Third MCP', 'mcpToolCall'),
+        ]
+        renderChat(conversation('tool-boundaries.json', entries, 'codex'))
+
+        const groups = screen.getAllByRole('group', { name: 'Completed tool calls' })
+        expect(groups).toHaveLength(3)
+        expect(within(groups[0]).getAllByRole('button')).toHaveLength(2)
+        expect(within(groups[1]).getAllByRole('button')).toHaveLength(2)
+        expect(within(groups[2]).getAllByRole('button')).toHaveLength(2)
+        expect(screen.queryByText('Hidden boundary')).not.toBeInTheDocument()
+        expect(screen.getByText('Visible boundary')).toBeInTheDocument()
+    })
+
+    it('keeps non-completed tool calls standalone with their lifecycle status', () => {
+        const entries = [
+            toolEvent('Started call', 'webSearch', 'started'),
+            toolEvent('In-progress call', 'mcpToolCall', 'inProgress'),
+            toolEvent('Running call', 'dynamicToolCall', 'running'),
+            toolEvent('Failed call', 'imageView', 'failed'),
+            toolEvent('Declined call', 'collabAgentToolCall', 'declined'),
+        ]
+        renderChat(conversation('tool-statuses.json', entries, 'codex'))
+
+        expect(screen.queryByRole('group', { name: 'Completed tool calls' })).not.toBeInTheDocument()
+        expect(screen.getAllByText('Running')).toHaveLength(3)
+        expect(screen.getByText('Failed')).toBeInTheDocument()
+        expect(screen.getByText('Declined')).toBeInTheDocument()
+    })
+
+    it('appends a newly completed call to an existing group without remounting or duplication', () => {
+        const firstCall = toolEvent('First call', 'webSearch')
+        const secondCall = toolEvent('Second call', 'mcpToolCall')
+        const runningCall = toolEvent('Third call', 'imageView', 'inProgress')
+        const first = conversation('tool-lifecycle.json', [firstCall, secondCall, runningCall], 'codex')
+        const { rerender } = renderChat(first)
+        const firstButton = screen.getByRole('button', { name: 'First call details' })
+        fireEvent.click(firstButton)
+
+        rerender(
+            <AppThemeProvider>
+                <ActionConversationChat
+                    conversation={{
+                        ...first,
+                        entries: [firstCall, secondCall, { ...runningCall, status: 'completed' }],
+                    }}
+                    status="idle"
+                />
+            </AppThemeProvider>,
+        )
+
+        const group = screen.getByRole('group', { name: 'Completed tool calls' })
+        const buttons = within(group).getAllByRole('button')
+        expect(buttons.map(({ textContent }) => textContent)).toEqual([
+            'First callCompleted',
+            'Second callCompleted',
+            'Third callCompleted',
+        ])
+        expect(screen.getAllByRole('button', { name: 'First call details' })).toHaveLength(1)
+        expect(screen.getByRole('button', { name: 'First call details' })).toBe(firstButton)
+        expect(firstButton).toHaveAttribute('aria-expanded', 'true')
     })
 
     it('keeps one command collapsed and exposes exact final details accessibly', () => {

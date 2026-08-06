@@ -79,4 +79,41 @@ describe('ActionConversationChat rendering', () => {
         expect(renderProbes.markdown).toHaveBeenCalledWith('Live update')
         expect(renderProbes.event).not.toHaveBeenCalled()
     })
+
+    it('does not rerender unchanged grouped tool rows while assistant output streams', () => {
+        const historicalMessage = {content: 'Historical', id: 'message-1', kind: 'message' as const, role: 'assistant' as const, timestamp: 'now'}
+        const firstTool = {
+            content: '', id: 'event-1', kind: 'event' as const, providerItemId: 'tool-1', status: 'completed',
+            timestamp: 'now', type: 'webSearch',
+        }
+        const secondTool = {
+            content: '', id: 'event-2', kind: 'event' as const, providerItemId: 'tool-2', status: 'completed',
+            timestamp: 'now', type: 'mcpToolCall',
+        }
+        const streamingMessage = {content: 'Live', id: 'message-2', kind: 'message' as const, role: 'assistant' as const, timestamp: 'now'}
+        const firstConversation = conversation([historicalMessage, firstTool, secondTool, streamingMessage])
+        const { rerender } = render(
+            <AppThemeProvider>
+                <ActionConversationChat conversation={firstConversation} status="running" />
+            </AppThemeProvider>,
+        )
+        renderProbes.markdown.mockClear()
+        renderProbes.event.mockClear()
+
+        rerender(
+            <AppThemeProvider>
+                <ActionConversationChat
+                    conversation={{
+                        ...firstConversation,
+                        entries: [historicalMessage, firstTool, secondTool, { ...streamingMessage, content: 'Live update' }],
+                    }}
+                    status="running"
+                />
+            </AppThemeProvider>,
+        )
+
+        expect(renderProbes.markdown).toHaveBeenCalledOnce()
+        expect(renderProbes.markdown).toHaveBeenCalledWith('Live update')
+        expect(renderProbes.event).not.toHaveBeenCalled()
+    })
 })
