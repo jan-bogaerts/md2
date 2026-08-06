@@ -2345,12 +2345,12 @@
         "agent-a1bd9abf-a336-412a-8715-425236c4f38f"
       ],
       "details": {
+        "type": "agent",
         "accessLevel": "workspace-write",
         "agent": "codex",
         "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
-        "thinkingLevel": "none",
-        "type": "agent"
+        "thinkingLevel": "none"
       },
       "runId": "action-70c7e930-9432-47f3-9d87-3c94d05df93c",
       "origin": {
@@ -2359,9 +2359,38 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-a1bd9abf-a336-412a-8715-425236c4f38f",
       "startedAt": "2026-08-06T19:07:44.089Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-a1bd9abf-a336-412a-8715-425236c4f38f"
+    },
+    {
+      "commits": [
+        {
+          "commit": "7c6407b70297f98e20b1e53d16ef7ab7507adde1",
+          "committedAt": "2026-08-06T21:24:07+02:00",
+          "deletions": 20,
+          "filePaths": [
+            "app/src/components/actions/conversation/action_conversation_chat.test.tsx",
+            "app/src/components/actions/conversation/action_conversation_chat.tsx",
+            "app/src/components/actions/conversation/action_conversation_event_row.tsx",
+            "app/src/components/actions/conversation/action_conversation_render_groups.ts",
+            "app/src/components/actions/conversation/action_conversation_rendering.test.tsx",
+            "app/src/components/actions/conversation/agent_tool_event.tsx",
+            "app/src/components/actions/conversation/command_execution_event.tsx",
+            "app/src/components/actions/conversation/completed_tool_call_group.tsx"
+          ],
+          "filesChanged": 8,
+          "insertions": 339,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-06T21:24:07+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "16bc6dc5-0f8e-421d-b0a9-c83d3a3a65f0",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 2
