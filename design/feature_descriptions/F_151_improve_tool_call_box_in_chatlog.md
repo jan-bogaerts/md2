@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
   - design/activity/card__d078e271-bd1a-4a6d-86a0-d9cf3264c7e0.json#conversation=agent-a4b8f91e-07ee-4fe6-8e43-243421de2669
+  - design/activity/card__d078e271-bd1a-4a6d-86a0-d9cf3264c7e0.json#conversation=agent-7dce3ff7-7bca-40af-9576-b979cb845463
 policy:
 branch: f_151_improve_tool_call_box_in_chatlog
 worktree: 2
