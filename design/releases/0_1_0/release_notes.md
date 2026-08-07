@@ -1,0 +1,38 @@
+# MD² 0.1.0
+
+- Change a card’s type after creation.
+- Find and link project files by typing `@`.
+- Insert placeholders into action prompts.
+- Keep editor toolbars visible while scrolling.
+- See which card or project an action popup belongs to.
+- Bring the active action popup to the front automatically.
+- See more clearly when an action needs your input.
+- Reply immediately when an agent is waiting for input.
+- See suggested responses only when they are relevant.
+- See waiting indicators for agent questions and approvals.
+- Change agent settings while a conversation is waiting.
+- Continue, finish, or stop waiting conversations after restarting the app.
+- Keep suggested responses available after restarting the app.
+- Keep completed action inputs empty.
+- Expand long approval commands only when needed.
+- View cleaner conversations with grouped activity.
+- Enjoy faster conversation updates while responses stream.
+- Stream Claude conversations with live approvals and activity.
+- Keep conversation viewed status across restarts.
+- Enjoy smaller action histories.
+- Open code links from the correct workspace in your preferred editor.
+- Keep file and placeholder suggestions visible above popups.
+- Use separate placeholders for repository and project folders.
+- Review all workspace changes before integrating them.
+- Integrate changes and choose branch cleanup in one dialog.
+- Automatically delete branches after integration or release when selected.
+- Prevent releases while cards still have assigned workspaces.
+- Move card histories together with released cards.
+- Move only ready cards when completing a release.
+- Use manual push mode by default for new project settings.
+- Enjoy smoother card dragging and dropping.
+- Keep card edits and unsaved changes more reliable.
+- Prevent unrelated card details from being overwritten.
+- Use a simpler one-column board with long-press dragging on mobile.
+- Open action popups full-screen on mobile.
+- See mobile card status changes without reloading.
