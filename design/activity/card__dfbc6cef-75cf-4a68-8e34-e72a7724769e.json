@@ -2070,12 +2070,12 @@
         "agent-f6e5390e-b61e-4c14-bcab-87fb50f878ae"
       ],
       "details": {
+        "type": "agent",
         "accessLevel": "workspace-write",
         "agent": "codex",
         "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-2f875d7d-9bf6-4be7-987c-ef4e74684dc1",
       "origin": {
@@ -2084,9 +2084,32 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-f6e5390e-b61e-4c14-bcab-87fb50f878ae",
       "startedAt": "2026-08-07T14:43:17.815Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-f6e5390e-b61e-4c14-bcab-87fb50f878ae"
+    },
+    {
+      "commits": [
+        {
+          "commit": "97f9b2f6c38f2994e8703b7fb730fc35c60375ee",
+          "committedAt": "2026-08-07T16:54:16+02:00",
+          "deletions": 9,
+          "filePaths": [
+            "app/src/components/text_view/list_editor_toolbar_controls.test.tsx",
+            "app/src/components/text_view/list_editor_toolbar_controls.tsx"
+          ],
+          "filesChanged": 2,
+          "insertions": 46,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-07T16:54:16+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "dfbc6cef-75cf-4a68-8e34-e72a7724769e",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 2
