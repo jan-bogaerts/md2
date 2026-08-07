@@ -12,8 +12,6 @@ agents:
   - design/activity/card__dfbc6cef-75cf-4a68-8e34-e72a7724769e.json#conversation=agent-f6e5390e-b61e-4c14-bcab-87fb50f878ae
 policy:
 after: dbf63724-048c-44ff-ae98-534c1b37a68e
-branch: b_89_markdown_editor_in_list_view_missing_toolbar
-worktree: 2
 ---
 
 When a markdown file, located in a regular folder, is opened, there is no toolbar shown.
