@@ -49,6 +49,18 @@ function toolEvent(
     })
 }
 
+function completedReasoning(id: string): AgentConversationEventEntry {
+    return {
+        content: `${id} hidden content`,
+        id,
+        kind: 'event',
+        providerItemId: id,
+        status: 'completed',
+        timestamp: 'now',
+        type: 'reasoning',
+    }
+}
+
 function conversation(
     path: string,
     entries: AgentConversationEntry[],
@@ -500,34 +512,27 @@ describe('ActionConversationChat', () => {
         expect(screen.getByText('Duration: 8 ms')).toBeInTheDocument()
     })
 
-    it('splits groups at hidden events and messages', () => {
-        const hiddenReasoning: AgentConversationEventEntry = {
-            content: 'Hidden boundary',
-            id: 'reasoning-boundary',
-            kind: 'event',
-            providerItemId: 'reasoning-boundary',
-            status: 'completed',
-            timestamp: 'now',
-            type: 'reasoning',
-        }
+    it('groups completed PowerShell calls across hidden reasoning and splits them at messages', () => {
         const entries: AgentConversationEntry[] = [
-            toolEvent('First search', 'webSearch'),
-            toolEvent('First MCP', 'mcpToolCall'),
-            hiddenReasoning,
-            toolEvent('Second search', 'webSearch'),
-            toolEvent('Second MCP', 'mcpToolCall'),
+            toolEvent('First command', 'commandExecution', 'completed', { command: 'powershell.exe -Command "Get-Content first"' }),
+            completedReasoning('first-reasoning'),
+            toolEvent('Second command', 'commandExecution', 'completed', { command: 'powershell.exe -Command "Get-Content second"' }),
+            completedReasoning('second-reasoning'),
+            toolEvent('Third command', 'commandExecution', 'completed', { command: 'powershell.exe -Command "Get-Content third"' }),
             message('boundary-message', 'Visible boundary'),
-            toolEvent('Third search', 'webSearch'),
-            toolEvent('Third MCP', 'mcpToolCall'),
+            toolEvent('Fourth command', 'commandExecution', 'completed', { command: 'powershell.exe -Command "Get-Content fourth"' }),
+            completedReasoning('third-reasoning'),
+            toolEvent('Fifth command', 'commandExecution', 'completed', { command: 'powershell.exe -Command "Get-Content fifth"' }),
         ]
         renderChat(conversation('tool-boundaries.json', entries, 'codex'))
 
         const groups = screen.getAllByRole('group', { name: 'Completed tool calls' })
-        expect(groups).toHaveLength(3)
-        expect(within(groups[0]).getAllByRole('button')).toHaveLength(2)
+        expect(groups).toHaveLength(2)
+        expect(within(groups[0]).getAllByRole('button')).toHaveLength(3)
         expect(within(groups[1]).getAllByRole('button')).toHaveLength(2)
-        expect(within(groups[2]).getAllByRole('button')).toHaveLength(2)
-        expect(screen.queryByText('Hidden boundary')).not.toBeInTheDocument()
+        expect(screen.queryByText('first-reasoning hidden content')).not.toBeInTheDocument()
+        expect(screen.queryByText('second-reasoning hidden content')).not.toBeInTheDocument()
+        expect(screen.queryByText('third-reasoning hidden content')).not.toBeInTheDocument()
         expect(screen.getByText('Visible boundary')).toBeInTheDocument()
     })
 
@@ -551,7 +556,13 @@ describe('ActionConversationChat', () => {
         const firstCall = toolEvent('First call', 'webSearch')
         const secondCall = toolEvent('Second call', 'mcpToolCall')
         const runningCall = toolEvent('Third call', 'imageView', 'inProgress')
-        const first = conversation('tool-lifecycle.json', [firstCall, secondCall, runningCall], 'codex')
+        const first = conversation('tool-lifecycle.json', [
+            firstCall,
+            completedReasoning('first-live-reasoning'),
+            secondCall,
+            completedReasoning('second-live-reasoning'),
+            runningCall,
+        ], 'codex')
         const { rerender } = renderChat(first)
         const firstButton = screen.getByRole('button', { name: 'First call details' })
         fireEvent.click(firstButton)
@@ -561,7 +572,13 @@ describe('ActionConversationChat', () => {
                 <ActionConversationChat
                     conversation={{
                         ...first,
-                        entries: [firstCall, secondCall, { ...runningCall, status: 'completed' }],
+                        entries: [
+                            firstCall,
+                            completedReasoning('first-live-reasoning'),
+                            secondCall,
+                            completedReasoning('second-live-reasoning'),
+                            { ...runningCall, status: 'completed' },
+                        ],
                     }}
                     status="idle"
                 />

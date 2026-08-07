@@ -6,7 +6,7 @@ import { ActionConversationEventRow } from './action_conversation_event_row'
 import { ActionConversationMessage } from './action_conversation_message'
 import { actionStatusLabel } from '../shared/action_status'
 import { ConversationTimer } from './conversation_timer'
-import { buildActionConversationRenderGroups, type ActionConversationRenderGroup } from './action_conversation_render_groups'
+import { buildActionConversationRenderGroups } from './action_conversation_render_groups'
 import { CompletedToolCallGroup } from './completed_tool_call_group'
 
 const CHAT_END_TOLERANCE = 4
@@ -27,20 +27,13 @@ function hasAgentActivity(conversation: AgentConversation) {
         || conversation.entries.some((entry) => entry.kind === 'event' && !!entry.providerItemId)
 }
 
-function renderGroupIsVisible(group: ActionConversationRenderGroup, showEvents: boolean) {
-    if (group.kind === 'completedToolCalls') return showEvents
-    const { entry } = group
-
-    return entry.kind === 'message'
-        || (showEvents && (entry.type !== 'reasoning' || entry.status !== 'completed'))
-}
-
 function visibleConversationGroups(conversation: AgentConversation | null) {
     if (!conversation) return []
     const showEvents = hasAgentActivity(conversation)
+    const visibleEntries = conversation.entries.filter((entry) => entry.kind === 'message'
+        || (showEvents && (entry.type !== 'reasoning' || entry.status !== 'completed')))
 
-    return buildActionConversationRenderGroups(conversation.entries)
-        .filter((group) => renderGroupIsVisible(group, showEvents))
+    return buildActionConversationRenderGroups(visibleEntries)
 }
 
 /** Ordered user/assistant transcript shown above the popup prompt. */
