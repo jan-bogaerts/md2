@@ -2,7 +2,9 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useCallback } from 'react'
 import { TextView } from './text_view'
-import { DEFAULT_CARD_TYPES, DEFAULT_STATES, defaultColumnAccent, type Card } from '../../data/data_types'
+import {
+    DEFAULT_CARD_TYPES, DEFAULT_STATES, defaultColumnAccent, type Card, type ProjectReference,
+} from '../../data/data_types'
 import { telemetryService } from '../../services/telemetry/telemetry_service'
 import { openFilesService } from '../../services/open_files_service'
 import { actionService } from '../../services/actions/action_service'
@@ -48,9 +50,10 @@ function setCards(
     nextActiveCards: Card[],
     nextBackgroundCards = backgroundCards,
     repositoryFiles: string[] = [],
+    project: ProjectReference | null = { branch: 'main', id: 'project', rootPath: 'C:\\repo' },
 ) {
     vi.mocked(dataService.getState).mockReturnValue({
-        project: null,
+        project,
         runningAgents: [],
         snapshot: {
             activeCards: nextActiveCards,
@@ -66,8 +69,9 @@ function renderTextView(
     nextActiveCards = activeCards,
     nextBackgroundCards = backgroundCards,
     repositoryFiles: string[] = [],
+    project: ProjectReference | null = { branch: 'main', id: 'project', rootPath: 'C:\\repo' },
 ) {
-    setCards(nextActiveCards, nextBackgroundCards, repositoryFiles)
+    setCards(nextActiveCards, nextBackgroundCards, repositoryFiles, project)
 
     function TextViewHarness() {
         const handleLeftPanelInteraction = useCallback(() => undefined, [])
@@ -317,6 +321,79 @@ describe('TextView', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Create' }))
 
         await waitFor(() => expect(dataService.cards.createFolder).toHaveBeenCalledWith('design/history/rel1', 'drafts'))
+    })
+
+    it('copies local card paths from file-tree three-dot and right-click menus', async () => {
+        const writeText = vi.fn().mockResolvedValue(undefined)
+        Object.assign(navigator, { clipboard: { writeText } })
+        renderTextView()
+        const tree = within(screen.getByLabelText('File tree'))
+        const cardButton = tree.getByRole('button', { name: 'F-1 Alpha' })
+        const cardRow = cardButton.parentElement as HTMLElement
+
+        fireEvent.click(within(cardRow).getByRole('button', { name: 'Actions' }))
+        expect(screen.getByRole('menuitem', { name: 'Copy path' })).toBeInTheDocument()
+        expect(screen.getByRole('menuitem', { name: 'Copy relative path' })).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Copy path' }))
+
+        await waitFor(() => expect(writeText).toHaveBeenCalledWith('C:\\repo\\design\\active\\F-1-a.md'))
+        expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+
+        fireEvent.contextMenu(cardButton)
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Copy relative path' }))
+
+        await waitFor(() => expect(writeText).toHaveBeenCalledWith('design/active/F-1-a.md'))
+        expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+    })
+
+    it('offers only exact relative paths from both remote file-tree card menus', async () => {
+        const writeText = vi.fn().mockResolvedValue(undefined)
+        const remoteProject: ProjectReference = { branch: 'main', id: 'remote', owner: 'owner', repository: 'repository' }
+        Object.assign(navigator, { clipboard: { writeText } })
+        renderTextView({}, activeCards, backgroundCards, [], remoteProject)
+        const tree = within(screen.getByLabelText('File tree'))
+        const cardButton = tree.getByRole('button', { name: 'F-1 Alpha' })
+        const cardRow = cardButton.parentElement as HTMLElement
+
+        fireEvent.click(within(cardRow).getByRole('button', { name: 'Actions' }))
+        expect(screen.queryByRole('menuitem', { name: 'Copy path' })).not.toBeInTheDocument()
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Copy relative path' }))
+        await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument())
+
+        fireEvent.contextMenu(cardButton)
+        expect(screen.queryByRole('menuitem', { name: 'Copy path' })).not.toBeInTheDocument()
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Copy relative path' }))
+
+        await waitFor(() => expect(writeText).toHaveBeenCalledTimes(2))
+        expect(writeText).toHaveBeenNthCalledWith(1, 'design/active/F-1-a.md')
+        expect(writeText).toHaveBeenNthCalledWith(2, 'design/active/F-1-a.md')
+    })
+
+    it('keeps path-copy items out of regular Markdown, action, and folder menus', async () => {
+        const regularMarkdown = card(
+            'design/notes/readme.md',
+            { id: 'F-0', internalId: null, title: 'Readme' },
+            '# Readme',
+        )
+        loadReviewAction()
+        renderTextView({}, activeCards, [...backgroundCards, regularMarkdown])
+        const tree = within(screen.getByLabelText('File tree'))
+
+        fireEvent.contextMenu(tree.getByRole('button', { name: 'Readme' }))
+        expect(screen.queryByRole('menuitem', { name: 'Copy path' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('menuitem', { name: 'Copy relative path' })).not.toBeInTheDocument()
+        fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' })
+        await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument())
+
+        fireEvent.contextMenu(tree.getByRole('button', { name: 'Review' }))
+        expect(screen.queryByRole('menuitem', { name: 'Copy path' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('menuitem', { name: 'Copy relative path' })).not.toBeInTheDocument()
+        fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' })
+        await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument())
+
+        fireEvent.contextMenu(tree.getByRole('button', { name: 'notes 1' }))
+        expect(screen.queryByRole('menuitem', { name: 'Copy path' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('menuitem', { name: 'Copy relative path' })).not.toBeInTheDocument()
     })
 
     it('opens a file in a tab when its tree node is clicked', () => {

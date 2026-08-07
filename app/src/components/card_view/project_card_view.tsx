@@ -12,6 +12,7 @@ import { ActionEntryPoints } from '../actions/run/trigger/action_entry_points'
 import { CardRunButton } from '../actions/run/trigger/card_run_button'
 import { useRunningActionForContext } from '../hooks/use_action_runs'
 import { CardDeleteDialog } from './card_delete_dialog'
+import { CardPathMenuItems } from './card_path_menu_items'
 import { CardPolicyMenuItem } from './card_policy_menu_item'
 import { CardWorktreeIndicator } from './card_worktree_indicator'
 import { getCardTypeColor } from './card_drag'
@@ -40,6 +41,7 @@ interface CardViewContentProps extends CardHandlers {
     isSelected: boolean
     isMobile: boolean
     primaryPath: string
+    rootPath: string | undefined
 }
 
 interface MenuPosition {
@@ -61,13 +63,14 @@ export const CardView = memo(function CardView(props: CardViewProps) {
             card={card}
             isSelected={isSelected}
             primaryPath={primaryPath}
+            rootPath={project.rootPath}
             {...contentProps}
         />
     )
 })
 
 function CardViewContent(props: CardViewContentProps) {
-    const { card, cardTypes, isSelected, primaryPath } = props
+    const { card, cardTypes, isSelected, primaryPath, rootPath } = props
     const { onOpenInFileMode } = props
     const { onDeleteCard, onTogglePolicy, onTitleChange } = props
     const theme = useTheme()
@@ -286,6 +289,7 @@ function CardViewContent(props: CardViewContentProps) {
                         policyKey={policyKey}
                     />
                 ))}
+                <CardPathMenuItems cardPath={card.path} onSelected={closeCardActions} rootPath={rootPath} />
                 <MenuItem onClick={openBodyFromMenu}>Open body</MenuItem>
                 <MenuItem onClick={openInFileModeFromMenu}>Open in file mode</MenuItem>
                 <MenuItem onClick={editTitleFromMenu}>Edit title</MenuItem>
