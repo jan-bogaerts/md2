@@ -25,16 +25,16 @@
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-2e858f0c-b202-4d90-b86b-de3b18f0ee34-event-3",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_00ccc9c3b011cb98016a75cfbdf8f4819181b6b745f9caaa7b",
           "sequence": 3,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-07T12:29:49.047Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         }
       ],
       "hasExplicitTitle": true,
@@ -50,6 +50,32 @@
     "cardInternalId": "05d5d49c-401f-42cd-b3cc-074e169631dd",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [],
+      "completedAt": "2026-08-07T12:29:53.018Z",
+      "conversationIds": [
+        "agent-2322e64a-9c75-4d08-b6cd-9b3d966b498b"
+      ],
+      "details": {
+        "accessLevel": "workspace-write",
+        "agent": "codex",
+        "approvalPolicy": "on-request",
+        "model": "gpt-5.6-sol",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-195ebafc-b38b-4ce8-baae-5eb45e3e9064",
+      "origin": {
+        "cardInternalId": "05d5d49c-401f-42cd-b3cc-074e169631dd",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-2322e64a-9c75-4d08-b6cd-9b3d966b498b",
+      "startedAt": "2026-08-07T12:29:43.294Z",
+      "status": "cancelled"
+    }
+  ],
   "version": 2
 }
