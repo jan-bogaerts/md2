@@ -4,7 +4,7 @@
   "description": "search for the largest files",
   "type": "agent",
   "phrases": [],
-  "prompt": "list the 5 largest source code files",
+  "prompt": "list the 5 largest source code files. skip tests.",
   "appliesTo": {
     "kind": "project"
   }
