@@ -430,6 +430,53 @@ describe('CardRunButton', () => {
         expect(firstDialog.parentElement).toHaveStyle({ zIndex: '1300' })
     })
 
+    it('opens the conversation menu above the front stacked popup', async () => {
+        const secondConversation = {
+            ...conversation('completed', [], 'implement'),
+            cardInternalId: 'f-011',
+            cardPath: 'design/F-011.md',
+            id: 'agent-2',
+            path: '.md2-agent-logs/agent-2.json',
+        }
+        const secondCard = {
+            ...card,
+            agentConversations: [secondConversation],
+            header: { ...card.header, id: 'F-011', internalId: 'f-011', title: 'Second feature' },
+            path: 'design/F-011.md',
+        }
+        conversationsByCardInternalId.set('f-011', [secondConversation])
+        vi.spyOn(dataService, 'listAgentConversations').mockImplementation(async (context) => (
+            context.cardInternalId ? conversationsByCardInternalId.get(context.cardInternalId) ?? [] : []
+        ))
+        projectState.snapshot = {
+            activeCards: [card, secondCard],
+            backgroundCards: [],
+            repositoryFiles: [],
+            workingFolder: 'design',
+        }
+        render(
+            <>
+                <CardRunButton card={card} context={cardContext(card, DEFAULT_CARD_TYPES)} />
+                <CardRunButton card={secondCard} context={cardContext(secondCard, DEFAULT_CARD_TYPES)} />
+                <CardActionPopupHost />
+            </>,
+            { wrapper: AppThemeProvider },
+        )
+
+        screen.getAllByRole('button', { name: 'Run' }).forEach((button) => fireEvent.click(button))
+        const secondDialogElement = screen.getByRole('dialog', { name: 'Run actions for F-011' })
+        const secondDialog = within(secondDialogElement)
+        fireEvent.click(secondDialog.getByRole('button', { name: 'Implement' }))
+        const conversationPicker = await secondDialog.findByRole('combobox', { name: 'Conversation history' })
+        await waitFor(() => expect(conversationPicker).not.toHaveAttribute('aria-disabled', 'true'))
+
+        fireEvent.mouseDown(conversationPicker)
+
+        const menuLayer = screen.getByRole('listbox').closest('.MuiModal-root')
+        expect(secondDialogElement.parentElement).toHaveStyle({ zIndex: '1301' })
+        expect(menuLayer).toHaveStyle({ zIndex: '1302' })
+    })
+
     it('selects one action at a time inside the Run popup', () => {
         renderCardRunButton()
 
