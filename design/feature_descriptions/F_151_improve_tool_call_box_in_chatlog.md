@@ -3,7 +3,7 @@ author:
 id: F_151
 internalId: d078e271-bd1a-4a6d-86a0-d9cf3264c7e0
 title: improve tool-call box in chatlog
-status: new
+status: design
 owner: 
 affects:
 agents:
