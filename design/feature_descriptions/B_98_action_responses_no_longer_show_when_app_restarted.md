@@ -10,7 +10,7 @@ agents:
   - design/activity/card__b8e6a902-e78b-43d3-9896-e43146873ba5.json#conversation=agent-b3dab3c8-7f99-4dda-af57-05cde26be3a3
   - design/activity/card__b8e6a902-e78b-43d3-9896-e43146873ba5.json#conversation=agent-e750a2db-21b5-47f8-b3a7-26057d84435c
 policy:
-after: 02a44ecf-5974-4822-8e07-8a00f2c889c8
+after: 18fd04d3-5df7-4f54-ab7a-94d96f210f13
 ---
 
 app restarted, so agent is no longer running, but the action was waiting for input from the user and it had responses (phrases) defined, yet they are not showing. this is not correct.&#x20;
