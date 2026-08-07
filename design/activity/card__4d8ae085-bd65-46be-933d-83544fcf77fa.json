@@ -1893,12 +1893,12 @@
         "agent-f76267e9-946f-433c-8930-0e2ff53bd815"
       ],
       "details": {
+        "type": "agent",
         "accessLevel": "workspace-write",
         "agent": "codex",
         "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-0d436e9a-8ee0-4e08-b196-243f60f68bee",
       "origin": {
@@ -1907,9 +1907,39 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-f76267e9-946f-433c-8930-0e2ff53bd815",
       "startedAt": "2026-08-07T14:53:53.829Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-f76267e9-946f-433c-8930-0e2ff53bd815"
+    },
+    {
+      "commits": [
+        {
+          "commit": "023e605f75f15e32af53bdb2b7ab40718aa9f74e",
+          "committedAt": "2026-08-07T17:01:25+02:00",
+          "deletions": 21,
+          "filePaths": [
+            "app/src/components/actions/agent/action_agent_prompt.test.tsx",
+            "app/src/components/editor/markdown_placeholder_menu.test.tsx",
+            "app/src/components/editor/markdown_placeholder_toolbar_control.test.tsx",
+            "app/src/data/action_placeholders.ts",
+            "desktop/src/actions/action/action_agent_executor.test.mjs",
+            "desktop/src/actions/action/action_command_executor.test.mjs",
+            "desktop/src/actions/action/action_text.js",
+            "desktop/src/actions/action/action_text.test.mjs",
+            "docs/actions/placeholders.md"
+          ],
+          "filesChanged": 9,
+          "insertions": 47,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-07T17:01:25+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "4d8ae085-bd65-46be-933d-83544fcf77fa",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 2
