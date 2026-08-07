@@ -1,6 +1,6 @@
 # md²
 
-**A local, Git-native workspace for coordinating features, worktrees, coding agents, prompts, commits, and automation.**
+**A local, Git-native workspace that organizes AI-assisted development around the feature being built.**
 
 > **Download:** [Get the latest Windows x64 installer](https://github.com/jan-bogaerts/md2/releases/latest) · [Installation guide](https://jan-bogaerts.github.io/md2/getting-started/install/)
 >
@@ -9,13 +9,21 @@
 https://github.com/user-attachments/assets/8d9b4f55-6d97-42ff-bba4-ef36c5a64513
 
 
-AI-assisted development quickly becomes fragmented.
+## The feature card is the center
 
-You may have multiple worktrees, ten or more VS Code windows, several agent sessions, repeated prompts, generated scripts, and a long history of commits—without a clear overview of which agent is working on which feature.
+Most AI development tools organize work around repositories, issues, or chat sessions. md² organizes it around the feature being built.
 
-md² organises all of that around the work itself.
+Each feature, bug, or task is a Markdown card in your repository. Everything related to the work hangs off that card:
 
-Each feature, bug, or task is represented by a Markdown card inside your project. That card can be linked to its worktree, agent sessions, actions, commits, design notes, logs, and token usage. Agents can read and update the same local files directly, while you manage the overall workflow from a single dashboard.
+- its Git worktree
+- the coding agent working on it
+- prompts and reusable actions
+- chat history
+- commits
+- design notes and documentation
+- token usage and cost
+
+The card becomes the shared context for both you and your agents. Instead of reconstructing a feature's history from editor windows, folders, and disconnected conversations, you can follow and manage it from one place. Because cards are ordinary local Markdown files, agents can read and update the same project knowledge directly.
 
 ## Works with
 
