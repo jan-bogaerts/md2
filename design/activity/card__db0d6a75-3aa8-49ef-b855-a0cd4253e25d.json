@@ -2642,12 +2642,12 @@
         "agent-60d8666d-bbdd-4062-a2ea-4b8e638118c3"
       ],
       "details": {
+        "type": "agent",
         "accessLevel": "workspace-write",
         "agent": "codex",
         "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-7f5d608d-b9c8-4228-9d85-8ec53bf0f504",
       "origin": {
@@ -2656,9 +2656,44 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-60d8666d-bbdd-4062-a2ea-4b8e638118c3",
       "startedAt": "2026-08-07T14:36:57.055Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-60d8666d-bbdd-4062-a2ea-4b8e638118c3"
+    },
+    {
+      "commits": [
+        {
+          "commit": "46b30aa31bbb18f0e7e394fb41de181a8beea263",
+          "committedAt": "2026-08-07T16:54:29+02:00",
+          "deletions": 119,
+          "filePaths": [
+            "app/src/components/actions/agent/action_agent_preset_name_owner.tsx",
+            "app/src/components/actions/agent/action_agent_prompt_owner.tsx",
+            "app/src/components/actions/run/popup/action_popup.test.tsx",
+            "app/src/components/actions/run/popup/action_popup.tsx",
+            "app/src/components/actions/run/popup/action_popup_bottom_row.test.tsx",
+            "app/src/components/actions/run/popup/action_popup_bottom_row.tsx",
+            "app/src/components/actions/run/popup/action_popup_content.tsx",
+            "app/src/components/actions/run/popup/action_popup_run_disabled.ts",
+            "app/src/components/actions/run/popup/action_selector.test.tsx",
+            "app/src/components/actions/run/popup/action_selector.tsx",
+            "app/src/components/actions/run/trigger/action_entry_points.test.tsx",
+            "app/src/components/actions/run/trigger/card_run_button.test.tsx",
+            "app/src/services/actions/action_definition_loader.node.test.ts",
+            "shared/action_definitions.mjs"
+          ],
+          "filesChanged": 14,
+          "insertions": 89,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-07T16:54:29+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "db0d6a75-3aa8-49ef-b855-a0cd4253e25d",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 2
