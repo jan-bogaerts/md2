@@ -2591,12 +2591,12 @@
         "agent-8fa59c40-e1dc-4209-9717-36fb7d701839"
       ],
       "details": {
+        "type": "agent",
         "accessLevel": "workspace-write",
         "agent": "codex",
         "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-01d966de-2afa-4e8f-9752-c6223f03792f",
       "origin": {
@@ -2605,9 +2605,34 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-8fa59c40-e1dc-4209-9717-36fb7d701839",
       "startedAt": "2026-08-07T14:12:35.150Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-8fa59c40-e1dc-4209-9717-36fb7d701839"
+    },
+    {
+      "commits": [
+        {
+          "commit": "07d7cdf1f4d7e6fcd2ed62ca835ec5edb9ea3470",
+          "committedAt": "2026-08-07T16:23:01+02:00",
+          "deletions": 25,
+          "filePaths": [
+            "app/src/components/actions/conversation/action_conversation_chat.test.tsx",
+            "app/src/components/actions/conversation/action_conversation_chat.tsx",
+            "desktop/src/actions/agent/agent_claude_streaming_adapter.js",
+            "desktop/src/actions/agent/agent_streaming_adapter.test.mjs"
+          ],
+          "filesChanged": 4,
+          "insertions": 88,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-07T16:23:01+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "a2cf4f9a-dc7f-417e-8591-c5993e770738",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 2
