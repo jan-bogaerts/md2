@@ -1,6 +1,6 @@
 # md²
 
-**A local, Git-native workspace that organizes AI-assisted development around the feature being built.**
+**Plan, run, and track AI coding work feature by feature—with local Markdown cards and Git worktrees.**
 
 > **Download:** [Get the latest Windows x64 installer](https://github.com/jan-bogaerts/md2/releases/latest) · [Installation guide](https://jan-bogaerts.github.io/md2/getting-started/install/)
 >
@@ -11,19 +11,20 @@ https://github.com/user-attachments/assets/8d9b4f55-6d97-42ff-bba4-ef36c5a64513
 
 ## The feature card is the center
 
-Most AI development tools organize work around repositories, issues, or chat sessions. md² organizes it around the feature being built.
+In a traditional coding workflow, the source code is the center: you open a project and instruct an AI agent to change it. md² shifts the focus to the work being requested—a feature description, bug report, or job. Source-code changes remain the output, but they are no longer the organizing center.
 
-Each feature, bug, or task is a Markdown card in your repository. Everything related to the work hangs off that card:
+Each request is stored as a Markdown card in your repository. Everything related to the work hangs off that card:
 
 - its Git worktree
 - the coding agent working on it
-- prompts and reusable actions
 - chat history
 - commits
 - design notes and documentation
 - token usage and cost
 
-The card becomes the shared context for both you and your agents. Instead of reconstructing a feature's history from editor windows, folders, and disconnected conversations, you can follow and manage it from one place. Because cards are ordinary local Markdown files, agents can read and update the same project knowledge directly.
+Reusable prompts and actions live at project level. They support the cards: run an action from a card and md² supplies that card's description and worktree context.
+
+The card becomes the shared context for both you and your agents. Instead of reconstructing the work and its history from editor windows, folders, and disconnected conversations, you can follow and manage it from one place. Because cards are ordinary local Markdown files, agents can read and update the same project knowledge directly.
 
 ## Works with
 
