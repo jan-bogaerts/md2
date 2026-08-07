@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
   - design/activity/card__db0d6a75-3aa8-49ef-b855-a0cd4253e25d.json#conversation=agent-ff4b6006-04c1-4bd3-aaa4-382a3177d7dd
+  - design/activity/card__db0d6a75-3aa8-49ef-b855-a0cd4253e25d.json#conversation=agent-60d8666d-bbdd-4062-a2ea-4b8e638118c3
 policy:
 branch: f_135_remove_custom_prompt_as_hardcoded_action
 worktree: 1
