@@ -3,7 +3,7 @@ author:
 id: F_153
 internalId: 05d5d49c-401f-42cd-b3cc-074e169631dd
 title: action part in approval required
-status: new
+status: design
 owner: 
 affects:
 agents:
