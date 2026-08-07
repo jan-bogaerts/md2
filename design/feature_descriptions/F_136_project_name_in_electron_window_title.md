@@ -8,7 +8,7 @@ owner:
 affects:
 agents:
 policy:
-after: db0d6a75-3aa8-49ef-b855-a0cd4253e25d
+after: edda4ba9-0e14-414b-8da7-aa252093661c
 ---
 
 Put the project name in the electron window title so that users can easily see which project is opened in which instance when hovering the mouse over the windows taskbar
