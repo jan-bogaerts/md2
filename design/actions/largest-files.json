@@ -4,7 +4,7 @@
   "description": "search for the largest files",
   "type": "agent",
   "phrases": [],
-  "prompt": "Describe what the agent should do.",
+  "prompt": "list the 5 largest files",
   "appliesTo": {
     "kind": "project"
   }
