@@ -40,14 +40,13 @@ export function ActionAgentPresetNameOwner(props: ActionAgentPresetNameOwnerProp
             interactionReady: !!run?.interactionReady,
             runDisabledMessage: settings.runDisabledMessage,
             runStatus,
-            saveDisabled: actionLabel.trim().length === 0 || sessionActive || !!settings.runDisabledMessage,
         }
-        if (actionPopupRunDisabled(
+        const saveDisabled = actionLabel.trim().length === 0 || sessionActive || !!settings.runDisabledMessage
+        if (saveDisabled || actionPopupRunDisabled(
             action,
             runState,
             promptDraft.getSnapshot(),
             promptDraft.getEditorSnapshot().preparationStatus,
-            true,
         )) return
 
         void saveAndRunPopupAction({

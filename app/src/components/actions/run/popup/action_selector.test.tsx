@@ -1,5 +1,5 @@
 import { ThemeProvider, type PaletteMode } from '@mui/material'
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ActionContext } from '../../../../data/action_context'
 import { BUILTIN_CUSTOM_PROMPT, type ActionDefinition } from '../../../../data/action_types'
@@ -23,11 +23,8 @@ function renderSelector(mode: PaletteMode) {
     render(
         <ThemeProvider theme={theme}>
             <ActionSelector
-                allowAdd
                 actions={actions}
-                adding={false}
                 context={context}
-                onAdd={vi.fn()}
                 onSelect={vi.fn()}
                 selectedAction={actions[0]}
             />
@@ -55,5 +52,27 @@ describe('ActionSelector', () => {
         expect(unselectedButton).toHaveStyle({ borderColor: theme.palette.warning.main })
         expect(within(selectedButton).getByTestId('HelpCircleOutlineIcon')).toBeInTheDocument()
         expect(within(selectedButton).queryByTestId('PlayIcon')).not.toBeInTheDocument()
+    })
+
+    it('renders custom prompt as one accessible plus action with an explanatory tooltip', async () => {
+        activeRuns.value = []
+        render(
+            <ThemeProvider theme={createAppTheme('light')}>
+                <ActionSelector
+                    actions={[BUILTIN_CUSTOM_PROMPT]}
+                    context={context}
+                    onSelect={vi.fn()}
+                    selectedAction={BUILTIN_CUSTOM_PROMPT}
+                />
+            </ThemeProvider>,
+        )
+        const actionGroup = within(screen.getByRole('group', { name: 'Actions' }))
+        const customPrompt = actionGroup.getByRole('button', { name: 'Custom prompt' })
+
+        expect(customPrompt).toHaveTextContent('+')
+        expect(actionGroup.getAllByRole('button')).toHaveLength(1)
+        expect(screen.queryByRole('button', { name: 'Add action' })).not.toBeInTheDocument()
+        fireEvent.mouseOver(customPrompt)
+        expect(await screen.findByRole('tooltip')).toHaveTextContent('Send a custom prompt to the agent.')
     })
 })

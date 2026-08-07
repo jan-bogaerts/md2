@@ -13,11 +13,9 @@ import type { ActionConversationStore } from '../../conversation/action_conversa
 import type { ActionHistoryStore } from '../state/action_history_store'
 import {
     cancelPopupAction,
-    convertPromptToAction,
     currentActionPromptDraft,
     finishPopupAction,
     runPopupAction,
-    saveAndRunPopupAction,
 } from './action_popup_operations'
 import { actionPopupRunDisabled } from './action_popup_run_disabled'
 import type { ActionRunInputStore } from '../state/action_run_input_store'
@@ -36,17 +34,15 @@ interface ActionPopupBottomRowProps {
     runValidationError: string | null
     scheduleStore: ActionScheduleStore
     settingsStore: ActionRunSettingsStore
-    showSaveControls: boolean
 }
 
 /** Run controls; subscribes only to run and prompt values used by this row. */
 export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
     const {
         action, assignmentContext, conversationStore, historyStore, inputStore, resultStore,
-        runValidationError, scheduleStore, settingsStore, showSaveControls,
+        runValidationError, scheduleStore, settingsStore,
     } = props
     const settings = useActionRunSettings(action, settingsStore)
-    const inputSnapshot = useSyncExternalStore(inputStore.subscribe, inputStore.getSnapshot, inputStore.getSnapshot)
     const runStatus = useActionRunSelector(action.id, assignmentContext, (run) => run?.status ?? 'idle')
     const agentActive = useActionRunSelector(action.id, assignmentContext, (run) => {
         const active = run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'
@@ -77,7 +73,6 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
     const orphanWaiting = !sessionActive && conversationSnapshot.selectedConversation?.status === 'waitingForInput'
     const showAgentSend = sessionActive ? agentActive : action.type === 'agent'
     const showCommandRun = !sessionActive && action.type === 'command'
-    const saveDisabled = inputSnapshot.actionLabel.trim().length === 0 || sessionActive || !!settings.runDisabledMessage
     const runState = {
         agentActive,
         hasApprovals,
@@ -85,14 +80,12 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
         interactionReady,
         runDisabledMessage: settings.runDisabledMessage,
         runStatus,
-        saveDisabled,
     }
     const runDisabled = actionPopupRunDisabled(
         action,
         runState,
         prompt,
         editorSnapshot.preparationStatus,
-        showSaveControls,
     )
     const operationInput = {
         action,
@@ -107,11 +100,7 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
     }
 
     const handlePrimaryRun = async () => {
-        if (showSaveControls) await saveAndRunPopupAction(operationInput)
-        else await runPopupAction(operationInput)
-    }
-    const handleSave = async () => {
-        await convertPromptToAction(operationInput)
+        await runPopupAction(operationInput)
     }
     const handleCancel = () => void cancelPopupAction(action, assignmentContext, conversationStore)
     const handleFinish = () => void finishPopupAction(action, assignmentContext, conversationStore)
@@ -148,9 +137,6 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
                         </IconButton>
                     </span>
                 </Tooltip>
-            ) : null}
-            {showSaveControls ? (
-                <Button disabled={saveDisabled} onClick={handleSave} size="small" variant="outlined">Save</Button>
             ) : null}
             <Button
                 disabled={sessionActive || !settings.backendAvailable}

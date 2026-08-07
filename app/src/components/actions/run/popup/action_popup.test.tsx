@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ActionContext } from '../../../../data/action_context'
 import type { ActionRunEvent } from '../../../../data/action_run_types'
-import type { ActionFile } from '../../../../data/action_types'
+import { CUSTOM_PROMPT_ACTION_ID, type ActionFile } from '../../../../data/action_types'
 import type { AgentConversation, ProjectReference, StorageService, WorktreeRecord } from '../../../../data/data_types'
 import { actionService } from '../../../../services/actions/action_service'
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
@@ -458,15 +458,50 @@ describe('ActionPopup', () => {
         expect(actionGroup.getByRole('button', { name: 'Second action' })).toHaveAttribute('aria-pressed', 'true')
     })
 
-    it('owns add mode internally and selects the custom prompt', async () => {
+    it('selects one custom-prompt plus without conversion controls', async () => {
+        renderPopup()
+        const dialog = within(screen.getByRole('dialog', { name: 'Run actions' }))
+        const actionGroup = within(dialog.getByRole('group', { name: 'Actions' }))
+        const customPrompt = actionGroup.getByRole('button', { name: 'Custom prompt' })
+
+        expect(customPrompt).toHaveTextContent('+')
+        expect(actionGroup.getAllByText('+')).toHaveLength(1)
+        expect(dialog.queryByRole('button', { name: 'Add action' })).not.toBeInTheDocument()
+        fireEvent.click(customPrompt)
+
+        expect(customPrompt).toHaveAttribute('aria-pressed', 'true')
+        expect(dialog.queryByLabelText('Preset name')).not.toBeInTheDocument()
+        expect(dialog.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument()
+    })
+
+    it.each(['Send button', 'Ctrl+Enter'])('runs custom prompt directly through %s', async (submission) => {
+        const startAction = vi.fn(async () => 'custom-run')
+        const saveProjectFile = vi.spyOn(dataService.cards, 'saveProjectFile')
+        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({
+            availability: { error: null, loading: false, values: { '': { available: true, error: null } } },
+            models: { error: null, loading: false, values: [] },
+            thinkingLevels: { error: null, loading: false, values: [] },
+        })
+        window.md2Actions = {
+            onActionRun: vi.fn(() => vi.fn()),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
+            startAction,
+        } as unknown as typeof window.md2Actions
         renderPopup()
         const dialog = within(screen.getByRole('dialog', { name: 'Run actions' }))
 
-        fireEvent.click(dialog.getByRole('button', { name: 'Add action' }))
+        fireEvent.click(dialog.getByRole('button', { name: 'Custom prompt' }))
+        const prompt = within(await dialog.findByLabelText('Prompt')).getByRole('textbox')
+        fireEvent.change(prompt, { target: { value: 'Explain this change' } })
+        await waitFor(() => expect(dialog.getByRole('button', { name: 'Send' })).toBeEnabled())
+        if (submission === 'Send button') fireEvent.click(dialog.getByRole('button', { name: 'Send' }))
+        else fireEvent.keyDown(prompt, { ctrlKey: true, key: 'Enter' })
 
-        expect(dialog.getByRole('button', { name: 'Custom prompt' })).toHaveAttribute('aria-pressed', 'true')
-        expect(await dialog.findByLabelText('Preset name')).toBeInTheDocument()
-        expect(dialog.getByRole('button', { name: 'Save' })).toBeDisabled()
+        await waitFor(() => expect(startAction).toHaveBeenCalledWith(expect.objectContaining({
+            actionId: CUSTOM_PROMPT_ACTION_ID,
+            runInput: expect.objectContaining({ prompt: 'Explain this change' }),
+        })))
+        expect(saveProjectFile).not.toHaveBeenCalled()
     })
 
     it('filters the internal action list by context', () => {

@@ -1,7 +1,5 @@
 import { useId, useMemo, useState } from 'react'
 import { displayActionsForContext, projectContextWithWorktree, type ActionContext } from '../../../../data/action_context'
-import { CUSTOM_PROMPT_ACTION_ID } from '../../../../data/action_types'
-import { dialogService } from '../../../../services/dialog_service'
 import { dataService } from '../../../../services/data/data_service'
 import { isReleasedCardActionContext, RELEASED_CARD_RUN_MESSAGE } from '../../../../../../shared/released_card_actions.mjs'
 import { useActions } from '../../../hooks/use_actions'
@@ -44,7 +42,6 @@ export function ActionPopup(props: ActionPopupProps) {
     )
     const actions = useMemo(() => displayActionsForContext(loadedActions, effectiveContext), [effectiveContext, loadedActions])
     const [selectedActionId, setSelectedActionId] = useState<string | null>(initialActionId ?? actions[0]?.id ?? null)
-    const [showSaveControls, setShowSaveControls] = useState(false)
     const [fullHeight, setFullHeight] = useState(false)
     const titleId = useId()
     // A run that edits its own card changes the context (state, title, worktree), so the
@@ -63,19 +60,6 @@ export function ActionPopup(props: ActionPopupProps) {
 
     const handleSelectAction = (actionId: string) => {
         setSelectedActionId(actionId)
-        setShowSaveControls(false)
-    }
-
-    const handleAddAction = () => {
-        try {
-            const customPrompt = actions.find(({ id }) => id === CUSTOM_PROMPT_ACTION_ID)
-            if (!customPrompt) throw new Error('Missing custom prompt action')
-
-            setSelectedActionId(customPrompt.id)
-            setShowSaveControls((current) => !current)
-        } catch (error) {
-            dialogService.error(error, { fallbackMessage: 'Custom action editor could not be opened' })
-        }
     }
 
     const handleToggleFullHeight = () => setFullHeight((current) => !current)
@@ -90,13 +74,11 @@ export function ActionPopup(props: ActionPopupProps) {
             assignmentContext={effectiveContext}
             baseContext={context}
             fullHeight={fullHeight}
-            onAddAction={handleAddAction}
             onSelectAction={handleSelectAction}
             onToggleFullHeight={handleToggleFullHeight}
             open={open ?? !!anchorElement}
             primaryPath={project?.rootPath ?? project?.id ?? null}
             readOnlyMessage={readOnlyMessage}
-            showSaveControls={showSaveControls}
             target={target}
             titleId={titleId}
         />

@@ -151,7 +151,7 @@ describe('CardRunButton', () => {
         const dialog = within(screen.getByRole('dialog'))
         const actionGroup = within(dialog.getByRole('group', { name: 'Actions' }))
         const actionButtons = actionGroup.getAllByRole('button')
-        expect(actionButtons.map((button) => button.textContent)).toEqual(['Create branch', 'Run lint', 'Implement', 'Custom prompt'])
+        expect(actionButtons.map((button) => button.textContent)).toEqual(['Create branch', 'Run lint', 'Implement', '+'])
         expect(dialog.getByRole('button', { name: 'Create branch' })).toHaveAttribute('aria-pressed', 'true')
 
         fireEvent.click(runButton)
@@ -505,15 +505,16 @@ describe('CardRunButton', () => {
         expect(actionGroup.getByRole('button', { name: 'Run lint' })).toBeInTheDocument()
     })
 
-    it('shows custom-action save controls from the Run popup', async () => {
+    it('opens custom prompt as a normal action without save controls', async () => {
         renderCardRunButton()
 
         fireEvent.click(screen.getByRole('button', { name: 'Run' }))
         const dialog = within(screen.getByRole('dialog'))
-        fireEvent.click(dialog.getByRole('button', { name: 'Add action' }))
+        fireEvent.click(dialog.getByRole('button', { name: 'Custom prompt' }))
 
         expect(await dialog.findByLabelText('Prompt')).toBeInTheDocument()
-        expect(dialog.getByLabelText('Preset name')).toHaveFocus()
+        expect(dialog.queryByLabelText('Preset name')).not.toBeInTheDocument()
+        expect(dialog.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument()
         expect(dialog.getByRole('button', { name: 'Send' })).toBeDisabled()
     })
 

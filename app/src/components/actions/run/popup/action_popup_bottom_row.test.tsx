@@ -71,7 +71,6 @@ function renderBottomRow(actionOverride = action, conversationStore = new Action
                 runValidationError={null}
                 scheduleStore={scheduleStore}
                 settingsStore={settingsStore}
-                showSaveControls={false}
             />
         </AppThemeProvider>,
     )
@@ -115,6 +114,7 @@ describe('ActionPopupBottomRow', () => {
         renderBottomRow()
         const send = screen.getByRole('button', { name: 'Send' })
         expect(send).toBeEnabled()
+        expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument()
 
         act(() => promptDraft.edit(''))
 

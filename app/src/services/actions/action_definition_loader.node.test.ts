@@ -114,7 +114,7 @@ describe('loadActionDefinitions', () => {
     it('always includes reserved built-in custom prompt action', () => {
         const builtin = loadActionDefinitions([]).find(({ id }) => id === CUSTOM_PROMPT_ACTION_ID)
 
-        expect(builtin).toMatchObject({ builtin: true, phrases: [], sourcePath: null, streaming: true, type: 'agent' })
+        expect(builtin).toMatchObject({ builtin: true, label: '+', phrases: [], sourcePath: null, streaming: true, type: 'agent' })
     })
 
     it.each([

@@ -8,7 +8,7 @@ import { useActionRunSelector } from '../../hooks/use_action_runs'
 import { ActionAgentPrompt } from './action_agent_prompt'
 import type { ActionConversationStore } from '../conversation/action_conversation_store'
 import type { ActionHistoryStore } from '../run/state/action_history_store'
-import { currentActionPromptDraft, runPopupAction, saveAndRunPopupAction } from '../run/popup/action_popup_operations'
+import { currentActionPromptDraft, runPopupAction } from '../run/popup/action_popup_operations'
 import { actionPopupRunDisabled } from '../run/popup/action_popup_run_disabled'
 import type { ActionRunInputStore } from '../run/state/action_run_input_store'
 import type { ActionRunResultStore } from '../run/state/action_run_result_store'
@@ -25,7 +25,6 @@ interface ActionAgentPromptOwnerProps {
     resultStore: ActionRunResultStore
     settingsStore: ActionRunSettingsStore
     runValidationError: string | null
-    showSaveControls: boolean
 }
 
 function selectSessionActive(run: ActionRun | null) {
@@ -34,10 +33,7 @@ function selectSessionActive(run: ActionRun | null) {
 
 /** Owns prompt draft binding, preparation, and keyboard-run behavior. */
 export function ActionAgentPromptOwner(props: ActionAgentPromptOwnerProps) {
-    const {
-        action, context, conversationStore, historyStore, inputStore, resultStore, runValidationError, settingsStore,
-        showSaveControls,
-    } = props
+    const { action, context, conversationStore, historyStore, inputStore, resultStore, runValidationError, settingsStore } = props
     const sessionActive = useActionRunSelector(action.id, context, selectSessionActive)
     const activeActionType = useActionRunSelector(action.id, context, (run) => run?.activeActionType ?? null)
     const hasApprovals = useActionRunSelector(action.id, context, (run) => !!run?.approvals.length)
@@ -67,7 +63,6 @@ export function ActionAgentPromptOwner(props: ActionAgentPromptOwnerProps) {
 
     const handleRunShortcut = () => {
         const prompt = promptDraft.getSnapshot()
-        const saveDisabled = inputSnapshot.actionLabel.trim().length === 0 || sessionActive || !!settings.runDisabledMessage
         const runState = {
             agentActive: sessionActive && activeActionType === 'agent',
             hasApprovals,
@@ -75,14 +70,12 @@ export function ActionAgentPromptOwner(props: ActionAgentPromptOwnerProps) {
             interactionReady,
             runDisabledMessage: settings.runDisabledMessage,
             runStatus,
-            saveDisabled,
         }
         if (actionPopupRunDisabled(
             action,
             runState,
             prompt,
             promptDraft.getEditorSnapshot().preparationStatus,
-            showSaveControls,
         )) return
 
         const operationInput = {
@@ -96,8 +89,7 @@ export function ActionAgentPromptOwner(props: ActionAgentPromptOwnerProps) {
             settings,
             settingsStore,
         }
-        if (showSaveControls) void saveAndRunPopupAction(operationInput)
-        else void runPopupAction(operationInput)
+        void runPopupAction(operationInput)
     }
 
     return (

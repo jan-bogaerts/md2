@@ -14,7 +14,6 @@ import { ResizablePopper } from '../../../resizable_popper'
 import type { WorktreeAssignmentTarget } from '../../../worktree_selector'
 import { ActionAgentApprovals } from '../../agent/action_agent_approvals'
 import { ActionAgentInteractionVisibility } from '../../agent/action_agent_interaction_visibility'
-import { ActionAgentPresetNameOwner } from '../../agent/action_agent_preset_name_owner'
 import { ActionAgentPromptOwner } from '../../agent/action_agent_prompt_owner'
 import { ActionAgentQuestionOwner } from '../../agent/action_agent_question_owner'
 import { ActionAgentSelectorsOwner } from '../../agent/action_agent_selectors_owner'
@@ -64,7 +63,6 @@ interface ActionPopupContentProps {
     baseContext: ActionContext
     draggable?: boolean
     fullHeight: boolean
-    onAddAction: () => void
     onActivate?: () => void
     onClose: () => void
     onSelectAction: (actionId: string) => void
@@ -73,7 +71,6 @@ interface ActionPopupContentProps {
     popupEntryId?: string
     primaryPath: string | null
     readOnlyMessage: string | null
-    showSaveControls: boolean
     stackPosition?: number
     target: string | null
     titleId: string
@@ -113,8 +110,8 @@ function worktreeAssignmentTarget(context: ActionContext): WorktreeAssignmentTar
 /** Presentation and run behavior for the internally selected popup action. */
 export function ActionPopupContent(props: ActionPopupContentProps) {
     const {
-        action, actions, anchorElement, assignmentContext, baseContext, draggable, fullHeight, onActivate, onAddAction,
-        onClose, onSelectAction, onToggleFullHeight, open, primaryPath, showSaveControls, stackPosition, target, titleId,
+        action, actions, anchorElement, assignmentContext, baseContext, draggable, fullHeight, onActivate,
+        onClose, onSelectAction, onToggleFullHeight, open, primaryPath, stackPosition, target, titleId,
         popupEntryId, readOnlyMessage,
     } = props
     const theme = useTheme()
@@ -240,11 +237,8 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                         </IconButton>
                     </Box>
                     <ActionSelector
-                        adding={showSaveControls}
-                        allowAdd={!readOnlyMessage}
                         actions={actions}
                         context={assignmentContext}
-                        onAdd={onAddAction}
                         onSelect={onSelectAction}
                         selectedAction={action}
                     />
@@ -265,18 +259,6 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                     <Stack data-testid="action-popup-scroll-body" spacing={2} sx={{ flex: 1, minHeight: 0, overflow: 'auto', px: 1.5, py: 1 }}>
                         <ActionAgentInteractionVisibility action={action} context={assignmentContext}>
                             <Stack spacing={1} sx={{ flex: 1, minHeight: 0 }}>
-                                {showSaveControls ? (
-                                    <ActionAgentPresetNameOwner
-                                        action={action}
-                                        context={assignmentContext}
-                                        conversationStore={conversationStore}
-                                        historyStore={historyStore}
-                                        inputStore={inputStore}
-                                        settingsStore={settingsStore}
-                                        resultStore={resultStore}
-                                        runValidationError={runValidationError}
-                                    />
-                                ) : null}
                                 <Box sx={{ alignItems: 'center', color: 'text.secondary', display: 'flex', flexWrap: 'wrap', fontSize: 12, gap: 0.75 }}>
                                     {action.type === 'agent' ? (
                                         <ActionAgentSelectorsOwner
@@ -302,7 +284,6 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                                     settingsStore={settingsStore}
                                     resultStore={resultStore}
                                     runValidationError={runValidationError}
-                                    showSaveControls={showSaveControls}
                                 />
                                 <ActionAgentApprovals actionId={action.id} context={assignmentContext} />
                                 <ActionAgentQuestionOwner actionId={action.id} context={assignmentContext} />
@@ -332,7 +313,6 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                         resultStore={resultStore}
                         runValidationError={runValidationError}
                         scheduleStore={scheduleStore}
-                        showSaveControls={showSaveControls}
                     />
                 </>}
             </MarkdownTypeaheadLayerProvider>

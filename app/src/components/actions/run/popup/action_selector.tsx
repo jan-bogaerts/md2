@@ -1,28 +1,24 @@
-import { Box, IconButton, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material'
+import { Box, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material'
 import Circle from 'mdi-material-ui/Circle'
 import HelpCircleOutline from 'mdi-material-ui/HelpCircleOutline'
 import Play from 'mdi-material-ui/Play'
-import Plus from 'mdi-material-ui/Plus'
 import type { MouseEvent } from 'react'
 import type { ActionContext } from '../../../../data/action_context'
 import type { ActionRunStatus } from '../../../../data/action_run_types'
-import type { ActionDefinition } from '../../../../data/action_types'
+import { CUSTOM_PROMPT_ACTION_ID, type ActionDefinition } from '../../../../data/action_types'
 import { useActiveActionRunsForContext } from '../../../hooks/use_action_runs'
 import { useCardActionUnseenResults } from '../../../hooks/use_card_action_unseen_results'
 
 interface ActionSelectorProps {
-    allowAdd: boolean
-    adding: boolean
     actions: ActionDefinition[]
     context: ActionContext
-    onAdd: () => void
     onSelect: (actionId: string) => void
     selectedAction: ActionDefinition
 }
 
 /** Horizontally scrollable, mutually exclusive action selector used by the card Run popup. */
 export function ActionSelector(props: ActionSelectorProps) {
-    const { adding, allowAdd, actions, context, onAdd, onSelect, selectedAction } = props
+    const { actions, context, onSelect, selectedAction } = props
     const activeRuns = useActiveActionRunsForContext(context)
     const unseenResultConversations = useCardActionUnseenResults(actions.map(({ id }) => id), context)
     const activeActionStatuses: Record<string, ActionRunStatus> = {}
@@ -73,6 +69,7 @@ export function ActionSelector(props: ActionSelectorProps) {
                         const isWaiting = activeActionStatuses[action.id] === 'waitingForInput'
                         const isRunning = activeActionStatuses[action.id] === 'running'
                         const hasUnseenResult = unseenResultConversations.some(({ actionId }) => actionId === action.id)
+                        const accessibleLabel = action.id === CUSTOM_PROMPT_ACTION_ID ? 'Custom prompt' : action.label
                         const stateDescription = isQueued
                             ? 'Action is queued'
                             : isWaiting
@@ -90,7 +87,7 @@ export function ActionSelector(props: ActionSelectorProps) {
                                 title={isQueued ? stateDescription : isWaiting ? stateDescription : action.description}
                             >
                                 <ToggleButton
-                                    aria-label={stateDescription ? `${action.label} — ${stateDescription}` : action.label}
+                                    aria-label={stateDescription ? `${accessibleLabel} — ${stateDescription}` : accessibleLabel}
                                     sx={(theme) => ({
                                         overflow: 'hidden',
                                         position: 'relative',
@@ -144,24 +141,6 @@ export function ActionSelector(props: ActionSelectorProps) {
                     })}
                 </ToggleButtonGroup>
             </Box>
-            {allowAdd ? <Tooltip title="Add action">
-                <IconButton
-                    aria-label="Add action"
-                    onClick={onAdd}
-                    size="small"
-                    sx={{
-                        bgcolor: adding ? 'action.selected' : 'background.paper',
-                        border: 1,
-                        borderColor: adding ? 'primary.main' : 'divider',
-                        color: adding ? 'primary.main' : 'text.secondary',
-                        height: 28,
-                        width: 28,
-                        '&:hover': { bgcolor: 'action.selected', borderColor: 'primary.main', color: 'primary.main' },
-                    }}
-                >
-                    <Plus sx={{ fontSize: 18 }} />
-                </IconButton>
-            </Tooltip> : null}
         </Box>
     )
 }

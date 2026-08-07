@@ -8,7 +8,6 @@ interface ActionPopupRunState {
     interactionReady: boolean
     runDisabledMessage: string | null
     runStatus: string
-    saveDisabled: boolean
 }
 
 /** Applies popup run readiness rules to the current live prompt. */
@@ -17,7 +16,6 @@ export function actionPopupRunDisabled(
     runState: ActionPopupRunState,
     prompt: string,
     preparationStatus: ActionPromptPreparationStatus,
-    showSaveControls: boolean,
 ) {
     const sessionActive = runState.runStatus === 'queued'
         || runState.runStatus === 'running'
@@ -33,5 +31,4 @@ export function actionPopupRunDisabled(
             || runState.hasQuestion
         ))
         || (sessionActive && !runState.agentActive)
-        || (showSaveControls && runState.saveDisabled)
 }

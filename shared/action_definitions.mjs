@@ -78,7 +78,7 @@ export const BUILTIN_CUSTOM_PROMPT = {
     description: 'Send a custom prompt to the agent.',
     icon: null,
     id: CUSTOM_PROMPT_ACTION_ID,
-    label: 'Custom prompt',
+    label: '+',
     model: null,
     needsWorkTree: false,
     on: [],

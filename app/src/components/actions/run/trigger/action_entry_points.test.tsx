@@ -62,7 +62,7 @@ describe('ActionEntryPoints filtering', () => {
         render(<ActionEntryPoints context={cardContext(featureCard, DEFAULT_CARD_TYPES)} variant="icons" />)
 
         expect(screen.getByRole('button', { name: 'Implement' })).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'Custom prompt' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: '+' })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: 'Fix' })).not.toBeInTheDocument()
     })
 
@@ -109,7 +109,7 @@ describe('ActionEntryPoints filtering', () => {
     it('offers the custom prompt action in every context', () => {
         render(<MenuList><ActionEntryPoints context={folderContext('history', true)} variant="menuItems" /></MenuList>)
 
-        expect(screen.getByRole('menuitem', { name: 'Custom prompt' })).toBeInTheDocument()
+        expect(screen.getByRole('menuitem', { name: '+' })).toBeInTheDocument()
     })
 
     it('can restrict entry points to actions explicitly scoped to the context kind', () => {
@@ -122,7 +122,7 @@ describe('ActionEntryPoints filtering', () => {
 
         expect(screen.getByRole('button', { name: 'Project action' })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: 'Generic' })).not.toBeInTheDocument()
-        expect(screen.queryByRole('button', { name: 'Custom prompt' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: '+' })).not.toBeInTheDocument()
     })
 
     it.each(['completed', 'failed', 'cancelled', 'okButNotAfter'] as const)(
