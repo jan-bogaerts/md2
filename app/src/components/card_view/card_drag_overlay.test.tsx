@@ -1,12 +1,12 @@
 import { render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { DEFAULT_CARD_TYPES, type ProjectCard } from '../../data/data_types'
+import { DEFAULT_CARD_TYPES, type Card } from '../../data/data_types'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { CardDragOverlay } from './card_drag_overlay'
 import { dataService } from '../../services/data/data_service'
 import { cardDragDropService } from './card_drag_drop_service'
 
-const card: ProjectCard = {
+const card: Card = {
     agentConversationErrors: [],
     agentConversations: [],
     content: '# First',
@@ -14,7 +14,7 @@ const card: ProjectCard = {
         affects: [], after: null, agentLogReferences: [], author: null, id: 'F-1', internalId: 'one', owner: 'JB',
         policy: {}, status: 'todo', title: 'First card',
     },
-    headerFields: {},
+    hasFrontmatter:true,
     isActive: true,
     path: 'design/F-1.md',
 }

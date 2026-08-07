@@ -3,6 +3,7 @@ const DEFAULT_DESKTOP_ACCESS_LEVEL = 'workspace-write';
 const DEFAULT_DESKTOP_APPROVAL_POLICY = 'on-request';
 const DEFAULT_DESKTOP_MODEL = '';
 const DEFAULT_CODEX_SEARCH_ENABLED = true;
+const DEFAULT_EDITOR_COMMAND = 'code -g "{{file}}:{{line}}"';
 const DESKTOP_CONFIG_STORE_KEY = 'desktopConfig';
 const { BUILTIN_AGENT_PROFILES, normalizeAgentProfiles } = require('../actions/agent/agent_profiles.mjs');
 
@@ -45,6 +46,7 @@ function resolveDesktopConfig(env = process.env) {
         agentProfiles,
         approvalPolicy: DEFAULT_DESKTOP_APPROVAL_POLICY,
         codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
+        editorCommand: DEFAULT_EDITOR_COMMAND,
         ...(bridgeAllowedOrigins ? { bridgeAllowedOrigins } : {}),
         model: DEFAULT_DESKTOP_MODEL,
     };
@@ -123,6 +125,7 @@ module.exports = {
     DEFAULT_DESKTOP_APPROVAL_POLICY,
     DEFAULT_DESKTOP_MODEL,
     DEFAULT_CODEX_SEARCH_ENABLED,
+    DEFAULT_EDITOR_COMMAND,
     DESKTOP_CONFIG_STORE_KEY,
     readDesktopConfig,
     resolveBridgeAllowedOrigins,

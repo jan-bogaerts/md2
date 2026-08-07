@@ -17,8 +17,8 @@ import { telemetryService } from '../telemetry/telemetry_service'
 import { createRandomProjectBackgroundShade } from '../../theme/project_background_shade'
 import { worktreeService } from './worktree_service'
 import { planCardSeparatorMigration } from '../data/card_separator_migration'
-import { globalProgressService } from '.././global_progress_service'
-import { dialogService } from '.././dialog_service'
+import { globalProgressService } from '../global_progress_service'
+import { dialogService } from '../dialog_service'
 import { GithubUnauthorizedError } from '../../auth/github_api_client'
 import { createDefaultActionFiles } from '../../project_template/project_template'
 import { openFilesService } from '../open_files_service'
@@ -114,7 +114,9 @@ export interface ProjectLoadingDeps {
     ensureCardInternalIds(): Promise<void>
     files(): MarkdownFile[]
     flushPendingChanges(): Promise<void>
+    isCommittedContent(path: string, content: string): boolean
     isCurrentLoad(project: ProjectReference, projectLoadToken: number): boolean
+    mergeBackgroundProjectFiles(files: MarkdownFile[], workingFolder: string, repositoryFiles: string[]): void
     project(): ProjectReference | null
     replaceFiles(files: MarkdownFile[], workingFolder: string): void
     replaceProject(project: ProjectReference | null): void
@@ -535,7 +537,7 @@ export class ProjectLoading {
         if (!projectFilesLoaded && repositoryFilesResult.status === 'rejected') return
         if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
 
-        this.dependencies.replaceProjectFiles(nextFiles, workingFolder, repositoryFiles)
+        this.dependencies.mergeBackgroundProjectFiles(nextFiles, workingFolder, repositoryFiles)
         await this.dependencies.ensureCardInternalIds()
         this.dependencies.dispatchChanged()
         const currentSnapshot = this.dependencies.snapshot()
@@ -656,6 +658,10 @@ export class ProjectLoading {
 
         for (const event of events) {
             if (this.dependencies.commitPathsInFlight().has(event.path)) continue
+            const loadedFile = event.changeKind === 'removed' ? null : await this.loadWatchedMarkdownFile(event)
+            // The watcher reports our own commits after the in-flight window has closed; the
+            // stored commit hash recognizes those echoes so they never count as external edits.
+            if (loadedFile && this.dependencies.isCommittedContent(loadedFile.path, loadedFile.content)) continue
             const dirtyOpenDocument = openFilesService.getRegisteredDocuments().some((document) => (
                 document.kind === 'card' && document.path === event.path && document.dirty
             ))
@@ -669,7 +675,6 @@ export class ProjectLoading {
                 continue
             }
 
-            const loadedFile = await this.loadWatchedMarkdownFile(event)
             if (!loadedFile) {
                 if (event.changeKind === 'unknown') removedPaths.push(event.path)
                 continue

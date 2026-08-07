@@ -64,6 +64,7 @@ export function conversation(path = 'design/activity/card__root-card.json#conver
         startedAt: '2026-01-01T00:00:00.000Z',
         status: 'completed',
         title: 'Agent run',
+        viewed: true,
     }
 }
 
@@ -115,7 +116,7 @@ export function createStorage(overrides: Partial<StorageService> = {}): StorageS
         loadAgentConversation: vi.fn(async (_project, path) => conversation(path)),
         loadProject: vi.fn(async () => ({ files: storageFiles, workingFolder: 'design' })),
         loadProjectRoot: vi.fn(async () => ({ files: storageFiles, workingFolder: 'design' })),
-        loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, projectFolder: '', workingFolder: 'design' })),
+        loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, projectFolder: '', pushMode: 'auto' as const, workingFolder: 'design' })),
         moveFiles: vi.fn(),
         push: vi.fn(),
         saveProjectConfig: vi.fn(),

@@ -23,8 +23,37 @@ describe('parseAgentConversationLog', () => {
 
         expect(conversation.path).toBe('.md2-agent-logs/one.json')
         expect(conversation.hasExplicitTitle).toBe(true)
+        expect(conversation.viewed).toBe(true)
         expect(conversation.entries[0]).toMatchObject({ content: 'hello', kind: 'message' })
         expect(conversation.providerSessions[0].conversationId).toBe('session-1')
+    })
+
+    it.each([
+        [undefined, true],
+        [true, true],
+        [false, false],
+    ])('normalizes persisted viewed value %j', (viewed, expected) => {
+        const source = {
+            completedAt: null,
+            entries: [],
+            id: 'agent-1',
+            startedAt: '2026-01-01T00:00:00.000Z',
+            status: 'completed',
+            ...(viewed === undefined ? {} : { viewed }),
+        }
+
+        expect(parseAgentConversationLog(JSON.stringify(source), 'design/logs/one.json').viewed).toBe(expected)
+    })
+
+    it.each([null, 1, 'true', {}])('rejects invalid persisted viewed value %j', (viewed) => {
+        expect(() => parseAgentConversationLog(JSON.stringify({
+            completedAt: null,
+            entries: [],
+            id: 'agent-1',
+            startedAt: '2026-01-01T00:00:00.000Z',
+            status: 'completed',
+            viewed,
+        }), 'design/logs/one.json')).toThrow('Malformed agent conversation: invalid viewed')
     })
 
     it('preserves whether a title was explicit while retaining the id fallback', () => {
@@ -115,6 +144,82 @@ describe('parseAgentConversationLog', () => {
             summary: ['summary'],
             workingDirectory: 'C:\\repo',
         })
+    })
+
+    it('groups persisted consecutive diagnostics while preserving boundaries and first identity', () => {
+        const timestamp = '2026-01-01T00:00:00.000Z'
+        const conversation = parseAgentConversationLog(JSON.stringify({
+            completedAt: timestamp,
+            entries: [
+                {
+                    content: 'item/started: futureTool (future-1)', id: 'diagnostic-1', kind: 'event',
+                    label: 'Codex protocol diagnostic', providerItemId: 'diagnostic:future-1:1', sequence: 1,
+                    status: 'completed', timestamp, type: 'diagnostic',
+                },
+                {
+                    content: 'item/completed: futureTool (future-1)', id: 'diagnostic-2', kind: 'event',
+                    payload: { secret: 'not persisted' }, providerItemId: 'diagnostic:future-1:2', sequence: 2,
+                    timestamp, type: 'diagnostic',
+                },
+                {
+                    content: 'Search', id: 'search-1', kind: 'event', providerItemId: 'search-1', sequence: 3,
+                    timestamp, type: 'webSearch',
+                },
+                {
+                    content: 'already grouped line one\nalready grouped line two', id: 'diagnostic-3', kind: 'event',
+                    providerItemId: 'diagnostic:future-2:3', sequence: 4, timestamp, type: 'diagnostic',
+                },
+                { content: 'Answer', id: 'message-1', kind: 'message', role: 'assistant', sequence: 5, timestamp },
+                {
+                    content: 'item/started: futureTool (future-3)', id: 'diagnostic-4', kind: 'event',
+                    providerItemId: 'diagnostic:future-3:4', sequence: 6, timestamp, type: 'diagnostic',
+                },
+            ],
+            id: 'agent-1',
+            startedAt: timestamp,
+            status: 'completed',
+        }), 'design/logs/diagnostics.json')
+
+        expect(conversation.entries).toHaveLength(5)
+        expect(conversation.entries[0]).toMatchObject({
+            content: 'item/started: futureTool (future-1)\nitem/completed: futureTool (future-1)',
+            id: 'diagnostic-1',
+            providerItemId: 'diagnostic:future-1:1',
+            sequence: 1,
+        })
+        expect(conversation.entries.map(({ id }) => id)).toEqual([
+            'diagnostic-1', 'search-1', 'diagnostic-3', 'message-1', 'diagnostic-4',
+        ])
+        expect(conversation.entries[2]).toMatchObject({ content: 'already grouped line one\nalready grouped line two' })
+        expect(JSON.stringify(conversation.entries)).not.toContain('not persisted')
+    })
+
+    it('removes legacy runner lifecycle and stderr entries while preserving provider events', () => {
+        const timestamp = '2026-01-01T00:00:00.000Z'
+        const conversation = parseAgentConversationLog(JSON.stringify({
+            completedAt: timestamp,
+            entries: [
+                { content: 'codex app-server --stdio', id: 'started-1', kind: 'event', sequence: 1, timestamp, type: 'started' },
+                {
+                    content: 'modified: design/F-1.md', id: 'file-1', kind: 'event', label: 'File changes',
+                    providerItemId: 'file-1', sequence: 2, status: 'completed', timestamp, type: 'fileChange',
+                },
+                { content: 'internal runtime output', id: 'error-1', kind: 'event', sequence: 3, timestamp, type: 'error' },
+                { content: '', id: 'turn-1', kind: 'event', sequence: 4, timestamp, type: 'turnCompleted' },
+                { content: '0', id: 'closed-1', kind: 'event', sequence: 5, timestamp, type: 'closed' },
+            ],
+            id: 'agent-1',
+            startedAt: timestamp,
+            status: 'completed',
+        }), 'design/logs/legacy-runner-events.json')
+
+        expect(conversation.entries).toEqual([expect.objectContaining({
+            content: 'modified: design/F-1.md',
+            id: 'file-1',
+            label: 'File changes',
+            status: 'completed',
+            type: 'fileChange',
+        })])
     })
 
     it('fails malformed logs with missing required data', () => {

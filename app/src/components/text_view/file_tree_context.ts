@@ -1,11 +1,11 @@
 import { createContext, useContext } from 'react'
-import type { CardTypeConfig, ProjectCard } from '../../data/data_types'
+import type { CardTypeConfig, Card } from '../../data/data_types'
 import { useDialogError } from '../hooks/use_dialog_error'
 import type { CreateTreeItemKind } from './create_tree_item_dialog'
 
 export interface FileTreeContextValue {
     cardTypes: CardTypeConfig[]
-    cardsByPath: Map<string, ProjectCard>
+    cardsByPath: Map<string, Card>
     onDeleteFile: (path: string) => Promise<void>
     onDeleteFolder: (path: string) => Promise<void>
     onRequestCreate: (kind: CreateTreeItemKind, parentDirectory: string) => void

@@ -1,15 +1,14 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { ProjectCard } from '../../data/data_types'
+import type { Card } from '../../data/data_types'
 import { dataService } from '../../services/data/data_service'
 import { AffectsEditorDialog } from './affects_editor_dialog'
 import { filterAffectsSuggestions } from './affects_suggestions'
 
-function card(): ProjectCard {
+function card(): Card {
     return {
         agentConversationErrors: [],
         agentConversations: [],
-        headerFields: {},
         content: '# Root',
         header: {
             affects: ['app/src/old.ts'],
@@ -23,6 +22,7 @@ function card(): ProjectCard {
             status: 'todo',
             title: 'Root',
         },
+        hasFrontmatter:true,
         isActive: true,
         path: 'design/F-1-root.md',
     }

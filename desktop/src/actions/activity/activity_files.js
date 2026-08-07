@@ -2,7 +2,13 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const { createActivityFile, findActivityConversation, parseActivityFile } = require('../../../../shared/card_activity.mjs');
+const {
+    LEGACY_ACTIVITY_VERSION,
+    createActivityFile,
+    findActivityConversation,
+    migrateActivityValue,
+    parseActivityValue,
+} = require('../../../../shared/card_activity.mjs');
 const {
     activityFilePath,
     conversationActivityReference,
@@ -19,6 +25,7 @@ const {
 } = require('../../git/git_commands');
 
 const activityWriteQueues = new Map();
+const unwrittenActivityValues = new Map();
 const VISIBILITY_CHECK_CONCURRENCY = 8;
 
 function requireProjectFolder(value) {
@@ -40,17 +47,51 @@ function resolveActivityPath(rootPath, projectFolder, origin) {
     };
 }
 
-async function readActivityFile(filePath, origin) {
-    if (!await pathExists(filePath)) return createActivityFile(origin);
+async function readStoredActivity(filePath, origin) {
+    const unwritten = unwrittenActivityValues.get(filePath);
+    if (unwritten) return { legacy: false, value: unwritten };
+    if (!await pathExists(filePath)) return { legacy: false, value: null };
+    const value = JSON.parse(await fs.promises.readFile(filePath, 'utf8'));
+    if (value.version !== LEGACY_ACTIVITY_VERSION) return { legacy: false, value };
 
-    return parseActivityFile(await fs.promises.readFile(filePath, 'utf8'), origin);
+    return { legacy: true, value: migrateActivityValue(value, origin) };
+}
+
+function activityValue(stored, origin) {
+    return stored.value === null ? createActivityFile(origin) : parseActivityValue(stored.value, origin);
+}
+
+async function loadActivityValue(filePath, origin) {
+    return activityValue(await readStoredActivity(filePath, origin), origin);
+}
+
+async function readActivityFile(filePath, origin) {
+    const stored = await readStoredActivity(filePath, origin);
+    if (!stored.legacy) return activityValue(stored, origin);
+
+    return queueActivityUpdate(filePath, async () => {
+        const current = await readStoredActivity(filePath, origin);
+        const activity = activityValue(current, origin);
+        if (current.legacy) await writeActivityFile(filePath, activity);
+
+        return activity;
+    });
 }
 
 async function writeActivityFile(filePath, activity) {
     const temporaryPath = `${filePath}.${crypto.randomUUID()}.tmp`;
     await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
-    await fs.promises.writeFile(temporaryPath, `${JSON.stringify(activity, null, 2)}\n`);
-    await fs.promises.rename(temporaryPath, filePath);
+    try {
+        await fs.promises.writeFile(temporaryPath, `${JSON.stringify(activity, null, 2)}\n`);
+        await fs.promises.rename(temporaryPath, filePath);
+        unwrittenActivityValues.delete(filePath);
+    } catch (error) {
+        unwrittenActivityValues.set(filePath, activity);
+
+        throw error;
+    } finally {
+        await fs.promises.rm(temporaryPath, { force: true });
+    }
 }
 
 function queueActivityUpdate(filePath, update) {
@@ -70,7 +111,7 @@ async function updateActivity(project, projectFolder, origin, update) {
     await assertGitRoot(rootPath);
     const { absolutePath, relativePath } = resolveActivityPath(rootPath, projectFolder, origin);
     const activity = await queueActivityUpdate(absolutePath, async () => {
-        const current = await readActivityFile(absolutePath, origin);
+        const current = await loadActivityValue(absolutePath, origin);
         const next = update(current);
         await writeActivityFile(absolutePath, next);
 
@@ -80,13 +121,26 @@ async function updateActivity(project, projectFolder, origin, update) {
     return { activity, relativePath };
 }
 
+async function ensureActivityFile(project, projectFolder, origin) {
+    const rootPath = requireRootPath(project);
+    await assertGitRoot(rootPath);
+    const { absolutePath, relativePath } = resolveActivityPath(rootPath, projectFolder, origin);
+    await queueActivityUpdate(absolutePath, async () => {
+        if (await pathExists(absolutePath)) return;
+
+        await writeActivityFile(absolutePath, createActivityFile(origin));
+    });
+
+    return relativePath;
+}
+
 async function updateAndCommitActivity(project, projectFolder, origin, update, message) {
     const rootPath = requireRootPath(project);
     await assertGitRoot(rootPath);
     const { absolutePath, relativePath } = resolveActivityPath(rootPath, projectFolder, origin);
 
     return queueActivityUpdate(absolutePath, async () => {
-        const current = await readActivityFile(absolutePath, origin);
+        const current = await loadActivityValue(absolutePath, origin);
         const next = update(current);
         await writeActivityFile(absolutePath, next);
         const commit = await commitTrackedPaths(rootPath, [relativePath], message);
@@ -117,12 +171,15 @@ async function appendAndCommitSystemActivity(project, projectFolder, origin, rec
 }
 
 function upsertConversation(activity, conversation) {
+    if (typeof conversation.viewed !== 'boolean') throw new Error('Missing agent conversation viewed');
     const storedConversation = Object.fromEntries(Object.entries(conversation).filter(([fieldName]) => fieldName !== 'path'));
 
     return {
         ...activity,
         conversations: activity.conversations.some(({ id }) => id === storedConversation.id)
-            ? activity.conversations.map((current) => (current.id === storedConversation.id ? storedConversation : current))
+            ? activity.conversations.map((current) => (
+                current.id === storedConversation.id ? { ...storedConversation, viewed: current.viewed } : current
+            ))
             : [...activity.conversations, storedConversation],
     };
 }
@@ -141,15 +198,76 @@ async function upsertAndCommitActivityConversation(project, projectFolder, origi
     );
 }
 
+async function updateActivityConversationViewed(project, reference, viewed) {
+    if (typeof reference !== 'string' || reference.length === 0) throw new Error('Missing agent conversation reference');
+    if (typeof viewed !== 'boolean') throw new Error('Invalid agent conversation viewed');
+
+    const rootPath = requireRootPath(project);
+    await assertGitRoot(rootPath);
+    const { activityPath, conversationId } = parseConversationActivityReference(reference);
+    const absolutePath = ensureInsideRoot(rootPath, path.join(rootPath, activityPath));
+
+    return queueActivityUpdate(absolutePath, async () => {
+        const stored = await readStoredActivity(absolutePath);
+        const activity = activityValue(stored);
+        const conversation = findActivityConversation(activity, conversationId);
+        const updatedConversation = { ...conversation, viewed };
+        const storedActivity = stored.value;
+        const updatedActivity = {
+            ...storedActivity,
+            conversations: storedActivity.conversations.map((current) => (
+                current.id === conversationId ? { ...current, viewed } : current
+            )),
+        };
+        await writeActivityFile(absolutePath, updatedActivity);
+
+        return { ...updatedConversation, path: reference };
+    });
+}
+
 async function loadActivityConversation(project, reference) {
     const rootPath = requireRootPath(project);
     await assertGitRoot(rootPath);
     const { activityPath, conversationId } = parseConversationActivityReference(reference);
     const absolutePath = ensureInsideRoot(rootPath, path.join(rootPath, activityPath));
-    const activity = parseActivityFile(await fs.promises.readFile(absolutePath, 'utf8'));
+    const activity = await readActivityFile(absolutePath);
     const conversation = findActivityConversation(activity, conversationId);
 
     return { ...conversation, path: reference };
+}
+
+async function closeWaitingActivityConversation(project, reference, status) {
+    if (typeof reference !== 'string' || reference.length === 0) throw new Error('Missing agent conversation reference');
+    if (status !== 'completed' && status !== 'cancelled') throw new Error(`Invalid waiting conversation terminal status: ${status}`);
+
+    const rootPath = requireRootPath(project);
+    await assertGitRoot(rootPath);
+    const { activityPath, conversationId } = parseConversationActivityReference(reference);
+    const absolutePath = ensureInsideRoot(rootPath, path.join(rootPath, activityPath));
+
+    return queueActivityUpdate(absolutePath, async () => {
+        const stored = await readStoredActivity(absolutePath);
+        const activity = activityValue(stored);
+        const conversation = findActivityConversation(activity, conversationId);
+        if (conversation.status !== 'waitingForInput') {
+            throw new Error(`Agent conversation is no longer waiting for input: ${reference}`);
+        }
+
+        const completedAt = new Date().toISOString();
+        const storedActivity = stored.value;
+        const updatedActivity = {
+            ...storedActivity,
+            conversations: storedActivity.conversations.map((storedConversation) => (
+                storedConversation.id === conversationId
+                    ? { ...storedConversation, completedAt, status, viewed: conversation.viewed }
+                    : storedConversation
+            )),
+        };
+        await writeActivityFile(absolutePath, updatedActivity);
+        const updatedConversation = findActivityConversation(parseActivityValue(updatedActivity), conversationId);
+
+        return { ...updatedConversation, path: reference };
+    });
 }
 
 async function listAgentConversationReferences(project, projectFolder) {
@@ -224,6 +342,8 @@ module.exports = {
     appendAndCommitActionActivity,
     appendAndCommitSystemActivity,
     appendActionActivity,
+    closeWaitingActivityConversation,
+    ensureActivityFile,
     listAgentConversationReferences,
     loadCardActivity,
     loadActivityConversation,
@@ -231,4 +351,5 @@ module.exports = {
     resolveActivityPath,
     upsertAndCommitActivityConversation,
     upsertActivityConversation,
+    updateActivityConversationViewed,
 };

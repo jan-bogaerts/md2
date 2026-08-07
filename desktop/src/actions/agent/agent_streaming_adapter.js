@@ -1,5 +1,5 @@
 const { normalizeAgentTokenUsage } = require('../../../../shared/agent_usage_math.mjs');
-const { claudeAssistantText, claudeChangedPaths, claudeTranscriptEvents, claudeUsage } = require('./agent_claude_events');
+const { ClaudeStreamingAdapter } = require('./agent_claude_streaming_adapter');
 const { codexChangedPaths } = require('./agent_codex_events');
 const { diagnosticEvent, normalizeCodexEvent, systemEvent } = require('./agent_codex_event');
 const { isMissingSession } = require('./agent_provider_protocol');
@@ -13,133 +13,12 @@ const CODEX_APPROVAL_METHODS = new Map([
 ]);
 const CODEX_COMMAND_APPROVAL_DECISIONS = ['accept', 'acceptForSession', 'decline', 'cancel'];
 const CODEX_FILE_APPROVAL_DECISIONS = ['accept', 'acceptForSession', 'decline', 'cancel'];
-const CLAUDE_QUESTION_TOOL = 'AskUserQuestion';
 const CODEX_NON_EVENT_ITEM_TYPES = new Set(['agentMessage', 'hookPrompt', 'userMessage']);
 
 function requireMessage(content) {
     if (typeof content !== 'string' || content.trim().length === 0) throw new Error('Streaming agent message is required');
 
     return content;
-}
-
-function claudeUserMessage(content) {
-    return { message: { content, role: 'user' }, type: 'user' };
-}
-
-function claudeQuestionRequest(event) {
-    if (event.type !== 'control_request' || event.request?.subtype !== 'can_use_tool') return null;
-    if (event.request.tool_name !== CLAUDE_QUESTION_TOOL || !Array.isArray(event.request.input?.questions)) return null;
-
-    const questions = event.request.input.questions.map((question, index) => ({
-        ...question,
-        id: question.id ?? `claude-question-${index}`,
-    }));
-
-    return {
-        input: event.request.input,
-        questions,
-        requestId: event.request_id,
-        toolUseId: event.request.tool_use_id,
-    };
-}
-
-function claudeControlResponse(requestId, response) {
-    return {
-        response: { request_id: requestId, response, subtype: 'success' },
-        type: 'control_response',
-    };
-}
-
-function isClaudeMissingSessionResult(event, providerConversationId) {
-    if (!providerConversationId || event.type !== 'result' || event.is_error !== true) return false;
-    if (event.session_id !== providerConversationId || !Array.isArray(event.errors)) return false;
-
-    return event.errors.includes(`No conversation found with session ID: ${providerConversationId}`);
-}
-
-class ClaudeStreamingAdapter {
-    constructor(writeLine, onEvent, rootPath, providerConversationId) {
-        this.writeLine = writeLine;
-        this.onEvent = onEvent;
-        this.pendingQuestions = new Map();
-        this.providerConversationId = providerConversationId;
-        this.rootPath = rootPath;
-        this.turnStarted = false;
-        /** Claude emits whole assistant messages, so the adapter adds the blank line between them. */
-        this.turnHasAssistantText = false;
-    }
-
-    async start(prompt) {
-        await this.sendMessage(prompt);
-    }
-
-    async sendMessage(content) {
-        await this.writeLine(claudeUserMessage(requireMessage(content)));
-    }
-
-    async answerQuestion(requestId, answers) {
-        const pendingQuestion = this.pendingQuestions.get(requestId);
-        if (!pendingQuestion) throw new Error(`Unknown Claude question request id: ${requestId}`);
-        const mappedAnswers = Object.fromEntries(pendingQuestion.questions.map(({ id, question }) => {
-            if (!Object.hasOwn(answers, id)) throw new Error(`Missing answer for Claude question: ${id}`);
-
-            return [question, answers[id]];
-        }));
-        const updatedInput = { ...pendingQuestion.input, answers: mappedAnswers };
-        const response = { behavior: 'allow', toolUseID: pendingQuestion.toolUseId, updatedInput };
-        await this.writeLine(claudeControlResponse(requestId, response));
-        this.pendingQuestions.delete(requestId);
-    }
-
-    async handleMessage(event) {
-        const questionRequest = claudeQuestionRequest(event);
-        if (questionRequest) {
-            this.pendingQuestions.set(questionRequest.requestId, questionRequest);
-            await this.onEvent({
-                questions: questionRequest.questions,
-                requestId: questionRequest.requestId,
-                type: 'question',
-            });
-            return;
-        }
-        if (event.type === 'control_request' && event.request?.subtype === 'can_use_tool') {
-            const response = {
-                behavior: 'deny',
-                message: 'Interactive tool approval is not supported',
-                toolUseID: event.request.tool_use_id,
-            };
-            await this.writeLine(claudeControlResponse(event.request_id, response));
-            return;
-        }
-        if (event.type === 'system' && typeof event.session_id === 'string') {
-            await this.onEvent({ conversationId: event.session_id, type: 'sessionStarted' });
-        }
-        const startsTurn = event.type === 'assistant' || event.type === 'user';
-        if (!this.turnStarted && startsTurn) await this.onEvent({ type: 'turnStarted' });
-        this.turnStarted = this.turnStarted || startsTurn;
-        const assistantText = claudeAssistantText(event);
-        if (assistantText.length > 0) {
-            const separator = this.turnHasAssistantText ? '\n\n' : '';
-            this.turnHasAssistantText = true;
-            await this.onEvent({ content: `${separator}${assistantText}`, type: 'assistant' });
-        }
-        const changedPaths = claudeChangedPaths(event, this.rootPath);
-        if (changedPaths.length > 0) await this.onEvent({ paths: changedPaths, type: 'changedPaths' });
-        for (const transcriptEvent of claudeTranscriptEvents(event)) {
-            await this.onEvent({ ...transcriptEvent, type: 'transcript' });
-        }
-        if (event.type === 'result') {
-            const error = event.is_error === true
-                ? String(event.error ?? event.result ?? event.message ?? event.errors?.join('\n') ?? 'Claude turn failed')
-                : null;
-            const missingSession = !this.turnStarted && (
-                isClaudeMissingSessionResult(event, this.providerConversationId)
-                || isMissingSession('claude', event, this.turnStarted)
-            );
-            this.turnHasAssistantText = false;
-            await this.onEvent({ error, missingSession, type: 'turnCompleted', usage: claudeUsage(event) });
-        }
-    }
 }
 
 function codexInput(content) {
@@ -305,7 +184,7 @@ class CodexStreamingAdapter {
                 ?.filter(({ path }) => typeof path === 'string' && path.length > 0)
                 .map(({ path }) => path) ?? []
             : [];
-        const approval = { ...structuredClone(params), filePaths, kind, requestId: message.id };
+        const approval = { ...structuredClone(params), filePaths, kind, provider: 'codex', requestId: message.id };
         this.pendingApprovals.set(message.id, { approval, submitted: false });
         await this.onEvent({ approval, type: 'approval' });
     }

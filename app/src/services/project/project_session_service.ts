@@ -15,10 +15,10 @@ import { activateStorageService } from '../../data/project_storage_activation'
 import { configureRemoteControlConnection } from '../../data/remote_control_connection'
 import { configService } from '../config/config_service'
 import { dataService } from '../data/data_service'
-import { dialogService } from '.././dialog_service'
+import { dialogService } from '../dialog_service'
 import { GithubPendingCommitConflictError, GithubStorageService } from '../github/github_storage_service'
 import { markdownParsingService } from '../data/markdown_parsing_service'
-import { register } from '.././service_injector'
+import { register } from '../service_injector'
 import { createRandomProjectBackgroundShade } from '../../theme/project_background_shade'
 import { isProjectLoadErrorReported } from './project_loading'
 import { projectPersistenceService } from './project_persistence_service'
@@ -320,8 +320,12 @@ export class ProjectSessionService extends EventTarget {
         this.dispatchChanged()
     }
 
-    async completeRelease(releaseName: string) {
-        await this.withLoading('Release completion failed', () => dataService.releases.completeRelease(releaseName))
+    async getReleaseBranchCandidates() {
+        return this.withLoading('Release preparation failed', () => dataService.releases.getReleaseBranchCandidates())
+    }
+
+    async completeRelease(releaseName: string, selectedBranchNames: string[]) {
+        await this.withLoading('Release completion failed', () => dataService.releases.completeRelease(releaseName, selectedBranchNames))
     }
 
     async createCard(draft: CardDraft, initialState: string) {

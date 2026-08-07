@@ -91,6 +91,11 @@ Keep analysis and documentation **short, precise, and to the point**. Avoid verb
 - use ; at end of statements
 - avoid multiple inheritance
 
+## events & state updates
+- Never hand-roll listener registries: no `Map`s of listener `Set`s, no custom subscribe/unsubscribe functions, no revision counters. Use the standard `EventTarget` (`addEventListener` / `removeEventListener` / `dispatchEvent`) — extend it or compose one in the service.
+- Signal state changes with granular, scoped events (e.g. one event type per card or per card+action). Never republish or refresh a whole object (card, snapshot) to announce a change to one of its fields: every component watching that object would repaint.
+- In React, subscribe with `useSyncExternalStore`. `getSnapshot` must return a value derived from the actual service data (a primitive or stable reference), not a revision counter.
+
 ## react component style guide
 - dialogs have buttons in the bottom right corner
 - use the `dialogService` to show errors, warnings,...

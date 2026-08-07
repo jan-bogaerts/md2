@@ -1,13 +1,13 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { DndContext } from '@dnd-kit/core'
-import { createRef } from 'react'
+import type { DndContextProps } from '@dnd-kit/core'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CardView } from './card_view'
 import { CardColumn } from './card_column'
 import * as cardColumnModule from './card_column'
 import { actionService } from '../../services/actions/action_service'
 import type { ActionFile } from '../../data/action_types'
-import { DEFAULT_CARD_TYPES, type CardTypeConfig, type ProjectCard } from '../../data/data_types'
+import { DEFAULT_CARD_TYPES, type CardTypeConfig, type Card } from '../../data/data_types'
 import { telemetryService } from '../../services/telemetry/telemetry_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { dataService } from '../../services/data/data_service'
@@ -16,18 +16,43 @@ import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
 import { openFilesService } from '../../services/open_files_service'
 import { workspaceViewService } from '../../services/project/workspace_view_service'
 import { cardDragDropService } from './card_drag_drop_service'
+import { CardDragOverlay } from './card_drag_overlay'
 
-function card(id: string, title: string, status: string, policy: Record<string, boolean> = {}): ProjectCard {
+const dragContextHandlers = vi.hoisted(() => ({
+    onDragCancel: null as DndContextProps['onDragCancel'] | null,
+    onDragEnd: null as DndContextProps['onDragEnd'] | null,
+    onDragOver: null as DndContextProps['onDragOver'] | null,
+    onDragStart: null as DndContextProps['onDragStart'] | null,
+}))
+
+vi.mock('@dnd-kit/core', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('@dnd-kit/core')>()
+    const { createElement } = await import('react')
+
+    return {
+        ...actual,
+        DndContext: (props: DndContextProps) => {
+            dragContextHandlers.onDragCancel = props.onDragCancel ?? null
+            dragContextHandlers.onDragEnd = props.onDragEnd ?? null
+            dragContextHandlers.onDragOver = props.onDragOver ?? null
+            dragContextHandlers.onDragStart = props.onDragStart ?? null
+
+            return createElement(actual.DndContext, props)
+        },
+    }
+})
+
+function card(id: string, title: string, status: string, policy: Record<string, boolean> = {}): Card {
     return {
         agentConversationErrors: [],
         agentConversations: [],
-        headerFields: {},
         content: `# ${title}\n\nBody of ${id}`,
         header: {
             affects: [], after: null, agentLogReferences: [], author: null, id, internalId: id.toLowerCase(), owner: null,
             policy, status, title,
             worktree: null, worktreeError: null, worktreeValue: null,
         },
+        hasFrontmatter:true,
         isActive: true,
         path: `design/${id}.md`,
     }
@@ -38,7 +63,7 @@ const cards = [
     card('F-2', 'Second', 'done'),
 ]
 
-function setProjectCards(activeCards: ProjectCard[], repositoryFiles = ['app/src/app.tsx', 'design/F-1.md']) {
+function setCards(activeCards: Card[], repositoryFiles = ['app/src/app.tsx', 'design/F-1.md']) {
     vi.mocked(dataService.getState).mockReturnValue({
         project: { branch: 'main', id: 'project', rootPath: 'C:\\project' },
         runningAgents: [],
@@ -64,23 +89,18 @@ function renderCardView(
     activeCards = cards,
     repositoryFiles = ['app/src/app.tsx', 'design/F-1.md'],
 ) {
-    setProjectCards(activeCards, repositoryFiles)
-    const scrollContainerRef = createRef<HTMLDivElement>()
-
+    setCards(activeCards, repositoryFiles)
     render(
         <AppThemeProvider>
-            <div data-testid="mobile-scroll-container" ref={scrollContainerRef}>
-                <CardView
-                    cardTypes={DEFAULT_CARD_TYPES}
-                    isMobile={false}
-                    scrollContainerRef={scrollContainerRef}
-                    states={[
-                        { alwaysVisible: false, state: 'todo' },
-                        { alwaysVisible: false, state: 'done' },
-                    ]}
-                    {...overrides}
-                />
-            </div>
+            <CardView
+                cardTypes={DEFAULT_CARD_TYPES}
+                states={[
+                    { alwaysVisible: false, state: 'todo' },
+                    { alwaysVisible: false, state: 'done' },
+                ]}
+                statusColors={new Map([['todo', '#111111'], ['done', '#222222']])}
+                {...overrides}
+            />
         </AppThemeProvider>,
     )
 }
@@ -90,7 +110,7 @@ describe('CardView', () => {
         workspaceViewService.setViewMode('cards')
         cardDragDropService.endDrag()
         vi.spyOn(dataService, 'getState')
-        setProjectCards(cards)
+        setCards(cards)
         vi.spyOn(dataService.cards, 'deleteCard').mockResolvedValue(null)
         vi.spyOn(dataService.cards, 'moveCard').mockResolvedValue([])
         vi.spyOn(dataService.cards, 'toggleCardPolicy').mockReturnValue(cards[0])
@@ -157,82 +177,6 @@ describe('CardView', () => {
         expect(columnStyle.maxWidth).toBe('320px')
     })
 
-    it('renders both edge scroll zones only on mobile', () => {
-        renderCardView()
-
-        expect(screen.queryByTestId('left-card-scroll-zone')).not.toBeInTheDocument()
-        expect(screen.queryByTestId('right-card-scroll-zone')).not.toBeInTheDocument()
-
-        cleanup()
-        renderCardView({ isMobile: true })
-
-        expect(screen.getByTestId('left-card-scroll-zone')).toBeInTheDocument()
-        expect(screen.getByTestId('right-card-scroll-zone')).toBeInTheDocument()
-    })
-
-    it('scrolls the mobile shell container from either edge and stops on pointer up', () => {
-        renderCardView({ isMobile: true })
-        const scrollContainer = screen.getByTestId('mobile-scroll-container')
-        const leftZone = screen.getByTestId('left-card-scroll-zone')
-        const rightZone = screen.getByTestId('right-card-scroll-zone')
-        scrollContainer.scrollTop = 100
-
-        fireEvent.pointerDown(leftZone, { clientY: 100, pointerId: 1 })
-        fireEvent.pointerMove(leftZone, { clientY: 70, pointerId: 1 })
-        expect(scrollContainer.scrollTop).toBe(130)
-
-        fireEvent.pointerUp(leftZone, { pointerId: 1 })
-        fireEvent.pointerMove(leftZone, { clientY: 40, pointerId: 1 })
-        expect(scrollContainer.scrollTop).toBe(130)
-
-        fireEvent.pointerDown(rightZone, { clientY: 50, pointerId: 2 })
-        fireEvent.pointerMove(rightZone, { clientY: 80, pointerId: 2 })
-        expect(scrollContainer.scrollTop).toBe(100)
-    })
-
-    it('stops edge scrolling on pointer cancellation and uses native scroll boundaries', () => {
-        renderCardView({ isMobile: true })
-        const scrollContainer = screen.getByTestId('mobile-scroll-container')
-        const leftZone = screen.getByTestId('left-card-scroll-zone')
-        const rightZone = screen.getByTestId('right-card-scroll-zone')
-        let scrollTop = 0
-        Object.defineProperty(scrollContainer, 'scrollTop', {
-            configurable: true,
-            get: () => scrollTop,
-            set: (value: number) => {
-                scrollTop = Math.max(0, Math.min(200, value))
-            },
-        })
-
-        fireEvent.pointerDown(leftZone, { clientY: 100, pointerId: 1 })
-        fireEvent.pointerMove(leftZone, { clientY: 130, pointerId: 1 })
-        expect(scrollContainer.scrollTop).toBe(0)
-
-        fireEvent.pointerCancel(leftZone, { pointerId: 1 })
-        fireEvent.pointerMove(leftZone, { clientY: 70, pointerId: 1 })
-        expect(scrollContainer.scrollTop).toBe(0)
-
-        scrollContainer.scrollTop = 200
-        fireEvent.pointerDown(rightZone, { clientY: 100, pointerId: 2 })
-        fireEvent.pointerMove(rightZone, { clientY: 70, pointerId: 2 })
-        expect(scrollContainer.scrollTop).toBe(200)
-    })
-
-    it('keeps edge gestures away from cards and preserves card interaction outside the zones', () => {
-        renderCardView({ isMobile: true })
-        const leftZone = screen.getByTestId('left-card-scroll-zone')
-
-        fireEvent.pointerDown(leftZone, { clientY: 100, pointerId: 1 })
-        fireEvent.pointerMove(leftZone, { clientY: 70, pointerId: 1 })
-        fireEvent.pointerUp(leftZone, { pointerId: 1 })
-
-        expect(cardDragDropService.getOverlaySnapshot().cardPath).toBeNull()
-        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-
-        fireEvent.click(screen.getByRole('button', { name: 'Drag F-1' }))
-        expect(screen.getByRole('dialog')).toBeInTheDocument()
-    })
-
     it('shows always-visible columns without cards and hides other empty columns in config order', () => {
         renderCardView({
             states: [
@@ -249,7 +193,7 @@ describe('CardView', () => {
 
     it('inserts a card-sized drop position between target-column cards', () => {
         const handlers = createColumnHandlers()
-        setProjectCards([card('F-1', 'First', 'done'), card('F-2', 'Second', 'done')])
+        setCards([card('F-1', 'First', 'done'), card('F-2', 'Second', 'done')])
         cardDragDropService.startDrag('design/F-1.md', 123, 235)
         cardDragDropService.setDropPreview({ targetIndex: 1, targetStatus: 'done' })
         render(
@@ -304,6 +248,49 @@ describe('CardView', () => {
 
         expect(dragButton).toBeEmptyDOMElement()
         expect(dragButton).toHaveStyle({ backgroundColor: 'rgba(0, 0, 0, 0)', inset: '0', position: 'absolute' })
+        expect(dragButton).toHaveStyle({ touchAction: 'none' })
+    })
+
+    it('keeps the full card visual in the drag overlay', () => {
+        renderCardView()
+
+        act(() => dragContextHandlers.onDragStart?.({
+            active: {
+                id: 'design/F-1.md',
+                rect: { current: { initial: { height: 107, width: 235 } } },
+            },
+        } as Parameters<NonNullable<DndContextProps['onDragStart']>>[0]))
+        render(
+            <AppThemeProvider>
+                <CardDragOverlay cardTypes={DEFAULT_CARD_TYPES} />
+            </AppThemeProvider>,
+        )
+
+        const overlay = screen.getByLabelText('Dragging F-1')
+        expect(overlay).toHaveTextContent('F-1')
+        expect(overlay).toHaveTextContent('First')
+        expect(overlay).toHaveStyle({ width: '235px' })
+    })
+
+    it('updates the drop preview only when the hovered target changes', () => {
+        const setDropPreview = vi.spyOn(cardDragDropService, 'setDropPreview')
+        renderCardView()
+        act(() => dragContextHandlers.onDragStart?.({
+            active: {
+                id: 'design/F-1.md',
+                rect: { current: { initial: { height: 107, width: 235 } } },
+            },
+        } as Parameters<NonNullable<DndContextProps['onDragStart']>>[0]))
+        const dragOverEvent = {
+            active: { id: 'design/F-1.md' },
+            over: { id: 'design/F-2.md' },
+        } as Parameters<NonNullable<DndContextProps['onDragOver']>>[0]
+
+        act(() => dragContextHandlers.onDragOver?.(dragOverEvent))
+        act(() => dragContextHandlers.onDragOver?.(dragOverEvent))
+
+        expect(setDropPreview).toHaveBeenCalledOnce()
+        expect(setDropPreview).toHaveBeenCalledWith({ targetIndex: 0, targetStatus: 'done' })
     })
 
     it('renders one policy led per policy flag and toggles on click', () => {
@@ -403,6 +390,20 @@ describe('CardView', () => {
             .toHaveBeenCalledWith('board-card', 'Renamed in popup')
     })
 
+    it('opens card Properties from the board popup toolbar', () => {
+        renderCardView()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Drag F-1' }))
+        const cardDialog = within(screen.getByRole('dialog'))
+        const propertiesButton = cardDialog.getByRole('button', { name: 'Properties' })
+        expect(propertiesButton).toHaveTextContent('')
+        fireEvent.click(propertiesButton)
+
+        const propertiesPopup = within(screen.getByRole('dialog', { name: 'Card properties popup' }))
+        expect(propertiesPopup.getByRole('heading', { name: 'Properties' })).toBeInTheDocument()
+        expect(propertiesPopup.getByLabelText('Card type')).toBeInTheDocument()
+    })
+
     it('expands and restores the card popup from the formatting toolbar', () => {
         renderCardView()
 
@@ -430,7 +431,7 @@ describe('CardView', () => {
         const document = openFilesService.findDocument(cards[0])
         if (!document || document.kind !== 'card') throw new Error('Missing open card document')
 
-        act(() => document.updateDraft({ ...document.getDraft(), content: 'Edited' }))
+        act(() => document.updateDraft({ content: 'Edited' }))
         expect(within(screen.getByRole('dialog')).getByText('Dirty')).toBeInTheDocument()
 
         act(() => document.createSaveReference().acknowledge())
@@ -487,7 +488,7 @@ describe('CardView', () => {
         fireEvent.contextMenu(screen.getByText('First'))
         fireEvent.click(screen.getByRole('menuitem', { name: 'Implement' }))
 
-        const dialog = within(screen.getByRole('dialog', { name: 'Run actions' }))
+        const dialog = within(screen.getByRole('dialog', { name: 'Run actions for F-1' }))
         expect(dialog.getByRole('button', { name: 'Implement' })).toHaveAttribute('aria-pressed', 'true')
         expect(dialog.getByRole('button', { name: 'Send' })).toBeInTheDocument()
     })
@@ -512,30 +513,6 @@ describe('CardView', () => {
         await waitFor(() => expect(dataService.cards.deleteCard).toHaveBeenCalledWith('design/F-1.md'))
     })
 
-    it('opens a viewport-sized card popup with mobile actions', () => {
-        renderCardView({ isMobile: true })
-
-        fireEvent.click(screen.getByRole('button', { name: 'Drag F-1' }))
-
-        const dialog = screen.getByRole('dialog')
-        const affectsButton = within(dialog).getByRole('button', { name: 'Affects' })
-        expect(within(dialog).getByDisplayValue(/Body of F-1/)).toBeInTheDocument()
-        expect(dialog).toHaveStyle({
-            borderRadius: 0,
-            height: '100vh',
-            left: 0,
-            margin: 0,
-            top: 0,
-            width: '100vw',
-        })
-        expect(affectsButton).toHaveTextContent('')
-        expect(within(dialog).getByRole('button', { name: 'Delete' })).toHaveTextContent('')
-        expect(within(dialog).getByRole('button', { name: 'Open in file mode' })).toHaveTextContent('')
-        expect(within(dialog).queryByRole('button', { name: 'Close' })).not.toBeInTheDocument()
-        expect(within(dialog).queryByRole('button', { name: 'Fullscreen' })).not.toBeInTheDocument()
-        expect(screen.queryByRole('separator', { name: /Resize card details popup/u })).not.toBeInTheDocument()
-    })
-
     it('keeps desktop popup sizing, actions, resizing, and fullscreen control', () => {
         renderCardView()
 
@@ -557,12 +534,11 @@ describe('CardView', () => {
             <AppThemeProvider>
                 <CardView
                     cardTypes={DEFAULT_CARD_TYPES}
-                    isMobile={false}
-                    scrollContainerRef={createRef<HTMLDivElement>()}
                     states={[
                         { alwaysVisible: false, state: 'todo' },
                         { alwaysVisible: false, state: 'done' },
                     ]}
+                    statusColors={new Map([['todo', '#111111'], ['done', '#222222']])}
                 />
             </AppThemeProvider>,
         )

@@ -10,7 +10,6 @@ export interface CardActionPopupEntry {
     context: ActionContext
     fallbackAnchorElement: HTMLElement
     id: string
-    projectKey: string
 }
 
 function projectKey(service: DataService) {
@@ -56,7 +55,7 @@ export class CardActionPopupService extends EventTarget {
         return this.entries
     }
 
-    toggle(context: ActionContext, anchorElement: HTMLElement, activeProjectKey: string) {
+    toggle(context: ActionContext, anchorElement: HTMLElement) {
         const contextIdentity = actionContextIdentity(context)
         const existing = this.entries.find((entry) => actionContextIdentity(entry.context) === contextIdentity)
         if (existing) {
@@ -71,7 +70,6 @@ export class CardActionPopupService extends EventTarget {
             context: { ...context },
             fallbackAnchorElement: createFallbackAnchor(anchorElement),
             id: `card-action-popup-${this.nextId}`,
-            projectKey: activeProjectKey,
         }
         this.nextId += 1
         this.setEntries([...this.entries, entry])
@@ -83,6 +81,14 @@ export class CardActionPopupService extends EventTarget {
 
         entry.fallbackAnchorElement.remove()
         this.setEntries(this.entries.filter((candidate) => candidate.id !== id))
+    }
+
+    activate(id: string) {
+        const entryIndex = this.entries.findIndex((entry) => entry.id === id)
+        if (entryIndex < 0 || entryIndex === this.entries.length - 1) return
+
+        const entry = this.entries[entryIndex]
+        this.setEntries([...this.entries.filter((candidate) => candidate.id !== id), entry])
     }
 
     clear() {

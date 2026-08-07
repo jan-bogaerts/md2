@@ -10,6 +10,7 @@ const MOBILE_DRAWER_WIDTH = 300
 
 interface MobileMainWindowProps {
     auth: UseGithubAuthResult
+    cardNavigation: ReactNode | null
     isMenuOpen: boolean
     leftPanel: ReactNode
     onCloseMenu: () => void
@@ -20,30 +21,34 @@ interface MobileMainWindowProps {
 
 /** Mobile window layout with navigation drawer and workspace content. */
 export function MobileMainWindow(props: MobileMainWindowProps) {
-    const { auth, isMenuOpen, leftPanel, onCloseMenu, rightPanel, rightPanelContainerRef, showNavigationInCards } = props
+    const { auth, cardNavigation, isMenuOpen, leftPanel, onCloseMenu } = props
+    const { rightPanel, rightPanelContainerRef, showNavigationInCards } = props
+    const cardNavigationElementRef = useRef<HTMLDivElement>(null)
     const navigationElementRef = useRef<HTMLDivElement>(null)
+    const updateDrawerVisibility = useCallback(() => {
+        const isTextView = workspaceViewService.getSnapshot().viewMode === 'text'
+        if (navigationElementRef.current) {
+            navigationElementRef.current.style.display = isTextView || showNavigationInCards ? 'flex' : 'none'
+        }
+        if (cardNavigationElementRef.current) {
+            cardNavigationElementRef.current.style.display = !isTextView && !showNavigationInCards ? 'block' : 'none'
+        }
+    }, [showNavigationInCards])
     const handleNavigationElement = useCallback((element: HTMLDivElement | null) => {
         navigationElementRef.current = element
-        if (!element) return
-
-        const isTextView = workspaceViewService.getSnapshot().viewMode === 'text'
-        element.style.display = isTextView || showNavigationInCards ? 'flex' : 'none'
-    }, [showNavigationInCards])
+        updateDrawerVisibility()
+    }, [updateDrawerVisibility])
+    const handleCardNavigationElement = useCallback((element: HTMLDivElement | null) => {
+        cardNavigationElementRef.current = element
+        updateDrawerVisibility()
+    }, [updateDrawerVisibility])
 
     useEffect(() => {
-        const updateNavigationVisibility = () => {
-            const navigationElement = navigationElementRef.current
-            if (!navigationElement) return
+        updateDrawerVisibility()
+        workspaceViewService.addEventListener('changed', updateDrawerVisibility)
 
-            const isTextView = workspaceViewService.getSnapshot().viewMode === 'text'
-            navigationElement.style.display = isTextView || showNavigationInCards ? 'flex' : 'none'
-        }
-
-        updateNavigationVisibility()
-        workspaceViewService.addEventListener('changed', updateNavigationVisibility)
-
-        return () => workspaceViewService.removeEventListener('changed', updateNavigationVisibility)
-    }, [showNavigationInCards])
+        return () => workspaceViewService.removeEventListener('changed', updateDrawerVisibility)
+    }, [updateDrawerVisibility])
 
     return (
         <>
@@ -54,6 +59,7 @@ export function MobileMainWindow(props: MobileMainWindowProps) {
                         <ThemeModeToggle />
                     </Box>
                     <Box sx={{ flex: 1, minHeight: 0 }}>
+                        <Box ref={handleCardNavigationElement}>{cardNavigation}</Box>
                         <Box ref={handleNavigationElement} sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                             <Divider />
                             <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto' }}>{leftPanel}</Box>

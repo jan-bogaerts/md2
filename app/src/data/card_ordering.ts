@@ -1,8 +1,8 @@
-import { DEFAULT_STATES, defaultColumnAccent, type ProjectCard, type StateConfig } from './data_types'
+import { DEFAULT_STATES, defaultColumnAccent, type Card, type StateConfig } from './data_types'
 
 /** A status column with its cards already ordered by the `after` chain. */
 export interface CardColumn {
-    cards: ProjectCard[]
+    cards: Card[]
     status: string
 }
 
@@ -22,7 +22,7 @@ export interface CardMoveUpdate {
 export const UNASSIGNED_STATUS = ''
 
 /** A card's column key, mapping a missing status onto the unassigned column. */
-export function statusOf(card: ProjectCard) {
+export function statusOf(card: Card) {
     return card.header.status ?? UNASSIGNED_STATUS
 }
 
@@ -32,14 +32,14 @@ export function statusOf(card: ProjectCard) {
  * empty or points outside the set are treated as heads (kept in input order),
  * and any cards left over by cycles or duplicate links are appended stably.
  */
-export function orderByAfter(cards: ProjectCard[]): ProjectCard[] {
-    const byInternalId = new Map<string, ProjectCard>()
+export function orderByAfter(cards: Card[]): Card[] {
+    const byInternalId = new Map<string, Card>()
     for (const card of cards) {
         if (card.header.internalId) byInternalId.set(card.header.internalId, card)
     }
 
-    const followerOf = new Map<string, ProjectCard>()
-    const heads: ProjectCard[] = []
+    const followerOf = new Map<string, Card>()
+    const heads: Card[] = []
     for (const card of cards) {
         const after = card.header.after
         if (after && byInternalId.has(after) && !followerOf.has(after)) {
@@ -49,10 +49,10 @@ export function orderByAfter(cards: ProjectCard[]): ProjectCard[] {
         }
     }
 
-    const ordered: ProjectCard[] = []
-    const visited = new Set<ProjectCard>()
+    const ordered: Card[] = []
+    const visited = new Set<Card>()
     for (const head of heads) {
-        let current: ProjectCard | undefined = head
+        let current: Card | undefined = head
         while (current && !visited.has(current)) {
             ordered.push(current)
             visited.add(current)
@@ -67,9 +67,9 @@ export function orderByAfter(cards: ProjectCard[]): ProjectCard[] {
 }
 
 /** Group cards into columns by distinct status, preserving first-seen order. */
-export function groupByStatus(cards: ProjectCard[]): CardColumn[] {
+export function groupByStatus(cards: Card[]): CardColumn[] {
     const order: string[] = []
-    const buckets = new Map<string, ProjectCard[]>()
+    const buckets = new Map<string, Card[]>()
 
     for (const card of cards) {
         const status = statusOf(card)
@@ -86,7 +86,7 @@ export function groupByStatus(cards: ProjectCard[]): CardColumn[] {
 }
 
 /** Build board columns in configured state order, omitting empty states unless they are always visible. */
-export function buildCardColumns(cards: ProjectCard[], states: StateConfig[]): BoardColumn[] {
+export function buildCardColumns(cards: Card[], states: StateConfig[]): BoardColumn[] {
     return states
         .map(({ color, state }, index) => ({
             cards: orderByAfter(cards.filter((card) => statusOf(card) === state)),
@@ -97,7 +97,7 @@ export function buildCardColumns(cards: ProjectCard[], states: StateConfig[]): B
 }
 
 /** Derive state definitions from the distinct non-empty card states in first-seen order. */
-export function deriveStatesFromCards(cards: ProjectCard[]): StateConfig[] {
+export function deriveStatesFromCards(cards: Card[]): StateConfig[] {
     const states = cards
         .map((card) => statusOf(card))
         .filter((state, index, values) => state.length > 0 && values.indexOf(state) === index)
@@ -122,7 +122,7 @@ function clamp(value: number, min: number, max: number) {
 }
 
 function addColumnOrderingUpdates(
-    orderedCards: ProjectCard[],
+    orderedCards: Card[],
     status: string,
     updates: Map<string, CardMoveUpdate>,
 ) {
@@ -145,7 +145,7 @@ function addColumnOrderingUpdates(
  * the moved card, its new follower, and its old follower.
  */
 export function computeMove(
-    cards: ProjectCard[],
+    cards: Card[],
     cardPath: string,
     targetStatus: string,
     targetIndex: number,

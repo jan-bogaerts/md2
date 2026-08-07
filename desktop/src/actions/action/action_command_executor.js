@@ -43,6 +43,7 @@ function executeCommandAction(input) {
         input.context,
         input.project,
         input.primaryProject,
+        input.projectFolder,
         input.releasesFolder,
         input.extraPrompt,
     );

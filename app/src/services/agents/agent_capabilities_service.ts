@@ -2,7 +2,7 @@ import { findAgentProfile } from '../../data/agent_profiles'
 import { getElectronDataBridge, type AgentAvailability } from '../../data/electron_data_bridge'
 import { getElectronActionBridge } from '../../data/electron_action_bridge'
 import { configService } from '../config/config_service'
-import { register } from '.././service_injector'
+import { register } from '../service_injector'
 
 export interface CapabilityState<T = string[]> {
     error: string | null

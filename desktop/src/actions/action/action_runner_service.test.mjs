@@ -26,11 +26,20 @@ function createRunner(actionFiles = [actionFile('main')], overrides = {}) {
     const appendActionRunHistory = vi.fn(async () => []);
     const localGitService = {
         appendAndCommitActionActivity: vi.fn(async (_project, projectFolder, _origin, record) => {
-            await appendActionRunHistory(project, { actionId: record.rootActionId, context, projectFolder }, record.history);
+            const entry = {
+                ...record.details,
+                completedAt: record.completedAt,
+                ...(record.rootConversationId ? { rootConversationId: record.rootConversationId } : {}),
+                startedAt: record.startedAt,
+                status: record.status,
+            };
+            await appendActionRunHistory(project, { actionId: record.rootActionId, context, projectFolder }, entry);
 
             return { relativePath: 'design/activity/card__card-010.json' };
         }),
         appendActionRunHistory,
+        activityConversationReference: vi.fn((_projectFolder, _origin, conversationId) => `design/activity/card__card-010.json#conversation=${conversationId}`),
+        ensureActivityFile: vi.fn(async () => 'design/activity/card__card-010.json'),
         loadActionFile: vi.fn(async (_project, actionPath) => actionFiles.find(({ path }) => path === actionPath)),
         loadActionFiles: vi.fn(async () => actionFiles),
         loadAgentConversation: vi.fn(),
@@ -68,6 +77,98 @@ async function runToCompletion(runner, request = { actionId: 'main', context, ru
 }
 
 describe('ActionRunnerService', () => {
+    it('reserves a root agent conversation before the action starts', async () => {
+        const files = [actionFile('main', { agent: 'codex', command: undefined, prompt: 'Run', type: 'agent' })];
+        const { localGitService, runner } = createRunner(files);
+
+        const reservation = await runner.reserveConversation({ actionId: 'main', context, runInput: {} });
+
+        expect(localGitService.ensureActivityFile).toHaveBeenCalledWith(
+            project,
+            'design',
+            { cardInternalId: context.cardInternalId, kind: 'card' },
+        );
+        expect(reservation.reference).toBe(`design/activity/card__card-010.json#conversation=${reservation.conversationId}`);
+    });
+
+    const releasedContext = {
+        ...context,
+        file: 'design/releases/v1/F-010.md',
+    };
+
+    it('rejects new and continued runs for released cards while archived cards remain runnable', async () => {
+        const { commandRunner, runner } = createRunner();
+
+        await expect(runner.start({ actionId: 'main', context: releasedContext, runInput: {} }))
+            .rejects.toThrow('Released cards are read-only. Create a new card for more work.');
+        await expect(runner.start({
+            actionId: 'main',
+            context: releasedContext,
+            runInput: { continueFrom: 'design/releases/v1/card__card-010.json#conversation=conversation-1' },
+        })).rejects.toThrow('Released cards are read-only. Create a new card for more work.');
+        expect(commandRunner).not.toHaveBeenCalled();
+
+        await expect(runToCompletion(runner, {
+            actionId: 'main',
+            context: { ...context, file: 'design/archived/F-010.md' },
+            runInput: {},
+        })).resolves.toMatchObject({ status: 'completed' });
+    });
+
+    it('rejects restart before changing the old run', async () => {
+        const { runner } = createRunner();
+        const oldRun = { completion: Promise.resolve({ failure: null, status: 'completed' }), finishAgent: vi.fn() };
+        runner.runs.set('old-run', oldRun);
+
+        await expect(runner.restart('old-run', {
+            actionId: 'main',
+            context: releasedContext,
+            runInput: { prompt: 'More work' },
+        })).rejects.toThrow('Released cards are read-only. Create a new card for more work.');
+        expect(oldRun.finishAgent).not.toHaveBeenCalled();
+    });
+
+    it('rejects prompt preparation for released cards', async () => {
+        const { actionWorktreeRunService, runner } = createRunner();
+
+        await expect(runner.prepareActionPrompt({ actionId: 'main', context: releasedContext }))
+            .rejects.toThrow('Released cards are read-only. Create a new card for more work.');
+        expect(actionWorktreeRunService.resolve).not.toHaveBeenCalled();
+    });
+
+    it('finishes and persists old run before starting its replacement', async () => {
+        const { promise, resolve } = Promise.withResolvers();
+        const { runner } = createRunner();
+        const oldRun = { completion: promise, finishAgent: vi.fn() };
+        const request = { actionId: 'main', context, runInput: { continueFrom: 'conversation.json', prompt: 'next' } };
+        const start = vi.spyOn(runner, 'start').mockResolvedValue('new-run');
+        runner.runs.set('old-run', oldRun);
+
+        const restarting = runner.restart('old-run', request);
+        expect(oldRun.finishAgent).toHaveBeenCalledOnce();
+        expect(start).not.toHaveBeenCalled();
+
+        resolve({ failure: null, status: 'completed' });
+        await expect(restarting).resolves.toBe('new-run');
+        expect(start).toHaveBeenCalledWith(request);
+    });
+
+    it('does not overlap or restart after old run persistence fails', async () => {
+        const { promise, resolve } = Promise.withResolvers();
+        const { runner } = createRunner();
+        const oldRun = { completion: promise, finishAgent: vi.fn() };
+        const request = { actionId: 'main', context, runInput: { continueFrom: 'conversation.json', prompt: 'next' } };
+        const start = vi.spyOn(runner, 'start').mockResolvedValue('new-run');
+        runner.runs.set('old-run', oldRun);
+
+        const restarting = runner.restart('old-run', request);
+        await expect(runner.restart('old-run', request)).rejects.toThrow('restart already in progress');
+        resolve({ failure: 'history write failed', status: 'failed' });
+
+        await expect(restarting).rejects.toThrow('history write failed');
+        expect(start).not.toHaveBeenCalled();
+    });
+
     it('returns ordered events for active runs only', () => {
         const { runner } = createRunner();
         const firstEvent = { runId: 'run-1', sequence: 1, type: 'run' };
@@ -149,7 +250,7 @@ describe('ActionRunnerService', () => {
         const files = [actionFile('main', {
             command: undefined,
             needsWorkTree: true,
-            prompt: 'Review {{card-file}} in {{worktree-folder}}; project {{project-folder}}; releases {{releases-folder}}',
+            prompt: 'Review {{card-file}} in {{worktree-folder}}; repository {{repository-folder}}; project {{project-folder}}; releases {{releases-folder}}',
             trackFileChanges: true,
             type: 'agent',
         })];
@@ -157,7 +258,7 @@ describe('ActionRunnerService', () => {
         const worktreeProject = { ...project, branch: 'feature', rootPath: 'C:/worktrees/2' };
         actionWorktreeRunService.resolve.mockResolvedValueOnce({ runProject: worktreeProject, runWorktree: 2 });
 
-        await expect(runner.prepareActionPrompt({ actionId: 'main', context })).resolves.toEqual({prompt: `Review design/F-010.md in C:/worktrees/2; project C:/repo; releases ${path.resolve('C:/repo', 'design/releases')}\n\nDo not stage or commit changes. md2 will commit files captured from provider edit tools.`});
+        await expect(runner.prepareActionPrompt({ actionId: 'main', context })).resolves.toEqual({prompt: `Review design/F-010.md in C:/worktrees/2; repository C:/repo; project ${path.resolve('C:/repo', 'design')}; releases ${path.resolve('C:/repo', 'design/releases')}\n\nDo not stage or commit changes. md2 will commit files captured from provider edit tools.`});
         expect(actionWorktreeRunService.resolve).toHaveBeenCalledWith(project, expect.objectContaining({ id: 'main' }), context);
         expect(actionWorktreeRunService.execute).not.toHaveBeenCalled();
         expect(agentRunnerService.start).not.toHaveBeenCalled();

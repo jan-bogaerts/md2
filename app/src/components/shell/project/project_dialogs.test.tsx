@@ -406,7 +406,7 @@ describe('project dialog components', () => {
 
         expect(screen.getByRole('combobox', { name: 'Target column' })).toHaveTextContent('design')
         fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Target column' }))
-        fireEvent.click(await screen.findByRole('option', { name: 'in progress' }))
+        fireEvent.click(await screen.findByRole('option', { name: 'to fix' }))
         fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: '  New Card  ' } })
         fireEvent.change(getDescriptionEditor(), { target: { value: 'Body' } })
         fireEvent.click(screen.getByRole('button', { name: 'Create card' }))
@@ -416,7 +416,7 @@ describe('project dialog components', () => {
             bodyIncludesTemplate: true,
             title: 'New Card',
             type: 'feature',
-        }, 'in progress'))
+        }, 'to fix'))
     })
 
     it('uses full-height mobile chrome with synchronized create controls and safe footer targets', async () => {
@@ -578,9 +578,12 @@ describe('project dialog components', () => {
 
         render(
             <CompleteReleaseDialog
+                branchCandidates={[]}
+                defaultSelectAll={false}
                 isLoading={false}
                 onClose={vi.fn()}
                 onCompleteRelease={completeRelease}
+                onSelectAllDefaultChange={vi.fn()}
                 open
             />,
         )
@@ -588,7 +591,38 @@ describe('project dialog components', () => {
         fireEvent.change(screen.getByLabelText('Release name'), { target: { value: 'v1' } })
         fireEvent.click(screen.getByRole('button', { name: 'Complete release' }))
 
-        await waitFor(() => expect(completeRelease).toHaveBeenCalledWith('v1'))
+        await waitFor(() => expect(completeRelease).toHaveBeenCalledWith('v1', []))
+    })
+
+    it('restores release branch defaults and supports select-all and clear-all', async () => {
+        const completeRelease = vi.fn(async () => undefined)
+        const setDefault = vi.fn()
+        render(
+            <CompleteReleaseDialog
+                branchCandidates={[
+                    { branchName: 'f-1-card', cardId: 'F-1', cardPath: 'design/F-1.md' },
+                    { branchName: 'f-2-card', cardId: 'F-2', cardPath: 'design/F-2.md' },
+                ]}
+                defaultSelectAll
+                isLoading={false}
+                onClose={vi.fn()}
+                onCompleteRelease={completeRelease}
+                onSelectAllDefaultChange={setDefault}
+                open
+            />,
+        )
+
+        expect(screen.getAllByRole('checkbox')).toHaveLength(2)
+        expect(screen.getAllByRole('checkbox').every((checkbox) => (checkbox as HTMLInputElement).checked)).toBe(true)
+        fireEvent.click(screen.getByRole('button', { name: 'Clear all' }))
+        expect(screen.getAllByRole('checkbox').every((checkbox) => !(checkbox as HTMLInputElement).checked)).toBe(true)
+        expect(setDefault).toHaveBeenLastCalledWith(false)
+        fireEvent.click(screen.getByRole('button', { name: 'Select all' }))
+        expect(setDefault).toHaveBeenLastCalledWith(true)
+        fireEvent.change(screen.getByLabelText('Release name'), { target: { value: 'v1' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Complete release' }))
+
+        await waitFor(() => expect(completeRelease).toHaveBeenCalledWith('v1', ['f-1-card', 'f-2-card']))
     })
 
     it('renders the branch switch dialog without mounting the menu', () => {

@@ -25,6 +25,7 @@ export interface ConfigValueTypes {
     'desktop.agentProfiles': AgentProfile[]
     'desktop.approvalPolicy': string
     'desktop.codexSearchEnabled': boolean
+    'desktop.editorCommand': string
     'desktop.model': string
     'desktop.thinkingLevel': ThinkingLevel
     'project.actionsFolder': string
@@ -40,6 +41,8 @@ export interface ConfigValueTypes {
     'project.states': StateConfig[]
     'project.workingFolder': string
     'react.autoCommitDelayMs': number
+    'react.deleteBranchAfterIntegration': boolean
+    'react.deleteBranchesAfterRelease': boolean
     'react.showStartupSplash': boolean
 }
 
@@ -76,6 +79,7 @@ export interface DesktopConfigValues {
     agentProfiles: AgentProfile[]
     approvalPolicy?: string
     codexSearchEnabled?: boolean
+    editorCommand: string
     model: string
     thinkingLevel?: ThinkingLevel
 }
@@ -89,6 +93,7 @@ export const CONFIG_SECTIONS = [
 const DEFAULT_AUTO_COMMIT_DELAY_MS = 30000
 const MIN_AUTO_COMMIT_DELAY_MS = 1000
 const MAX_AUTO_COMMIT_DELAY_MS = 120000
+export const DEFAULT_EDITOR_COMMAND = 'code -g "{{file}}:{{line}}"'
 
 export const CONFIG_ENTRIES: ConfigEntry[] = [
     {
@@ -97,6 +102,26 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         editable: true,
         key: 'react.showStartupSplash',
         label: 'Startup splash',
+        section: 'react',
+        source: 'react',
+        type: 'boolean',
+    },
+    {
+        defaultValue: false,
+        description: 'Delete card branch after successful worktree integration.',
+        editable: false,
+        key: 'react.deleteBranchAfterIntegration',
+        label: 'Delete integrated card branch',
+        section: 'react',
+        source: 'react',
+        type: 'boolean',
+    },
+    {
+        defaultValue: false,
+        description: 'Select all pending card branches by default when completing a release.',
+        editable: false,
+        key: 'react.deleteBranchesAfterRelease',
+        label: 'Delete released card branches',
         section: 'react',
         source: 'react',
         type: 'boolean',
@@ -185,7 +210,7 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
     },
     {
         defaultValue: DEFAULT_DIFF_COMMAND,
-        description: 'Command template used to render a commit diff. Placeholders: {{worktree-folder}}, {{project-folder}}, {{releases-folder}}, {{commit}}, {{branch}}, {{file}}.',
+        description: 'Command template used to render a commit diff. Placeholders: {{worktree-folder}}, {{repository-folder}}, {{project-folder}}, {{releases-folder}}, {{commit}}, {{branch}}, {{file}}.',
         editable: true,
         key: 'project.diffCommand',
         label: 'Diff command',
@@ -194,7 +219,7 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         type: 'string',
     },
     {
-        defaultValue: 'auto',
+        defaultValue: 'manual',
         description: 'Push commits automatically or wait for an explicit push.',
         editable: true,
         key: 'project.pushMode',
@@ -290,6 +315,16 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         section: 'desktop',
         source: 'desktop',
         type: 'boolean',
+    },
+    {
+        defaultValue: DEFAULT_EDITOR_COMMAND,
+        description: 'Command template used to open local files. Required placeholder: {{file}}. Optional placeholder: {{line}}.',
+        editable: true,
+        key: 'desktop.editorCommand',
+        label: 'Editor command',
+        section: 'desktop',
+        source: 'desktop',
+        type: 'string',
     },
     {
         defaultValue: '',

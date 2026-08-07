@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { ProjectCard, ProjectReference, ProjectSnapshot, StorageService, WorktreeRecord, WorktreeState } from '../../data/data_types'
+import type { Card, ProjectReference, ProjectSnapshot, StorageService, WorktreeRecord, WorktreeState } from '../../data/data_types'
+import { setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge'
 import { createDeferred } from '../test_support/data_service_test_support'
 import { WorktreeService } from './worktree_service'
 
@@ -13,16 +14,16 @@ const second: WorktreeRecord = {
     status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false }, valid: true,
 }
 
-function card(path: string, title: string, worktree: number | null): ProjectCard {
+function card(path: string, title: string, worktree: number | null): Card {
     return {
         agentConversationErrors: [], agentConversations: [], content: '', header: {
             affects: [], after: null, agentLogReferences: [], author: null, id: path, internalId: path,
             owner: null, policy: {}, status: 'ready', title, worktree, worktreeError: null, worktreeValue: worktree ? String(worktree) : null,
-        }, headerFields: {}, isActive: true, path,
+        }, hasFrontmatter: true, isActive: true, path,
     }
 }
 
-function snapshot(activeCards: ProjectCard[] = [], backgroundCards: ProjectCard[] = []): ProjectSnapshot {
+function snapshot(activeCards: Card[] = [], backgroundCards: Card[] = []): ProjectSnapshot {
     return { activeCards, backgroundCards, repositoryFiles: [], workingFolder: 'design' }
 }
 
@@ -32,6 +33,7 @@ function createStorage() {
     const storage = {
         addWorktree: vi.fn(async () => true),
         commitWorktree: vi.fn(async () => undefined),
+        deleteLocalBranch: vi.fn(async () => undefined),
         discardWorktreeChanges: vi.fn(async () => undefined),
         integrateWorktree: vi.fn(async () => undefined),
         onWorktreesChanged: vi.fn((callback: (state: WorktreeState) => void) => {
@@ -62,21 +64,28 @@ function initService(
     projectFolder = 'design',
 ) {
     const assignCardWorktree = vi.fn()
+    const clearCardBranch = vi.fn()
+    const unassignCardWorktree = vi.fn()
     service.init({
         assignCardWorktree,
         cardSeparatorProvider: () => '-',
+        clearCardBranch,
         flushPendingChanges,
         projectFolderProvider: () => projectFolder,
         projectProvider: () => project,
         snapshotProvider: () => projectSnapshot,
         storageProvider: () => storage,
+        unassignCardWorktree,
     })
 
-    return assignCardWorktree
+    return { assignCardWorktree, clearCardBranch, unassignCardWorktree }
 }
 
 describe('WorktreeService', () => {
-    afterEach(() => vi.restoreAllMocks())
+    afterEach(() => {
+        setActionBridgeOverride(null)
+        vi.restoreAllMocks()
+    })
 
     it('replaces records from pushed state and preserves identity for equal records', () => {
         const { emit, storage } = createStorage()
@@ -144,13 +153,13 @@ describe('WorktreeService', () => {
         const { emit, storage } = createStorage()
         const service = new WorktreeService()
         const activeCard = card('design/F-1.md', 'Prepare This Card!', null)
-        const assignCardWorktree = initService(service, storage, snapshot([activeCard]))
+        const { assignCardWorktree } = initService(service, storage, snapshot([activeCard]))
         emit(project, [first])
 
         await service.setCardWorktree(activeCard.path, 1)
 
         expect(storage.prepareWorktree).toHaveBeenCalledWith({ branchName: 'design-f-1-md-prepare-this-card', project, worktree: 1 })
-        expect(assignCardWorktree).toHaveBeenCalledWith(activeCard.path, 1)
+        expect(assignCardWorktree).toHaveBeenCalledWith(activeCard.path, 1, 'design-f-1-md-prepare-this-card')
     })
 
     it('reserves a worktree while preparation is pending', async () => {
@@ -160,7 +169,7 @@ describe('WorktreeService', () => {
         const service = new WorktreeService()
         const firstCard = card('design/F-1.md', 'First', null)
         const secondCard = card('design/F-2.md', 'Second', null)
-        const assignCardWorktree = initService(service, storage, snapshot([firstCard, secondCard]))
+        const { assignCardWorktree } = initService(service, storage, snapshot([firstCard, secondCard]))
         emit(project, [first])
 
         const firstAssignment = service.setCardWorktree(firstCard.path, 1)
@@ -168,7 +177,7 @@ describe('WorktreeService', () => {
         pendingPreparation.resolve()
         await firstAssignment
 
-        expect(assignCardWorktree).toHaveBeenCalledWith(firstCard.path, 1)
+        expect(assignCardWorktree).toHaveBeenCalledWith(firstCard.path, 1, 'design-f-1-md-first')
     })
 
     it('keeps the card assigned when backend parking rejects newly dirty state', async () => {
@@ -179,7 +188,7 @@ describe('WorktreeService', () => {
         })
         const service = new WorktreeService()
         const assignedCard = card('design/F-1.md', 'Assigned', 1)
-        const assignCardWorktree = initService(service, storage, snapshot([assignedCard]))
+        const { assignCardWorktree } = initService(service, storage, snapshot([assignedCard]))
         emit(project, [first])
 
         await expect(service.setCardWorktree(assignedCard.path, null)).rejects.toThrow('uncommitted changes')
@@ -192,7 +201,7 @@ describe('WorktreeService', () => {
         const { emit, storage } = createStorage()
         const service = new WorktreeService()
         const assignedCard = card('design/F-1.md', 'Assigned', 1)
-        const assignCardWorktree = initService(service, storage, snapshot([assignedCard]))
+        const { assignCardWorktree } = initService(service, storage, snapshot([assignedCard]))
         emit(project, [first])
 
         await service.commitCardWorktree(assignedCard.path, 'F-1: Assigned')
@@ -201,6 +210,27 @@ describe('WorktreeService', () => {
         expect(storage.pushWorktree).not.toHaveBeenCalled()
         expect(storage.parkWorktree).not.toHaveBeenCalled()
         expect(assignCardWorktree).not.toHaveBeenCalled()
+    })
+
+    it('uses one outgoing-status rule for integration availability and worktree diff loading', async () => {
+        const { emit, storage } = createStorage()
+        const service = new WorktreeService()
+        const assignedCard = card('design/F-1.md', 'Assigned', 1)
+        initService(service, storage, snapshot([assignedCard]))
+        const generateWorktreeDiff = vi.fn(async () => ({ files: [], repositoryRoot: first.path }))
+        setActionBridgeOverride({ generateWorktreeDiff } as unknown as ElectronActionBridge)
+
+        emit(project, [first])
+        expect(service.canIntegrateCardWorktree(assignedCard.path)).toBe(false)
+        await expect(service.generateCardWorktreeDiff(assignedCard.path)).rejects.toThrow('no changes to integrate')
+
+        emit(project, [{ ...first, status: { ...first.status, dirty: true } }])
+        expect(service.canIntegrateCardWorktree(assignedCard.path)).toBe(true)
+        await expect(service.generateCardWorktreeDiff(assignedCard.path)).resolves.toEqual({ files: [], repositoryRoot: first.path })
+        expect(generateWorktreeDiff).toHaveBeenCalledWith({ worktree: 1 })
+
+        emit(project, [{ ...first, status: { ...first.status, baseAhead: 1, dirty: false } }])
+        expect(service.canIntegrateCardWorktree(assignedCard.path)).toBe(true)
     })
 
     it('flushes project changes before updating a card worktree', async () => {
@@ -227,7 +257,7 @@ describe('WorktreeService', () => {
         initService(service, storage, projectSnapshot, flushPendingChanges)
         emit(project, [first])
 
-        await service.integrateCardWorktree(assignedCard.path)
+        await service.integrateCardWorktree(assignedCard.path, false)
 
         expect(flushPendingChanges.mock.invocationCallOrder[0]).toBeLessThan(
             vi.mocked(storage.integrateWorktree!).mock.invocationCallOrder[0],
@@ -238,6 +268,49 @@ describe('WorktreeService', () => {
             projectFolder: 'design',
             worktree: 1,
         })
+    })
+
+    it('parks, unassigns, deletes, then clears branch identity after successful integration', async () => {
+        const { emit, storage } = createStorage()
+        const service = new WorktreeService()
+        const assignedCard = card('design/F-1.md', 'Assigned', 1)
+        assignedCard.header.branch = 'f-1-assigned'
+        const { clearCardBranch, unassignCardWorktree } = initService(service, storage, snapshot([assignedCard]))
+        emit(project, [first])
+
+        await service.integrateCardWorktree(assignedCard.path, true)
+
+        expect(storage.deleteLocalBranch).toHaveBeenCalledWith(project, 'f-1-assigned')
+        expect(vi.mocked(storage.integrateWorktree!).mock.invocationCallOrder[0]).toBeLessThan(
+            vi.mocked(storage.parkWorktree!).mock.invocationCallOrder[0],
+        )
+        expect(vi.mocked(storage.parkWorktree!).mock.invocationCallOrder[0]).toBeLessThan(
+            unassignCardWorktree.mock.invocationCallOrder[0],
+        )
+        expect(unassignCardWorktree.mock.invocationCallOrder[0]).toBeLessThan(
+            vi.mocked(storage.deleteLocalBranch!).mock.invocationCallOrder[0],
+        )
+        expect(vi.mocked(storage.deleteLocalBranch!).mock.invocationCallOrder[0]).toBeLessThan(
+            clearCardBranch.mock.invocationCallOrder[0],
+        )
+    })
+
+    it('retains branch identity and reports partial failure when deletion fails after integration', async () => {
+        const { emit, storage } = createStorage()
+        storage.deleteLocalBranch = vi.fn(async () => { throw new Error('delete failed') })
+        const service = new WorktreeService()
+        const assignedCard = card('design/F-1.md', 'Assigned', 1)
+        assignedCard.header.branch = 'f-1-assigned'
+        const { clearCardBranch, unassignCardWorktree } = initService(service, storage, snapshot([assignedCard]))
+        emit(project, [first])
+
+        await expect(service.integrateCardWorktree(assignedCard.path, true)).rejects.toThrow(
+            'Worktree integrated, but branch cleanup failed: delete failed',
+        )
+
+        expect(unassignCardWorktree).toHaveBeenCalledWith(assignedCard.path)
+        expect(clearCardBranch).not.toHaveBeenCalled()
+        expect(assignedCard.header.branch).toBe('f-1-assigned')
     })
 
     it('integrates a project worktree without card tracking fields', async () => {

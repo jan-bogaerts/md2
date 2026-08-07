@@ -36,6 +36,7 @@ describe('MarkdownPlaceholderToolbarControl', () => {
 
         const menu = within(screen.getByRole('menu'))
         expect(menu.getByRole('menuitem', { name: /worktree-folder/u })).toBeInTheDocument()
+        expect(menu.getByRole('menuitem', { name: /repository-folder/u })).toBeInTheDocument()
         expect(menu.getByRole('menuitem', { name: /project-folder/u })).toBeInTheDocument()
         expect(menu.getByRole('menuitem', { name: /releases-folder/u })).toBeInTheDocument()
         expect(menu.queryByRole('menuitem', { name: /rootProjectFolder/u })).not.toBeInTheDocument()

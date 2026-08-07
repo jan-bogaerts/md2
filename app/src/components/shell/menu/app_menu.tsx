@@ -35,7 +35,7 @@ import { useProjectPersistence } from '../../hooks/use_project_persistence'
 import { useProjectConfig } from '../../hooks/use_project_config'
 import { usePrimaryWorktreeStatus } from '../../hooks/use_worktrees'
 import { useWorkspaceView } from '../../hooks/use_workspace_view'
-import { ActionEntryPoints } from '../../actions/action_entry_points'
+import { ActionEntryPoints } from '../../actions/run/trigger/action_entry_points'
 import { MainToolbar } from './main_toolbar'
 import { GithubAuthToolbarButton } from '../github_auth_toolbar_button'
 import { NO_DRAG_REGION } from '../drag_region'
@@ -138,7 +138,7 @@ export function AppMenu(props: AppMenuProps) {
     }
 
     const handleOpenReleaseDialog = () => {
-        openDialog('release')
+        void actions.openReleaseDialog()
     }
 
     const handleOpenCardDialog = () => {
@@ -499,9 +499,13 @@ export function AppMenu(props: AppMenuProps) {
                 selectedBranch={actions.switchBranch}
             />
             <CompleteReleaseDialog
+                branchCandidates={actions.releaseBranchCandidates}
+                defaultSelectAll={actions.releaseSelectAllDefault}
                 isLoading={actions.isLoading}
+                key={dialogMode === 'release' ? 'release-open' : 'release-closed'}
                 onClose={actions.closeDialog}
                 onCompleteRelease={actions.completeRelease}
+                onSelectAllDefaultChange={actions.setReleaseSelectAllDefault}
                 open={dialogMode === 'release'}
             />
             <NewCardDialog

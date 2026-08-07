@@ -16,6 +16,7 @@ function buildClaudeOutputCommand(command) {
 function buildClaudeStreamingCommand(command) {
     return [
         ...buildClaudeOutputCommand(command),
+        '--include-partial-messages',
         '--input-format',
         'stream-json',
         '--permission-prompt-tool',

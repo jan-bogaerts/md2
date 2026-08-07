@@ -6,6 +6,7 @@ import type {
     AgentApproval,
     AgentApprovalDecision,
     AgentApprovalRequestId,
+    AgentConversationReservation,
     AgentQuestion,
     ActionRunEvent,
     ActionRunStatus,
@@ -19,7 +20,7 @@ import { getElectronActionBridge } from '../../data/electron_action_bridge'
 import type { ElectronActionBridge } from '../../data/electron_action_bridge'
 import { actionService } from './action_service'
 import { actionPromptDraftService } from './action_prompt_draft_service'
-import { register } from '.././service_injector'
+import { register } from '../service_injector'
 
 const TERMINAL_STATUSES = new Set<ActionRunTerminalStatus>(['cancelled', 'completed', 'failed', 'okButNotAfter'])
 const ACTIVE_STATUSES = new Set<ActionRunStatus>(['queued', 'running', 'waitingForInput'])
@@ -96,6 +97,19 @@ function runningLogIndex(logs: ActionRunLogEntry[], event: ActionRunEvent) {
     ))
 }
 
+type AgentOutputUpdate = Pick<
+    Extract<ActionRunUpdate, { kind: 'error' | 'output' }>,
+    'content' | 'previousContent' | 'replace'
+>
+
+function updatedStdout(currentStdout: string, update: AgentOutputUpdate) {
+    if (!update.replace) return `${currentStdout}${update.content}`
+    if (update.previousContent === undefined) throw new Error('Missing previous assistant output')
+    if (!currentStdout.endsWith(update.previousContent)) throw new Error('Assistant output replacement is out of order')
+
+    return `${currentStdout.slice(0, currentStdout.length - update.previousContent.length)}${update.content}`
+}
+
 function updateActionLogs(logs: ActionRunLogEntry[], event: Extract<ActionRunEvent, { type: 'action' }>) {
     const currentIndex = runningLogIndex(logs, event)
     if (currentIndex < 0) return [...logs, createLog(event)]
@@ -127,7 +141,7 @@ function updateOutputLogs(
         ...current,
         command: update.command ?? current.command,
         stderr: update.kind === 'error' ? `${current.stderr}${update.content}` : current.stderr,
-        stdout: update.kind === 'output' ? `${current.stdout}${update.content}` : current.stdout,
+        stdout: update.kind === 'output' ? updatedStdout(current.stdout, update) : current.stdout,
     }
     if (currentIndex < 0) return [...logs, updated]
     const next = [...logs]
@@ -164,7 +178,7 @@ function nextConversationSequence(conversation: AgentConversation) {
 
 function appendAssistantMessage(
     conversation: AgentConversation,
-    update: { content: string, messageId?: string, sequence?: number },
+    update: { content: string, messageId?: string, replace?: boolean, sequence?: number },
 ) {
     const sequence = update.sequence ?? nextConversationSequence(conversation)
     const latestUserIndex = conversation.entries.findLastIndex((entry) => entry.kind === 'message' && entry.role === 'user')
@@ -184,7 +198,7 @@ function appendAssistantMessage(
             timestamp: conversation.startedAt,
         }]
         : conversation.entries.map((entry, index) => index === currentIndex
-            ? { ...entry, content: `${entry.content}${update.content}` }
+            ? { ...entry, content: update.replace ? update.content : `${entry.content}${update.content}` }
             : entry)
 
     return { ...conversation, entries }
@@ -428,6 +442,7 @@ export class ActionRunRegistry extends EventTarget {
         runInput: ActionRunInput = {},
         onStarted?: (runId: string) => void,
         interactive = true,
+        conversationReservation?: AgentConversationReservation,
     ) {
         const bridge = getElectronActionBridge()
         if (!bridge) throw new Error('Action run requires Electron')
@@ -437,9 +452,32 @@ export class ActionRunRegistry extends EventTarget {
         this.startsInProgress += 1
         let runId: string
         try {
-            runId = await start({ actionId: action.id, context, runInput })
+            runId = await start({ actionId: action.id, ...(conversationReservation ? { conversationReservation } : {}), context, runInput })
         } finally {
             this.startsInProgress -= 1
+        }
+        onStarted?.(runId)
+
+        return this.waitForRun(runId)
+    }
+
+    async restartRun(
+        previousRunId: string,
+        action: ActionDefinition,
+        context: ActionContext,
+        runInput: ActionRunInput,
+        onStarted?: (runId: string) => void,
+    ) {
+        const bridge = getElectronActionBridge()
+        if (!bridge?.restartActionRun) throw new Error('Restarting an action run requires Electron')
+        this.start()
+        this.startsInProgress += 1
+        let runId: string
+        try {
+            runId = await bridge.restartActionRun(previousRunId, { actionId: action.id, context, runInput })
+        } finally {
+            this.startsInProgress -= 1
+            this.terminalResults.delete(previousRunId)
         }
         onStarted?.(runId)
 
@@ -571,12 +609,20 @@ export class ActionRunRegistry extends EventTarget {
             }
         }
         if (event.type === 'update' && event.update.kind === 'agentQuestion') {
-            next = { ...next, question: { questions: event.update.questions, requestId: event.update.requestId } }
+            next = {
+                ...next,
+                question: { questions: event.update.questions, requestId: event.update.requestId },
+                status: 'waitingForInput',
+            }
         }
         if (event.type === 'update' && event.update.kind === 'agentApproval') {
             const requestId = event.update.approval.requestId
             const approvals = next.approvals.filter((approval) => approval.requestId !== requestId)
-            next = { ...next, approvals: [...approvals, { ...event.update.approval, submitted: false }] }
+            next = {
+                ...next,
+                approvals: [...approvals, { ...event.update.approval, submitted: false }],
+                status: 'waitingForInput',
+            }
         }
         if (event.type === 'update' && event.update.kind === 'agentApprovalSubmitted') {
             const { requestId } = event.update
@@ -589,7 +635,12 @@ export class ActionRunRegistry extends EventTarget {
         }
         if (event.type === 'update' && event.update.kind === 'agentApprovalResolved') {
             const { requestId } = event.update
-            next = { ...next, approvals: next.approvals.filter((approval) => approval.requestId !== requestId) }
+            const approvals = next.approvals.filter((approval) => approval.requestId !== requestId)
+            next = {
+                ...next,
+                approvals,
+                status: next.question || approvals.length > 0 ? 'waitingForInput' : event.status,
+            }
         }
         if (
             event.type === 'update'
@@ -603,6 +654,7 @@ export class ActionRunRegistry extends EventTarget {
                     entries: [...next.conversation.entries, event.update.userMessage],
                 },
                 question: null,
+                status: next.approvals.length > 0 ? 'waitingForInput' : event.status,
             }
             if (event.update.kind === 'agentUserMessage') {
                 actionPromptDraftService.clearRunDraft(event.runId, event.actionId)

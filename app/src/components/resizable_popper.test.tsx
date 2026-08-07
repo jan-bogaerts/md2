@@ -52,6 +52,38 @@ describe('ResizablePopper', () => {
         expect(onBackgroundClick).toHaveBeenCalledOnce()
         expect(screen.getByRole('dialog', { name: 'Test popper' })).toBeInTheDocument()
         expect(document.querySelector('.MuiModal-root')).not.toBeInTheDocument()
+        expect(document.querySelector('.MuiPopper-root')).toHaveStyle({ zIndex: '1300' })
+    })
+
+    it('uses hosted stack position and activates from pointer and focus capture', () => {
+        const onActivate = vi.fn()
+        render(
+            <ResizablePopper
+                anchorElement={document.body}
+                initialSize={{ height: 300, width: 400 }}
+                labelId="popper-title"
+                onActivate={onActivate}
+                onClose={vi.fn()}
+                open
+                resizeLabel="Resize test popper"
+                stackPosition={3}
+            >
+                <h2 id="popper-title">Test popper</h2>
+                <button type="button">Focusable control</button>
+            </ResizablePopper>,
+        )
+        const dialog = screen.getByRole('dialog', { name: 'Test popper' })
+
+        expect(document.querySelector('.MuiPopper-root')).toHaveStyle({ zIndex: '1303' })
+        expect(dialog).toHaveFocus()
+        expect(onActivate).toHaveBeenCalledOnce()
+        onActivate.mockClear()
+
+        fireEvent.pointerDown(dialog)
+        fireEvent.pointerDown(screen.getByRole('separator', { name: 'Resize test popper' }))
+        fireEvent.focus(screen.getByRole('button', { name: 'Focusable control' }))
+
+        expect(onActivate).toHaveBeenCalledTimes(3)
     })
 
     it('uses fixed viewport positioning without extending the application document', () => {

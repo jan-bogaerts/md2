@@ -2,11 +2,10 @@ import { useCallback, useRef, useSyncExternalStore } from 'react'
 import { orderByAfter, UNASSIGNED_STATUS } from '../../data/card_ordering'
 import {
     CARD_ADDED_EVENT,
-    CARD_CHANGED_EVENT,
     CARD_REMOVED_EVENT,
+    cardCollectionFieldChangedEvent,
     dataService,
     type CardAddedEventDetail,
-    type CardChangedEventDetail,
     type CardRemovedEventDetail,
     type DataService,
 } from '../../services/data/data_service'
@@ -29,20 +28,13 @@ export function useCardColumnCards(status: string, service: DataService = dataSe
                 onStoreChange()
             }
         }
-        const handleCardChanged = (event: Event) => {
-            const { card, previousCard } = (event as CustomEvent<CardChangedEventDetail>).detail
-            const currentStatus = card.header.status ?? UNASSIGNED_STATUS
-            const previousStatus = previousCard.header.status ?? UNASSIGNED_STATUS
-            if (currentStatus === previousStatus && card.header.after === previousCard.header.after) return
-            if (currentStatus === status || previousStatus === status) onStoreChange()
-        }
         service.addEventListener(CARD_ADDED_EVENT, handleCardAddedOrRemoved)
-        service.addEventListener(CARD_CHANGED_EVENT, handleCardChanged)
+        service.addEventListener(cardCollectionFieldChangedEvent('ordering'), onStoreChange)
         service.addEventListener(CARD_REMOVED_EVENT, handleCardAddedOrRemoved)
 
         return () => {
             service.removeEventListener(CARD_ADDED_EVENT, handleCardAddedOrRemoved)
-            service.removeEventListener(CARD_CHANGED_EVENT, handleCardChanged)
+            service.removeEventListener(cardCollectionFieldChangedEvent('ordering'), onStoreChange)
             service.removeEventListener(CARD_REMOVED_EVENT, handleCardAddedOrRemoved)
         }
     }, [service, status])

@@ -30,6 +30,15 @@ function splitPath(path: string) {
         : { directory: path.slice(0, separatorIndex), fileName: path.slice(separatorIndex + 1) }
 }
 
+/** Builds a card path in its current directory from a new id and configured separator. */
+export function cardPathForId(currentPath: string, id: string, title: string, cardSeparator: CardSeparator) {
+    const normalizedPath = currentPath.replace(/\\/gu, '/')
+    const { directory } = splitPath(normalizedPath)
+    const fileName = `${id}${cardSeparator}${slugifyTitle(title, cardSeparator)}${MARKDOWN_EXTENSION}`
+
+    return directory.length > 0 ? `${directory}/${fileName}` : fileName
+}
+
 /**
  * Resolves the file path a card should live at for `title`, keeping its id, folder and separator style.
  * Returns `currentPath` when the name cannot be parsed as a card file or the target is already taken.

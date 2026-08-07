@@ -1,13 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { DEFAULT_STATES, defaultColumnAccent, type StorageProjectFiles, type StorageService } from '../../data/data_types'
+import { DEFAULT_STATES, defaultColumnAccent, type MarkdownFile, type StorageProjectFiles, type StorageService } from '../../data/data_types'
 import type { RawActionDefinition } from '../../data/action_types'
 import { actionService } from '../actions/action_service'
 import { configService } from '../config/config_service'
-import type { DataService } from '../data/data_service'
-import { DIALOG_SERVICE_EVENT, dialogService, type DialogServiceMessage, type DialogSeverity } from '.././dialog_service'
+import { cardCollectionFieldChangedEvent, cardFieldChangedEvent, type DataService } from '../data/data_service'
+import { CARD_FIELDS } from '../data/card_events'
+import { DIALOG_SERVICE_EVENT, dialogService, type DialogServiceMessage, type DialogSeverity } from '../dialog_service'
 import { telemetryService } from '../telemetry/telemetry_service'
-import { GLOBAL_PROGRESS_EVENT, globalProgressService, type GlobalProgress } from '.././global_progress_service'
-import { createDataService, createDeferred, createStorage, files, storageFiles, waitForWorkerTurn } from '.././test_support/data_service_test_support'
+import { GLOBAL_PROGRESS_EVENT, globalProgressService, type GlobalProgress } from '../global_progress_service'
+import { createDataService, createDeferred, createStorage, files, storageFiles, waitForWorkerTurn } from '../test_support/data_service_test_support'
 import { markdownParsingService } from '../data/markdown_parsing_service'
 import { RemoteControlStorageService } from '../data/remote_control_storage_service'
 import { openFilesService } from '../open_files_service'
@@ -132,8 +133,8 @@ describe('ProjectLoading', () => {
             { alwaysVisible: true, color: defaultColumnAccent(1), state: 'design' },
             { alwaysVisible: true, color: defaultColumnAccent(2), state: 'ready for implementation' },
             { alwaysVisible: true, color: defaultColumnAccent(0), state: 'new' },
-            { alwaysVisible: true, color: defaultColumnAccent(3), state: 'in progress' },
-            { alwaysVisible: true, color: defaultColumnAccent(4), state: 'done' },
+            { alwaysVisible: true, color: defaultColumnAccent(3), state: 'to fix' },
+            { alwaysVisible: true, color: defaultColumnAccent(4), state: 'ready' },
         ])
     })
 
@@ -168,7 +169,7 @@ describe('ProjectLoading', () => {
 
     it('renames card files one at a time while publishing global progress', async () => {
         configService.init()
-        const storage = createStorage({loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, cardSeparator: '-' as const, projectFolder: '', workingFolder: 'design' }))})
+        const storage = createStorage({loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, cardSeparator: '-' as const, projectFolder: '', pushMode: 'auto' as const, workingFolder: 'design' }))})
         const service = createDataService()
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -366,6 +367,42 @@ describe('ProjectLoading', () => {
         await vi.waitFor(() => {
             expect(service.getState().snapshot?.backgroundCards.map((card) => card.path)).toEqual(['design/history/F-3-old.md'])
         })
+    })
+
+    it('merges a stale background load without replacing newer owned card state', async () => {
+        configService.init()
+        configService.set('react.autoCommitDelayMs', 30000)
+        const rootFile = files[0]
+        const backgroundFile = files[1]
+        const fullProject = createDeferred<StorageProjectFiles>()
+        const commit = vi.fn<StorageService['commit']>(async (request) => request.files)
+        const storage = createStorage({
+            commit,
+            listRepositoryFiles: vi.fn(async () => [rootFile.path, backgroundFile.path]),
+            loadProject: vi.fn(async () => fullProject.promise),
+            loadProjectRoot: vi.fn(async () => ({ files: [rootFile], workingFolder: 'design' })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const ownedCard = service.getState().snapshot?.activeCards[0]
+        if (!ownedCard) throw new Error('Expected loaded card')
+        const reference = 'design/activity/card__root-card.json#conversation=agent-1'
+
+        await service.cards.moveCard(ownedCard.path, 'ready', 0)
+        service.cards.addAgentLogReference(ownedCard.path, reference)
+        fullProject.resolve({ files: [rootFile, backgroundFile], workingFolder: 'design' })
+
+        await vi.waitFor(() => expect(service.getState().snapshot?.backgroundCards).toHaveLength(1))
+        const mergedCard = service.getState().snapshot?.activeCards[0]
+        expect(mergedCard).toBe(ownedCard)
+        expect(mergedCard?.header.status).toBe('ready')
+        expect(mergedCard?.header.agentLogReferences).toEqual([reference])
+
+        await service.cards.flushPendingCommits()
+        const persisted = commit.mock.calls.at(-1)?.[0].files.find(({ path }) => path === ownedCard.path)
+        expect(persisted?.content).toContain('status: ready')
+        expect(persisted?.content).toContain(`  - ${reference}`)
     })
 
     it('reports background project load failures while keeping the root snapshot available', async () => {
@@ -826,6 +863,37 @@ describe('ProjectLoading', () => {
         expect(card?.content).toContain('Externally changed')
     })
 
+    it('keeps a committed worktree assignment when another markdown file reloads', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        let watchChange: (event: { changeKind: 'added' | 'changed' | 'removed' | 'unknown'; path: string }) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const changedBackgroundFile = {
+            content: '---\ninternalId: old-card\n---\n\n# Externally changed',
+            path: 'design/history/F-3-old.md',
+        }
+        const storage = createStorage({
+            loadFile: vi.fn(async () => changedBackgroundFile),
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        service.cards.updateCardWorktree('design/F-1-root.md', 1)
+        await service.cards.flushPendingCommits()
+        watchChange({ changeKind: 'changed', path: changedBackgroundFile.path })
+        await vi.advanceTimersByTimeAsync(150)
+
+        const card = service.getState().snapshot?.activeCards.find((candidate) => candidate.path === 'design/F-1-root.md')
+        expect(card?.header.worktree).toBe(1)
+    })
+
     it('refreshes mobile project state for remotely watched markdown additions, changes, and removals', async () => {
         vi.useFakeTimers()
         ProjectLoadingMockWebSocket.instances = []
@@ -909,6 +977,62 @@ describe('ProjectLoading', () => {
         await vi.advanceTimersByTimeAsync(800)
 
         expect(service.getState().snapshot?.activeCards.some(({ path }) => path === 'design/F-1-root.md')).toBe(false)
+    })
+
+    it('publishes granular card and collection events for a remotely watched status change', async () => {
+        vi.useFakeTimers()
+        ProjectLoadingMockWebSocket.instances = []
+        vi.stubGlobal('WebSocket', ProjectLoadingMockWebSocket)
+        configService.init()
+        const remoteStorage = new RemoteControlStorageService()
+        remoteStorage.init({ endpoint: 'ws://127.0.0.1:1234', token: 'token-1' })
+        const storage = createStorage({
+            loadFile: remoteStorage.loadFile.bind(remoteStorage),
+            watchProject: remoteStorage.watchProject.bind(remoteStorage),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const socket = ProjectLoadingMockWebSocket.instances[0]
+        if (!socket) throw new Error('Remote-control socket was not created')
+        const cardPath = 'design/F-1-root.md'
+        const publishedEvents: string[] = []
+        const recordEvent = (event: Event) => publishedEvents.push(event.type)
+        for (const field of CARD_FIELDS) {
+            service.addEventListener(cardFieldChangedEvent(cardPath, field), recordEvent)
+            service.addEventListener(cardCollectionFieldChangedEvent(field), recordEvent)
+        }
+
+        socket.open()
+        await flushPromises()
+        const watchRequest = JSON.parse(socket.sent[0]) as { id: string, method: string }
+        socket.receive({ id: watchRequest.id, result: { subscriptionId: 'watch-1' } })
+        await vi.advanceTimersByTimeAsync(0)
+        publishedEvents.length = 0
+        socket.receive({
+            event: 'watchProject',
+            payload: {
+                event: { changeKind: 'changed', path: cardPath },
+                requestId: watchRequest.id,
+                subscriptionId: 'watch-1',
+            },
+        })
+        await vi.advanceTimersByTimeAsync(50)
+        const loadRequest = JSON.parse(socket.sent[1]) as { id: string }
+        socket.receive({
+            id: loadRequest.id,
+            result: { ...files[0], content: files[0].content.replace('status: active', 'status: ready') },
+        })
+        await vi.advanceTimersByTimeAsync(0)
+
+        const card = service.getState().snapshot?.activeCards.find(({ path }) => path === cardPath)
+        expect(card?.header.status).toBe('ready')
+        expect(publishedEvents).toEqual([
+            cardFieldChangedEvent(cardPath, 'ordering'),
+            cardCollectionFieldChangedEvent('ordering'),
+            cardFieldChangedEvent(cardPath, 'status'),
+            cardCollectionFieldChangedEvent('status'),
+        ])
     })
 
     it('removes a markdown card when the watcher reports deletion', async () => {
@@ -1085,7 +1209,7 @@ describe('ProjectLoading', () => {
         if (!projectCard) throw new Error('Expected loaded card')
         const document = openFilesService.openDocument(projectCard)
         if (document.kind !== 'card') throw new Error('Expected card document')
-        document.updateDraft({ ...projectCard, content: '# Root\n\nLocal draft' }, 'list-card')
+        document.updateDraft({ content: '# Root\n\nLocal draft' }, 'list-card')
 
         try {
             watchChange({ changeKind: 'changed', path: projectCard.path })
@@ -1093,7 +1217,53 @@ describe('ProjectLoading', () => {
 
             expect(conflicts.messages[0]).toContain(`External change ignored for ${projectCard.path}`)
             expect(document.getDraft().content).toContain('Local draft')
-            expect(storage.loadFile).not.toHaveBeenCalled()
+        } finally {
+            conflicts.stop()
+        }
+    })
+
+    it('drops the watcher echo of a flushed save without reporting a conflict for newer pending edits', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        configService.set('react.autoCommitDelayMs', 1000)
+        let watchChange: (event: { changeKind: 'changed'; path: string }) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        let committedFile: MarkdownFile | null = null
+        const storage = createStorage({
+            commit: vi.fn(async (request) => {
+                committedFile = request.files[0] ?? committedFile
+
+                return []
+            }),
+            loadFile: vi.fn(async () => {
+                if (!committedFile) throw new Error('Nothing committed yet')
+
+                return committedFile
+            }),
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        const conflicts = recordDialogMessages('error')
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        try {
+            service.cards.updateCardBody('design/F-1-root.md', '# Root\n\nFirst edit')
+            await vi.advanceTimersByTimeAsync(1100)
+            expect(storage.commit).toHaveBeenCalled()
+
+            service.cards.updateCardBody('design/F-1-root.md', '# Root\n\nSecond edit')
+            watchChange({ changeKind: 'changed', path: 'design/F-1-root.md' })
+            await vi.advanceTimersByTimeAsync(100)
+
+            expect(conflicts.messages).toEqual([])
+            const card = service.getState().snapshot?.activeCards.find((candidate) => candidate.path === 'design/F-1-root.md')
+            expect(card?.content).toContain('Second edit')
         } finally {
             conflicts.stop()
         }

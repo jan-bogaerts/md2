@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { AgentConversation, ProjectCard, ProjectSnapshot } from '../../data/data_types'
+import type { AgentConversation, Card, ProjectSnapshot } from '../../data/data_types'
 import { ProjectAgentUsageSummary } from './project_agent_usage_summary'
 
 const { projectConfig, projectState } = vi.hoisted(() => ({
@@ -29,11 +29,12 @@ function conversation(id: string, totalTokens: number): AgentConversation {
         startedAt: 'now',
         status: 'completed',
         title: 'Run',
+        viewed: true,
         usage: { cachedInputTokens: 0, inputTokens: totalTokens, outputTokens: 0, reasoningTokens: 0, totalTokens },
     }
 }
 
-function card(path: string, totalTokens: number): ProjectCard {
+function card(path: string, totalTokens: number): Card {
     return {
         agentConversationErrors: [],
         agentConversations: [conversation(path, totalTokens)],
@@ -42,7 +43,7 @@ function card(path: string, totalTokens: number): ProjectCard {
             affects: [], after: null, agentLogReferences: [], author: null, id: path, internalId: path,
             owner: null, policy: {}, status: 'done', title: path,
         },
-        headerFields: {},
+        hasFrontmatter:true,
         isActive: !path.includes('/history/'),
         path,
     }

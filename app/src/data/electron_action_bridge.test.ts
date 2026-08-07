@@ -5,6 +5,7 @@ function createBridge(): ElectronActionBridge {
     return {
         cancelActionRun: vi.fn(async () => {}),
         generateDiff: vi.fn(async () => ({ commit: 'commit-1', files: [] })),
+        generateWorktreeDiff: vi.fn(async () => ({ files: [], repositoryRoot: 'C:/worktree' })),
         openInEditor: vi.fn(),
         loadActionRunHistory: vi.fn(async () => []),
         onActionRun: vi.fn(() => () => {}),

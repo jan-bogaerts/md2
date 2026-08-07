@@ -67,6 +67,7 @@ export interface CardHeader {
     /** Terminal conversation references inside activity files; the name mirrors the persisted `agents` field. */
     agentLogReferences: string[]
     author: string | null
+    branch?: string | null
     id: string
     internalId: string | null
     owner: string | null
@@ -78,21 +79,20 @@ export interface CardHeader {
     worktreeValue?: string | null
 }
 
-export interface ProjectCard {
+export interface Card {
     agentConversationErrors: AgentConversationError[]
     agentConversations: AgentConversation[]
     content: string
+    hasFrontmatter: boolean
     header: CardHeader
-    /** Raw frontmatter fields as written in the file, including unknown keys. */
-    headerFields: Record<string, string | string[] | Record<string, string>>
     isActive: boolean
     path: string
     sha?: string
 }
 
 export interface ProjectSnapshot {
-    activeCards: ProjectCard[]
-    backgroundCards: ProjectCard[]
+    activeCards: Card[]
+    backgroundCards: Card[]
     repositoryFiles: string[]
     workingFolder: string
 }
@@ -170,6 +170,12 @@ export interface RepositoryReference extends ProjectReference {
 
 export interface BranchReference {
     name: string
+}
+
+export interface ReleaseBranchCandidate {
+    branchName: string
+    cardId: string
+    cardPath: string
 }
 
 export interface TopLevelFolderReference {
@@ -310,6 +316,7 @@ export interface AgentConversation {
     status: AgentConversationStatus
     title: string
     usage?: AgentTokenUsage
+    viewed: boolean
 }
 
 export interface AgentConversationError {
@@ -352,6 +359,7 @@ export interface StorageService {
     createProject(project: ProjectReference, workingFolder: string): Promise<ProjectReference>
     deleteFile(request: DeleteFileRequest): Promise<void>
     deleteFolder(request: DeleteFolderRequest): Promise<void>
+    deleteLocalBranch?(project: ProjectReference, branchName: string): Promise<void>
     discardWorktreeChanges?(request: WorktreeOperationRequest): Promise<void>
     discardPendingCommits?(project: ProjectReference): void
     hasPendingPush?(project: ProjectReference): boolean
@@ -363,6 +371,7 @@ export interface StorageService {
     cancelActionSchedule?(project: ProjectReference, actionsFolder: string, scheduleId: string): Promise<ActionSchedule[]>
     loadAgentConversation?(project: ProjectReference, path: string): Promise<AgentConversation>
     loadProjectAsset?(project: ProjectReference, path: string): Promise<ProjectAsset>
+    loadTextFile?(project: ProjectReference, path: string): Promise<MarkdownFile>
     loadProject(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>
     loadFile?(project: ProjectReference, path: string): Promise<MarkdownFile>
     loadProjectRoot(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>
@@ -447,7 +456,7 @@ export const DEFAULT_PROJECT_CONFIG: ProjectConfig = {
     cardTypes: DEFAULT_CARD_TYPES,
     diffCommand: DEFAULT_DIFF_COMMAND,
     projectFolder: DEFAULT_PROJECT_FOLDER,
-    pushMode: 'auto',
+    pushMode: 'manual',
     releasesFolder: DEFAULT_RELEASES_FOLDER,
     states: DEFAULT_STATES,
     workingFolder: DEFAULT_WORKING_FOLDER,

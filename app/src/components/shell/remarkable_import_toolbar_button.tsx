@@ -1,12 +1,12 @@
 import { Dialog, DialogContent, DialogTitle, IconButton, Tooltip } from '@mui/material'
 import FileImport from 'mdi-material-ui/FileImport'
 import { useState } from 'react'
-import type { ProjectCard } from '../../data/data_types'
+import type { Card } from '../../data/data_types'
 import type { RemarkableBridge } from '../../data/remarkable_bridge'
 import { RemarkableImportPanel } from '../remarkable_import_panel'
 
 interface RemarkableImportToolbarButtonProps {
-    activeCards: ProjectCard[]
+    activeCards: Card[]
     bridge: RemarkableBridge | null
     isProjectOpen: boolean
 }

@@ -1,4 +1,4 @@
-const ALLOWED_REQUEST_FIELDS = new Set(['actionId', 'context', 'runInput']);
+const ALLOWED_REQUEST_FIELDS = new Set(['actionId', 'context', 'conversationReservation', 'runInput']);
 const ALLOWED_RUN_INPUT_FIELDS = new Set(['accessLevel', 'agent', 'approvalPolicy', 'continueFrom', 'extraPrompt', 'model', 'prompt', 'thinkingLevel']);
 const CONTEXT_KINDS = new Set(['card', 'file', 'folder', 'project']);
 
@@ -45,6 +45,24 @@ function validateRunInput(runInput = {}) {
     };
 }
 
+function validateConversationReservation(reservation) {
+    if (reservation === undefined) return undefined;
+    if (!reservation || typeof reservation !== 'object' || Array.isArray(reservation)) {
+        throw new Error('Invalid agent conversation reservation');
+    }
+    const allowedFields = new Set(['conversationId', 'reference']);
+    const unsupportedField = Object.keys(reservation).find((fieldName) => !allowedFields.has(fieldName));
+    if (unsupportedField) throw new Error(`Unsupported agent conversation reservation field: ${unsupportedField}`);
+    if (typeof reservation.conversationId !== 'string' || reservation.conversationId.length === 0) {
+        throw new Error('Missing reserved agent conversationId');
+    }
+    if (typeof reservation.reference !== 'string' || reservation.reference.length === 0) {
+        throw new Error('Missing reserved agent conversation reference');
+    }
+
+    return { conversationId: reservation.conversationId, reference: reservation.reference };
+}
+
 function validateStartRequest(request) {
     if (!request || typeof request !== 'object' || Array.isArray(request)) throw new Error('Missing action start request');
 
@@ -52,7 +70,14 @@ function validateStartRequest(request) {
     if (unsupportedField) throw new Error(`Unsupported action start field: ${unsupportedField}`);
     if (typeof request.actionId !== 'string' || request.actionId.length === 0) throw new Error('Missing actionId');
 
-    return { actionId: request.actionId, context: validateContext(request.context), runInput: validateRunInput(request.runInput) };
+    const conversationReservation = validateConversationReservation(request.conversationReservation);
+
+    return {
+        actionId: request.actionId,
+        ...(conversationReservation ? { conversationReservation } : {}),
+        context: validateContext(request.context),
+        runInput: validateRunInput(request.runInput),
+    };
 }
 
 function validatePreparePromptRequest(request) {

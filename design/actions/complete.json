@@ -1,0 +1,13 @@
+{
+  "id": "5b88355d-f964-459a-bc67-6618650866ba",
+  "label": "complete",
+  "description": "Complete the contents of the card",
+  "type": "agent",
+  "appliesTo": {
+    "kind": "card"
+  },
+  "trackFileChanges": true,
+  "streaming": true,
+  "phrases": [],
+  "prompt": "Add `Current state`, `implementation details`, `acceptance criteria` for `{{card-file}}`.&#x20;\n\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill"
+}

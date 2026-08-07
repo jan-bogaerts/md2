@@ -39,7 +39,7 @@ Every card is a Markdown file, every action and log a json file, all in your rep
 | Page | What it covers |
 | --- | --- |
 | [Action definition](actions/action-definition.md) | Every field, `appliesTo` filters, validation rules |
-| [Placeholders](actions/placeholders.md) | {% raw %}`{{card-file}}`, `{{card-prompt}}`, `{{card-title}}`, `{{worktree-folder}}`, `{{project-folder}}`, `{{releases-folder}}`{% endraw %} |
+| [Placeholders](actions/placeholders.md) | {% raw %}`{{card-file}}`, `{{card-prompt}}`, `{{card-title}}`, `{{worktree-folder}}`, `{{repository-folder}}`, `{{project-folder}}`, `{{releases-folder}}`{% endraw %} |
 | [Running actions](actions/running-actions.md) | Entry points, popup, conversations, chains, state triggers, scheduling |
 | [Agent setup](actions/agent-setup.md) | Profiles, models, reasoning levels, conversation logs |
 | [Cookbook](actions/cookbook.md) | Copy-paste action definitions |

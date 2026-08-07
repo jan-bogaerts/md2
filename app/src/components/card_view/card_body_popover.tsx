@@ -1,11 +1,11 @@
 import { alpha, Box, Button, Divider, IconButton, InputBase, Tooltip, Typography } from '@mui/material'
 import type { ChangeEvent, KeyboardEvent } from 'react'
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
 import Close from 'mdi-material-ui/Close'
 import DeleteOutline from 'mdi-material-ui/DeleteOutline'
 import FileDocumentOutline from 'mdi-material-ui/FileDocumentOutline'
 import FolderSearchOutline from 'mdi-material-ui/FolderSearchOutline'
-import type { ProjectCard } from '../../data/data_types'
+import type { CardTypeConfig } from '../../data/data_types'
 import type { ActionContext } from '../../data/action_context'
 import { POPOVER_SIDE_MARGIN, POPOVER_TOP_MARGIN, ResizablePopover } from '../resizable_popover'
 import { useRunningActionForContext } from '../hooks/use_action_runs'
@@ -21,10 +21,11 @@ import { CardCommitDiffPanel } from './card_commit_diff_panel'
 import { useCardCommits } from '../hooks/use_card_commits'
 import type { CardCommit } from '../../services/actions/card_commit_history'
 import { openFilesService, type CardOpenDocument } from '../../services/open_files_service'
-import { useProjectCard } from './use_project_card'
+import { getProjectCard, useCardConversations, useCardMetadata } from './use_project_card'
 import { cardBodyPopoverService, subscribeCardBodyPopover } from './card_body_popover_service'
 import { useDialogError } from '../hooks/use_dialog_error'
 import { dialogService } from '../../services/dialog_service'
+import { isWorktreeIntegratable, worktreeService } from '../../services/project/worktree_service'
 
 const CARD_BODY_POPOVER_WIDTH = 760
 const CARD_BODY_POPOVER_HEIGHT = 620
@@ -40,10 +41,19 @@ function subscribeOpenDocuments(onStoreChange: () => void) {
     }
 }
 
-function useBoardDocument(card: ProjectCard | null, visible: boolean) {
-    const getSnapshot = useCallback(() => visible && card?.header.internalId
-        ? openFilesService.findDocument(card) as CardOpenDocument | null
-        : null, [card, visible])
+function subscribeWorktrees(onStoreChange: () => void) {
+    worktreeService.addEventListener('changed', onStoreChange)
+
+    return () => worktreeService.removeEventListener('changed', onStoreChange)
+}
+
+function useBoardDocument(cardPath: string | null, cardInternalId: string | null | undefined, visible: boolean) {
+    const getSnapshot = useCallback(() => {
+        if (!visible || !cardPath || !cardInternalId) return null
+        const card = getProjectCard(cardPath)
+
+        return card ? openFilesService.findDocument(card) as CardOpenDocument | null : null
+    }, [cardInternalId, cardPath, visible])
 
     return useSyncExternalStore(subscribeOpenDocuments, getSnapshot, getSnapshot)
 }
@@ -53,65 +63,72 @@ interface TitleEdit {
     title: string
 }
 
-interface SelectedCardCommit {
-    cardInternalId: string
-    commit: CardCommit
-}
-
 interface CardBodyPopoverProps {
+    cardTypes: CardTypeConfig[]
     isMobile: boolean
     onDeleteCard: (path: string) => Promise<void>
     onOpenAffects: (path: string) => void
     onOpenInFileMode: (path: string) => void
+    statusColors: Map<string, string>
     visible: boolean
 }
 
 /** Card details editor anchored to the card that opened it. */
 export function CardBodyPopover(props: CardBodyPopoverProps) {
     const {
+        cardTypes,
         isMobile,
         onDeleteCard,
         onOpenAffects,
         onOpenInFileMode,
+        statusColors,
         visible,
     } = props
-    const { anchorElement, cardPath } = useSyncExternalStore(
+    const { anchorElement, cardPath, diffSelection } = useSyncExternalStore(
         subscribeCardBodyPopover,
         () => cardBodyPopoverService.getSnapshot(),
         () => cardBodyPopoverService.getSnapshot(),
     )
-    const card = useProjectCard(cardPath)
+    const card = useCardMetadata(cardPath)
+    const activity = useCardConversations(cardPath)
     const [deleteCardPath, setDeleteCardPath] = useState<string | null>(null)
     const [historyStore] = useState(() => new MarkdownDocumentHistoryStore())
-    const cardRef = useRef(card)
     const cardIdentity = card?.header.internalId
-    const boardDocument = useBoardDocument(card, visible)
+    const boardDocument = useBoardDocument(card?.path ?? null, cardIdentity, visible)
     const [isFullscreen, setIsFullscreen] = useState(false)
     const [popupContentElement, setPopupContentElement] = useState<HTMLDivElement | null>(null)
-    const [selectedCardCommit, setSelectedCardCommit] = useState<SelectedCardCommit | null>(null)
     const [titleEdit, setTitleEdit] = useState<TitleEdit>({ path: null, title: '' })
     const titleDraft = titleEdit.path === card?.path ? titleEdit.title : card?.header.title ?? ''
     const cardCommits = useCardCommits(visible ? card?.header.internalId ?? null : null)
-    const selectedCommit = visible && selectedCardCommit && selectedCardCommit.cardInternalId === card?.header.internalId
-        ? selectedCardCommit.commit
+    const worktreeRecords = useSyncExternalStore(
+        subscribeWorktrees,
+        () => worktreeService.getRecords(),
+        () => worktreeService.getRecords(),
+    )
+    const assignedWorktree = card?.header.worktree
+    const assignedRecord = Number.isInteger(assignedWorktree) && assignedWorktree
+        ? worktreeRecords[assignedWorktree - 1]
         : null
+    const currentWorktreeAvailable = !card?.header.worktreeError && isWorktreeIntegratable(assignedRecord)
+    const selectedCommit = visible && diffSelection?.kind === 'commit' && diffSelection.cardInternalId === cardIdentity
+        ? diffSelection.commit
+        : null
+    const selectedWorktree = visible && diffSelection?.kind === 'worktree'
+    const hasSelectedDiff = !!selectedCommit || selectedWorktree
     const missingCardIdentityError = visible && card && !cardIdentity
         ? new Error(`Card identity was not added before opening: ${card.path}`)
         : null
     useDialogError(missingCardIdentityError, 'Card details could not be opened')
 
     useEffect(() => {
-        cardRef.current = card
-    }, [card])
-
-    useEffect(() => {
-        const currentCard = cardRef.current
-        if (!visible || !currentCard) {
+        if (!visible || !cardPath) {
             cardMarkdownDataSource.setBoardDocument(null)
             historyStore.clear()
             return
         }
         if (!cardIdentity) return
+        const currentCard = getProjectCard(cardPath)
+        if (!currentCard) return
 
         const document = openFilesService.openBoardDocument(currentCard)
         cardMarkdownDataSource.setBoardDocument(document)
@@ -121,25 +138,32 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
             historyStore.discardDocument(document)
             openFilesService.closeBoardDocument(document)
         }
-    }, [cardIdentity, historyStore, visible])
+    }, [cardIdentity, cardPath, historyStore, visible])
 
     useEffect(() => () => {
         cardMarkdownDataSource.setBoardDocument(null)
         historyStore.clear()
     }, [historyStore])
 
+    useEffect(() => {
+        if (selectedWorktree && !currentWorktreeAvailable) cardBodyPopoverService.clearDiff()
+    }, [currentWorktreeAvailable, selectedWorktree])
+
+    useEffect(() => {
+        if (diffSelection?.kind === 'commit' && diffSelection.cardInternalId !== cardIdentity) cardBodyPopoverService.clearDiff()
+    }, [cardIdentity, diffSelection])
+
     const closePopover = () => {
         cardMarkdownDataSource.setBoardDocument(null)
         historyStore.clear()
         setIsFullscreen(false)
-        setSelectedCardCommit(null)
         setTitleEdit({ path: null, title: '' })
         cardBodyPopoverService.close()
     }
 
     const handlePopoverClose = (reason?: 'backdropClick' | 'escapeKeyDown') => {
-        if (reason === 'escapeKeyDown' && selectedCommit) {
-            setSelectedCardCommit(null)
+        if (reason === 'escapeKeyDown' && diffSelection) {
+            cardBodyPopoverService.clearDiff()
             return
         }
         closePopover()
@@ -148,12 +172,13 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
     const selectCommit = (commit: CardCommit) => {
         try {
             if (!card?.header.internalId) throw new Error('Cannot select card commit without an internal ID')
-            setSelectedCardCommit({ cardInternalId: card.header.internalId, commit })
+            cardBodyPopoverService.selectDiff({ cardInternalId: card.header.internalId, commit, kind: 'commit' })
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Card commit could not be selected' })
         }
     }
-    const clearSelectedCommit = () => setSelectedCardCommit(null)
+    const selectWorktree = () => cardBodyPopoverService.selectDiff({ kind: 'worktree' })
+    const clearSelectedDiff = () => cardBodyPopoverService.clearDiff()
 
     const openInFileMode = () => {
         if (!card) return
@@ -317,7 +342,13 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
                                 })}
                                 value={titleDraft}
                             />
-                            <CardCommitMenu commits={cardCommits.commits} error={cardCommits.error} onSelect={selectCommit} />
+                            <CardCommitMenu
+                                commits={cardCommits.commits}
+                                currentWorktreeAvailable={currentWorktreeAvailable}
+                                error={cardCommits.error}
+                                onSelectCommit={selectCommit}
+                                onSelectWorktree={selectWorktree}
+                            />
                             <Box sx={{
                                 alignItems: 'center',
                                 color: 'text.disabled',
@@ -339,24 +370,26 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
                             </Tooltip>
                         </Box>
 
-                        {selectedCommit ? (
+                        {selectedCommit || selectedWorktree ? (
                             <CardCommitDiffPanel
                                 binding="board-card"
-                                commit={selectedCommit}
-                                key={selectedCommit.commit}
-                                onExit={clearSelectedCommit}
+                                selection={selectedCommit ? { commit: selectedCommit, kind: 'commit' } : { kind: 'worktree' }}
+                                key={selectedCommit?.commit ?? 'current-worktree'}
+                                onExit={clearSelectedDiff}
                             />
                         ) : null}
                         <Box
-                            hidden={!!selectedCommit}
-                            sx={{ display: selectedCommit ? 'none' : 'flex', flex: 1, flexDirection: 'column', minHeight: 0 }}
+                            hidden={hasSelectedDiff}
+                            sx={{ display: hasSelectedDiff ? 'none' : 'flex', flex: 1, flexDirection: 'column', minHeight: 0 }}
                         >
                             <CardBodyEditor
+                                cardTypes={cardTypes}
                                 historyStore={historyStore}
                                 isFullscreen={isFullscreen}
                                 isMobile={isMobile}
                                 onToggleFullscreen={toggleFullscreen}
                                 overlayContainer={popupContentElement}
+                                statusColors={statusColors}
                             />
                         </Box>
 
@@ -398,7 +431,7 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
                                     <Button onClick={openInFileMode} startIcon={<FileDocumentOutline />} variant="outlined">Open in file mode</Button>
                                 </>
                             )}
-                            <AgentUsageDisplay usage={cardAgentTokenUsage(card)} />
+                            <AgentUsageDisplay usage={cardAgentTokenUsage(activity?.conversations ?? [])} />
                             <Box sx={{ flex: 1 }} />
                             {!isMobile ? <Button onClick={closePopover} variant="contained">Close</Button> : null}
                         </Box>

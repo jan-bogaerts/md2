@@ -8,6 +8,7 @@ const {
     DEFAULT_DESKTOP_AGENT,
     DEFAULT_DESKTOP_APPROVAL_POLICY,
     DEFAULT_DESKTOP_MODEL,
+    DEFAULT_EDITOR_COMMAND,
     DESKTOP_CONFIG_STORE_KEY,
     readDesktopConfig,
     resolveAppUrl,
@@ -44,6 +45,7 @@ describe('resolveDesktopConfig', () => {
             agentProfiles: expect.arrayContaining([expect.objectContaining({ command: ['codex'], name: 'codex' })]),
             approvalPolicy: DEFAULT_DESKTOP_APPROVAL_POLICY,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
+            editorCommand: DEFAULT_EDITOR_COMMAND,
             model: DEFAULT_DESKTOP_MODEL,
         });
     });
@@ -55,6 +57,7 @@ describe('resolveDesktopConfig', () => {
             agentProfiles: expect.arrayContaining([expect.objectContaining({ command: ['custom-codex'], name: 'codex' })]),
             approvalPolicy: DEFAULT_DESKTOP_APPROVAL_POLICY,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
+            editorCommand: DEFAULT_EDITOR_COMMAND,
             model: DEFAULT_DESKTOP_MODEL,
         });
     });
@@ -70,6 +73,7 @@ describe('readDesktopConfig', () => {
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'codex' })]),
             approvalPolicy: DEFAULT_DESKTOP_APPROVAL_POLICY,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
+            editorCommand: DEFAULT_EDITOR_COMMAND,
             model: DEFAULT_DESKTOP_MODEL,
         });
     });
@@ -83,6 +87,7 @@ describe('readDesktopConfig', () => {
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'claude' })]),
             approvalPolicy: DEFAULT_DESKTOP_APPROVAL_POLICY,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
+            editorCommand: DEFAULT_EDITOR_COMMAND,
             model: DEFAULT_DESKTOP_MODEL,
         });
     });
@@ -107,6 +112,7 @@ describe('readDesktopConfig', () => {
             ]),
             approvalPolicy: DEFAULT_DESKTOP_APPROVAL_POLICY,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
+            editorCommand: DEFAULT_EDITOR_COMMAND,
             model: DEFAULT_DESKTOP_MODEL,
         });
     });
@@ -166,6 +172,7 @@ describe('writeDesktopConfig', () => {
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'claude' })]),
             approvalPolicy: DEFAULT_DESKTOP_APPROVAL_POLICY,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
+            editorCommand: DEFAULT_EDITOR_COMMAND,
             model: DEFAULT_DESKTOP_MODEL,
         });
     });
@@ -182,6 +189,7 @@ describe('writeDesktopConfig', () => {
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'claude' })]),
             approvalPolicy: DEFAULT_DESKTOP_APPROVAL_POLICY,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
+            editorCommand: DEFAULT_EDITOR_COMMAND,
             model: 'custom-model',
         });
     });
@@ -192,5 +200,13 @@ describe('writeDesktopConfig', () => {
         writeDesktopConfig(store, { codexSearchEnabled: false });
 
         expect(readDesktopConfig(store, {})).toMatchObject({ codexSearchEnabled: false });
+    });
+
+    it('persists custom editor command globally', () => {
+        const store = createFakeStore();
+
+        writeDesktopConfig(store, { editorCommand: 'notepad "{{file}}"' });
+
+        expect(readDesktopConfig(store, {})).toMatchObject({ editorCommand: 'notepad "{{file}}"' });
     });
 });

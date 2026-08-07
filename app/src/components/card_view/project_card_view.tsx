@@ -2,26 +2,24 @@ import { Box, IconButton, Menu, MenuItem, Stack, TextField, Tooltip, Typography,
 import { alpha } from '@mui/material/styles'
 import DotsVertical from 'mdi-material-ui/DotsVertical'
 import FileDocumentOutline from 'mdi-material-ui/FileDocumentOutline'
-import { useState, useSyncExternalStore } from 'react'
-import type { ChangeEvent, KeyboardEvent, MouseEvent, TouchEvent } from 'react'
-import type { CardTypeConfig, ProjectCard } from '../../data/data_types'
+import { memo, useCallback, useMemo, useState, useSyncExternalStore } from 'react'
+import type { ChangeEvent, KeyboardEvent, MouseEvent } from 'react'
+import type { CardTypeConfig } from '../../data/data_types'
 import { cardContext } from '../../data/action_context'
 import { telemetryService } from '../../services/telemetry/telemetry_service'
 import { dialogService } from '../../services/dialog_service'
-import { ActionEntryPoints } from '../actions/action_entry_points'
-import { CardRunButton } from '../actions/card_run_button'
+import { ActionEntryPoints } from '../actions/run/trigger/action_entry_points'
+import { CardRunButton } from '../actions/run/trigger/card_run_button'
 import { useRunningActionForContext } from '../hooks/use_action_runs'
 import { CardDeleteDialog } from './card_delete_dialog'
 import { CardPolicyMenuItem } from './card_policy_menu_item'
 import { CardWorktreeIndicator } from './card_worktree_indicator'
 import { getCardTypeColor } from './card_drag'
-import { useProjectCard } from './use_project_card'
+import { useCardMetadata, type CardMetadataSnapshot } from './use_project_card'
 import { useProjectReference } from '../hooks/use_project_reference'
 import { useIsWorkspacePathSelected } from '../hooks/use_is_workspace_path_selected'
 import { cardBodyPopoverService, subscribeCardBodyPopover } from './card_body_popover_service'
-import { ProjectCardDragContainer } from './project_card_drag_container'
-
-const CARD_LONG_PRESS_MS = 500
+import { CardDragContainer } from './project_card_drag_container'
 
 export interface CardHandlers {
     onDeleteCard: (path: string) => Promise<void>
@@ -30,17 +28,18 @@ export interface CardHandlers {
     onTitleChange: (path: string, title: string) => void
 }
 
-interface ProjectCardViewProps extends CardHandlers {
+interface CardViewProps extends CardHandlers {
     cardPath: string
     cardTypes: CardTypeConfig[]
+    isMobile: boolean
 }
 
-interface ProjectCardViewContentProps extends CardHandlers {
-    card: ProjectCard
+interface CardViewContentProps extends CardHandlers {
+    card: CardMetadataSnapshot
     cardTypes: CardTypeConfig[]
     isSelected: boolean
+    isMobile: boolean
     primaryPath: string
-    projectKey: string
 }
 
 interface MenuPosition {
@@ -49,29 +48,26 @@ interface MenuPosition {
 }
 
 /** A three-row draggable card with compact metadata and consolidated actions. */
-export function ProjectCardView(props: ProjectCardViewProps) {
+export const CardView = memo(function CardView(props: CardViewProps) {
     const { cardPath, ...contentProps } = props
-    const card = useProjectCard(cardPath)
+    const card = useCardMetadata(cardPath)
     const project = useProjectReference()
     const isSelected = useIsWorkspacePathSelected(cardPath)
     if (!card || !project) return null
 
     const primaryPath = project.rootPath ?? project.id
-    const projectKey = `${project.id}:${project.branch}`
-
     return (
-        <ProjectCardViewContent
+        <CardViewContent
             card={card}
             isSelected={isSelected}
             primaryPath={primaryPath}
-            projectKey={projectKey}
             {...contentProps}
         />
     )
-}
+})
 
-function ProjectCardViewContent(props: ProjectCardViewContentProps) {
-    const { card, cardTypes, isSelected, primaryPath, projectKey } = props
+function CardViewContent(props: CardViewContentProps) {
+    const { card, cardTypes, isSelected, primaryPath } = props
     const { onOpenInFileMode } = props
     const { onDeleteCard, onTogglePolicy, onTitleChange } = props
     const theme = useTheme()
@@ -80,7 +76,6 @@ function ProjectCardViewContent(props: ProjectCardViewContentProps) {
     const [actionsMenuPosition, setActionsMenuPosition] = useState<MenuPosition | null>(null)
     const [isEditingTitle, setIsEditingTitle] = useState(false)
     const [deleteCardPath, setDeleteCardPath] = useState<string | null>(null)
-    const [longPressTimer, setLongPressTimer] = useState<number | null>(null)
     const [titleDraft, setTitleDraft] = useState(card.header.title)
     const isBodyOpen = useSyncExternalStore(
         subscribeCardBodyPopover,
@@ -108,12 +103,12 @@ function ProjectCardViewContent(props: ProjectCardViewContentProps) {
         setTitleDraft(event.target.value)
     }
 
-    const handleCardClick = (event: MouseEvent<HTMLElement>) => {
+    const handleCardClick = useCallback((event: MouseEvent<HTMLElement>) => {
         if (isEditingTitle) return
 
         cardBodyPopoverService.toggle(card.path, event.currentTarget)
         telemetryService.trackEvent('navigation')
-    }
+    }, [card.path, isEditingTitle])
 
     const stopClick = (event: MouseEvent) => {
         event.stopPropagation()
@@ -125,12 +120,14 @@ function ProjectCardViewContent(props: ProjectCardViewContentProps) {
         setActionsAnchorElement(event.currentTarget)
     }
 
-    const openCardContextMenu = (event: MouseEvent<HTMLElement>) => {
+    const openCardContextMenu = useCallback((event: MouseEvent<HTMLElement>) => {
         event.preventDefault()
         event.stopPropagation()
+        if (props.isMobile) return
+
         setActionsAnchorElement(null)
         setActionsMenuPosition({ left: event.clientX, top: event.clientY })
-    }
+    }, [props.isMobile])
 
     const openInFileMode = (event: MouseEvent<HTMLElement>) => {
         event.stopPropagation()
@@ -164,26 +161,6 @@ function ProjectCardViewContent(props: ProjectCardViewContentProps) {
         setIsEditingTitle(true)
     }
 
-    const clearLongPressTimer = () => {
-        if (longPressTimer !== null) window.clearTimeout(longPressTimer)
-        setLongPressTimer(null)
-    }
-
-    const handleCardTouchStart = (event: TouchEvent<HTMLElement>) => {
-        if (event.touches.length !== 1) return
-
-        const { clientX, clientY } = event.touches[0]
-        const timer = window.setTimeout(() => {
-            setActionsAnchorElement(null)
-            setActionsMenuPosition({ left: clientX, top: clientY })
-        }, CARD_LONG_PRESS_MS)
-        setLongPressTimer(timer)
-    }
-
-    const handleCardTouchEnd = () => {
-        clearLongPressTimer()
-    }
-
     const closeDeleteCardDialog = () => {
         setDeleteCardPath(null)
     }
@@ -194,19 +171,18 @@ function ProjectCardViewContent(props: ProjectCardViewContentProps) {
     }
 
     const policyKeys = Object.keys(card.header.policy)
-    const dragInteractions = {
+    const dragInteractions = useMemo(() => ({
         onClick: handleCardClick,
         onContextMenu: openCardContextMenu,
-        onTouchEnd: handleCardTouchEnd,
-        onTouchStart: handleCardTouchStart,
-    }
+    }), [handleCardClick, openCardContextMenu])
 
     return (
-        <ProjectCardDragContainer
+        <CardDragContainer
             cardId={card.header.id}
             cardPath={card.path}
             interactions={dragInteractions}
             isBodyOpen={isBodyOpen}
+            isMobile={props.isMobile}
             isSelected={isSelected}
             onCardElementChange={setCardElement}
         >
@@ -267,7 +243,6 @@ function ProjectCardViewContent(props: ProjectCardViewContentProps) {
                         <CardRunButton
                             card={card}
                             context={context}
-                            projectKey={projectKey}
                         />
                     </Box>
                     <Tooltip title="Open in file mode">
@@ -282,7 +257,8 @@ function ProjectCardViewContent(props: ProjectCardViewContentProps) {
                     </Tooltip>
                     <Box sx={{ flex: 1 }} />
                     <CardWorktreeIndicator
-                        card={card}
+                        cardId={card.header.id}
+                        cardPath={card.path}
                         primaryPath={primaryPath}
                     />
                 </Stack>
@@ -316,6 +292,6 @@ function ProjectCardViewContent(props: ProjectCardViewContentProps) {
                 <MenuItem onClick={openDeleteCardDialog}>Delete</MenuItem>
             </Menu>
             <CardDeleteDialog cardPath={deleteCardPath} onClose={closeDeleteCardDialog} onDeleteCard={onDeleteCard} />
-        </ProjectCardDragContainer>
+        </CardDragContainer>
     )
 }

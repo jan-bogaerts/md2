@@ -1,12 +1,12 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { ProjectCard } from '../../data/data_types'
+import { DEFAULT_CARD_TYPES, type Card } from '../../data/data_types'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
 import { CardPropertiesPanel } from './card_properties_panel'
 
-const card: ProjectCard = {
-    agentConversationErrors: [], agentConversations: [], content: '', headerFields: { author: 'JB' }, isActive: true,
+const card: Card = {
+    agentConversationErrors: [], agentConversations: [], content: '', hasFrontmatter: true, isActive: true,
     header: {
         affects: [], after: null, agentLogReferences: [], author: 'JB', id: 'F-1', internalId: 'card-1',
         owner: null, policy: {}, status: 'design', title: 'Alpha', worktree: null, worktreeError: null, worktreeValue: null,
@@ -14,18 +14,23 @@ const card: ProjectCard = {
     path: 'design/F-1.md',
 }
 
-function renderPanel(activeCard: ProjectCard = card) {
+function renderPanel(activeCard: Card = card, cardTypes = DEFAULT_CARD_TYPES) {
     vi.spyOn(cardMarkdownDataSource, 'getActiveCard').mockReturnValue(activeCard)
     const updateAuthor = vi.spyOn(cardMarkdownDataSource, 'updateActiveCardHeaderField').mockImplementation(() => undefined)
     const updateTitle = vi.spyOn(cardMarkdownDataSource, 'updateActiveCardTitle').mockImplementation(() => undefined)
+    const updateType = vi.spyOn(cardMarkdownDataSource, 'updateActiveCardType').mockResolvedValue(undefined)
     const togglePolicy = vi.spyOn(cardMarkdownDataSource, 'toggleActiveCardPolicy').mockImplementation(() => undefined)
     render(
         <AppThemeProvider>
-            <CardPropertiesPanel statusColors={new Map([['design', '#123456']])} />
+            <CardPropertiesPanel
+                binding="list-card"
+                cardTypes={cardTypes}
+                statusColors={new Map([['design', '#123456']])}
+            />
         </AppThemeProvider>,
     )
 
-    return { togglePolicy, updateAuthor, updateTitle }
+    return { togglePolicy, updateAuthor, updateTitle, updateType }
 }
 
 describe('CardPropertiesPanel', () => {
@@ -68,6 +73,21 @@ describe('CardPropertiesPanel', () => {
         fireEvent.click(screen.getByRole('option', { name: 'Auto-merge' }))
 
         expect(togglePolicy).toHaveBeenCalledWith('list-card', 'autoMerge')
+    })
+
+    it('shows custom card types and changes the active binding type', () => {
+        const customTypes = [
+            ...DEFAULT_CARD_TYPES,
+            { color: '#333333', idPrefix: 'T', label: 'Task', type: 'task' },
+        ]
+        const { updateType } = renderPanel(card, customTypes)
+
+        fireEvent.mouseDown(screen.getByLabelText('Card type'))
+        expect(screen.getByRole('option', { name: 'Feature' })).toBeInTheDocument()
+        expect(screen.getByRole('option', { name: 'Bug' })).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('option', { name: 'Task' }))
+
+        expect(updateType).toHaveBeenCalledWith('list-card', 'task')
     })
 
     it('shows a non-collapsible section heading', () => {

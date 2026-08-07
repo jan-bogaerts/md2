@@ -62,14 +62,15 @@ describe('agent conversation', () => {
             startedAt: 'now',
             status: 'running',
             title: 'Review',
+            viewed: true,
         });
     });
 
     it('resumes the canonical conversation at its requested reference', () => {
-        const conversation = {completedAt: 'before', entries: [], id: 'agent-1', path: 'old.json', providerSessions: [], status: 'completed'};
+        const conversation = {completedAt: 'before', entries: [], id: 'agent-1', path: 'old.json', providerSessions: [], status: 'completed', viewed: false};
         const resumed = createConversation({ activityOrigin: { kind: 'project' }, conversation }, 'unused', 'unused', 'log.json');
 
-        expect(resumed).toEqual({ completedAt: null, entries: [], id: 'agent-1', path: 'log.json', providerSessions: [], status: 'running' });
+        expect(resumed).toEqual({ completedAt: null, entries: [], id: 'agent-1', path: 'log.json', providerSessions: [], status: 'running', viewed: false });
         expect(resumed.entries).not.toBe(conversation.entries);
         expect(resumed.providerSessions).not.toBe(conversation.providerSessions);
     });

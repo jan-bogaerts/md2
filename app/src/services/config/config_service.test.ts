@@ -50,6 +50,25 @@ describe('ConfigService', () => {
         expect(service.getProjectConfig().actionsFolder).toBe('actions')
     })
 
+    it('defaults push mode to manual and preserves explicit values', () => {
+        service.init()
+        service.loadProjectConfig(null)
+
+        expect(service.getProjectConfig().pushMode).toBe('manual')
+
+        service.loadProjectConfig({ workingFolder: 'docs' })
+
+        expect(service.getProjectConfig().pushMode).toBe('manual')
+
+        service.loadProjectConfig({ pushMode: 'auto' })
+
+        expect(service.getProjectConfig().pushMode).toBe('auto')
+
+        service.loadProjectConfig({ pushMode: 'manual' })
+
+        expect(service.getProjectConfig().pushMode).toBe('manual')
+    })
+
     it('defaults new projects to underscore and identifies existing configs without the key as legacy hyphen projects', () => {
         service.init()
         service.loadProjectConfig(null)
@@ -150,20 +169,20 @@ describe('ConfigService', () => {
         service.init()
         service.loadProjectConfig(null)
         service.loadDraft()
-        service.setDraftValue('project.pushMode', 'manual')
+        service.setDraftValue('project.pushMode', 'auto')
         service.discardDraft()
 
-        expect(service.getProjectConfig().pushMode).toBe('auto')
+        expect(service.getProjectConfig().pushMode).toBe('manual')
     })
 
     it('applies validated draft values on save', () => {
         service.init()
         service.loadProjectConfig(null)
         service.loadDraft()
-        service.setDraftValue('project.pushMode', 'manual')
+        service.setDraftValue('project.pushMode', 'auto')
         service.saveDraft()
 
-        expect(service.getProjectConfig().pushMode).toBe('manual')
+        expect(service.getProjectConfig().pushMode).toBe('auto')
     })
 
     it('detects draft changes by config source', () => {
@@ -179,7 +198,7 @@ describe('ConfigService', () => {
         expect(service.hasDraftChangesForSource('react')).toBe(true)
         expect(service.hasDraftChangesForSource('project')).toBe(false)
 
-        service.setDraftValue('project.pushMode', 'manual')
+        service.setDraftValue('project.pushMode', 'auto')
 
         expect(service.hasDraftChangesForSource('project')).toBe(true)
     })
@@ -192,6 +211,7 @@ describe('ConfigService', () => {
             desktopConfig: {
                 agent: 'claude',
                 agentProfiles: BUILTIN_AGENT_PROFILES,
+                editorCommand: 'notepad "{{file}}"',
                 model: '',
                 thinkingLevel: 'high',
             },
@@ -199,6 +219,7 @@ describe('ConfigService', () => {
 
         expect(service.getEntries().some((entry) => entry.source === 'desktop')).toBe(true)
         expect(service.get('desktop.agent')).toBe('claude')
+        expect(service.get('desktop.editorCommand')).toBe('notepad "{{file}}"')
         expect(service.get('desktop.thinkingLevel')).toBe('high')
     })
 
@@ -215,6 +236,19 @@ describe('ConfigService', () => {
         expect(reloaded.get('react.autoCommitDelayMs')).toBe(5000)
         expect(reloaded.get('react.showStartupSplash')).toBe(false)
 
+        reloaded.clear()
+    })
+
+    it('persists integration and release branch cleanup preferences immediately', () => {
+        service.init()
+        service.setReactPreference('react.deleteBranchAfterIntegration', true)
+        service.setReactPreference('react.deleteBranchesAfterRelease', true)
+
+        const reloaded = new ConfigService()
+        reloaded.init()
+
+        expect(reloaded.get('react.deleteBranchAfterIntegration')).toBe(true)
+        expect(reloaded.get('react.deleteBranchesAfterRelease')).toBe(true)
         reloaded.clear()
     })
 
@@ -243,6 +277,7 @@ describe('ConfigService', () => {
             desktopConfig: {
                 agent: 'claude',
                 agentProfiles: BUILTIN_AGENT_PROFILES,
+                editorCommand: 'notepad "{{file}}"',
                 model: '',
                 thinkingLevel: 'high',
             },
@@ -254,9 +289,17 @@ describe('ConfigService', () => {
             agentProfiles: BUILTIN_AGENT_PROFILES,
             approvalPolicy: 'on-request',
             codexSearchEnabled: true,
+            editorCommand: 'notepad "{{file}}"',
             model: '',
             thinkingLevel: 'high',
         })
+    })
+
+    it('requires editor command to contain file placeholder', () => {
+        service.init()
+        service.loadDraft()
+
+        expect(() => service.setDraftValue('desktop.editorCommand', 'notepad')).toThrow('requires {{file}} placeholder')
     })
 
     it('reads the startup splash preference before init, defaulting to true', () => {

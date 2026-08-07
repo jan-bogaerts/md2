@@ -2,6 +2,13 @@
 
 **A local, Git-native workspace for coordinating features, worktrees, coding agents, prompts, commits, and automation.**
 
+> **Download:** [Get the latest Windows x64 installer](https://github.com/jan-bogaerts/md2/releases/latest) · [Installation guide](https://jan-bogaerts.github.io/md2/getting-started/install/)
+>
+> **Platforms:** md² is an Electron desktop app. Windows x64 has a signed installer; macOS and Linux can run from source, but do not have prebuilt packages yet.
+
+https://github.com/user-attachments/assets/8d9b4f55-6d97-42ff-bba4-ef36c5a64513
+
+
 AI-assisted development quickly becomes fragmented.
 
 You may have multiple worktrees, ten or more VS Code windows, several agent sessions, repeated prompts, generated scripts, and a long history of commits—without a clear overview of which agent is working on which feature.
@@ -9,6 +16,22 @@ You may have multiple worktrees, ten or more VS Code windows, several agent sess
 md² organises all of that around the work itself.
 
 Each feature, bug, or task is represented by a Markdown card inside your project. That card can be linked to its worktree, agent sessions, actions, commits, design notes, logs, and token usage. Agents can read and update the same local files directly, while you manage the overall workflow from a single dashboard.
+
+## Works with
+
+- [Codex CLI](https://github.com/openai/codex)
+- [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code)
+
+md² starts the CLIs already installed and authenticated on your machine. It does not call model APIs directly, and either CLI is optional when using md² as a Markdown-backed project board.
+
+## Without and with md²
+
+| Without md² | With md² |
+| --- | --- |
+| Agent conversations grouped by chat | Activity grouped by feature |
+| Worktrees identified by folders/windows | Worktrees assigned to cards |
+| Repeated prompts scattered around | Reusable project actions |
+| Token use largely invisible | Cost tracked by action and feature |
 
 ## Docs
 
@@ -66,15 +89,21 @@ md² is still an evolving concept — see [design/architecture/initial descripti
 
 ## Screenshots
 
-UI early days, more to come.
+### Run agents from a feature
 
-- [Screenshot](screenshots/Screenshot%202026-07-23%20180206.jpg)
-- [Screenshot](screenshots/Screenshot%202026-07-23%20190011.jpg)
-- [Screenshot](screenshots/Screenshot%202026-07-23%20190055.jpg)
+![A Codex action conversation alongside active feature cards and worktree controls](screenshots/set2/Screenshot%202026-08-01%20194835.jpg)
+
+*Run reusable actions from a card, follow the agent conversation, and commit or integrate the assigned worktree without losing the feature context.*
+
+### Keep the specification beside the work
+
+![A feature card open in the Markdown editor while its agent is running](screenshots/set2/Screenshot%202026-08-01%20194919.jpg)
+
+*The card remains the shared source of truth for its definition, agent activity, worktree, and resulting changes.*
 
 ## Getting started
 
-1. Install the app.
+1. [Download and install the latest Windows release](https://github.com/jan-bogaerts/md2/releases/latest), or follow the [source setup](https://jan-bogaerts.github.io/md2/contributing/development-setup/) on macOS or Linux.
 2. Click the GitHub icon, upper left corner, follow link to get a GitHub access token, copy-paste token in.
 3. Open project, select a folder that contains a git repository.
 

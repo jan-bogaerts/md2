@@ -1,7 +1,7 @@
 import { Box } from '@mui/material'
 import { type NodeApi, Tree } from 'react-arborist'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { CardTypeConfig, ProjectCard } from '../../data/data_types'
+import type { CardTypeConfig, Card } from '../../data/data_types'
 import { buildFileTree, type TreeNode } from '../../data/file_tree'
 import { actionService } from '../../services/actions/action_service'
 import { dialogService } from '../../services/dialog_service'
@@ -22,7 +22,7 @@ const FILE_ROW_HEIGHT = 34
 const GROUP_ROW_HEIGHT = 30
 const TREE_VERTICAL_PADDING = 12
 const LOGS_FOLDER_NAME = 'logs'
-const EMPTY_CARDS: ProjectCard[] = []
+const EMPTY_CARDS: Card[] = []
 const EMPTY_REPOSITORY_FILES: string[] = []
 
 interface FileTreeViewProps {

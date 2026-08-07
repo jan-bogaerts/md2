@@ -1,7 +1,7 @@
 import type { CardColumn } from '../../data/card_ordering'
 import type { CardTypeConfig } from '../../data/data_types'
 import { getCardIdPrefix } from '../../data/card_identifiers'
-import type { DragEndEvent, DragMoveEvent } from '@dnd-kit/core'
+import type { DragEndEvent, DragMoveEvent, DragOverEvent } from '@dnd-kit/core'
 
 /** Droppable ids for empty/append targets are the status prefixed with this. */
 export const COLUMN_DROP_PREFIX = 'column:'
@@ -16,7 +16,7 @@ export interface DropTarget {
     targetStatus: string
 }
 
-type CardDragPositionEvent = DragEndEvent | DragMoveEvent
+type CardDragPositionEvent = DragEndEvent | DragMoveEvent | DragOverEvent
 
 /** Resolve a DnD event by inserting at the hovered card or appending at the column end target. */
 export function resolveCardDragEvent(columns: CardColumn[], event: CardDragPositionEvent): DropTarget | null {

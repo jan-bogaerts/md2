@@ -17,6 +17,7 @@ function createActionBridge(): ElectronActionBridge {
     return {
         cancelActionRun: vi.fn(async () => {}),
         generateDiff: vi.fn(async () => ({ commit: 'commit-1', files: [] })),
+        generateWorktreeDiff: vi.fn(async () => ({ files: [], repositoryRoot: 'C:/worktree' })),
         loadActionRunHistory: vi.fn(async () => []),
         onActionRun: vi.fn(() => () => {}),
         openInEditor: vi.fn(),
@@ -287,6 +288,7 @@ describe('ProjectSessionService storage activation', () => {
         expect(bridge.saveProjectConfig).toHaveBeenCalledWith(project, expect.objectContaining({
             backgroundShade: expect.stringMatching(/^(amber|blue|green|purple|red)$/u),
             projectFolder: 'design',
+            pushMode: 'manual',
             workingFolder: 'active',
         }))
         expect(dataService.projectLoading.openProject).toHaveBeenCalledWith(project)

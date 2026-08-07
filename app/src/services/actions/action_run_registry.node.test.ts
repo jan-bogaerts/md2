@@ -53,6 +53,7 @@ function agentConversation(entries: AgentConversationEntry[], overrides: Partial
         startedAt: 'now',
         status: 'running',
         title: 'Review',
+        viewed: true,
         ...overrides,
     }
 }
@@ -268,6 +269,10 @@ describe('ActionRunRegistry', () => {
         })
         emit({
             actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { content: 'Testing passed', kind: 'output', messageId: 'assistant-1', previousContent: 'Testing...', replace: true, sequence: 2 },
+        })
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
             update: {
                 event: {
                     command: 'npm test',
@@ -291,11 +296,12 @@ describe('ActionRunRegistry', () => {
         expect(getRun(service).conversation).toMatchObject({
             entries: [
                 userMessage,
-                expect.objectContaining({ content: 'Testing...', id: 'assistant-1', sequence: 2 }),
+                expect.objectContaining({ content: 'Testing passed', id: 'assistant-1', sequence: 2 }),
                 expect.objectContaining({ id: 'activity-completed', output: 'passed', providerItemId: 'command-1', sequence: 3, status: 'completed' }),
                 expect.objectContaining({ content: 'Done', id: 'assistant-2', sequence: 4 }),
             ],
         })
+        expect(getRun(service).logs.at(-1)?.stdout).toBe('Testing passedDone')
         service.stop()
     })
 
@@ -331,7 +337,7 @@ describe('ActionRunRegistry', () => {
         service.stop()
     })
 
-    it('keeps waiting streaming runs active and tracks questions and later turns', () => {
+    it('sets question updates to waiting and restores running when answered without agent state events', () => {
         const { bridge, emit } = bridgeWithEvents()
         setActionBridgeOverride(bridge)
         const service = new ActionRunRegistry()
@@ -349,7 +355,6 @@ describe('ActionRunRegistry', () => {
             actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'waitingForInput', type: 'update',
             update: { kind: 'agentQuestion', questions, requestId: 7 },
         })
-        emit({ actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'waitingForInput', type: 'agentState' })
 
         expect(getRun(service)).toMatchObject({
             question: { questions, requestId: 7 },
@@ -358,9 +363,8 @@ describe('ActionRunRegistry', () => {
 
         emit({
             actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
-            update: { kind: 'agentUserMessage', userMessage: nextMessage },
+            update: { kind: 'agentQuestionAnswer', userMessage: nextMessage },
         })
-        emit({ actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'agentState' })
 
         expect(getRun(service)).toMatchObject({
             conversation: { entries: [firstMessage, nextMessage], status: 'running' },
@@ -399,13 +403,9 @@ describe('ActionRunRegistry', () => {
                 actionId: 'build', context, runId: 'run-1', phase: 'main', rootActionId: 'build', sequence: 5,
                 status: 'waitingForInput', type: 'update', update: { kind: 'agentQuestion', questions, requestId: 7 },
             },
-            {
-                actionId: 'build', actionType: 'agent', context, runId: 'run-1', interactionReady: true,
-                phase: 'main', rootActionId: 'build', sequence: 6, status: 'waitingForInput', streaming: true, type: 'agentState',
-            },
         ]
         service.start()
-        emit(events[5])
+        emit(events[4])
         resolveSnapshot(events)
 
         await vi.waitFor(() => expect(getRun(service)).toMatchObject({

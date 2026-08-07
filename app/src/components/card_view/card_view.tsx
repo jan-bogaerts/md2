@@ -1,33 +1,28 @@
 import { Box } from '@mui/material'
 import { DndContext, DragOverlay, PointerSensor, closestCorners, useSensor, useSensors } from '@dnd-kit/core'
-import type { DragEndEvent, DragMoveEvent, DragStartEvent } from '@dnd-kit/core'
+import type { DragEndEvent, DragOverEvent, DragStartEvent } from '@dnd-kit/core'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { RefObject } from 'react'
 import { buildCardColumns } from '../../data/card_ordering'
 import type { CardTypeConfig, StateConfig } from '../../data/data_types'
-import { useAgentAcknowledgements } from '../hooks/use_agent_acknowledgements'
 import { dataService } from '../../services/data/data_service'
 import { dialogService } from '../../services/dialog_service'
 import { openFilesService } from '../../services/open_files_service'
 import { workspaceViewService } from '../../services/project/workspace_view_service'
 import { telemetryService } from '../../services/telemetry/telemetry_service'
 import { AffectsEditorDialog } from './affects_editor_dialog'
-import { CardActionPopupHost } from '../actions/card_action_popup_host'
 import { CardBodyPopover } from './card_body_popover'
 import { cardBodyPopoverService } from './card_body_popover_service'
 import { CardColumn } from './card_column'
 import { CardDragOverlay } from './card_drag_overlay'
 import { cardDragDropService } from './card_drag_drop_service'
 import { resolveCardDragEvent } from './card_drag'
-import { CardViewScrollZones } from './card_view_scroll_zones'
 import { useCardViewColumns } from './use_card_view_columns'
 
 const DRAG_ACTIVATION_DISTANCE = 2
 interface CardViewProps {
     cardTypes: CardTypeConfig[]
-    isMobile: boolean
-    scrollContainerRef: RefObject<HTMLDivElement | null>
     states: StateConfig[]
+    statusColors: Map<string, string>
 }
 
 async function runCardEdit(action: () => unknown, fallbackMessage: string) {
@@ -48,14 +43,14 @@ function currentCardColumns(states: StateConfig[]) {
 export function CardView(props: CardViewProps) {
     const {
         cardTypes,
-        isMobile,
-        scrollContainerRef,
         states,
+        statusColors,
     } = props
-    useAgentAcknowledgements()
     const columns = useCardViewColumns(states)
     const [openAffectsPath, setOpenAffectsPath] = useState<string | null>(null)
     const rootElementRef = useRef<HTMLDivElement>(null)
+    const dragColumnsRef = useRef<ReturnType<typeof currentCardColumns> | null>(null)
+    const lastOverIdRef = useRef<string | null>(null)
     const missingRootReportedRef = useRef(false)
     const wasVisibleRef = useRef<boolean | null>(null)
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: DRAG_ACTIVATION_DISTANCE } }))
@@ -69,6 +64,8 @@ export function CardView(props: CardViewProps) {
     }
 
     const clearActiveCard = useCallback(() => {
+        dragColumnsRef.current = null
+        lastOverIdRef.current = null
         cardDragDropService.endDrag()
     }, [])
 
@@ -106,33 +103,46 @@ export function CardView(props: CardViewProps) {
     useEffect(() => () => cardBodyPopoverService.close(), [])
 
     const handleDragStart = useCallback((event: DragStartEvent) => {
+        dragColumnsRef.current = currentCardColumns(states)
+        lastOverIdRef.current = null
         cardDragDropService.startDrag(
             String(event.active.id),
             event.active.rect.current.initial?.height ?? null,
             event.active.rect.current.initial?.width ?? null,
         )
-    }, [])
+    }, [states])
 
-    const handleDragMove = useCallback((event: DragMoveEvent) => {
+    const handleDragOver = useCallback((event: DragOverEvent) => {
         const { active, over } = event
+        const overId = over ? String(over.id) : null
+        if (lastOverIdRef.current === overId) return
+
+        lastOverIdRef.current = overId
         if (!over) {
             cardDragDropService.setDropPreview(null)
             return
         }
 
-        const dragColumns = currentCardColumns(states)
+        const dragColumns = dragColumnsRef.current
+        if (!dragColumns) throw new Error('Cannot update a card drop target before dragging starts')
+
         const drop = resolveCardDragEvent(dragColumns, event)
         const sourceColumn = dragColumns.find((column) => column.cards.some((card) => card.path === String(active.id)))
         const dropPreview = drop && sourceColumn?.status !== drop.targetStatus ? drop : null
         cardDragDropService.setDropPreview(dropPreview)
-    }, [states])
+    }, [])
 
     const handleDragEnd = useCallback((event: DragEndEvent) => {
         const { active, over } = event
         const drop = over ? resolveCardDragEvent(currentCardColumns(states), event) : null
-        clearActiveCard()
         const path = String(active.id)
-        if (drop) void runCardEdit(() => dataService.cards.moveCard(path, drop.targetStatus, drop.targetIndex), `Card move failed: ${path}`)
+        if (!drop) {
+            clearActiveCard()
+            return
+        }
+
+        clearActiveCard()
+        void runCardEdit(() => dataService.cards.moveCard(path, drop.targetStatus, drop.targetIndex), `Card move failed: ${path}`)
     }, [clearActiveCard, states])
 
     const handleOpenInFileMode = (path: string) => {
@@ -178,7 +188,7 @@ export function CardView(props: CardViewProps) {
                 collisionDetection={closestCorners}
                 onDragCancel={clearActiveCard}
                 onDragEnd={handleDragEnd}
-                onDragMove={handleDragMove}
+                onDragOver={handleDragOver}
                 onDragStart={handleDragStart}
                 sensors={sensors}
             >
@@ -188,12 +198,12 @@ export function CardView(props: CardViewProps) {
                         alignItems: 'flex-start',
                         display: 'flex',
                         flex: 1,
-                        flexDirection: isMobile ? 'column' : 'row',
+                        flexDirection: 'row',
                         gap: 2,
                         height: '100%',
-                        overflowX: isMobile ? 'hidden' : 'auto',
+                        overflowX: 'auto',
                         overflowY: 'auto',
-                        p: isMobile ? 0 : 2.5,
+                        p: 2.5,
                     }}
                 >
                     {columns.map((column) => (
@@ -201,7 +211,7 @@ export function CardView(props: CardViewProps) {
                             key={column.status}
                             cardTypes={cardTypes}
                             column={column}
-                            isMobile={isMobile}
+                            isMobile={false}
                             onDeleteCard={handleDeleteCard}
                             onOpenInFileMode={handleOpenInFileMode}
                             onTitleChange={handleTitleChange}
@@ -209,15 +219,16 @@ export function CardView(props: CardViewProps) {
                         />
                     ))}
                 </Box>
-                {isMobile && <CardViewScrollZones scrollContainerRef={scrollContainerRef} />}
                 <DragOverlay>
                     <CardDragOverlay cardTypes={cardTypes} />
                 </DragOverlay>
                 <CardBodyPopover
-                    isMobile={isMobile}
+                    cardTypes={cardTypes}
+                    isMobile={false}
                     onDeleteCard={handleDeleteCard}
                     onOpenAffects={handleOpenAffects}
                     onOpenInFileMode={handleOpenInFileMode}
+                    statusColors={statusColors}
                     visible
                 />
                 <AffectsEditorDialog
@@ -225,7 +236,6 @@ export function CardView(props: CardViewProps) {
                     onClose={handleCloseAffects}
                     onSave={handleAffectsChange}
                 />
-                <CardActionPopupHost />
             </DndContext>
         </Box>
     )

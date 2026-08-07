@@ -1,92 +1,120 @@
+import type { ActionRunEvent, ActionRunStatus } from '../../data/action_run_types'
+import { getElectronActionBridge } from '../../data/electron_action_bridge'
 import type { AgentConversation } from '../../data/data_types'
-import { register } from '.././service_injector'
+import { actionRunRegistry } from '../actions/action_run_registry'
+import { dialogService } from '../dialog_service'
+import { register } from '../service_injector'
 
-const STORAGE_KEY = 'md2.agentAcknowledgements'
+const UNSEEN_STATUSES = new Set<ActionRunStatus>(['completed', 'failed', 'waitingForInput'])
 
-function completedTimestamp(conversation: AgentConversation) {
-    if (conversation.status === 'running' || !conversation.completedAt) return null
+type ResolveStoredConversation = (conversation: AgentConversation) => AgentConversation | null
 
-    return conversation.completedAt
+/** Event type dispatched for aggregate acknowledgement changes on one card. */
+export function cardAcknowledgementEvent(cardInternalId: string) {
+    return `card-${cardInternalId}`
 }
 
-function latestCompletedTimestamp(conversations: AgentConversation[]) {
-    return conversations.map(completedTimestamp).filter((timestamp): timestamp is string => !!timestamp).sort().at(-1) ?? null
+/** Event type dispatched for acknowledgement changes on one card action. */
+export function actionAcknowledgementEvent(cardInternalId: string, actionId: string) {
+    return `action-${cardInternalId}-${actionId}`
 }
 
-function readAcknowledgements() {
-    const content = window.localStorage.getItem(STORAGE_KEY)
-    if (!content) return {}
-
-    const value: unknown = JSON.parse(content)
-    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid agent acknowledgement storage')
-
-    return value as Record<string, string>
+function conversationKey(cardInternalId: string, actionId: string, conversationId: string) {
+    return `${cardInternalId}-${actionId}-${conversationId}`
 }
 
-function cardKey(projectId: string, cardPath: string) {
-    return `${projectId}:${cardPath}`
+async function persistConversationViewed(reference: string, viewed: boolean) {
+    const bridge = getElectronActionBridge()
+    if (!bridge?.updateActionConversationViewed) throw new Error('Updating conversation view state requires Electron')
+
+    return bridge.updateActionConversationViewed(reference, viewed)
 }
 
-/** Returns newest completed result for one action beyond card acknowledgement checkpoint. */
-export function latestUnseenAgentResult(
-    projectId: string,
-    cardPath: string,
-    conversations: AgentConversation[],
-    actionId: string,
-) {
-    const acknowledgedAt = readAcknowledgements()[cardKey(projectId, cardPath)]
-
-    return conversations
-        .filter((conversation) => conversation.actionId === actionId)
-        .filter((conversation) => {
-            const timestamp = completedTimestamp(conversation)
-
-            return !!timestamp && (!acknowledgedAt || timestamp > acknowledgedAt)
-        })
-        .sort((left, right) => (completedTimestamp(right) ?? '').localeCompare(completedTimestamp(left) ?? ''))[0] ?? null
-}
-
-export function hasUnseenAgentResult(projectId: string, cardPath: string, conversations: AgentConversation[]) {
-    const timestamp = latestCompletedTimestamp(conversations)
-    if (!timestamp) return false
-
-    const acknowledgedAt = readAcknowledgements()[cardKey(projectId, cardPath)]
-
-    return !acknowledgedAt || timestamp > acknowledgedAt
-}
-
+/**
+ * Tracks chat visibility and persists conversation view state.
+ * Changes are announced through scoped card and card-action events so only affected leaves update;
+ * the conversation data itself lives in the agent integration store and the activity files.
+ * Scoping uses the stable card internal ID so card renames cannot break acknowledgement state.
+ */
 export class AgentAcknowledgementService extends EventTarget {
+    private readonly lastRunStatuses = new Map<string, ActionRunStatus>()
+    private resolveStoredConversation: ResolveStoredConversation | null = null
+    private readonly visibleEntries = new Map<string, Set<string>>()
+
     constructor() {
         super()
-        register('agentAcknowledgementService', this)
+        actionRunRegistry.subscribeActiveRunEvents(this.handleActionRunEvent)
     }
 
-    /** Keeps acknowledgements attached to a card after its file was renamed. */
-    renameCardPath(projectId: string, fromPath: string, toPath: string) {
-        const values = readAcknowledgements()
-        const fromKey = cardKey(projectId, fromPath)
-        const acknowledgedAt = values[fromKey]
-        if (!acknowledgedAt) return
-
-        delete values[fromKey]
-        values[cardKey(projectId, toPath)] = acknowledgedAt
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(values))
-        this.dispatchEvent(new CustomEvent('changed'))
+    /** Connects the loaded-conversation store so view changes land on the canonical conversation records. */
+    connectConversationStore(resolveStoredConversation: ResolveStoredConversation) {
+        this.resolveStoredConversation = resolveStoredConversation
     }
 
-    acknowledge(projectId: string, cardPath: string, conversations: AgentConversation[]) {
-        const timestamp = latestCompletedTimestamp(conversations)
-        if (!timestamp) return
+    /** Announce acknowledgement-relevant conversation changes to the scoped card and card-action subscribers. */
+    announceConversationsChanged(cardInternalId: string, actionIds: string[]) {
+        for (const actionId of new Set(actionIds)) {
+            this.dispatchEvent(new Event(actionAcknowledgementEvent(cardInternalId, actionId)))
+        }
+        this.dispatchEvent(new Event(cardAcknowledgementEvent(cardInternalId)))
+    }
 
-        const values = readAcknowledgements()
-        const key = cardKey(projectId, cardPath)
-        if (values[key] && values[key] >= timestamp) return
+    setConversationVisible(
+        entryId: string,
+        cardInternalId: string,
+        actionId: string,
+        conversation: AgentConversation,
+        visible: boolean,
+    ) {
+        const key = conversationKey(cardInternalId, actionId, conversation.id)
+        const entries = this.visibleEntries.get(key) ?? new Set<string>()
+        if (visible) entries.add(entryId)
+        else entries.delete(entryId)
+        if (entries.size > 0) this.visibleEntries.set(key, entries)
+        else this.visibleEntries.delete(key)
+        const current = this.resolveStoredConversation?.(conversation) ?? conversation
+        if (visible && !current.viewed) {
+            void this.setViewed(cardInternalId, actionId, conversation, true).catch(() => undefined)
+        }
+    }
 
-        values[key] = timestamp
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(values))
-        this.dispatchEvent(new CustomEvent('changed'))
+    async setViewed(cardInternalId: string, actionId: string, conversation: AgentConversation, viewed: boolean) {
+        const current = this.resolveStoredConversation?.(conversation) ?? conversation
+        if (current.viewed === viewed) return current
+
+        try {
+            await persistConversationViewed(conversation.path, viewed)
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Card conversation view state could not be saved' })
+            throw error
+        }
+        current.viewed = viewed
+        conversation.viewed = viewed
+        this.announceConversationsChanged(cardInternalId, [actionId])
+
+        return current
+    }
+
+    /** Clears transient state at a project boundary. */
+    reset() {
+        this.lastRunStatuses.clear()
+        this.visibleEntries.clear()
+    }
+
+    private readonly handleActionRunEvent = (event: ActionRunEvent) => {
+        const previousStatus = this.lastRunStatuses.get(event.runId)
+        this.lastRunStatuses.set(event.runId, event.status)
+        if (previousStatus === event.status || !UNSEEN_STATUSES.has(event.status)) return
+
+        const conversation = actionRunRegistry.getRunStore(event.runId)?.getSnapshot().conversation ?? null
+        const cardInternalId = event.context.cardInternalId
+        const actionId = conversation?.actionId
+        if (!cardInternalId || !conversation || !actionId) return
+        if ((this.visibleEntries.get(conversationKey(cardInternalId, actionId, conversation.id))?.size ?? 0) > 0) return
+
+        void this.setViewed(cardInternalId, actionId, conversation, false).catch(() => undefined)
     }
 
 }
 
-export const agentAcknowledgementService = new AgentAcknowledgementService()
+export const agentAcknowledgementService = register('agentAcknowledgementService', new AgentAcknowledgementService())

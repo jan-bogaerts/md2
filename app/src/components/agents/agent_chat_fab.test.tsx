@@ -27,7 +27,7 @@ describe('AgentChatFab', () => {
 
         fireEvent.click(button)
 
-        expect(screen.getByRole('dialog', { name: 'Run actions' })).toBeInTheDocument()
+        expect(screen.getByRole('dialog', { name: 'Run actions for Project' })).toBeInTheDocument()
         expect(await screen.findByLabelText('Prompt')).toBeInTheDocument()
         expect(screen.getByRole('combobox', { name: 'Conversation history' })).toBeInTheDocument()
         expect(screen.getByLabelText('Conversation chat').compareDocumentPosition(screen.getByLabelText('Prompt')))
@@ -36,7 +36,7 @@ describe('AgentChatFab', () => {
 
         fireEvent.click(button)
 
-        expect(screen.queryByRole('dialog', { name: 'Run actions' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('dialog', { name: 'Run actions for Project' })).not.toBeInTheDocument()
     })
 
     it('moves without opening popup when pointer gesture crosses drag threshold', () => {
@@ -49,17 +49,17 @@ describe('AgentChatFab', () => {
         fireEvent.click(button)
 
         expect(button).toHaveStyle({ left: '888px', top: '488px' })
-        expect(screen.queryByRole('dialog', { name: 'Run actions' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('dialog', { name: 'Run actions for Project' })).not.toBeInTheDocument()
 
         fireEvent.click(button)
-        expect(screen.getByRole('dialog', { name: 'Run actions' })).toBeInTheDocument()
+        expect(screen.getByRole('dialog', { name: 'Run actions for Project' })).toBeInTheDocument()
     })
 
     it('detaches the draggable popup while keeping its far corner fixed when resized from the top-left', () => {
         render(<AgentChatFab />, { wrapper: AppThemeProvider })
         const button = screen.getByRole('button', { name: 'Project agent' })
         fireEvent.click(button)
-        const dialog = screen.getByRole('dialog', { name: 'Run actions' })
+        const dialog = screen.getByRole('dialog', { name: 'Run actions for Project' })
         const handle = screen.getByRole('separator', { name: 'Resize action popup from top-left' })
         dialog.getBoundingClientRect = vi.fn(() => new DOMRect(700, 200, 400, 450))
 

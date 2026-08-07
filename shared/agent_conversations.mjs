@@ -2,6 +2,7 @@ import { normalizeAgentTokenUsage } from './agent_usage_math.mjs'
 
 const AGENT_MESSAGE_ROLES = new Set(['assistant', 'user'])
 const AGENT_STATUSES = new Set(['cancelled', 'completed', 'failed', 'running', 'waitingForInput'])
+const INTERNAL_EVENT_TYPES = new Set(['closed', 'started', 'turnCompleted'])
 
 function requiredString(value, fieldName) {
     if (typeof value !== 'string' || value.length === 0) throw new Error(`Malformed agent conversation: missing ${fieldName}`)
@@ -103,10 +104,35 @@ function normalizeArray(value, normalize) {
     return value.map(normalize).filter((entry) => entry !== null)
 }
 
+function coalesceDiagnosticEntries(entries) {
+    const groupedEntries = []
+    for (const entry of entries) {
+        const previousEntry = groupedEntries.at(-1)
+        if (entry.kind === 'event' && entry.type === 'diagnostic'
+            && previousEntry?.kind === 'event' && previousEntry.type === 'diagnostic') {
+            groupedEntries[groupedEntries.length - 1] = {
+                ...previousEntry,
+                content: `${previousEntry.content}\n${entry.content}`,
+            }
+            continue
+        }
+        groupedEntries.push(entry)
+    }
+
+    return groupedEntries
+}
+
+function isConversationEntry(entry) {
+    if (entry.kind !== 'event') return true
+    if (INTERNAL_EVENT_TYPES.has(entry.type)) return false
+
+    return entry.type !== 'error' || typeof entry.providerItemId === 'string'
+}
+
 function normalizeEntries(value) {
     if (!Array.isArray(value)) throw new Error('Malformed agent conversation: missing entries')
 
-    return value.map((entry, index) => {
+    const entries = value.map((entry, index) => {
         if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
             throw new Error(`Malformed agent conversation: invalid entries[${index}]`)
         }
@@ -119,6 +145,8 @@ function normalizeEntries(value) {
 
         return normalized
     })
+
+    return coalesceDiagnosticEntries(entries.filter(isConversationEntry))
 }
 
 /** Parse one canonical conversation record and validate every ordered entry. */
@@ -131,6 +159,9 @@ export function parseAgentConversation(content, referencePath) {
     const startedAt = requiredString(parsed.startedAt, 'startedAt')
     const hasExplicitTitle = typeof parsed.title === 'string' && parsed.title.trim().length > 0
     const usage = normalizeAgentTokenUsage(parsed.usage)
+    if (parsed.viewed !== undefined && typeof parsed.viewed !== 'boolean') {
+        throw new Error('Malformed agent conversation: invalid viewed')
+    }
 
     return {
         actionId: optionalString(parsed.actionId),
@@ -146,5 +177,6 @@ export function parseAgentConversation(content, referencePath) {
         status,
         title: hasExplicitTitle ? parsed.title : id,
         ...(usage ? { usage } : {}),
+        viewed: parsed.viewed ?? true,
     }
 }

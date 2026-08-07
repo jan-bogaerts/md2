@@ -1,7 +1,7 @@
 {
   "name": "app",
   "private": true,
-  "version": "0.0.5",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -55,6 +55,7 @@
     "react-diff-viewer-continued": "^4.2.2",
     "react-dom": "^19.2.7",
     "react-markdown": "^10.1.0",
+    "react-virtuoso": "^4.18.11",
     "remark-gfm": "^4.0.1",
     "uuid": "^14.0.1"
   }

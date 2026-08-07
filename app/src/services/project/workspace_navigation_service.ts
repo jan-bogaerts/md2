@@ -1,4 +1,4 @@
-import { register } from '.././service_injector'
+import { register } from '../service_injector'
 
 export interface WorkspaceOpenRequest {
     path: string

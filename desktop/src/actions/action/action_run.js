@@ -5,8 +5,8 @@ const { runWithGitOperationContext } = require('../../git/git_operation_context'
 const {
     captureCommitReferences,
     combineOutput,
-    createAgentHistoryEntry,
-    createCommandHistoryEntry,
+    createAgentDetails,
+    createCommandDetails,
 } = require('./action_run_history');
 
 function errorMessage(error, fallback) {
@@ -18,6 +18,7 @@ class ActionRun {
         this.actionsFolder = snapshot.actionsFolder;
         this.activityOrigin = snapshot.activityOrigin;
         this.context = snapshot.context;
+        this.conversationReservation = snapshot.conversationReservation;
         this.runId = snapshot.runId;
         this.project = snapshot.project;
         this.projectFolder = snapshot.projectFolder;
@@ -41,7 +42,8 @@ class ActionRun {
         this.conversationIds = [];
         this.completion = null;
         this.controller = new AbortController();
-        this.rootHistoryEntry = null;
+        this.rootDetails = null;
+        this.rootConversationId = null;
         this.nextEventSequence = 1;
     }
 
@@ -269,12 +271,15 @@ class ActionRun {
                 projectFolder: this.projectFolder,
                 result: committedResult,
             };
-            const entry = action.type === 'agent'
-                ? createAgentHistoryEntry(historyInput)
-                : createCommandHistoryEntry(historyInput);
+            const details = action.type === 'agent'
+                ? createAgentDetails(historyInput)
+                : createCommandDetails(historyInput);
             const commitReferences = await captureCommitReferences(this.localGitService, historyInput);
             this.collectCommitReferences(commitReferences);
-            if (isRoot) this.rootHistoryEntry = entry;
+            if (isRoot) {
+                this.rootDetails = details;
+                if (action.type === 'agent') this.rootConversationId = committedResult.conversationId;
+            }
             if (action.type === 'agent' && typeof committedResult.conversationId === 'string') {
                 this.conversationIds.push(committedResult.conversationId);
             }
@@ -303,17 +308,24 @@ class ActionRun {
 
             return persisted;
         });
-        const history = this.rootHistoryEntry
-            ?? { completedAt, output: failure ? errorMessage(failure, 'Action failed') : '', prompt: '', status: 'failed' };
+        if (this.rootAction.type === 'agent' && typeof this.rootConversationId !== 'string') {
+            return;
+        }
+        const details = this.rootDetails ?? {
+            command: this.rootAction.command,
+            output: failure ? errorMessage(failure, 'Action failed') : '',
+            type: 'command',
+        };
         const record = {
             commits,
             completedAt,
             conversationIds: [...new Set(this.conversationIds)],
+            details,
             runId: this.runId,
-            history,
             origin: this.activityOrigin,
             rootActionId: this.rootAction.id,
             rootActionLabel: this.rootAction.label,
+            ...(this.rootConversationId ? { rootConversationId: this.rootConversationId } : {}),
             startedAt: this.startedAt,
             status,
         };
@@ -355,6 +367,7 @@ class ActionRun {
             onOutput,
             primaryProject: this.project,
             project,
+            projectFolder: this.projectFolder,
             releasesFolder: this.releasesFolder,
             signal: this.controller.signal,
         });
@@ -444,6 +457,8 @@ class ActionRun {
                 content: agentEvent.content,
                 kind: agentEvent.type,
                 ...(agentEvent.messageId !== undefined ? { messageId: agentEvent.messageId } : {}),
+                ...(agentEvent.previousContent !== undefined ? { previousContent: agentEvent.previousContent } : {}),
+                ...(agentEvent.replace !== undefined ? { replace: agentEvent.replace } : {}),
                 ...(agentEvent.sequence !== undefined ? { sequence: agentEvent.sequence } : {}),
             };
             this.publish(action, phase, 'running', { type: 'update', update });
@@ -454,6 +469,7 @@ class ActionRun {
             action,
             activityOrigin: this.activityOrigin,
             context: this.context,
+            conversationReservation: isRoot ? this.conversationReservation : null,
             runId: this.runId,
             onActiveRunChange,
             onEvent,

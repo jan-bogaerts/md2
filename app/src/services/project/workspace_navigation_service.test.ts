@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { getService } from '.././service_injector'
+import { getService } from '../service_injector'
 import { WorkspaceNavigationService, type WorkspaceOpenRequest } from './workspace_navigation_service'
 
 describe('WorkspaceNavigationService', () => {

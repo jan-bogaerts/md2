@@ -1,6 +1,7 @@
 import { parseAgentConversation } from './agent_conversations.mjs'
 
-const ACTIVITY_VERSION = 1
+const ACTIVITY_VERSION = 2
+export const LEGACY_ACTIVITY_VERSION = 1
 const ACTION_ACTIVITY_STATUSES = new Set(['cancelled', 'completed', 'failed', 'okButNotAfter'])
 
 function requiredString(value, fieldName, allowEmpty = false) {
@@ -64,7 +65,7 @@ function parseCommit(value, index) {
     return commit
 }
 
-function parseHistory(value, index) {
+function parseLegacyHistory(value, index) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`Malformed activity file: invalid records[${index}].history`)
     const status = requiredString(value.status, `records[${index}].history.status`)
     if (status !== 'completed' && status !== 'failed') throw new Error(`Malformed activity file: invalid records[${index}].history.status`)
@@ -81,6 +82,35 @@ function parseHistory(value, index) {
     }
 
     return history
+}
+
+function parseAgentDetails(value, index) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`Malformed activity file: invalid records[${index}].details`)
+    const details = { type: 'agent' }
+    for (const fieldName of ['accessLevel', 'agent', 'approvalPolicy', 'model', 'thinkingLevel']) {
+        if (value[fieldName] === undefined) continue
+        if (fieldName === 'agent' && value[fieldName] === null) details[fieldName] = null
+        else details[fieldName] = requiredString(value[fieldName], `records[${index}].details.${fieldName}`)
+    }
+
+    return details
+}
+
+function parseCommandDetails(value, index) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`Malformed activity file: invalid records[${index}].details`)
+
+    return {
+        command: requiredString(value.command, `records[${index}].details.command`, true),
+        output: requiredString(value.output, `records[${index}].details.output`, true),
+        type: 'command',
+    }
+}
+
+function parseDetails(value, index) {
+    if (value?.type === 'agent') return parseAgentDetails(value, index)
+    if (value?.type === 'command') return parseCommandDetails(value, index)
+
+    throw new Error(`Malformed activity file: invalid records[${index}].details.type`)
 }
 
 function parseSystemRecord(value, index, activityOrigin) {
@@ -110,15 +140,46 @@ function parseRecord(value, index, activityOrigin) {
     const origin = parseOrigin(value.origin)
     if (!sameOrigin(origin, activityOrigin)) throw new Error(`Malformed activity file: records[${index}].origin does not match activity origin`)
 
+    if (value.history !== undefined) throw new Error(`Malformed activity file: records[${index}].history is not supported`)
+    const details = parseDetails(value.details, index)
+    if (details.type === 'command' && value.rootConversationId !== undefined) {
+        throw new Error(`Malformed activity file: command records[${index}] cannot have rootConversationId`)
+    }
+    const record = {
+        commits: value.commits.map(parseCommit),
+        completedAt: requiredTimestamp(value.completedAt, `records[${index}].completedAt`),
+        conversationIds: requiredStringArray(value.conversationIds, `records[${index}].conversationIds`),
+        details,
+        runId: requiredString(value.runId, `records[${index}].runId`),
+        origin,
+        rootActionId: requiredString(value.rootActionId, `records[${index}].rootActionId`),
+        rootActionLabel: requiredString(value.rootActionLabel, `records[${index}].rootActionLabel`),
+        startedAt: requiredTimestamp(value.startedAt, `records[${index}].startedAt`),
+        status,
+    }
+    if (details.type === 'agent') record.rootConversationId = requiredString(value.rootConversationId, `records[${index}].rootConversationId`)
+
+    return record
+}
+
+function parseLegacyRecord(value, index, activityOrigin) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`Malformed activity file: invalid records[${index}]`)
+    if (value.type === 'system') return parseSystemRecord(value, index, activityOrigin)
+    const status = requiredString(value.status, `records[${index}].status`)
+    if (!ACTION_ACTIVITY_STATUSES.has(status)) throw new Error(`Malformed activity file: invalid records[${index}].status`)
+    if (!Array.isArray(value.commits)) throw new Error(`Malformed activity file: invalid records[${index}].commits`)
+    const origin = parseOrigin(value.origin)
+    if (!sameOrigin(origin, activityOrigin)) throw new Error(`Malformed activity file: records[${index}].origin does not match activity origin`)
+
     return {
         commits: value.commits.map(parseCommit),
         completedAt: requiredTimestamp(value.completedAt, `records[${index}].completedAt`),
         conversationIds: requiredStringArray(value.conversationIds, `records[${index}].conversationIds`),
-        runId: requiredString(value.runId, `records[${index}].runId`),
-        history: parseHistory(value.history, index),
+        history: parseLegacyHistory(value.history, index),
         origin,
         rootActionId: requiredString(value.rootActionId, `records[${index}].rootActionId`),
         rootActionLabel: requiredString(value.rootActionLabel, `records[${index}].rootActionLabel`),
+        runId: requiredString(value.runId, `records[${index}].runId`),
         startedAt: requiredTimestamp(value.startedAt, `records[${index}].startedAt`),
         status,
     }
@@ -154,12 +215,80 @@ export function parseActivityValue(value, expectedOrigin = null) {
         }
     }
 
+    const conversations = value.conversations.map((conversation, index) => parseConversation(conversation, index, origin))
+    const records = value.records.map((record, index) => parseRecord(record, index, origin))
+    for (const [index, record] of records.entries()) {
+        if (record.type === 'system' || record.details.type !== 'agent') continue
+        if (!record.conversationIds.includes(record.rootConversationId)) {
+            throw new Error(`Malformed activity file: records[${index}].rootConversationId is not in conversationIds`)
+        }
+        const conversation = conversations.find(({ id }) => id === record.rootConversationId)
+        if (!conversation) throw new Error(`Malformed activity file: records[${index}].rootConversationId does not resolve`)
+        if (conversation.actionId !== record.rootActionId) {
+            throw new Error(`Malformed activity file: records[${index}].rootConversationId action does not match rootActionId`)
+        }
+    }
+
     return {
-        conversations: value.conversations.map((conversation, index) => parseConversation(conversation, index, origin)),
+        conversations,
         origin,
-        records: value.records.map((record, index) => parseRecord(record, index, origin)),
+        records,
         version: ACTIVITY_VERSION,
     }
+}
+
+function migrateLegacyRecord(record, index, conversations) {
+    if (record.type === 'system') return record
+    const { history, ...base } = record
+    const agentRecord = history.agent !== undefined
+        || history.accessLevel !== undefined
+        || history.approvalPolicy !== undefined
+        || history.model !== undefined
+        || history.thinkingLevel !== undefined
+    if (!agentRecord) {
+        return {
+            ...base,
+            details: { command: history.command ?? '', output: history.output, type: 'command' },
+        }
+    }
+
+    const candidates = conversations.filter((conversation) => (
+        record.conversationIds.includes(conversation.id) && conversation.actionId === record.rootActionId
+    ))
+    if (candidates.length !== 1) {
+        throw new Error(`Cannot migrate activity file: agent records[${index}] has ${candidates.length} matching root conversations`)
+    }
+    const details = Object.fromEntries(Object.entries({
+        accessLevel: history.accessLevel,
+        agent: history.agent,
+        approvalPolicy: history.approvalPolicy,
+        model: history.model,
+        thinkingLevel: history.thinkingLevel,
+        type: 'agent',
+    }).filter(([, fieldValue]) => fieldValue !== undefined))
+
+    return { ...base, details, rootConversationId: candidates[0].id }
+}
+
+export function migrateActivityValue(value, expectedOrigin = null) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Malformed activity file: root must be an object')
+    if (value.version !== LEGACY_ACTIVITY_VERSION) throw new Error(`Cannot migrate activity file version ${String(value.version)}`)
+    if (!Array.isArray(value.records)) throw new Error('Malformed activity file: records must be an array')
+    if (!Array.isArray(value.conversations)) throw new Error('Malformed activity file: conversations must be an array')
+    const origin = parseOrigin(value.origin)
+    if (expectedOrigin && !sameOrigin(origin, parseOrigin(expectedOrigin))) {
+        throw new Error('Malformed activity file: origin does not match requested activity')
+    }
+    const conversations = value.conversations.map((conversation, index) => parseConversation(conversation, index, origin))
+    const legacyRecords = value.records.map((record, index) => parseLegacyRecord(record, index, origin))
+    const migrated = {
+        conversations,
+        origin,
+        records: legacyRecords.map((record, index) => migrateLegacyRecord(record, index, conversations)),
+        version: ACTIVITY_VERSION,
+    }
+
+    return parseActivityValue(migrated, expectedOrigin)
 }
 
 export function parseActivityFile(content, expectedOrigin = null) {

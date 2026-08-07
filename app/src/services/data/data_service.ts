@@ -1,4 +1,8 @@
-import { CommitBatcher } from '../../data/commit_batcher'
+import {
+    COMMIT_BATCHER_FLUSH_FAILED_EVENT,
+    COMMIT_BATCHER_PENDING_CHANGED_EVENT,
+    CommitBatcher,
+} from '../../data/commit_batcher'
 import type { ActionContext } from '../../data/action_context'
 import { resolveProjectConfigPaths, type MarkdownFile, type ProjectConfig, type ProjectReference, type ProjectSnapshot, type RunningAgent, type StorageService } from '../../data/data_types'
 import type { RemarkableBridge } from '../../data/remarkable_bridge'
@@ -11,16 +15,20 @@ import { notifyActionCardStateChange } from '../actions/action_run_registry'
 import { AgentIntegration, type AgentIntegrationDeps } from '../agents/agent_integration'
 import { ProjectLoading, type ProjectLoadingDeps } from '../project/project_loading'
 import { ProjectState } from '../project/project_state'
-import { ReleaseOperations, type ReleaseOperationsDeps } from '.././release_operations'
+import { ReleaseOperations, type ReleaseOperationsDeps } from '../release_operations'
 import { SaveStateService, withSaveStateTracking } from '../project/save_state_service'
 import { getRemarkableMetadataContent, importRemarkableImages, type RemarkableImportInput } from '../remarkable/remarkable_import_service'
 import type { RemarkableImportPlan } from '../remarkable/remarkable_import_service'
-import { getService, register } from '.././service_injector'
+import { getService, register } from '../service_injector'
 import { telemetryService } from '../telemetry/telemetry_service'
 import { worktreeService } from '../project/worktree_service'
-import { dialogService } from '.././dialog_service'
+import { dialogService } from '../dialog_service'
 import type { CardParseError } from './markdown_parsing_service'
 import type { OpenDocumentSaveReference } from '../open_files_service'
+import { CARD_CHANGED_EVENT, CARD_FIELDS, cardCollectionFieldChangedEvent, cardFieldChangedEvent, type CardField } from './card_events'
+
+export { CARD_CHANGED_EVENT, cardCollectionFieldChangedEvent, cardFieldChangedEvent } from './card_events'
+export type { CardField } from './card_events'
 
 export type { RemarkableImportInput }
 export interface DataServiceState {
@@ -53,7 +61,6 @@ export interface CardPathChangedEventDetail {
 }
 
 export const CARD_ADDED_EVENT = 'cardAdded'
-export const CARD_CHANGED_EVENT = 'cardChanged'
 export const CARD_PATH_CHANGED_EVENT = 'cardPathChanged'
 export const CARD_REMOVED_EVENT = 'cardRemoved'
 
@@ -61,6 +68,55 @@ function reportCardParseErrors(errors: CardParseError[]) {
     const paths = errors.map(({ path }) => path).join(', ')
     dialogService.warning(`Some project files could not be loaded and were skipped: ${paths}`, { title: 'Some cards were not loaded' })
     errors.forEach(({ error }) => telemetryService.captureError(error))
+}
+
+function eventCard(card: ProjectSnapshot['activeCards'][number]) {
+    return {
+        ...card,
+        header: {
+            ...card.header,
+            affects: [...card.header.affects],
+            agentLogReferences: [...card.header.agentLogReferences],
+            policy: { ...card.header.policy },
+        },
+    }
+}
+
+function isSameArray<T>(first: readonly T[], second: readonly T[]) {
+    return first === second || (first.length === second.length && second.every((value, index) => first[index] === value))
+}
+
+function isSamePolicy(first: Record<string, boolean>, second: Record<string, boolean>) {
+    if (first === second) return true
+    const entries = Object.entries(second)
+
+    return Object.keys(first).length === entries.length && entries.every(([key, value]) => first[key] === value)
+}
+
+function cardFieldChanged(field: CardField, previousCard: CardAddedEventDetail['card'], card: CardAddedEventDetail['card']) {
+    const previousHeader = previousCard.header
+    const header = card.header
+    if (field === 'affects') return !isSameArray(previousHeader.affects, header.affects)
+    if (field === 'body') return previousCard.content !== card.content
+    if (field === 'conversation') {
+        return !isSameArray(previousCard.agentConversations, card.agentConversations)
+            || !isSameArray(previousCard.agentConversationErrors, card.agentConversationErrors)
+            || !isSameArray(previousHeader.agentLogReferences, header.agentLogReferences)
+    }
+    if (field === 'identity') {
+        return previousHeader.id !== header.id
+            || previousHeader.internalId !== header.internalId
+            || previousCard.isActive !== card.isActive
+            || previousCard.path !== card.path
+    }
+    if (field === 'ordering') return previousHeader.after !== header.after || previousHeader.status !== header.status
+    if (field === 'policy') return !isSamePolicy(previousHeader.policy, header.policy)
+    if (field === 'status') return previousHeader.status !== header.status
+    if (field === 'title') return previousHeader.title !== header.title
+
+    return previousHeader.worktree !== header.worktree
+        || previousHeader.worktreeError !== header.worktreeError
+        || previousHeader.worktreeValue !== header.worktreeValue
 }
 
 async function flushAggregatePendingChanges() {
@@ -102,7 +158,11 @@ export class DataService extends EventTarget {
                 })
             },
         )
-        this.agents = new AgentIntegration(this.createAgentIntegrationDependencies(), (file) => this.cards.saveFile(file))
+        this.agents = new AgentIntegration(
+            this.createAgentIntegrationDependencies(),
+            (cardPath, reference) => this.cards.addAgentLogReference(cardPath, reference),
+        )
+        agentAcknowledgementService.connectConversationStore((conversation) => this.agents.findStoredConversation(conversation))
         this.projectLoading = new ProjectLoading(
             this.createProjectLoadingDependencies(),
             (snapshot, project, projectLoadToken) => this.agents.loadAgentConversationsInBackground(snapshot, project, projectLoadToken),
@@ -119,25 +179,27 @@ export class DataService extends EventTarget {
         this.remarkableBridge = dependencies.remarkableBridge ?? null
         this.storage = withSaveStateTracking(dependencies.storage, this.saveStateService)
         worktreeService.init({
-            assignCardWorktree: (path, worktree) => this.cards.updateCardWorktree(path, worktree),
+            assignCardWorktree: (path, worktree, branch) => this.cards.assignCardWorktree(path, worktree, branch),
             cardSeparatorProvider: () => this.requireDependencies().config.cardSeparator,
+            clearCardBranch: (path) => this.cards.clearCardBranch(path),
             flushPendingChanges: flushAggregatePendingChanges,
             projectFolderProvider: () => this.requireDependencies().config.projectFolder,
             projectProvider: () => this.projectState.project,
             snapshotProvider: () => this.projectState.snapshot,
             storageProvider: () => this.storage,
+            unassignCardWorktree: (path) => this.cards.updateCardWorktree(path, null),
         })
         this.agents.startScheduledRunWatch()
         const delayMs = configService.get('react.autoCommitDelayMs')
-        this.commitBatcher = new CommitBatcher({
-            afterCommit: (request) => this.cards.pushCommittedFiles(request),
-            clearDelay: (delayId) => window.clearTimeout(delayId),
-            commit: (request) => this.cards.commitFiles(request),
-            delayMs,
-            onFlushError: (error) => this.reportCommitFlushFailure(error),
-            onPendingChange: () => this.dispatchPersistenceChanged(),
-            setDelay: (callback, delay) => window.setTimeout(callback, delay),
-        })
+        this.commitBatcher = new CommitBatcher(this.cards, delayMs)
+        this.commitBatcher.addEventListener(
+            COMMIT_BATCHER_FLUSH_FAILED_EVENT,
+            (event) => this.reportCommitFlushFailure((event as CustomEvent<unknown>).detail),
+        )
+        this.commitBatcher.addEventListener(
+            COMMIT_BATCHER_PENDING_CHANGED_EVENT,
+            () => this.dispatchPersistenceChanged(),
+        )
         this.dispatchChanged()
         this.dispatchPersistenceChanged()
     }
@@ -257,11 +319,15 @@ export class DataService extends EventTarget {
             ),
             files: () => this.projectState.files,
             mergeCommittedFiles: (files, workingFolder) => this.projectState.mergeCommittedFiles(files, workingFolder),
+            mutateCard: (path, mutation, workingFolder) => this.projectState.mutateCard(path, mutation, workingFolder),
             project: () => this.projectState.project,
+            recordCommittedContent: (files) => this.projectState.recordCommittedContent(files),
             refreshSnapshot: (workingFolder) => this.refreshSnapshot(workingFolder),
             reloadCurrentProjectSnapshot: () => this.projectLoading.reloadCurrentProjectSnapshot(),
             renameFile: (fromPath, toPath, workingFolder) => this.projectState.renameFile(fromPath, toPath, workingFolder),
             requireDependencies: () => this.requireDependencies(),
+            requireCard: (path) => this.projectState.requireCard(path),
+            requireCardByInternalId: (internalId) => this.projectState.requireCardByInternalId(internalId),
             requireFile: (path) => this.projectState.requireFile(path),
             replaceFiles: (files, workingFolder) => this.projectState.replaceFiles(files, workingFolder),
             snapshot: () => this.projectState.snapshot,
@@ -280,6 +346,7 @@ export class DataService extends EventTarget {
             requireDependencies: () => this.requireDependencies(),
             requireFile: (path) => this.projectState.requireFile(path),
             snapshot: () => this.projectState.snapshot,
+            conversationChanged: (cardPath) => this.dispatchEvent(new Event(cardFieldChangedEvent(cardPath, 'conversation'))),
         }
     }
 
@@ -293,7 +360,11 @@ export class DataService extends EventTarget {
             dispatchRepositoryChanged: (event) => this.dispatchEvent(new CustomEvent('repositoryChanged', { detail: event })),
             files: () => this.projectState.files,
             flushPendingChanges: flushAggregatePendingChanges,
+            isCommittedContent: (path, content) => this.projectState.isCommittedContent(path, content),
             isCurrentLoad: (project, projectLoadToken) => this.projectState.isCurrentLoad(project, projectLoadToken),
+            mergeBackgroundProjectFiles: (files, workingFolder, repositoryFiles) => (
+                this.projectState.mergeBackgroundProjectFiles(files, workingFolder, repositoryFiles)
+            ),
             project: () => this.projectState.project,
             replaceFiles: (files, workingFolder) => this.projectState.replaceFiles(files, workingFolder),
             replaceProject: (project) => this.projectState.replaceProject(project),
@@ -338,8 +409,6 @@ export class DataService extends EventTarget {
         this.dispatchEvent(new CustomEvent<DataServiceState>('changed', { detail: this.getState() }))
     }
     private dispatchCardPathChanged(fromPath: string, toPath: string) {
-        const currentProject = this.projectState.project
-        if (currentProject) agentAcknowledgementService.renameCardPath(currentProject.id, fromPath, toPath)
         const detail: CardPathChangedEventDetail = { fromPath, toPath }
         this.dispatchEvent(new CustomEvent<CardPathChangedEventDetail>(CARD_PATH_CHANGED_EVENT, { detail }))
     }
@@ -351,16 +420,21 @@ export class DataService extends EventTarget {
         const nextByPath = new Map(nextCards.map((card) => [card.path, card]))
         for (const card of previousCards) {
             if (!nextByPath.has(card.path)) {
-                this.dispatchEvent(new CustomEvent<CardRemovedEventDetail>(CARD_REMOVED_EVENT, { detail: { card } }))
+                this.dispatchEvent(new CustomEvent<CardRemovedEventDetail>(CARD_REMOVED_EVENT, { detail: { card: eventCard(card) } }))
             }
         }
         for (const card of nextCards) {
             const previousCard = previousByPath.get(card.path)
             if (!previousCard) {
-                this.dispatchEvent(new CustomEvent<CardAddedEventDetail>(CARD_ADDED_EVENT, { detail: { card } }))
+                this.dispatchEvent(new CustomEvent<CardAddedEventDetail>(CARD_ADDED_EVENT, { detail: { card: eventCard(card) } }))
             } else if (previousCard !== card) {
-                const detail = { card, previousCard }
+                const detail = { card: eventCard(card), previousCard: eventCard(previousCard) }
                 this.dispatchEvent(new CustomEvent<CardChangedEventDetail>(CARD_CHANGED_EVENT, { detail }))
+                for (const field of CARD_FIELDS) {
+                    if (!cardFieldChanged(field, previousCard, card)) continue
+                    this.dispatchEvent(new Event(cardFieldChangedEvent(card.path, field)))
+                    this.dispatchEvent(new Event(cardCollectionFieldChangedEvent(field)))
+                }
                 if (previousCard.header.status !== card.header.status && card.header.status) {
                     const finishNotification = notifyActionCardStateChange(card.header.internalId, card.header.status)
                     void finishNotification.catch((error: unknown) => {

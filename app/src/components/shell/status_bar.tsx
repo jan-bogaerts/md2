@@ -3,7 +3,7 @@ import { KeyboardStatus } from './keyboard_status'
 import { RemoteControlStatusIndicator } from './remote_control_status_indicator'
 import { RunningAgentsIndicator } from './running_agents_indicator'
 import { ProjectAgentUsageSummary } from './project_agent_usage_summary'
-import { ProjectCardCountSummary } from './project_card_count_summary'
+import { CardCountSummary } from './project_card_count_summary'
 import { ProjectSyncStatus } from './project_sync_status'
 import { CodexRateLimitStatus } from './codex_rate_limit_status'
 
@@ -26,7 +26,7 @@ export function StatusBar() {
                 px: 1.75,
             }}
         >
-            <ProjectCardCountSummary />
+            <CardCountSummary />
             <ProjectSyncStatus />
             <Box sx={{ flex: 1 }} />
             <ProjectAgentUsageSummary />

@@ -10,7 +10,8 @@ Placeholders let one action definition work for every card. They are written as 
 | `{{card-title}}` | Title of the selected card. |
 | `{{card-prompt}}` | The extra text you typed in the action popup for this run. |
 | `{{worktree-folder}}` | Absolute path to the action execution checkout. |
-| `{{project-folder}}` | Absolute path to the opened repository. |
+| `{{repository-folder}}` | Absolute path to the opened repository. |
+| `{{project-folder}}` | Absolute path to the configured `project.projectFolder` under the opened repository. Equal to `{{repository-folder}}` when configuration is empty. |
 | `{{releases-folder}}` | Absolute path to the configured releases folder under the opened repository. |
 
 They work in both `prompt` (agent actions) and `command` (command actions).
@@ -43,7 +44,8 @@ In the prompt editor, type `{{` for a typeahead list, or insert one from the too
 
 - A card placeholder only resolves when the action runs with card context. Use `appliesTo` with `"kind": "card"` so an action that needs `{{card-file}}` is only offered where it makes sense.
 - `{{card-prompt}}` is empty when you run without typing anything. Write prompts that read fine either way.
-- The diff command in project configuration supports the same three folder placeholders plus `{{commit}}`, `{{branch}}`, and `{{file}}`. For diffs, `{{worktree-folder}}` and `{{project-folder}}` both resolve to the opened repository.
+- During linked-worktree actions, `{{repository-folder}}` and `{{project-folder}}` remain under the opened repository. Only `{{worktree-folder}}` changes to the linked worktree.
+- The diff command in project configuration supports the same four folder placeholders plus `{{commit}}`, `{{branch}}`, and `{{file}}`. For diffs, `{{worktree-folder}}` and `{{repository-folder}}` both resolve to the opened repository.
 - Custom agent profiles support `{{model}}` in `command` and `{{sessionId}}` in `resumeCommand`. Those are profile placeholders, not action placeholders.
 
 {% endraw %}

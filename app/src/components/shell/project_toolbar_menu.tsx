@@ -54,7 +54,9 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
             // ProjectSessionService emits the user-visible error.
         }
     }
-    const handleOpenReleaseDialog = () => openDialog('release')
+    const handleOpenReleaseDialog = () => {
+        void actions.openReleaseDialog()
+    }
     const handleOpenCardDialog = () => actions.openNewCardDialog()
     const handleCreateProjectFolders = (projectFolder: string) => {
         void actions.createProjectFolders(projectFolder)
@@ -118,9 +120,13 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
                 selectedBranch={actions.switchBranch}
             />
             <CompleteReleaseDialog
+                branchCandidates={actions.releaseBranchCandidates}
+                defaultSelectAll={actions.releaseSelectAllDefault}
                 isLoading={actions.isLoading}
+                key={dialogMode === 'release' ? 'release-open' : 'release-closed'}
                 onClose={actions.closeDialog}
                 onCompleteRelease={actions.completeRelease}
+                onSelectAllDefaultChange={actions.setReleaseSelectAllDefault}
                 open={dialogMode === 'release'}
             />
             <NewCardDialog

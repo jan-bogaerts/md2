@@ -1,5 +1,13 @@
-import type { MarkdownFile, MoveFile, ProjectCard } from './data_types'
+import type { MarkdownFile, MoveFile, Card } from './data_types'
 import { isSafeAssetFileName, isSupportedAssetFileName, resolveCardAssetPath } from './asset_paths'
+import { markdownParsingService } from '../services/data/markdown_parsing_service'
+import { parseActivityFile } from '../../../shared/card_activity.mjs'
+import {
+    activityFilePath,
+    cardActivityFileName,
+    conversationActivityReference,
+    parseConversationActivityReference,
+} from '../../../shared/activity_paths.mjs'
 import { normalizePath } from '../../../shared/path_utils.mjs'
 
 const RELEASE_NAME_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/u
@@ -51,6 +59,42 @@ function createMove(file: MarkdownFile, fromPath: string, toPath: string, encodi
     return move
 }
 
+function releaseActivitySource(card: Card, projectFolder: string) {
+    const cardInternalId = card.header.internalId
+    if (!cardInternalId) throw new Error(`Cannot release a card without an internal ID: ${card.path}`)
+
+    const sourcePath = activityFilePath(projectFolder, { cardInternalId, kind: 'card' })
+    const conversationIds = card.header.agentLogReferences.map((reference) => {
+        const parsed = parseConversationActivityReference(reference)
+        if (normalizePath(parsed.activityPath) !== normalizePath(sourcePath)) {
+            throw new Error(`Unexpected activity path for released card ${card.path}: ${parsed.activityPath}`)
+        }
+
+        return parsed.conversationId
+    })
+
+    return { cardInternalId, conversationIds, sourcePath }
+}
+
+export function findReleaseActivityPaths(
+    releaseCards: Card[],
+    projectFolder: string,
+    repositoryFiles: string[],
+) {
+    const repositoryPaths = new Set(repositoryFiles.map(normalizePath))
+    const activityPaths = new Set<string>()
+
+    for (const card of releaseCards) {
+        const { conversationIds, sourcePath } = releaseActivitySource(card, projectFolder)
+        const normalizedSourcePath = normalizePath(sourcePath)
+        const exists = repositoryPaths.has(normalizedSourcePath)
+        if (conversationIds.length > 0 && !exists) throw new Error(`Missing referenced activity log: ${sourcePath}`)
+        if (exists) activityPaths.add(sourcePath)
+    }
+
+    return [...activityPaths]
+}
+
 export function validateReleaseName(releaseName: string) {
     const trimmedName = releaseName.trim()
 
@@ -63,7 +107,7 @@ export function validateReleaseName(releaseName: string) {
     return trimmedName
 }
 
-export function findArchiveAssetPaths(files: MarkdownFile[], archivedCards: ProjectCard[]) {
+export function findArchiveAssetPaths(files: MarkdownFile[], archivedCards: Card[]) {
     const archivedSourcePaths = new Set(archivedCards.map((card) => normalizePath(card.path)))
     const nonArchivedAssetPaths = new Set(
         files
@@ -91,11 +135,12 @@ export function findArchiveAssetPaths(files: MarkdownFile[], archivedCards: Proj
 
 export function buildReleaseMoves(
     files: MarkdownFile[],
-    activeCards: ProjectCard[],
+    activeCards: Card[],
     projectFolder: string,
     releasesFolder: string,
     safeReleaseName: string,
     repositoryFiles: string[] = [],
+    activityFiles: MarkdownFile[] = [],
 ): MoveFile[] {
     const normalizedProjectFolder = normalizePath(projectFolder).replace(/\/+$/u, '')
     const normalizedReleasesFolder = normalizePath(releasesFolder).replace(/\/+$/u, '')
@@ -117,12 +162,65 @@ export function buildReleaseMoves(
 
     if (hasExistingReleaseFolder) throw new Error(`Release already exists: ${safeReleaseName}`)
 
-    return buildCardArchiveMoves(files, activeCards, targetFolder, repositoryFiles)
+    const moves = buildCardArchiveMoves(files, activeCards, targetFolder, repositoryFiles)
+    const repositoryPaths = new Set(repositoryFiles.map(normalizePath))
+    const activityFilesByPath = new Map(activityFiles.map((file) => [normalizePath(file.path), file]))
+    const targetPaths = new Set(moves.map((move) => normalizePath(move.toPath)))
+    const cardActivityMoves = new Map<string, MoveFile>()
+    const rewrittenCardContentByPath = new Map<string, string>()
+
+    for (const card of activeCards) {
+        const { cardInternalId, conversationIds, sourcePath } = releaseActivitySource(card, projectFolder)
+        const normalizedSourcePath = normalizePath(sourcePath)
+        const activityExists = repositoryPaths.has(normalizedSourcePath)
+        if (conversationIds.length > 0 && !activityExists) throw new Error(`Missing referenced activity log: ${sourcePath}`)
+        if (!activityExists) continue
+
+        const activityFile = activityFilesByPath.get(normalizedSourcePath)
+        if (!activityFile) throw new Error(`Cannot release unloaded activity log: ${sourcePath}`)
+        const activity = parseActivityFile(activityFile.content)
+        if (activity.origin.kind !== 'card' || activity.origin.cardInternalId !== cardInternalId) {
+            throw new Error(`Activity log does not belong to released card ${card.path}: ${sourcePath}`)
+        }
+        for (const conversationId of conversationIds) {
+            if (!activity.conversations.some((conversation) => conversation.id === conversationId)) {
+                throw new Error(`Referenced conversation is missing from activity log ${sourcePath}: ${conversationId}`)
+            }
+        }
+
+        const activityTargetPath = `${targetFolder}/${cardActivityFileName(cardInternalId)}`
+        const normalizedActivityTargetPath = normalizePath(activityTargetPath)
+        if (existingPaths.has(normalizedActivityTargetPath) || targetPaths.has(normalizedActivityTargetPath)) {
+            throw new Error(`Archive target already exists: ${activityTargetPath}`)
+        }
+
+        targetPaths.add(normalizedActivityTargetPath)
+        cardActivityMoves.set(normalizePath(card.path), createMove(activityFile, sourcePath, activityTargetPath))
+
+        if (conversationIds.length === 0) continue
+        const references = conversationIds.map((conversationId) => (
+            conversationActivityReference(activityTargetPath, conversationId)
+        ))
+        const cardMove = moves.find((move) => normalizePath(move.fromPath) === normalizePath(card.path))
+        if (!cardMove) throw new Error(`Cannot find release move for card: ${card.path}`)
+        rewrittenCardContentByPath.set(
+            normalizePath(card.path),
+            markdownParsingService.setAgentLogReferences(cardMove.content, references),
+        )
+    }
+
+    return moves.flatMap((move) => {
+        const activityMove = cardActivityMoves.get(normalizePath(move.fromPath))
+        const rewrittenContent = rewrittenCardContentByPath.get(normalizePath(move.fromPath))
+        const preparedMove = rewrittenContent === undefined ? move : { ...move, content: rewrittenContent }
+
+        return activityMove ? [preparedMove, activityMove] : [preparedMove]
+    })
 }
 
 export function buildCardArchiveMoves(
     files: MarkdownFile[],
-    archivedCards: ProjectCard[],
+    archivedCards: Card[],
     targetFolder: string,
     repositoryFiles: string[] = [],
 ): MoveFile[] {

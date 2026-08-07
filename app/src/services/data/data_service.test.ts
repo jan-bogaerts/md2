@@ -4,7 +4,7 @@ import { configService } from '../config/config_service'
 import { actionService } from '../actions/action_service'
 import { projectPersistenceService } from '../project/project_persistence_service'
 import { GithubStorageService } from '../github/github_storage_service'
-import { openFilesService } from '.././open_files_service'
+import { openFilesService } from '../open_files_service'
 import {
     createDeferred,
     createDataService,
@@ -14,7 +14,7 @@ import {
     createStorage,
     files,
     githubProject,
-} from '.././test_support/data_service_test_support'
+} from '../test_support/data_service_test_support'
 
 describe('DataService', () => {
     afterEach(() => {

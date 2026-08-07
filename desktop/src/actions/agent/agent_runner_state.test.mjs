@@ -4,6 +4,13 @@ import { describe, expect, it, vi } from 'vitest';
 const require = createRequire(import.meta.url);
 const { AGENT_FINISH_GRACE_MS, AgentRunnerService } = require('./agent_runner_service');
 
+function diagnosticStreamingEvent(content, providerItemId) {
+    return {
+        event: { content, label: 'Codex protocol diagnostic', providerItemId, status: 'completed', type: 'diagnostic' },
+        type: 'event',
+    };
+}
+
 describe('AgentRunnerService state handling', () => {
     it('reports one diagnosed Codex cache error and suppresses repeats', async () => {
         const diagnoseCodexCacheError = vi.fn(async () => 'Codex versions differ. Update Codex.');
@@ -122,10 +129,29 @@ describe('AgentRunnerService state handling', () => {
 
         expect(persistConversationCheckpoint).toHaveBeenCalledWith(expect.objectContaining({
             conversation: expect.objectContaining({
-                entries: expect.arrayContaining([expect.objectContaining({ content: 'Done', kind: 'message' })]),
+                entries: [expect.objectContaining({ content: 'Done', kind: 'message' })],
                 status: 'waitingForInput',
             }),
         }));
+    });
+
+    it('keeps streaming process stderr out of canonical conversation entries', () => {
+        const service = new AgentRunnerService();
+        const run = {
+            conversation: { entries: [] },
+            id: 'run-1',
+            onEvent: vi.fn(),
+            secretValues: new Set(),
+            stderr: '',
+            streaming: true,
+        };
+        service.processes.set('run-1', run);
+
+        service.recordOutput('run-1', 'stderr', 'Codex internal runtime output\n');
+
+        expect(run.stderr).toBe('Codex internal runtime output\n');
+        expect(run.conversation.entries).toEqual([]);
+        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }));
     });
 
     it('waits for close processing after terminating every run', async () => {
@@ -208,6 +234,7 @@ describe('AgentRunnerService state handling', () => {
         expect(persistConversation).toHaveBeenCalledWith(expect.objectContaining({
             conversation: expect.objectContaining({
                 completedAt: null,
+                entries: [expect.objectContaining({ content: 'Done', kind: 'message' })],
                 status: 'waitingForInput',
             }),
             stderr: '',
@@ -355,6 +382,42 @@ describe('AgentRunnerService state handling', () => {
         ]);
     });
 
+    it('replaces streamed assistant text with authoritative provider completion', async () => {
+        const service = new AgentRunnerService();
+        const run = {
+            agent: 'claude',
+            assistantItemIndex: 0,
+            assistantItems: new Map(),
+            conversation: { entries: [], status: 'running' },
+            currentAssistantMessageId: null,
+            id: 'run-1',
+            nextSequence: 1,
+            onEvent: vi.fn(),
+            secretValues: new Set(),
+            stdout: '',
+            streaming: true,
+            turnIndex: 1,
+        };
+        service.processes.set('run-1', run);
+
+        await service.handleStreamingEvent('run-1', { itemId: 'message-1:text:0', type: 'assistantStarted' });
+        await service.handleStreamingEvent('run-1', { content: 'dra', itemId: 'message-1:text:0', type: 'assistant' });
+        await service.handleStreamingEvent('run-1', {
+            content: 'draft',
+            itemId: 'message-1:text:0',
+            type: 'assistantCompleted',
+        });
+
+        expect(run.stdout).toBe('draft');
+        expect(run.conversation.entries).toEqual([expect.objectContaining({ content: 'draft', sequence: 1 })]);
+        expect(run.onEvent).toHaveBeenLastCalledWith(expect.objectContaining({
+            content: 'draft',
+            previousContent: 'dra',
+            replace: true,
+            type: 'output',
+        }));
+    });
+
     it('updates an indexed event without scanning or appending conversation history', async () => {
         const service = new AgentRunnerService();
         const existingEvent = {
@@ -406,6 +469,51 @@ describe('AgentRunnerService state handling', () => {
         });
         expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({
             event: expect.objectContaining({ content: 'Completed', id: 'activity-1' }),
+            type: 'agentEvent',
+        }));
+    });
+
+    it('groups consecutive diagnostics while preserving first identity and recognized event boundaries', async () => {
+        const service = new AgentRunnerService();
+        const run = {
+            providerEventEntryIndexes: new Map(),
+            conversation: { entries: [], status: 'running' },
+            id: 'run-1',
+            nextSequence: 1,
+            onEvent: vi.fn(),
+            secretValues: new Set(),
+        };
+        service.processes.set('run-1', run);
+
+        await service.handleStreamingEvent('run-1', diagnosticStreamingEvent('item/started: futureTool (future-1)', 'diagnostic:future-1:1'));
+        await service.handleStreamingEvent('run-1', diagnosticStreamingEvent('item/completed: futureTool (future-1)', 'diagnostic:future-1:2'));
+        await service.handleStreamingEvent('run-1', {
+            event: { content: 'Search', label: 'Web search', providerItemId: 'search-1', status: 'completed', type: 'webSearch' },
+            type: 'event',
+        });
+        await service.handleStreamingEvent('run-1', diagnosticStreamingEvent('item/started: futureTool (future-2)', 'diagnostic:future-2:3'));
+        await service.handleStreamingEvent('run-1', diagnosticStreamingEvent('item/completed: futureTool (future-2)', 'diagnostic:future-2:4'));
+
+        expect(run.conversation.entries).toEqual([
+            expect.objectContaining({
+                content: 'item/started: futureTool (future-1)\nitem/completed: futureTool (future-1)',
+                id: 'run-1-event-1',
+                providerItemId: 'diagnostic:future-1:1',
+                sequence: 1,
+            }),
+            expect.objectContaining({ providerItemId: 'search-1', sequence: 2 }),
+            expect.objectContaining({
+                content: 'item/started: futureTool (future-2)\nitem/completed: futureTool (future-2)',
+                id: 'run-1-event-3',
+                providerItemId: 'diagnostic:future-2:3',
+                sequence: 3,
+            }),
+        ]);
+        expect(run.onEvent).toHaveBeenNthCalledWith(2, expect.objectContaining({
+            event: expect.objectContaining({
+                content: 'item/started: futureTool (future-1)\nitem/completed: futureTool (future-1)',
+                providerItemId: 'diagnostic:future-1:1',
+            }),
             type: 'agentEvent',
         }));
     });
@@ -494,8 +602,11 @@ describe('AgentRunnerService state handling', () => {
         expect(answerApproval).toHaveBeenCalledWith(41, 'accept');
         expect(run.conversation.entries).toEqual([]);
         expect(run.conversation.status).toBe('waitingForInput');
-        expect(persistConversationCheckpoint).not.toHaveBeenCalled();
+        expect(persistConversationCheckpoint).toHaveBeenCalledOnce();
         expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'approval' }));
+        const approvalCallIndex = run.onEvent.mock.calls.findIndex(([event]) => event.type === 'approval');
+        expect(persistConversationCheckpoint.mock.invocationCallOrder[0])
+            .toBeLessThan(run.onEvent.mock.invocationCallOrder[approvalCallIndex]);
         expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({ state: 'waitingForInput', type: 'approvalResolved' }));
     });
 

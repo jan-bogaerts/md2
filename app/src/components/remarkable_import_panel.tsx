@@ -4,7 +4,7 @@ import {
 } from '@mui/material'
 import type { ChangeEvent } from 'react'
 import { useMemo, useState } from 'react'
-import type { ProjectCard } from '../data/data_types'
+import type { Card } from '../data/data_types'
 import {
     getRemarkableBridge,
     validateRemarkableSettings,
@@ -39,7 +39,7 @@ interface LastImport {
 }
 
 interface RemarkableImportPanelProps {
-    activeCards: ProjectCard[]
+    activeCards: Card[]
     agentAvailable?: boolean
     bridge?: RemarkableBridge | null
     isProjectOpen: boolean

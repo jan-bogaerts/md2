@@ -5,31 +5,22 @@ function combineOutput(result) {
     return `${result.stdout}${result.stderr}`;
 }
 
-function createCommandHistoryEntry(input) {
-    const completedAt = input.completedAt ?? new Date().toISOString();
-
+function createCommandDetails(input) {
     return {
         command: input.result.command,
-        completedAt,
         output: combineOutput(input.result),
-        prompt: '',
-        status: input.result.exitCode === 0 ? 'completed' : 'failed',
+        type: 'command',
     };
 }
 
-function createAgentHistoryEntry(input) {
-    const completedAt = input.completedAt ?? new Date().toISOString();
-
+function createAgentDetails(input) {
     return {
         ...(input.result.accessLevel !== undefined ? { accessLevel: input.result.accessLevel } : {}),
-        agent: input.result.agent,
+        ...(input.result.agent !== undefined ? { agent: input.result.agent } : {}),
         ...(input.result.approvalPolicy !== undefined ? { approvalPolicy: input.result.approvalPolicy } : {}),
-        completedAt,
-        model: input.result.model,
-        output: combineOutput(input.result),
-        prompt: input.result.prompt,
-        status: input.result.exitCode === 0 ? 'completed' : 'failed',
-        thinkingLevel: input.result.thinkingLevel,
+        ...(input.result.model !== undefined ? { model: input.result.model } : {}),
+        ...(input.result.thinkingLevel !== undefined ? { thinkingLevel: input.result.thinkingLevel } : {}),
+        type: 'agent',
     };
 }
 
@@ -71,6 +62,6 @@ async function captureCommitReferences(localGitService, input) {
 module.exports = {
     captureCommitReferences,
     combineOutput,
-    createAgentHistoryEntry,
-    createCommandHistoryEntry,
+    createAgentDetails,
+    createCommandDetails,
 };

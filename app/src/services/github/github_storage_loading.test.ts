@@ -8,7 +8,7 @@ import {
     createStatusResponse,
     project,
     queueProjectTree,
-} from '.././test_support/github_storage_test_support'
+} from '../test_support/github_storage_test_support'
 
 describe('GithubStorageService', () => {
     beforeEach(() => {
@@ -50,6 +50,24 @@ describe('GithubStorageService', () => {
         expect(projectFiles.files.map((file) => file.path)).toEqual(['design/F-1-root.md'])
         expect(fetchImplementation).toHaveBeenCalledTimes(4)
         expect(fetchImplementation.mock.calls.some(([url]) => url.includes('/git/blobs/sha-2'))).toBe(false)
+    })
+
+    it('loads a UTF-8 repository text file by path', async () => {
+        const path = 'design/activity/card__card-1.json'
+        const fetchImplementation = vi.fn().mockResolvedValue(createResponse({
+            content: btoa('{"version":2}'),
+            encoding: 'base64',
+            path,
+            sha: 'activity-sha',
+        }))
+        const service = new GithubStorageService()
+        service.init({ accessToken: 'token', fetchImplementation })
+
+        await expect(service.loadTextFile(project, path)).resolves.toEqual({
+            content: '{"version":2}',
+            path,
+            sha: 'activity-sha',
+        })
     })
 
     it('bounds parallel markdown content requests when loading a project', async () => {

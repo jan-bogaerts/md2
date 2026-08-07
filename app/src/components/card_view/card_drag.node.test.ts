@@ -2,15 +2,15 @@ import { describe, expect, it } from 'vitest'
 import type { DragMoveEvent } from '@dnd-kit/core'
 import { columnDropId, getCardTypeColor, resolveCardDragEvent, resolveDrop } from './card_drag'
 import type { CardColumn } from '../../data/card_ordering'
-import type { CardTypeConfig, ProjectCard } from '../../data/data_types'
+import type { CardTypeConfig, Card } from '../../data/data_types'
 
-function card(path: string, internalId: string): ProjectCard {
+function card(path: string, internalId: string): Card {
     return {
         agentConversationErrors: [],
         agentConversations: [],
-        headerFields: {},
         content: '',
         header: { affects: [], after: null, agentLogReferences: [], author: null, id: path, internalId, owner: null, policy: {}, status: 'todo', title: path },
+        hasFrontmatter:true,
         isActive: true,
         path,
     }

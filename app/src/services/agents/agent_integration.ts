@@ -6,19 +6,20 @@ import {
     type AgentConversationError,
     type MarkdownFile,
     type ProjectConfig,
+    type Card,
     type ProjectReference,
     type ProjectSnapshot,
     type StorageService,
 } from '../../data/data_types'
 import { actionService } from '../actions/action_service'
 import { actionRunRegistry } from '../actions/action_run_registry'
+import { agentAcknowledgementService } from './agent_acknowledgement_service'
 import { loadAgentConversation } from './agent_conversation_service'
 import { runElectronAction } from '../actions/electron_action_runner'
-import { mapWithConcurrency } from '.././concurrency'
+import { mapWithConcurrency } from '../concurrency'
 import { type RequiredDataServiceDependencies } from '../data/data_service_context'
-import { markdownParsingService } from '../data/markdown_parsing_service'
 import { telemetryService } from '../telemetry/telemetry_service'
-import { dialogService } from '.././dialog_service'
+import { dialogService } from '../dialog_service'
 
 const AGENT_CONVERSATION_LOAD_CONCURRENCY = 8
 const ON_STATE_ACTION_ERROR_PATH_PREFIX = 'onState'
@@ -47,6 +48,7 @@ export interface AgentIntegrationDeps {
     requireDependencies(): RequiredDataServiceDependencies
     requireFile(path: string): MarkdownFile
     snapshot(): ProjectSnapshot | null
+    conversationChanged(cardPath: string): void
 }
 
 function isOnStateActionError(error: AgentConversationError) {
@@ -140,15 +142,15 @@ export class AgentIntegration {
     private readonly dependencies: AgentIntegrationDeps
     private errorsByCardPath: Map<string, AgentConversationError[]> = new Map()
     private reportedLoadErrorKeys: Set<string> = new Set()
-    private readonly saveFile: (file: MarkdownFile) => MarkdownFile
+    private readonly addAgentLogReference: (cardPath: string, reference: string) => string | null
     private scheduledRunCleanup: (() => void) | null = null
 
     constructor(
         dependencies: AgentIntegrationDeps,
-        saveFile: (file: MarkdownFile) => MarkdownFile,
+        addAgentLogReference: (cardPath: string, reference: string) => string | null,
     ) {
         this.dependencies = dependencies
-        this.saveFile = saveFile
+        this.addAgentLogReference = addAgentLogReference
     }
 
     reset() {
@@ -161,6 +163,15 @@ export class AgentIntegration {
         this.conversationsByCardInternalId = new Map()
         this.errorsByCardPath = new Map()
         this.reportedLoadErrorKeys.clear()
+        agentAcknowledgementService.reset()
+    }
+
+    /** Resolves the loaded record matching a conversation, so view changes update the canonical instance. */
+    findStoredConversation(conversation: AgentConversation) {
+        if (!conversation.cardInternalId) return null
+
+        return (this.conversationsByCardInternalId.get(conversation.cardInternalId) ?? [])
+            .find(({ id }) => id === conversation.id) ?? null
     }
 
     startScheduledRunWatch() {
@@ -200,17 +211,7 @@ export class AgentIntegration {
     }
 
     private saveAgentConversationReference(cardPath: string, reference: string) {
-        const { config } = this.dependencies.requireDependencies()
-        const existingFile = this.dependencies.requireFile(cardPath)
-        const card = markdownParsingService.parseCard(existingFile, config.workingFolder)
-        const nextReferences = [...new Set([...card.header.agentLogReferences, reference])]
-        this.saveFile({
-            content: markdownParsingService.setAgentLogReferences(existingFile.content, nextReferences),
-            path: cardPath,
-            sha: existingFile.sha,
-        })
-
-        return card.header.internalId
+        return this.addAgentLogReference(cardPath, reference)
     }
 
     private linkAgentConversationReference(cardPath: string, reference: string) {
@@ -228,6 +229,7 @@ export class AgentIntegration {
             const errors = [...(this.errorsByCardPath.get(cardPath) ?? []), result.error]
             this.errorsByCardPath.set(cardPath, errors)
             this.reportNewAgentLoadErrors(new Map([[cardPath, [result.error]]]))
+            this.dependencies.conversationChanged(cardPath)
             return
         }
 
@@ -247,27 +249,31 @@ export class AgentIntegration {
         }
     }
 
+    getAgentConversations(cardInternalId: string) {
+        return this.conversationsByCardInternalId.get(cardInternalId) ?? []
+    }
+
     attachAgentConversations(cards: Pick<ProjectSnapshot, 'activeCards' | 'backgroundCards'>) {
         return {
-            activeCards: cards.activeCards.map((card) => ({
-                ...card,
-                agentConversationErrors: this.errorsByCardPath.get(card.path) ?? [],
-                agentConversations: card.header.internalId
-                    ? this.conversationsByCardInternalId.get(card.header.internalId) ?? []
-                    : [],
-            })),
-            backgroundCards: cards.backgroundCards.map((card) => ({
-                ...card,
-                agentConversationErrors: this.errorsByCardPath.get(card.path) ?? [],
-                agentConversations: card.header.internalId
-                    ? this.conversationsByCardInternalId.get(card.header.internalId) ?? []
-                    : [],
-            })),
+            activeCards: cards.activeCards.map((card) => this.attachCardAgentConversations(card)),
+            backgroundCards: cards.backgroundCards.map((card) => this.attachCardAgentConversations(card)),
         }
     }
 
-    getAgentConversations(cardInternalId: string) {
-        return this.conversationsByCardInternalId.get(cardInternalId) ?? []
+    private attachCardAgentConversations(card: Card) {
+        card.agentConversationErrors = this.errorsByCardPath.get(card.path) ?? []
+        card.agentConversations = card.header.internalId
+            ? this.conversationsByCardInternalId.get(card.header.internalId) ?? []
+            : []
+
+        return card
+    }
+
+    /** Applies a persisted conversation returned by an atomic backend update. */
+    updateAgentConversation(conversation: AgentConversation) {
+        if (!conversation.cardInternalId) return
+
+        this.upsertAgentConversation(conversation.cardInternalId, conversation)
     }
 
     triggerStateActions(cardPath: string, state: string) {
@@ -300,6 +306,11 @@ export class AgentIntegration {
         this.errorsByCardPath = this.mergeResolvedAgentErrors(resolved.errorsByCardPath)
         this.reportNewAgentLoadErrors(resolved.errorsByCardPath)
         this.dependencies.refreshSnapshot(config.workingFolder)
+        cards.forEach(({ path }) => this.dependencies.conversationChanged(path))
+        for (const [cardInternalId, conversations] of resolved.conversationsByCardInternalId) {
+            const actionIds = conversations.flatMap(({ actionId }) => actionId ? [actionId] : [])
+            agentAcknowledgementService.announceConversationsChanged(cardInternalId, actionIds)
+        }
     }
 
     private shouldApplyProjectLoad(project: ProjectReference, projectLoadToken: number) {
@@ -353,6 +364,7 @@ export class AgentIntegration {
         const { config } = this.dependencies.requireDependencies()
         this.errorsByCardPath.set(cardPath, [...(this.errorsByCardPath.get(cardPath) ?? []), { message, path }])
         this.dependencies.refreshSnapshot(config.workingFolder)
+        this.dependencies.conversationChanged(cardPath)
     }
 
     private handleActionRunEvent(event: ActionRunEvent) {
@@ -381,6 +393,11 @@ export class AgentIntegration {
             : [...conversations, conversation]
         this.conversationsByCardInternalId.set(cardInternalId, nextConversations)
         this.dependencies.refreshSnapshot(config.workingFolder)
+        const card = this.dependencies.snapshot()?.activeCards.find(({ header }) => header.internalId === cardInternalId)
+            ?? this.dependencies.snapshot()?.backgroundCards.find(({ header }) => header.internalId === cardInternalId)
+        if (card) this.dependencies.conversationChanged(card.path)
+        const actionIds = conversation.actionId ? [conversation.actionId] : []
+        agentAcknowledgementService.announceConversationsChanged(cardInternalId, actionIds)
     }
 
 }

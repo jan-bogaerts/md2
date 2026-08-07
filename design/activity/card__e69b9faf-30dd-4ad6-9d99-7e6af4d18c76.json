@@ -1171,7 +1171,8 @@
         "outputTokens": 710,
         "reasoningTokens": 540,
         "totalTokens": 266129
-      }
+      },
+      "viewed": true
     }
   ],
   "origin": {
@@ -1185,16 +1186,13 @@
       "conversationIds": [
         "agent-e533433a-31ad-4168-8a1c-f57869151ddd"
       ],
-      "runId": "action-2f062e31-980e-41b6-83c7-69da0666d10b",
-      "history": {
-        "completedAt": "2026-08-01T14:25:43.188Z",
-        "output": "Using `caveman` for terse output. First inspect feature, referenced code, architecture, tests. Then propose block tasks only; no edits.\n\nSpec path confirmed. Main flow: desktop squash publishes too early; card activity adds second project commit afterward. Inspecting Git test conventions and bridge error contracts now.\n\nChange Plan tasks created:\n\n1. Git sync path + regression tests.\n2. Bridge post-activity sync + error/order tests.\n3. Related tests, touched-file lint, then set feature `status: ready`.\n\nNo renderer change. Existing subscription receives republished state. No edits made.\n\nApprove plan?\n\nPlan approved. Block 1 starts: shared Git synchronization and focused service tests.\n\nCode blocks complete. Focused test blocked: desktop dependencies absent (`vitest` not recognized). Checking available workspace install before requesting dependency install.\n\nBlock 1 passes real Git regression: branch stays assigned, final ahead/behind zero, second integration rejected. Block 2 tests bridge sequencing and partial failures.\n\nBlock 2 and checks pass: 35 related tests, touched-file lint clean. Final action from workflow: set referenced feature status to `ready`.\n\nImplemented.\n\n- Linked branch now syncs after squash and card activity commit.\n- Worktree status republishes immediately.\n- Assignment/branch preserved.\n- Partial failures reported clearly.\n- Added Git and bridge regression tests.\n- 35 related tests pass.\n- Touched-file lint passes.\n- Feature [status set to ready](C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_80_worktree_selector_not_updated.md:6).\n\n\u001b[2m2026-08-01T14:19:27.832108Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_core::tools::router\u001b[0m\u001b[2m:\u001b[0m \u001b[3merror\u001b[0m\u001b[2m=\u001b[0mExit code: 1\nWall time: 0.4 seconds\nOutput:\n\n\u001b[2m2026-08-01T14:22:12.893250Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_core::tools::router\u001b[0m\u001b[2m:\u001b[0m \u001b[3merror\u001b[0m\u001b[2m=\u001b[0mExit code: 1\nWall time: 0.7 seconds\nOutput:\n\n> desktop@0.0.3 test\n> vitest run src/git/worktree_service.test.mjs\n\n'vitest' is not recognized as an internal or external command,\r\noperable program or batch file.\r\n\n\u001b[2m2026-08-01T14:24:37.841263Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_core::tools::router\u001b[0m\u001b[2m:\u001b[0m \u001b[3merror\u001b[0m\u001b[2m=\u001b[0mapply_patch verification failed: Failed to find expected lines in C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_80_worktree_selector_not_updated.md:\nstatus: design\n",
-        "prompt": "Read and implement the feature/job described in:  \\`C:\\Users\\janbo\\Documents\\dev\\md2\\\\design/feature_descriptions/B_80_worktree_selector_not_updated.md\\`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests.\n5. After implementation is done, update the field \\`status\\` in the markdown feature description file to \\`ready\\`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria.&#x20;\n\nYou should only run the related tests, do not run the entire test suite, that will be done manually later on.\n\nKeep it short and to the point. use $caveman skill",
-        "status": "completed",
+      "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "thinkingLevel": "medium"
       },
+      "runId": "action-2f062e31-980e-41b6-83c7-69da0666d10b",
       "origin": {
         "cardInternalId": "e69b9faf-30dd-4ad6-9d99-7e6af4d18c76",
         "kind": "card"
@@ -1202,11 +1200,13 @@
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
       "startedAt": "2026-08-01T14:18:28.710Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-e533433a-31ad-4168-8a1c-f57869151ddd"
     },
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "6f1d0507a6bf5bc84b6e5a0f54eb62690eb3e00d",
           "committedAt": "2026-08-01T16:26:08+02:00",
           "deletions": 1,
@@ -1217,8 +1217,7 @@
             "desktop/src/shell/local_bridge_dispatch.test.mjs"
           ],
           "filesChanged": 4,
-          "insertions": 176,
-          "branch": "dev_main"
+          "insertions": 176
         }
       ],
       "completedAt": "2026-08-01T16:26:08+02:00",
@@ -1230,5 +1229,5 @@
       "type": "system"
     }
   ],
-  "version": 1
+  "version": 2
 }

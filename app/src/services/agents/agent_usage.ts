@@ -1,4 +1,4 @@
-﻿import type { AgentConversation, AgentTokenUsage, ProjectCard, ProjectSnapshot } from '../../data/data_types'
+﻿import type { AgentConversation, AgentTokenUsage, Card, ProjectSnapshot } from '../../data/data_types'
 import { sumAgentTokenUsage } from '../../../../shared/agent_usage_math.mjs'
 
 export { sumAgentTokenUsage }
@@ -15,8 +15,10 @@ export interface ProjectAgentUsage {
     releases: AgentUsageVersion[]
 }
 
-export function cardAgentTokenUsage(card: ProjectCard): AgentTokenUsage {
-    return sumAgentTokenUsage(card.agentConversations.map(({ usage }) => usage))
+export function cardAgentTokenUsage(source: AgentConversation[] | Card): AgentTokenUsage {
+    const conversations = Array.isArray(source) ? source : source.agentConversations
+
+    return sumAgentTokenUsage(conversations.map(({ usage }) => usage))
 }
 
 /** Aggregate loaded conversations belonging to one action on one card. */
@@ -55,11 +57,13 @@ export function projectAgentTokenUsage(
 ): ProjectAgentUsage {
     const activeCards = snapshot?.activeCards ?? []
     const backgroundCards = snapshot?.backgroundCards ?? []
-    const currentUsage = sumAgentTokenUsage(activeCards.map(cardAgentTokenUsage))
+    const currentUsage = sumAgentTokenUsage(activeCards.map(({ agentConversations }) => cardAgentTokenUsage(agentConversations)))
     const archivedUsage = sumAgentTokenUsage(
-        backgroundCards.filter((card) => isInsideFolder(card.path, archivedFolder)).map(cardAgentTokenUsage),
+        backgroundCards
+            .filter((card) => isInsideFolder(card.path, archivedFolder))
+            .map(({ agentConversations }) => cardAgentTokenUsage(agentConversations)),
     )
-    const releaseCards = new Map<string, ProjectCard[]>()
+    const releaseCards = new Map<string, Card[]>()
 
     for (const card of backgroundCards) {
         const name = releaseName(card.path, releasesFolder)
@@ -68,7 +72,10 @@ export function projectAgentTokenUsage(
         releaseCards.set(name, [...(releaseCards.get(name) ?? []), card])
     }
     const releases = [...releaseCards.entries()]
-        .map(([name, cards]) => ({ name, usage: sumAgentTokenUsage(cards.map(cardAgentTokenUsage)) }))
+        .map(([name, cards]) => ({
+            name,
+            usage: sumAgentTokenUsage(cards.map(({ agentConversations }) => cardAgentTokenUsage(agentConversations))),
+        }))
         .sort((left, right) => left.name.localeCompare(right.name))
     const project = sumAgentTokenUsage([currentUsage, archivedUsage, ...releases.map(({ usage }) => usage)])
 

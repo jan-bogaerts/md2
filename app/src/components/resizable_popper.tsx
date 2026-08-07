@@ -1,6 +1,6 @@
-import { Box, Paper, Popper } from '@mui/material'
+import { Box, Paper, Popper, ThemeProvider, useTheme } from '@mui/material'
 import type { PopperPlacementType, PopperProps, SxProps, Theme } from '@mui/material'
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import { dialogService } from '../services/dialog_service'
 import type { ResizeCorner } from './resizable_popover'
@@ -22,6 +22,7 @@ interface ResizablePopperProps {
     fullHeight?: boolean
     initialSize: PopperSize
     labelId: string
+    onActivate?: () => void
     onClose: () => void
     open: boolean
     paperSx?: SxProps<Theme>
@@ -29,6 +30,7 @@ interface ResizablePopperProps {
     resizeCorner?: ResizeCorner
     resizeFromAllSides?: boolean
     resizeLabel: string
+    stackPosition?: number
     storageKey?: string
 }
 
@@ -44,6 +46,7 @@ const MIN_HEIGHT = 200
 const HANDLE_SIZE = 16
 const EDGE_HANDLE_SIZE = 6
 const VIEWPORT_MARGIN = 16
+const OVERLAY_LAYER_OFFSET = 1
 const ALL_RESIZE_DIRECTIONS = ['top', 'right', 'bottom', 'left', 'top-right', 'bottom-right', 'bottom-left', 'top-left'] as const
 type ResizeDirection = typeof ALL_RESIZE_DIRECTIONS[number]
 
@@ -126,6 +129,7 @@ export function ResizablePopper(props: ResizablePopperProps) {
         fullHeight = false,
         initialSize,
         labelId,
+        onActivate,
         onClose,
         open,
         paperSx,
@@ -133,16 +137,33 @@ export function ResizablePopper(props: ResizablePopperProps) {
         resizeCorner = 'lower-right',
         resizeFromAllSides = false,
         resizeLabel,
+        stackPosition,
         storageKey,
     } = props
     const [size, setSize] = useState(() => loadSize(initialSize, storageKey))
     const [position, setPosition] = useState<PopperPosition | null>(() => draggable && !anchorElement ? centeredPosition(size) : null)
     const [detachedLeft, setDetachedLeft] = useState<number | null>(null)
     const anchoredLeftRef = useRef<number | null>(null)
+    const focusOnMountRef = useRef(stackPosition !== undefined)
     const paperRef = useRef<HTMLDivElement | null>(null)
     const resizeRef = useRef<AbortController | null>(null)
+    const theme = useTheme()
+    const overlayTheme = useMemo<Theme>(() => ({
+        ...theme,
+        zIndex: {
+            ...theme.zIndex,
+            modal: theme.zIndex.modal + (stackPosition ?? 0) + OVERLAY_LAYER_OFFSET,
+        },
+    }), [stackPosition, theme])
 
     useEffect(() => () => resizeRef.current?.abort(), [])
+    const setPaperElement = useCallback((element: HTMLDivElement | null) => {
+        paperRef.current = element
+        if (!element || !focusOnMountRef.current) return
+
+        focusOnMountRef.current = false
+        element.focus()
+    }, [])
     useEffect(() => {
         if (!storageKey) return
 
@@ -194,6 +215,8 @@ export function ResizablePopper(props: ResizablePopperProps) {
     }
 
     const startDrag = (event: ReactPointerEvent) => {
+        onActivate?.()
+
         try {
             if (!draggable || fullHeight) return
 
@@ -284,17 +307,24 @@ export function ResizablePopper(props: ResizablePopperProps) {
             open={open}
             placement={placement}
             popperOptions={VIEWPORT_POPPER_OPTIONS}
-            sx={{ left: detached ? '0 !important' : undefined, top: detached ? '0 !important' : undefined, transform: detached ? 'none !important' : undefined, zIndex: 'modal' }}
+            sx={{
+                left: detached ? '0 !important' : undefined,
+                top: detached ? '0 !important' : undefined,
+                transform: detached ? 'none !important' : undefined,
+                zIndex: stackPosition === undefined ? 'modal' : (theme) => theme.zIndex.modal + stackPosition,
+            }}
         >
             <Paper
                 aria-labelledby={labelId}
                 data-full-height={fullHeight ? 'true' : undefined}
                 onClickCapture={handlePaperClickCapture}
+                onFocusCapture={onActivate}
                 onKeyDown={handleKeyDown}
                 onPointerDownCapture={startDrag}
-                ref={paperRef}
+                ref={setPaperElement}
                 role="dialog"
                 style={paperStyle}
+                tabIndex={stackPosition === undefined ? undefined : -1}
                 sx={[{
                     display: 'flex',
                     maxHeight: fullHeight ? '100vh' : 'calc(100vh - 32px)',
@@ -303,7 +333,9 @@ export function ResizablePopper(props: ResizablePopperProps) {
                     position: 'relative',
                 }, paperSx] as SxProps<Theme>}
             >
-                {children}
+                {stackPosition === undefined
+                    ? children
+                    : <ThemeProvider theme={overlayTheme}>{children}</ThemeProvider>}
                 {!fullHeight && resizeFromAllSides ? ALL_RESIZE_DIRECTIONS.map((direction) => (
                     <Box
                         aria-label={`${resizeLabel} from ${direction}`}

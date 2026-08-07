@@ -242,7 +242,7 @@ describe('ConfigPage', () => {
         const saveProjectConfig = vi.spyOn(dataService.projectLoading, 'saveProjectConfig').mockResolvedValue()
 
         renderConfigPage('#project')
-        configService.setDraftValue('project.pushMode', 'manual')
+        configService.setDraftValue('project.pushMode', 'auto')
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
         expect(saveProjectConfig).toHaveBeenCalledTimes(1)
@@ -343,7 +343,7 @@ describe('ConfigPage', () => {
         const saveProjectConfig = vi.spyOn(dataService.projectLoading, 'saveProjectConfig').mockReturnValue(new Promise(() => undefined))
 
         renderConfigPage('#project')
-        configService.setDraftValue('project.pushMode', 'manual')
+        configService.setDraftValue('project.pushMode', 'auto')
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
         expect(screen.getByRole('tablist', { name: 'Config sections' })).toBeInTheDocument()
@@ -359,7 +359,7 @@ describe('ConfigPage', () => {
         const reportError = vi.spyOn(dialogService, 'error')
 
         renderConfigPage('#project')
-        configService.setDraftValue('project.pushMode', 'manual')
+        configService.setDraftValue('project.pushMode', 'auto')
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
         await waitFor(() => {
@@ -447,6 +447,7 @@ describe('ConfigPage', () => {
 
         renderConfigPage('#desktop')
         configService.setDraftValue('desktop.agent', 'claude')
+        fireEvent.change(screen.getByLabelText('Editor command'), { target: { value: 'notepad "{{file}}"' } })
         fireEvent.click(screen.getByRole('switch', { name: 'Codex web search' }))
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
@@ -456,6 +457,7 @@ describe('ConfigPage', () => {
             agentProfiles: BUILTIN_AGENT_PROFILES,
             approvalPolicy: 'on-request',
             codexSearchEnabled: false,
+            editorCommand: 'notepad "{{file}}"',
             model: '',
             thinkingLevel: 'none',
         })

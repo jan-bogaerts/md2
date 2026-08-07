@@ -109,6 +109,38 @@ describe('RemoteControlStorageService', () => {
         await expect(missingLoad).rejects.toThrow('File not found: design/missing.md')
     })
 
+    it('loads a repository text file through remote control', async () => {
+        installWebSocket()
+        const service = createService()
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+        const path = 'design/activity/card__card-1.json'
+        const load = service.loadTextFile(project, path)
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const request = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
+        expect(request).toMatchObject({ method: 'loadTextFile', params: [project, path] })
+        socket.receive({ id: request.id, result: { content: '{"version":2}', path } })
+
+        await expect(load).resolves.toEqual({ content: '{"version":2}', path })
+    })
+
+    it('loads current worktree diff through remote control', async () => {
+        installWebSocket()
+        const service = createService()
+        const load = service.generateWorktreeDiff({ worktree: 2 })
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const request = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
+        expect(request).toMatchObject({ method: 'generateWorktreeDiff', params: [{ worktree: 2 }] })
+        socket.receive({ id: request.id, result: { files: [], repositoryRoot: 'C:/worktree' } })
+
+        await expect(load).resolves.toEqual({ files: [], repositoryRoot: 'C:/worktree' })
+    })
+
     it('receives account-wide Codex runtime snapshots through dedicated remote subscription', async () => {
         installWebSocket()
         const service = createService()
@@ -149,6 +181,7 @@ describe('RemoteControlStorageService', () => {
         const push = service.pushWorktree(operationRequest)
         const refresh = service.refreshWorktrees(project)
         const removal = service.removeWorktree(project, 'C:/feature')
+        const deletion = service.deleteLocalBranch(project, 'feature')
         const socket = lastSocket()
 
         socket.open()
@@ -163,6 +196,7 @@ describe('RemoteControlStorageService', () => {
         const pushRequest = JSON.parse(socket.sent[7]) as { id: string, method: string, params: unknown[] }
         const refreshRequest = JSON.parse(socket.sent[8]) as { id: string, method: string, params: unknown[] }
         const removeRequest = JSON.parse(socket.sent[9]) as { id: string, method: string, params: unknown[] }
+        const deleteRequest = JSON.parse(socket.sent[10]) as { id: string, method: string, params: unknown[] }
         expect(addRequest).toMatchObject({ method: 'addWorktree', params: [project] })
         expect(commitSentRequest).toMatchObject({ method: 'commitWorktree', params: [commitRequest] })
         expect(discardRequest).toMatchObject({ method: 'discardWorktreeChanges', params: [operationRequest] })
@@ -173,9 +207,10 @@ describe('RemoteControlStorageService', () => {
         expect(pushRequest).toMatchObject({ method: 'pushWorktree', params: [operationRequest] })
         expect(refreshRequest).toMatchObject({ method: 'refreshWorktrees', params: [project] })
         expect(removeRequest).toMatchObject({ method: 'removeWorktree', params: [project, 'C:/feature'] })
+        expect(deleteRequest).toMatchObject({ method: 'deleteLocalBranch', params: [project, 'feature'] })
         for (const request of [
             addRequest, commitSentRequest, discardRequest, integrateRequest, parkRequest, prepareRequest,
-            pullRequest, pushRequest, refreshRequest, removeRequest,
+            pullRequest, pushRequest, refreshRequest, removeRequest, deleteRequest,
         ]) socket.receive({ id: request.id, result: request === addRequest })
 
         await expect(addition).resolves.toBe(true)
@@ -188,6 +223,7 @@ describe('RemoteControlStorageService', () => {
         await expect(push).resolves.toBeUndefined()
         await expect(refresh).resolves.toBeUndefined()
         await expect(removal).resolves.toBeUndefined()
+        await expect(deletion).resolves.toBeUndefined()
     })
 
     it('proxies primary pull', async () => {
@@ -290,10 +326,10 @@ describe('RemoteControlStorageService', () => {
         const fileMessage = JSON.parse(socket.sent[1]) as { id: string, method: string, params: unknown[] }
         expect(activityMessage).toMatchObject({ method: 'loadCardActivity', params: [activityRequest] })
         expect(fileMessage).toMatchObject({ method: 'readFileAtCommit', params: [fileRequest] })
-        socket.receive({ id: activityMessage.id, result: { conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 1 } })
+        socket.receive({ id: activityMessage.id, result: { conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 2 } })
         socket.receive({ id: fileMessage.id, result: { content: '# Card', exists: true } })
 
-        await expect(activity).resolves.toMatchObject({ version: 1 })
+        await expect(activity).resolves.toMatchObject({ version: 2 })
         await expect(historicalFile).resolves.toEqual({ content: '# Card', exists: true })
     })
 
@@ -346,6 +382,26 @@ describe('RemoteControlStorageService', () => {
         await expect(request).resolves.toBe('run-1')
     })
 
+    it('reserves card agent conversations through remote control', async () => {
+        installWebSocket()
+        const service = createService()
+        const actionRequest = actionStartRequest()
+        const reservationRequest = service.reserveActionConversation(actionRequest)
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const sentRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
+        expect(sentRequest).toMatchObject({ method: 'reserveActionConversation', params: [actionRequest] })
+        const reservation = {
+            conversationId: 'conversation-1',
+            reference: 'design/activity/card.json#conversation=conversation-1',
+        }
+        socket.receive({ id: sentRequest.id, result: reservation })
+
+        await expect(reservationRequest).resolves.toEqual(reservation)
+    })
+
     it('routes streaming interaction methods through remote control', async () => {
         installWebSocket()
         const service = createService()
@@ -362,7 +418,10 @@ describe('RemoteControlStorageService', () => {
             service.sendActionQueuedMessage('action-1', 2, 3),
             service.answerActionApproval('action-1', 41, 'accept'),
             service.answerActionQuestion('action-1', 7, { confirm: ['Yes'] }),
+            service.closeWaitingActionConversation('activity.json#conversation=one', 'completed'),
+            service.updateActionConversationViewed('activity.json#conversation=one', false),
             service.finishActionRun('action-1'),
+            service.restartActionRun('action-1', { actionId: 'review', context: { kind: 'project' }, runInput: {} }),
             service.notifyActionCardStateChange('card-1', 'ready'),
         ]
         await flushPromises()
@@ -374,7 +433,10 @@ describe('RemoteControlStorageService', () => {
             { method: 'sendActionQueuedMessage', params: ['action-1', 2, 3] },
             { method: 'answerActionApproval', params: ['action-1', 41, 'accept'] },
             { method: 'answerActionQuestion', params: ['action-1', 7, { confirm: ['Yes'] }] },
+            { method: 'closeWaitingActionConversation', params: ['activity.json#conversation=one', 'completed'] },
+            { method: 'updateActionConversationViewed', params: ['activity.json#conversation=one', false] },
             { method: 'finishActionRun', params: ['action-1'] },
+            { method: 'restartActionRun', params: ['action-1', { actionId: 'review', context: { kind: 'project' }, runInput: {} }] },
             { method: 'notifyActionCardStateChange', params: ['card-1', 'ready'] },
         ])
         requests.forEach(({ id, method }) => {

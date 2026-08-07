@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { AgentConversation, AgentTokenUsage, ProjectCard, ProjectSnapshot } from '../../data/data_types'
+import type { AgentConversation, AgentTokenUsage, Card, ProjectSnapshot } from '../../data/data_types'
 import { actionCardAgentTokenUsage, cardAgentTokenUsage, projectAgentTokenUsage } from './agent_usage'
 
 function usage(
@@ -19,7 +19,7 @@ function usage(
     }
 }
 
-function card(path: string, usages: Array<AgentTokenUsage | undefined>): ProjectCard {
+function card(path: string, usages: Array<AgentTokenUsage | undefined>): Card {
     const agentConversations = usages.map((agentUsage, index) => ({
         actionId: null,
         cardInternalId: path,
@@ -33,6 +33,7 @@ function card(path: string, usages: Array<AgentTokenUsage | undefined>): Project
         startedAt: 'now',
         status: 'completed',
         title: 'Run',
+        viewed: true,
         ...(agentUsage ? { usage: agentUsage } : {}),
     } satisfies AgentConversation))
 
@@ -44,7 +45,7 @@ function card(path: string, usages: Array<AgentTokenUsage | undefined>): Project
             affects: [], after: null, agentLogReferences: [], author: null, id: path, internalId: path,
             owner: null, policy: {}, status: 'done', title: path,
         },
-        headerFields: {},
+        hasFrontmatter:true,
         isActive: !path.includes('/history/'),
         path,
     }

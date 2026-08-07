@@ -15,6 +15,7 @@ function conversation(): AgentConversation {
         startedAt: '2026-01-01T00:00:00.000Z',
         status: 'completed',
         title: 'Search RegExp',
+        viewed: true,
     }
 }
 
@@ -22,6 +23,7 @@ function makeBridge(runSearchRegexpAgent: ElectronActionBridge['runSearchRegexpA
     return {
         cancelActionRun: vi.fn(async () => {}),
         generateDiff: vi.fn(async () => ({ commit: '', files: [] })),
+        generateWorktreeDiff: vi.fn(async () => ({ files: [], repositoryRoot: 'C:/worktree' })),
         loadActionRunHistory: vi.fn(async () => []),
         onActionRun: vi.fn(() => () => {}),
         openInEditor: vi.fn(async () => {}),

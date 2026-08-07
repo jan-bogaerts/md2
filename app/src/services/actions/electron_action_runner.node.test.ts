@@ -33,6 +33,7 @@ const action: ActionDefinition = {
     streaming: false,
     type: 'command',
 }
+const agentAction: ActionDefinition = { ...action, command: null, id: 'agent-test', type: 'agent' }
 const context = { file: 'design/F-1.md', kind: 'card' as const }
 
 function createBridge(): ElectronActionBridge {
@@ -41,6 +42,7 @@ function createBridge(): ElectronActionBridge {
     return {
         cancelActionRun: vi.fn(async () => {}),
         generateDiff: vi.fn(async () => ({ commit: '', files: [] })),
+        generateWorktreeDiff: vi.fn(async () => ({ files: [], repositoryRoot: 'C:/worktree' })),
         loadActionRunHistory: vi.fn(async () => []),
         onActionRun: vi.fn((listener) => {
             callback = listener
@@ -105,6 +107,39 @@ describe('electron action runner client', () => {
         await runElectronAction(action, context)
 
         expect(flush).toHaveBeenCalledTimes(1)
+    })
+
+    it('links a reserved card conversation before flushing and starting the agent', async () => {
+        const bridge = createBridge()
+        const reservation = {
+            conversationId: 'agent-1',
+            reference: 'design/activity/card__card-1.json#conversation=agent-1',
+        }
+        bridge.reserveActionConversation = vi.fn(async () => reservation)
+        setActionBridgeOverride(bridge)
+        const cardContext = { cardInternalId: 'card-1', file: 'design/F-1.md', kind: 'card' as const }
+        const addReference = vi.spyOn(dataService.cards, 'addAgentLogReference').mockReturnValue('card-1')
+        const resumeAutomaticCommit = vi.fn()
+        vi.spyOn(dataService.cards, 'deferAutomaticCommit').mockReturnValue(resumeAutomaticCommit)
+        const snapshot = projectPersistenceService.getSnapshot()
+        vi.spyOn(projectPersistenceService, 'getSnapshot').mockReturnValue({ ...snapshot, hasPendingSave: true })
+        const flush = vi.spyOn(projectPersistenceService, 'flushPendingChanges').mockResolvedValue()
+
+        await runElectronAction(agentAction, cardContext)
+
+        expect(bridge.reserveActionConversation).toHaveBeenCalledWith({ actionId: agentAction.id, context: cardContext, runInput: {} })
+        expect(addReference).toHaveBeenCalledWith(cardContext.file, reservation.reference)
+        expect(bridge.startAction).toHaveBeenCalledWith({
+            actionId: agentAction.id,
+            context: cardContext,
+            conversationReservation: reservation,
+            runInput: {},
+        })
+        const reservationOrder = vi.mocked(bridge.reserveActionConversation).mock.invocationCallOrder[0]
+        expect(reservationOrder).toBeLessThan(addReference.mock.invocationCallOrder[0])
+        expect(addReference.mock.invocationCallOrder[0]).toBeLessThan(flush.mock.invocationCallOrder[0])
+        expect(resumeAutomaticCommit.mock.invocationCallOrder[0]).toBeLessThan(flush.mock.invocationCallOrder[0])
+        expect(flush.mock.invocationCallOrder[0]).toBeLessThan(vi.mocked(bridge.startAction).mock.invocationCallOrder[0])
     })
 
     it('does not flush when no card edits are pending', async () => {

@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useCallback } from 'react'
 import { TextView } from './text_view'
-import { DEFAULT_CARD_TYPES, DEFAULT_STATES, defaultColumnAccent, type ProjectCard } from '../../data/data_types'
+import { DEFAULT_CARD_TYPES, DEFAULT_STATES, defaultColumnAccent, type Card } from '../../data/data_types'
 import { telemetryService } from '../../services/telemetry/telemetry_service'
 import { openFilesService } from '../../services/open_files_service'
 import { actionService } from '../../services/actions/action_service'
@@ -14,12 +14,12 @@ import { actionMarkdownDataSource } from '../editor/action_markdown_data_source'
 import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
 import { FileTreeView } from './file_tree_view'
 
-function card(path: string, overrides: Partial<ProjectCard['header']> = {}, content = ''): ProjectCard {
+function card(path: string, overrides: Partial<Card['header']> = {}, content = ''): Card {
     return {
         agentConversationErrors: [],
         agentConversations: [],
-        headerFields: {},
         content,
+        hasFrontmatter: false,
         header: {
             affects: [],
             after: null,
@@ -44,8 +44,8 @@ const activeCards = [
 ]
 const backgroundCards = [card('design/history/rel1/F-9-old.md', { id: 'F-9', title: 'Old' }, '# Old')]
 
-function setProjectCards(
-    nextActiveCards: ProjectCard[],
+function setCards(
+    nextActiveCards: Card[],
     nextBackgroundCards = backgroundCards,
     repositoryFiles: string[] = [],
 ) {
@@ -67,7 +67,7 @@ function renderTextView(
     nextBackgroundCards = backgroundCards,
     repositoryFiles: string[] = [],
 ) {
-    setProjectCards(nextActiveCards, nextBackgroundCards, repositoryFiles)
+    setCards(nextActiveCards, nextBackgroundCards, repositoryFiles)
 
     function TextViewHarness() {
         const handleLeftPanelInteraction = useCallback(() => undefined, [])
@@ -186,7 +186,7 @@ describe('TextView', () => {
     beforeEach(() => {
         workspaceViewService.setViewMode('text')
         vi.spyOn(dataService, 'getState')
-        setProjectCards(activeCards)
+        setCards(activeCards)
         configService.init()
         for (const document of openFilesService.getRegisteredDocuments()) openFilesService.discardDocument(document)
         openFilesService.init({ actionService, dataService })
@@ -662,7 +662,7 @@ describe('TextView', () => {
     })
 
     it('updates the left-panel tree when cards change without a view-mode switch', () => {
-        setProjectCards([activeCards[0]], [])
+        setCards([activeCards[0]], [])
         const statusColors = new Map(
             DEFAULT_STATES.map(({ color, state }, index) => [state, color ?? defaultColumnAccent(index)]),
         )
@@ -689,7 +689,7 @@ describe('TextView', () => {
         expect(within(screen.getByLabelText('File tree')).queryByRole('button', { name: 'F-2 Beta' })).toBeNull()
 
         act(() => {
-            setProjectCards(activeCards, [])
+            setCards(activeCards, [])
             dataService.dispatchEvent(new Event('changed'))
         })
 
@@ -719,22 +719,6 @@ describe('TextView', () => {
         expect(document.querySelector('[data-sticky-toolbar="true"]')).not.toBeNull()
     })
 
-    it('opens the standard action popup without an anchor from the editor toolbar', () => {
-        renderTextView()
-
-        clickTreeFile('F-1 Alpha')
-
-        const editorToolbar = within(screen.getAllByTestId('mdx-editor-toolbar')[1])
-        fireEvent.click(editorToolbar.getByRole('button', { name: 'Agents' }))
-
-        const dialog = within(screen.getByRole('dialog', { name: 'Run actions' }))
-        expect(dialog.getByRole('button', { name: 'Custom prompt' })).toHaveAttribute('aria-pressed', 'true')
-        expect(dialog.getByRole('button', { name: 'Schedule' })).toBeInTheDocument()
-        expect(dialog.getByRole('button', { name: 'Send' })).toBeInTheDocument()
-        expect(screen.queryByText('No agent conversations.')).not.toBeInTheDocument()
-        expect(screen.getByRole('dialog', { name: 'Run actions' })).toHaveStyle({ position: 'fixed' })
-    })
-
     it('publishes the desktop tree without a Browse files button', () => {
         renderTextView()
 
@@ -744,13 +728,16 @@ describe('TextView', () => {
 
 
     it('opens Properties from the toolbar for a card with frontmatter', () => {
-        const cardWithHeader = { ...activeCards[0], headerFields: { id: 'F-1', status: 'todo', title: 'Alpha' } }
+        const cardWithHeader = { ...activeCards[0], hasFrontmatter: true }
         renderTextView({}, [cardWithHeader, activeCards[1]])
 
         clickTreeFile('F-1 Alpha')
 
         expect(screen.queryByRole('dialog', { name: 'Card properties popup' })).not.toBeInTheDocument()
-        fireEvent.click(within(screen.getAllByTestId('mdx-editor-toolbar')[1]).getByRole('button', { name: 'Properties' }))
+        const propertiesButton = within(screen.getAllByTestId('mdx-editor-toolbar')[1])
+            .getByRole('button', { name: 'Properties' })
+        expect(propertiesButton).toHaveTextContent('')
+        fireEvent.click(propertiesButton)
 
         const propertiesPopup = within(screen.getByRole('dialog', { name: 'Card properties popup' }))
         expect(propertiesPopup.getByRole('heading', { name: 'Properties' })).toBeInTheDocument()
@@ -761,8 +748,8 @@ describe('TextView', () => {
     it('routes Title, Author, and Policy edits through card workflows', () => {
         const cardWithHeader = {
             ...activeCards[0],
+            hasFrontmatter: true,
             header: { ...activeCards[0].header, author: 'JB' },
-            headerFields: { author: 'JB', id: 'F-1', status: 'todo', title: 'Alpha' },
         }
         const updateAuthor = vi.spyOn(cardMarkdownDataSource, 'updateActiveCardHeaderField').mockImplementation(() => undefined)
         const updateTitle = vi.spyOn(cardMarkdownDataSource, 'updateActiveCardTitle').mockImplementation(() => undefined)

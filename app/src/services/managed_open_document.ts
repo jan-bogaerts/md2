@@ -1,4 +1,5 @@
 import type {
+    CardBodyDraft,
     OpenDocument,
     OpenDocumentChangedDetail,
     OpenDocumentDraft,
@@ -7,7 +8,11 @@ import type {
     OpenDocumentSaveReference,
 } from './open_document'
 
-function isCardObject(object: OpenDocumentObject | OpenDocumentDraft) {
+function isCardDraft(draft: OpenDocumentDraft): draft is CardBodyDraft {
+    return 'content' in draft
+}
+
+function isCardObject(object: OpenDocumentObject) {
     return 'header' in object
 }
 
@@ -55,7 +60,7 @@ export class ManagedOpenDocument extends EventTarget {
         if (this.draft === draft) return
 
         const wasDirty = this.dirty
-        this.draft = draft
+        this.applyDraft(draft)
         this.editRevision += 1
         this.dispatchChanged('draft', origin)
         if (!wasDirty) this.dispatchChanged('dirty', origin)
@@ -63,7 +68,7 @@ export class ManagedOpenDocument extends EventTarget {
 
     replaceDraft(draft: OpenDocumentDraft) {
         const wasDirty = this.dirty
-        this.draft = draft
+        this.applyDraft(draft)
         this.editRevision += 1
         this.acknowledgedRevision = this.editRevision
         this.dispatchChanged('draft', null)
@@ -78,10 +83,13 @@ export class ManagedOpenDocument extends EventTarget {
 
     renew(identity: string, object: OpenDocumentObject, draft: OpenDocumentDraft) {
         if (this.identity !== identity) throw new Error(`Cannot renew open ${this.kind} document with a different object`)
-        if (this.object === object && this.draft === draft) return
+        const sameDraft = this.kind === 'card'
+            ? isCardDraft(this.draft) && isCardDraft(draft) && this.draft.content === draft.content
+            : this.draft === draft
+        if (this.object === object && sameDraft) return
 
         const previousObject = this.object
-        const draftChanged = !this.dirty && this.draft !== draft
+        const draftChanged = !this.dirty && !sameDraft
         this.object = object
         if (draftChanged) this.draft = draft
         const detail = { document: this, object, origin: null, previousObject, type: 'renewed' }
@@ -96,6 +104,16 @@ export class ManagedOpenDocument extends EventTarget {
         this.acknowledgedRevision = revision
         this.dispatchChanged('saved', null)
         if (wasDirty && !this.dirty) this.dispatchChanged('dirty', null)
+    }
+
+    private applyDraft(draft: OpenDocumentDraft) {
+        if (this.kind === 'card') {
+            if (!isCardObject(this.object) || !('content' in draft)) throw new Error('Cannot update card document with a different draft kind')
+            this.draft = draft
+            return
+        }
+
+        this.draft = draft
     }
 
     private dispatchChanged(type: OpenDocumentChangedDetail['type'], origin: OpenDocumentOrigin) {

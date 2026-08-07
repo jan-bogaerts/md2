@@ -23,7 +23,7 @@ import {
     mergeStoredReactValues,
     writeStoredReactValues,
 } from './config_persistence'
-import { register } from '.././service_injector'
+import { register } from '../service_injector'
 
 export {
     CONFIG_ENTRIES,
@@ -43,6 +43,8 @@ export { REACT_CONFIG_STORAGE_KEY, readStartupSplashPreference } from './config_
 interface ConfigServiceInitDependencies {
     desktopConfig?: Partial<DesktopConfigValues> | null
 }
+
+type ReactConfigKey = Extract<ConfigKey, `react.${string}`>
 
 function requireString(value: unknown, fieldName: string) {
     if (typeof value !== 'string' || value.length === 0) throw new Error(`Missing config field: ${fieldName}`)
@@ -178,6 +180,12 @@ function validateValue<K extends ConfigKey>(key: K, value: unknown): ConfigValue
         return value as ConfigValueTypes[K]
     }
     if (key === 'desktop.thinkingLevel') return validateThinkingLevel(value, entry.key) as ConfigValueTypes[K]
+    if (key === 'desktop.editorCommand') {
+        const editorCommand = requireString(value, entry.key)
+        if (!editorCommand.includes('{{file}}')) throw new Error('Config field desktop.editorCommand requires {{file}} placeholder')
+
+        return editorCommand as ConfigValueTypes[K]
+    }
 
     return validateOption(requireString(value, entry.key), entry) as ConfigValueTypes[K]
 }
@@ -242,6 +250,7 @@ export class ConfigService extends EventTarget {
         if (desktopConfig?.codexSearchEnabled !== undefined) {
             nextValues = mergeValue(nextValues, 'desktop.codexSearchEnabled', desktopConfig.codexSearchEnabled)
         }
+        if (desktopConfig?.editorCommand !== undefined) nextValues = mergeValue(nextValues, 'desktop.editorCommand', desktopConfig.editorCommand)
         if (desktopConfig?.model !== undefined) nextValues = mergeValue(nextValues, 'desktop.model', desktopConfig.model)
         if (desktopConfig?.thinkingLevel !== undefined) {
             nextValues = mergeValue(nextValues, 'desktop.thinkingLevel', desktopConfig.thinkingLevel)
@@ -272,6 +281,13 @@ export class ConfigService extends EventTarget {
     set<K extends ConfigKey>(key: K, value: ConfigValueTypes[K]) {
         this.requireInitialized()
         this.values = mergeValue(this.values, key, value)
+        this.dispatchChanged()
+    }
+
+    setReactPreference<K extends ReactConfigKey>(key: K, value: ConfigValueTypes[K]) {
+        this.requireInitialized()
+        this.values = mergeValue(this.values, key, value)
+        writeStoredReactValues(this.values)
         this.dispatchChanged()
     }
 
@@ -339,6 +355,7 @@ export class ConfigService extends EventTarget {
             agentProfiles: this.values['desktop.agentProfiles'],
             approvalPolicy: this.values['desktop.approvalPolicy'],
             codexSearchEnabled: this.values['desktop.codexSearchEnabled'],
+            editorCommand: this.values['desktop.editorCommand'],
             model: this.values['desktop.model'],
             thinkingLevel: this.values['desktop.thinkingLevel'],
         }

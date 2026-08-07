@@ -1,18 +1,18 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { ProjectCard, StorageService } from '../../data/data_types'
+import type { Card, StorageService } from '../../data/data_types'
 import type { RemarkableBridge } from '../../data/remarkable_bridge'
 import { configService } from '../../services/config/config_service'
 import { dataService } from '../../services/data/data_service'
 import { RemarkableImportToolbarButton } from './remarkable_import_toolbar_button'
 
-function card(): ProjectCard {
+function card(): Card {
     return {
         agentConversationErrors: [],
         agentConversations: [],
         content: '# Goal',
         header: { affects: [], after: null, agentLogReferences: [], author: null, id: 'F-1', internalId: null, owner: null, policy: {}, status: 'new', title: 'Card' },
-        headerFields: {},
+        hasFrontmatter:true,
         isActive: true,
         path: 'design/F-1-card.md',
     }

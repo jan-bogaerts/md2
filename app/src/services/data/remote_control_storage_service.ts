@@ -3,6 +3,7 @@ import type {
     ActionRunEvent,
     ActionPromptRequest,
     ActionStartRequest,
+    AgentConversationReservation,
     AgentApprovalDecision,
     AgentApprovalRequestId,
     PreparedActionPrompt,
@@ -18,6 +19,8 @@ import type {
     HistoricalFileContent,
     OpenInEditorRequest,
     ReadFileAtCommitRequest,
+    WorktreeDiffRequest,
+    WorktreeDiffResult,
 } from '../../data/electron_action_bridge'
 import type { CardActivityFile } from '../../../../shared/card_activity.mjs'
 import type {
@@ -208,6 +211,10 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         this.pendingPushBranches.add(request.branch)
     }
 
+    async deleteLocalBranch(project: ProjectReference, branchName: string): Promise<void> {
+        await this.request('deleteLocalBranch', [project, branchName])
+    }
+
     /** Returns the project currently open in the connected desktop app, or null if none is loaded. */
     async getActiveProject(): Promise<ProjectReference | null> {
         return this.request<ProjectReference | null>('getActiveProject', [])
@@ -245,6 +252,10 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
 
     async loadProjectAsset(_project: ProjectReference, path: string): Promise<ProjectAsset> {
         return this.request<ProjectAsset>('loadProjectAsset', [path])
+    }
+
+    async loadTextFile(project: ProjectReference, path: string): Promise<MarkdownFile> {
+        return this.request<MarkdownFile>('loadTextFile', [project, path])
     }
 
     async loadProject(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles> {
@@ -405,6 +416,17 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         await this.request('cancelActionRun', [runId])
     }
 
+    async closeWaitingActionConversation(
+        reference: string,
+        status: 'cancelled' | 'completed',
+    ): Promise<AgentConversation> {
+        return this.request<AgentConversation>('closeWaitingActionConversation', [reference, status])
+    }
+
+    async updateActionConversationViewed(reference: string, viewed: boolean): Promise<AgentConversation> {
+        return this.request<AgentConversation>('updateActionConversationViewed', [reference, viewed])
+    }
+
     async sendActionMessage(runId: string, content: string): Promise<void> {
         await this.request('sendActionMessage', [runId, content])
     }
@@ -446,8 +468,20 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         await this.request('finishActionRun', [runId])
     }
 
+    async reserveActionConversation(request: ActionStartRequest): Promise<AgentConversationReservation> {
+        return this.request<AgentConversationReservation>('reserveActionConversation', [request])
+    }
+
+    async restartActionRun(runId: string, request: ActionStartRequest): Promise<string> {
+        return this.request<string>('restartActionRun', [runId, request])
+    }
+
     async generateDiff(request: DiffRequest): Promise<DiffResult> {
         return this.request<DiffResult>('generateDiff', [request])
+    }
+
+    async generateWorktreeDiff(request: WorktreeDiffRequest): Promise<WorktreeDiffResult> {
+        return this.request<WorktreeDiffResult>('generateWorktreeDiff', [request])
     }
 
     async loadActionRunHistory(request: ActionRunHistoryRequest): Promise<ActionRunHistoryEntry[]> {

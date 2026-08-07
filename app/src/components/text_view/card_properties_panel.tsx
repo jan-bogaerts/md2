@@ -4,12 +4,14 @@ import {
 } from '@mui/material'
 import DriveFileMoveOutlined from '@mui/icons-material/DriveFileMoveOutlined'
 import EditOutlined from '@mui/icons-material/EditOutlined'
+import LabelOutlined from '@mui/icons-material/LabelOutlined'
 import PolicyOutlined from '@mui/icons-material/PolicyOutlined'
 import ScheduleOutlined from '@mui/icons-material/ScheduleOutlined'
 import TitleOutlined from '@mui/icons-material/TitleOutlined'
 import { useState, type ChangeEvent, type KeyboardEvent } from 'react'
-import { defaultColumnAccent } from '../../data/data_types'
-import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
+import { getCardType } from '../../data/action_context'
+import { defaultColumnAccent, type CardTypeConfig } from '../../data/data_types'
+import { cardMarkdownDataSource, type CardBinding } from '../editor/card_markdown_data_source'
 import { useActiveCard } from '../hooks/use_active_card'
 
 const AUTO_MERGE_POLICY_KEY = 'autoMerge'
@@ -23,6 +25,8 @@ interface PropertyDraft {
 }
 
 interface CardPropertiesPanelProps {
+    binding: CardBinding
+    cardTypes: CardTypeConfig[]
     statusColors: Map<string, string>
 }
 
@@ -64,8 +68,8 @@ const inputSx = {
 
 /** Compact editor for user-facing card properties inside the toolbar popup. */
 export function CardPropertiesPanel(props: CardPropertiesPanelProps) {
-    const { statusColors } = props
-    const card = useActiveCard('list-card')
+    const { binding, cardTypes, statusColors } = props
+    const card = useActiveCard(binding)
     const documentId = card?.header.internalId ?? null
     const author = card?.header.author ?? null
     const title = card?.header.title ?? ''
@@ -84,6 +88,7 @@ export function CardPropertiesPanel(props: CardPropertiesPanelProps) {
     const statusColor = card?.header.status
         ? statusColors.get(card.header.status) ?? defaultColumnAccent(0)
         : undefined
+    const typeValue = card ? getCardType(cardTypes, card.header.id) ?? '' : ''
 
     const handleTitleChange = (event: ChangeEvent<HTMLInputElement>) => {
         setTitleEdit({ baseline: title, documentId, value: event.target.value })
@@ -95,7 +100,7 @@ export function CardPropertiesPanel(props: CardPropertiesPanelProps) {
             setTitleEdit({ baseline: title, documentId, value: title })
             return
         }
-        if (nextTitle !== title) cardMarkdownDataSource.updateActiveCardTitle('list-card', nextTitle)
+        if (nextTitle !== title) cardMarkdownDataSource.updateActiveCardTitle(binding, nextTitle)
     }
 
     const handleTitleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -112,7 +117,7 @@ export function CardPropertiesPanel(props: CardPropertiesPanelProps) {
 
     const commitAuthor = () => {
         if (authorDraft !== (author ?? '')) {
-            cardMarkdownDataSource.updateActiveCardHeaderField('list-card', 'author', authorDraft)
+            cardMarkdownDataSource.updateActiveCardHeaderField(binding, 'author', authorDraft)
         }
     }
 
@@ -126,7 +131,12 @@ export function CardPropertiesPanel(props: CardPropertiesPanelProps) {
 
     const handlePolicyChange = (event: SelectChangeEvent) => {
         const shouldAutoMerge = event.target.value === AUTO_MERGE_POLICY_VALUE
-        if (shouldAutoMerge !== autoMergeEnabled) cardMarkdownDataSource.toggleActiveCardPolicy('list-card', AUTO_MERGE_POLICY_KEY)
+        if (shouldAutoMerge !== autoMergeEnabled) cardMarkdownDataSource.toggleActiveCardPolicy(binding, AUTO_MERGE_POLICY_KEY)
+    }
+
+    const handleTypeChange = (event: SelectChangeEvent) => {
+        const nextType = event.target.value
+        if (nextType !== typeValue) void cardMarkdownDataSource.updateActiveCardType(binding, nextType)
     }
 
     if (!card) return null
@@ -185,6 +195,26 @@ export function CardPropertiesPanel(props: CardPropertiesPanelProps) {
                         <Box sx={{ bgcolor: statusColor ?? 'custom.text4', borderRadius: '50%', height: 7, width: 7 }} />
                         {statusValue}
                     </Box>
+                </Box>
+                <Box sx={rowSx}>
+                    <Box sx={labelSx}><LabelOutlined sx={{ fontSize: 14 }} />Type</Box>
+                    <Select
+                        aria-label="Card type"
+                        onChange={handleTypeChange}
+                        size="small"
+                        sx={{
+                            bgcolor: 'custom.track', borderRadius: '7px', color: 'text.secondary', fontSize: '12.5px',
+                            fontWeight: 500, height: 24,
+                            '& .MuiOutlinedInput-notchedOutline': { borderColor: 'divider' },
+                            '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'custom.borderHover' },
+                            '& .MuiSelect-select': { py: 0, pl: '10px', pr: '26px' },
+                            '& .MuiSelect-icon': { color: 'custom.text4', fontSize: 17 },
+                        }}
+                        value={typeValue}
+                    >
+                        {typeValue.length === 0 ? <MenuItem disabled value="">Unknown</MenuItem> : null}
+                        {cardTypes.map(({ label, type }) => <MenuItem key={type} value={type}>{label}</MenuItem>)}
+                    </Select>
                 </Box>
                 <Box sx={{ ...rowSx, height: 40 }}>
                     <Box sx={labelSx}><EditOutlined sx={{ fontSize: 14 }} />Author</Box>

@@ -3,6 +3,7 @@ import type { MarkdownFile } from '../../data/data_types'
 import { newFolderPath, newMarkdownFilePath } from '../../data/project_tree_paths'
 import type { CardOperationContext } from './card_operation_context'
 import { markdownParsingService } from './markdown_parsing_service'
+import { setCardHeaderFields } from './card_mutations'
 
 const FOLDER_PLACEHOLDER_NAME = '.gitkeep'
 
@@ -119,12 +120,13 @@ export class ProjectFileOperations {
         const follower = column[deletedIndex + 1]
         if (!follower || follower.header.after !== deletedCard.header.internalId) return null
 
-        const followerFile = this.context.dependencies.requireFile(follower.path)
+        const { config } = this.context.dependencies.requireDependencies()
+        const followerCard = this.context.dependencies.mutateCard(
+            follower.path,
+            (card) => setCardHeaderFields(card, { after: deletedCard.header.after ?? '' }),
+            config.workingFolder,
+        )
 
-        return {
-            content: markdownParsingService.rewriteHeader(followerFile.content, { after: deletedCard.header.after ?? '' }),
-            path: followerFile.path,
-            sha: followerFile.sha,
-        }
+        return markdownParsingService.serializeCard(followerCard)
     }
 }

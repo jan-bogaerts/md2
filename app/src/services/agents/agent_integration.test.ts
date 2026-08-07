@@ -4,7 +4,13 @@ import type { ActionRunEvent } from '../../data/action_run_types'
 import { runElectronAction } from '../actions/electron_action_runner'
 import { actionRunRegistry } from '../actions/action_run_registry'
 import { configService } from '../config/config_service'
-import { conversation, createDataService, createDeferred, createStorage, waitForWorkerTurn } from '.././test_support/data_service_test_support'
+import {
+    actionAcknowledgementEvent,
+    agentAcknowledgementService,
+    cardAcknowledgementEvent,
+} from './agent_acknowledgement_service'
+import { cardAgentState } from './card_agent_state'
+import { conversation, createDataService, createDeferred, createStorage, waitForWorkerTurn } from '../test_support/data_service_test_support'
 
 vi.mock('../actions/electron_action_runner', () => ({ runElectronAction: vi.fn(async () => ({ logs: [], status: 'completed' })) }))
 
@@ -195,13 +201,92 @@ describe('AgentIntegration', () => {
         service.init({ storage })
 
         const snapshot = await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const cardListener = vi.fn()
+        const actionListener = vi.fn()
+        const cardEvent = cardAcknowledgementEvent('root-card')
+        const actionEvent = actionAcknowledgementEvent('root-card', 'implement')
+        agentAcknowledgementService.addEventListener(cardEvent, cardListener)
+        agentAcknowledgementService.addEventListener(actionEvent, actionListener)
 
         expect(snapshot.activeCards[0].agentConversations).toHaveLength(0)
-        conversationLoad.resolve(conversation())
+        conversationLoad.resolve({ ...conversation(), actionId: 'implement' })
 
         await vi.waitFor(() => {
             expect(service.getState().snapshot?.activeCards[0].agentConversations[0].title).toBe('Agent run')
         })
+        expect(cardListener).toHaveBeenCalledOnce()
+        expect(actionListener).toHaveBeenCalledOnce()
+        agentAcknowledgementService.removeEventListener(cardEvent, cardListener)
+        agentAcknowledgementService.removeEventListener(actionEvent, actionListener)
+    })
+
+    it('announces only the scopes of cards whose conversations were attached', async () => {
+        configService.init()
+        const agentFiles: MarkdownFile[] = [
+            {
+                content: '---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - design/activity/card__root-card.json#conversation=agent-1\n---\n\n# Root',
+                path: 'design/F-1-root.md',
+            },
+            {
+                content: '---\nid: F-2\ninternalId: plain-card\ntitle: Plain\nstatus: active\n---\n\n# Plain',
+                path: 'design/F-2-plain.md',
+            },
+        ]
+        const storage = createStorage({
+            loadAgentConversation: vi.fn(async () => ({ ...conversation(), actionId: 'implement' })),
+            loadProject: vi.fn(async () => ({ files: agentFiles, workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: agentFiles, workingFolder: 'design' })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        const loadedListener = vi.fn()
+        const otherListener = vi.fn()
+        const otherActionListener = vi.fn()
+        const loadedEvent = cardAcknowledgementEvent('root-card')
+        const otherEvent = cardAcknowledgementEvent('plain-card')
+        const otherActionEvent = actionAcknowledgementEvent('root-card', 'review')
+        agentAcknowledgementService.addEventListener(loadedEvent, loadedListener)
+        agentAcknowledgementService.addEventListener(otherEvent, otherListener)
+        agentAcknowledgementService.addEventListener(otherActionEvent, otherActionListener)
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await vi.waitFor(() => expect(loadedListener).toHaveBeenCalledOnce())
+
+        expect(otherListener).not.toHaveBeenCalled()
+        expect(otherActionListener).not.toHaveBeenCalled()
+        agentAcknowledgementService.removeEventListener(loadedEvent, loadedListener)
+        agentAcknowledgementService.removeEventListener(otherEvent, otherListener)
+        agentAcknowledgementService.removeEventListener(otherActionEvent, otherActionListener)
+    })
+
+    it('refreshes card waiting state from a backend-returned terminal conversation', async () => {
+        configService.init()
+        const agentFiles: MarkdownFile[] = [{
+            content: '---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - design/activity/card__root-card.json#conversation=agent-1\n---\n\n# Root',
+            path: 'design/F-1-root.md',
+        }]
+        const waiting = { ...conversation(), completedAt: null, status: 'waitingForInput' as const }
+        const storage = createStorage({
+            loadAgentConversation: vi.fn(async () => waiting),
+            loadProject: vi.fn(async () => ({ files: agentFiles, workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: agentFiles, workingFolder: 'design' })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        await vi.waitFor(() => {
+            const card = service.getState().snapshot?.activeCards[0]
+            expect(card && cardAgentState(card.agentConversations)).toBe('waiting for input')
+        })
+        service.agents.updateAgentConversation({
+            ...waiting,
+            completedAt: '2026-08-04T10:30:00.000Z',
+            status: 'completed',
+        })
+
+        const card = service.getState().snapshot?.activeCards[0]
+        expect(card && cardAgentState(card.agentConversations)).not.toBe('waiting for input')
     })
 
     it('loads conversations only for active, archived, and released cards', async () => {
@@ -215,7 +300,7 @@ describe('AgentIntegration', () => {
             path: 'design/archived/F-2-archived.md',
         }
         const releasedFile: MarkdownFile = {
-            content: '---\nid: F-3\ninternalId: released-card\ntitle: Released\nstatus: ready\nagents:\n  - design/activity/card__released-card.json#conversation=released\n---\n\n# Released',
+            content: '---\nid: F-3\ninternalId: released-card\ntitle: Released\nstatus: ready\nagents:\n  - design/history/v1/card__released-card.json#conversation=released\n---\n\n# Released',
             path: 'design/history/v1/F-3-released.md',
         }
         const actionDocument: MarkdownFile = {
@@ -266,7 +351,7 @@ describe('AgentIntegration', () => {
         const loadedReferences = loadAgentConversation.mock.calls.map(([, reference]) => reference)
         expect(loadedReferences).toEqual(expect.arrayContaining([
             'design/activity/card__archived-card.json#conversation=archived',
-            'design/activity/card__released-card.json#conversation=released',
+            'design/history/v1/card__released-card.json#conversation=released',
         ]))
         expect(loadedReferences).not.toContain('design/activity/card__action-document.json#conversation=action')
     })
@@ -390,7 +475,7 @@ describe('AgentIntegration', () => {
         configService.init()
         const sourceConversation = { ...conversation(), actionId: 'md2.custom-prompt' }
         const cardFile = {
-            content: '---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - design/activity/card__root-card.json#conversation=agent-1\n---\n\n# Root',
+            content: '---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nworktree: 3\nagents:\n  - design/activity/card__root-card.json#conversation=agent-1\n---\n\n# Root',
             path: 'design/F-1-root.md',
         }
         const storage = createStorage({
@@ -407,7 +492,7 @@ describe('AgentIntegration', () => {
 
         expect(runElectronAction).toHaveBeenCalledWith(
             expect.objectContaining({ id: 'md2.custom-prompt' }),
-            expect.objectContaining({ file: 'design/F-1-root.md', kind: 'file' }),
+            expect.objectContaining({ file: 'design/F-1-root.md', kind: 'file', worktree: '3' }),
             { continueFrom: 'design/activity/card__root-card.json#conversation=agent-1' },
         )
     })
@@ -454,6 +539,8 @@ describe('AgentIntegration', () => {
         const service = createDataService()
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        service.cards.updateCardWorktree('design/F-1-root.md', 3)
+        service.cards.toggleCardPolicy('design/F-1-root.md', 'allowNetwork')
         if (!actionRunCallback) throw new Error('Action run callback not registered')
         const emitActionRun = actionRunCallback as (event: ActionRunEvent) => void
 
@@ -478,6 +565,8 @@ describe('AgentIntegration', () => {
 
         await vi.waitFor(() => expect(storage.loadAgentConversation).toHaveBeenCalledTimes(1))
         expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual([reference])
+        expect(service.getState().snapshot?.activeCards[0].header.worktree).toBe(3)
+        expect(service.getState().snapshot?.activeCards[0].header.policy).toEqual({ allowNetwork: true })
     })
 
     it('links the final conversation reference and loads it once', async () => {

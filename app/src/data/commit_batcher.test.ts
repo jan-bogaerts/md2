@@ -1,15 +1,92 @@
 ﻿import { describe, expect, it, vi } from 'vitest'
-import { CommitBatcher } from './commit_batcher'
+import {
+    COMMIT_BATCHER_FLUSH_FAILED_EVENT,
+    COMMIT_BATCHER_PENDING_CHANGED_EVENT,
+    CommitBatcher,
+} from './commit_batcher'
 import { createDeferred, type CommitCallback } from '../services/test_support/data_service_test_support'
+import { markdownParsingService } from '../services/data/markdown_parsing_service'
+import type { Card, CommitRequest } from './data_types'
+
+type PushCallback = (request: CommitRequest) => Promise<unknown>
+
+function createBatcher(
+    commit: CommitCallback,
+    push: PushCallback = vi.fn(async () => undefined),
+    delayMs = 30000,
+    requireCardByInternalId: (internalId: string) => Card = () => { throw new Error('Unexpected card lookup') },
+) {
+    const cardOperations = { commitFiles: commit, pushCommittedFiles: push, requireCardByInternalId }
+
+    return new CommitBatcher(cardOperations, delayMs)
+}
 
 describe('CommitBatcher', () => {
+    it('serializes one owned card reference once with latest fields at flush', async () => {
+        const card = { header: { status: 'design' }, path: 'design/F-1-root.md' } as Card
+        const serializeCard = vi.spyOn(markdownParsingService, 'serializeCard').mockImplementation((currentCard: Card) => ({
+            content: `status: ${currentCard.header.status}`,
+            path: currentCard.path,
+        }))
+        const acknowledgeCard = vi.spyOn(markdownParsingService, 'acknowledgeSerializedCard').mockImplementation(() => undefined)
+        const commit = vi.fn<CommitCallback>(async () => undefined)
+        const batcher = createBatcher(commit, undefined, undefined, () => card)
+        const change = { cardInternalId: 'card-1', path: card.path }
+
+        batcher.schedule('main', [change], 'Update card')
+        card.header.status = 'ready'
+        batcher.schedule('main', [change], 'Update card')
+        await batcher.flush()
+
+        expect(serializeCard).toHaveBeenCalledOnce()
+        expect(commit.mock.calls[0][0].files).toEqual([{ content: 'status: ready', path: card.path }])
+        expect(acknowledgeCard).toHaveBeenCalledOnce()
+        serializeCard.mockRestore()
+        acknowledgeCard.mockRestore()
+    })
+
+    it('resolves the current owned card by internal ID when flushing', async () => {
+        const originalCard = { header: { status: 'design' }, path: 'design/F-1-root.md' } as Card
+        const currentCard = { header: { status: 'ready' }, path: originalCard.path } as Card
+        const serializeCard = vi.spyOn(markdownParsingService, 'serializeCard').mockImplementation((card: Card) => ({
+            content: `status: ${card.header.status}`,
+            path: card.path,
+        }))
+        const acknowledgeCard = vi.spyOn(markdownParsingService, 'acknowledgeSerializedCard').mockImplementation(() => undefined)
+        const commit = vi.fn<CommitCallback>(async () => undefined)
+        const batcher = createBatcher(commit, undefined, undefined, () => currentCard)
+
+        batcher.schedule('main', [{ cardInternalId: 'card-1', path: originalCard.path }], 'Update card')
+        await batcher.flush()
+
+        expect(commit.mock.calls[0][0].files[0].content).toBe('status: ready')
+        expect(acknowledgeCard).toHaveBeenCalledWith(currentCard, commit.mock.calls[0][0].files[0])
+        serializeCard.mockRestore()
+        acknowledgeCard.mockRestore()
+    })
+
+    it('does not auto-flush while a combined card change is being assembled', async () => {
+        vi.useFakeTimers()
+        const commit = vi.fn<CommitCallback>(async () => undefined)
+        const batcher = createBatcher(commit, undefined, 100)
+        const resumeAutomaticFlush = batcher.deferAutomaticFlush()
+        batcher.schedule('main', [{ content: 'moved', path: 'card.md' }], 'Move card')
+
+        await vi.advanceTimersByTimeAsync(200)
+        expect(commit).not.toHaveBeenCalled()
+
+        batcher.schedule('main', [{ content: 'moved and linked', path: 'card.md' }], 'Link activity')
+        resumeAutomaticFlush()
+        await batcher.flush()
+
+        expect(commit.mock.calls[0][0].files).toEqual([{ content: 'moved and linked', path: 'card.md' }])
+        vi.useRealTimers()
+    })
+
     it('acknowledges a captured document revision only after physical persistence succeeds', async () => {
         const acknowledge = vi.fn()
-        const commit = vi.fn(async () => undefined)
-        const batcher = new CommitBatcher({
-            clearDelay: vi.fn(), commit, onPendingChange: vi.fn(),
-            setDelay: vi.fn(() => 1),
-        })
+        const commit = vi.fn<CommitCallback>(async () => undefined)
+        const batcher = createBatcher(commit)
         const saveReference = { acknowledge, document: {} } as never
         batcher.schedule('main', [{ content: 'saved', path: 'card.md', saveReference }], 'Update card')
 
@@ -22,13 +99,7 @@ describe('CommitBatcher', () => {
         const postCommit = createDeferred<void>()
         const acknowledge = vi.fn()
         const afterCommit = vi.fn(async () => postCommit.promise)
-        const batcher = new CommitBatcher({
-            afterCommit,
-            clearDelay: vi.fn(),
-            commit: vi.fn(async () => undefined),
-            onPendingChange: vi.fn(),
-            setDelay: vi.fn(() => 1),
-        })
+        const batcher = createBatcher(vi.fn<CommitCallback>(async () => undefined), afterCommit)
         const saveReference = { acknowledge, document: {} } as never
         batcher.schedule('main', [{ content: 'saved', path: 'card.md', saveReference }], 'Update card')
 
@@ -45,13 +116,8 @@ describe('CommitBatcher', () => {
     it('keeps a locally persisted revision acknowledged when post-commit work fails', async () => {
         const acknowledge = vi.fn()
         const pushFailure = new Error('push failed')
-        const batcher = new CommitBatcher({
-            afterCommit: vi.fn(async () => { throw pushFailure }),
-            clearDelay: vi.fn(),
-            commit: vi.fn(async () => undefined),
-            onPendingChange: vi.fn(),
-            setDelay: vi.fn(() => 1),
-        })
+        const push = vi.fn(async () => { throw pushFailure })
+        const batcher = createBatcher(vi.fn<CommitCallback>(async () => undefined), push)
         const saveReference = { acknowledge, document: {} } as never
         batcher.schedule('main', [{ content: 'saved', path: 'card.md', saveReference }], 'Update card')
 
@@ -64,10 +130,8 @@ describe('CommitBatcher', () => {
     it('does not acknowledge a document revision when physical persistence fails', async () => {
         const acknowledge = vi.fn()
         const failure = new Error('commit failed')
-        const batcher = new CommitBatcher({
-            clearDelay: vi.fn(), commit: vi.fn(async () => { throw failure }), onPendingChange: vi.fn(),
-            setDelay: vi.fn(() => 1),
-        })
+        const commit = vi.fn<CommitCallback>(async () => { throw failure })
+        const batcher = createBatcher(commit)
         const saveReference = { acknowledge, document: {} } as never
         batcher.schedule('main', [{ content: 'unsaved', path: 'card.md', saveReference }], 'Update card')
 
@@ -81,13 +145,8 @@ describe('CommitBatcher', () => {
         vi.useFakeTimers()
         const commit = vi.fn<CommitCallback>(async () => undefined)
         const onPendingChange = vi.fn()
-        const batcher = new CommitBatcher({
-            clearDelay: window.clearTimeout,
-            commit,
-            delayMs: 30000,
-            onPendingChange,
-            setDelay: window.setTimeout,
-        })
+        const batcher = createBatcher(commit)
+        batcher.addEventListener(COMMIT_BATCHER_PENDING_CHANGED_EVENT, onPendingChange)
 
         batcher.schedule('main', [{ content: 'one', path: 'design/F-1-root.md' }], 'Update root')
         batcher.schedule('main', [{ content: 'two', path: 'design/F-1-root.md' }], 'Update root')
@@ -104,13 +163,7 @@ describe('CommitBatcher', () => {
     it('resets the delay on each new change so continuous edits commit as one batch', async () => {
         vi.useFakeTimers()
         const commit = vi.fn<CommitCallback>(async () => undefined)
-        const batcher = new CommitBatcher({
-            clearDelay: window.clearTimeout,
-            commit,
-            delayMs: 30000,
-            onPendingChange: vi.fn(),
-            setDelay: window.setTimeout,
-        })
+        const batcher = createBatcher(commit)
 
         batcher.schedule('main', [{ content: 'one', path: 'design/F-1-root.md' }], 'Update root')
         await vi.advanceTimersByTimeAsync(20000)
@@ -128,13 +181,7 @@ describe('CommitBatcher', () => {
 
     it('flushes one logical change with the exact message on close', async () => {
         const commit = vi.fn<CommitCallback>(async () => undefined)
-        const batcher = new CommitBatcher({
-            clearDelay: window.clearTimeout,
-            commit,
-            delayMs: 30000,
-            onPendingChange: vi.fn(),
-            setDelay: window.setTimeout,
-        })
+        const batcher = createBatcher(commit)
 
         batcher.schedule('main', [{ content: 'one', path: 'design/F-1-root.md' }], 'Update root')
         expect(batcher.hasPending()).toBe(true)
@@ -153,13 +200,9 @@ describe('CommitBatcher', () => {
         const commit = vi.fn<CommitCallback>(async () => {
             throw error
         })
-        const batcher = new CommitBatcher({
-            clearDelay: window.clearTimeout,
-            commit,
-            delayMs: 30000,
-            onFlushError,
-            onPendingChange: vi.fn(),
-            setDelay: window.setTimeout,
+        const batcher = createBatcher(commit)
+        batcher.addEventListener(COMMIT_BATCHER_FLUSH_FAILED_EVENT, (event) => {
+            onFlushError((event as CustomEvent<unknown>).detail)
         })
 
         batcher.schedule('main', [{ content: 'one', path: 'design/F-1-root.md' }], 'Update root')
@@ -173,17 +216,12 @@ describe('CommitBatcher', () => {
 
         expect(batcher.hasPending()).toBe(false)
         expect(commit).toHaveBeenCalledTimes(2)
+        vi.useRealTimers()
     })
 
     it('combines distinct messages for a multi-file batch', async () => {
         const commit = vi.fn<CommitCallback>(async () => undefined)
-        const batcher = new CommitBatcher({
-            clearDelay: window.clearTimeout,
-            commit,
-            delayMs: 30000,
-            onPendingChange: vi.fn(),
-            setDelay: window.setTimeout,
-        })
+        const batcher = createBatcher(commit)
 
         batcher.schedule('main', [{ content: 'one', path: 'design/F-1-root.md' }], 'Update design/F-1-root.md')
         batcher.schedule('main', [{ content: 'two', path: 'design/F-2-child.md' }], 'Update design/F-2-child.md')
@@ -201,13 +239,7 @@ describe('CommitBatcher', () => {
 
     it('deduplicates repeated messages for the same path', async () => {
         const commit = vi.fn<CommitCallback>(async () => undefined)
-        const batcher = new CommitBatcher({
-            clearDelay: window.clearTimeout,
-            commit,
-            delayMs: 30000,
-            onPendingChange: vi.fn(),
-            setDelay: window.setTimeout,
-        })
+        const batcher = createBatcher(commit)
 
         batcher.schedule('main', [{ content: 'one', path: 'design/F-1-root.md' }], 'Update design/F-1-root.md')
         batcher.schedule('main', [{ content: 'two', path: 'design/F-1-root.md' }], 'Update design/F-1-root.md')
@@ -229,13 +261,7 @@ describe('CommitBatcher', () => {
         const commit = vi.fn<CommitCallback>()
             .mockImplementationOnce(async () => firstCommit.promise)
             .mockImplementationOnce(async () => undefined)
-        const batcher = new CommitBatcher({
-            clearDelay: window.clearTimeout,
-            commit,
-            delayMs: 30000,
-            onPendingChange: vi.fn(),
-            setDelay: window.setTimeout,
-        })
+        const batcher = createBatcher(commit)
         batcher.schedule('main', [{ content: 'old', path: 'actions/review.json' }], 'Update action')
 
         const pendingFlush = batcher.flush()
@@ -253,13 +279,7 @@ describe('CommitBatcher', () => {
     it('coalesces repeated path changes into one move with the latest content', async () => {
         const commit = vi.fn<CommitCallback>(async () => undefined)
         const onCommitted = vi.fn()
-        const batcher = new CommitBatcher({
-            clearDelay: window.clearTimeout,
-            commit,
-            delayMs: 30000,
-            onPendingChange: vi.fn(),
-            setDelay: window.setTimeout,
-        })
+        const batcher = createBatcher(commit)
 
         batcher.schedulePathChange('main', 'actions/new-action.json', {
             content: 'first',
@@ -287,13 +307,7 @@ describe('CommitBatcher', () => {
     it('retargets an uncommitted creation without scheduling a move', async () => {
         const commit = vi.fn<CommitCallback>(async () => undefined)
         const onCommitted = vi.fn()
-        const batcher = new CommitBatcher({
-            clearDelay: window.clearTimeout,
-            commit,
-            delayMs: 30000,
-            onPendingChange: vi.fn(),
-            setDelay: window.setTimeout,
-        })
+        const batcher = createBatcher(commit)
         batcher.schedule('main', [{ content: 'initial', path: 'actions/new-action.json' }], 'Create action')
 
         batcher.schedulePathChange('main', 'actions/new-action.json', {
@@ -317,13 +331,7 @@ describe('CommitBatcher', () => {
             .mockImplementationOnce(async () => undefined)
         const firstCommitted = vi.fn()
         const secondCommitted = vi.fn()
-        const batcher = new CommitBatcher({
-            clearDelay: window.clearTimeout,
-            commit,
-            delayMs: 30000,
-            onPendingChange: vi.fn(),
-            setDelay: window.setTimeout,
-        })
+        const batcher = createBatcher(commit)
         batcher.schedulePathChange('main', 'actions/new-action.json', {
             content: 'first',
             path: 'actions/review.json',
@@ -350,13 +358,7 @@ describe('CommitBatcher', () => {
     it('discards a pending file without committing it', async () => {
         vi.useFakeTimers()
         const commit = vi.fn<CommitCallback>(async () => undefined)
-        const batcher = new CommitBatcher({
-            clearDelay: window.clearTimeout,
-            commit,
-            delayMs: 30000,
-            onPendingChange: vi.fn(),
-            setDelay: window.setTimeout,
-        })
+        const batcher = createBatcher(commit)
         batcher.schedule('main', [{ content: 'draft', path: 'actions/review.json' }], 'Update action')
 
         batcher.discardPendingFile('actions/review.json')

@@ -1,6 +1,6 @@
 const { buildResumeAgentCommand, resolveAgentCommand } = require('../agent/agent_profiles.mjs');
 const { normalizeConversationContext } = require('../agent/agent_transcript');
-const { prepareAgentPrompt, withTrackedFileCommitInstruction } = require('./action_text');
+const { prepareAgentPrompt, resolvePlaceholders, withTrackedFileCommitInstruction } = require('./action_text');
 
 const CONTINUE_INPUT = 'continue';
 function continuationReferencePath(reference) {
@@ -59,7 +59,15 @@ class ActionAgentExecutor {
             ?.find(({ agent }) => agent === resolvedAgent.agent) ?? null;
         const hasPromptOverride = Object.hasOwn(input.runInput, 'prompt');
         const prompt = hasPromptOverride
-            ? input.runInput.prompt
+            ? resolvePlaceholders(
+                input.runInput.prompt,
+                input.context,
+                input.project,
+                input.primaryProject,
+                input.projectFolder,
+                input.releasesFolder,
+                input.runInput.extraPrompt,
+            )
             : sourceConversation
                 ? withTrackedFileCommitInstruction(
                     input.runInput.extraPrompt.trim().length > 0 ? input.runInput.extraPrompt : CONTINUE_INPUT,
@@ -70,6 +78,7 @@ class ActionAgentExecutor {
                     input.context,
                     input.project,
                     input.primaryProject,
+                    input.projectFolder,
                     input.releasesFolder,
                     input.runInput.extraPrompt,
                 );
@@ -79,7 +88,7 @@ class ActionAgentExecutor {
             : '';
         const reference = input.runInput.continueFrom
             ? continuationReferencePath(input.runInput.continueFrom)
-            : undefined;
+            : input.conversationReservation?.reference;
         const request = {
             actionId: input.action.id,
             agent: resolvedAgent.agent,
@@ -88,6 +97,9 @@ class ActionAgentExecutor {
             ...(input.context.file ? { cardPath: input.context.file } : {}),
             command,
             ...(sourceConversation ? { conversation: sourceConversation, reference } : {}),
+            ...(!sourceConversation && input.conversationReservation
+                ? { conversationId: input.conversationReservation.conversationId, reference }
+                : {}),
             ...(contextInput ? { contextInput } : {}),
             actionRunId: input.runId,
             prompt,

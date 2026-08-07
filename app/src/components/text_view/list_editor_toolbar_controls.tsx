@@ -1,12 +1,10 @@
 import { Button } from '@mui/material'
 import { Separator } from '@mdxeditor/editor'
-import { useCallback, useEffect, useState, type MouseEvent } from 'react'
-import { fileContext } from '../../data/action_context'
-import type { AgentConversation, CardTypeConfig } from '../../data/data_types'
-import { agentAcknowledgementService } from '../../services/agents/agent_acknowledgement_service'
+import { useCallback, useSyncExternalStore, type MouseEvent } from 'react'
+import { actionContextIdentity, fileContext } from '../../data/action_context'
+import type { CardTypeConfig } from '../../data/data_types'
+import { cardActionPopupService, subscribeCardActionPopups } from '../../services/actions/card_action_popup_service'
 import { dialogService } from '../../services/dialog_service'
-import { workspaceViewService } from '../../services/project/workspace_view_service'
-import { ActionPopup } from '../actions/action_popup'
 import { CardCommitMenu } from '../card_view/card_commit_menu'
 import { listCardCommitDiffDataSource } from '../card_view/list_card_commit_diff_data_source'
 import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
@@ -15,18 +13,17 @@ import { MarkdownDocumentUndoRedo } from '../editor/markdown_document_undo_redo'
 import { MarkdownFormatToolbarControls } from '../editor/markdown_format_toolbar_controls'
 import { useActiveCard } from '../hooks/use_active_card'
 import { useCardCommits } from '../hooks/use_card_commits'
-import { CardPropertiesPanel } from './card_properties_panel'
-import { CardPropertiesPopover } from './card_properties_popover'
+import { useProjectState } from '../hooks/use_project_state'
+import { CardPropertiesControl } from './card_properties_control'
+
+function ignoreUnavailableWorktreeSelection() {
+    // List editor exposes historical commits only.
+}
 
 interface ListEditorToolbarControlsProps {
     cardTypes: CardTypeConfig[]
     historyStore: MarkdownDocumentHistoryStore
     statusColors: Map<string, string>
-}
-
-interface PropertiesAnchor {
-    documentId: string
-    element: HTMLElement
 }
 
 /** Formatting controls and card-specific controls for the active list-card document. */
@@ -35,109 +32,55 @@ export function ListEditorToolbarControls(props: ListEditorToolbarControlsProps)
     const card = useActiveCard('list-card')
     const documentId = card?.header.internalId ?? null
     const cardCommits = useCardCommits(documentId)
-    const [agentPopupDocumentId, setAgentPopupDocumentId] = useState<string | null>(null)
-    const [propertiesAnchor, setPropertiesAnchor] = useState<PropertiesAnchor | null>(null)
-    const isAgentPopupOpen = !!documentId && agentPopupDocumentId === documentId
-    const isPropertiesOpen = !!documentId && propertiesAnchor?.documentId === documentId
+    const { project } = useProjectState()
+    const popupEntries = useSyncExternalStore(
+        subscribeCardActionPopups,
+        () => cardActionPopupService.getSnapshot(),
+        () => cardActionPopupService.getSnapshot(),
+    )
+    const context = card ? fileContext(card, cardTypes) : null
+    const contextIdentity = context ? actionContextIdentity(context) : null
+    const isAgentPopupOpen = !!contextIdentity && popupEntries.some((entry) => (
+        actionContextIdentity(entry.context) === contextIdentity
+    ))
 
-    useEffect(() => {
-        const closeTransientOverlays = () => {
-            setAgentPopupDocumentId(null)
-            setPropertiesAnchor(null)
-        }
-
-        queueMicrotask(closeTransientOverlays)
-    }, [documentId])
-
-    useEffect(() => {
-        const handleWorkspaceViewChanged = () => {
-            if (workspaceViewService.getSnapshot().viewMode === 'text') return
-
-            setAgentPopupDocumentId(null)
-            setPropertiesAnchor(null)
-        }
-
-        workspaceViewService.addEventListener('changed', handleWorkspaceViewChanged)
-
-        return () => workspaceViewService.removeEventListener('changed', handleWorkspaceViewChanged)
-    }, [])
-
-    const handleConversationViewed = (conversation: AgentConversation) => {
-        try {
-            if (!conversation.cardPath) throw new Error('Cannot acknowledge a project conversation as a card result')
-
-            agentAcknowledgementService.acknowledge(cardMarkdownDataSource.getProjectKey(), conversation.cardPath, [conversation])
-        } catch (error) {
-            dialogService.error(error, { fallbackMessage: 'Card conversation could not be acknowledged' })
-        }
-    }
-    const handleOpenProperties = useCallback((event: MouseEvent<HTMLElement>) => {
-        try {
-            const activeDocumentId = cardMarkdownDataSource.getActiveDocument('list-card')?.getObject().header.internalId
-            if (!activeDocumentId) throw new Error('Cannot open card properties without an active list-card document')
-
-            setPropertiesAnchor({ documentId: activeDocumentId, element: event.currentTarget })
-        } catch (error) {
-            dialogService.error(error, { fallbackMessage: 'Card properties could not be opened' })
-        }
-    }, [])
-    const handleCloseProperties = useCallback(() => setPropertiesAnchor(null), [])
-    const handleToggleAgentPopup = useCallback(() => {
+    const handleToggleAgentPopup = useCallback((event: MouseEvent<HTMLButtonElement>) => {
         try {
             const activeDocumentId = cardMarkdownDataSource.getActiveDocument('list-card')?.getObject().header.internalId
             if (!activeDocumentId) throw new Error('Cannot open card agents without an active list-card document')
+            if (!context || !project) throw new Error('Cannot open card agents without a loaded project')
 
-            setAgentPopupDocumentId((current) => current === activeDocumentId ? null : activeDocumentId)
+            cardActionPopupService.toggle(context, event.currentTarget)
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Card agents could not be opened' })
         }
-    }, [])
-    const handleCloseAgentPopup = useCallback(() => setAgentPopupDocumentId(null), [])
+    }, [context, project])
 
     if (!card || !documentId) return null
 
-    const propertiesAvailable = Object.keys(card.headerFields).length > 0
     const endControls = (
         <>
             <Separator />
             <Button onClick={handleToggleAgentPopup} size="small" variant={isAgentPopupOpen ? 'contained' : 'outlined'}>
                 Agents{card.agentConversations.length > 0 ? ` (${card.agentConversations.length})` : ''}
             </Button>
-            <CardCommitMenu commits={cardCommits.commits} error={cardCommits.error} onSelect={listCardCommitDiffDataSource.select} />
-            {propertiesAvailable ? (
-                <Button
-                    aria-haspopup="dialog"
-                    onClick={handleOpenProperties}
-                    size="small"
-                    variant={isPropertiesOpen ? 'contained' : 'outlined'}
-                >
-                    Properties
-                </Button>
-            ) : null}
+            <CardCommitMenu
+                commits={cardCommits.commits}
+                currentWorktreeAvailable={false}
+                error={cardCommits.error}
+                onSelectCommit={listCardCommitDiffDataSource.select}
+                onSelectWorktree={ignoreUnavailableWorktreeSelection}
+            />
+            <CardPropertiesControl
+                binding="list-card"
+                cardTypes={cardTypes}
+                statusColors={statusColors}
+            />
         </>
     )
     const undoRedoControls = <MarkdownDocumentUndoRedo historyKey={documentId} historyStore={historyStore} />
 
     return (
-        <>
-            <MarkdownFormatToolbarControls endControls={endControls} undoRedoControls={undoRedoControls} />
-            <CardPropertiesPopover
-                anchorElement={isPropertiesOpen ? propertiesAnchor.element : null}
-                onClose={handleCloseProperties}
-                open={isPropertiesOpen}
-            >
-                <CardPropertiesPanel statusColors={statusColors} />
-            </CardPropertiesPopover>
-            {isAgentPopupOpen ? (
-                <ActionPopup
-                    anchorElement={null}
-                    context={fileContext(card, cardTypes)}
-                    draggable
-                    onClose={handleCloseAgentPopup}
-                    onConversationViewed={handleConversationViewed}
-                    open
-                />
-            ) : null}
-        </>
+        <MarkdownFormatToolbarControls endControls={endControls} undoRedoControls={undoRedoControls} />
     )
 }

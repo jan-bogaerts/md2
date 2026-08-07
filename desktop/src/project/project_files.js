@@ -6,6 +6,7 @@ const {
     assertGitRoot,
     commitStagedChanges,
     ensureInsideRoot,
+    listWorkingTreeFiles,
     pathExists,
     requireRootPath,
     runGit,
@@ -71,23 +72,6 @@ async function readRootMarkdownFiles(rootPath, folderPath) {
     }
 
     return files;
-}
-
-async function readRepositoryFilePaths(rootPath, folderPath, files) {
-    const entries = await fs.promises.readdir(folderPath, { withFileTypes: true });
-
-    for (const entry of entries) {
-        if (entry.name === GIT_FOLDER) continue;
-
-        const entryPath = path.join(folderPath, entry.name);
-
-        if (entry.isDirectory()) {
-            await readRepositoryFilePaths(rootPath, entryPath, files);
-            continue;
-        }
-
-        if (entry.isFile()) files.push(normalizePath(path.relative(rootPath, entryPath)));
-    }
 }
 
 async function readTopLevelFolders(rootPath) {
@@ -182,6 +166,17 @@ async function loadFile(project, filePath) {
     return { content, path: normalizePath(path.relative(rootPath, fullPath)) };
 }
 
+async function loadTextFile(project, filePath) {
+    const rootPath = requireRootPath(project);
+    await assertGitRoot(rootPath);
+    if (typeof filePath !== 'string' || filePath.length === 0) throw new Error('Missing text file path');
+
+    const fullPath = ensureInsideRoot(rootPath, path.join(rootPath, filePath));
+    const content = await fs.promises.readFile(fullPath, 'utf8');
+
+    return { content, path: normalizePath(path.relative(rootPath, fullPath)) };
+}
+
 async function loadProjectAsset(project, filePath) {
     const rootPath = requireRootPath(project);
     await assertGitRoot(rootPath);
@@ -216,10 +211,9 @@ async function loadProjectConfig(project) {
 async function listRepositoryFiles(project) {
     const rootPath = requireRootPath(project);
     await assertGitRoot(rootPath);
-    const files = [];
-    await readRepositoryFilePaths(rootPath, rootPath, files);
+    const files = await listWorkingTreeFiles(rootPath);
 
-    return files.sort((left, right) => left.localeCompare(right));
+    return files.map(normalizePath).sort((left, right) => left.localeCompare(right));
 }
 
 async function listTopLevelFolders(project) {
@@ -442,6 +436,7 @@ module.exports = {
     loadProjectAsset,
     loadProjectConfig,
     loadProjectRoot,
+    loadTextFile,
     moveFiles,
     PROJECT_README_TEMPLATE,
     saveProjectConfig,

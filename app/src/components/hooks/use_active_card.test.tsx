@@ -1,13 +1,13 @@
 import { act, cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { ProjectCard, ProjectSnapshot } from '../../data/data_types'
+import type { Card, ProjectSnapshot } from '../../data/data_types'
 import { CardMarkdownDataSource } from '../editor/card_markdown_data_source'
 import type { CardOpenDocument } from '../../services/open_files_service'
 import { useActiveCard } from './use_active_card'
 
-function card(title: string): ProjectCard {
+function card(title: string): Card {
     return {
-        agentConversationErrors: [], agentConversations: [], content: '', headerFields: {}, isActive: true,
+        agentConversationErrors: [], agentConversations: [], content: '', hasFrontmatter: true, isActive: true,
         header: {
             affects: [], after: null, agentLogReferences: [], author: null, id: 'F-1', internalId: 'card-1',
             owner: null, policy: {}, status: 'ready', title, worktree: null, worktreeError: null, worktreeValue: null,
@@ -16,14 +16,17 @@ function card(title: string): ProjectCard {
     }
 }
 
-function sourceWithCard(initialCard: ProjectCard) {
+function sourceWithCard(initialCard: Card) {
     let snapshot: ProjectSnapshot = {activeCards: [initialCard], backgroundCards: [], repositoryFiles: [], workingFolder: 'design'}
     let documentCard = initialCard
     const dataSource = new CardMarkdownDataSource()
     const owner = Object.assign(new EventTarget(), {
-        cards: {toggleCardPolicy: vi.fn(), updateCardBody: vi.fn(), updateCardHeaderFields: vi.fn(), updateCardTitle: vi.fn()},
+        cards: {
+            toggleCardPolicy: vi.fn(), updateCardBody: vi.fn(), updateCardHeaderFields: vi.fn(),
+            updateCardTitle: vi.fn(), updateCardType: vi.fn(),
+        },
         getState: () => ({ branch: 'main', project: { branch: 'main', id: 'project' }, runningAgents: [], snapshot }),
-        renew: (nextCard: ProjectCard) => {
+        renew: (nextCard: Card) => {
             snapshot = { ...snapshot, activeCards: [nextCard] }
             documentCard = nextCard
             owner.dispatchEvent(new Event('changed'))
@@ -31,7 +34,16 @@ function sourceWithCard(initialCard: ProjectCard) {
         },
     })
     dataSource.init(owner)
-    const document = Object.assign(new EventTarget(), {getDraft: () => documentCard, kind: 'card' as const}) as CardOpenDocument
+    const document: CardOpenDocument = Object.assign(new EventTarget(), {
+        createSaveReference: vi.fn(),
+        dirty: false,
+        getDraft: () => ({ content: documentCard.content }),
+        getObject: () => documentCard,
+        kind: 'card' as const,
+        path: documentCard.path,
+        replaceDraft: vi.fn(),
+        updateDraft: vi.fn(),
+    })
     dataSource.setActiveTarget('list-card', { document })
 
     return { dataSource, owner }

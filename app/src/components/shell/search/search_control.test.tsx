@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { CardHeader, ProjectCard, ProjectSnapshot } from '../../../data/data_types'
+import type { CardHeader, Card, ProjectSnapshot } from '../../../data/data_types'
 import { actionService } from '../../../services/actions/action_service'
 import { ACTIONS_CHANGED_EVENT } from '../../../services/actions/action_service_events'
 import { workspaceNavigationService } from '../../../services/project/workspace_navigation_service'
@@ -25,8 +25,11 @@ function makeHeader(overrides: Partial<CardHeader> = {}): CardHeader {
     }
 }
 
-function makeCard(path: string, content: string, header: Partial<CardHeader>, isActive: boolean): ProjectCard {
-    return { agentConversationErrors: [], agentConversations: [], content, headerFields: {}, header: makeHeader(header), isActive, path }
+function makeCard(path: string, content: string, header: Partial<CardHeader>, isActive: boolean): Card {
+    return {
+        agentConversationErrors: [], agentConversations: [], content, hasFrontmatter: true,
+        header: makeHeader(header), isActive, path,
+    }
 }
 
 const snapshot: ProjectSnapshot = {

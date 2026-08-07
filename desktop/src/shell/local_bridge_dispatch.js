@@ -104,6 +104,7 @@ function createLocalBridgeDispatch(dependencies) {
             return agentExecutableAvailability(agentProfiles);
         },
         loadFile: (project, path) => localGitService.loadFile(project, path),
+        loadTextFile: (project, path) => localGitService.loadTextFile(project, path),
         loadProjectAsset: (project, path) => localGitService.loadProjectAsset(project, path),
         loadProject: async (project, workingFolder) => {
             await activateProject(project);
@@ -153,6 +154,7 @@ function createLocalBridgeDispatch(dependencies) {
 
             return worktreeService.discard(request.project, request.worktree);
         },
+        deleteLocalBranch: (project, branchName) => worktreeService.deleteBranch(project, branchName),
         integrateWorktree: async (request) => {
             if (!request || typeof request !== 'object') throw new Error('Missing worktree integration request');
             const tracking = cardIntegrationTracking(request);
@@ -253,6 +255,11 @@ function createLocalBridgeDispatch(dependencies) {
 
             return { ...result, repositoryRoot: currentLocalProject.rootPath };
         },
+        generateWorktreeDiff: async (request) => {
+            if (!request || typeof request !== 'object') throw new Error('Missing worktree diff request');
+
+            return diffService.generateWorktreeDiff(currentLocalProject, request, worktreeService);
+        },
         loadActionRunHistory: async (request) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
@@ -291,6 +298,12 @@ function createLocalBridgeDispatch(dependencies) {
 
             return actionRunnerService.cancel(runId);
         },
+        closeWaitingActionConversation: (reference, status) => (
+            localGitService.closeWaitingActivityConversation(currentLocalProject, reference, status)
+        ),
+        updateActionConversationViewed: (reference, viewed) => (
+            localGitService.updateActivityConversationViewed(currentLocalProject, reference, viewed)
+        ),
         finishActionRun: (runId) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
@@ -301,7 +314,14 @@ function createLocalBridgeDispatch(dependencies) {
 
             return actionRunnerService.subscribe(callback);
         },
-        openInEditor: async (request) => diffService.openInEditor(currentLocalProject, request),
+        openInEditor: async (request) => {
+            const { editorCommand } = readDesktopConfig(desktopConfigStore);
+            const worktreeRoots = worktreeService.getRecords(currentLocalProject)
+                .filter(({ valid }) => valid)
+                .map(({ path: worktreePath }) => worktreePath);
+
+            return diffService.openInEditor(currentLocalProject, request, { editorCommand, worktreeRoots });
+        },
         prepareActionPrompt: (request) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
@@ -312,6 +332,16 @@ function createLocalBridgeDispatch(dependencies) {
             if (!actionSchedulerService) throw new Error('Action scheduler is not available');
 
             return actionSchedulerService.registerActionSchedule(request);
+        },
+        reserveActionConversation: (request) => {
+            if (!actionRunnerService) throw new Error('Action runner is not available');
+
+            return actionRunnerService.reserveConversation(request);
+        },
+        restartActionRun: (runId, request) => {
+            if (!actionRunnerService) throw new Error('Action runner is not available');
+
+            return actionRunnerService.restart(runId, request);
         },
         runSearchRegexpAgent: async (input, callback) => {
             if (typeof input !== 'string' || input.length === 0) throw new Error('Missing regular expression search input');

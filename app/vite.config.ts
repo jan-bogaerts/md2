@@ -13,7 +13,7 @@ const JSON_CONTENT_TYPE = 'application/json'
 const LOCAL_URL_BASE = 'http://localhost'
 const NODE_TEST_GROUP_ORDER = 0
 const UI_TEST_GROUP_ORDER = 1
-const NODE_TEST_WORKERS = 1
+const TEST_WORKERS = 1
 
 type NextFunction = (error?: Error) => void
 
@@ -123,11 +123,13 @@ export default defineConfig({
                 extends: true,
                 test: {
                     environment: 'node',
+                    fileParallelism: false,
                     include: ['vite.config.test.ts', 'src/**/*.node.test.ts'],
                     isolate: false,
-                    maxWorkers: NODE_TEST_WORKERS,
+                    maxWorkers: TEST_WORKERS,
                     name: 'unit',
                     sequence: { groupOrder: NODE_TEST_GROUP_ORDER },
+                    setupFiles: './src/test/node_setup.ts',
                 },
             },
             {
@@ -135,8 +137,10 @@ export default defineConfig({
                 test: {
                     environment: 'jsdom',
                     exclude: ['src/**/*.node.test.ts'],
+                    fileParallelism: false,
                     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
                     isolate: true,
+                    maxWorkers: TEST_WORKERS,
                     name: 'ui',
                     sequence: { groupOrder: UI_TEST_GROUP_ORDER },
                     setupFiles: './src/test/setup.ts',

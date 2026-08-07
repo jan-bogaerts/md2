@@ -1,5 +1,5 @@
 import type { MarkdownFile, ProjectReference } from '../../data/data_types'
-import { mapWithConcurrency } from '.././concurrency'
+import { mapWithConcurrency } from '../concurrency'
 import {
     normalizeFileContent,
     normalizeGitBlob,

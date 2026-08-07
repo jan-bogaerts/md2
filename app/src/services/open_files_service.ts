@@ -1,11 +1,14 @@
 import type { ActionDefinition } from '../data/action_types'
-import type { ProjectCard, ProjectReference, ProjectSnapshot } from '../data/data_types'
+import type { Card, ProjectReference, ProjectSnapshot } from '../data/data_types'
 import { ACTIONS_CHANGED_EVENT, ACTION_DRAFT_CHANGED_EVENT } from './actions/action_service_events'
+import { CARD_CHANGED_EVENT } from './data/card_events'
+import type { CardChangedEventDetail } from './data/data_service'
 import { register } from './service_injector'
 import { ManagedOpenDocument } from './managed_open_document'
 import type {
     CardOpenDocument,
     OpenDocument,
+    CardBodyDraft,
     OpenDocumentChangedDetail,
     OpenDocumentDraft,
     OpenDocumentObject,
@@ -38,17 +41,17 @@ interface OpenFilesDependencies {
 
 const EMPTY_SNAPSHOT: OpenFilesSnapshot = { activeDocument: null, documents: [] }
 
-function isProjectCard(object: OpenDocumentObject): object is ProjectCard {
+function isCard(object: OpenDocumentObject): object is Card {
     return 'header' in object
 }
 
-function isCardDraft(draft: OpenDocumentDraft): draft is ProjectCard {
-    return 'header' in draft
+function isCardDraft(draft: OpenDocumentDraft): draft is CardBodyDraft {
+    return 'content' in draft
 }
 
 /** Cards are identified by their stable internal ID; regular markdown files have none and use their path. */
 function documentIdentity(object: OpenDocumentObject) {
-    if (!isProjectCard(object)) return object.id
+    if (!isCard(object)) return object.id
 
     return object.header.internalId ?? object.path
 }
@@ -64,18 +67,18 @@ function snapshotObjects(snapshot: ProjectSnapshot | null, actions: ActionDefini
 }
 
 function objectPath(object: OpenDocumentObject) {
-    if (isProjectCard(object)) return object.path
+    if (isCard(object)) return object.path
     return object.sourcePath
 }
 
 type ManagedDocument = ManagedOpenDocument & OpenDocument
 
 function renewManagedDocument(document: ManagedDocument, object: OpenDocumentObject, draft: OpenDocumentDraft) {
-    if (document.kind === 'card' && isProjectCard(object) && isCardDraft(draft)) {
+    if (document.kind === 'card' && isCard(object) && isCardDraft(draft)) {
         document.renew(documentIdentity(object), object, draft)
         return
     }
-    if (document.kind === 'action' && !isProjectCard(object) && !isCardDraft(draft)) {
+    if (document.kind === 'action' && !isCard(object) && !isCardDraft(draft)) {
         document.renew(documentIdentity(object), object, draft)
         return
     }
@@ -104,6 +107,7 @@ export class OpenFilesService extends EventTarget {
         this.actionService?.removeEventListener(ACTIONS_CHANGED_EVENT, this.handleActionChanged)
         this.actionService?.removeEventListener(ACTION_DRAFT_CHANGED_EVENT, this.handleActionChanged)
         this.dataService?.removeEventListener('changed', this.handleDataChanged)
+        this.dataService?.removeEventListener(CARD_CHANGED_EVENT, this.handleCardChanged)
         this.clear()
         this.registryScopeRevision += 1
         this.actionService = dependencies.actionService
@@ -112,6 +116,7 @@ export class OpenFilesService extends EventTarget {
         this.actionService.addEventListener(ACTIONS_CHANGED_EVENT, this.handleActionChanged)
         this.actionService.addEventListener(ACTION_DRAFT_CHANGED_EVENT, this.handleActionChanged)
         this.dataService.addEventListener('changed', this.handleDataChanged)
+        this.dataService.addEventListener(CARD_CHANGED_EVENT, this.handleCardChanged)
         this.reconcile()
     }
 
@@ -138,7 +143,7 @@ export class OpenFilesService extends EventTarget {
         return document
     }
 
-    openBoardDocument(object: ProjectCard): CardOpenDocument {
+    openBoardDocument(object: Card): CardOpenDocument {
         // Board cards live in the working folder root, so they always carry a stable identity.
         if (!object.header.internalId) throw new Error(`Card identity was not added before opening: ${object.path}`)
         const document = this.getOrCreateDocument(object)
@@ -196,6 +201,19 @@ export class OpenFilesService extends EventTarget {
     }
 
     private readonly handleActionChanged = () => this.reconcile()
+    private readonly handleCardChanged = (event: Event) => {
+        const { card } = (event as CustomEvent<CardChangedEventDetail>).detail
+        const document = this.registeredDocuments.get(this.scopedObjectKey(card))
+        if (!document) return
+        if (!this.dataService) throw new Error('Open files service is not initialized')
+
+        const { snapshot } = this.dataService.getState()
+        const currentCard = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]
+            .find((candidate) => documentIdentity(candidate) === documentIdentity(card))
+        if (!currentCard) throw new Error(`Cannot renew missing card document: ${card.path}`)
+
+        renewManagedDocument(document, currentCard, { content: currentCard.content })
+    }
     private readonly handleDataChanged = () => this.reconcile()
 
     private reconcile() {
@@ -228,7 +246,7 @@ export class OpenFilesService extends EventTarget {
     }
 
     private draftForObject(object: OpenDocumentObject): OpenDocumentDraft {
-        if (isProjectCard(object)) return object
+        if (isCard(object)) return { content: object.content }
         if (!object.sourcePath) throw new Error(`Action document requires a source path: ${object.id}`)
         if (!this.actionService) throw new Error('Open files service is not initialized')
 
@@ -244,7 +262,7 @@ export class OpenFilesService extends EventTarget {
         }
 
         const draft = this.draftForObject(object)
-        const kind = isProjectCard(object) ? 'card' : 'action'
+        const kind = isCard(object) ? 'card' : 'action'
         const document = new ManagedOpenDocument(kind, documentIdentity(object), object, draft) as ManagedDocument
         this.registeredDocuments.set(key, document)
         document.addEventListener('changed', this.handleDocumentChanged)
@@ -284,7 +302,7 @@ export class OpenFilesService extends EventTarget {
     }
 
     private static objectKey(object: OpenDocumentObject) {
-        const kind = isProjectCard(object) ? 'card' : 'action'
+        const kind = isCard(object) ? 'card' : 'action'
 
         return `${kind}:${documentIdentity(object)}`
     }

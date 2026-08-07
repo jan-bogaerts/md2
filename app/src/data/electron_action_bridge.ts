@@ -1,13 +1,14 @@
 import type { ActionContext } from './action_context'
 import type { CardActivityFile } from '../../../shared/card_activity.mjs'
 import type { ActionScheduleTrigger } from './action_schedule_types'
-import type { AgentRunEvent } from './data_types'
+import type { AgentConversation, AgentRunEvent } from './data_types'
 import type { AgentAvailability } from './electron_data_bridge'
 import type { ThinkingLevel } from './agent_profiles'
 import type {
     ActionRunEvent,
     ActionPromptRequest,
     ActionStartRequest,
+    AgentConversationReservation,
     AgentApprovalDecision,
     AgentApprovalRequestId,
     PreparedActionPrompt,
@@ -53,25 +54,37 @@ export interface CommitReference {
     repositoryRoot: string
 }
 
-export interface ActionRunHistoryEntry {
+interface ActionRunHistoryEntryBase {
+    commits?: CommitReference[]
+    completedAt: string
+    startedAt: string
+    status: 'cancelled' | 'completed' | 'failed' | 'okButNotAfter'
+}
+
+export interface AgentActionRunHistoryEntry extends ActionRunHistoryEntryBase {
     accessLevel?: string
     agent?: string | null
     approvalPolicy?: string
-    command?: string
-    commits?: CommitReference[]
-    completedAt: string
     model?: string
-    output: string
-    prompt: string
-    status: 'completed' | 'failed'
+    rootConversationId: string
     thinkingLevel?: ThinkingLevel
+    type: 'agent'
 }
+
+export interface CommandActionRunHistoryEntry extends ActionRunHistoryEntryBase {
+    command: string
+    output: string
+    type: 'command'
+}
+
+export type ActionRunHistoryEntry = AgentActionRunHistoryEntry | CommandActionRunHistoryEntry
 
 /** Request to render a commit's diff through the configured Electron command template. */
 export interface DiffRequest {
     branch: string
     commit: string
     filePath: string
+    projectFolder: string
     releasesFolder: string
     template: string
 }
@@ -81,9 +94,11 @@ export interface DiffRequest {
  * `oldLineNumbers`/`newLineNumbers` map each rendered side line back to its real file line.
  */
 export interface DiffFile {
+    changeType?: 'added' | 'deleted' | 'modified' | 'renamed'
     newLineNumbers: number[]
     newValue: string
     oldLineNumbers: number[]
+    oldPath?: string
     oldValue: string
     path: string
 }
@@ -94,9 +109,18 @@ export interface DiffResult {
     repositoryRoot?: string
 }
 
-/** Request to open VS Code at a project file and line clicked in the diff view. */
+export interface WorktreeDiffRequest {
+    worktree: number
+}
+
+export interface WorktreeDiffResult {
+    files: DiffFile[]
+    repositoryRoot: string
+}
+
+/** Request to open a local file in configured external editor. */
 export interface OpenInEditorRequest {
-    line: number
+    line?: number
     path: string
     repositoryRoot?: string
 }
@@ -106,8 +130,10 @@ export interface ElectronActionBridge {
     answerActionQuestion?(runId: string, requestId: number | string | null, answers: Record<string, string[]>): Promise<void>
     beginActionPromptDraft?(runId: string): Promise<number>
     cancelActionRun(runId: string): Promise<void>
+    closeWaitingActionConversation?(reference: string, status: 'cancelled' | 'completed'): Promise<AgentConversation>
     finishActionRun?(runId: string): Promise<void>
     generateDiff(request: DiffRequest): Promise<DiffResult>
+    generateWorktreeDiff(request: WorktreeDiffRequest): Promise<WorktreeDiffResult>
     loadActionRunHistory(request: ActionRunHistoryRequest): Promise<ActionRunHistoryEntry[]>
     loadActiveActionRunEvents?(): Promise<ActionRunEvent[]>
     notifyActionCardStateChange?(cardInternalId: string, state: string): Promise<void>
@@ -118,12 +144,15 @@ export interface ElectronActionBridge {
     prepareActionPrompt(request: ActionPromptRequest): Promise<PreparedActionPrompt>
     readFileAtCommit?(request: ReadFileAtCommitRequest): Promise<HistoricalFileContent>
     registerActionSchedule?(request: ActionScheduleRegistrationRequest): Promise<void>
+    reserveActionConversation?(request: ActionStartRequest): Promise<AgentConversationReservation>
+    restartActionRun?(runId: string, request: ActionStartRequest): Promise<string>
     runSearchRegexpAgent(input: string, callback?: (event: AgentRunEvent) => void): Promise<string>
     sendActionMessage?(runId: string, content: string): Promise<void>
     sendActionQueuedMessage?(runId: string, sessionId: number, revision: number): Promise<{ sent: true }>
     setActionQueuedMessage?(runId: string, sessionId: number, content: string, revision: number): Promise<{ accepted: boolean }>
     startAction(request: ActionStartRequest): Promise<string>
     startUnattendedAction?(request: ActionStartRequest): Promise<string>
+    updateActionConversationViewed?(reference: string, viewed: boolean): Promise<AgentConversation>
 }
 
 declare global {

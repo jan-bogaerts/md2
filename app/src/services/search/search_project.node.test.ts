@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { CardHeader, ProjectCard, ProjectSnapshot } from '../../data/data_types'
+import type { CardHeader, Card, ProjectSnapshot } from '../../data/data_types'
 import type { ActionDefinition } from '../../data/action_types'
 import { InvalidSearchPatternError, defaultSearchRegexpAgent, searchActions, searchProject } from './search_project'
 
@@ -19,8 +19,11 @@ function makeHeader(overrides: Partial<CardHeader> = {}): CardHeader {
     }
 }
 
-function makeCard(path: string, content: string, header: Partial<CardHeader>, isActive: boolean): ProjectCard {
-    return { agentConversationErrors: [], agentConversations: [], content, headerFields: {}, header: makeHeader(header), isActive, path }
+function makeCard(path: string, content: string, header: Partial<CardHeader>, isActive: boolean): Card {
+    return {
+        agentConversationErrors: [], agentConversations: [], content, hasFrontmatter: true,
+        header: makeHeader(header), isActive, path,
+    }
 }
 
 const activeAlpha = makeCard(

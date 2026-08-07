@@ -3,6 +3,7 @@ import {
     repositoryFileMatchesQuery,
     repositoryFileName,
 } from './markdown_file_search'
+import { createFileSearchOptions } from './markdown_file_search_options'
 import { matchFileSearchTrigger, matchFileSearchTriggerForFiles } from './markdown_file_search_trigger'
 
 describe('matchFileSearchTrigger', () => {
@@ -25,9 +26,9 @@ describe('matchFileSearchTrigger', () => {
         expect(matchFileSearchTrigger('@design/file name', {} as never)).toBeNull()
     })
 
-    it('does not open without project files or matching results', () => {
+    it('does not open without project files', () => {
         expect(matchFileSearchTriggerForFiles('@', [])).toBeNull()
-        expect(matchFileSearchTriggerForFiles('@missing', ['design/F_108.md'])).toBeNull()
+        expect(matchFileSearchTriggerForFiles('@missing', ['design/F_108.md'])).not.toBeNull()
         expect(matchFileSearchTriggerForFiles('@f_108', ['design/F_108.md'])).not.toBeNull()
     })
 })
@@ -36,6 +37,14 @@ describe('repository file search', () => {
     it('filters complete paths case-insensitively', () => {
         expect(repositoryFileMatchesQuery('Design/Feature/F_108.md', 'feature/f_108')).toBe(true)
         expect(repositoryFileMatchesQuery('Design/Feature/F_108.md', 'missing')).toBe(false)
+    })
+
+    it('builds no options while search is inactive', () => {
+        const repositoryFiles = ['design/F_108.md', 'app/main.tsx']
+
+        expect(createFileSearchOptions(repositoryFiles, null)).toEqual([])
+        expect(createFileSearchOptions(repositoryFiles, 'f_108').map(({ repositoryPath }) => repositoryPath))
+            .toEqual(['design/F_108.md'])
     })
 
     it('keeps duplicate filenames distinguishable by their repository paths', () => {

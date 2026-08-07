@@ -4,8 +4,8 @@ import { describe, expect, it, vi } from 'vitest';
 const require = createRequire(import.meta.url);
 const {
     captureCommitReferences,
-    createAgentHistoryEntry,
-    createCommandHistoryEntry,
+    createAgentDetails,
+    createCommandDetails,
 } = require('./action_run_history');
 
 const action = { id: 'main', label: 'Implement', type: 'command' };
@@ -16,7 +16,7 @@ describe('history entries', () => {
     it('preserves command output and status without commit ownership', () => {
         const result = { command: 'test', exitCode: 1, stderr: 'err', stdout: 'out' };
 
-        expect(createCommandHistoryEntry({ action, completedAt, result })).toEqual({command: 'test', completedAt, output: 'outerr', prompt: '', status: 'failed'});
+        expect(createCommandDetails({ action, completedAt, result })).toEqual({command: 'test', output: 'outerr', type: 'command'});
     });
 
     it('preserves agent fields without commit ownership', () => {
@@ -25,9 +25,9 @@ describe('history entries', () => {
             model: 'gpt', prompt: 'review', stderr: '', stdout: 'done', thinkingLevel: 'high',
         };
 
-        expect(createAgentHistoryEntry({ action, completedAt, result })).toEqual({
-            accessLevel: 'workspace-write', agent: 'codex', approvalPolicy: 'on-request', completedAt,
-            model: 'gpt', output: 'done', prompt: 'review', status: 'completed', thinkingLevel: 'high',
+        expect(createAgentDetails({ action, completedAt, result })).toEqual({
+            accessLevel: 'workspace-write', agent: 'codex', approvalPolicy: 'on-request',
+            model: 'gpt', thinkingLevel: 'high', type: 'agent',
         });
     });
 });

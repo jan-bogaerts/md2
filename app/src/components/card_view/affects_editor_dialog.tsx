@@ -1,9 +1,8 @@
 import { Autocomplete, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField, Typography } from '@mui/material'
 import { useMemo, useState } from 'react'
-import type { ProjectCard } from '../../data/data_types'
 import { useProjectState } from '../hooks/use_project_state'
 import { filterAffectsSuggestions } from './affects_suggestions'
-import { useProjectCard } from './use_project_card'
+import { useCardAffects, type CardAffectsSnapshot } from './use_project_card'
 
 const EMPTY_REPOSITORY_FILES: string[] = []
 
@@ -19,7 +18,7 @@ interface AffectedFileChipProps {
 }
 
 interface AffectsEditorContentProps {
-    card: ProjectCard
+    card: CardAffectsSnapshot
     onClose: () => void
     onSave: (path: string, affects: string[]) => void
 }
@@ -38,7 +37,7 @@ function AffectsEditorContent(props: AffectsEditorContentProps) {
     const { card, onClose, onSave } = props
     const { snapshot } = useProjectState()
     const repositoryFiles = snapshot?.repositoryFiles ?? EMPTY_REPOSITORY_FILES
-    const [draftAffects, setDraftAffects] = useState<string[]>(card.header.affects)
+    const [draftAffects, setDraftAffects] = useState<string[]>(card.affects)
     const [input, setInput] = useState('')
 
     const suggestions = useMemo(
@@ -78,7 +77,7 @@ function AffectsEditorContent(props: AffectsEditorContentProps) {
     return (
         <>
             <DialogTitle>
-                Edit affects for {card.header.id}
+                Edit affects for {card.id}
             </DialogTitle>
             <DialogContent>
                 <Stack spacing={2} sx={{ pt: 1 }}>
@@ -121,7 +120,7 @@ function AffectsEditorContent(props: AffectsEditorContentProps) {
 /** Dialog for editing the repo-relative file paths in a card's affects header. */
 export function AffectsEditorDialog(props: AffectsEditorDialogProps) {
     const { cardPath, onClose, onSave } = props
-    const card = useProjectCard(cardPath)
+    const card = useCardAffects(cardPath)
 
     return (
         <Dialog fullWidth maxWidth="sm" onClose={onClose} open={!!card}>

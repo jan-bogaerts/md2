@@ -47,6 +47,7 @@ function installAgentBridge(stdout: string) {
     const bridge: ElectronActionBridge = {
         cancelActionRun: vi.fn(async () => {}),
         generateDiff: vi.fn(async () => ({ commit: '', files: [] })),
+        generateWorktreeDiff: vi.fn(async () => ({ files: [], repositoryRoot: '' })),
         loadActionRunHistory: vi.fn(async () => []),
         onActionRun: vi.fn(() => () => {}),
         openInEditor: vi.fn(async () => {}),

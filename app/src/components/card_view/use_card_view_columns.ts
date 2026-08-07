@@ -3,11 +3,10 @@ import { statusOf } from '../../data/card_ordering'
 import { defaultColumnAccent, type StateConfig } from '../../data/data_types'
 import {
     CARD_ADDED_EVENT,
-    CARD_CHANGED_EVENT,
     CARD_REMOVED_EVENT,
+    cardCollectionFieldChangedEvent,
     dataService,
     type CardAddedEventDetail,
-    type CardChangedEventDetail,
     type CardRemovedEventDetail,
     type DataService,
 } from '../../services/data/data_service'
@@ -44,13 +43,13 @@ class CardViewColumnStore {
     readonly subscribe = (listener: () => void) => {
         this.listener = listener
         this.service.addEventListener(CARD_ADDED_EVENT, this.handleCardAdded)
-        this.service.addEventListener(CARD_CHANGED_EVENT, this.handleCardChanged)
+        this.service.addEventListener(cardCollectionFieldChangedEvent('status'), this.handleCardStatusesChanged)
         this.service.addEventListener(CARD_REMOVED_EVENT, this.handleCardRemoved)
 
         return () => {
             this.listener = null
             this.service.removeEventListener(CARD_ADDED_EVENT, this.handleCardAdded)
-            this.service.removeEventListener(CARD_CHANGED_EVENT, this.handleCardChanged)
+            this.service.removeEventListener(cardCollectionFieldChangedEvent('status'), this.handleCardStatusesChanged)
             this.service.removeEventListener(CARD_REMOVED_EVENT, this.handleCardRemoved)
         }
     }
@@ -61,14 +60,10 @@ class CardViewColumnStore {
         this.publishVisibleColumns()
     }
 
-    private readonly handleCardChanged = (event: Event) => {
-        const { card, previousCard } = (event as CustomEvent<CardChangedEventDetail>).detail
-        const currentStatus = statusOf(card)
-        const previousStatus = statusOf(previousCard)
-        if (currentStatus === previousStatus) return
-
-        this.decrementStatus(previousStatus)
-        this.incrementStatus(currentStatus)
+    private readonly handleCardStatusesChanged = () => {
+        this.statusCounts.clear()
+        const cards = this.service.getState().snapshot?.activeCards ?? []
+        for (const card of cards) this.incrementStatus(statusOf(card))
         this.publishVisibleColumns()
     }
 

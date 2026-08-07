@@ -1,6 +1,6 @@
 import { Box, Typography } from '@mui/material'
 import type { CardTypeConfig } from '../../data/data_types'
-import { ListActionEditor } from '../actions/list_action_editor'
+import { ListActionEditor } from '../actions/editor/list_action_editor'
 import { useOpenFiles } from '../hooks/use_open_files'
 import { CardEditor } from './card_editor'
 import { TabBar } from './tab_bar'

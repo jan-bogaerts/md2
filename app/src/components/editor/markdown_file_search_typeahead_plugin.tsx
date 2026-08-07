@@ -3,26 +3,23 @@ import {
     type MenuRenderFn,
     type TriggerFn,
 } from '@lexical/react/LexicalTypeaheadMenuPlugin'
-import { List, Paper } from '@mui/material'
 import { useCellValue } from '@mdxeditor/editor'
 import type { TextNode } from 'lexical'
 import { createPortal } from 'react-dom'
 import { useCallback, useMemo, useState } from 'react'
-import { repositoryFileMatchesQuery } from './markdown_file_search'
 import { markdownFileSearchConfig$ } from './markdown_file_search_config_cell'
+import { MarkdownFileSearchMenu } from './markdown_file_search_menu'
 import { MarkdownFileSearchOption } from './markdown_file_search_option'
-import { MarkdownFileSearchOptionItem } from './markdown_file_search_option_item'
+import { createFileSearchOptions } from './markdown_file_search_options'
 import { replaceFileSearchQuery } from './markdown_file_search_selection'
 import { matchFileSearchTriggerForFiles } from './markdown_file_search_trigger'
 
 /** Shows repository files at the caret after the user types `@`. */
 export function MarkdownFileSearchTypeaheadPlugin() {
     const { overlayContainer, repositoryFiles } = useCellValue(markdownFileSearchConfig$)
-    const [query, setQuery] = useState('')
+    const [query, setQuery] = useState<string | null>(null)
     const options = useMemo(
-        () => repositoryFiles
-            .filter((repositoryPath) => repositoryFileMatchesQuery(repositoryPath, query))
-            .map((repositoryPath) => new MarkdownFileSearchOption(repositoryPath)),
+        () => createFileSearchOptions(repositoryFiles, query),
         [query, repositoryFiles],
     )
 
@@ -32,7 +29,7 @@ export function MarkdownFileSearchTypeaheadPlugin() {
     )
 
     const handleQueryChange = useCallback((nextQuery: string | null) => {
-        setQuery(nextQuery ?? '')
+        setQuery(nextQuery)
     }, [])
 
     const handleSelectOption = useCallback((
@@ -47,30 +44,12 @@ export function MarkdownFileSearchTypeaheadPlugin() {
         if (!anchorElementRef.current || itemProps.options.length === 0) return null
 
         return createPortal(
-            <Paper
-                sx={{
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    borderRadius: '14px',
-                    boxShadow: 8,
-                    minWidth: 320,
-                    overflow: 'hidden',
-                }}
-            >
-                <List aria-label="Project files" dense disablePadding role="listbox" sx={{ maxHeight: 320, overflowY: 'auto' }}>
-                    {itemProps.options.map((option, index) => (
-                        <MarkdownFileSearchOptionItem
-                            index={index}
-                            key={option.key}
-                            onHighlight={itemProps.setHighlightedIndex}
-                            onSelect={itemProps.selectOptionAndCleanUp}
-                            selected={itemProps.selectedIndex === index}
-                            selectionOption={option}
-                            setRefElement={option.setRefElement}
-                        />
-                    ))}
-                </List>
-            </Paper>,
+            <MarkdownFileSearchMenu
+                onHighlight={itemProps.setHighlightedIndex}
+                onSelect={itemProps.selectOptionAndCleanUp}
+                options={itemProps.options}
+                selectedIndex={itemProps.selectedIndex}
+            />,
             anchorElementRef.current,
         )
     }, [])

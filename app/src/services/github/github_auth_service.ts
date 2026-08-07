@@ -5,7 +5,7 @@ import {
     type AuthStorage,
     type GithubUser,
 } from '../../auth/github_auth_types'
-import { register } from '.././service_injector'
+import { register } from '../service_injector'
 
 export interface GithubAuthServiceDependencies {
     fetchUser: (accessToken: string) => Promise<GithubUser>

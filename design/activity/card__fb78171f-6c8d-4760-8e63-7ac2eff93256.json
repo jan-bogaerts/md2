@@ -524,7 +524,8 @@
         "outputTokens": 315,
         "reasoningTokens": 229,
         "totalTokens": 132471
-      }
+      },
+      "viewed": true
     },
     {
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
@@ -1788,7 +1789,8 @@
         "outputTokens": 269,
         "reasoningTokens": 28,
         "totalTokens": 209887
-      }
+      },
+      "viewed": true
     },
     {
       "actionId": "md2.custom-prompt",
@@ -2306,7 +2308,8 @@
         "outputTokens": 222,
         "reasoningTokens": 98,
         "totalTokens": 87064
-      }
+      },
+      "viewed": true
     }
   ],
   "origin": {
@@ -2320,18 +2323,15 @@
       "conversationIds": [
         "agent-a957a84b-06b9-401d-a353-05e3a23df0c2"
       ],
-      "runId": "action-03a0af10-3263-481f-864a-6251f8b8a42d",
-      "history": {
-        "completedAt": "2026-08-02T17:53:31.412Z",
-        "output": "Using `caveman` for terse updates. Reading feature, architecture, related code/tests. No edits before approval.\n\n`playwright-cli` applies: acceptance requires mobile viewport verification. Reading its workflow before plan.\n\nChange Plan tasks created:\n\n1. Implementation: widen named scroll-zone constant `3` to `20`. No behavior changes.\n2. Verification: related `card_view.test.tsx`, targeted lint, mobile viewport edge-scroll check. No width-only test.\n3. Completion: set feature `status: ready` after checks pass.\n\nNo edits made. Approve plan?\n\nPlan approved. Block 1 starts: one constant change only.\n\nBlock 1 done. `CardViewScrollZones` now matches 20 px mobile gutters; gesture code untouched. Block 2 runs related test and lint.\n\nUnit tests: 33/33 pass. Targeted lint clean. `playwright-cli` now checks real mobile viewport and both edge gestures; no test file change.\n\nMobile app opens, but no project loaded in browser host. Verification skill needs temporary harness mounting real scroll-zone component over card surface; harness removed afterward.\n\nMobile check passes: 360 px viewport, both zones 20 px, left/right drag changed scroll `100→150→100`, card activations `0`. Temporary harness now removed; browser/server stopped.\n\nBlock 2 complete. Skill-driven browser check confirmed real component geometry and gestures. Block 3 sets feature `status: ready`.\n\nImplemented.\n\n- Scroll zones widened from 3 px to 20 px in [card_view_scroll_zones.tsx](C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\components\\card_view\\card_view_scroll_zones.tsx:5).\n- Feature status set to `ready` in [B_86_scroll_on_cardview.md](C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_86_scroll_on_cardview.md:6).\n- Related tests: 33/33 passed.\n- Targeted lint: clean.\n- Mobile 360 px check: both gutters 20 px; both scroll directions work; card activation stayed zero.\n- No width-only test added, per spec.\n\n\u001b[2m2026-08-02T17:48:23.089483Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_core::tools::router\u001b[0m\u001b[2m:\u001b[0m \u001b[3merror\u001b[0m\u001b[2m=\u001b[0mExit code: 1\nWall time: 1.4 seconds\nOutput:\nnode:fs:562\r\n  return binding.open(\r\n                 ^\r\n\r\nError: EPERM: operation not permitted, open 'C:\\Users\\janbo\\AppData\\Local\\ms-playwright\\daemon\\e09c42cbfbc16e33\\b86.err'\r\n    at Object.openSync (node:fs:562:18)\r\n    at Session.startDaemon (C:\\Users\\janbo\\AppData\\Roaming\\nvm\\v22.16.0\\node_modules\\@playwright\\cli\\node_modules\\playwright-core\\lib\\tools\\cli-client\\session.js:126:35)\r\n    at async startSession (C:\\Users\\janbo\\AppData\\Roaming\\nvm\\v22.16.0\\node_modules\\@playwright\\cli\\node_modules\\playwright-core\\lib\\tools\\cli-client\\program.js:255:10)\r\n    at async program (C:\\Users\\janbo\\AppData\\Roaming\\nvm\\v22.16.0\\node_modules\\@playwright\\cli\\node_modules\\playwright-core\\lib\\tools\\cli-client\\program.js:125:23) {\r\n  errno: -4048,\r\n  code: 'EPERM',\r\n  syscall: 'open',\r\n  path: 'C:\\\\Users\\\\janbo\\\\AppData\\\\Local\\\\ms-playwright\\\\daemon\\\\e09c42cbfbc16e33\\\\b86.err'\r\n}\r\n\r\nNode.js v22.16.0\r\n\n\u001b[2m2026-08-02T17:51:08.438119Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_core::tools::router\u001b[0m\u001b[2m:\u001b[0m \u001b[3merror\u001b[0m\u001b[2m=\u001b[0mExit code: 1\nWall time: 0.4 seconds\nOutput:\n\nplaywright-cli run-code [code]\n\nRun Playwright code snippet\n\nArguments:\n  [code]                      a javascript function containing playwright code to execute. it will be invoked with a single argument, page, which you can use for any page interaction.\nOptions:\n  --filename                  load code from the specified file.\nerror: too many arguments: expected 1, received 8\n\n",
-        "prompt": "Read and implement the feature/job described in:  \\`C:\\Users\\janbo\\Documents\\dev\\md2\\\\design/feature_descriptions/B_86_scroll_on_cardview.md\\`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests.\n5. After implementation is done, update the field \\`status\\` in the markdown feature description file to \\`ready\\`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria.&#x20;\n\nYou should only run the related tests, do not run the entire test suite, that will be done manually later on.\n\nKeep it short and to the point. use $caveman skill",
-        "status": "completed",
+      "details": {
+        "type": "agent",
         "accessLevel": "workspace-write",
         "agent": "codex",
         "approvalPolicy": "on-request",
         "model": "gpt-5.5",
         "thinkingLevel": "none"
       },
+      "runId": "action-03a0af10-3263-481f-864a-6251f8b8a42d",
       "origin": {
         "cardInternalId": "fb78171f-6c8d-4760-8e63-7ac2eff93256",
         "kind": "card"
@@ -2339,7 +2339,8 @@
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
       "startedAt": "2026-08-02T17:45:31.544Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-a957a84b-06b9-401d-a353-05e3a23df0c2"
     },
     {
       "commits": [],
@@ -2347,18 +2348,15 @@
       "conversationIds": [
         "agent-1b4980cc-b005-4bfd-b788-67647496320e"
       ],
-      "runId": "action-bf0b298f-dae8-4c88-9d76-d36c82a0a1a4",
-      "history": {
+      "details": {
+        "type": "agent",
         "accessLevel": "workspace-write",
         "agent": "codex",
         "approvalPolicy": "on-request",
-        "completedAt": "2026-08-03T07:18:18.515Z",
         "model": "gpt-5.6-sol",
-        "output": "I’ll trace how `scrollContainerRef` reaches `CardViewScrollZones`, then rewire it to the mobile right-panel container while preserving the desktop path. I’ll also add or adjust focused coverage and run the app lint/tests.\n\nThe call graph is narrow: `ProjectWorkspace` owns both the mobile shell and `CardView`, so it can hold one ref, attach it to `MobileMainWindow`’s right-panel box, and pass that same ref to the mobile scroll zones. The card-column box can keep its own layout behavior; only the gesture target needs changing.\n\nThe ref is now attached to the exact `overflow: auto` box in `MobileMainWindow`, and `CardViewScrollZones` receives it through `ProjectWorkspace`. I’ve updated the gesture test so it proves the shell container scrolls—not the card-columns div. I’m validating formatting, types, and the focused tests now.\n\nThe focused regression tests, typecheck, and lint all pass. I’m running the complete app test suite as the final safety check.\n\nFixed.\n\n- The mobile right-panel box now owns the shared scroll ref in [mobile_main_window.tsx](C:/Users/janbo/Documents/dev/md2/app/src/components/shell/mobile_main_window.tsx:68).\n- `ProjectWorkspace` passes that ref to both the shell and `CardView`.\n- `CardViewScrollZones` now scrolls the mobile shell container instead of the card-columns box.\n- Updated regression tests to verify the correct container scrolls.\n\nValidation passed:\n\n- Lint\n- Typecheck\n- All 191 test files / 1,397 tests\n\n",
-        "prompt": "`overflow: auto` was set on the wrong div, so scrolling was not possible. I fixed this manually, the card view can now be scrolled on mobile: on `app\\src\\components\\shell\\mobile_main_window.tsx`, the last box (container for rightPanel) is set to auto, this is the correct box to add scrolling in mobile.\nhowever, I also removed the padding on mobile (cause it looked like shit), so the box that contains the columns is now full width and the cards prevent scrolling (app\\src\\components\\card\\_view\\card\\_view.tsx). the cardViewScrollZones should fix that, but it now gets the wrong scrollContainerRef. it should be the box on `app\\src\\components\\shell\\mobile_main_window.tsx` can you fix this",
-        "status": "completed",
         "thinkingLevel": "medium"
       },
+      "runId": "action-bf0b298f-dae8-4c88-9d76-d36c82a0a1a4",
       "origin": {
         "cardInternalId": "fb78171f-6c8d-4760-8e63-7ac2eff93256",
         "kind": "card"
@@ -2366,8 +2364,9 @@
       "rootActionId": "md2.custom-prompt",
       "rootActionLabel": "Custom prompt",
       "startedAt": "2026-08-03T07:10:33.342Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-1b4980cc-b005-4bfd-b788-67647496320e"
     }
   ],
-  "version": 1
+  "version": 2
 }

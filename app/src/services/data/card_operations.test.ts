@@ -3,9 +3,9 @@ import { orderByAfter } from '../../data/card_ordering'
 import type { CommitRequest, MarkdownFile, ProjectSnapshot, StorageService } from '../../data/data_types'
 import { configService } from '../config/config_service'
 import { projectPersistenceService } from '../project/project_persistence_service'
-import { DIALOG_SERVICE_EVENT, dialogService, type DialogServiceMessage, type DialogSeverity } from '.././dialog_service'
+import { DIALOG_SERVICE_EVENT, dialogService, type DialogServiceMessage, type DialogSeverity } from '../dialog_service'
 import { telemetryService } from '../telemetry/telemetry_service'
-import { activeCardFile, createDataService, createDeferred, createStorage } from '.././test_support/data_service_test_support'
+import { activeCardFile, createDataService, createDeferred, createStorage, files } from '../test_support/data_service_test_support'
 import { openFilesService } from '../open_files_service'
 import { actionService } from '../actions/action_service'
 import {
@@ -16,6 +16,7 @@ import {
     type CardChangedEventDetail,
     type CardRemovedEventDetail,
 } from './data_service'
+import { markdownParsingService } from './markdown_parsing_service'
 
 function recordDialogMessages(severity: DialogSeverity) {
     const messages: string[] = []
@@ -61,6 +62,24 @@ describe('CardOperations', () => {
         vi.useRealTimers()
         delete window.md2Actions
         configService.clear()
+    })
+
+    it('stores branch identity with assignment and retains it after ordinary unassignment', async () => {
+        configService.init()
+        const service = createDataService()
+        service.init({ storage: createStorage() })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        service.cards.assignCardWorktree(files[0].path, 1, 'f-1-root')
+        service.cards.updateCardWorktree(files[0].path, null)
+
+        const card = service.getState().snapshot?.activeCards.find(({ path }) => path === files[0].path)
+        if (!card) throw new Error('Expected assigned card')
+
+        const serializedCard = markdownParsingService.serializeCard(card)
+        expect(card.header).toMatchObject({ branch: 'f-1-root', worktree: null })
+        expect(serializedCard.content).toContain('branch: f-1-root')
+        expect(serializedCard.content).not.toContain('worktree:')
     })
 
     it('adds and persists a missing card internal ID during project load', async () => {
@@ -142,7 +161,7 @@ describe('CardOperations', () => {
         configService.init()
         const storage = createStorage({
             loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
-            loadProjectConfig: vi.fn(async () => ({ projectFolder: 'design', workingFolder: 'active' })),
+            loadProjectConfig: vi.fn(async () => ({ projectFolder: 'design', pushMode: 'auto' as const, workingFolder: 'active' })),
             loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design/active' })),
         })
         const service = createDataService()
@@ -174,7 +193,7 @@ describe('CardOperations', () => {
                 folderCreated ? ['design/notes/.gitkeep'] : ['design/active/F-1-root.md']
             )),
             loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
-            loadProjectConfig: vi.fn(async () => ({ projectFolder: 'design', workingFolder: 'active' })),
+            loadProjectConfig: vi.fn(async () => ({ projectFolder: 'design', pushMode: 'auto' as const, workingFolder: 'active' })),
             loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design/active' })),
         })
         const service = createDataService()
@@ -207,7 +226,7 @@ describe('CardOperations', () => {
                     : ['design/active/F-1-root.md', 'design/notes/.gitkeep', 'design/notes/nested/info.txt']
             )),
             loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
-            loadProjectConfig: vi.fn(async () => ({ projectFolder: 'design', workingFolder: 'active' })),
+            loadProjectConfig: vi.fn(async () => ({ projectFolder: 'design', pushMode: 'auto' as const, workingFolder: 'active' })),
             loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design/active' })),
         })
         const service = createDataService()
@@ -390,9 +409,15 @@ describe('CardOperations', () => {
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const broadChanged = vi.fn()
+        const cardChanged = vi.fn()
+        service.addEventListener('changed', broadChanged)
+        service.addEventListener(CARD_CHANGED_EVENT, cardChanged)
         const updates = await service.cards.moveCard('design/B-1-b.md', 'done', 1)
-        await service.cards.flushPendingCommits()
 
+        expect(broadChanged).not.toHaveBeenCalled()
+        expect(cardChanged).toHaveBeenCalled()
+        await service.cards.flushPendingCommits()
         expect(updates).toContainEqual({ after: 'p', path: 'design/B-1-b.md', status: 'done' })
         const committed = (storage.commit as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0] as CommitRequest
         const committedPaths = committed.files.map((file) => file.path)
@@ -432,6 +457,88 @@ describe('CardOperations', () => {
         expect(todoCards.find((card) => card.header.internalId === 'c')?.header.after).toBeNull()
         expect(todoCards.find((card) => card.header.internalId === 'a')?.header.after).toBe('c')
         expect(todoCards.find((card) => card.header.internalId === 'd')?.header.after).toBe('b')
+    })
+
+    it('persists dirty body, worktree, ordering, and unknown frontmatter together', async () => {
+        configService.init()
+        const firstFile = activeCardFile('a')
+        firstFile.content = firstFile.content.replace('title: A', 'title: A\ncustom: keep')
+        const files = [firstFile, activeCardFile('b', { after: 'a' })]
+        const { commit, storage } = createMovePersistenceStorage(files)
+        const service = createDataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const card = service.getState().snapshot?.activeCards.find(({ path }) => path === firstFile.path)
+        if (!card) throw new Error('Expected loaded card')
+        const document = openFilesService.openDocument(card)
+        if (document.kind !== 'card') throw new Error('Expected card document')
+        const body = '# A\n\nDirty body'
+        document.updateDraft({ content: body }, 'test')
+        service.cards.updateCardWorktree(card.path, 3)
+        await service.cards.moveCard(card.path, 'todo', 1)
+        await service.cards.flushPendingCommits()
+
+        const persistedCard = commit.mock.calls[0][0].files.find(({ path }) => path === card.path)
+        expect(persistedCard?.content).toContain('custom: keep')
+        expect(persistedCard?.content).toContain('worktree: 3')
+        expect(persistedCard?.content).toContain('after: b')
+        expect(persistedCard?.content).toContain('Dirty body')
+        expect(document.dirty).toBe(false)
+    })
+
+    it('persists a status move and reserved agent reference in one card version', async () => {
+        configService.init()
+        const files = [activeCardFile('a')]
+        const { commit, storage } = createMovePersistenceStorage(files)
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const reference = 'design/activity/card__a.json#conversation=agent-1'
+
+        await service.cards.moveCard(files[0].path, 'doing', 0)
+        service.cards.addAgentLogReference(files[0].path, reference)
+        await service.cards.flushPendingCommits()
+
+        expect(commit).toHaveBeenCalledOnce()
+        const persisted = commit.mock.calls[0][0].files[0].content
+        expect(persisted).toContain('status: doing')
+        expect(persisted).toContain(`  - ${reference}`)
+    })
+
+    it('serializes combined latest card state after a change during an in-flight commit', async () => {
+        configService.init()
+        const firstCommit = createDeferred<MarkdownFile[]>()
+        const commit = vi.fn<StorageService['commit']>()
+            .mockImplementationOnce(async () => firstCommit.promise)
+            .mockImplementationOnce(async (request) => request.files)
+        const files = [activeCardFile('a'), activeCardFile('b', { after: 'a' })]
+        const storage = createStorage({
+            commit,
+            loadProject: vi.fn(async () => ({ files, workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files, workingFolder: 'design' })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const path = files[0].path
+        service.cards.updateCardWorktree(path, 4)
+        const flush = service.cards.flushPendingCommits()
+        await vi.waitFor(() => expect(commit).toHaveBeenCalledOnce())
+
+        service.cards.updateCardBody(path, '# A\n\nLatest body')
+        await service.cards.moveCard(path, 'todo', 1)
+        const latestFlush = service.cards.flushPendingCommits()
+        firstCommit.resolve(commit.mock.calls[0][0].files)
+        await flush
+        await latestFlush
+
+        expect(commit).toHaveBeenCalledTimes(2)
+        const latestFile = commit.mock.calls[1][0].files.find((file) => file.path === path)
+        expect(latestFile?.content).toContain('worktree: 4')
+        expect(latestFile?.content).toContain('after: b')
+        expect(latestFile?.content).toContain('Latest body')
     })
 
     it('persists a cross-column move to first place and repairs both chains', async () => {
@@ -537,6 +644,7 @@ describe('CardOperations', () => {
                 archivedFolder: 'vault/archived',
                 backgroundShade: 'blue' as const,
                 projectFolder: 'design',
+                pushMode: 'auto' as const,
                 releasesFolder: 'releases',
                 workingFolder: 'active',
             })),
@@ -885,6 +993,105 @@ describe('CardOperations', () => {
             .toEqual(['design/F-1-second-rename.md'])
     })
 
+    it('changes card type with the next configured ID and keeps the open document attached', async () => {
+        configService.init()
+        const typeFiles: MarkdownFile[] = [
+            { content: '---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\naffects:\n  - app/src/app.tsx\n---\n\n# Root\n\nBody', path: 'design/F-1-root.md' },
+            { content: '---\nid: B-4\ninternalId: bug-card\ntitle: Bug\nstatus: active\n---\n\n# Bug', path: 'design/B-4-bug.md' },
+        ]
+        const storage = createStorage({
+            listRepositoryFiles: vi.fn(async () => typeFiles.map(({ path }) => path)),
+            loadProject: vi.fn(async () => ({ files: typeFiles, workingFolder: 'design' })),
+            loadProjectConfig: vi.fn(async () => ({
+                cardSeparator: '_' as const,
+                cardTypes: [
+                    { color: '#111111', idPrefix: 'F', label: 'Feature', type: 'feature' },
+                    { color: '#222222', idPrefix: 'B', label: 'Bug', type: 'bug' },
+                ],
+                projectFolder: '',
+                workingFolder: 'design',
+            })),
+            loadProjectRoot: vi.fn(async () => ({ files: typeFiles, workingFolder: 'design' })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        const snapshot = await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const rootCard = snapshot.activeCards.find(({ header }) => header.internalId === 'root-card')
+        if (!rootCard) throw new Error('Missing root card')
+        const document = openFilesService.openDocument(rootCard)
+        if (document.kind !== 'card') throw new Error('Expected card document')
+
+        const renamedFile = await service.cards.updateCardType(rootCard.path, 'bug')
+
+        expect(renamedFile.path).toBe('design/B_5_root.md')
+        expect(renamedFile.content).toContain('id: B_5')
+        expect(renamedFile.content).toContain('internalId: root-card')
+        expect(renamedFile.content).toContain('status: active')
+        expect(renamedFile.content).toContain('affects:\n  - app/src/app.tsx')
+        expect(renamedFile.content).toContain('# Root\n\nBody')
+        expect(document.path).toBe('design/B_5_root.md')
+        expect(document.getObject().header.id).toBe('B_5')
+        expect(document.getObject().header.internalId).toBe('root-card')
+        const committed = vi.mocked(storage.commit).mock.calls.at(-1)?.[0] as CommitRequest
+        expect(committed.moves).toEqual([expect.objectContaining({
+            fromPath: 'design/F-1-root.md',
+            toPath: 'design/B_5_root.md',
+        })])
+    })
+
+    it('does not persist when the selected card type is current', async () => {
+        configService.init()
+        const storage = createStorage()
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        vi.mocked(storage.commit).mockClear()
+
+        await service.cards.updateCardType('design/F-1-root.md', 'feature')
+
+        expect(storage.commit).not.toHaveBeenCalled()
+    })
+
+    it('rejects unknown types and occupied rename targets without changing the card path', async () => {
+        configService.init()
+        const storage = createStorage({
+            listRepositoryFiles: vi.fn(async () => ['design/F-1-root.md', 'design/B_1_root.md']),
+            loadProjectConfig: vi.fn(async () => ({ cardSeparator: '_' as const, projectFolder: '', workingFolder: 'design' })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        vi.mocked(storage.commit).mockClear()
+
+        await expect(service.cards.updateCardType('design/F-1-root.md', 'unknown')).rejects.toThrow('Unknown card type: unknown')
+        await expect(service.cards.updateCardType('design/F-1-root.md', 'bug')).rejects.toThrow(
+            'A project item already exists at design/B_1_root.md',
+        )
+
+        expect(service.getState().snapshot?.activeCards[0].path).toBe('design/F-1-root.md')
+        expect(storage.commit).not.toHaveBeenCalled()
+    })
+
+    it('keeps the current path when a card type rename commit fails', async () => {
+        configService.init()
+        const storage = createStorage({
+            commit: vi.fn(async (request: CommitRequest) => {
+                if ((request.moves ?? []).length > 0) throw new Error('Type commit rejected')
+
+                return []
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        await expect(service.cards.updateCardType('design/F-1-root.md', 'bug')).rejects.toThrow('Type commit rejected')
+
+        const rootCard = service.getState().snapshot?.activeCards.find(({ header }) => header.internalId === 'root-card')
+        expect(rootCard?.path).toBe('design/F-1-root.md')
+        expect(service.getState().snapshot?.repositoryFiles).toContain('design/F-1-root.md')
+    })
+
     it('edits a header field while preserving unknown header fields unchanged', async () => {
         configService.init()
         const headerFiles: MarkdownFile[] = [{
@@ -932,7 +1139,7 @@ describe('CardOperations', () => {
         if (!projectCard) throw new Error('Expected loaded card')
         const document = openFilesService.openDocument(projectCard)
         if (document.kind !== 'card') throw new Error('Expected card document')
-        document.updateDraft({ ...projectCard, content: '# Root\n\nUnflushed body' }, 'list-card')
+        document.updateDraft({ content: '# Root\n\nUnflushed body' }, 'list-card')
 
         await service.cards.updateCardTitle(projectCard.path, 'Renamed')
 
@@ -941,6 +1148,29 @@ describe('CardOperations', () => {
         expect(move?.content).toContain('title: Renamed')
         expect(move?.content).toContain('Unflushed body')
         expect(document.dirty).toBe(false)
+    })
+
+    it('serializes one card once when several fields change in one debounce window', async () => {
+        configService.init()
+        const storage = createStorage()
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        vi.mocked(storage.commit).mockClear()
+        const serializeCard = vi.spyOn(markdownParsingService, 'serializeCard')
+
+        service.cards.updateCardHeaderFields('design/F-1-root.md', { status: 'ready' })
+        service.cards.updateCardAffects('design/F-1-root.md', ['app/src/data/data_types.ts'])
+        service.cards.toggleCardPolicy('design/F-1-root.md', 'requireTests')
+        await service.cards.flushPendingCommits()
+
+        const request = vi.mocked(storage.commit).mock.calls[0][0]
+        expect(serializeCard).toHaveBeenCalledOnce()
+        expect(request.files).toHaveLength(1)
+        expect(request.files[0].content).toContain('status: ready')
+        expect(request.files[0].content).toContain('  - app/src/data/data_types.ts')
+        expect(request.files[0].content).toContain('  requireTests: true')
+        serializeCard.mockRestore()
     })
 
     it('does not rebuild, dispatch, or commit when saved content is unchanged', async () => {
@@ -1019,7 +1249,7 @@ describe('CardOperations', () => {
         const document = openFilesService.openDocument(card)
         if (document.kind !== 'card') throw new Error('Expected card document')
         const content = '# Root\n\nLocal edit'
-        document.updateDraft({ ...card, content }, 'test')
+        document.updateDraft({ content }, 'test')
         service.cards.updateCardBody(card.path, content, document.createSaveReference())
 
         const flush = service.cards.flushPendingCommits()

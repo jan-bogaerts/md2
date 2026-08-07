@@ -12,6 +12,7 @@ const LITERAL_PATHSPEC_ARGUMENT = '--literal-pathspecs';
 const FULL_COMMIT_PATTERN = /^[0-9a-f]{40}$/iu;
 const GIT_INDEX_LOCK_PATTERN = /(?:unable to create|index\.lock).*index\.lock|another git process seems to be running/iu;
 const GIT_INDEX_LOCK_RETRY_DELAYS_MS = [50, 100, 200, 400];
+const LIST_WORKING_TREE_FILES_MAX_BUFFER_BYTES = 32 * 1024 * 1024;
 const SHORT_STAT_PATTERNS = {
     deletions: /(\d+) deletions?\(-\)/u,
     filesChanged: /(\d+) files? changed/u,
@@ -99,6 +100,27 @@ async function runGit(rootPath, args) {
         const diagnostics = await describeGitIndexLock(rootPath);
         throw new Error(`${gitErrorMessage(error)}\n${diagnostics}`, { cause: error });
     }
+}
+
+function parseNullSeparatedPaths(output) {
+    return output.split('\0').filter((filePath) => filePath.length > 0);
+}
+
+/** List tracked and nonignored untracked files that still exist in the Git working tree. */
+async function listWorkingTreeFiles(rootPath) {
+    const { stdout } = await executeGit(
+        rootPath,
+        ['ls-files', '--cached', '--others', '--exclude-standard', '--deduplicate', '-z'],
+        { maxBuffer: LIST_WORKING_TREE_FILES_MAX_BUFFER_BYTES, operation: 'desktop Git list working-tree files' },
+    );
+    const { stdout: deletedOutput } = await executeGit(
+        rootPath,
+        ['ls-files', '--deleted', '-z'],
+        { maxBuffer: LIST_WORKING_TREE_FILES_MAX_BUFFER_BYTES, operation: 'desktop Git list deleted working-tree files' },
+    );
+    const deletedPaths = new Set(parseNullSeparatedPaths(deletedOutput));
+
+    return parseNullSeparatedPaths(stdout).filter((filePath) => !deletedPaths.has(filePath));
 }
 
 /** Parse Git short-stat output, where omitted categories mean zero. */
@@ -364,6 +386,7 @@ module.exports = {
     isCommitAncestor,
     isGitIndexLockError,
     listBranches,
+    listWorkingTreeFiles,
     pathExists,
     parseShortStat,
     push,

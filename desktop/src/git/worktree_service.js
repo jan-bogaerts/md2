@@ -119,6 +119,19 @@ class WorktreeService {
         return this.records;
     }
 
+    /** Read Git metadata needed to compare one linked worktree with its project-branch merge base. */
+    async readDiffContext(project, index) {
+        const activeProject = this.requireActiveProject(project);
+        const record = this.resolve(activeProject, index);
+        const baseCommit = await this.runGit(record.path, ['merge-base', activeProject.branch, 'HEAD']);
+        if (baseCommit.length === 0) throw new Error(`Cannot find merge base for linked worktree: ${record.path}`);
+
+        const changes = await this.runGit(record.path, ['diff', '--name-status', '-z', '--find-renames', baseCommit, '--']);
+        const untracked = await this.runGit(record.path, ['ls-files', '--others', '--exclude-standard', '-z']);
+
+        return { baseCommit, changes, path: record.path, untracked };
+    }
+
     resolve(project, index) {
         if (!Number.isInteger(index) || index <= 0) throw new Error(`Invalid card worktree index: ${String(index)}`);
         const record = this.getRecords(project)[index - 1];
@@ -164,6 +177,23 @@ class WorktreeService {
             if (!this.records.some((worktree) => pathKey(worktree.path) === pathKey(resolvedFolder))) throw new Error('Folder is not a linked worktree');
 
             await this.runGit(activeProject.rootPath, ['worktree', 'remove', resolvedFolder]);
+            await this.refreshAfterMutation();
+        });
+    }
+
+    deleteBranch(project, branchName) {
+        return this.enqueueMutation(async () => {
+            const activeProject = this.requireActiveProject(project);
+            if (typeof branchName !== 'string' || branchName.length === 0) throw new Error('Missing local branch name');
+            await this.runGit(activeProject.rootPath, ['check-ref-format', '--branch', branchName]);
+            if (branchName === activeProject.branch) throw new Error(`Project branch cannot be deleted: ${branchName}`);
+            if (branchName.startsWith(PARKING_BRANCH_PREFIX)) throw new Error(`Parking branch cannot be deleted: ${branchName}`);
+
+            const worktrees = parseWorktreeList(await this.runGit(activeProject.rootPath, ['worktree', 'list', '--porcelain']));
+            const checkedOut = worktrees.find((worktree) => worktree.branch === branchName);
+            if (checkedOut) throw new Error(`Branch is checked out by a worktree: ${branchName} (${checkedOut.path})`);
+
+            await this.runGit(activeProject.rootPath, ['branch', '-D', branchName]);
             await this.refreshAfterMutation();
         });
     }

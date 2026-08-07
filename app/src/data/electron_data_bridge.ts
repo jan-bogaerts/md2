@@ -35,6 +35,7 @@ export interface ElectronDataBridge {
     deleteFile(request: DeleteFileRequest): Promise<void>
     deleteFolder(request: DeleteFolderRequest): Promise<void>
     discardWorktreeChanges?(request: WorktreeOperationRequest): Promise<void>
+    deleteLocalBranch?(project: ProjectReference, branchName: string): Promise<void>
     hasPendingPush(project: ProjectReference): Promise<boolean>
     integrateWorktree?(request: WorktreeOperationRequest): Promise<void>
     loadAgentAvailability?(): Promise<Record<string, AgentAvailability>>
@@ -43,6 +44,7 @@ export interface ElectronDataBridge {
     loadActionSchedules?(project: ProjectReference, actionsFolder: string): Promise<ActionSchedule[]>
     cancelActionSchedule?(project: ProjectReference, actionsFolder: string, scheduleId: string): Promise<ActionSchedule[]>
     loadProjectAsset?(project: ProjectReference, path: string): Promise<ProjectAsset>
+    loadTextFile?(project: ProjectReference, path: string): Promise<MarkdownFile>
     loadProject(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>
     loadProjectRoot(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>
     loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null>

@@ -517,22 +517,14 @@ describe('MarkdownEditor', () => {
         expect(screen.getByTestId('mdx-editor')).toHaveClass('dark-theme')
     })
 
-    it('marks the toolbar sticky when requested for mobile layout', () => {
-        const { container, rerender } = render(
+    it('marks the toolbar sticky by default', () => {
+        const { container } = render(
             <AppThemeProvider>
-                <MarkdownEditor markdown="" onChange={vi.fn()} stickyToolbar />
+                <MarkdownEditor markdown="" onChange={vi.fn()} />
             </AppThemeProvider>,
         )
 
         expect(container.querySelector('[data-sticky-toolbar="true"]')).not.toBeNull()
-
-        rerender(
-            <AppThemeProvider>
-                <MarkdownEditor markdown="" onChange={vi.fn()} stickyToolbar={false} />
-            </AppThemeProvider>,
-        )
-
-        expect(container.querySelector('[data-sticky-toolbar="false"]')).not.toBeNull()
     })
 
     it('maps markdown sections to scoped content selectors', () => {
@@ -568,7 +560,7 @@ describe('MarkdownEditor', () => {
                 <MarkdownEditorWithStyleControl />
             </AppThemeProvider>,
         )
-        const editorWrapper = container.querySelector('[data-sticky-toolbar="false"]')
+        const editorWrapper = container.querySelector('[data-sticky-toolbar="true"]')
         const initialClassName = editorWrapper?.className
 
         fireEvent.click(screen.getByRole('button', { name: 'Serif' }))
@@ -585,6 +577,6 @@ describe('MarkdownEditor', () => {
             </AppThemeProvider>,
         )
 
-        expect(container.querySelector('[data-sticky-toolbar="false"]')).toHaveStyle({ paddingTop: '37px' })
+        expect(container.querySelector('[data-sticky-toolbar="true"]')).toHaveStyle({ paddingTop: '37px' })
     })
 })

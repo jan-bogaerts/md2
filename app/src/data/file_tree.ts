@@ -1,5 +1,5 @@
 import { groupByStatus, UNASSIGNED_STATUS } from './card_ordering'
-import type { ProjectCard } from './data_types'
+import type { Card } from './data_types'
 
 /** The kinds of node the text-view tree can contain. */
 export type TreeNodeKind = 'status' | 'folder' | 'special' | 'file'
@@ -38,7 +38,7 @@ function getFileName(path: string) {
 }
 
 /** Human label for a file leaf: `id title` when meaningful, otherwise the file name. */
-export function fileLabel(card: ProjectCard): string {
+export function fileLabel(card: Card): string {
     const { id, title } = card.header
     const hasTitle = title.length > 0 && title !== UNTITLED_TITLE
 
@@ -68,7 +68,7 @@ function ensureFolder(parent: TreeNode, segment: string, specialFolderPaths: Set
 }
 
 /** Build the status-group roots from the active (root working-folder) cards. */
-function buildStatusGroups(activeCards: ProjectCard[], projectFolder: string): TreeNode[] {
+function buildStatusGroups(activeCards: Card[], projectFolder: string): TreeNode[] {
     return groupByStatus(activeCards).map((column) => ({
         children: column.cards.map((card) => ({
             children: [],
@@ -123,7 +123,7 @@ function isHiddenPath(path: string, hiddenFolderPaths: Set<string>) {
 
 function buildFolderRoots(
     actions: FileTreeAction[],
-    backgroundCards: ProjectCard[],
+    backgroundCards: Card[],
     projectFolder: string,
     repositoryFiles: string[],
     hiddenFolderPaths: Set<string>,
@@ -175,8 +175,8 @@ function buildFolderRoots(
  * the real/special folder tree derived from the background cards.
  */
 export function buildFileTree(
-    activeCards: ProjectCard[],
-    backgroundCards: ProjectCard[],
+    activeCards: Card[],
+    backgroundCards: Card[],
     workingFolder: string,
     options: FileTreeOptions,
 ): TreeNode[] {

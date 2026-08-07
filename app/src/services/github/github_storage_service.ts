@@ -61,6 +61,10 @@ export class GithubStorageService implements StorageService {
         return this.loader.loadProjectAsset(project, path)
     }
 
+    async loadTextFile(project: ProjectReference, path: string) {
+        return this.loader.loadTextFile(project, path)
+    }
+
     async loadProjectConfig(project: ProjectReference) {
         return this.configStorage.loadProjectConfig(project)
     }

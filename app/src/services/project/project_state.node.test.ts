@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { MarkdownFile, ProjectCard, ProjectReference } from '../../data/data_types'
+import type { MarkdownFile, Card, ProjectReference } from '../../data/data_types'
 import { ProjectState } from './project_state'
 
 const WORKING_FOLDER = 'design'
@@ -68,9 +68,9 @@ describe('ProjectState', () => {
 
         expect(activeCardsChanged).toHaveBeenCalledTimes(3)
         expect(activeCardsChanged.mock.calls[0][0]).toEqual([])
-        expect(activeCardsChanged.mock.calls[0][1].map((card: ProjectCard) => card.path)).toEqual(['design/F-1-first.md'])
+        expect(activeCardsChanged.mock.calls[0][1].map((card: Card) => card.path)).toEqual(['design/F-1-first.md'])
         expect(activeCardsChanged.mock.calls[1][0][0].header.title).toBe('First')
-        expect(activeCardsChanged.mock.calls[1][1].map((card: ProjectCard) => card.path)).toEqual([
+        expect(activeCardsChanged.mock.calls[1][1].map((card: Card) => card.path)).toEqual([
             'design/F-1-first.md',
             'design/F-2-second.md',
         ])

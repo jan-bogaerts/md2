@@ -1,19 +1,27 @@
 import { createCardFile } from '../../data/card_naming'
 import { computeMove, type CardMoveUpdate } from '../../data/card_ordering'
-import type { CardDraft, MarkdownFile } from '../../data/data_types'
+import type { CardDraft, CardType, MarkdownFile, Card } from '../../data/data_types'
 import type { OpenDocumentSaveReference } from '../open_files_service'
 import { telemetryService } from '../telemetry/telemetry_service'
 import { CardArchiveOperations } from './card_archive_operations'
 import { CardInternalIdOperations } from './card_internal_id_operations'
 import {
-    attachSaveReference,
     CardOperationContext,
     type CardOperationsDeps,
     type CommitRequest,
 } from './card_operation_context'
 import { CardRenameOperations } from './card_rename_operations'
-import { markdownParsingService } from './markdown_parsing_service'
 import { ProjectFileOperations } from './project_file_operations'
+import {
+    clearCardBranch,
+    setCardAffects,
+    setCardAgentLogReferences,
+    setCardBody,
+    setCardHeaderFields,
+    setCardWorktree,
+    setCardWorktreeAssignment,
+    toggleCardPolicy,
+} from './card_mutations'
 
 export type { CardOperationsDeps }
 
@@ -74,41 +82,41 @@ export class CardOperations {
     }
 
     updateCardBody(path: string, body: string, saveReference?: OpenDocumentSaveReference) {
-        const existingFile = this.context.dependencies.requireFile(path)
-
-        return this.saveFile(
-            { content: markdownParsingService.replaceBody(existingFile.content, body), path, sha: existingFile.sha },
-            saveReference,
-        )
+        return this.context.saveCardChange(path, (card) => setCardBody(card, body), saveReference)
     }
 
-    updateCardAffects(path: string, affects: string[]) {
-        return this.context.saveCardContentChange(path, (content) => markdownParsingService.setAffects(content, affects))
+    updateCardAffects(path: string, affects: string[]): Card {
+        return this.context.saveCardChange(path, (card) => setCardAffects(card, affects))
     }
 
     updateCardHeaderFields(path: string, updates: Record<string, string>, saveReference?: OpenDocumentSaveReference) {
-        return this.context.saveCardContentChange(
-            path,
-            (content) => markdownParsingService.rewriteHeader(content, updates),
-            saveReference,
-        )
+        return this.context.saveCardChange(path, (card) => setCardHeaderFields(card, updates), saveReference)
     }
 
     updateCardWorktree(path: string, worktree: number | null) {
-        return this.context.saveCardContentChange(path, (content) => markdownParsingService.setWorktree(content, worktree))
+        return this.context.saveCardChange(path, (card) => setCardWorktree(card, worktree))
     }
 
-    toggleCardPolicy(path: string, policyKey: string, saveReference?: OpenDocumentSaveReference) {
-        const { config } = this.context.dependencies.requireDependencies()
-        const existingFile = this.context.dependencies.requireFile(path)
-        const card = markdownParsingService.parseCard(existingFile, config.workingFolder)
-        const enabled = card.header.policy[policyKey] ?? false
+    assignCardWorktree(path: string, worktree: number, branch: string) {
+        return this.context.saveCardChange(path, (card) => setCardWorktreeAssignment(card, worktree, branch))
+    }
 
-        return this.context.saveCardContentChange(
-            path,
-            (content) => markdownParsingService.setPolicyFlag(content, policyKey, !enabled),
-            saveReference,
-        )
+    clearCardBranch(path: string) {
+        return this.context.saveCardChange(path, clearCardBranch)
+    }
+
+    toggleCardPolicy(path: string, policyKey: string, saveReference?: OpenDocumentSaveReference): Card {
+        return this.context.saveCardChange(path, (card) => toggleCardPolicy(card, policyKey), saveReference)
+    }
+
+    addAgentLogReference(path: string, reference: string) {
+        const card = this.context.dependencies.requireCard(path)
+        if (card.header.agentLogReferences.includes(reference)) return card.header.internalId
+
+        const references = [...new Set([...card.header.agentLogReferences, reference])]
+        this.context.saveCardChange(path, (currentCard) => setCardAgentLogReferences(currentCard, references))
+
+        return card.header.internalId
     }
 
     ensureCardInternalIds() {
@@ -117,6 +125,10 @@ export class CardOperations {
 
     updateCardTitle(path: string, title: string, saveReference?: OpenDocumentSaveReference) {
         return this.renames.updateCardTitle(path, title, saveReference)
+    }
+
+    updateCardType(path: string, type: CardType, saveReference?: OpenDocumentSaveReference) {
+        return this.renames.updateCardType(path, type, saveReference)
     }
 
     async moveCard(cardPath: string, targetStatus: string, targetIndex: number) {
@@ -139,16 +151,19 @@ export class CardOperations {
         if (updates.length === 0) return
 
         const { commitBatcher, project } = this.context.requireProject('move a card')
-        const openDocumentsByPath = new Map(updates.map(({ path }) => [path, this.context.findOpenCardDocument(path)]))
-        const updatedFiles = this.context.applyOrderingUpdates(updates)
-        this.context.replaceUpdatedFiles(updatedFiles)
+        const updatedCards = this.context.applyOrderingUpdates(updates)
+        const changes = updatedCards.map((card) => {
+            const cardInternalId = card.header.internalId
+            if (!cardInternalId) throw new Error(`Cannot move a card without an internal ID: ${card.path}`)
 
-        const changes = updatedFiles.map((file) => attachSaveReference(
-            file,
-            this.context.resyncOpenCardDocument(openDocumentsByPath.get(file.path) ?? null, file.path, undefined, 'Moved'),
-        ))
+            return {
+                cardInternalId,
+                path: card.path,
+                saveReference: this.context.findOpenCardDocument(card.path)?.createSaveReference(),
+            }
+        })
         commitBatcher.schedule(project.branch, changes, `Move ${cardPath}`)
-        this.context.dependencies.dispatchChanged()
+        this.context.dependencies.dispatchPersistenceChanged()
     }
 
     async deleteCard(path: string) {
@@ -185,6 +200,12 @@ export class CardOperations {
         return this.context.flushPendingCommits()
     }
 
+    deferAutomaticCommit() {
+        const { commitBatcher } = this.context.requireProject('defer automatic card commits')
+
+        return commitBatcher.deferAutomaticFlush()
+    }
+
     commitFiles(request: CommitRequest) {
         return this.context.commitFiles(request)
     }
@@ -195,5 +216,9 @@ export class CardOperations {
 
     commitAndMergeFiles(request: CommitRequest, fallbackFiles: MarkdownFile[] = []) {
         return this.context.commitAndMergeFiles(request, fallbackFiles)
+    }
+
+    requireCardByInternalId(internalId: string) {
+        return this.context.dependencies.requireCardByInternalId(internalId)
     }
 }

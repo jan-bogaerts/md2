@@ -7,14 +7,17 @@ import {
     type CardDraft,
     type ProjectReference,
     type PushMode,
+    type ReleaseBranchCandidate,
     type RepositoryReference,
     type TopLevelFolderReference,
 } from '../../../data/data_types'
 import { getElectronDataBridge } from '../../../data/electron_data_bridge'
 import type { StorageType } from '../../../data/project_session'
 import { dialogService } from '../../../services/dialog_service'
+import { configService } from '../../../services/config/config_service'
 import { projectSessionService, type ProjectOpenResolution } from '../../../services/project/project_session_service'
 import { useProjectConfig } from '../../hooks/use_project_config'
+import { useConfigValueOrFallback } from '../../hooks/use_config_value'
 import { useProjectSession } from '../../hooks/use_project_session'
 import { useProjectState } from '../../hooks/use_project_state'
 import {
@@ -61,12 +64,14 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
     const [initialRemoteProject, setInitialRemoteProject] = useState<ProjectReference | null>(null)
     const [newCardInitialStatus, setNewCardInitialStatus] = useState('')
     const [repositories, setRepositories] = useState<RepositoryReference[]>(EMPTY_REPOSITORIES)
+    const [releaseBranchCandidates, setReleaseBranchCandidates] = useState<ReleaseBranchCandidate[]>([])
     const [switchBranch, setSwitchBranch] = useState(project?.branch ?? '')
     const activeCards = snapshot?.activeCards ?? []
     const cardTypes = projectConfig?.cardTypes ?? DEFAULT_CARD_TYPES
     const cardBodyTemplate = projectConfig?.cardBodyTemplate ?? DEFAULT_CARD_BODY_TEMPLATE
     const states = projectConfig?.states ?? DEFAULT_STATES
     const pushMode = (projectConfig?.pushMode ?? 'auto') as PushMode
+    const releaseSelectAllDefault = useConfigValueOrFallback('react.deleteBranchesAfterRelease', false)
 
     const closeDialog = useCallback(() => {
         onCloseDialog()
@@ -307,16 +312,29 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         }
     }
 
-    const completeRelease = async (releaseName: string) => {
+    const openReleaseDialog = async () => {
+        try {
+            setReleaseBranchCandidates(await projectSessionService.getReleaseBranchCandidates())
+            onOpenDialog('release')
+        } catch {
+            // ProjectSessionService emits the user-visible error.
+        }
+    }
+
+    const completeRelease = async (releaseName: string, selectedBranchNames: string[]) => {
         setIsReleaseCompleting(true)
         try {
-            await projectSessionService.completeRelease(releaseName)
+            await projectSessionService.completeRelease(releaseName, selectedBranchNames)
             closeDialog()
         } catch {
             // ProjectSessionService emits the user-visible error.
         } finally {
             setIsReleaseCompleting(false)
         }
+    }
+
+    const setReleaseSelectAllDefault = (selected: boolean) => {
+        configService.setReactPreference('react.deleteBranchesAfterRelease', selected)
     }
 
     const createCard = async (draft: CardDraft, initialState: string) => {
@@ -355,11 +373,15 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         openWorkingFolder,
         openProjectDialog,
         openRemoteProject,
+        openReleaseDialog,
         pendingGithubConflictProject: projectSession.pendingGithubConflictProject,
         pull: () => projectSessionService.pull(),
         push: () => projectSessionService.push(),
         pushMode,
         repositories,
+        releaseBranchCandidates,
+        releaseSelectAllDefault,
+        setReleaseSelectAllDefault,
         setSwitchBranch,
         states,
         switchBranch,
