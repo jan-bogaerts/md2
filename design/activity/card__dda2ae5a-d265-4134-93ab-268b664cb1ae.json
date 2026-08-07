@@ -1711,6 +1711,991 @@
         "costUsd": 3.1107620000000007
       },
       "viewed": true
+    },
+    {
+      "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
+      "cardInternalId": "dda2ae5a-d265-4134-93ab-268b664cb1ae",
+      "cardPath": "design/feature_descriptions/B_100_claude_agent_shows_all_responses_double.md",
+      "completedAt": "2026-08-07T13:53:04.007Z",
+      "entries": [
+        {
+          "content": "Read and implement the feature/job described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_100_claude_agent_shows_all_responses_double.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests.\n5. After implementation is done, update the field `status` in the markdown feature description file to \\`ready\\`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_100_claude_agent_shows_all_responses_double.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria.&#x20;\n\nYou should only run the related tests, do not run the entire test suite, that will be done manually later on.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-08-07T13:46:57.399Z"
+        },
+        {
+          "content": "Claude system event: hook_started\nClaude system event: hook_response\nClaude system event: status",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-2",
+          "kind": "event",
+          "label": "Claude protocol diagnostic",
+          "providerItemId": "diagnostic:unknown-message:1",
+          "sequence": 2,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:46:58.752Z",
+          "type": "diagnostic"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-3",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CdoVTXDXdkz6QVNqCLiJu:thinking:0",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:47:00.406Z",
+          "type": "reasoning",
+          "details": [
+            ""
+          ],
+          "summary": []
+        },
+        {
+          "agent": "claude",
+          "content": "Reading spec first.",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 4,
+          "timestamp": "2026-08-07T13:47:01.229Z"
+        },
+        {
+          "agent": "claude",
+          "content": "Reading spec first.",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 5,
+          "timestamp": "2026-08-07T13:47:01.230Z"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-6",
+          "kind": "event",
+          "label": "Read",
+          "providerItemId": "toolu_013YtQPdVPYJqwTH8xhCCK4P",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:47:11.361Z",
+          "type": "tool.Read",
+          "output": "1\t---\n2\tauthor: \n3\tid: B_100\n4\tinternalId: dda2ae5a-d265-4134-93ab-268b664cb1ae\n5\ttitle: claude agent shows all responses double\n6\tstatus: ready for implementation\n7\towner: \n8\taffects:\n9\tagents:\n10\t  - design/activity/card__dda2ae5a-d265-4134-93ab-268b664cb1ae.json#conversation=agent-3ab3367c-b2f1-4230-8beb-2aa055754784\n11\t  - design/activity/card__dda2ae5a-d265-4134-93ab-268b664cb1ae.json#conversation=agent-4f096003-7161-4313-8b1a-06bce7bf8fdd\n12\tpolicy:\n13\tbranch: b_100_claude_agent_shows_all_responses_double\n14\tworktree: 3\n15\t---\n16\tWhen an action is run by the claude agent, all responses, accept the last one he gives are shown 2 times in the chatlog. so 2 identical bubbles below each other.\n17\t\n18\tsomething is going wrong here. this is not happening with the codex agent.\n19\t\n20\t## Current state\n21\t\n22\tConfirmed reproduction: conversation `agent-793ef4cc-80b6-453e-a264-fc5869fdf065` in `design/activity/card__05d5d49c-401f-42cd-b3cc-074e169631dd.json`. Every Claude assistant text is stored as **two separate `message` entries** with consecutive ids (`…-turn-1-assistant-1` and `…-turn-1-assistant-2`, `…-assistant-3` and `…-assistant-4`, and so on). The two copies hold the same text, differing only in a leading paragraph separator: the first copy keeps the `\\n\\n` that separates it from the previous message, the second copy has it stripped. The final assistant message is stored only once. So N assistant steps produce `2·(N−1)+1` bubbles.\n23\t\n24\t\"Streaming\" here means the desktop runs Claude with `--include-partial-messages` (see `agent_profiles.mjs` / `agent_profiles.test.mjs`): Claude emits each assistant step **twice on the wire** — first as incremental partials (`stream_event` → `message_start`, `content_block_start`, `content_block_delta`), then as one aggregated `assistant` message carrying the whole step. `ClaudeStreamingAdapter` in `desktop/src/actions/agent/agent_claude_streaming_adapter.js` is meant to fold the aggregated copy back onto the streamed copy so only one bubble results.\n25\t\n26\tReconciliation is keyed by `providerItemId`. The streamed text block is keyed `${activeMessageId}:text:${index}` in `handleContentBlockStart`; the aggregated block is keyed `${messageId}:text:${index}` in `handleAssistantCompletion`, and the streamed block is looked up by content-array `index` in `this.activeBlocks`. Downstream, `agent_run_transcript.js#startAssistantItem` turns each `assistantStarted` event into a **new** `message` entry (`${run.id}-turn-${turnIndex}-assistant-${assistantItemIndex}`), while `replaceAssistantOutput` updates an existing one in place. The app mirrors this in `action_run_registry.ts#appendAssistantMessage` (new `messageId` ⇒ new bubble). Codex has no partial-vs-aggregated duplication (single item stream), so it is unaffected.\n27\t\n28\t## Implementation details\n29\t\n30\tCausal chain of the bug, in `handleAssistantCompletion` (`agent_claude_streaming_adapter.js`):\n31\t\n32\t* When the aggregated `assistant` message for a step arrives, the method should find the already-streamed block and emit `assistantCompleted`, which routes to `replaceAssistantOutput` and rewrites the existing bubble in place (no-op when text is identical).\n33\t* Instead the guard `if (!trackedBlock || trackedBlock.providerItemId !== providerItemId)` takes the miss branch and emits a fresh `assistantStarted`, which `startAssistantItem` turns into a **second** `message` entry holding the same text — the duplicate bubble.\n34\t* The miss is provable from the stored data: the duplicate copy has an empty separator, and `separator = trackedBlock?.separator ?? (this.turnHasAssistantText ? '\\n\\n' : '')` can only yield `''` when `trackedBlock` is `undefined`. `this.activeBlocks` is cleared on every `message_start`, so by the time an earlier step's aggregated `assistant` message is handled the adapter has already advanced past it (its block map entry is gone) and the key lookup misses.\n35\t* The final step is the exception: nothing advances past it before its aggregated `assistant` message lands, so its block is still tracked, the key matches, and it replaces in place — one bubble.\n36\t\n37\tFix direction:\n38\t\n39\t* Make the aggregated `assistant` message reconcile against the streamed step reliably — e.g. track streamed text items by a stable per-step key (Claude message id + block index) that does not depend on `activeBlocks` still holding the block, so a late aggregated message updates the existing entry instead of starting a new one.\n40\t\n41\tAdd coverage in `agent_streaming_adapter.test.mjs` for the interleaving that reproduces this: partial stream of step A, then `message_start` of step B (clearing `activeBlocks`), then the aggregated `assistant` message for A — assert A yields exactly one assistant item.\n42\t\n43\t## Acceptance criteria\n44\t\n45\t* Running a Claude action produces exactly one chatlog bubble per assistant step; no step (except formerly the last) is duplicated.\n46\t* Each stored conversation contains one `message` entry per assistant step — no consecutive assistant entries with identical text.\n47\t* The surviving bubble keeps its correct paragraph separation from the preceding message (no lost or doubled `\\n\\n`).\n48\t* Streaming (partial-message) and non-streaming Claude runs both yield single bubbles.\n49\t* Codex runs are unchanged (still single bubbles).\n50\t* A regression test reproduces the partial-then-aggregated interleaving and asserts a single assistant item per step."
+        },
+        {
+          "content": "unsupported Claude event: rate_limit_event\nClaude system event: status",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-7",
+          "kind": "event",
+          "label": "Claude protocol diagnostic",
+          "providerItemId": "diagnostic:msg_011CdoVTXDXdkz6QVNqCLiJu:4",
+          "sequence": 7,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:47:01.577Z",
+          "type": "diagnostic"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-8",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CdoVUSmfU5RsbfTzvgXx9:thinking:0",
+          "sequence": 8,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:47:12.807Z",
+          "type": "reasoning",
+          "details": [
+            ""
+          ],
+          "summary": []
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nReading key files.",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 9,
+          "timestamp": "2026-08-07T13:47:12.957Z"
+        },
+        {
+          "agent": "claude",
+          "content": "Reading key files.",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-turn-1-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 10,
+          "timestamp": "2026-08-07T13:47:13.660Z"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-11",
+          "kind": "event",
+          "label": "Read",
+          "providerItemId": "toolu_01KbZ9gQqfQGWpwkiSdK4YZJ",
+          "sequence": 11,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:47:14.063Z",
+          "type": "tool.Read",
+          "output": "1\tconst { normalizedContent } = require('./agent_event_utils');\n2\tconst { claudeChangedPaths, claudeUsage } = require('./agent_claude_events');\n3\tconst { isMissingSession } = require('./agent_provider_protocol');\n4\t\n5\tconst CLAUDE_APPROVAL_DECISIONS = ['accept', 'acceptForSession', 'decline', 'cancel'];\n6\tconst CLAUDE_FILE_TOOLS = new Set(['Edit', 'MultiEdit', 'NotebookEdit', 'Write']);\n7\tconst CLAUDE_QUESTION_TOOL = 'AskUserQuestion';\n8\t\n9\tfunction requireMessage(content) {\n10\t    if (typeof content !== 'string' || content.trim().length === 0) throw new Error('Streaming agent message is required');\n11\t\n12\t    return content;\n13\t}\n14\t\n15\tfunction claudeUserMessage(content) {\n16\t    return { message: { content, role: 'user' }, type: 'user' };\n17\t}\n18\t\n19\tfunction claudeControlResponse(requestId, response) {\n20\t    return {\n21\t        response: { request_id: requestId, response, subtype: 'success' },\n22\t        type: 'control_response',\n23\t    };\n24\t}\n25\t\n26\tfunction claudeQuestionRequest(event) {\n27\t    if (event.type !== 'control_request' || event.request?.subtype !== 'can_use_tool') return null;\n28\t    if (event.request.tool_name !== CLAUDE_QUESTION_TOOL || !Array.isArray(event.request.input?.questions)) return null;\n29\t\n30\t    const questions = event.request.input.questions.map((question, index) => ({\n31\t        ...question,\n32\t        id: question.id ?? `claude-question-${index}`,\n33\t    }));\n34\t\n35\t    return {\n36\t        input: event.request.input,\n37\t        questions,\n38\t        requestId: event.request_id,\n39\t        toolUseId: event.request.tool_use_id,\n40\t    };\n41\t}\n42\t\n43\tfunction approvalFilePaths(toolName, input) {\n44\t    if (!CLAUDE_FILE_TOOLS.has(toolName) || !input || typeof input !== 'object' || Array.isArray(input)) return [];\n45\t    const filePath = toolName === 'NotebookEdit' ? input.notebook_path : input.file_path;\n46\t\n47\t    return typeof filePath === 'string' && filePath.length > 0 ? [filePath] : [];\n48\t}\n49\t\n50\tfunction claudeApprovalRequest(event) {\n51\t    if (event.type !== 'control_request' || event.request?.subtype !== 'can_use_tool') return null;\n52\t    if (event.request.tool_name === CLAUDE_QUESTION_TOOL) return null;\n53\t    const { input, permission_suggestions: permissionSuggestions, tool_name: toolName, tool_use_id: toolUseId } = event.request;\n54\t    if (event.request_id === undefined || event.request_id === null) throw new Error('Missing Claude approval request id');\n55\t    if (typeof toolName !== 'string' || toolName.length === 0) throw new Error('Missing Claude approval tool name');\n56\t    if (typeof toolUseId !== 'string' || toolUseId.length === 0) throw new Error('Missing Claude approval tool use id');\n57\t    if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('Missing Claude approval input');\n58\t    if (permissionSuggestions !== undefined && !Array.isArray(permissionSuggestions)) {\n59\t        throw new Error('Invalid Claude approval permission suggestions');\n60\t    }\n61\t    const availableDecisions = permissionSuggestions?.length > 0\n62\t        ? CLAUDE_APPROVAL_DECISIONS\n63\t        : CLAUDE_APPROVAL_DECISIONS.filter((decision) => decision !== 'acceptForSession');\n64\t    const approval = {\n65\t        approvalId: toolUseId,\n66\t        availableDecisions,\n67\t        command: toolName === 'Bash' && typeof input.command === 'string' ? input.command : null,\n68\t        cwd: typeof input.cwd === 'string' ? input.cwd : null,\n69\t        filePaths: approvalFilePaths(toolName, input),\n70\t        input: structuredClone(input),\n71\t        itemId: toolUseId,\n72\t        kind: toolName === 'Bash' ? 'commandExecution' : CLAUDE_FILE_TOOLS.has(toolName) ? 'fileChange' : 'toolUse',\n73\t        permissionSuggestions: structuredClone(permissionSuggestions ?? []),\n74\t        provider: 'claude',\n75\t        reason: event.request.decision_reason ?? event.request.reason ?? null,\n76\t        requestId: event.request_id,\n77\t        startedAtMs: Date.now(),\n78\t        toolName,\n79\t    };\n80\t\n81\t    return { approval, input, permissionSuggestions: permissionSuggestions ?? [], toolUseId };\n82\t}\n83\t\n84\tfunction claudeApprovalResponse(pendingApproval, decision) {\n85\t    const { input, permissionSuggestions, toolUseId } = pendingApproval;\n86\t    if (decision === 'accept') return { behavior: 'allow', toolUseID: toolUseId, updatedInput: input };\n87\t    if (decision === 'acceptForSession') {\n88\t        return {\n89\t            behavior: 'allow',\n90\t            toolUseID: toolUseId,\n91\t            updatedInput: input,\n92\t            updatedPermissions: permissionSuggestions,\n93\t        };\n94\t    }\n95\t    if (decision === 'decline') {\n96\t        return { behavior: 'deny', message: 'User declined this tool request', toolUseID: toolUseId };\n97\t    }\n98\t\n99\t    return { behavior: 'deny', interrupt: true, message: 'User stopped the turn', toolUseID: toolUseId };\n100\t}\n101\t\n102\tfunction isClaudeMissingSessionResult(event, providerConversationId) {\n103\t    if (!providerConversationId || event.type !== 'result' || event.is_error !== true) return false;\n104\t    if (event.session_id !== providerConversationId || !Array.isArray(event.errors)) return false;\n105\t\n106\t    return event.errors.includes(`No conversation found with session ID: ${providerConversationId}`);\n107\t}\n108\t\n109\tfunction eventBase(providerItemId, type, label, status = 'inProgress') {\n110\t    return { content: '', label, providerItemId, status, type };\n111\t}\n112\t\n113\tfunction toolInputContent(input) {\n114\t    if (typeof input === 'string') return input;\n115\t\n116\t    return JSON.stringify(input ?? {});\n117\t}\n118\t\n119\tfunction claudeToolEvent(block, status = 'inProgress', providerItemId = block.id) {\n120\t    const base = eventBase(providerItemId, `tool.${block.name}`, block.name, status);\n121\t    if (block.name === 'Bash') {\n122\t        return {\n123\t            ...base,\n124\t            command: block.input?.command,\n125\t            content: block.input?.command ?? toolInputContent(block.input),\n126\t            label: block.input?.command ?? 'Bash',\n127\t            type: 'commandExecution',\n128\t            workingDirectory: block.input?.cwd,\n129\t        };\n130\t    }\n131\t    if (CLAUDE_FILE_TOOLS.has(block.name)) {\n132\t        const filePaths = approvalFilePaths(block.name, block.input);\n133\t        const content = typeof block.input === 'string' ? block.input : filePaths.join('\\n');\n134\t\n135\t        return { ...base, content, label: block.name, type: 'fileChange' };\n136\t    }\n137\t\n138\t    return { ...base, content: toolInputContent(block.input) };\n139\t}\n140\t\n141\tclass ClaudeStreamingAdapter {\n142\t    constructor(writeLine, onEvent, rootPath, providerConversationId) {\n143\t        this.writeLine = writeLine;\n144\t        this.onEvent = onEvent;\n145\t        this.pendingApprovals = new Map();\n146\t        this.pendingQuestions = new Map();\n147\t        this.providerConversationId = providerConversationId;\n148\t        this.rootPath = rootPath;\n149\t        this.activeBlocks = new Map();\n150\t        this.activeMessageId = null;\n151\t        this.diagnosticSequence = 1;\n152\t        this.turnStarted = false;\n153\t        this.turnHasAssistantText = false;\n154\t    }\n155\t\n156\t    async start(prompt) {\n157\t        await this.sendMessage(prompt);\n158\t    }\n159\t\n160\t    async sendMessage(content) {\n161\t        await this.writeLine(claudeUserMessage(requireMessage(content)));\n162\t    }\n163\t\n164\t    async answerQuestion(requestId, answers) {\n165\t        const pendingQuestion = this.pendingQuestions.get(requestId);\n166\t        if (!pendingQuestion) throw new Error(`Unknown Claude question request id: ${requestId}`);\n167\t        const mappedAnswers = Object.fromEntries(pendingQuestion.questions.map(({ id, question }) => {\n168\t            if (!Object.hasOwn(answers, id)) throw new Error(`Missing answer for Claude question: ${id}`);\n169\t\n170\t            return [question, answers[id]];\n171\t        }));\n172\t        const updatedInput = { ...pendingQuestion.input, answers: mappedAnswers };\n173\t        const response = { behavior: 'allow', toolUseID: pendingQuestion.toolUseId, updatedInput };\n174\t        await this.writeLine(claudeControlResponse(requestId, response));\n175\t        this.pendingQuestions.delete(requestId);\n176\t    }\n177\t\n178\t    async answerApproval(requestId, decision) {\n179\t        const pendingApproval = this.pendingApprovals.get(requestId);\n180\t        if (!pendingApproval) throw new Error(`Unknown or stale Claude approval request id: ${requestId}`);\n181\t        if (pendingApproval.submitted) throw new Error(`Claude approval request was already submitted: ${requestId}`);\n182\t        if (!pendingApproval.approval.availableDecisions.includes(decision)) {\n183\t            throw new Error(`Unsupported Claude approval decision for request ${requestId}`);\n184\t        }\n185\t        const response = claudeApprovalResponse(pendingApproval, decision);\n186\t        pendingApproval.submitted = true;\n187\t        try {\n188\t            await this.writeLine(claudeControlResponse(requestId, response));\n189\t        } catch (error) {\n190\t            pendingApproval.submitted = false;\n191\t            throw error;\n192\t        }\n193\t        await this.onEvent({ requestId, type: 'approvalSubmitted' });\n194\t        this.pendingApprovals.delete(requestId);\n195\t        await this.onEvent({ requestId, type: 'approvalResolved' });\n196\t    }\n197\t\n198\t    async handleMessage(event) {\n199\t        const questionRequest = claudeQuestionRequest(event);\n200\t        if (questionRequest) {\n201\t            this.pendingQuestions.set(questionRequest.requestId, questionRequest);\n202\t            await this.onEvent({\n203\t                questions: questionRequest.questions,\n204\t                requestId: questionRequest.requestId,\n205\t                type: 'question',\n206\t            });\n207\t            return;\n208\t        }\n209\t        const approvalRequest = claudeApprovalRequest(event);\n210\t        if (approvalRequest) {\n211\t            if (this.pendingApprovals.has(approvalRequest.approval.requestId)) {\n212\t                throw new Error(`Duplicate Claude approval request id: ${approvalRequest.approval.requestId}`);\n213\t            }\n214\t            this.pendingApprovals.set(approvalRequest.approval.requestId, { ...approvalRequest, submitted: false });\n215\t            await this.onEvent({ approval: approvalRequest.approval, type: 'approval' });\n216\t            return;\n217\t        }\n218\t        if (event.type === 'control_request' && event.request?.subtype === 'can_use_tool') {\n219\t            throw new Error('Invalid Claude question request');\n220\t        }\n221\t        if (event.type === 'system' && typeof event.session_id === 'string') {\n222\t            await this.onEvent({ conversationId: event.session_id, type: 'sessionStarted' });\n223\t        }\n224\t        if (event.type === 'system') {\n225\t            if (event.subtype !== 'init') await this.emitDiagnostic(`Claude system event: ${event.subtype ?? 'unknown'}`);\n226\t            return;\n227\t        }\n228\t        if (event.type === 'stream_event') {\n229\t            await this.handleStreamEvent(event.event);\n230\t            return;\n231\t        }\n232\t        if (event.type === 'assistant') {\n233\t            await this.handleAssistantCompletion(event);\n234\t            return;\n235\t        }\n236\t        if (event.type === 'user') {\n237\t            await this.ensureTurnStarted();\n238\t            await this.handleToolResults(event);\n239\t            return;\n240\t        }\n241\t        if (event.type === 'result') {\n242\t            await this.handleResult(event);\n243\t            return;\n244\t        }\n245\t        await this.emitDiagnostic(`unsupported Claude event: ${event.type ?? 'unknown'}`);\n246\t    }\n247\t\n248\t    async ensureTurnStarted() {\n249\t        if (this.turnStarted) return;\n250\t        this.turnStarted = true;\n251\t        await this.onEvent({ type: 'turnStarted' });\n252\t    }\n253\t\n254\t    async handleStreamEvent(streamEvent) {\n255\t        if (!streamEvent || typeof streamEvent.type !== 'string') {\n256\t            await this.emitDiagnostic('invalid stream event');\n257\t            return;\n258\t        }\n259\t        if (streamEvent.type === 'message_start') {\n260\t            await this.ensureTurnStarted();\n261\t            this.activeMessageId = streamEvent.message?.id;\n262\t            this.activeBlocks.clear();\n263\t            if (typeof this.activeMessageId !== 'string' || this.activeMessageId.length === 0) {\n264\t                await this.emitDiagnostic('message_start missing message id');\n265\t            }\n266\t            return;\n267\t        }\n268\t        if (streamEvent.type === 'content_block_start') {\n269\t            await this.handleContentBlockStart(streamEvent);\n270\t            return;\n271\t        }\n272\t        if (streamEvent.type === 'content_block_delta') {\n273\t            await this.handleContentBlockDelta(streamEvent);\n274\t            return;\n275\t        }\n276\t        if (streamEvent.type === 'content_block_stop' || streamEvent.type === 'message_delta' || streamEvent.type === 'message_stop') return;\n277\t        await this.emitDiagnostic(`unsupported stream event: ${streamEvent.type}`);\n278\t    }\n279\t\n280\t    async handleContentBlockStart(streamEvent) {\n281\t        if (!Number.isSafeInteger(streamEvent.index) || !streamEvent.content_block || typeof this.activeMessageId !== 'string') {\n282\t            await this.emitDiagnostic('invalid content_block_start');\n283\t            return;\n284\t        }\n285\t        const block = structuredClone(streamEvent.content_block);\n286\t        const providerItemId = block.id ?? `${this.activeMessageId}:${block.type}:${streamEvent.index}`;\n287\t        const separator = block.type === 'text' && this.turnHasAssistantText ? '\\n\\n' : '';\n288\t        const trackedBlock = { block, inputJson: '', providerItemId, separator, text: block.text ?? block.thinking ?? '' };\n289\t        this.activeBlocks.set(streamEvent.index, trackedBlock);\n290\t        if (block.type === 'text') {\n291\t            await this.onEvent({ itemId: providerItemId, type: 'assistantStarted' });\n292\t            if (separator.length > 0) await this.onEvent({ content: separator, itemId: providerItemId, type: 'assistant' });\n293\t            return;\n294\t        }\n295\t        if (block.type === 'thinking') {\n296\t            const event = {\n297\t                ...eventBase(providerItemId, 'reasoning', 'Thinking'),\n298\t                content: trackedBlock.text,\n299\t                details: [trackedBlock.text],\n300\t                summary: [],\n301\t            };\n302\t            await this.onEvent({ event, type: 'event' });\n303\t            return;\n304\t        }\n305\t        if (block.type === 'tool_use') await this.onEvent({ event: claudeToolEvent(block, 'inProgress', providerItemId), type: 'event' });\n306\t    }\n307\t\n308\t    async handleContentBlockDelta(streamEvent) {\n309\t        const trackedBlock = this.activeBlocks.get(streamEvent.index);\n310\t        if (!trackedBlock || !streamEvent.delta || typeof streamEvent.delta.type !== 'string') {\n311\t            await this.emitDiagnostic('invalid content_block_delta');\n312\t            return;\n313\t        }\n314\t        const { delta } = streamEvent;\n315\t        if (delta.type === 'text_delta' && typeof delta.text === 'string' && trackedBlock.block.type === 'text') {\n316\t            trackedBlock.text += delta.text;\n317\t            this.turnHasAssistantText = this.turnHasAssistantText || delta.text.length > 0;\n318\t            await this.onEvent({ content: delta.text, itemId: trackedBlock.providerItemId, type: 'assistant' });\n319\t            return;\n320\t        }\n321\t        if (delta.type === 'thinking_delta' && typeof delta.thinking === 'string' && trackedBlock.block.type === 'thinking') {\n322\t            trackedBlock.text += delta.thinking;\n323\t            const event = {\n324\t                ...eventBase(trackedBlock.providerItemId, 'reasoning', 'Thinking'),\n325\t                content: trackedBlock.text,\n326\t                details: [trackedBlock.text],\n327\t                summary: [],\n328\t            };\n329\t            await this.onEvent({ event, type: 'event' });\n330\t            return;\n331\t        }\n332\t        if (delta.type === 'input_json_delta' && typeof delta.partial_json === 'string' && trackedBlock.block.type === 'tool_use') {\n333\t            trackedBlock.inputJson += delta.partial_json;\n334\t            const updatedBlock = { ...trackedBlock.block, input: trackedBlock.inputJson };\n335\t            await this.onEvent({ event: claudeToolEvent(updatedBlock, 'inProgress', trackedBlock.providerItemId), type: 'event' });\n336\t            return;\n337\t        }\n338\t        if (delta.type !== 'signature_delta') await this.emitDiagnostic(`unsupported content delta: ${delta.type}`);\n339\t    }\n340\t\n341\t    async handleAssistantCompletion(event) {\n342\t        await this.ensureTurnStarted();\n343\t        if (!Array.isArray(event.message?.content)) {\n344\t            await this.emitDiagnostic('assistant message missing content');\n345\t            return;\n346\t        }\n347\t        const messageId = event.message.id ?? this.activeMessageId;\n348\t        if (typeof messageId !== 'string' || messageId.length === 0) throw new Error('Missing Claude assistant message id');\n349\t        for (const [index, block] of event.message.content.entries()) {\n350\t            const providerItemId = block.id ?? `${messageId}:${block.type}:${index}`;\n351\t            if (block.type === 'text' && typeof block.text === 'string') {\n352\t                const trackedBlock = this.activeBlocks.get(index);\n353\t                const separator = trackedBlock?.separator ?? (this.turnHasAssistantText ? '\\n\\n' : '');\n354\t                if (!trackedBlock || trackedBlock.providerItemId !== providerItemId) {\n355\t                    await this.onEvent({ itemId: providerItemId, type: 'assistantStarted' });\n356\t                }\n357\t                this.turnHasAssistantText = this.turnHasAssistantText || block.text.length > 0;\n358\t                await this.onEvent({ content: `${separator}${block.text}`, itemId: providerItemId, type: 'assistantCompleted' });\n359\t                continue;\n360\t            }\n361\t            if (block.type === 'thinking') {\n362\t                const content = typeof block.thinking === 'string' ? block.thinking : '';\n363\t                const reasoningEvent = {\n364\t                    ...eventBase(providerItemId, 'reasoning', 'Thinking', 'completed'),\n365\t                    content,\n366\t                    details: [content],\n367\t                    summary: [],\n368\t                };\n369\t                await this.onEvent({ event: reasoningEvent, type: 'event' });\n370\t                continue;\n371\t            }\n372\t            if (block.type === 'tool_use') await this.onEvent({ event: claudeToolEvent(block, 'inProgress', providerItemId), type: 'event' });\n373\t        }\n374\t        const changedPaths = claudeChangedPaths(event, this.rootPath);\n375\t        if (changedPaths.length > 0) await this.onEvent({ paths: changedPaths, type: 'changedPaths' });\n376\t    }\n377\t\n378\t    async handleToolResults(event) {\n379\t        if (!Array.isArray(event.message?.content)) return;\n380\t        for (const block of event.message.content) {\n381\t            if (block?.type !== 'tool_result' || typeof block.tool_use_id !== 'string') continue;\n382\t            const trackedTool = [...this.activeBlocks.values()].find(({ providerItemId }) => providerItemId === block.tool_use_id);\n383\t            const toolEvent = trackedTool?.block?.type === 'tool_use'\n384\t                ? claudeToolEvent(trackedTool.block, block.is_error ? 'failed' : 'completed')\n385\t                : eventBase(block.tool_use_id, 'tool.result', 'Tool result', block.is_error ? 'failed' : 'completed');\n386\t            toolEvent.output = normalizedContent(block.content) ?? '';\n387\t            await this.onEvent({ event: toolEvent, type: 'event' });\n388\t        }\n389\t    }\n390\t\n391\t    async handleResult(event) {\n392\t        const error = event.is_error === true\n393\t            ? String(event.error ?? event.result ?? event.message ?? event.errors?.join('\\n') ?? 'Claude turn failed')\n394\t            : null;\n395\t        const missingSession = !this.turnStarted && (\n396\t            isClaudeMissingSessionResult(event, this.providerConversationId)\n397\t            || isMissingSession('claude', event, this.turnStarted)\n398\t        );\n399\t        for (const requestId of this.pendingApprovals.keys()) {\n400\t            this.pendingApprovals.delete(requestId);\n401\t            await this.onEvent({ requestId, type: 'approvalResolved' });\n402\t        }\n403\t        this.activeBlocks.clear();\n404\t        this.activeMessageId = null;\n405\t        this.pendingQuestions.clear();\n406\t        this.turnStarted = false;\n407\t        this.turnHasAssistantText = false;\n408\t        await this.onEvent({ error, missingSession, type: 'turnCompleted', usage: claudeUsage(event) });\n409\t    }\n410\t\n411\t    async emitDiagnostic(content) {\n412\t        const providerItemId = `diagnostic:${this.activeMessageId ?? 'unknown-message'}:${this.diagnosticSequence}`;\n413\t        this.diagnosticSequence += 1;\n414\t        const event = { ...eventBase(providerItemId, 'diagnostic', 'Claude protocol diagnostic', 'completed'), content };\n415\t        await this.onEvent({ event, type: 'event' });\n416\t    }\n417\t}\n418\t\n419\tmodule.exports = { ClaudeStreamingAdapter };\n420\t"
+        },
+        {
+          "content": "Claude system event: status",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-12",
+          "kind": "event",
+          "label": "Claude protocol diagnostic",
+          "providerItemId": "diagnostic:msg_011CdoVUSmfU5RsbfTzvgXx9:6",
+          "sequence": 12,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:47:14.077Z",
+          "type": "diagnostic"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-13",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CdoVUeQQA5VkqQw5CzA1P:thinking:0",
+          "sequence": 13,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:47:16.414Z",
+          "type": "reasoning",
+          "details": [
+            ""
+          ],
+          "summary": []
+        },
+        {
+          "content": "Claude system event: thinking_tokens\nClaude system event: thinking_tokens",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-14",
+          "kind": "event",
+          "label": "Claude protocol diagnostic",
+          "providerItemId": "diagnostic:msg_011CdoVUeQQA5VkqQw5CzA1P:7",
+          "sequence": 14,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:47:16.412Z",
+          "type": "diagnostic"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNow the transcript and test files.",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-turn-1-assistant-5",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 15,
+          "timestamp": "2026-08-07T13:47:16.416Z"
+        },
+        {
+          "agent": "claude",
+          "content": "Now the transcript and test files.",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-turn-1-assistant-6",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 16,
+          "timestamp": "2026-08-07T13:47:17.130Z"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-17",
+          "kind": "event",
+          "label": "Read",
+          "providerItemId": "toolu_01M8vW11GB6QVSXnxbJ1PkX6",
+          "sequence": 17,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:47:17.656Z",
+          "type": "tool.Read",
+          "output": "1\tconst { createMessageEntry } = require('./agent_conversation');\n2\t\n3\tfunction nextConversationSequence(conversation) {\n4\t    const highestSequence = conversation.entries.reduce((highest, entry) => (\n5\t        Number.isSafeInteger(entry.sequence) ? Math.max(highest, entry.sequence) : highest\n6\t    ), 0);\n7\t\n8\t    return Math.max(highestSequence, conversation.entries.length) + 1;\n9\t}\n10\t\n11\tfunction nextRunSequence(run) {\n12\t    const sequence = run.nextSequence;\n13\t    run.nextSequence += 1;\n14\t\n15\t    return sequence;\n16\t}\n17\t\n18\tfunction createProviderEventEntryIndexes(entries) {\n19\t    const providerEventEntryIndexes = new Map();\n20\t    for (const [index, entry] of entries.entries()) {\n21\t        if (entry.kind === 'event' && typeof entry.providerItemId === 'string' && !providerEventEntryIndexes.has(entry.providerItemId)) {\n22\t            providerEventEntryIndexes.set(entry.providerItemId, index);\n23\t        }\n24\t    }\n25\t\n26\t    return providerEventEntryIndexes;\n27\t}\n28\t\n29\tfunction appendDiagnosticContent(eventEntry, content) {\n30\t    return { ...eventEntry, content: `${eventEntry.content}\\n${content}` };\n31\t}\n32\t\n33\tfunction lastMessageEntry(conversation) {\n34\t    return conversation.entries.findLast(({ kind }) => kind === 'message');\n35\t}\n36\t\n37\tfunction assistantMessageId(run) {\n38\t    return run.streaming ? `${run.id}-turn-${run.turnIndex}-assistant` : `${run.id}-assistant`;\n39\t}\n40\t\n41\tfunction startAssistantItem(run, itemId, timestamp) {\n42\t    if (run.assistantItems.has(itemId)) throw new Error(`Duplicate assistant item ${itemId}`);\n43\t    run.assistantItemIndex += 1;\n44\t    const item = {\n45\t        messageId: `${run.id}-turn-${run.turnIndex}-assistant-${run.assistantItemIndex}`,\n46\t        sequence: nextRunSequence(run),\n47\t    };\n48\t    run.assistantItems.set(itemId, item);\n49\t    run.currentAssistantMessageId = item.messageId;\n50\t    run.conversation.entries.push(createMessageEntry(\n51\t        item.messageId,\n52\t        'assistant',\n53\t        '',\n54\t        timestamp,\n55\t        run.agent,\n56\t        item.sequence,\n57\t    ));\n58\t\n59\t    return item;\n60\t}\n61\t\n62\tfunction assistantItem(run, itemId) {\n63\t    if (!itemId) return null;\n64\t    const item = run.assistantItems.get(itemId);\n65\t    if (!item) throw new Error(`Missing assistant item ${itemId}`);\n66\t\n67\t    return item;\n68\t}\n69\t\n70\t/**\n71\t * Exact text appended to `existing` for `chunk`, including the paragraph separator.\n72\t * Streaming chunks are provider deltas that must concatenate verbatim; the adapter owns their separators.\n73\t */\n74\tfunction chunkSegment(existing, chunk, streaming) {\n75\t    if (streaming) return chunk;\n76\t\n77\t    const trimmed = chunk.replace(/^\\n+|\\n+$/g, '');\n78\t    if (trimmed.length === 0) return '';\n79\t    if (existing.length === 0) return trimmed;\n80\t\n81\t    return `\\n\\n${trimmed}`;\n82\t}\n83\t\n84\tfunction joinChunk(existing, chunk, streaming) {\n85\t    return `${existing}${chunkSegment(existing, chunk, streaming)}`;\n86\t}\n87\t\n88\t/** Appends a chunk and returns the appended segment, so streamed events carry the same separators. */\n89\tfunction appendAssistantOutput(run, content, timestamp, itemId = null) {\n90\t    const segment = chunkSegment(run.stdout, content, run.streaming);\n91\t    run.stdout += segment;\n92\t    const item = assistantItem(run, itemId);\n93\t    const messageId = item?.messageId ?? assistantMessageId(run);\n94\t    const currentIndex = run.conversation.entries.findIndex((entry) => entry.kind === 'message' && entry.id === messageId);\n95\t    if (currentIndex < 0) {\n96\t        const initialContent = run.streaming ? content : content.replace(/^\\n+|\\n+$/g, '');\n97\t        const message = createMessageEntry(\n98\t            messageId,\n99\t            'assistant',\n100\t            initialContent,\n101\t            timestamp,\n102\t            run.agent,\n103\t            item?.sequence ?? nextRunSequence(run),\n104\t        );\n105\t        run.conversation.entries.push(message);\n106\t\n107\t        return { message, segment };\n108\t    }\n109\t\n110\t    const current = run.conversation.entries[currentIndex];\n111\t    const message = { ...current, content: joinChunk(current.content, content, run.streaming), timestamp };\n112\t    run.conversation.entries[currentIndex] = message;\n113\t\n114\t    return { message, segment };\n115\t}\n116\t\n117\tfunction replaceAssistantOutput(run, content, timestamp, itemId) {\n118\t    const item = assistantItem(run, itemId);\n119\t    const currentIndex = run.conversation.entries.findIndex((entry) => entry.kind === 'message' && entry.id === item.messageId);\n120\t    if (currentIndex < 0) throw new Error(`Missing assistant message ${item.messageId}`);\n121\t    const current = run.conversation.entries[currentIndex];\n122\t    if (current.content === content) return { message: current, previousContent: current.content, replaced: false };\n123\t    if (!run.stdout.endsWith(current.content)) throw new Error(`Assistant item is not latest output: ${itemId}`);\n124\t    run.stdout = `${run.stdout.slice(0, run.stdout.length - current.content.length)}${content}`;\n125\t    const message = { ...current, content, timestamp };\n126\t    run.conversation.entries[currentIndex] = message;\n127\t\n128\t    return { message, previousContent: current.content, replaced: true };\n129\t}\n130\t\n131\tfunction completeAssistantOutput(run, completedAt) {\n132\t    const messageId = run.currentAssistantMessageId ?? assistantMessageId(run);\n133\t    const currentIndex = run.conversation.entries.findIndex((entry) => entry.kind === 'message' && entry.id === messageId);\n134\t    if (currentIndex < 0) return;\n135\t\n136\t    run.conversation.entries[currentIndex] = { ...run.conversation.entries[currentIndex], timestamp: completedAt };\n137\t}\n138\t\n139\tmodule.exports = {\n140\t    appendAssistantOutput,\n141\t    appendDiagnosticContent,\n142\t    assistantItem,\n143\t    assistantMessageId,\n144\t    chunkSegment,\n145\t    completeAssistantOutput,\n146\t    createProviderEventEntryIndexes,\n147\t    joinChunk,\n148\t    lastMessageEntry,\n149\t    nextConversationSequence,\n150\t    nextRunSequence,\n151\t    replaceAssistantOutput,\n152\t    startAssistantItem,\n153\t};\n154\t"
+        },
+        {
+          "content": "Claude system event: status",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-18",
+          "kind": "event",
+          "label": "Claude protocol diagnostic",
+          "providerItemId": "diagnostic:msg_011CdoVUeQQA5VkqQw5CzA1P:9",
+          "sequence": 18,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:47:17.668Z",
+          "type": "diagnostic"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-19",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CdoVUuwYN5Dw1EC4g6y9y:thinking:0",
+          "sequence": 19,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:47:20.816Z",
+          "type": "reasoning",
+          "details": [
+            ""
+          ],
+          "summary": []
+        },
+        {
+          "content": "Claude system event: thinking_tokens\nClaude system event: thinking_tokens",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-20",
+          "kind": "event",
+          "label": "Claude protocol diagnostic",
+          "providerItemId": "diagnostic:msg_011CdoVUuwYN5Dw1EC4g6y9y:10",
+          "sequence": 20,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:47:20.072Z",
+          "type": "diagnostic"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-21",
+          "kind": "event",
+          "label": "Grep",
+          "providerItemId": "toolu_01JMWqcfkBtZSQDkvMu36oqk",
+          "sequence": 21,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:47:21.242Z",
+          "type": "tool.Grep",
+          "output": "Found 25 files\ndesign\\feature_descriptions\\B_100_claude_agent_shows_all_responses_double.md\ndesign\\releases\\0_1_0\\card__e6a79155-179c-46bb-b31e-722dffd7ec2e.json\ndesign\\releases\\0_1_0\\card__c9e7dccb-d263-4ba6-98fc-b4361a01bf4d.json\ndesign\\releases\\0_1_0\\card__b9792dd7-f034-4b29-9da5-04fc8cea37c9.json\ndesign\\releases\\0_1_0\\card__a729f80c-de80-4c12-9b53-bf0fbf29e4cb.json\ndesign\\releases\\0_1_0\\card__9df160a1-c669-422b-aea5-da5655c12134.json\ndesign\\releases\\0_1_0\\card__88a28fc1-ccbf-4d02-b560-c6726a0394dc.json\ndesign\\releases\\0_1_0\\card__299444fe-cb8b-420f-a89d-3c3300bf249e.json\ndesign\\releases\\0_1_0\\card__16bc6dc5-0f8e-421d-b0a9-c83d3a3a65f0.json\ndesign\\activity\\card__dda2ae5a-d265-4134-93ab-268b664cb1ae.json\ndesign\\activity\\card__d078e271-bd1a-4a6d-86a0-d9cf3264c7e0.json\ndesktop\\src\\actions\\agent\\agent_streaming_event_handlers.js\ndesktop\\src\\actions\\agent\\agent_run_transcript.test.mjs\ndesktop\\src\\actions\\agent\\agent_run_transcript.js\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs\ndesign\\activity\\card__e6a79155-179c-46bb-b31e-722dffd7ec2e.json.ad6ffb58-7270-44d9-8376-885cf4c4fbe2.tmp\ndesign\\activity\\card__e6a79155-179c-46bb-b31e-722dffd7ec2e.json.084c2d16-cbe4-4b6e-b52f-4f1b33edf455.tmp\ndesign\\activity\\card__9df160a1-c669-422b-aea5-da5655c12134.json.6e8a1bf6-cc47-4568-92bd-d7255c59d332.tmp\ndesign\\activity\\card__56dd54b0-9554-4545-85d4-bb45efef4d6e.json.e3d3c6af-3b03-4e49-a5a4-e6cdadaaf344.tmp\ndesign\\activity\\card__56dd54b0-9554-4545-85d4-bb45efef4d6e.json.18d6258f-e90d-440d-a349-3bc2e05900e5.tmp\ndesign\\activity\\card__56dd54b0-9554-4545-85d4-bb45efef4d6e.json.05ddb953-859b-4be6-b457-3de8c369cad9.tmp\ndesign\\activity\\card__56dd54b0-9554-4545-85d4-bb45efef4d6e.json\ndesktop\\src\\actions\\agent\\agent_streaming_adapter.test.mjs\ndesktop\\src\\actions\\agent\\agent_claude_streaming_adapter.js\ndesktop\\src\\actions\\agent\\agent_streaming_adapter.js"
+        },
+        {
+          "content": "Claude system event: status",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-22",
+          "kind": "event",
+          "label": "Claude protocol diagnostic",
+          "providerItemId": "diagnostic:msg_011CdoVUuwYN5Dw1EC4g6y9y:12",
+          "sequence": 22,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:47:21.244Z",
+          "type": "diagnostic"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-23",
+          "kind": "event",
+          "label": "Read",
+          "providerItemId": "toolu_01B96SRNsyhCiYoGKakUqEht",
+          "sequence": 23,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:47:24.448Z",
+          "type": "tool.Read",
+          "output": "1\tconst {\n2\t    accumulateUsage,\n3\t    createProviderEventEntry,\n4\t    createEventEntry,\n5\t    updateProviderSession,\n6\t} = require('./agent_conversation');\n7\tconst { emitRunEvent, hasPendingInteraction } = require('./agent_run_state');\n8\tconst {\n9\t    appendAssistantOutput,\n10\t    appendDiagnosticContent,\n11\t    completeAssistantOutput,\n12\t    lastMessageEntry,\n13\t    nextRunSequence,\n14\t    replaceAssistantOutput,\n15\t    startAssistantItem,\n16\t} = require('./agent_run_transcript');\n17\tconst { redactConversationEvent, redactSecrets } = require('./agent_secret_redaction');\n18\tconst { requireString } = require('./agent_run_validation');\n19\t\n20\tfunction handleSessionStarted(service, run, event) {\n21\t    run.providerConversationId = event.conversationId;\n22\t}\n23\t\n24\tfunction handleTurnStarted(service, run) {\n25\t    run.assistantItemIndex = 0;\n26\t    run.assistantItems.clear();\n27\t    run.currentAssistantMessageId = null;\n28\t    run.turnStarted = true;\n29\t}\n30\t\n31\tfunction handleAssistantStarted(service, run, event, timestamp) {\n32\t    const item = startAssistantItem(run, requireString(event.itemId, 'assistant item id'), timestamp);\n33\t    emitRunEvent(run, { content: '', messageId: item.messageId, sequence: item.sequence, type: 'output' });\n34\t}\n35\t\n36\tfunction handleAssistant(service, run, event, timestamp) {\n37\t    const safeContent = redactSecrets(event.content, run.secretValues);\n38\t    const itemId = run.agent === 'codex'\n39\t        ? requireString(event.itemId, 'assistant item id')\n40\t        : event.itemId;\n41\t    const { message, segment } = appendAssistantOutput(run, safeContent, timestamp, itemId);\n42\t    if (segment.length > 0) {\n43\t        emitRunEvent(run, { content: segment, messageId: message.id, sequence: message.sequence, type: 'output' });\n44\t    }\n45\t}\n46\t\n47\tfunction handleAssistantCompleted(service, run, event, timestamp) {\n48\t    const safeContent = redactSecrets(event.content, run.secretValues);\n49\t    const itemId = requireString(event.itemId, 'assistant item id');\n50\t    const { message, previousContent, replaced } = replaceAssistantOutput(run, safeContent, timestamp, itemId);\n51\t    if (!replaced) return;\n52\t\n53\t    emitRunEvent(run, {\n54\t        content: safeContent,\n55\t        messageId: message.id,\n56\t        previousContent,\n57\t        replace: true,\n58\t        sequence: message.sequence,\n59\t        type: 'output',\n60\t    });\n61\t}\n62\t\n63\tfunction handleChangedPaths(service, run, event) {\n64\t    event.paths.forEach((filePath) => run.changedPaths.add(filePath));\n65\t}\n66\t\n67\t/** Provider events are keyed by `providerItemId` so a later revision of the same item replaces its entry. */\n68\tfunction handleEvent(service, run, event, timestamp) {\n69\t    const safeEvent = redactConversationEvent(event.event, run.secretValues);\n70\t    const providerItemId = requireString(safeEvent.providerItemId, 'event providerItemId');\n71\t    const currentIndex = run.providerEventEntryIndexes.get(providerItemId);\n72\t    let eventEntry;\n73\t    if (currentIndex !== undefined) {\n74\t        const current = run.conversation.entries[currentIndex];\n75\t        eventEntry = createProviderEventEntry(safeEvent, current.id, timestamp, current.sequence);\n76\t        run.conversation.entries[currentIndex] = eventEntry;\n77\t    } else {\n78\t        const previousEntry = run.conversation.entries.at(-1);\n79\t        if (safeEvent.type === 'diagnostic' && previousEntry?.kind === 'event' && previousEntry.type === 'diagnostic') {\n80\t            eventEntry = appendDiagnosticContent(previousEntry, safeEvent.content);\n81\t            run.conversation.entries[run.conversation.entries.length - 1] = eventEntry;\n82\t        } else {\n83\t            const sequence = nextRunSequence(run);\n84\t            eventEntry = createProviderEventEntry(\n85\t                safeEvent,\n86\t                `${run.id}-event-${sequence}`,\n87\t                timestamp,\n88\t                sequence,\n89\t            );\n90\t            run.providerEventEntryIndexes.set(providerItemId, run.conversation.entries.length);\n91\t            run.conversation.entries.push(eventEntry);\n92\t        }\n93\t    }\n94\t    emitRunEvent(run, { event: eventEntry, type: 'agentEvent' });\n95\t}\n96\t\n97\tfunction handleTranscript(service, run, event, timestamp) {\n98\t    const safeContent = redactSecrets(event.content, run.secretValues);\n99\t    run.conversation.entries.push(createEventEntry(\n100\t        `${run.id}-provider-${run.conversation.entries.length}`,\n101\t        event.toolType,\n102\t        safeContent,\n103\t        timestamp,\n104\t        nextRunSequence(run),\n105\t    ));\n106\t}\n107\t\n108\tfunction handleError(service, run, event) {\n109\t    service.recordOutput(run.id, 'stderr', event.content);\n110\t}\n111\t\n112\tfunction handleFatal(service, run, event) {\n113\t    service.failStreamingRun(run, new Error(event.content));\n114\t}\n115\t\n116\tfunction handleSessionFailed(service, run, event) {\n117\t    run.missingSession = event.missingSession;\n118\t    service.failStreamingRun(run, new Error(event.content));\n119\t}\n120\t\n121\tasync function handleQuestion(service, run, event) {\n122\t    run.conversation.status = 'waitingForInput';\n123\t    run.waitingForQuestion = true;\n124\t    run.pendingQuestions = event.questions;\n125\t    await service.persistCheckpoint(run);\n126\t    emitRunEvent(run, { questions: event.questions, requestId: event.requestId, state: 'waitingForInput', type: 'question' });\n127\t}\n128\t\n129\tasync function handleApproval(service, run, event) {\n130\t    const requestId = event.approval.requestId;\n131\t    if (run.pendingApprovals.has(requestId)) throw new Error(`Duplicate agent approval request id: ${requestId}`);\n132\t    run.pendingApprovals.set(requestId, { ...event.approval, submitted: false });\n133\t    run.conversation.status = 'waitingForInput';\n134\t    await service.persistCheckpoint(run);\n135\t    emitRunEvent(run, { approval: event.approval, state: 'waitingForInput', type: 'approval' });\n136\t}\n137\t\n138\tfunction handleApprovalSubmitted(service, run, event) {\n139\t    const approval = run.pendingApprovals.get(event.requestId);\n140\t    if (!approval) return;\n141\t    approval.submitted = true;\n142\t    emitRunEvent(run, { requestId: event.requestId, type: 'approvalSubmitted' });\n143\t}\n144\t\n145\tfunction handleApprovalResolved(service, run, event) {\n146\t    if (!run.pendingApprovals.delete(event.requestId)) return;\n147\t    const state = hasPendingInteraction(run) ? 'waitingForInput' : 'running';\n148\t    run.conversation.status = state;\n149\t    emitRunEvent(run, { requestId: event.requestId, state, type: 'approvalResolved' });\n150\t    emitRunEvent(run, { state, type: 'state' });\n151\t}\n152\t\n153\t/**\n154\t * End of a streaming turn: settle the assistant message, then either shut the process down,\n155\t * send the message queued while the turn was running, or park the run waiting for input.\n156\t */\n157\tasync function handleTurnCompleted(service, run, event, timestamp) {\n158\t    completeAssistantOutput(run, timestamp);\n159\t    run.turnActive = false;\n160\t    run.waitingForQuestion = false;\n161\t    run.pendingApprovals.clear();\n162\t    run.missingSession = run.missingSession || event.missingSession;\n163\t    if (event.missingSession) run.finishing = true;\n164\t    if (event.usage) run.conversation.usage = accumulateUsage(run.conversation.usage, event.usage);\n165\t    if (event.error) {\n166\t        service.failStreamingRun(run, new Error(event.error));\n167\t        return;\n168\t    }\n169\t    if (run.finishing) {\n170\t        service.beginFinishShutdown(run);\n171\t        return;\n172\t    }\n173\t    if (run.queuedMessage) {\n174\t        const { content, revision } = run.queuedMessage;\n175\t        run.conversation.status = 'waitingForInput';\n176\t        await service.sendStreamingMessage(run, content);\n177\t        run.queuedMessage = null;\n178\t        run.sentQueuedMessageRevision = revision;\n179\t        return;\n180\t    }\n181\t    const synchronizedMessage = lastMessageEntry(run.conversation);\n182\t    if (synchronizedMessage) updateProviderSession(run, synchronizedMessage.id, timestamp);\n183\t    run.conversation.status = 'waitingForInput';\n184\t    run.conversation.completedAt = null;\n185\t    await service.persistCheckpoint(run);\n186\t    emitRunEvent(run, { state: 'waitingForInput', type: 'state' });\n187\t}\n188\t\n189\t/** Keyed by streaming event type; unknown types are ignored. Each handler takes `(service, run, event, timestamp)`. */\n190\tconst STREAMING_EVENT_HANDLERS = {\n191\t    approval: handleApproval,\n192\t    approvalResolved: handleApprovalResolved,\n193\t    approvalSubmitted: handleApprovalSubmitted,\n194\t    assistant: handleAssistant,\n195\t    assistantCompleted: handleAssistantCompleted,\n196\t    assistantStarted: handleAssistantStarted,\n197\t    changedPaths: handleChangedPaths,\n198\t    error: handleError,\n199\t    event: handleEvent,\n200\t    fatal: handleFatal,\n201\t    question: handleQuestion,\n202\t    sessionFailed: handleSessionFailed,\n203\t    sessionStarted: handleSessionStarted,\n204\t    transcript: handleTranscript,\n205\t    turnCompleted: handleTurnCompleted,\n206\t    turnStarted: handleTurnStarted,\n207\t};\n208\t\n209\tmodule.exports = { STREAMING_EVENT_HANDLERS };\n210\t"
+        },
+        {
+          "content": "Claude system event: status",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-24",
+          "kind": "event",
+          "label": "Claude protocol diagnostic",
+          "providerItemId": "diagnostic:msg_011CdoVVBCK9HfmsZykK5T7W:13",
+          "sequence": 24,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:47:24.540Z",
+          "type": "diagnostic"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-25",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CdoVVQu5HywXPMAW9EkVu:thinking:0",
+          "sequence": 25,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:47:50.263Z",
+          "type": "reasoning",
+          "details": [
+            ""
+          ],
+          "summary": []
+        },
+        {
+          "content": "Claude system event: thinking_tokens\nClaude system event: thinking_tokens\nClaude system event: thinking_tokens\nClaude system event: thinking_tokens\nClaude system event: thinking_tokens\nClaude system event: thinking_tokens\nClaude system event: thinking_tokens\nClaude system event: thinking_tokens\nClaude system event: thinking_tokens\nClaude system event: thinking_tokens\nClaude system event: thinking_tokens\nClaude system event: thinking_tokens\nClaude system event: thinking_tokens\nClaude system event: thinking_tokens\nClaude system event: thinking_tokens\nClaude system event: thinking_tokens",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-26",
+          "kind": "event",
+          "label": "Claude protocol diagnostic",
+          "providerItemId": "diagnostic:msg_011CdoVVQu5HywXPMAW9EkVu:14",
+          "sequence": 26,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:47:26.915Z",
+          "type": "diagnostic"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nReading test file and the streaming adapter dispatcher.",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-turn-1-assistant-7",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 27,
+          "timestamp": "2026-08-07T13:47:50.263Z"
+        },
+        {
+          "agent": "claude",
+          "content": "Reading test file and the streaming adapter dispatcher.",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-turn-1-assistant-8",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 28,
+          "timestamp": "2026-08-07T13:47:50.264Z"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-29",
+          "kind": "event",
+          "label": "Read",
+          "providerItemId": "toolu_01Xhh3BFeh8meMjPNDBtjobN",
+          "sequence": 29,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:47:51.744Z",
+          "type": "tool.Read",
+          "output": "1\timport { createRequire } from 'node:module';\n2\timport { describe, expect, it } from 'vitest';\n3\t\n4\tconst require = createRequire(import.meta.url);\n5\tconst { createAgentStreamingAdapter } = require('./agent_streaming_adapter');\n6\t\n7\tfunction harness(agent, providerConversationId = null) {\n8\t    const events = [];\n9\t    const runtimeEvents = [];\n10\t    const writes = [];\n11\t    const adapter = createAgentStreamingAdapter(\n12\t        agent,\n13\t        (message) => writes.push(message),\n14\t        (event) => events.push(event),\n15\t        'C:\\\\repo',\n16\t        providerConversationId,\n17\t        (event) => runtimeEvents.push(event),\n18\t    );\n19\t\n20\t    return { adapter, events, runtimeEvents, writes };\n21\t}\n22\t\n23\tdescribe('ClaudeStreamingAdapter', () => {\n24\t    it('writes multiple user turns and treats each result as a turn boundary', async () => {\n25\t        const { adapter, events, writes } = harness('claude');\n26\t\n27\t        await adapter.start('plan');\n28\t        await adapter.handleMessage({ session_id: 'session-1', subtype: 'init', type: 'system' });\n29\t        await adapter.handleMessage({ message: { content: [{ text: 'proposal', type: 'text' }], id: 'message-1' }, type: 'assistant' });\n30\t        await adapter.handleMessage({ total_cost_usd: 0.01, type: 'result', usage: { input_tokens: 4, output_tokens: 2 } });\n31\t        await adapter.sendMessage('approved');\n32\t\n33\t        expect(writes).toEqual([\n34\t            { message: { content: 'plan', role: 'user' }, type: 'user' },\n35\t            { message: { content: 'approved', role: 'user' }, type: 'user' },\n36\t        ]);\n37\t        expect(events).toContainEqual({ conversationId: 'session-1', type: 'sessionStarted' });\n38\t        expect(events).toContainEqual({ content: 'proposal', itemId: 'message-1:text:0', type: 'assistantCompleted' });\n39\t        expect(events.at(-1)).toMatchObject({ error: null, type: 'turnCompleted' });\n40\t    });\n41\t\n42\t    it('correlates structured question answers through the Claude control protocol', async () => {\n43\t        const { adapter, events, writes } = harness('claude');\n44\t        const questions = [{ header: 'Confirm', options: [{ label: 'Yes' }], question: 'Proceed?' }];\n45\t\n46\t        await adapter.handleMessage({\n47\t            request: {\n48\t                input: { questions },\n49\t                subtype: 'can_use_tool',\n50\t                tool_name: 'AskUserQuestion',\n51\t                tool_use_id: 'tool-1',\n52\t            },\n53\t            request_id: 'request-1',\n54\t            type: 'control_request',\n55\t        });\n56\t        await adapter.answerQuestion('request-1', { 'claude-question-0': ['Yes'] });\n57\t\n58\t        expect(events).toContainEqual({\n59\t            questions: [{ ...questions[0], id: 'claude-question-0' }],\n60\t            requestId: 'request-1',\n61\t            type: 'question',\n62\t        });\n63\t        expect(writes.at(-1)).toEqual({\n64\t            response: {\n65\t                request_id: 'request-1',\n66\t                response: {\n67\t                    behavior: 'allow',\n68\t                    toolUseID: 'tool-1',\n69\t                    updatedInput: { answers: { 'Proceed?': ['Yes'] }, questions },\n70\t                },\n71\t                subtype: 'success',\n72\t            },\n73\t            type: 'control_response',\n74\t        });\n75\t    });\n76\t\n77\t    it('maps root-confined file changes and tool lifecycle events', async () => {\n78\t        const { adapter, events } = harness('claude');\n79\t\n80\t        await adapter.handleMessage({\n81\t            message: {\n82\t                content: [\n83\t                    { id: 'tool-1', input: { file_path: 'design\\\\feature.md' }, name: 'Write', type: 'tool_use' },\n84\t                    { id: 'tool-2', input: { file_path: 'C:\\\\outside\\\\secret.md' }, name: 'Edit', type: 'tool_use' },\n85\t                ],\n86\t                id: 'message-1',\n87\t            },\n88\t            type: 'assistant',\n89\t        });\n90\t        await adapter.handleMessage({\n91\t            message: { content: [{ content: 'written', tool_use_id: 'tool-1', type: 'tool_result' }] },\n92\t            type: 'user',\n93\t        });\n94\t\n95\t        expect(events).toContainEqual({ paths: ['design/feature.md'], type: 'changedPaths' });\n96\t        expect(events).toContainEqual({\n97\t            event: expect.objectContaining({ content: 'design\\\\feature.md', providerItemId: 'tool-1', type: 'fileChange' }),\n98\t            type: 'event',\n99\t        });\n100\t        expect(events).toContainEqual({\n101\t            event: expect.objectContaining({ output: 'written', providerItemId: 'tool-1', status: 'completed' }),\n102\t            type: 'event',\n103\t        });\n104\t    });\n105\t\n106\t    it('reports only structured pre-turn missing-session results as resumable', async () => {\n107\t        const missing = harness('claude', 'session-missing');\n108\t        await missing.adapter.handleMessage({\n109\t            errors: ['No conversation found with session ID: session-missing'],\n110\t            is_error: true,\n111\t            session_id: 'session-missing',\n112\t            subtype: 'error_during_execution',\n113\t            type: 'result',\n114\t        });\n115\t        const started = harness('claude', 'session-missing');\n116\t        await started.adapter.handleMessage({ message: { content: [{ text: 'started', type: 'text' }], id: 'message-1' }, type: 'assistant' });\n117\t        await started.adapter.handleMessage({\n118\t            errors: ['No conversation found with session ID: session-missing'],\n119\t            is_error: true,\n120\t            session_id: 'session-missing',\n121\t            subtype: 'error_during_execution',\n122\t            type: 'result',\n123\t        });\n124\t\n125\t        expect(missing.events.at(-1)).toMatchObject({ missingSession: true, type: 'turnCompleted' });\n126\t        expect(started.events.at(-1)).toMatchObject({ missingSession: false, type: 'turnCompleted' });\n127\t        expect(started.events).toContainEqual({ type: 'turnStarted' });\n128\t    });\n129\t\n130\t    it('separates assistant messages within a turn and restarts the separator each turn', async () => {\n131\t        const { adapter, events } = harness('claude');\n132\t        let messageIndex = 0;\n133\t        const assistantMessage = (text) => {\n134\t            messageIndex += 1;\n135\t\n136\t            return { message: { content: [{ text, type: 'text' }], id: `message-${messageIndex}` }, type: 'assistant' };\n137\t        };\n138\t\n139\t        await adapter.handleMessage(assistantMessage('first'));\n140\t        await adapter.handleMessage(assistantMessage('second'));\n141\t        await adapter.handleMessage({ type: 'result' });\n142\t        await adapter.handleMessage(assistantMessage('next turn'));\n143\t\n144\t        const assistantEvents = events.filter(({ type }) => type === 'assistantCompleted');\n145\t        expect(assistantEvents).toEqual([\n146\t            { content: 'first', itemId: 'message-1:text:0', type: 'assistantCompleted' },\n147\t            { content: '\\n\\nsecond', itemId: 'message-2:text:0', type: 'assistantCompleted' },\n148\t            { content: 'next turn', itemId: 'message-3:text:0', type: 'assistantCompleted' },\n149\t        ]);\n150\t    });\n151\t\n152\t    it('streams ordered text, thinking, and tool activity then replaces text with authoritative completion', async () => {\n153\t        const { adapter, events } = harness('claude');\n154\t\n155\t        await adapter.handleMessage({\n156\t            event: { message: { id: 'message-1' }, type: 'message_start' },\n157\t            type: 'stream_event',\n158\t        });\n159\t        await adapter.handleMessage({\n160\t            event: { content_block: { thinking: '', type: 'thinking' }, index: 0, type: 'content_block_start' },\n161\t            type: 'stream_event',\n162\t        });\n163\t        await adapter.handleMessage({\n164\t            event: { delta: { thinking: 'check', type: 'thinking_delta' }, index: 0, type: 'content_block_delta' },\n165\t            type: 'stream_event',\n166\t        });\n167\t        await adapter.handleMessage({\n168\t            event: { content_block: { text: '', type: 'text' }, index: 1, type: 'content_block_start' },\n169\t            type: 'stream_event',\n170\t        });\n171\t        await adapter.handleMessage({\n172\t            event: { delta: { text: 'dra', type: 'text_delta' }, index: 1, type: 'content_block_delta' },\n173\t            type: 'stream_event',\n174\t        });\n175\t        await adapter.handleMessage({\n176\t            event: { content_block: { id: 'tool-1', input: {}, name: 'Bash', type: 'tool_use' }, index: 2, type: 'content_block_start' },\n177\t            type: 'stream_event',\n178\t        });\n179\t        await adapter.handleMessage({\n180\t            event: { delta: { partial_json: '{\"command\":\"npm test\"}', type: 'input_json_delta' }, index: 2, type: 'content_block_delta' },\n181\t            type: 'stream_event',\n182\t        });\n183\t        await adapter.handleMessage({\n184\t            message: {\n185\t                content: [\n186\t                    { thinking: 'check carefully', type: 'thinking' },\n187\t                    { text: 'draft', type: 'text' },\n188\t                    { id: 'tool-1', input: { command: 'npm test' }, name: 'Bash', type: 'tool_use' },\n189\t                ],\n190\t                id: 'message-1',\n191\t            },\n192\t            type: 'assistant',\n193\t        });\n194\t\n195\t        expect(events.map(({ type }) => type)).toEqual([\n196\t            'turnStarted', 'event', 'event', 'assistantStarted', 'assistant', 'event', 'event', 'event', 'assistantCompleted', 'event',\n197\t        ]);\n198\t        expect(events).toContainEqual({ content: 'dra', itemId: 'message-1:text:1', type: 'assistant' });\n199\t        expect(events).toContainEqual({ content: 'draft', itemId: 'message-1:text:1', type: 'assistantCompleted' });\n200\t        expect(events.at(-1)).toEqual({\n201\t            event: expect.objectContaining({ command: 'npm test', providerItemId: 'tool-1', status: 'inProgress' }),\n202\t            type: 'event',\n203\t        });\n204\t    });\n205\t\n206\t    it('keeps concurrent approvals isolated and maps Claude decisions to control responses', async () => {\n207\t        const { adapter, events, writes } = harness('claude');\n208\t        const permissionSuggestions = [{ behavior: 'allow', destination: 'session', tool: 'Bash' }];\n209\t        const approvalRequest = (requestId, toolUseId, command, suggestions = permissionSuggestions) => ({\n210\t            request: {\n211\t                decision_reason: 'Command needs permission',\n212\t                input: { command },\n213\t                permission_suggestions: suggestions,\n214\t                subtype: 'can_use_tool',\n215\t                tool_name: 'Bash',\n216\t                tool_use_id: toolUseId,\n217\t            },\n218\t            request_id: requestId,\n219\t            type: 'control_request',\n220\t        });\n221\t\n222\t        await adapter.handleMessage(approvalRequest('request-1', 'tool-1', 'npm test'));\n223\t        await adapter.handleMessage(approvalRequest('request-2', 'tool-2', 'npm run lint', []));\n224\t        await adapter.answerApproval('request-1', 'acceptForSession');\n225\t        await adapter.answerApproval('request-2', 'cancel');\n226\t\n227\t        expect(events.filter(({ type }) => type === 'approval')).toEqual([\n228\t            { approval: expect.objectContaining({ command: 'npm test', provider: 'claude', requestId: 'request-1', toolName: 'Bash' }), type: 'approval' },\n229\t            { approval: expect.objectContaining({ availableDecisions: ['accept', 'decline', 'cancel'], requestId: 'request-2' }), type: 'approval' },\n230\t        ]);\n231\t        expect(writes.at(-2)).toEqual({\n232\t            response: {\n233\t                request_id: 'request-1',\n234\t                response: {\n235\t                    behavior: 'allow',\n236\t                    toolUseID: 'tool-1',\n237\t                    updatedInput: { command: 'npm test' },\n238\t                    updatedPermissions: permissionSuggestions,\n239\t                },\n240\t                subtype: 'success',\n241\t            },\n242\t            type: 'control_response',\n243\t        });\n244\t        expect(writes.at(-1)).toEqual({\n245\t            response: {\n246\t                request_id: 'request-2',\n247\t                response: { behavior: 'deny', interrupt: true, message: 'User stopped the turn', toolUseID: 'tool-2' },\n248\t                subtype: 'success',\n249\t            },\n250\t            type: 'control_response',\n251\t        });\n252\t        expect(events.filter(({ type }) => type === 'approvalResolved')).toEqual([\n253\t            { requestId: 'request-1', type: 'approvalResolved' },\n254\t            { requestId: 'request-2', type: 'approvalResolved' },\n255\t        ]);\n256\t    });\n257\t\n258\t    it.each([\n259\t        ['accept', { behavior: 'allow', toolUseID: 'tool-1', updatedInput: { command: 'npm test' } }],\n260\t        ['decline', { behavior: 'deny', message: 'User declined this tool request', toolUseID: 'tool-1' }],\n261\t    ])('maps Claude %s approval decisions exactly', async (decision, response) => {\n262\t        const { adapter, writes } = harness('claude');\n263\t        await adapter.handleMessage({\n264\t            request: {\n265\t                input: { command: 'npm test' },\n266\t                subtype: 'can_use_tool',\n267\t                tool_name: 'Bash',\n268\t                tool_use_id: 'tool-1',\n269\t            },\n270\t            request_id: 'request-1',\n271\t            type: 'control_request',\n272\t        });\n273\t\n274\t        await adapter.answerApproval('request-1', decision);\n275\t\n276\t        expect(writes.at(-1)).toEqual({\n277\t            response: { request_id: 'request-1', response, subtype: 'success' },\n278\t            type: 'control_response',\n279\t        });\n280\t    });\n281\t});\n282\t\n283\tdescribe('CodexStreamingAdapter', () => {\n284\t    it('initializes, starts one thread, then starts and steers a turn', async () => {\n285\t        const { adapter, events, writes } = harness('codex');\n286\t\n287\t        await adapter.start('plan');\n288\t        expect(writes[0]).toMatchObject({ id: 1, method: 'initialize' });\n289\t        await adapter.handleMessage({ id: 1, result: { userAgent: 'codex' } });\n290\t        expect(writes[1]).toEqual({ method: 'initialized', params: {} });\n291\t        expect(writes[2]).toMatchObject({ id: 2, method: 'account/rateLimits/read' });\n292\t        expect(writes[3]).toMatchObject({ id: 3, method: 'thread/start', params: { cwd: 'C:\\\\repo' } });\n293\t        await adapter.handleMessage({ id: 3, result: { thread: { id: 'thread-1' } } });\n294\t        expect(writes[4]).toMatchObject({\n295\t            method: 'turn/start',\n296\t            params: { input: [{ text: 'plan', type: 'text' }], threadId: 'thread-1' },\n297\t        });\n298\t        await adapter.handleMessage({ method: 'turn/started', params: { turn: { id: 'turn-1' } } });\n299\t        await adapter.sendMessage('extra detail');\n300\t        expect(writes[5]).toMatchObject({\n301\t            method: 'turn/steer',\n302\t            params: {\n303\t                expectedTurnId: 'turn-1',\n304\t                input: [{ text: 'extra detail', type: 'text' }],\n305\t                threadId: 'thread-1',\n306\t            },\n307\t        });\n308\t        expect(events).toContainEqual({ conversationId: 'thread-1', type: 'sessionStarted' });\n309\t    });\n310\t\n311\t    it('publishes initial, updated, and unavailable account rate-limit runtime events', async () => {\n312\t        const { adapter, runtimeEvents } = harness('codex');\n313\t        const rateLimits = {\n314\t            credits: null,\n315\t            individualLimit: null,\n316\t            limitId: 'codex',\n317\t            limitName: 'Codex',\n318\t            planType: 'plus',\n319\t            primary: { resetsAt: 100, usedPercent: 20, windowDurationMins: 300 },\n320\t            rateLimitReachedType: null,\n321\t            secondary: null,\n322\t        };\n323\t\n324\t        await adapter.start('plan');\n325\t        await adapter.handleMessage({ id: 1, result: {} });\n326\t        await adapter.handleMessage({\n327\t            id: 2,\n328\t            result: { rateLimitResetCredits: null, rateLimits, rateLimitsByLimitId: null },\n329\t        });\n330\t        await adapter.handleMessage({\n331\t            method: 'account/rateLimits/updated',\n332\t            params: { rateLimits: { ...rateLimits, primary: { ...rateLimits.primary, usedPercent: 30 } } },\n333\t        });\n334\t\n335\t        expect(runtimeEvents).toEqual([\n336\t            expect.objectContaining({ kind: 'snapshot', payload: expect.objectContaining({ rateLimits }) }),\n337\t            expect.objectContaining({ kind: 'update', payload: expect.objectContaining({ rateLimits: expect.any(Object) }) }),\n338\t        ]);\n339\t\n340\t        const unavailable = harness('codex');\n341\t        await unavailable.adapter.start('plan');\n342\t        await unavailable.adapter.handleMessage({ id: 1, result: {} });\n343\t        await unavailable.adapter.handleMessage({ error: { message: 'not logged in' }, id: 2 });\n344\t        expect(unavailable.runtimeEvents).toEqual([expect.objectContaining({ kind: 'unavailable' })]);\n345\t        expect(unavailable.events).toEqual([]);\n346\t    });\n347\t\n348\t    it('maps deltas, usage, file changes, questions, and turn completion', async () => {\n349\t        const { adapter, events, writes } = harness('codex');\n350\t        await adapter.start('plan');\n351\t        await adapter.handleMessage({ id: 1, result: {} });\n352\t        await adapter.handleMessage({ id: 3, result: { thread: { id: 'thread-1' } } });\n353\t        await adapter.handleMessage({ method: 'turn/started', params: { turn: { id: 'turn-1' } } });\n354\t        await adapter.handleMessage({\n355\t            method: 'item/started',\n356\t            params: { item: { id: 'message-1', phase: null, text: '', type: 'agentMessage' } },\n357\t        });\n358\t        await adapter.handleMessage({ method: 'item/agentMessage/delta', params: { delta: 'hello', itemId: 'message-1' } });\n359\t        await adapter.handleMessage({\n360\t            method: 'item/completed',\n361\t            params: { item: { id: 'message-1', phase: null, text: 'hello', type: 'agentMessage' } },\n362\t        });\n363\t        const last = { cachedInputTokens: 2, inputTokens: 4, outputTokens: 3, reasoningOutputTokens: 1, totalTokens: 10 };\n364\t        await adapter.handleMessage({\n365\t            method: 'thread/tokenUsage/updated',\n366\t            params: { tokenUsage: { last } },\n367\t        });\n368\t        await adapter.handleMessage({\n369\t            method: 'item/started',\n370\t            params: { item: { changes: [{ diff: '', kind: 'update', path: 'design\\\\feature.md' }], id: 'file-1', status: 'inProgress', type: 'fileChange' } },\n371\t        });\n372\t        await adapter.handleMessage({\n373\t            method: 'item/completed',\n374\t            params: { item: { changes: [{ diff: '', kind: 'update', path: 'design\\\\feature.md' }], id: 'file-1', status: 'completed', type: 'fileChange' } },\n375\t        });\n376\t        const questions = [{ header: 'Confirm', id: 'confirm', question: 'Proceed?' }];\n377\t        await adapter.handleMessage({ id: 99, method: 'item/tool/requestUserInput', params: { questions } });\n378\t        await adapter.answerQuestion(99, { confirm: ['Yes'] });\n379\t        await adapter.handleMessage({ method: 'turn/completed', params: { turn: { status: 'completed' } } });\n380\t\n381\t        expect(events).toContainEqual({ content: 'hello', itemId: 'message-1', type: 'assistant' });\n382\t        expect(events).toContainEqual({ itemId: 'message-1', type: 'assistantStarted' });\n383\t        expect(events).toContainEqual({ content: '\\n\\n', itemId: 'message-1', type: 'assistant' });\n384\t        expect(events).toContainEqual({ paths: ['design/feature.md'], type: 'changedPaths' });\n385\t        expect(events).toContainEqual({ questions, requestId: 99, type: 'question' });\n386\t        expect(events.at(-1)).toMatchObject({\n387\t            error: null,\n388\t            type: 'turnCompleted',\n389\t            usage: { cachedInputTokens: 2, inputTokens: 4, outputTokens: 3, reasoningTokens: 1, totalTokens: 10 },\n390\t        });\n391\t        expect(writes.at(-1)).toEqual({ id: 99, result: { answers: { confirm: { answers: ['Yes'] } } } });\n392\t    });\n393\t\n394\t    it('tracks concurrent approval requests and writes only supported decisions', async () => {\n395\t        const { adapter, events, writes } = harness('codex');\n396\t        const policyDecision = { acceptWithExecpolicyAmendment: { execpolicy_amendment: ['npm', 'test'] } };\n397\t        await adapter.start('plan');\n398\t        await adapter.handleMessage({ id: 1, result: {} });\n399\t        await adapter.handleMessage({ id: 3, result: { thread: { id: 'thread-1' } } });\n400\t        await adapter.handleMessage({ method: 'turn/started', params: { turn: { id: 'turn-1' } } });\n401\t        await adapter.handleMessage({\n402\t            method: 'item/started',\n403\t            params: { item: { command: 'npm test', cwd: 'C:\\\\repo', id: 'command-1', type: 'commandExecution' } },\n404\t        });\n405\t        await adapter.handleMessage({\n406\t            method: 'item/started',\n407\t            params: { item: { changes: [{ kind: 'update', path: 'app/src/main.ts' }], id: 'file-1', type: 'fileChange' } },\n408\t        });\n409\t        await adapter.handleMessage({\n410\t            id: 41,\n411\t            method: 'item/commandExecution/requestApproval',\n412\t            params: {\n413\t                availableDecisions: ['decline', policyDecision],\n414\t                command: 'npm test',\n415\t                commandActions: [{ command: 'npm test', type: 'unknown' }],\n416\t                cwd: 'C:\\\\repo',\n417\t                itemId: 'command-1',\n418\t                networkApprovalContext: { host: 'registry.npmjs.org', protocol: 'https' },\n419\t                reason: 'Needs network',\n420\t                startedAtMs: 1,\n421\t                threadId: 'thread-1',\n422\t                turnId: 'turn-1',\n423\t            },\n424\t        });\n425\t        await adapter.handleMessage({\n426\t            id: 'file-request',\n427\t            method: 'item/fileChange/requestApproval',\n428\t            params: { itemId: 'file-1', reason: 'Write file', startedAtMs: 2, threadId: 'thread-1', turnId: 'turn-1' },\n429\t        });\n430\t\n431\t        await expect(adapter.answerApproval(41, 'accept')).rejects.toThrow('Unsupported');\n432\t        await adapter.answerApproval(41, policyDecision);\n433\t        await expect(adapter.answerApproval(41, policyDecision)).rejects.toThrow('already submitted');\n434\t        await adapter.answerApproval('file-request', 'acceptForSession');\n435\t        await adapter.handleMessage({\n436\t            method: 'serverRequest/resolved',\n437\t            params: { requestId: 41, threadId: 'thread-1' },\n438\t        });\n439\t        await adapter.handleMessage({ method: 'turn/completed', params: { turn: { id: 'turn-1', status: 'completed' } } });\n440\t\n441\t        expect(events).toContainEqual(expect.objectContaining({\n442\t            approval: expect.objectContaining({\n443\t                filePaths: ['app/src/main.ts'],\n444\t                kind: 'fileChange',\n445\t                requestId: 'file-request',\n446\t            }),\n447\t            type: 'approval',\n448\t        }));\n449\t        expect(events.filter(({ type }) => type === 'approvalResolved')).toEqual([\n450\t            { requestId: 41, type: 'approvalResolved' },\n451\t            { requestId: 'file-request', type: 'approvalResolved' },\n452\t        ]);\n453\t        expect(writes).toContainEqual({ id: 41, result: { decision: policyDecision } });\n454\t        expect(writes).toContainEqual({ id: 'file-request', result: { decision: 'acceptForSession' } });\n455\t    });\n456\t\n457\t    it('rejects approval requests that do not match the active turn item', async () => {\n458\t        const { adapter } = harness('codex');\n459\t        await adapter.start('plan');\n460\t        await adapter.handleMessage({ id: 1, result: {} });\n461\t        await adapter.handleMessage({ id: 3, result: { thread: { id: 'thread-1' } } });\n462\t        await adapter.handleMessage({ method: 'turn/started', params: { turn: { id: 'turn-1' } } });\n463\t\n464\t        await expect(adapter.handleMessage({\n465\t            id: 41,\n466\t            method: 'item/fileChange/requestApproval',\n467\t            params: { itemId: 'missing', startedAtMs: 1, threadId: 'thread-1', turnId: 'turn-1' },\n468\t        })).rejects.toThrow('Mismatched Codex approval item id');\n469\t    });\n470\t\n471\t    it('closes only matching streamed agent messages once', async () => {\n472\t        const { adapter, events } = harness('codex');\n473\t        const agentMessage = (id) => ({ id, phase: null, text: '', type: 'agentMessage' });\n474\t\n475\t        await adapter.handleMessage({ method: 'item/started', params: { item: agentMessage('message-1') } });\n476\t        await adapter.handleMessage({ method: 'item/started', params: { item: agentMessage('message-2') } });\n477\t        await adapter.handleMessage({ method: 'item/started', params: { item: agentMessage('message-empty') } });\n478\t        await adapter.handleMessage({ method: 'item/agentMessage/delta', params: { delta: 'first', itemId: 'message-1' } });\n479\t        await adapter.handleMessage({ method: 'item/agentMessage/delta', params: { delta: 'second', itemId: 'message-2' } });\n480\t        await adapter.handleMessage({ method: 'item/completed', params: { item: agentMessage('message-1') } });\n481\t        await adapter.handleMessage({ method: 'item/completed', params: { item: agentMessage('message-1') } });\n482\t        await adapter.handleMessage({ method: 'item/completed', params: { item: agentMessage('message-empty') } });\n483\t        await adapter.handleMessage({ method: 'item/completed', params: { item: agentMessage('message-2') } });\n484\t        await adapter.handleMessage({ method: 'item/agentMessage/delta', params: { delta: 'late', itemId: 'message-2' } });\n485\t\n486\t        expect(events.filter(({ type }) => type === 'assistant')).toEqual([\n487\t            { content: 'first', itemId: 'message-1', type: 'assistant' },\n488\t            { content: '\\n\\n', itemId: 'message-1', type: 'assistant' },\n489\t            { content: 'second', itemId: 'message-2', type: 'assistant' },\n490\t            { content: '\\n\\n', itemId: 'message-2', type: 'assistant' },\n491\t        ]);\n492\t        expect(events.filter(({ event }) => event?.type === 'diagnostic')).toHaveLength(2);\n493\t    });\n494\t\n495\t    it('streams reasoning sections and replaces them with authoritative completion', async () => {\n496\t        const { adapter, events } = harness('codex');\n497\t        await adapter.handleMessage({\n498\t            method: 'item/started',\n499\t            params: { item: { content: [], id: 'reasoning-1', summary: [], type: 'reasoning' } },\n500\t        });\n501\t        await adapter.handleMessage({\n502\t            method: 'item/reasoning/summaryPartAdded',\n503\t            params: { itemId: 'reasoning-1', summaryIndex: 0 },\n504\t        });\n505\t        await adapter.handleMessage({\n506\t            method: 'item/reasoning/summaryTextDelta',\n507\t            params: { delta: 'Inspect', itemId: 'reasoning-1', summaryIndex: 0 },\n508\t        });\n509\t        await adapter.handleMessage({\n510\t            method: 'item/reasoning/summaryPartAdded',\n511\t            params: { itemId: 'reasoning-1', summaryIndex: 1 },\n512\t        });\n513\t        await adapter.handleMessage({\n514\t            method: 'item/reasoning/summaryTextDelta',\n515\t            params: { delta: 'Verify', itemId: 'reasoning-1', summaryIndex: 1 },\n516\t        });\n517\t        await adapter.handleMessage({\n518\t            method: 'item/reasoning/textDelta',\n519\t            params: { contentIndex: 0, delta: 'Raw detail', itemId: 'reasoning-1' },\n520\t        });\n521\t        await adapter.handleMessage({\n522\t            method: 'item/completed',\n523\t            params: { item: { content: ['Final detail'], id: 'reasoning-1', summary: ['Final summary'], type: 'reasoning' } },\n524\t        });\n525\t\n526\t        const reasoning = events.filter(({ event }) => event?.providerItemId === 'reasoning-1').map(({ event }) => event);\n527\t        expect(reasoning[0]).toMatchObject({ status: 'inProgress', summary: [] });\n528\t        expect(reasoning.at(-1)).toMatchObject({\n529\t            content: 'Final summary',\n530\t            details: ['Final detail'],\n531\t            status: 'completed',\n532\t            summary: ['Final summary'],\n533\t        });\n534\t        expect(reasoning.some(({ details, summary }) => details[0] === 'Raw detail' && summary[1] === 'Verify')).toBe(true);\n535\t    });\n536\t\n537\t    it('retains completed reasoning without text', async () => {\n538\t        const { adapter, events } = harness('codex');\n539\t        const reasoning = { content: [], id: 'reasoning-empty', summary: [], type: 'reasoning' };\n540\t\n541\t        await adapter.handleMessage({ method: 'item/started', params: { item: reasoning } });\n542\t        await adapter.handleMessage({ method: 'item/completed', params: { item: reasoning } });\n543\t\n544\t        expect(events.at(-1)).toEqual({\n545\t            event: expect.objectContaining({\n546\t                content: '',\n547\t                providerItemId: 'reasoning-empty',\n548\t                status: 'completed',\n549\t            }),\n550\t            type: 'event',\n551\t        });\n552\t    });\n553\t\n554\t    it('retains exact command and ordered output through authoritative completion', async () => {\n555\t        const { adapter, events } = harness('codex');\n556\t        const started = {\n557\t            aggregatedOutput: null,\n558\t            command: 'npm run test -- --grep \"exact\"',\n559\t            commandActions: [],\n560\t            cwd: 'C:\\\\repo',\n561\t            durationMs: null,\n562\t            exitCode: null,\n563\t            id: 'command-1',\n564\t            processId: 'process-1',\n565\t            source: 'agent',\n566\t            status: 'inProgress',\n567\t            type: 'commandExecution',\n568\t        };\n569\t        await adapter.handleMessage({ method: 'item/started', params: { item: started } });\n570\t        await adapter.handleMessage({\n571\t            method: 'item/commandExecution/outputDelta',\n572\t            params: { delta: 'first\\n', itemId: 'command-1' },\n573\t        });\n574\t        await adapter.handleMessage({\n575\t            method: 'item/commandExecution/outputDelta',\n576\t            params: { delta: 'second', itemId: 'command-1' },\n577\t        });\n578\t        await adapter.handleMessage({\n579\t            method: 'item/completed',\n580\t            params: { item: { ...started, aggregatedOutput: 'final output', durationMs: 25, exitCode: 1, status: 'failed' } },\n581\t        });\n582\t\n583\t        const command = events.filter(({ event }) => event?.providerItemId === 'command-1').map(({ event }) => event);\n584\t        expect(command[0]).toMatchObject({ command: started.command, output: '', status: 'inProgress', workingDirectory: 'C:\\\\repo' });\n585\t        expect(command[2].output).toBe('first\\nsecond');\n586\t        expect(command.at(-1)).toMatchObject({\n587\t            command: started.command,\n588\t            durationMs: 25,\n589\t            exitCode: 1,\n590\t            output: 'final output',\n591\t            status: 'failed',\n592\t        });\n593\t    });\n594\t\n595\t    it('retains declined command state', async () => {\n596\t        const { adapter, events } = harness('codex');\n597\t        const command = {\n598\t            aggregatedOutput: '',\n599\t            command: 'npm publish',\n600\t            commandActions: [],\n601\t            cwd: 'C:\\\\repo',\n602\t            durationMs: 5,\n603\t            exitCode: null,\n604\t            id: 'command-declined',\n605\t            processId: null,\n606\t            source: 'agent',\n607\t            status: 'declined',\n608\t            type: 'commandExecution',\n609\t        };\n610\t\n611\t        await adapter.handleMessage({ method: 'item/started', params: { item: { ...command, status: 'inProgress' } } });\n612\t        await adapter.handleMessage({ method: 'item/completed', params: { item: command } });\n613\t\n614\t        expect(events.at(-1)).toEqual({\n615\t            event: expect.objectContaining({\n616\t                command: 'npm publish',\n617\t                providerItemId: 'command-declined',\n618\t                status: 'declined',\n619\t            }),\n620\t            type: 'event',\n621\t        });\n622\t    });\n623\t\n624\t    it('replaces plan deltas, records compaction and system events, and omits terminal input', async () => {\n625\t        const { adapter, events } = harness('codex');\n626\t        const plan = { id: 'plan-1', text: '', type: 'plan' };\n627\t\n628\t        await adapter.handleMessage({ method: 'turn/started', params: { turn: { id: 'turn-1' } } });\n629\t        await adapter.handleMessage({ method: 'item/started', params: { item: plan } });\n630\t        await adapter.handleMessage({ method: 'item/plan/delta', params: { delta: 'draft', itemId: 'plan-1' } });\n631\t        await adapter.handleMessage({ method: 'item/completed', params: { item: { ...plan, text: 'final' } } });\n632\t        await adapter.handleMessage({\n633\t            method: 'item/started',\n634\t            params: { item: { id: 'compaction-1', type: 'contextCompaction' } },\n635\t        });\n636\t        await adapter.handleMessage({\n637\t            method: 'item/completed',\n638\t            params: { item: { id: 'compaction-1', type: 'contextCompaction' } },\n639\t        });\n640\t        await adapter.handleMessage({\n641\t            method: 'model/rerouted',\n642\t            params: { fromModel: 'first', reason: 'capacity', toModel: 'second', turnId: 'turn-1' },\n643\t        });\n644\t        await adapter.handleMessage({\n645\t            method: 'item/commandExecution/terminalInteraction',\n646\t            params: { itemId: 'command-1', processId: 'process-1', stdin: 'secret terminal input' },\n647\t        });\n648\t\n649\t        const conversationEvents = events.filter(({ event }) => event).map(({ event }) => event);\n650\t        expect(conversationEvents).toContainEqual(expect.objectContaining({ content: 'final', providerItemId: 'plan-1' }));\n651\t        expect(conversationEvents).toContainEqual(expect.objectContaining({ label: 'Context compacted', providerItemId: 'compaction-1' }));\n652\t        expect(conversationEvents).toContainEqual(expect.objectContaining({ label: 'Model rerouted', type: 'system' }));\n653\t        expect(JSON.stringify(conversationEvents)).not.toContain('secret terminal input');\n654\t    });\n655\t\n656\t    it('clears completed item tracking when next turn starts', async () => {\n657\t        const { adapter, events } = harness('codex');\n658\t        const message = { id: 'reused-item', phase: null, text: '', type: 'agentMessage' };\n659\t\n660\t        await adapter.handleMessage({ method: 'turn/started', params: { turn: { id: 'turn-1' } } });\n661\t        await adapter.handleMessage({ method: 'item/started', params: { item: message } });\n662\t        await adapter.handleMessage({ method: 'item/completed', params: { item: message } });\n663\t        await adapter.handleMessage({ method: 'turn/completed', params: { turn: { id: 'turn-1', status: 'completed' } } });\n664\t        await adapter.handleMessage({ method: 'turn/started', params: { turn: { id: 'turn-2' } } });\n665\t        await adapter.handleMessage({ method: 'item/started', params: { item: message } });\n666\t\n667\t        const diagnostics = events.filter(({ event }) => event?.type === 'diagnostic');\n668\t        expect(diagnostics).toHaveLength(0);\n669\t    });\n670\t\n671\t    it('normalizes supported tool events and diagnoses unknown item types without failing', async () => {\n672\t        const { adapter, events } = harness('codex');\n673\t        const webSearch = { action: null, id: 'search-1', query: 'Codex schema', type: 'webSearch' };\n674\t        const unknown = { id: 'future-1', payload: { secret: 'not persisted' }, type: 'futureTool' };\n675\t\n676\t        await adapter.handleMessage({ method: 'item/started', params: { item: webSearch } });\n677\t        await adapter.handleMessage({ method: 'item/completed', params: { item: { ...webSearch, action: { type: 'search', query: 'Codex schema' } } } });\n678\t        await adapter.handleMessage({ method: 'item/started', params: { item: unknown } });\n679\t        await adapter.handleMessage({ method: 'item/completed', params: { item: unknown } });\n680\t\n681\t        expect(events).toContainEqual({\n682\t            event: expect.objectContaining({\n683\t                content: 'Codex schema',\n684\t                label: 'Web search',\n685\t                providerItemId: 'search-1',\n686\t                status: 'completed',\n687\t            }),\n688\t            type: 'event',\n689\t        });\n690\t        const diagnostics = events.filter(({ event }) => event?.type === 'diagnostic').map(({ event }) => event.content);\n691\t        expect(diagnostics).toEqual(['item/started: futureTool (future-1)', 'item/completed: futureTool (future-1)']);\n692\t        expect(diagnostics.join('')).not.toContain('not persisted');\n693\t    });\n694\t\n695\t    it('bounds structured tool result text without truncating command output', async () => {\n696\t        const { adapter, events } = harness('codex');\n697\t        const longText = 'x'.repeat(20_000);\n698\t        const dynamicTool = {\n699\t            arguments: { input: 'value' },\n700\t            contentItems: null,\n701\t            durationMs: null,\n702\t            id: 'dynamic-1',\n703\t            namespace: null,\n704\t            status: 'inProgress',\n705\t            success: null,\n706\t            tool: 'inspect',\n707\t            type: 'dynamicToolCall',\n708\t        };\n709\t\n710\t        await adapter.handleMessage({ method: 'item/started', params: { item: dynamicTool } });\n711\t        await adapter.handleMessage({\n712\t            method: 'item/completed',\n713\t            params: { item: { ...dynamicTool, contentItems: [{ text: longText, type: 'inputText' }], status: 'completed', success: true } },\n714\t        });\n715\t\n716\t        const event = events.at(-1).event;\n717\t        expect(event.output.length).toBeLessThan(longText.length);\n718\t        expect(event.output).toContain('[event content truncated]');\n719\t    });\n720\t\n721\t    it('resumes a saved thread before sending the first turn', async () => {\n722\t        const { adapter, events, writes } = harness('codex', 'thread-saved');\n723\t\n724\t        await adapter.start('new context');\n725\t        await adapter.handleMessage({ id: 1, result: {} });\n726\t        expect(writes[3]).toMatchObject({\n727\t            id: 3,\n728\t            method: 'thread/resume',\n729\t            params: { cwd: 'C:\\\\repo', threadId: 'thread-saved' },\n730\t        });\n731\t        await adapter.handleMessage({ id: 3, result: { thread: { id: 'thread-saved' } } });\n732\t\n733\t        expect(events).toContainEqual({ conversationId: 'thread-saved', type: 'sessionStarted' });\n734\t        expect(writes[4]).toMatchObject({\n735\t            method: 'turn/start',\n736\t            params: { input: [{ text: 'new context', type: 'text' }], threadId: 'thread-saved' },\n737\t        });\n738\t    });\n739\t\n740\t    it('reports a structured missing saved thread before any turn starts', async () => {\n741\t        const { adapter, events } = harness('codex', 'thread-missing');\n742\t\n743\t        await adapter.start('new context');\n744\t        await adapter.handleMessage({ id: 1, result: {} });\n745\t        await adapter.handleMessage({\n746\t            error: {\n747\t                code: -32600,\n748\t                message: 'no rollout found for thread id thread-missing',\n749\t            },\n750\t            id: 3,\n751\t        });\n752\t\n753\t        expect(events.at(-1)).toEqual({\n754\t            content: 'no rollout found for thread id thread-missing',\n755\t            missingSession: true,\n756\t            type: 'sessionFailed',\n757\t        });\n758\t    });\n759\t\n760\t    it('reports request errors as fatal and rejects use before thread setup', async () => {\n761\t        const { adapter, events } = harness('codex');\n762\t\n763\t        await expect(adapter.sendMessage('early')).rejects.toThrow('Codex streaming thread is not ready');\n764\t        await adapter.start('plan');\n765\t        await adapter.handleMessage({ error: { message: 'initialize failed' }, id: 1 });\n766\t\n767\t        expect(events).toContainEqual({ content: 'initialize failed', type: 'fatal' });\n768\t    });\n769\t\n770\t    it('reports server and turn request errors as fatal', async () => {\n771\t        const serverError = harness('codex');\n772\t        await serverError.adapter.handleMessage({ method: 'error', params: { error: { message: 'server failed' } } });\n773\t        const requestError = harness('codex');\n774\t        await requestError.adapter.handleMessage({ error: { message: 'turn failed' }, id: 99 });\n775\t\n776\t        expect(serverError.events).toContainEqual({ content: 'server failed', type: 'fatal' });\n777\t        expect(requestError.events).toContainEqual({ content: 'turn failed', type: 'fatal' });\n778\t    });\n779\t});\n780\t"
+        },
+        {
+          "content": "Claude system event: status",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-30",
+          "kind": "event",
+          "label": "Claude protocol diagnostic",
+          "providerItemId": "diagnostic:msg_011CdoVVQu5HywXPMAW9EkVu:30",
+          "sequence": 30,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:47:51.758Z",
+          "type": "diagnostic"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-31",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CdoVXSBmZ4CqkBkV2qASD:thinking:0",
+          "sequence": 31,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:48:21.543Z",
+          "type": "reasoning",
+          "details": [
+            ""
+          ],
+          "summary": []
+        },
+        {
+          "content": "Claude system event: thinking_tokens\nClaude system event: thinking_tokens\nClaude system event: thinking_tokens\nClaude system event: thinking_tokens\nClaude system event: thinking_tokens\nClaude system event: thinking_tokens\nClaude system event: thinking_tokens\nClaude system event: thinking_tokens\nClaude system event: thinking_tokens\nClaude system event: thinking_tokens\nClaude system event: thinking_tokens\nClaude system event: thinking_tokens\nClaude system event: thinking_tokens\nClaude system event: thinking_tokens\nClaude system event: thinking_tokens\nClaude system event: thinking_tokens\nClaude system event: thinking_tokens\nClaude system event: thinking_tokens",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-32",
+          "kind": "event",
+          "label": "Claude protocol diagnostic",
+          "providerItemId": "diagnostic:msg_011CdoVXSBmZ4CqkBkV2qASD:31",
+          "sequence": 32,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:47:54.308Z",
+          "type": "diagnostic"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nUnderstood full causal chain. Root cause confirmed: `handleAssistantCompletion` reconciles against `this.activeBlocks`, which `message_start` clears every step. Late aggregated `assistant` message → lookup miss → fresh `assistantStarted` → duplicate bubble.\n\nLoading task/plan tools.",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-turn-1-assistant-9",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 33,
+          "timestamp": "2026-08-07T13:48:22.936Z"
+        },
+        {
+          "agent": "claude",
+          "content": "Understood full causal chain. Root cause confirmed: `handleAssistantCompletion` reconciles against `this.activeBlocks`, which `message_start` clears every step. Late aggregated `assistant` message → lookup miss → fresh `assistantStarted` → duplicate bubble.\n\nLoading task/plan tools.",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-turn-1-assistant-10",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 34,
+          "timestamp": "2026-08-07T13:48:22.937Z"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-35",
+          "kind": "event",
+          "label": "ToolSearch",
+          "providerItemId": "toolu_01NW2ZdmYVUu7txcffnhMRcK",
+          "sequence": 35,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:48:23.479Z",
+          "type": "tool.ToolSearch",
+          "output": "[{\"type\":\"tool_reference\",\"tool_name\":\"TaskCreate\"},{\"type\":\"tool_reference\",\"tool_name\":\"ExitPlanMode\"},{\"type\":\"tool_reference\",\"tool_name\":\"EnterPlanMode\"}]"
+        },
+        {
+          "content": "Claude system event: status",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-36",
+          "kind": "event",
+          "label": "Claude protocol diagnostic",
+          "providerItemId": "diagnostic:msg_011CdoVXSBmZ4CqkBkV2qASD:49",
+          "sequence": 36,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:48:23.492Z",
+          "type": "diagnostic"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-37",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CdoVZpMKt4e8yubzGf2eJ:thinking:0",
+          "sequence": 37,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:48:29.911Z",
+          "type": "reasoning",
+          "details": [
+            ""
+          ],
+          "summary": []
+        },
+        {
+          "content": "Claude system event: thinking_tokens\nClaude system event: thinking_tokens\nClaude system event: thinking_tokens",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-38",
+          "kind": "event",
+          "label": "Claude protocol diagnostic",
+          "providerItemId": "diagnostic:msg_011CdoVZpMKt4e8yubzGf2eJ:50",
+          "sequence": 38,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:48:26.851Z",
+          "type": "diagnostic"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nCreating tasks for each block.",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-turn-1-assistant-11",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 39,
+          "timestamp": "2026-08-07T13:48:29.917Z"
+        },
+        {
+          "agent": "claude",
+          "content": "Creating tasks for each block.",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-turn-1-assistant-12",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 40,
+          "timestamp": "2026-08-07T13:48:29.918Z"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-41",
+          "kind": "event",
+          "label": "TaskCreate",
+          "providerItemId": "toolu_019ie3PuUyUPUohK5aNUZjJ7",
+          "sequence": 41,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:48:34.365Z",
+          "type": "tool.TaskCreate",
+          "output": "Task #1 created successfully: Block 1: Fix Claude adapter aggregated-message reconciliation"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-42",
+          "kind": "event",
+          "label": "TaskCreate",
+          "providerItemId": "toolu_01MJAmGLCmgEGEAgvGa2jk5G",
+          "sequence": 42,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:48:34.859Z",
+          "type": "tool.TaskCreate",
+          "output": "Task #2 created successfully: Block 2: Regression test for partial-then-aggregated interleaving"
+        },
+        {
+          "content": "Claude system event: status",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-43",
+          "kind": "event",
+          "label": "Claude protocol diagnostic",
+          "providerItemId": "diagnostic:msg_011CdoVZpMKt4e8yubzGf2eJ:53",
+          "sequence": 43,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:48:34.863Z",
+          "type": "diagnostic"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nTasks created. Plan below — no edits yet. Await approval.\n\n## Change Plan — B_100 Claude double bubbles\n\n**Root cause.** Per Claude step, wire order (with `--include-partial-messages`): partials (`message_start` → `content_block_start`/`delta`), then one aggregated `assistant`. `handleAssistantCompletion` reconciles the aggregated copy against `this.activeBlocks` by content-array index. But `message_start` of the *next* step clears `activeBlocks`. Aggregated `assistant` for step A arrives *after* B's `message_start` → lookup misses → guard emits fresh `assistantStarted` → `startAssistantItem` makes a second `message` entry with same text = duplicate bubble. Last step never gets clobbered → single bubble. Codex = single-item stream, unaffected.\n\n### Block 1 — `desktop/src/actions/agent/agent_claude_streaming_adapter.js`\n- Constructor: add `this.streamedTextItems = new Map()` — keyed by `providerItemId` (`messageId:text:index`), stores `{ separator }`. Not cleared by `message_start`.\n- `handleContentBlockStart` (text branch): record `this.streamedTextItems.set(providerItemId, { separator })` so the streamed step is findable after `activeBlocks` is wiped.\n- `handleAssistantCompletion` (text branch): look up `streamedTextItems.get(providerItemId)` instead of `activeBlocks.get(index)`. If found → emit only `assistantCompleted` (routes to `replaceAssistantOutput`, in-place, keeps separator). If absent (genuine non-streamed run) → keep current `assistantStarted` + `assistantCompleted`.\n- `handleResult`: clear `this.streamedTextItems` alongside `activeBlocks`.\n\nBehavior: streamed steps reconcile → one bubble each; non-streaming still emits `assistantStarted` (needed to register the item); separators preserved (streamed `''` for first, `'\\n\\n'` for later).\n\n### Block 2 — `desktop/src/actions/agent/agent_streaming_adapter.test.mjs`\nNew test: partials for step A (`message_start` A, text block, delta), then `message_start` B (clears `activeBlocks`), text block + delta for B, then aggregated `assistant` A, aggregated `assistant` B, `result`. Assert exactly two `assistantStarted` (`message-1:text:0`, `message-2:text:0`) and two `assistantCompleted` — A not duplicated — and B keeps its `\\n\\n` separator.\n\n### After implementation\nRun only these tests (`agent_streaming_adapter.test.mjs`; typecheck via `npm run typecheck`). Then set `status: ready` in `C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_100_claude_agent_shows_all_responses_double.md`.\n\nApprove?",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-turn-1-assistant-13",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 44,
+          "timestamp": "2026-08-07T13:48:49.693Z"
+        },
+        {
+          "content": "unsupported Claude event: rate_limit_event",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-45",
+          "kind": "event",
+          "label": "Claude protocol diagnostic",
+          "providerItemId": "diagnostic:msg_011CdoVaczyvHVnK8BPCN6xN:54",
+          "sequence": 45,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:48:49.691Z",
+          "type": "diagnostic"
+        },
+        {
+          "content": "go",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-user-45",
+          "kind": "message",
+          "role": "user",
+          "sequence": 46,
+          "timestamp": "2026-08-07T13:49:31.704Z"
+        },
+        {
+          "content": "Claude system event: status",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-47",
+          "kind": "event",
+          "label": "Claude protocol diagnostic",
+          "providerItemId": "diagnostic:unknown-message:55",
+          "sequence": 47,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:49:31.840Z",
+          "type": "diagnostic"
+        },
+        {
+          "agent": "claude",
+          "content": "Starting Block 1.",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 48,
+          "timestamp": "2026-08-07T13:49:34.370Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-49",
+          "kind": "event",
+          "label": "Edit",
+          "providerItemId": "toolu_01WFeJzdafCdRQxsPqNGZcVB",
+          "sequence": 49,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:49:42.255Z",
+          "type": "fileChange",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\desktop\\src\\actions\\agent\\agent_claude_streaming_adapter.js has been updated successfully. (file state is current in your context — no need to Read it back)"
+        },
+        {
+          "content": "Claude system event: status\nClaude system event: status",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-50",
+          "kind": "event",
+          "label": "Claude protocol diagnostic",
+          "providerItemId": "diagnostic:msg_011CdoVeouBWFa676fKMaZYY:56",
+          "sequence": 50,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:49:42.239Z",
+          "type": "diagnostic"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-51",
+          "kind": "event",
+          "label": "Edit",
+          "providerItemId": "toolu_01LL1jSUKR7JuPFmRQ2zJkU2",
+          "sequence": 51,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:49:47.107Z",
+          "type": "fileChange",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\desktop\\src\\actions\\agent\\agent_claude_streaming_adapter.js has been updated successfully. (file state is current in your context — no need to Read it back)"
+        },
+        {
+          "content": "Claude system event: status",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-52",
+          "kind": "event",
+          "label": "Claude protocol diagnostic",
+          "providerItemId": "diagnostic:msg_011CdoVfZo8w7xsGsz44nL5E:58",
+          "sequence": 52,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:49:47.109Z",
+          "type": "diagnostic"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-53",
+          "kind": "event",
+          "label": "Edit",
+          "providerItemId": "toolu_01SyQZbooMMu9ha8scCah7RC",
+          "sequence": 53,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:49:52.543Z",
+          "type": "fileChange",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\desktop\\src\\actions\\agent\\agent_claude_streaming_adapter.js has been updated successfully. (file state is current in your context — no need to Read it back)"
+        },
+        {
+          "content": "Claude system event: status",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-54",
+          "kind": "event",
+          "label": "Claude protocol diagnostic",
+          "providerItemId": "diagnostic:msg_011CdoVfvogvnxHDCC2mDjsF:59",
+          "sequence": 54,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:49:52.545Z",
+          "type": "diagnostic"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-55",
+          "kind": "event",
+          "label": "Edit",
+          "providerItemId": "toolu_011UQN1eFWtjT82YwWLTrepC",
+          "sequence": 55,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:49:56.347Z",
+          "type": "fileChange",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\desktop\\src\\actions\\agent\\agent_claude_streaming_adapter.js has been updated successfully. (file state is current in your context — no need to Read it back)"
+        },
+        {
+          "content": "Claude system event: status",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-56",
+          "kind": "event",
+          "label": "Claude protocol diagnostic",
+          "providerItemId": "diagnostic:msg_011CdoVgL4g4F6cY3MLKJcWT:60",
+          "sequence": 56,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:49:56.350Z",
+          "type": "diagnostic"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nBlock 1 done. Now Block 2 — regression test.",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 57,
+          "timestamp": "2026-08-07T13:49:59.119Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-58",
+          "kind": "event",
+          "label": "Edit",
+          "providerItemId": "toolu_0127pCsz7NqFw79Yghhk2ZVk",
+          "sequence": 58,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:50:08.094Z",
+          "type": "fileChange",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\desktop\\src\\actions\\agent\\agent_streaming_adapter.test.mjs has been updated successfully. (file state is current in your context — no need to Read it back)"
+        },
+        {
+          "content": "Claude system event: status",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-59",
+          "kind": "event",
+          "label": "Claude protocol diagnostic",
+          "providerItemId": "diagnostic:msg_011CdoVgg7g9uSDLfkLouASy:61",
+          "sequence": 59,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:50:08.100Z",
+          "type": "diagnostic"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nRunning the related tests + typecheck.",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-turn-2-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 60,
+          "timestamp": "2026-08-07T13:50:09.770Z"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-61",
+          "kind": "event",
+          "label": "PowerShell",
+          "providerItemId": "toolu_01TuaNCGjZrL8YezwzTkwM52",
+          "sequence": 61,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:50:37.097Z",
+          "type": "tool.PowerShell",
+          "output": " RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev3/desktop\r\n\r\n\r\n Test Files  1 passed (1)\r\n      Tests  28 passed (28)\r\n   Start at  15:50:36\r\n   Duration  211ms (transform 30ms, setup 0ms, import 66ms, tests 15ms, environment 0ms)"
+        },
+        {
+          "content": "Claude system event: status",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-62",
+          "kind": "event",
+          "label": "Claude protocol diagnostic",
+          "providerItemId": "diagnostic:msg_011CdoVhUWCqQgHTuEWQL2Tp:62",
+          "sequence": 62,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:50:37.101Z",
+          "type": "diagnostic"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nAll 28 pass, incl. new regression test. Typecheck now.",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-turn-2-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 63,
+          "timestamp": "2026-08-07T13:50:39.725Z"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-64",
+          "kind": "event",
+          "label": "PowerShell",
+          "providerItemId": "toolu_01STdjPTjHpgtsYQKjmRbbAj",
+          "sequence": 64,
+          "status": "failed",
+          "timestamp": "2026-08-07T13:50:44.136Z",
+          "type": "tool.PowerShell",
+          "output": "Exit code 1\ncd : Cannot find path 'C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\desktop\\desktop' because it does not exist.\r\nAt line:1 char:1\r\n+ cd desktop; npm run typecheck 2>&1 | Select-Object -Last 20\r\n+ ~~~~~~~~~~\r\n    + CategoryInfo          : ObjectNotFound: (C:\\Users\\janbo\\...desktop\\desktop:String) [Set-Location], ItemNotFoundE \r\n   xception\r\n    + FullyQualifiedErrorId : PathNotFound,Microsoft.PowerShell.Commands.SetLocationCommand\r\n \r\nnode.exe : npm error Missing script: \"typecheck\"\r\nAt C:\\Program Files\\nodejs\\npm.ps1:29 char:3\r\n+   & $NODE_EXE $NPM_CLI_JS $args\r\n+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (npm error Missing script: \"typecheck\":String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError\r\n \r\nnpm error\r\nnpm error To see a list of scripts, run:\r\nnpm error   npm run\r\nnpm error A complete log of this run can be found in: \r\nC:\\Users\\janbo\\AppData\\Local\\npm-cache\\_logs\\2026-08-07T13_50_43_971Z-debug-0.log"
+        },
+        {
+          "content": "Claude system event: status",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-65",
+          "kind": "event",
+          "label": "Claude protocol diagnostic",
+          "providerItemId": "diagnostic:msg_011CdoVjdncKaaJYrMtFtz6J:63",
+          "sequence": 65,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:50:44.138Z",
+          "type": "diagnostic"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-66",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CdoVk9aVpd8EorVEz7D6e:thinking:0",
+          "sequence": 66,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:50:48.306Z",
+          "type": "reasoning",
+          "details": [
+            ""
+          ],
+          "summary": []
+        },
+        {
+          "content": "Claude system event: thinking_tokens\nClaude system event: thinking_tokens",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-67",
+          "kind": "event",
+          "label": "Claude protocol diagnostic",
+          "providerItemId": "diagnostic:msg_011CdoVk9aVpd8EorVEz7D6e:64",
+          "sequence": 67,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:50:46.768Z",
+          "type": "diagnostic"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nCWD is already in desktop. `typecheck` is the app's script (TS); my changes are plain JS in desktop. Let me confirm where typecheck lives.",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-turn-2-assistant-5",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 68,
+          "timestamp": "2026-08-07T13:50:48.308Z"
+        },
+        {
+          "agent": "claude",
+          "content": "CWD is already in desktop. `typecheck` is the app's script (TS); my changes are plain JS in desktop. Let me confirm where typecheck lives.",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-turn-2-assistant-6",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 69,
+          "timestamp": "2026-08-07T13:50:48.308Z"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-70",
+          "kind": "event",
+          "label": "Grep",
+          "providerItemId": "toolu_01ERLDqbfrXHY1sKj3mUeS2j",
+          "sequence": 70,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:50:49.276Z",
+          "type": "tool.Grep",
+          "output": "No files found"
+        },
+        {
+          "content": "Claude system event: status",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-71",
+          "kind": "event",
+          "label": "Claude protocol diagnostic",
+          "providerItemId": "diagnostic:msg_011CdoVk9aVpd8EorVEz7D6e:66",
+          "sequence": 71,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:50:49.279Z",
+          "type": "diagnostic"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-72",
+          "kind": "event",
+          "label": "Grep",
+          "providerItemId": "toolu_01QHPGWHhgzYe897rDuEaUJ9",
+          "sequence": 72,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:50:51.953Z",
+          "type": "tool.Grep",
+          "output": "No matches found"
+        },
+        {
+          "content": "Claude system event: status",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-73",
+          "kind": "event",
+          "label": "Claude protocol diagnostic",
+          "providerItemId": "diagnostic:msg_011CdoVkYGzxXxmVSpsFPxJB:67",
+          "sequence": 73,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:50:51.955Z",
+          "type": "diagnostic"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-74",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CdoVki5rZ9G4iCHxarMBM:thinking:0",
+          "sequence": 74,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:50:55.782Z",
+          "type": "reasoning",
+          "details": [
+            ""
+          ],
+          "summary": []
+        },
+        {
+          "content": "Claude system event: thinking_tokens\nClaude system event: thinking_tokens",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-75",
+          "kind": "event",
+          "label": "Claude protocol diagnostic",
+          "providerItemId": "diagnostic:msg_011CdoVki5rZ9G4iCHxarMBM:68",
+          "sequence": 75,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:50:54.271Z",
+          "type": "diagnostic"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNo `typecheck` script — my changes are plain JS in `desktop/` (no TS). Typecheck N/A here. Tests green.\n\nNow update spec status. Reading current status line in the real file.",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-turn-2-assistant-7",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 76,
+          "timestamp": "2026-08-07T13:50:56.539Z"
+        },
+        {
+          "agent": "claude",
+          "content": "No `typecheck` script — my changes are plain JS in `desktop/` (no TS). Typecheck N/A here. Tests green.\n\nNow update spec status. Reading current status line in the real file.",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-turn-2-assistant-8",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 77,
+          "timestamp": "2026-08-07T13:50:56.540Z"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-78",
+          "kind": "event",
+          "label": "Read",
+          "providerItemId": "toolu_01T4Kf7CqD13qGr69tK6Ajju",
+          "sequence": 78,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:50:57.235Z",
+          "type": "tool.Read",
+          "output": "1\t---\n2\tauthor: \n3\tid: B_100\n4\tinternalId: dda2ae5a-d265-4134-93ab-268b664cb1ae\n5\ttitle: claude agent shows all responses double\n6\tstatus: ready for implementation\n7\towner: "
+        },
+        {
+          "content": "Claude system event: status",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-79",
+          "kind": "event",
+          "label": "Claude protocol diagnostic",
+          "providerItemId": "diagnostic:msg_011CdoVki5rZ9G4iCHxarMBM:70",
+          "sequence": 79,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:50:57.238Z",
+          "type": "diagnostic"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-80",
+          "kind": "event",
+          "label": "Edit",
+          "providerItemId": "toolu_01Q6UZTBx7u2RLBjTHSsANzD",
+          "sequence": 80,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:52:50.168Z",
+          "type": "fileChange",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_100_claude_agent_shows_all_responses_double.md has been updated successfully. (file state is current in your context — no need to Read it back)"
+        },
+        {
+          "content": "Claude system event: status",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-81",
+          "kind": "event",
+          "label": "Claude protocol diagnostic",
+          "providerItemId": "diagnostic:msg_011CdoVm6aT6YgDFAd2kbS5X:71",
+          "sequence": 81,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:52:50.170Z",
+          "type": "diagnostic"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-82",
+          "kind": "event",
+          "label": "TaskUpdate",
+          "providerItemId": "toolu_01QYc95HwAzJgeVr1NyHkJuu",
+          "sequence": 82,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:52:52.789Z",
+          "type": "tool.TaskUpdate",
+          "output": "Updated task #1 status"
+        },
+        {
+          "content": "Claude system event: status",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-83",
+          "kind": "event",
+          "label": "Claude protocol diagnostic",
+          "providerItemId": "diagnostic:msg_011CdoVuTnNymXacuCD9YzfM:72",
+          "sequence": 83,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:52:52.794Z",
+          "type": "diagnostic"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-84",
+          "kind": "event",
+          "label": "TaskUpdate",
+          "providerItemId": "toolu_01CZVCP4FoXffsZrn3Lp4bgm",
+          "sequence": 84,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:52:54.801Z",
+          "type": "tool.TaskUpdate",
+          "output": "Updated task #2 status"
+        },
+        {
+          "content": "Claude system event: status",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-event-85",
+          "kind": "event",
+          "label": "Claude protocol diagnostic",
+          "providerItemId": "diagnostic:msg_011CdoVucu4Tn2xSqr5eyDhQ:73",
+          "sequence": 85,
+          "status": "completed",
+          "timestamp": "2026-08-07T13:52:54.804Z",
+          "type": "diagnostic"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nDone. Both blocks implemented, tests green, spec status → `ready`.\n\n## Summary\n\n**Root cause.** Claude aggregated `assistant` messages were reconciled against `this.activeBlocks` (keyed by content-array index), but `message_start` of the next step clears `activeBlocks`. A late aggregated copy missed the lookup → guard emitted a fresh `assistantStarted` → second `message` entry = duplicate bubble. Last step escaped (nothing advances past it).\n\n**Fix — `agent_claude_streaming_adapter.js`:**\n- New `this.streamedTextItems` Map, keyed by stable `providerItemId` (`messageId:text:index`), storing `{ separator }`. Survives `message_start` clears.\n- `handleContentBlockStart` (text): records the streamed item.\n- `handleAssistantCompletion` (text): reconciles via `streamedTextItems` instead of `activeBlocks`-by-index. Found → `assistantCompleted` only (in-place replace, separator preserved). Absent (non-streaming) → keeps `assistantStarted` + `assistantCompleted`.\n- `handleResult`: clears the new Map at turn end.\n\n**Test — `agent_streaming_adapter.test.mjs`:** new case streams step A, fires B's `message_start` (clears `activeBlocks`), then both aggregated `assistant` messages. Asserts exactly two `assistantStarted` and two `assistantCompleted` — A not duplicated — with B's `\\n\\n` separator intact.\n\n**Result:** 28/28 pass. No `typecheck` script exists and changes are plain JS, so typecheck N/A. Codex path untouched.",
+          "id": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-turn-2-assistant-9",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 86,
+          "timestamp": "2026-08-07T13:53:04.007Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-4f096003-7161-4313-8b1a-06bce7bf8fdd",
+      "providerSessions": [
+        {
+          "agent": "claude",
+          "conversationId": "a87dd303-d2fe-45de-b9b6-e3a77f13a70b",
+          "createdAt": "2026-08-07T13:48:49.693Z",
+          "lastUsedAt": "2026-08-07T13:53:04.007Z",
+          "synchronizedThroughMessageId": "agent-turn-3c83b37c-97e1-45b9-a0d3-20edea821fc6-turn-2-assistant-9"
+        }
+      ],
+      "startedAt": "2026-08-07T13:46:57.399Z",
+      "status": "completed",
+      "title": "implement",
+      "viewed": true,
+      "usage": {
+        "cachedInputTokens": 1381744,
+        "inputTokens": 8292,
+        "outputTokens": 11411,
+        "reasoningTokens": 0,
+        "totalTokens": 1401447,
+        "costUsd": 3.6536515000000005
+      }
     }
   ],
   "origin": {
@@ -1737,11 +2722,11 @@
         "agent-3ab3367c-b2f1-4230-8beb-2aa055754784"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "approvalPolicy": "default",
         "model": "opus",
-        "thinkingLevel": "none",
-        "type": "agent"
+        "thinkingLevel": "none"
       },
       "runId": "action-c3965bae-addd-46fa-b970-76b08c6f38f3",
       "origin": {
@@ -1750,9 +2735,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-3ab3367c-b2f1-4230-8beb-2aa055754784",
       "startedAt": "2026-08-07T13:32:44.500Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-3ab3367c-b2f1-4230-8beb-2aa055754784"
     }
   ],
   "version": 2
