@@ -1302,16 +1302,16 @@
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-b2eaf0cc-a80b-4021-9536-7c3b355631b1-event-2",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_05480e3fb26f0d74016a761539ebbc8191a258a46795547fac",
           "sequence": 2,
           "status": "inProgress",
+          "summary": [],
           "timestamp": "2026-08-07T17:26:15.973Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         }
       ],
       "hasExplicitTitle": true,
@@ -1364,6 +1364,31 @@
       "startedAt": "2026-08-07T17:15:17.768Z",
       "status": "completed",
       "rootConversationId": "agent-224acbad-0ba9-4967-9f6b-d3273674e8c7"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-08-07T17:26:18.744Z",
+      "conversationIds": [
+        "agent-56e11400-ba5b-46c5-99c0-89f0922aa940"
+      ],
+      "details": {
+        "accessLevel": "workspace-write",
+        "agent": "codex",
+        "approvalPolicy": "on-request",
+        "model": "gpt-5.5",
+        "thinkingLevel": "none",
+        "type": "agent"
+      },
+      "runId": "action-7e5c75bc-beda-4b59-83ce-51b6c8630675",
+      "origin": {
+        "cardInternalId": "c0571d27-a3f8-41bd-9a3b-861c7969f9af",
+        "kind": "card"
+      },
+      "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
+      "rootActionLabel": "implement",
+      "rootConversationId": "agent-56e11400-ba5b-46c5-99c0-89f0922aa940",
+      "startedAt": "2026-08-07T17:26:11.788Z",
+      "status": "cancelled"
     }
   ],
   "version": 2
