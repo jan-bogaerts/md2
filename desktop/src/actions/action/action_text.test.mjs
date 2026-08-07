@@ -15,14 +15,14 @@ describe('resolvePlaceholders', () => {
         const context = { file: 'design/card.md', title: 'Placeholder support' };
 
         expect(resolvePlaceholders(
-            '{{worktree-folder}} {{repository-folder}} {{project-folder}} {{releases-folder}} {{card-file}} {{card-title}} {{card-prompt}}',
+            '{{worktree-folder}} {{repository-folder}} {{project-folder}} {{releases-folder}} {{card-file}} {{ this-card }} {{card-title}} {{card-prompt}}',
             context,
             worktreeProject,
             project,
             projectFolder,
             releasesFolder,
             'focus',
-        )).toBe(`C:/worktrees/2 C:/repo ${path.resolve('C:/repo', projectFolder)} ${path.resolve('C:/repo', releasesFolder)} design/card.md Placeholder support focus`);
+        )).toBe(`C:/worktrees/2 C:/repo ${path.resolve('C:/repo', projectFolder)} ${path.resolve('C:/repo', releasesFolder)} design/card.md design/card.md Placeholder support focus`);
     });
 
     it('resolves empty project folder to the opened repository', () => {
@@ -44,8 +44,9 @@ describe('resolvePlaceholders', () => {
         expect(() => resolvePlaceholders('{{releases-folder}}', {}, project, project, projectFolder, '', '')).toThrow('configured releases folder');
     });
 
-    it('rejects card-file placeholder without file context', () => {
-        expect(() => resolvePlaceholders('{{card-file}}', { kind: 'project' }, project, project, projectFolder, releasesFolder, '')).toThrow('Cannot resolve card-file placeholder');
+    it.each(['card-file', 'this-card'])('rejects %s placeholder without file context', (placeholderName) => {
+        expect(() => resolvePlaceholders(`{{${placeholderName}}}`, { kind: 'project' }, project, project, projectFolder, releasesFolder, ''))
+            .toThrow(`Cannot resolve ${placeholderName} placeholder without a file context`);
     });
 
     it('rejects card-title placeholder without card title', () => {
@@ -74,10 +75,10 @@ describe('resolveAgentPrompt', () => {
 
 describe('prepareAgentPrompt', () => {
     it('includes resolved placeholders and tracked-file instruction', () => {
-        const action = { prompt: 'Review {{card-file}} in {{worktree-folder}}', trackFileChanges: true };
+        const action = { prompt: 'Review {{card-file}} and {{this-card}} in {{worktree-folder}}', trackFileChanges: true };
 
         expect(prepareAgentPrompt(action, { file: 'design/card.md' }, project, project, projectFolder, releasesFolder)).toBe(
-            'Review design/card.md in C:/repo\n\nDo not stage or commit changes. md2 will commit files captured from provider edit tools.',
+            'Review design/card.md and design/card.md in C:/repo\n\nDo not stage or commit changes. md2 will commit files captured from provider edit tools.',
         );
     });
 

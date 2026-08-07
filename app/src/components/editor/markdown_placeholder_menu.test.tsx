@@ -19,7 +19,9 @@ describe('MarkdownPlaceholderMenu', () => {
     afterEach(cleanup)
 
     it('renders above the owning popup stack layer and keeps option selection', () => {
-        const option = new MarkdownPlaceholderOption(ACTION_PROMPT_PLACEHOLDERS[0])
+        const thisCardPlaceholder = ACTION_PROMPT_PLACEHOLDERS.find(({ name }) => name === 'this-card')
+        if (!thisCardPlaceholder) throw new Error('Missing this-card placeholder')
+        const option = new MarkdownPlaceholderOption(thisCardPlaceholder)
         const onSelect = vi.fn()
 
         render(
@@ -44,7 +46,7 @@ describe('MarkdownPlaceholderMenu', () => {
         expect(Number.parseInt(getComputedStyle(menuSurface).zIndex, 10))
             .toBe(Number.parseInt(getComputedStyle(popupLayer).zIndex, 10) + 1)
 
-        fireEvent.click(screen.getByRole('option', { name: /card-file/u }))
+        fireEvent.click(screen.getByRole('option', { name: /this-card/u }))
         expect(onSelect).toHaveBeenCalledExactlyOnceWith(option)
     })
 })

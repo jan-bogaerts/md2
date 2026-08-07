@@ -131,12 +131,12 @@ describe('ActionAgentExecutor', () => {
             project: runProject,
             runInput: {
                 extraPrompt: 'focus',
-                prompt: 'Review {{card-file}} in {{worktree-folder}} for {{repository-folder}} project {{project-folder}} releases {{releases-folder}}: {{card-prompt}} {{unknown}}',
+                prompt: 'Review {{card-file}} and {{this-card}} in {{worktree-folder}} for {{repository-folder}} project {{project-folder}} releases {{releases-folder}}: {{card-prompt}} {{unknown}}',
             },
         }));
 
         expect(agentRunnerService.start.mock.calls[0][1].prompt).toBe(
-            `Review design/card.md in C:/worktree for C:/repo project ${path.resolve('C:/repo', 'design')} releases ${path.resolve('C:/repo', 'design/releases')}: focus {{unknown}}`,
+            `Review design/card.md and design/card.md in C:/worktree for C:/repo project ${path.resolve('C:/repo', 'design')} releases ${path.resolve('C:/repo', 'design/releases')}: focus {{unknown}}`,
         );
     });
 
@@ -150,14 +150,14 @@ describe('ActionAgentExecutor', () => {
         expect(agentRunnerService.start.mock.calls[0][1].prompt).toBe(preparedPrompt);
     });
 
-    it('rejects a root prompt with missing placeholder context before process start', async () => {
+    it.each(['card-file', 'this-card'])('rejects a root prompt with missing %s context before process start', async (placeholderName) => {
         const { agentRunnerService, executor } = createExecutor();
 
         await expect(executor.execute(executionInput({
             activityOrigin: { kind: 'project' },
             context: { kind: 'project' },
-            runInput: { extraPrompt: '', prompt: 'Review {{card-file}}' },
-        }))).rejects.toThrow('Cannot resolve card-file placeholder without a file context');
+            runInput: { extraPrompt: '', prompt: `Review {{${placeholderName}}}` },
+        }))).rejects.toThrow(`Cannot resolve ${placeholderName} placeholder without a file context`);
         expect(agentRunnerService.start).not.toHaveBeenCalled();
     });
 

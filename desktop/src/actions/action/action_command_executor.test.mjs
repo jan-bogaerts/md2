@@ -124,7 +124,7 @@ describe('executeCommandAction', () => {
         });
         const onOutput = vi.fn();
         const input = {
-            action: { command: 'run {{worktree-folder}} {{repository-folder}} {{project-folder}} {{releases-folder}} {{card-file}} {{card-prompt}}' },
+            action: { command: 'run {{worktree-folder}} {{repository-folder}} {{project-folder}} {{releases-folder}} {{card-file}} {{this-card}} {{card-prompt}}' },
             commandRunner,
             context: { file: 'design/card.md' },
             extraPrompt: 'focus',
@@ -136,9 +136,28 @@ describe('executeCommandAction', () => {
             signal: new AbortController().signal,
         };
 
-        const command = `run C:/repo C:/repo ${resolve('C:/repo', 'design')} ${resolve('C:/repo', 'design/releases')} design/card.md focus`;
+        const command = `run C:/repo C:/repo ${resolve('C:/repo', 'design')} ${resolve('C:/repo', 'design/releases')} design/card.md design/card.md focus`;
 
         await expect(executeCommandAction(input)).resolves.toMatchObject({ command });
         expect(onOutput).toHaveBeenCalledWith({ command, stderr: '', stdout: 'chunk' });
+    });
+
+    it.each(['card-file', 'this-card'])('rejects missing %s context before command start', async (placeholderName) => {
+        const commandRunner = vi.fn();
+        const input = {
+            action: { command: `run {{${placeholderName}}}` },
+            commandRunner,
+            context: { kind: 'project' },
+            extraPrompt: '',
+            onOutput: vi.fn(),
+            primaryProject: { rootPath: 'C:/repo' },
+            project: { rootPath: 'C:/repo' },
+            projectFolder: 'design',
+            releasesFolder: 'design/releases',
+            signal: new AbortController().signal,
+        };
+
+        expect(() => executeCommandAction(input)).toThrow(`Cannot resolve ${placeholderName} placeholder without a file context`);
+        expect(commandRunner).not.toHaveBeenCalled();
     });
 });

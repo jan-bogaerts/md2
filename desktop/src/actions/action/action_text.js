@@ -2,7 +2,7 @@ const path = require('node:path');
 const { requireRootPath } = require('../../git/git_commands');
 
 const FOLDER_PLACEHOLDER_NAMES = 'worktree-folder|repository-folder|project-folder|releases-folder';
-const CARD_PLACEHOLDER_NAMES = 'card-file|card-title|card-prompt';
+const CARD_PLACEHOLDER_NAMES = 'card-file|this-card|card-title|card-prompt';
 const PLACEHOLDER_PATTERN = new RegExp(`\\{\\{\\s*(${FOLDER_PLACEHOLDER_NAMES}|${CARD_PLACEHOLDER_NAMES})\\s*\\}\\}`, 'gu');
 const CARD_PROMPT_PLACEHOLDER_PATTERN = /\{\{\s*card-prompt\s*\}\}/u;
 const TRACKED_FILE_COMMIT_INSTRUCTION = 'Do not stage or commit changes. md2 will commit files captured from provider edit tools.';
@@ -33,7 +33,7 @@ function resolvePlaceholders(text, context, runProject, primaryProject, projectF
 
             return context.title;
         }
-        if (!context.file) throw new Error('Cannot resolve card-file placeholder without a file context');
+        if (!context.file) throw new Error(`Cannot resolve ${name} placeholder without a file context`);
 
         return context.file;
     });

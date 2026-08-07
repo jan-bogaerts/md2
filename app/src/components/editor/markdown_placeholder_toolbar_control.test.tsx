@@ -18,11 +18,11 @@ describe('MarkdownPlaceholderToolbarControl', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'Insert placeholder' }))
         const menu = screen.getByRole('menu')
-        fireEvent.click(within(menu).getByRole('menuitem', { name: /card-file/u }))
+        fireEvent.click(within(menu).getByRole('menuitem', { name: /this-card/u }))
 
         expect(activeEditor.dispatchCommand).toHaveBeenCalledExactlyOnceWith(
             CONTROLLED_TEXT_INSERTION_COMMAND,
-            '{{card-file}}',
+            '{{this-card}}',
         )
         expect(activeEditor.focus).toHaveBeenCalledOnce()
         expect(screen.queryByRole('menu')).not.toBeInTheDocument()
@@ -35,6 +35,7 @@ describe('MarkdownPlaceholderToolbarControl', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Insert placeholder' }))
 
         const menu = within(screen.getByRole('menu'))
+        expect(menu.getByRole('menuitem', { name: /this-card.*alias of.*card-file/iu })).toBeInTheDocument()
         expect(menu.getByRole('menuitem', { name: /worktree-folder/u })).toBeInTheDocument()
         expect(menu.getByRole('menuitem', { name: /repository-folder/u })).toBeInTheDocument()
         expect(menu.getByRole('menuitem', { name: /project-folder/u })).toBeInTheDocument()

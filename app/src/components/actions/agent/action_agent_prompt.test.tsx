@@ -78,6 +78,7 @@ describe('ActionAgentPrompt', () => {
             'data-placeholders',
             ACTION_PROMPT_PLACEHOLDERS.map(({ name }) => name).join(','),
         )
+        expect(screen.getByLabelText('Markdown prompt').getAttribute('data-placeholders')).toContain('this-card')
     })
 
     it('keeps typing local and synchronizes the prompt on blur', () => {
