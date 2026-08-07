@@ -147,6 +147,7 @@ class ClaudeStreamingAdapter {
         this.providerConversationId = providerConversationId;
         this.rootPath = rootPath;
         this.activeBlocks = new Map();
+        this.streamedTextItems = new Map();
         this.activeMessageId = null;
         this.diagnosticSequence = 1;
         this.turnStarted = false;
@@ -288,6 +289,9 @@ class ClaudeStreamingAdapter {
         const trackedBlock = { block, inputJson: '', providerItemId, separator, text: block.text ?? block.thinking ?? '' };
         this.activeBlocks.set(streamEvent.index, trackedBlock);
         if (block.type === 'text') {
+            // Keyed by stable providerItemId so the later aggregated `assistant` message reconciles
+            // even after `message_start` of the next step has cleared `activeBlocks`.
+            this.streamedTextItems.set(providerItemId, { separator });
             await this.onEvent({ itemId: providerItemId, type: 'assistantStarted' });
             if (separator.length > 0) await this.onEvent({ content: separator, itemId: providerItemId, type: 'assistant' });
             return;
@@ -349,9 +353,9 @@ class ClaudeStreamingAdapter {
         for (const [index, block] of event.message.content.entries()) {
             const providerItemId = block.id ?? `${messageId}:${block.type}:${index}`;
             if (block.type === 'text' && typeof block.text === 'string') {
-                const trackedBlock = this.activeBlocks.get(index);
-                const separator = trackedBlock?.separator ?? (this.turnHasAssistantText ? '\n\n' : '');
-                if (!trackedBlock || trackedBlock.providerItemId !== providerItemId) {
+                const streamedItem = this.streamedTextItems.get(providerItemId);
+                const separator = streamedItem?.separator ?? (this.turnHasAssistantText ? '\n\n' : '');
+                if (!streamedItem) {
                     await this.onEvent({ itemId: providerItemId, type: 'assistantStarted' });
                 }
                 this.turnHasAssistantText = this.turnHasAssistantText || block.text.length > 0;
@@ -401,6 +405,7 @@ class ClaudeStreamingAdapter {
             await this.onEvent({ requestId, type: 'approvalResolved' });
         }
         this.activeBlocks.clear();
+        this.streamedTextItems.clear();
         this.activeMessageId = null;
         this.pendingQuestions.clear();
         this.turnStarted = false;
