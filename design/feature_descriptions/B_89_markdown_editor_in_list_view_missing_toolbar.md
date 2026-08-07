@@ -3,7 +3,7 @@ author:
 id: B_89
 internalId: dfbc6cef-75cf-4a68-8e34-e72a7724769e
 title: markdown editor in list view missing toolbar
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,7 +11,7 @@ agents:
   - design/activity/card__dfbc6cef-75cf-4a68-8e34-e72a7724769e.json#conversation=agent-8f3d7046-8339-4417-9b21-e83ce505b181
   - design/activity/card__dfbc6cef-75cf-4a68-8e34-e72a7724769e.json#conversation=agent-f6e5390e-b61e-4c14-bcab-87fb50f878ae
 policy:
-after: db0d6a75-3aa8-49ef-b855-a0cd4253e25d
+after: dbf63724-048c-44ff-ae98-534c1b37a68e
 branch: b_89_markdown_editor_in_list_view_missing_toolbar
 worktree: 2
 ---
