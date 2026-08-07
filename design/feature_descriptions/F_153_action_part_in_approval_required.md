@@ -45,3 +45,31 @@ This is the text shown in the drawer shown when an agent requests for approval:
 This is very long. now 'command' is already displayed with `...` but not `actions`, this should also use ...
 
 next, drop `provider`, we already know this. `environment` local, is there another value possible? don't think so, so drop it.&#x20;
+
+## Current state
+
+`approvalDetails()` in `action_agent_approval.tsx` builds an ordered list of detail rows from the `LiveAgentApproval` object. It unconditionally pushes a `Provider` row when `approval.provider` is set, and an `Environment` row when `approval.environmentId` is set. Both rows always appear if the fields are present.
+
+`Command` already has expand/collapse behavior: the row renders as a button; when collapsed the value shows on one line with CSS `text-overflow: ellipsis` and `white-space: nowrap`; clicking expands to `white-space: pre-wrap` and `overflow-wrap: anywhere`. State is tracked in a component-level `commandExpanded` boolean.
+
+`Actions` has no such toggle. Each item in the `commandActionLabels` array is rendered as a plain `<Box component="code">` with `white-space: pre-wrap` and `overflow-wrap: anywhere`, so all items are always fully visible regardless of length.
+
+## Implementation details
+
+- In `approvalDetails()`, remove the `Provider` push (`if (approval.provider) ...`) entirely. Never show it.
+- In `approvalDetails()`, remove the `Environment` push (`if (approval.environmentId) ...`) entirely. Never show it.
+- Add an `actionsExpanded` boolean state (default `false`) alongside the existing `commandExpanded` state.
+- In the render loop, when `label === 'Actions'`, wrap the values block in a toggle section: attach a click handler that toggles `actionsExpanded`, and set `aria-expanded` on the toggle control.
+- When `actionsExpanded` is false, each action item renders with `white-space: nowrap` and `text-overflow: ellipsis` (one line per item, text cut with ellipsis). When true, each item renders with `white-space: pre-wrap` and `overflow-wrap: anywhere` (full text). Use the same CSS shape as the Command toggle.
+- The toggle affordance sits on the `Actions` label row (caption level), not on individual items. One click expands or collapses all items together.
+- Command expand/collapse is unchanged.
+
+## Acceptance criteria
+
+- `Provider` row never appears in the approval drawer, even when `approval.provider` is set.
+- `Environment` row never appears in the approval drawer, even when `approval.environmentId` is set.
+- `Actions` section is collapsed by default: each action item shows on a single line truncated with ellipsis.
+- Clicking the `Actions` toggle expands all items to full text simultaneously.
+- Clicking the toggle again collapses all items back to single-line ellipsis.
+- The `Actions` toggle control exposes correct `aria-expanded` (`false` collapsed, `true` expanded).
+- `Command` expand/collapse behavior is unchanged.
