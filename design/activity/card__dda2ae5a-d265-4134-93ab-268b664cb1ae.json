@@ -2746,11 +2746,11 @@
         "agent-4f096003-7161-4313-8b1a-06bce7bf8fdd"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "approvalPolicy": "default",
         "model": "opus",
-        "thinkingLevel": "none",
-        "type": "agent"
+        "thinkingLevel": "none"
       },
       "runId": "action-f348f4bc-d9c2-4f28-b80e-dc3cbac83e17",
       "origin": {
@@ -2759,9 +2759,32 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-4f096003-7161-4313-8b1a-06bce7bf8fdd",
       "startedAt": "2026-08-07T13:46:57.398Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-4f096003-7161-4313-8b1a-06bce7bf8fdd"
+    },
+    {
+      "commits": [
+        {
+          "commit": "7ba8c0d48551d3cde21fc2fa165774dfd0f78336",
+          "committedAt": "2026-08-07T16:02:58+02:00",
+          "deletions": 3,
+          "filePaths": [
+            "desktop/src/actions/agent/agent_claude_streaming_adapter.js",
+            "desktop/src/actions/agent/agent_streaming_adapter.test.mjs"
+          ],
+          "filesChanged": 2,
+          "insertions": 42,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-07T16:02:58+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "dda2ae5a-d265-4134-93ab-268b664cb1ae",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 2
