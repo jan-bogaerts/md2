@@ -10,5 +10,4 @@ agents:
 policy:
 after: a529defa-f2ad-4307-923b-856a8ce80243
 ---
-
 while an agent is running, it produces 'diff's for updating files. This allows us to see how many lines are changed. we should show this to the user
