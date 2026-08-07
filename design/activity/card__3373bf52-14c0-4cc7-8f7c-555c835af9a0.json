@@ -1,0 +1,69 @@
+{
+  "conversations": [
+    {
+      "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "cardInternalId": "3373bf52-14c0-4cc7-8f7c-555c835af9a0",
+      "cardPath": "design/feature_descriptions/F_119_add_merge_conflict_resolver_support.md",
+      "completedAt": "2026-08-07T16:55:08.196Z",
+      "entries": [
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/F_119_add_merge_conflict_resolver_support.md`.&#x20;\n\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill\n\nDo not stage or commit changes. md2 will commit files captured from provider edit tools.",
+          "id": "agent-turn-579cbb87-eda3-4f71-84fd-37ec88dc0e0e-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-08-07T16:55:05.895Z"
+        },
+        {
+          "content": "Claude system event: hook_started\nClaude system event: hook_response\nClaude system event: status\nunsupported Claude event: rate_limit_event",
+          "id": "agent-turn-579cbb87-eda3-4f71-84fd-37ec88dc0e0e-event-2",
+          "kind": "event",
+          "label": "Claude protocol diagnostic",
+          "providerItemId": "diagnostic:unknown-message:1",
+          "sequence": 2,
+          "status": "completed",
+          "timestamp": "2026-08-07T16:55:07.210Z",
+          "type": "diagnostic"
+        },
+        {
+          "agent": "claude",
+          "content": "You've hit your monthly spend limit · raise it at claude.ai/settings/usage",
+          "id": "agent-turn-579cbb87-eda3-4f71-84fd-37ec88dc0e0e-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 3,
+          "timestamp": "2026-08-07T16:55:08.196Z"
+        },
+        {
+          "content": "You've hit your monthly spend limit · raise it at claude.ai/settings/usage",
+          "id": "agent-turn-579cbb87-eda3-4f71-84fd-37ec88dc0e0e-error-3",
+          "kind": "event",
+          "sequence": 4,
+          "timestamp": "2026-08-07T16:55:08.005Z",
+          "type": "error"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-dd3c8056-cd7b-4a3a-bbf8-c0276e0093a6",
+      "providerSessions": [],
+      "startedAt": "2026-08-07T16:55:05.895Z",
+      "status": "failed",
+      "title": "complete",
+      "viewed": true,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 0,
+        "costUsd": 0
+      }
+    }
+  ],
+  "origin": {
+    "cardInternalId": "3373bf52-14c0-4cc7-8f7c-555c835af9a0",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 2
+}
