@@ -3,13 +3,16 @@ author:
 id: B_89
 internalId: dfbc6cef-75cf-4a68-8e34-e72a7724769e
 title: markdown editor in list view missing toolbar
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
   - design/activity/card__dfbc6cef-75cf-4a68-8e34-e72a7724769e.json#conversation=agent-a28f904e-4e39-4eea-a990-4a406f5a08d6
   - design/activity/card__dfbc6cef-75cf-4a68-8e34-e72a7724769e.json#conversation=agent-8f3d7046-8339-4417-9b21-e83ce505b181
 policy:
+after: db0d6a75-3aa8-49ef-b855-a0cd4253e25d
+branch: b_89_markdown_editor_in_list_view_missing_toolbar
+worktree: 2
 ---
 
 When a markdown file, located in a regular folder, is opened, there is no toolbar shown.
