@@ -3,12 +3,12 @@ author:
 id: F_112
 internalId: 01c2c981-7ead-4c33-b999-03a69c6812e9
 title: duplicate custom prompt buttons
-status: new
+status: design
 owner: 
 affects:
 agents:
 policy:
-after: a529defa-f2ad-4307-923b-856a8ce80243
+after: db0d6a75-3aa8-49ef-b855-a0cd4253e25d
 ---
 
 On the action popup, we currently  have 2 ways to use custom prompts:
