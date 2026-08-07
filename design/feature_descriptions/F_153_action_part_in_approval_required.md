@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__05d5d49c-401f-42cd-b3cc-074e169631dd.json#conversation=agent-2322e64a-9c75-4d08-b6cd-9b3d966b498b
 policy:
 ---
 This is the text shown in the drawer shown when an agent requests for approval:
