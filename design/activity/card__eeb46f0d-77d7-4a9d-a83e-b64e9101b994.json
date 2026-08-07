@@ -1185,12 +1185,12 @@
         "agent-f6461aaf-f8cb-4b44-bbc9-ca1b36c901d3"
       ],
       "details": {
+        "type": "agent",
         "accessLevel": "workspace-write",
         "agent": "codex",
         "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-71449589-1237-4b2c-8a27-b7ea28709d9c",
       "origin": {
@@ -1199,9 +1199,31 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-f6461aaf-f8cb-4b44-bbc9-ca1b36c901d3",
       "startedAt": "2026-08-07T09:40:02.314Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-f6461aaf-f8cb-4b44-bbc9-ca1b36c901d3"
+    },
+    {
+      "commits": [
+        {
+          "commit": "b06519a684efa7e15a083a877e1cca4c4be96d1d",
+          "committedAt": "2026-08-07T11:52:43+02:00",
+          "deletions": 0,
+          "filePaths": [
+            "app/src/services/actions/electron_action_runner.node.test.ts"
+          ],
+          "filesChanged": 1,
+          "insertions": 13,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-07T11:52:43+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "eeb46f0d-77d7-4a9d-a83e-b64e9101b994",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 2
