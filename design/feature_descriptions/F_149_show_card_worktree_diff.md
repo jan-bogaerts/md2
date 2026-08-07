@@ -3,7 +3,7 @@ author: JB
 id: F_149
 internalId: 290f3413-3d14-4ec2-b97d-e2522c3c1057
 title: Show card worktree diff before integration
-status: ready
+status: ready for implementation
 owner:
 affects:
   - desktop/src/git/diff_service.js
@@ -18,7 +18,6 @@ affects:
 agents:
   - design/activity/card__290f3413-3d14-4ec2-b97d-e2522c3c1057.json#conversation=agent-14d9ac4c-511b-4a31-9aa5-5426d3082bc2
 policy:
-after: 63ee96f0-2707-4a40-80df-dab5b0efda35
 ---
 
 ## Problem
