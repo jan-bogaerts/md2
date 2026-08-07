@@ -3,6 +3,7 @@ const { normalizedContent } = require('./agent_event_utils');
 const MAX_EVENT_CONTENT_LENGTH = 16_384;
 const MAX_EVENT_FIELDS = 12;
 const TRUNCATED_EVENT_SUFFIX = '\n[event content truncated]';
+const UNIFIED_DIFF_HUNK_PATTERN = /^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/u;
 const SUPPORTED_CODEX_ITEM_TYPES = new Set([
     'collabAgentToolCall',
     'commandExecution',
@@ -99,6 +100,58 @@ function fileChangeContent(changes) {
         .join('\n');
 }
 
+/** Count content-line additions and removals in one structurally valid unified diff. */
+function countUnifiedDiffLines(diff) {
+    if (typeof diff !== 'string' || diff.length === 0) return null;
+
+    let deletions = 0;
+    let foundHunk = false;
+    let insertions = 0;
+    let oldLinesRemaining = 0;
+    let newLinesRemaining = 0;
+    for (const line of diff.replace(/\r/gu, '').split('\n')) {
+        if (oldLinesRemaining === 0 && newLinesRemaining === 0) {
+            const match = UNIFIED_DIFF_HUNK_PATTERN.exec(line);
+            if (!match) continue;
+
+            foundHunk = true;
+            oldLinesRemaining = Number.parseInt(match[2] ?? '1', 10);
+            newLinesRemaining = Number.parseInt(match[4] ?? '1', 10);
+            continue;
+        }
+        if (line.startsWith('\\ No newline at end of file')) continue;
+        if (line.startsWith('+')) {
+            insertions += 1;
+            newLinesRemaining -= 1;
+        } else if (line.startsWith('-')) {
+            deletions += 1;
+            oldLinesRemaining -= 1;
+        } else if (line.startsWith(' ')) {
+            oldLinesRemaining -= 1;
+            newLinesRemaining -= 1;
+        } else {
+            return null;
+        }
+        if (oldLinesRemaining < 0 || newLinesRemaining < 0) return null;
+    }
+    if (!foundHunk || oldLinesRemaining !== 0 || newLinesRemaining !== 0) return null;
+
+    return { deletions, insertions };
+}
+
+function fileChangeLineUsage(changes) {
+    if (!Array.isArray(changes)) return null;
+    const countedDiffs = changes
+        .map(({ diff }) => countUnifiedDiffLines(diff))
+        .filter((usage) => usage !== null);
+    if (countedDiffs.length === 0) return null;
+
+    return countedDiffs.reduce((total, usage) => ({
+        deletions: total.deletions + usage.deletions,
+        insertions: total.insertions + usage.insertions,
+    }), { deletions: 0, insertions: 0 });
+}
+
 function toolResult(item) {
     if (item.error?.message) return item.error.message;
     if (item.result) {
@@ -148,9 +201,13 @@ function commandEvent(item, lifecycleStatus) {
 }
 
 function fileEvent(item, lifecycleStatus) {
+    const status = itemStatus(item, lifecycleStatus);
+    const lineUsage = status === 'completed' ? fileChangeLineUsage(item.changes) : null;
+
     return {
         ...eventBase(item, lifecycleStatus, 'File changes'),
         content: fileChangeContent(item.changes),
+        ...(lineUsage ?? {}),
     };
 }
 
@@ -271,6 +328,7 @@ function systemEvent(method, params) {
 }
 
 module.exports = {
+    countUnifiedDiffLines,
     diagnosticEvent,
     normalizeCodexEvent,
     systemEvent,

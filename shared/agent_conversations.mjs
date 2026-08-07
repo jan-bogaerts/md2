@@ -18,6 +18,10 @@ function optionalInteger(value) {
     return Number.isSafeInteger(value) ? value : null
 }
 
+function optionalNonNegativeInteger(value) {
+    return Number.isSafeInteger(value) && value >= 0 ? value : null
+}
+
 function optionalNumber(value) {
     return typeof value === 'number' && Number.isFinite(value) ? value : null
 }
@@ -55,9 +59,11 @@ function normalizeEvent(value) {
     const type = optionalString(value.type)
     if (!id || !timestamp || !type) return null
     const command = optionalString(value.command)
+    const deletions = optionalNonNegativeInteger(value.deletions)
     const details = optionalStringArray(value.details)
     const durationMs = optionalNumber(value.durationMs)
     const exitCode = optionalInteger(value.exitCode)
+    const insertions = optionalNonNegativeInteger(value.insertions)
     const label = optionalString(value.label)
     const output = typeof value.output === 'string' ? value.output : null
     const providerItemId = optionalString(value.providerItemId)
@@ -69,10 +75,12 @@ function normalizeEvent(value) {
     return {
         ...(command ? { command } : {}),
         content: value.content,
+        ...(deletions !== null ? { deletions } : {}),
         ...(details ? { details } : {}),
         ...(durationMs !== null ? { durationMs } : {}),
         ...(exitCode !== null ? { exitCode } : {}),
         id,
+        ...(insertions !== null ? { insertions } : {}),
         kind: 'event',
         ...(label ? { label } : {}),
         ...(output !== null ? { output } : {}),

@@ -268,10 +268,12 @@ export interface AgentProviderSession {
 export interface AgentConversationEvent {
     command?: string
     content: string
+    deletions?: number
     details?: string[]
     durationMs?: number
     exitCode?: number
     id: string
+    insertions?: number
     label?: string
     output?: string
     providerItemId?: string

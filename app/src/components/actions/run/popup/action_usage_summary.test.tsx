@@ -44,10 +44,39 @@ function historyEntry(commits: CommitReference[], status: ActionRunHistoryEntry[
 }
 
 describe('ActionUsageSummary', () => {
+    it('shows cumulative added and removed lines for displayed conversation only', () => {
+        const displayedConversation = {
+            ...conversation('implement', 'card-1', 12),
+            entries: [
+                {
+                    content: 'first edit', deletions: 1, id: 'file-1', insertions: 2, kind: 'event' as const,
+                    providerItemId: 'file-1', status: 'completed', timestamp: 'first', type: 'fileChange',
+                },
+                {
+                    content: 'same line edited again', deletions: 2, id: 'file-2', insertions: 3, kind: 'event' as const,
+                    providerItemId: 'file-2', status: 'completed', timestamp: 'second', type: 'fileChange',
+                },
+            ],
+        }
+
+        render(<ActionUsageSummary
+            actionId="implement"
+            cardInternalId="card-1"
+            conversation={displayedConversation}
+            conversations={[displayedConversation, conversation('implement', 'card-1', 20)]}
+            history={[]}
+        />)
+
+        expect(screen.getByText('changes: +5 / -3')).toBeInTheDocument()
+        expect(screen.getByText('tokens: 32')).toBeInTheDocument()
+        expect(screen.queryByText(/lines:/u)).not.toBeInTheDocument()
+    })
+
     it('shows filtered tokens and hides lines when history has no commits', () => {
         render(<ActionUsageSummary
             actionId="implement"
             cardInternalId="card-1"
+            conversation={null}
             conversations={[
                 conversation('implement', 'card-1', 12),
                 conversation('review', 'card-1', 30),
@@ -66,6 +95,7 @@ describe('ActionUsageSummary', () => {
         render(<ActionUsageSummary
             actionId="implement"
             cardInternalId="card-1"
+            conversation={null}
             conversations={[]}
             history={[historyEntry([firstCommit], 'completed'), historyEntry([secondCommit], 'failed')]}
         />)
@@ -84,6 +114,7 @@ describe('ActionUsageSummary', () => {
         render(<ActionUsageSummary
             actionId="implement"
             cardInternalId="card-1"
+            conversation={null}
             conversations={[]}
             history={[historyEntry([commit('abc1234')], 'completed')]}
         />)

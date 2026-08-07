@@ -3,6 +3,7 @@ import type { ActionContext } from '../../../../data/action_context'
 import type { ActionDefinition } from '../../../../data/action_types'
 import type { ActionConversationStore } from '../../conversation/action_conversation_store'
 import type { ActionHistoryStore } from '../state/action_history_store'
+import { useActionRunSelector } from '../../../hooks/use_action_runs'
 import { ActionUsageSummary } from './action_usage_summary'
 
 interface ActionUsageSummaryOwnerProps {
@@ -15,7 +16,8 @@ interface ActionUsageSummaryOwnerProps {
 /** Subscribes usage summary to conversation and history data only. */
 export function ActionUsageSummaryOwner(props: ActionUsageSummaryOwnerProps) {
     const { action, context, conversationStore, historyStore } = props
-    useSyncExternalStore(
+    const liveConversation = useActionRunSelector(action.id, context, (run) => run?.conversation ?? null)
+    const conversationSnapshot = useSyncExternalStore(
         conversationStore.subscribe,
         conversationStore.getSnapshot,
         conversationStore.getSnapshot,
@@ -32,6 +34,7 @@ export function ActionUsageSummaryOwner(props: ActionUsageSummaryOwnerProps) {
         <ActionUsageSummary
             actionId={action.id}
             cardInternalId={context.cardInternalId}
+            conversation={liveConversation ?? conversationSnapshot.selectedConversation}
             conversations={conversationStore.conversationOptions(null)}
             history={historySnapshot.entries}
         />

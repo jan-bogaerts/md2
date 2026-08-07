@@ -36,9 +36,11 @@ function createProviderEventEntry(providerEvent, id, timestamp, sequence) {
         type: providerEvent.type,
     };
     if (typeof providerEvent.command === 'string') event.command = providerEvent.command;
+    if (Number.isSafeInteger(providerEvent.deletions) && providerEvent.deletions >= 0) event.deletions = providerEvent.deletions;
     if (Array.isArray(providerEvent.details)) event.details = [...providerEvent.details];
     if (Number.isFinite(providerEvent.durationMs)) event.durationMs = providerEvent.durationMs;
     if (Number.isSafeInteger(providerEvent.exitCode)) event.exitCode = providerEvent.exitCode;
+    if (Number.isSafeInteger(providerEvent.insertions) && providerEvent.insertions >= 0) event.insertions = providerEvent.insertions;
     if (typeof providerEvent.output === 'string') event.output = providerEvent.output;
     if (Array.isArray(providerEvent.summary)) event.summary = [...providerEvent.summary];
     if (typeof providerEvent.workingDirectory === 'string') event.workingDirectory = providerEvent.workingDirectory;

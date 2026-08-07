@@ -104,10 +104,12 @@ describe('parseAgentConversationLog', () => {
             entries: [{
                 command: 'npm test',
                 content: 'running',
+                deletions: 2,
                 details: ['detail'],
                 durationMs: 25,
                 exitCode: 1,
                 id: 'activity-1',
+                insertions: 4,
                 kind: 'event',
                 label: 'Command',
                 output: 'failed',
@@ -134,9 +136,11 @@ describe('parseAgentConversationLog', () => {
         expect(conversation.entries[1]).toMatchObject({ kind: 'message', sequence: 1 })
         expect(conversation.entries[0]).toMatchObject({
             command: 'npm test',
+            deletions: 2,
             details: ['detail'],
             durationMs: 25,
             exitCode: 1,
+            insertions: 4,
             output: 'failed',
             providerItemId: 'command-1',
             sequence: 2,

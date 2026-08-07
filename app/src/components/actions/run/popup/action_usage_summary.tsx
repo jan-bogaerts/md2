@@ -1,7 +1,7 @@
 import { Box, Stack, Tooltip, Typography } from '@mui/material'
 import type { AgentConversation } from '../../../../data/data_types'
 import type { ActionRunHistoryEntry, CommitReference } from '../../../../data/electron_action_bridge'
-import { actionCardAgentTokenUsage } from '../../../../services/agents/agent_usage'
+import { actionCardAgentTokenUsage, conversationFileChangeUsage } from '../../../../services/agents/agent_usage'
 import { AgentUsageDisplay } from '../../../agents/agent_usage_display'
 
 const NUMBER_FORMAT = new Intl.NumberFormat('en-US')
@@ -9,6 +9,7 @@ const NUMBER_FORMAT = new Intl.NumberFormat('en-US')
 interface ActionUsageSummaryProps {
     actionId: string
     cardInternalId: string
+    conversation: AgentConversation | null
     conversations: AgentConversation[]
     history: ActionRunHistoryEntry[]
 }
@@ -37,8 +38,9 @@ function commitLine(commit: CommitReference) {
 
 /** Compact token and changed-line totals for one agent action on one card. */
 export function ActionUsageSummary(props: ActionUsageSummaryProps) {
-    const { actionId, cardInternalId, conversations, history } = props
+    const { actionId, cardInternalId, conversation, conversations, history } = props
     const usage = actionCardAgentTokenUsage(conversations, actionId, cardInternalId)
+    const changes = conversationFileChangeUsage(conversation)
     const lines = lineUsage(history)
     const totalLines = lines.insertions + lines.deletions
     const lineTooltip = (
@@ -58,6 +60,11 @@ export function ActionUsageSummary(props: ActionUsageSummaryProps) {
     return (
         <Box sx={{ alignItems: 'center', display: 'flex', flexWrap: 'wrap', gap: 1 }}>
             <AgentUsageDisplay usage={usage} />
+            {changes ? (
+                <Typography component="span" sx={{ color: 'text.secondary' }} variant="caption">
+                    changes: +{NUMBER_FORMAT.format(changes.insertions)} / -{NUMBER_FORMAT.format(changes.deletions)}
+                </Typography>
+            ) : null}
             {lines.commits.length > 0 ? (
                 <Tooltip describeChild title={lineTooltip}>
                     <Typography component="span" sx={{ color: 'text.secondary', cursor: 'help' }} tabIndex={0} variant="caption">

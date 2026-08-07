@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { AgentConversation, AgentTokenUsage, Card, ProjectSnapshot } from '../../data/data_types'
-import { actionCardAgentTokenUsage, cardAgentTokenUsage, projectAgentTokenUsage } from './agent_usage'
+import {
+    actionCardAgentTokenUsage,
+    cardAgentTokenUsage,
+    conversationFileChangeUsage,
+    projectAgentTokenUsage,
+} from './agent_usage'
 
 function usage(
     inputTokens: number,
@@ -52,6 +57,33 @@ function card(path: string, usages: Array<AgentTokenUsage | undefined>): Card {
 }
 
 describe('agent usage aggregation', () => {
+    it('sums every completed countable patch in one conversation', () => {
+        const conversation = card('design/F-1.md', [undefined]).agentConversations[0]
+        conversation.status = 'failed'
+        conversation.entries = [
+            {
+                content: 'first edit', deletions: 1, id: 'file-1', insertions: 2, kind: 'event',
+                providerItemId: 'file-1', status: 'completed', timestamp: 'first', type: 'fileChange',
+            },
+            {
+                content: 'same line edited again', deletions: 1, id: 'file-2', insertions: 1, kind: 'event',
+                providerItemId: 'file-2', status: 'completed', timestamp: 'second', type: 'fileChange',
+            },
+            {
+                content: 'still running', deletions: 8, id: 'file-3', insertions: 8, kind: 'event',
+                providerItemId: 'file-3', status: 'inProgress', timestamp: 'third', type: 'fileChange',
+            },
+            {
+                content: 'missing diff counts', id: 'file-4', kind: 'event', providerItemId: 'file-4',
+                status: 'completed', timestamp: 'fourth', type: 'fileChange',
+            },
+        ]
+
+        expect(conversationFileChangeUsage(conversation)).toEqual({ deletions: 2, insertions: 3 })
+        expect(conversationFileChangeUsage({ ...conversation, entries: [] })).toBeNull()
+        expect(conversationFileChangeUsage(null)).toBeNull()
+    })
+
     it('sums only conversations matching both action and card', () => {
         const conversations = [
             ...card('design/F-1.md', [usage(10, 2, 3, 1), usage(20, 4, 6, 2)]).agentConversations,
