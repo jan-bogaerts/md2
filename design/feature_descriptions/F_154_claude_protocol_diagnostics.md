@@ -3,7 +3,7 @@ author:
 id: F_154
 internalId: a2cf4f9a-dc7f-417e-8591-c5993e770738
 title: claude protocol diagnostics
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
