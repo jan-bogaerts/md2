@@ -1771,12 +1771,12 @@
         "agent-7dce3ff7-7bca-40af-9576-b979cb845463"
       ],
       "details": {
+        "type": "agent",
         "accessLevel": "workspace-write",
         "agent": "codex",
         "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-4b57d816-c7dd-4189-9423-3dc5c7f643a9",
       "origin": {
@@ -1785,9 +1785,32 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-7dce3ff7-7bca-40af-9576-b979cb845463",
       "startedAt": "2026-08-07T12:23:10.537Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-7dce3ff7-7bca-40af-9576-b979cb845463"
+    },
+    {
+      "commits": [
+        {
+          "commit": "eada01c70f11529e3dc3f765d827676bed21e299",
+          "committedAt": "2026-08-07T14:36:16+02:00",
+          "deletions": 14,
+          "filePaths": [
+            "app/src/components/actions/conversation/action_conversation_chat.test.tsx",
+            "app/src/components/actions/conversation/completed_tool_call_group.tsx"
+          ],
+          "filesChanged": 2,
+          "insertions": 74,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-07T14:36:16+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "d078e271-bd1a-4a6d-86a0-d9cf3264c7e0",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 2
