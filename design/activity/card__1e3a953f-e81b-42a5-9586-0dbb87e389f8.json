@@ -5162,12 +5162,12 @@
         "agent-58be3baa-84fc-43bd-b880-a95d81ed80aa"
       ],
       "details": {
+        "type": "agent",
         "accessLevel": "workspace-write",
         "agent": "codex",
         "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-3dce6686-d858-444b-aa42-a63ddc35dc57",
       "origin": {
@@ -5176,9 +5176,62 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-58be3baa-84fc-43bd-b880-a95d81ed80aa",
       "startedAt": "2026-08-07T14:02:22.653Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-58be3baa-84fc-43bd-b880-a95d81ed80aa"
+    },
+    {
+      "commits": [
+        {
+          "commit": "1ed598926ad414da70679bb94425077b14fb7678",
+          "committedAt": "2026-08-07T16:35:28+02:00",
+          "deletions": 174,
+          "filePaths": [
+            "app/src/components/actions/agent/action_agent_preset_name_owner.tsx",
+            "app/src/components/actions/agent/action_agent_prompt_owner.tsx",
+            "app/src/components/actions/agent/action_agent_selectors_owner.tsx",
+            "app/src/components/actions/editor/action_phrase_buttons_owner.tsx",
+            "app/src/components/actions/run/popup/action_popup.test.tsx",
+            "app/src/components/actions/run/popup/action_popup_bottom_row.test.tsx",
+            "app/src/components/actions/run/popup/action_popup_bottom_row.tsx",
+            "app/src/components/actions/run/popup/action_popup_content.tsx",
+            "app/src/components/actions/run/popup/action_popup_operations.test.ts",
+            "app/src/components/actions/run/popup/action_popup_operations.ts",
+            "app/src/components/actions/run/popup/action_run_disabled_message.tsx",
+            "app/src/components/actions/run/state/action_run_input_store.test.ts",
+            "app/src/components/actions/run/state/action_run_input_store.ts",
+            "app/src/components/actions/shared/use_action_run_settings.ts",
+            "app/src/data/electron_action_bridge.ts",
+            "app/src/data/release_archiving.node.test.ts",
+            "app/src/services/actions/action_run_settings_service.test.ts",
+            "app/src/services/actions/action_run_settings_service.ts",
+            "app/src/services/actions/card_commit_history.node.test.ts",
+            "app/src/services/application_startup_service.ts",
+            "app/src/services/data/remote_control_storage_service.node.test.ts",
+            "app/src/services/data/remote_control_storage_service.ts",
+            "app/src/services/release_operations.test.ts",
+            "desktop/src/actions/activity/activity_files.js",
+            "desktop/src/actions/activity/activity_files.test.mjs",
+            "desktop/src/actions/activity/card_activity.test.mjs",
+            "desktop/src/shell/local_bridge_dispatch.js",
+            "desktop/src/shell/local_bridge_dispatch.test.mjs",
+            "desktop/src/shell/preload.js",
+            "desktop/src/shell/preload.test.mjs",
+            "shared/card_activity.d.mts",
+            "shared/card_activity.mjs"
+          ],
+          "filesChanged": 32,
+          "insertions": 886,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-07T16:35:28+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "1e3a953f-e81b-42a5-9586-0dbb87e389f8",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 2
