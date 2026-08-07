@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__a2cf4f9a-dc7f-417e-8591-c5993e770738.json#conversation=agent-093c5dad-a779-4aaf-9a67-304170e1ec22
 policy:
+branch: f_154_claude_protocol_diagnostics
+worktree: 3
 ---
 
 when talking to the claude agent, we get a lot of 'claude protocol diagnostics' blocks. I think the can be hidden, they show no real value?
