@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
   - design/activity/card__a2cf4f9a-dc7f-417e-8591-c5993e770738.json#conversation=agent-093c5dad-a779-4aaf-9a67-304170e1ec22
+  - design/activity/card__a2cf4f9a-dc7f-417e-8591-c5993e770738.json#conversation=agent-8fa59c40-e1dc-4209-9717-36fb7d701839
 policy:
 branch: f_154_claude_protocol_diagnostics
 worktree: 3
