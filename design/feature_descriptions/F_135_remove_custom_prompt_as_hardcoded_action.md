@@ -3,13 +3,14 @@ author:
 id: F_135
 internalId: db0d6a75-3aa8-49ef-b855-a0cd4253e25d
 title: remove custom-prompt as hardcoded action
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
   - design/activity/card__db0d6a75-3aa8-49ef-b855-a0cd4253e25d.json#conversation=agent-ff4b6006-04c1-4bd3-aaa4-382a3177d7dd
 policy:
-after: 1e3a953f-e81b-42a5-9586-0dbb87e389f8
+branch: f_135_remove_custom_prompt_as_hardcoded_action
+worktree: 1
 ---
 On the action popup, we currently  have 2 ways to use custom prompts:
 
