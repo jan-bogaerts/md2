@@ -109,6 +109,19 @@ describe('electron action runner client', () => {
         expect(flush).toHaveBeenCalledTimes(1)
     })
 
+    it('does not start the action when flushing pending changes fails', async () => {
+        const bridge = createBridge()
+        const failure = new Error('commit failed')
+        setActionBridgeOverride(bridge)
+        const snapshot = projectPersistenceService.getSnapshot()
+        vi.spyOn(projectPersistenceService, 'getSnapshot').mockReturnValue({ ...snapshot, hasPendingSave: true })
+        vi.spyOn(projectPersistenceService, 'flushPendingChanges').mockRejectedValue(failure)
+
+        await expect(runElectronAction(action, context)).rejects.toBe(failure)
+
+        expect(bridge.startAction).not.toHaveBeenCalled()
+    })
+
     it('links a reserved card conversation before flushing and starting the agent', async () => {
         const bridge = createBridge()
         const reservation = {
