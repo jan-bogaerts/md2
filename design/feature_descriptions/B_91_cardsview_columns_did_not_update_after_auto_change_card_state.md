@@ -10,4 +10,6 @@ agents:
 policy:
 after: a57b89e0-49f4-4c25-9d99-deea222460cd
 ---
-an agent changed the state of a card to ready, but the UI did not get updated. the card remained in the old column, did not move to the 'ready' column
+an agent changed the state of a card to ready, but the UI did not get updated. the card remained in the old column, did not move to the 'ready' column.
+
+This occured while using websockets
