@@ -3,7 +3,7 @@ author:
 id: F_157
 internalId: a5f03c32-1395-498d-bbfd-10184c78a633
 title: file selector popup resizable
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

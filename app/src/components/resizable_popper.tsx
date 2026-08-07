@@ -33,6 +33,7 @@ interface ResizablePopperBaseProps {
     onActivate?: () => void
     open: boolean
     paperSx?: SxProps<Theme>
+    persistSizeOnResizeEndOnly?: boolean
     placement?: PopperPlacementType
     resizeCorner?: ResizeCorner
     resizeFromAllSides?: boolean
@@ -162,7 +163,7 @@ export function ResizablePopper(props: ResizablePopperProps) {
         closeOnEscape = true,
         constrainSizeToViewport = false,
         draggable = false,
-        focusOnMount = stackPosition !== undefined,
+        focusOnMount: focusOnMountProp,
         fullHeight = false,
         initialSize,
         labelId,
@@ -171,6 +172,7 @@ export function ResizablePopper(props: ResizablePopperProps) {
         onClose,
         open,
         paperSx,
+        persistSizeOnResizeEndOnly = false,
         placement = 'bottom-start',
         resizeCorner = 'lower-right',
         resizeFromAllSides = false,
@@ -178,6 +180,7 @@ export function ResizablePopper(props: ResizablePopperProps) {
         stackPosition,
         storageKey,
     } = props
+    const focusOnMount = focusOnMountProp ?? stackPosition !== undefined
     const [size, setSize] = useState(() => loadSize(initialSize, minimumSize, constrainSizeToViewport, storageKey))
     const [position, setPosition] = useState<PopperPosition | null>(() => draggable && !anchorElement ? centeredPosition(size) : null)
     const [detachedLeft, setDetachedLeft] = useState<number | null>(null)
@@ -203,10 +206,10 @@ export function ResizablePopper(props: ResizablePopperProps) {
         element.focus()
     }, [])
     useEffect(() => {
-        if (!storageKey) return
+        if (!storageKey || persistSizeOnResizeEndOnly) return
 
         window.localStorage.setItem(storageKey, JSON.stringify(size))
-    }, [size, storageKey])
+    }, [persistSizeOnResizeEndOnly, size, storageKey])
     useLayoutEffect(() => {
         if (!fullHeight || !paperRef.current) return
 
@@ -304,6 +307,7 @@ export function ResizablePopper(props: ResizablePopperProps) {
                 x: event.clientX,
                 y: event.clientY,
             }
+            let completedSize = { height: start.height, width: start.width }
             resizeRef.current = controller
 
             window.addEventListener('pointermove', (move: PointerEvent) => {
@@ -328,6 +332,7 @@ export function ResizablePopper(props: ResizablePopperProps) {
                     ? clampSizeToViewport(nextSize, minimumSize)
                     : nextSize
 
+                completedSize = { height, width }
                 setSize({ height, width })
                 if (draggable) {
                     const left = resizesLeft ? start.left + start.width - width : start.left
@@ -335,7 +340,12 @@ export function ResizablePopper(props: ResizablePopperProps) {
                     setPosition({ left: clampDetachedLeft(left, width), top: clampDetachedTop(top, height) })
                 }
             }, { signal: controller.signal })
-            window.addEventListener('pointerup', () => controller.abort(), { signal: controller.signal })
+            window.addEventListener('pointerup', () => {
+                if (storageKey && persistSizeOnResizeEndOnly) {
+                    window.localStorage.setItem(storageKey, JSON.stringify(completedSize))
+                }
+                controller.abort()
+            }, { signal: controller.signal })
         } catch (error) {
             resizeRef.current?.abort()
             dialogService.error(error, { fallbackMessage: 'Popup resize could not be started' })

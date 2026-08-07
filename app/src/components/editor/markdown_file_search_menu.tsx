@@ -55,7 +55,8 @@ export function MarkdownFileSearchMenu(props: MarkdownFileSearchMenuProps) {
         () => ({ onHighlight, onSelect, selectedIndex }),
         [onHighlight, onSelect, selectedIndex],
     )
-    const height = Math.min(FILE_SEARCH_MENU_MAX_HEIGHT, Math.max(FILE_SEARCH_OPTION_ESTIMATED_HEIGHT, options.length * FILE_SEARCH_OPTION_ESTIMATED_HEIGHT))
+    const contentHeight = Math.max(FILE_SEARCH_OPTION_ESTIMATED_HEIGHT, options.length * FILE_SEARCH_OPTION_ESTIMATED_HEIGHT)
+    const height = Math.min(FILE_SEARCH_MENU_MAX_HEIGHT, contentHeight)
 
     useEffect(() => {
         if (selectedIndex === null) return
@@ -70,6 +71,7 @@ export function MarkdownFileSearchMenu(props: MarkdownFileSearchMenuProps) {
             constrainSizeToViewport
             focusOnMount={false}
             initialSize={{ height, width: FILE_SEARCH_MENU_DEFAULT_WIDTH }}
+            key={height}
             labelId={FILE_SEARCH_TITLE_ID}
             minimumSize={{ height: FILE_SEARCH_OPTION_ESTIMATED_HEIGHT, width: FILE_SEARCH_MENU_MIN_WIDTH }}
             open
@@ -83,6 +85,7 @@ export function MarkdownFileSearchMenu(props: MarkdownFileSearchMenuProps) {
             }}
             resizeFromAllSides
             resizeLabel="Resize file selector"
+            persistSizeOnResizeEndOnly
             stackPosition={stackPosition + 1}
             storageKey={MARKDOWN_FILE_SEARCH_SIZE_STORAGE_KEY}
         >
