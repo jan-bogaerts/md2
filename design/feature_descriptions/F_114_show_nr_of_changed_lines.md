@@ -3,7 +3,7 @@ author:
 id: F_114
 internalId: 0ef8b9a6-ac40-4617-b077-17260b17a61c
 title: show nr of changed lines
-status: new
+status: ready
 owner: 
 affects:
 agents:
