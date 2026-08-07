@@ -9,7 +9,6 @@ affects:
 agents:
 policy:
 ---
-
 When the react app is running in the electron environment, it defaults to opening projects by selecting a folder.
 
 When the react app is connected through a remote connection (websockets), the app is able to open a repository, but only from the user's own account.
