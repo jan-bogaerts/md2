@@ -30,15 +30,16 @@ interface ListEditorToolbarControlsProps {
 export function ListEditorToolbarControls(props: ListEditorToolbarControlsProps) {
     const { cardTypes, historyStore, statusColors } = props
     const card = useActiveCard('list-card')
-    const documentId = card?.header.internalId ?? null
-    const cardCommits = useCardCommits(documentId)
+    const cardInternalId = card?.header.internalId ?? null
+    const historyKey = cardInternalId ?? card?.path ?? null
+    const cardCommits = useCardCommits(cardInternalId)
     const { project } = useProjectState()
     const popupEntries = useSyncExternalStore(
         subscribeCardActionPopups,
         () => cardActionPopupService.getSnapshot(),
         () => cardActionPopupService.getSnapshot(),
     )
-    const context = card ? fileContext(card, cardTypes) : null
+    const context = card && cardInternalId ? fileContext(card, cardTypes) : null
     const contextIdentity = context ? actionContextIdentity(context) : null
     const isAgentPopupOpen = !!contextIdentity && popupEntries.some((entry) => (
         actionContextIdentity(entry.context) === contextIdentity
@@ -56,9 +57,9 @@ export function ListEditorToolbarControls(props: ListEditorToolbarControlsProps)
         }
     }, [context, project])
 
-    if (!card || !documentId) return null
+    if (!card || !historyKey) return null
 
-    const endControls = (
+    const endControls = cardInternalId ? (
         <>
             <Separator />
             <Button onClick={handleToggleAgentPopup} size="small" variant={isAgentPopupOpen ? 'contained' : 'outlined'}>
@@ -77,8 +78,8 @@ export function ListEditorToolbarControls(props: ListEditorToolbarControlsProps)
                 statusColors={statusColors}
             />
         </>
-    )
-    const undoRedoControls = <MarkdownDocumentUndoRedo historyKey={documentId} historyStore={historyStore} />
+    ) : undefined
+    const undoRedoControls = <MarkdownDocumentUndoRedo historyKey={historyKey} historyStore={historyStore} />
 
     return (
         <MarkdownFormatToolbarControls endControls={endControls} undoRedoControls={undoRedoControls} />
