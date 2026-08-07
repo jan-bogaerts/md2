@@ -10,8 +10,6 @@ agents:
   - design/activity/card__d078e271-bd1a-4a6d-86a0-d9cf3264c7e0.json#conversation=agent-a4b8f91e-07ee-4fe6-8e43-243421de2669
   - design/activity/card__d078e271-bd1a-4a6d-86a0-d9cf3264c7e0.json#conversation=agent-7dce3ff7-7bca-40af-9576-b979cb845463
 policy:
-branch: f_151_improve_tool_call_box_in_chatlog
-worktree: 2
 ---
 
 in [F\_137\_group\_toolcalls.md](design/releases/0_1_0/F_137_group_toolcalls.md) we already implemented grouping of tool calls in the chatlog. only issue: all tool calls are still in their own box, the boxes are now just aligned so they touch each other.
