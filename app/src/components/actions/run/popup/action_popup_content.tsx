@@ -3,9 +3,13 @@ import ArrowCollapseVertical from 'mdi-material-ui/ArrowCollapseVertical'
 import ArrowExpandVertical from 'mdi-material-ui/ArrowExpandVertical'
 import Close from 'mdi-material-ui/Close'
 import { useMemo } from 'react'
-import type { ActionContext } from '../../../../data/action_context'
+import { actionContextIdentity, type ActionContext } from '../../../../data/action_context'
 import type { ActionDefinition } from '../../../../data/action_types'
 import { worktreeService } from '../../../../services/project/worktree_service'
+import {
+    actionRunSettingsService,
+    createSessionActionRunSettingsStore,
+} from '../../../../services/actions/action_run_settings_service'
 import { ResizablePopper } from '../../../resizable_popper'
 import type { WorktreeAssignmentTarget } from '../../../worktree_selector'
 import { ActionAgentApprovals } from '../../agent/action_agent_approvals'
@@ -115,6 +119,13 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
     } = props
     const theme = useTheme()
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
+    const settingsContextIdentity = actionContextIdentity(assignmentContext)
+    const settingsStore = useMemo(
+        () => assignmentContext.cardInternalId
+            ? actionRunSettingsService.getCardStore(assignmentContext.cardInternalId, action.id)
+            : createSessionActionRunSettingsStore(action.id, settingsContextIdentity),
+        [action.id, assignmentContext.cardInternalId, settingsContextIdentity],
+    )
     const bindings = useMemo(
         () => createActionPopupBindings(action, assignmentContext),
         [action, assignmentContext],
@@ -261,6 +272,7 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                                         conversationStore={conversationStore}
                                         historyStore={historyStore}
                                         inputStore={inputStore}
+                                        settingsStore={settingsStore}
                                         resultStore={resultStore}
                                         runValidationError={runValidationError}
                                     />
@@ -270,7 +282,7 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                                         <ActionAgentSelectorsOwner
                                             action={action}
                                             context={assignmentContext}
-                                            store={inputStore}
+                                            settingsStore={settingsStore}
                                         />
                                     ) : null}
                                     <ActionLogErrorOwner actionId={action.id} context={assignmentContext} resultStore={resultStore} />
@@ -287,6 +299,7 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                                     conversationStore={conversationStore}
                                     historyStore={historyStore}
                                     inputStore={inputStore}
+                                    settingsStore={settingsStore}
                                     resultStore={resultStore}
                                     runValidationError={runValidationError}
                                     showSaveControls={showSaveControls}
@@ -299,7 +312,7 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                         {action.type !== 'agent' ? (
                             <ActionRunStatusOwner actionId={action.id} context={assignmentContext} resultStore={resultStore} />
                         ) : null}
-                        <ActionRunDisabledMessage action={action} store={inputStore} />
+                        <ActionRunDisabledMessage action={action} settingsStore={settingsStore} />
                         {runValidationError ? (
                             <Typography color="error.main" role="alert" variant="caption">
                                 {runValidationError}
@@ -315,6 +328,7 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                         conversationStore={conversationStore}
                         historyStore={historyStore}
                         inputStore={inputStore}
+                        settingsStore={settingsStore}
                         resultStore={resultStore}
                         runValidationError={runValidationError}
                         scheduleStore={scheduleStore}

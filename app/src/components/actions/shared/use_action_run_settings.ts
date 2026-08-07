@@ -7,12 +7,16 @@ import {
     validateThinkingLevel,
 } from '../../../data/agent_profiles'
 import { hasActionRunBackend } from '../../../data/electron_action_bridge'
+import type { ActionRunSettingsStore } from '../../../services/actions/action_run_settings_service'
 import { useAgentCapabilities } from '../../hooks/use_agent_capabilities'
 import { useConfigValueOrFallback } from '../../hooks/use_config_value'
-import type { ActionRunInputStore } from '../run/state/action_run_input_store'
+
+function optionAvailable(value: string, options: string[]) {
+    return value.length === 0 || options.includes(value)
+}
 
 /** Resolve agent input and backend state only for controls that consume it. */
-export function useActionRunSettings(action: ActionDefinition, store: ActionRunInputStore) {
+export function useActionRunSettings(action: ActionDefinition, store: ActionRunSettingsStore) {
     const configuredAgent = useConfigValueOrFallback('desktop.agent', '')
     const configuredAccessLevel = useConfigValueOrFallback('desktop.accessLevel', '')
     const configuredApprovalPolicy = useConfigValueOrFallback('desktop.approvalPolicy', '')
@@ -23,11 +27,25 @@ export function useActionRunSettings(action: ActionDefinition, store: ActionRunI
     const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot)
     const agentProfiles = mergeAgentProfiles(configuredAgentProfiles)
     const defaultAgent = action.agent ?? configuredAgent
-    const agent = snapshot.agentOverride ?? defaultAgent
     const defaultAgentProfile = findAgentProfile(agentProfiles, defaultAgent)
     const defaultModel = (action.model ?? configuredModel)
         || (defaultAgentProfile ? defaultModelForProfile(defaultAgentProfile) : '')
-    const model = snapshot.modelOverride ?? defaultModel
+    const savedSettings = snapshot.settings
+    const savedProfile = savedSettings ? findAgentProfile(agentProfiles, savedSettings.agent) : undefined
+    const savedAgentAvailable = savedSettings?.agent === '' || (
+        !!savedSettings
+        && !!savedProfile
+        && !!capabilities.availability.values[savedSettings.agent]?.available
+        && !capabilities.availability.error
+    )
+    const savedSettingsAvailable = !!savedSettings
+        && savedAgentAvailable
+        && optionAvailable(savedSettings.model, savedProfile?.models ?? [])
+        && optionAvailable(savedSettings.accessLevel, savedProfile?.accessLevels ?? [])
+        && optionAvailable(savedSettings.approvalPolicy, savedProfile?.approvalPolicies ?? [])
+    const effectiveSavedSettings = savedSettingsAvailable ? savedSettings : null
+    const agent = effectiveSavedSettings?.agent ?? defaultAgent
+    const model = effectiveSavedSettings?.model ?? defaultModel
     const selectedAgentProfile = findAgentProfile(agentProfiles, agent)
     const selectedAgentModels = selectedAgentProfile?.models ?? []
     const selectedAccessLevels = selectedAgentProfile?.accessLevels ?? []
@@ -36,27 +54,30 @@ export function useActionRunSettings(action: ActionDefinition, store: ActionRunI
     const selectedAgentAvailable = action.type !== 'agent'
         || (!!selectedAvailability?.available && !capabilities.availability.error)
     const backendAvailable = hasActionRunBackend()
-    const runDisabledMessage = !backendAvailable
-        ? 'Action run requires the Electron desktop app'
-        : action.type === 'agent' && capabilities.availability.loading
-            ? 'Checking agent executable availability'
-            : action.type === 'agent' && !selectedAgentAvailable
-                ? selectedAvailability?.error ?? capabilities.availability.error ?? `Agent executable is unavailable for ${agent}`
-                : null
+    const runDisabledMessage = snapshot.loading
+        ? 'Loading saved action settings'
+        : snapshot.loadError
+            ? `Could not load saved action settings: ${snapshot.loadError}`
+            : !backendAvailable
+                ? 'Action run requires the Electron desktop app'
+                : action.type === 'agent' && capabilities.availability.loading
+                    ? 'Checking agent executable availability'
+                    : action.type === 'agent' && !selectedAgentAvailable
+                        ? selectedAvailability?.error ?? capabilities.availability.error ?? `Agent executable is unavailable for ${agent}`
+                        : null
     const definitionThinkingLevel = validateThinkingLevel(
         action.thinkingLevel ?? configuredThinkingLevel,
         `action "${action.label}"`,
     )
-    const thinkingLevel = snapshot.thinkingLevelOverride ?? definitionThinkingLevel
+    const thinkingLevel = effectiveSavedSettings?.thinkingLevel ?? definitionThinkingLevel
     const accessLevel = selectedAgentProfile?.accessLevels
-        ? snapshot.accessLevelOverride ?? action.accessLevel ?? configuredAccessLevel
+        ? effectiveSavedSettings?.accessLevel ?? action.accessLevel ?? configuredAccessLevel
         : action.accessLevel ?? ''
     const approvalPolicy = selectedAgentProfile?.approvalPolicies
-        ? snapshot.approvalPolicyOverride ?? action.approvalPolicy ?? configuredApprovalPolicy
+        ? effectiveSavedSettings?.approvalPolicy ?? action.approvalPolicy ?? configuredApprovalPolicy
         : action.approvalPolicy ?? ''
 
     return {
-        ...snapshot,
         accessLevel,
         agent,
         agentAvailability: capabilities.availability.values,
@@ -69,6 +90,8 @@ export function useActionRunSettings(action: ActionDefinition, store: ActionRunI
         selectedAgentModels,
         selectedAccessLevels,
         selectedApprovalPolicies,
+        settingsChangedWhileWaiting: snapshot.settingsChangedWhileWaiting,
+        settingsLoading: snapshot.loading,
         thinkingLevel,
     }
 }

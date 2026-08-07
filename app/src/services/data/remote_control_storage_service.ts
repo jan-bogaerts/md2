@@ -13,6 +13,7 @@ import type {
     ActionRunHistoryEntry,
     ActionRunHistoryRequest,
     CardActivityRequest,
+    CardActionSettingsRequest,
     DiffRequest,
     DiffResult,
     ElectronActionBridge,
@@ -425,6 +426,10 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
 
     async updateActionConversationViewed(reference: string, viewed: boolean): Promise<AgentConversation> {
         return this.request<AgentConversation>('updateActionConversationViewed', [reference, viewed])
+    }
+
+    async updateCardActionSettings(request: CardActionSettingsRequest): Promise<void> {
+        await this.request('updateCardActionSettings', [request])
     }
 
     async sendActionMessage(runId: string, content: string): Promise<void> {

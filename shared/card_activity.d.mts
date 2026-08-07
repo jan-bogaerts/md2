@@ -3,6 +3,14 @@ import type { AgentConversation } from '../app/src/data/data_types'
 export type ActivityOrigin = { kind: 'card'; cardInternalId: string } | { kind: 'project' }
 export type ActionActivityStatus = 'cancelled' | 'completed' | 'failed' | 'okButNotAfter'
 
+export interface ActionSettings {
+    accessLevel: string
+    agent: string
+    approvalPolicy: string
+    model: string
+    thinkingLevel: string
+}
+
 export interface ActivityCommitReference {
     available?: boolean
     actionId?: string
@@ -68,10 +76,11 @@ export interface SystemActivityRecord {
 export type ActivityRecord = ActionActivityRecord | SystemActivityRecord
 
 export interface CardActivityFile {
+    actionSettings: Record<string, ActionSettings>
     conversations: Omit<AgentConversation, 'path'>[]
     origin: ActivityOrigin
     records: ActivityRecord[]
-    version: 2
+    version: 3
 }
 
 export function createActivityFile(origin: ActivityOrigin): CardActivityFile

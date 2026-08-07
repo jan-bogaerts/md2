@@ -4,6 +4,7 @@ import { CUSTOM_PROMPT_ACTION_ID, type ActionDefinition } from '../../../../data
 import type { AgentConversation } from '../../../../data/data_types'
 import { actionPromptDraftService } from '../../../../services/actions/action_prompt_draft_service'
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
+import { ActionRunSettingsStore } from '../../../../services/actions/action_run_settings_service'
 import { agentCapabilitiesService } from '../../../../services/agents/agent_capabilities_service'
 import { dataService } from '../../../../services/data/data_service'
 import { dialogService } from '../../../../services/dialog_service'
@@ -48,6 +49,7 @@ function renderBottomRow(actionOverride = action, conversationStore = new Action
     const inputStore = new ActionRunInputStore()
     const resultStore = new ActionRunResultStore()
     const scheduleStore = new ActionScheduleStore()
+    const settingsStore = new ActionRunSettingsStore(actionOverride.id, null)
     const unrelatedRender = vi.fn()
 
     function UnrelatedContent() {
@@ -68,6 +70,7 @@ function renderBottomRow(actionOverride = action, conversationStore = new Action
                 resultStore={resultStore}
                 runValidationError={null}
                 scheduleStore={scheduleStore}
+                settingsStore={settingsStore}
                 showSaveControls={false}
             />
         </AppThemeProvider>,

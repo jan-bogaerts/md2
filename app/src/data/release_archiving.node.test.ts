@@ -28,6 +28,7 @@ function card(path: string, agentLogReferences: string[] = []): Card {
 describe('buildReleaseMoves', () => {
     const activityPath = 'design/activity/card__card-1.json'
     const createActivityContent = (conversationIds: string[] = [], cardInternalId = 'card-1') => JSON.stringify({
+        actionSettings: {},
         conversations: conversationIds.map((id) => ({
             cardInternalId,
             completedAt: '2026-08-05T12:01:00.000Z',
@@ -39,7 +40,7 @@ describe('buildReleaseMoves', () => {
         })),
         origin: { cardInternalId, kind: 'card' },
         records: [],
-        version: 2,
+        version: 3,
     })
 
     it('moves card assets referenced by archived cards', () => {

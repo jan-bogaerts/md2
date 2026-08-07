@@ -304,6 +304,18 @@ function createLocalBridgeDispatch(dependencies) {
         updateActionConversationViewed: (reference, viewed) => (
             localGitService.updateActivityConversationViewed(currentLocalProject, reference, viewed)
         ),
+        updateCardActionSettings: async (request) => {
+            if (!actionRunnerService) throw new Error('Action runner is not available');
+
+            const projectFolder = actionRunnerService.requireProjectFolder();
+            await localGitService.updateCardActionSettings(
+                currentLocalProject,
+                projectFolder,
+                request?.cardInternalId,
+                request?.actionId,
+                request?.settings,
+            );
+        },
         finishActionRun: (runId) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 

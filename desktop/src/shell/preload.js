@@ -86,6 +86,7 @@ const ACTION_METHODS = [
     'startAction',
     'startUnattendedAction',
     'updateActionConversationViewed',
+    'updateCardActionSettings',
 ];
 const EVENT_METHODS = new Set(['runSearchRegexpAgent']);
 const CODEX_RUNTIME_METHODS = ['getCodexRateLimits'];

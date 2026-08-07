@@ -4,6 +4,7 @@ const path = require('node:path');
 
 const {
     LEGACY_ACTIVITY_VERSION,
+    PREVIOUS_ACTIVITY_VERSION,
     createActivityFile,
     findActivityConversation,
     migrateActivityValue,
@@ -52,7 +53,9 @@ async function readStoredActivity(filePath, origin) {
     if (unwritten) return { legacy: false, value: unwritten };
     if (!await pathExists(filePath)) return { legacy: false, value: null };
     const value = JSON.parse(await fs.promises.readFile(filePath, 'utf8'));
-    if (value.version !== LEGACY_ACTIVITY_VERSION) return { legacy: false, value };
+    if (value.version !== LEGACY_ACTIVITY_VERSION && value.version !== PREVIOUS_ACTIVITY_VERSION) {
+        return { legacy: false, value };
+    }
 
     return { legacy: true, value: migrateActivityValue(value, origin) };
 }
@@ -225,6 +228,20 @@ async function updateActivityConversationViewed(project, reference, viewed) {
     });
 }
 
+async function updateCardActionSettings(project, projectFolder, cardInternalId, actionId, settings) {
+    if (typeof cardInternalId !== 'string' || cardInternalId.length === 0) throw new Error('Missing card action settings cardInternalId');
+    if (typeof actionId !== 'string' || actionId.length === 0) throw new Error('Missing card action settings actionId');
+    const origin = { cardInternalId, kind: 'card' };
+    const validationActivity = createActivityFile(origin);
+    validationActivity.actionSettings[actionId] = settings;
+    const validatedSettings = parseActivityValue(validationActivity, origin).actionSettings[actionId];
+
+    return updateActivity(project, projectFolder, origin, (activity) => ({
+        ...activity,
+        actionSettings: { ...activity.actionSettings, [actionId]: validatedSettings },
+    }));
+}
+
 async function loadActivityConversation(project, reference) {
     const rootPath = requireRootPath(project);
     await assertGitRoot(rootPath);
@@ -351,5 +368,6 @@ module.exports = {
     resolveActivityPath,
     upsertAndCommitActivityConversation,
     upsertActivityConversation,
+    updateCardActionSettings,
     updateActivityConversationViewed,
 };

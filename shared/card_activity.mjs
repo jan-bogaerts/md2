@@ -1,7 +1,8 @@
 import { parseAgentConversation } from './agent_conversations.mjs'
 
-const ACTIVITY_VERSION = 2
+const ACTIVITY_VERSION = 3
 export const LEGACY_ACTIVITY_VERSION = 1
+export const PREVIOUS_ACTIVITY_VERSION = 2
 const ACTION_ACTIVITY_STATUSES = new Set(['cancelled', 'completed', 'failed', 'okButNotAfter'])
 
 function requiredString(value, fieldName, allowEmpty = false) {
@@ -35,6 +36,27 @@ function parseOrigin(value) {
     if (value.kind !== 'card') throw new Error(`Malformed activity file: invalid origin kind ${String(value.kind)}`)
 
     return { cardInternalId: requiredString(value.cardInternalId, 'origin.cardInternalId'), kind: 'card' }
+}
+
+function parseActionSettings(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        throw new Error('Malformed activity file: actionSettings must be an object')
+    }
+
+    return Object.fromEntries(Object.entries(value).map(([actionId, settings]) => {
+        if (actionId.length === 0) throw new Error('Malformed activity file: actionSettings action ID must not be empty')
+        if (!settings || typeof settings !== 'object' || Array.isArray(settings)) {
+            throw new Error(`Malformed activity file: invalid actionSettings.${actionId}`)
+        }
+
+        return [actionId, {
+            accessLevel: requiredString(settings.accessLevel, `actionSettings.${actionId}.accessLevel`, true),
+            agent: requiredString(settings.agent, `actionSettings.${actionId}.agent`, true),
+            approvalPolicy: requiredString(settings.approvalPolicy, `actionSettings.${actionId}.approvalPolicy`, true),
+            model: requiredString(settings.model, `actionSettings.${actionId}.model`, true),
+            thinkingLevel: requiredString(settings.thinkingLevel, `actionSettings.${actionId}.thinkingLevel`, true),
+        }]
+    }))
 }
 
 function sameOrigin(first, second) {
@@ -199,7 +221,7 @@ function parseConversation(value, index, activityOrigin) {
 }
 
 export function createActivityFile(origin) {
-    return { conversations: [], origin: parseOrigin(origin), records: [], version: ACTIVITY_VERSION }
+    return { actionSettings: {}, conversations: [], origin: parseOrigin(origin), records: [], version: ACTIVITY_VERSION }
 }
 
 export function parseActivityValue(value, expectedOrigin = null) {
@@ -207,6 +229,7 @@ export function parseActivityValue(value, expectedOrigin = null) {
     if (value.version !== ACTIVITY_VERSION) throw new Error(`Malformed activity file: unsupported version ${String(value.version)}`)
     if (!Array.isArray(value.records)) throw new Error('Malformed activity file: records must be an array')
     if (!Array.isArray(value.conversations)) throw new Error('Malformed activity file: conversations must be an array')
+    const actionSettings = parseActionSettings(value.actionSettings)
     const origin = parseOrigin(value.origin)
     if (expectedOrigin) {
         const expected = parseOrigin(expectedOrigin)
@@ -230,6 +253,7 @@ export function parseActivityValue(value, expectedOrigin = null) {
     }
 
     return {
+        actionSettings,
         conversations,
         origin,
         records,
@@ -272,7 +296,12 @@ function migrateLegacyRecord(record, index, conversations) {
 
 export function migrateActivityValue(value, expectedOrigin = null) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Malformed activity file: root must be an object')
-    if (value.version !== LEGACY_ACTIVITY_VERSION) throw new Error(`Cannot migrate activity file version ${String(value.version)}`)
+    if (value.version !== LEGACY_ACTIVITY_VERSION && value.version !== PREVIOUS_ACTIVITY_VERSION) {
+        throw new Error(`Cannot migrate activity file version ${String(value.version)}`)
+    }
+    if (value.version === PREVIOUS_ACTIVITY_VERSION) {
+        return parseActivityValue({ ...value, actionSettings: {}, version: ACTIVITY_VERSION }, expectedOrigin)
+    }
     if (!Array.isArray(value.records)) throw new Error('Malformed activity file: records must be an array')
     if (!Array.isArray(value.conversations)) throw new Error('Malformed activity file: conversations must be an array')
     const origin = parseOrigin(value.origin)
@@ -282,6 +311,7 @@ export function migrateActivityValue(value, expectedOrigin = null) {
     const conversations = value.conversations.map((conversation, index) => parseConversation(conversation, index, origin))
     const legacyRecords = value.records.map((record, index) => parseLegacyRecord(record, index, origin))
     const migrated = {
+        actionSettings: {},
         conversations,
         origin,
         records: legacyRecords.map((record, index) => migrateLegacyRecord(record, index, conversations)),

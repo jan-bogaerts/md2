@@ -44,6 +44,7 @@ function createDispatch(options = {}) {
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
         closeWaitingActivityConversation: vi.fn(async (_project, reference, status) => ({ path: reference, status })),
         updateActivityConversationViewed: vi.fn(async (_project, reference, viewed) => ({ path: reference, viewed })),
+        updateCardActionSettings: vi.fn(async () => undefined),
         commit: vi.fn(async () => []),
         createProject: vi.fn(async (project) => project),
         hasPendingPush: vi.fn(async () => false),
@@ -60,7 +61,7 @@ function createDispatch(options = {}) {
             path: 'actions/test.json',
         }]),
         loadActionRunHistory: vi.fn(async () => []),
-        loadCardActivity: vi.fn(async () => ({ conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 2 })),
+        loadCardActivity: vi.fn(async () => ({ actionSettings: {}, conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 3 })),
         loadProjectAsset: vi.fn(async () => ({ content: 'aWNvbg==', contentType: 'image/png', encoding: 'base64', path: 'actions/icon.png' })),
         loadProjectConfig: vi.fn(async () => ({ projectFolder: 'design' })),
         loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
@@ -618,6 +619,28 @@ describe('createLocalBridgeDispatch', () => {
         expect(actionRunnerService.requireProjectFolder).toHaveBeenCalled();
         expect(localGitService.loadCardActivity).toHaveBeenCalledWith(project, 'design', 'card-1', []);
         expect(localGitService.readFileAtCommit).toHaveBeenCalledWith(project, fileRequest);
+    });
+
+    it('updates complete card action settings through the primary checkout', async () => {
+        const { actionRunnerService, dispatch, localGitService } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        const request = {
+            actionId: 'review',
+            cardInternalId: 'card-1',
+            settings: { accessLevel: '', agent: 'codex', approvalPolicy: '', model: 'gpt-5', thinkingLevel: 'high' },
+        };
+        await dispatch.dataBridge.loadProject(project, 'design');
+
+        await dispatch.actionBridge.updateCardActionSettings(request);
+
+        expect(actionRunnerService.requireProjectFolder).toHaveBeenCalled();
+        expect(localGitService.updateCardActionSettings).toHaveBeenCalledWith(
+            project,
+            'design',
+            request.cardInternalId,
+            request.actionId,
+            request.settings,
+        );
     });
 
 });

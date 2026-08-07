@@ -7,6 +7,7 @@ import Play from 'mdi-material-ui/Play'
 import { useSyncExternalStore } from 'react'
 import type { ActionContext } from '../../../../data/action_context'
 import type { ActionDefinition } from '../../../../data/action_types'
+import type { ActionRunSettingsStore } from '../../../../services/actions/action_run_settings_service'
 import { useActionRunSelector } from '../../../hooks/use_action_runs'
 import type { ActionConversationStore } from '../../conversation/action_conversation_store'
 import type { ActionHistoryStore } from '../state/action_history_store'
@@ -34,6 +35,7 @@ interface ActionPopupBottomRowProps {
     resultStore: ActionRunResultStore
     runValidationError: string | null
     scheduleStore: ActionScheduleStore
+    settingsStore: ActionRunSettingsStore
     showSaveControls: boolean
 }
 
@@ -41,9 +43,10 @@ interface ActionPopupBottomRowProps {
 export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
     const {
         action, assignmentContext, conversationStore, historyStore, inputStore, resultStore,
-        runValidationError, scheduleStore, showSaveControls,
+        runValidationError, scheduleStore, settingsStore, showSaveControls,
     } = props
-    const settings = useActionRunSettings(action, inputStore)
+    const settings = useActionRunSettings(action, settingsStore)
+    const inputSnapshot = useSyncExternalStore(inputStore.subscribe, inputStore.getSnapshot, inputStore.getSnapshot)
     const runStatus = useActionRunSelector(action.id, assignmentContext, (run) => run?.status ?? 'idle')
     const agentActive = useActionRunSelector(action.id, assignmentContext, (run) => {
         const active = run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'
@@ -74,7 +77,7 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
     const orphanWaiting = !sessionActive && conversationSnapshot.selectedConversation?.status === 'waitingForInput'
     const showAgentSend = sessionActive ? agentActive : action.type === 'agent'
     const showCommandRun = !sessionActive && action.type === 'command'
-    const saveDisabled = settings.actionLabel.trim().length === 0 || sessionActive || !!settings.runDisabledMessage
+    const saveDisabled = inputSnapshot.actionLabel.trim().length === 0 || sessionActive || !!settings.runDisabledMessage
     const runState = {
         agentActive,
         hasApprovals,
@@ -100,6 +103,7 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
         resultStore,
         runValidationError,
         settings,
+        settingsStore,
     }
 
     const handlePrimaryRun = async () => {

@@ -316,21 +316,30 @@ describe('RemoteControlStorageService', () => {
         const service = createService()
         const activityRequest = { cardInternalId: 'card-1' }
         const fileRequest = { commit: 'a'.repeat(40), parent: true, path: 'design/F-1.md' }
+        const settingsRequest = {
+            actionId: 'review', cardInternalId: 'card-1',
+            settings: { accessLevel: '', agent: 'codex', approvalPolicy: '', model: 'gpt-5', thinkingLevel: 'high' },
+        }
         const activity = service.loadCardActivity(activityRequest)
         const historicalFile = service.readFileAtCommit(fileRequest)
+        const settingsUpdate = service.updateCardActionSettings(settingsRequest)
         const socket = lastSocket()
 
         socket.open()
         await flushPromises()
         const activityMessage = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
         const fileMessage = JSON.parse(socket.sent[1]) as { id: string, method: string, params: unknown[] }
+        const settingsMessage = JSON.parse(socket.sent[2]) as { id: string, method: string, params: unknown[] }
         expect(activityMessage).toMatchObject({ method: 'loadCardActivity', params: [activityRequest] })
         expect(fileMessage).toMatchObject({ method: 'readFileAtCommit', params: [fileRequest] })
-        socket.receive({ id: activityMessage.id, result: { conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 2 } })
+        expect(settingsMessage).toMatchObject({ method: 'updateCardActionSettings', params: [settingsRequest] })
+        socket.receive({ id: activityMessage.id, result: { actionSettings: {}, conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 3 } })
         socket.receive({ id: fileMessage.id, result: { content: '# Card', exists: true } })
+        socket.receive({ id: settingsMessage.id, result: undefined })
 
-        await expect(activity).resolves.toMatchObject({ version: 2 })
+        await expect(activity).resolves.toMatchObject({ version: 3 })
         await expect(historicalFile).resolves.toEqual({ content: '# Card', exists: true })
+        await expect(settingsUpdate).resolves.toBeUndefined()
     })
 
     it('lists agent conversation references through remote control', async () => {

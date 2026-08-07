@@ -5,6 +5,7 @@ import type { ActionDefinition } from '../../../../data/action_types'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../../../data/electron_action_bridge'
 import { actionPromptDraftService } from '../../../../services/actions/action_prompt_draft_service'
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
+import { ActionRunSettingsStore, type ResolvedActionRunSettings } from '../../../../services/actions/action_run_settings_service'
 import { dialogService } from '../../../../services/dialog_service'
 import { currentActionPromptDraft, runPopupAction, type ActionPopupOperationInput } from './action_popup_operations'
 import { ActionRunInputStore } from '../state/action_run_input_store'
@@ -19,7 +20,12 @@ vi.mock('./action_popup_defaults', async (importOriginal) => {
     return { ...actual, defaultRestartAction: restartAction }
 })
 
-function operationInput(inputStore: ActionRunInputStore): ActionPopupOperationInput {
+const defaultSettings: ResolvedActionRunSettings = {accessLevel: 'workspace-write', agent: 'codex', approvalPolicy: 'on-request', model: 'gpt-5.5', thinkingLevel: 'high'}
+
+function operationInput(
+    inputStore: ActionRunInputStore,
+    settingsStore = new ActionRunSettingsStore(action.id, null),
+): ActionPopupOperationInput {
     return {
         action,
         context,
@@ -35,13 +41,8 @@ function operationInput(inputStore: ActionRunInputStore): ActionPopupOperationIn
             setRunning: vi.fn(),
         },
         runValidationError: null,
-        settings: {
-            accessLevel: 'workspace-write',
-            agent: 'codex',
-            approvalPolicy: 'on-request',
-            model: inputStore.getSnapshot().modelOverride ?? 'gpt-5.5',
-            thinkingLevel: 'high',
-        },
+        settings: settingsStore.getSnapshot().settings ?? defaultSettings,
+        settingsStore,
     } as unknown as ActionPopupOperationInput
 }
 
@@ -103,8 +104,8 @@ describe('runPopupAction waiting follow-up', () => {
 
     it('restarts from persisted conversation with changed settings', async () => {
         const inputStore = new ActionRunInputStore()
-        inputStore.setModel('gpt-5.6')
-        inputStore.recordSettingsChangeWhileWaiting()
+        const settingsStore = new ActionRunSettingsStore(action.id, null)
+        settingsStore.setSettings({ ...defaultSettings, model: 'gpt-5.6' }, true)
         const run = actionRunRegistry.getActionRunStore(action.id, context)?.getSnapshot() ?? null
         actionPromptDraftService.getDraft(action.id, context, run, { prepare: false }).edit('Next request')
         restartAction.mockImplementation(async (_runId, _action, _context, _runInput, onStarted) => {
@@ -112,7 +113,7 @@ describe('runPopupAction waiting follow-up', () => {
             return { logs: [], status: 'completed' }
         })
 
-        await runPopupAction(operationInput(inputStore))
+        await runPopupAction(operationInput(inputStore, settingsStore))
 
         expect(restartAction).toHaveBeenCalledWith(
             'run-1', action, context,
@@ -120,12 +121,13 @@ describe('runPopupAction waiting follow-up', () => {
             expect.any(Function),
         )
         expect(bridge.sendActionQueuedMessage).not.toHaveBeenCalled()
-        expect(inputStore.getSnapshot().settingsChangedWhileWaiting).toBe(false)
+        expect(settingsStore.getSnapshot().settingsChangedWhileWaiting).toBe(false)
     })
 
     it('preserves prompt and reports restart failure', async () => {
         const inputStore = new ActionRunInputStore()
-        inputStore.recordSettingsChangeWhileWaiting()
+        const settingsStore = new ActionRunSettingsStore(action.id, null)
+        settingsStore.setSettings(defaultSettings, true)
         const run = actionRunRegistry.getActionRunStore(action.id, context)?.getSnapshot() ?? null
         const draft = actionPromptDraftService.getDraft(action.id, context, run, { prepare: false })
         draft.edit('Keep request')
@@ -135,7 +137,7 @@ describe('runPopupAction waiting follow-up', () => {
         })
         const reportError = vi.spyOn(dialogService, 'error')
 
-        await runPopupAction(operationInput(inputStore))
+        await runPopupAction(operationInput(inputStore, settingsStore))
 
         expect(draft.getSnapshot()).toBe('')
         expect(currentActionPromptDraft(action, context, false).getSnapshot()).toBe('Keep request')

@@ -3,6 +3,7 @@ import { cardMarkdownDataSource } from '../components/editor/card_markdown_data_
 import { readDesktopConfigFromBridge } from './config/config_persistence'
 import { configService } from './config/config_service'
 import { actionRunRegistry } from './actions/action_run_registry'
+import { actionRunSettingsService } from './actions/action_run_settings_service'
 import { actionService } from './actions/action_service'
 import { agentCapabilitiesService } from './agents/agent_capabilities_service'
 import { codexRateLimitService } from './agents/codex_rate_limit_service'
@@ -40,6 +41,7 @@ function initializeServices() {
     cardMarkdownDataSource.init(dataService)
     actionMarkdownDataSource.init(actionService)
     actionRunRegistry.start()
+    actionRunSettingsService.init(dataService)
     codexRateLimitService.start()
 }
 

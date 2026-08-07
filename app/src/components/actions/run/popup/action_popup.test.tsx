@@ -6,7 +6,9 @@ import type { ActionFile } from '../../../../data/action_types'
 import type { AgentConversation, ProjectReference, StorageService, WorktreeRecord } from '../../../../data/data_types'
 import { actionService } from '../../../../services/actions/action_service'
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
+import { actionRunSettingsService } from '../../../../services/actions/action_run_settings_service'
 import { actionPromptDraftService } from '../../../../services/actions/action_prompt_draft_service'
+import { agentCapabilitiesService } from '../../../../services/agents/agent_capabilities_service'
 import { dialogService } from '../../../../services/dialog_service'
 import { dataService } from '../../../../services/data/data_service'
 import { worktreeService } from '../../../../services/project/worktree_service'
@@ -246,6 +248,7 @@ describe('ActionPopup', () => {
 
     afterEach(() => {
         actionRunRegistry.stop()
+        actionRunSettingsService.clear()
         delete window.md2Actions
         actionService.clear()
         worktreeService.clear()
@@ -1003,6 +1006,157 @@ describe('ActionPopup', () => {
         expect(model).toBeDisabled()
         act(() => runListener?.({ ...eventBase, status: 'waitingForInput', type: 'agentState' }))
         expect(model).toBeEnabled()
+    })
+
+    it('disables selectors during saved-settings load', async () => {
+        const cardContext = { ...context, cardInternalId: 'card-1' }
+        const activity = deferredValue<{
+            actionSettings: Record<string, never>
+            conversations: []
+            origin: { cardInternalId: string; kind: 'card' }
+            records: []
+            version: 3
+        }>()
+        window.md2Actions = {
+            loadCardActivity: vi.fn(() => activity.promise),
+            onActionRun: vi.fn(() => vi.fn()),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: 'Plan' })),
+        } as unknown as typeof window.md2Actions
+        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({
+            availability: { error: null, loading: false, values: { codex: { available: true, error: null } } },
+            models: { error: null, loading: false, values: [] },
+            thinkingLevels: { error: null, loading: false, values: [] },
+        })
+        actionService.loadFromFiles([file(agentDefinition('review', { agent: 'codex', label: 'Review' }))])
+
+        renderPopup(cardContext)
+        expect(screen.getByLabelText('Model')).toHaveAttribute('aria-disabled', 'true')
+
+        activity.resolve({actionSettings: {}, conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 3})
+        await waitFor(() => expect(screen.getByLabelText('Model')).not.toHaveAttribute('aria-disabled', 'true'))
+    })
+
+    it('persists complete settings across close and renderer-store restart without rendering popup roots', async () => {
+        const cardContext = { ...context, cardInternalId: 'card-1' }
+        let savedSettings: {
+            accessLevel: string
+            agent: string
+            approvalPolicy: string
+            model: string
+            thinkingLevel: string
+        } | null = null
+        const updateCardActionSettings = vi.fn(async (request) => {
+            savedSettings = request.settings
+        })
+        const loadCardActivity = vi.fn(async () => ({
+            actionSettings: savedSettings ? { review: savedSettings } : {},
+            conversations: [],
+            origin: { cardInternalId: 'card-1', kind: 'card' as const },
+            records: [],
+            version: 3 as const,
+        }))
+        window.md2Actions = {
+            loadCardActivity,
+            onActionRun: vi.fn(() => vi.fn()),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: 'Plan' })),
+            updateCardActionSettings,
+        } as unknown as typeof window.md2Actions
+        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({
+            availability: { error: null, loading: false, values: { codex: { available: true, error: null } } },
+            models: { error: null, loading: false, values: [] },
+            thinkingLevels: { error: null, loading: false, values: [] },
+        })
+        actionService.loadFromFiles([file(agentDefinition('review', { agent: 'codex', label: 'Review' }))])
+        renderPopup(cardContext)
+        await waitFor(() => expect(screen.getByLabelText('Model')).not.toHaveAttribute('aria-disabled', 'true'))
+        Object.values(renderProbes).forEach((probe) => probe.mockClear())
+
+        fireEvent.mouseDown(screen.getByLabelText('Model'))
+        fireEvent.click(screen.getByRole('option', { name: 'gpt-5.6-sol' }))
+        await waitFor(() => expect(updateCardActionSettings).toHaveBeenCalledWith({
+            actionId: 'review',
+            cardInternalId: 'card-1',
+            settings: {
+                accessLevel: '', agent: 'codex', approvalPolicy: '',
+                model: 'gpt-5.6-sol', thinkingLevel: 'none',
+            },
+        }))
+        expect(renderProbes.content).not.toHaveBeenCalled()
+        expect(renderProbes.popup).not.toHaveBeenCalled()
+        expect(renderProbes.selector).not.toHaveBeenCalled()
+        expect(renderProbes.chat).not.toHaveBeenCalled()
+
+        cleanup()
+        renderPopup(cardContext)
+        expect(screen.getByLabelText('Model')).toHaveTextContent('gpt-5.6-sol')
+
+        cleanup()
+        actionRunSettingsService.clear()
+        renderPopup(cardContext)
+        await waitFor(() => expect(screen.getByLabelText('Model')).toHaveTextContent('gpt-5.6-sol'))
+        expect(loadCardActivity).toHaveBeenCalledTimes(2)
+    })
+
+    it('keeps settings independent while switching actions in one card popup', async () => {
+        const cardContext = { ...context, cardInternalId: 'card-1' }
+        const updateCardActionSettings = vi.fn(async (request: { actionId: string }) => {
+            void request
+        })
+        window.md2Actions = {
+            loadCardActivity: vi.fn(async () => ({actionSettings: {}, conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 3})),
+            onActionRun: vi.fn(() => vi.fn()),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: 'Plan' })),
+            updateCardActionSettings,
+        } as unknown as typeof window.md2Actions
+        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({
+            availability: { error: null, loading: false, values: { codex: { available: true, error: null } } },
+            models: { error: null, loading: false, values: [] },
+            thinkingLevels: { error: null, loading: false, values: [] },
+        })
+        actionService.loadFromFiles([
+            file(agentDefinition('first-agent', { agent: 'codex', label: 'First agent' })),
+            file(agentDefinition('second-agent', { agent: 'codex', label: 'Second agent' })),
+        ])
+        renderPopup(cardContext)
+        await waitFor(() => expect(screen.getByLabelText('Model')).not.toHaveAttribute('aria-disabled', 'true'))
+
+        fireEvent.mouseDown(screen.getByLabelText('Model'))
+        fireEvent.click(screen.getByRole('option', { name: 'gpt-5.6-sol' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Second agent' }))
+        await waitFor(() => expect(screen.getByLabelText('Model')).toHaveTextContent('gpt-5.5'))
+        fireEvent.mouseDown(screen.getByLabelText('Model'))
+        fireEvent.click(screen.getByRole('option', { name: 'gpt-5.6-terra' }))
+
+        fireEvent.click(screen.getByRole('button', { name: 'First agent' }))
+        await waitFor(() => expect(screen.getByLabelText('Model')).toHaveTextContent('gpt-5.6-sol'))
+        expect(updateCardActionSettings.mock.calls.map(([request]) => request.actionId)).toEqual(['first-agent', 'second-agent'])
+    })
+
+    it('uses current defaults for unavailable saved configuration without overwriting persistence', async () => {
+        const cardContext = { ...context, cardInternalId: 'card-1' }
+        const unavailableSettings = {accessLevel: '', agent: 'removed-agent', approvalPolicy: '', model: 'removed-model', thinkingLevel: 'high'}
+        const updateCardActionSettings = vi.fn(async () => undefined)
+        window.md2Actions = {
+            loadCardActivity: vi.fn(async () => ({
+                actionSettings: { review: unavailableSettings }, conversations: [],
+                origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 3,
+            })),
+            onActionRun: vi.fn(() => vi.fn()),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: 'Plan' })),
+            updateCardActionSettings,
+        } as unknown as typeof window.md2Actions
+        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({
+            availability: { error: null, loading: false, values: { codex: { available: true, error: null } } },
+            models: { error: null, loading: false, values: [] },
+            thinkingLevels: { error: null, loading: false, values: [] },
+        })
+        actionService.loadFromFiles([file(agentDefinition('review', { agent: 'codex', label: 'Review' }))])
+
+        renderPopup(cardContext)
+
+        await waitFor(() => expect(screen.getByLabelText('Agent')).toHaveTextContent('codex'))
+        expect(screen.getByLabelText('Model')).toHaveTextContent('gpt-5.5')
+        expect(updateCardActionSettings).not.toHaveBeenCalled()
     })
 
     it('uses active one-shot child controls and omits Finish', async () => {

@@ -1,8 +1,11 @@
 import type { ActionContext } from '../../../../data/action_context'
 import type { ActionDefinition } from '../../../../data/action_types'
-import type { ThinkingLevel } from '../../../../data/agent_profiles'
 import { actionPromptDraftService } from '../../../../services/actions/action_prompt_draft_service'
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
+import type {
+    ActionRunSettingsStore,
+    ResolvedActionRunSettings,
+} from '../../../../services/actions/action_run_settings_service'
 import { dataService } from '../../../../services/data/data_service'
 import { dialogService } from '../../../../services/dialog_service'
 import {
@@ -20,14 +23,6 @@ import type { ActionRunResultStore } from '../state/action_run_result_store'
 
 const DEFAULT_CONVERT_LABEL_LENGTH = 40
 
-export interface ResolvedActionRunSettings {
-    accessLevel: string
-    agent: string
-    approvalPolicy: string
-    model: string
-    thinkingLevel: ThinkingLevel
-}
-
 export interface ActionPopupOperationInput {
     action: ActionDefinition
     context: ActionContext
@@ -37,6 +32,7 @@ export interface ActionPopupOperationInput {
     resultStore: ActionRunResultStore
     runValidationError: string | null
     settings: ResolvedActionRunSettings
+    settingsStore: ActionRunSettingsStore
 }
 
 export function currentActionRun(action: ActionDefinition, context: ActionContext) {
@@ -50,7 +46,10 @@ export function currentActionPromptDraft(action: ActionDefinition, context: Acti
 }
 
 async function runWithPrompt(input: ActionPopupOperationInput, prompt: string, previousRunId: string | null = null) {
-    const { action, context, conversationStore, historyStore, inputStore, resultStore, runValidationError, settings } = input
+    const {
+        action, context, conversationStore, historyStore, resultStore, runValidationError, settings,
+        settingsStore,
+    } = input
     resultStore.setRunning()
     try {
         if (runValidationError) throw new Error(runValidationError)
@@ -70,7 +69,7 @@ async function runWithPrompt(input: ActionPopupOperationInput, prompt: string, p
             : { extraPrompt: prompt }
         const handleStarted = (runId: string) => {
             resultStore.setRunId(runId)
-            inputStore.markSettingsApplied()
+            settingsStore.markSettingsApplied()
             actionPromptDraftService.clearDraft(action.id, context, currentActionRun(action, context))
         }
         const result = previousRunId
@@ -103,7 +102,7 @@ async function runWithPrompt(input: ActionPopupOperationInput, prompt: string, p
 }
 
 export async function runPopupAction(input: ActionPopupOperationInput) {
-    const { action, context, inputStore } = input
+    const { action, context, settingsStore } = input
     const run = currentActionRun(action, context)
     const promptDraft = actionPromptDraftService.getDraft(action.id, context, run, { prepare: false })
     const prompt = promptDraft.getSnapshot()
@@ -112,7 +111,7 @@ export async function runPopupAction(input: ActionPopupOperationInput) {
 
     if (agentActive && run) {
         if (run.question || run.approvals.length) return
-        if (run.status === 'waitingForInput' && inputStore.getSnapshot().settingsChangedWhileWaiting) {
+        if (run.status === 'waitingForInput' && settingsStore.getSnapshot().settingsChangedWhileWaiting) {
             await runWithPrompt(input, prompt, run.runId)
             return
         }

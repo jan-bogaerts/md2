@@ -20,7 +20,7 @@ function record() {
 
 describe('card activity action runs', () => {
     it('parses the runId activity contract', () => {
-        const activity = parseActivityValue({ conversations: [], origin, records: [record()], version: 2 }, origin);
+        const activity = parseActivityValue({ actionSettings: {}, conversations: [], origin, records: [record()], version: 3 }, origin);
 
         expect(activity.records[0].runId).toBe('run-1');
     });
@@ -29,7 +29,7 @@ describe('card activity action runs', () => {
         const legacyRecord = { ...record(), executionId: 'execution-1' };
         delete legacyRecord.runId;
 
-        expect(() => parseActivityValue({ conversations: [], origin, records: [legacyRecord], version: 2 }, origin))
+        expect(() => parseActivityValue({ actionSettings: {}, conversations: [], origin, records: [legacyRecord], version: 3 }, origin))
             .toThrow('Malformed activity file: missing records[0].runId');
     });
 
@@ -57,7 +57,7 @@ describe('card activity action runs', () => {
         const legacyActivity = { conversations, origin, records: [legacyRecord], version: 1 };
         const migrated = migrateActivityValue(legacyActivity, origin);
 
-        expect(migrated).toMatchObject({ version: 2, conversations: [{ viewed: true }, { viewed: true }] });
+        expect(migrated).toMatchObject({ actionSettings: {}, version: 3, conversations: [{ viewed: true }, { viewed: true }] });
         expect(migrated.records[0]).toMatchObject({
             conversationIds: ['conversation-child', 'conversation-root'],
             details: { agent: 'codex', model: 'gpt-5', thinkingLevel: 'high', type: 'agent' },
@@ -66,6 +66,29 @@ describe('card activity action runs', () => {
         expect(migrated.records[0]).not.toHaveProperty('history');
         expect(migrated.records[0].details).not.toHaveProperty('output');
         expect(migrated.records[0].details).not.toHaveProperty('prompt');
+    });
+
+    it('migrates version 2 by adding empty action settings', () => {
+        const migrated = migrateActivityValue({ conversations: [], origin, records: [record()], version: 2 }, origin);
+
+        expect(migrated).toEqual({ actionSettings: {}, conversations: [], origin, records: [record()], version: 3 });
+    });
+
+    it('parses complete action settings and preserves provider-default empty strings', () => {
+        const settings = { accessLevel: '', agent: 'codex', approvalPolicy: '', model: '', thinkingLevel: 'high' };
+        const activityValue = { actionSettings: { review: settings }, conversations: [], origin, records: [], version: 3 };
+        const activity = parseActivityValue(activityValue, origin);
+
+        expect(activity.actionSettings.review).toEqual(settings);
+    });
+
+    it.each([
+        [{ review: { accessLevel: '', agent: 'codex', approvalPolicy: '', model: '' } }, 'thinkingLevel'],
+        [{ review: { accessLevel: '', agent: 'codex', approvalPolicy: '', model: '', thinkingLevel: null } }, 'thinkingLevel'],
+        [[], 'actionSettings must be an object'],
+    ])('rejects malformed action settings %#', (actionSettings, expected) => {
+        expect(() => parseActivityValue({ actionSettings, conversations: [], origin, records: [], version: 3 }, origin))
+            .toThrow(expected);
     });
 
     it.each([
