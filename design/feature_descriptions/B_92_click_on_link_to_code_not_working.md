@@ -11,7 +11,7 @@ agents:
   - design/activity/card__c9e7dccb-d263-4ba6-98fc-b4361a01bf4d.json#conversation=agent-aae77199-0ad2-4afd-adf3-c5c9dfbf4284
 policy:
 branch: b_92_click_on_link_to_code_not_working
-after: 963bef1f-5a53-4f16-8941-13f9be36b88a
+after: 16bc6dc5-0f8e-421d-b0a9-c83d3a3a65f0
 ---
 
 error:
