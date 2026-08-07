@@ -1,0 +1,11 @@
+{
+  "id": "babd3e90-6a91-4f4b-9a58-70463771833f",
+  "label": "largest files",
+  "description": "search for the largest files",
+  "type": "agent",
+  "phrases": [],
+  "prompt": "Describe what the agent should do.",
+  "appliesTo": {
+    "kind": "project"
+  }
+}
