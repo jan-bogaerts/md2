@@ -1,0 +1,55 @@
+{
+  "conversations": [
+    {
+      "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "cardInternalId": "05d5d49c-401f-42cd-b3cc-074e169631dd",
+      "cardPath": "design/feature_descriptions/F_153_action_part_in_approval_required.md",
+      "completedAt": "2026-08-07T12:29:52.782Z",
+      "entries": [
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/F_153_action_part_in_approval_required.md`.&#x20;\n\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill\n\nDo not stage or commit changes. md2 will commit files captured from provider edit tools.",
+          "id": "agent-turn-2e858f0c-b202-4d90-b86b-de3b18f0ee34-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-08-07T12:29:43.295Z"
+        },
+        {
+          "agent": "codex",
+          "content": "Using `caveman` for terse updates and document wording. First inspect target, every referenced non-agent file, architecture rules, then relevant code paths. No staging or commit.\n\n",
+          "id": "agent-turn-2e858f0c-b202-4d90-b86b-de3b18f0ee34-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 2,
+          "timestamp": "2026-08-07T12:29:52.782Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-2e858f0c-b202-4d90-b86b-de3b18f0ee34-event-3",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_00ccc9c3b011cb98016a75cfbdf8f4819181b6b745f9caaa7b",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-08-07T12:29:49.047Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-2322e64a-9c75-4d08-b6cd-9b3d966b498b",
+      "providerSessions": [],
+      "startedAt": "2026-08-07T12:29:43.295Z",
+      "status": "cancelled",
+      "title": "complete",
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "05d5d49c-401f-42cd-b3cc-074e169631dd",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 2
+}
