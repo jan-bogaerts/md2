@@ -10,6 +10,8 @@ agents:
   - design/activity/card__16bc6dc5-0f8e-421d-b0a9-c83d3a3a65f0.json#conversation=agent-221e4f2f-03cb-429a-aada-7474d68aabb0
   - design/activity/card__16bc6dc5-0f8e-421d-b0a9-c83d3a3a65f0.json#conversation=agent-a1bd9abf-a336-412a-8715-425236c4f38f
 policy:
+branch: f_137_group_toolcalls
+worktree: 3
 ---
 we need to improve how the conversation log shows the list of toolcalls.
 
