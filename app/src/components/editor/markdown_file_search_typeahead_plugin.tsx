@@ -45,6 +45,7 @@ export function MarkdownFileSearchTypeaheadPlugin() {
 
         return createPortal(
             <MarkdownFileSearchMenu
+                anchorElement={anchorElementRef.current}
                 onHighlight={itemProps.setHighlightedIndex}
                 onSelect={itemProps.selectOptionAndCleanUp}
                 options={itemProps.options}
