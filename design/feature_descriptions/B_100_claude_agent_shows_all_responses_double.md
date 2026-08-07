@@ -3,7 +3,7 @@ author:
 id: B_100
 internalId: dda2ae5a-d265-4134-93ab-268b664cb1ae
 title: claude agent shows all responses double
-status: new
+status: design
 owner: 
 affects:
 agents:
