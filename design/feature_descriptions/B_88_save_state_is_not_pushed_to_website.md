@@ -3,11 +3,12 @@ author:
 id: B_88
 internalId: eeb46f0d-77d7-4a9d-a83e-b64e9101b994
 title: save state is not pushed to website
-status: design
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__eeb46f0d-77d7-4a9d-a83e-b64e9101b994.json#conversation=agent-1761ff54-8fbc-4165-a11d-61ff90293784
+  - design/activity/card__eeb46f0d-77d7-4a9d-a83e-b64e9101b994.json#conversation=agent-f6461aaf-f8cb-4b44-bbc9-ca1b36c901d3
 policy:
 ---
 
