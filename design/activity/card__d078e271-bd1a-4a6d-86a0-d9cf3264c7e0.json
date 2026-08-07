@@ -559,6 +559,130 @@
           "role": "user",
           "sequence": 39,
           "timestamp": "2026-08-07T09:52:20.080Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-74609be2-ae59-4393-8b19-ff94e8331d19-event-40",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_080e3aeaef1b6ec0016a75aad7114081918d49b0132ff0983c",
+          "sequence": 40,
+          "status": "completed",
+          "timestamp": "2026-08-07T09:52:29.639Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "agent": "codex",
+          "content": "Scope fixed: only runs containing at least two completed tool calls get summary box. Single completed calls stay standalone. Writing sections now; grouping rules and canonical data remain unchanged.\n\n",
+          "id": "agent-turn-74609be2-ae59-4393-8b19-ff94e8331d19-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 41,
+          "timestamp": "2026-08-07T09:52:37.542Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-74609be2-ae59-4393-8b19-ff94e8331d19-event-42",
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-6f52efdd-c4eb-41d9-afb2-fe8aae109b6f",
+          "sequence": 42,
+          "status": "completed",
+          "timestamp": "2026-08-07T09:52:43.715Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-74609be2-ae59-4393-8b19-ff94e8331d19-event-43",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_080e3aeaef1b6ec0016a75aaee9c748191be9d4f33b75dcfd7",
+          "sequence": 43,
+          "status": "completed",
+          "timestamp": "2026-08-07T09:52:46.187Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "content": "diff --git a/design/feature_descriptions/F_151_improve_tool_call_box_in_chatlog.md b/design/feature_descriptions/F_151_improve_tool_call_box_in_chatlog.md\nindex 3aa45b2..0d380b3 100644\n--- a/design/feature_descriptions/F_151_improve_tool_call_box_in_chatlog.md\n+++ b/design/feature_descriptions/F_151_improve_tool_call_box_in_chatlog.md\n@@ -15,4 +15,34 @@ in [F\\_137\\_group\\_toolcalls.md](design/releases/0_1_0/F_137_group_toolcalls.md)\n \n we don't want that, we just want 1 single box that says:\n \n-`tools called` or something similar. This box can be expanded, then we get the individual tools that were called. each individual tool can also be expanded to see the details.\n\\ No newline at end of file\n+`tools called` or something similar. This box can be expanded, then we get the individual tools that were called. each individual tool can also be expanded to see the details.\n+\n+## Current state\n+\n+`buildActionConversationRenderGroups` groups each visible run of at least two adjacent completed tool calls. A run is a sequence of completed tool-call events uninterrupted by a visible message or non-completed event; completed reasoning is hidden before grouping and therefore does not split the run. Single completed calls and all running, failed, or declined calls remain standalone.\n+\n+`CompletedToolCallGroup` renders one outer border, but immediately renders every call through `ActionConversationEventRow`. Dividers make those rows touch, so the result still looks like several tool-call boxes instead of one summary box. Each row independently expands through `AgentToolEvent` or `CommandExecutionEvent` to show its details.\n+\n+## implementation details\n+\n+- Keep canonical conversation entries and `buildActionConversationRenderGroups` grouping rules unchanged. This feature changes presentation only.\n+- Render each multi-call group as one collapsed summary box labelled `Tools called (N)`, where `N` is number of calls in that group.\n+- Make summary header a button with visible expand/collapse affordance and accurate `aria-expanded` state.\n+- When summary expands, render calls in canonical conversation order as compact rows inside same outer box. Separate rows with divider hairlines; do not give each row its own outer box.\n+- Keep each call row independently expandable. Expanding one call reveals existing command or generic-tool details without collapsing group or changing expansion state of other calls.\n+- Preserve group and row keys based on existing event identities. When a running call completes and joins an existing group, mounted rows retain their expansion state and no call is duplicated.\n+- Keep single completed calls standalone. Keep running, started, in-progress, failed, and declined calls outside completed multi-call groups with existing lifecycle status and detail behavior.\n+- Use theme spacing, colors, borders, typography, and outlined MUI icons. Long summary or call text must truncate or wrap without horizontal chat overflow.\n+- Update chat rendering tests for collapsed summary, group expansion, nested independent detail expansion, grouping boundaries, live completion, accessible state, and unchanged standalone calls.\n+\n+## acceptance criteria\n+\n+- Every run containing at least two completed tool calls initially appears as one collapsed `Tools called (N)` box.\n+- Expanding summary shows every grouped call once, in original conversation order, inside same outer box.\n+- Each visible call can independently expand and collapse its existing details while summary remains expanded.\n+- Collapsing and reopening summary preserves each mounted call's detail-expansion state.\n+- Messages and visible non-completed events split groups; hidden completed reasoning does not split them.\n+- Single completed calls and non-completed calls remain standalone with existing status and detail behavior.\n+- A call that completes during live rendering joins eligible adjacent group without duplication or loss of existing row expansion state.\n+- Summary and call controls expose accessible names and correct `aria-expanded` values.\n+- Group contents do not cause horizontal overflow in conversation chat.\n",
+          "id": "agent-turn-74609be2-ae59-4393-8b19-ff94e8331d19-event-44",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff -- 'design/feature_descriptions/F_151_improve_tool_call_box_in_chatlog.md'\"",
+          "providerItemId": "exec-44e22026-4d2f-4c24-9091-e0d68dabe302",
+          "sequence": 44,
+          "status": "completed",
+          "timestamp": "2026-08-07T09:52:47.629Z",
+          "type": "commandExecution",
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff -- 'design/feature_descriptions/F_151_improve_tool_call_box_in_chatlog.md'\"",
+          "durationMs": 304,
+          "exitCode": 0,
+          "output": "diff --git a/design/feature_descriptions/F_151_improve_tool_call_box_in_chatlog.md b/design/feature_descriptions/F_151_improve_tool_call_box_in_chatlog.md\nindex 3aa45b2..0d380b3 100644\n--- a/design/feature_descriptions/F_151_improve_tool_call_box_in_chatlog.md\n+++ b/design/feature_descriptions/F_151_improve_tool_call_box_in_chatlog.md\n@@ -15,4 +15,34 @@ in [F\\_137\\_group\\_toolcalls.md](design/releases/0_1_0/F_137_group_toolcalls.md)\n \n we don't want that, we just want 1 single box that says:\n \n-`tools called` or something similar. This box can be expanded, then we get the individual tools that were called. each individual tool can also be expanded to see the details.\n\\ No newline at end of file\n+`tools called` or something similar. This box can be expanded, then we get the individual tools that were called. each individual tool can also be expanded to see the details.\n+\n+## Current state\n+\n+`buildActionConversationRenderGroups` groups each visible run of at least two adjacent completed tool calls. A run is a sequence of completed tool-call events uninterrupted by a visible message or non-completed event; completed reasoning is hidden before grouping and therefore does not split the run. Single completed calls and all running, failed, or declined calls remain standalone.\n+\n+`CompletedToolCallGroup` renders one outer border, but immediately renders every call through `ActionConversationEventRow`. Dividers make those rows touch, so the result still looks like several tool-call boxes instead of one summary box. Each row independently expands through `AgentToolEvent` or `CommandExecutionEvent` to show its details.\n+\n+## implementation details\n+\n+- Keep canonical conversation entries and `buildActionConversationRenderGroups` grouping rules unchanged. This feature changes presentation only.\n+- Render each multi-call group as one collapsed summary box labelled `Tools called (N)`, where `N` is number of calls in that group.\n+- Make summary header a button with visible expand/collapse affordance and accurate `aria-expanded` state.\n+- When summary expands, render calls in canonical conversation order as compact rows inside same outer box. Separate rows with divider hairlines; do not give each row its own outer box.\n+- Keep each call row independently expandable. Expanding one call reveals existing command or generic-tool details without collapsing group or changing expansion state of other calls.\n+- Preserve group and row keys based on existing event identities. When a running call completes and joins an existing group, mounted rows retain their expansion state and no call is duplicated.\n+- Keep single completed calls standalone. Keep running, started, in-progress, failed, and declined calls outside completed multi-call groups with existing lifecycle status and detail behavior.\n+- Use theme spacing, colors, borders, typography, and outlined MUI icons. Long summary or call text must truncate or wrap without horizontal chat overflow.\n+- Update chat rendering tests for collapsed summary, group expansion, nested independent detail expansion, grouping boundaries, live completion, accessible state, and unchanged standalone calls.\n+\n+## acceptance criteria\n+\n+- Every run containing at least two completed tool calls initially appears as one collapsed `Tools called (N)` box.\n+- Expanding summary shows every grouped call once, in original conversation order, inside same outer box.\n+- Each visible call can independently expand and collapse its existing details while summary remains expanded.\n+- Collapsing and reopening summary preserves each mounted call's detail-expansion state.\n+- Messages and visible non-completed events split groups; hidden completed reasoning does not split them.\n+- Single completed calls and non-completed calls remain standalone with existing status and detail behavior.\n+- A call that completes during live rendering joins eligible adjacent group without duplication or loss of existing row expansion state.\n+- Summary and call controls expose accessible names and correct `aria-expanded` values.\n+- Group contents do not cause horizontal overflow in conversation chat.\n",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-74609be2-ae59-4393-8b19-ff94e8331d19-event-45",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_080e3aeaef1b6ec0016a75aaf1c9a8819199c5f1510ce163eb",
+          "sequence": 45,
+          "status": "completed",
+          "timestamp": "2026-08-07T09:52:56.172Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "content": "",
+          "id": "agent-turn-74609be2-ae59-4393-8b19-ff94e8331d19-event-46",
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-ece901f2-44f1-4518-8080-936f81048ae0",
+          "sequence": 46,
+          "status": "completed",
+          "timestamp": "2026-08-07T09:53:06.560Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-74609be2-ae59-4393-8b19-ff94e8331d19-event-47",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_080e3aeaef1b6ec0016a75ab04c6ec8191b93d7f24d51156b1",
+          "sequence": 47,
+          "status": "completed",
+          "timestamp": "2026-08-07T09:53:08.479Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "content": " M design/feature_descriptions/F_151_improve_tool_call_box_in_chatlog.md\nwarning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\nwarning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\n",
+          "id": "agent-turn-74609be2-ae59-4393-8b19-ff94e8331d19-event-48",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git status --short -- 'design/feature_descriptions/F_151_improve_tool_call_box_in_chatlog.md'\"",
+          "providerItemId": "exec-eba732d6-dc4b-4f4a-bc51-f9713b76cbdc",
+          "sequence": 48,
+          "status": "completed",
+          "timestamp": "2026-08-07T09:53:09.945Z",
+          "type": "commandExecution",
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git status --short -- 'design/feature_descriptions/F_151_improve_tool_call_box_in_chatlog.md'\"",
+          "durationMs": 279,
+          "exitCode": 0,
+          "output": " M design/feature_descriptions/F_151_improve_tool_call_box_in_chatlog.md\nwarning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\nwarning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\n",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "agent": "codex",
+          "content": "Updated [F_151_improve_tool_call_box_in_chatlog.md](C:\\Users\\janbo\\Documents\\dev\\md2/design/feature_descriptions/F_151_improve_tool_call_box_in_chatlog.md).\n\nAdded:\n\n- `Current state`\n- `implementation details`\n- `acceptance criteria`\n- Multi-call-only scope\n- Grouping boundaries, accessibility, live updates, tests\n\nNo staging or commit.\n\n",
+          "id": "agent-turn-74609be2-ae59-4393-8b19-ff94e8331d19-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 49,
+          "timestamp": "2026-08-07T09:53:12.908Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -568,20 +692,20 @@
           "agent": "codex",
           "conversationId": "019fdba1-2695-77d0-b196-714af6183ee9",
           "createdAt": "2026-08-07T09:51:23.762Z",
-          "lastUsedAt": "2026-08-07T09:51:23.762Z",
-          "synchronizedThroughMessageId": "agent-turn-74609be2-ae59-4393-8b19-ff94e8331d19-turn-1-assistant-3"
+          "lastUsedAt": "2026-08-07T09:53:12.908Z",
+          "synchronizedThroughMessageId": "agent-turn-74609be2-ae59-4393-8b19-ff94e8331d19-turn-2-assistant-2"
         }
       ],
       "startedAt": "2026-08-07T09:49:59.130Z",
-      "status": "running",
+      "status": "waitingForInput",
       "title": "complete",
-      "viewed": true,
+      "viewed": false,
       "usage": {
-        "cachedInputTokens": 50944,
-        "inputTokens": 53762,
-        "outputTokens": 345,
+        "cachedInputTokens": 108032,
+        "inputTokens": 112106,
+        "outputTokens": 436,
         "reasoningTokens": 223,
-        "totalTokens": 105274
+        "totalTokens": 220797
       }
     }
   ],
