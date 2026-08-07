@@ -462,9 +462,20 @@ describe('ActionConversationChat', () => {
         renderChat(conversation('tool-types.json', entries, 'codex'))
 
         const group = screen.getByRole('group', { name: 'Completed tool calls' })
-        const buttons = within(group).getAllByRole('button')
-        expect(buttons).toHaveLength(entries.length)
-        expect(buttons.map(({ textContent }) => textContent)).toEqual([
+        const summaryButton = within(group).getByRole('button', { name: 'Tools called (8)' })
+        const summaryText = within(group).getByText('Tools called (8)')
+        expect(group).toHaveStyle({ minWidth: '0', overflow: 'hidden' })
+        expect(summaryButton).toHaveStyle({ minWidth: '0' })
+        expect(summaryText).toHaveStyle({ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' })
+        expect(summaryButton).toHaveAttribute('aria-expanded', 'false')
+        expect(within(group).queryByRole('button', { name: 'File change details' })).not.toBeInTheDocument()
+
+        fireEvent.click(summaryButton)
+
+        expect(summaryButton).toHaveAttribute('aria-expanded', 'true')
+        const detailButtons = within(group).getAllByRole('button').slice(1)
+        expect(detailButtons).toHaveLength(entries.length)
+        expect(detailButtons.map(({ textContent }) => textContent)).toEqual([
             'Command callCompleted',
             'File changeCompleted',
             'MCP callCompleted',
@@ -490,6 +501,8 @@ describe('ActionConversationChat', () => {
             output: 'Search output',
         })
         renderChat(conversation('tool-details.json', [command, search], 'codex'))
+        const summaryButton = screen.getByRole('button', { name: 'Tools called (2)' })
+        fireEvent.click(summaryButton)
         const commandButton = screen.getByRole('button', { name: 'Command details: npm test' })
         const searchButton = screen.getByRole('button', { name: 'Web search details' })
 
@@ -510,9 +523,17 @@ describe('ActionConversationChat', () => {
         expect(screen.getByText('Exit code: 0')).toBeInTheDocument()
         expect(screen.getByText('Duration: 42 ms')).toBeInTheDocument()
         expect(screen.getByText('Duration: 8 ms')).toBeInTheDocument()
+
+        fireEvent.click(commandButton)
+
+        expect(commandButton).toHaveAttribute('aria-expanded', 'false')
+        expect(searchButton).toHaveAttribute('aria-expanded', 'true')
+        expect(summaryButton).toHaveAttribute('aria-expanded', 'true')
+        expect(screen.queryByText('Command output')).not.toBeInTheDocument()
+        expect(screen.getByText('Search output')).toBeInTheDocument()
     })
 
-    it('groups completed PowerShell calls across hidden reasoning and splits them at messages', () => {
+    it('groups completed calls across hidden reasoning and splits them at visible entries', () => {
         const entries: AgentConversationEntry[] = [
             toolEvent('First command', 'commandExecution', 'completed', { command: 'powershell.exe -Command "Get-Content first"' }),
             completedReasoning('first-reasoning'),
@@ -523,17 +544,35 @@ describe('ActionConversationChat', () => {
             toolEvent('Fourth command', 'commandExecution', 'completed', { command: 'powershell.exe -Command "Get-Content fourth"' }),
             completedReasoning('third-reasoning'),
             toolEvent('Fifth command', 'commandExecution', 'completed', { command: 'powershell.exe -Command "Get-Content fifth"' }),
+            toolEvent('Running boundary', 'webSearch', 'inProgress'),
+            toolEvent('Sixth command', 'commandExecution', 'completed', { command: 'powershell.exe -Command "Get-Content sixth"' }),
+            completedReasoning('fourth-reasoning'),
+            toolEvent('Seventh command', 'commandExecution', 'completed', { command: 'powershell.exe -Command "Get-Content seventh"' }),
         ]
         renderChat(conversation('tool-boundaries.json', entries, 'codex'))
 
         const groups = screen.getAllByRole('group', { name: 'Completed tool calls' })
-        expect(groups).toHaveLength(2)
-        expect(within(groups[0]).getAllByRole('button')).toHaveLength(3)
-        expect(within(groups[1]).getAllByRole('button')).toHaveLength(2)
+        expect(groups).toHaveLength(3)
+        const firstSummary = within(groups[0]).getByRole('button', { name: 'Tools called (3)' })
+        const secondSummary = within(groups[1]).getByRole('button', { name: 'Tools called (2)' })
+        const thirdSummary = within(groups[2]).getByRole('button', { name: 'Tools called (2)' })
+        expect(within(groups[0]).queryByRole('button', { name: /command details/u })).not.toBeInTheDocument()
+        expect(within(groups[1]).queryByRole('button', { name: /command details/u })).not.toBeInTheDocument()
+        expect(within(groups[2]).queryByRole('button', { name: /command details/u })).not.toBeInTheDocument()
+
+        fireEvent.click(firstSummary)
+        fireEvent.click(secondSummary)
+        fireEvent.click(thirdSummary)
+
+        expect(within(groups[0]).getAllByRole('button')).toHaveLength(4)
+        expect(within(groups[1]).getAllByRole('button')).toHaveLength(3)
+        expect(within(groups[2]).getAllByRole('button')).toHaveLength(3)
         expect(screen.queryByText('first-reasoning hidden content')).not.toBeInTheDocument()
         expect(screen.queryByText('second-reasoning hidden content')).not.toBeInTheDocument()
         expect(screen.queryByText('third-reasoning hidden content')).not.toBeInTheDocument()
+        expect(screen.queryByText('fourth-reasoning hidden content')).not.toBeInTheDocument()
         expect(screen.getByText('Visible boundary')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Running boundary details' })).toBeInTheDocument()
     })
 
     it('keeps non-completed tool calls standalone with their lifecycle status', () => {
@@ -564,6 +603,8 @@ describe('ActionConversationChat', () => {
             runningCall,
         ], 'codex')
         const { rerender } = renderChat(first)
+        const summaryButton = screen.getByRole('button', { name: 'Tools called (2)' })
+        fireEvent.click(summaryButton)
         const firstButton = screen.getByRole('button', { name: 'First call details' })
         fireEvent.click(firstButton)
 
@@ -586,8 +627,10 @@ describe('ActionConversationChat', () => {
         )
 
         const group = screen.getByRole('group', { name: 'Completed tool calls' })
-        const buttons = within(group).getAllByRole('button')
-        expect(buttons.map(({ textContent }) => textContent)).toEqual([
+        expect(screen.getByRole('button', { name: 'Tools called (3)' })).toBe(summaryButton)
+        expect(summaryButton).toHaveAttribute('aria-expanded', 'true')
+        const detailButtons = within(group).getAllByRole('button').slice(1)
+        expect(detailButtons.map(({ textContent }) => textContent)).toEqual([
             'First callCompleted',
             'Second callCompleted',
             'Third callCompleted',
