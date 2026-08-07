@@ -12,6 +12,7 @@ agents:
 policy:
 branch: b_101_action_agent_selectors_forget_settings
 worktree: 2
+after: a2cf4f9a-dc7f-417e-8591-c5993e770738
 ---
 when you close and re-open an action popup, the selected agent configuration is lost and appears to go back to default.
 
