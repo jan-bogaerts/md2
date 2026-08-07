@@ -237,6 +237,51 @@ describe('ClaudeStreamingAdapter', () => {
         ]);
     });
 
+    it('suppresses routine Claude protocol noise', async () => {
+        const { adapter, events } = harness('claude');
+
+        await adapter.handleMessage({ subtype: 'rate_limit', type: 'system' });
+        await adapter.handleMessage({ type: 'future_event' });
+        await adapter.handleMessage({ event: { type: 'future_stream_event' }, type: 'stream_event' });
+        await adapter.handleMessage({
+            event: { message: { id: 'message-1' }, type: 'message_start' },
+            type: 'stream_event',
+        });
+        await adapter.handleMessage({
+            event: { content_block: { text: '', type: 'text' }, index: 0, type: 'content_block_start' },
+            type: 'stream_event',
+        });
+        await adapter.handleMessage({
+            event: { delta: { type: 'future_delta' }, index: 0, type: 'content_block_delta' },
+            type: 'stream_event',
+        });
+
+        expect(events.filter(({ type }) => type === 'event')).toEqual([]);
+    });
+
+    it.each([
+        ['invalid stream event', { event: null, type: 'stream_event' }],
+        ['message_start missing message id', { event: { message: {}, type: 'message_start' }, type: 'stream_event' }],
+        ['invalid content_block_start', { event: { content_block: { type: 'text' }, index: 0, type: 'content_block_start' }, type: 'stream_event' }],
+        ['invalid content_block_delta', { event: { delta: { text: 'orphan', type: 'text_delta' }, index: 0, type: 'content_block_delta' }, type: 'stream_event' }],
+        ['assistant message missing content', { message: {}, type: 'assistant' }],
+    ])('emits a failed protocol error for %s', async (content, message) => {
+        const { adapter, events } = harness('claude');
+
+        await adapter.handleMessage(message);
+
+        expect(events.filter(({ type }) => type === 'event')).toEqual([{
+            event: {
+                content,
+                label: 'Claude protocol error',
+                providerItemId: 'error:unknown-message:1',
+                status: 'failed',
+                type: 'error',
+            },
+            type: 'event',
+        }]);
+    });
+
     it('keeps concurrent approvals isolated and maps Claude decisions to control responses', async () => {
         const { adapter, events, writes } = harness('claude');
         const permissionSuggestions = [{ behavior: 'allow', destination: 'session', tool: 'Bash' }];

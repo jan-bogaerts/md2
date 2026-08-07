@@ -149,7 +149,7 @@ class ClaudeStreamingAdapter {
         this.activeBlocks = new Map();
         this.streamedTextItems = new Map();
         this.activeMessageId = null;
-        this.diagnosticSequence = 1;
+        this.protocolErrorSequence = 1;
         this.turnStarted = false;
         this.turnHasAssistantText = false;
     }
@@ -223,7 +223,7 @@ class ClaudeStreamingAdapter {
             await this.onEvent({ conversationId: event.session_id, type: 'sessionStarted' });
         }
         if (event.type === 'system') {
-            if (event.subtype !== 'init') await this.emitDiagnostic(`Claude system event: ${event.subtype ?? 'unknown'}`);
+            if (event.subtype !== 'init') ClaudeStreamingAdapter.ignoreProtocolNoise();
             return;
         }
         if (event.type === 'stream_event') {
@@ -243,7 +243,7 @@ class ClaudeStreamingAdapter {
             await this.handleResult(event);
             return;
         }
-        await this.emitDiagnostic(`unsupported Claude event: ${event.type ?? 'unknown'}`);
+        ClaudeStreamingAdapter.ignoreProtocolNoise();
     }
 
     async ensureTurnStarted() {
@@ -254,7 +254,7 @@ class ClaudeStreamingAdapter {
 
     async handleStreamEvent(streamEvent) {
         if (!streamEvent || typeof streamEvent.type !== 'string') {
-            await this.emitDiagnostic('invalid stream event');
+            await this.emitProtocolError('invalid stream event');
             return;
         }
         if (streamEvent.type === 'message_start') {
@@ -262,7 +262,7 @@ class ClaudeStreamingAdapter {
             this.activeMessageId = streamEvent.message?.id;
             this.activeBlocks.clear();
             if (typeof this.activeMessageId !== 'string' || this.activeMessageId.length === 0) {
-                await this.emitDiagnostic('message_start missing message id');
+                await this.emitProtocolError('message_start missing message id');
             }
             return;
         }
@@ -275,12 +275,15 @@ class ClaudeStreamingAdapter {
             return;
         }
         if (streamEvent.type === 'content_block_stop' || streamEvent.type === 'message_delta' || streamEvent.type === 'message_stop') return;
-        await this.emitDiagnostic(`unsupported stream event: ${streamEvent.type}`);
+        ClaudeStreamingAdapter.ignoreProtocolNoise();
     }
 
     async handleContentBlockStart(streamEvent) {
-        if (!Number.isSafeInteger(streamEvent.index) || !streamEvent.content_block || typeof this.activeMessageId !== 'string') {
-            await this.emitDiagnostic('invalid content_block_start');
+        const validBlock = !!streamEvent.content_block
+            && typeof streamEvent.content_block === 'object'
+            && !Array.isArray(streamEvent.content_block);
+        if (!Number.isSafeInteger(streamEvent.index) || !validBlock || typeof this.activeMessageId !== 'string' || this.activeMessageId.length === 0) {
+            await this.emitProtocolError('invalid content_block_start');
             return;
         }
         const block = structuredClone(streamEvent.content_block);
@@ -312,7 +315,7 @@ class ClaudeStreamingAdapter {
     async handleContentBlockDelta(streamEvent) {
         const trackedBlock = this.activeBlocks.get(streamEvent.index);
         if (!trackedBlock || !streamEvent.delta || typeof streamEvent.delta.type !== 'string') {
-            await this.emitDiagnostic('invalid content_block_delta');
+            await this.emitProtocolError('invalid content_block_delta');
             return;
         }
         const { delta } = streamEvent;
@@ -339,13 +342,13 @@ class ClaudeStreamingAdapter {
             await this.onEvent({ event: claudeToolEvent(updatedBlock, 'inProgress', trackedBlock.providerItemId), type: 'event' });
             return;
         }
-        if (delta.type !== 'signature_delta') await this.emitDiagnostic(`unsupported content delta: ${delta.type}`);
+        if (delta.type !== 'signature_delta') ClaudeStreamingAdapter.ignoreProtocolNoise();
     }
 
     async handleAssistantCompletion(event) {
         await this.ensureTurnStarted();
         if (!Array.isArray(event.message?.content)) {
-            await this.emitDiagnostic('assistant message missing content');
+            await this.emitProtocolError('assistant message missing content');
             return;
         }
         const messageId = event.message.id ?? this.activeMessageId;
@@ -413,10 +416,14 @@ class ClaudeStreamingAdapter {
         await this.onEvent({ error, missingSession, type: 'turnCompleted', usage: claudeUsage(event) });
     }
 
-    async emitDiagnostic(content) {
-        const providerItemId = `diagnostic:${this.activeMessageId ?? 'unknown-message'}:${this.diagnosticSequence}`;
-        this.diagnosticSequence += 1;
-        const event = { ...eventBase(providerItemId, 'diagnostic', 'Claude protocol diagnostic', 'completed'), content };
+    static ignoreProtocolNoise() {
+        // Valid protocol additions need no user-facing event until adapter support exists.
+    }
+
+    async emitProtocolError(content) {
+        const providerItemId = `error:${this.activeMessageId ?? 'unknown-message'}:${this.protocolErrorSequence}`;
+        this.protocolErrorSequence += 1;
+        const event = { ...eventBase(providerItemId, 'error', 'Claude protocol error', 'failed'), content };
         await this.onEvent({ event, type: 'event' });
     }
 }

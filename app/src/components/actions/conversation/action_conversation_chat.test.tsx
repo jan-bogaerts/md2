@@ -694,8 +694,8 @@ describe('ActionConversationChat', () => {
         expect(screen.queryByText(/\{"query"/u)).not.toBeInTheDocument()
     })
 
-    it('renders one canonical multiline diagnostic block in line order', () => {
-        const activity: AgentConversationEvent = {
+    it('hides persisted diagnostics and keeps protocol errors visible with failed styling', () => {
+        const diagnostic: AgentConversationEvent = {
             content: 'item/started: futureTool (future-1)\nitem/completed: futureTool (future-1)',
             id: 'diagnostic-1',
             label: 'Codex protocol diagnostic',
@@ -705,15 +705,26 @@ describe('ActionConversationChat', () => {
             timestamp: 'now',
             type: 'diagnostic',
         }
+        const protocolError: AgentConversationEvent = {
+            content: 'message_start missing message id',
+            id: 'error-1',
+            label: 'Claude protocol error',
+            providerItemId: 'error:unknown-message:1',
+            sequence: 2,
+            status: 'failed',
+            timestamp: 'now',
+            type: 'error',
+        }
 
-        renderChat(conversation('codex.json', [eventEntry(activity)], 'codex'))
-        const buttons = screen.getAllByRole('button', { name: 'Codex protocol diagnostic details' })
-        expect(buttons).toHaveLength(1)
-        fireEvent.click(buttons[0])
+        renderChat(conversation('claude.json', [eventEntry(diagnostic), eventEntry(protocolError)], 'claude'))
 
-        const started = screen.getByText('item/started: futureTool (future-1)')
-        const completed = screen.getByText('item/completed: futureTool (future-1)')
-        expect(started.compareDocumentPosition(completed) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
+        expect(screen.queryByRole('button', { name: 'Codex protocol diagnostic details' })).not.toBeInTheDocument()
+        expect(screen.queryByText('item/started: futureTool (future-1)')).not.toBeInTheDocument()
+        const errorButton = screen.getByRole('button', { name: 'Claude protocol error details' })
+        expect(errorButton).toHaveStyle({ color: 'rgb(211, 47, 47)' })
+        expect(screen.getByText('Failed')).toBeInTheDocument()
+        fireEvent.click(errorButton)
+        expect(screen.getByText('message_start missing message id')).toBeInTheDocument()
     })
 
     it('omits legacy null command metadata', () => {
