@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
   - design/activity/card__705b887c-4aac-4558-bfef-a5cb965f8719.json#conversation=agent-3d7d9996-898c-45a3-845b-d74b2a8f4bc0
+  - design/activity/card__705b887c-4aac-4558-bfef-a5cb965f8719.json#conversation=agent-a59bcab4-087e-4d82-9468-ff52b1b9411f
 policy:
 after: a529defa-f2ad-4307-923b-856a8ce80243
 branch: f_158_dont_auto_load_activity_of_released_cards
