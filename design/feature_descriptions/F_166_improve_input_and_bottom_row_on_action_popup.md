@@ -7,6 +7,7 @@ status: new
 owner: 
 affects:
 agents:
+  - design/activity/card__1ebcfe45-9445-47e6-8619-6c72708bd91b.json#conversation=agent-d07918ff-494f-49f9-bd94-83b66ca6a75e
 policy:
 ---
 We need to improve layout and position of input and bottom row. The goal is to provide as much viewing area as possible to the chatlog while providing optimal input size while editing a prompt.
