@@ -7,7 +7,7 @@ import { DEFAULT_CARD_TYPES, type AgentConversation, type AgentConversationEvent
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
 import { actionService } from '../../../../services/actions/action_service'
 import { agentAcknowledgementService } from '../../../../services/agents/agent_acknowledgement_service'
-import { cardActionPopupService } from '../../../../services/actions/card_action_popup_service'
+import { cardPopupService } from '../../../../services/card_popup_service'
 import { dataService } from '../../../../services/data/data_service'
 import { AppThemeProvider } from '../../../../theme/theme_provider'
 import { CardActionPopupHost } from '../popup/card_action_popup_host'
@@ -133,7 +133,7 @@ describe('CardRunButton', () => {
 
     afterEach(() => {
         actionRunRegistry.stop()
-        cardActionPopupService.clear()
+        cardPopupService.clear()
         delete window.md2Actions
         cleanup()
         actionService.clear()

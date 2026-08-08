@@ -5,7 +5,7 @@ import Play from 'mdi-material-ui/Play'
 import type { MouseEvent } from 'react'
 import type { ActionContext } from '../../../../data/action_context'
 import type { CardHeader } from '../../../../data/data_types'
-import { cardActionPopupService } from '../../../../services/actions/card_action_popup_service'
+import { cardPopupService } from '../../../../services/card_popup_service'
 import { agentStateDescription } from '../../../../services/agents/card_agent_state'
 import { useCardAgentState } from '../../../hooks/use_agent_acknowledgements'
 import { useRunningActionForContext } from '../../../hooks/use_action_runs'
@@ -33,7 +33,7 @@ export function CardRunButton({ card, context }: CardRunButtonProps) {
                 : agentStateDescription(agentState)
     const accent = isWaiting ? 'warning.main' : isUnseen ? 'info.main' : 'primary.main'
     const handleRun = (event: MouseEvent<HTMLButtonElement>) => {
-        cardActionPopupService.toggle(context, event.currentTarget)
+        cardPopupService.toggleAction(context, event.currentTarget)
     }
 
     const button = (

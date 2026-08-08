@@ -18,6 +18,7 @@ function renderCardBodyEditor(props: Parameters<typeof CardBodyEditor>[0]) {
 function editorProps(overrides: Partial<Parameters<typeof CardBodyEditor>[0]> = {}): Parameters<typeof CardBodyEditor>[0] {
     return {
         cardTypes: DEFAULT_CARD_TYPES,
+        dataSource: cardMarkdownDataSource,
         historyStore: new MarkdownDocumentHistoryStore(),
         isFullscreen: false,
         onToggleFullscreen: vi.fn(),

@@ -13,7 +13,7 @@ import { useWorktreeSelectorState } from './hooks/use_worktree_selector_state'
 import { WorktreeCommitDialog } from './worktree_commit_dialog'
 import { WorktreeIntegrationDialog } from './worktree_integration_dialog'
 import { WorktreeUnassignDialog } from './worktree_unassign_dialog'
-import { cardBodyPopoverService } from './card_view/card_body_popover_service'
+import { cardPopupService } from '../services/card_popup_service'
 
 export interface WorktreeAssignment {
     worktree?: number | null
@@ -21,7 +21,7 @@ export interface WorktreeAssignment {
     worktreeValue?: string | null
 }
 
-export type WorktreeAssignmentTarget = { kind: 'card', path: string } | { kind: 'project' }
+export type WorktreeAssignmentTarget = { cardInternalId: string, kind: 'card', path: string } | { kind: 'project' }
 type CommitAction = 'commit' | 'integrate' | 'update'
 
 interface WorktreeSelectorProps {
@@ -191,7 +191,7 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
             if (!canIntegrate) throw new Error('Card worktree has no changes to integrate')
             const popupAnchorElement = anchorElement
             handleClose()
-            cardBodyPopoverService.openWorktreeDiff(assignmentTarget.path, popupAnchorElement)
+            cardPopupService.openWorktreeDiff(assignmentTarget.cardInternalId, assignmentTarget.path, popupAnchorElement)
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Could not open worktree diff' })
         }

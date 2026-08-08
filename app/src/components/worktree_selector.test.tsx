@@ -7,7 +7,7 @@ import { projectPersistenceService } from '../services/project/project_persisten
 import { worktreeService } from '../services/project/worktree_service'
 import { AppThemeProvider } from '../theme/theme_provider'
 import { WorktreeSelector } from './worktree_selector'
-import { cardBodyPopoverService } from './card_view/card_body_popover_service'
+import { cardPopupService } from '../services/card_popup_service'
 
 const worktrees: WorktreeRecord[] = [
     {
@@ -31,7 +31,7 @@ function renderAssignedWorktree(record: WorktreeRecord) {
         <AppThemeProvider>
             <WorktreeSelector
                 assignment={{ worktree: 1 }}
-                assignmentTarget={{ kind: 'card', path: 'design/F-1.md' }}
+                assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
                 primaryPath="C:\\primary"
             />
         </AppThemeProvider>,
@@ -54,7 +54,7 @@ describe('WorktreeSelector', () => {
             <AppThemeProvider>
                 <WorktreeSelector
                     assignment={{ worktree: 2, worktreeError: null, worktreeValue: '2' }}
-                    assignmentTarget={{ kind: 'card', path: 'design/F-1.md' }}
+                    assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
                     primaryPath={'C:\\primary'}
                 />
             </AppThemeProvider>,
@@ -74,7 +74,7 @@ describe('WorktreeSelector', () => {
             <AppThemeProvider>
                 <WorktreeSelector
                     assignment={{ worktree: null }}
-                    assignmentTarget={{ kind: 'card', path: 'design/F-1.md' }}
+                    assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
                     disabled
                     primaryPath={null}
                 />
@@ -95,7 +95,7 @@ describe('WorktreeSelector', () => {
             <AppThemeProvider>
                 <WorktreeSelector
                     assignment={{ worktree: null }}
-                    assignmentTarget={{ kind: 'card', path: 'design/F-1.md' }}
+                    assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
                     primaryPath={null}
                 />
             </AppThemeProvider>,
@@ -115,7 +115,7 @@ describe('WorktreeSelector', () => {
             <AppThemeProvider>
                 <WorktreeSelector
                     assignment={{ worktree: 1 }}
-                    assignmentTarget={{ kind: 'card', path: 'design/F-1.md' }}
+                    assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
                     primaryPath="C:\\primary"
                 />
             </AppThemeProvider>,
@@ -173,13 +173,13 @@ describe('WorktreeSelector', () => {
 
     it('opens current diff from same availability condition as integration', () => {
         const aheadWorktree = { ...worktrees[0], status: { ...worktrees[0].status, baseAhead: 1 } }
-        const openWorktreeDiff = vi.spyOn(cardBodyPopoverService, 'openWorktreeDiff')
+        const openWorktreeDiff = vi.spyOn(cardPopupService, 'openWorktreeDiff')
         renderAssignedWorktree(aheadWorktree)
 
         fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
         fireEvent.click(screen.getByRole('menuitem', { name: 'View diff' }))
 
-        expect(openWorktreeDiff).toHaveBeenCalledWith('design/F-1.md', expect.any(HTMLElement))
+        expect(openWorktreeDiff).toHaveBeenCalledWith('card-1', 'design/F-1.md', expect.any(HTMLElement))
     })
 
     it('commits and integrates a dirty worktree from one dialog', async () => {
@@ -290,7 +290,7 @@ describe('WorktreeSelector', () => {
             <AppThemeProvider>
                 <WorktreeSelector
                     assignment={{ worktree: 1 }}
-                    assignmentTarget={{ kind: 'card', path: 'design/F-1.md' }}
+                    assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
                     primaryPath="C:\\primary"
                 />
             </AppThemeProvider>,
@@ -331,7 +331,7 @@ describe('WorktreeSelector', () => {
             <AppThemeProvider>
                 <WorktreeSelector
                     assignment={{ worktree: 1 }}
-                    assignmentTarget={{ kind: 'card', path: 'design/F-1.md' }}
+                    assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
                     primaryPath="C:\\primary"
                 />
             </AppThemeProvider>,
@@ -355,7 +355,7 @@ describe('WorktreeSelector', () => {
             <AppThemeProvider>
                 <WorktreeSelector
                     assignment={{ worktree: 1 }}
-                    assignmentTarget={{ kind: 'card', path: 'design/F-1.md' }}
+                    assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
                     primaryPath="C:\\primary"
                 />
             </AppThemeProvider>,
@@ -378,7 +378,7 @@ describe('WorktreeSelector', () => {
             <AppThemeProvider>
                 <WorktreeSelector
                     assignment={{ worktree: 1 }}
-                    assignmentTarget={{ kind: 'card', path: 'design/F-1.md' }}
+                    assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
                     primaryPath="C:\\primary"
                 />
             </AppThemeProvider>,
@@ -401,7 +401,7 @@ describe('WorktreeSelector', () => {
             <AppThemeProvider>
                 <WorktreeSelector
                     assignment={{ worktree: 1 }}
-                    assignmentTarget={{ kind: 'card', path: 'design/F-1.md' }}
+                    assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
                     primaryPath="C:\\primary"
                 />
             </AppThemeProvider>,

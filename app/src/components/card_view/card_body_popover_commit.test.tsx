@@ -1,13 +1,11 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { StrictMode } from 'react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { DEFAULT_CARD_TYPES, type Card, type WorktreeRecord } from '../../data/data_types'
 import { openFilesService } from '../../services/open_files_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
-import { CardBodyPopover } from './card_body_popover'
+import { CARD_BODY_POPOVER_SIZE_KEY, CardBodyPopover } from './card_body_popover'
 import { dataService } from '../../services/data/data_service'
-import { cardBodyPopoverService } from './card_body_popover_service'
-import { dialogService } from '../../services/dialog_service'
+import { cardPopupService } from '../../services/card_popup_service'
 import { worktreeService } from '../../services/project/worktree_service'
 
 vi.mock('../hooks/use_card_commits', () => ({
@@ -59,9 +57,16 @@ const card: Card = {
     path: 'design/F-060.md',
 }
 
+const secondCard: Card = {
+    ...card,
+    header: { ...card.header, id: 'F-061', internalId: 'card-061', title: 'Second card' },
+    path: 'design/F-061.md',
+}
+
 afterEach(() => {
     cleanup()
-    cardBodyPopoverService.close()
+    cardPopupService.clear()
+    window.localStorage.clear()
     vi.restoreAllMocks()
 })
 
@@ -74,41 +79,105 @@ beforeEach(() => {
 })
 
 describe('CardBodyPopover commit diff', () => {
-    it('reports a missing card identity once and skips document binding', async () => {
-        const invalidCard = { ...card, header: { ...card.header, internalId: null } }
+    it('keeps separate documents and title drafts while entries activate and close', async () => {
         vi.spyOn(dataService, 'getState').mockReturnValue({
             project: null,
             runningAgents: [],
-            snapshot: { activeCards: [invalidCard], backgroundCards: [], repositoryFiles: [], workingFolder: 'design' },
+            snapshot: { activeCards: [card, secondCard], backgroundCards: [], repositoryFiles: [], workingFolder: 'design' },
         })
-        const anchorElement = document.createElement('button')
-        document.body.append(anchorElement)
-        const openBoardDocument = vi.spyOn(openFilesService, 'openBoardDocument')
-        const error = vi.spyOn(dialogService, 'error')
-        cardBodyPopoverService.toggle(invalidCard.path, anchorElement)
+        const firstAnchor = document.body.appendChild(document.createElement('button'))
+        const secondAnchor = document.body.appendChild(document.createElement('button'))
+        const closeBoardDocument = vi.spyOn(openFilesService, 'closeBoardDocument')
+        cardPopupService.toggleCardDetails(card.header.internalId!, card.path, firstAnchor)
+        cardPopupService.toggleCardDetails(secondCard.header.internalId!, secondCard.path, secondAnchor)
+        const firstEntry = cardPopupService.getSnapshot()[0]
 
         render(
-            <StrictMode>
-                <AppThemeProvider>
-                    <CardBodyPopover
-                        cardTypes={DEFAULT_CARD_TYPES}
-                        isMobile={false}
-                        onDeleteCard={vi.fn(async () => undefined)}
-                        onOpenAffects={vi.fn()}
-                        onOpenInFileMode={vi.fn()}
-                        statusColors={new Map()}
-                        visible
-                    />
-                </AppThemeProvider>
-            </StrictMode>,
+            <AppThemeProvider>
+                <CardBodyPopover
+                    cardTypes={DEFAULT_CARD_TYPES}
+                    isMobile={false}
+                    onDeleteCard={vi.fn(async () => undefined)}
+                    onOpenAffects={vi.fn()}
+                    onOpenInFileMode={vi.fn()}
+                    statusColors={new Map()}
+                    visible
+                />
+            </AppThemeProvider>,
+        )
+        const firstDialog = screen.getByRole('dialog', { name: 'F-060 card details' })
+        const secondDialog = screen.getByRole('dialog', { name: 'F-061 card details' })
+        const firstTitle = within(firstDialog).getByRole('textbox', { name: 'Card title' })
+        fireEvent.change(firstTitle, { target: { value: 'First draft' } })
+
+        fireEvent.pointerDown(firstDialog)
+
+        expect(cardPopupService.getSnapshot().at(-1)?.id).toBe(firstEntry.id)
+        expect(firstTitle).toHaveValue('First draft')
+        expect(within(secondDialog).getByRole('textbox', { name: 'Card title' })).toHaveValue('Second card')
+
+        fireEvent.click(within(firstDialog).getByRole('button', { name: 'Close card details' }))
+
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'F-060 card details' })).not.toBeInTheDocument())
+        expect(screen.getByRole('dialog', { name: 'F-061 card details' })).toBeInTheDocument()
+        expect(closeBoardDocument).toHaveBeenCalledOnce()
+    })
+
+    it('shows only highest mobile card-details entry and reveals next after close', async () => {
+        vi.spyOn(dataService, 'getState').mockReturnValue({
+            project: null,
+            runningAgents: [],
+            snapshot: { activeCards: [card, secondCard], backgroundCards: [], repositoryFiles: [], workingFolder: 'design' },
+        })
+        const firstAnchor = document.body.appendChild(document.createElement('button'))
+        const secondAnchor = document.body.appendChild(document.createElement('button'))
+        cardPopupService.toggleCardDetails(card.header.internalId!, card.path, firstAnchor)
+        cardPopupService.toggleCardDetails(secondCard.header.internalId!, secondCard.path, secondAnchor)
+
+        render(
+            <AppThemeProvider>
+                <CardBodyPopover
+                    cardTypes={DEFAULT_CARD_TYPES}
+                    isMobile
+                    onDeleteCard={vi.fn(async () => undefined)}
+                    onOpenAffects={vi.fn()}
+                    onOpenInFileMode={vi.fn()}
+                    statusColors={new Map()}
+                    visible
+                />
+            </AppThemeProvider>,
         )
 
-        await waitFor(() => expect(error).toHaveBeenCalledTimes(1))
-        expect(error).toHaveBeenCalledWith(
-            expect.objectContaining({ message: `Card identity was not added before opening: ${invalidCard.path}` }),
-            { fallbackMessage: 'Card details could not be opened' },
+        expect(screen.queryByRole('dialog', { name: 'F-060 card details' })).not.toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Close card details' }))
+
+        await waitFor(() => expect(screen.getByRole('dialog', { name: 'F-060 card details' })).toBeInTheDocument())
+        expect(screen.queryByRole('dialog', { name: 'F-061 card details' })).not.toBeInTheDocument()
+    })
+
+    it('uses persisted desktop size and exposes header drag plus eight resize directions', () => {
+        window.localStorage.setItem(CARD_BODY_POPOVER_SIZE_KEY, JSON.stringify({ height: 700, width: 800 }))
+        const anchorElement = document.body.appendChild(document.createElement('button'))
+        cardPopupService.toggleCardDetails(card.header.internalId!, card.path, anchorElement)
+
+        render(
+            <AppThemeProvider>
+                <CardBodyPopover
+                    cardTypes={DEFAULT_CARD_TYPES}
+                    isMobile={false}
+                    onDeleteCard={vi.fn(async () => undefined)}
+                    onOpenAffects={vi.fn()}
+                    onOpenInFileMode={vi.fn()}
+                    statusColors={new Map()}
+                    visible
+                />
+            </AppThemeProvider>,
         )
-        expect(openBoardDocument).not.toHaveBeenCalled()
+        const dialog = screen.getByRole('dialog', { name: 'F-060 card details' })
+
+        expect(dialog).toHaveStyle({ height: '700px', width: '800px' })
+        expect(dialog.querySelector('[data-drag-handle="true"]')).not.toBeNull()
+        expect(within(dialog).getAllByRole('separator', { name: /Resize card details popup from/u })).toHaveLength(8)
     })
 
     it('keeps the board document bound when refreshed card data retains its identity', () => {
@@ -125,7 +194,7 @@ describe('CardBodyPopover commit diff', () => {
             statusColors: new Map<string, string>(),
             visible: true,
         }
-        cardBodyPopoverService.toggle(card.path, anchorElement)
+        cardPopupService.toggleCardDetails(card.header.internalId!, card.path, anchorElement)
         const view = render(
             <AppThemeProvider>
                 <CardBodyPopover {...props} />
@@ -145,7 +214,7 @@ describe('CardBodyPopover commit diff', () => {
     it('uses the first Escape to exit diff and the second to close the popover', () => {
         const anchorElement = document.createElement('button')
         document.body.append(anchorElement)
-        cardBodyPopoverService.toggle(card.path, anchorElement)
+        cardPopupService.toggleCardDetails(card.header.internalId!, card.path, anchorElement)
         render(
             <AppThemeProvider>
                 <CardBodyPopover
@@ -170,10 +239,10 @@ describe('CardBodyPopover commit diff', () => {
         fireEvent.keyDown(dialog, { key: 'Escape' })
         expect(screen.queryByLabelText('Card commit diff')).not.toBeInTheDocument()
         expect(screen.getByLabelText('Live card editor')).toBeVisible()
-        expect(cardBodyPopoverService.getSnapshot().cardPath).toBe(card.path)
+        expect(cardPopupService.getSnapshot()).toHaveLength(1)
 
         fireEvent.keyDown(dialog, { key: 'Escape' })
-        expect(cardBodyPopoverService.getSnapshot().cardPath).toBeNull()
+        expect(cardPopupService.getSnapshot()).toEqual([])
     })
 
     it('uses same worktree panel from menu action and popup entry, then removes it when eligibility is lost', async () => {
@@ -190,7 +259,7 @@ describe('CardBodyPopover commit diff', () => {
         vi.spyOn(worktreeService, 'getRecords').mockImplementation(() => records)
         const anchorElement = document.createElement('button')
         document.body.append(anchorElement)
-        cardBodyPopoverService.openWorktreeDiff(assignedCard.path, anchorElement)
+        cardPopupService.openWorktreeDiff(assignedCard.header.internalId!, assignedCard.path, anchorElement)
         render(
             <AppThemeProvider>
                 <CardBodyPopover
@@ -206,7 +275,8 @@ describe('CardBodyPopover commit diff', () => {
         )
 
         expect(screen.getByLabelText('Card worktree diff')).toBeInTheDocument()
-        cardBodyPopoverService.clearDiff()
+        const entry = cardPopupService.getSnapshot()[0]
+        cardPopupService.clearDiff(entry.id)
         fireEvent.click(screen.getByRole('button', { name: 'Card commit history' }))
         fireEvent.click(screen.getByRole('button', { name: /Current worktree changes/ }))
         expect(screen.getByLabelText('Card worktree diff')).toBeInTheDocument()

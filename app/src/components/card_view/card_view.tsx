@@ -11,7 +11,7 @@ import { workspaceViewService } from '../../services/project/workspace_view_serv
 import { telemetryService } from '../../services/telemetry/telemetry_service'
 import { AffectsEditorDialog } from './affects_editor_dialog'
 import { CardBodyPopover } from './card_body_popover'
-import { cardBodyPopoverService } from './card_body_popover_service'
+import { cardPopupService } from '../../services/card_popup_service'
 import { CardColumn } from './card_column'
 import { CardDragOverlay } from './card_drag_overlay'
 import { cardDragDropService } from './card_drag_drop_service'
@@ -88,7 +88,7 @@ export function CardView(props: CardViewProps) {
             if (isVisible) return
 
             queueMicrotask(() => {
-                cardBodyPopoverService.close()
+                cardPopupService.closeCardDetails()
                 setOpenAffectsPath((currentPath) => currentPath === null ? currentPath : null)
                 clearActiveCard()
             })
@@ -100,7 +100,7 @@ export function CardView(props: CardViewProps) {
         return () => workspaceViewService.removeEventListener('changed', updateVisibility)
     }, [clearActiveCard])
 
-    useEffect(() => () => cardBodyPopoverService.close(), [])
+    useEffect(() => () => cardPopupService.closeCardDetails(), [])
 
     const handleDragStart = useCallback((event: DragStartEvent) => {
         dragColumnsRef.current = currentCardColumns(states)
@@ -146,7 +146,7 @@ export function CardView(props: CardViewProps) {
     }, [clearActiveCard, states])
 
     const handleOpenInFileMode = (path: string) => {
-        cardBodyPopoverService.close()
+        cardPopupService.closeCardDetails()
         workspaceViewService.selectPath(path)
         void runCardEdit(() => openFilesService.openPath(path), `File open failed: ${path}`)
         workspaceViewService.setViewMode('text')
@@ -157,7 +157,7 @@ export function CardView(props: CardViewProps) {
         try {
             await dataService.cards.deleteCard(path)
             workspaceViewService.clearSelectedPath(path)
-            cardBodyPopoverService.closePath(path)
+            cardPopupService.closeCardDetailsPath(path)
             if (openAffectsPath === path) handleCloseAffects()
         } catch (error) {
             dialogService.error(error, { fallbackMessage: `Card delete failed: ${path}` })

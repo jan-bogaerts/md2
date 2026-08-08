@@ -48,7 +48,7 @@ function renderIndicator(Card: Card, worktrees: WorktreeRecord[] = [validWorktre
     const service = Object.assign(new EventTarget(), {getState: () => ({ project: null, runningAgents: [], snapshot: { activeCards: [Card], backgroundCards: [], repositoryFiles: [], workingFolder: 'design' } })}) as unknown as DataService
     render(
         <AppThemeProvider>
-            <CardWorktreeIndicator cardId={Card.header.id} cardPath={Card.path} primaryPath="C:\\primary" service={service} />
+            <CardWorktreeIndicator cardId={Card.header.id} cardInternalId={Card.header.internalId!} cardPath={Card.path} primaryPath="C:\\primary" service={service} />
         </AppThemeProvider>,
     )
 }
@@ -105,6 +105,7 @@ describe('CardWorktreeIndicator', () => {
             <AppThemeProvider>
                 <CardWorktreeIndicator
                     cardId={Card.header.id}
+                    cardInternalId={Card.header.internalId!}
                     cardPath={Card.path}
                     primaryPath="project"
                     service={service}

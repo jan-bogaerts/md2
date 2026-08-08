@@ -105,7 +105,9 @@ function worktreeValidationMessage(action: ActionDefinition, context: ActionCont
 
 function worktreeAssignmentTarget(context: ActionContext): WorktreeAssignmentTarget | null {
     if (context.kind === 'project') return { kind: 'project' }
-    if ((context.kind === 'card' || context.kind === 'file') && context.file) return { kind: 'card', path: context.file }
+    if ((context.kind === 'card' || context.kind === 'file') && context.file && context.cardInternalId) {
+        return { cardInternalId: context.cardInternalId, kind: 'card', path: context.file }
+    }
 
     return null
 }

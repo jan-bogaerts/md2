@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, render, screen, within } from '@testing-librar
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { DEFAULT_CARD_TYPES, type Card } from '../../data/data_types'
 import { actionService } from '../../services/actions/action_service'
-import { cardActionPopupService } from '../../services/actions/card_action_popup_service'
+import { cardPopupService } from '../../services/card_popup_service'
 import {
     CARD_CHANGED_EVENT,
     cardCollectionFieldChangedEvent,
@@ -14,6 +14,7 @@ import { mobileCardViewService } from '../../services/project/mobile_card_view_s
 import { workspaceViewService } from '../../services/project/workspace_view_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
+import { CardActionPopupHost } from '../actions/run/popup/card_action_popup_host'
 import { cardDragDropService } from './card_drag_drop_service'
 import { MobileCardView } from './mobile_card_view'
 
@@ -62,14 +63,17 @@ function renderMobileCardView() {
 
     return render(
         <AppThemeProvider>
-            <MobileCardView
-                cardTypes={DEFAULT_CARD_TYPES}
-                states={[
-                    { alwaysVisible: false, state: 'todo' },
-                    { alwaysVisible: false, state: 'done' },
-                ]}
-                statusColors={new Map([['todo', '#111111'], ['done', '#222222']])}
-            />
+            <>
+                <MobileCardView
+                    cardTypes={DEFAULT_CARD_TYPES}
+                    states={[
+                        { alwaysVisible: false, state: 'todo' },
+                        { alwaysVisible: false, state: 'done' },
+                    ]}
+                    statusColors={new Map([['todo', '#111111'], ['done', '#222222']])}
+                />
+                <CardActionPopupHost />
+            </>
         </AppThemeProvider>,
     )
 }
@@ -84,7 +88,7 @@ describe('MobileCardView', () => {
         workspaceViewService.setViewMode('cards')
         mobileCardViewService.selectVisibleColumn([])
         cardDragDropService.endDrag()
-        cardActionPopupService.clear()
+        cardPopupService.clear()
         vi.spyOn(dataService, 'getState')
         setActiveCards(activeCards)
         openFilesService.init({ actionService, dataService })
@@ -107,7 +111,7 @@ describe('MobileCardView', () => {
         if (vi.isFakeTimers()) vi.runOnlyPendingTimers()
         vi.useRealTimers()
         cardDragDropService.endDrag()
-        cardActionPopupService.clear()
+        cardPopupService.clear()
         mobileCardViewService.selectVisibleColumn([])
         for (const document of openFilesService.getRegisteredDocuments()) openFilesService.discardDocument(document)
         actionService.clear()
@@ -188,7 +192,7 @@ describe('MobileCardView', () => {
     })
 
     it('opens action popup from Run without opening card body', () => {
-        const toggle = vi.spyOn(cardActionPopupService, 'toggle')
+        const toggle = vi.spyOn(cardPopupService, 'toggleAction')
         actionService.loadFromFiles([{
             content: JSON.stringify({ command: 'npm test', description: 'Test', id: 'test', label: 'Test', type: 'command' }),
             path: 'actions/test.json',
@@ -198,7 +202,7 @@ describe('MobileCardView', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Run' }))
 
         expect(toggle).toHaveBeenCalledOnce()
-        expect(cardActionPopupService.getSnapshot()).toHaveLength(1)
+        expect(cardPopupService.getSnapshot()).toHaveLength(1)
         expect(screen.getByRole('dialog', { name: 'Run actions for F-1' })).toBeInTheDocument()
         expect(screen.queryByDisplayValue(/Body of F-1/u)).not.toBeInTheDocument()
     })

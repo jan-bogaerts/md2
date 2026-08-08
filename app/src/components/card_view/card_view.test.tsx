@@ -128,7 +128,6 @@ describe('CardView', () => {
             ? target.document.getDraft().content
             : '')
         vi.spyOn(cardMarkdownDataSource, 'commit').mockReturnValue(true)
-        vi.spyOn(cardMarkdownDataSource, 'updateActiveCardTitle').mockImplementation(() => undefined)
     })
 
     afterEach(() => {
@@ -392,8 +391,7 @@ describe('CardView', () => {
         fireEvent.change(titleInput, { target: { value: 'Renamed in popup' } })
         fireEvent.keyDown(titleInput, { key: 'Enter' })
 
-        expect(cardMarkdownDataSource.updateActiveCardTitle)
-            .toHaveBeenCalledWith('board-card', 'Renamed in popup')
+        expect(dataService.cards.updateCardTitle).toHaveBeenCalledWith('design/F-1.md', 'Renamed in popup')
     })
 
     it('opens card Properties from the board popup toolbar', () => {

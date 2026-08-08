@@ -1,6 +1,6 @@
 import { useEffect, useSyncExternalStore } from 'react'
 import type { ActionContext } from '../../../data/action_context'
-import { cardActionPopupService, subscribeCardActionPopups } from '../../../services/actions/card_action_popup_service'
+import { cardPopupService, subscribeCardPopups } from '../../../services/card_popup_service'
 import { agentAcknowledgementService } from '../../../services/agents/agent_acknowledgement_service'
 import { useActionRunSelector } from '../../hooks/use_action_runs'
 import { ActionConversationChat } from './action_conversation_chat'
@@ -20,9 +20,9 @@ export function ActionConversationChatOwner(props: ActionConversationChatOwnerPr
     const runStatus = useActionRunSelector(actionId, context, (run) => run?.status ?? 'idle')
     const { selectedConversation } = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot)
     const popupEntries = useSyncExternalStore(
-        subscribeCardActionPopups,
-        () => cardActionPopupService.getSnapshot(),
-        () => cardActionPopupService.getSnapshot(),
+        subscribeCardPopups,
+        () => cardPopupService.getSnapshot(),
+        () => cardPopupService.getSnapshot(),
     )
     const cardInternalId = context.cardInternalId
     const conversation = liveConversation ?? selectedConversation

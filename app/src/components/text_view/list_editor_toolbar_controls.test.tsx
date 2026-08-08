@@ -2,7 +2,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { CardCommit } from '../../services/actions/card_commit_history'
-import { cardActionPopupService } from '../../services/actions/card_action_popup_service'
+import { cardPopupService } from '../../services/card_popup_service'
 import type { Card } from '../../data/data_types'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { listCardCommitDiffDataSource } from '../card_view/list_card_commit_diff_data_source'
@@ -52,7 +52,7 @@ function commit(): CardCommit {
 }
 
 afterEach(() => {
-    cardActionPopupService.clear()
+    cardPopupService.clear()
     cleanup()
     vi.restoreAllMocks()
 })
@@ -132,11 +132,13 @@ describe('ListEditorToolbarControls', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'Agents' }))
 
-        expect(cardActionPopupService.getSnapshot()).toHaveLength(1)
-        expect(cardActionPopupService.getSnapshot()[0]?.context).toMatchObject({
-            cardInternalId: 'card-060',
-            file: card.path,
-            kind: 'file',
+        expect(cardPopupService.getSnapshot()).toHaveLength(1)
+        expect(cardPopupService.getSnapshot()[0]).toMatchObject({
+            context: {
+                cardInternalId: 'card-060',
+                file: card.path,
+                kind: 'file',
+            },
         })
     })
 })

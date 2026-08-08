@@ -19,7 +19,7 @@ import { getCardTypeColor } from './card_drag'
 import { useCardMetadata, type CardMetadataSnapshot } from './use_project_card'
 import { useProjectReference } from '../hooks/use_project_reference'
 import { useIsWorkspacePathSelected } from '../hooks/use_is_workspace_path_selected'
-import { cardBodyPopoverService, subscribeCardBodyPopover } from './card_body_popover_service'
+import { cardPopupService, subscribeCardPopups } from '../../services/card_popup_service'
 import { CardDragContainer } from './project_card_drag_container'
 
 export interface CardHandlers {
@@ -81,8 +81,10 @@ function CardViewContent(props: CardViewContentProps) {
     const [deleteCardPath, setDeleteCardPath] = useState<string | null>(null)
     const [titleDraft, setTitleDraft] = useState(card.header.title)
     const isBodyOpen = useSyncExternalStore(
-        subscribeCardBodyPopover,
-        () => cardBodyPopoverService.getSnapshot().cardPath === card.path,
+        subscribeCardPopups,
+        () => cardPopupService.getSnapshot().some((entry) => (
+            entry.kind === 'card-details' && entry.cardInternalId === card.header.internalId
+        )),
         () => false,
     )
     const accentColor = getCardTypeColor(cardTypes, card.header.id) ?? theme.palette.primary.main
@@ -108,10 +110,14 @@ function CardViewContent(props: CardViewContentProps) {
 
     const handleCardClick = useCallback((event: MouseEvent<HTMLElement>) => {
         if (isEditingTitle) return
+        if (!card.header.internalId) {
+            dialogService.error(new Error(`Missing card internal ID: ${card.path}`), { fallbackMessage: 'Card details could not be opened' })
+            return
+        }
 
-        cardBodyPopoverService.toggle(card.path, event.currentTarget)
+        cardPopupService.toggleCardDetails(card.header.internalId, card.path, event.currentTarget)
         telemetryService.trackEvent('navigation')
-    }, [card.path, isEditingTitle])
+    }, [card.header.internalId, card.path, isEditingTitle])
 
     const stopClick = (event: MouseEvent) => {
         event.stopPropagation()
@@ -145,8 +151,9 @@ function CardViewContent(props: CardViewContentProps) {
     const openBodyFromMenu = () => {
         try {
             if (!cardElement) throw new Error(`Missing card element: ${card.path}`)
+            if (!card.header.internalId) throw new Error(`Missing card internal ID: ${card.path}`)
             closeCardActions()
-            cardBodyPopoverService.toggle(card.path, cardElement)
+            cardPopupService.toggleCardDetails(card.header.internalId, card.path, cardElement)
             telemetryService.trackEvent('navigation')
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Card details could not be opened' })
@@ -259,11 +266,14 @@ function CardViewContent(props: CardViewContentProps) {
                         </IconButton>
                     </Tooltip>
                     <Box sx={{ flex: 1 }} />
-                    <CardWorktreeIndicator
-                        cardId={card.header.id}
-                        cardPath={card.path}
-                        primaryPath={primaryPath}
-                    />
+                    {card.header.internalId ? (
+                        <CardWorktreeIndicator
+                            cardId={card.header.id}
+                            cardInternalId={card.header.internalId}
+                            cardPath={card.path}
+                            primaryPath={primaryPath}
+                        />
+                    ) : null}
                 </Stack>
             </Box>
             <Menu

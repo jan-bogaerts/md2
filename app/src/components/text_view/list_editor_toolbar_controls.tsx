@@ -3,7 +3,7 @@ import { Separator } from '@mdxeditor/editor'
 import { useCallback, useSyncExternalStore, type MouseEvent } from 'react'
 import { actionContextIdentity, fileContext } from '../../data/action_context'
 import type { CardTypeConfig } from '../../data/data_types'
-import { cardActionPopupService, subscribeCardActionPopups } from '../../services/actions/card_action_popup_service'
+import { cardPopupService, subscribeCardPopups } from '../../services/card_popup_service'
 import { dialogService } from '../../services/dialog_service'
 import { CardCommitMenu } from '../card_view/card_commit_menu'
 import { listCardCommitDiffDataSource } from '../card_view/list_card_commit_diff_data_source'
@@ -35,14 +35,14 @@ export function ListEditorToolbarControls(props: ListEditorToolbarControlsProps)
     const cardCommits = useCardCommits(cardInternalId)
     const { project } = useProjectState()
     const popupEntries = useSyncExternalStore(
-        subscribeCardActionPopups,
-        () => cardActionPopupService.getSnapshot(),
-        () => cardActionPopupService.getSnapshot(),
+        subscribeCardPopups,
+        () => cardPopupService.getSnapshot(),
+        () => cardPopupService.getSnapshot(),
     )
     const context = card && cardInternalId ? fileContext(card, cardTypes) : null
     const contextIdentity = context ? actionContextIdentity(context) : null
     const isAgentPopupOpen = !!contextIdentity && popupEntries.some((entry) => (
-        actionContextIdentity(entry.context) === contextIdentity
+        entry.kind === 'action' && actionContextIdentity(entry.context) === contextIdentity
     ))
 
     const handleToggleAgentPopup = useCallback((event: MouseEvent<HTMLButtonElement>) => {
@@ -51,7 +51,7 @@ export function ListEditorToolbarControls(props: ListEditorToolbarControlsProps)
             if (!activeDocumentId) throw new Error('Cannot open card agents without an active list-card document')
             if (!context || !project) throw new Error('Cannot open card agents without a loaded project')
 
-            cardActionPopupService.toggle(context, event.currentTarget)
+            cardPopupService.toggleAction(context, event.currentTarget)
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Card agents could not be opened' })
         }

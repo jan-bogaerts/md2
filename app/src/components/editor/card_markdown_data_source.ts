@@ -52,6 +52,12 @@ export class CardMarkdownDataSource extends MarkdownDataSourceBase {
         openFilesService.addEventListener('documentChanged', this.handleDocumentChanged)
     }
 
+    dispose() {
+        openFilesService.removeEventListener('documentChanged', this.handleDocumentChanged)
+        this.setBoardDocument(null)
+        this.service = null
+    }
+
     bindListCards(owner: ListCardOwner) {
         if (this.listCardOwner === owner) return
         if (this.listCardOwner) throw new Error('Card Markdown data source already has a list-card owner')

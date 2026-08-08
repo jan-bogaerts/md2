@@ -2,12 +2,13 @@ import { Box } from '@mui/material'
 import { memo, useCallback } from 'react'
 import type { CardTypeConfig } from '../../data/data_types'
 import { MarkdownEditor } from '../editor/markdown_editor'
-import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
+import type { CardMarkdownDataSource } from '../editor/card_markdown_data_source'
 import type { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
 import { CardPopupToolbarControls } from './card_popup_toolbar_controls'
 
 interface CardBodyEditorProps {
     cardTypes: CardTypeConfig[]
+    dataSource: CardMarkdownDataSource
     historyStore: MarkdownDocumentHistoryStore
     isMobile?: boolean
     isFullscreen: boolean
@@ -20,18 +21,19 @@ interface CardBodyEditorProps {
  * Body editing surface for a card, bound directly to the card Markdown data source.
  */
 export const CardBodyEditor = memo(function CardBodyEditor(props: CardBodyEditorProps) {
-    const {cardTypes, historyStore, isFullscreen, isMobile = false, onToggleFullscreen, overlayContainer, statusColors} = props
+    const {cardTypes, dataSource, historyStore, isFullscreen, isMobile = false, onToggleFullscreen, overlayContainer, statusColors} = props
     const ToolbarContents = useCallback(
         () => (
             <CardPopupToolbarControls
                 cardTypes={cardTypes}
+                dataSource={dataSource}
                 isFullscreen={isFullscreen}
                 isMobile={isMobile}
                 onToggleFullscreen={onToggleFullscreen}
                 statusColors={statusColors}
             />
         ),
-        [cardTypes, isFullscreen, isMobile, onToggleFullscreen, statusColors],
+        [cardTypes, dataSource, isFullscreen, isMobile, onToggleFullscreen, statusColors],
     )
     return (
         <Box
@@ -77,7 +79,7 @@ export const CardBodyEditor = memo(function CardBodyEditor(props: CardBodyEditor
         >
             <MarkdownEditor
                 binding="board-card"
-                dataSource={cardMarkdownDataSource}
+                dataSource={dataSource}
                 historyStore={historyStore}
                 overlayContainer={overlayContainer}
                 toolbarContents={ToolbarContents}

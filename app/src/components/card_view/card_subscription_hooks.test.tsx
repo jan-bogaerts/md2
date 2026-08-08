@@ -195,7 +195,7 @@ describe('card view subscriptions', () => {
         const firstCard = card('design/F-1.md', 'todo', 'First')
         const { emit, service } = createService([firstCard])
 
-        render(<CardWorktreeIndicator cardId="F-1" cardPath={firstCard.path} primaryPath="project" service={service} />)
+        render(<CardWorktreeIndicator cardId="F-1" cardInternalId="card-1" cardPath={firstCard.path} primaryPath="project" service={service} />)
         const initialRenderCount = worktreeSelectorRendered.mock.calls.length
 
         act(() => emit(CARD_CHANGED_EVENT, [{ ...firstCard, content: '# Edited body' }]))
