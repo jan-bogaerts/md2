@@ -94,6 +94,7 @@ const localBridgeDispatch = createLocalBridgeDispatch({
     desktopConfigStore: store,
     diffService,
     localGitService,
+    mergeConflictService,
     openProjectFolder: () => openProjectFolder(BrowserWindow.getFocusedWindow()),
     openWorktreeFolder: () => openWorktreeFolder(BrowserWindow.getFocusedWindow()),
     readDesktopConfig,

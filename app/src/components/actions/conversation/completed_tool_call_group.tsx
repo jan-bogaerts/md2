@@ -35,7 +35,7 @@ export function CompletedToolCallGroup({ entries }: CompletedToolCallGroupProps)
             {expanded ? entries.map((entry) => (
                 <Box
                     key={eventIdentity(entry)}
-                    sx={{ borderColor: 'divider', borderTop: '1px solid', minWidth: 0 }}
+                    sx={{ borderColor: 'divider', minWidth: 0 }}
                 >
                     <ActionConversationEventRow entry={entry} grouped />
                 </Box>

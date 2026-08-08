@@ -1,4 +1,5 @@
 {
+  "actionSettings": {},
   "conversations": [
     {
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
@@ -1792,6 +1793,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "eada01c70f11529e3dc3f765d827676bed21e299",
           "committedAt": "2026-08-07T14:36:16+02:00",
           "deletions": 14,
@@ -1800,8 +1802,7 @@
             "app/src/components/actions/conversation/completed_tool_call_group.tsx"
           ],
           "filesChanged": 2,
-          "insertions": 74,
-          "branch": "dev_main"
+          "insertions": 74
         }
       ],
       "completedAt": "2026-08-07T14:36:16+02:00",
@@ -1813,5 +1814,5 @@
       "type": "system"
     }
   ],
-  "version": 2
+  "version": 3
 }

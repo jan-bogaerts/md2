@@ -79,6 +79,8 @@ function createBridge(actionFiles: ActionFile[] = []): ElectronDataBridge {
             workingFolder: 'design',
         })),
         loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, projectFolder: '', workingFolder: 'design' })),
+        getMergeConflictSession: vi.fn(async () => null),
+        onMergeConflictSessionChanged: vi.fn(() => vi.fn()),
         onWorktreesChanged: vi.fn(() => vi.fn()),
         moveFiles: vi.fn(async (request) => {
             for (const move of request.moves) {
