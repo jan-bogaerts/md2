@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: a529defa-f2ad-4307-923b-856a8ce80243
 ---
 
 We should only load activity of a released card on demand: when the user looks at it somehow.
