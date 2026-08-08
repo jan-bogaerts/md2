@@ -9,5 +9,8 @@ affects:
 agents:
 policy:
 ---
-
 When connected through websockets, when a card is assigned to a worktree and the worktree is updated, the component does not get notified when worktree is up to date
+
+
+
+Sometimes it works, sometimes it dont
