@@ -9,5 +9,10 @@ affects:
 agents:
 policy:
 ---
+We need to improve layout and position of input and bottom row. The goal is to provide as much viewing area as possible to the chatlog while providing optimal input size while editing a prompt.
 
-We need to improve layout and position of input and bottom row
+The bottom row should be inside the box of the input, sticky to the bottom, so no longer a gray bar at the bottom of the popup.
+
+When the input box has no value (empty), it should be 1 line high, box itself ofcourse more for border and bottom row. The resize bar should be disabled.
+
+When it has a value, the box can be enlarged to its last size. Resize bar is enabled again.
