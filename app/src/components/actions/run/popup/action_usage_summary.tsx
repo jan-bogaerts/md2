@@ -102,6 +102,8 @@ export function ActionUsageSummary(props: ActionUsageSummaryProps) {
         ? conversationUsage
         : scopedUsage.actionCard
     const activeLines = activeUsage.lines
+    const hasChanges = activeUsage.changes.insertions + activeUsage.changes.deletions > 0
+    const totalLines = activeLines.insertions + activeLines.deletions
     const lineDetails = (
         <>
             <Typography color="inherit" variant="caption">
@@ -133,42 +135,46 @@ export function ActionUsageSummary(props: ActionUsageSummaryProps) {
                     tokens: {NUMBER_FORMAT.format(activeUsage.tokens.totalTokens)}
                 </ButtonBase>
             </Tooltip>
-            <Tooltip describeChild title={scopeTooltip(
-                'Changes are additions and deletions across completed provider file-change patches.',
-                scopedUsage.conversation ? changeValue(scopedUsage.conversation.changes) : null,
-                changeValue(scopedUsage.actionCard.changes),
-                activeScope,
-            )}>
-                <ButtonBase
-                    aria-label={`Changes, ${activeScopeName} scope`}
-                    onClick={onToggleScope}
-                    sx={USAGE_CONTROL_SX}
-                >
-                    changes:&nbsp;
-                    <Box component="span" sx={{ color: 'success.main' }}>
-                        +{NUMBER_FORMAT.format(activeUsage.changes.insertions)}
-                    </Box>
-                    &nbsp;/&nbsp;
-                    <Box component="span" sx={{ color: 'error.main' }}>
-                        -{NUMBER_FORMAT.format(activeUsage.changes.deletions)}
-                    </Box>
-                </ButtonBase>
-            </Tooltip>
-            <Tooltip describeChild title={scopeTooltip(
-                'Lines are additions plus deletions in captured Git commit diffs.',
-                scopedUsage.conversation ? lineValue(scopedUsage.conversation.lines) : null,
-                lineValue(scopedUsage.actionCard.lines),
-                activeScope,
-                lineDetails,
-            )}>
-                <ButtonBase
-                    aria-label={`Lines, ${activeScopeName} scope`}
-                    onClick={onToggleScope}
-                    sx={USAGE_CONTROL_SX}
-                >
-                    lines: {NUMBER_FORMAT.format(activeLines.insertions + activeLines.deletions)}
-                </ButtonBase>
-            </Tooltip>
+            {hasChanges ? (
+                <Tooltip describeChild title={scopeTooltip(
+                    'Changes are additions and deletions across completed provider file-change patches.',
+                    scopedUsage.conversation ? changeValue(scopedUsage.conversation.changes) : null,
+                    changeValue(scopedUsage.actionCard.changes),
+                    activeScope,
+                )}>
+                    <ButtonBase
+                        aria-label={`Changes, ${activeScopeName} scope`}
+                        onClick={onToggleScope}
+                        sx={USAGE_CONTROL_SX}
+                    >
+                        changes:&nbsp;
+                        <Box component="span" sx={{ color: 'success.main' }}>
+                            +{NUMBER_FORMAT.format(activeUsage.changes.insertions)}
+                        </Box>
+                        &nbsp;/&nbsp;
+                        <Box component="span" sx={{ color: 'error.main' }}>
+                            -{NUMBER_FORMAT.format(activeUsage.changes.deletions)}
+                        </Box>
+                    </ButtonBase>
+                </Tooltip>
+            ) : null}
+            {totalLines > 0 ? (
+                <Tooltip describeChild title={scopeTooltip(
+                    'Lines are additions plus deletions in captured Git commit diffs.',
+                    scopedUsage.conversation ? lineValue(scopedUsage.conversation.lines) : null,
+                    lineValue(scopedUsage.actionCard.lines),
+                    activeScope,
+                    lineDetails,
+                )}>
+                    <ButtonBase
+                        aria-label={`Lines, ${activeScopeName} scope`}
+                        onClick={onToggleScope}
+                        sx={USAGE_CONTROL_SX}
+                    >
+                        lines: {NUMBER_FORMAT.format(totalLines)}
+                    </ButtonBase>
+                </Tooltip>
+            ) : null}
         </Box>
     )
 }

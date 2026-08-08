@@ -86,20 +86,25 @@ function renderSummary(options: RenderSummaryOptions = {}) {
 }
 
 describe('ActionUsageSummary', () => {
-    it('always renders three button-semantic values with one active scope', () => {
+    it('always renders tokens but hides zero changes and lines', () => {
         renderSummary({ conversation: null })
 
         const tokens = screen.getByRole('button', { name: 'Tokens, Action/card scope' })
         expect(tokens).toHaveAttribute('type', 'button')
         expect(tokens).toHaveAttribute('tabindex', '0')
         expect(tokens).toHaveTextContent('tokens: 0')
-        expect(screen.getByRole('button', { name: 'Changes, Action/card scope' })).toHaveTextContent('changes: +0 / -0')
-        expect(screen.getByRole('button', { name: 'Lines, Action/card scope' })).toHaveTextContent('lines: 0')
+        expect(screen.queryByRole('button', { name: 'Changes, Action/card scope' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Lines, Action/card scope' })).not.toBeInTheDocument()
     })
 
     it('invokes shared scope toggle through pointer and keyboard-synthesized clicks', () => {
         const onToggleScope = vi.fn()
-        renderSummary({ onToggleScope })
+        const displayedConversation = conversation('conversation-1', 12, 2, 1)
+        renderSummary({
+            conversation: displayedConversation,
+            history: [historyEntry(displayedConversation.id, [commit('abc1234', 3, 2)])],
+            onToggleScope,
+        })
 
         fireEvent.click(screen.getByRole('button', { name: 'Tokens, Action/card scope' }), { detail: 1 })
         fireEvent.click(screen.getByRole('button', { name: 'Changes, Action/card scope' }))
