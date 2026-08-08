@@ -1,0 +1,17 @@
+{
+  "actionSettings": {
+    "5b88355d-f964-459a-bc67-6618650866ba": {
+      "agent": "codex",
+      "model": "gpt-5.6-sol",
+      "permissionMode": "approve-for-me",
+      "thinkingLevel": "medium"
+    }
+  },
+  "conversations": [],
+  "origin": {
+    "cardInternalId": "425e518f-0813-4f49-a459-62f73a7c0655",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 4
+}
