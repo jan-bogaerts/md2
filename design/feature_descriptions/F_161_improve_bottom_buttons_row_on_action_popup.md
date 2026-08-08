@@ -10,8 +10,6 @@ agents:
   - design/activity/card__70f4d324-387f-4160-9465-51d9a8117b04.json#conversation=agent-5eb541d4-c68d-4aad-b85d-5a15446b0bcc
   - design/activity/card__70f4d324-387f-4160-9465-51d9a8117b04.json#conversation=agent-556278c2-717a-40f1-9f10-00835fa8106c
 policy:
-branch: f_161_improve_bottom_buttons_row_on_action_popup
-worktree: 1
 ---
 we need to improve the way that the buttons are displayed on the action popup. These are the rules:
 
