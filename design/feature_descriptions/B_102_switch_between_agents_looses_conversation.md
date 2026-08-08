@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
   - design/activity/card__3616573b-1a04-4f9f-aa5c-88ae92cb1188.json#conversation=agent-b0a75c4b-8717-4f9f-a534-b6f273acb43d
+  - design/activity/card__3616573b-1a04-4f9f-aa5c-88ae92cb1188.json#conversation=agent-411f4c61-c046-41e5-9fcb-b7412e96beba
 policy:
 branch: b_102_switch_between_agents_looses_conversation
 worktree: 3
