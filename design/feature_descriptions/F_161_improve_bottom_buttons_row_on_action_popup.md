@@ -12,4 +12,4 @@ policy:
 we need to improve the way that the buttons are displayed on the action popup. These are the rules:
 
 * when the agent is running instead of disabling the `send` and `schedule` buttons, hide them. only the `stop` button should be visible (at the location of the `send` button)
-* &#x20;
+* &#x20;when the agent is
