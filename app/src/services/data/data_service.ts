@@ -7,7 +7,7 @@ import type { ActionContext } from '../../data/action_context'
 import { resolveProjectConfigPaths, type MarkdownFile, type ProjectConfig, type ProjectReference, type ProjectSnapshot, type RunningAgent, type StorageService } from '../../data/data_types'
 import type { RemarkableBridge } from '../../data/remarkable_bridge'
 import { agentAcknowledgementService } from '../agents/agent_acknowledgement_service'
-import { agentConversationService, listAgentConversationReferences, loadAgentConversation } from '../agents/agent_conversation_service'
+import { agentConversationService, loadAgentConversation } from '../agents/agent_conversation_service'
 import { CardOperations, type CardOperationsDeps } from './card_operations'
 import { configService } from '../config/config_service'
 import { type DataServiceDependencies, getProjectConfigOrNull, reportCommitFlushFailure } from './data_service_context'
@@ -239,20 +239,10 @@ export class DataService extends EventTarget {
         return getProjectConfigOrNull(this.storage)
     }
     async listAgentConversations(context: ActionContext) {
-        const { config, storage } = this.requireDependencies()
-        const currentProject = this.projectState.project
-        if (!currentProject) throw new Error('Cannot list agent conversations before a project is open')
+        if (context.kind === 'project') return this.agents.listProjectAgentConversations()
+        if (!context.cardInternalId) throw new Error(`Missing cardInternalId for ${context.kind} agent conversation context`)
 
-        if (context.kind !== 'project') {
-            if (!context.cardInternalId) throw new Error(`Missing cardInternalId for ${context.kind} agent conversation context`)
-
-            return this.agents.getAgentConversations(context.cardInternalId)
-        }
-
-        const references = await listAgentConversationReferences(storage, currentProject, config.projectFolder)
-        const conversations = await Promise.all(references.map((reference) => loadAgentConversation(storage, currentProject, reference)))
-
-        return conversations.filter(({ cardInternalId }) => cardInternalId === null)
+        return this.agents.ensureAgentConversationsForCard(context.cardInternalId)
     }
     async loadAgentConversation(path: string) {
         const { storage } = this.requireDependencies()

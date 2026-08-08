@@ -108,6 +108,7 @@ export function createStorage(overrides: Partial<StorageService> = {}): StorageS
         createProject: vi.fn(async (project) => project),
         deleteFile: vi.fn(),
         deleteFolder: vi.fn(),
+        listAgentConversationReferences: vi.fn(async () => []),
         listBranches: vi.fn(async () => [{ name: 'main' }]),
         listRepositories: vi.fn(async () => []),
         listRepositoryFiles: vi.fn(async () => ['app/src/app.tsx', 'app/src/card.tsx', 'design/F-1-root.md']),
