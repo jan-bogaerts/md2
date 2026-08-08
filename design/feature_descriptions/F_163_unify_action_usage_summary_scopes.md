@@ -8,6 +8,8 @@ owner:
 affects:
 agents:
 policy:
+branch: f_163_unify_action_usage_summary_scopes
+worktree: 1
 ---
 
 # Goal
