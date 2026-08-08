@@ -15,10 +15,9 @@ function createCommandDetails(input) {
 
 function createAgentDetails(input) {
     return {
-        ...(input.result.accessLevel !== undefined ? { accessLevel: input.result.accessLevel } : {}),
         ...(input.result.agent !== undefined ? { agent: input.result.agent } : {}),
-        ...(input.result.approvalPolicy !== undefined ? { approvalPolicy: input.result.approvalPolicy } : {}),
         ...(input.result.model !== undefined ? { model: input.result.model } : {}),
+        ...(input.result.permissionMode !== undefined ? { permissionMode: input.result.permissionMode } : {}),
         ...(input.result.thinkingLevel !== undefined ? { thinkingLevel: input.result.thinkingLevel } : {}),
         type: 'agent',
     };

@@ -5,6 +5,7 @@ const path = require('node:path');
 const {
     LEGACY_ACTIVITY_VERSION,
     PREVIOUS_ACTIVITY_VERSION,
+    SECOND_ACTIVITY_VERSION,
     createActivityFile,
     findActivityConversation,
     migrateActivityValue,
@@ -53,7 +54,7 @@ async function readStoredActivity(filePath, origin) {
     if (unwritten) return { legacy: false, value: unwritten };
     if (!await pathExists(filePath)) return { legacy: false, value: null };
     const value = JSON.parse(await fs.promises.readFile(filePath, 'utf8'));
-    if (value.version !== LEGACY_ACTIVITY_VERSION && value.version !== PREVIOUS_ACTIVITY_VERSION) {
+    if (![LEGACY_ACTIVITY_VERSION, SECOND_ACTIVITY_VERSION, PREVIOUS_ACTIVITY_VERSION].includes(value.version)) {
         return { legacy: false, value };
     }
 

@@ -97,16 +97,16 @@ describe('ActionAgentExecutor', () => {
     });
 
     it('resolves run permission overrides before action and desktop defaults', async () => {
-        const agentConfigProvider = () => ({accessLevel: 'workspace-write', agent: 'codex', agentProfiles: [], approvalPolicy: 'on-request', model: ''});
+        const agentConfigProvider = () => ({agent: 'codex', agentProfiles: [], model: '', permissionMode: 'ask-for-approval'});
         const { agentRunnerService, executor } = createExecutor({ agentConfigProvider });
-        const permissionAction = { ...action, accessLevel: 'read-only', approvalPolicy: 'untrusted' };
+        const permissionAction = { ...action, permissionMode: 'approve-for-me' };
 
         const result = await executor.execute(executionInput({
             action: permissionAction,
-            runInput: { accessLevel: 'danger-full-access', approvalPolicy: 'never', extraPrompt: '' },
+            runInput: { extraPrompt: '', permissionMode: 'full-access' },
         }));
 
-        expect(result).toMatchObject({ accessLevel: 'danger-full-access', approvalPolicy: 'never' });
+        expect(result).toMatchObject({ permissionMode: 'full-access' });
         expect(agentRunnerService.start.mock.calls[0][1].command).toEqual([
             'codex', '--model', 'gpt-5.5', '--sandbox', 'danger-full-access', '--ask-for-approval', 'never',
             '--search', 'exec', '--json',
@@ -116,9 +116,32 @@ describe('ActionAgentExecutor', () => {
     it('rejects stale permission overrides before process start', async () => {
         const { agentRunnerService, executor } = createExecutor();
 
-        await expect(executor.execute(executionInput({runInput: { accessLevel: 'removed', extraPrompt: '' }})))
-            .rejects.toThrow('Unknown access level');
+        await expect(executor.execute(executionInput({runInput: { extraPrompt: '', permissionMode: 'removed' }})))
+            .rejects.toThrow('Invalid permission mode');
         expect(agentRunnerService.start).not.toHaveBeenCalled();
+    });
+
+    it('surfaces Claude auto failures without retrying another permission mode', async () => {
+        const start = vi.fn(async (_project, request, _onEvent, onComplete) => {
+            onComplete(1, {
+                conversation: { id: 'run-conversation' }, missingSession: false, reference: 'run.json',
+                stderr: 'permission mode auto unavailable', stdout: '', turnStarted: true,
+            });
+
+            return { runId: 'active-run' };
+        });
+        const agentRunnerService = { start, stop: vi.fn() };
+        const agentConfigProvider = () => ({agent: 'claude', agentProfiles: [], model: 'sonnet', permissionMode: 'approve-for-me'});
+        const { executor } = createExecutor({ agentConfigProvider, agentRunnerService });
+        const claudeAction = { ...action, agent: 'claude', model: 'sonnet' };
+
+        await expect(executor.execute(executionInput({ action: claudeAction }))).resolves.toMatchObject({
+            exitCode: 1,
+            permissionMode: 'approve-for-me',
+            stderr: 'permission mode auto unavailable',
+        });
+        expect(start).toHaveBeenCalledTimes(1);
+        expect(start.mock.calls[0][1].command).toContain('auto');
     });
 
     it('resolves placeholders in an edited or custom root prompt without tracked-file composition', async () => {
@@ -257,7 +280,7 @@ describe('ActionAgentExecutor', () => {
         const request = agentRunnerService.start.mock.calls[0][1];
         expect(request).toMatchObject({
             command: [
-                'claude', '--model', 'default', '--permission-mode', 'default', '--print', '--verbose', '--output-format', 'stream-json',
+                'claude', '--model', 'default', '--permission-mode', 'acceptEdits', '--print', '--verbose', '--output-format', 'stream-json',
                 '--include-partial-messages', '--input-format', 'stream-json', '--permission-prompt-tool', 'stdio', '--resume', 'session-1',
             ],
             contextInput: expect.stringContaining('new'),

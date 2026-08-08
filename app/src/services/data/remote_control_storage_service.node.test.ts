@@ -356,7 +356,7 @@ describe('RemoteControlStorageService', () => {
         const fileRequest = { commit: 'a'.repeat(40), parent: true, path: 'design/F-1.md' }
         const settingsRequest = {
             actionId: 'review', cardInternalId: 'card-1',
-            settings: { accessLevel: '', agent: 'codex', approvalPolicy: '', model: 'gpt-5', thinkingLevel: 'high' },
+            settings: { agent: 'codex', model: 'gpt-5', permissionMode: 'ask-for-approval', thinkingLevel: 'high' },
         }
         const activity = service.loadCardActivity(activityRequest)
         const historicalFile = service.readFileAtCommit(fileRequest)
@@ -371,11 +371,11 @@ describe('RemoteControlStorageService', () => {
         expect(activityMessage).toMatchObject({ method: 'loadCardActivity', params: [activityRequest] })
         expect(fileMessage).toMatchObject({ method: 'readFileAtCommit', params: [fileRequest] })
         expect(settingsMessage).toMatchObject({ method: 'updateCardActionSettings', params: [settingsRequest] })
-        socket.receive({ id: activityMessage.id, result: { actionSettings: {}, conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 3 } })
+        socket.receive({ id: activityMessage.id, result: { actionSettings: {}, conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 4 } })
         socket.receive({ id: fileMessage.id, result: { content: '# Card', exists: true } })
         socket.receive({ id: settingsMessage.id, result: undefined })
 
-        await expect(activity).resolves.toMatchObject({ version: 3 })
+        await expect(activity).resolves.toMatchObject({ version: 4 })
         await expect(historicalFile).resolves.toEqual({ content: '# Card', exists: true })
         await expect(settingsUpdate).resolves.toBeUndefined()
     })
@@ -410,12 +410,12 @@ describe('RemoteControlStorageService', () => {
         await expect(request).rejects.toThrow('command failed')
     })
 
-    it('preserves access and approval overrides in remote action requests', async () => {
+    it('preserves permission-mode overrides in remote action requests', async () => {
         installWebSocket()
         const service = createService()
         const actionRequest = {
             ...actionStartRequest(),
-            runInput: { accessLevel: 'read-only', approvalPolicy: 'untrusted' },
+            runInput: { permissionMode: 'approve-for-me' as const },
         }
         const request = service.startAction(actionRequest)
         const socket = lastSocket()

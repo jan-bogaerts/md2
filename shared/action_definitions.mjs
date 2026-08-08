@@ -12,7 +12,7 @@ const ACTION_TYPES = ['agent', 'command']
 const LEGACY_FIELDS = ['after', 'before', 'runIn', 'text']
 export const ACTION_DEFINITION_FIELDS = Object.freeze([
     'id', 'label', 'description', 'type', 'icon', 'appliesTo', 'onBefore', 'on', 'onAfter',
-    'onState', 'needsWorkTree', 'trackFileChanges', 'streaming', 'autoFinish', 'agent', 'model', 'thinkingLevel', 'accessLevel', 'approvalPolicy', 'prompt', 'command', 'phrases',
+    'onState', 'needsWorkTree', 'trackFileChanges', 'streaming', 'autoFinish', 'agent', 'model', 'thinkingLevel', 'permissionMode', 'prompt', 'command', 'phrases',
 ])
 export const ACTION_AUTO_FINISH_FIELDS = Object.freeze(['state'])
 export const ACTION_ON_RULE_FIELDS = Object.freeze(['actionId', 'condition'])
@@ -31,7 +31,7 @@ export const REMARKABLE_CONVERT_ACTION_ID = 'md2.convert-remarkable-images-to-te
 // Fields the editor can route an error to. Anything else routes to the general summary.
 const ROUTABLE_FIELDS = new Set([
     'id', 'label', 'description', 'type', 'icon', 'appliesTo', 'onBefore', 'on', 'onAfter',
-    'onState', 'needsWorkTree', 'trackFileChanges', 'streaming', 'autoFinish', 'agent', 'model', 'thinkingLevel', 'accessLevel', 'approvalPolicy', 'prompt', 'command', 'phrases',
+    'onState', 'needsWorkTree', 'trackFileChanges', 'streaming', 'autoFinish', 'agent', 'model', 'thinkingLevel', 'permissionMode', 'prompt', 'command', 'phrases',
 ])
 
 /**
@@ -68,10 +68,9 @@ function fail(message, code, source, fieldName = null) {
 }
 
 export const BUILTIN_CUSTOM_PROMPT = {
-    accessLevel: null,
     agent: null,
     appliesTo: null,
-    approvalPolicy: null,
+    permissionMode: null,
     autoFinish: null,
     builtin: true,
     command: null,
@@ -95,10 +94,9 @@ export const BUILTIN_CUSTOM_PROMPT = {
 }
 
 export const BUILTIN_REMARKABLE_CONVERT = {
-    accessLevel: null,
     agent: null,
     appliesTo: null,
-    approvalPolicy: null,
+    permissionMode: null,
     autoFinish: null,
     builtin: true,
     command: null,
@@ -281,8 +279,7 @@ function readAutoFinish(value, streaming, dependencies, source) {
 
 function validateAgentFields(raw, dependencies, source) {
     if (raw.model !== undefined && raw.agent === undefined) throw fail(`Action model requires agent in ${source}`, 'agent-required', source, 'model')
-    if (raw.accessLevel !== undefined && raw.agent === undefined) throw fail(`Action accessLevel requires agent in ${source}`, 'agent-required', source, 'accessLevel')
-    if (raw.approvalPolicy !== undefined && raw.agent === undefined) throw fail(`Action approvalPolicy requires agent in ${source}`, 'agent-required', source, 'approvalPolicy')
+    if (raw.permissionMode !== undefined && raw.agent === undefined) throw fail(`Action permissionMode requires agent in ${source}`, 'agent-required', source, 'permissionMode')
     if (raw.thinkingLevel !== undefined && (raw.agent === undefined || raw.model === undefined)) {
         throw fail(`Action thinkingLevel requires agent and model in ${source}`, 'agent-model-required', source, 'thinkingLevel')
     }
@@ -292,20 +289,17 @@ function validateAgentFields(raw, dependencies, source) {
     const profiles = dependencies.profiles ?? []
     try {
         validateAgentSelection(profiles, {
-            accessLevel: raw.accessLevel,
             agent: raw.agent,
-            approvalPolicy: raw.approvalPolicy,
             model: raw.model ?? '',
+            permissionMode: raw.permissionMode,
         }, source)
     } catch (error) {
         // Route by the tagged code, never by message text.
         const field = error.code === 'unknown-agent'
             ? 'agent'
-            : error.code?.includes('access-level')
-                ? 'accessLevel'
-                : error.code?.includes('approval-policy')
-                    ? 'approvalPolicy'
-                    : 'model'
+            : error.code?.includes('permission-mode')
+                ? 'permissionMode'
+                : 'model'
         throw fail(error.message, error.code ?? 'invalid-agent', source, field)
     }
     if (raw.thinkingLevel === undefined) return
@@ -335,10 +329,8 @@ function validateRawDefinition(value, source, dependencies) {
 
     const streaming = value.streaming ?? false
     const raw = {
-        accessLevel: readOptionalString(value.accessLevel, 'accessLevel', source),
         agent: readOptionalString(value.agent, 'agent', source),
         appliesTo: readAppliesTo(value.appliesTo, source),
-        approvalPolicy: readOptionalString(value.approvalPolicy, 'approvalPolicy', source),
         autoFinish: readAutoFinish(value.autoFinish, streaming, dependencies, source),
         command: type === 'command' ? value.command : undefined,
         description: value.description,
@@ -352,6 +344,7 @@ function validateRawDefinition(value, source, dependencies) {
         onBefore: readActionIdList(value.onBefore, 'onBefore', source),
         onState: readOptionalString(value.onState, 'onState', source),
         phrases: readPhrases(value.phrases, source),
+        permissionMode: readOptionalString(value.permissionMode, 'permissionMode', source),
         prompt: type === 'agent' ? value.prompt : undefined,
         sourcePath: source,
         thinkingLevel: readOptionalString(value.thinkingLevel, 'thinkingLevel', source),
@@ -434,10 +427,8 @@ export function validateActionDefinitionGraph(entries, dependencies = {}) {
     const registry = new Map(BUILTIN_ACTIONS.map((action) => [action.id, action]))
     for (const raw of rawDefinitions) {
         registry.set(raw.id, {
-            accessLevel: raw.accessLevel ?? null,
             agent: raw.agent ?? null,
             appliesTo: raw.appliesTo ?? null,
-            approvalPolicy: raw.approvalPolicy ?? null,
             autoFinish: raw.autoFinish ?? null,
             builtin: false,
             command: raw.command ?? null,
@@ -452,6 +443,7 @@ export function validateActionDefinitionGraph(entries, dependencies = {}) {
             onBefore: [],
             onState: raw.onState ?? null,
             phrases: raw.phrases,
+            permissionMode: raw.permissionMode ?? null,
             prompt: raw.prompt ?? null,
             sourcePath: raw.sourcePath,
             thinkingLevel: raw.thinkingLevel ?? null,

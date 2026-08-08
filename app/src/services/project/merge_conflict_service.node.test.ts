@@ -18,10 +18,9 @@ function session(paths = ['src/one.ts', 'src/two.ts']): MergeConflictSession {
 
 function agentAction(): ActionDefinition {
     return {
-        accessLevel: null,
         agent: null,
         appliesTo: { kind: 'merge-conflict' },
-        approvalPolicy: null,
+        permissionMode: null,
         builtin: false,
         command: null,
         description: 'Resolve conflicts',

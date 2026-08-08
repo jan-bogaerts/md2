@@ -1050,7 +1050,7 @@ describe('ActionPopup', () => {
             conversations: []
             origin: { cardInternalId: string; kind: 'card' }
             records: []
-            version: 3
+            version: 4
         }>()
         window.md2Actions = {
             loadCardActivity: vi.fn(() => activity.promise),
@@ -1067,17 +1067,16 @@ describe('ActionPopup', () => {
         renderPopup(cardContext)
         expect(screen.getByLabelText('Model')).toHaveAttribute('aria-disabled', 'true')
 
-        activity.resolve({actionSettings: {}, conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 3})
+        activity.resolve({actionSettings: {}, conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 4})
         await waitFor(() => expect(screen.getByLabelText('Model')).not.toHaveAttribute('aria-disabled', 'true'))
     })
 
     it('persists complete settings across close and renderer-store restart without rendering popup roots', async () => {
         const cardContext = { ...context, cardInternalId: 'card-1' }
         let savedSettings: {
-            accessLevel: string
             agent: string
-            approvalPolicy: string
             model: string
+            permissionMode: string
             thinkingLevel: string
         } | null = null
         const updateCardActionSettings = vi.fn(async (request) => {
@@ -1088,7 +1087,7 @@ describe('ActionPopup', () => {
             conversations: [],
             origin: { cardInternalId: 'card-1', kind: 'card' as const },
             records: [],
-            version: 3 as const,
+            version: 4 as const,
         }))
         window.md2Actions = {
             loadCardActivity,
@@ -1112,8 +1111,7 @@ describe('ActionPopup', () => {
             actionId: 'review',
             cardInternalId: 'card-1',
             settings: {
-                accessLevel: '', agent: 'codex', approvalPolicy: '',
-                model: 'gpt-5.6-sol', thinkingLevel: 'none',
+                agent: 'codex', model: 'gpt-5.6-sol', permissionMode: 'ask-for-approval', thinkingLevel: 'none',
             },
         }))
         expect(renderProbes.content).not.toHaveBeenCalled()
@@ -1138,7 +1136,7 @@ describe('ActionPopup', () => {
             void request
         })
         window.md2Actions = {
-            loadCardActivity: vi.fn(async () => ({actionSettings: {}, conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 3})),
+            loadCardActivity: vi.fn(async () => ({actionSettings: {}, conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 4})),
             onActionRun: vi.fn(() => vi.fn()),
             prepareActionPrompt: vi.fn(async () => ({ prompt: 'Plan' })),
             updateCardActionSettings,
@@ -1169,12 +1167,12 @@ describe('ActionPopup', () => {
 
     it('uses current defaults for unavailable saved configuration without overwriting persistence', async () => {
         const cardContext = { ...context, cardInternalId: 'card-1' }
-        const unavailableSettings = {accessLevel: '', agent: 'removed-agent', approvalPolicy: '', model: 'removed-model', thinkingLevel: 'high'}
+        const unavailableSettings = {agent: 'removed-agent', model: 'removed-model', permissionMode: '', thinkingLevel: 'high'}
         const updateCardActionSettings = vi.fn(async () => undefined)
         window.md2Actions = {
             loadCardActivity: vi.fn(async () => ({
                 actionSettings: { review: unavailableSettings }, conversations: [],
-                origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 3,
+                origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 4,
             })),
             onActionRun: vi.fn(() => vi.fn()),
             prepareActionPrompt: vi.fn(async () => ({ prompt: 'Plan' })),

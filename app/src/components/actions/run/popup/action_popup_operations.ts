@@ -58,12 +58,11 @@ async function runWithPrompt(input: ActionPopupOperationInput, prompt: string, p
         const continuationPath = conversationStore.continuationPath(liveConversation)
         const runInput = action.type === 'agent'
             ? {
-                ...(settings.accessLevel ? { accessLevel: settings.accessLevel } : {}),
                 ...(settings.agent ? { agent: settings.agent } : {}),
-                ...(settings.approvalPolicy ? { approvalPolicy: settings.approvalPolicy } : {}),
                 ...(continuationPath ? { continueFrom: continuationPath } : {}),
                 prompt,
                 ...(settings.model ? { model: settings.model } : {}),
+                ...(settings.permissionMode ? { permissionMode: settings.permissionMode } : {}),
                 thinkingLevel: settings.thinkingLevel,
             }
             : { extraPrompt: prompt }
@@ -138,12 +137,11 @@ export async function convertPromptToAction(input: ActionPopupOperationInput) {
     try {
         const label = actionLabel.trim().length > 0 ? actionLabel : prompt.trim().slice(0, DEFAULT_CONVERT_LABEL_LENGTH)
         const convertInput = {
-            ...(settings.accessLevel ? { accessLevel: settings.accessLevel } : {}),
             ...(settings.agent ? { agent: settings.agent } : {}),
-            ...(settings.approvalPolicy ? { approvalPolicy: settings.approvalPolicy } : {}),
             context,
             label,
             ...(settings.model ? { model: settings.model } : {}),
+            ...(settings.permissionMode ? { permissionMode: settings.permissionMode } : {}),
             prompt,
         }
         const result = await defaultConvertPromptToAction(convertInput)

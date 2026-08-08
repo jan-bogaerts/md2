@@ -6,8 +6,8 @@ import {
     type ResolvedActionRunSettings,
 } from './action_run_settings_service'
 
-const firstSettings: ResolvedActionRunSettings = {accessLevel: 'workspace-write', agent: 'codex', approvalPolicy: 'on-request', model: 'gpt-5.5', thinkingLevel: 'high'}
-const secondSettings: ResolvedActionRunSettings = {accessLevel: 'read-only', agent: 'claude', approvalPolicy: '', model: 'sonnet', thinkingLevel: 'none'}
+const firstSettings: ResolvedActionRunSettings = {agent: 'codex', model: 'gpt-5.5', permissionMode: 'ask-for-approval', thinkingLevel: 'high'}
+const secondSettings: ResolvedActionRunSettings = {agent: 'claude', model: 'sonnet', permissionMode: 'approve-for-me', thinkingLevel: 'none'}
 
 function deferredVoid() {
     let rejectPromise: (error: unknown) => void = () => undefined

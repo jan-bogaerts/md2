@@ -20,7 +20,7 @@ vi.mock('./action_popup_defaults', async (importOriginal) => {
     return { ...actual, defaultRestartAction: restartAction }
 })
 
-const defaultSettings: ResolvedActionRunSettings = {accessLevel: 'workspace-write', agent: 'codex', approvalPolicy: 'on-request', model: 'gpt-5.5', thinkingLevel: 'high'}
+const defaultSettings: ResolvedActionRunSettings = {agent: 'codex', model: 'gpt-5.5', permissionMode: 'ask-for-approval', thinkingLevel: 'high'}
 
 function operationInput(
     inputStore: ActionRunInputStore,

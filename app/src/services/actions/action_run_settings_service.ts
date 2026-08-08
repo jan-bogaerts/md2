@@ -1,14 +1,15 @@
 import type { ActionSettings, CardActivityFile } from '../../../../shared/card_activity.mjs'
 import { parseActivityValue } from '../../../../shared/card_activity.mjs'
-import type { ThinkingLevel } from '../../data/agent_profiles'
-import { validateThinkingLevel } from '../../data/agent_profiles'
+import type { PermissionMode, ThinkingLevel } from '../../data/agent_profiles'
+import { validatePermissionMode, validateThinkingLevel } from '../../data/agent_profiles'
 import { getElectronActionBridge } from '../../data/electron_action_bridge'
 import type { ProjectReference } from '../../data/data_types'
 import type { DataService } from '../data/data_service'
 import { dialogService } from '../dialog_service'
 import { register } from '../service_injector'
 
-export interface ResolvedActionRunSettings extends Omit<ActionSettings, 'thinkingLevel'> {
+export interface ResolvedActionRunSettings extends Omit<ActionSettings, 'permissionMode' | 'thinkingLevel'> {
+    permissionMode: PermissionMode | ''
     thinkingLevel: ThinkingLevel
 }
 
@@ -54,8 +55,13 @@ async function loadPersistedSettings(cardInternalId: string, actionId: string) {
     const settings = activity.actionSettings[actionId]
     if (!settings) return null
 
+    const permissionMode: PermissionMode | '' = settings.permissionMode
+        ? validatePermissionMode(settings.permissionMode, `saved action settings "${actionId}"`)
+        : ''
+
     return {
         ...settings,
+        permissionMode,
         thinkingLevel: validateThinkingLevel(settings.thinkingLevel, `saved action settings "${actionId}"`),
     }
 }

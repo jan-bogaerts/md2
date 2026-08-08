@@ -3,7 +3,7 @@ import type { ActionSettings, CardActivityFile } from '../../../shared/card_acti
 import type { ActionScheduleTrigger } from './action_schedule_types'
 import type { AgentConversation, AgentRunEvent } from './data_types'
 import type { AgentAvailability } from './electron_data_bridge'
-import type { ThinkingLevel } from './agent_profiles'
+import type { PermissionMode, ThinkingLevel } from './agent_profiles'
 import type {
     ActionRunEvent,
     ActionPromptRequest,
@@ -68,10 +68,9 @@ interface ActionRunHistoryEntryBase {
 }
 
 export interface AgentActionRunHistoryEntry extends ActionRunHistoryEntryBase {
-    accessLevel?: string
     agent?: string | null
-    approvalPolicy?: string
     model?: string
+    permissionMode?: PermissionMode
     rootConversationId: string
     thinkingLevel?: ThinkingLevel
     type: 'agent'

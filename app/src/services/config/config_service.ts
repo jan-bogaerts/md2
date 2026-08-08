@@ -5,7 +5,7 @@ import {
     type StateConfig,
 } from '../../data/data_types'
 import { LEGACY_CARD_SEPARATOR } from '../../data/card_identifiers'
-import { validateAgentProfiles, validateThinkingLevel, type AgentProfile } from '../../data/agent_profiles'
+import { validateAgentProfiles, validatePermissionMode, validateThinkingLevel, type AgentProfile } from '../../data/agent_profiles'
 import {
     CONFIG_ENTRIES,
     createDefaultValues,
@@ -174,11 +174,12 @@ function validateValue<K extends ConfigKey>(key: K, value: unknown): ConfigValue
     ) {
         return normalizeConfigPath(requireString(value, entry.key), entry.key) as ConfigValueTypes[K]
     }
-    if (key === 'desktop.model' || key === 'desktop.accessLevel' || key === 'desktop.approvalPolicy') {
+    if (key === 'desktop.model') {
         if (typeof value !== 'string') throw new Error(`Missing config field: ${entry.key}`)
 
         return value as ConfigValueTypes[K]
     }
+    if (key === 'desktop.permissionMode') return validatePermissionMode(value, entry.key) as ConfigValueTypes[K]
     if (key === 'desktop.thinkingLevel') return validateThinkingLevel(value, entry.key) as ConfigValueTypes[K]
     if (key === 'desktop.editorCommand') {
         const editorCommand = requireString(value, entry.key)
@@ -251,10 +252,8 @@ export class ConfigService extends EventTarget {
 
         nextValues = mergeStoredReactValues(nextValues, mergeValue)
 
-        if (desktopConfig?.accessLevel !== undefined) nextValues = mergeValue(nextValues, 'desktop.accessLevel', desktopConfig.accessLevel)
         if (desktopConfig?.agent !== undefined) nextValues = mergeValue(nextValues, 'desktop.agent', desktopConfig.agent)
         if (desktopConfig?.agentProfiles !== undefined) nextValues = mergeValue(nextValues, 'desktop.agentProfiles', desktopConfig.agentProfiles)
-        if (desktopConfig?.approvalPolicy !== undefined) nextValues = mergeValue(nextValues, 'desktop.approvalPolicy', desktopConfig.approvalPolicy)
         if (desktopConfig?.codexSearchEnabled !== undefined) {
             nextValues = mergeValue(nextValues, 'desktop.codexSearchEnabled', desktopConfig.codexSearchEnabled)
         }
@@ -263,6 +262,9 @@ export class ConfigService extends EventTarget {
             nextValues = mergeValue(nextValues, 'desktop.mergeConflictResolverCommand', desktopConfig.mergeConflictResolverCommand)
         }
         if (desktopConfig?.model !== undefined) nextValues = mergeValue(nextValues, 'desktop.model', desktopConfig.model)
+        if (desktopConfig?.permissionMode !== undefined) {
+            nextValues = mergeValue(nextValues, 'desktop.permissionMode', desktopConfig.permissionMode)
+        }
         if (desktopConfig?.thinkingLevel !== undefined) {
             nextValues = mergeValue(nextValues, 'desktop.thinkingLevel', desktopConfig.thinkingLevel)
         }
@@ -361,14 +363,13 @@ export class ConfigService extends EventTarget {
         this.requireInitialized()
 
         return {
-            accessLevel: this.values['desktop.accessLevel'],
             agent: this.values['desktop.agent'],
             agentProfiles: this.values['desktop.agentProfiles'],
-            approvalPolicy: this.values['desktop.approvalPolicy'],
             codexSearchEnabled: this.values['desktop.codexSearchEnabled'],
             editorCommand: this.values['desktop.editorCommand'],
             mergeConflictResolverCommand: this.values['desktop.mergeConflictResolverCommand'],
             model: this.values['desktop.model'],
+            permissionMode: this.values['desktop.permissionMode'],
             thinkingLevel: this.values['desktop.thinkingLevel'],
         }
     }

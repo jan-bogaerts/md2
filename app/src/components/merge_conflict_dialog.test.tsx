@@ -8,10 +8,9 @@ import { MergeConflictDialog } from './merge_conflict_dialog'
 
 function action(id: string, kind: 'merge-conflict' | 'project', type: 'agent' | 'command' = 'agent'): ActionDefinition {
     return {
-        accessLevel: null,
         agent: null,
         appliesTo: { kind },
-        approvalPolicy: null,
+        permissionMode: null,
         builtin: false,
         command: type === 'command' ? 'run' : null,
         description: id,

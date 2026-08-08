@@ -4,10 +4,9 @@ export type ActivityOrigin = { kind: 'card'; cardInternalId: string } | { kind: 
 export type ActionActivityStatus = 'cancelled' | 'completed' | 'failed' | 'okButNotAfter'
 
 export interface ActionSettings {
-    accessLevel: string
     agent: string
-    approvalPolicy: string
     model: string
+    permissionMode: string
     thinkingLevel: string
 }
 
@@ -25,10 +24,9 @@ export interface ActivityCommitReference {
 }
 
 export interface AgentActivityDetails {
-    accessLevel?: string
     agent?: string | null
-    approvalPolicy?: string
     model?: string
+    permissionMode?: string
     thinkingLevel?: string
     type: 'agent'
 }
@@ -80,7 +78,7 @@ export interface CardActivityFile {
     conversations: Omit<AgentConversation, 'path'>[]
     origin: ActivityOrigin
     records: ActivityRecord[]
-    version: 3
+    version: 4
 }
 
 export function createActivityFile(origin: ActivityOrigin): CardActivityFile

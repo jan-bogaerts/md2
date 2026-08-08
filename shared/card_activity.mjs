@@ -1,8 +1,9 @@
 import { parseAgentConversation } from './agent_conversations.mjs'
 
-const ACTIVITY_VERSION = 3
+const ACTIVITY_VERSION = 4
 export const LEGACY_ACTIVITY_VERSION = 1
-export const PREVIOUS_ACTIVITY_VERSION = 2
+export const SECOND_ACTIVITY_VERSION = 2
+export const PREVIOUS_ACTIVITY_VERSION = 3
 const ACTION_ACTIVITY_STATUSES = new Set(['cancelled', 'completed', 'failed', 'okButNotAfter'])
 
 function requiredString(value, fieldName, allowEmpty = false) {
@@ -49,11 +50,14 @@ function parseActionSettings(value) {
             throw new Error(`Malformed activity file: invalid actionSettings.${actionId}`)
         }
 
+        if (settings.accessLevel !== undefined || settings.approvalPolicy !== undefined) {
+            throw new Error(`Malformed activity file: obsolete permission fields in actionSettings.${actionId}`)
+        }
+
         return [actionId, {
-            accessLevel: requiredString(settings.accessLevel, `actionSettings.${actionId}.accessLevel`, true),
             agent: requiredString(settings.agent, `actionSettings.${actionId}.agent`, true),
-            approvalPolicy: requiredString(settings.approvalPolicy, `actionSettings.${actionId}.approvalPolicy`, true),
             model: requiredString(settings.model, `actionSettings.${actionId}.model`, true),
+            permissionMode: requiredString(settings.permissionMode, `actionSettings.${actionId}.permissionMode`, true),
             thinkingLevel: requiredString(settings.thinkingLevel, `actionSettings.${actionId}.thinkingLevel`, true),
         }]
     }))
@@ -109,7 +113,10 @@ function parseLegacyHistory(value, index) {
 function parseAgentDetails(value, index) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`Malformed activity file: invalid records[${index}].details`)
     const details = { type: 'agent' }
-    for (const fieldName of ['accessLevel', 'agent', 'approvalPolicy', 'model', 'thinkingLevel']) {
+    if (value.accessLevel !== undefined || value.approvalPolicy !== undefined) {
+        throw new Error(`Malformed activity file: obsolete permission fields in records[${index}].details`)
+    }
+    for (const fieldName of ['agent', 'model', 'permissionMode', 'thinkingLevel']) {
         if (value[fieldName] === undefined) continue
         if (fieldName === 'agent' && value[fieldName] === null) details[fieldName] = null
         else details[fieldName] = requiredString(value[fieldName], `records[${index}].details.${fieldName}`)
@@ -261,6 +268,44 @@ export function parseActivityValue(value, expectedOrigin = null) {
     }
 }
 
+function legacyPermissionMode(agent, accessLevel, approvalPolicy, fieldName) {
+    if (accessLevel === undefined && approvalPolicy === undefined) return undefined
+    if (agent === 'codex' && accessLevel === 'workspace-write' && approvalPolicy === 'on-request') return 'ask-for-approval'
+    if (agent === 'codex' && accessLevel === 'danger-full-access' && approvalPolicy === 'never') return 'full-access'
+    if (agent === 'claude' && (accessLevel === undefined || accessLevel === '')) {
+        if (approvalPolicy === 'acceptEdits') return 'ask-for-approval'
+        if (approvalPolicy === 'auto') return 'approve-for-me'
+        if (approvalPolicy === 'bypassPermissions') return 'full-access'
+    }
+
+    throw new Error(`Cannot migrate activity file: unrecognised legacy permission combination in ${fieldName}`)
+}
+
+function migrateVersionThreeActionSettings(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        throw new Error('Malformed activity file: actionSettings must be an object')
+    }
+
+    return Object.fromEntries(Object.entries(value).map(([actionId, settings]) => {
+        if (!settings || typeof settings !== 'object' || Array.isArray(settings)) {
+            throw new Error(`Malformed activity file: invalid actionSettings.${actionId}`)
+        }
+        const permissionMode = legacyPermissionMode(
+            settings.agent,
+            settings.accessLevel,
+            settings.approvalPolicy,
+            `actionSettings.${actionId}`,
+        )
+
+        return [actionId, {
+            agent: requiredString(settings.agent, `actionSettings.${actionId}.agent`, true),
+            model: requiredString(settings.model, `actionSettings.${actionId}.model`, true),
+            ...(permissionMode !== undefined ? { permissionMode } : { permissionMode: '' }),
+            thinkingLevel: requiredString(settings.thinkingLevel, `actionSettings.${actionId}.thinkingLevel`, true),
+        }]
+    }))
+}
+
 function migrateLegacyRecord(record, index, conversations) {
     if (record.type === 'system') return record
     const { history, ...base } = record
@@ -282,11 +327,16 @@ function migrateLegacyRecord(record, index, conversations) {
     if (candidates.length !== 1) {
         throw new Error(`Cannot migrate activity file: agent records[${index}] has ${candidates.length} matching root conversations`)
     }
+    const permissionMode = legacyPermissionMode(
+        history.agent,
+        history.accessLevel,
+        history.approvalPolicy,
+        `records[${index}].history`,
+    )
     const details = Object.fromEntries(Object.entries({
-        accessLevel: history.accessLevel,
         agent: history.agent,
-        approvalPolicy: history.approvalPolicy,
         model: history.model,
+        permissionMode,
         thinkingLevel: history.thinkingLevel,
         type: 'agent',
     }).filter(([, fieldValue]) => fieldValue !== undefined))
@@ -294,13 +344,29 @@ function migrateLegacyRecord(record, index, conversations) {
     return { ...base, details, rootConversationId: candidates[0].id }
 }
 
+function migrateVersionThreeRecord(record, index) {
+    if (record.type === 'system' || record.details?.type !== 'agent') return record
+    const { accessLevel, approvalPolicy, ...details } = record.details
+    const permissionMode = legacyPermissionMode(details.agent, accessLevel, approvalPolicy, `records[${index}].details`)
+
+    return {
+        ...record,
+        details: { ...details, ...(permissionMode !== undefined ? { permissionMode } : {}) },
+    }
+}
+
 export function migrateActivityValue(value, expectedOrigin = null) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Malformed activity file: root must be an object')
-    if (value.version !== LEGACY_ACTIVITY_VERSION && value.version !== PREVIOUS_ACTIVITY_VERSION) {
+    if (![LEGACY_ACTIVITY_VERSION, SECOND_ACTIVITY_VERSION, PREVIOUS_ACTIVITY_VERSION].includes(value.version)) {
         throw new Error(`Cannot migrate activity file version ${String(value.version)}`)
     }
-    if (value.version === PREVIOUS_ACTIVITY_VERSION) {
-        return parseActivityValue({ ...value, actionSettings: {}, version: ACTIVITY_VERSION }, expectedOrigin)
+    if (value.version === PREVIOUS_ACTIVITY_VERSION || value.version === SECOND_ACTIVITY_VERSION) {
+        const actionSettings = value.version === PREVIOUS_ACTIVITY_VERSION
+            ? migrateVersionThreeActionSettings(value.actionSettings)
+            : {}
+        const records = value.records.map(migrateVersionThreeRecord)
+
+        return parseActivityValue({ ...value, actionSettings, records, version: ACTIVITY_VERSION }, expectedOrigin)
     }
     if (!Array.isArray(value.records)) throw new Error('Malformed activity file: records must be an array')
     if (!Array.isArray(value.conversations)) throw new Error('Malformed activity file: conversations must be an array')

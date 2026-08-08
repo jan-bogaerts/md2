@@ -287,14 +287,13 @@ describe('ConfigService', () => {
         })
 
         expect(service.getDesktopValues()).toEqual({
-            accessLevel: 'workspace-write',
             agent: 'claude',
             agentProfiles: BUILTIN_AGENT_PROFILES,
-            approvalPolicy: 'on-request',
             codexSearchEnabled: true,
             editorCommand: 'notepad "{{file}}"',
             mergeConflictResolverCommand: 'merge-tool "{{file}}"',
             model: '',
+            permissionMode: 'ask-for-approval',
             thinkingLevel: 'high',
         })
     })

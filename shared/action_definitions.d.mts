@@ -35,10 +35,8 @@ export interface ActionPhrase {
 }
 
 export interface RawActionDefinition {
-    accessLevel?: string
     agent?: string
     appliesTo?: ActionAppliesTo
-    approvalPolicy?: string
     autoFinish?: ActionAutoFinish
     command?: string
     description: string
@@ -52,6 +50,7 @@ export interface RawActionDefinition {
     onBefore?: string[]
     onState?: string
     phrases?: ActionPhrase[]
+    permissionMode?: import('./agent_profiles.mjs').PermissionMode
     prompt?: string
     thinkingLevel?: string
     trackFileChanges?: boolean
@@ -68,10 +67,8 @@ export interface OnRule extends RawOnRule {
 }
 
 export interface ActionDefinition {
-    accessLevel: string | null
     agent: string | null
     appliesTo: ActionAppliesTo | null
-    approvalPolicy: string | null
     autoFinish?: ActionAutoFinish | null
     builtin: boolean
     command: string | null
@@ -86,6 +83,7 @@ export interface ActionDefinition {
     onBefore: ActionDefinition[]
     onState: string | null
     phrases: ActionPhrase[]
+    permissionMode: import('./agent_profiles.mjs').PermissionMode | null
     prompt: string | null
     sourcePath: string | null
     thinkingLevel: string | null

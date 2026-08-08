@@ -94,12 +94,11 @@ export const ActionDefinitionFields = memo(function ActionDefinitionFields(props
 
         handleDefinitionChange({
             ...definition,
-            accessLevel: undefined,
             agent: undefined,
-            approvalPolicy: undefined,
             autoFinish: undefined,
             command: definition.command ?? '',
             model: undefined,
+            permissionMode: undefined,
             prompt: undefined,
             thinkingLevel: undefined,
             trackFileChanges: undefined,

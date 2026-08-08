@@ -51,7 +51,7 @@ describe('project activity conversations', () => {
             const firstContent = await readFile(filePath, 'utf8');
             await ensureActivityFile(project, 'design', origin);
 
-            expect(JSON.parse(firstContent)).toEqual({ actionSettings: {}, conversations: [], origin, records: [], version: 3 });
+            expect(JSON.parse(firstContent)).toEqual({ actionSettings: {}, conversations: [], origin, records: [], version: 4 });
             expect(await readFile(filePath, 'utf8')).toBe(firstContent);
         } finally {
             await rm(rootPath, { force: true, recursive: true });
@@ -75,7 +75,7 @@ describe('project activity conversations', () => {
             const activity = await readActivityFile(filePath, { kind: 'project' });
             const persisted = JSON.parse(await readFile(filePath, 'utf8'));
 
-            expect(activity).toMatchObject({ actionSettings: {}, version: 3, conversations: [{ viewed: true }] });
+            expect(activity).toMatchObject({ actionSettings: {}, version: 4, conversations: [{ viewed: true }] });
             expect(persisted).toEqual(activity);
             expect(persisted.records[0]).not.toHaveProperty('history');
             expect(persisted.records[0]).toMatchObject({ rootConversationId: conversation.id });
@@ -104,7 +104,7 @@ describe('project activity conversations', () => {
                 readActivityFile(filePath, { kind: 'project' }),
             ]);
 
-            expect(activities.map(({ version }) => version)).toEqual([3, 3, 3]);
+            expect(activities.map(({ version }) => version)).toEqual([4, 4, 4]);
             expect(rename).toHaveBeenCalledTimes(1);
             await expect(readdir(rootPath)).resolves.toEqual(['project.json']);
         } finally {
@@ -117,8 +117,8 @@ describe('project activity conversations', () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-action-settings-'));
         const project = { branch: 'main', rootPath };
         const origin = { cardInternalId: 'card-1', kind: 'card' };
-        const firstSettings = { accessLevel: '', agent: 'codex', approvalPolicy: '', model: 'gpt-5', thinkingLevel: 'high' };
-        const secondSettings = { accessLevel: 'read-only', agent: 'claude', approvalPolicy: '', model: 'sonnet', thinkingLevel: 'none' };
+        const firstSettings = { agent: 'codex', model: 'gpt-5', permissionMode: 'ask-for-approval', thinkingLevel: 'high' };
+        const secondSettings = { agent: 'claude', model: 'sonnet', permissionMode: 'approve-for-me', thinkingLevel: 'none' };
         const conversation = { ...waitingConversation(), cardInternalId: 'card-1' };
         try {
             await mkdir(join(rootPath, '.git'));
@@ -138,7 +138,7 @@ describe('project activity conversations', () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-action-settings-race-'));
         const project = { branch: 'main', rootPath };
         const origin = { cardInternalId: 'card-1', kind: 'card' };
-        const settings = { accessLevel: '', agent: 'codex', approvalPolicy: '', model: 'gpt-5', thinkingLevel: 'high' };
+        const settings = { agent: 'codex', model: 'gpt-5', permissionMode: 'ask-for-approval', thinkingLevel: 'high' };
         const conversation = { ...waitingConversation(), cardInternalId: 'card-1' };
         const secondConversation = { ...conversation, id: 'conversation-2', title: 'Second' };
         const reference = 'design/activity/card__card-1.json#conversation=conversation-1';

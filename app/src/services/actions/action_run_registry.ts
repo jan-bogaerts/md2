@@ -75,13 +75,12 @@ function actionStreaming(actionId: string) {
 
 function createLog(event: ActionRunEvent): ActionRunLogEntry {
     return {
-        ...(event.type === 'action' && event.accessLevel ? { accessLevel: event.accessLevel } : {}),
         actionId: event.actionId,
         actionName: actionName(event.actionId),
-        ...(event.type === 'action' && event.approvalPolicy ? { approvalPolicy: event.approvalPolicy } : {}),
         command: event.type === 'action' ? event.command ?? null : null,
         message: event.type === 'action' ? event.message ?? `${actionName(event.actionId)} ${event.status}` : `${actionName(event.actionId)} running`,
         phase: event.phase,
+        ...(event.type === 'action' && event.permissionMode ? { permissionMode: event.permissionMode } : {}),
         status: event.status,
         stderr: '',
         stdout: '',
@@ -117,10 +116,9 @@ function updateActionLogs(logs: ActionRunLogEntry[], event: Extract<ActionRunEve
     const next = [...logs]
     next[currentIndex] = {
         ...current,
-        ...(event.accessLevel ? { accessLevel: event.accessLevel } : {}),
-        ...(event.approvalPolicy ? { approvalPolicy: event.approvalPolicy } : {}),
         command: event.command ?? current.command,
         message: event.message ?? `${actionName(event.actionId)} ${event.status}`,
+        ...(event.permissionMode ? { permissionMode: event.permissionMode } : {}),
         status: event.status,
         ...(event.thinkingLevel ? { thinkingLevel: event.thinkingLevel } : {}),
     }

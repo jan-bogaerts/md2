@@ -18,7 +18,7 @@ interface ActionRunHistoryProps {
 function HistoryEntryRow(props: HistoryEntryRowProps) {
     const { entry } = props
     const configuration = entry.type === 'agent'
-        ? [entry.agent, entry.model, entry.thinkingLevel, entry.accessLevel, entry.approvalPolicy].filter((value) => !!value).join(' / ')
+        ? [entry.agent, entry.model, entry.thinkingLevel, entry.permissionMode].filter((value) => !!value).join(' / ')
         : ''
     const agentLabel = configuration ? ` (${configuration})` : ''
     const completedAt = new Date(entry.completedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })

@@ -139,8 +139,7 @@ describe('loadActionDefinitions', () => {
             [{ ...IMPLEMENT, text: 'legacy' }, { code: 'legacy-field', field: null }],
             [{ ...IMPLEMENT, command: 'x' }, { code: 'field-not-allowed', field: 'command' }],
             [{ ...IMPLEMENT, model: 'm' }, { code: 'agent-required', field: 'model' }],
-            [{ ...IMPLEMENT, accessLevel: 'safe' }, { code: 'agent-required', field: 'accessLevel' }],
-            [{ ...IMPLEMENT, approvalPolicy: 'ask' }, { code: 'agent-required', field: 'approvalPolicy' }],
+            [{ ...IMPLEMENT, permissionMode: 'ask-for-approval' }, { code: 'agent-required', field: 'permissionMode' }],
             [{ ...IMPLEMENT, thinkingLevel: 'high' }, { code: 'agent-model-required', field: 'thinkingLevel' }],
         ];
         for (const [definition, expected] of cases) {
@@ -173,9 +172,7 @@ describe('loadActionDefinitions', () => {
     it('accepts a complete definition using every canonical nested field', () => {
         const definition = {
             ...IMPLEMENT,
-            accessLevel: 'workspace-write',
             agent: 'codex',
-            approvalPolicy: 'on-request',
             appliesTo: {
                 file: 'design/F-010.md', folder: 'design', kind: 'card', state: 'ready', type: 'feature',
                 worktree: '1', worktreeError: 'none',
@@ -187,27 +184,32 @@ describe('loadActionDefinitions', () => {
             onAfter: [LINT.id],
             onBefore: [LINT.id],
             onState: 'ready',
+            permissionMode: 'ask-for-approval',
             thinkingLevel: 'high',
             trackFileChanges: true,
         };
-        const profiles = [{
-            accessLevelArgument: '--sandbox', accessLevels: ['workspace-write'], approvalPolicies: ['on-request'],
-            approvalPolicyArgument: '--ask-for-approval', command: ['codex'], defaultAccessLevel: 'workspace-write',
-            defaultApprovalPolicy: 'on-request', models: ['gpt-5'], name: 'codex',
-        }];
+        const profiles = [{ command: ['codex'], models: ['gpt-5'], name: 'codex' }];
 
         expect(() => loadActionDefinitions([file('implement', definition), file('lint', LINT)], { profiles })).not.toThrow();
     });
 
     it('rejects stale and unsupported action permission selections', () => {
         const profiles = [{ command: ['agent'], models: ['model'], name: 'agent' }];
-        const accessError = validationError([file('implement', { ...IMPLEMENT, accessLevel: 'safe', agent: 'agent' })], { profiles });
+        const permissionError = validationError([
+            file('implement', { ...IMPLEMENT, agent: 'agent', permissionMode: 'ask-for-approval' }),
+        ], { profiles });
 
-        expect(accessError).toMatchObject({ code: 'unsupported-access-level', field: 'accessLevel' });
+        expect(permissionError).toMatchObject({ code: 'unsupported-permission-mode', field: 'permissionMode' });
         expect(() => loadActionDefinitions(
-            [file('implement', { ...IMPLEMENT, agent: 'codex', approvalPolicy: 'removed' })],
+            [file('implement', { ...IMPLEMENT, agent: 'codex', permissionMode: 'removed' })],
             { profiles: BUILTIN_AGENT_PROFILES },
-        )).toThrow('Unknown approval policy');
+        )).toThrow('Invalid permission mode');
+    });
+
+    it.each(['accessLevel', 'approvalPolicy'])('reports removed %s as an unknown action field', (fieldName) => {
+        const error = validationError([file('implement', { ...IMPLEMENT, [fieldName]: 'legacy' })]);
+
+        expect(error).toMatchObject({ code: 'unknownField', fieldPath: fieldName });
     });
 
     it('keeps list index for unknown ids and invalid regex after reordering rules', () => {

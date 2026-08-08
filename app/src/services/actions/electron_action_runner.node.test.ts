@@ -8,10 +8,9 @@ import { actionRunRegistry } from './action_run_registry'
 import { cancelElectronAction, runElectronAction } from './electron_action_runner'
 
 const action: ActionDefinition = {
-    accessLevel: null,
     agent: null,
     appliesTo: null,
-    approvalPolicy: null,
+    permissionMode: null,
     builtin: false,
     command: 'renderer must not send this',
     description: 'Run tests',

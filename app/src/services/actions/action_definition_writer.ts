@@ -1,17 +1,17 @@
 import type { ActionContext } from '../../data/action_context'
+import type { PermissionMode } from '../../data/agent_profiles'
 import type { RawActionDefinition } from '../../data/action_types'
 import { generateUuid } from '../../data/uuid'
 
 const ACTION_FILE_EXTENSION = '.json'
 
 export interface ConvertPromptToActionInput {
-    accessLevel?: string
     agent?: string
-    approvalPolicy?: string
     context: ActionContext
     description?: string
     label: string
     model?: string
+    permissionMode?: PermissionMode
     prompt: string
 }
 
@@ -30,14 +30,13 @@ export function createActionDefinition(input: ConvertPromptToActionInput): RawAc
     const description = input.description?.trim()
 
     return {
-        ...(input.accessLevel ? { accessLevel: input.accessLevel } : {}),
         ...(input.agent ? { agent: input.agent } : {}),
-        ...(input.approvalPolicy ? { approvalPolicy: input.approvalPolicy } : {}),
         appliesTo: input.context.type ? { type: input.context.type } : undefined,
         description: description && description.length > 0 ? description : `Custom prompt action: ${input.label.trim()}`,
         id: generateUuid(),
         label: input.label.trim(),
         ...(input.model ? { model: input.model } : {}),
+        ...(input.permissionMode ? { permissionMode: input.permissionMode } : {}),
         phrases: [],
         prompt: input.prompt,
         type: 'agent',

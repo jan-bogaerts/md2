@@ -22,7 +22,7 @@ function card(internalId: string, path = `design/${internalId}.md`, content = `#
 
 function action(id: string, sourcePath = `actions/${id}.json`, label = id): ActionDefinition {
     return {
-        accessLevel: null, agent: null, appliesTo: null, approvalPolicy: null, builtin: false, command: null,
+        agent: null, appliesTo: null, permissionMode: null, builtin: false, command: null,
         description: id, icon: null, id, label,
         model: null, needsWorkTree: false, on: [], onAfter: [], onBefore: [], onState: null, phrases: [],
         prompt: id, sourcePath, thinkingLevel: null, trackFileChanges: false, streaming: false, type: 'agent',

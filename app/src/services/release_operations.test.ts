@@ -197,7 +197,7 @@ describe('ReleaseOperations', () => {
             }],
             origin: { cardInternalId: 'root-card', kind: 'card' },
             records: [],
-            version: 3,
+            version: 4,
         })
         const cardContent = [
             '---',

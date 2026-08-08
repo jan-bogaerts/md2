@@ -17,10 +17,9 @@ import { DEFAULT_CARD_TYPES, type Card } from './data_types'
 
 function action(name: string, appliesTo: ActionDefinition['appliesTo']): ActionDefinition {
     return {
-        accessLevel: null,
         agent: null,
         appliesTo,
-        approvalPolicy: null,
+        permissionMode: null,
         builtin: false,
         command: 'run',
         description: name,

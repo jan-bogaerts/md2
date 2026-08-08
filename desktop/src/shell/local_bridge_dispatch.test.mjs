@@ -61,7 +61,7 @@ function createDispatch(options = {}) {
             path: 'actions/test.json',
         }]),
         loadActionRunHistory: vi.fn(async () => []),
-        loadCardActivity: vi.fn(async () => ({ actionSettings: {}, conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 3 })),
+        loadCardActivity: vi.fn(async () => ({ actionSettings: {}, conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 4 })),
         loadProjectAsset: vi.fn(async () => ({ content: 'aWNvbg==', contentType: 'image/png', encoding: 'base64', path: 'actions/icon.png' })),
         loadProjectConfig: vi.fn(async () => ({ projectFolder: 'design' })),
         loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
@@ -529,7 +529,7 @@ describe('createLocalBridgeDispatch', () => {
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
         const request = {
             actionId: 'test', context: { file: 'design/F-1.md', kind: 'card' },
-            runInput: { accessLevel: 'read-only', approvalPolicy: 'untrusted', extraPrompt: 'focus' },
+            runInput: { extraPrompt: 'focus', permissionMode: 'approve-for-me' },
         };
 
         await dispatch.dataBridge.loadProject(project, 'design');
@@ -622,7 +622,11 @@ describe('createLocalBridgeDispatch', () => {
 
         await dispatch.actionBridge.runSearchRegexpAgent('find beta cards', vi.fn());
 
-        expect(agentRunnerService.run).toHaveBeenCalledWith(project, expect.objectContaining({activityOrigin: { kind: 'project' }, command: ['codex', '--search', 'exec', '--json'], prompt: expect.stringContaining('find beta cards')}), expect.any(Function));
+        expect(agentRunnerService.run).toHaveBeenCalledWith(project, expect.objectContaining({
+            activityOrigin: { kind: 'project' },
+            command: ['codex', '--sandbox', 'workspace-write', '--ask-for-approval', 'on-request', '--search', 'exec', '--json'],
+            prompt: expect.stringContaining('find beta cards'),
+        }), expect.any(Function));
     });
 
     it('invokes shared method table for remote control', async () => {
@@ -730,7 +734,7 @@ describe('createLocalBridgeDispatch', () => {
         const request = {
             actionId: 'review',
             cardInternalId: 'card-1',
-            settings: { accessLevel: '', agent: 'codex', approvalPolicy: '', model: 'gpt-5', thinkingLevel: 'high' },
+            settings: { agent: 'codex', model: 'gpt-5', permissionMode: 'ask-for-approval', thinkingLevel: 'high' },
         };
         await dispatch.dataBridge.loadProject(project, 'design');
 

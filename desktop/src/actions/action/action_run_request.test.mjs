@@ -9,7 +9,7 @@ describe('validateStartRequest', () => {
         expect(validateStartRequest({ actionId: 'main', context: { kind } })).toEqual({
             actionId: 'main',
             context: { kind },
-            runInput: { accessLevel: undefined, agent: undefined, approvalPolicy: undefined, continueFrom: undefined, extraPrompt: '', model: undefined, thinkingLevel: undefined },
+            runInput: { agent: undefined, continueFrom: undefined, extraPrompt: '', model: undefined, permissionMode: undefined, thinkingLevel: undefined },
         });
     });
 
@@ -28,7 +28,7 @@ describe('validateStartRequest', () => {
     });
 
     it('preserves accepted optional strings', () => {
-        const runInput = { accessLevel: 'workspace-write', agent: 'codex', approvalPolicy: 'on-request', continueFrom: 'log.json', extraPrompt: 'next', model: 'gpt', prompt: '', thinkingLevel: 'high' };
+        const runInput = { agent: 'codex', continueFrom: 'log.json', extraPrompt: 'next', model: 'gpt', permissionMode: 'approve-for-me', prompt: '', thinkingLevel: 'high' };
 
         expect(validateStartRequest({ actionId: 'main', context: { kind: 'project' }, runInput }).runInput).toEqual(runInput);
     });
@@ -40,10 +40,16 @@ describe('validateStartRequest', () => {
             .toMatchObject({ conversationReservation });
     });
 
-    it.each(['accessLevel', 'agent', 'approvalPolicy', 'continueFrom', 'extraPrompt', 'model', 'prompt', 'thinkingLevel'])('rejects non-string %s', (fieldName) => {
+    it.each(['agent', 'continueFrom', 'extraPrompt', 'model', 'permissionMode', 'prompt', 'thinkingLevel'])('rejects non-string %s', (fieldName) => {
         const request = { actionId: 'main', context: { kind: 'project' }, runInput: { [fieldName]: 1 } };
 
         expect(() => validateStartRequest(request)).toThrow(`Invalid action run input ${fieldName}`);
+    });
+
+    it.each(['accessLevel', 'approvalPolicy'])('rejects obsolete %s', (fieldName) => {
+        const request = { actionId: 'main', context: { kind: 'project' }, runInput: { [fieldName]: 'legacy' } };
+
+        expect(() => validateStartRequest(request)).toThrow(`Unsupported action runInput field: ${fieldName}`);
     });
 
     it('distinguishes absent prompt from an empty prompt override', () => {

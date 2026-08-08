@@ -4,10 +4,11 @@ import type { ActionDefinition } from '../../../data/action_types'
 import type { ActionRun } from '../../../services/actions/action_run_registry'
 import type { ActionRunSettingsStore } from '../../../services/actions/action_run_settings_service'
 import {
-    defaultAccessLevelForProfile,
-    defaultApprovalPolicyForProfile,
+    DEFAULT_PERMISSION_MODE,
     defaultModelForProfile,
     findAgentProfile,
+    supportsPermissionMode,
+    validatePermissionMode,
     validateThinkingLevel,
 } from '../../../data/agent_profiles'
 import { useActionRunSelector } from '../../hooks/use_action_runs'
@@ -30,10 +31,9 @@ export function ActionAgentSelectorsOwner(props: ActionAgentSelectorsOwnerProps)
     const runStatus = useActionRunSelector(action.id, context, selectRunStatus)
     const settings = useActionRunSettings(action, settingsStore)
     const currentSettings = {
-        accessLevel: settings.accessLevel,
         agent: settings.agent,
-        approvalPolicy: settings.approvalPolicy,
         model: settings.model,
+        permissionMode: settings.permissionMode,
         thinkingLevel: settings.thinkingLevel,
     }
     const disabled = settings.settingsLoading || runStatus === 'queued' || runStatus === 'running'
@@ -41,11 +41,10 @@ export function ActionAgentSelectorsOwner(props: ActionAgentSelectorsOwnerProps)
     const handleAgentChange = (event: ChangeEvent<HTMLInputElement>) => {
         const agent = event.target.value
         const profile = findAgentProfile(settings.agentProfiles, agent)
-        const nextSettings = {
-            accessLevel: profile ? defaultAccessLevelForProfile(profile) ?? '' : '',
+        const nextSettings: Parameters<ActionRunSettingsStore['setSettings']>[0] = {
             agent,
-            approvalPolicy: profile ? defaultApprovalPolicyForProfile(profile) ?? '' : '',
             model: profile ? defaultModelForProfile(profile) : '',
+            permissionMode: profile && supportsPermissionMode(profile) ? DEFAULT_PERMISSION_MODE : '',
             thinkingLevel: 'none' as const,
         }
         settingsStore.setSettings(nextSettings, runStatus === 'waitingForInput')
@@ -60,31 +59,25 @@ export function ActionAgentSelectorsOwner(props: ActionAgentSelectorsOwnerProps)
         settingsStore.setSettings({ ...currentSettings, thinkingLevel }, runStatus === 'waitingForInput')
     }
 
-    const handleAccessLevelChange = (event: ChangeEvent<HTMLInputElement>) => {
-        settingsStore.setSettings({ ...currentSettings, accessLevel: event.target.value }, runStatus === 'waitingForInput')
-    }
-
-    const handleApprovalPolicyChange = (event: ChangeEvent<HTMLInputElement>) => {
-        settingsStore.setSettings({ ...currentSettings, approvalPolicy: event.target.value }, runStatus === 'waitingForInput')
+    const handlePermissionModeChange = (event: ChangeEvent<HTMLInputElement>) => {
+        const permissionMode = validatePermissionMode(event.target.value, 'action run input')
+        settingsStore.setSettings({ ...currentSettings, permissionMode }, runStatus === 'waitingForInput')
     }
 
     return (
         <ActionAgentSelectors
-            accessLevel={settings.accessLevel}
             agent={settings.agent}
             agentAvailability={settings.agentAvailability}
             agentProfiles={settings.agentProfiles}
-            approvalPolicy={settings.approvalPolicy}
             disabled={disabled}
             model={settings.model}
-            onAccessLevelChange={handleAccessLevelChange}
             onAgentChange={handleAgentChange}
-            onApprovalPolicyChange={handleApprovalPolicyChange}
             onModelChange={handleModelChange}
+            onPermissionModeChange={handlePermissionModeChange}
             onThinkingLevelChange={handleThinkingLevelChange}
-            selectedAccessLevels={settings.selectedAccessLevels}
             selectedAgentModels={settings.selectedAgentModels}
-            selectedApprovalPolicies={settings.selectedApprovalPolicies}
+            permissionMode={settings.permissionMode}
+            permissionModeSupported={settings.permissionModeSupported}
             thinkingLevel={settings.thinkingLevel}
         />
     )

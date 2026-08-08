@@ -56,13 +56,12 @@ describe('config persistence', () => {
 
     it('reads and writes desktop config through the bridge', () => {
         const desktopConfig: DesktopConfigValues = {
-            accessLevel: 'workspace-write',
             agent: 'codex',
             agentProfiles: BUILTIN_AGENT_PROFILES,
-            approvalPolicy: 'on-request',
             editorCommand: 'code -g "{{file}}:{{line}}"',
             mergeConflictResolverCommand: '',
             model: '',
+            permissionMode: 'ask-for-approval',
         }
         const setDesktopConfig = vi.fn()
         window.md2Config = {

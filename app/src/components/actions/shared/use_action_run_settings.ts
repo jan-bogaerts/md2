@@ -1,9 +1,11 @@
 import { useSyncExternalStore } from 'react'
 import type { ActionDefinition } from '../../../data/action_types'
 import {
+    PERMISSION_MODES,
     defaultModelForProfile,
     findAgentProfile,
     mergeAgentProfiles,
+    supportsPermissionMode,
     validateThinkingLevel,
 } from '../../../data/agent_profiles'
 import { hasActionRunBackend } from '../../../data/electron_action_bridge'
@@ -18,10 +20,9 @@ function optionAvailable(value: string, options: string[]) {
 /** Resolve agent input and backend state only for controls that consume it. */
 export function useActionRunSettings(action: ActionDefinition, store: ActionRunSettingsStore) {
     const configuredAgent = useConfigValueOrFallback('desktop.agent', '')
-    const configuredAccessLevel = useConfigValueOrFallback('desktop.accessLevel', '')
-    const configuredApprovalPolicy = useConfigValueOrFallback('desktop.approvalPolicy', '')
     const configuredAgentProfiles = useConfigValueOrFallback('desktop.agentProfiles', [])
     const configuredModel = useConfigValueOrFallback('desktop.model', '')
+    const configuredPermissionMode = useConfigValueOrFallback('desktop.permissionMode', 'ask-for-approval')
     const configuredThinkingLevel = useConfigValueOrFallback('desktop.thinkingLevel', 'none')
     const capabilities = useAgentCapabilities()
     const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot)
@@ -41,15 +42,15 @@ export function useActionRunSettings(action: ActionDefinition, store: ActionRunS
     const savedSettingsAvailable = !!savedSettings
         && savedAgentAvailable
         && optionAvailable(savedSettings.model, savedProfile?.models ?? [])
-        && optionAvailable(savedSettings.accessLevel, savedProfile?.accessLevels ?? [])
-        && optionAvailable(savedSettings.approvalPolicy, savedProfile?.approvalPolicies ?? [])
+        && (savedProfile && supportsPermissionMode(savedProfile)
+            ? PERMISSION_MODES.some((permissionMode) => permissionMode === savedSettings.permissionMode)
+            : savedSettings.permissionMode === '')
     const effectiveSavedSettings = savedSettingsAvailable ? savedSettings : null
     const agent = effectiveSavedSettings?.agent ?? defaultAgent
     const model = effectiveSavedSettings?.model ?? defaultModel
     const selectedAgentProfile = findAgentProfile(agentProfiles, agent)
     const selectedAgentModels = selectedAgentProfile?.models ?? []
-    const selectedAccessLevels = selectedAgentProfile?.accessLevels ?? []
-    const selectedApprovalPolicies = selectedAgentProfile?.approvalPolicies ?? []
+    const permissionModeSupported = !!selectedAgentProfile && supportsPermissionMode(selectedAgentProfile)
     const selectedAvailability = capabilities.availability.values[agent]
     const selectedAgentAvailable = action.type !== 'agent'
         || (!!selectedAvailability?.available && !capabilities.availability.error)
@@ -70,26 +71,21 @@ export function useActionRunSettings(action: ActionDefinition, store: ActionRunS
         `action "${action.label}"`,
     )
     const thinkingLevel = effectiveSavedSettings?.thinkingLevel ?? definitionThinkingLevel
-    const accessLevel = selectedAgentProfile?.accessLevels
-        ? effectiveSavedSettings?.accessLevel ?? action.accessLevel ?? configuredAccessLevel
-        : action.accessLevel ?? ''
-    const approvalPolicy = selectedAgentProfile?.approvalPolicies
-        ? effectiveSavedSettings?.approvalPolicy ?? action.approvalPolicy ?? configuredApprovalPolicy
-        : action.approvalPolicy ?? ''
+    const permissionMode = permissionModeSupported
+        ? effectiveSavedSettings?.permissionMode ?? action.permissionMode ?? configuredPermissionMode
+        : ''
 
     return {
-        accessLevel,
         agent,
         agentAvailability: capabilities.availability.values,
         agentProfiles,
-        approvalPolicy,
         backendAvailable,
         model,
+        permissionMode,
+        permissionModeSupported,
         runDisabledMessage,
         selectedAgentAvailable,
         selectedAgentModels,
-        selectedAccessLevels,
-        selectedApprovalPolicies,
         settingsChangedWhileWaiting: snapshot.settingsChangedWhileWaiting,
         settingsLoading: snapshot.loading,
         thinkingLevel,

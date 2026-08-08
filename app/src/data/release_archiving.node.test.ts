@@ -40,7 +40,7 @@ describe('buildReleaseMoves', () => {
         })),
         origin: { cardInternalId, kind: 'card' },
         records: [],
-        version: 3,
+        version: 4,
     })
 
     it('moves card assets referenced by archived cards', () => {

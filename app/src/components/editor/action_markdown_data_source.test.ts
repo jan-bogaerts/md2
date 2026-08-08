@@ -11,7 +11,7 @@ function setup() {
     }
     const action = {
         ...draft,
-        accessLevel: draft.accessLevel ?? null, agent: null, appliesTo: null, approvalPolicy: draft.approvalPolicy ?? null,
+        agent: null, appliesTo: null, permissionMode: draft.permissionMode ?? null,
         builtin: false, command: null, icon: null, model: null,
         needsWorkTree: false, on: [], onAfter: [], onBefore: [], onState: null,
         phrases: draft.phrases ?? [], prompt: draft.prompt ?? null,
