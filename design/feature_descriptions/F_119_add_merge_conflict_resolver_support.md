@@ -9,7 +9,6 @@ agents:
   - design/activity/card__3373bf52-14c0-4cc7-8f7c-555c835af9a0.json#conversation=agent-de1178a8-f7b3-4ad6-8982-12422ff6d844
   - design/activity/card__3373bf52-14c0-4cc7-8f7c-555c835af9a0.json#conversation=agent-c7edd314-1a45-42b4-b34f-5c4a78553902
 branch: f_119_add_merge_conflict_resolver_support
-worktree: 2
 ---
 * in config allow user to specify which external merge-conflict resolver tool to use.
 * upon merge conflict: show dialog where user can go over every file that has issues. for every file, he can open the external tool or use an agent to solve it.
