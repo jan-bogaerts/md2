@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__70f4d324-387f-4160-9465-51d9a8117b04.json#conversation=agent-5eb541d4-c68d-4aad-b85d-5a15446b0bcc
 policy:
 ---
 we need to improve the way that the buttons are displayed on the action popup. These are the rules:
