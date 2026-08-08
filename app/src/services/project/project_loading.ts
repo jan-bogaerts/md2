@@ -554,7 +554,43 @@ export class ProjectLoading {
         const storage = this.dependencies.storage()
         if (!currentProject || !storage?.watchProject) return
 
-        this.watchCleanup = storage.watchProject(currentProject, (event) => this.handleProjectWatchEvent(event))
+        this.watchCleanup = storage.watchProject(
+            currentProject,
+            (event) => this.handleProjectWatchEvent(event),
+            () => void this.resynchronizeProjectAfterWatchRestore(),
+        )
+    }
+
+    private async resynchronizeProjectAfterWatchRestore() {
+        const { config, storage } = this.dependencies.requireDependencies()
+        const currentProject = this.dependencies.project()
+        if (!currentProject) return
+
+        try {
+            const projectFiles = await storage.loadProject(currentProject, config.projectFolder)
+            if (this.dependencies.project() !== currentProject) return
+
+            const currentFiles = this.dependencies.files().filter((file) => isProjectMarkdownPath(file.path, config.projectFolder))
+            const currentFilesByPath = new Map(currentFiles.map((file) => [file.path, file]))
+            const loadedPaths = new Set<string>()
+            for (const file of projectFiles.files) {
+                if (!isProjectMarkdownPath(file.path, config.projectFolder)) continue
+
+                loadedPaths.add(file.path)
+                const currentFile = currentFilesByPath.get(file.path)
+                if (currentFile?.content === file.content) continue
+
+                this.handleProjectWatchEvent({
+                    changeKind: currentFile ? 'changed' : 'added',
+                    path: file.path,
+                })
+            }
+            for (const file of currentFiles) {
+                if (!loadedPaths.has(file.path)) this.handleProjectWatchEvent({ changeKind: 'removed', path: file.path })
+            }
+        } catch (error) {
+            reportOptionalProjectLoadFailure('Project resynchronization', error)
+        }
     }
 
     private handleProjectWatchEvent(event: ProjectWatchEvent) {

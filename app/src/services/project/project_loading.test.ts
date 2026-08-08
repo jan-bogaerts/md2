@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { act, renderHook } from '@testing-library/react'
 import { DEFAULT_STATES, defaultColumnAccent, type MarkdownFile, type StorageProjectFiles, type StorageService } from '../../data/data_types'
 import type { RawActionDefinition } from '../../data/action_types'
 import { actionService } from '../actions/action_service'
@@ -12,6 +13,8 @@ import { createDataService, createDeferred, createStorage, files, storageFiles, 
 import { markdownParsingService } from '../data/markdown_parsing_service'
 import { RemoteControlStorageService } from '../data/remote_control_storage_service'
 import { openFilesService } from '../open_files_service'
+import { useCardColumnCards } from '../../components/card_view/use_card_column_cards'
+import { useCardBody, useCardMetadata, useCardTitle } from '../../components/card_view/use_project_card'
 
 class ProjectLoadingMockWebSocket extends EventTarget {
     static instances: ProjectLoadingMockWebSocket[] = []
@@ -31,6 +34,11 @@ class ProjectLoadingMockWebSocket extends EventTarget {
     open() {
         this.readyState = 1
         this.dispatchEvent(new Event('open'))
+    }
+
+    close() {
+        this.readyState = 3
+        this.dispatchEvent(new Event('close'))
     }
 
     receive(message: unknown) {
@@ -998,6 +1006,19 @@ describe('ProjectLoading', () => {
         const cardPath = 'design/F-1-root.md'
         const publishedEvents: string[] = []
         const recordEvent = (event: Event) => publishedEvents.push(event.type)
+        const board = renderHook(() => ({
+            activePaths: useCardColumnCards('active', service),
+            body: useCardBody(cardPath, service),
+            metadata: useCardMetadata(cardPath, service),
+            readyPaths: useCardColumnCards('ready', service),
+        }))
+        const titleRendered = vi.fn()
+        const title = renderHook(() => {
+            titleRendered(useCardTitle(cardPath, service))
+
+            return null
+        })
+        const initialTitleRenderCount = titleRendered.mock.calls.length
         for (const field of CARD_FIELDS) {
             service.addEventListener(cardFieldChangedEvent(cardPath, field), recordEvent)
             service.addEventListener(cardCollectionFieldChangedEvent(field), recordEvent)
@@ -1027,12 +1048,101 @@ describe('ProjectLoading', () => {
 
         const card = service.getState().snapshot?.activeCards.find(({ path }) => path === cardPath)
         expect(card?.header.status).toBe('ready')
+        expect(board.result.current.activePaths).toEqual([])
+        expect(board.result.current.readyPaths).toEqual([cardPath])
+        expect(board.result.current.metadata?.header.status).toBe('ready')
+        expect(board.result.current.body).toContain('# Root')
+        expect(titleRendered).toHaveBeenCalledTimes(initialTitleRenderCount)
         expect(publishedEvents).toEqual([
             cardFieldChangedEvent(cardPath, 'ordering'),
             cardCollectionFieldChangedEvent('ordering'),
             cardFieldChangedEvent(cardPath, 'status'),
             cardCollectionFieldChangedEvent('status'),
         ])
+        board.unmount()
+        title.unmount()
+    })
+
+    it('restores remote project watching and resynchronizes a status change made while disconnected', async () => {
+        vi.useFakeTimers()
+        ProjectLoadingMockWebSocket.instances = []
+        vi.stubGlobal('WebSocket', ProjectLoadingMockWebSocket)
+        configService.init()
+        const remoteStorage = new RemoteControlStorageService()
+        remoteStorage.init({ endpoint: 'ws://127.0.0.1:1234', token: 'token-1' })
+        let currentFiles = storageFiles
+        const loadProject = vi.fn(async () => ({ files: currentFiles, workingFolder: 'design' }))
+        const loadFile = vi.fn(async (_project, path: string) => {
+            const file = currentFiles.find((candidate) => candidate.path === path)
+            if (!file) throw new Error(`Missing test file: ${path}`)
+
+            return file
+        })
+        const storage = createStorage({
+            loadFile,
+            loadProject,
+            watchProject: remoteStorage.watchProject.bind(remoteStorage),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const firstSocket = ProjectLoadingMockWebSocket.instances[0]
+        if (!firstSocket) throw new Error('Remote-control socket was not created')
+        const cardPath = 'design/F-1-root.md'
+        const board = renderHook(() => ({
+            activePaths: useCardColumnCards('active', service),
+            body: useCardBody(cardPath, service),
+            metadata: useCardMetadata(cardPath, service),
+            readyPaths: useCardColumnCards('ready', service),
+        }))
+        const publishedEvents: string[] = []
+        const recordEvent = (event: Event) => publishedEvents.push(event.type)
+        for (const field of CARD_FIELDS) {
+            service.addEventListener(cardFieldChangedEvent(cardPath, field), recordEvent)
+            service.addEventListener(cardCollectionFieldChangedEvent(field), recordEvent)
+        }
+
+        firstSocket.open()
+        await flushPromises()
+        const firstWatchRequest = JSON.parse(firstSocket.sent[0]) as { id: string, method: string }
+        expect(firstWatchRequest.method).toBe('watchProject')
+        firstSocket.receive({ id: firstWatchRequest.id, result: { subscriptionId: 'watch-1' } })
+        await vi.advanceTimersByTimeAsync(0)
+        publishedEvents.length = 0
+        firstSocket.close()
+        currentFiles = storageFiles.map((file) => file.path === cardPath
+            ? { ...file, content: file.content.replace('status: active', 'status: ready').replace('# Root', '# Updated remotely') }
+            : file)
+
+        const reconnection = remoteStorage.connect()
+        const secondSocket = ProjectLoadingMockWebSocket.instances[1]
+        if (!secondSocket) throw new Error('Replacement remote-control socket was not created')
+        secondSocket.open()
+        await reconnection
+        await flushPromises()
+        expect(secondSocket.sent).toHaveLength(1)
+        const restoredWatchRequest = JSON.parse(secondSocket.sent[0]) as { id: string, method: string }
+        expect(restoredWatchRequest.method).toBe('watchProject')
+        secondSocket.receive({ id: restoredWatchRequest.id, result: { subscriptionId: 'watch-2' } })
+        await act(async () => {
+            await vi.advanceTimersByTimeAsync(50)
+        })
+
+        expect(loadProject).toHaveBeenCalledTimes(2)
+        expect(loadFile).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, cardPath)
+        expect(board.result.current.activePaths).toEqual([])
+        expect(board.result.current.readyPaths).toEqual([cardPath])
+        expect(board.result.current.metadata?.header.status).toBe('ready')
+        expect(board.result.current.body).toContain('# Updated remotely')
+        expect(publishedEvents).toEqual([
+            cardFieldChangedEvent(cardPath, 'body'),
+            cardCollectionFieldChangedEvent('body'),
+            cardFieldChangedEvent(cardPath, 'ordering'),
+            cardCollectionFieldChangedEvent('ordering'),
+            cardFieldChangedEvent(cardPath, 'status'),
+            cardCollectionFieldChangedEvent('status'),
+        ])
+        board.unmount()
     })
 
     it('removes a markdown card when the watcher reports deletion', async () => {

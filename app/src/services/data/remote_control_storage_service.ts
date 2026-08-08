@@ -106,6 +106,14 @@ interface WorktreesChangedPayload {
     subscriptionId: string
 }
 
+interface ProjectWatchSubscription {
+    onChange: (event: ProjectWatchEvent) => void
+    onRestored: () => void
+    project: ProjectReference
+    serverSubscriptionId: string | null
+    subscribing: boolean
+}
+
 const SOCKET_OPEN_STATE = 1
 
 function isResponse(message: RemoteControlResponse | RemoteControlEvent): message is RemoteControlResponse {
@@ -132,11 +140,12 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
     private requestAgentEvents: Map<string, (event: AgentRunEvent) => void>
     private requestActionRunEvents: Map<string, (event: ActionRunEvent) => void>
     private requestCodexRateLimitEvents: Map<string, (snapshot: CodexRateLimitSnapshot) => void>
-    private requestWatchEvents: Map<string, (event: ProjectWatchEvent) => void>
+    private requestWatchEvents: Map<string, ProjectWatchSubscription>
     private requestWorktreeEvents: Map<string, (state: WorktreeState) => void>
     private runAgentEvents: Map<string, (event: AgentRunEvent) => void>
     private socket: WebSocket | null
     private token: string
+    private readonly watchSubscriptions: Set<ProjectWatchSubscription>
     private watchCallbacks: Map<string, (event: ProjectWatchEvent) => void>
     private worktreeCallbacks: Map<string, (state: WorktreeState) => void>
 
@@ -161,6 +170,7 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         this.runAgentEvents = new Map()
         this.socket = null
         this.token = ''
+        this.watchSubscriptions = new Set()
         this.watchCallbacks = new Map()
         this.worktreeCallbacks = new Map()
     }
@@ -361,29 +371,32 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         await this.request('stopAgent', [runId])
     }
 
-    watchProject(project: ProjectReference, onChange: (event: ProjectWatchEvent) => void): () => void {
-        const id = this.createRequestId()
-        let cancelled = false
-        let subscriptionId: string | null = null
-        this.requestWatchEvents.set(id, onChange)
-        void this.sendRequest<{ subscriptionId: string }>({ id, method: 'watchProject', params: [project] }).then((result) => {
-            subscriptionId = result.subscriptionId
-            if (cancelled) {
-                void this.request('unsubscribe', [subscriptionId])
-                return
-            }
-
-            this.watchCallbacks.set(result.subscriptionId, onChange)
-            this.requestWatchEvents.delete(id)
-        })
+    watchProject(
+        project: ProjectReference,
+        onChange: (event: ProjectWatchEvent) => void,
+        onRestored: () => void,
+    ): () => void {
+        const subscription: ProjectWatchSubscription = {
+            onChange,
+            onRestored,
+            project,
+            serverSubscriptionId: null,
+            subscribing: false,
+        }
+        this.watchSubscriptions.add(subscription)
+        void this.subscribeProjectWatch(subscription, false).catch(() => undefined)
 
         return () => {
-            cancelled = true
-            this.requestWatchEvents.delete(id)
-            if (!subscriptionId) return
+            this.watchSubscriptions.delete(subscription)
+            for (const [requestId, pendingSubscription] of this.requestWatchEvents) {
+                if (pendingSubscription === subscription) this.requestWatchEvents.delete(requestId)
+            }
+            const { serverSubscriptionId } = subscription
+            subscription.serverSubscriptionId = null
+            if (!serverSubscriptionId) return
 
-            this.watchCallbacks.delete(subscriptionId)
-            void this.request('unsubscribe', [subscriptionId])
+            this.watchCallbacks.delete(serverSubscriptionId)
+            void this.request('unsubscribe', [serverSubscriptionId]).catch(() => undefined)
         }
     }
 
@@ -625,6 +638,7 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
                 for (const listener of this.connectionListeners) listener(true)
                 void this.restoreActionRunSubscriptions()
                 void this.restoreCodexRateLimitSubscriptions()
+                void this.restoreProjectWatchSubscriptions()
             }
             const handleError = () => {
                 this.connectPromise = null
@@ -729,6 +743,39 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         await Promise.allSettled(callbacks.map((callback) => this.subscribeCodexRateLimits(callback)))
     }
 
+    private async restoreProjectWatchSubscriptions() {
+        const subscriptions = [...this.watchSubscriptions].filter((subscription) => (
+            !subscription.subscribing && subscription.serverSubscriptionId === null
+        ))
+        await Promise.allSettled(subscriptions.map((subscription) => this.subscribeProjectWatch(subscription, true)))
+    }
+
+    private async subscribeProjectWatch(subscription: ProjectWatchSubscription, restored: boolean) {
+        if (!this.watchSubscriptions.has(subscription) || subscription.subscribing || subscription.serverSubscriptionId) return
+
+        const id = this.createRequestId()
+        subscription.subscribing = true
+        this.requestWatchEvents.set(id, subscription)
+        try {
+            const result = await this.sendRequest<{ subscriptionId: string }>({
+                id,
+                method: 'watchProject',
+                params: [subscription.project],
+            })
+            if (!this.watchSubscriptions.has(subscription)) {
+                await this.request('unsubscribe', [result.subscriptionId])
+                return
+            }
+
+            subscription.serverSubscriptionId = result.subscriptionId
+            this.watchCallbacks.set(result.subscriptionId, subscription.onChange)
+            if (restored) subscription.onRestored()
+        } finally {
+            subscription.subscribing = false
+            this.requestWatchEvents.delete(id)
+        }
+    }
+
     private async subscribeCodexRateLimits(callback: (snapshot: CodexRateLimitSnapshot) => void) {
         const id = this.createRequestId()
         this.requestCodexRateLimitEvents.set(id, callback)
@@ -750,7 +797,8 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
     }
 
     private handleWatchProjectEvent(payload: WatchProjectPayload) {
-        const callback = this.watchCallbacks.get(payload.subscriptionId) ?? this.requestWatchEvents.get(payload.requestId)
+        const callback = this.watchCallbacks.get(payload.subscriptionId)
+            ?? this.requestWatchEvents.get(payload.requestId)?.onChange
         callback?.(payload.event)
     }
 
@@ -781,6 +829,10 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         this.requestWorktreeEvents.clear()
         this.runAgentEvents.clear()
         this.watchCallbacks.clear()
+        for (const subscription of this.watchSubscriptions) {
+            subscription.serverSubscriptionId = null
+            subscription.subscribing = false
+        }
         this.worktreeCallbacks.clear()
         this.connectPromise = null
         this.socket = null

@@ -523,7 +523,7 @@ describe('RemoteControlStorageService', () => {
         const watchCallback = vi.fn()
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
 
-        service.watchProject(project, watchCallback)
+        service.watchProject(project, watchCallback, vi.fn())
         const socket = lastSocket()
         socket.open()
         await flushPromises()
@@ -545,7 +545,7 @@ describe('RemoteControlStorageService', () => {
         const actionCallback = vi.fn()
         const rateLimitCallback = vi.fn()
         const worktreeCallback = vi.fn()
-        const stopWatch = service.watchProject(project, watchCallback)
+        const stopWatch = service.watchProject(project, watchCallback, vi.fn())
         const stopAction = service.onActionRun(actionCallback)
         const stopRateLimits = service.onCodexRateLimits(rateLimitCallback)
         const stopWorktrees = service.onWorktreesChanged(worktreeCallback)
@@ -619,7 +619,7 @@ describe('RemoteControlStorageService', () => {
         const service = createService()
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
         const callback = vi.fn()
-        const stop = service.watchProject(project, callback)
+        const stop = service.watchProject(project, callback, vi.fn())
         const socket = lastSocket()
 
         socket.open()
@@ -635,6 +635,68 @@ describe('RemoteControlStorageService', () => {
         })
 
         expect(callback).not.toHaveBeenCalled()
+    })
+
+    it('restores each live project watch once per reconnect and never restores a stopped watch', async () => {
+        installWebSocket()
+        const service = createService()
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+        const callback = vi.fn()
+        const restored = vi.fn()
+        const stop = service.watchProject(project, callback, restored)
+        const firstSocket = lastSocket()
+
+        firstSocket.open()
+        await flushPromises()
+        const firstRequest = JSON.parse(firstSocket.sent[0]) as { id: string, method: string }
+        expect(firstRequest.method).toBe('watchProject')
+        firstSocket.receive({ id: firstRequest.id, result: { subscriptionId: 'watch-1' } })
+        await flushPromises()
+        expect(restored).not.toHaveBeenCalled()
+
+        firstSocket.close()
+        const firstReconnect = service.connect()
+        const secondSocket = lastSocket()
+        secondSocket.open()
+        await firstReconnect
+        await vi.waitFor(() => expect(secondSocket.sent).toHaveLength(1))
+        const secondRequest = JSON.parse(secondSocket.sent[0]) as { id: string, method: string }
+        expect(secondRequest.method).toBe('watchProject')
+        secondSocket.receive({ id: secondRequest.id, result: { subscriptionId: 'watch-2' } })
+        await vi.waitFor(() => expect(restored).toHaveBeenCalledTimes(1))
+        secondSocket.receive({
+            event: 'watchProject',
+            payload: {
+                event: { changeKind: 'changed', path: 'design/F-1.md' },
+                requestId: secondRequest.id,
+                subscriptionId: 'watch-2',
+            },
+        })
+        expect(callback).toHaveBeenCalledWith({ changeKind: 'changed', path: 'design/F-1.md' })
+
+        secondSocket.close()
+        const secondReconnect = service.connect()
+        const thirdSocket = lastSocket()
+        thirdSocket.open()
+        await secondReconnect
+        await vi.waitFor(() => expect(thirdSocket.sent).toHaveLength(1))
+        const thirdRequest = JSON.parse(thirdSocket.sent[0]) as { id: string, method: string }
+        expect(thirdRequest.method).toBe('watchProject')
+        thirdSocket.receive({ id: thirdRequest.id, result: { subscriptionId: 'watch-3' } })
+        await vi.waitFor(() => expect(restored).toHaveBeenCalledTimes(2))
+
+        stop()
+        await vi.waitFor(() => expect(thirdSocket.sent).toHaveLength(2))
+        expect(JSON.parse(thirdSocket.sent[1])).toEqual(expect.objectContaining({ method: 'unsubscribe', params: ['watch-3'] }))
+        thirdSocket.close()
+        const thirdReconnect = service.connect()
+        const fourthSocket = lastSocket()
+        fourthSocket.open()
+        await thirdReconnect
+        await flushPromises()
+
+        expect(fourthSocket.sent).toEqual([])
+        expect(restored).toHaveBeenCalledTimes(2)
     })
 
     it('fails pending requests clearly when the socket closes', async () => {

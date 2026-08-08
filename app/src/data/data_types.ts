@@ -398,7 +398,11 @@ export interface StorageService {
     saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>
     removeWorktree?(project: ProjectReference, folderPath: string): Promise<void>
     stopAgent?(project: ProjectReference, runId: string): Promise<void>
-    watchProject?(project: ProjectReference, onChange: (event: ProjectWatchEvent) => void): () => void
+    watchProject?(
+        project: ProjectReference,
+        onChange: (event: ProjectWatchEvent) => void,
+        onRestored: () => void,
+    ): () => void
 }
 
 const BUG_CARD_COLOR = '#d32f2f'
