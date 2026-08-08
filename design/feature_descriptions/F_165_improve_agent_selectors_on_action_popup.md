@@ -7,6 +7,7 @@ status: new
 owner: 
 affects:
 agents:
+  - design/activity/card__c38e7423-9b05-47e2-a728-9637a25f9a2e.json#conversation=agent-6127a6ec-3c7b-4396-8c07-e7063d6fd63a
 policy:
 ---
 We need to improve and refactor the agent selector component.
