@@ -3,7 +3,7 @@ author:
 id: F_156
 internalId: ade75617-2ab1-40c9-ae62-01700b995632
 title: when approval request is shown hide phrases
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
