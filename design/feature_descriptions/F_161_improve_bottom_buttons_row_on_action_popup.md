@@ -3,7 +3,7 @@ author:
 id: F_161
 internalId: 70f4d324-387f-4160-9465-51d9a8117b04
 title: improve bottom buttons row on action popup
-status: new
+status: design
 owner: 
 affects:
 agents:
