@@ -35,6 +35,7 @@ function selectActiveRunStatus(run: ActionRun | null) {
 export function ActionPhraseButtonsOwner(props: ActionPhraseButtonsOwnerProps) {
     const { action, context, conversationStore, historyStore, inputStore, resultStore, runValidationError, settingsStore } = props
     const activeRunStatus = useActionRunSelector(action.id, context, selectActiveRunStatus)
+    const hasUnresolvedApprovals = useActionRunSelector(action.id, context, (run) => !!run?.approvals.length)
     const conversationSnapshot = useSyncExternalStore(
         conversationStore.subscribe,
         conversationStore.getSnapshot,
@@ -72,7 +73,7 @@ export function ActionPhraseButtonsOwner(props: ActionPhraseButtonsOwnerProps) {
     }
 
     return (
-        <Slide direction="up" in={waitingForInput} mountOnEnter timeout={reduceMotion ? 0 : undefined} unmountOnExit>
+        <Slide direction="up" in={waitingForInput && !hasUnresolvedApprovals} mountOnEnter timeout={reduceMotion ? 0 : undefined} unmountOnExit>
             <Paper
                 elevation={4}
                 sx={{

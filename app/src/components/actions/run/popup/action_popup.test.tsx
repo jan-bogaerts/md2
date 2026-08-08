@@ -968,6 +968,90 @@ describe('ActionPopup', () => {
         await waitFor(() => expect(screen.queryByRole('group', { name: 'Predefined phrases' })).not.toBeInTheDocument())
     })
 
+    it('hides response prompts until all scoped approvals resolve', async () => {
+        actionRunRegistry.stop()
+        let runListener: ((event: ActionRunEvent) => void) | null = null
+        const answerActionApproval = vi.fn(async () => undefined)
+        window.md2Actions = {
+            answerActionApproval,
+            onActionRun: vi.fn((listener) => {
+                runListener = listener
+                return vi.fn()
+            }),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
+        } as unknown as typeof window.md2Actions
+        actionRunRegistry.start()
+        actionService.loadFromFiles([file(agentDefinition('respond', {
+            label: 'Respond',
+            phrases: [{ text: 'Continue with tests', title: 'Continue' }],
+            streaming: true,
+        }))])
+        renderPopup()
+        await waitFor(() => expect(runListener).not.toBeNull())
+        const eventBase = {
+            actionId: 'respond', actionType: 'agent' as const, autoFinish: null, context, interactionReady: true,
+            phase: 'main' as const, rootActionId: 'respond', runId: 'run-1', streaming: true,
+        }
+        const firstApproval = {
+            command: 'npm test', filePaths: [], itemId: 'command-1', kind: 'commandExecution' as const,
+            reason: 'Run related tests', requestId: 41, startedAtMs: 1, threadId: 'thread-1', turnId: 'turn-1',
+        }
+        const secondApproval = {
+            command: 'npm run lint', filePaths: [], itemId: 'command-2', kind: 'commandExecution' as const,
+            reason: 'Lint changed files', requestId: 42, startedAtMs: 2, threadId: 'thread-1', turnId: 'turn-1',
+        }
+
+        act(() => runListener?.({ ...eventBase, status: 'waitingForInput', type: 'agentState' }))
+        expect(await screen.findByRole('group', { name: 'Predefined phrases' })).toBeInTheDocument()
+
+        act(() => runListener?.({
+            ...eventBase,
+            status: 'waitingForInput',
+            type: 'update',
+            update: { approval: firstApproval, kind: 'agentApproval' },
+        }))
+        await waitFor(() => expect(screen.queryByRole('group', { name: 'Predefined phrases' })).not.toBeInTheDocument())
+        const firstApprovalControls = screen.getByLabelText('Agent approval')
+        expect(firstApprovalControls).toHaveTextContent('Run related tests')
+        fireEvent.click(within(firstApprovalControls).getByRole('button', { name: 'Allow once' }))
+        await waitFor(() => expect(answerActionApproval).toHaveBeenCalledWith('run-1', 41, 'accept'))
+
+        act(() => {
+            runListener?.({
+                ...eventBase,
+                status: 'waitingForInput',
+                type: 'update',
+                update: { kind: 'agentApprovalSubmitted', requestId: 41 },
+            })
+            runListener?.({
+                ...eventBase,
+                status: 'waitingForInput',
+                type: 'update',
+                update: { approval: secondApproval, kind: 'agentApproval' },
+            })
+        })
+        expect(screen.queryByRole('group', { name: 'Predefined phrases' })).not.toBeInTheDocument()
+        expect(screen.getAllByLabelText('Agent approval')).toHaveLength(2)
+
+        act(() => runListener?.({
+            ...eventBase,
+            status: 'waitingForInput',
+            type: 'update',
+            update: { kind: 'agentApprovalResolved', requestId: 41 },
+        }))
+        expect(screen.queryByRole('group', { name: 'Predefined phrases' })).not.toBeInTheDocument()
+        expect(screen.getAllByLabelText('Agent approval')).toHaveLength(1)
+        expect(screen.getByLabelText('Agent approval')).toHaveTextContent('Lint changed files')
+
+        act(() => runListener?.({
+            ...eventBase,
+            status: 'waitingForInput',
+            type: 'update',
+            update: { kind: 'agentApprovalResolved', requestId: 42 },
+        }))
+        expect(await screen.findByRole('group', { name: 'Predefined phrases' })).toBeInTheDocument()
+    })
+
     it('restores response prompts from a scoped persisted waiting conversation after restart', async () => {
         actionRunRegistry.stop()
         let runListener: ((event: ActionRunEvent) => void) | null = null
@@ -1178,9 +1262,7 @@ describe('ActionPopup', () => {
         await waitFor(() => expect(updateCardActionSettings).toHaveBeenCalledWith({
             actionId: 'review',
             cardInternalId: 'card-1',
-            settings: {
-                agent: 'codex', model: 'gpt-5.6-sol', permissionMode: 'ask-for-approval', thinkingLevel: 'none',
-            },
+            settings: {agent: 'codex', model: 'gpt-5.6-sol', permissionMode: 'ask-for-approval', thinkingLevel: 'none'},
         }))
         expect(renderProbes.content).not.toHaveBeenCalled()
         expect(renderProbes.popup).not.toHaveBeenCalled()
