@@ -74,7 +74,7 @@ describe('ActionUsageSummaryOwner', () => {
                 />
             </AppThemeProvider>,
         )
-        expect(screen.getByText('changes: +2 / -1')).toBeInTheDocument()
+        expect(screen.getByText('changes:', { exact: false })).toHaveTextContent('changes: +2 / -1')
         if (!listener) throw new Error('Missing run listener')
         const emit = listener as (event: ActionRunEvent) => void
         const run = {
@@ -91,7 +91,7 @@ describe('ActionUsageSummaryOwner', () => {
             })
         })
 
-        expect(screen.getByText('changes: +7 / -4')).toBeInTheDocument()
-        expect(screen.queryByText('changes: +2 / -1')).not.toBeInTheDocument()
+        expect(screen.getByText('changes:', { exact: false })).toHaveTextContent('changes: +7 / -4')
+        expect(screen.getByText('changes:', { exact: false })).not.toHaveTextContent('changes: +2 / -1')
     })
 })

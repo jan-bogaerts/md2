@@ -67,7 +67,7 @@ describe('ActionUsageSummary', () => {
             history={[]}
         />)
 
-        expect(screen.getByText('changes: +5 / -3')).toBeInTheDocument()
+        expect(screen.getByText('changes:', { exact: false })).toHaveTextContent('changes: +5 / -3')
         expect(screen.getByText('tokens: 32')).toBeInTheDocument()
         expect(screen.queryByText(/lines:/u)).not.toBeInTheDocument()
     })

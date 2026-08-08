@@ -62,7 +62,14 @@ export function ActionUsageSummary(props: ActionUsageSummaryProps) {
             <AgentUsageDisplay usage={usage} />
             {changes ? (
                 <Typography component="span" sx={{ color: 'text.secondary' }} variant="caption">
-                    changes: +{NUMBER_FORMAT.format(changes.insertions)} / -{NUMBER_FORMAT.format(changes.deletions)}
+                    changes:{' '}
+                    <Box component="span" sx={{ color: 'success.main' }}>
+                        +{NUMBER_FORMAT.format(changes.insertions)}
+                    </Box>
+                    {' / '}
+                    <Box component="span" sx={{ color: 'error.main' }}>
+                        -{NUMBER_FORMAT.format(changes.deletions)}
+                    </Box>
                 </Typography>
             ) : null}
             {lines.commits.length > 0 ? (
