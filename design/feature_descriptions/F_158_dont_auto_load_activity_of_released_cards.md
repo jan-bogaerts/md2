@@ -3,7 +3,7 @@ author:
 id: F_158
 internalId: 705b887c-4aac-4558-bfef-a5cb965f8719
 title: dont auto load activity of released cards
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
