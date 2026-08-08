@@ -9,10 +9,11 @@ affects:
 agents:
 policy:
 ---
-
 Currently, when the system loads the activity files and there is a problem, like an old version it cant load, the app shows an error and doesnt fix it. So next time project opens, same error.&#x20;
 
 Better if the app tries to fix things:
 
 * If agent ref in card cant be found, remove ref from card.
 * If old version, load as much as possible, revert to defaults otherwise.
+
+If this needs to be done, make certain that saving and commiting the changes is done in 1 batch.
