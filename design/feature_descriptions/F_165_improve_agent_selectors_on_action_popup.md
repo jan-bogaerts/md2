@@ -11,6 +11,7 @@ agents:
   - design/activity/card__c38e7423-9b05-47e2-a728-9637a25f9a2e.json#conversation=agent-4dc74d55-efb3-45cc-b861-e72010ad23f2
   - design/activity/card__c38e7423-9b05-47e2-a728-9637a25f9a2e.json#conversation=agent-9a6763a6-5085-45fb-9148-01184823a2e9
   - design/activity/card__c38e7423-9b05-47e2-a728-9637a25f9a2e.json#conversation=agent-64b3bd73-af0c-4a90-8615-d928febaa66a
+  - design/activity/card__c38e7423-9b05-47e2-a728-9637a25f9a2e.json#conversation=agent-23545e74-9c4b-4a55-aec5-65b44350ae84
 policy:
 branch: f_165_improve_agent_selectors_on_action_popup
 worktree: 3
