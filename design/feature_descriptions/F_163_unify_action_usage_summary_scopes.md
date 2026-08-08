@@ -3,7 +3,7 @@ author:
 id: F_163
 internalId: 425e518f-0813-4f49-a459-62f73a7c0655
 title: unify action usage summary scopes
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
