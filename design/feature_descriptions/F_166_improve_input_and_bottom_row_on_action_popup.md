@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__1ebcfe45-9445-47e6-8619-6c72708bd91b.json#conversation=agent-d07918ff-494f-49f9-bd94-83b66ca6a75e
   - design/activity/card__1ebcfe45-9445-47e6-8619-6c72708bd91b.json#conversation=agent-5ad31f39-ce51-41fb-821c-17894b5623d3
+  - design/activity/card__1ebcfe45-9445-47e6-8619-6c72708bd91b.json#conversation=agent-cdc683c1-d6b6-4175-9d9e-3246fc590f6d
 policy:
 branch: f_166_improve_input_and_bottom_row_on_action_popup
 worktree: 2
