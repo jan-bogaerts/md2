@@ -6,7 +6,6 @@ const CARD_PLACEHOLDER_NAMES = 'card-file|this-card|card-title|card-prompt';
 const CONFLICT_PLACEHOLDER_NAMES = 'conflict-file|conflict-files';
 const PLACEHOLDER_PATTERN = new RegExp(`\\{\\{\\s*(${FOLDER_PLACEHOLDER_NAMES}|${CARD_PLACEHOLDER_NAMES}|${CONFLICT_PLACEHOLDER_NAMES})\\s*\\}\\}`, 'gu');
 const CARD_PROMPT_PLACEHOLDER_PATTERN = /\{\{\s*card-prompt\s*\}\}/u;
-const TRACKED_FILE_COMMIT_INSTRUCTION = 'Do not stage or commit changes. md2 will commit files captured from provider edit tools.';
 
 function resolvePlaceholders(text, context, runProject, primaryProject, projectFolder, releasesFolder, extraPrompt) {
     return text.replace(PLACEHOLDER_PATTERN, (_match, name) => {
@@ -57,14 +56,4 @@ function resolveAgentPrompt(action, context, runProject, primaryProject, project
     return `${prompt}\n\n${extraPrompt}`;
 }
 
-function withTrackedFileCommitInstruction(prompt, trackFileChanges) {
-    return trackFileChanges ? `${prompt}\n\n${TRACKED_FILE_COMMIT_INSTRUCTION}` : prompt;
-}
-
-function prepareAgentPrompt(action, context, runProject, primaryProject, projectFolder, releasesFolder, extraPrompt = '') {
-    const prompt = resolveAgentPrompt(action, context, runProject, primaryProject, projectFolder, releasesFolder, extraPrompt);
-
-    return withTrackedFileCommitInstruction(prompt, action.trackFileChanges);
-}
-
-module.exports = { prepareAgentPrompt, resolveAgentPrompt, resolvePlaceholders, withTrackedFileCommitInstruction };
+module.exports = { resolveAgentPrompt, resolvePlaceholders };

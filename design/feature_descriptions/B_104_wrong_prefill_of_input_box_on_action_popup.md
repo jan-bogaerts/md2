@@ -3,7 +3,7 @@ author:
 id: B_104
 internalId: 51db4329-b855-4084-9e87-a50d3ce8eb6e
 title: wrong prefill of input box on action popup
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

@@ -140,10 +140,10 @@ describe('ActionAgentExecutor', () => {
         );
     });
 
-    it('keeps an already prepared root prompt unchanged without tracked-file recomposition', async () => {
+    it('keeps an already prepared root prompt unchanged', async () => {
         const { agentRunnerService, executor } = createExecutor();
         const trackedAction = { ...action, trackFileChanges: true };
-        const preparedPrompt = 'Review design/card.md\n\nDo not stage or commit changes. md2 will commit files captured from provider edit tools.';
+        const preparedPrompt = 'Review design/card.md';
 
         await executor.execute(executionInput({ action: trackedAction, runInput: { extraPrompt: 'legacy', prompt: preparedPrompt } }));
 
@@ -180,15 +180,13 @@ describe('ActionAgentExecutor', () => {
         expect(request).not.toHaveProperty('cardPath');
     });
 
-    it('instructs tracked runs not to stage or self-commit', async () => {
+    it('does not augment tracked-run prompts with commit instructions', async () => {
         const { agentRunnerService, executor } = createExecutor();
         const trackedAction = { ...action, trackFileChanges: true };
 
         await executor.execute(executionInput({ action: trackedAction }));
 
-        expect(agentRunnerService.start.mock.calls[0][1].prompt).toBe(
-            'Review design/card.md\n\nDo not stage or commit changes. md2 will commit files captured from provider edit tools.',
-        );
+        expect(agentRunnerService.start.mock.calls[0][1].prompt).toBe('Review design/card.md');
     });
 
     it('resumes same provider after cursor with normalized reference and explicit prompt', async () => {

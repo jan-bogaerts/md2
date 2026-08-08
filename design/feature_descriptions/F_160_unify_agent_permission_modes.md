@@ -3,7 +3,7 @@ author:
 id: F_160
 internalId: 3913c1ee-9bd7-40df-bfae-1f0188881b8f
 title: unify agent permission modes
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:

@@ -3,7 +3,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const require = createRequire(import.meta.url);
-const { prepareAgentPrompt, resolveAgentPrompt, resolvePlaceholders } = require('./action_text');
+const { resolveAgentPrompt, resolvePlaceholders } = require('./action_text');
 
 const project = { rootPath: 'C:/repo' };
 const worktreeProject = { rootPath: 'C:/worktrees/2' };
@@ -85,18 +85,8 @@ describe('resolveAgentPrompt', () => {
     it('does not append blank input', () => {
         expect(resolveAgentPrompt({ prompt: 'Review' }, {}, project, project, projectFolder, releasesFolder, '  ')).toBe('Review');
     });
-});
 
-describe('prepareAgentPrompt', () => {
-    it('includes resolved placeholders and tracked-file instruction', () => {
-        const action = { prompt: 'Review {{card-file}} and {{this-card}} in {{worktree-folder}}', trackFileChanges: true };
-
-        expect(prepareAgentPrompt(action, { file: 'design/card.md' }, project, project, projectFolder, releasesFolder)).toBe(
-            'Review design/card.md and design/card.md in C:/repo\n\nDo not stage or commit changes. md2 will commit files captured from provider edit tools.',
-        );
-    });
-
-    it('prepares the custom-prompt action as empty', () => {
-        expect(prepareAgentPrompt({ prompt: '{{card-prompt}}' }, {}, project, project, projectFolder, releasesFolder)).toBe('');
+    it('resolves an empty custom prompt', () => {
+        expect(resolveAgentPrompt({ prompt: '{{card-prompt}}' }, {}, project, project, projectFolder, releasesFolder, '')).toBe('');
     });
 });
