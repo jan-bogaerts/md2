@@ -2241,11 +2241,11 @@
         "agent-cdc683c1-d6b6-4175-9d9e-3246fc590f6d"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-57c81f6f-b9f6-464f-84a9-c5f0e191d988",
       "origin": {
@@ -2254,9 +2254,38 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-cdc683c1-d6b6-4175-9d9e-3246fc590f6d",
       "startedAt": "2026-08-08T18:01:05.895Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-cdc683c1-d6b6-4175-9d9e-3246fc590f6d"
+    },
+    {
+      "commits": [
+        {
+          "commit": "7f36f03572e2ee2c37b13167af3a106ea3a523b1",
+          "committedAt": "2026-08-08T20:25:56+02:00",
+          "deletions": 47,
+          "filePaths": [
+            "app/src/components/actions/agent/action_agent_prompt.test.tsx",
+            "app/src/components/actions/agent/action_agent_prompt.tsx",
+            "app/src/components/actions/agent/action_agent_prompt_owner.tsx",
+            "app/src/components/actions/run/popup/action_command_bottom_row_visibility.tsx",
+            "app/src/components/actions/run/popup/action_popup.test.tsx",
+            "app/src/components/actions/run/popup/action_popup_bottom_row.test.tsx",
+            "app/src/components/actions/run/popup/action_popup_bottom_row.tsx",
+            "app/src/components/actions/run/popup/action_popup_content.tsx"
+          ],
+          "filesChanged": 8,
+          "insertions": 267,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-08T20:25:56+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "1ebcfe45-9445-47e6-8619-6c72708bd91b",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
