@@ -2015,10 +2015,9 @@
       ],
       "details": {
         "type": "agent",
-        "accessLevel": "workspace-write",
         "agent": "codex",
-        "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
+        "permissionMode": "ask-for-approval",
         "thinkingLevel": "medium"
       },
       "runId": "action-391cc1d1-5dbb-4111-bb53-75e0df321ee9",
@@ -2040,10 +2039,9 @@
       ],
       "details": {
         "type": "agent",
-        "accessLevel": "workspace-write",
         "agent": "codex",
-        "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
+        "permissionMode": "ask-for-approval",
         "thinkingLevel": "medium"
       },
       "runId": "action-17caf734-321f-4da7-bce2-a29f6b6e8759",
@@ -2065,10 +2063,9 @@
       ],
       "details": {
         "type": "agent",
-        "accessLevel": "workspace-write",
         "agent": "codex",
-        "approvalPolicy": "on-request",
         "model": "gpt-5.5",
+        "permissionMode": "ask-for-approval",
         "thinkingLevel": "none"
       },
       "runId": "action-8218be1a-cad6-4d70-92bb-3fd81473dd86",
@@ -2113,10 +2110,9 @@
       ],
       "details": {
         "type": "agent",
-        "accessLevel": "workspace-write",
         "agent": "codex",
-        "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
+        "permissionMode": "ask-for-approval",
         "thinkingLevel": "medium"
       },
       "runId": "action-567f2145-f209-47a9-86c7-917ef756c4fb",
@@ -2154,5 +2150,5 @@
       "type": "system"
     }
   ],
-  "version": 3
+  "version": 4
 }

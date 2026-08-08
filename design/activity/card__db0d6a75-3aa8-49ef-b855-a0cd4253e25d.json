@@ -2619,10 +2619,9 @@
       ],
       "details": {
         "type": "agent",
-        "accessLevel": "workspace-write",
         "agent": "codex",
-        "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
+        "permissionMode": "ask-for-approval",
         "thinkingLevel": "medium"
       },
       "runId": "action-e0d9d74e-994b-4fd6-ab54-dbad2dfd1236",
@@ -2644,10 +2643,9 @@
       ],
       "details": {
         "type": "agent",
-        "accessLevel": "workspace-write",
         "agent": "codex",
-        "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
+        "permissionMode": "ask-for-approval",
         "thinkingLevel": "medium"
       },
       "runId": "action-7f5d608d-b9c8-4228-9d85-8ec53bf0f504",
@@ -2697,5 +2695,5 @@
       "type": "system"
     }
   ],
-  "version": 3
+  "version": 4
 }

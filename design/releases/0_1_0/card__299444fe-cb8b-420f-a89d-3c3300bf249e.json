@@ -2860,10 +2860,9 @@
       ],
       "details": {
         "type": "agent",
-        "accessLevel": "workspace-write",
         "agent": "codex",
-        "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
+        "permissionMode": "ask-for-approval",
         "thinkingLevel": "medium"
       },
       "runId": "action-1a62b24e-0931-4e3f-a6d1-4e7364c8797c",
@@ -2925,5 +2924,5 @@
       "type": "system"
     }
   ],
-  "version": 3
+  "version": 4
 }

@@ -3679,10 +3679,9 @@
       ],
       "details": {
         "type": "agent",
-        "accessLevel": "workspace-write",
         "agent": "codex",
-        "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
+        "permissionMode": "ask-for-approval",
         "thinkingLevel": "medium"
       },
       "runId": "action-953f87c1-58ca-4913-ba89-e8703765eff7",
@@ -3697,5 +3696,5 @@
       "rootConversationId": "agent-b9d63699-a849-4936-a09d-11ca31f0a753"
     }
   ],
-  "version": 3
+  "version": 4
 }

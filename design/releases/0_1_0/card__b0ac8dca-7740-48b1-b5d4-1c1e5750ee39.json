@@ -2558,10 +2558,9 @@
       ],
       "details": {
         "type": "agent",
-        "accessLevel": "workspace-write",
         "agent": "codex",
-        "approvalPolicy": "on-request",
         "model": "gpt-5.5",
+        "permissionMode": "ask-for-approval",
         "thinkingLevel": "none"
       },
       "runId": "action-f647dff6-9165-4186-8393-099749716a4d",
@@ -2583,10 +2582,9 @@
       ],
       "details": {
         "type": "agent",
-        "accessLevel": "workspace-write",
         "agent": "codex",
-        "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
+        "permissionMode": "ask-for-approval",
         "thinkingLevel": "medium"
       },
       "runId": "action-39a63b47-d1dd-4e1c-88d0-83a57ea7bf82",
@@ -2608,10 +2606,9 @@
       ],
       "details": {
         "type": "agent",
-        "accessLevel": "workspace-write",
         "agent": "codex",
-        "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
+        "permissionMode": "ask-for-approval",
         "thinkingLevel": "medium"
       },
       "runId": "action-0fe17b74-72f5-49b1-a1f8-21fa1eb19cb2",
@@ -2662,10 +2659,9 @@
       ],
       "details": {
         "type": "agent",
-        "accessLevel": "workspace-write",
         "agent": "codex",
-        "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
+        "permissionMode": "ask-for-approval",
         "thinkingLevel": "medium"
       },
       "runId": "action-f12d7c64-ee07-4a1e-90e4-c514631bda9d",
@@ -2680,5 +2676,5 @@
       "rootConversationId": "agent-6d02c78d-31fb-447a-a191-eae980575b35"
     }
   ],
-  "version": 3
+  "version": 4
 }

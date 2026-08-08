@@ -2811,10 +2811,9 @@
       ],
       "details": {
         "type": "agent",
-        "accessLevel": "workspace-write",
         "agent": "codex",
-        "approvalPolicy": "on-request",
         "model": "gpt-5.5",
+        "permissionMode": "ask-for-approval",
         "thinkingLevel": "none"
       },
       "runId": "action-8b29306d-0bfd-41d4-b72a-5d4219615793",
@@ -2836,10 +2835,9 @@
       ],
       "details": {
         "type": "agent",
-        "accessLevel": "workspace-write",
         "agent": "codex",
-        "approvalPolicy": "on-request",
         "model": "gpt-5.5",
+        "permissionMode": "ask-for-approval",
         "thinkingLevel": "none"
       },
       "runId": "action-7e5c75bc-beda-4b59-83ce-51b6c8630675",
@@ -2861,10 +2859,9 @@
       ],
       "details": {
         "type": "agent",
-        "accessLevel": "workspace-write",
         "agent": "codex",
-        "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
+        "permissionMode": "ask-for-approval",
         "thinkingLevel": "none"
       },
       "runId": "action-f54ffcfe-8cc3-4b5d-9841-93f09444e682",
@@ -2881,6 +2878,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "fb8fe59a9ad401b5e017f17fc2b0b1f3c6688d14",
           "committedAt": "2026-08-08T13:48:57+02:00",
           "deletions": 27,
@@ -2892,8 +2890,7 @@
             "app/src/services/project/project_loading.ts"
           ],
           "filesChanged": 5,
-          "insertions": 291,
-          "branch": "dev_main"
+          "insertions": 291
         }
       ],
       "completedAt": "2026-08-08T13:48:57+02:00",
@@ -2905,5 +2902,5 @@
       "type": "system"
     }
   ],
-  "version": 3
+  "version": 4
 }

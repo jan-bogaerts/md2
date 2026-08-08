@@ -1462,10 +1462,9 @@
       ],
       "details": {
         "type": "agent",
-        "accessLevel": "workspace-write",
         "agent": "codex",
-        "approvalPolicy": "on-request",
         "model": "gpt-5.5",
+        "permissionMode": "ask-for-approval",
         "thinkingLevel": "none"
       },
       "runId": "action-2cc035c4-02f3-4cf1-8e8a-2a9e49b9c25d",
@@ -1487,10 +1486,9 @@
       ],
       "details": {
         "type": "agent",
-        "accessLevel": "workspace-write",
         "agent": "codex",
-        "approvalPolicy": "on-request",
         "model": "gpt-5.5",
+        "permissionMode": "ask-for-approval",
         "thinkingLevel": "none"
       },
       "runId": "action-e6b62548-54f8-4e7f-9884-e5a99462dcd6",
@@ -1505,5 +1503,5 @@
       "rootConversationId": "agent-920bd107-7631-4ebb-9c0b-31d6db64d8db"
     }
   ],
-  "version": 3
+  "version": 4
 }
