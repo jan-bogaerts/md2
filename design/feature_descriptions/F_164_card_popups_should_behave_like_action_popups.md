@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__1282901d-fbea-459b-92ab-6d82708948df.json#conversation=agent-85290abc-db1b-4200-8856-7e78314f19d9
 policy:
+branch: f_164_card_popups_should_behave_like_action_popups
+worktree: 2
 ---
 
 Currently, we can move action-popups around, we can open multiple at the same time, resize them fully.
