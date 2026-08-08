@@ -21,6 +21,7 @@ function worktreeIndex(context) {
 
 class ActionWorktreeRunService {
     constructor(dependencies) {
+        this.mergeConflictService = dependencies.mergeConflictService ?? null;
         this.runLockStates = new Map();
         this.worktreeService = dependencies.worktreeService;
     }
@@ -47,6 +48,19 @@ class ActionWorktreeRunService {
     }
 
     async resolve(primaryProject, action, context) {
+        if (context.kind === 'merge-conflict') {
+            if (!this.mergeConflictService) throw new Error('Merge conflict action checkout is not available');
+            if (typeof context.conflictSessionId !== 'string' || context.conflictSessionId.length === 0) {
+                throw new Error('Merge conflict action requires active session binding');
+            }
+            const session = this.mergeConflictService.requireSession({ sessionId: context.conflictSessionId });
+            const branch = session.repositoryRoot === session.projectRoot ? session.projectBranch : session.worktreeBranch;
+
+            return {
+                runProject: { branch, id: session.repositoryRoot, rootPath: session.repositoryRoot },
+                runWorktree: session.worktree,
+            };
+        }
         const hasWorktreeAssignment = context.worktree !== undefined || !!context.worktreeError;
         if (!hasWorktreeAssignment && !action.needsWorkTree) {
             return { runProject: primaryProject, runWorktree: null };

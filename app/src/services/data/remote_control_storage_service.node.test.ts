@@ -211,12 +211,15 @@ describe('RemoteControlStorageService', () => {
         for (const request of [
             addRequest, commitSentRequest, discardRequest, integrateRequest, parkRequest, prepareRequest,
             pullRequest, pushRequest, refreshRequest, removeRequest, deleteRequest,
-        ]) socket.receive({ id: request.id, result: request === addRequest })
+        ]) {
+            const result = request === addRequest ? true : request === integrateRequest ? { status: 'completed' } : undefined
+            socket.receive({ id: request.id, result })
+        }
 
         await expect(addition).resolves.toBe(true)
         await expect(commit).resolves.toBeUndefined()
         await expect(discard).resolves.toBeUndefined()
-        await expect(integration).resolves.toBeUndefined()
+        await expect(integration).resolves.toEqual({ status: 'completed' })
         await expect(parking).resolves.toBeUndefined()
         await expect(preparation).resolves.toBeUndefined()
         await expect(pull).resolves.toBeUndefined()
@@ -224,6 +227,41 @@ describe('RemoteControlStorageService', () => {
         await expect(refresh).resolves.toBeUndefined()
         await expect(removal).resolves.toBeUndefined()
         await expect(deletion).resolves.toBeUndefined()
+    })
+
+    it('proxies merge conflict lifecycle and session events', async () => {
+        installWebSocket()
+        const service = createService()
+        const session = {
+            conflictedPaths: ['src/file.ts'], externalResolverConfigured: true, id: 'session-1',
+            operation: 'rebase' as const, phase: 'rebase' as const, repositoryRoot: 'C:/repo', worktree: 1,
+        }
+        const callback = vi.fn()
+        service.onMergeConflictSessionChanged(callback)
+        const socket = lastSocket()
+        socket.open()
+        await flushPromises()
+        const subscriptionRequest = JSON.parse(socket.sent[0]) as { id: string, method: string }
+        expect(subscriptionRequest.method).toBe('onMergeConflictSessionChanged')
+        socket.receive({ event: 'mergeConflictSessionChanged', payload: { requestId: subscriptionRequest.id, session, subscriptionId: 'conflict-1' } })
+        socket.receive({ id: subscriptionRequest.id, result: { subscriptionId: 'conflict-1' } })
+        await flushPromises()
+        expect(callback).toHaveBeenCalledWith(session)
+
+        const loaded = service.getMergeConflictSession()
+        await flushPromises()
+        const loadRequest = JSON.parse(socket.sent[1]) as { id: string, method: string }
+        expect(loadRequest.method).toBe('getMergeConflictSession')
+        socket.receive({ id: loadRequest.id, result: session })
+        await expect(loaded).resolves.toEqual(session)
+
+        const pathRequest = { path: 'src/file.ts', sessionId: 'session-1' }
+        const launch = service.launchMergeConflictResolver(pathRequest)
+        await flushPromises()
+        const launchRequest = JSON.parse(socket.sent[2]) as { id: string, method: string, params: unknown[] }
+        expect(launchRequest).toMatchObject({ method: 'launchMergeConflictResolver', params: [pathRequest] })
+        socket.receive({ id: launchRequest.id })
+        await expect(launch).resolves.toBeUndefined()
     })
 
     it('proxies primary pull', async () => {

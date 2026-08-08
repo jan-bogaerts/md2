@@ -212,6 +212,7 @@ describe('ConfigService', () => {
                 agent: 'claude',
                 agentProfiles: BUILTIN_AGENT_PROFILES,
                 editorCommand: 'notepad "{{file}}"',
+                mergeConflictResolverCommand: 'merge-tool "{{file}}"',
                 model: '',
                 thinkingLevel: 'high',
             },
@@ -220,6 +221,7 @@ describe('ConfigService', () => {
         expect(service.getEntries().some((entry) => entry.source === 'desktop')).toBe(true)
         expect(service.get('desktop.agent')).toBe('claude')
         expect(service.get('desktop.editorCommand')).toBe('notepad "{{file}}"')
+        expect(service.get('desktop.mergeConflictResolverCommand')).toBe('merge-tool "{{file}}"')
         expect(service.get('desktop.thinkingLevel')).toBe('high')
     })
 
@@ -278,6 +280,7 @@ describe('ConfigService', () => {
                 agent: 'claude',
                 agentProfiles: BUILTIN_AGENT_PROFILES,
                 editorCommand: 'notepad "{{file}}"',
+                mergeConflictResolverCommand: 'merge-tool "{{file}}"',
                 model: '',
                 thinkingLevel: 'high',
             },
@@ -290,6 +293,7 @@ describe('ConfigService', () => {
             approvalPolicy: 'on-request',
             codexSearchEnabled: true,
             editorCommand: 'notepad "{{file}}"',
+            mergeConflictResolverCommand: 'merge-tool "{{file}}"',
             model: '',
             thinkingLevel: 'high',
         })
@@ -300,6 +304,15 @@ describe('ConfigService', () => {
         service.loadDraft()
 
         expect(() => service.setDraftValue('desktop.editorCommand', 'notepad')).toThrow('requires {{file}} placeholder')
+    })
+
+    it('allows an empty merge resolver command and requires file placeholder when configured', () => {
+        service.init()
+        service.loadDraft()
+
+        expect(() => service.setDraftValue('desktop.mergeConflictResolverCommand', '')).not.toThrow()
+        expect(() => service.setDraftValue('desktop.mergeConflictResolverCommand', 'merge-tool')).toThrow('requires {{file}} placeholder')
+        expect(() => service.setDraftValue('desktop.mergeConflictResolverCommand', 'merge-tool "{{file}}"')).not.toThrow()
     })
 
     it('reads the startup splash preference before init, defaulting to true', () => {

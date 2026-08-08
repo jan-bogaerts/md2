@@ -53,6 +53,20 @@ describe('resolvePlaceholders', () => {
         expect(() => resolvePlaceholders('{{card-title}}', { kind: 'card' }, project, project, projectFolder, releasesFolder, '')).toThrow('Cannot resolve card-title placeholder');
     });
 
+    it('resolves merge conflict placeholders', () => {
+        const context = { conflictFile: 'src/one.js', conflictFiles: 'src/one.js\nsrc/two.js', kind: 'merge-conflict' };
+
+        expect(resolvePlaceholders(
+            '{{conflict-file}}\n{{conflict-files}}',
+            context,
+            project,
+            project,
+            projectFolder,
+            releasesFolder,
+            '',
+        )).toBe('src/one.js\nsrc/one.js\nsrc/two.js');
+    });
+
     it('does not resolve removed placeholder names', () => {
         expect(resolvePlaceholders('{{rootProjectFolder}} {{file}} {{prompt}}', { file: 'design/card.md' }, project, project, projectFolder, releasesFolder, 'focus'))
             .toBe('{{rootProjectFolder}} {{file}} {{prompt}}');

@@ -22,6 +22,7 @@ import type { RemarkableImportPlan } from '../remarkable/remarkable_import_servi
 import { getService, register } from '../service_injector'
 import { telemetryService } from '../telemetry/telemetry_service'
 import { worktreeService } from '../project/worktree_service'
+import { mergeConflictService } from '../project/merge_conflict_service'
 import { dialogService } from '../dialog_service'
 import type { CardParseError } from './markdown_parsing_service'
 import type { OpenDocumentSaveReference } from '../open_files_service'
@@ -178,6 +179,18 @@ export class DataService extends EventTarget {
         this.projectState.resetLoadedProject()
         this.remarkableBridge = dependencies.remarkableBridge ?? null
         this.storage = withSaveStateTracking(dependencies.storage, this.saveStateService)
+        mergeConflictService.init({
+            completeBranchCleanup: (cardInternalId) => {
+                const snapshot = this.projectState.snapshot
+                const card = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]
+                    .find((candidate) => candidate.header.internalId === cardInternalId)
+                if (!card) return
+                this.cards.updateCardWorktree(card.path, null)
+                this.cards.clearCardBranch(card.path)
+            },
+            reloadPaths: (paths) => this.projectLoading.reloadConflictPaths(paths),
+            storage: this.storage,
+        })
         worktreeService.init({
             assignCardWorktree: (path, worktree, branch) => this.cards.assignCardWorktree(path, worktree, branch),
             cardSeparatorProvider: () => this.requireDependencies().config.cardSeparator,

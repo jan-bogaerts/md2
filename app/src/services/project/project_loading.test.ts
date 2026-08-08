@@ -12,6 +12,7 @@ import { createDataService, createDeferred, createStorage, files, storageFiles, 
 import { markdownParsingService } from '../data/markdown_parsing_service'
 import { RemoteControlStorageService } from '../data/remote_control_storage_service'
 import { openFilesService } from '../open_files_service'
+import { mergeConflictService } from './merge_conflict_service'
 
 class ProjectLoadingMockWebSocket extends EventTarget {
     static instances: ProjectLoadingMockWebSocket[] = []
@@ -861,6 +862,33 @@ describe('ProjectLoading', () => {
 
         const card = service.getState().snapshot?.activeCards.find((candidate) => candidate.path === 'design/F-1-root.md')
         expect(card?.content).toContain('Externally changed')
+    })
+
+    it('ignores watcher updates for paths owned by active merge conflict session', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        let watchChange: (event: { changeKind: 'changed'; path: string }) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const loadFile = vi.fn()
+        const storage = createStorage({
+            loadFile,
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const isConflictedPath = vi.spyOn(mergeConflictService, 'isConflictedPath').mockReturnValue(true)
+
+        watchChange({ changeKind: 'changed', path: 'design/F-1-root.md' })
+        await vi.advanceTimersByTimeAsync(150)
+
+        expect(loadFile).not.toHaveBeenCalled()
+        isConflictedPath.mockRestore()
     })
 
     it('keeps a committed worktree assignment when another markdown file reloads', async () => {

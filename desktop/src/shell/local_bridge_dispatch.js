@@ -15,6 +15,19 @@ function cardIntegrationTracking(request) {
     return { cardInternalId: request.cardInternalId, projectFolder: request.projectFolder };
 }
 
+function worktreeIntegrationMetadata(request) {
+    const tracking = cardIntegrationTracking(request);
+    const deleteBranch = request.deleteBranch === true;
+    if (request.deleteBranch !== undefined && typeof request.deleteBranch !== 'boolean') {
+        throw new Error('Invalid worktree integration deleteBranch value');
+    }
+    if (deleteBranch && (typeof request.branchName !== 'string' || request.branchName.length === 0)) {
+        throw new Error('Missing worktree integration branchName');
+    }
+
+    return { ...(tracking ?? {}), branchName: request.branchName ?? null, deleteBranch };
+}
+
 function errorMessage(error) {
     return error instanceof Error ? error.message : String(error);
 }
@@ -38,6 +51,7 @@ function createLocalBridgeDispatch(dependencies) {
         desktopConfigStore,
         diffService,
         localGitService,
+        mergeConflictService,
         openProjectFolder,
         openWorktreeFolder,
         readDesktopConfig,
@@ -54,6 +68,22 @@ function createLocalBridgeDispatch(dependencies) {
 
     async function activateProject(project) {
         if (isCurrentProject(project)) return;
+
+        const conflictSession = mergeConflictService?.getInternalSession();
+        const sameConflictProject = conflictSession
+            && conflictSession.projectBranch === project.branch
+            && conflictSession.projectRoot === project.rootPath;
+        if (conflictSession && !sameConflictProject) {
+            if (!currentLocalProject || currentLocalProject.rootPath !== conflictSession.projectRoot) {
+                const conflictProject = {
+                    branch: conflictSession.projectBranch,
+                    id: conflictSession.projectId,
+                    rootPath: conflictSession.projectRoot,
+                };
+                await worktreeService.startProject(conflictProject);
+            }
+            await worktreeService.abortConflict({ sessionId: conflictSession.id });
+        }
 
         currentLocalProject = project;
         if (actionSchedulerService) await actionSchedulerService.startProject(project);
@@ -157,40 +187,46 @@ function createLocalBridgeDispatch(dependencies) {
         deleteLocalBranch: (project, branchName) => worktreeService.deleteBranch(project, branchName),
         integrateWorktree: async (request) => {
             if (!request || typeof request !== 'object') throw new Error('Missing worktree integration request');
-            const tracking = cardIntegrationTracking(request);
-            const integration = await worktreeService.integrate(request.project, request.worktree);
-            if (!tracking) return;
+            const metadata = worktreeIntegrationMetadata(request);
+            const integration = await worktreeService.integrate(request.project, request.worktree, metadata);
+            if (integration.status === 'conflict') return integration;
 
-            try {
-                if (!integration || typeof integration.commit !== 'string' || typeof integration.branch !== 'string') {
-                    throw new Error('Worktree integration returned no commit metadata');
-                }
-                const metadata = await localGitService.resolveCommitMetadata(request.project.rootPath, integration.commit);
-                const origin = { cardInternalId: tracking.cardInternalId, kind: 'card' };
-                const commit = { ...metadata, branch: integration.branch };
-                const record = {
-                    commits: [commit],
-                    completedAt: metadata.committedAt,
-                    label: INTEGRATION_ACTIVITY_LABEL,
-                    origin,
-                    type: 'system',
-                };
-                await localGitService.appendAndCommitSystemActivity(
-                    request.project,
-                    tracking.projectFolder,
-                    origin,
-                    record,
-                    `Record ${INTEGRATION_ACTIVITY_LABEL} activity`,
-                );
-            } catch (error) {
-                throw new Error(`Worktree integrated, but card history tracking failed: ${errorMessage(error)}`, { cause: error });
-            }
-            try {
-                await worktreeService.synchronize(request.project, request.worktree);
-            } catch (error) {
-                throw new Error(`Worktree integrated and card history tracked, but linked worktree synchronization failed: ${errorMessage(error)}`, { cause: error });
-            }
+            await finalizeIntegration(request.project, request.worktree, integration, metadata, false);
+
+            return { status: 'completed' };
         },
+        abortMergeConflict: (request) => worktreeService.abortConflict(request),
+        continueMergeConflict: async (request) => {
+            const outcome = await worktreeService.continueConflict(request);
+            if (outcome.status === 'conflict') return outcome;
+            const session = outcome.session;
+            await finalizeIntegration(
+                { branch: session.projectBranch, id: session.projectId, rootPath: session.projectRoot },
+                session.worktree,
+                outcome,
+                session.metadata,
+                true,
+                request,
+            );
+            worktreeService.completeConflict(request);
+
+            return {
+                ...(session.metadata.cardInternalId ? { cardInternalId: session.metadata.cardInternalId } : {}),
+                ...(session.metadata.deleteBranch ? { branchDeleted: true } : {}),
+                status: 'completed',
+            };
+        },
+        getMergeConflictSession: () => mergeConflictService.verify(),
+        launchMergeConflictResolver: (request) => mergeConflictService.launchResolver(request),
+        markMergeConflictResolved: (request) => mergeConflictService.markResolved(request),
+        onMergeConflictSessionChanged: (callback) => {
+            const handleChanged = (event) => callback(event.detail);
+            mergeConflictService.addEventListener('changed', handleChanged);
+            callback(mergeConflictService.getSnapshot());
+
+            return () => mergeConflictService.removeEventListener('changed', handleChanged);
+        },
+        rescanMergeConflict: (request) => mergeConflictService.rescan(request),
         parkWorktree: (request) => {
             if (!request || typeof request !== 'object') throw new Error('Missing worktree parking request');
 
@@ -233,6 +269,64 @@ function createLocalBridgeDispatch(dependencies) {
             callback(event);
         }),
     };
+
+    async function finalizeIntegration(project, worktree, integration, metadata, activeConflict, conflictRequest = null) {
+        if (!integration || typeof integration.commit !== 'string' || typeof integration.branch !== 'string') {
+            throw new Error('Worktree integration returned no commit metadata');
+        }
+        let progress = metadata;
+        const tracking = progress.cardInternalId && typeof progress.projectFolder === 'string'
+            ? { cardInternalId: progress.cardInternalId, projectFolder: progress.projectFolder }
+            : null;
+        if (tracking && !progress.activityTracked) {
+            try {
+                const commitMetadata = await localGitService.resolveCommitMetadata(project.rootPath, integration.commit);
+                const origin = { cardInternalId: tracking.cardInternalId, kind: 'card' };
+                const commit = { ...commitMetadata, branch: integration.branch };
+                const record = {
+                    commits: [commit],
+                    completedAt: commitMetadata.committedAt,
+                    label: INTEGRATION_ACTIVITY_LABEL,
+                    origin,
+                    type: 'system',
+                };
+                await localGitService.appendAndCommitSystemActivity(
+                    project,
+                    tracking.projectFolder,
+                    origin,
+                    record,
+                    `Record ${INTEGRATION_ACTIVITY_LABEL} activity`,
+                );
+                if (activeConflict) progress = mergeConflictService.updateMetadata(conflictRequest, { activityTracked: true });
+            } catch (error) {
+                throw new Error(`Worktree integrated, but card history tracking failed: ${errorMessage(error)}`, { cause: error });
+            }
+        }
+        if (tracking && !progress.worktreeSynchronized) {
+            try {
+                if (activeConflict) await worktreeService.synchronizeConflict(project, worktree);
+                else await worktreeService.synchronize(project, worktree);
+                if (activeConflict) progress = mergeConflictService.updateMetadata(conflictRequest, { worktreeSynchronized: true });
+            } catch (error) {
+                throw new Error(`Worktree integrated and card history tracked, but linked worktree synchronization failed: ${errorMessage(error)}`, { cause: error });
+            }
+        }
+        if (!progress.deleteBranch) return;
+        try {
+            if (activeConflict) {
+                if (!progress.worktreeParked) {
+                    await worktreeService.parkConflict(project, worktree);
+                    progress = mergeConflictService.updateMetadata(conflictRequest, { worktreeParked: true });
+                }
+                await worktreeService.deleteBranchConflict(project, progress.branchName);
+            } else {
+                await worktreeService.park(project, worktree);
+                await worktreeService.deleteBranch(project, progress.branchName);
+            }
+        } catch (error) {
+            throw new Error(`Worktree integrated, but branch cleanup failed: ${errorMessage(error)}`, { cause: error });
+        }
+    }
 
     const actionBridge = {
         answerActionApproval: (runId, requestId, decision) => {

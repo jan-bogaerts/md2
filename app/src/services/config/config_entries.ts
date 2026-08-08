@@ -26,6 +26,7 @@ export interface ConfigValueTypes {
     'desktop.approvalPolicy': string
     'desktop.codexSearchEnabled': boolean
     'desktop.editorCommand': string
+    'desktop.mergeConflictResolverCommand': string
     'desktop.model': string
     'desktop.thinkingLevel': ThinkingLevel
     'project.actionsFolder': string
@@ -80,6 +81,7 @@ export interface DesktopConfigValues {
     approvalPolicy?: string
     codexSearchEnabled?: boolean
     editorCommand: string
+    mergeConflictResolverCommand: string
     model: string
     thinkingLevel?: ThinkingLevel
 }
@@ -94,6 +96,7 @@ const DEFAULT_AUTO_COMMIT_DELAY_MS = 30000
 const MIN_AUTO_COMMIT_DELAY_MS = 1000
 const MAX_AUTO_COMMIT_DELAY_MS = 120000
 export const DEFAULT_EDITOR_COMMAND = 'code -g "{{file}}:{{line}}"'
+export const DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND = ''
 
 export const CONFIG_ENTRIES: ConfigEntry[] = [
     {
@@ -322,6 +325,16 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         editable: true,
         key: 'desktop.editorCommand',
         label: 'Editor command',
+        section: 'desktop',
+        source: 'desktop',
+        type: 'string',
+    },
+    {
+        defaultValue: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
+        description: 'Command template used to resolve conflicted files. Required placeholder when configured: {{file}}. Optional placeholder: {{repository-folder}}. Leave empty to disable external resolver controls.',
+        editable: true,
+        key: 'desktop.mergeConflictResolverCommand',
+        label: 'Merge conflict resolver command',
         section: 'desktop',
         source: 'desktop',
         type: 'string',

@@ -61,6 +61,7 @@ describe('config persistence', () => {
             agentProfiles: BUILTIN_AGENT_PROFILES,
             approvalPolicy: 'on-request',
             editorCommand: 'code -g "{{file}}:{{line}}"',
+            mergeConflictResolverCommand: '',
             model: '',
         }
         const setDesktopConfig = vi.fn()

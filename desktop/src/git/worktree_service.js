@@ -65,6 +65,7 @@ function statesEqual(first, second) {
 class WorktreeService {
     constructor(dependencies) {
         this.clearTimeout = dependencies.clearTimeout ?? clearTimeout;
+        this.mergeConflictService = dependencies.mergeConflictService ?? null;
         this.errorReporter = dependencies.errorReporter ?? (() => {});
         this.listeners = new Set();
         this.mutationQueue = Promise.resolve();
@@ -184,16 +185,7 @@ class WorktreeService {
     deleteBranch(project, branchName) {
         return this.enqueueMutation(async () => {
             const activeProject = this.requireActiveProject(project);
-            if (typeof branchName !== 'string' || branchName.length === 0) throw new Error('Missing local branch name');
-            await this.runGit(activeProject.rootPath, ['check-ref-format', '--branch', branchName]);
-            if (branchName === activeProject.branch) throw new Error(`Project branch cannot be deleted: ${branchName}`);
-            if (branchName.startsWith(PARKING_BRANCH_PREFIX)) throw new Error(`Parking branch cannot be deleted: ${branchName}`);
-
-            const worktrees = parseWorktreeList(await this.runGit(activeProject.rootPath, ['worktree', 'list', '--porcelain']));
-            const checkedOut = worktrees.find((worktree) => worktree.branch === branchName);
-            if (checkedOut) throw new Error(`Branch is checked out by a worktree: ${branchName} (${checkedOut.path})`);
-
-            await this.runGit(activeProject.rootPath, ['branch', '-D', branchName]);
+            await this.deleteBranchNow(activeProject, branchName);
             await this.refreshAfterMutation();
         });
     }
@@ -286,10 +278,25 @@ class WorktreeService {
             const cachedRecord = this.resolve(activeProject, index);
             const record = await this.requireClean(cachedRecord, activeProject.branch);
             if (record.branch === activeProject.branch) throw new Error(`Linked worktree is already on the project branch: ${activeProject.branch}`);
+            const worktreeCheckpointCommit = await this.runGit(record.path, ['rev-parse', 'HEAD']);
             try {
                 await this.runGit(record.path, ['rebase', activeProject.branch]);
             } catch (error) {
-                // Leaving a half-finished rebase behind would break every later status read, so unwind it first.
+                const session = await this.createConflictSession({
+                    checkpointCommit: worktreeCheckpointCommit,
+                    operation: 'rebase',
+                    phase: 'rebase',
+                    project: activeProject,
+                    record,
+                    repositoryRoot: record.path,
+                    worktree: index,
+                    worktreeCheckpointCommit,
+                });
+                if (session) {
+                    await this.refreshAfterMutation();
+
+                    return { session, status: 'conflict' };
+                }
                 try {
                     await this.runGit(record.path, ['rebase', '--abort']);
                 } catch {
@@ -299,10 +306,12 @@ class WorktreeService {
                 throw error;
             }
             await this.refreshAfterMutation();
+
+            return { status: 'completed' };
         });
     }
 
-    integrate(project, index) {
+    integrate(project, index, metadata = {}) {
         return this.enqueueMutation(async () => {
             const activeProject = this.requireActiveProject(project);
             await this.commitPrimaryChanges(activeProject);
@@ -310,10 +319,27 @@ class WorktreeService {
             const cachedRecord = this.resolve(activeProject, index);
             let record = await this.requireClean(cachedRecord, activeProject.branch);
             if (record.branch === activeProject.branch) throw new Error(`Linked worktree is already on the project branch: ${activeProject.branch}`);
+            const worktreeCheckpointCommit = await this.runGit(record.path, ['rev-parse', 'HEAD']);
             if (record.status.baseBehind > 0) {
                 try {
                     await this.runGit(record.path, ['rebase', activeProject.branch]);
                 } catch (error) {
+                    const session = await this.createConflictSession({
+                        checkpointCommit,
+                        metadata,
+                        operation: 'integrate',
+                        phase: 'rebase',
+                        project: activeProject,
+                        record,
+                        repositoryRoot: record.path,
+                        worktree: index,
+                        worktreeCheckpointCommit,
+                    });
+                    if (session) {
+                        await this.refreshAfterMutation();
+
+                        return { session, status: 'conflict' };
+                    }
                     try {
                         await this.runGit(record.path, ['rebase', '--abort']);
                     } catch {
@@ -326,28 +352,207 @@ class WorktreeService {
             }
             if (record.status.baseAhead <= 0) throw new Error('Linked worktree has no changes to integrate');
 
-            let commit;
             try {
-                await this.runGit(activeProject.rootPath, ['merge', '--squash', record.branch]);
-                const stagedPaths = await this.runGit(activeProject.rootPath, ['diff', '--cached', '--name-only']);
-                if (stagedPaths.length === 0) throw new Error('Linked worktree has no changes to integrate');
-                await this.runGit(activeProject.rootPath, ['commit', '-m', INTEGRATION_COMMIT_MESSAGE]);
-                commit = await this.runGit(activeProject.rootPath, ['rev-parse', 'HEAD']);
+                const integration = await this.performSquashIntegration(activeProject, record);
+                await this.synchronizeRecord(activeProject, record);
+                await this.refreshAfterMutation();
+
+                return { ...integration, status: 'completed' };
             } catch (error) {
+                const session = await this.createConflictSession({
+                    checkpointCommit,
+                    metadata,
+                    operation: 'integrate',
+                    phase: 'squash',
+                    project: activeProject,
+                    record,
+                    repositoryRoot: activeProject.rootPath,
+                    worktree: index,
+                    worktreeCheckpointCommit,
+                });
+                if (session) {
+                    await this.refreshAfterMutation();
+
+                    return { session, status: 'conflict' };
+                }
                 await this.runGit(activeProject.rootPath, ['reset', '--hard', checkpointCommit]);
                 await this.refreshAfterMutation();
                 throw error;
             }
-            try {
-                await this.synchronizeRecord(activeProject, record);
-                await this.refreshAfterMutation();
-            } catch (error) {
-                const message = error instanceof Error ? error.message : String(error);
-                throw new Error(`Worktree integrated, but linked worktree synchronization failed: ${message}`, { cause: error });
+        });
+    }
+
+    continueConflict(request) {
+        return this.enqueueMutation(async () => {
+            const conflictService = this.requireMergeConflictService();
+            let session = conflictService.requireSession(request);
+            const continuesSquashConflict = session.phase === 'squash';
+            const conflictedPaths = await conflictService.listConflictedPaths(session.repositoryRoot);
+            if (conflictedPaths.length > 0) {
+                session = { ...session, conflictedPaths };
+                const publicSession = conflictService.update(session);
+
+                return { session: publicSession, status: 'conflict' };
+            }
+            if (session.phase === 'finalize') return WorktreeService.completedConflictIntegration(session);
+
+            if (session.phase === 'rebase') {
+                const rebaseOutcome = await this.continueConflictRebase(session);
+                if (rebaseOutcome) return rebaseOutcome;
+                session = conflictService.getInternalSession();
+                if (session.operation === 'rebase') {
+                    conflictService.clear(request);
+                    await this.refreshAfterMutation();
+
+                    return { status: 'completed' };
+                }
             }
 
-            return { branch: activeProject.branch, commit };
+            const activeProject = this.requireActiveProject({ branch: session.projectBranch, rootPath: session.projectRoot });
+            const record = this.resolve(activeProject, session.worktree);
+            try {
+                const integration = continuesSquashConflict
+                    ? await this.completeSquashIntegration(activeProject)
+                    : await this.performSquashIntegration(activeProject, record);
+                await this.synchronizeRecord(activeProject, record);
+                await this.refreshAfterMutation();
+                const finalSession = {
+                    ...session,
+                    completion: integration,
+                    conflictedPaths: [],
+                    phase: 'finalize',
+                    repositoryRoot: activeProject.rootPath,
+                };
+                conflictService.update(finalSession);
+
+                return WorktreeService.completedConflictIntegration(finalSession);
+            } catch (error) {
+                const conflicted = await conflictService.listConflictedPaths(activeProject.rootPath);
+                if (conflicted.length === 0) throw error;
+                const conflictSession = conflictService.update({
+                    ...session,
+                    conflictedPaths: conflicted,
+                    phase: 'squash',
+                    repositoryRoot: activeProject.rootPath,
+                });
+                await this.refreshAfterMutation();
+
+                return { session: conflictSession, status: 'conflict' };
+            }
+        }, true);
+    }
+
+    abortConflict(request) {
+        return this.enqueueMutation(async () => {
+            const conflictService = this.requireMergeConflictService();
+            const session = conflictService.requireSession(request);
+            if (session.phase === 'rebase') await this.runGit(session.repositoryRoot, ['rebase', '--abort']);
+            else {
+                await this.runGit(session.projectRoot, ['reset', '--hard', session.checkpointCommit]);
+                if (session.worktreeCheckpointCommit !== session.checkpointCommit || session.worktreeRoot !== session.projectRoot) {
+                    await this.runGit(session.worktreeRoot, ['reset', '--hard', session.worktreeCheckpointCommit]);
+                }
+            }
+            conflictService.clear(request);
+            await this.refreshAfterMutation();
+        }, true);
+    }
+
+    completeConflict(request) {
+        const conflictService = this.requireMergeConflictService();
+        conflictService.clear(request);
+    }
+
+    synchronizeConflict(project, index) {
+        return this.enqueueMutation(async () => {
+            const activeProject = this.requireActiveProject(project);
+            const record = this.resolve(activeProject, index);
+            await this.synchronizeRecord(activeProject, record);
+            await this.refreshAfterMutation();
+        }, true);
+    }
+
+    parkConflict(project, index) {
+        return this.enqueueMutation(async () => {
+            const activeProject = this.requireActiveProject(project);
+            const record = this.resolve(activeProject, index);
+            await this.parkPath(activeProject, record.path);
+            await this.refreshAfterMutation();
+        }, true);
+    }
+
+    deleteBranchConflict(project, branchName) {
+        return this.enqueueMutation(async () => {
+            const activeProject = this.requireActiveProject(project);
+            await this.deleteBranchNow(activeProject, branchName);
+            await this.refreshAfterMutation();
+        }, true);
+    }
+
+    async continueConflictRebase(session) {
+        const conflictService = this.requireMergeConflictService();
+        try {
+            await this.runGit(session.repositoryRoot, ['-c', 'core.editor=true', 'rebase', '--continue']);
+        } catch (error) {
+            const conflictedPaths = await conflictService.listConflictedPaths(session.repositoryRoot);
+            if (conflictedPaths.length === 0) throw error;
+            const publicSession = conflictService.update({ ...session, conflictedPaths });
+            await this.refreshAfterMutation();
+
+            return { session: publicSession, status: 'conflict' };
+        }
+        await this.refreshAfterMutation();
+        if (session.operation === 'integrate') {
+            conflictService.update({ ...session, conflictedPaths: [], phase: 'squash', repositoryRoot: session.projectRoot });
+        }
+
+        return null;
+    }
+
+    static completedConflictIntegration(session) {
+        if (!session.completion) throw new Error('Merge conflict integration has no completion metadata');
+
+        return { ...session.completion, session, status: 'completed' };
+    }
+
+    async performSquashIntegration(project, record) {
+        await this.runGit(project.rootPath, ['merge', '--squash', record.branch]);
+        return this.completeSquashIntegration(project);
+    }
+
+    async completeSquashIntegration(project) {
+        const stagedPaths = await this.runGit(project.rootPath, ['diff', '--cached', '--name-only']);
+        if (stagedPaths.length === 0) throw new Error('Linked worktree has no changes to integrate');
+        await this.runGit(project.rootPath, ['commit', '-m', INTEGRATION_COMMIT_MESSAGE]);
+        const commit = await this.runGit(project.rootPath, ['rev-parse', 'HEAD']);
+
+        return { branch: project.branch, commit };
+    }
+
+    async createConflictSession(input) {
+        const conflictService = this.mergeConflictService;
+        if (!conflictService) return null;
+
+        return conflictService.create({
+            checkpointCommit: input.checkpointCommit,
+            metadata: input.metadata ?? {},
+            operation: input.operation,
+            phase: input.phase,
+            projectBranch: input.project.branch,
+            projectId: input.project.id,
+            projectRoot: input.project.rootPath,
+            repositoryRoot: input.repositoryRoot,
+            worktree: input.worktree,
+            worktreeBranch: input.record.branch,
+            worktreeCheckpointCommit: input.worktreeCheckpointCommit,
+            worktreeRoot: input.record.path,
         });
+    }
+
+    requireMergeConflictService() {
+        if (!this.mergeConflictService) throw new Error('Merge conflict service is not available');
+
+        return this.mergeConflictService;
     }
 
     synchronize(project, index) {
@@ -380,11 +585,12 @@ class WorktreeService {
         });
     }
 
-    enqueueMutation(operation) {
+    enqueueMutation(operation, allowConflict = false) {
         const execute = async () => {
             if (this.refreshPromise) await this.refreshPromise;
             this.stopTimer();
             if (!this.project) throw new Error('Worktree service has no active project');
+            if (!allowConflict) this.mergeConflictService?.assertMutationAllowed(this.project.rootPath);
             const mutationRoots = [
                 this.project.rootPath,
                 ...this.records.filter(({ valid }) => valid).map(({ path: recordPath }) => recordPath),
@@ -403,6 +609,19 @@ class WorktreeService {
         if (!refreshedRecord.status.dirty) return refreshedRecord;
 
         throw new Error(`Linked worktree has uncommitted changes: ${record.path}`);
+    }
+
+    async deleteBranchNow(project, branchName) {
+        if (typeof branchName !== 'string' || branchName.length === 0) throw new Error('Missing local branch name');
+        await this.runGit(project.rootPath, ['check-ref-format', '--branch', branchName]);
+        if (branchName === project.branch) throw new Error(`Project branch cannot be deleted: ${branchName}`);
+        if (branchName.startsWith(PARKING_BRANCH_PREFIX)) throw new Error(`Parking branch cannot be deleted: ${branchName}`);
+
+        const worktrees = parseWorktreeList(await this.runGit(project.rootPath, ['worktree', 'list', '--porcelain']));
+        const checkedOut = worktrees.find((worktree) => worktree.branch === branchName);
+        if (checkedOut) throw new Error(`Branch is checked out by a worktree: ${branchName} (${checkedOut.path})`);
+
+        await this.runGit(project.rootPath, ['branch', '-D', branchName]);
     }
 
     async commitPrimaryChanges(project) {

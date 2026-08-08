@@ -9,6 +9,7 @@ import type {
     DeleteFileRequest,
     DeleteFolderRequest,
     MarkdownFile,
+    IntegrateWorktreeRequest,
     MoveFilesRequest,
     PrepareWorktreeRequest,
     ProjectAsset,
@@ -20,6 +21,12 @@ import type {
     WorktreeState,
     WorktreeOperationRequest,
 } from './data_types'
+import type {
+    MergeConflictPathRequest,
+    MergeConflictSession,
+    MergeConflictSessionRequest,
+    WorktreeOperationOutcome,
+} from './merge_conflict_types'
 
 export interface AgentAvailability {
     available: boolean
@@ -27,6 +34,7 @@ export interface AgentAvailability {
 }
 
 export interface ElectronDataBridge {
+    abortMergeConflict?(request: MergeConflictSessionRequest): Promise<void>
     addWorktree?(project: ProjectReference): Promise<boolean>
     checkoutBranch(project: ProjectReference, branch: string): Promise<ProjectReference>
     commit(request: CommitRequest): Promise<CommitResult>
@@ -37,7 +45,10 @@ export interface ElectronDataBridge {
     discardWorktreeChanges?(request: WorktreeOperationRequest): Promise<void>
     deleteLocalBranch?(project: ProjectReference, branchName: string): Promise<void>
     hasPendingPush(project: ProjectReference): Promise<boolean>
-    integrateWorktree?(request: WorktreeOperationRequest): Promise<void>
+    continueMergeConflict?(request: MergeConflictSessionRequest): Promise<WorktreeOperationOutcome>
+    getMergeConflictSession?(): Promise<MergeConflictSession | null>
+    integrateWorktree?(request: IntegrateWorktreeRequest): Promise<WorktreeOperationOutcome>
+    launchMergeConflictResolver?(request: MergeConflictPathRequest): Promise<void>
     loadAgentAvailability?(): Promise<Record<string, AgentAvailability>>
     loadAgentConversation?(path: string): Promise<AgentConversation>
     loadActionFiles(project: ProjectReference, actionsFolder: string): Promise<ActionFile[]>
@@ -49,6 +60,8 @@ export interface ElectronDataBridge {
     loadProjectRoot(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>
     loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null>
     onWorktreesChanged?(callback: (state: WorktreeState) => void): () => void
+    markMergeConflictResolved?(request: MergeConflictPathRequest): Promise<MergeConflictSession>
+    onMergeConflictSessionChanged?(callback: (session: MergeConflictSession | null) => void): () => void
     listRepositoryFiles(project: ProjectReference): Promise<string[]>
     listAgentConversationReferences?(project: ProjectReference, projectFolder: string): Promise<string[]>
     listBranches(project: ProjectReference): Promise<BranchReference[]>
@@ -59,7 +72,8 @@ export interface ElectronDataBridge {
     prepareWorktree?(request: PrepareWorktreeRequest): Promise<void>
     pull?(project: ProjectReference): Promise<void>
     pullWorktree?(request: WorktreeOperationRequest): Promise<void>
-    rebaseWorktree?(request: WorktreeOperationRequest): Promise<void>
+    rebaseWorktree?(request: WorktreeOperationRequest): Promise<WorktreeOperationOutcome>
+    rescanMergeConflict?(request: MergeConflictSessionRequest): Promise<MergeConflictSession>
     push(project: ProjectReference): Promise<void>
     pushWorktree?(request: WorktreeOperationRequest): Promise<void>
     refreshWorktrees?(project: ProjectReference): Promise<void>

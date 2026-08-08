@@ -54,7 +54,7 @@ describe('LocalGitStorageService binary write path', () => {
         const commitWorktree = vi.fn().mockResolvedValue(undefined)
         const discardWorktreeChanges = vi.fn().mockResolvedValue(undefined)
         const deleteLocalBranch = vi.fn().mockResolvedValue(undefined)
-        const integrateWorktree = vi.fn().mockResolvedValue(undefined)
+        const integrateWorktree = vi.fn().mockResolvedValue({ status: 'completed' })
         const parkWorktree = vi.fn().mockResolvedValue(undefined)
         const prepareWorktree = vi.fn().mockResolvedValue(undefined)
         const pullWorktree = vi.fn().mockResolvedValue(undefined)
@@ -76,7 +76,7 @@ describe('LocalGitStorageService binary write path', () => {
         await expect(service.commitWorktree(commitRequest)).resolves.toBeUndefined()
         await expect(service.discardWorktreeChanges(operationRequest)).resolves.toBeUndefined()
         await expect(service.deleteLocalBranch(project, 'feature')).resolves.toBeUndefined()
-        await expect(service.integrateWorktree(operationRequest)).resolves.toBeUndefined()
+        await expect(service.integrateWorktree(operationRequest)).resolves.toEqual({ status: 'completed' })
         await expect(service.parkWorktree(operationRequest)).resolves.toBeUndefined()
         await expect(service.prepareWorktree(preparationRequest)).resolves.toBeUndefined()
         await expect(service.pullWorktree(operationRequest)).resolves.toBeUndefined()
@@ -95,6 +95,43 @@ describe('LocalGitStorageService binary write path', () => {
         expect(pushWorktree).toHaveBeenCalledWith(operationRequest)
         expect(refreshWorktrees).toHaveBeenCalledWith(project)
         expect(removeWorktree).toHaveBeenCalledWith(project, worktree.path)
+    })
+
+    it('forwards merge conflict lifecycle and subscription to the bridge', async () => {
+        const session = {
+            conflictedPaths: ['src/file.ts'], externalResolverConfigured: true, id: 'session-1',
+            operation: 'rebase' as const, phase: 'rebase' as const, repositoryRoot: 'C:/repo', worktree: 1,
+        }
+        const abortMergeConflict = vi.fn().mockResolvedValue(undefined)
+        const continueMergeConflict = vi.fn().mockResolvedValue({ status: 'completed' })
+        const getMergeConflictSession = vi.fn().mockResolvedValue(session)
+        const launchMergeConflictResolver = vi.fn().mockResolvedValue(undefined)
+        const markMergeConflictResolved = vi.fn().mockResolvedValue({ ...session, conflictedPaths: [] })
+        const cleanup = vi.fn()
+        const onMergeConflictSessionChanged = vi.fn(() => cleanup)
+        const rescanMergeConflict = vi.fn().mockResolvedValue(session)
+        const service = new LocalGitStorageService()
+        service.init({
+            bridge: createBridge({
+                abortMergeConflict, continueMergeConflict, getMergeConflictSession, launchMergeConflictResolver,
+                markMergeConflictResolved, onMergeConflictSessionChanged, rescanMergeConflict,
+            }),
+        })
+        const sessionRequest = { sessionId: session.id }
+        const pathRequest = { path: session.conflictedPaths[0], sessionId: session.id }
+        const callback = vi.fn()
+
+        await expect(service.getMergeConflictSession()).resolves.toEqual(session)
+        await expect(service.launchMergeConflictResolver(pathRequest)).resolves.toBeUndefined()
+        await expect(service.markMergeConflictResolved(pathRequest)).resolves.toMatchObject({ conflictedPaths: [] })
+        await expect(service.rescanMergeConflict(sessionRequest)).resolves.toEqual(session)
+        await expect(service.continueMergeConflict(sessionRequest)).resolves.toEqual({ status: 'completed' })
+        await expect(service.abortMergeConflict(sessionRequest)).resolves.toBeUndefined()
+        const unsubscribe = service.onMergeConflictSessionChanged(callback)
+        unsubscribe()
+
+        expect(onMergeConflictSessionChanged).toHaveBeenCalledWith(callback)
+        expect(cleanup).toHaveBeenCalledOnce()
     })
 
     it('forwards stored project revalidation to the bridge', async () => {

@@ -49,7 +49,7 @@ describe('SaveStateService', () => {
     })
 
     it('tracks worktree integration as a project save', async () => {
-        const pendingIntegration = createDeferred<void>()
+        const pendingIntegration = createDeferred<{ status: 'completed' }>()
         const integrateWorktree = vi.fn(() => pendingIntegration.promise)
         const service = new SaveStateService()
         const storage = withSaveStateTracking(createStorage({ integrateWorktree }), service)
@@ -58,7 +58,7 @@ describe('SaveStateService', () => {
         const result = storage.integrateWorktree?.({ project, worktree: 1 })
         expect(service.getState().isSaving).toBe(true)
 
-        pendingIntegration.resolve()
+        pendingIntegration.resolve({ status: 'completed' })
         await result
         expect(service.getState().isSaving).toBe(false)
     })
