@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
   - design/activity/card__51db4329-b855-4084-9e87-a50d3ce8eb6e.json#conversation=agent-88a8d176-b27e-4cc0-8003-8f2130bec91c
+  - design/activity/card__51db4329-b855-4084-9e87-a50d3ce8eb6e.json#conversation=agent-c7a32476-b279-48f9-b81d-6afbd666b3cf
 policy:
 after: 3913c1ee-9bd7-40df-bfae-1f0188881b8f
 branch: b_104_wrong_prefill_of_input_box_on_action_popup
