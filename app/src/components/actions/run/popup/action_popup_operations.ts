@@ -23,6 +23,26 @@ import type { ActionRunResultStore } from '../state/action_run_result_store'
 
 const DEFAULT_CONVERT_LABEL_LENGTH = 40
 
+function hasPersistedSubmittedMessage(
+    previousConversation: NonNullable<ReturnType<ActionConversationStore['getSnapshot']>['selectedConversation']>,
+    currentConversation: ReturnType<ActionConversationStore['getSnapshot']>['selectedConversation'],
+    prompt: string,
+) {
+    if (!currentConversation || currentConversation.path !== previousConversation.path) return false
+
+    const previousEntryIds = new Set(previousConversation.entries.map(({ id }) => id))
+
+    return currentConversation.entries.some((entry) => entry.kind === 'message'
+        && entry.role === 'user'
+        && entry.content === prompt
+        && !previousEntryIds.has(entry.id))
+}
+
+function restorePrompt(action: ActionDefinition, context: ActionContext, prompt: string) {
+    const currentRun = currentActionRun(action, context)
+    actionPromptDraftService.getDraft(action.id, context, currentRun, { prepare: false }).edit(prompt)
+}
+
 export interface ActionPopupOperationInput {
     action: ActionDefinition
     context: ActionContext
@@ -55,6 +75,7 @@ async function runWithPrompt(input: ActionPopupOperationInput, prompt: string, p
         if (runValidationError) throw new Error(runValidationError)
 
         const liveConversation = currentActionRun(action, context)?.conversation ?? null
+        const previousConversation = liveConversation ?? conversationStore.getSnapshot().selectedConversation
         const continuationPath = conversationStore.continuationPath(liveConversation)
         const runInput = action.type === 'agent'
             ? {
@@ -76,12 +97,21 @@ async function runWithPrompt(input: ActionPopupOperationInput, prompt: string, p
             : await defaultRunAction(action, context, runInput, handleStarted)
         resultStore.setResult(result)
         await historyStore.load()
-        if (action.type === 'agent') await conversationStore.load()
-    } catch (error) {
-        if (previousRunId) {
-            const currentRun = currentActionRun(action, context)
-            actionPromptDraftService.getDraft(action.id, context, currentRun, { prepare: false }).edit(prompt)
+        if (action.type === 'agent') {
+            await conversationStore.load()
+            if (previousRunId
+                && result.status === 'failed'
+                && previousConversation
+                && !hasPersistedSubmittedMessage(
+                    previousConversation,
+                    conversationStore.getSnapshot().selectedConversation,
+                    prompt,
+                )) {
+                restorePrompt(action, context, prompt)
+            }
         }
+    } catch (error) {
+        if (previousRunId) restorePrompt(action, context, prompt)
         const message = error instanceof Error ? error.message : 'Action run failed'
         resultStore.setResult({
             logs: [{

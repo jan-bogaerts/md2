@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ActionContext } from '../../../../data/action_context'
 import type { ActionRunEvent } from '../../../../data/action_run_types'
 import type { ActionDefinition } from '../../../../data/action_types'
+import type { AgentConversation } from '../../../../data/data_types'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../../../data/electron_action_bridge'
 import { actionPromptDraftService } from '../../../../services/actions/action_prompt_draft_service'
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
@@ -25,14 +26,16 @@ const defaultSettings: ResolvedActionRunSettings = {agent: 'codex', model: 'gpt-
 function operationInput(
     inputStore: ActionRunInputStore,
     settingsStore = new ActionRunSettingsStore(action.id, null),
+    conversationStore: Pick<ActionPopupOperationInput['conversationStore'], 'continuationPath' | 'getSnapshot' | 'load'> = {
+        continuationPath: () => 'conversation.json',
+        getSnapshot: () => ({ conversations: [], loading: false, selectedConversation: null }),
+        load: vi.fn(async () => undefined),
+    },
 ): ActionPopupOperationInput {
     return {
         action,
         context,
-        conversationStore: {
-            continuationPath: () => 'conversation.json',
-            load: vi.fn(async () => undefined),
-        },
+        conversationStore,
         historyStore: { load: vi.fn(async () => undefined) },
         inputStore,
         resultStore: {
@@ -44,6 +47,24 @@ function operationInput(
         settings: settingsStore.getSnapshot().settings ?? defaultSettings,
         settingsStore,
     } as unknown as ActionPopupOperationInput
+}
+
+function storedConversation(entries: AgentConversation['entries']): AgentConversation {
+    return {
+        actionId: action.id,
+        cardInternalId: 'card-1',
+        cardPath: 'design/F-1.md',
+        completedAt: null,
+        entries,
+        hasExplicitTitle: true,
+        id: 'conversation-1',
+        path: 'conversation.json',
+        providerSessions: [],
+        startedAt: '2026-01-01T00:00:00.000Z',
+        status: 'waitingForInput',
+        title: 'Stream',
+        viewed: true,
+    }
 }
 
 function emitWaitingRun(listener: (event: ActionRunEvent) => void) {
@@ -145,5 +166,74 @@ describe('runPopupAction waiting follow-up', () => {
             expect.objectContaining({ message: 'restart failed' }),
             { fallbackMessage: 'Action run failed' },
         )
+    })
+
+    it('restores draft when replacement run fails before persisting submitted message', async () => {
+        const inputStore = new ActionRunInputStore()
+        const settingsStore = new ActionRunSettingsStore(action.id, null)
+        settingsStore.setSettings(defaultSettings, true)
+        const previousConversation = storedConversation([{content: 'Earlier answer', id: 'assistant-1', kind: 'message', role: 'assistant', timestamp: '2026-01-01T00:01:00.000Z'}])
+        const conversationStore = {
+            continuationPath: () => previousConversation.path,
+            getSnapshot: () => ({ conversations: [previousConversation], loading: false, selectedConversation: previousConversation }),
+            load: vi.fn(async () => undefined),
+        }
+        const operation = operationInput(inputStore, settingsStore, conversationStore)
+        const run = actionRunRegistry.getActionRunStore(action.id, context)?.getSnapshot() ?? null
+        actionPromptDraftService.getDraft(action.id, context, run, { prepare: false }).edit('Keep request')
+        restartAction.mockImplementation(async (_runId, _action, _context, _runInput, onStarted) => {
+            onStarted('run-2')
+            return {
+                logs: [{
+                    actionId: action.id,
+                    actionName: action.label,
+                    command: null,
+                    message: 'Codex executable could not start',
+                    phase: 'main',
+                    status: 'failed',
+                    stderr: 'Codex executable could not start',
+                    stdout: '',
+                }],
+                status: 'failed',
+            }
+        })
+
+        await runPopupAction(operation)
+
+        expect(currentActionPromptDraft(action, context, false).getSnapshot()).toBe('Keep request')
+        expect(operation.resultStore.setResult).toHaveBeenCalledWith(expect.objectContaining({
+            logs: [expect.objectContaining({ message: 'Codex executable could not start' })],
+            status: 'failed',
+        }))
+    })
+
+    it('does not restore draft after failed replacement persisted submitted message', async () => {
+        const inputStore = new ActionRunInputStore()
+        const settingsStore = new ActionRunSettingsStore(action.id, null)
+        settingsStore.setSettings(defaultSettings, true)
+        const previousConversation = storedConversation([{content: 'Earlier answer', id: 'assistant-1', kind: 'message', role: 'assistant', timestamp: '2026-01-01T00:01:00.000Z'}])
+        const failedConversation = {
+            ...previousConversation,
+            entries: [
+                ...previousConversation.entries,
+                { content: 'Sent request', id: 'user-2', kind: 'message' as const, role: 'user' as const, timestamp: '2026-01-01T00:02:00.000Z' },
+            ],
+        }
+        let selectedConversation = previousConversation
+        const conversationStore = {
+            continuationPath: () => previousConversation.path,
+            getSnapshot: () => ({ conversations: [selectedConversation], loading: false, selectedConversation }),
+            load: vi.fn(async () => { selectedConversation = failedConversation }),
+        }
+        const run = actionRunRegistry.getActionRunStore(action.id, context)?.getSnapshot() ?? null
+        actionPromptDraftService.getDraft(action.id, context, run, { prepare: false }).edit('Sent request')
+        restartAction.mockImplementation(async (_runId, _action, _context, _runInput, onStarted) => {
+            onStarted('run-2')
+            return { logs: [], status: 'failed' }
+        })
+
+        await runPopupAction(operationInput(inputStore, settingsStore, conversationStore))
+
+        expect(currentActionPromptDraft(action, context, false).getSnapshot()).toBe('')
     })
 })

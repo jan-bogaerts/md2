@@ -323,6 +323,77 @@ describe('ActionAgentExecutor', () => {
         expect(agentRunnerService.start.mock.calls[0][1]).not.toHaveProperty('providerConversationId');
     });
 
+    it.each([
+        ['claude', 'codex', 'gpt-5.5'],
+        ['codex', 'claude', 'sonnet'],
+    ])('hands complete canonical transcript from %s to %s without sharing provider id', async (sourceAgent, selectedAgent, model) => {
+        const { agentRunnerService, executor, localGitService } = createExecutor();
+        const reference = 'design/activity/card__card-1.json#conversation=conversation-1';
+        const sourceConversation = conversation({
+            entries: [
+                { content: 'Original request', id: 'm1', kind: 'message', role: 'user', timestamp: '2026-01-01T00:00:00.000Z' },
+                { agent: sourceAgent, content: 'Original answer', id: 'm2', kind: 'message', role: 'assistant', timestamp: '2026-01-01T00:00:01.000Z' },
+            ],
+            providerSessions: [{
+                agent: sourceAgent,
+                conversationId: `${sourceAgent}-session`,
+                synchronizedThroughMessageId: 'm2',
+            }],
+        });
+        localGitService.loadAgentConversation.mockResolvedValueOnce(sourceConversation);
+
+        await executor.execute(executionInput({
+            action: { ...action, streaming: true },
+            runInput: { agent: selectedAgent, continueFrom: reference, model, prompt: 'Next request' },
+        }));
+
+        const request = agentRunnerService.start.mock.calls[0][1];
+        expect(request).toMatchObject({
+            agent: selectedAgent,
+            contextInput: expect.stringContaining('Original request'),
+            conversation: sourceConversation,
+            prompt: 'Next request',
+            reference,
+        });
+        expect(request.contextInput).toContain(`Assistant (${sourceAgent})`);
+        expect(request).not.toHaveProperty('providerConversationId');
+    });
+
+    it('switches back through saved provider cursor on same conversation reference', async () => {
+        const { agentRunnerService, executor, localGitService } = createExecutor();
+        const reference = 'design/activity/card__card-1.json#conversation=conversation-1';
+        const sourceConversation = conversation({
+            entries: [
+                { content: 'Original request', id: 'm1', kind: 'message', role: 'user', timestamp: '2026-01-01T00:00:00.000Z' },
+                { agent: 'claude', content: 'Claude answer', id: 'm2', kind: 'message', role: 'assistant', timestamp: '2026-01-01T00:00:01.000Z' },
+                { content: 'Codex request', id: 'm3', kind: 'message', role: 'user', timestamp: '2026-01-01T00:00:02.000Z' },
+                { agent: 'codex', content: 'Codex answer', id: 'm4', kind: 'message', role: 'assistant', timestamp: '2026-01-01T00:00:03.000Z' },
+            ],
+            providerSessions: [
+                { agent: 'claude', conversationId: 'claude-session', synchronizedThroughMessageId: 'm2' },
+                { agent: 'codex', conversationId: 'codex-session', synchronizedThroughMessageId: 'm4' },
+            ],
+        });
+        localGitService.loadAgentConversation.mockResolvedValueOnce(sourceConversation);
+
+        await executor.execute(executionInput({
+            action: { ...action, streaming: true },
+            runInput: { agent: 'claude', continueFrom: reference, model: 'sonnet', prompt: 'Back to Claude' },
+        }));
+
+        const request = agentRunnerService.start.mock.calls[0][1];
+        expect(request).toMatchObject({
+            agent: 'claude',
+            contextInput: expect.stringContaining('Codex request'),
+            conversation: sourceConversation,
+            providerConversationId: 'claude-session',
+            reference,
+        });
+        expect(request.contextInput).toContain('Codex answer');
+        expect(request.contextInput).not.toContain('Original request');
+        expect(request.command).toContain('claude-session');
+    });
+
     it('rejects conversation from another context card', async () => {
         const { agentRunnerService, executor, localGitService } = createExecutor();
         localGitService.loadAgentConversation.mockResolvedValueOnce(conversation({ cardInternalId: 'card-2' }));

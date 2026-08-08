@@ -130,6 +130,11 @@ describe('AgentRunnerService state handling', () => {
         expect(persistConversationCheckpoint).toHaveBeenCalledWith(expect.objectContaining({
             conversation: expect.objectContaining({
                 entries: [expect.objectContaining({ content: 'Done', kind: 'message' })],
+                providerSessions: [expect.objectContaining({
+                    agent: 'codex',
+                    conversationId: 'provider-1',
+                    synchronizedThroughMessageId: 'assistant-1',
+                })],
                 status: 'waitingForInput',
             }),
         }));
@@ -240,6 +245,122 @@ describe('AgentRunnerService state handling', () => {
             stderr: '',
         }));
         expect(terminateProcessTree).not.toHaveBeenCalled();
+    });
+
+    it('leaves persisted continuation unchanged when provider turn never starts', async () => {
+        const persistConversation = vi.fn(async () => undefined);
+        const service = new AgentRunnerService({ persistConversation });
+        const sourceConversation = {
+            entries: [{ content: 'Earlier answer', id: 'assistant-1', kind: 'message', role: 'assistant', timestamp: 'earlier' }],
+            id: 'conversation-1',
+            providerSessions: [],
+            status: 'completed',
+        };
+        const run = {
+            agent: 'codex',
+            cancelled: false,
+            changedPaths: new Set(),
+            child: { pid: 10 },
+            conversation: {
+                ...sourceConversation,
+                entries: [
+                    ...sourceConversation.entries,
+                    { content: 'Unsent request', id: 'user-2', kind: 'message', role: 'user', timestamp: 'now' },
+                ],
+                status: 'running',
+            },
+            currentAssistantMessageId: null,
+            finishing: false,
+            id: 'run-1',
+            missingSession: false,
+            onComplete: vi.fn(),
+            onEvent: vi.fn(),
+            persistence: Promise.resolve(),
+            protocolHandling: Promise.resolve(),
+            request: { conversation: sourceConversation },
+            startedAt: '2026-07-30T10:00:00.000Z',
+            stderr: 'provider startup failed',
+            stderrBuffer: '',
+            stdout: '',
+            streaming: true,
+            streamingFailure: new Error('provider startup failed'),
+            suspended: false,
+            termination: null,
+            turnStarted: false,
+            turnUsage: null,
+        };
+        service.processes.set('run-1', run);
+        service.runningConversationIds.add('conversation-1');
+
+        await service.handleClose('run-1', 1);
+
+        expect(persistConversation).not.toHaveBeenCalled();
+        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({
+            conversation: expect.objectContaining({ status: 'failed' }),
+            type: 'closed',
+        }));
+        expect(run.onComplete).toHaveBeenCalledWith(1, run);
+    });
+
+    it('persists earlier transcript and concrete failure after provider turn starts', async () => {
+        const persistConversation = vi.fn(async () => undefined);
+        const service = new AgentRunnerService({ persistConversation });
+        const sourceConversation = {
+            entries: [{ content: 'Earlier answer', id: 'assistant-1', kind: 'message', role: 'assistant', timestamp: 'earlier' }],
+            id: 'conversation-1',
+            providerSessions: [],
+            status: 'completed',
+        };
+        const run = {
+            agent: 'claude',
+            cancelled: false,
+            changedPaths: new Set(),
+            child: { pid: 10 },
+            conversation: {
+                ...sourceConversation,
+                entries: [
+                    ...sourceConversation.entries,
+                    { content: 'Sent request', id: 'user-2', kind: 'message', role: 'user', timestamp: 'now' },
+                    { content: 'Claude provider failed: quota exhausted', id: 'error-3', kind: 'event', timestamp: 'now', type: 'error' },
+                ],
+                status: 'running',
+            },
+            currentAssistantMessageId: null,
+            finishing: false,
+            id: 'run-1',
+            missingSession: false,
+            onComplete: vi.fn(),
+            onEvent: vi.fn(),
+            persistence: Promise.resolve(),
+            protocolHandling: Promise.resolve(),
+            request: { conversation: sourceConversation },
+            startedAt: '2026-07-30T10:00:00.000Z',
+            stderr: 'Claude provider failed: quota exhausted',
+            stderrBuffer: '',
+            stdout: '',
+            streaming: true,
+            streamingFailure: new Error('Claude provider failed: quota exhausted'),
+            suspended: false,
+            termination: null,
+            turnStarted: true,
+            turnUsage: null,
+        };
+        service.processes.set('run-1', run);
+        service.runningConversationIds.add('conversation-1');
+
+        await service.handleClose('run-1', 1);
+
+        expect(persistConversation).toHaveBeenCalledWith(expect.objectContaining({
+            conversation: expect.objectContaining({
+                entries: [
+                    expect.objectContaining({ id: 'assistant-1' }),
+                    expect.objectContaining({ content: 'Sent request', id: 'user-2' }),
+                    expect.objectContaining({ content: 'Claude provider failed: quota exhausted', type: 'error' }),
+                ],
+                id: 'conversation-1',
+                status: 'failed',
+            }),
+        }));
     });
 
     it('forces termination when graceful Finish exceeds its deadline', async () => {

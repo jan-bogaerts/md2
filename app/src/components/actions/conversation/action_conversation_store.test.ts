@@ -74,4 +74,29 @@ describe('ActionConversationStore', () => {
         expect(loadConversation).toHaveBeenCalledOnce()
         expect(store.getSnapshot().selectedConversation).toBeNull()
     })
+
+    it('refreshes selected conversation from persistence after a continued turn', async () => {
+        const originalConversation = conversation('conversation.json')
+        const continuedConversation = {
+            ...originalConversation,
+            entries: [{
+                content: 'New answer',
+                id: 'assistant-2',
+                kind: 'message' as const,
+                role: 'assistant' as const,
+                timestamp: '2026-01-01T00:02:00.000Z',
+            }],
+        }
+        vi.spyOn(dataService, 'listAgentConversations')
+            .mockResolvedValueOnce([originalConversation])
+            .mockResolvedValueOnce([continuedConversation])
+        vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(originalConversation)
+        const store = new ActionConversationStore('implement', context)
+        store.configureInitialSelection(originalConversation.path)
+        await store.load()
+
+        await store.load()
+
+        expect(store.getSnapshot().selectedConversation).toBe(continuedConversation)
+    })
 })

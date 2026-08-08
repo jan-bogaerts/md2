@@ -1202,6 +1202,126 @@ describe('ActionPopup', () => {
         expect(model).toBeEnabled()
     })
 
+    it('switches agent through restart while keeping one rendered conversation', async () => {
+        actionRunRegistry.stop()
+        let runListener: ((event: ActionRunEvent) => void) | null = null
+        const projectContext: ActionContext = { kind: 'project' }
+        const earlierConversation = agentConversation({
+            actionId: 'stream',
+            cardInternalId: null,
+            entries: [
+                { content: 'Original request', id: 'user-1', kind: 'message', role: 'user', timestamp: '2026-08-01T12:00:00.000Z' },
+                { agent: 'codex', content: 'Original answer', id: 'assistant-1', kind: 'message', role: 'assistant', timestamp: '2026-08-01T12:01:00.000Z' },
+            ],
+            path: 'design/activity/project.json#conversation=conversation-1',
+        })
+        const switchedConversation = {
+            ...earlierConversation,
+            completedAt: '2026-08-01T12:03:00.000Z',
+            entries: [
+                ...earlierConversation.entries,
+                { content: 'Continue with Claude', id: 'user-2', kind: 'message' as const, role: 'user' as const, timestamp: '2026-08-01T12:02:00.000Z' },
+                { agent: 'claude', content: 'Claude answer', id: 'assistant-2', kind: 'message' as const, role: 'assistant' as const, timestamp: '2026-08-01T12:03:00.000Z' },
+            ],
+            providerSessions: [
+                { agent: 'codex', conversationId: 'codex-session', createdAt: '2026-08-01T12:00:00.000Z', lastUsedAt: '2026-08-01T12:01:00.000Z', synchronizedThroughMessageId: 'assistant-1' },
+                { agent: 'claude', conversationId: 'claude-session', createdAt: '2026-08-01T12:02:00.000Z', lastUsedAt: '2026-08-01T12:03:00.000Z', synchronizedThroughMessageId: 'assistant-2' },
+            ],
+            status: 'completed' as const,
+        }
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([switchedConversation])
+        vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(earlierConversation)
+        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({
+            availability: {
+                error: null,
+                loading: false,
+                values: {
+                    claude: { available: true, error: null },
+                    codex: { available: true, error: null },
+                },
+            },
+            models: { error: null, loading: false, values: [] },
+            thinkingLevels: { error: null, loading: false, values: [] },
+        })
+        const restartActionRun = vi.fn(async () => {
+            const oldEvent = {
+                actionId: 'stream', actionType: 'agent' as const, autoFinish: null, context: projectContext,
+                interactionReady: true, phase: 'main' as const, rootActionId: 'stream', runId: 'run-1', streaming: true,
+            }
+            const newEvent = { ...oldEvent, runId: 'run-2' }
+            runListener?.({ ...oldEvent, status: 'completed', type: 'run' })
+            runListener?.({ ...newEvent, status: 'running', type: 'run' })
+            runListener?.({
+                ...newEvent,
+                status: 'running',
+                type: 'update',
+                update: { continued: true, conversation: switchedConversation, kind: 'agentStarted' },
+            })
+            runListener?.({
+                ...newEvent,
+                status: 'completed',
+                type: 'update',
+                update: { conversation: switchedConversation, kind: 'agentClosed' },
+            })
+            runListener?.({ ...newEvent, status: 'completed', type: 'run' })
+
+            return 'run-2'
+        })
+        window.md2Actions = {
+            loadActionRunHistory: vi.fn(async () => []),
+            onActionRun: vi.fn((listener) => {
+                runListener = listener
+                return vi.fn()
+            }),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
+            restartActionRun,
+            startAction: vi.fn(async () => 'unused'),
+        } as unknown as typeof window.md2Actions
+        actionRunRegistry.start()
+        actionService.loadFromFiles([file(agentDefinition('stream', { agent: 'codex', label: 'Stream', streaming: true }))])
+        renderPopup(projectContext)
+        await waitFor(() => expect(runListener).not.toBeNull())
+        const eventBase = {
+            actionId: 'stream', actionType: 'agent' as const, autoFinish: null, context: projectContext,
+            interactionReady: true, phase: 'main' as const, rootActionId: 'stream', runId: 'run-1', streaming: true,
+        }
+        act(() => {
+            runListener?.({ ...eventBase, status: 'running', type: 'run' })
+            runListener?.({
+                ...eventBase,
+                status: 'running',
+                type: 'update',
+                update: { continued: false, conversation: earlierConversation, kind: 'agentStarted' },
+            })
+            runListener?.({ ...eventBase, status: 'waitingForInput', type: 'agentState' })
+        })
+        await waitFor(() => expect(screen.getByText('Original answer')).toBeInTheDocument())
+
+        fireEvent.mouseDown(screen.getByLabelText('Agent'))
+        fireEvent.click(await screen.findByRole('option', { name: 'claude' }))
+        const activeRun = actionRunRegistry.getActionRunStore('stream', projectContext)?.getSnapshot()
+        if (!activeRun) throw new Error('Expected active stream run')
+        act(() => actionPromptDraftService.getDraft('stream', projectContext, activeRun, { prepare: false }).edit('Continue with Claude'))
+        fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+
+        await waitFor(() => expect(restartActionRun).toHaveBeenCalledWith(
+            'run-1',
+            expect.objectContaining({
+                actionId: 'stream',
+                runInput: expect.objectContaining({
+                    agent: 'claude',
+                    continueFrom: earlierConversation.path,
+                    prompt: 'Continue with Claude',
+                }),
+            }),
+        ))
+        await waitFor(() => expect(screen.getByText('Claude answer')).toBeInTheDocument())
+        expect(screen.getAllByText('Original request')).toHaveLength(1)
+        expect(screen.getAllByText('Original answer')).toHaveLength(1)
+        expect(screen.getAllByText('Continue with Claude')).toHaveLength(1)
+        expect(screen.getAllByText('Claude answer')).toHaveLength(1)
+    })
+
     it('disables selectors during saved-settings load', async () => {
         const cardContext = { ...context, cardInternalId: 'card-1' }
         const activity = deferredValue<{
