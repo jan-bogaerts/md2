@@ -3,7 +3,7 @@ author:
 id: F_164
 internalId: 1282901d-fbea-459b-92ab-6d82708948df
 title: card popups should behave like action popups
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

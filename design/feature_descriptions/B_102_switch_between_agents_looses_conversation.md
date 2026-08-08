@@ -3,7 +3,7 @@ author:
 id: B_102
 internalId: 3616573b-1a04-4f9f-aa5c-88ae92cb1188
 title: switch between agents looses conversation
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
