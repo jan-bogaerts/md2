@@ -641,6 +641,74 @@ describe('ActionPopup', () => {
         expect(prepareActionPrompt).toHaveBeenCalledOnce()
     })
 
+    it('prefills the stored prompt for a new empty conversation', async () => {
+        const prepareActionPrompt = vi.fn(async () => ({ prompt: 'Stored prompt' }))
+        window.md2Actions = {
+            onActionRun: vi.fn(() => vi.fn()),
+            prepareActionPrompt,
+        } as unknown as typeof window.md2Actions
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([])
+        actionService.loadFromFiles([file(agentDefinition('review', { label: 'Review' }))])
+
+        renderPopup({ ...context, cardInternalId: 'card-1' })
+
+        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
+        await waitFor(() => expect(prompt).toHaveValue('Stored prompt'))
+        expect(prepareActionPrompt).toHaveBeenCalledOnce()
+    })
+
+    it('keeps the prompt empty after automatically selecting the newest unseen conversation', async () => {
+        const historicalContext = { ...context, cardInternalId: 'card-1' }
+        const olderUnseenConversation = agentConversation({
+            actionId: 'review',
+            completedAt: '2026-08-01T12:01:00.000Z',
+            id: 'conversation-older',
+            path: 'conversation-older.json',
+            startedAt: '2026-08-01T12:00:00.000Z',
+            status: 'completed',
+            title: 'Older unseen review',
+            viewed: false,
+        })
+        const newestUnseenConversation = agentConversation({
+            actionId: 'review',
+            completedAt: '2026-08-02T12:01:00.000Z',
+            id: 'conversation-newest',
+            path: 'conversation-newest.json',
+            startedAt: '2026-08-02T12:00:00.000Z',
+            status: 'completed',
+            title: 'Newest unseen review',
+            viewed: false,
+        })
+        const preparedPrompt = deferredValue<{ prompt: string }>()
+        const prepareActionPrompt = vi.fn(() => preparedPrompt.promise)
+        window.md2Actions = {
+            onActionRun: vi.fn(() => vi.fn()),
+            prepareActionPrompt,
+        } as unknown as typeof window.md2Actions
+        vi.spyOn(dataService.agents, 'getAgentConversations').mockReturnValue([
+            olderUnseenConversation,
+            newestUnseenConversation,
+        ])
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([
+            olderUnseenConversation,
+            newestUnseenConversation,
+        ])
+        const loadConversation = vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(newestUnseenConversation)
+        actionService.loadFromFiles([file(agentDefinition('review', { label: 'Review' }))])
+
+        renderPopup(historicalContext)
+
+        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
+        await waitFor(() => expect(loadConversation).toHaveBeenCalledWith(newestUnseenConversation.path))
+        await act(async () => {
+            preparedPrompt.resolve({ prompt: 'Stored prompt' })
+            await preparedPrompt.promise
+        })
+
+        expect(prompt).toHaveValue('')
+        expect(prepareActionPrompt).toHaveBeenCalledOnce()
+    })
+
     it('keeps the prompt empty when selecting a completed historical conversation', async () => {
         const historicalContext = { ...context, cardInternalId: 'card-1' }
         const historicalConversation: AgentConversation = {

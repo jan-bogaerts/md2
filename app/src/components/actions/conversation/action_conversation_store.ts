@@ -114,9 +114,7 @@ export class ActionConversationStore {
                 }
             }
             this.setSnapshot({ conversations, loading: false, selectedConversation })
-            if (selectedConversation?.status === 'waitingForInput') {
-                actionPromptDraftService.clearDraft(this.actionId, this.context, null)
-            }
+            if (selectedConversation) actionPromptDraftService.clearDraft(this.actionId, this.context, null)
         } catch (error) {
             if (request !== this.loadRequest) return
 
