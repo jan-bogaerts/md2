@@ -10,7 +10,6 @@ agents:
   - design/activity/card__3913c1ee-9bd7-40df-bfae-1f0188881b8f.json#conversation=agent-0449be31-8b47-408e-9b6d-742a59d6f49a
 policy:
 branch: f_160_unify_agent_permission_modes
-worktree: 1
 ---
 
 Replace the separate access-level and approval-policy controls with one provider-independent `permissionMode`. Users choose the intended security behavior; MD² owns the Codex and Claude command-line mappings in code.

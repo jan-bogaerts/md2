@@ -11,8 +11,6 @@ agents:
   - design/activity/card__51db4329-b855-4084-9e87-a50d3ce8eb6e.json#conversation=agent-c7a32476-b279-48f9-b81d-6afbd666b3cf
 policy:
 after: 3913c1ee-9bd7-40df-bfae-1f0188881b8f
-branch: b_104_wrong_prefill_of_input_box_on_action_popup
-worktree: 2
 ---
 
 We already looked at this in the card `design/releases/0_1_0/B_97_when_action_completes_dont_autofill_the_input_again.md` but apparently this was not yet fixed correctly.
