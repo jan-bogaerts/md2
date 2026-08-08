@@ -2491,11 +2491,11 @@
         "agent-a59bcab4-087e-4d82-9468-ff52b1b9411f"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-67852c51-cfb7-454f-9cfa-e8ecbed00900",
       "origin": {
@@ -2504,9 +2504,35 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-a59bcab4-087e-4d82-9468-ff52b1b9411f",
       "startedAt": "2026-08-08T18:07:18.773Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-a59bcab4-087e-4d82-9468-ff52b1b9411f"
+    },
+    {
+      "commits": [
+        {
+          "commit": "1773904610a97936792b3479c7dfa80678f8d371",
+          "committedAt": "2026-08-08T20:26:06+02:00",
+          "deletions": 59,
+          "filePaths": [
+            "app/src/services/agents/agent_integration.test.ts",
+            "app/src/services/agents/agent_integration.ts",
+            "app/src/services/data/data_service.test.ts",
+            "app/src/services/data/data_service.ts",
+            "app/src/services/test_support/data_service_test_support.ts"
+          ],
+          "filesChanged": 5,
+          "insertions": 364,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-08T20:26:06+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "705b887c-4aac-4558-bfef-a5cb965f8719",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
