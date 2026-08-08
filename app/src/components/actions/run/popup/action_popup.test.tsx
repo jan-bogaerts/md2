@@ -292,6 +292,17 @@ describe('ActionPopup', () => {
         expect(renderProbes.agentPrompt).toHaveBeenCalledWith(stackPosition)
     })
 
+    it('renders agent selectors only in the popup bottom row', () => {
+        actionService.loadFromFiles([file(agentDefinition('review', { label: 'Review' }))])
+
+        renderPopup()
+
+        const scrollBody = screen.getByTestId('action-popup-scroll-body')
+        const bottomRow = screen.getByTestId('action-popup-bottom-row')
+        expect(within(scrollBody).queryByRole('group', { name: 'Agent settings' })).not.toBeInTheDocument()
+        expect(within(bottomRow).getByRole('group', { name: 'Agent settings' })).toBeInTheDocument()
+    })
+
     it('shows Project in the project popup header and accessible title', () => {
         renderPopup({ kind: 'project' })
 
@@ -810,7 +821,7 @@ describe('ActionPopup', () => {
     })
 
     it('places accessible worktree and window controls above the action selector', () => {
-        renderPopup()
+        renderPopup({ ...context, cardInternalId: 'card-1' })
 
         const toolbar = screen.getByTestId('action-popup-toolbar')
         expect(within(toolbar).getByRole('button', { name: 'Primary worktree' })).toBeInTheDocument()
@@ -822,7 +833,7 @@ describe('ActionPopup', () => {
 
     it('delegates card assignment to the worktree preparation workflow', async () => {
         const setCardWorktree = vi.spyOn(worktreeService, 'setCardWorktree').mockResolvedValue(undefined)
-        renderPopup()
+        renderPopup({ ...context, cardInternalId: 'card-1' })
 
         fireEvent.click(screen.getByRole('button', { name: 'Primary worktree' }))
         fireEvent.click(screen.getByRole('menuitem', { name: /1 — C:\\feature/u }))
@@ -833,7 +844,7 @@ describe('ActionPopup', () => {
     it('keeps card selection and reports the error when worktree preparation fails', async () => {
         vi.spyOn(worktreeService, 'setCardWorktree').mockRejectedValue(new Error('preparation failed'))
         const reportError = vi.spyOn(dialogService, 'error')
-        renderPopup()
+        renderPopup({ ...context, cardInternalId: 'card-1' })
 
         fireEvent.click(screen.getByRole('button', { name: 'Primary worktree' }))
         fireEvent.click(screen.getByRole('menuitem', { name: /1 — C:\\feature/u }))
@@ -1297,8 +1308,8 @@ describe('ActionPopup', () => {
         })
         await waitFor(() => expect(screen.getByText('Original answer')).toBeInTheDocument())
 
-        fireEvent.mouseDown(screen.getByLabelText('Agent'))
-        fireEvent.click(await screen.findByRole('option', { name: 'claude' }))
+        fireEvent.click(screen.getByLabelText('Model'))
+        fireEvent.click(await screen.findByRole('menuitem', { name: 'claude' }))
         const activeRun = actionRunRegistry.getActionRunStore('stream', projectContext)?.getSnapshot()
         if (!activeRun) throw new Error('Expected active stream run')
         act(() => actionPromptDraftService.getDraft('stream', projectContext, activeRun, { prepare: false }).edit('Continue with Claude'))
@@ -1344,10 +1355,10 @@ describe('ActionPopup', () => {
         actionService.loadFromFiles([file(agentDefinition('review', { agent: 'codex', label: 'Review' }))])
 
         renderPopup(cardContext)
-        expect(screen.getByLabelText('Model')).toHaveAttribute('aria-disabled', 'true')
+        expect(screen.getByLabelText('Model')).toBeDisabled()
 
         activity.resolve({actionSettings: {}, conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 4})
-        await waitFor(() => expect(screen.getByLabelText('Model')).not.toHaveAttribute('aria-disabled', 'true'))
+        await waitFor(() => expect(screen.getByLabelText('Model')).toBeEnabled())
     })
 
     it('persists complete settings across close and renderer-store restart without rendering popup roots', async () => {
@@ -1381,11 +1392,11 @@ describe('ActionPopup', () => {
         })
         actionService.loadFromFiles([file(agentDefinition('review', { agent: 'codex', label: 'Review' }))])
         renderPopup(cardContext)
-        await waitFor(() => expect(screen.getByLabelText('Model')).not.toHaveAttribute('aria-disabled', 'true'))
+        await waitFor(() => expect(screen.getByLabelText('Model')).toBeEnabled())
         Object.values(renderProbes).forEach((probe) => probe.mockClear())
 
-        fireEvent.mouseDown(screen.getByLabelText('Model'))
-        fireEvent.click(screen.getByRole('option', { name: 'gpt-5.6-sol' }))
+        fireEvent.click(screen.getByLabelText('Model'))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'gpt-5.6-sol' }))
         await waitFor(() => expect(updateCardActionSettings).toHaveBeenCalledWith({
             actionId: 'review',
             cardInternalId: 'card-1',
@@ -1428,14 +1439,14 @@ describe('ActionPopup', () => {
             file(agentDefinition('second-agent', { agent: 'codex', label: 'Second agent' })),
         ])
         renderPopup(cardContext)
-        await waitFor(() => expect(screen.getByLabelText('Model')).not.toHaveAttribute('aria-disabled', 'true'))
+        await waitFor(() => expect(screen.getByLabelText('Model')).toBeEnabled())
 
-        fireEvent.mouseDown(screen.getByLabelText('Model'))
-        fireEvent.click(screen.getByRole('option', { name: 'gpt-5.6-sol' }))
+        fireEvent.click(screen.getByLabelText('Model'))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'gpt-5.6-sol' }))
         fireEvent.click(screen.getByRole('button', { name: 'Second agent' }))
         await waitFor(() => expect(screen.getByLabelText('Model')).toHaveTextContent('gpt-5.5'))
-        fireEvent.mouseDown(screen.getByLabelText('Model'))
-        fireEvent.click(screen.getByRole('option', { name: 'gpt-5.6-terra' }))
+        fireEvent.click(screen.getByLabelText('Model'))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'gpt-5.6-terra' }))
 
         fireEvent.click(screen.getByRole('button', { name: 'First agent' }))
         await waitFor(() => expect(screen.getByLabelText('Model')).toHaveTextContent('gpt-5.6-sol'))
@@ -1464,8 +1475,7 @@ describe('ActionPopup', () => {
 
         renderPopup(cardContext)
 
-        await waitFor(() => expect(screen.getByLabelText('Agent')).toHaveTextContent('codex'))
-        expect(screen.getByLabelText('Model')).toHaveTextContent('gpt-5.5')
+        await waitFor(() => expect(screen.getByLabelText('Model')).toHaveTextContent('gpt-5.5 none'))
         expect(updateCardActionSettings).not.toHaveBeenCalled()
     })
 

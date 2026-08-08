@@ -24,6 +24,7 @@ import { ActionUsageSummaryOwner } from './action_usage_summary_owner'
 import { useActionRunSettings } from '../../shared/use_action_run_settings'
 import { ActionPopupFinishButton } from './action_popup_finish_button'
 import type { ActionUsageScopeStore } from './action_usage_scope_store'
+import { ActionAgentSelectors } from '../../agent/action_agent_selectors'
 
 interface ActionPopupBottomRowProps {
     action: ActionDefinition
@@ -38,7 +39,7 @@ interface ActionPopupBottomRowProps {
     usageScopeStore: ActionUsageScopeStore
 }
 
-/** Run controls; subscribes only to run and prompt values used by this row. */
+/** Agent settings, usage, and run controls for the popup footer. */
 export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
     const {
         action, assignmentContext, conversationStore, historyStore, inputStore, resultStore,
@@ -111,66 +112,85 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
     const handleToggleSchedule = () => scheduleStore.toggle()
 
     return (
-        <Box sx={{ alignItems: 'center', bgcolor: 'background.default', borderTop: 1, borderColor: 'divider', display: 'flex', flexShrink: 0, gap: 1, px: 2, py: 1.5 }}>
-            <ActionUsageSummaryOwner
-                action={action}
-                context={assignmentContext}
-                conversationStore={conversationStore}
-                historyStore={historyStore}
-                scopeStore={usageScopeStore}
-            />
-            <Box sx={{ flex: 1 }} />
-            {showFinish ? (
-                <ActionPopupFinishButton
-                    disabled={!settings.backendAvailable || (sessionActive && !interactionReady)}
-                    onFinish={handleFinish}
-                    onStop={handleCancel}
+        <Box
+            data-testid="action-popup-bottom-row"
+            sx={{
+                alignItems: 'center', bgcolor: 'background.default', borderTop: 1, borderColor: 'divider',
+                containerType: 'inline-size', display: 'grid', flexShrink: 0, gap: 1,
+                gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)', px: 2, py: 1.5,
+                '@container (max-width: 420px)': {
+                    gridTemplateColumns: 'minmax(0, 1fr) auto',
+                    '& [data-footer-usage]': { gridColumn: '1 / -1', gridRow: 2 },
+                },
+            }}
+        >
+            <Box data-footer-selectors sx={{ justifySelf: 'start', minWidth: 0, overflow: 'hidden' }}>
+                {action.type === 'agent' ? (
+                    <ActionAgentSelectors action={action} context={assignmentContext} settingsStore={settingsStore} />
+                ) : null}
+            </Box>
+            <Box data-footer-usage sx={{ justifySelf: 'center', minWidth: 0 }}>
+                <ActionUsageSummaryOwner
+                    action={action}
+                    context={assignmentContext}
+                    conversationStore={conversationStore}
+                    historyStore={historyStore}
+                    scopeStore={usageScopeStore}
                 />
-            ) : null}
-            {showSchedule ? (
-                <Tooltip title="Schedule">
-                    <span>
-                        <IconButton
-                            aria-label="Schedule"
-                            disabled={!settings.backendAvailable}
-                            onClick={handleToggleSchedule}
+            </Box>
+            <Box data-footer-controls sx={{ alignItems: 'center', display: 'flex', gap: 1, justifySelf: 'end' }}>
+                {showFinish ? (
+                    <ActionPopupFinishButton
+                        disabled={!settings.backendAvailable || (sessionActive && !interactionReady)}
+                        onFinish={handleFinish}
+                        onStop={handleCancel}
+                    />
+                ) : null}
+                {showSchedule ? (
+                    <Tooltip title="Schedule">
+                        <span>
+                            <IconButton
+                                aria-label="Schedule"
+                                disabled={!settings.backendAvailable}
+                                onClick={handleToggleSchedule}
+                                size="small"
+                            >
+                                <CalendarOutline sx={{ fontSize: 18 }} />
+                            </IconButton>
+                        </span>
+                    </Tooltip>
+                ) : null}
+                {showAgentSend ? (
+                    <Tooltip title="Send">
+                        <span>
+                            <IconButton aria-label="Send" color="primary" disabled={runDisabled} onClick={handlePrimaryRun} size="small">
+                                <ArrowUpwardOutlined sx={{ fontSize: 18 }} />
+                            </IconButton>
+                        </span>
+                    </Tooltip>
+                ) : showCommandRun ? (
+                    <Tooltip title="Run">
+                        <Button
+                            disabled={runDisabled}
+                            onClick={handlePrimaryRun}
                             size="small"
+                            startIcon={<Play sx={{ fontSize: '13px !important' }} />}
+                            sx={{ height: 34, px: 2 }}
+                            variant="contained"
                         >
-                            <CalendarOutline sx={{ fontSize: 18 }} />
-                        </IconButton>
-                    </span>
-                </Tooltip>
-            ) : null}
-            {showAgentSend ? (
-                <Tooltip title="Send">
-                    <span>
-                        <IconButton aria-label="Send" color="primary" disabled={runDisabled} onClick={handlePrimaryRun} size="small">
-                            <ArrowUpwardOutlined sx={{ fontSize: 18 }} />
-                        </IconButton>
-                    </span>
-                </Tooltip>
-            ) : showCommandRun ? (
-                <Tooltip title="Run">
-                    <Button
-                        disabled={runDisabled}
-                        onClick={handlePrimaryRun}
-                        size="small"
-                        startIcon={<Play sx={{ fontSize: '13px !important' }} />}
-                        sx={{ height: 34, px: 2 }}
-                        variant="contained"
-                    >
-                        Run
-                    </Button>
-                </Tooltip>
-            ) : showStop ? (
-                <Tooltip title="Stop">
-                    <span>
-                        <IconButton aria-label="Stop" disabled={!settings.backendAvailable} onClick={handleCancel} size="small">
-                            <StopOutlined sx={{ fontSize: 18 }} />
-                        </IconButton>
-                    </span>
-                </Tooltip>
-            ) : null}
+                            Run
+                        </Button>
+                    </Tooltip>
+                ) : showStop ? (
+                    <Tooltip title="Stop">
+                        <span>
+                            <IconButton aria-label="Stop" disabled={!settings.backendAvailable} onClick={handleCancel} size="small">
+                                <StopOutlined sx={{ fontSize: 18 }} />
+                            </IconButton>
+                        </span>
+                    </Tooltip>
+                ) : null}
+            </Box>
         </Box>
     )
 }

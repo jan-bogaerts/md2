@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CUSTOM_PROMPT_ACTION_ID, type ActionDefinition } from '../../../../data/action_types'
 import type { AgentConversation } from '../../../../data/data_types'
@@ -98,6 +98,22 @@ describe('ActionPopupBottomRow', () => {
         delete window.md2Actions
         cleanup()
         vi.restoreAllMocks()
+    })
+
+    it('lays out agent selectors left, usage centered, and run controls right in overflow-safe groups', () => {
+        renderBottomRow()
+        const bottomRow = screen.getByTestId('action-popup-bottom-row')
+        const [selectors, usage, controls] = Array.from(bottomRow.children)
+
+        expect(bottomRow).toHaveStyle({display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)'})
+        expect(selectors).toHaveAttribute('data-footer-selectors')
+        expect(selectors).toHaveStyle({ minWidth: '0', overflow: 'hidden' })
+        expect(within(selectors as HTMLElement).getByRole('group', { name: 'Agent settings' })).toBeInTheDocument()
+        expect(usage).toHaveAttribute('data-footer-usage')
+        expect(usage).toHaveStyle({ justifySelf: 'center', minWidth: '0' })
+        expect(controls).toHaveAttribute('data-footer-controls')
+        expect(controls).toHaveStyle({ justifySelf: 'end' })
+        expect(within(controls as HTMLElement).getByRole('button', { name: 'Send' })).toBeInTheDocument()
     })
 
     it('enables Send from first live prompt change without rendering unrelated content', () => {

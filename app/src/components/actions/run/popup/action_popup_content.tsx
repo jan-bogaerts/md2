@@ -16,7 +16,6 @@ import { ActionAgentApprovals } from '../../agent/action_agent_approvals'
 import { ActionAgentInteractionVisibility } from '../../agent/action_agent_interaction_visibility'
 import { ActionAgentPromptOwner } from '../../agent/action_agent_prompt_owner'
 import { ActionAgentQuestionOwner } from '../../agent/action_agent_question_owner'
-import { ActionAgentSelectorsOwner } from '../../agent/action_agent_selectors_owner'
 import { ActionConversationChatOwner } from '../../conversation/action_conversation_chat_owner'
 import { ActionConversationPickerOwner } from '../../conversation/action_conversation_picker_owner'
 import { ActionConversationStore } from '../../conversation/action_conversation_store'
@@ -264,16 +263,7 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                     <Stack data-testid="action-popup-scroll-body" spacing={2} sx={{ flex: 1, minHeight: 0, overflow: 'auto', px: 1.5, py: 1 }}>
                         <ActionAgentInteractionVisibility action={action} context={assignmentContext}>
                             <Stack spacing={1} sx={{ flex: 1, minHeight: 0 }}>
-                                <Box sx={{ alignItems: 'center', color: 'text.secondary', display: 'flex', flexWrap: 'wrap', fontSize: 12, gap: 0.75 }}>
-                                    {action.type === 'agent' ? (
-                                        <ActionAgentSelectorsOwner
-                                            action={action}
-                                            context={assignmentContext}
-                                            settingsStore={settingsStore}
-                                        />
-                                    ) : null}
-                                    <ActionLogErrorOwner actionId={action.id} context={assignmentContext} resultStore={resultStore} />
-                                </Box>
+                                <ActionLogErrorOwner actionId={action.id} context={assignmentContext} resultStore={resultStore} />
                                 <ActionConversationChatOwner
                                     actionId={action.id}
                                     context={assignmentContext}
