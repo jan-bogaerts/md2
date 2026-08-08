@@ -872,7 +872,7 @@ describe('ActionPopup', () => {
         }))
     })
 
-    it('shows uniform icon-only Send, Finish, and Stop controls while waiting', async () => {
+    it('shows Finish, Schedule, and Send while waiting with input, and normal Finish completes conversation', async () => {
         actionRunRegistry.stop()
         let runListener: ((event: ActionRunEvent) => void) | null = null
         const finishActionRun = vi.fn(async () => undefined)
@@ -906,9 +906,16 @@ describe('ActionPopup', () => {
             runListener?.({ ...eventBase, status: 'waitingForInput', type: 'agentState' })
         })
 
-        expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Finish' })).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'Stop' })).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Stop' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Schedule' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Send' })).not.toBeInTheDocument()
+
+        const activeRun = actionRunRegistry.getActionRunStore('stream', context)?.getSnapshot()
+        if (!activeRun) throw new Error('Expected active stream run')
+        act(() => actionPromptDraftService.getDraft('stream', context, activeRun, { prepare: false }).edit('Continue'))
+        expect(screen.getByRole('button', { name: 'Schedule' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Finish' }))
         await waitFor(() => expect(finishActionRun).toHaveBeenCalledWith('run-1'))
     })
@@ -1374,7 +1381,8 @@ describe('ActionPopup', () => {
             })
         })
 
-        expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Send' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Schedule' })).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Stop' })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: 'Finish' })).not.toBeInTheDocument()
     })
@@ -1449,6 +1457,8 @@ describe('ActionPopup', () => {
         expect(screen.getByRole('button', { name: /Queued agent.*Action is queued/u })).toBeInTheDocument()
         const stopButton = screen.getByRole('button', { name: 'Stop' })
         expect(stopButton).toBeEnabled()
+        fireEvent.mouseOver(stopButton)
+        expect(await screen.findByText('Stop', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()
         fireEvent.click(stopButton)
         await waitFor(() => expect(cancelActionRun).toHaveBeenCalledWith('run-1'))
     })
@@ -1488,9 +1498,10 @@ describe('ActionPopup', () => {
             })
         })
 
-        expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Send' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Schedule' })).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Finish' })).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'Stop' })).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Stop' })).not.toBeInTheDocument()
     })
 
     it('blocks a needsWorkTree action without assignment and reports the reason', async () => {

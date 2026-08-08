@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CUSTOM_PROMPT_ACTION_ID, type ActionDefinition } from '../../../../data/action_types'
 import type { AgentConversation } from '../../../../data/data_types'
@@ -89,6 +89,7 @@ describe('ActionPopupBottomRow', () => {
     })
 
     afterEach(() => {
+        vi.useRealTimers()
         actionPromptDraftService.clearAll()
         actionRunRegistry.stop()
         delete window.md2Actions
@@ -121,13 +122,61 @@ describe('ActionPopupBottomRow', () => {
         expect(send).toBeDisabled()
     })
 
-    it.each([
-        { actionId: CUSTOM_PROMPT_ACTION_ID, label: 'Custom prompt', status: 'completed' as const, terminalButton: 'Finish' },
-        { actionId: 'review', label: 'Review', status: 'cancelled' as const, terminalButton: 'Stop' },
-    ])('closes reloaded waiting $label conversation with orphan controls', async (scenario) => {
-        const selectedAction = { ...action, id: scenario.actionId, label: scenario.label }
-        const source = waitingConversation(selectedAction.id)
-        const updated = { ...source, completedAt: '2026-08-04T10:30:00.000Z', status: scenario.status }
+    it('updates persisted waiting controls from trimmed live prompt without rendering unrelated content', async () => {
+        const source = waitingConversation(action.id)
+        window.md2Actions = {
+            closeWaitingActionConversation: vi.fn(),
+            onActionRun: vi.fn(() => vi.fn()),
+        } as unknown as typeof window.md2Actions
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([source])
+        const conversationStore = new ActionConversationStore(action.id, context)
+        await conversationStore.load()
+        const promptDraft = actionPromptDraftService.getDraft(action.id, context, null, { prepare: false })
+        const { unrelatedRender } = renderBottomRow(action, conversationStore)
+
+        expect(screen.getByRole('button', { name: 'Finish' })).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Stop' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Schedule' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Send' })).not.toBeInTheDocument()
+
+        act(() => promptDraft.edit('   '))
+        expect(screen.queryByRole('button', { name: 'Schedule' })).not.toBeInTheDocument()
+        act(() => promptDraft.edit('Continue'))
+        expect(screen.getByRole('button', { name: 'Schedule' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument()
+        expect(unrelatedRender).toHaveBeenCalledTimes(1)
+        act(() => promptDraft.edit(''))
+        expect(screen.queryByRole('button', { name: 'Schedule' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Send' })).not.toBeInTheDocument()
+    })
+
+    it('renders icon-only Schedule and exposes descriptive tooltips for idle controls', async () => {
+        actionPromptDraftService.getDraft(action.id, context, null, { prepare: false }).edit('Plan')
+        renderBottomRow()
+        const schedule = screen.getByRole('button', { name: 'Schedule' })
+
+        expect(schedule).toHaveTextContent('')
+        expect(schedule.querySelector('svg')).not.toBeNull()
+        fireEvent.mouseOver(schedule)
+        expect(await screen.findByText('Schedule', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()
+        fireEvent.mouseLeave(schedule)
+        await waitFor(() => expect(screen.queryByText('Schedule', { selector: '.MuiTooltip-tooltip' })).not.toBeInTheDocument())
+        fireEvent.mouseOver(screen.getByRole('button', { name: 'Send' }))
+        expect(await screen.findByText('Send', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()
+    })
+
+    it('provides a tooltip for command Run', async () => {
+        const commandAction = { ...action, id: 'command', label: 'Command', type: 'command' as const }
+        renderBottomRow(commandAction)
+        const run = screen.getByRole('button', { name: 'Run' })
+
+        fireEvent.mouseOver(run)
+        expect(await screen.findByText('Run', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()
+    })
+
+    it('finishes a persisted waiting conversation on normal Finish click', async () => {
+        const source = waitingConversation(action.id)
+        const updated = { ...source, completedAt: '2026-08-04T10:30:00.000Z', status: 'completed' as const }
         const closeWaitingActionConversation = vi.fn(async () => updated)
         window.md2Actions = {
             closeWaitingActionConversation,
@@ -135,24 +184,90 @@ describe('ActionPopupBottomRow', () => {
         } as unknown as typeof window.md2Actions
         const updateCardConversation = vi.spyOn(dataService.agents, 'updateAgentConversation').mockImplementation(() => undefined)
         vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([source])
-        const conversationStore = new ActionConversationStore(selectedAction.id, context)
+        const conversationStore = new ActionConversationStore(action.id, context)
         await conversationStore.load()
-        const promptDraft = actionPromptDraftService.getDraft(selectedAction.id, context, null, { prepare: false })
-        promptDraft.edit('Continue')
+        renderBottomRow(action, conversationStore)
 
-        renderBottomRow(selectedAction, conversationStore)
-
-        expect(screen.getByRole('button', { name: 'Send' })).toBeEnabled()
-        expect(screen.getByRole('button', { name: 'Finish' })).toBeEnabled()
-        expect(screen.getByRole('button', { name: 'Stop' })).toBeEnabled()
-        fireEvent.click(screen.getByRole('button', { name: scenario.terminalButton }))
-        await vi.waitFor(() => expect(closeWaitingActionConversation).toHaveBeenCalledWith(source.path, scenario.status))
+        fireEvent.click(screen.getByRole('button', { name: 'Finish' }))
+        await vi.waitFor(() => expect(closeWaitingActionConversation).toHaveBeenCalledWith(source.path, 'completed'))
         expect(conversationStore.getSnapshot().selectedConversation).toEqual(updated)
         expect(updateCardConversation).toHaveBeenCalledWith(updated)
-        await vi.waitFor(() => {
-            expect(screen.queryByRole('button', { name: 'Finish' })).not.toBeInTheDocument()
-            expect(screen.queryByRole('button', { name: 'Stop' })).not.toBeInTheDocument()
-        })
+        await vi.waitFor(() => expect(screen.queryByRole('button', { name: 'Finish' })).not.toBeInTheDocument())
+    })
+
+    it.each([
+        { outcome: 'Stop sequence', status: 'cancelled' as const },
+        { outcome: 'Continue sequence', status: 'completed' as const },
+    ])('requires Ctrl+click confirmation before $outcome', async ({ outcome, status }) => {
+        const source = waitingConversation(action.id)
+        const updated = { ...source, completedAt: '2026-08-04T10:30:00.000Z', status }
+        const closeWaitingActionConversation = vi.fn(async () => updated)
+        window.md2Actions = {
+            closeWaitingActionConversation,
+            onActionRun: vi.fn(() => vi.fn()),
+        } as unknown as typeof window.md2Actions
+        vi.spyOn(dataService.agents, 'updateAgentConversation').mockImplementation(() => undefined)
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([source])
+        const conversationStore = new ActionConversationStore(action.id, context)
+        await conversationStore.load()
+        renderBottomRow(action, conversationStore)
+
+        const finish = screen.getByRole('button', { name: 'Finish' })
+        fireEvent.mouseOver(finish)
+        expect(await screen.findByText(/Ctrl\+click or long press to stop sequence/u, { selector: '.MuiTooltip-tooltip' }))
+            .toBeInTheDocument()
+        fireEvent.click(finish, { ctrlKey: true })
+
+        expect(screen.getByRole('dialog', { name: 'Stop action sequence?' })).toBeInTheDocument()
+        expect(closeWaitingActionConversation).not.toHaveBeenCalled()
+        fireEvent.click(screen.getByRole('button', { name: outcome }))
+        await vi.waitFor(() => expect(closeWaitingActionConversation).toHaveBeenCalledWith(source.path, status))
+    })
+
+    it('opens confirmation after long press and suppresses release click', async () => {
+        const source = waitingConversation(action.id)
+        const closeWaitingActionConversation = vi.fn()
+        window.md2Actions = {
+            closeWaitingActionConversation,
+            onActionRun: vi.fn(() => vi.fn()),
+        } as unknown as typeof window.md2Actions
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([source])
+        const conversationStore = new ActionConversationStore(action.id, context)
+        await conversationStore.load()
+        renderBottomRow(action, conversationStore)
+        vi.useFakeTimers()
+        const finish = screen.getByRole('button', { name: 'Finish' })
+
+        fireEvent.pointerDown(finish, { button: 0, pointerId: 7 })
+        act(() => vi.advanceTimersByTime(500))
+        expect(screen.getByRole('dialog', { name: 'Stop action sequence?' })).toBeInTheDocument()
+        fireEvent.pointerUp(finish, { pointerId: 7 })
+        fireEvent.click(finish)
+
+        expect(closeWaitingActionConversation).not.toHaveBeenCalled()
+    })
+
+    it('performs no operation when long press is cancelled before 500 ms', async () => {
+        const source = waitingConversation(action.id)
+        const closeWaitingActionConversation = vi.fn()
+        window.md2Actions = {
+            closeWaitingActionConversation,
+            onActionRun: vi.fn(() => vi.fn()),
+        } as unknown as typeof window.md2Actions
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([source])
+        const conversationStore = new ActionConversationStore(action.id, context)
+        await conversationStore.load()
+        renderBottomRow(action, conversationStore)
+        vi.useFakeTimers()
+        const finish = screen.getByRole('button', { name: 'Finish' })
+
+        fireEvent.pointerDown(finish, { button: 0, pointerId: 8 })
+        act(() => vi.advanceTimersByTime(499))
+        fireEvent.pointerCancel(finish, { pointerId: 8 })
+        act(() => vi.advanceTimersByTime(1))
+
+        expect(screen.queryByRole('dialog', { name: 'Stop action sequence?' })).not.toBeInTheDocument()
+        expect(closeWaitingActionConversation).not.toHaveBeenCalled()
     })
 
     it('reports stale persisted waiting state and keeps orphan controls', async () => {
@@ -179,6 +294,6 @@ describe('ActionPopupBottomRow', () => {
 
         await vi.waitFor(() => expect(reportError).toHaveBeenCalledWith(staleError, {fallbackMessage: 'Could not finish waiting agent conversation'}))
         expect(screen.getByRole('button', { name: 'Finish' })).toBeEnabled()
-        expect(screen.getByRole('button', { name: 'Stop' })).toBeEnabled()
+        expect(screen.queryByRole('button', { name: 'Stop' })).not.toBeInTheDocument()
     })
 })

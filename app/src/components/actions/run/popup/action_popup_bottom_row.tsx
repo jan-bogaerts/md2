@@ -1,5 +1,4 @@
 import ArrowUpwardOutlined from '@mui/icons-material/ArrowUpwardOutlined'
-import CheckOutlined from '@mui/icons-material/CheckOutlined'
 import StopOutlined from '@mui/icons-material/StopOutlined'
 import { Box, Button, IconButton, Tooltip } from '@mui/material'
 import CalendarOutline from 'mdi-material-ui/CalendarOutline'
@@ -23,6 +22,7 @@ import type { ActionRunResultStore } from '../state/action_run_result_store'
 import type { ActionScheduleStore } from '../schedule/action_schedule_store'
 import { ActionUsageSummaryOwner } from './action_usage_summary_owner'
 import { useActionRunSettings } from '../../shared/use_action_run_settings'
+import { ActionPopupFinishButton } from './action_popup_finish_button'
 
 interface ActionPopupBottomRowProps {
     action: ActionDefinition
@@ -50,11 +50,6 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
         return !!active && run?.activeActionType === 'agent'
     })
     const interactionReady = useActionRunSelector(action.id, assignmentContext, (run) => !!run?.interactionReady)
-    const manualFinishAvailable = useActionRunSelector(
-        action.id,
-        assignmentContext,
-        (run) => run?.activeActionType === 'agent' && !!run.activeActionStreaming && !run.activeActionAutoFinish,
-    )
     const hasApprovals = useActionRunSelector(action.id, assignmentContext, (run) => !!run?.approvals.length)
     const hasQuestion = useActionRunSelector(action.id, assignmentContext, (run) => !!run?.question)
     const promptDraft = currentActionPromptDraft(action, assignmentContext, action.type === 'agent')
@@ -71,8 +66,15 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
     )
     const sessionActive = runStatus === 'queued' || runStatus === 'running' || runStatus === 'waitingForInput'
     const orphanWaiting = !sessionActive && conversationSnapshot.selectedConversation?.status === 'waitingForInput'
-    const showAgentSend = sessionActive ? agentActive : action.type === 'agent'
-    const showCommandRun = !sessionActive && action.type === 'command'
+    const running = runStatus === 'queued' || runStatus === 'running'
+    const waitingForAgentInput = (runStatus === 'waitingForInput' && agentActive) || orphanWaiting
+    const promptHasText = prompt.trim().length > 0
+    const showStop = running || (runStatus === 'waitingForInput' && !agentActive)
+    const showFinish = waitingForAgentInput
+    const showSchedule = (!sessionActive && !orphanWaiting) || (waitingForAgentInput && promptHasText)
+    const showAgentSend = (!sessionActive && !orphanWaiting && action.type === 'agent')
+        || (waitingForAgentInput && promptHasText)
+    const showCommandRun = !sessionActive && !orphanWaiting && action.type === 'command'
     const runState = {
         agentActive,
         hasApprovals,
@@ -115,45 +117,27 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
                 historyStore={historyStore}
             />
             <Box sx={{ flex: 1 }} />
-            {sessionActive || orphanWaiting ? (
-                <Tooltip title="Stop">
-                    <span>
-                        <IconButton aria-label="Stop" disabled={!settings.backendAvailable} onClick={handleCancel} size="small">
-                            <StopOutlined sx={{ fontSize: 18 }} />
-                        </IconButton>
-                    </span>
-                </Tooltip>
+            {showFinish ? (
+                <ActionPopupFinishButton
+                    disabled={!settings.backendAvailable || (sessionActive && !interactionReady)}
+                    onFinish={handleFinish}
+                    onStop={handleCancel}
+                />
             ) : null}
-            {manualFinishAvailable || orphanWaiting ? (
-                <Tooltip title="Finish">
+            {showSchedule ? (
+                <Tooltip title="Schedule">
                     <span>
                         <IconButton
-                            aria-label="Finish"
-                            disabled={!settings.backendAvailable || (sessionActive && !interactionReady)}
-                            onClick={handleFinish}
+                            aria-label="Schedule"
+                            disabled={!settings.backendAvailable}
+                            onClick={handleToggleSchedule}
                             size="small"
                         >
-                            <CheckOutlined sx={{ fontSize: 18 }} />
+                            <CalendarOutline sx={{ fontSize: 18 }} />
                         </IconButton>
                     </span>
                 </Tooltip>
             ) : null}
-            <Button
-                disabled={sessionActive || !settings.backendAvailable}
-                onClick={handleToggleSchedule}
-                size="small"
-                startIcon={<CalendarOutline sx={{ fontSize: '14px !important' }} />}
-                sx={{
-                    bgcolor: 'background.paper',
-                    borderColor: 'divider',
-                    color: 'text.secondary',
-                    height: 34,
-                    '&:hover': { borderColor: 'primary.main', color: 'primary.main' },
-                }}
-                variant="outlined"
-            >
-                Schedule
-            </Button>
             {showAgentSend ? (
                 <Tooltip title="Send">
                     <span>
@@ -163,16 +147,26 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
                     </span>
                 </Tooltip>
             ) : showCommandRun ? (
-                <Button
-                    disabled={runDisabled}
-                    onClick={handlePrimaryRun}
-                    size="small"
-                    startIcon={<Play sx={{ fontSize: '13px !important' }} />}
-                    sx={{ height: 34, px: 2 }}
-                    variant="contained"
-                >
-                    Run
-                </Button>
+                <Tooltip title="Run">
+                    <Button
+                        disabled={runDisabled}
+                        onClick={handlePrimaryRun}
+                        size="small"
+                        startIcon={<Play sx={{ fontSize: '13px !important' }} />}
+                        sx={{ height: 34, px: 2 }}
+                        variant="contained"
+                    >
+                        Run
+                    </Button>
+                </Tooltip>
+            ) : showStop ? (
+                <Tooltip title="Stop">
+                    <span>
+                        <IconButton aria-label="Stop" disabled={!settings.backendAvailable} onClick={handleCancel} size="small">
+                            <StopOutlined sx={{ fontSize: 18 }} />
+                        </IconButton>
+                    </span>
+                </Tooltip>
             ) : null}
         </Box>
     )
