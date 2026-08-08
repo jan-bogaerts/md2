@@ -20,4 +20,5 @@ Finally, display needs to be changed. The agent selector should be 2 buttons:&#x
 * Model selector button. Displays the model and level. User can infer agent based on model. Ex ´gpt-5.6-sol medium´.   When clicked, open context menu with 3 sections:
 * &#x20; Agent: claude, codex
 * &#x20; Model: changes depending on value of agent
-* &#x20;&#x20;
+* &#x20; Thinking level
+* Security button. Icon and color show selection: green, yellow red. On click, context menu opens.
