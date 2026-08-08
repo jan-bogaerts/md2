@@ -3330,11 +3330,11 @@
         "agent-411f4c61-c046-41e5-9fcb-b7412e96beba"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-f4adfa09-64bb-48ab-bcd7-5d063ffcbf07",
       "origin": {
@@ -3343,9 +3343,38 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-411f4c61-c046-41e5-9fcb-b7412e96beba",
       "startedAt": "2026-08-08T15:06:54.752Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-411f4c61-c046-41e5-9fcb-b7412e96beba"
+    },
+    {
+      "commits": [
+        {
+          "commit": "0b37d04cd003b537b6d8164f28708ef5571e14c3",
+          "committedAt": "2026-08-08T18:11:14+02:00",
+          "deletions": 12,
+          "filePaths": [
+            "app/src/components/actions/conversation/action_conversation_store.test.ts",
+            "app/src/components/actions/conversation/action_conversation_store.ts",
+            "app/src/components/actions/run/popup/action_popup.test.tsx",
+            "app/src/components/actions/run/popup/action_popup_operations.test.ts",
+            "app/src/components/actions/run/popup/action_popup_operations.ts",
+            "desktop/src/actions/action/action_agent_executor.test.mjs",
+            "desktop/src/actions/agent/agent_runner_service.js",
+            "desktop/src/actions/agent/agent_runner_state.test.mjs"
+          ],
+          "filesChanged": 8,
+          "insertions": 477,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-08T18:11:14+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "3616573b-1a04-4f9f-aa5c-88ae92cb1188",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
