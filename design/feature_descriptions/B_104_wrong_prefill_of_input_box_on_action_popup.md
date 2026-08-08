@@ -20,7 +20,7 @@ basically, the rule is simple: is there something in the chatlog history? then d
 
 # Current state
 
-Selecting a stored conversation clears the prompt draft. `ActionAgentPromptOwner` then treats a completed selected conversation as eligible for prompt preparation, so the stored action prompt refills the input. The same sequence occurs when the popup automatically selects the first unseen conversation. Here, an existing conversation means any selected persisted conversation, even when its `entries` array is empty.
+Before this fix, selecting a stored conversation clears the prompt draft. `ActionAgentPromptOwner` then treats a completed selected conversation as eligible for prompt preparation, so the stored action prompt refills the input. The same sequence occurs when the popup automatically selects the newest unseen conversation. An unseen conversation has `viewed: false`; newest means greatest `startedAt`. An existing conversation means any selected persisted conversation, even when its `entries` array is empty.
 
 # Implementation details
 
@@ -32,6 +32,6 @@ Selecting a stored conversation clears the prompt draft. `ActionAgentPromptOwner
 
 - Opening an agent action with no selected conversation and no active session prefills the input with the stored action prompt.
 - Selecting any existing conversation clears the input and does not prepare or apply another stored prompt.
-- Automatically selecting the first unseen conversation leaves the input empty and does not prepare or apply another stored prompt.
+- Automatically selecting the newest unseen conversation leaves the input empty and does not prepare or apply another stored prompt.
 - Completing an active conversation leaves the input empty, as specified by `B_97_when_action_completes_dont_autofill_the_input_again.md`.
 - Popup tests cover new-conversation prefill, manual historical selection, automatic unseen-conversation selection, and completion.
