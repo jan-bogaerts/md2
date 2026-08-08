@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
   - design/activity/card__ade75617-2ab1-40c9-ae62-01700b995632.json#conversation=agent-8de6815e-3109-4f01-8525-5bb01fa0406a
+  - design/activity/card__ade75617-2ab1-40c9-ae62-01700b995632.json#conversation=agent-d8cd7489-ea9a-4d8b-8267-06fd5f7c80e2
 policy:
 branch: f_156_when_approval_request_is_shown_hide_phrases
 worktree: 3
