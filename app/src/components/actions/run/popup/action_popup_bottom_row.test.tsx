@@ -12,6 +12,7 @@ import { AppThemeProvider } from '../../../../theme/theme_provider'
 import { ActionConversationStore } from '../../conversation/action_conversation_store'
 import { ActionHistoryStore } from '../state/action_history_store'
 import { ActionPopupBottomRow } from './action_popup_bottom_row'
+import { ActionUsageScopeStore } from './action_usage_scope_store'
 import { ActionRunInputStore } from '../state/action_run_input_store'
 import { ActionRunResultStore } from '../state/action_run_result_store'
 import { ActionScheduleStore } from '../schedule/action_schedule_store'
@@ -50,6 +51,7 @@ function renderBottomRow(actionOverride = action, conversationStore = new Action
     const resultStore = new ActionRunResultStore()
     const scheduleStore = new ActionScheduleStore()
     const settingsStore = new ActionRunSettingsStore(actionOverride.id, null)
+    const usageScopeStore = new ActionUsageScopeStore()
     const unrelatedRender = vi.fn()
 
     function UnrelatedContent() {
@@ -71,6 +73,7 @@ function renderBottomRow(actionOverride = action, conversationStore = new Action
                 runValidationError={null}
                 scheduleStore={scheduleStore}
                 settingsStore={settingsStore}
+                usageScopeStore={usageScopeStore}
             />
         </AppThemeProvider>,
     )

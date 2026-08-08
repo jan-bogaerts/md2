@@ -23,6 +23,7 @@ import type { ActionScheduleStore } from '../schedule/action_schedule_store'
 import { ActionUsageSummaryOwner } from './action_usage_summary_owner'
 import { useActionRunSettings } from '../../shared/use_action_run_settings'
 import { ActionPopupFinishButton } from './action_popup_finish_button'
+import type { ActionUsageScopeStore } from './action_usage_scope_store'
 
 interface ActionPopupBottomRowProps {
     action: ActionDefinition
@@ -34,13 +35,14 @@ interface ActionPopupBottomRowProps {
     runValidationError: string | null
     scheduleStore: ActionScheduleStore
     settingsStore: ActionRunSettingsStore
+    usageScopeStore: ActionUsageScopeStore
 }
 
 /** Run controls; subscribes only to run and prompt values used by this row. */
 export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
     const {
         action, assignmentContext, conversationStore, historyStore, inputStore, resultStore,
-        runValidationError, scheduleStore, settingsStore,
+        runValidationError, scheduleStore, settingsStore, usageScopeStore,
     } = props
     const settings = useActionRunSettings(action, settingsStore)
     const runStatus = useActionRunSelector(action.id, assignmentContext, (run) => run?.status ?? 'idle')
@@ -115,6 +117,7 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
                 context={assignmentContext}
                 conversationStore={conversationStore}
                 historyStore={historyStore}
+                scopeStore={usageScopeStore}
             />
             <Box sx={{ flex: 1 }} />
             {showFinish ? (

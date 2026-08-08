@@ -23,6 +23,7 @@ import { ActionConversationStore } from '../../conversation/action_conversation_
 import { ActionHistoryStore } from '../state/action_history_store'
 import { ActionLogErrorOwner } from '../../conversation/action_log_error_owner'
 import { ActionPopupBottomRow } from './action_popup_bottom_row'
+import { ActionUsageScopeStore } from './action_usage_scope_store'
 import { ActionRunDisabledMessage } from './action_run_disabled_message'
 import { ActionRunHistoryOwner } from '../state/action_run_history_owner'
 import { ActionRunInputStore } from '../state/action_run_input_store'
@@ -43,6 +44,7 @@ interface ActionPopupBindings {
     inputStore: ActionRunInputStore
     resultStore: ActionRunResultStore
     scheduleStore: ActionScheduleStore
+    usageScopeStore: ActionUsageScopeStore
 }
 
 function createActionPopupBindings(action: ActionDefinition, context: ActionContext): ActionPopupBindings {
@@ -52,6 +54,7 @@ function createActionPopupBindings(action: ActionDefinition, context: ActionCont
         inputStore: new ActionRunInputStore(),
         resultStore: new ActionRunResultStore(),
         scheduleStore: new ActionScheduleStore(),
+        usageScopeStore: new ActionUsageScopeStore(),
     }
 }
 
@@ -127,7 +130,7 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
         () => createActionPopupBindings(action, assignmentContext),
         [action, assignmentContext],
     )
-    const { conversationStore, historyStore, inputStore, resultStore, scheduleStore } = bindings
+    const { conversationStore, historyStore, inputStore, resultStore, scheduleStore, usageScopeStore } = bindings
     const runValidationError = worktreeValidationMessage(action, assignmentContext)
     const sizeStorageKey = baseContext.kind === 'project'
         ? PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY
@@ -313,6 +316,7 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                         resultStore={resultStore}
                         runValidationError={runValidationError}
                         scheduleStore={scheduleStore}
+                        usageScopeStore={usageScopeStore}
                     />
                 </>}
             </MarkdownTypeaheadLayerProvider>
