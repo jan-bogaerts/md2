@@ -54,6 +54,12 @@ import type {
     WorktreeState,
 } from '../../data/data_types'
 import { readRemoteControlConnection, type RemoteControlConnectionSettings } from '../../data/remote_control_connection'
+import type {
+    MergeConflictPathRequest,
+    MergeConflictSession,
+    MergeConflictSessionRequest,
+    WorktreeOperationOutcome,
+} from '../../data/merge_conflict_types'
 
 interface RemoteControlRequest {
     id: string
@@ -114,6 +120,12 @@ interface ProjectWatchSubscription {
     subscribing: boolean
 }
 
+interface MergeConflictSessionChangedPayload {
+    requestId: string
+    session: MergeConflictSession | null
+    subscriptionId: string
+}
+
 const SOCKET_OPEN_STATE = 1
 
 function isResponse(message: RemoteControlResponse | RemoteControlEvent): message is RemoteControlResponse {
@@ -134,6 +146,7 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
     private codexRateLimitListeners: Set<(snapshot: CodexRateLimitSnapshot) => void>
     private codexRateLimitSubscriptions: Map<(snapshot: CodexRateLimitSnapshot) => void, string>
     private endpoint: string
+    private mergeConflictCallbacks: Map<string, (session: MergeConflictSession | null) => void>
     private nextId: number
     private readonly pendingPushBranches: Set<string>
     private pending: Map<string, PendingRequest>
@@ -141,6 +154,7 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
     private requestActionRunEvents: Map<string, (event: ActionRunEvent) => void>
     private requestCodexRateLimitEvents: Map<string, (snapshot: CodexRateLimitSnapshot) => void>
     private requestWatchEvents: Map<string, ProjectWatchSubscription>
+    private requestMergeConflictEvents: Map<string, (session: MergeConflictSession | null) => void>
     private requestWorktreeEvents: Map<string, (state: WorktreeState) => void>
     private runAgentEvents: Map<string, (event: AgentRunEvent) => void>
     private socket: WebSocket | null
@@ -159,12 +173,14 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         this.codexRateLimitListeners = new Set()
         this.codexRateLimitSubscriptions = new Map()
         this.endpoint = ''
+        this.mergeConflictCallbacks = new Map()
         this.nextId = 1
         this.pendingPushBranches = new Set()
         this.pending = new Map()
         this.requestAgentEvents = new Map()
         this.requestActionRunEvents = new Map()
         this.requestCodexRateLimitEvents = new Map()
+        this.requestMergeConflictEvents = new Map()
         this.requestWatchEvents = new Map()
         this.requestWorktreeEvents = new Map()
         this.runAgentEvents = new Map()
@@ -308,9 +324,35 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         this.pendingPushBranches.add(request.branch)
     }
 
-    async integrateWorktree(request: IntegrateWorktreeRequest): Promise<void> {
-        await this.request('integrateWorktree', [request])
+    async integrateWorktree(request: IntegrateWorktreeRequest): Promise<WorktreeOperationOutcome> {
+        const outcome = await this.request<WorktreeOperationOutcome>('integrateWorktree', [request])
         this.pendingPushBranches.add(request.project.branch)
+
+        return outcome
+    }
+
+    async abortMergeConflict(request: MergeConflictSessionRequest): Promise<void> {
+        await this.request('abortMergeConflict', [request])
+    }
+
+    async continueMergeConflict(request: MergeConflictSessionRequest): Promise<WorktreeOperationOutcome> {
+        return this.request<WorktreeOperationOutcome>('continueMergeConflict', [request])
+    }
+
+    async getMergeConflictSession(): Promise<MergeConflictSession | null> {
+        return this.request<MergeConflictSession | null>('getMergeConflictSession', [])
+    }
+
+    async launchMergeConflictResolver(request: MergeConflictPathRequest): Promise<void> {
+        await this.request('launchMergeConflictResolver', [request])
+    }
+
+    async markMergeConflictResolved(request: MergeConflictPathRequest): Promise<MergeConflictSession> {
+        return this.request<MergeConflictSession>('markMergeConflictResolved', [request])
+    }
+
+    async rescanMergeConflict(request: MergeConflictSessionRequest): Promise<MergeConflictSession> {
+        return this.request<MergeConflictSession>('rescanMergeConflict', [request])
     }
 
     async push(project: ProjectReference): Promise<void> {
@@ -342,8 +384,8 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         await this.request('pullWorktree', [request])
     }
 
-    async rebaseWorktree(request: WorktreeOperationRequest): Promise<void> {
-        await this.request('rebaseWorktree', [request])
+    async rebaseWorktree(request: WorktreeOperationRequest): Promise<WorktreeOperationOutcome> {
+        return this.request<WorktreeOperationOutcome>('rebaseWorktree', [request])
     }
 
     async pushWorktree(request: WorktreeOperationRequest): Promise<void> {
@@ -422,6 +464,32 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
             if (!subscriptionId) return
 
             this.worktreeCallbacks.delete(subscriptionId)
+            void this.request('unsubscribe', [subscriptionId])
+        }
+    }
+
+    onMergeConflictSessionChanged(callback: (session: MergeConflictSession | null) => void): () => void {
+        const id = this.createRequestId()
+        let cancelled = false
+        let subscriptionId: string | null = null
+        this.requestMergeConflictEvents.set(id, callback)
+        void this.sendRequest<{ subscriptionId: string }>({ id, method: 'onMergeConflictSessionChanged', params: [] }).then((result) => {
+            subscriptionId = result.subscriptionId
+            if (cancelled) {
+                void this.request('unsubscribe', [subscriptionId])
+                return
+            }
+
+            this.mergeConflictCallbacks.set(result.subscriptionId, callback)
+            this.requestMergeConflictEvents.delete(id)
+        })
+
+        return () => {
+            cancelled = true
+            this.requestMergeConflictEvents.delete(id)
+            if (!subscriptionId) return
+
+            this.mergeConflictCallbacks.delete(subscriptionId)
             void this.request('unsubscribe', [subscriptionId])
         }
     }
@@ -692,6 +760,10 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
             this.handleWorktreesChangedEvent(message.payload as WorktreesChangedPayload)
             return
         }
+        if (message.event === 'mergeConflictSessionChanged') {
+            this.handleMergeConflictSessionChangedEvent(message.payload as MergeConflictSessionChangedPayload)
+            return
+        }
 
         if (message.event === 'agentRun') this.handleAgentRunEvent(message.payload as AgentRunPayload)
     }
@@ -807,6 +879,12 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         callback?.(payload.state)
     }
 
+    private handleMergeConflictSessionChangedEvent(payload: MergeConflictSessionChangedPayload) {
+        const callback = this.mergeConflictCallbacks.get(payload.subscriptionId)
+            ?? this.requestMergeConflictEvents.get(payload.requestId)
+        callback?.(payload.session)
+    }
+
     private handleAgentRunEvent(payload: AgentRunPayload) {
         const callback = this.requestAgentEvents.get(payload.requestId) ?? this.runAgentEvents.get(payload.event.runId)
         callback?.(payload.event)
@@ -822,9 +900,11 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         this.actionRunSubscriptions.clear()
         this.codexRateLimitCallbacks.clear()
         this.codexRateLimitSubscriptions.clear()
+        this.mergeConflictCallbacks.clear()
         this.requestAgentEvents.clear()
         this.requestActionRunEvents.clear()
         this.requestCodexRateLimitEvents.clear()
+        this.requestMergeConflictEvents.clear()
         this.requestWatchEvents.clear()
         this.requestWorktreeEvents.clear()
         this.runAgentEvents.clear()

@@ -9,6 +9,7 @@ const {
     DEFAULT_DESKTOP_APPROVAL_POLICY,
     DEFAULT_DESKTOP_MODEL,
     DEFAULT_EDITOR_COMMAND,
+    DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
     DESKTOP_CONFIG_STORE_KEY,
     readDesktopConfig,
     resolveAppUrl,
@@ -46,6 +47,7 @@ describe('resolveDesktopConfig', () => {
             approvalPolicy: DEFAULT_DESKTOP_APPROVAL_POLICY,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             editorCommand: DEFAULT_EDITOR_COMMAND,
+            mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
             model: DEFAULT_DESKTOP_MODEL,
         });
     });
@@ -58,6 +60,7 @@ describe('resolveDesktopConfig', () => {
             approvalPolicy: DEFAULT_DESKTOP_APPROVAL_POLICY,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             editorCommand: DEFAULT_EDITOR_COMMAND,
+            mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
             model: DEFAULT_DESKTOP_MODEL,
         });
     });
@@ -74,6 +77,7 @@ describe('readDesktopConfig', () => {
             approvalPolicy: DEFAULT_DESKTOP_APPROVAL_POLICY,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             editorCommand: DEFAULT_EDITOR_COMMAND,
+            mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
             model: DEFAULT_DESKTOP_MODEL,
         });
     });
@@ -88,6 +92,7 @@ describe('readDesktopConfig', () => {
             approvalPolicy: DEFAULT_DESKTOP_APPROVAL_POLICY,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             editorCommand: DEFAULT_EDITOR_COMMAND,
+            mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
             model: DEFAULT_DESKTOP_MODEL,
         });
     });
@@ -113,6 +118,7 @@ describe('readDesktopConfig', () => {
             approvalPolicy: DEFAULT_DESKTOP_APPROVAL_POLICY,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             editorCommand: DEFAULT_EDITOR_COMMAND,
+            mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
             model: DEFAULT_DESKTOP_MODEL,
         });
     });
@@ -173,6 +179,7 @@ describe('writeDesktopConfig', () => {
             approvalPolicy: DEFAULT_DESKTOP_APPROVAL_POLICY,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             editorCommand: DEFAULT_EDITOR_COMMAND,
+            mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
             model: DEFAULT_DESKTOP_MODEL,
         });
     });
@@ -190,6 +197,7 @@ describe('writeDesktopConfig', () => {
             approvalPolicy: DEFAULT_DESKTOP_APPROVAL_POLICY,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             editorCommand: DEFAULT_EDITOR_COMMAND,
+            mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
             model: 'custom-model',
         });
     });
@@ -208,5 +216,13 @@ describe('writeDesktopConfig', () => {
         writeDesktopConfig(store, { editorCommand: 'notepad "{{file}}"' });
 
         expect(readDesktopConfig(store, {})).toMatchObject({ editorCommand: 'notepad "{{file}}"' });
+    });
+
+    it('persists merge conflict resolver command globally', () => {
+        const store = createFakeStore();
+
+        writeDesktopConfig(store, { mergeConflictResolverCommand: 'merge-tool "{{file}}"' });
+
+        expect(readDesktopConfig(store, {})).toMatchObject({ mergeConflictResolverCommand: 'merge-tool "{{file}}"' });
     });
 });

@@ -22,6 +22,7 @@ import { dialogService } from '../dialog_service'
 import { GithubUnauthorizedError } from '../../auth/github_api_client'
 import { createDefaultActionFiles } from '../../project_template/project_template'
 import { openFilesService } from '../open_files_service'
+import { mergeConflictService } from './merge_conflict_service'
 
 const ACTION_RELOAD_DEBOUNCE_MS = 150
 const JSON_EXTENSION = '.json'
@@ -342,6 +343,17 @@ export class ProjectLoading {
         this.watchCleanup = null
     }
 
+    async reloadConflictPaths(paths: string[]) {
+        const { config } = this.dependencies.requireDependencies()
+        for (const path of paths) {
+            if (!isProjectMarkdownPath(path, config.projectFolder)) continue
+            this.markdownReloadEventsByPath.set(path, { changeKind: 'unknown', path })
+        }
+        if (this.markdownReloadEventsByPath.size === 0) return
+
+        await this.reloadMarkdownFilesFromWatchEvents()
+    }
+
     private clearFailedProjectLoad() {
         this.stopProjectWatch()
         this.clearActionReloadTimeout()
@@ -594,6 +606,7 @@ export class ProjectLoading {
     }
 
     private handleProjectWatchEvent(event: ProjectWatchEvent) {
+        if (mergeConflictService.isConflictedPath(event.path)) return
         this.dependencies.dispatchRepositoryChanged(event)
         if (event.path === PROJECT_CONFIG_PATH) {
             void this.reloadProjectConfigFromWatch()

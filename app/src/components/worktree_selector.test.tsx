@@ -153,7 +153,7 @@ describe('WorktreeSelector', () => {
             status: { ...worktrees[0].status, ahead: 1, baseAhead: 1, hasUpstream: true },
         }
         const commitCardWorktree = vi.spyOn(worktreeService, 'commitCardWorktree').mockResolvedValue(undefined)
-        const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue(undefined)
+        const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue({ status: 'completed' })
         renderAssignedWorktree(aheadWorktree)
 
         fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
@@ -186,7 +186,7 @@ describe('WorktreeSelector', () => {
         const dirtyWorktree = { ...worktrees[0], status: { ...worktrees[0].status, dirty: true } }
         vi.spyOn(worktreeService, 'getCardCommitMessage').mockReturnValue('F-1: Card')
         const commitCardWorktree = vi.spyOn(worktreeService, 'commitCardWorktree').mockResolvedValue(undefined)
-        const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue(undefined)
+        const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue({ status: 'completed' })
         renderAssignedWorktree(dirtyWorktree)
 
         fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
@@ -213,7 +213,7 @@ describe('WorktreeSelector', () => {
         const dirtyWorktree = { ...worktrees[0], status: { ...worktrees[0].status, dirty: true } }
         vi.spyOn(worktreeService, 'getCardCommitMessage').mockReturnValue('F-1: Card')
         const commitCardWorktree = vi.spyOn(worktreeService, 'commitCardWorktree').mockResolvedValue(undefined)
-        const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue(undefined)
+        const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue({ status: 'completed' })
         renderAssignedWorktree(dirtyWorktree)
 
         fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
@@ -231,7 +231,7 @@ describe('WorktreeSelector', () => {
         const dirtyWorktree = { ...worktrees[0], status: { ...worktrees[0].status, dirty: true } }
         vi.spyOn(worktreeService, 'getCardCommitMessage').mockReturnValue('F-1: Card')
         const commitCardWorktree = vi.spyOn(worktreeService, 'commitCardWorktree').mockResolvedValue(undefined)
-        const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue(undefined)
+        const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue({ status: 'completed' })
         renderAssignedWorktree(dirtyWorktree)
 
         fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
@@ -250,7 +250,7 @@ describe('WorktreeSelector', () => {
             ...worktrees[0],
             status: { ...worktrees[0].status, baseBehind: 1 },
         }
-        const updateCardWorktree = vi.spyOn(worktreeService, 'updateCardWorktree').mockResolvedValue(undefined)
+        const updateCardWorktree = vi.spyOn(worktreeService, 'updateCardWorktree').mockResolvedValue({ status: 'completed' })
         renderAssignedWorktree(behindWorktree)
 
         fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
@@ -308,7 +308,7 @@ describe('WorktreeSelector', () => {
         const dirtyWorktree = { ...worktrees[0], status: { ...worktrees[0].status, dirty: true } }
         vi.spyOn(worktreeService, 'getCardCommitMessage').mockReturnValue('F-1: Card')
         const commitCardWorktree = vi.spyOn(worktreeService, 'commitCardWorktree').mockResolvedValue(undefined)
-        const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue(undefined)
+        const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue({ status: 'completed' })
         const setCardWorktree = vi.spyOn(worktreeService, 'setCardWorktree').mockResolvedValue(undefined)
         renderAssignedWorktree(dirtyWorktree)
 
@@ -350,7 +350,7 @@ describe('WorktreeSelector', () => {
         }]
         withRecords(trailingWorktrees)
         vi.spyOn(worktreeService, 'getProjectBranch').mockReturnValue('main')
-        const updateCardWorktree = vi.spyOn(worktreeService, 'updateCardWorktree').mockResolvedValue(undefined)
+        const updateCardWorktree = vi.spyOn(worktreeService, 'updateCardWorktree').mockResolvedValue({ status: 'completed' })
         render(
             <AppThemeProvider>
                 <WorktreeSelector
@@ -437,7 +437,7 @@ describe('WorktreeSelector', () => {
         const error = new Error('commit failed')
         vi.spyOn(worktreeService, 'getCardCommitMessage').mockReturnValue('F-1: Card')
         vi.spyOn(worktreeService, 'commitCardWorktree').mockRejectedValue(error)
-        const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue(undefined)
+        const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue({ status: 'completed' })
         const reportError = vi.spyOn(dialogService, 'error')
         renderAssignedWorktree(dirtyWorktree)
 
@@ -507,7 +507,7 @@ describe('WorktreeSelector', () => {
     it('restores and applies the persisted delete-branch integration choice', async () => {
         configService.setReactPreference('react.deleteBranchAfterIntegration', true)
         const aheadWorktree = { ...worktrees[0], status: { ...worktrees[0].status, baseAhead: 1 } }
-        const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue(undefined)
+        const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue({ status: 'completed' })
         renderAssignedWorktree(aheadWorktree)
 
         fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))

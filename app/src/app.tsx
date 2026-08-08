@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useGithubAuth } from './auth/use_github_auth'
 import { useAppBootstrap } from './app/use_app_bootstrap'
 import { DialogDisplay } from './components/dialog_display'
+import { MergeConflictDialog } from './components/merge_conflict_dialog'
 import { MainWindow } from './components/shell/main_window'
 import { StartupSplash } from './components/shell/startup_splash'
 import { RemoteControlButton } from './components/shell/remote_control_button'
@@ -36,6 +37,7 @@ export function App({ startupService }: AppProps = {}) {
     return (
         <AppThemeProvider>
             <DialogDisplay />
+            <MergeConflictDialog />
             {bootstrap.phase === 'starting' ? (
                 showStartupSplash ? <StartupSplash /> : null
             ) : (

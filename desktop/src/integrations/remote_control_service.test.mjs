@@ -30,6 +30,7 @@ describe('RemoteControlService push protocol', () => {
             ['watchProject', [project], 'watch-request'],
             ['onActionRun', [], 'action-request'],
             ['onCodexRateLimits', [], 'limits-request'],
+            ['onMergeConflictSessionChanged', [], 'conflict-request'],
             ['onWorktreesChanged', [], 'worktrees-request'],
         ];
         const subscriptionResults = new Map();
@@ -43,10 +44,12 @@ describe('RemoteControlService push protocol', () => {
         const agentEvent = { content: 'working', runId: 'agent-1', type: 'output' };
         const snapshot = { available: true, buckets: [], observedAt: 10, rateLimitResetCredits: null };
         const state = { error: null, primaryStatus: null, project, records: [] };
+        const conflictSession = { conflictedPaths: ['src/file.js'], id: 'session-1' };
         callbacks.get('watchProject')(watchEvent);
         callbacks.get('runSearchRegexpAgent')(agentEvent);
         callbacks.get('onActionRun')(actionEvent);
         callbacks.get('onCodexRateLimits')(snapshot);
+        callbacks.get('onMergeConflictSessionChanged')(conflictSession);
         callbacks.get('onWorktreesChanged')(state);
 
         const messages = client.send.mock.calls.map(([message]) => JSON.parse(message));
@@ -55,6 +58,7 @@ describe('RemoteControlService push protocol', () => {
             { event: 'agentRun', payload: { event: agentEvent, requestId: 'agent-request' } },
             { event: 'actionRun', payload: { event: actionEvent, requestId: 'action-request', subscriptionId: subscriptionResults.get('onActionRun').subscriptionId } },
             { event: 'codexRateLimits', payload: { requestId: 'limits-request', snapshot, subscriptionId: subscriptionResults.get('onCodexRateLimits').subscriptionId } },
+            { event: 'mergeConflictSessionChanged', payload: { requestId: 'conflict-request', session: conflictSession, subscriptionId: subscriptionResults.get('onMergeConflictSessionChanged').subscriptionId } },
             { event: 'worktreesChanged', payload: { requestId: 'worktrees-request', state, subscriptionId: subscriptionResults.get('onWorktreesChanged').subscriptionId } },
         ]);
 

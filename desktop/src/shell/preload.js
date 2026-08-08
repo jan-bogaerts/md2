@@ -17,18 +17,22 @@ const REMOTE_CONTROL_STOP_CHANNEL = 'md2-remote-control:stop';
 const THEME_SET_MODE_CHANNEL = 'md2-theme:set-mode';
 
 const DATA_METHODS = [
+    'abortMergeConflict',
     'addWorktree',
     'cancelActionSchedule',
     'checkoutBranch',
     'commit',
     'commitWorktree',
+    'continueMergeConflict',
     'createProject',
     'deleteFile',
     'deleteFolder',
     'discardWorktreeChanges',
     'deleteLocalBranch',
     'hasPendingPush',
+    'getMergeConflictSession',
     'integrateWorktree',
+    'launchMergeConflictResolver',
     'listBranches',
     'listAgentConversationReferences',
     'listRepositoryFiles',
@@ -43,6 +47,7 @@ const DATA_METHODS = [
     'loadProjectConfig',
     'loadProjectRoot',
     'loadTextFile',
+    'markMergeConflictResolved',
     'moveFiles',
     'openProjectFolder',
     'parkWorktree',
@@ -53,6 +58,7 @@ const DATA_METHODS = [
     'pushWorktree',
     'rebaseWorktree',
     'refreshWorktrees',
+    'rescanMergeConflict',
     'removeWorktree',
     'resolveProject',
     'saveActionSchedules',
@@ -230,6 +236,7 @@ if (!isAllowedOrigin()) {
     };
     const dataBridge = {
         ...createBridge(DATA_METHODS),
+        onMergeConflictSessionChanged: (callback) => subscribeBridge('onMergeConflictSessionChanged', [], callback),
         onWorktreesChanged: (callback) => subscribeBridge('onWorktreesChanged', [], callback),
         watchProject: (project, callback) => subscribeBridge('watchProject', [project], callback),
     };

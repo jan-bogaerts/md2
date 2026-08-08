@@ -20,6 +20,7 @@ const localGitService = require('./src/git/local_git_service');
 const { RemoteControlService } = require('./src/integrations/remote_control_service');
 const remarkableService = require('./src/integrations/remarkable_service');
 const { WorktreeService } = require('./src/git/worktree_service');
+const { MergeConflictService } = require('./src/git/merge_conflict_service');
 const { ActionWorktreeRunService } = require('./src/actions/action/action_worktree_run_service');
 const { captureError, flush, registerProcessErrorHandlers, startElectronTelemetry, trackEvent } = require('./src/integrations/telemetry');
 const { THEME_MODE_STORE_KEY, resolveThemeMode, resolveTitleBarOverlay } = require('./src/shell/theme');
@@ -52,15 +53,21 @@ const {
 const QUIT_FLUSH_TIMEOUT_MS = 5000;
 const QUIT_WATCHDOG_TIMEOUT_MS = 10000;
 const EVENT_METHODS = new Set(['runSearchRegexpAgent', 'startAgentConversation']);
-const SUBSCRIPTION_METHODS = new Set(['onActionRun', 'onCodexRateLimits', 'onWorktreesChanged', 'watchProject']);
+const SUBSCRIPTION_METHODS = new Set(['onActionRun', 'onCodexRateLimits', 'onMergeConflictSessionChanged', 'onWorktreesChanged', 'watchProject']);
 
 const store = new Store();
 Store.initRenderer();
 const agentExecutableResolver = new AgentExecutableResolver();
 const codexRuntimeService = new CodexRuntimeService();
 const agentRunnerService = new AgentRunnerService({ codexRuntimeService, executableResolver: agentExecutableResolver });
-const worktreeService = new WorktreeService({ errorReporter: captureError, runGit: localGitService.runGit });
+const mergeConflictService = new MergeConflictService({
+    configProvider: () => readDesktopConfig(store),
+    runGit: localGitService.runGit,
+    store,
+});
+const worktreeService = new WorktreeService({ errorReporter: captureError, mergeConflictService, runGit: localGitService.runGit });
 const actionWorktreeRunService = new ActionWorktreeRunService({
+    mergeConflictService,
     runGit: localGitService.runGit,
     worktreeService,
 });
@@ -71,6 +78,7 @@ const actionRunnerService = new ActionRunnerService({
     codexRuntimeService,
     errorReporter: captureError,
     localGitService,
+    mergeConflictService,
 });
 const actionSchedulerService = new ActionSchedulerService({
     actionRunnerService,

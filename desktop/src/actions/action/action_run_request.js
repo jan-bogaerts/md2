@@ -1,6 +1,6 @@
 const ALLOWED_REQUEST_FIELDS = new Set(['actionId', 'context', 'conversationReservation', 'runInput']);
 const ALLOWED_RUN_INPUT_FIELDS = new Set(['accessLevel', 'agent', 'approvalPolicy', 'continueFrom', 'extraPrompt', 'model', 'prompt', 'thinkingLevel']);
-const CONTEXT_KINDS = new Set(['card', 'file', 'folder', 'project']);
+const CONTEXT_KINDS = new Set(['card', 'file', 'folder', 'merge-conflict', 'project']);
 
 function readOptionalString(value, fieldName) {
     if (value === undefined) return undefined;

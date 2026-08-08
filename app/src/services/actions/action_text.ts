@@ -3,7 +3,8 @@ import type { ActionDefinition } from '../../data/action_types'
 
 const FOLDER_PLACEHOLDER_NAMES = 'worktree-folder|repository-folder|project-folder|releases-folder'
 const CARD_PLACEHOLDER_NAMES = 'card-file|card-title|card-prompt'
-const PLACEHOLDER_PATTERN = new RegExp(`\\{\\{\\s*(${FOLDER_PLACEHOLDER_NAMES}|${CARD_PLACEHOLDER_NAMES})\\s*\\}\\}`, 'gu')
+const CONFLICT_PLACEHOLDER_NAMES = 'conflict-file|conflict-files'
+const PLACEHOLDER_PATTERN = new RegExp(`\\{\\{\\s*(${FOLDER_PLACEHOLDER_NAMES}|${CARD_PLACEHOLDER_NAMES}|${CONFLICT_PLACEHOLDER_NAMES})\\s*\\}\\}`, 'gu')
 const CARD_PROMPT_PLACEHOLDER_PATTERN = /\{\{\s*card-prompt\s*\}\}/u
 
 export interface ActionFolderPlaceholderValues {
@@ -42,6 +43,16 @@ export function resolvePlaceholders(
         }
 
         if (name === 'card-prompt') return extraPrompt
+        if (name === 'conflict-file') {
+            if (!context.conflictFile) throw new Error('Cannot resolve conflict-file placeholder without a selected conflict file')
+
+            return context.conflictFile
+        }
+        if (name === 'conflict-files') {
+            if (!context.conflictFiles) throw new Error('Cannot resolve conflict-files placeholder without conflict files')
+
+            return context.conflictFiles
+        }
 
         if (name === 'card-title') {
             if (!context.title) throw new Error('Cannot resolve card-title placeholder without a card title')

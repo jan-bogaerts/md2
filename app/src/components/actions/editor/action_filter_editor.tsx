@@ -49,7 +49,7 @@ function optionsForDescriptor(
     props: ActionFilterEditorProps,
 ): FilterOption[] {
     const { cardTypes, repositoryFiles, specialContextTypes, states, worktrees } = props
-    if (descriptor.valueSource === 'kind') return uniqueOptions(['card', 'file', 'folder', 'project'])
+    if (descriptor.valueSource === 'kind') return uniqueOptions(['card', 'file', 'folder', 'merge-conflict', 'project'])
     if (descriptor.valueSource === 'type') return uniqueOptions([...cardTypes, ...specialContextTypes])
     if (descriptor.valueSource === 'state') return uniqueOptions(states)
     if (descriptor.valueSource === 'file') return uniqueOptions(repositoryFiles)

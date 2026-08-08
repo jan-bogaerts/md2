@@ -3,6 +3,12 @@ import type { ActionSchedule } from './action_schedule_types'
 import { DEFAULT_COLOR_SCHEME } from '../theme/theme_config'
 import type { ProjectBackgroundShade } from '../theme/project_background_shade'
 import { DEFAULT_CARD_SEPARATOR, type CardSeparator } from './card_identifiers'
+import type {
+    MergeConflictPathRequest,
+    MergeConflictSession,
+    MergeConflictSessionRequest,
+    WorktreeOperationOutcome,
+} from './merge_conflict_types'
 
 export const DEFAULT_WORKING_FOLDER = 'active'
 export const DEFAULT_ACTIONS_FOLDER = 'actions'
@@ -142,7 +148,7 @@ export interface WorktreeStatus {
 }
 
 export interface PrepareWorktreeRequest {
-    branchName: string
+    branchName?: string
     project: ProjectReference
     worktree: number
 }
@@ -153,7 +159,9 @@ export interface WorktreeOperationRequest {
 }
 
 export interface CardWorktreeIntegrationRequest extends WorktreeOperationRequest {
+    branchName: string
     cardInternalId: string
+    deleteBranch: boolean
     projectFolder: string
 }
 
@@ -384,13 +392,20 @@ export interface StorageService {
     listRepositoryFiles(project: ProjectReference): Promise<string[]>
     listTopLevelFolders(project: ProjectReference): Promise<TopLevelFolderReference[]>
     loadPendingPush?(project: ProjectReference): Promise<void>
-    integrateWorktree?(request: IntegrateWorktreeRequest): Promise<void>
+    integrateWorktree?(request: IntegrateWorktreeRequest): Promise<WorktreeOperationOutcome>
+    abortMergeConflict?(request: MergeConflictSessionRequest): Promise<void>
+    continueMergeConflict?(request: MergeConflictSessionRequest): Promise<WorktreeOperationOutcome>
+    getMergeConflictSession?(): Promise<MergeConflictSession | null>
+    launchMergeConflictResolver?(request: MergeConflictPathRequest): Promise<void>
+    markMergeConflictResolved?(request: MergeConflictPathRequest): Promise<MergeConflictSession>
+    onMergeConflictSessionChanged?(callback: (session: MergeConflictSession | null) => void): () => void
+    rescanMergeConflict?(request: MergeConflictSessionRequest): Promise<MergeConflictSession>
     moveFiles(request: MoveFilesRequest): Promise<void>
     parkWorktree?(request: WorktreeOperationRequest): Promise<void>
     prepareWorktree?(request: PrepareWorktreeRequest): Promise<void>
     pull?(project: ProjectReference): Promise<void>
     pullWorktree?(request: WorktreeOperationRequest): Promise<void>
-    rebaseWorktree?(request: WorktreeOperationRequest): Promise<void>
+    rebaseWorktree?(request: WorktreeOperationRequest): Promise<WorktreeOperationOutcome>
     push(project: ProjectReference): Promise<void>
     pushWorktree?(request: WorktreeOperationRequest): Promise<void>
     refreshWorktrees?(project: ProjectReference): Promise<void>

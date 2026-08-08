@@ -4,6 +4,7 @@ const DEFAULT_DESKTOP_APPROVAL_POLICY = 'on-request';
 const DEFAULT_DESKTOP_MODEL = '';
 const DEFAULT_CODEX_SEARCH_ENABLED = true;
 const DEFAULT_EDITOR_COMMAND = 'code -g "{{file}}:{{line}}"';
+const DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND = '';
 const DESKTOP_CONFIG_STORE_KEY = 'desktopConfig';
 const { BUILTIN_AGENT_PROFILES, normalizeAgentProfiles } = require('../actions/agent/agent_profiles.mjs');
 
@@ -47,6 +48,7 @@ function resolveDesktopConfig(env = process.env) {
         approvalPolicy: DEFAULT_DESKTOP_APPROVAL_POLICY,
         codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
         editorCommand: DEFAULT_EDITOR_COMMAND,
+        mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
         ...(bridgeAllowedOrigins ? { bridgeAllowedOrigins } : {}),
         model: DEFAULT_DESKTOP_MODEL,
     };
@@ -126,6 +128,7 @@ module.exports = {
     DEFAULT_DESKTOP_MODEL,
     DEFAULT_CODEX_SEARCH_ENABLED,
     DEFAULT_EDITOR_COMMAND,
+    DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
     DESKTOP_CONFIG_STORE_KEY,
     readDesktopConfig,
     resolveBridgeAllowedOrigins,

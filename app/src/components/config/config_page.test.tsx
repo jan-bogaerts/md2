@@ -458,6 +458,7 @@ describe('ConfigPage', () => {
             approvalPolicy: 'on-request',
             codexSearchEnabled: false,
             editorCommand: 'notepad "{{file}}"',
+            mergeConflictResolverCommand: '',
             model: '',
             thinkingLevel: 'none',
         })

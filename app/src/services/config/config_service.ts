@@ -186,6 +186,14 @@ function validateValue<K extends ConfigKey>(key: K, value: unknown): ConfigValue
 
         return editorCommand as ConfigValueTypes[K]
     }
+    if (key === 'desktop.mergeConflictResolverCommand') {
+        if (typeof value !== 'string') throw new Error(`Missing config field: ${entry.key}`)
+        if (value.length > 0 && !value.includes('{{file}}')) {
+            throw new Error('Config field desktop.mergeConflictResolverCommand requires {{file}} placeholder when configured')
+        }
+
+        return value as ConfigValueTypes[K]
+    }
 
     return validateOption(requireString(value, entry.key), entry) as ConfigValueTypes[K]
 }
@@ -251,6 +259,9 @@ export class ConfigService extends EventTarget {
             nextValues = mergeValue(nextValues, 'desktop.codexSearchEnabled', desktopConfig.codexSearchEnabled)
         }
         if (desktopConfig?.editorCommand !== undefined) nextValues = mergeValue(nextValues, 'desktop.editorCommand', desktopConfig.editorCommand)
+        if (desktopConfig?.mergeConflictResolverCommand !== undefined) {
+            nextValues = mergeValue(nextValues, 'desktop.mergeConflictResolverCommand', desktopConfig.mergeConflictResolverCommand)
+        }
         if (desktopConfig?.model !== undefined) nextValues = mergeValue(nextValues, 'desktop.model', desktopConfig.model)
         if (desktopConfig?.thinkingLevel !== undefined) {
             nextValues = mergeValue(nextValues, 'desktop.thinkingLevel', desktopConfig.thinkingLevel)
@@ -356,6 +367,7 @@ export class ConfigService extends EventTarget {
             approvalPolicy: this.values['desktop.approvalPolicy'],
             codexSearchEnabled: this.values['desktop.codexSearchEnabled'],
             editorCommand: this.values['desktop.editorCommand'],
+            mergeConflictResolverCommand: this.values['desktop.mergeConflictResolverCommand'],
             model: this.values['desktop.model'],
             thinkingLevel: this.values['desktop.thinkingLevel'],
         }

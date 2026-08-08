@@ -69,7 +69,7 @@ describe('ActionFilterEditor', () => {
 
         fireEvent.mouseDown(screen.getByLabelText('Target kind'))
         let options = within(screen.getByRole('listbox'))
-        expect(options.getAllByRole('option').map((option) => option.textContent)).toEqual(['card', 'file', 'folder', 'project'])
+        expect(options.getAllByRole('option').map((option) => option.textContent)).toEqual(['card', 'file', 'folder', 'merge-conflict', 'project'])
         fireEvent.click(options.getByRole('option', { name: 'card' }))
 
         fireEvent.mouseDown(screen.getByLabelText('Card state'))
