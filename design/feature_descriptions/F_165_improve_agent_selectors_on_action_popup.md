@@ -3,7 +3,7 @@ author:
 id: F_165
 internalId: c38e7423-9b05-47e2-a728-9637a25f9a2e
 title: Improve agent selectors on action popup
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
