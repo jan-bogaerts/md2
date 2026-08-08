@@ -9,5 +9,4 @@ affects:
 agents:
 policy:
 ---
-
-* when&#x20;
+* when there is no text in the input field, the schedule and send buttons should be disabled. now they just remain enabled.
