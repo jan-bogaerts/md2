@@ -1,4 +1,5 @@
 {
+  "actionSettings": {},
   "conversations": [
     {
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
@@ -2766,6 +2767,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "7ba8c0d48551d3cde21fc2fa165774dfd0f78336",
           "committedAt": "2026-08-07T16:02:58+02:00",
           "deletions": 3,
@@ -2774,8 +2776,7 @@
             "desktop/src/actions/agent/agent_streaming_adapter.test.mjs"
           ],
           "filesChanged": 2,
-          "insertions": 42,
-          "branch": "dev_main"
+          "insertions": 42
         }
       ],
       "completedAt": "2026-08-07T16:02:58+02:00",
@@ -2787,5 +2788,5 @@
       "type": "system"
     }
   ],
-  "version": 2
+  "version": 3
 }

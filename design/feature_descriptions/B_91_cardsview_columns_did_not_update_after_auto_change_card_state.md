@@ -3,7 +3,7 @@ author:
 id: B_91
 internalId: c0571d27-a3f8-41bd-9a3b-861c7969f9af
 title: cardsview columns did not update after auto change card state
-status: new
+status: ready
 owner: 
 affects:
 agents:

@@ -1,4 +1,5 @@
 {
+  "actionSettings": {},
   "conversations": [
     {
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
@@ -2788,6 +2789,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "33d0ca181f309db97031afdb4c7d3b1b0dec8384",
           "committedAt": "2026-08-06T20:58:34+02:00",
           "deletions": 5,
@@ -2796,8 +2798,7 @@
             "app/src/services/project/project_loading.test.ts"
           ],
           "filesChanged": 2,
-          "insertions": 109,
-          "branch": "dev_main"
+          "insertions": 109
         }
       ],
       "completedAt": "2026-08-06T20:58:34+02:00",
@@ -2809,5 +2810,5 @@
       "type": "system"
     }
   ],
-  "version": 2
+  "version": 3
 }

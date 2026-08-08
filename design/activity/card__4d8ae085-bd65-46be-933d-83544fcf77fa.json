@@ -1,4 +1,5 @@
 {
+  "actionSettings": {},
   "conversations": [
     {
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
@@ -1914,6 +1915,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "023e605f75f15e32af53bdb2b7ab40718aa9f74e",
           "committedAt": "2026-08-07T17:01:25+02:00",
           "deletions": 21,
@@ -1929,8 +1931,7 @@
             "docs/actions/placeholders.md"
           ],
           "filesChanged": 9,
-          "insertions": 47,
-          "branch": "dev_main"
+          "insertions": 47
         }
       ],
       "completedAt": "2026-08-07T17:01:25+02:00",
@@ -1942,5 +1943,5 @@
       "type": "system"
     }
   ],
-  "version": 2
+  "version": 3
 }

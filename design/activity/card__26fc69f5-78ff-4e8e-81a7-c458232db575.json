@@ -1,4 +1,5 @@
 {
+  "actionSettings": {},
   "conversations": [
     {
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
@@ -2438,6 +2439,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "cd682f8985146a6008e9bf9afb91c2b0587d2faa",
           "committedAt": "2026-08-07T17:34:05+02:00",
           "deletions": 8,
@@ -2450,8 +2452,7 @@
             "app/src/components/text_view/text_view.test.tsx"
           ],
           "filesChanged": 6,
-          "insertions": 276,
-          "branch": "dev_main"
+          "insertions": 276
         }
       ],
       "completedAt": "2026-08-07T17:34:05+02:00",
@@ -2463,5 +2464,5 @@
       "type": "system"
     }
   ],
-  "version": 2
+  "version": 3
 }

@@ -1,4 +1,5 @@
 {
+  "actionSettings": {},
   "conversations": [
     {
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
@@ -2782,7 +2783,7 @@
         "reasoningTokens": 79,
         "totalTokens": 375237
       },
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
@@ -2859,12 +2860,12 @@
         "agent-cc1684bf-f5fc-45ce-a0c9-9582d083e63d"
       ],
       "details": {
+        "type": "agent",
         "accessLevel": "workspace-write",
         "agent": "codex",
         "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
-        "thinkingLevel": "none",
-        "type": "agent"
+        "thinkingLevel": "none"
       },
       "runId": "action-f54ffcfe-8cc3-4b5d-9841-93f09444e682",
       "origin": {
@@ -2873,10 +2874,10 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-cc1684bf-f5fc-45ce-a0c9-9582d083e63d",
       "startedAt": "2026-08-07T17:26:53.731Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-cc1684bf-f5fc-45ce-a0c9-9582d083e63d"
     }
   ],
-  "version": 2
+  "version": 3
 }

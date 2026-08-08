@@ -1,4 +1,5 @@
 {
+  "actionSettings": {},
   "conversations": [
     {
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
@@ -1206,6 +1207,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "b06519a684efa7e15a083a877e1cca4c4be96d1d",
           "committedAt": "2026-08-07T11:52:43+02:00",
           "deletions": 0,
@@ -1213,8 +1215,7 @@
             "app/src/services/actions/electron_action_runner.node.test.ts"
           ],
           "filesChanged": 1,
-          "insertions": 13,
-          "branch": "dev_main"
+          "insertions": 13
         }
       ],
       "completedAt": "2026-08-07T11:52:43+02:00",
@@ -1226,5 +1227,5 @@
       "type": "system"
     }
   ],
-  "version": 2
+  "version": 3
 }

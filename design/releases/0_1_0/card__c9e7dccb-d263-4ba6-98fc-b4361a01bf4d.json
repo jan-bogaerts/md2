@@ -1,4 +1,5 @@
 {
+  "actionSettings": {},
   "conversations": [
     {
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
@@ -3710,6 +3711,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "dbf2378ad3287f354564442ee90a82548fb5d86a",
           "committedAt": "2026-08-06T17:39:06+02:00",
           "deletions": 88,
@@ -3737,8 +3739,7 @@
             "desktop/src/shell/local_bridge_dispatch.test.mjs"
           ],
           "filesChanged": 21,
-          "insertions": 398,
-          "branch": "dev_main"
+          "insertions": 398
         }
       ],
       "completedAt": "2026-08-06T17:39:06+02:00",
@@ -3750,5 +3751,5 @@
       "type": "system"
     }
   ],
-  "version": 2
+  "version": 3
 }

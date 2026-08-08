@@ -1,4 +1,5 @@
 {
+  "actionSettings": {},
   "conversations": [
     {
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
@@ -1566,6 +1567,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "ccdb990c03b5d862240f11fa639bc9372d864406",
           "committedAt": "2026-08-07T15:46:23+02:00",
           "deletions": 6,
@@ -1574,8 +1576,7 @@
             "app/src/components/actions/agent/action_agent_approval.tsx"
           ],
           "filesChanged": 2,
-          "insertions": 66,
-          "branch": "dev_main"
+          "insertions": 66
         }
       ],
       "completedAt": "2026-08-07T15:46:23+02:00",
@@ -1587,5 +1588,5 @@
       "type": "system"
     }
   ],
-  "version": 2
+  "version": 3
 }

@@ -1,4 +1,5 @@
 {
+  "actionSettings": {},
   "conversations": [
     {
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
@@ -2091,6 +2092,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "97f9b2f6c38f2994e8703b7fb730fc35c60375ee",
           "committedAt": "2026-08-07T16:54:16+02:00",
           "deletions": 9,
@@ -2099,8 +2101,7 @@
             "app/src/components/text_view/list_editor_toolbar_controls.tsx"
           ],
           "filesChanged": 2,
-          "insertions": 46,
-          "branch": "dev_main"
+          "insertions": 46
         }
       ],
       "completedAt": "2026-08-07T16:54:16+02:00",
@@ -2112,5 +2113,5 @@
       "type": "system"
     }
   ],
-  "version": 2
+  "version": 3
 }

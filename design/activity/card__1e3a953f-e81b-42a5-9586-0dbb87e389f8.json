@@ -1,4 +1,5 @@
 {
+  "actionSettings": {},
   "conversations": [
     {
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
@@ -5183,6 +5184,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "1ed598926ad414da70679bb94425077b14fb7678",
           "committedAt": "2026-08-07T16:35:28+02:00",
           "deletions": 174,
@@ -5221,8 +5223,7 @@
             "shared/card_activity.mjs"
           ],
           "filesChanged": 32,
-          "insertions": 886,
-          "branch": "dev_main"
+          "insertions": 886
         }
       ],
       "completedAt": "2026-08-07T16:35:28+02:00",
@@ -5234,5 +5235,5 @@
       "type": "system"
     }
   ],
-  "version": 2
+  "version": 3
 }

@@ -1,7 +1,7 @@
 ---
 internalId: 3373bf52-14c0-4cc7-8f7c-555c835af9a0
 id: F_119
-status: new
+status: ready
 title: add merge conflict resolver support
 after: 0ef8b9a6-ac40-4617-b077-17260b17a61c
 agents:

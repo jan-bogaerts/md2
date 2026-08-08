@@ -1,4 +1,5 @@
 {
+  "actionSettings": {},
   "conversations": [
     {
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
@@ -4730,12 +4731,12 @@
         "agent-e56a1e1a-42e8-4ce0-a3b3-0ad3c43838bc"
       ],
       "details": {
+        "type": "agent",
         "accessLevel": "workspace-write",
         "agent": "codex",
         "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-d84d510b-d394-4011-9ec6-489f9d129a7e",
       "origin": {
@@ -4744,10 +4745,10 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-e56a1e1a-42e8-4ce0-a3b3-0ad3c43838bc",
       "startedAt": "2026-08-06T11:20:06.134Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-e56a1e1a-42e8-4ce0-a3b3-0ad3c43838bc"
     }
   ],
-  "version": 2
+  "version": 3
 }
