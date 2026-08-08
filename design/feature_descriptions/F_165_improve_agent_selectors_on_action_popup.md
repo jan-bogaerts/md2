@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
   - design/activity/card__c38e7423-9b05-47e2-a728-9637a25f9a2e.json#conversation=agent-6127a6ec-3c7b-4396-8c07-e7063d6fd63a
+  - design/activity/card__c38e7423-9b05-47e2-a728-9637a25f9a2e.json#conversation=agent-4dc74d55-efb3-45cc-b861-e72010ad23f2
 policy:
 branch: f_165_improve_agent_selectors_on_action_popup
 worktree: 3
