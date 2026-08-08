@@ -10,6 +10,8 @@ agents:
   - design/activity/card__705b887c-4aac-4558-bfef-a5cb965f8719.json#conversation=agent-3d7d9996-898c-45a3-845b-d74b2a8f4bc0
 policy:
 after: a529defa-f2ad-4307-923b-856a8ce80243
+branch: f_158_dont_auto_load_activity_of_released_cards
+worktree: 3
 ---
 
 We should only load activity of a released card on demand: when the user looks at it somehow.
