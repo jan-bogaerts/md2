@@ -5,7 +5,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "ade75617-2ab1-40c9-ae62-01700b995632",
       "cardPath": "design/feature_descriptions/F_156_when_approval_request_is_shown_hide_phrases.md",
-      "completedAt": null,
+      "completedAt": "2026-08-08T13:24:16.003Z",
       "entries": [
         {
           "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/F_156_when_approval_request_is_shown_hide_phrases.md`.&#x20;\n\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill\n\nDo not stage or commit changes. md2 will commit files captured from provider edit tools.",
@@ -615,7 +615,7 @@
         }
       ],
       "startedAt": "2026-08-08T13:03:04.676Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "title": "complete",
       "usage": {
         "cachedInputTokens": 132608,
@@ -639,12 +639,11 @@
         "agent-8de6815e-3109-4f01-8525-5bb01fa0406a"
       ],
       "details": {
-        "accessLevel": "workspace-write",
+        "type": "agent",
         "agent": "codex",
-        "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "permissionMode": "ask-for-approval",
+        "thinkingLevel": "medium"
       },
       "runId": "action-abb56fde-f361-4c3c-b212-0c3b89d3e3f9",
       "origin": {
@@ -653,10 +652,10 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-8de6815e-3109-4f01-8525-5bb01fa0406a",
       "startedAt": "2026-08-08T13:03:04.674Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-8de6815e-3109-4f01-8525-5bb01fa0406a"
     }
   ],
-  "version": 3
+  "version": 4
 }
