@@ -3,12 +3,15 @@ author:
 id: B_104
 internalId: 51db4329-b855-4084-9e87-a50d3ce8eb6e
 title: wrong prefill of input box on action popup
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
   - design/activity/card__51db4329-b855-4084-9e87-a50d3ce8eb6e.json#conversation=agent-88a8d176-b27e-4cc0-8003-8f2130bec91c
 policy:
+after: 3913c1ee-9bd7-40df-bfae-1f0188881b8f
+branch: b_104_wrong_prefill_of_input_box_on_action_popup
+worktree: 2
 ---
 
 We already looked at this in the card `design/releases/0_1_0/B_97_when_action_completes_dont_autofill_the_input_again.md` but apparently this was not yet fixed correctly.
