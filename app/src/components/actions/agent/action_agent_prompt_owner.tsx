@@ -1,4 +1,4 @@
-import { useEffect, useSyncExternalStore } from 'react'
+import { useEffect, useSyncExternalStore, type ReactNode } from 'react'
 import type { ActionContext } from '../../../data/action_context'
 import type { ActionDefinition } from '../../../data/action_types'
 import type { ActionRun } from '../../../services/actions/action_run_registry'
@@ -18,6 +18,7 @@ import { ActionPhraseButtonsOwner } from '../editor/action_phrase_buttons_owner'
 
 interface ActionAgentPromptOwnerProps {
     action: ActionDefinition
+    bottomRow?: ReactNode
     context: ActionContext
     conversationStore: ActionConversationStore
     historyStore: ActionHistoryStore
@@ -33,7 +34,7 @@ function selectSessionActive(run: ActionRun | null) {
 
 /** Owns prompt draft binding, preparation, and keyboard-run behavior. */
 export function ActionAgentPromptOwner(props: ActionAgentPromptOwnerProps) {
-    const { action, context, conversationStore, historyStore, inputStore, resultStore, runValidationError, settingsStore } = props
+    const {action, bottomRow, context, conversationStore, historyStore, inputStore, resultStore, runValidationError, settingsStore} = props
     const sessionActive = useActionRunSelector(action.id, context, selectSessionActive)
     const activeActionType = useActionRunSelector(action.id, context, (run) => run?.activeActionType ?? null)
     const hasApprovals = useActionRunSelector(action.id, context, (run) => !!run?.approvals.length)
@@ -94,6 +95,7 @@ export function ActionAgentPromptOwner(props: ActionAgentPromptOwnerProps) {
 
     return (
         <ActionAgentPrompt
+            bottomRow={action.type === 'agent' || activeActionType === 'agent' ? bottomRow : undefined}
             convertMessage={inputSnapshot.convertMessage}
             disabled={false}
             onRunShortcut={handleRunShortcut}

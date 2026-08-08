@@ -45,7 +45,11 @@ function waitingConversation(actionId: string): AgentConversation {
     }
 }
 
-function renderBottomRow(actionOverride = action, conversationStore = new ActionConversationStore(actionOverride.id, context)) {
+function renderBottomRow(
+    actionOverride = action,
+    conversationStore = new ActionConversationStore(actionOverride.id, context),
+    embedded = false,
+) {
     const historyStore = new ActionHistoryStore(actionOverride, context)
     const inputStore = new ActionRunInputStore()
     const resultStore = new ActionRunResultStore()
@@ -67,6 +71,7 @@ function renderBottomRow(actionOverride = action, conversationStore = new Action
                 action={actionOverride}
                 assignmentContext={context}
                 conversationStore={conversationStore}
+                embedded={embedded}
                 historyStore={historyStore}
                 inputStore={inputStore}
                 resultStore={resultStore}
@@ -114,6 +119,16 @@ describe('ActionPopupBottomRow', () => {
         expect(controls).toHaveAttribute('data-footer-controls')
         expect(controls).toHaveStyle({ justifySelf: 'end' })
         expect(within(controls as HTMLElement).getByRole('button', { name: 'Send' })).toBeInTheDocument()
+    })
+
+    it('marks the row as embedded without changing agent control behavior', () => {
+        actionPromptDraftService.getDraft(action.id, context, null, { prepare: false }).edit('Plan')
+        renderBottomRow(action, new ActionConversationStore(action.id, context), true)
+        const bottomRow = screen.getByTestId('action-popup-bottom-row')
+
+        expect(bottomRow).toHaveAttribute('data-embedded', 'true')
+        expect(within(bottomRow).getByRole('button', { name: 'Send' })).toBeEnabled()
+        expect(within(bottomRow).getByRole('button', { name: 'Schedule' })).toBeEnabled()
     })
 
     it('enables Send from first live prompt change without rendering unrelated content', () => {
@@ -188,6 +203,8 @@ describe('ActionPopupBottomRow', () => {
         const commandAction = { ...action, id: 'command', label: 'Command', type: 'command' as const }
         renderBottomRow(commandAction)
         const run = screen.getByRole('button', { name: 'Run' })
+
+        expect(screen.getByTestId('action-popup-bottom-row')).not.toHaveAttribute('data-embedded')
 
         fireEvent.mouseOver(run)
         expect(await screen.findByText('Run', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()

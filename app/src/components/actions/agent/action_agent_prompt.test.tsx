@@ -1,5 +1,5 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ActionAgentPrompt } from './action_agent_prompt'
 import { ACTION_PROMPT_PLACEHOLDERS } from '../../../data/action_placeholders'
 import { ActionPromptDraft } from '../../../services/actions/action_prompt_draft_service'
@@ -61,7 +61,26 @@ vi.mock('../../editor/markdown_editor', async () => {
     }
 })
 
-afterEach(cleanup)
+function mockAvailablePromptHeight(height: number) {
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+        bottom: height,
+        height,
+        left: 0,
+        right: 400,
+        top: 0,
+        width: 400,
+        x: 0,
+        y: 0,
+        toJSON: () => ({}),
+    })
+}
+
+beforeEach(() => window.localStorage.clear())
+
+afterEach(() => {
+    cleanup()
+    vi.restoreAllMocks()
+})
 
 describe('ActionAgentPrompt', () => {
     it('configures action placeholders on its hidden-toolbar editor', () => {
@@ -183,5 +202,95 @@ describe('ActionAgentPrompt', () => {
         expect(setMarkdown).toHaveBeenCalledOnce()
         expect(setMarkdown).toHaveBeenCalledWith('Prepared')
         expect(screen.getByLabelText('Markdown prompt')).toHaveValue('Prepared')
+    })
+
+    it.each(['', '   \n\t'])('collapses only the editor region for an empty draft %#', (value) => {
+        const promptDraft = new ActionPromptDraft(value, false, null)
+        render(
+            <ActionAgentPrompt
+                bottomRow={<div>Controls</div>}
+                convertMessage={null}
+                disabled={false}
+                promptDraft={promptDraft}
+                responsePrompts={<div>Predefined phrases</div>}
+            />,
+        )
+
+        expect(screen.getByLabelText('Prompt')).toHaveStyle({ height: 'auto' })
+        expect(screen.getByTestId('action-prompt-editor-region')).toHaveStyle({ height: '42px', overflowY: 'auto' })
+        expect(screen.getByText('Predefined phrases')).toBeInTheDocument()
+        expect(screen.getByText('Controls')).toBeInTheDocument()
+    })
+
+    it('disables pointer and keyboard resize while the prompt is empty', () => {
+        window.localStorage.setItem('md2.actionPromptHeight', '160')
+        const promptDraft = new ActionPromptDraft('', false, null)
+        render(<ActionAgentPrompt convertMessage={null} disabled={false} promptDraft={promptDraft} />)
+        const separator = screen.getByRole('separator', { name: 'Resize prompt' })
+
+        expect(separator).toHaveAttribute('aria-disabled', 'true')
+        expect(separator).toHaveAttribute('tabindex', '-1')
+        fireEvent.pointerDown(separator, { clientY: 200, pointerId: 1 })
+        fireEvent.pointerMove(separator, { clientY: 100, pointerId: 1 })
+        fireEvent.pointerUp(separator, { clientY: 100, pointerId: 1 })
+        fireEvent.keyDown(separator, { key: 'ArrowUp' })
+
+        expect(screen.getByLabelText('Prompt')).toHaveStyle({ height: 'auto' })
+        expect(window.localStorage.getItem('md2.actionPromptHeight')).toBe('160')
+    })
+
+    it('restores the saved height on live text entry and preserves it across empty transitions', () => {
+        window.localStorage.setItem('md2.actionPromptHeight', '188')
+        mockAvailablePromptHeight(400)
+        const promptDraft = new ActionPromptDraft('', false, null)
+        render(<ActionAgentPrompt convertMessage={null} disabled={false} promptDraft={promptDraft} />)
+        const prompt = screen.getByLabelText('Markdown prompt')
+        const separator = screen.getByRole('separator', { name: 'Resize prompt' })
+
+        fireEvent.change(prompt, { target: { value: 'Plan' } })
+        expect(screen.getByLabelText('Prompt')).toHaveStyle({ height: '188px' })
+        expect(separator).not.toHaveAttribute('aria-disabled')
+        expect(separator).toHaveAttribute('tabindex', '0')
+
+        fireEvent.change(prompt, { target: { value: '   ' } })
+        expect(screen.getByLabelText('Prompt')).toHaveStyle({ height: 'auto' })
+        expect(window.localStorage.getItem('md2.actionPromptHeight')).toBe('188')
+
+        fireEvent.change(prompt, { target: { value: 'Continue' } })
+        expect(screen.getByLabelText('Prompt')).toHaveStyle({ height: '188px' })
+    })
+
+    it('clamps a restored height against the available popup height', () => {
+        window.localStorage.setItem('md2.actionPromptHeight', '220')
+        mockAvailablePromptHeight(250)
+        const promptDraft = new ActionPromptDraft('', false, null)
+        render(<ActionAgentPrompt convertMessage={null} disabled={false} promptDraft={promptDraft} />)
+
+        fireEvent.change(screen.getByLabelText('Markdown prompt'), { target: { value: 'Plan' } })
+
+        expect(screen.getByLabelText('Prompt')).toHaveStyle({ height: '154px' })
+        expect(window.localStorage.getItem('md2.actionPromptHeight')).toBe('154')
+    })
+
+    it('persists non-empty pointer and keyboard resize without overwriting it after clearing', () => {
+        window.localStorage.setItem('md2.actionPromptHeight', '160')
+        mockAvailablePromptHeight(400)
+        const promptDraft = new ActionPromptDraft('Plan', false, null)
+        render(<ActionAgentPrompt convertMessage={null} disabled={false} promptDraft={promptDraft} />)
+        const separator = screen.getByRole('separator', { name: 'Resize prompt' })
+
+        fireEvent.pointerDown(separator, { clientY: 200, pointerId: 2 })
+        fireEvent.pointerMove(separator, { clientY: 160, pointerId: 2 })
+        fireEvent.pointerUp(separator, { clientY: 160, pointerId: 2 })
+        expect(screen.getByLabelText('Prompt')).toHaveStyle({ height: '200px' })
+        expect(window.localStorage.getItem('md2.actionPromptHeight')).toBe('200')
+
+        fireEvent.keyDown(separator, { key: 'ArrowDown' })
+        expect(screen.getByLabelText('Prompt')).toHaveStyle({ height: '176px' })
+        expect(window.localStorage.getItem('md2.actionPromptHeight')).toBe('176')
+
+        fireEvent.change(screen.getByLabelText('Markdown prompt'), { target: { value: '' } })
+        fireEvent.keyDown(separator, { key: 'ArrowUp' })
+        expect(window.localStorage.getItem('md2.actionPromptHeight')).toBe('176')
     })
 })

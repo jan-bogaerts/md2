@@ -1,6 +1,7 @@
 import { Box, Typography } from '@mui/material'
 import {
-    useEffect, useRef, useState, useSyncExternalStore, type KeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode,
+    useCallback, useEffect, useRef, useState, useSyncExternalStore,
+    type KeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode,
 } from 'react'
 import { ACTION_PROMPT_PLACEHOLDERS } from '../../../data/action_placeholders'
 import { dialogService } from '../../../services/dialog_service'
@@ -10,6 +11,7 @@ import { MarkdownEditor, type MarkdownEditorHandle } from '../../editor/markdown
 const MIN_PROMPT_HEIGHT = 72
 const MIN_CHAT_HEIGHT = 96
 const DEFAULT_PROMPT_HEIGHT = 140
+const EMPTY_PROMPT_EDITOR_HEIGHT = 42
 const PROMPT_RESIZE_STEP = 24
 const PROMPT_HEIGHT_STORAGE_KEY = 'md2.actionPromptHeight'
 
@@ -20,7 +22,12 @@ function readStoredPromptHeight(): number {
     return Number.isNaN(parsedValue) ? DEFAULT_PROMPT_HEIGHT : parsedValue
 }
 
+function persistPromptHeight(height: number) {
+    window.localStorage.setItem(PROMPT_HEIGHT_STORAGE_KEY, String(Math.round(height)))
+}
+
 interface ActionAgentPromptProps {
+    bottomRow?: ReactNode
     convertMessage: string | null
     disabled: boolean
     onRunShortcut?: () => void
@@ -30,13 +37,14 @@ interface ActionAgentPromptProps {
 
 /** Resizable prompt editor shown below an agent conversation. */
 export function ActionAgentPrompt(props: ActionAgentPromptProps) {
-    const {convertMessage, disabled, onRunShortcut, promptDraft, responsePrompts} = props
+    const {bottomRow, convertMessage, disabled, onRunShortcut, promptDraft, responsePrompts} = props
     const promptEditorRef = useRef<MarkdownEditorHandle>(null)
     const promptHeightStartRef = useRef(0)
     const pointerStartYRef = useRef(0)
-    const splitContainerRef = useRef<HTMLElement | null>(null)
+    const promptSurfaceRef = useRef<HTMLElement | null>(null)
     const [promptHeight, setPromptHeight] = useState(readStoredPromptHeight)
     const [resizingPrompt, setResizingPrompt] = useState(false)
+    const prompt = useSyncExternalStore(promptDraft.subscribe, promptDraft.getSnapshot, promptDraft.getSnapshot)
     const editorSnapshot = useSyncExternalStore(
         promptDraft.subscribeEditor,
         promptDraft.getEditorSnapshot,
@@ -47,28 +55,44 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
         promptEditorRef.current?.setMarkdown(promptDraft.getSnapshot())
     }, [editorSnapshot.replacementRevision, promptDraft])
 
-    const handlePromptChange = (value: string) => {
+    const promptEmpty = prompt.trim().length === 0
+
+    const clampPromptHeight = useCallback((proposed: number) => {
+        const container = promptSurfaceRef.current?.parentElement
+        const available = container ? container.getBoundingClientRect().height - MIN_CHAT_HEIGHT : proposed
+        const max = Math.max(MIN_PROMPT_HEIGHT, available)
+
+        return Math.min(Math.max(proposed, MIN_PROMPT_HEIGHT), max)
+    }, [])
+
+    const handlePromptSurfaceRef = useCallback((surface: HTMLElement | null) => {
+        promptSurfaceRef.current = surface
+        if (!surface || promptEmpty) return
+
+        setPromptHeight((height) => {
+            const clamped = clampPromptHeight(height)
+            if (clamped !== height) persistPromptHeight(clamped)
+
+            return clamped
+        })
+    }, [clampPromptHeight, promptEmpty])
+
+    const handleLivePromptChange = (value: string) => {
+        if (value.trim().length === 0) setResizingPrompt(false)
         promptDraft.edit(value)
+    }
+
+    const handlePromptChange = (value: string) => {
+        handleLivePromptChange(value)
         void promptDraft.synchronize().catch((error: unknown) => {
             dialogService.error(error, { fallbackMessage: 'Could not queue agent prompt' })
         })
     }
 
-    const clampPromptHeight = (proposed: number) => {
-        const container = splitContainerRef.current
-        const available = container ? container.getBoundingClientRect().height - MIN_CHAT_HEIGHT : proposed
-        const max = Math.max(MIN_PROMPT_HEIGHT, available)
-
-        return Math.min(Math.max(proposed, MIN_PROMPT_HEIGHT), max)
-    }
-
-    const persistPromptHeight = (height: number) => {
-        window.localStorage.setItem(PROMPT_HEIGHT_STORAGE_KEY, String(Math.round(height)))
-    }
-
     const handleSplitPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+        if (promptEmpty) return
+
         event.preventDefault()
-        splitContainerRef.current = event.currentTarget.parentElement
         promptHeightStartRef.current = promptHeight
         pointerStartYRef.current = event.clientY
         setResizingPrompt(true)
@@ -76,7 +100,7 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
     }
 
     const handleSplitPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
-        if (!resizingPrompt) return
+        if (promptEmpty || !resizingPrompt) return
 
         const delta = pointerStartYRef.current - event.clientY
         setPromptHeight(clampPromptHeight(promptHeightStartRef.current + delta))
@@ -87,6 +111,8 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
 
         setResizingPrompt(false)
         event.currentTarget.releasePointerCapture?.(event.pointerId)
+        if (promptEmpty) return
+
         setPromptHeight((height) => {
             persistPromptHeight(height)
 
@@ -95,7 +121,8 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
     }
 
     const handleSplitKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-        splitContainerRef.current = event.currentTarget.parentElement
+        if (promptEmpty) return
+
         const nextByKey: Record<string, number> = {
             ArrowDown: promptHeight - PROMPT_RESIZE_STEP,
             ArrowUp: promptHeight + PROMPT_RESIZE_STEP,
@@ -122,6 +149,7 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
         <>
             <Box
                 aria-label="Resize prompt"
+                aria-disabled={promptEmpty ? 'true' : undefined}
                 aria-orientation="horizontal"
                 aria-valuemin={MIN_PROMPT_HEIGHT}
                 aria-valuenow={Math.round(promptHeight)}
@@ -131,21 +159,22 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
                 onPointerUp={handleSplitPointerUp}
                 role="separator"
                 sx={{
-                    bgcolor: resizingPrompt ? 'primary.main' : 'divider',
+                    bgcolor: resizingPrompt && !promptEmpty ? 'primary.main' : 'divider',
                     borderRadius: '2px',
-                    cursor: 'row-resize',
+                    cursor: promptEmpty ? 'default' : 'row-resize',
                     flexShrink: 0,
                     height: '3px',
                     mx: 'auto',
                     my: '2px',
                     width: '100%',
-                    '&:hover': { bgcolor: 'primary.main' },
+                    '&:hover': { bgcolor: promptEmpty ? 'divider' : 'primary.main' },
                 }}
-                tabIndex={0}
+                tabIndex={promptEmpty ? -1 : 0}
             />
             <Box
                 aria-label="Prompt"
                 onKeyDownCapture={handlePromptKeyDownCapture}
+                ref={handlePromptSurfaceRef}
                 sx={{
                     borderRadius: '9px',
                     border: 1,
@@ -153,7 +182,7 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
                     display: 'flex',
                     flexDirection: 'column',
                     flexShrink: 0,
-                    height: promptHeight,
+                    height: promptEmpty ? 'auto' : promptHeight,
                     overflow: 'hidden',
                     '&:focus-within': {
                         borderColor: 'primary.main',
@@ -161,19 +190,29 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
                     },
                 }}
             >
-                <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', px: 1 }}>
+                <Box
+                    data-testid="action-prompt-editor-region"
+                    sx={{
+                        flex: promptEmpty ? '0 0 auto' : 1,
+                        height: promptEmpty ? EMPTY_PROMPT_EDITOR_HEIGHT : undefined,
+                        minHeight: 0,
+                        overflowY: 'auto',
+                        px: 1,
+                    }}
+                >
                     <MarkdownEditor
                         flushOnBlur
                         hideToolbar
-                        markdown={promptDraft.getSnapshot()}
+                        markdown={prompt}
                         onChange={handlePromptChange}
-                        onLiveChange={promptDraft.edit}
+                        onLiveChange={handleLivePromptChange}
                         placeholders={ACTION_PROMPT_PLACEHOLDERS}
                         readOnly={disabled || editorSnapshot.preparationStatus !== 'ready'}
                         ref={promptEditorRef}
                     />
                 </Box>
                 {responsePrompts}
+                {bottomRow}
             </Box>
             {convertMessage ? (
                 <Typography color="text.secondary" role="status" variant="caption">

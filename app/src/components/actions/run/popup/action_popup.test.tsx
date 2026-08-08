@@ -263,9 +263,13 @@ describe('ActionPopup', () => {
 
         const dialog = within(screen.getByRole('dialog', { name: 'Run actions' }))
         const actionGroup = within(dialog.getByRole('group', { name: 'Actions' }))
+        const scrollBody = dialog.getByTestId('action-popup-scroll-body')
+        const bottomRow = dialog.getByTestId('action-popup-bottom-row')
         expect(actionGroup.getByRole('button', { name: 'First action' })).toHaveAttribute('aria-pressed', 'true')
         expect(actionGroup.getByRole('button', { name: 'Second action' })).toHaveAttribute('aria-pressed', 'false')
         expect(dialog.getByRole('button', { name: 'Run' })).toBeInTheDocument()
+        expect(bottomRow).not.toHaveAttribute('data-embedded')
+        expect(scrollBody.nextElementSibling).toBe(bottomRow)
     })
 
     it('keeps released-card conversation history available without run controls', () => {
@@ -292,15 +296,21 @@ describe('ActionPopup', () => {
         expect(renderProbes.agentPrompt).toHaveBeenCalledWith(stackPosition)
     })
 
-    it('renders agent selectors only in the popup bottom row', () => {
+    it('renders the agent bottom row inside the prompt surface below the scrolling editor', () => {
         actionService.loadFromFiles([file(agentDefinition('review', { label: 'Review' }))])
 
         renderPopup()
 
         const scrollBody = screen.getByTestId('action-popup-scroll-body')
-        const bottomRow = screen.getByTestId('action-popup-bottom-row')
-        expect(within(scrollBody).queryByRole('group', { name: 'Agent settings' })).not.toBeInTheDocument()
+        const promptSurface = within(scrollBody).getByLabelText('Prompt')
+        const editorRegion = within(promptSurface).getByTestId('action-prompt-editor-region')
+        const bottomRow = within(promptSurface).getByTestId('action-popup-bottom-row')
+
+        expect(bottomRow).toHaveAttribute('data-embedded', 'true')
         expect(within(bottomRow).getByRole('group', { name: 'Agent settings' })).toBeInTheDocument()
+        expect(editorRegion).toHaveStyle({ overflowY: 'auto' })
+        expect(editorRegion.contains(bottomRow)).toBe(false)
+        expect(screen.getAllByTestId('action-popup-bottom-row')).toHaveLength(1)
     })
 
     it('shows Project in the project popup header and accessible title', () => {
@@ -971,7 +981,9 @@ describe('ActionPopup', () => {
         act(() => runListener?.({ ...eventBase, status: 'waitingForInput', type: 'agentState' }))
         const promptSurface = screen.getByLabelText('Prompt')
         const phraseGroup = await within(promptSurface).findByRole('group', { name: 'Predefined phrases' })
+        const bottomRow = within(promptSurface).getByTestId('action-popup-bottom-row')
         const phraseButton = within(phraseGroup).getByRole('button', { name: 'Continue' })
+        expect(promptSurface.lastElementChild).toBe(bottomRow)
 
         fireEvent.click(phraseButton)
         await waitFor(() => expect(within(promptSurface).getByRole('textbox')).toHaveValue('Continue with tests'))
@@ -1632,6 +1644,9 @@ describe('ActionPopup', () => {
         expect(screen.queryByRole('button', { name: 'Schedule' })).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Finish' })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: 'Stop' })).not.toBeInTheDocument()
+        const promptSurface = screen.getByLabelText('Prompt')
+        expect(within(promptSurface).getByTestId('action-popup-bottom-row')).toHaveAttribute('data-embedded', 'true')
+        expect(screen.getAllByTestId('action-popup-bottom-row')).toHaveLength(1)
     })
 
     it('blocks a needsWorkTree action without assignment and reports the reason', async () => {

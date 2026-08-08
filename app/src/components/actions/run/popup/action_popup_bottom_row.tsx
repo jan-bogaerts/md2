@@ -31,6 +31,7 @@ interface ActionPopupBottomRowProps {
     assignmentContext: ActionContext
     conversationStore: ActionConversationStore
     historyStore: ActionHistoryStore
+    embedded?: boolean
     inputStore: ActionRunInputStore
     resultStore: ActionRunResultStore
     runValidationError: string | null
@@ -42,7 +43,7 @@ interface ActionPopupBottomRowProps {
 /** Agent settings, usage, and run controls for the popup footer. */
 export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
     const {
-        action, assignmentContext, conversationStore, historyStore, inputStore, resultStore,
+        action, assignmentContext, conversationStore, embedded = false, historyStore, inputStore, resultStore,
         runValidationError, scheduleStore, settingsStore, usageScopeStore,
     } = props
     const settings = useActionRunSettings(action, settingsStore)
@@ -114,10 +115,11 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
     return (
         <Box
             data-testid="action-popup-bottom-row"
+            data-embedded={embedded ? 'true' : undefined}
             sx={{
-                alignItems: 'center', bgcolor: 'background.default', borderTop: 1, borderColor: 'divider',
+                alignItems: 'center', bgcolor: embedded ? 'background.paper' : 'background.default', borderTop: 1, borderColor: 'divider',
                 containerType: 'inline-size', display: 'grid', flexShrink: 0, gap: 1,
-                gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)', px: 2, py: 1.5,
+                gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)', px: embedded ? 1 : 2, py: embedded ? 1 : 1.5,
                 '@container (max-width: 420px)': {
                     gridTemplateColumns: 'minmax(0, 1fr) auto',
                     '& [data-footer-usage]': { gridColumn: '1 / -1', gridRow: 2 },

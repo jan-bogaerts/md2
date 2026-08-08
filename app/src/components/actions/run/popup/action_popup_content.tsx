@@ -22,6 +22,7 @@ import { ActionConversationStore } from '../../conversation/action_conversation_
 import { ActionHistoryStore } from '../state/action_history_store'
 import { ActionLogErrorOwner } from '../../conversation/action_log_error_owner'
 import { ActionPopupBottomRow } from './action_popup_bottom_row'
+import { ActionCommandBottomRowVisibility } from './action_command_bottom_row_visibility'
 import { ActionUsageScopeStore } from './action_usage_scope_store'
 import { ActionRunDisabledMessage } from './action_run_disabled_message'
 import { ActionRunHistoryOwner } from '../state/action_run_history_owner'
@@ -272,6 +273,21 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                                 />
                                 <ActionAgentPromptOwner
                                     action={action}
+                                    bottomRow={(
+                                        <ActionPopupBottomRow
+                                            action={action}
+                                            assignmentContext={assignmentContext}
+                                            conversationStore={conversationStore}
+                                            embedded
+                                            historyStore={historyStore}
+                                            inputStore={inputStore}
+                                            settingsStore={settingsStore}
+                                            resultStore={resultStore}
+                                            runValidationError={runValidationError}
+                                            scheduleStore={scheduleStore}
+                                            usageScopeStore={usageScopeStore}
+                                        />
+                                    )}
                                     context={assignmentContext}
                                     conversationStore={conversationStore}
                                     historyStore={historyStore}
@@ -298,18 +314,20 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                             <ActionRunHistoryOwner store={historyStore} />
                         ) : null}
                     </Stack>
-                    <ActionPopupBottomRow
-                        action={action}
-                        assignmentContext={assignmentContext}
-                        conversationStore={conversationStore}
-                        historyStore={historyStore}
-                        inputStore={inputStore}
-                        settingsStore={settingsStore}
-                        resultStore={resultStore}
-                        runValidationError={runValidationError}
-                        scheduleStore={scheduleStore}
-                        usageScopeStore={usageScopeStore}
-                    />
+                    <ActionCommandBottomRowVisibility action={action} context={assignmentContext}>
+                        <ActionPopupBottomRow
+                            action={action}
+                            assignmentContext={assignmentContext}
+                            conversationStore={conversationStore}
+                            historyStore={historyStore}
+                            inputStore={inputStore}
+                            settingsStore={settingsStore}
+                            resultStore={resultStore}
+                            runValidationError={runValidationError}
+                            scheduleStore={scheduleStore}
+                            usageScopeStore={usageScopeStore}
+                        />
+                    </ActionCommandBottomRowVisibility>
                 </>}
             </MarkdownTypeaheadLayerProvider>
         </ResizablePopper>
