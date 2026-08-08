@@ -1733,6 +1733,29 @@
       "startedAt": "2026-08-08T12:55:56.887Z",
       "status": "completed",
       "rootConversationId": "agent-c7a32476-b279-48f9-b81d-6afbd666b3cf"
+    },
+    {
+      "commits": [
+        {
+          "commit": "37a77ea80420b76b398a23231e13445951595345",
+          "committedAt": "2026-08-08T15:23:52+02:00",
+          "deletions": 3,
+          "filePaths": [
+            "app/src/components/actions/conversation/action_conversation_store.ts",
+            "app/src/components/actions/run/popup/action_popup.test.tsx"
+          ],
+          "filesChanged": 2,
+          "insertions": 69,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-08T15:23:52+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "51db4329-b855-4084-9e87-a50d3ce8eb6e",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
