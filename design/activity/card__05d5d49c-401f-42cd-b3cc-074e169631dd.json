@@ -1486,10 +1486,9 @@
       ],
       "details": {
         "type": "agent",
-        "accessLevel": "workspace-write",
         "agent": "codex",
-        "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
+        "permissionMode": "ask-for-approval",
         "thinkingLevel": "medium"
       },
       "runId": "action-195ebafc-b38b-4ce8-baae-5eb45e3e9064",
@@ -1504,42 +1503,6 @@
       "rootConversationId": "agent-2322e64a-9c75-4d08-b6cd-9b3d966b498b"
     },
     {
-      "commits": [
-        {
-          "branch": "dev_main",
-          "commit": "6a924ea8967ebc496fbf952172ed7a337b12edf9",
-          "committedAt": "2026-08-07T14:35:05+02:00",
-          "deletions": 19,
-          "filePaths": [
-            "design/feature_descriptions/F_153_action_part_in_approval_required.md"
-          ],
-          "filesChanged": 1,
-          "insertions": 47
-        }
-      ],
-      "completedAt": "2026-08-07T12:35:05.264Z",
-      "conversationIds": [
-        "agent-793ef4cc-80b6-453e-a264-fc5869fdf065"
-      ],
-      "details": {
-        "type": "agent",
-        "agent": "claude",
-        "approvalPolicy": "default",
-        "model": "default",
-        "thinkingLevel": "none"
-      },
-      "runId": "action-7bd2867f-90e3-4f8f-ba84-b244419d76e4",
-      "origin": {
-        "cardInternalId": "05d5d49c-401f-42cd-b3cc-074e169631dd",
-        "kind": "card"
-      },
-      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
-      "rootActionLabel": "complete",
-      "startedAt": "2026-08-07T12:30:12.560Z",
-      "status": "completed",
-      "rootConversationId": "agent-793ef4cc-80b6-453e-a264-fc5869fdf065"
-    },
-    {
       "commits": [],
       "completedAt": "2026-08-07T13:39:11.264Z",
       "conversationIds": [
@@ -1547,10 +1510,9 @@
       ],
       "details": {
         "type": "agent",
-        "accessLevel": "workspace-write",
         "agent": "codex",
-        "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
+        "permissionMode": "ask-for-approval",
         "thinkingLevel": "medium"
       },
       "runId": "action-af9ce42f-f0c9-4dec-8357-9933950b0272",
@@ -1588,5 +1550,5 @@
       "type": "system"
     }
   ],
-  "version": 3
+  "version": 4
 }

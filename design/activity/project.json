@@ -1,4 +1,5 @@
 {
+  "actionSettings": {},
   "conversations": [
     {
       "actionId": "65ad68d5-4ad3-4afe-b861-0bbb00d2505e",
@@ -1540,10 +1541,9 @@
       ],
       "details": {
         "type": "agent",
-        "accessLevel": "workspace-write",
         "agent": "codex",
-        "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
+        "permissionMode": "ask-for-approval",
         "thinkingLevel": "medium"
       },
       "runId": "action-01499c9a-1938-4c22-aa98-84c170e9ca8b",
@@ -1564,10 +1564,9 @@
       ],
       "details": {
         "type": "agent",
-        "accessLevel": "workspace-write",
         "agent": "codex",
-        "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
+        "permissionMode": "ask-for-approval",
         "thinkingLevel": "medium"
       },
       "runId": "action-0efe8e48-4a8c-4800-aa5c-717bc616950c",
@@ -1579,30 +1578,7 @@
       "startedAt": "2026-08-07T08:36:45.199Z",
       "status": "completed",
       "rootConversationId": "agent-1f5a476f-2ecf-48c5-b311-1a97e91c8bcb"
-    },
-    {
-      "commits": [],
-      "completedAt": "2026-08-07T14:47:51.058Z",
-      "conversationIds": [
-        "agent-b488e2e6-7849-4b67-9c58-c8a4aec7e01b"
-      ],
-      "details": {
-        "agent": "claude",
-        "approvalPolicy": "default",
-        "model": "default",
-        "thinkingLevel": "none",
-        "type": "agent"
-      },
-      "runId": "action-f38b0b9b-f893-4ddf-9ad5-d8a82e66b7a5",
-      "origin": {
-        "kind": "project"
-      },
-      "rootActionId": "md2.custom-prompt",
-      "rootActionLabel": "Custom prompt",
-      "rootConversationId": "agent-b488e2e6-7849-4b67-9c58-c8a4aec7e01b",
-      "startedAt": "2026-08-07T14:44:53.587Z",
-      "status": "completed"
     }
   ],
-  "version": 2
+  "version": 4
 }
