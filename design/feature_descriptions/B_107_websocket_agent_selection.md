@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__8fedf475-d0af-4fe3-9aa0-d00bdfacffa0.json#conversation=agent-bc9a3885-7e22-4fc6-b6a5-7554c4e173e7
 policy:
+branch: b_107_websocket_agent_selection
+worktree: 2
 ---
 
 When connected through websockets (on mobile), the agent selectors are disabled. No way to set default agent config.
