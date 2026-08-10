@@ -123,7 +123,7 @@ describe('action-files', () => {
         const activityFolder = join(rootPath, 'design', 'activity');
         try {
             await mkdir(activityFolder, { recursive: true });
-            await writeFile(join(activityFolder, 'card__card-1.json'), '{"version":2,"origin":{"kind":"card","cardInternalId":"wrong"},"records":[],"conversations":[]}');
+            await writeFile(join(activityFolder, 'card__card-1.json'), '{"actionSettings":{},"conversations":[],"origin":{"kind":"card","cardInternalId":"wrong"},"records":[],"version":4}');
 
             await expect(loadActionRunHistory({ branch: 'main', rootPath }, { actionId: 'implement', context, projectFolder: 'design' }))
                 .rejects.toThrow('origin does not match');
@@ -139,8 +139,9 @@ describe('action-files', () => {
         try {
             await mkdir(activityFolder, { recursive: true });
             await writeFile(join(activityFolder, 'card__card-1.json'), JSON.stringify({
+                actionSettings: {},
                 conversations: [{ cardInternalId: 'card-1', completedAt: 'done', entries: [], id: 'conversation-1', providerSessions: [], startedAt: 'start', status: 'completed', title: 'Run' }],
-                origin, records: [], version: 2,
+                origin, records: [], version: 4,
             }));
 
             await expect(loadAgentConversation({ branch: 'main', rootPath }, reference))

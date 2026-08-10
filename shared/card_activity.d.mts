@@ -82,12 +82,12 @@ export interface CardActivityFile {
 }
 
 export type ActivityRepairResult =
-    | { activity: CardActivityFile; changed: boolean; outcome: 'repaired' | 'valid' }
-    | { activity: null; changed: false; outcome: 'future' | 'unresolved' }
+    | { activity: CardActivityFile; changed: boolean; status: 'repaired' | 'valid' }
+    | { activity: null; changed: false; status: 'future' | 'unrecoverable' }
 
 export function createActivityFile(origin: ActivityOrigin): CardActivityFile
 export function parseActivityValue(value: unknown, expectedOrigin?: ActivityOrigin | null): CardActivityFile
 export function parseActivityFile(content: string, expectedOrigin?: ActivityOrigin | null): CardActivityFile
 export function migrateActivityValue(value: unknown, expectedOrigin?: ActivityOrigin | null): CardActivityFile
-export function repairActivityFile(content: string, path: string): ActivityRepairResult
+export function repairActivityFile(content: string, expectedOrigin?: ActivityOrigin | null): ActivityRepairResult
 export function findActivityConversation(activity: CardActivityFile, conversationId: string): Omit<AgentConversation, 'path'>

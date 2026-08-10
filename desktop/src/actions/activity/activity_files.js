@@ -3,12 +3,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const {
-    LEGACY_ACTIVITY_VERSION,
-    PREVIOUS_ACTIVITY_VERSION,
-    SECOND_ACTIVITY_VERSION,
     createActivityFile,
     findActivityConversation,
-    migrateActivityValue,
     parseActivityValue,
 } = require('../../../../shared/card_activity.mjs');
 const {
@@ -49,16 +45,13 @@ function resolveActivityPath(rootPath, projectFolder, origin) {
     };
 }
 
-async function readStoredActivity(filePath, origin) {
+async function readStoredActivity(filePath) {
     const unwritten = unwrittenActivityValues.get(filePath);
-    if (unwritten) return { legacy: false, value: unwritten };
-    if (!await pathExists(filePath)) return { legacy: false, value: null };
+    if (unwritten) return { value: unwritten };
+    if (!await pathExists(filePath)) return { value: null };
     const value = JSON.parse(await fs.promises.readFile(filePath, 'utf8'));
-    if (![LEGACY_ACTIVITY_VERSION, SECOND_ACTIVITY_VERSION, PREVIOUS_ACTIVITY_VERSION].includes(value.version)) {
-        return { legacy: false, value };
-    }
 
-    return { legacy: true, value: migrateActivityValue(value, origin) };
+    return { value };
 }
 
 function activityValue(stored, origin) {
@@ -70,16 +63,7 @@ async function loadActivityValue(filePath, origin) {
 }
 
 async function readActivityFile(filePath, origin) {
-    const stored = await readStoredActivity(filePath, origin);
-    if (!stored.legacy) return activityValue(stored, origin);
-
-    return queueActivityUpdate(filePath, async () => {
-        const current = await readStoredActivity(filePath, origin);
-        const activity = activityValue(current, origin);
-        if (current.legacy) await writeActivityFile(filePath, activity);
-
-        return activity;
-    });
+    return activityValue(await readStoredActivity(filePath, origin), origin);
 }
 
 async function writeActivityFile(filePath, activity) {

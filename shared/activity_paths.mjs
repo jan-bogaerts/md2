@@ -36,6 +36,17 @@ export function activityFilePath(projectFolder, origin) {
     return `${projectActivityFolder(projectFolder)}/${fileName}`
 }
 
+/** Derive canonical activity ownership from a recognized activity filename. */
+export function activityOriginFromPath(activityPath) {
+    if (typeof activityPath !== 'string' || activityPath.length === 0) return null
+    const fileName = activityPath.replace(/\\/gu, '/').split('/').pop()
+    if (fileName === projectActivityFileName()) return { kind: 'project' }
+    const match = /^card__(.+)\.json$/u.exec(fileName ?? '')
+    if (!match || !ACTIVITY_ID_PATTERN.test(match[1]) || match[1] === '.' || match[1] === '..') return null
+
+    return { cardInternalId: match[1], kind: 'card' }
+}
+
 export function conversationActivityReference(activityPath, conversationId) {
     if (typeof activityPath !== 'string' || activityPath.length === 0) throw new Error('Missing activity path')
     const id = requireActivityId(conversationId, 'conversationId')

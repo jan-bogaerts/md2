@@ -1,130 +1,130 @@
 import type { CardActivityFile } from '../../../../shared/card_activity.mjs'
 import { repairActivityFile } from '../../../../shared/card_activity.mjs'
-import { activityFilePath, parseConversationActivityReference } from '../../../../shared/activity_paths.mjs'
-import type { AgentConversation, Card, MarkdownFile, ProjectReference, StorageService } from '../../data/data_types'
-import { mapWithConcurrency } from '../concurrency'
+import {
+    activityFilePath,
+    activityOriginFromPath,
+    conversationActivityReference,
+    parseConversationActivityReference,
+} from '../../../../shared/activity_paths.mjs'
+import type {
+    AgentConversation,
+    Card,
+    MarkdownFile,
+    ProjectReference,
+    StorageService,
+} from '../../data/data_types'
 
-const ACTIVITY_LOAD_CONCURRENCY = 8
+export interface ProjectActivityRepairResult {
+    activitiesByPath: Map<string, CardActivityFile>
+    conversationsByReference: Map<string, AgentConversation>
+    knownActivityPaths: Set<string>
+    projectConversationReferences: string[]
+    referencesByCardPath: Map<string, string[]>
+    repairedFiles: MarkdownFile[]
+}
 
-interface LoadedActivity {
+interface ActivityLoadResult {
     activity: CardActivityFile | null
-    changedFile: MarkdownFile | null
+    file: MarkdownFile | null
+    path: string
 }
 
-export interface CardActivityReferenceRepair {
-    cardPath: string
-    references: string[]
+function referencedActivityPath(reference: string) {
+    try {
+        return parseConversationActivityReference(reference).activityPath
+    } catch {
+        return null
+    }
 }
 
-export interface ProjectActivityRepairPlan {
-    cardRepairs: CardActivityReferenceRepair[]
-    changedFiles: MarkdownFile[]
-    conversationsByCardInternalId: Map<string, AgentConversation[]>
-    projectConversations: AgentConversation[]
-}
-
-function normalizePath(path: string) {
-    return path.replace(/\\/gu, '/')
-}
-
-function serializeActivity(activity: CardActivityFile) {
-    return `${JSON.stringify(activity, null, 2)}\n`
-}
-
-async function loadActivity(
+async function loadAndRepairActivity(
     path: string,
     project: ProjectReference,
+    repositoryFiles: Set<string>,
     storage: StorageService,
-): Promise<[string, LoadedActivity]> {
-    if (!storage.loadTextFile) throw new Error('Activity repair requires repository text file loading')
+): Promise<ActivityLoadResult> {
+    const origin = activityOriginFromPath(path)
+    if (!origin || !repositoryFiles.has(path)) return { activity: null, file: null, path }
+    if (!storage.loadTextFile) throw new Error('Activity repair requires raw text file loading')
 
     try {
-        const file = await storage.loadTextFile(project, path)
-        const repaired = repairActivityFile(file.content, path)
-        const changedFile = repaired.activity && repaired.changed
-            ? { ...file, content: serializeActivity(repaired.activity) }
+        const sourceFile = await storage.loadTextFile(project, path)
+        const repair = repairActivityFile(sourceFile.content, origin)
+        if (!repair.activity) return { activity: null, file: null, path }
+        const file = repair.changed
+            ? { ...sourceFile, content: `${JSON.stringify(repair.activity, null, 2)}\n`, path }
             : null
 
-        return [path, { activity: repaired.activity, changedFile }]
+        return { activity: repair.activity, file, path }
     } catch {
-        return [path, { activity: null, changedFile: null }]
+        return { activity: null, file: null, path }
     }
 }
 
-function findReferencedConversation(activity: CardActivityFile | null, conversationId: string) {
-    return activity?.conversations.find(({ id }) => id === conversationId) ?? null
-}
-
-function addConversation(
-    conversationsByCardInternalId: Map<string, AgentConversation[]>,
-    cardInternalId: string,
-    conversation: AgentConversation,
+function validCardReferences(
+    card: Card,
+    conversationsByReference: Map<string, AgentConversation>,
+    knownActivityPaths: Set<string>,
 ) {
-    const conversations = conversationsByCardInternalId.get(cardInternalId) ?? []
-    if (conversations.some(({ id }) => id === conversation.id)) return
+    const cardInternalId = card.header.internalId
+    if (!cardInternalId) throw new Error(`Cannot repair activity references without an internal ID: ${card.path}`)
 
-    conversationsByCardInternalId.set(cardInternalId, [...conversations, conversation])
+    return card.header.agentLogReferences.filter((reference) => {
+        const activityPath = referencedActivityPath(reference)
+        if (!activityPath || !knownActivityPaths.has(activityPath)) return false
+        const conversation = conversationsByReference.get(reference)
+
+        return conversation?.cardInternalId === cardInternalId
+    })
 }
 
-function repairCardReferences(cards: Card[], activities: Map<string, LoadedActivity>) {
-    const cardRepairs: CardActivityReferenceRepair[] = []
-    const conversationsByCardInternalId = new Map<string, AgentConversation[]>()
-    for (const card of cards) {
-        const cardInternalId = card.header.internalId
-        if (!cardInternalId) throw new Error(`Cannot repair activity references without an internal ID: ${card.path}`)
-        const references = card.header.agentLogReferences.filter((reference) => {
-            try {
-                const { activityPath, conversationId } = parseConversationActivityReference(reference)
-                const activity = activities.get(normalizePath(activityPath))?.activity ?? null
-                const conversation = findReferencedConversation(activity, conversationId)
-                if (!conversation || conversation.cardInternalId !== cardInternalId) return false
-
-                addConversation(conversationsByCardInternalId, cardInternalId, { ...conversation, path: reference })
-
-                return true
-            } catch {
-                return false
-            }
-        })
-        const changed = references.length !== card.header.agentLogReferences.length
-            || references.some((reference, index) => reference !== card.header.agentLogReferences[index])
-        if (changed) cardRepairs.push({ cardPath: card.path, references })
-    }
-
-    return { cardRepairs, conversationsByCardInternalId }
-}
-
-/** Loads every referenced activity once and plans canonical files plus valid card links. */
-export async function planProjectActivityRepair(
+/** Read each activity once and plan canonical content plus valid card references. */
+export async function repairProjectActivities(
     cards: Card[],
     project: ProjectReference,
     projectFolder: string,
-    repositoryFiles: string[],
+    repositoryFilePaths: string[],
     storage: StorageService,
-): Promise<ProjectActivityRepairPlan> {
-    const repositoryPaths = new Set(repositoryFiles.map(normalizePath))
-    const referencedPaths = cards.flatMap(({ header }) => header.agentLogReferences.flatMap((reference) => {
-        try {
-            return [normalizePath(parseConversationActivityReference(reference).activityPath)]
-        } catch {
-            return []
-        }
-    }))
-    const projectPath = normalizePath(activityFilePath(projectFolder, { kind: 'project' }))
-    const paths = [...new Set([
-        ...referencedPaths.filter((path) => repositoryPaths.has(path)),
-        ...(repositoryPaths.has(projectPath) ? [projectPath] : []),
-    ])]
-    const loaded = await mapWithConcurrency(paths, ACTIVITY_LOAD_CONCURRENCY, async (path) => (
-        loadActivity(path, project, storage)
-    ))
-    const activities = new Map(loaded)
-    const { cardRepairs, conversationsByCardInternalId } = repairCardReferences(cards, activities)
-    const changedFiles = [...activities.values()].flatMap(({ changedFile }) => changedFile ? [changedFile] : [])
-    const projectActivity = activities.get(projectPath)?.activity ?? null
-    const projectConversations = projectActivity?.origin.kind === 'project'
-        ? projectActivity.conversations.map((conversation) => ({ ...conversation, path: `${projectPath}#conversation=${conversation.id}` }))
-        : []
+): Promise<ProjectActivityRepairResult> {
+    const projectActivityPath = activityFilePath(projectFolder, { kind: 'project' })
+    const knownActivityPaths = new Set([projectActivityPath])
+    for (const card of cards) {
+        card.header.agentLogReferences.forEach((reference) => {
+            const activityPath = referencedActivityPath(reference)
+            if (activityPath) knownActivityPaths.add(activityPath)
+        })
+    }
 
-    return { cardRepairs, changedFiles, conversationsByCardInternalId, projectConversations }
+    const repositoryFiles = new Set(repositoryFilePaths)
+    const loaded = await Promise.all([...knownActivityPaths].map((path) => (
+        loadAndRepairActivity(path, project, repositoryFiles, storage)
+    )))
+    const activitiesByPath = new Map<string, CardActivityFile>()
+    const conversationsByReference = new Map<string, AgentConversation>()
+    const repairedFiles: MarkdownFile[] = []
+    for (const { activity, file, path } of loaded) {
+        if (!activity) continue
+        activitiesByPath.set(path, activity)
+        if (file) repairedFiles.push(file)
+        for (const conversation of activity.conversations) {
+            const reference = conversationActivityReference(path, conversation.id)
+            conversationsByReference.set(reference, { ...conversation, path: reference })
+        }
+    }
+
+    const projectConversationReferences = activitiesByPath.get(projectActivityPath)?.conversations
+        .map(({ id }) => conversationActivityReference(projectActivityPath, id)) ?? []
+    const referencesByCardPath = new Map(cards.map((card) => [
+        card.path,
+        validCardReferences(card, conversationsByReference, knownActivityPaths),
+    ]))
+
+    return {
+        activitiesByPath,
+        conversationsByReference,
+        knownActivityPaths,
+        projectConversationReferences,
+        referencesByCardPath,
+        repairedFiles,
+    }
 }

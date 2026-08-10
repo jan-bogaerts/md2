@@ -19,7 +19,8 @@ import { mapWithConcurrency } from '../concurrency'
 import { type RequiredDataServiceDependencies } from '../data/data_service_context'
 import { telemetryService } from '../telemetry/telemetry_service'
 import { dialogService } from '../dialog_service'
-import { planProjectActivityRepair } from './activity_repair'
+import { parseConversationActivityReference } from '../../../../shared/activity_paths.mjs'
+import { repairProjectActivities } from './activity_repair'
 
 const AGENT_CONVERSATION_LOAD_CONCURRENCY = 8
 const ON_STATE_ACTION_ERROR_PATH_PREFIX = 'onState'
@@ -41,15 +42,18 @@ type AgentConversationLoadResult =
 
 export interface AgentIntegrationDeps {
     beginAgentConversationLoad(): number
+    deferAutomaticCommit(): () => void
+    flushActivityRepairs(): Promise<void>
     isCurrentAgentConversationLoad(agentConversationLoadToken: number): boolean
     isCurrentLoad(project: ProjectReference, projectLoadToken: number): boolean
     project(): ProjectReference | null
     refreshSnapshot(workingFolder: string): void
     requireDependencies(): RequiredDataServiceDependencies
     requireFile(path: string): MarkdownFile
+    scheduleActivityRepair(file: MarkdownFile): void
+    setAgentLogReferences(cardPath: string, references: string[]): void
     snapshot(): ProjectSnapshot | null
     conversationChanged(cardPath: string): void
-    updateAgentLogReferences(cardPath: string, references: string[]): void
 }
 
 function isOnStateActionError(error: AgentConversationError) {
@@ -63,13 +67,24 @@ function mergeAgentConversations(existing: AgentConversation[], loaded: AgentCon
     return [...conversationsById.values()]
 }
 
+function cardsForAgentConversationLoading(snapshot: ProjectSnapshot) {
+    return snapshot.activeCards
+}
+
 async function loadAgentConversationReference(
     task: AgentConversationLoadTask,
     project: ProjectReference,
     storage: StorageService,
+    conversationsByReference: Map<string, AgentConversation>,
+    knownActivityPaths: Set<string>,
 ): Promise<AgentConversationLoadResult> {
     try {
-        const conversation = await loadAgentConversation(storage, project, task.reference)
+        const { activityPath } = parseConversationActivityReference(task.reference)
+        const repairedConversation = conversationsByReference.get(task.reference)
+        if (knownActivityPaths.has(activityPath) && !repairedConversation) {
+            throw new Error(`Activity conversation not found: ${task.reference}`)
+        }
+        const conversation = repairedConversation ?? await loadAgentConversation(storage, project, task.reference)
         if (conversation.cardInternalId !== task.cardInternalId) {
             throw new Error(`Agent conversation belongs to ${conversation.cardInternalId}, not ${task.cardInternalId}`)
         }
@@ -92,6 +107,8 @@ async function resolveAgentConversations(
     cards: ProjectSnapshot['activeCards'],
     project: ProjectReference,
     storage: StorageService,
+    conversationsByReference: Map<string, AgentConversation>,
+    knownActivityPaths: Set<string>,
 ): Promise<ResolvedAgentConversations> {
     const conversationsByCardInternalId = new Map<string, AgentConversation[]>()
     const errorsByCardPath = new Map<string, AgentConversationError[]>()
@@ -106,7 +123,7 @@ async function resolveAgentConversations(
         }))
     })
     const results = await mapWithConcurrency(tasks, AGENT_CONVERSATION_LOAD_CONCURRENCY, async (task) => (
-        loadAgentConversationReference(task, project, storage)
+        loadAgentConversationReference(task, project, storage, conversationsByReference, knownActivityPaths)
     ))
 
     for (const result of results) {
@@ -123,6 +140,9 @@ async function resolveAgentConversations(
 }
 
 export class AgentIntegration {
+    private activityRepairComplete = false
+    private activityRepairReady: Promise<void> = Promise.resolve()
+    private completeActivityRepair: (() => void) | null = null
     private agentConversationLoadToken: number | null = null
     private completedConversationLoads: Set<string> = new Set()
     private conversationsByCardInternalId: Map<string, AgentConversation[]> = new Map()
@@ -132,7 +152,10 @@ export class AgentIntegration {
     private readonly dependencies: AgentIntegrationDeps
     private errorsByCardPath: Map<string, AgentConversationError[]> = new Map()
     private projectConversations: AgentConversation[] = []
+    private projectConversationReferences: string[] = []
     private reportedLoadErrorKeys: Set<string> = new Set()
+    private repairedConversationsByReference: Map<string, AgentConversation> = new Map()
+    private repairedActivityPaths: Set<string> = new Set()
     private readonly addAgentLogReference: (cardPath: string, reference: string) => string | null
     private scheduledRunCleanup: (() => void) | null = null
 
@@ -150,8 +173,12 @@ export class AgentIntegration {
     }
 
     resetLoadedConversations() {
+        this.completeActivityRepair?.()
         this.dependencies.beginAgentConversationLoad()
         this.agentConversationLoadToken = null
+        this.activityRepairComplete = false
+        this.activityRepairReady = Promise.resolve()
+        this.completeActivityRepair = null
         this.completedConversationLoads.clear()
         this.conversationsByCardInternalId = new Map()
         this.conversationLoadGeneration += 1
@@ -159,6 +186,9 @@ export class AgentIntegration {
         this.currentProjectLoadToken = null
         this.errorsByCardPath = new Map()
         this.projectConversations = []
+        this.projectConversationReferences = []
+        this.repairedConversationsByReference = new Map()
+        this.repairedActivityPaths = new Set()
         this.reportedLoadErrorKeys.clear()
         agentAcknowledgementService.reset()
     }
@@ -221,7 +251,13 @@ export class AgentIntegration {
         const project = this.dependencies.project()
         if (!project) return
         const { storage } = this.dependencies.requireDependencies()
-        const result = await loadAgentConversationReference({ cardInternalId, cardPath, reference }, project, storage)
+        const result = await loadAgentConversationReference(
+            { cardInternalId, cardPath, reference },
+            project,
+            storage,
+            this.repairedConversationsByReference,
+            this.repairedActivityPaths,
+        )
         if (result.error) {
             const errors = [...(this.errorsByCardPath.get(cardPath) ?? []), result.error]
             this.errorsByCardPath.set(cardPath, errors)
@@ -235,49 +271,28 @@ export class AgentIntegration {
 
     async loadAgentConversationsInBackground(snapshot: ProjectSnapshot, project: ProjectReference, projectLoadToken: number) {
         this.prepareProjectConversationLoad(projectLoadToken)
-        const cards = [...snapshot.activeCards, ...snapshot.backgroundCards]
-        const { commitBatcher, config, storage } = this.dependencies.requireDependencies()
-        if (!storage.loadTextFile) {
-            await this.loadAgentConversationsWithoutActivityRepair(snapshot, project, projectLoadToken)
-            return
-        }
-        const plan = await planProjectActivityRepair(
-            cards,
-            project,
-            config.projectFolder,
-            snapshot.repositoryFiles,
-            storage,
-        )
-        if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
-
-        this.conversationsByCardInternalId = plan.conversationsByCardInternalId
-        this.projectConversations = plan.projectConversations
-        this.errorsByCardPath = new Map()
-        this.completedConversationLoads.add('project')
-        cards.forEach(({ header }) => {
-            if (header.internalId) this.completedConversationLoads.add(AgentIntegration.cardLoadIdentity(header.internalId))
-        })
-
-        const releaseAutomaticFlush = commitBatcher.deferAutomaticFlush()
         try {
-            if (plan.changedFiles.length > 0) {
-                commitBatcher.schedule(project.branch, plan.changedFiles, 'Repair project activity')
-            }
-            plan.cardRepairs.forEach(({ cardPath, references }) => (
-                this.dependencies.updateAgentLogReferences(cardPath, references)
-            ))
-            this.dependencies.refreshSnapshot(config.workingFolder)
-            cards.forEach(({ path }) => this.dependencies.conversationChanged(path))
-            releaseAutomaticFlush()
-            if (plan.changedFiles.length > 0 || plan.cardRepairs.length > 0) await commitBatcher.flush()
+            await this.repairProjectActivity(snapshot, project, projectLoadToken)
         } catch (error) {
-            dialogService.error(error, {
-                fallbackMessage: 'Repaired activity could not be saved; changes remain pending for retry',
-                title: 'Activity repair save failed',
-            })
+            dialogService.warning('Activity files could not be repaired and agent conversations were skipped.', { title: 'Activity repair failed' })
             telemetryService.captureError(error)
+            return
         } finally {
-            releaseAutomaticFlush()
+            this.completeActivityRepair?.()
+            this.completeActivityRepair = null
+        }
+        if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
+        const cards = cardsForAgentConversationLoading(snapshot)
+
+        const results = await Promise.allSettled([
+            this.ensureProjectAgentConversationsLoaded(project, projectLoadToken),
+            this.ensureCardGroupLoaded(cards, project, projectLoadToken),
+        ])
+        for (const result of results) {
+            if (result.status !== 'rejected') continue
+
+            dialogService.warning('Agent conversations could not be loaded and were skipped.', { title: 'Some agent conversations were not loaded' })
+            telemetryService.captureError(result.reason)
         }
     }
 
@@ -322,28 +337,15 @@ export class AgentIntegration {
     prepareProjectConversationLoad(projectLoadToken: number) {
         if (this.currentProjectLoadToken === projectLoadToken) return
 
+        this.completeActivityRepair?.()
         this.agentConversationLoadToken = this.dependencies.beginAgentConversationLoad()
+        this.activityRepairReady = new Promise((resolve) => {
+            this.completeActivityRepair = resolve
+        })
         this.completedConversationLoads.clear()
         this.conversationLoadGeneration += 1
         this.conversationLoadsInFlight.clear()
         this.currentProjectLoadToken = projectLoadToken
-    }
-
-    private async loadAgentConversationsWithoutActivityRepair(
-        snapshot: ProjectSnapshot,
-        project: ProjectReference,
-        projectLoadToken: number,
-    ) {
-        const results = await Promise.allSettled([
-            this.ensureProjectAgentConversationsLoaded(project, projectLoadToken),
-            this.ensureCardGroupLoaded(snapshot.activeCards, project, projectLoadToken),
-        ])
-        for (const result of results) {
-            if (result.status !== 'rejected') continue
-
-            dialogService.warning('Agent conversations could not be loaded and were skipped.', { title: 'Some agent conversations were not loaded' })
-            telemetryService.captureError(result.reason)
-        }
     }
 
     private requireProjectLoadToken() {
@@ -353,16 +355,19 @@ export class AgentIntegration {
     }
 
     private async ensureProjectAgentConversationsLoaded(project: ProjectReference, projectLoadToken: number) {
+        await this.activityRepairReady
         const identity = 'project'
         if (this.completedConversationLoads.has(identity)) return
         const existingLoad = this.conversationLoadsInFlight.get(identity)
         if (existingLoad) return existingLoad
 
         const load = async () => {
-            const { config, storage } = this.dependencies.requireDependencies()
-            const references = await listAgentConversationReferences(storage, project, config.projectFolder)
+            const { storage } = this.dependencies.requireDependencies()
+            const references = this.activityRepairComplete
+                ? this.projectConversationReferences
+                : await listAgentConversationReferences(storage, project, this.dependencies.requireDependencies().config.projectFolder)
             const conversations = await mapWithConcurrency(references, AGENT_CONVERSATION_LOAD_CONCURRENCY, async (reference) => (
-                loadAgentConversation(storage, project, reference)
+                this.repairedConversationsByReference.get(reference) ?? loadAgentConversation(storage, project, reference)
             ))
             if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
 
@@ -468,7 +473,13 @@ export class AgentIntegration {
         projectLoadToken: number,
     ) {
         const { config, storage } = this.dependencies.requireDependencies()
-        const resolved = await resolveAgentConversations(cards, project, storage)
+        const resolved = await resolveAgentConversations(
+            cards,
+            project,
+            storage,
+            this.repairedConversationsByReference,
+            this.repairedActivityPaths,
+        )
         if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
 
         for (const [cardInternalId, conversations] of resolved.conversationsByCardInternalId) {
@@ -490,6 +501,56 @@ export class AgentIntegration {
             && this.agentConversationLoadToken !== null
             && this.dependencies.isCurrentAgentConversationLoad(this.agentConversationLoadToken)
             && this.dependencies.isCurrentLoad(project, projectLoadToken)
+    }
+
+    private async repairProjectActivity(
+        snapshot: ProjectSnapshot,
+        project: ProjectReference,
+        projectLoadToken: number,
+    ) {
+        const { config, storage } = this.dependencies.requireDependencies()
+        if (!storage.loadTextFile) return
+        const cards = [...snapshot.activeCards, ...snapshot.backgroundCards]
+        const repair = await repairProjectActivities(
+            cards,
+            project,
+            config.projectFolder,
+            snapshot.repositoryFiles,
+            storage,
+        )
+        if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
+
+        this.projectConversationReferences = repair.projectConversationReferences
+        this.repairedConversationsByReference = repair.conversationsByReference
+        this.repairedActivityPaths = repair.knownActivityPaths
+        this.activityRepairComplete = true
+        const changedCards = cards.filter((card) => {
+            const references = repair.referencesByCardPath.get(card.path) as string[]
+
+            return references.length !== card.header.agentLogReferences.length
+                || references.some((reference, index) => reference !== card.header.agentLogReferences[index])
+        })
+        if (repair.repairedFiles.length === 0 && changedCards.length === 0) return
+
+        const releaseAutomaticCommit = this.dependencies.deferAutomaticCommit()
+        try {
+            repair.repairedFiles.forEach((file) => this.dependencies.scheduleActivityRepair(file))
+            changedCards.forEach((card) => {
+                this.dependencies.setAgentLogReferences(
+                    card.path,
+                    repair.referencesByCardPath.get(card.path) as string[],
+                )
+            })
+            await this.dependencies.flushActivityRepairs()
+        } catch (error) {
+            dialogService.error(error, {
+                fallbackMessage: 'Activity repairs could not be saved. Changes remain pending for retry.',
+                title: 'Activity repair save failed',
+            })
+            telemetryService.captureError(error)
+        } finally {
+            releaseAutomaticCommit()
+        }
     }
 
     private replaceResolvedAgentErrors(cards: ProjectSnapshot['activeCards'], resolvedErrors: Map<string, AgentConversationError[]>) {

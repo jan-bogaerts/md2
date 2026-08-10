@@ -58,7 +58,7 @@ describe('project activity conversations', () => {
         }
     });
 
-    it('writes migrated schema and viewed state once when reading legacy activity', async () => {
+    it('does not migrate or write legacy activity during a read', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-activity-migration-'));
         const filePath = join(rootPath, 'project.json');
         const conversation = waitingConversation();
@@ -72,19 +72,15 @@ describe('project activity conversations', () => {
         try {
             await writeFile(filePath, JSON.stringify({ conversations: [conversation], origin: { kind: 'project' }, records: [legacyRecord], version: 1 }));
 
-            const activity = await readActivityFile(filePath, { kind: 'project' });
-            const persisted = JSON.parse(await readFile(filePath, 'utf8'));
-
-            expect(activity).toMatchObject({ actionSettings: {}, version: 4, conversations: [{ viewed: true }] });
-            expect(persisted).toEqual(activity);
-            expect(persisted.records[0]).not.toHaveProperty('history');
-            expect(persisted.records[0]).toMatchObject({ rootConversationId: conversation.id });
+            await expect(readActivityFile(filePath, { kind: 'project' }))
+                .rejects.toThrow('unsupported version 1');
+            expect(JSON.parse(await readFile(filePath, 'utf8'))).toEqual({conversations: [conversation], origin: { kind: 'project' }, records: [legacyRecord], version: 1});
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }
     });
 
-    it('migrates legacy activity once when concurrent readers race', async () => {
+    it('leaves legacy activity untouched when concurrent readers race', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-activity-migration-race-'));
         const filePath = join(rootPath, 'project.json');
         const conversation = waitingConversation();
@@ -98,14 +94,14 @@ describe('project activity conversations', () => {
         try {
             await writeFile(filePath, JSON.stringify({ conversations: [conversation], origin: { kind: 'project' }, records: [legacyRecord], version: 1 }));
 
-            const activities = await Promise.all([
+            const results = await Promise.allSettled([
                 readActivityFile(filePath, { kind: 'project' }),
                 readActivityFile(filePath, { kind: 'project' }),
                 readActivityFile(filePath, { kind: 'project' }),
             ]);
 
-            expect(activities.map(({ version }) => version)).toEqual([4, 4, 4]);
-            expect(rename).toHaveBeenCalledTimes(1);
+            expect(results.map(({ status }) => status)).toEqual(['rejected', 'rejected', 'rejected']);
+            expect(rename).not.toHaveBeenCalled();
             await expect(readdir(rootPath)).resolves.toEqual(['project.json']);
         } finally {
             rename.mockRestore();

@@ -5,8 +5,6 @@ export const LEGACY_ACTIVITY_VERSION = 1
 export const SECOND_ACTIVITY_VERSION = 2
 export const PREVIOUS_ACTIVITY_VERSION = 3
 const ACTION_ACTIVITY_STATUSES = new Set(['cancelled', 'completed', 'failed', 'okButNotAfter'])
-const CARD_ACTIVITY_FILE_PATTERN = /^card__([a-zA-Z0-9._-]+)\.json$/u
-const PROJECT_ACTIVITY_FILE_NAME = 'project.json'
 
 function requiredString(value, fieldName, allowEmpty = false) {
     if (typeof value !== 'string' || (!allowEmpty && value.length === 0)) throw new Error(`Malformed activity file: missing ${fieldName}`)
@@ -229,6 +227,25 @@ function parseConversation(value, index, activityOrigin) {
     }
 }
 
+function repairConversation(value, index, activityOrigin) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+    const entries = Array.isArray(value.entries) ? value.entries.filter((entry) => {
+        try {
+            parseAgentConversation(JSON.stringify({ ...value, entries: [entry] }), '')
+
+            return true
+        } catch {
+            return false
+        }
+    }) : []
+
+    try {
+        return parseConversation({ ...value, entries }, index, activityOrigin)
+    } catch {
+        return null
+    }
+}
+
 export function createActivityFile(origin) {
     return { actionSettings: {}, conversations: [], origin: parseOrigin(origin), records: [], version: ACTIVITY_VERSION }
 }
@@ -389,97 +406,59 @@ export function migrateActivityValue(value, expectedOrigin = null) {
     return parseActivityValue(migrated, expectedOrigin)
 }
 
-function activityOriginFromPath(path) {
-    if (typeof path !== 'string' || path.length === 0) return null
-    const fileName = path.replace(/\\/gu, '/').split('/').pop()
-    if (fileName === PROJECT_ACTIVITY_FILE_NAME) return { kind: 'project' }
-    const cardMatch = fileName?.match(CARD_ACTIVITY_FILE_PATTERN)
-
-    return cardMatch ? { cardInternalId: cardMatch[1], kind: 'card' } : null
-}
-
 function repairActionSettings(value, version) {
     if (version === LEGACY_ACTIVITY_VERSION || version === SECOND_ACTIVITY_VERSION) return {}
     if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
 
-    const repaired = {}
-    for (const [actionId, settings] of Object.entries(value)) {
+    return Object.fromEntries(Object.entries(value).flatMap(([actionId, settings]) => {
         try {
-            const candidate = version === PREVIOUS_ACTIVITY_VERSION
+            const parsed = version === PREVIOUS_ACTIVITY_VERSION
                 ? migrateVersionThreeActionSettings({ [actionId]: settings })
-                : { [actionId]: settings }
-            Object.assign(repaired, parseActionSettings(candidate))
+                : parseActionSettings({ [actionId]: settings })
+
+            return [[actionId, parsed[actionId]]]
         } catch {
-            continue
+            return []
         }
-    }
-
-    return repaired
+    }))
 }
 
-function repairConversation(value, index, origin) {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) return null
-
-    try {
-        const base = parseConversation({ ...value, entries: [] }, index, origin)
-        const entries = Array.isArray(value.entries) ? value.entries : []
-        const repairedEntries = entries.flatMap((entry) => {
-            try {
-                return parseConversation({ ...value, entries: [entry] }, index, origin).entries
-            } catch {
-                return []
-            }
-        })
-
-        return parseConversation({ ...base, entries: repairedEntries }, index, origin)
-    } catch {
-        return null
-    }
-}
-
-function repairCommits(value) {
-    if (!Array.isArray(value)) return []
-
-    return value.flatMap((commit, index) => {
+function repairRecordCollections(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return value
+    const commits = Array.isArray(value.commits) ? value.commits.flatMap((commit, index) => {
         try {
             return [parseCommit(commit, index)]
         } catch {
             return []
         }
-    })
+    }) : []
+    const conversationIds = Array.isArray(value.conversationIds)
+        ? value.conversationIds.filter((conversationId) => typeof conversationId === 'string' && conversationId.length > 0)
+        : []
+
+    return { ...value, commits, conversationIds }
 }
 
-function repairConversationIds(value) {
-    if (!Array.isArray(value)) return []
-
-    return value.filter((conversationId) => typeof conversationId === 'string' && conversationId.length > 0)
-}
-
-function repairRecord(value, index, origin, version, conversations) {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) return null
-
+function repairRecord(value, index, version, origin, conversations) {
+    const normalizedValue = repairRecordCollections(value)
     try {
-        const candidate = {
-            ...value,
-            commits: repairCommits(value.commits),
-            ...(value.type === 'system' ? {} : { conversationIds: repairConversationIds(value.conversationIds) }),
-        }
         if (version === LEGACY_ACTIVITY_VERSION) {
-            const legacyRecord = parseLegacyRecord(candidate, index, origin)
+            const legacyRecord = parseLegacyRecord(normalizedValue, index, origin)
+            const migratedRecord = migrateLegacyRecord(legacyRecord, index, conversations)
 
-            return parseRecord(migrateLegacyRecord(legacyRecord, index, conversations), index, origin)
+            return parseRecord(migratedRecord, index, origin)
         }
-        const migrated = version === SECOND_ACTIVITY_VERSION || version === PREVIOUS_ACTIVITY_VERSION
-            ? migrateVersionThreeRecord(candidate, index)
-            : candidate
+        const migratedRecord = version === SECOND_ACTIVITY_VERSION || version === PREVIOUS_ACTIVITY_VERSION
+            ? migrateVersionThreeRecord(normalizedValue, index)
+            : normalizedValue
 
-        return parseRecord(migrated, index, origin)
+        return parseRecord(migratedRecord, index, origin)
     } catch {
         return null
     }
 }
 
-function hasValidRecordLinks(record, conversations) {
+function hasValidRecordConversationLinks(record, conversations) {
     if (record.type === 'system' || record.details.type !== 'agent') return true
     if (!record.conversationIds.includes(record.rootConversationId)) return false
     const conversation = conversations.find(({ id }) => id === record.rootConversationId)
@@ -487,67 +466,59 @@ function hasValidRecordLinks(record, conversations) {
     return !!conversation && conversation.actionId === record.rootActionId
 }
 
-function repairActivityValue(value, origin) {
-    const version = value.version
-    const conversationValues = Array.isArray(value.conversations) ? value.conversations : []
-    const conversations = conversationValues
+function repairKnownActivityValue(value, expectedOrigin) {
+    const origin = expectedOrigin ? parseOrigin(expectedOrigin) : parseOrigin(value.origin)
+    const actionSettings = repairActionSettings(value.actionSettings, value.version)
+    const rawConversations = Array.isArray(value.conversations) ? value.conversations : []
+    const conversations = rawConversations
         .map((conversation, index) => repairConversation(conversation, index, origin))
         .filter((conversation) => conversation !== null)
-    const recordValues = Array.isArray(value.records) ? value.records : []
-    const records = recordValues
-        .map((record, index) => repairRecord(record, index, origin, version, conversations))
+    const rawRecords = Array.isArray(value.records) ? value.records : []
+    const records = rawRecords
+        .map((record, index) => repairRecord(record, index, value.version, origin, conversations))
         .filter((record) => record !== null)
-        .filter((record) => hasValidRecordLinks(record, conversations))
+        .filter((record) => hasValidRecordConversationLinks(record, conversations))
 
-    return parseActivityValue({
-        actionSettings: repairActionSettings(value.actionSettings, version),
-        conversations,
-        origin,
-        records,
-        version: ACTIVITY_VERSION,
-    }, origin)
+    return parseActivityValue({ actionSettings, conversations, origin, records, version: ACTIVITY_VERSION }, origin)
 }
 
-/** Repairs one stored activity document without interpreting unsupported future schemas. */
-export function repairActivityFile(content, path) {
-    const pathOrigin = activityOriginFromPath(path)
+/** Salvage one activity file without weakening strict parsing used by normal reads and writes. */
+export function repairActivityFile(content, expectedOrigin = null) {
     let value
     try {
         value = JSON.parse(content)
     } catch {
-        return pathOrigin
-            ? { activity: createActivityFile(pathOrigin), changed: true, outcome: 'repaired' }
-            : { activity: null, changed: false, outcome: 'unresolved' }
+        if (!expectedOrigin) return { activity: null, changed: false, status: 'unrecoverable' }
+
+        return { activity: createActivityFile(expectedOrigin), changed: true, status: 'repaired' }
     }
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
-        return pathOrigin
-            ? { activity: createActivityFile(pathOrigin), changed: true, outcome: 'repaired' }
-            : { activity: null, changed: false, outcome: 'unresolved' }
-    }
-    if (Number.isInteger(value.version) && value.version > ACTIVITY_VERSION) {
-        return { activity: null, changed: false, outcome: 'future' }
-    }
+        if (!expectedOrigin) return { activity: null, changed: false, status: 'unrecoverable' }
 
-    let origin = pathOrigin
-    if (!origin) {
-        try {
-            origin = parseOrigin(value.origin)
-        } catch {
-            return { activity: null, changed: false, outcome: 'unresolved' }
-        }
+        return { activity: createActivityFile(expectedOrigin), changed: true, status: 'repaired' }
+    }
+    if (typeof value.version === 'number' && value.version > ACTIVITY_VERSION) {
+        return { activity: null, changed: false, status: 'future' }
+    }
+    if (![LEGACY_ACTIVITY_VERSION, SECOND_ACTIVITY_VERSION, PREVIOUS_ACTIVITY_VERSION, ACTIVITY_VERSION].includes(value.version)) {
+        return { activity: null, changed: false, status: 'unrecoverable' }
     }
     if (value.version === ACTIVITY_VERSION) {
         try {
-            return { activity: parseActivityValue(value, origin), changed: false, outcome: 'valid' }
+            const activity = parseActivityValue(value, expectedOrigin)
+
+            return { activity, changed: false, status: 'valid' }
         } catch {
-            // Repair malformed current-version data below.
+            // Continue through tolerant normalization.
         }
     }
-    if (![LEGACY_ACTIVITY_VERSION, SECOND_ACTIVITY_VERSION, PREVIOUS_ACTIVITY_VERSION, ACTIVITY_VERSION].includes(value.version)) {
-        return { activity: createActivityFile(origin), changed: true, outcome: 'repaired' }
-    }
+    try {
+        const activity = repairKnownActivityValue(value, expectedOrigin)
 
-    return { activity: repairActivityValue(value, origin), changed: true, outcome: 'repaired' }
+        return { activity, changed: true, status: 'repaired' }
+    } catch {
+        return { activity: null, changed: false, status: 'unrecoverable' }
+    }
 }
 
 export function parseActivityFile(content, expectedOrigin = null) {

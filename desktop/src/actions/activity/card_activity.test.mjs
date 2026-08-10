@@ -19,6 +19,79 @@ function record() {
 }
 
 describe('card activity action runs', () => {
+    it('repairs malformed JSON to empty canonical activity when origin is known', () => {
+        expect(repairActivityFile('{broken', origin)).toEqual({
+            activity: { actionSettings: {}, conversations: [], origin, records: [], version: 4 },
+            changed: true,
+            status: 'repaired',
+        });
+    });
+
+    it('leaves future and originless unparseable activity unchanged', () => {
+        expect(repairActivityFile(JSON.stringify({ version: 5 }), origin)).toEqual({ activity: null, changed: false, status: 'future' });
+        expect(repairActivityFile('{broken')).toEqual({ activity: null, changed: false, status: 'unrecoverable' });
+    });
+
+    it('repairs malformed current collections at smallest valid level', () => {
+        const conversation = {
+            actionId: 'build', cardInternalId: 'card-1', cardPath: 'design/F-1.md', completedAt: '2026-08-01T12:01:00.000Z',
+            entries: [
+                { content: 'done', id: 'message-1', kind: 'message', role: 'assistant', timestamp: '2026-08-01T12:01:00.000Z' },
+                { kind: 'broken' },
+            ],
+            id: 'conversation-1', providerSessions: [], startedAt: '2026-08-01T12:00:00.000Z', status: 'completed', title: 'Build', viewed: true,
+        };
+        const validCommit = {
+            branch: 'main', commit: 'a'.repeat(40), committedAt: '2026-08-01T12:01:00.000Z', deletions: 1,
+            filePaths: ['one.ts'], filesChanged: 1, insertions: 2,
+        };
+        const malformedRecord = { ...record(), commits: [validCommit, { commit: 'bad' }], conversationIds: ['conversation-1', null] };
+        const value = {
+            actionSettings: {
+                build: { agent: 'codex', model: '', permissionMode: 'ask-for-approval', thinkingLevel: 'high' },
+                broken: { agent: 'codex' },
+            },
+            conversations: [conversation, { id: null }],
+            origin,
+            records: [malformedRecord, { status: 'broken' }],
+            version: 4,
+        };
+
+        const repaired = repairActivityFile(JSON.stringify(value), origin);
+
+        expect(repaired.status).toBe('repaired');
+        expect(repaired.activity?.actionSettings).toEqual({build: { agent: 'codex', model: '', permissionMode: 'ask-for-approval', thinkingLevel: 'high' }});
+        expect(repaired.activity?.conversations).toHaveLength(1);
+        expect(repaired.activity?.conversations[0].entries).toHaveLength(1);
+        expect(repaired.activity?.records).toHaveLength(1);
+        expect(repaired.activity?.records[0].commits).toEqual([validCommit]);
+        expect(repaired.activity?.records[0].conversationIds).toEqual(['conversation-1']);
+    });
+
+    it.each([1, 2, 3])('repairs version %s with missing collections to current defaults', (version) => {
+        const value = { origin, version, ...(version === 3 ? { actionSettings: null } : {}) };
+        const repaired = repairActivityFile(JSON.stringify(value), origin);
+
+        expect(repaired).toEqual({
+            activity: { actionSettings: {}, conversations: [], origin, records: [], version: 4 },
+            changed: true,
+            status: 'repaired',
+        });
+    });
+
+    it('drops repaired agent records whose required conversation link does not resolve', () => {
+        const agentRecord = {
+            ...record(),
+            conversationIds: ['missing'],
+            details: { agent: 'codex', type: 'agent' },
+            rootConversationId: 'missing',
+        };
+        const activity = {actionSettings: {}, conversations: [], origin, records: [agentRecord], version: 4};
+        const repaired = repairActivityFile(JSON.stringify(activity), origin);
+
+        expect(repaired.activity?.records).toEqual([]);
+    });
+
     it('parses the runId activity contract', () => {
         const activity = parseActivityValue({ actionSettings: {}, conversations: [], origin, records: [record()], version: 4 }, origin);
 
@@ -172,88 +245,5 @@ describe('card activity action runs', () => {
         delete legacyRecord.details;
 
         expect(() => migrateActivityValue({conversations, origin, records: [legacyRecord], version: 1}, origin)).toThrow(expected);
-    });
-});
-
-describe('activity repair', () => {
-    it('keeps valid legacy items and drops invalid data at the smallest safe level', () => {
-        const validRecord = record();
-        validRecord.commits = [
-            {
-                branch: 'main', commit: 'a'.repeat(40), committedAt: '2026-08-01T12:01:00.000Z', deletions: 1,
-                filePaths: ['valid.ts'], filesChanged: 1, insertions: 2,
-            },
-            { branch: 'main' },
-        ];
-        const legacy = {
-            conversations: [],
-            origin,
-            records: [validRecord, { broken: true }],
-            version: 2,
-        };
-
-        const result = repairActivityFile(JSON.stringify(legacy), 'design/activity/card__card-1.json');
-
-        expect(result).toMatchObject({ changed: true, outcome: 'repaired' });
-        expect(result.activity).toMatchObject({ actionSettings: {}, origin, version: 4 });
-        expect(result.activity.records).toHaveLength(1);
-        expect(result.activity.records[0].commits).toHaveLength(1);
-    });
-
-    it('repairs malformed conversations entry by entry and revalidates record links', () => {
-        const validConversation = {
-            actionId: 'build', cardInternalId: 'card-1', cardPath: 'design/F-1.md', entries: [
-                { content: 'run', id: 'user-1', kind: 'message', role: 'user', timestamp: '2026-08-01T12:00:00.000Z' },
-                { broken: true },
-            ], id: 'conversation-1', providerSessions: [], startedAt: '2026-08-01T12:00:00.000Z',
-            status: 'completed', title: 'Build', viewed: true,
-        };
-        const linkedRecord = {
-            ...record(), conversationIds: ['conversation-1'], details: { agent: 'codex', type: 'agent' },
-            rootConversationId: 'conversation-1',
-        };
-        const missingLinkRecord = { ...linkedRecord, runId: 'run-2', rootConversationId: 'missing' };
-        const current = {
-            actionSettings: { build: { agent: 'codex', model: '', permissionMode: '', thinkingLevel: '' }, broken: null },
-            conversations: [validConversation, { broken: true }], origin, records: [linkedRecord, missingLinkRecord], version: 4,
-        };
-
-        const result = repairActivityFile(JSON.stringify(current), 'design/activity/card__card-1.json');
-
-        expect(result.activity.conversations).toHaveLength(1);
-        expect(result.activity.conversations[0].entries).toHaveLength(1);
-        expect(result.activity.records).toHaveLength(1);
-        expect(result.activity.actionSettings).toEqual({build: { agent: 'codex', model: '', permissionMode: '', thinkingLevel: '' }});
-    });
-
-    it('replaces malformed JSON only when filename establishes origin', () => {
-        expect(repairActivityFile('{', 'design/activity/card__card-1.json')).toEqual({
-            activity: { actionSettings: {}, conversations: [], origin, records: [], version: 4 },
-            changed: true,
-            outcome: 'repaired',
-        });
-        expect(repairActivityFile('{', 'design/activity/unknown.json')).toEqual({
-            activity: null,
-            changed: false,
-            outcome: 'unresolved',
-        });
-    });
-
-    it('does not rewrite future versions', () => {
-        expect(repairActivityFile(JSON.stringify({ origin, version: 5 }), 'design/activity/card__card-1.json')).toEqual({
-            activity: null,
-            changed: false,
-            outcome: 'future',
-        });
-    });
-
-    it('does not change valid current activity', () => {
-        const current = { actionSettings: {}, conversations: [], origin, records: [record()], version: 4 };
-
-        expect(repairActivityFile(JSON.stringify(current), 'design/activity/card__card-1.json')).toMatchObject({
-            activity: current,
-            changed: false,
-            outcome: 'valid',
-        });
     });
 });
