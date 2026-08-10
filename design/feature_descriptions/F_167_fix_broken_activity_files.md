@@ -12,7 +12,6 @@ agents:
   - design/activity/card__a75df9b2-d7eb-48df-ba8a-398fac272f15.json#conversation=agent-402bae27-1709-4c54-80c9-0c79efa44ad5
 policy:
 branch: f_167_fix_broken_activity_files
-worktree: 1
 ---
 Currently, when the system loads the activity files and there is a problem, like an old version it cant load, the app shows an error and doesnt fix it. So next time project opens, same error.&#x20;
 
