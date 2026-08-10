@@ -350,6 +350,9 @@ export class DataService extends EventTarget {
             requireFile: (path) => this.projectState.requireFile(path),
             snapshot: () => this.projectState.snapshot,
             conversationChanged: (cardPath) => this.dispatchEvent(new Event(cardFieldChangedEvent(cardPath, 'conversation'))),
+            updateAgentLogReferences: (cardPath, references) => {
+                this.cards.updateAgentLogReferences(cardPath, references)
+            },
         }
     }
 

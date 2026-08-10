@@ -31,6 +31,7 @@ interface ActionPopupBottomRowProps {
     assignmentContext: ActionContext
     conversationStore: ActionConversationStore
     historyStore: ActionHistoryStore
+    /** 2 call sites: for agents it is embedded inside input. commands have no input, but need bottom row for config and info */
     embedded?: boolean
     inputStore: ActionRunInputStore
     resultStore: ActionRunResultStore
@@ -117,21 +118,22 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
             data-testid="action-popup-bottom-row"
             data-embedded={embedded ? 'true' : undefined}
             sx={{
-                alignItems: 'center', bgcolor: embedded ? 'background.paper' : 'background.default', borderTop: 1, borderColor: 'divider',
-                containerType: 'inline-size', display: 'grid', flexShrink: 0, gap: 1,
-                gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)', px: embedded ? 1 : 2, py: embedded ? 1 : 1.5,
+                alignItems: 'center', bgcolor: embedded ? 'background.paper' : 'background.default', borderColor: 'divider',
+                containerType: 'inline-size', display: 'flex', flexShrink: 0, gap: 1,
+                justifyContent: 'space-between', px: embedded ? 1 : 2, py: embedded ? 1 : 1.5,
                 '@container (max-width: 420px)': {
+                    display: 'grid',
                     gridTemplateColumns: 'minmax(0, 1fr) auto',
                     '& [data-footer-usage]': { gridColumn: '1 / -1', gridRow: 2 },
                 },
             }}
         >
-            <Box data-footer-selectors sx={{ justifySelf: 'start', minWidth: 0, overflow: 'hidden' }}>
+            <Box data-footer-selectors sx={{ justifySelf: 'start', minWidth: 158, overflow: 'hidden' }}>
                 {action.type === 'agent' ? (
                     <ActionAgentSelectors action={action} context={assignmentContext} settingsStore={settingsStore} />
                 ) : null}
             </Box>
-            <Box data-footer-usage sx={{ justifySelf: 'center', minWidth: 0 }}>
+            <Box data-footer-usage sx={{ justifySelf: 'center', minWidth: 235, justifyItems: 'center' }}>
                 <ActionUsageSummaryOwner
                     action={action}
                     context={assignmentContext}
@@ -140,7 +142,10 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
                     scopeStore={usageScopeStore}
                 />
             </Box>
-            <Box data-footer-controls sx={{ alignItems: 'center', display: 'flex', gap: 1, justifySelf: 'end' }}>
+            <Box
+                data-footer-controls
+                sx={{ alignItems: 'center', display: 'flex', gap: 1, justifyContent: 'flex-end', justifySelf: 'end', minWidth: 64 }}
+            >
                 {showFinish ? (
                     <ActionPopupFinishButton
                         disabled={!settings.backendAvailable || (sessionActive && !interactionReady)}

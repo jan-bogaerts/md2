@@ -119,6 +119,15 @@ export class CardOperations {
         return card.header.internalId
     }
 
+    updateAgentLogReferences(path: string, references: string[]) {
+        const card = this.context.dependencies.requireCard(path)
+        const currentReferences = card.header.agentLogReferences
+        if (currentReferences.length === references.length
+            && references.every((reference, index) => reference === currentReferences[index])) return card
+
+        return this.context.saveCardChange(path, (currentCard) => setCardAgentLogReferences(currentCard, references))
+    }
+
     ensureCardInternalIds() {
         return this.internalIds.ensureCardInternalIds()
     }

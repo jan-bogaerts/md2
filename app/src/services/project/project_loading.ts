@@ -216,7 +216,6 @@ export class ProjectLoading {
             this.dependencies.dispatchChanged()
             reportActionLoadIssues()
 
-            this.loadAgentConversationsInBackground(currentSnapshot, project, projectLoadToken)
             void this.loadFullProjectInBackground(project, config.projectFolder, config.workingFolder, projectLoadToken)
             telemetryService.trackEvent('open_project')
 
@@ -331,7 +330,7 @@ export class ProjectLoading {
         await this.dependencies.ensureCardInternalIds()
         this.dependencies.dispatchChanged()
         const currentSnapshot = this.dependencies.snapshot()
-        if (currentSnapshot) this.loadAgentConversationsInBackground(currentSnapshot, project, projectLoadToken)
+        if (currentSnapshot) await this.loadAgentConversationsInBackground(currentSnapshot, project, projectLoadToken)
 
         return currentSnapshot
     }
@@ -553,7 +552,7 @@ export class ProjectLoading {
         await this.dependencies.ensureCardInternalIds()
         this.dependencies.dispatchChanged()
         const currentSnapshot = this.dependencies.snapshot()
-        if (currentSnapshot) this.loadAgentConversationsInBackground(currentSnapshot, project, projectLoadToken)
+        if (currentSnapshot) await this.loadAgentConversationsInBackground(currentSnapshot, project, projectLoadToken)
     }
 
     private shouldApplyProjectLoad(project: ProjectReference, projectLoadToken: number) {
