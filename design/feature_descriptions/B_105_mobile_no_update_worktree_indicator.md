@@ -3,7 +3,7 @@ author:
 id: B_105
 internalId: e4d3228b-4f97-44f2-9948-8896a694c165
 title: Mobile no update worktree indicator
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
