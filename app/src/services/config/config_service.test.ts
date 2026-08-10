@@ -43,6 +43,41 @@ describe('ConfigService', () => {
         }
     })
 
+    it('replaces desktop values without clearing project or React values', () => {
+        service.init()
+        service.setReactPreference('react.showStartupSplash', false)
+        service.loadProjectConfig({ actionsFolder: 'ops', workingFolder: 'docs' })
+        service.replaceDesktopConfig({
+            agent: 'custom',
+            agentProfiles: [{ command: ['custom'], models: ['custom-model'], name: 'custom' }],
+            codexSearchEnabled: false,
+            editorCommand: 'code "{{file}}"',
+            mergeConflictResolverCommand: '',
+            model: 'custom-model',
+            permissionMode: 'full-access',
+            thinkingLevel: 'high',
+        })
+
+        expect(service.hasDesktopConfig()).toBe(true)
+        expect(service.getDesktopValues()).toMatchObject({ agent: 'custom', model: 'custom-model', thinkingLevel: 'high' })
+        expect(service.getProjectConfig()).toMatchObject({ actionsFolder: 'ops', workingFolder: 'docs' })
+        expect(service.get('react.showStartupSplash')).toBe(false)
+    })
+
+    it('clears only desktop values and marks them unavailable', () => {
+        service.init({ desktopConfig: { agent: 'claude' } })
+        service.setReactPreference('react.showStartupSplash', false)
+        service.loadProjectConfig({ actionsFolder: 'ops', workingFolder: 'docs' })
+        service.loadDraft()
+        service.clearDesktopConfig()
+
+        expect(service.hasDesktopConfig()).toBe(false)
+        expect(service.get('desktop.agent')).toBe('codex')
+        expect(service.getDraft()?.['desktop.agent']).toBe('codex')
+        expect(service.getProjectConfig()).toMatchObject({ actionsFolder: 'ops', workingFolder: 'docs' })
+        expect(service.get('react.showStartupSplash')).toBe(false)
+    })
+
     it('defaults the actions folder when project config omits it', () => {
         service.init()
         service.loadProjectConfig(null)

@@ -10,6 +10,9 @@ import { dialogService } from '../../services/dialog_service'
 import { worktreeService } from '../../services/project/worktree_service'
 import { CUSTOM_MARKDOWN_STYLE_STORAGE_KEY, MARKDOWN_STYLE_STORAGE_KEY } from '../../theme/use_theme_settings'
 import { MARKDOWN_STYLE_PRESETS, type MarkdownStyleConfig, type MarkdownStylePresetName } from '../../theme/theme_config'
+import type { DesktopConfigValues } from '../../services/config/config_entries'
+import { setDesktopConfigTransportOverride } from '../../services/config/desktop_config_transport'
+import { agentCapabilitiesService } from '../../services/agents/agent_capabilities_service'
 
 const useAppThemeMock = vi.hoisted(() => vi.fn())
 
@@ -65,6 +68,7 @@ describe('ConfigPage', () => {
         window.localStorage.clear()
         delete window.md2Config
         delete window.md2Data
+        setDesktopConfigTransportOverride(null)
     })
 
     it('renders typed editors with descriptions', () => {
@@ -434,7 +438,7 @@ describe('ConfigPage', () => {
 
     it('pushes desktop config edits through the electron bridge on save', () => {
         mockMatchMedia(false)
-        const setDesktopConfig = vi.fn()
+        const setDesktopConfig = vi.fn(async (values: DesktopConfigValues) => values)
         window.md2Config = {
             getDesktopConfig: () => ({
                 agent: 'codex',
@@ -465,9 +469,74 @@ describe('ConfigPage', () => {
         delete window.md2Config
     })
 
-    it('adds an agent profile with fields and persists it through the desktop bridge', () => {
+    it('awaits remote persistence, applies returned config, then reloads availability', async () => {
         mockMatchMedia(false)
-        const setDesktopConfig = vi.fn()
+        const hostConfig: DesktopConfigValues = {
+            agent: 'custom',
+            agentProfiles: [{ command: ['custom'], models: ['host-model'], name: 'custom' }],
+            codexSearchEnabled: true,
+            editorCommand: 'code "{{file}}"',
+            mergeConflictResolverCommand: '',
+            model: 'host-model',
+            permissionMode: 'ask-for-approval',
+            thinkingLevel: 'medium',
+        }
+        let acknowledgeSave: (value: DesktopConfigValues) => void = () => undefined
+        const saveDesktopConfig = vi.fn(() => new Promise<DesktopConfigValues>((resolve) => {
+            acknowledgeSave = resolve
+        }))
+        setDesktopConfigTransportOverride({ loadDesktopConfig: vi.fn(async () => hostConfig), saveDesktopConfig })
+        vi.spyOn(agentCapabilitiesService, 'reload').mockResolvedValue()
+        configService.init()
+        configService.replaceDesktopConfig(hostConfig)
+        renderConfigPage('#desktop')
+        configService.setDraftValue('desktop.model', 'saved-model')
+
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+        expect(saveDesktopConfig).toHaveBeenCalledWith({ ...hostConfig, model: 'saved-model' })
+        expect(configService.get('desktop.model')).toBe('host-model')
+        expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
+
+        acknowledgeSave({ ...hostConfig, model: 'normalized-model' })
+        await waitFor(() => expect(configService.get('desktop.model')).toBe('normalized-model'))
+        expect(agentCapabilitiesService.reload).toHaveBeenCalledOnce()
+    })
+
+    it('keeps remote desktop edits in draft when persistence fails', async () => {
+        mockMatchMedia(false)
+        const hostConfig: DesktopConfigValues = {
+            agent: 'codex',
+            agentProfiles: BUILTIN_AGENT_PROFILES,
+            codexSearchEnabled: true,
+            editorCommand: 'code "{{file}}"',
+            mergeConflictResolverCommand: '',
+            model: '',
+            permissionMode: 'ask-for-approval',
+            thinkingLevel: 'none',
+        }
+        const saveError = new Error('Host rejected desktop config')
+        setDesktopConfigTransportOverride({
+            loadDesktopConfig: vi.fn(async () => hostConfig),
+            saveDesktopConfig: vi.fn(async () => { throw saveError }),
+        })
+        const error = vi.spyOn(dialogService, 'error')
+        const success = vi.spyOn(dialogService, 'success')
+        configService.init()
+        configService.replaceDesktopConfig(hostConfig)
+        renderConfigPage('#desktop')
+        configService.setDraftValue('desktop.model', 'unsaved-model')
+
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+        await waitFor(() => expect(error).toHaveBeenCalledWith(saveError, { fallbackMessage: 'Config save failed' }))
+        expect(configService.get('desktop.model')).toBe('')
+        expect(success).not.toHaveBeenCalled()
+    })
+
+    it('adds an agent profile with fields and persists it through the desktop bridge', async () => {
+        mockMatchMedia(false)
+        const setDesktopConfig = vi.fn(async (values: DesktopConfigValues) => values)
         window.md2Config = {
             getDesktopConfig: () => ({
                 agent: 'codex',
@@ -506,14 +575,16 @@ describe('ConfigPage', () => {
                 }),
             ]),
         }))
-        expect(configService.get('desktop.agentProfiles')).toEqual(expect.arrayContaining([expect.objectContaining({ name: 'local' })]))
+        await waitFor(() => expect(configService.get('desktop.agentProfiles')).toEqual(expect.arrayContaining([
+            expect.objectContaining({ name: 'local' }),
+        ])))
 
         delete window.md2Config
     })
 
-    it('edits and removes user agent profiles while built-ins stay non-removable', () => {
+    it('edits and removes user agent profiles while built-ins stay non-removable', async () => {
         mockMatchMedia(false)
-        const setDesktopConfig = vi.fn()
+        const setDesktopConfig = vi.fn(async (values: DesktopConfigValues) => values)
         window.md2Config = {
             getDesktopConfig: () => ({
                 agent: 'codex',
@@ -534,19 +605,27 @@ describe('ConfigPage', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
         expect(setDesktopConfig).toHaveBeenLastCalledWith(expect.objectContaining({agentProfiles: expect.arrayContaining([expect.objectContaining({ command: ['edited-agent'], name: 'local' })])}))
+        await waitFor(() => expect(configService.get('desktop.agentProfiles')).toEqual(expect.arrayContaining([
+            expect.objectContaining({ command: ['edited-agent'], name: 'local' }),
+        ])))
+        renderConfigPage('#desktop')
 
         fireEvent.click(screen.getByRole('button', { name: 'Remove local' }))
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
-        const lastCall = setDesktopConfig.mock.calls.at(-1)?.[0]
-        expect(lastCall.agentProfiles).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'local' })]))
+        await waitFor(() => {
+            const lastCall = setDesktopConfig.mock.calls.at(-1)?.[0]
+            expect(lastCall).toBeDefined()
+            if (!lastCall) throw new Error('Desktop config was not persisted')
+            expect(lastCall.agentProfiles).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'local' })]))
+        })
 
         delete window.md2Config
     })
 
     it('overrides built-in profile models', () => {
         mockMatchMedia(false)
-        const setDesktopConfig = vi.fn()
+        const setDesktopConfig = vi.fn(async (values: DesktopConfigValues) => values)
         window.md2Config = {
             getDesktopConfig: () => ({agent: 'codex', agentProfiles: BUILTIN_AGENT_PROFILES, model: ''}),
             setDesktopConfig,
@@ -573,7 +652,7 @@ describe('ConfigPage', () => {
                 agentProfiles: BUILTIN_AGENT_PROFILES,
                 model: '',
             }),
-            setDesktopConfig: vi.fn(),
+            setDesktopConfig: vi.fn(async (values: DesktopConfigValues) => values),
         }
         initConfigFromElectronBridge()
 
@@ -604,7 +683,7 @@ describe('ConfigPage', () => {
                 agentProfiles: BUILTIN_AGENT_PROFILES,
                 model: '',
             }),
-            setDesktopConfig: vi.fn(),
+            setDesktopConfig: vi.fn(async (values: DesktopConfigValues) => values),
         }
         initConfigFromElectronBridge()
 

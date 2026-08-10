@@ -57,7 +57,11 @@ export function ActionAgentSelectors(props: ActionAgentSelectorsProps) {
         permissionMode: settings.permissionMode,
         thinkingLevel: settings.thinkingLevel,
     }
-    const disabled = settings.settingsLoading || runStatus === 'queued' || runStatus === 'running'
+    const disabled = !settings.desktopConfigAvailable
+        || settings.availabilityLoading
+        || settings.settingsLoading
+        || runStatus === 'queued'
+        || runStatus === 'running'
     const changedWhileWaiting = runStatus === 'waitingForInput'
     const permissionOption = PERMISSION_MODE_OPTIONS.find(({ value }) => value === settings.permissionMode)
     const securityTooltip = settings.permissionModeSupported

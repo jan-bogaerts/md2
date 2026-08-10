@@ -16,6 +16,8 @@ import { ActionUsageScopeStore } from './action_usage_scope_store'
 import { ActionRunInputStore } from '../state/action_run_input_store'
 import { ActionRunResultStore } from '../state/action_run_result_store'
 import { ActionScheduleStore } from '../schedule/action_schedule_store'
+import { configService } from '../../../../services/config/config_service'
+import { BUILTIN_AGENT_PROFILES } from '../../../../data/agent_profiles'
 
 const context = { kind: 'project' as const }
 const action = {
@@ -88,9 +90,10 @@ function renderBottomRow(
 
 describe('ActionPopupBottomRow', () => {
     beforeEach(() => {
+        configService.init({ desktopConfig: { agent: 'codex', agentProfiles: BUILTIN_AGENT_PROFILES, model: '' } })
         window.md2Actions = { onActionRun: vi.fn(() => vi.fn()) } as unknown as typeof window.md2Actions
         vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({
-            availability: { error: null, loading: false, values: { '': { available: true, error: null } } },
+            availability: { error: null, loading: false, values: { codex: { available: true, error: null } } },
             models: { error: null, loading: false, values: [] },
             thinkingLevels: { error: null, loading: false, values: [] },
         })
@@ -101,6 +104,7 @@ describe('ActionPopupBottomRow', () => {
         actionPromptDraftService.clearAll()
         actionRunRegistry.stop()
         delete window.md2Actions
+        configService.clear()
         cleanup()
         vi.restoreAllMocks()
     })

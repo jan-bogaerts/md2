@@ -55,6 +55,7 @@ function createLocalBridgeDispatch(dependencies) {
         openProjectFolder,
         openWorktreeFolder,
         readDesktopConfig,
+        saveDesktopConfig,
         worktreeService,
     } = dependencies;
     let currentLocalProject = null;
@@ -133,6 +134,7 @@ function createLocalBridgeDispatch(dependencies) {
 
             return agentExecutableAvailability(agentProfiles);
         },
+        loadDesktopConfig: () => readDesktopConfig(desktopConfigStore),
         loadFile: (project, path) => localGitService.loadFile(project, path),
         loadTextFile: (project, path) => localGitService.loadTextFile(project, path),
         loadProjectAsset: (project, path) => localGitService.loadProjectAsset(project, path),
@@ -262,6 +264,7 @@ function createLocalBridgeDispatch(dependencies) {
         },
         saveActionSchedules: (project, actionsFolder, schedules) => localGitService.saveActionSchedules(project, actionsFolder, schedules),
         saveProjectConfig: (project, config) => localGitService.saveProjectConfig(project, config),
+        saveDesktopConfig: (values) => saveDesktopConfig(desktopConfigStore, values),
         removeWorktree: (project, folderPath) => worktreeService.remove(project, folderPath),
         stopAgent: (runId) => agentRunnerService.stop(runId),
         watchProject: (project, callback) => localGitService.watchProject(project, (event) => {

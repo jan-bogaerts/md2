@@ -213,9 +213,10 @@ if (!isAllowedOrigin()) {
     };
     const configBridge = {
         getDesktopConfig: () => desktopConfig,
-        setDesktopConfig: (values) => {
-            desktopConfig = { ...desktopConfig, ...values };
-            void ipcRenderer.invoke(CONFIG_SET_DESKTOP_CHANNEL, values);
+        setDesktopConfig: async (values) => {
+            desktopConfig = await ipcRenderer.invoke(CONFIG_SET_DESKTOP_CHANNEL, values);
+
+            return desktopConfig;
         },
     };
     const remoteControlBridge = {

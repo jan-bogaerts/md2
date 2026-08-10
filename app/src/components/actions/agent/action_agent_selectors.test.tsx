@@ -16,6 +16,8 @@ const selectorState = vi.hoisted(() => ({
             codex: { available: true, error: null as string | null },
         },
         agentProfiles: [] as typeof BUILTIN_AGENT_PROFILES,
+        availabilityLoading: false,
+        desktopConfigAvailable: true,
         model: 'gpt-5.5',
         permissionMode: 'ask-for-approval' as 'ask-for-approval' | 'approve-for-me' | 'full-access' | '',
         permissionModeSupported: true,
@@ -53,6 +55,8 @@ describe('ActionAgentSelectors', () => {
                 codex: { available: true, error: null },
             },
             agentProfiles: BUILTIN_AGENT_PROFILES,
+            availabilityLoading: false,
+            desktopConfigAvailable: true,
             model: 'gpt-5.5',
             permissionMode: 'ask-for-approval',
             permissionModeSupported: true,
@@ -80,6 +84,24 @@ describe('ActionAgentSelectors', () => {
         expect(within(menu).getByText('Thinking level')).toBeInTheDocument()
         expect(within(menu).getByRole('menuitem', { name: 'gpt-5.6-sol' })).toBeInTheDocument()
         expect(within(menu).queryByRole('menuitem', { name: 'sonnet' })).not.toBeInTheDocument()
+    })
+
+    it('keeps selectors disabled until desktop config and availability are ready', () => {
+        selectorState.settings.desktopConfigAvailable = false
+        const { rerender } = renderSelectors()
+
+        expect(screen.getByRole('button', { name: 'Model' })).toBeDisabled()
+
+        selectorState.settings.desktopConfigAvailable = true
+        selectorState.settings.availabilityLoading = true
+        const settingsStore = { setSettings: vi.fn() } as unknown as ActionRunSettingsStore
+        rerender(
+            <AppThemeProvider>
+                <ActionAgentSelectors action={action} context={context} settingsStore={settingsStore} />
+            </AppThemeProvider>,
+        )
+
+        expect(screen.getByRole('button', { name: 'Model' })).toBeDisabled()
     })
 
     it('resets dependent settings when agent or model changes', () => {

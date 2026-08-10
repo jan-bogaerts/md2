@@ -134,7 +134,7 @@ async function loadProjectSession(storage: StorageService, storageType: StorageT
 
 async function activateProjectSession(storage: StorageService, storageType: StorageType, project: ProjectReference) {
     await projectPersistenceService.flushPendingChanges()
-    activateStorageService(storageType, storage)
+    await activateStorageService(storageType, storage)
     dataService.init({ storage })
     await dataService.projectLoading.openProject(project)
     writeLastProject(storageType, project)
@@ -268,6 +268,10 @@ export class ProjectSessionService extends EventTarget {
     configureRemote(endpoint: string, token: string) {
         this.setError(null)
         configureRemoteControlConnection({ endpoint, token })
+    }
+
+    async activateRemoteConnection(storage: StorageService) {
+        await this.withLoading('Remote desktop config load failed', () => activateStorageService('remote', storage))
     }
 
     async switchBranch(branch: string) {

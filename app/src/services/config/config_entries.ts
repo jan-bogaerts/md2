@@ -391,6 +391,10 @@ export const PROJECT_KEYS: ConfigKey[] = [
     'project.states',
 ]
 
+export const DESKTOP_KEYS: ConfigKey[] = CONFIG_ENTRIES.filter(
+    (entry) => entry.source === 'desktop',
+).map((entry) => entry.key)
+
 export const LOCAL_STORAGE_KEYS: ConfigKey[] = CONFIG_ENTRIES.filter(
     (entry) => entry.source === 'react',
 ).map((entry) => entry.key)

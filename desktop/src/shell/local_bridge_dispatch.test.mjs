@@ -128,6 +128,7 @@ function createDispatch(options = {}) {
         verify: vi.fn(async () => null),
     };
     const desktopConfig = options.desktopConfig ?? {agent: 'codex', agentProfiles: [{ command: ['codex'], models: ['gpt-5'], name: 'codex' }], editorCommand: 'code -g "{{file}}:{{line}}"', model: 'gpt-5'};
+    const saveDesktopConfig = vi.fn((_store, values) => values);
     const diffService = { generateDiff: vi.fn(), generateWorktreeDiff: vi.fn(), openInEditor: vi.fn() };
     const dispatch = createLocalBridgeDispatch({
         actionRunnerService,
@@ -143,6 +144,7 @@ function createDispatch(options = {}) {
         openProjectFolder: options.openProjectFolder,
         openWorktreeFolder: options.openWorktreeFolder,
         readDesktopConfig: () => desktopConfig,
+        saveDesktopConfig,
         worktreeService,
     });
 
@@ -156,11 +158,30 @@ function createDispatch(options = {}) {
         diffService,
         localGitService,
         mergeConflictService,
+        saveDesktopConfig,
         worktreeService,
     };
 }
 
 describe('createLocalBridgeDispatch', () => {
+    it('loads and saves desktop config without requiring an active project', async () => {
+        const desktopConfig = {
+            agent: 'custom',
+            agentProfiles: [{ command: ['custom'], models: ['model'], name: 'custom' }],
+            codexSearchEnabled: true,
+            editorCommand: 'code "{{file}}"',
+            mergeConflictResolverCommand: '',
+            model: 'model',
+            permissionMode: 'ask-for-approval',
+            thinkingLevel: 'high',
+        };
+        const { dispatch, saveDesktopConfig } = createDispatch({ desktopConfig });
+
+        expect(dispatch.invoke('loadDesktopConfig')).toEqual(desktopConfig);
+        expect(dispatch.invoke('saveDesktopConfig', [desktopConfig])).toEqual(desktopConfig);
+        expect(saveDesktopConfig).toHaveBeenCalledWith(expect.any(Object), desktopConfig);
+    });
+
     it('opens chat and diff files through shared configured editor launcher inputs', async () => {
         const editorCommand = 'notepad "{{file}}"';
         const { diffService, dispatch, worktreeService } = createDispatch({ desktopConfig: { agent: 'codex', agentProfiles: [], editorCommand, model: '' } });

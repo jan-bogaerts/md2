@@ -232,12 +232,16 @@ describe('preload desktop agent bridge', () => {
         expect(blocked.exposed.md2Data).toBeUndefined();
     });
 
-    it('keeps desktop config cached while persisting updates through IPC', () => {
+    it('updates cached desktop config only after persistence acknowledgement', async () => {
         const { electron, exposed } = createPreloadHarness();
         const nextConfig = { agent: 'stored-agent', agentProfiles: [{ command: ['stored-agent'], name: 'stored-agent' }], model: '' };
+        electron.ipcRenderer.invoke.mockResolvedValueOnce(nextConfig);
 
         expect(exposed.md2Config.getDesktopConfig()).toEqual({ agent: 'codex', agentProfiles: [{ command: ['codex'], name: 'codex' }], model: '' });
-        exposed.md2Config.setDesktopConfig(nextConfig);
+        const savePromise = exposed.md2Config.setDesktopConfig(nextConfig);
+
+        expect(exposed.md2Config.getDesktopConfig()).not.toEqual(nextConfig);
+        await expect(savePromise).resolves.toEqual(nextConfig);
 
         expect(exposed.md2Config.getDesktopConfig()).toEqual(nextConfig);
         expect(electron.ipcRenderer.invoke).toHaveBeenCalledWith('md2-config:set-desktop', nextConfig);

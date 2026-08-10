@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ProjectReference } from '../../data/data_types'
 import {
     configureRemoteControlConnection,
@@ -71,6 +71,10 @@ async function connectTo(endpoint: string, token: string) {
 }
 
 describe('RemoteConnectButton', () => {
+    beforeEach(() => {
+        vi.spyOn(projectSessionService, 'activateRemoteConnection').mockResolvedValue()
+    })
+
     afterEach(() => {
         window.localStorage.removeItem(REMOTE_CONTROL_ENDPOINT_KEY)
         window.localStorage.removeItem(REMOTE_CONTROL_TOKEN_KEY)

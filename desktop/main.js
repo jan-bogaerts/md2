@@ -8,7 +8,7 @@ const desktopEnvironmentPath = app.isPackaged
 if (existsSync(desktopEnvironmentPath)) process.loadEnvFile(desktopEnvironmentPath);
 
 const Store = require('electron-store');
-const { readDesktopConfig, resolveBridgeAllowedOrigins, writeDesktopConfig } = require('./src/shell/config');
+const { readDesktopConfig, resolveBridgeAllowedOrigins, saveDesktopConfig } = require('./src/shell/config');
 const { AgentRunnerService } = require('./src/actions/agent/agent_runner_service');
 const { CodexRuntimeService } = require('./src/actions/agent/codex_runtime_service');
 const { AgentExecutableResolver, loadAgentExecutableAvailability } = require('./src/actions/agent/agent_executable_availability');
@@ -98,6 +98,7 @@ const localBridgeDispatch = createLocalBridgeDispatch({
     openProjectFolder: () => openProjectFolder(BrowserWindow.getFocusedWindow()),
     openWorktreeFolder: () => openWorktreeFolder(BrowserWindow.getFocusedWindow()),
     readDesktopConfig,
+    saveDesktopConfig,
     worktreeService,
 });
 const remoteControlService = new RemoteControlService(localBridgeDispatch);
@@ -173,7 +174,7 @@ function registerLocalBridge() {
 
 function registerConfigBridge() {
     ipcMain.handle(CONFIG_GET_DESKTOP_CHANNEL, () => readDesktopConfig(store));
-    ipcMain.handle(CONFIG_SET_DESKTOP_CHANNEL, (_event, values) => writeDesktopConfig(store, values));
+    ipcMain.handle(CONFIG_SET_DESKTOP_CHANNEL, (_event, values) => localBridgeDispatch.invoke('saveDesktopConfig', [values]));
 }
 
 function broadcastRemoteControlStatus(status) {

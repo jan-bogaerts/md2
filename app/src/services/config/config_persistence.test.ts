@@ -63,7 +63,7 @@ describe('config persistence', () => {
             model: '',
             permissionMode: 'ask-for-approval',
         }
-        const setDesktopConfig = vi.fn()
+        const setDesktopConfig = vi.fn(async (values: DesktopConfigValues) => values)
         window.md2Config = {
             getDesktopConfig: () => desktopConfig,
             setDesktopConfig,

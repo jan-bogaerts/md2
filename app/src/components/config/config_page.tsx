@@ -14,7 +14,7 @@ import {
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { navigateTo } from '../../app/app_navigation'
 import { CONFIG_SECTIONS, configService, type ConfigEntry, type ConfigKey } from '../../services/config/config_service'
-import { writeDesktopConfigToBridge } from '../../services/config/config_persistence'
+import { saveDesktopConfigToHost } from '../../services/config/desktop_config_transport'
 import { dataService } from '../../services/data/data_service'
 import { dialogService } from '../../services/dialog_service'
 import { DesktopConfigSection } from './desktop_config_section'
@@ -29,6 +29,7 @@ import {
     type MarkdownStyleName,
 } from '../../theme/theme_config'
 import { MarkdownConfigSection } from './markdown_config_section'
+import { agentCapabilitiesService } from '../../services/agents/agent_capabilities_service'
 
 const CONFIG_PAGE_PADDING = 3
 const CONFIG_FORM_MAX_WIDTH = 720
@@ -83,6 +84,7 @@ export function ConfigPage(props: ConfigPageProps) {
     } = useAppTheme()
     const draft = useSyncExternalStore(subscribeToConfigChanges, getConfigDraftSnapshot)
     const [invalidConfigKeys, setInvalidConfigKeys] = useState<Set<ConfigKey>>(() => new Set())
+    const [isSaving, setIsSaving] = useState(false)
     const [markdownStyleDraft, setMarkdownStyleDraft] = useState<MarkdownStyleDraft>(() => ({
         config: cloneMarkdownStyleConfig(markdownStyleConfig),
         name: markdownStyle,
@@ -154,6 +156,7 @@ export function ConfigPage(props: ConfigPageProps) {
     }
 
     const handleSaveClick = async () => {
+        setIsSaving(true)
         try {
             const shouldSaveProjectConfig = configService.hasDraftChangesForSource('project')
             const shouldSaveDesktopConfig = configService.hasDraftChangesForSource('desktop')
@@ -164,6 +167,11 @@ export function ConfigPage(props: ConfigPageProps) {
             if (shouldUpdateCardSeparator) {
                 await dataService.projectLoading.updateCardSeparator(previousCardSeparator, nextCardSeparator)
             }
+            if (shouldSaveDesktopConfig && configService.hasDesktopConfig()) {
+                const persistedDesktopConfig = await saveDesktopConfigToHost(configService.getDraftDesktopValues())
+                configService.replaceDesktopConfig(persistedDesktopConfig)
+                await agentCapabilitiesService.reload()
+            }
             configService.saveDraft()
             configService.loadDraft()
             if (markdownStyleChanged && markdownStyleDraft.name === 'custom') setCustomMarkdownStyle(markdownStyleDraft.config)
@@ -171,11 +179,12 @@ export function ConfigPage(props: ConfigPageProps) {
                 setMarkdownStyle(markdownStyleDraft.name)
             }
             if (shouldSaveProjectConfig && configService.hasProjectConfig()) await dataService.projectLoading.saveProjectConfig()
-            if (shouldSaveDesktopConfig && configService.hasDesktopConfig()) writeDesktopConfigToBridge(configService.getDesktopValues())
             dialogService.success('Config saved')
             navigateTo('/')
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Config save failed' })
+        } finally {
+            setIsSaving(false)
         }
     }
 
@@ -257,7 +266,7 @@ export function ConfigPage(props: ConfigPageProps) {
                 <Button onClick={handleCancelClick} variant="outlined">
                     Cancel
                 </Button>
-                <Button disabled={invalidConfigKeys.size > 0 || !markdownStyleValid} onClick={handleSaveClick} variant="contained">
+                <Button disabled={isSaving || invalidConfigKeys.size > 0 || !markdownStyleValid} onClick={handleSaveClick} variant="contained">
                     Save
                 </Button>
             </DialogActions>

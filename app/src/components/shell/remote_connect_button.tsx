@@ -30,6 +30,7 @@ export function RemoteConnectButton() {
             const service = new RemoteControlStorageService()
             service.init(settings)
             await service.connect()
+            await projectSessionService.activateRemoteConnection(service)
             setConnectedService(service)
             setConnectedEndpoint(settings.endpoint)
             setIsDialogOpen(false)

@@ -15,6 +15,8 @@ import { worktreeService } from '../../../../services/project/worktree_service'
 import { AppThemeProvider } from '../../../../theme/theme_provider'
 import { ActionPopup, CARD_RUN_POPUP_SIZE_STORAGE_KEY, PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY } from './action_popup'
 import { useMarkdownTypeaheadStackPosition } from '../../../editor/markdown_typeahead_layer_context'
+import { configService } from '../../../../services/config/config_service'
+import { BUILTIN_AGENT_PROFILES } from '../../../../data/agent_profiles'
 
 const renderProbes = vi.hoisted(() => ({
     agentPrompt: vi.fn(),
@@ -222,6 +224,7 @@ function renderPopup(contextOverride: ActionContext = context, onClose = vi.fn()
 
 describe('ActionPopup', () => {
     beforeEach(async () => {
+        configService.init({ desktopConfig: { agent: 'codex', agentProfiles: BUILTIN_AGENT_PROFILES, model: '' } })
         setMobileBreakpoint(false)
         Object.values(renderProbes).forEach((probe) => probe.mockClear())
         window.md2Actions = {
@@ -250,6 +253,7 @@ describe('ActionPopup', () => {
         actionRunRegistry.stop()
         actionRunSettingsService.clear()
         delete window.md2Actions
+        configService.clear()
         actionService.clear()
         worktreeService.clear()
         window.localStorage.clear()
@@ -495,11 +499,38 @@ describe('ActionPopup', () => {
         expect(dialog.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument()
     })
 
+    it('uses host defaults and custom profiles in action selectors', async () => {
+        configService.replaceDesktopConfig({
+            agent: 'custom',
+            agentProfiles: [{ command: ['custom'], models: ['host-model'], name: 'custom' }],
+            codexSearchEnabled: true,
+            editorCommand: 'code "{{file}}"',
+            mergeConflictResolverCommand: '',
+            model: 'host-model',
+            permissionMode: 'full-access',
+            thinkingLevel: 'high',
+        })
+        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({
+            availability: { error: null, loading: false, values: { custom: { available: true, error: null } } },
+            models: { error: null, loading: false, values: [] },
+            thinkingLevels: { error: null, loading: false, values: [] },
+        })
+        renderPopup()
+        const dialog = within(screen.getByRole('dialog', { name: 'Run actions' }))
+
+        fireEvent.click(dialog.getByRole('button', { name: 'Custom prompt' }))
+        const model = await dialog.findByRole('button', { name: 'Model' })
+        expect(model).toHaveTextContent('host-model high')
+        fireEvent.click(model)
+
+        expect(screen.getByRole('menuitem', { name: 'custom' })).toHaveClass('Mui-selected')
+    })
+
     it.each(['Send button', 'Ctrl+Enter'])('runs custom prompt directly through %s', async (submission) => {
         const startAction = vi.fn(async () => 'custom-run')
         const saveProjectFile = vi.spyOn(dataService.cards, 'saveProjectFile')
         vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({
-            availability: { error: null, loading: false, values: { '': { available: true, error: null } } },
+            availability: { error: null, loading: false, values: { codex: { available: true, error: null } } },
             models: { error: null, loading: false, values: [] },
             thinkingLevels: { error: null, loading: false, values: [] },
         })
@@ -520,7 +551,13 @@ describe('ActionPopup', () => {
 
         await waitFor(() => expect(startAction).toHaveBeenCalledWith(expect.objectContaining({
             actionId: CUSTOM_PROMPT_ACTION_ID,
-            runInput: expect.objectContaining({ prompt: 'Explain this change' }),
+            runInput: expect.objectContaining({
+                agent: 'codex',
+                model: 'gpt-5.5',
+                permissionMode: 'ask-for-approval',
+                prompt: 'Explain this change',
+                thinkingLevel: 'none',
+            }),
         })))
         expect(saveProjectFile).not.toHaveBeenCalled()
     })

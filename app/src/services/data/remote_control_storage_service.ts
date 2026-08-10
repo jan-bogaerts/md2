@@ -60,6 +60,8 @@ import type {
     MergeConflictSessionRequest,
     WorktreeOperationOutcome,
 } from '../../data/merge_conflict_types'
+import type { DesktopConfigValues } from '../config/config_entries'
+import type { DesktopConfigTransport } from '../config/desktop_config_transport'
 
 interface RemoteControlRequest {
     id: string
@@ -133,7 +135,8 @@ function isResponse(message: RemoteControlResponse | RemoteControlEvent): messag
     return 'id' in message
 }
 
-export class RemoteControlStorageService implements StorageService, ElectronActionBridge, ElectronCodexRuntimeBridge {
+export class RemoteControlStorageService implements
+    StorageService, ElectronActionBridge, ElectronCodexRuntimeBridge, DesktopConfigTransport {
     async addWorktree(project: ProjectReference): Promise<boolean> {
         return this.request<boolean>('addWorktree', [project])
     }
@@ -595,6 +598,14 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
 
     async loadAgentAvailability(): Promise<Record<string, AgentAvailability>> {
         return this.request<Record<string, AgentAvailability>>('loadAgentAvailability', [])
+    }
+
+    async loadDesktopConfig(): Promise<DesktopConfigValues> {
+        return this.request<DesktopConfigValues>('loadDesktopConfig', [])
+    }
+
+    async saveDesktopConfig(values: DesktopConfigValues): Promise<DesktopConfigValues> {
+        return this.request<DesktopConfigValues>('saveDesktopConfig', [values])
     }
 
     onActionRun(callback: (event: ActionRunEvent) => void): () => void {

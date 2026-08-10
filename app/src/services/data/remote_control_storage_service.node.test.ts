@@ -87,6 +87,37 @@ describe('RemoteControlStorageService', () => {
         await expect(second).resolves.toEqual([{ name: 'main' }])
     })
 
+    it('loads and saves complete host desktop config through remote control', async () => {
+        installWebSocket()
+        const service = createService()
+        const desktopConfig = {
+            agent: 'custom',
+            agentProfiles: [{ command: ['custom'], models: ['custom-model'], name: 'custom' }],
+            codexSearchEnabled: false,
+            editorCommand: 'code "{{file}}"',
+            mergeConflictResolverCommand: '',
+            model: 'custom-model',
+            permissionMode: 'full-access' as const,
+            thinkingLevel: 'high' as const,
+        }
+        const load = service.loadDesktopConfig()
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const loadRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
+        expect(loadRequest).toMatchObject({ method: 'loadDesktopConfig', params: [] })
+        socket.receive({ id: loadRequest.id, result: desktopConfig })
+        await expect(load).resolves.toEqual(desktopConfig)
+
+        const save = service.saveDesktopConfig(desktopConfig)
+        await flushPromises()
+        const saveRequest = JSON.parse(socket.sent[1]) as { id: string, method: string, params: unknown[] }
+        expect(saveRequest).toMatchObject({ method: 'saveDesktopConfig', params: [desktopConfig] })
+        socket.receive({ id: saveRequest.id, result: desktopConfig })
+        await expect(save).resolves.toEqual(desktopConfig)
+    })
+
     it('loads one markdown file through remote control and propagates desktop errors', async () => {
         installWebSocket()
         const service = createService()
