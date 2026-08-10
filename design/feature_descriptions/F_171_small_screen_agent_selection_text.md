@@ -9,4 +9,4 @@ affects:
 agents:
 policy:
 ---
-
+To make more room for the buttons at the bottom of the action popup, when i´ small screen, use l, m, h, instead of low medium high
