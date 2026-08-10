@@ -120,7 +120,7 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
             sx={{
                 alignItems: 'center', bgcolor: embedded ? 'background.paper' : 'background.default', borderColor: 'divider',
                 containerType: 'inline-size', display: 'flex', flexShrink: 0, gap: 1,
-                justifyContent: 'space-between', px: embedded ? 1 : 2, py: embedded ? 1 : 1.5,
+                justifyContent: 'space-between', px: embedded ? 1 : 2, pb: embedded ? 1 : 1.5, pt: embedded ? 0 : 1.5,
                 '@container (max-width: 420px)': {
                     display: 'grid',
                     gridTemplateColumns: 'minmax(0, 1fr) auto',

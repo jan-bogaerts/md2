@@ -3,11 +3,23 @@ import type { CardOperationContext } from './card_operation_context'
 import { setCardHeaderFields } from './card_mutations'
 import { markdownParsingService } from './markdown_parsing_service'
 
+function isInsideFolder(path: string, folder: string) {
+    const normalizedPath = path.replace(/\\/gu, '/')
+    const normalizedFolder = folder.replace(/\\/gu, '/').replace(/\/+$/u, '')
+
+    return normalizedPath.startsWith(`${normalizedFolder}/`)
+}
+
+function requiresInternalId(card: Card, workingFolder: string, releasesFolder: string, archivedFolder: string) {
+    return markdownParsingService.isRootWorkingFolderFile(card.path, workingFolder)
+        || isInsideFolder(card.path, releasesFolder)
+        || isInsideFolder(card.path, archivedFolder)
+}
+
 /**
  * Adds persisted identities to legacy cards loaded without an internal ID.
- * Only cards in the working folder root qualify; every other markdown file is a
- * regular document that must be left untouched, see the card classification rule
- * in design/architecture/current_data_model.md.
+ * Active, released, and archived card files require identities. Markdown files
+ * outside those configured folders are regular documents and remain untouched.
  */
 export class CardInternalIdOperations {
     private readonly context: CardOperationContext
@@ -24,7 +36,10 @@ export class CardInternalIdOperations {
     ensureCardInternalIds() {
         const { dependencies } = this.context
         const { commitBatcher, config, project } = this.context.requireProject('add card identities')
-        const cards = dependencies.snapshot()?.activeCards ?? []
+        const snapshot = dependencies.snapshot()
+        const cards = snapshot ? [...snapshot.activeCards, ...snapshot.backgroundCards].filter((card) => (
+            requiresInternalId(card, config.workingFolder, config.releasesFolder, config.archivedFolder)
+        )) : []
 
         const projectKey = `${project.id}:${project.branch}`
         if (projectKey !== this.generatedInternalIdProjectKey) {

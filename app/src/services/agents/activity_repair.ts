@@ -67,7 +67,7 @@ function validCardReferences(
     knownActivityPaths: Set<string>,
 ) {
     const cardInternalId = card.header.internalId
-    if (!cardInternalId) throw new Error(`Cannot repair activity references without an internal ID: ${card.path}`)
+    if (!cardInternalId) return card.header.agentLogReferences
 
     return card.header.agentLogReferences.filter((reference) => {
         const activityPath = referencedActivityPath(reference)

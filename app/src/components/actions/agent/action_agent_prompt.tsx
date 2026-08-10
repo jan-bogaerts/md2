@@ -11,7 +11,7 @@ import { MarkdownEditor, type MarkdownEditorHandle } from '../../editor/markdown
 const MIN_PROMPT_HEIGHT = 72
 const MIN_CHAT_HEIGHT = 96
 const DEFAULT_PROMPT_HEIGHT = 140
-const EMPTY_PROMPT_EDITOR_HEIGHT = 42
+const EMPTY_PROMPT_EDITOR_HEIGHT = 56
 const PROMPT_RESIZE_STEP = 24
 const PROMPT_HEIGHT_STORAGE_KEY = 'md2.actionPromptHeight'
 
@@ -195,6 +195,7 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
                     sx={{
                         flex: promptEmpty ? '0 0 auto' : 1,
                         height: promptEmpty ? EMPTY_PROMPT_EDITOR_HEIGHT : undefined,
+                        mb: promptEmpty ? -1.5 : 1,
                         minHeight: 0,
                         overflowY: 'auto',
                         px: 1,

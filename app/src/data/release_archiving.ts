@@ -1,7 +1,6 @@
 import type { MarkdownFile, MoveFile, Card } from './data_types'
 import { isSafeAssetFileName, isSupportedAssetFileName, resolveCardAssetPath } from './asset_paths'
 import { markdownParsingService } from '../services/data/markdown_parsing_service'
-import { parseActivityFile } from '../../../shared/card_activity.mjs'
 import {
     activityFilePath,
     cardActivityFileName,
@@ -178,16 +177,6 @@ export function buildReleaseMoves(
 
         const activityFile = activityFilesByPath.get(normalizedSourcePath)
         if (!activityFile) throw new Error(`Cannot release unloaded activity log: ${sourcePath}`)
-        const activity = parseActivityFile(activityFile.content)
-        if (activity.origin.kind !== 'card' || activity.origin.cardInternalId !== cardInternalId) {
-            throw new Error(`Activity log does not belong to released card ${card.path}: ${sourcePath}`)
-        }
-        for (const conversationId of conversationIds) {
-            if (!activity.conversations.some((conversation) => conversation.id === conversationId)) {
-                throw new Error(`Referenced conversation is missing from activity log ${sourcePath}: ${conversationId}`)
-            }
-        }
-
         const activityTargetPath = `${targetFolder}/${cardActivityFileName(cardInternalId)}`
         const normalizedActivityTargetPath = normalizePath(activityTargetPath)
         if (existingPaths.has(normalizedActivityTargetPath) || targetPaths.has(normalizedActivityTargetPath)) {
