@@ -1,5 +1,12 @@
 {
-  "actionSettings": {},
+  "actionSettings": {
+    "md2.custom-prompt": {
+      "agent": "codex",
+      "model": "gpt-5.6-sol",
+      "permissionMode": "ask-for-approval",
+      "thinkingLevel": "medium"
+    }
+  },
   "conversations": [
     {
       "actionId": "md2.custom-prompt",
@@ -121,7 +128,7 @@
       "startedAt": "2026-08-10T17:08:10.632Z",
       "status": "cancelled",
       "title": "+",
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
@@ -136,11 +143,11 @@
         "agent-3cc024e7-0ddd-49f7-850c-67de72b788e3"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.5",
         "permissionMode": "ask-for-approval",
-        "thinkingLevel": "none",
-        "type": "agent"
+        "thinkingLevel": "none"
       },
       "runId": "action-504214f5-7478-4b9a-88d3-d52febe4f961",
       "origin": {
@@ -149,9 +156,33 @@
       },
       "rootActionId": "md2.custom-prompt",
       "rootActionLabel": "+",
-      "rootConversationId": "agent-3cc024e7-0ddd-49f7-850c-67de72b788e3",
       "startedAt": "2026-08-10T17:08:10.629Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-3cc024e7-0ddd-49f7-850c-67de72b788e3"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-08-10T17:09:18.935Z",
+      "conversationIds": [
+        "agent-3cc024e7-0ddd-49f7-850c-67de72b788e3"
+      ],
+      "details": {
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "ask-for-approval",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-6dfbed14-d9c1-46cc-b089-4d262dd1411d",
+      "origin": {
+        "cardInternalId": "528ea430-ce5c-4e61-ac31-70c93daf5eaa",
+        "kind": "card"
+      },
+      "rootActionId": "md2.custom-prompt",
+      "rootActionLabel": "+",
+      "rootConversationId": "agent-3cc024e7-0ddd-49f7-850c-67de72b788e3",
+      "startedAt": "2026-08-10T17:09:17.929Z",
+      "status": "failed"
     }
   ],
   "version": 4
