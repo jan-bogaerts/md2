@@ -10,7 +10,12 @@
     "lint-fix": "eslint . --fix",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:full": "vitest run",
+    "test:related": "vitest related --run",
+    "test:ui": "vitest run --project ui",
+    "test:unit": "vitest run --project unit",
+    "test:watch": "vitest"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",

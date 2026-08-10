@@ -90,6 +90,19 @@ describe('MergeConflictService', () => {
         await expect(service.markResolved({ path: 'src/missing.js', sessionId: session.id })).rejects.toThrow('not an active merge conflict');
     });
 
+    it('keeps rebase phase during file-only rescan', async () => {
+        const store = createStore();
+        const runGit = vi.fn()
+            .mockResolvedValueOnce('src/one.js\0')
+            .mockResolvedValueOnce('');
+        const service = new MergeConflictService({ configProvider: () => ({ mergeConflictResolverCommand: '' }), runGit, store });
+        const conflictSession = await service.create({ ...sessionInput(), phase: 'rebase' });
+
+        const rescanned = await service.rescan({ sessionId: conflictSession.id });
+
+        expect(rescanned).toMatchObject({ conflictedPaths: [], operation: 'integrate', phase: 'rebase' });
+    });
+
     it('waits for configured resolver exit without changing conflict paths', async () => {
         const store = createStore();
         const child = new EventEmitter();
@@ -146,11 +159,26 @@ describe('MergeConflictService', () => {
         const runGit = vi.fn()
             .mockResolvedValueOnce('true')
             .mockResolvedValueOnce('')
-            .mockRejectedValueOnce(new Error('unknown revision'));
-        const service = new MergeConflictService({ configProvider: () => ({ mergeConflictResolverCommand: '' }), runGit, store });
+            .mockResolvedValueOnce('.git/rebase-merge')
+            .mockResolvedValueOnce('.git/rebase-apply');
+        const service = new MergeConflictService({ configProvider: () => ({ mergeConflictResolverCommand: '' }), pathExists: () => false, runGit, store });
 
         await expect(service.verify()).resolves.toBeNull();
         expect(store.value(MERGE_CONFLICT_SESSION_STORE_KEY)).toBeUndefined();
+    });
+
+    it('restores externally completed integration rebase at squash phase', async () => {
+        const storedSession = { ...sessionInput(), conflictedPaths: ['src/one.js'], id: 'session-1', phase: 'rebase' };
+        const store = createStore({ [MERGE_CONFLICT_SESSION_STORE_KEY]: storedSession });
+        const runGit = vi.fn()
+            .mockResolvedValueOnce('true')
+            .mockResolvedValueOnce('')
+            .mockResolvedValueOnce('.git/rebase-merge')
+            .mockResolvedValueOnce('.git/rebase-apply');
+        const service = new MergeConflictService({ configProvider: () => ({ mergeConflictResolverCommand: '' }), pathExists: () => false, runGit, store });
+
+        await expect(service.verify()).resolves.toMatchObject({ conflictedPaths: [], phase: 'squash' });
+        expect(store.value(MERGE_CONFLICT_SESSION_STORE_KEY)).toMatchObject({ phase: 'squash', repositoryRoot: 'C:/repo' });
     });
 });
 

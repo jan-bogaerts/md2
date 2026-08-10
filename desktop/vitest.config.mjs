@@ -2,7 +2,7 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
     test: {
-        fileParallelism: false,
-        maxWorkers: 1,
+        fileParallelism: true,
+        maxWorkers: 4,
     },
 });

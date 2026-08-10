@@ -25,9 +25,7 @@ describe('history entries', () => {
             prompt: 'review', stderr: '', stdout: 'done', thinkingLevel: 'high',
         };
 
-        expect(createAgentDetails({ action, completedAt, result })).toEqual({
-            agent: 'codex', model: 'gpt', permissionMode: 'ask-for-approval', thinkingLevel: 'high', type: 'agent',
-        });
+        expect(createAgentDetails({ action, completedAt, result })).toEqual({agent: 'codex', model: 'gpt', permissionMode: 'ask-for-approval', thinkingLevel: 'high', type: 'agent'});
     });
 });
 

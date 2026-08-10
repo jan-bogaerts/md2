@@ -223,9 +223,7 @@ describe('activity repair', () => {
         expect(result.activity.conversations).toHaveLength(1);
         expect(result.activity.conversations[0].entries).toHaveLength(1);
         expect(result.activity.records).toHaveLength(1);
-        expect(result.activity.actionSettings).toEqual({
-            build: { agent: 'codex', model: '', permissionMode: '', thinkingLevel: '' },
-        });
+        expect(result.activity.actionSettings).toEqual({build: { agent: 'codex', model: '', permissionMode: '', thinkingLevel: '' }});
     });
 
     it('replaces malformed JSON only when filename establishes origin', () => {

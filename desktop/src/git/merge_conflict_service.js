@@ -1,4 +1,5 @@
 const crypto = require('node:crypto');
+const fs = require('node:fs');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
 
@@ -75,6 +76,7 @@ class MergeConflictService extends EventTarget {
     constructor(dependencies) {
         super();
         this.configProvider = dependencies.configProvider;
+        this.pathExists = dependencies.pathExists ?? fs.existsSync;
         this.runGit = dependencies.runGit;
         this.spawnProcess = dependencies.spawnProcess ?? spawn;
         this.store = dependencies.store;
@@ -98,13 +100,13 @@ class MergeConflictService extends EventTarget {
         if (session.phase === 'finalize') return this.snapshot;
         const conflictedPaths = await this.listConflictedPaths(session.repositoryRoot);
         if (session.phase === 'rebase') {
-            let rebaseActive = true;
-            try {
-                await this.runGit(session.repositoryRoot, ['rev-parse', '--verify', 'REBASE_HEAD']);
-            } catch {
-                rebaseActive = false;
-            }
+            const rebaseActive = await this.isRebaseActive(session);
             if (!rebaseActive && conflictedPaths.length === 0) {
+                if (session.operation === 'integrate') {
+                    this.publish({ ...session, conflictedPaths: [], phase: 'squash', repositoryRoot: session.projectRoot });
+
+                    return this.snapshot;
+                }
                 this.publish(null);
 
                 return null;
@@ -216,6 +218,16 @@ class MergeConflictService extends EventTarget {
         const output = await this.runGit(repositoryRoot, ['diff', '--name-only', '--diff-filter=U', '-z', '--']);
 
         return parseConflictedPaths(output);
+    }
+
+    async isRebaseActive(session) {
+        const mergeStatePath = await this.runGit(session.repositoryRoot, ['rev-parse', '--git-path', 'rebase-merge']);
+        const applyStatePath = await this.runGit(session.repositoryRoot, ['rev-parse', '--git-path', 'rebase-apply']);
+        const statePaths = [mergeStatePath, applyStatePath].map((statePath) => (
+            path.isAbsolute(statePath.trim()) ? statePath.trim() : path.resolve(session.repositoryRoot, statePath.trim())
+        ));
+
+        return statePaths.some((statePath) => this.pathExists(statePath));
     }
 
     publish(session) {

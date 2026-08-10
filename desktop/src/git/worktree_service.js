@@ -446,7 +446,8 @@ class WorktreeService {
         return this.enqueueMutation(async () => {
             const conflictService = this.requireMergeConflictService();
             const session = conflictService.requireSession(request);
-            if (session.phase === 'rebase') await this.runGit(session.repositoryRoot, ['rebase', '--abort']);
+            const rebaseActive = session.phase === 'rebase' && await conflictService.isRebaseActive(session);
+            if (rebaseActive) await this.runGit(session.repositoryRoot, ['rebase', '--abort']);
             else {
                 await this.runGit(session.projectRoot, ['reset', '--hard', session.checkpointCommit]);
                 if (session.worktreeCheckpointCommit !== session.checkpointCommit || session.worktreeRoot !== session.projectRoot) {
@@ -491,15 +492,18 @@ class WorktreeService {
 
     async continueConflictRebase(session) {
         const conflictService = this.requireMergeConflictService();
-        try {
-            await this.runGit(session.repositoryRoot, ['-c', 'core.editor=true', 'rebase', '--continue']);
-        } catch (error) {
-            const conflictedPaths = await conflictService.listConflictedPaths(session.repositoryRoot);
-            if (conflictedPaths.length === 0) throw error;
-            const publicSession = conflictService.update({ ...session, conflictedPaths });
-            await this.refreshAfterMutation();
+        const rebaseActive = await conflictService.isRebaseActive(session);
+        if (rebaseActive) {
+            try {
+                await this.runGit(session.repositoryRoot, ['-c', 'core.editor=true', 'rebase', '--continue']);
+            } catch (error) {
+                const conflictedPaths = await conflictService.listConflictedPaths(session.repositoryRoot);
+                if (conflictedPaths.length === 0) throw error;
+                const publicSession = conflictService.update({ ...session, conflictedPaths });
+                await this.refreshAfterMutation();
 
-            return { session: publicSession, status: 'conflict' };
+                return { session: publicSession, status: 'conflict' };
+            }
         }
         await this.refreshAfterMutation();
         if (session.operation === 'integrate') {

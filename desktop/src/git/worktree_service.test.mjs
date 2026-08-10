@@ -62,7 +62,7 @@ async function commitConflictingChanges(repository) {
 }
 
 describe('WorktreeService merge conflict lifecycle', () => {
-    it('pauses explicit rebase, rejects other mutations, then completes', async () => {
+    it('completes when agent already continued explicit rebase', async () => {
         const repository = await createRepository();
         const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };
         const service = createService({ mergeConflicts: true });
@@ -80,6 +80,8 @@ describe('WorktreeService merge conflict lifecycle', () => {
 
             await writeFile(join(repository.linkedPath, 'base.txt'), 'resolved\n');
             await service.mergeConflictService.markResolved({ path: 'base.txt', sessionId: outcome.session.id });
+            await runGit(repository.linkedPath, ['-c', 'core.editor=true', 'rebase', '--continue']);
+            await service.mergeConflictService.rescan({ sessionId: outcome.session.id });
             const completed = await service.continueConflict({ sessionId: outcome.session.id });
 
             expect(completed).toEqual({ status: 'completed' });
@@ -118,7 +120,36 @@ describe('WorktreeService merge conflict lifecycle', () => {
         }
     }, 30_000);
 
-    it('keeps completed conflicted integration durable until finalization succeeds', async () => {
+    it('restores checkpoints when agent completed rebase before abort', async () => {
+        const repository = await createRepository();
+        const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };
+        const service = createService({ mergeConflicts: true });
+
+        try {
+            await service.startProject(project);
+            await commitConflictingChanges(repository);
+            await service.refreshLocal();
+            const linkedCheckpoint = await runGit(repository.linkedPath, ['rev-parse', 'HEAD']);
+            const outcome = await service.integrate(project, 1, { cardInternalId: 'card-1', projectFolder: 'design' });
+            const primaryCheckpoint = service.mergeConflictService.getInternalSession().checkpointCommit;
+            await writeFile(join(repository.linkedPath, 'base.txt'), 'resolved\n');
+            await service.mergeConflictService.markResolved({ path: 'base.txt', sessionId: outcome.session.id });
+            await runGit(repository.linkedPath, ['-c', 'core.editor=true', 'rebase', '--continue']);
+            const rescanned = await service.mergeConflictService.rescan({ sessionId: outcome.session.id });
+
+            expect(rescanned).toMatchObject({ conflictedPaths: [], phase: 'rebase' });
+            await service.abortConflict({ sessionId: outcome.session.id });
+
+            expect(service.mergeConflictService.getSnapshot()).toBeNull();
+            expect(await runGit(repository.primaryPath, ['rev-parse', 'HEAD'])).toBe(primaryCheckpoint);
+            expect(await runGit(repository.linkedPath, ['rev-parse', 'HEAD'])).toBe(linkedCheckpoint);
+        } finally {
+            service.stopProject();
+            await rm(repository.folderPath, { force: true, recursive: true });
+        }
+    }, 30_000);
+
+    it('keeps agent-continued integration durable until controlled finalization succeeds', async () => {
         const repository = await createRepository();
         const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };
         const service = createService({ mergeConflicts: true });
@@ -130,7 +161,10 @@ describe('WorktreeService merge conflict lifecycle', () => {
             const outcome = await service.integrate(project, 1, { cardInternalId: 'card-1', projectFolder: 'design' });
             await writeFile(join(outcome.session.repositoryRoot, 'base.txt'), 'resolved\n');
             await service.mergeConflictService.markResolved({ path: 'base.txt', sessionId: outcome.session.id });
+            await runGit(repository.linkedPath, ['-c', 'core.editor=true', 'rebase', '--continue']);
+            const rescanned = await service.mergeConflictService.rescan({ sessionId: outcome.session.id });
 
+            expect(rescanned).toMatchObject({ conflictedPaths: [], phase: 'rebase' });
             const completed = await service.continueConflict({ sessionId: outcome.session.id });
 
             expect(completed).toMatchObject({ branch: 'main', status: 'completed', session: { phase: 'finalize' } });
