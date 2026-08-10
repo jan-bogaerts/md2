@@ -1,8 +1,6 @@
 import type { ActionContext } from '../../data/action_context'
-import type { ActionDefinition } from '../../data/action_types'
 import type { StorageService } from '../../data/data_types'
 import type { MergeConflictSession } from '../../data/merge_conflict_types'
-import { actionRunRegistry } from '../actions/action_run_registry'
 import { register } from '../service_injector'
 
 export interface MergeConflictSnapshot {
@@ -88,24 +86,29 @@ export class MergeConflictService extends EventTarget {
         }
     }
 
-    async runAgent(action: ActionDefinition, path?: string) {
-        if (action.type !== 'agent' || action.appliesTo?.kind !== 'merge-conflict') {
-            throw new Error('Selected action does not apply to merge conflicts')
-        }
+    createActionContext(path?: string): ActionContext {
         const session = this.requireSession()
-        const context: ActionContext = {
+
+        return {
             ...(path ? { conflictFile: path } : {}),
             conflictFiles: session.conflictedPaths.join('\n'),
             conflictSessionId: session.id,
             kind: 'merge-conflict',
         }
+    }
+
+    async rescanSession(sessionId: string) {
+        const { storage } = this.requireDependencies()
+        if (this.snapshot.session?.id !== sessionId) return
+        if (!storage.rescanMergeConflict) throw new Error('Rescanning merge conflicts requires desktop')
         this.setBusy(true)
         try {
-            const result = await actionRunRegistry.startRun(action, context)
-            if (result.status !== 'completed') throw new Error(`Merge conflict agent action ${result.status}`)
-            await this.rescanCurrentSession()
+            const nextSession = await storage.rescanMergeConflict({ sessionId })
+            if (this.snapshot.session?.id !== sessionId) return
+
+            this.publish({ ...this.snapshot, session: nextSession })
         } finally {
-            this.setBusy(false)
+            if (this.snapshot.session?.id === sessionId) this.setBusy(false)
         }
     }
 
@@ -145,14 +148,6 @@ export class MergeConflictService extends EventTarget {
         } finally {
             this.setBusy(false)
         }
-    }
-
-    private async rescanCurrentSession() {
-        const { storage } = this.requireDependencies()
-        const session = this.requireSession()
-        if (!storage.rescanMergeConflict) throw new Error('Rescanning merge conflicts requires desktop')
-        const nextSession = await storage.rescanMergeConflict({ sessionId: session.id })
-        this.publish({ busy: true, session: nextSession })
     }
 
     private handleSessionChanged(session: MergeConflictSession | null) {

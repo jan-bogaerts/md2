@@ -1,7 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { ActionDefinition } from '../../data/action_types'
 import type { MergeConflictSession } from '../../data/merge_conflict_types'
-import { actionRunRegistry } from '../actions/action_run_registry'
 import { MergeConflictService } from './merge_conflict_service'
 
 function session(paths = ['src/one.ts', 'src/two.ts']): MergeConflictSession {
@@ -13,33 +11,6 @@ function session(paths = ['src/one.ts', 'src/two.ts']): MergeConflictSession {
         phase: 'squash',
         repositoryRoot: 'C:/repo',
         worktree: 1,
-    }
-}
-
-function agentAction(): ActionDefinition {
-    return {
-        agent: null,
-        appliesTo: { kind: 'merge-conflict' },
-        permissionMode: null,
-        builtin: false,
-        command: null,
-        description: 'Resolve conflicts',
-        icon: null,
-        id: 'resolve-conflicts',
-        label: 'Resolve conflicts',
-        model: null,
-        needsWorkTree: false,
-        on: [],
-        onAfter: [],
-        onBefore: [],
-        onState: null,
-        phrases: [],
-        prompt: 'Resolve {{conflict-files}}',
-        sourcePath: 'actions/resolve-conflicts.json',
-        thinkingLevel: null,
-        trackFileChanges: false,
-        streaming: false,
-        type: 'agent',
     }
 }
 
@@ -100,20 +71,59 @@ describe('MergeConflictService', () => {
         expect(service.getSnapshot().session?.conflictedPaths).toEqual(['src/two.ts'])
     })
 
-    it('runs only explicit merge conflict agent action and rescans after completion', async () => {
-        const { service, storage } = createHarness()
-        const startRun = vi.spyOn(actionRunRegistry, 'startRun').mockResolvedValue({ logs: [], status: 'completed' })
+    it('builds canonical per-file and resolve-all action contexts', () => {
+        const { service } = createHarness()
 
-        await service.runAgent(agentAction(), 'src/one.ts')
-
-        expect(startRun).toHaveBeenCalledWith(agentAction(), {
+        expect(service.createActionContext('src/one.ts')).toEqual({
             conflictFile: 'src/one.ts',
             conflictFiles: 'src/one.ts\nsrc/two.ts',
             conflictSessionId: 'session-1',
             kind: 'merge-conflict',
         })
+        expect(service.createActionContext()).toEqual({
+            conflictFiles: 'src/one.ts\nsrc/two.ts',
+            conflictSessionId: 'session-1',
+            kind: 'merge-conflict',
+        })
+    })
+
+    it('rescans only matching active session', async () => {
+        const { changeCallback, service, storage } = createHarness()
+
+        await service.rescanSession('session-1')
+
         expect(storage.rescanMergeConflict).toHaveBeenCalledWith({ sessionId: 'session-1' })
-        await expect(service.runAgent({ ...agentAction(), appliesTo: { kind: 'project' } })).rejects.toThrow('does not apply')
+        expect(service.getSnapshot().session?.conflictedPaths).toEqual(['src/two.ts'])
+
+        changeCallback({ ...session(), id: 'session-2' })
+        await service.rescanSession('session-1')
+        expect(storage.rescanMergeConflict).toHaveBeenCalledOnce()
+    })
+
+    it('does not apply late rescan result after session changes', async () => {
+        let finishRescan: (value: MergeConflictSession) => void = () => undefined
+        const { changeCallback, service, storage } = createHarness()
+        await service.load()
+        storage.rescanMergeConflict.mockImplementationOnce(() => new Promise((resolve) => {
+            finishRescan = resolve
+        }))
+
+        const rescan = service.rescanSession('session-1')
+        changeCallback({ ...session(['src/new.ts']), id: 'session-2' })
+        finishRescan(session(['src/two.ts']))
+        await rescan
+
+        expect(service.getSnapshot().session).toEqual({ ...session(['src/new.ts']), id: 'session-2' })
+    })
+
+    it('keeps current session visible when rescan fails', async () => {
+        const { service, storage } = createHarness()
+        await service.load()
+        storage.rescanMergeConflict.mockRejectedValueOnce(new Error('rescan failed'))
+
+        await expect(service.rescanSession('session-1')).rejects.toThrow('rescan failed')
+
+        expect(service.getSnapshot()).toEqual({ busy: false, session: session() })
     })
 
     it('continues only with no unmerged paths and reloads every path seen in session', async () => {

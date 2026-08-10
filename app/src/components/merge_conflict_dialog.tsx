@@ -13,8 +13,12 @@ import {
     Tooltip,
     Typography,
 } from '@mui/material'
+import { useEffect, useState } from 'react'
 import type { MouseEvent } from 'react'
+import { actionContextIdentity, type ActionContext } from '../data/action_context'
+import type { ActionRunEvent, ActionRunStatus } from '../data/action_run_types'
 import type { ActionDefinition } from '../data/action_types'
+import { actionRunRegistry, type ActiveActionRun } from '../services/actions/action_run_registry'
 import { dialogService } from '../services/dialog_service'
 import {
     mergeConflictService,
@@ -22,22 +26,68 @@ import {
 } from '../services/project/merge_conflict_service'
 import { useMergeConflict } from './hooks/use_merge_conflict'
 import { useActions } from './hooks/use_actions'
+import { useRunningActionForContext } from './hooks/use_action_runs'
+import { ActionPopup } from './actions/run/popup/action_popup'
 
 interface MergeConflictDialogProps {
     actions?: ActionDefinition[]
     service?: MergeConflictService
 }
 
+interface MergeConflictPopupState {
+    actionId: string
+    anchorElement: HTMLElement
+    context: ActionContext
+    open: boolean
+}
+
+const EMPTY_MERGE_CONFLICT_CONTEXT: ActionContext = { conflictSessionId: '', kind: 'merge-conflict' }
+const TERMINAL_ACTION_STATUSES = new Set<ActionRunStatus>(['cancelled', 'completed', 'failed', 'okButNotAfter'])
+
+function isMatchingPopupAction(
+    popupState: MergeConflictPopupState | null,
+    activeRun: ActiveActionRun | null,
+    actionId: string,
+    path?: string,
+) {
+    if (!popupState || popupState.context.conflictFile !== path) return false
+
+    return popupState.actionId === actionId || activeRun?.rootActionId === actionId
+}
+
 /** Global resolver for one desktop-owned paused Git conflict session. */
 export function MergeConflictDialog(props: MergeConflictDialogProps) {
     const service = props.service ?? mergeConflictService
     const { busy, session } = useMergeConflict(service)
+    const [popupState, setPopupState] = useState<MergeConflictPopupState | null>(null)
     const actionState = useActions()
     const actions = (props.actions ?? actionState.actions).filter((action) => (
         action.type === 'agent' && action.appliesTo?.kind === 'merge-conflict'
     ))
     const paths = session?.conflictedPaths ?? []
     const resolverConfigured = session?.externalResolverConfigured ?? false
+    const popupContext = popupState?.context ?? null
+    const retainedContext = popupContext && popupContext.conflictSessionId === session?.id
+        ? popupContext
+        : EMPTY_MERGE_CONFLICT_CONTEXT
+    const activeRun = useRunningActionForContext(retainedContext)
+    const controlsDisabled = busy || !!activeRun
+
+    useEffect(() => {
+        const context = popupState?.context
+        const sessionId = context?.conflictSessionId
+        if (!context || !sessionId) return
+
+        const handleActionEvent = (event: ActionRunEvent) => {
+            if (event.type !== 'run' || !TERMINAL_ACTION_STATUSES.has(event.status)) return
+
+            void service.rescanSession(sessionId).catch((error: unknown) => {
+                dialogService.error(error, { fallbackMessage: 'Could not rescan merge conflicts after agent action' })
+            })
+        }
+
+        return actionRunRegistry.subscribeContextEvents(context, handleActionEvent)
+    }, [popupState?.context, service])
 
     const handleResolver = async (event: MouseEvent<HTMLButtonElement>) => {
         const path = event.currentTarget.dataset.path
@@ -59,16 +109,29 @@ export function MergeConflictDialog(props: MergeConflictDialogProps) {
         }
     }
 
-    const handleAgent = async (event: MouseEvent<HTMLButtonElement>) => {
+    const handleAgent = (event: MouseEvent<HTMLButtonElement>) => {
         const actionId = event.currentTarget.dataset.actionId
         const path = event.currentTarget.dataset.path
         const action = actions.find((candidate) => candidate.id === actionId)
         if (!action) return
         try {
-            await service.runAgent(action, path)
+            const context = service.createActionContext(path)
+            const anchorElement = event.currentTarget
+            const sameContext = popupState
+                && actionContextIdentity(popupState.context) === actionContextIdentity(context)
+            if (sameContext && isMatchingPopupAction(popupState, activeRun, action.id, path)) {
+                setPopupState({ ...popupState, anchorElement, open: true })
+                return
+            }
+
+            setPopupState({ actionId: action.id, anchorElement, context, open: true })
         } catch (error) {
-            dialogService.error(error, { fallbackMessage: `Merge conflict agent failed: ${action.label}` })
+            dialogService.error(error, { fallbackMessage: `Could not open merge conflict action: ${action.label}` })
         }
+    }
+
+    const handlePopupClose = () => {
+        if (popupState) setPopupState({ ...popupState, open: false })
     }
 
     const handleContinue = async () => {
@@ -88,8 +151,19 @@ export function MergeConflictDialog(props: MergeConflictDialogProps) {
     }
 
     const handleDialogClose = () => {
-        if (!busy) void handleCancel()
+        if (!controlsDisabled) void handleCancel()
     }
+
+    const popup = popupState && popupState.context.conflictSessionId === session?.id ? (
+        <ActionPopup
+            anchorElement={popupState.anchorElement}
+            context={popupState.context}
+            draggable
+            initialActionId={popupState.actionId}
+            onClose={handlePopupClose}
+            open={popupState.open}
+        />
+    ) : null
 
     return (
         <Dialog
@@ -125,7 +199,7 @@ export function MergeConflictDialog(props: MergeConflictDialogProps) {
                                         <span>
                                             <Button
                                                 data-path={path}
-                                                disabled={busy || !resolverConfigured}
+                                                disabled={controlsDisabled || !resolverConfigured}
                                                 onClick={handleResolver}
                                                 size="small"
                                                 startIcon={<BuildOutlined />}
@@ -135,23 +209,27 @@ export function MergeConflictDialog(props: MergeConflictDialogProps) {
                                             </Button>
                                         </span>
                                     </Tooltip>
-                                    {actions.map((action) => (
-                                        <Button
-                                            data-action-id={action.id}
-                                            data-path={path}
-                                            disabled={busy}
-                                            key={action.id}
-                                            onClick={handleAgent}
-                                            size="small"
-                                            startIcon={<SmartToyOutlined />}
-                                            variant="outlined"
-                                        >
-                                            {action.label}
-                                        </Button>
-                                    ))}
+                                    {actions.map((action) => {
+                                        const matchingActiveAction = isMatchingPopupAction(popupState, activeRun, action.id, path)
+
+                                        return (
+                                            <Button
+                                                data-action-id={action.id}
+                                                data-path={path}
+                                                disabled={busy || (!!activeRun && !matchingActiveAction)}
+                                                key={action.id}
+                                                onClick={handleAgent}
+                                                size="small"
+                                                startIcon={<SmartToyOutlined />}
+                                                variant="outlined"
+                                            >
+                                                {action.label}
+                                            </Button>
+                                        )
+                                    })}
                                     <Button
                                         data-path={path}
-                                        disabled={busy}
+                                        disabled={controlsDisabled}
                                         onClick={handleMarkResolved}
                                         size="small"
                                         variant="contained"
@@ -168,18 +246,22 @@ export function MergeConflictDialog(props: MergeConflictDialogProps) {
                             <Stack spacing={1}>
                                 <Typography variant="overline">Resolve all remaining files with agent</Typography>
                                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                                    {actions.map((action) => (
-                                        <Button
-                                            data-action-id={action.id}
-                                            disabled={busy}
-                                            key={action.id}
-                                            onClick={handleAgent}
-                                            startIcon={<SmartToyOutlined />}
-                                            variant="outlined"
-                                        >
-                                            {action.label}
-                                        </Button>
-                                    ))}
+                                    {actions.map((action) => {
+                                        const matchingActiveAction = isMatchingPopupAction(popupState, activeRun, action.id)
+
+                                        return (
+                                            <Button
+                                                data-action-id={action.id}
+                                                disabled={busy || (!!activeRun && !matchingActiveAction)}
+                                                key={action.id}
+                                                onClick={handleAgent}
+                                                startIcon={<SmartToyOutlined />}
+                                                variant="outlined"
+                                            >
+                                                {action.label}
+                                            </Button>
+                                        )
+                                    })}
                                 </Box>
                             </Stack>
                         </>
@@ -188,9 +270,10 @@ export function MergeConflictDialog(props: MergeConflictDialogProps) {
                 </Stack>
             </DialogContent>
             <DialogActions sx={{ borderTop: '1px solid', borderColor: 'divider', justifyContent: 'flex-end' }}>
-                <Button disabled={busy} onClick={handleCancel} variant="outlined">Cancel</Button>
-                <Button disabled={busy || paths.length > 0} onClick={handleContinue} variant="contained">Continue</Button>
+                <Button disabled={controlsDisabled} onClick={handleCancel} variant="outlined">Cancel</Button>
+                <Button disabled={controlsDisabled || paths.length > 0} onClick={handleContinue} variant="contained">Continue</Button>
             </DialogActions>
+            {popup}
         </Dialog>
     )
 }

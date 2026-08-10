@@ -1,5 +1,5 @@
 Read and implement the feature/job described in: 
-`design\feature_descriptions\F_148_simplify_card_state_ownership.md`
+`design\feature_descriptions\B_106_show_action_popup_for_merge_conflict_agents.md`
 
 You do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.
 
