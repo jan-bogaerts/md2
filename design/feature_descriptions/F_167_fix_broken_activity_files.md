@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
   - design/activity/card__a75df9b2-d7eb-48df-ba8a-398fac272f15.json#conversation=agent-0baac265-01c1-46fa-b6e8-b3c6b6902ecc
+  - design/activity/card__a75df9b2-d7eb-48df-ba8a-398fac272f15.json#conversation=agent-f6ea44a7-121c-42e1-bf4c-703035838b62
 policy:
 ---
 Currently, when the system loads the activity files and there is a problem, like an old version it cant load, the app shows an error and doesnt fix it. So next time project opens, same error.&#x20;
