@@ -332,6 +332,113 @@ describe('RemoteControlStorageService', () => {
         expect(callback).not.toHaveBeenCalled()
     })
 
+    it('restores one worktree subscription and delivers replacement snapshots once after reconnect', async () => {
+        installWebSocket()
+        const service = createService()
+        const callback = vi.fn()
+        const unsubscribe = service.onWorktreesChanged(callback)
+        const firstSocket = lastSocket()
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+        const dirtyState = {
+            error: null,
+            primaryStatus: null,
+            project,
+            records: [{ baseAhead: 0, baseBehind: 1, branch: 'feature', dirty: true, folderPath: 'C:/feature', worktree: 1 }],
+        }
+        const cleanState = {
+            error: null,
+            primaryStatus: null,
+            project,
+            records: [{ baseAhead: 0, baseBehind: 0, branch: 'feature', dirty: false, folderPath: 'C:/feature', worktree: 1 }],
+        }
+
+        firstSocket.open()
+        await flushPromises()
+        const firstRequest = JSON.parse(firstSocket.sent[0]) as { id: string, method: string }
+        firstSocket.receive({ id: firstRequest.id, result: { subscriptionId: 'worktrees-1' } })
+        await flushPromises()
+        firstSocket.close()
+
+        const reconnection = service.connect()
+        const secondSocket = lastSocket()
+        secondSocket.open()
+        await reconnection
+        await vi.waitFor(() => expect(secondSocket.sent).toHaveLength(1))
+        const replacementRequest = JSON.parse(secondSocket.sent[0]) as { id: string, method: string }
+        expect(replacementRequest.method).toBe('onWorktreesChanged')
+        await service.connect()
+        await flushPromises()
+        expect(secondSocket.sent).toHaveLength(1)
+
+        secondSocket.receive({
+            event: 'worktreesChanged',
+            payload: { requestId: replacementRequest.id, state: dirtyState, subscriptionId: 'worktrees-2' },
+        })
+        expect(callback).toHaveBeenCalledTimes(1)
+        expect(callback).toHaveBeenLastCalledWith(dirtyState)
+        secondSocket.receive({ id: replacementRequest.id, result: { subscriptionId: 'worktrees-2' } })
+        await flushPromises()
+        secondSocket.receive({
+            event: 'worktreesChanged',
+            payload: { requestId: replacementRequest.id, state: cleanState, subscriptionId: 'worktrees-2' },
+        })
+        expect(callback).toHaveBeenCalledTimes(2)
+        expect(callback).toHaveBeenLastCalledWith(cleanState)
+
+        unsubscribe()
+        await vi.waitFor(() => expect(secondSocket.sent).toHaveLength(2))
+        expect(JSON.parse(secondSocket.sent[1])).toEqual(expect.objectContaining({ method: 'unsubscribe', params: ['worktrees-2'] }))
+        secondSocket.receive({
+            event: 'worktreesChanged',
+            payload: { requestId: replacementRequest.id, state: dirtyState, subscriptionId: 'worktrees-2' },
+        })
+        expect(callback).toHaveBeenCalledTimes(2)
+
+        secondSocket.close()
+        const finalReconnection = service.connect()
+        const thirdSocket = lastSocket()
+        thirdSocket.open()
+        await finalReconnection
+        await flushPromises()
+        expect(thirdSocket.sent).toEqual([])
+    })
+
+    it('unsubscribes a replacement worktree subscription stopped during setup', async () => {
+        installWebSocket()
+        const service = createService()
+        const callback = vi.fn()
+        const unsubscribe = service.onWorktreesChanged(callback)
+        const firstSocket = lastSocket()
+
+        firstSocket.open()
+        await flushPromises()
+        const firstRequest = JSON.parse(firstSocket.sent[0]) as { id: string }
+        firstSocket.receive({ id: firstRequest.id, result: { subscriptionId: 'worktrees-1' } })
+        await flushPromises()
+        firstSocket.close()
+
+        const reconnection = service.connect()
+        const secondSocket = lastSocket()
+        secondSocket.open()
+        await reconnection
+        await vi.waitFor(() => expect(secondSocket.sent).toHaveLength(1))
+        const replacementRequest = JSON.parse(secondSocket.sent[0]) as { id: string }
+        unsubscribe()
+        secondSocket.receive({
+            event: 'worktreesChanged',
+            payload: {
+                requestId: replacementRequest.id,
+                state: { error: null, primaryStatus: null, project: null, records: [] },
+                subscriptionId: 'worktrees-2',
+            },
+        })
+        secondSocket.receive({ id: replacementRequest.id, result: { subscriptionId: 'worktrees-2' } })
+        await vi.waitFor(() => expect(secondSocket.sent).toHaveLength(2))
+
+        expect(JSON.parse(secondSocket.sent[1])).toEqual(expect.objectContaining({ method: 'unsubscribe', params: ['worktrees-2'] }))
+        expect(callback).not.toHaveBeenCalled()
+    })
+
 
     it('prepares action prompts through remote control', async () => {
         installWebSocket()

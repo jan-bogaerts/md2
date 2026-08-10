@@ -127,6 +127,7 @@ interface MergeConflictSessionChangedPayload {
 }
 
 const SOCKET_OPEN_STATE = 1
+const WORKTREES_CHANGED_EVENT = 'worktreesChanged'
 
 function isResponse(message: RemoteControlResponse | RemoteControlEvent): message is RemoteControlResponse {
     return 'id' in message
@@ -155,13 +156,15 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
     private requestCodexRateLimitEvents: Map<string, (snapshot: CodexRateLimitSnapshot) => void>
     private requestWatchEvents: Map<string, ProjectWatchSubscription>
     private requestMergeConflictEvents: Map<string, (session: MergeConflictSession | null) => void>
-    private requestWorktreeEvents: Map<string, (state: WorktreeState) => void>
     private runAgentEvents: Map<string, (event: AgentRunEvent) => void>
     private socket: WebSocket | null
     private token: string
     private readonly watchSubscriptions: Set<ProjectWatchSubscription>
     private watchCallbacks: Map<string, (event: ProjectWatchEvent) => void>
-    private worktreeCallbacks: Map<string, (state: WorktreeState) => void>
+    private readonly worktreeEvents: EventTarget
+    private worktreeListenerCount: number
+    private worktreeRequestId: string | null
+    private worktreeServerSubscriptionId: string | null
 
     constructor() {
         this.actionRunCallbacks = new Map()
@@ -182,13 +185,15 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         this.requestCodexRateLimitEvents = new Map()
         this.requestMergeConflictEvents = new Map()
         this.requestWatchEvents = new Map()
-        this.requestWorktreeEvents = new Map()
         this.runAgentEvents = new Map()
         this.socket = null
         this.token = ''
         this.watchSubscriptions = new Set()
         this.watchCallbacks = new Map()
-        this.worktreeCallbacks = new Map()
+        this.worktreeEvents = new EventTarget()
+        this.worktreeListenerCount = 0
+        this.worktreeRequestId = null
+        this.worktreeServerSubscriptionId = null
     }
 
     init(settings: Partial<RemoteControlConnectionSettings> = {}) {
@@ -443,28 +448,26 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
     }
 
     onWorktreesChanged(callback: (state: WorktreeState) => void): () => void {
-        const id = this.createRequestId()
-        let cancelled = false
-        let subscriptionId: string | null = null
-        this.requestWorktreeEvents.set(id, callback)
-        void this.sendRequest<{ subscriptionId: string }>({ id, method: 'onWorktreesChanged', params: [] }).then((result) => {
-            subscriptionId = result.subscriptionId
-            if (cancelled) {
-                void this.request('unsubscribe', [subscriptionId])
-                return
-            }
-
-            this.worktreeCallbacks.set(result.subscriptionId, callback)
-            this.requestWorktreeEvents.delete(id)
-        })
+        const listener: EventListener = (event) => callback((event as CustomEvent<WorktreeState>).detail)
+        let active = true
+        this.worktreeEvents.addEventListener(WORKTREES_CHANGED_EVENT, listener)
+        this.worktreeListenerCount += 1
+        void this.subscribeWorktreesChanged().catch(() => undefined)
 
         return () => {
-            cancelled = true
-            this.requestWorktreeEvents.delete(id)
+            if (!active) return
+
+            active = false
+            this.worktreeEvents.removeEventListener(WORKTREES_CHANGED_EVENT, listener)
+            this.worktreeListenerCount -= 1
+            if (this.worktreeListenerCount > 0) return
+
+            const subscriptionId = this.worktreeServerSubscriptionId
+            this.worktreeRequestId = null
+            this.worktreeServerSubscriptionId = null
             if (!subscriptionId) return
 
-            this.worktreeCallbacks.delete(subscriptionId)
-            void this.request('unsubscribe', [subscriptionId])
+            void this.request('unsubscribe', [subscriptionId]).catch(() => undefined)
         }
     }
 
@@ -707,6 +710,7 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
                 void this.restoreActionRunSubscriptions()
                 void this.restoreCodexRateLimitSubscriptions()
                 void this.restoreProjectWatchSubscriptions()
+                void this.restoreWorktreeSubscription()
             }
             const handleError = () => {
                 this.connectPromise = null
@@ -822,6 +826,10 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         await Promise.allSettled(subscriptions.map((subscription) => this.subscribeProjectWatch(subscription, true)))
     }
 
+    private async restoreWorktreeSubscription() {
+        await this.subscribeWorktreesChanged()
+    }
+
     private async subscribeProjectWatch(subscription: ProjectWatchSubscription, restored: boolean) {
         if (!this.watchSubscriptions.has(subscription) || subscription.subscribing || subscription.serverSubscriptionId) return
 
@@ -868,6 +876,29 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         }
     }
 
+    private async subscribeWorktreesChanged() {
+        if (this.worktreeListenerCount === 0 || this.worktreeRequestId || this.worktreeServerSubscriptionId) return
+
+        const id = this.createRequestId()
+        this.worktreeRequestId = id
+        try {
+            const result = await this.sendRequest<{ subscriptionId: string }>({
+                id,
+                method: 'onWorktreesChanged',
+                params: [],
+            })
+            if (this.worktreeRequestId !== id || this.worktreeListenerCount === 0) {
+                await this.request('unsubscribe', [result.subscriptionId])
+                return
+            }
+
+            this.worktreeRequestId = null
+            this.worktreeServerSubscriptionId = result.subscriptionId
+        } finally {
+            if (this.worktreeRequestId === id) this.worktreeRequestId = null
+        }
+    }
+
     private handleWatchProjectEvent(payload: WatchProjectPayload) {
         const callback = this.watchCallbacks.get(payload.subscriptionId)
             ?? this.requestWatchEvents.get(payload.requestId)?.onChange
@@ -875,8 +906,11 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
     }
 
     private handleWorktreesChangedEvent(payload: WorktreesChangedPayload) {
-        const callback = this.worktreeCallbacks.get(payload.subscriptionId) ?? this.requestWorktreeEvents.get(payload.requestId)
-        callback?.(payload.state)
+        const matchesRequest = payload.requestId === this.worktreeRequestId
+        const matchesSubscription = payload.subscriptionId === this.worktreeServerSubscriptionId
+        if (!matchesRequest && !matchesSubscription) return
+
+        this.worktreeEvents.dispatchEvent(new CustomEvent(WORKTREES_CHANGED_EVENT, { detail: payload.state }))
     }
 
     private handleMergeConflictSessionChangedEvent(payload: MergeConflictSessionChangedPayload) {
@@ -906,14 +940,14 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         this.requestCodexRateLimitEvents.clear()
         this.requestMergeConflictEvents.clear()
         this.requestWatchEvents.clear()
-        this.requestWorktreeEvents.clear()
         this.runAgentEvents.clear()
         this.watchCallbacks.clear()
         for (const subscription of this.watchSubscriptions) {
             subscription.serverSubscriptionId = null
             subscription.subscribing = false
         }
-        this.worktreeCallbacks.clear()
+        this.worktreeRequestId = null
+        this.worktreeServerSubscriptionId = null
         this.connectPromise = null
         this.socket = null
     }
