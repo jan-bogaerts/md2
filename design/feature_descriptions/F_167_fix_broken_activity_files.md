@@ -3,7 +3,7 @@ author:
 id: F_167
 internalId: a75df9b2-d7eb-48df-ba8a-398fac272f15
 title: Fix broken activity files.
-status: new
+status: design
 owner: 
 affects:
 agents:
