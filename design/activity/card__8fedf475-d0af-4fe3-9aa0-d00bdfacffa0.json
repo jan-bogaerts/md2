@@ -4726,11 +4726,11 @@
         "agent-5fc641ba-c9e5-442c-a23a-4af037287a47"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "ask-for-approval",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-34d26197-9b33-43e4-8be3-c0eb5a841e43",
       "origin": {
@@ -4739,9 +4739,58 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-5fc641ba-c9e5-442c-a23a-4af037287a47",
       "startedAt": "2026-08-10T17:40:59.127Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-5fc641ba-c9e5-442c-a23a-4af037287a47"
+    },
+    {
+      "commits": [
+        {
+          "commit": "274c4cde4cf1e4efa095614153c183daef2db1ef",
+          "committedAt": "2026-08-10T20:17:21+02:00",
+          "deletions": 74,
+          "filePaths": [
+            "app/src/components/actions/agent/action_agent_selectors.test.tsx",
+            "app/src/components/actions/agent/action_agent_selectors.tsx",
+            "app/src/components/actions/run/popup/action_popup.test.tsx",
+            "app/src/components/actions/run/popup/action_popup_bottom_row.test.tsx",
+            "app/src/components/actions/shared/use_action_run_settings.ts",
+            "app/src/components/config/config_page.test.tsx",
+            "app/src/components/config/config_page.tsx",
+            "app/src/components/shell/remote_connect_button.test.tsx",
+            "app/src/components/shell/remote_connect_button.tsx",
+            "app/src/data/project_storage_activation.ts",
+            "app/src/services/config/config_entries.ts",
+            "app/src/services/config/config_persistence.test.ts",
+            "app/src/services/config/config_persistence.ts",
+            "app/src/services/config/config_service.test.ts",
+            "app/src/services/config/config_service.ts",
+            "app/src/services/config/desktop_config_transport.ts",
+            "app/src/services/config/electron_config_bridge.ts",
+            "app/src/services/data/remote_control_storage_service.node.test.ts",
+            "app/src/services/data/remote_control_storage_service.ts",
+            "app/src/services/project/project_session_service.test.ts",
+            "app/src/services/project/project_session_service.ts",
+            "desktop/main.js",
+            "desktop/src/shell/config.js",
+            "desktop/src/shell/config.test.mjs",
+            "desktop/src/shell/local_bridge_dispatch.js",
+            "desktop/src/shell/local_bridge_dispatch.test.mjs",
+            "desktop/src/shell/preload.js",
+            "desktop/src/shell/preload.test.mjs"
+          ],
+          "filesChanged": 28,
+          "insertions": 610,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-10T20:17:21+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "8fedf475-d0af-4fe3-9aa0-d00bdfacffa0",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
