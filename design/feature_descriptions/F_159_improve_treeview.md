@@ -12,7 +12,6 @@ agents:
 policy:
 after: 615b2a1f-55c2-4113-b1ac-589ae3474ae2
 branch: f_159_improve_treeview
-worktree: 1
 ---
 
 * too much spacing between items, we have large trees, this much space makes it unreadable
