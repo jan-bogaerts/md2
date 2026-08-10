@@ -9,7 +9,6 @@ affects:
 agents:
 policy:
 ---
-
 When the screen is small, like mobile, on the action popup, the buttons on the bottom row are not visible. The screen is too narrow. When flip phone horizontal, buttons are there. I think problem is only 2 places in grid. Should be flex like on normal width.
 
-Instead, when narrow, the middle section (tokens, changes, lines) should shrink. Drop labels. Use style and colors.
+To make more room for the buttons at the bottom of the action popup, when in small screen, use l, m, h, instead of low medium high. Also when narrow, the middle section (tokens, changes, lines) should shrink. Drop labels. Use style and colors.
