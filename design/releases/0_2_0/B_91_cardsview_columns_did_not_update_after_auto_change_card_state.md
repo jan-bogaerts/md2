@@ -12,7 +12,6 @@ agents:
   - design/releases/0_2_0/card__c0571d27-a3f8-41bd-9a3b-861c7969f9af.json#conversation=agent-cc1684bf-f5fc-45ce-a0c9-9582d083e63d
 policy:
 after: a57b89e0-49f4-4c25-9d99-deea222460cd
-branch: b_91_cardsview_columns_did_not_update_after_auto_change_card_state
 ---
 an agent changed the state of a card to ready, but the UI did not get updated. the card remained in the old column, did not move to the 'ready' column.
 
