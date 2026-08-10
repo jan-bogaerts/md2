@@ -7,8 +7,8 @@ status: ready
 owner: 
 affects:
 agents:
-  - design/activity/card__db0d6a75-3aa8-49ef-b855-a0cd4253e25d.json#conversation=agent-ff4b6006-04c1-4bd3-aaa4-382a3177d7dd
-  - design/activity/card__db0d6a75-3aa8-49ef-b855-a0cd4253e25d.json#conversation=agent-60d8666d-bbdd-4062-a2ea-4b8e638118c3
+  - design/releases/0_2_0/card__db0d6a75-3aa8-49ef-b855-a0cd4253e25d.json#conversation=agent-ff4b6006-04c1-4bd3-aaa4-382a3177d7dd
+  - design/releases/0_2_0/card__db0d6a75-3aa8-49ef-b855-a0cd4253e25d.json#conversation=agent-60d8666d-bbdd-4062-a2ea-4b8e638118c3
 policy:
 ---
 On the action popup, we currently  have 2 ways to use custom prompts:

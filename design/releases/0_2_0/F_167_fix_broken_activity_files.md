@@ -7,9 +7,9 @@ status: ready
 owner: 
 affects:
 agents:
-  - design/activity/card__a75df9b2-d7eb-48df-ba8a-398fac272f15.json#conversation=agent-0baac265-01c1-46fa-b6e8-b3c6b6902ecc
-  - design/activity/card__a75df9b2-d7eb-48df-ba8a-398fac272f15.json#conversation=agent-f6ea44a7-121c-42e1-bf4c-703035838b62
-  - design/activity/card__a75df9b2-d7eb-48df-ba8a-398fac272f15.json#conversation=agent-402bae27-1709-4c54-80c9-0c79efa44ad5
+  - design/releases/0_2_0/card__a75df9b2-d7eb-48df-ba8a-398fac272f15.json#conversation=agent-0baac265-01c1-46fa-b6e8-b3c6b6902ecc
+  - design/releases/0_2_0/card__a75df9b2-d7eb-48df-ba8a-398fac272f15.json#conversation=agent-f6ea44a7-121c-42e1-bf4c-703035838b62
+  - design/releases/0_2_0/card__a75df9b2-d7eb-48df-ba8a-398fac272f15.json#conversation=agent-402bae27-1709-4c54-80c9-0c79efa44ad5
 policy:
 branch: f_167_fix_broken_activity_files
 ---

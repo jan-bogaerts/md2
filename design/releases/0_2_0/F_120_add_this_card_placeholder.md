@@ -7,8 +7,8 @@ status: ready
 owner: 
 affects:
 agents:
-  - design/activity/card__4d8ae085-bd65-46be-933d-83544fcf77fa.json#conversation=agent-69f2b6f7-da40-4cdd-9729-b8069e3c6a58
-  - design/activity/card__4d8ae085-bd65-46be-933d-83544fcf77fa.json#conversation=agent-f76267e9-946f-433c-8930-0e2ff53bd815
+  - design/releases/0_2_0/card__4d8ae085-bd65-46be-933d-83544fcf77fa.json#conversation=agent-69f2b6f7-da40-4cdd-9729-b8069e3c6a58
+  - design/releases/0_2_0/card__4d8ae085-bd65-46be-933d-83544fcf77fa.json#conversation=agent-f76267e9-946f-433c-8930-0e2ff53bd815
 policy:
 ---
 add support for '{{this-card}} placeholder, which would be the same as {{card-file}}

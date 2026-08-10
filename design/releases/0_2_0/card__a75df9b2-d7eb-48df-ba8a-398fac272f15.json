@@ -1317,7 +1317,7 @@
         }
       ],
       "startedAt": "2026-08-10T12:05:46.435Z",
-      "status": "running",
+      "status": "completed",
       "title": "implement",
       "usage": {
         "cachedInputTokens": 73472,
