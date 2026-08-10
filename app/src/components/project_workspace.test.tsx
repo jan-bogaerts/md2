@@ -150,6 +150,15 @@ function renderProjectSurface(isGithubAuthenticated = false) {
     )
 }
 
+function openTreeBranches(treeElement: HTMLElement, branchNames: string[]) {
+    const tree = within(treeElement)
+    for (const branchName of branchNames) {
+        const branchButton = tree.queryByRole('button', { name: new RegExp(`^${branchName} \\d+$`, 'u') })
+        const treeItem = branchButton?.closest('[role="treeitem"]')
+        if (treeItem?.getAttribute('aria-expanded') === 'false') fireEvent.click(branchButton)
+    }
+}
+
 async function openProjectDialog() {
     fireEvent.click(screen.getByRole('button', { name: 'Project' }))
     fireEvent.click(screen.getByRole('menuitem', { name: 'Open project...' }))
@@ -655,7 +664,9 @@ describe('ProjectWorkspace', () => {
         renderProjectSurface()
         await openLocalProject()
         act(() => workspaceViewService.setViewMode('text'))
-        const tree = within(await screen.findByLabelText('File tree'))
+        const treeElement = await screen.findByLabelText('File tree')
+        openTreeBranches(treeElement, ['design', 'history'])
+        const tree = within(treeElement)
         fireEvent.click(tree.getByRole('button', { name: 'F-1 Root' }))
         fireEvent.click(tree.getByRole('button', { name: 'F-2 Old' }))
         expect(screen.getAllByRole('tab')).toHaveLength(2)
@@ -681,7 +692,9 @@ describe('ProjectWorkspace', () => {
             path: 'design/actions/review.json',
         }]))
         act(() => workspaceViewService.setViewMode('text'))
-        const tree = within(await screen.findByLabelText('File tree'))
+        const treeElement = await screen.findByLabelText('File tree')
+        openTreeBranches(treeElement, ['design', 'actions'])
+        const tree = within(treeElement)
         fireEvent.click(tree.getByRole('button', { name: 'Review code' }))
         fireEvent.click(screen.getByRole('tab', { name: 'Tests' }))
 
@@ -703,7 +716,9 @@ describe('ProjectWorkspace', () => {
         renderProjectSurface()
         await openLocalProject()
         act(() => workspaceViewService.setViewMode('text'))
-        const tree = within(await screen.findByLabelText('File tree'))
+        const treeElement = await screen.findByLabelText('File tree')
+        openTreeBranches(treeElement, ['design', 'actions'])
+        const tree = within(treeElement)
         fireEvent.click(tree.getByRole('button', { name: 'Test' }))
         expect(openFilesService.getSnapshot().activeDocument?.kind).toBe('action')
 

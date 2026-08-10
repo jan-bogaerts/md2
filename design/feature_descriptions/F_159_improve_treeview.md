@@ -3,7 +3,7 @@ author:
 id: F_159
 internalId: 13c372c3-d12e-4b88-9ee3-b987068aaa0e
 title: improve treeview
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

@@ -3,7 +3,7 @@ author:
 id: B_107
 internalId: 8fedf475-d0af-4fe3-9aa0-d00bdfacffa0
 title: Websocket agent selection
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

@@ -1,7 +1,7 @@
 import { Box } from '@mui/material'
-import { type NodeApi, Tree } from 'react-arborist'
+import { type NodeApi, Tree, type TreeApi } from 'react-arborist'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { CardTypeConfig, Card } from '../../data/data_types'
+import { DEFAULT_ARCHIVED_FOLDER, DEFAULT_RELEASES_FOLDER, type CardTypeConfig, type Card } from '../../data/data_types'
 import { buildFileTree, type TreeNode } from '../../data/file_tree'
 import { actionService } from '../../services/actions/action_service'
 import { dialogService } from '../../services/dialog_service'
@@ -14,13 +14,11 @@ import { FileTreeContext, type FileTreeContextValue } from './file_tree_context'
 import { FileTreeNodeRow } from './file_tree_node_row'
 import { FileTreeRow } from './file_tree_row'
 import { FileTreeToolbar } from './file_tree_toolbar'
-import { DEFAULT_ARCHIVED_FOLDER, DEFAULT_RELEASES_FOLDER } from '../../data/data_types'
 
 const TREE_FALLBACK_HEIGHT = 500
 const TREE_INDENT = 16
-const FILE_ROW_HEIGHT = 34
-const GROUP_ROW_HEIGHT = 30
-const TREE_VERTICAL_PADDING = 12
+const TREE_ROW_HEIGHT = 28
+const TREE_VERTICAL_PADDING = 4
 const LOGS_FOLDER_NAME = 'logs'
 const EMPTY_CARDS: Card[] = []
 const EMPTY_REPOSITORY_FILES: string[] = []
@@ -49,8 +47,17 @@ function treeNodeChildren(node: TreeNode): readonly TreeNode[] | null {
     return node.kind === 'file' ? null : node.children
 }
 
-function treeRowHeight(node: NodeApi<TreeNode>): number {
-    return node.data.kind === 'file' ? FILE_ROW_HEIGHT : GROUP_ROW_HEIGHT
+function treeDefaultOpenState(nodes: TreeNode[]): Record<string, boolean> {
+    const openState: Record<string, boolean> = {}
+    const pendingNodes = [...nodes]
+
+    for (const node of pendingNodes) {
+        if (node.kind === 'file') continue
+        openState[node.id] = node.kind === 'status'
+        pendingNodes.push(...node.children)
+    }
+
+    return openState
 }
 
 function folderPath(parentFolder: string, childFolder: string) {
@@ -128,6 +135,22 @@ export function FileTreeView(props: FileTreeViewProps) {
     const [creationRequest, setCreationRequest] = useState<CreationRequest | null>(null)
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
     const [treeContainerRef, treeHeight] = useElementHeight()
+    const treeRef = useRef<TreeApi<TreeNode> | undefined>(undefined)
+    const [initialOpenState] = useState(() => treeDefaultOpenState(nodes))
+    const initializedBranchIdsRef = useRef(new Set(Object.keys(initialOpenState)))
+
+    useEffect(() => {
+        const tree = treeRef.current
+        if (!tree) return
+
+        const defaultOpenState = treeDefaultOpenState(nodes)
+        for (const [nodeId, isOpen] of Object.entries(defaultOpenState)) {
+            if (initializedBranchIdsRef.current.has(nodeId)) continue
+            initializedBranchIdsRef.current.add(nodeId)
+            if (isOpen) tree.open(nodeId)
+            else tree.close(nodeId)
+        }
+    }, [nodes])
 
     const requestCreate = useCallback((kind: CreateTreeItemKind, parentDirectory: string) => {
         setCreationRequest({ kind, parentDirectory })
@@ -198,6 +221,7 @@ export function FileTreeView(props: FileTreeViewProps) {
                 <Box sx={{ display: 'flex', flex: 1, minHeight: 0, minWidth: 0 }}>
                     <Box ref={treeContainerRef} sx={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'hidden' }}>
                         <Tree<TreeNode>
+                            ref={treeRef}
                             childrenAccessor={treeNodeChildren}
                             data={nodes}
                             disableDrag
@@ -205,14 +229,15 @@ export function FileTreeView(props: FileTreeViewProps) {
                             disableMultiSelection
                             height={treeHeight}
                             indent={TREE_INDENT}
+                            initialOpenState={initialOpenState}
                             onActivate={handleActivateNode}
                             onSelect={handleSelectNodes}
-                            openByDefault
+                            openByDefault={false}
                             overscanCount={4}
                             paddingBottom={TREE_VERTICAL_PADDING}
                             paddingTop={TREE_VERTICAL_PADDING}
                             renderRow={FileTreeRow}
-                            rowHeight={treeRowHeight}
+                            rowHeight={TREE_ROW_HEIGHT}
                             selection={selectedNodeId ?? undefined}
                             width="100%"
                         >

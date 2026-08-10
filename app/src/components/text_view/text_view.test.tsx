@@ -70,6 +70,7 @@ function renderTextView(
     nextBackgroundCards = backgroundCards,
     repositoryFiles: string[] = [],
     project: ProjectReference | null = { branch: 'main', id: 'project', rootPath: 'C:\\repo' },
+    expandTree = true,
 ) {
     setCards(nextActiveCards, nextBackgroundCards, repositoryFiles, project)
 
@@ -127,6 +128,17 @@ function renderTextView(
             <TextViewHarness />
         </AppThemeProvider>,
     )
+    if (expandTree) openAllTreeBranches()
+}
+
+function openAllTreeBranches() {
+    const tree = within(screen.getByLabelText('File tree'))
+    const branchNames = ['active', 'history', 'actions', 'notes', 'rel1']
+    for (const branchName of branchNames) {
+        const branchButton = tree.queryByRole('button', { name: new RegExp(`^${branchName} \\d+$`, 'u') })
+        const treeItem = branchButton?.closest('[role="treeitem"]')
+        if (treeItem?.getAttribute('aria-expanded') === 'false') fireEvent.click(branchButton)
+    }
 }
 
 /** Click a file leaf inside the tree region (avoids matching the same label in an open tab). */
@@ -242,13 +254,18 @@ describe('TextView', () => {
     })
 
     it('renders a tree with status groups and special folders', () => {
-        renderTextView()
+        renderTextView({}, activeCards, backgroundCards, [], { branch: 'main', id: 'project', rootPath: 'C:\\repo' }, false)
         const tree = within(screen.getByLabelText('File tree'))
 
         expect(tree.getByText('FILES')).toBeInTheDocument()
+        expect(tree.getByRole('button', { name: 'active 2' }).closest('[role="treeitem"]')).toHaveAttribute('aria-expanded', 'false')
+        expect(tree.getByRole('button', { name: 'history 1' }).closest('[role="treeitem"]')).toHaveAttribute('aria-expanded', 'false')
+        expect(tree.queryByText('todo')).not.toBeInTheDocument()
+
+        fireEvent.click(tree.getByRole('button', { name: 'active 2' }))
+
         expect(tree.getByText('todo')).toBeInTheDocument()
         expect(tree.getByText('done')).toBeInTheDocument()
-        expect(tree.getByText('history')).toBeInTheDocument()
         expect(tree.getByRole('button', { name: 'todo 1' })).toBeInTheDocument()
         expect(tree.getByRole('button', { name: 'F-1 Alpha' })).toBeInTheDocument()
         expect(tree.getByRole('button', { name: 'New folder' })).not.toHaveTextContent('New folder')
@@ -257,7 +274,7 @@ describe('TextView', () => {
     })
 
     it('creates a root folder from the tree toolbar when no item is selected', async () => {
-        renderTextView()
+        renderTextView({}, activeCards, backgroundCards, [], { branch: 'main', id: 'project', rootPath: 'C:\\repo' }, false)
         const tree = within(screen.getByLabelText('File tree'))
 
         fireEvent.click(tree.getByRole('button', { name: 'New folder' }))
@@ -761,6 +778,7 @@ describe('TextView', () => {
                 </div>
             </AppThemeProvider>,
         )
+        fireEvent.click(within(screen.getByLabelText('File tree')).getByRole('button', { name: 'active 1' }))
 
         expect(within(screen.getByLabelText('File tree')).getByRole('button', { name: 'F-1 Alpha' })).toBeInTheDocument()
         expect(within(screen.getByLabelText('File tree')).queryByRole('button', { name: 'F-2 Beta' })).toBeNull()

@@ -260,6 +260,7 @@ describe('entry-point placement in the file tree', () => {
                 workingFolder="design/active"
             />,
         )
+        fireEvent.click(screen.getByRole('button', { name: 'active 1' }))
 
         const actionMenus = screen.getAllByRole('button', { name: 'Actions' })
         expect(actionMenus.length).toBeGreaterThanOrEqual(3)

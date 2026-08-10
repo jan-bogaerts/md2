@@ -3,7 +3,7 @@ author:
 id: F_155
 internalId: 615b2a1f-55c2-4113-b1ac-589ae3474ae2
 title: auto check for newer version
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
