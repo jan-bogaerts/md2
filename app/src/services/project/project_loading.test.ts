@@ -344,6 +344,7 @@ describe('ProjectLoading', () => {
             expect(service.getState().snapshot?.backgroundCards.map((card) => card.path)).toEqual(['projects/demo/notes/project-note.md'])
         })
         expect(service.getConfig()?.actionsFolder).toBe('projects/demo/actions')
+        await vi.waitFor(() => expect(storage.listAgentConversationReferences).toHaveBeenCalled())
     })
 
     it('dispatches the root snapshot before loading background subfolder and history cards', async () => {

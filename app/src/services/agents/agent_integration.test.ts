@@ -209,6 +209,7 @@ describe('AgentIntegration', () => {
         agentAcknowledgementService.addEventListener(actionEvent, actionListener)
 
         expect(snapshot.activeCards[0].agentConversations).toHaveLength(0)
+        fullProject.resolve({ files: agentFiles, workingFolder: 'design' })
         conversationLoad.resolve({ ...conversation(), actionId: 'implement' })
 
         await vi.waitFor(() => {
@@ -601,6 +602,7 @@ describe('AgentIntegration', () => {
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        fullProject.resolve({ files: [agentFile], workingFolder: 'design' })
 
         await vi.waitFor(() => {
             expect(service.getState().snapshot?.activeCards[0].agentConversations).toHaveLength(10)
@@ -632,6 +634,7 @@ describe('AgentIntegration', () => {
 
         expect(snapshot.activeCards[0].header.title).toBe('Root')
         expect(snapshot.activeCards[0].agentConversationErrors).toEqual([])
+        fullProject.resolve({ files: agentFiles, workingFolder: 'design' })
 
         await vi.waitFor(() => {
             expect(service.getState().snapshot?.activeCards[0].agentConversationErrors).toEqual([

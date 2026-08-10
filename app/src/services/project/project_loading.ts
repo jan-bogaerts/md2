@@ -135,6 +135,7 @@ export class ProjectLoading {
         project: ProjectReference,
         projectLoadToken: number,
     ) => void
+    private readonly prepareAgentConversationLoading: (projectLoadToken: number) => void
     private actionReloadChangesByPath: Map<string, ActionReloadChange> = new Map()
     private actionReloadTimeout: number | null = null
     private markdownReloadEventsByPath: Map<string, ProjectWatchEvent> = new Map()
@@ -145,6 +146,7 @@ export class ProjectLoading {
 
     constructor(
         dependencies: ProjectLoadingDeps,
+        prepareAgentConversationLoading: (projectLoadToken: number) => void,
         loadAgentConversationsInBackground: (
             snapshot: ProjectSnapshot,
             project: ProjectReference,
@@ -152,6 +154,7 @@ export class ProjectLoading {
         ) => void,
     ) {
         this.dependencies = dependencies
+        this.prepareAgentConversationLoading = prepareAgentConversationLoading
         this.loadAgentConversationsInBackground = loadAgentConversationsInBackground
     }
 
@@ -213,6 +216,7 @@ export class ProjectLoading {
             const currentSnapshot = this.dependencies.snapshot()
             if (!currentSnapshot) throw new Error('Project snapshot was not created')
             initializeMissingProjectStates(projectConfig ?? null, currentSnapshot)
+            this.prepareAgentConversationLoading(projectLoadToken)
             this.dependencies.dispatchChanged()
             reportActionLoadIssues()
 

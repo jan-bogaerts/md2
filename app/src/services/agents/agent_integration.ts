@@ -237,6 +237,10 @@ export class AgentIntegration {
         this.prepareProjectConversationLoad(projectLoadToken)
         const cards = [...snapshot.activeCards, ...snapshot.backgroundCards]
         const { commitBatcher, config, storage } = this.dependencies.requireDependencies()
+        if (!storage.loadTextFile) {
+            await this.loadAgentConversationsWithoutActivityRepair(snapshot, project, projectLoadToken)
+            return
+        }
         const plan = await planProjectActivityRepair(
             cards,
             project,
@@ -315,7 +319,7 @@ export class AgentIntegration {
         return `card:${cardInternalId}`
     }
 
-    private prepareProjectConversationLoad(projectLoadToken: number) {
+    prepareProjectConversationLoad(projectLoadToken: number) {
         if (this.currentProjectLoadToken === projectLoadToken) return
 
         this.agentConversationLoadToken = this.dependencies.beginAgentConversationLoad()
@@ -323,6 +327,23 @@ export class AgentIntegration {
         this.conversationLoadGeneration += 1
         this.conversationLoadsInFlight.clear()
         this.currentProjectLoadToken = projectLoadToken
+    }
+
+    private async loadAgentConversationsWithoutActivityRepair(
+        snapshot: ProjectSnapshot,
+        project: ProjectReference,
+        projectLoadToken: number,
+    ) {
+        const results = await Promise.allSettled([
+            this.ensureProjectAgentConversationsLoaded(project, projectLoadToken),
+            this.ensureCardGroupLoaded(snapshot.activeCards, project, projectLoadToken),
+        ])
+        for (const result of results) {
+            if (result.status !== 'rejected') continue
+
+            dialogService.warning('Agent conversations could not be loaded and were skipped.', { title: 'Some agent conversations were not loaded' })
+            telemetryService.captureError(result.reason)
+        }
     }
 
     private requireProjectLoadToken() {

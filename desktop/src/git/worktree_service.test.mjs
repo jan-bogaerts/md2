@@ -135,6 +135,7 @@ describe('WorktreeService merge conflict lifecycle', () => {
             await writeFile(join(repository.linkedPath, 'base.txt'), 'resolved\n');
             await service.mergeConflictService.markResolved({ path: 'base.txt', sessionId: outcome.session.id });
             await runGit(repository.linkedPath, ['-c', 'core.editor=true', 'rebase', '--continue']);
+            await runGit(repository.primaryPath, ['merge', '--no-ff', '-m', 'Agent integration', 'feature']);
             const rescanned = await service.mergeConflictService.rescan({ sessionId: outcome.session.id });
 
             expect(rescanned).toMatchObject({ conflictedPaths: [], phase: 'rebase' });
@@ -171,6 +172,33 @@ describe('WorktreeService merge conflict lifecycle', () => {
             expect(service.mergeConflictService.getSnapshot()).toMatchObject({ phase: 'finalize' });
             service.completeConflict({ sessionId: outcome.session.id });
             expect(service.mergeConflictService.getSnapshot()).toBeNull();
+        } finally {
+            service.stopProject();
+            await rm(repository.folderPath, { force: true, recursive: true });
+        }
+    }, 30_000);
+
+    it('accepts integration already completed by agent and retains finalization metadata', async () => {
+        const repository = await createRepository();
+        const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };
+        const service = createService({ mergeConflicts: true });
+
+        try {
+            await service.startProject(project);
+            await commitConflictingChanges(repository);
+            await service.refreshLocal();
+            const outcome = await service.integrate(project, 1, { cardInternalId: 'card-1', projectFolder: 'design' });
+            await writeFile(join(repository.linkedPath, 'base.txt'), 'resolved\n');
+            await service.mergeConflictService.markResolved({ path: 'base.txt', sessionId: outcome.session.id });
+            await runGit(repository.linkedPath, ['-c', 'core.editor=true', 'rebase', '--continue']);
+            await runGit(repository.primaryPath, ['merge', '--no-ff', '-m', 'Agent integration', 'feature']);
+            const agentCommit = await runGit(repository.primaryPath, ['rev-parse', 'HEAD']);
+            await service.mergeConflictService.rescan({ sessionId: outcome.session.id });
+
+            const completed = await service.continueConflict({ sessionId: outcome.session.id });
+
+            expect(completed).toMatchObject({ branch: 'main', commit: agentCommit, status: 'completed', session: { phase: 'finalize' } });
+            expect(service.mergeConflictService.getSnapshot()).toMatchObject({ phase: 'finalize' });
         } finally {
             service.stopProject();
             await rm(repository.folderPath, { force: true, recursive: true });

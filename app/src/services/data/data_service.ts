@@ -166,6 +166,7 @@ export class DataService extends EventTarget {
         agentAcknowledgementService.connectConversationStore((conversation) => this.agents.findStoredConversation(conversation))
         this.projectLoading = new ProjectLoading(
             this.createProjectLoadingDependencies(),
+            (projectLoadToken) => this.agents.prepareProjectConversationLoad(projectLoadToken),
             (snapshot, project, projectLoadToken) => this.agents.loadAgentConversationsInBackground(snapshot, project, projectLoadToken),
         )
         this.releases = new ReleaseOperations(this.createReleaseOperationsDependencies(), () => this.cards.flushPendingCommits())

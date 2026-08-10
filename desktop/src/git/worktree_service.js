@@ -411,9 +411,12 @@ class WorktreeService {
             const activeProject = this.requireActiveProject({ branch: session.projectBranch, rootPath: session.projectRoot });
             const record = this.resolve(activeProject, session.worktree);
             try {
-                const integration = continuesSquashConflict
+                const externalIntegration = continuesSquashConflict
+                    ? null
+                    : await this.completedExternalIntegration(session, activeProject, record);
+                const integration = externalIntegration ?? (continuesSquashConflict
                     ? await this.completeSquashIntegration(activeProject)
-                    : await this.performSquashIntegration(activeProject, record);
+                    : await this.performSquashIntegration(activeProject, record));
                 await this.synchronizeRecord(activeProject, record);
                 await this.refreshAfterMutation();
                 const finalSession = {
@@ -529,6 +532,14 @@ class WorktreeService {
         if (stagedPaths.length === 0) throw new Error('Linked worktree has no changes to integrate');
         await this.runGit(project.rootPath, ['commit', '-m', INTEGRATION_COMMIT_MESSAGE]);
         const commit = await this.runGit(project.rootPath, ['rev-parse', 'HEAD']);
+
+        return { branch: project.branch, commit };
+    }
+
+    async completedExternalIntegration(session, project, record) {
+        if (record.status.baseAhead > 0) return null;
+        const commit = await this.runGit(project.rootPath, ['rev-parse', 'HEAD']);
+        if (commit === session.checkpointCommit) return null;
 
         return { branch: project.branch, commit };
     }
