@@ -31,7 +31,7 @@ function visibleConversationGroups(conversation: AgentConversation | null) {
     if (!conversation) return []
     const showEvents = hasAgentActivity(conversation)
     const visibleEntries = conversation.entries.filter((entry) => entry.kind === 'message'
-        || (showEvents && (entry.type !== 'reasoning' || entry.status !== 'completed')))
+        || (showEvents && entry.type !== 'diagnostic' && (entry.type !== 'reasoning' || entry.status !== 'completed')))
 
     return buildActionConversationRenderGroups(visibleEntries)
 }

@@ -22,6 +22,7 @@ import { dialogService } from '../dialog_service'
 import { GithubUnauthorizedError } from '../../auth/github_api_client'
 import { createDefaultActionFiles } from '../../project_template/project_template'
 import { openFilesService } from '../open_files_service'
+import { mergeConflictService } from './merge_conflict_service'
 
 const ACTION_RELOAD_DEBOUNCE_MS = 150
 const JSON_EXTENSION = '.json'
@@ -134,6 +135,7 @@ export class ProjectLoading {
         project: ProjectReference,
         projectLoadToken: number,
     ) => void
+    private readonly prepareAgentConversationLoading: (projectLoadToken: number) => void
     private actionReloadChangesByPath: Map<string, ActionReloadChange> = new Map()
     private actionReloadTimeout: number | null = null
     private markdownReloadEventsByPath: Map<string, ProjectWatchEvent> = new Map()
@@ -144,6 +146,7 @@ export class ProjectLoading {
 
     constructor(
         dependencies: ProjectLoadingDeps,
+        prepareAgentConversationLoading: (projectLoadToken: number) => void,
         loadAgentConversationsInBackground: (
             snapshot: ProjectSnapshot,
             project: ProjectReference,
@@ -151,6 +154,7 @@ export class ProjectLoading {
         ) => void,
     ) {
         this.dependencies = dependencies
+        this.prepareAgentConversationLoading = prepareAgentConversationLoading
         this.loadAgentConversationsInBackground = loadAgentConversationsInBackground
     }
 
@@ -212,10 +216,10 @@ export class ProjectLoading {
             const currentSnapshot = this.dependencies.snapshot()
             if (!currentSnapshot) throw new Error('Project snapshot was not created')
             initializeMissingProjectStates(projectConfig ?? null, currentSnapshot)
+            this.prepareAgentConversationLoading(projectLoadToken)
             this.dependencies.dispatchChanged()
             reportActionLoadIssues()
 
-            this.loadAgentConversationsInBackground(currentSnapshot, project, projectLoadToken)
             void this.loadFullProjectInBackground(project, config.projectFolder, config.workingFolder, projectLoadToken)
             telemetryService.trackEvent('open_project')
 
@@ -330,7 +334,7 @@ export class ProjectLoading {
         await this.dependencies.ensureCardInternalIds()
         this.dependencies.dispatchChanged()
         const currentSnapshot = this.dependencies.snapshot()
-        if (currentSnapshot) this.loadAgentConversationsInBackground(currentSnapshot, project, projectLoadToken)
+        if (currentSnapshot) await this.loadAgentConversationsInBackground(currentSnapshot, project, projectLoadToken)
 
         return currentSnapshot
     }
@@ -340,6 +344,17 @@ export class ProjectLoading {
 
         this.watchCleanup()
         this.watchCleanup = null
+    }
+
+    async reloadConflictPaths(paths: string[]) {
+        const { config } = this.dependencies.requireDependencies()
+        for (const path of paths) {
+            if (!isProjectMarkdownPath(path, config.projectFolder)) continue
+            this.markdownReloadEventsByPath.set(path, { changeKind: 'unknown', path })
+        }
+        if (this.markdownReloadEventsByPath.size === 0) return
+
+        await this.reloadMarkdownFilesFromWatchEvents()
     }
 
     private clearFailedProjectLoad() {
@@ -541,7 +556,7 @@ export class ProjectLoading {
         await this.dependencies.ensureCardInternalIds()
         this.dependencies.dispatchChanged()
         const currentSnapshot = this.dependencies.snapshot()
-        if (currentSnapshot) this.loadAgentConversationsInBackground(currentSnapshot, project, projectLoadToken)
+        if (currentSnapshot) await this.loadAgentConversationsInBackground(currentSnapshot, project, projectLoadToken)
     }
 
     private shouldApplyProjectLoad(project: ProjectReference, projectLoadToken: number) {
@@ -554,10 +569,47 @@ export class ProjectLoading {
         const storage = this.dependencies.storage()
         if (!currentProject || !storage?.watchProject) return
 
-        this.watchCleanup = storage.watchProject(currentProject, (event) => this.handleProjectWatchEvent(event))
+        this.watchCleanup = storage.watchProject(
+            currentProject,
+            (event) => this.handleProjectWatchEvent(event),
+            () => void this.resynchronizeProjectAfterWatchRestore(),
+        )
+    }
+
+    private async resynchronizeProjectAfterWatchRestore() {
+        const { config, storage } = this.dependencies.requireDependencies()
+        const currentProject = this.dependencies.project()
+        if (!currentProject) return
+
+        try {
+            const projectFiles = await storage.loadProject(currentProject, config.projectFolder)
+            if (this.dependencies.project() !== currentProject) return
+
+            const currentFiles = this.dependencies.files().filter((file) => isProjectMarkdownPath(file.path, config.projectFolder))
+            const currentFilesByPath = new Map(currentFiles.map((file) => [file.path, file]))
+            const loadedPaths = new Set<string>()
+            for (const file of projectFiles.files) {
+                if (!isProjectMarkdownPath(file.path, config.projectFolder)) continue
+
+                loadedPaths.add(file.path)
+                const currentFile = currentFilesByPath.get(file.path)
+                if (currentFile?.content === file.content) continue
+
+                this.handleProjectWatchEvent({
+                    changeKind: currentFile ? 'changed' : 'added',
+                    path: file.path,
+                })
+            }
+            for (const file of currentFiles) {
+                if (!loadedPaths.has(file.path)) this.handleProjectWatchEvent({ changeKind: 'removed', path: file.path })
+            }
+        } catch (error) {
+            reportOptionalProjectLoadFailure('Project resynchronization', error)
+        }
     }
 
     private handleProjectWatchEvent(event: ProjectWatchEvent) {
+        if (mergeConflictService.isConflictedPath(event.path)) return
         this.dependencies.dispatchRepositoryChanged(event)
         if (event.path === PROJECT_CONFIG_PATH) {
             void this.reloadProjectConfigFromWatch()

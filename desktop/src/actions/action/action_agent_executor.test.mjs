@@ -97,16 +97,16 @@ describe('ActionAgentExecutor', () => {
     });
 
     it('resolves run permission overrides before action and desktop defaults', async () => {
-        const agentConfigProvider = () => ({accessLevel: 'workspace-write', agent: 'codex', agentProfiles: [], approvalPolicy: 'on-request', model: ''});
+        const agentConfigProvider = () => ({agent: 'codex', agentProfiles: [], model: '', permissionMode: 'ask-for-approval'});
         const { agentRunnerService, executor } = createExecutor({ agentConfigProvider });
-        const permissionAction = { ...action, accessLevel: 'read-only', approvalPolicy: 'untrusted' };
+        const permissionAction = { ...action, permissionMode: 'approve-for-me' };
 
         const result = await executor.execute(executionInput({
             action: permissionAction,
-            runInput: { accessLevel: 'danger-full-access', approvalPolicy: 'never', extraPrompt: '' },
+            runInput: { extraPrompt: '', permissionMode: 'full-access' },
         }));
 
-        expect(result).toMatchObject({ accessLevel: 'danger-full-access', approvalPolicy: 'never' });
+        expect(result).toMatchObject({ permissionMode: 'full-access' });
         expect(agentRunnerService.start.mock.calls[0][1].command).toEqual([
             'codex', '--model', 'gpt-5.5', '--sandbox', 'danger-full-access', '--ask-for-approval', 'never',
             '--search', 'exec', '--json',
@@ -116,9 +116,32 @@ describe('ActionAgentExecutor', () => {
     it('rejects stale permission overrides before process start', async () => {
         const { agentRunnerService, executor } = createExecutor();
 
-        await expect(executor.execute(executionInput({runInput: { accessLevel: 'removed', extraPrompt: '' }})))
-            .rejects.toThrow('Unknown access level');
+        await expect(executor.execute(executionInput({runInput: { extraPrompt: '', permissionMode: 'removed' }})))
+            .rejects.toThrow('Invalid permission mode');
         expect(agentRunnerService.start).not.toHaveBeenCalled();
+    });
+
+    it('surfaces Claude auto failures without retrying another permission mode', async () => {
+        const start = vi.fn(async (_project, request, _onEvent, onComplete) => {
+            onComplete(1, {
+                conversation: { id: 'run-conversation' }, missingSession: false, reference: 'run.json',
+                stderr: 'permission mode auto unavailable', stdout: '', turnStarted: true,
+            });
+
+            return { runId: 'active-run' };
+        });
+        const agentRunnerService = { start, stop: vi.fn() };
+        const agentConfigProvider = () => ({agent: 'claude', agentProfiles: [], model: 'sonnet', permissionMode: 'approve-for-me'});
+        const { executor } = createExecutor({ agentConfigProvider, agentRunnerService });
+        const claudeAction = { ...action, agent: 'claude', model: 'sonnet' };
+
+        await expect(executor.execute(executionInput({ action: claudeAction }))).resolves.toMatchObject({
+            exitCode: 1,
+            permissionMode: 'approve-for-me',
+            stderr: 'permission mode auto unavailable',
+        });
+        expect(start).toHaveBeenCalledTimes(1);
+        expect(start.mock.calls[0][1].command).toContain('auto');
     });
 
     it('resolves placeholders in an edited or custom root prompt without tracked-file composition', async () => {
@@ -131,33 +154,33 @@ describe('ActionAgentExecutor', () => {
             project: runProject,
             runInput: {
                 extraPrompt: 'focus',
-                prompt: 'Review {{card-file}} in {{worktree-folder}} for {{repository-folder}} project {{project-folder}} releases {{releases-folder}}: {{card-prompt}} {{unknown}}',
+                prompt: 'Review {{card-file}} and {{this-card}} in {{worktree-folder}} for {{repository-folder}} project {{project-folder}} releases {{releases-folder}}: {{card-prompt}} {{unknown}}',
             },
         }));
 
         expect(agentRunnerService.start.mock.calls[0][1].prompt).toBe(
-            `Review design/card.md in C:/worktree for C:/repo project ${path.resolve('C:/repo', 'design')} releases ${path.resolve('C:/repo', 'design/releases')}: focus {{unknown}}`,
+            `Review design/card.md and design/card.md in C:/worktree for C:/repo project ${path.resolve('C:/repo', 'design')} releases ${path.resolve('C:/repo', 'design/releases')}: focus {{unknown}}`,
         );
     });
 
-    it('keeps an already prepared root prompt unchanged without tracked-file recomposition', async () => {
+    it('keeps an already prepared root prompt unchanged', async () => {
         const { agentRunnerService, executor } = createExecutor();
         const trackedAction = { ...action, trackFileChanges: true };
-        const preparedPrompt = 'Review design/card.md\n\nDo not stage or commit changes. md2 will commit files captured from provider edit tools.';
+        const preparedPrompt = 'Review design/card.md';
 
         await executor.execute(executionInput({ action: trackedAction, runInput: { extraPrompt: 'legacy', prompt: preparedPrompt } }));
 
         expect(agentRunnerService.start.mock.calls[0][1].prompt).toBe(preparedPrompt);
     });
 
-    it('rejects a root prompt with missing placeholder context before process start', async () => {
+    it.each(['card-file', 'this-card'])('rejects a root prompt with missing %s context before process start', async (placeholderName) => {
         const { agentRunnerService, executor } = createExecutor();
 
         await expect(executor.execute(executionInput({
             activityOrigin: { kind: 'project' },
             context: { kind: 'project' },
-            runInput: { extraPrompt: '', prompt: 'Review {{card-file}}' },
-        }))).rejects.toThrow('Cannot resolve card-file placeholder without a file context');
+            runInput: { extraPrompt: '', prompt: `Review {{${placeholderName}}}` },
+        }))).rejects.toThrow(`Cannot resolve ${placeholderName} placeholder without a file context`);
         expect(agentRunnerService.start).not.toHaveBeenCalled();
     });
 
@@ -180,15 +203,13 @@ describe('ActionAgentExecutor', () => {
         expect(request).not.toHaveProperty('cardPath');
     });
 
-    it('instructs tracked runs not to stage or self-commit', async () => {
+    it('does not augment tracked-run prompts with commit instructions', async () => {
         const { agentRunnerService, executor } = createExecutor();
         const trackedAction = { ...action, trackFileChanges: true };
 
         await executor.execute(executionInput({ action: trackedAction }));
 
-        expect(agentRunnerService.start.mock.calls[0][1].prompt).toBe(
-            'Review design/card.md\n\nDo not stage or commit changes. md2 will commit files captured from provider edit tools.',
-        );
+        expect(agentRunnerService.start.mock.calls[0][1].prompt).toBe('Review design/card.md');
     });
 
     it('resumes same provider after cursor with normalized reference and explicit prompt', async () => {
@@ -259,7 +280,7 @@ describe('ActionAgentExecutor', () => {
         const request = agentRunnerService.start.mock.calls[0][1];
         expect(request).toMatchObject({
             command: [
-                'claude', '--model', 'default', '--permission-mode', 'default', '--print', '--verbose', '--output-format', 'stream-json',
+                'claude', '--model', 'default', '--permission-mode', 'acceptEdits', '--print', '--verbose', '--output-format', 'stream-json',
                 '--include-partial-messages', '--input-format', 'stream-json', '--permission-prompt-tool', 'stdio', '--resume', 'session-1',
             ],
             contextInput: expect.stringContaining('new'),
@@ -300,6 +321,77 @@ describe('ActionAgentExecutor', () => {
 
         expect(agentRunnerService.start.mock.calls[0][1]).toMatchObject({contextInput: expect.stringContaining('[Assistant (claude)]'), prompt: 'continue', reference: 'source.json'});
         expect(agentRunnerService.start.mock.calls[0][1]).not.toHaveProperty('providerConversationId');
+    });
+
+    it.each([
+        ['claude', 'codex', 'gpt-5.5'],
+        ['codex', 'claude', 'sonnet'],
+    ])('hands complete canonical transcript from %s to %s without sharing provider id', async (sourceAgent, selectedAgent, model) => {
+        const { agentRunnerService, executor, localGitService } = createExecutor();
+        const reference = 'design/activity/card__card-1.json#conversation=conversation-1';
+        const sourceConversation = conversation({
+            entries: [
+                { content: 'Original request', id: 'm1', kind: 'message', role: 'user', timestamp: '2026-01-01T00:00:00.000Z' },
+                { agent: sourceAgent, content: 'Original answer', id: 'm2', kind: 'message', role: 'assistant', timestamp: '2026-01-01T00:00:01.000Z' },
+            ],
+            providerSessions: [{
+                agent: sourceAgent,
+                conversationId: `${sourceAgent}-session`,
+                synchronizedThroughMessageId: 'm2',
+            }],
+        });
+        localGitService.loadAgentConversation.mockResolvedValueOnce(sourceConversation);
+
+        await executor.execute(executionInput({
+            action: { ...action, streaming: true },
+            runInput: { agent: selectedAgent, continueFrom: reference, model, prompt: 'Next request' },
+        }));
+
+        const request = agentRunnerService.start.mock.calls[0][1];
+        expect(request).toMatchObject({
+            agent: selectedAgent,
+            contextInput: expect.stringContaining('Original request'),
+            conversation: sourceConversation,
+            prompt: 'Next request',
+            reference,
+        });
+        expect(request.contextInput).toContain(`Assistant (${sourceAgent})`);
+        expect(request).not.toHaveProperty('providerConversationId');
+    });
+
+    it('switches back through saved provider cursor on same conversation reference', async () => {
+        const { agentRunnerService, executor, localGitService } = createExecutor();
+        const reference = 'design/activity/card__card-1.json#conversation=conversation-1';
+        const sourceConversation = conversation({
+            entries: [
+                { content: 'Original request', id: 'm1', kind: 'message', role: 'user', timestamp: '2026-01-01T00:00:00.000Z' },
+                { agent: 'claude', content: 'Claude answer', id: 'm2', kind: 'message', role: 'assistant', timestamp: '2026-01-01T00:00:01.000Z' },
+                { content: 'Codex request', id: 'm3', kind: 'message', role: 'user', timestamp: '2026-01-01T00:00:02.000Z' },
+                { agent: 'codex', content: 'Codex answer', id: 'm4', kind: 'message', role: 'assistant', timestamp: '2026-01-01T00:00:03.000Z' },
+            ],
+            providerSessions: [
+                { agent: 'claude', conversationId: 'claude-session', synchronizedThroughMessageId: 'm2' },
+                { agent: 'codex', conversationId: 'codex-session', synchronizedThroughMessageId: 'm4' },
+            ],
+        });
+        localGitService.loadAgentConversation.mockResolvedValueOnce(sourceConversation);
+
+        await executor.execute(executionInput({
+            action: { ...action, streaming: true },
+            runInput: { agent: 'claude', continueFrom: reference, model: 'sonnet', prompt: 'Back to Claude' },
+        }));
+
+        const request = agentRunnerService.start.mock.calls[0][1];
+        expect(request).toMatchObject({
+            agent: 'claude',
+            contextInput: expect.stringContaining('Codex request'),
+            conversation: sourceConversation,
+            providerConversationId: 'claude-session',
+            reference,
+        });
+        expect(request.contextInput).toContain('Codex answer');
+        expect(request.contextInput).not.toContain('Original request');
+        expect(request.command).toContain('claude-session');
     });
 
     it('rejects conversation from another context card', async () => {

@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ActionRunEvent } from '../../../data/action_run_types'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../../data/electron_action_bridge'
 import { actionRunRegistry } from '../../../services/actions/action_run_registry'
-import { cardActionPopupService } from '../../../services/actions/card_action_popup_service'
+import { cardPopupService } from '../../../services/card_popup_service'
 import { agentAcknowledgementService } from '../../../services/agents/agent_acknowledgement_service'
 import { AppThemeProvider } from '../../../theme/theme_provider'
 import { ActionConversationChatOwner } from './action_conversation_chat_owner'
@@ -20,7 +20,7 @@ describe('ActionConversationChatOwner', () => {
     afterEach(() => {
         cleanup()
         actionRunRegistry.stop()
-        cardActionPopupService.clear()
+        cardPopupService.clear()
         agentAcknowledgementService.reset()
         setActionBridgeOverride(null)
     })
@@ -109,11 +109,11 @@ describe('ActionConversationChatOwner', () => {
         actionRunRegistry.start()
         const firstAnchor = document.createElement('button')
         const coveringAnchor = document.createElement('button')
-        cardActionPopupService.toggle(context, firstAnchor)
-        const firstEntry = cardActionPopupService.getSnapshot()[0]
+        cardPopupService.toggleAction(context, firstAnchor)
+        const firstEntry = cardPopupService.getSnapshot()[0]
         const coveringContext = { cardInternalId: 'card-2', file: 'design/F-139.md', kind: 'card' as const }
-        cardActionPopupService.toggle(coveringContext, coveringAnchor)
-        const coveringEntry = cardActionPopupService.getSnapshot().at(-1)
+        cardPopupService.toggleAction(coveringContext, coveringAnchor)
+        const coveringEntry = cardPopupService.getSnapshot().at(-1)
         if (!firstEntry || !coveringEntry) throw new Error('Missing popup entries')
 
         render(
@@ -129,8 +129,8 @@ describe('ActionConversationChatOwner', () => {
         expect(updateActionConversationViewed).not.toHaveBeenCalled()
 
         act(() => {
-            if (scenario === 'activated') cardActionPopupService.activate(firstEntry.id)
-            else cardActionPopupService.close(coveringEntry.id)
+            if (scenario === 'activated') cardPopupService.activate(firstEntry.id)
+            else cardPopupService.close(coveringEntry.id)
         })
 
         await waitFor(() => expect(updateActionConversationViewed).toHaveBeenCalledWith(unseen.path, true))
@@ -143,8 +143,8 @@ describe('ActionConversationChatOwner', () => {
             updateActionConversationViewed,
         } as unknown as ElectronActionBridge)
         actionRunRegistry.start()
-        cardActionPopupService.toggle(context, document.createElement('button'))
-        const entry = cardActionPopupService.getSnapshot()[0]
+        cardPopupService.toggleAction(context, document.createElement('button'))
+        const entry = cardPopupService.getSnapshot()[0]
         if (!entry) throw new Error('Missing popup entry')
 
         render(

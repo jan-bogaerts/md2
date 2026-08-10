@@ -8,7 +8,7 @@ owner:
 affects:
 agents:
 policy:
-after: 6ed58954-002c-45ea-87fe-4e6f0cae832d
+after: fa94bd7a-827d-4a40-ae22-6b34331ae7fd
 ---
 
 Show the percentage of the selected conversation's context window that is used in the action popup, beside the existing total-token usage at the left of the bottom action row.

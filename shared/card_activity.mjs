@@ -1,7 +1,9 @@
 import { parseAgentConversation } from './agent_conversations.mjs'
 
-const ACTIVITY_VERSION = 2
+const ACTIVITY_VERSION = 4
 export const LEGACY_ACTIVITY_VERSION = 1
+export const SECOND_ACTIVITY_VERSION = 2
+export const PREVIOUS_ACTIVITY_VERSION = 3
 const ACTION_ACTIVITY_STATUSES = new Set(['cancelled', 'completed', 'failed', 'okButNotAfter'])
 
 function requiredString(value, fieldName, allowEmpty = false) {
@@ -35,6 +37,30 @@ function parseOrigin(value) {
     if (value.kind !== 'card') throw new Error(`Malformed activity file: invalid origin kind ${String(value.kind)}`)
 
     return { cardInternalId: requiredString(value.cardInternalId, 'origin.cardInternalId'), kind: 'card' }
+}
+
+function parseActionSettings(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        throw new Error('Malformed activity file: actionSettings must be an object')
+    }
+
+    return Object.fromEntries(Object.entries(value).map(([actionId, settings]) => {
+        if (actionId.length === 0) throw new Error('Malformed activity file: actionSettings action ID must not be empty')
+        if (!settings || typeof settings !== 'object' || Array.isArray(settings)) {
+            throw new Error(`Malformed activity file: invalid actionSettings.${actionId}`)
+        }
+
+        if (settings.accessLevel !== undefined || settings.approvalPolicy !== undefined) {
+            throw new Error(`Malformed activity file: obsolete permission fields in actionSettings.${actionId}`)
+        }
+
+        return [actionId, {
+            agent: requiredString(settings.agent, `actionSettings.${actionId}.agent`, true),
+            model: requiredString(settings.model, `actionSettings.${actionId}.model`, true),
+            permissionMode: requiredString(settings.permissionMode, `actionSettings.${actionId}.permissionMode`, true),
+            thinkingLevel: requiredString(settings.thinkingLevel, `actionSettings.${actionId}.thinkingLevel`, true),
+        }]
+    }))
 }
 
 function sameOrigin(first, second) {
@@ -87,7 +113,10 @@ function parseLegacyHistory(value, index) {
 function parseAgentDetails(value, index) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`Malformed activity file: invalid records[${index}].details`)
     const details = { type: 'agent' }
-    for (const fieldName of ['accessLevel', 'agent', 'approvalPolicy', 'model', 'thinkingLevel']) {
+    if (value.accessLevel !== undefined || value.approvalPolicy !== undefined) {
+        throw new Error(`Malformed activity file: obsolete permission fields in records[${index}].details`)
+    }
+    for (const fieldName of ['agent', 'model', 'permissionMode', 'thinkingLevel']) {
         if (value[fieldName] === undefined) continue
         if (fieldName === 'agent' && value[fieldName] === null) details[fieldName] = null
         else details[fieldName] = requiredString(value[fieldName], `records[${index}].details.${fieldName}`)
@@ -198,8 +227,27 @@ function parseConversation(value, index, activityOrigin) {
     }
 }
 
+function repairConversation(value, index, activityOrigin) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+    const entries = Array.isArray(value.entries) ? value.entries.filter((entry) => {
+        try {
+            parseAgentConversation(JSON.stringify({ ...value, entries: [entry] }), '')
+
+            return true
+        } catch {
+            return false
+        }
+    }) : []
+
+    try {
+        return parseConversation({ ...value, entries }, index, activityOrigin)
+    } catch {
+        return null
+    }
+}
+
 export function createActivityFile(origin) {
-    return { conversations: [], origin: parseOrigin(origin), records: [], version: ACTIVITY_VERSION }
+    return { actionSettings: {}, conversations: [], origin: parseOrigin(origin), records: [], version: ACTIVITY_VERSION }
 }
 
 export function parseActivityValue(value, expectedOrigin = null) {
@@ -207,6 +255,7 @@ export function parseActivityValue(value, expectedOrigin = null) {
     if (value.version !== ACTIVITY_VERSION) throw new Error(`Malformed activity file: unsupported version ${String(value.version)}`)
     if (!Array.isArray(value.records)) throw new Error('Malformed activity file: records must be an array')
     if (!Array.isArray(value.conversations)) throw new Error('Malformed activity file: conversations must be an array')
+    const actionSettings = parseActionSettings(value.actionSettings)
     const origin = parseOrigin(value.origin)
     if (expectedOrigin) {
         const expected = parseOrigin(expectedOrigin)
@@ -230,11 +279,50 @@ export function parseActivityValue(value, expectedOrigin = null) {
     }
 
     return {
+        actionSettings,
         conversations,
         origin,
         records,
         version: ACTIVITY_VERSION,
     }
+}
+
+function legacyPermissionMode(agent, accessLevel, approvalPolicy, fieldName) {
+    if (accessLevel === undefined && approvalPolicy === undefined) return undefined
+    if (agent === 'codex' && accessLevel === 'workspace-write' && approvalPolicy === 'on-request') return 'ask-for-approval'
+    if (agent === 'codex' && accessLevel === 'danger-full-access' && approvalPolicy === 'never') return 'full-access'
+    if (agent === 'claude' && (accessLevel === undefined || accessLevel === '')) {
+        if (approvalPolicy === 'acceptEdits') return 'ask-for-approval'
+        if (approvalPolicy === 'auto') return 'approve-for-me'
+        if (approvalPolicy === 'bypassPermissions') return 'full-access'
+    }
+
+    throw new Error(`Cannot migrate activity file: unrecognised legacy permission combination in ${fieldName}`)
+}
+
+function migrateVersionThreeActionSettings(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        throw new Error('Malformed activity file: actionSettings must be an object')
+    }
+
+    return Object.fromEntries(Object.entries(value).map(([actionId, settings]) => {
+        if (!settings || typeof settings !== 'object' || Array.isArray(settings)) {
+            throw new Error(`Malformed activity file: invalid actionSettings.${actionId}`)
+        }
+        const permissionMode = legacyPermissionMode(
+            settings.agent,
+            settings.accessLevel,
+            settings.approvalPolicy,
+            `actionSettings.${actionId}`,
+        )
+
+        return [actionId, {
+            agent: requiredString(settings.agent, `actionSettings.${actionId}.agent`, true),
+            model: requiredString(settings.model, `actionSettings.${actionId}.model`, true),
+            ...(permissionMode !== undefined ? { permissionMode } : { permissionMode: '' }),
+            thinkingLevel: requiredString(settings.thinkingLevel, `actionSettings.${actionId}.thinkingLevel`, true),
+        }]
+    }))
 }
 
 function migrateLegacyRecord(record, index, conversations) {
@@ -258,11 +346,16 @@ function migrateLegacyRecord(record, index, conversations) {
     if (candidates.length !== 1) {
         throw new Error(`Cannot migrate activity file: agent records[${index}] has ${candidates.length} matching root conversations`)
     }
+    const permissionMode = legacyPermissionMode(
+        history.agent,
+        history.accessLevel,
+        history.approvalPolicy,
+        `records[${index}].history`,
+    )
     const details = Object.fromEntries(Object.entries({
-        accessLevel: history.accessLevel,
         agent: history.agent,
-        approvalPolicy: history.approvalPolicy,
         model: history.model,
+        permissionMode,
         thinkingLevel: history.thinkingLevel,
         type: 'agent',
     }).filter(([, fieldValue]) => fieldValue !== undefined))
@@ -270,9 +363,30 @@ function migrateLegacyRecord(record, index, conversations) {
     return { ...base, details, rootConversationId: candidates[0].id }
 }
 
+function migrateVersionThreeRecord(record, index) {
+    if (record.type === 'system' || record.details?.type !== 'agent') return record
+    const { accessLevel, approvalPolicy, ...details } = record.details
+    const permissionMode = legacyPermissionMode(details.agent, accessLevel, approvalPolicy, `records[${index}].details`)
+
+    return {
+        ...record,
+        details: { ...details, ...(permissionMode !== undefined ? { permissionMode } : {}) },
+    }
+}
+
 export function migrateActivityValue(value, expectedOrigin = null) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Malformed activity file: root must be an object')
-    if (value.version !== LEGACY_ACTIVITY_VERSION) throw new Error(`Cannot migrate activity file version ${String(value.version)}`)
+    if (![LEGACY_ACTIVITY_VERSION, SECOND_ACTIVITY_VERSION, PREVIOUS_ACTIVITY_VERSION].includes(value.version)) {
+        throw new Error(`Cannot migrate activity file version ${String(value.version)}`)
+    }
+    if (value.version === PREVIOUS_ACTIVITY_VERSION || value.version === SECOND_ACTIVITY_VERSION) {
+        const actionSettings = value.version === PREVIOUS_ACTIVITY_VERSION
+            ? migrateVersionThreeActionSettings(value.actionSettings)
+            : {}
+        const records = value.records.map(migrateVersionThreeRecord)
+
+        return parseActivityValue({ ...value, actionSettings, records, version: ACTIVITY_VERSION }, expectedOrigin)
+    }
     if (!Array.isArray(value.records)) throw new Error('Malformed activity file: records must be an array')
     if (!Array.isArray(value.conversations)) throw new Error('Malformed activity file: conversations must be an array')
     const origin = parseOrigin(value.origin)
@@ -282,6 +396,7 @@ export function migrateActivityValue(value, expectedOrigin = null) {
     const conversations = value.conversations.map((conversation, index) => parseConversation(conversation, index, origin))
     const legacyRecords = value.records.map((record, index) => parseLegacyRecord(record, index, origin))
     const migrated = {
+        actionSettings: {},
         conversations,
         origin,
         records: legacyRecords.map((record, index) => migrateLegacyRecord(record, index, conversations)),
@@ -289,6 +404,121 @@ export function migrateActivityValue(value, expectedOrigin = null) {
     }
 
     return parseActivityValue(migrated, expectedOrigin)
+}
+
+function repairActionSettings(value, version) {
+    if (version === LEGACY_ACTIVITY_VERSION || version === SECOND_ACTIVITY_VERSION) return {}
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+
+    return Object.fromEntries(Object.entries(value).flatMap(([actionId, settings]) => {
+        try {
+            const parsed = version === PREVIOUS_ACTIVITY_VERSION
+                ? migrateVersionThreeActionSettings({ [actionId]: settings })
+                : parseActionSettings({ [actionId]: settings })
+
+            return [[actionId, parsed[actionId]]]
+        } catch {
+            return []
+        }
+    }))
+}
+
+function repairRecordCollections(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return value
+    const commits = Array.isArray(value.commits) ? value.commits.flatMap((commit, index) => {
+        try {
+            return [parseCommit(commit, index)]
+        } catch {
+            return []
+        }
+    }) : []
+    const conversationIds = Array.isArray(value.conversationIds)
+        ? value.conversationIds.filter((conversationId) => typeof conversationId === 'string' && conversationId.length > 0)
+        : []
+
+    return { ...value, commits, conversationIds }
+}
+
+function repairRecord(value, index, version, origin, conversations) {
+    const normalizedValue = repairRecordCollections(value)
+    try {
+        if (version === LEGACY_ACTIVITY_VERSION) {
+            const legacyRecord = parseLegacyRecord(normalizedValue, index, origin)
+            const migratedRecord = migrateLegacyRecord(legacyRecord, index, conversations)
+
+            return parseRecord(migratedRecord, index, origin)
+        }
+        const migratedRecord = version === SECOND_ACTIVITY_VERSION || version === PREVIOUS_ACTIVITY_VERSION
+            ? migrateVersionThreeRecord(normalizedValue, index)
+            : normalizedValue
+
+        return parseRecord(migratedRecord, index, origin)
+    } catch {
+        return null
+    }
+}
+
+function hasValidRecordConversationLinks(record, conversations) {
+    if (record.type === 'system' || record.details.type !== 'agent') return true
+    if (!record.conversationIds.includes(record.rootConversationId)) return false
+    const conversation = conversations.find(({ id }) => id === record.rootConversationId)
+
+    return !!conversation && conversation.actionId === record.rootActionId
+}
+
+function repairKnownActivityValue(value, expectedOrigin) {
+    const origin = expectedOrigin ? parseOrigin(expectedOrigin) : parseOrigin(value.origin)
+    const actionSettings = repairActionSettings(value.actionSettings, value.version)
+    const rawConversations = Array.isArray(value.conversations) ? value.conversations : []
+    const conversations = rawConversations
+        .map((conversation, index) => repairConversation(conversation, index, origin))
+        .filter((conversation) => conversation !== null)
+    const rawRecords = Array.isArray(value.records) ? value.records : []
+    const records = rawRecords
+        .map((record, index) => repairRecord(record, index, value.version, origin, conversations))
+        .filter((record) => record !== null)
+        .filter((record) => hasValidRecordConversationLinks(record, conversations))
+
+    return parseActivityValue({ actionSettings, conversations, origin, records, version: ACTIVITY_VERSION }, origin)
+}
+
+/** Salvage one activity file without weakening strict parsing used by normal reads and writes. */
+export function repairActivityFile(content, expectedOrigin = null) {
+    let value
+    try {
+        value = JSON.parse(content)
+    } catch {
+        if (!expectedOrigin) return { activity: null, changed: false, status: 'unrecoverable' }
+
+        return { activity: createActivityFile(expectedOrigin), changed: true, status: 'repaired' }
+    }
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        if (!expectedOrigin) return { activity: null, changed: false, status: 'unrecoverable' }
+
+        return { activity: createActivityFile(expectedOrigin), changed: true, status: 'repaired' }
+    }
+    if (typeof value.version === 'number' && value.version > ACTIVITY_VERSION) {
+        return { activity: null, changed: false, status: 'future' }
+    }
+    if (![LEGACY_ACTIVITY_VERSION, SECOND_ACTIVITY_VERSION, PREVIOUS_ACTIVITY_VERSION, ACTIVITY_VERSION].includes(value.version)) {
+        return { activity: null, changed: false, status: 'unrecoverable' }
+    }
+    if (value.version === ACTIVITY_VERSION) {
+        try {
+            const activity = parseActivityValue(value, expectedOrigin)
+
+            return { activity, changed: false, status: 'valid' }
+        } catch {
+            // Continue through tolerant normalization.
+        }
+    }
+    try {
+        const activity = repairKnownActivityValue(value, expectedOrigin)
+
+        return { activity, changed: true, status: 'repaired' }
+    } catch {
+        return { activity: null, changed: false, status: 'unrecoverable' }
+    }
 }
 
 export function parseActivityFile(content, expectedOrigin = null) {

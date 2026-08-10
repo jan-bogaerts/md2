@@ -549,6 +549,11 @@ class AgentRunnerService {
             run.conversation.status = preserveWaitingState
                 ? 'waitingForInput'
                 : run.cancelled ? 'cancelled' : succeeded ? 'completed' : 'failed';
+            const continuedTurnFailedBeforeStart = !!run.request.conversation
+                && !run.turnStarted
+                && !succeeded
+                && !run.cancelled
+                && !run.suspended;
             console.log('[agent:complete]', {
                 completedAt,
                 durationMs: Date.parse(completedAt) - Date.parse(run.startedAt),
@@ -558,7 +563,7 @@ class AgentRunnerService {
                 runId,
             });
             await run.persistence;
-            await this.persistConversation(run);
+            if (!continuedTurnFailedBeforeStart) await this.persistConversation(run);
             this.processes.delete(runId);
             this.runningConversationIds.delete(run.conversation.id);
             emitRunEvent(run, { conversation: structuredClone(run.conversation), type: 'closed' });

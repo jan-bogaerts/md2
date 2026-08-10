@@ -17,10 +17,9 @@ import { DEFAULT_CARD_TYPES, type Card } from './data_types'
 
 function action(name: string, appliesTo: ActionDefinition['appliesTo']): ActionDefinition {
     return {
-        accessLevel: null,
         agent: null,
         appliesTo,
-        approvalPolicy: null,
+        permissionMode: null,
         builtin: false,
         command: 'run',
         description: name,
@@ -88,6 +87,8 @@ describe('action context filter descriptors', () => {
             supportedContextKinds: ['card', 'file', 'project'],
             valueSource: 'worktree',
         })
+        expect(ACTION_CONTEXT_FILTER_DESCRIPTORS.find(({ key }) => key === 'kind')?.supportedContextKinds)
+            .toContain('merge-conflict')
     })
 
     it('requires a non-empty filter value', () => {
@@ -177,6 +178,13 @@ describe('actionsForContext', () => {
 
         expect(actionsForContext(actions, projectContext()).map(({ id }) => id))
             .toEqual([BUILTIN_CUSTOM_PROMPT.id, 'action-project-only'])
+    })
+
+    it('matches merge conflict actions by explicit context kind', () => {
+        const context = { conflictFile: 'src/file.ts', conflictFiles: 'src/file.ts', conflictSessionId: 'session-1', kind: 'merge-conflict' as const }
+        const actions = [action('conflict', { kind: 'merge-conflict' }), action('project', { kind: 'project' })]
+
+        expect(actionsForContext(actions, context).map(({ id }) => id)).toEqual(['action-conflict'])
     })
 })
 

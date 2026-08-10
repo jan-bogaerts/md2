@@ -48,6 +48,25 @@ describe('agent conversation', () => {
         });
     });
 
+    it('preserves non-negative file-change counts in persisted provider events', () => {
+        const providerEvent = {
+            content: 'update: design/card.md',
+            deletions: 2,
+            insertions: 4,
+            label: 'File changes',
+            providerItemId: 'file-1',
+            status: 'completed',
+            type: 'fileChange',
+        };
+
+        expect(createProviderEventEntry(providerEvent, 'event-1', 'now', 2)).toMatchObject({
+            deletions: 2,
+            insertions: 4,
+        });
+        expect(createProviderEventEntry({ ...providerEvent, deletions: -1, insertions: 1.5 }, 'event-2', 'now', 3))
+            .not.toMatchObject({ deletions: expect.anything(), insertions: expect.anything() });
+    });
+
     it('creates a new running conversation', () => {
         expect(createConversation({ actionId: 'review', activityOrigin: { cardInternalId: 'card-1', kind: 'card' }, cardPath: 'design/card.md', title: 'Review' }, 'agent-1', 'now', 'log.json')).toEqual({
             actionId: 'review',

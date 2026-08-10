@@ -7,7 +7,7 @@ import { DEFAULT_CARD_TYPES, type AgentConversation, type AgentConversationEvent
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
 import { actionService } from '../../../../services/actions/action_service'
 import { agentAcknowledgementService } from '../../../../services/agents/agent_acknowledgement_service'
-import { cardActionPopupService } from '../../../../services/actions/card_action_popup_service'
+import { cardPopupService } from '../../../../services/card_popup_service'
 import { dataService } from '../../../../services/data/data_service'
 import { AppThemeProvider } from '../../../../theme/theme_provider'
 import { CardActionPopupHost } from '../popup/card_action_popup_host'
@@ -133,7 +133,7 @@ describe('CardRunButton', () => {
 
     afterEach(() => {
         actionRunRegistry.stop()
-        cardActionPopupService.clear()
+        cardPopupService.clear()
         delete window.md2Actions
         cleanup()
         actionService.clear()
@@ -151,7 +151,7 @@ describe('CardRunButton', () => {
         const dialog = within(screen.getByRole('dialog'))
         const actionGroup = within(dialog.getByRole('group', { name: 'Actions' }))
         const actionButtons = actionGroup.getAllByRole('button')
-        expect(actionButtons.map((button) => button.textContent)).toEqual(['Create branch', 'Run lint', 'Implement', 'Custom prompt'])
+        expect(actionButtons.map((button) => button.textContent)).toEqual(['Create branch', 'Run lint', 'Implement', '+'])
         expect(dialog.getByRole('button', { name: 'Create branch' })).toHaveAttribute('aria-pressed', 'true')
 
         fireEvent.click(runButton)
@@ -505,15 +505,16 @@ describe('CardRunButton', () => {
         expect(actionGroup.getByRole('button', { name: 'Run lint' })).toBeInTheDocument()
     })
 
-    it('shows custom-action save controls from the Run popup', async () => {
+    it('opens custom prompt as a normal action without save controls', async () => {
         renderCardRunButton()
 
         fireEvent.click(screen.getByRole('button', { name: 'Run' }))
         const dialog = within(screen.getByRole('dialog'))
-        fireEvent.click(dialog.getByRole('button', { name: 'Add action' }))
+        fireEvent.click(dialog.getByRole('button', { name: 'Custom prompt' }))
 
         expect(await dialog.findByLabelText('Prompt')).toBeInTheDocument()
-        expect(dialog.getByLabelText('Preset name')).toHaveFocus()
+        expect(dialog.queryByLabelText('Preset name')).not.toBeInTheDocument()
+        expect(dialog.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument()
         expect(dialog.getByRole('button', { name: 'Send' })).toBeDisabled()
     })
 

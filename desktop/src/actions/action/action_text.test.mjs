@@ -3,7 +3,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const require = createRequire(import.meta.url);
-const { prepareAgentPrompt, resolveAgentPrompt, resolvePlaceholders } = require('./action_text');
+const { resolveAgentPrompt, resolvePlaceholders } = require('./action_text');
 
 const project = { rootPath: 'C:/repo' };
 const worktreeProject = { rootPath: 'C:/worktrees/2' };
@@ -15,14 +15,14 @@ describe('resolvePlaceholders', () => {
         const context = { file: 'design/card.md', title: 'Placeholder support' };
 
         expect(resolvePlaceholders(
-            '{{worktree-folder}} {{repository-folder}} {{project-folder}} {{releases-folder}} {{card-file}} {{card-title}} {{card-prompt}}',
+            '{{worktree-folder}} {{repository-folder}} {{project-folder}} {{releases-folder}} {{card-file}} {{ this-card }} {{card-title}} {{card-prompt}}',
             context,
             worktreeProject,
             project,
             projectFolder,
             releasesFolder,
             'focus',
-        )).toBe(`C:/worktrees/2 C:/repo ${path.resolve('C:/repo', projectFolder)} ${path.resolve('C:/repo', releasesFolder)} design/card.md Placeholder support focus`);
+        )).toBe(`C:/worktrees/2 C:/repo ${path.resolve('C:/repo', projectFolder)} ${path.resolve('C:/repo', releasesFolder)} design/card.md design/card.md Placeholder support focus`);
     });
 
     it('resolves empty project folder to the opened repository', () => {
@@ -44,12 +44,27 @@ describe('resolvePlaceholders', () => {
         expect(() => resolvePlaceholders('{{releases-folder}}', {}, project, project, projectFolder, '', '')).toThrow('configured releases folder');
     });
 
-    it('rejects card-file placeholder without file context', () => {
-        expect(() => resolvePlaceholders('{{card-file}}', { kind: 'project' }, project, project, projectFolder, releasesFolder, '')).toThrow('Cannot resolve card-file placeholder');
+    it.each(['card-file', 'this-card'])('rejects %s placeholder without file context', (placeholderName) => {
+        expect(() => resolvePlaceholders(`{{${placeholderName}}}`, { kind: 'project' }, project, project, projectFolder, releasesFolder, ''))
+            .toThrow(`Cannot resolve ${placeholderName} placeholder without a file context`);
     });
 
     it('rejects card-title placeholder without card title', () => {
         expect(() => resolvePlaceholders('{{card-title}}', { kind: 'card' }, project, project, projectFolder, releasesFolder, '')).toThrow('Cannot resolve card-title placeholder');
+    });
+
+    it('resolves merge conflict placeholders', () => {
+        const context = { conflictFile: 'src/one.js', conflictFiles: 'src/one.js\nsrc/two.js', kind: 'merge-conflict' };
+
+        expect(resolvePlaceholders(
+            '{{conflict-file}}\n{{conflict-files}}',
+            context,
+            project,
+            project,
+            projectFolder,
+            releasesFolder,
+            '',
+        )).toBe('src/one.js\nsrc/one.js\nsrc/two.js');
     });
 
     it('does not resolve removed placeholder names', () => {
@@ -70,18 +85,8 @@ describe('resolveAgentPrompt', () => {
     it('does not append blank input', () => {
         expect(resolveAgentPrompt({ prompt: 'Review' }, {}, project, project, projectFolder, releasesFolder, '  ')).toBe('Review');
     });
-});
 
-describe('prepareAgentPrompt', () => {
-    it('includes resolved placeholders and tracked-file instruction', () => {
-        const action = { prompt: 'Review {{card-file}} in {{worktree-folder}}', trackFileChanges: true };
-
-        expect(prepareAgentPrompt(action, { file: 'design/card.md' }, project, project, projectFolder, releasesFolder)).toBe(
-            'Review design/card.md in C:/repo\n\nDo not stage or commit changes. md2 will commit files captured from provider edit tools.',
-        );
-    });
-
-    it('prepares the custom-prompt action as empty', () => {
-        expect(prepareAgentPrompt({ prompt: '{{card-prompt}}' }, {}, project, project, projectFolder, releasesFolder)).toBe('');
+    it('resolves an empty custom prompt', () => {
+        expect(resolveAgentPrompt({ prompt: '{{card-prompt}}' }, {}, project, project, projectFolder, releasesFolder, '')).toBe('');
     });
 });

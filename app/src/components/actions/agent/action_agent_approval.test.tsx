@@ -74,6 +74,41 @@ describe('ActionAgentApproval', () => {
         expect(commandButton).toHaveStyle({ textOverflow: 'ellipsis', whiteSpace: 'nowrap' })
     })
 
+    it('clips every action to one line and toggles all full actions together', () => {
+        const firstAction = 'Get-ChildItem -Recurse C:\\repo'
+        const secondAction = 'Select-String -Pattern "approval"\n-CaseSensitive'
+        render(<ActionAgentApproval
+            approval={{
+                ...approval,
+                command: 'combined command',
+                commandActions: [
+                    { command: firstAction, type: 'unknown' },
+                    { command: secondAction, type: 'unknown' },
+                ],
+            }}
+            onDecision={vi.fn()}
+        />)
+        const actionsButton = screen.getByRole('button', { name: 'Toggle full actions' })
+        const firstActionValue = screen.getByText(firstAction)
+        const secondActionValue = screen.getByText(/Select-String -Pattern "approval"\s+-CaseSensitive/u)
+
+        expect(actionsButton).toHaveAttribute('aria-expanded', 'false')
+        expect(firstActionValue).toHaveStyle({ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' })
+        expect(secondActionValue).toHaveStyle({ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' })
+
+        fireEvent.click(actionsButton)
+
+        expect(actionsButton).toHaveAttribute('aria-expanded', 'true')
+        expect(firstActionValue).toHaveStyle({ overflowWrap: 'anywhere', textOverflow: 'clip', whiteSpace: 'pre-wrap' })
+        expect(secondActionValue).toHaveStyle({ overflowWrap: 'anywhere', textOverflow: 'clip', whiteSpace: 'pre-wrap' })
+
+        fireEvent.click(actionsButton)
+
+        expect(actionsButton).toHaveAttribute('aria-expanded', 'false')
+        expect(firstActionValue).toHaveStyle({ textOverflow: 'ellipsis', whiteSpace: 'nowrap' })
+        expect(secondActionValue).toHaveStyle({ textOverflow: 'ellipsis', whiteSpace: 'nowrap' })
+    })
+
     it('expands each pending approval independently', () => {
         render(<>
             <ActionAgentApproval approval={{ ...approval, command: 'first command', requestId: 1 }} onDecision={vi.fn()} />
@@ -122,11 +157,12 @@ describe('ActionAgentApproval', () => {
         expect(screen.getByText('desktop/main.js')).toBeInTheDocument()
     })
 
-    it('shows Claude tool input and provider permission suggestions', () => {
+    it('shows tool input and provider permission suggestions without provider or environment', () => {
         render(<ActionAgentApproval approval={{
             ...approval,
             availableDecisions: ['accept', 'acceptForSession', 'decline', 'cancel'],
             command: 'npm test',
+            environmentId: 'local',
             input: { command: 'npm test' },
             permissionSuggestions: [{ behavior: 'allow', destination: 'session', tool: 'Bash' }],
             provider: 'claude',
@@ -134,7 +170,10 @@ describe('ActionAgentApproval', () => {
             toolName: 'Bash',
         }} onDecision={vi.fn()} />)
 
-        expect(screen.getByText('claude')).toBeInTheDocument()
+        expect(screen.queryByText('Provider')).not.toBeInTheDocument()
+        expect(screen.queryByText('claude')).not.toBeInTheDocument()
+        expect(screen.queryByText('Environment')).not.toBeInTheDocument()
+        expect(screen.queryByText('local')).not.toBeInTheDocument()
         expect(screen.getByText('Bash')).toBeInTheDocument()
         expect(screen.getByText(/"command": "npm test"/u)).toBeInTheDocument()
         expect(screen.getByText(/"destination": "session"/u)).toBeInTheDocument()

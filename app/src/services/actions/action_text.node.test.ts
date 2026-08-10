@@ -25,8 +25,7 @@ function action(overrides: Partial<ActionDefinition> = {}): ActionDefinition {
         trackFileChanges: false,
         type: 'agent',
         ...overrides,
-        accessLevel: overrides.accessLevel ?? null,
-        approvalPolicy: overrides.approvalPolicy ?? null,
+        permissionMode: overrides.permissionMode ?? null,
         phrases: overrides.phrases ?? [],
         streaming: overrides.streaming ?? false,
     }
@@ -69,6 +68,25 @@ describe('resolvePlaceholders', () => {
             .toThrow('Cannot resolve repository-folder without an opened repository path')
         expect(() => resolvePlaceholders('run {{releases-folder}}', context, { ...folders, releasesFolder: '' }, ''))
             .toThrow('Cannot resolve releases-folder without a configured releases folder')
+    })
+
+    it('resolves selected and remaining merge conflict paths', () => {
+        const conflictContext: ActionContext = {
+            conflictFile: 'src/one.ts',
+            conflictFiles: 'src/one.ts\nsrc/two.ts',
+            conflictSessionId: 'session-1',
+            kind: 'merge-conflict',
+        }
+
+        expect(resolvePlaceholders('{{conflict-file}}\n{{conflict-files}}', conflictContext, folders, ''))
+            .toBe('src/one.ts\nsrc/one.ts\nsrc/two.ts')
+    })
+
+    it('requires conflict path values used by prompt placeholders', () => {
+        const conflictContext: ActionContext = { conflictSessionId: 'session-1', kind: 'merge-conflict' }
+
+        expect(() => resolvePlaceholders('{{conflict-file}}', conflictContext, folders, '')).toThrow('selected conflict file')
+        expect(() => resolvePlaceholders('{{conflict-files}}', conflictContext, folders, '')).toThrow('without conflict files')
     })
 
     it('does not resolve removed placeholder names', () => {

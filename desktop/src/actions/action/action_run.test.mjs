@@ -540,7 +540,7 @@ describe('ActionRun', () => {
                 input.onEvent({ conversation: completedConversation, type: 'closed' });
 
                 return {
-                    accessLevel: 'workspace-write', agent: 'codex', approvalPolicy: 'on-request', exitCode: 0, model: 'gpt', prompt: 'run',
+                    agent: 'codex', exitCode: 0, model: 'gpt', permissionMode: 'ask-for-approval', prompt: 'run',
                     conversationId: 'conversation', reference: 'run.json', stderr: '', stdout: 'done', thinkingLevel: 'high',
                 };
             }),
@@ -574,7 +574,7 @@ describe('ActionRun', () => {
             },
         }));
         expect(events).toContainEqual(expect.objectContaining({
-            accessLevel: 'workspace-write', approvalPolicy: 'on-request', conversationId: 'conversation', reference: 'run.json',
+            conversationId: 'conversation', permissionMode: 'ask-for-approval', reference: 'run.json',
             runId: 'run-1', status: 'completed', thinkingLevel: 'high', type: 'action',
         }));
     });

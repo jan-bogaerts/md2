@@ -1,19 +1,28 @@
+import { useMediaQuery, useTheme } from '@mui/material'
 import { useSyncExternalStore } from 'react'
 import {
-    cardActionPopupService,
-    subscribeCardActionPopups,
-} from '../../../../services/actions/card_action_popup_service'
+    cardPopupService,
+    subscribeCardPopups,
+} from '../../../../services/card_popup_service'
 import { CardActionPopupHostEntry } from './card_action_popup_host_entry'
 
 /** Stable renderer for all service-owned card action popups. */
 export function CardActionPopupHost() {
+    const theme = useTheme()
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'))
     const entries = useSyncExternalStore(
-        subscribeCardActionPopups,
-        () => cardActionPopupService.getSnapshot(),
-        () => cardActionPopupService.getSnapshot(),
+        subscribeCardPopups,
+        () => cardPopupService.getSnapshot(),
+        () => cardPopupService.getSnapshot(),
     )
+    const topEntryId = entries.at(-1)?.id
 
-    return entries.map((entry, stackPosition) => (
-        <CardActionPopupHostEntry entry={entry} key={entry.id} stackPosition={stackPosition} />
-    ))
+    return entries.map((entry, stackPosition) => entry.kind === 'action' ? (
+        <CardActionPopupHostEntry
+            entry={entry}
+            key={entry.id}
+            stackPosition={stackPosition}
+            visible={!isMobile || entry.id === topEntryId}
+        />
+    ) : null)
 }

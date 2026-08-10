@@ -209,6 +209,7 @@ describe('AgentIntegration', () => {
         agentAcknowledgementService.addEventListener(actionEvent, actionListener)
 
         expect(snapshot.activeCards[0].agentConversations).toHaveLength(0)
+        fullProject.resolve({ files: agentFiles, workingFolder: 'design' })
         conversationLoad.resolve({ ...conversation(), actionId: 'implement' })
 
         await vi.waitFor(() => {
@@ -289,10 +290,10 @@ describe('AgentIntegration', () => {
         expect(card && cardAgentState(card.agentConversations)).not.toBe('waiting for input')
     })
 
-    it('loads conversations only for active, archived, and released cards', async () => {
+    it('automatically loads conversations only for active cards', async () => {
         configService.init()
         const activeFile: MarkdownFile = {
-            content: '---\nid: F-1\ninternalId: active-card\ntitle: Active\nstatus: active\n---\n\n# Active',
+            content: '---\nid: F-1\ninternalId: active-card\ntitle: Active\nstatus: active\nagents:\n  - design/activity/card__active-card.json#conversation=active\n---\n\n# Active',
             path: 'design/active/F-1-active.md',
         }
         const archivedFile: MarkdownFile = {
@@ -309,6 +310,14 @@ describe('AgentIntegration', () => {
         }
         const allFiles = [activeFile, archivedFile, releasedFile, actionDocument]
         const loadAgentConversation = vi.fn(async (_project, path: string) => {
+            if (path.includes('active-card')) {
+                return {
+                    ...conversation(path),
+                    cardInternalId: 'active-card',
+                    cardPath: activeFile.path,
+                    id: 'active',
+                }
+            }
             if (path.includes('archived-card')) {
                 return {
                     ...conversation(path),
@@ -343,17 +352,178 @@ describe('AgentIntegration', () => {
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
-        await vi.waitFor(() => {
-            const snapshot = service.getState().snapshot
-            expect(snapshot?.backgroundCards.find(({ path }) => path === archivedFile.path)?.agentConversations).toHaveLength(1)
-            expect(snapshot?.backgroundCards.find(({ path }) => path === releasedFile.path)?.agentConversations).toHaveLength(1)
-        })
+        await vi.waitFor(() => expect(service.getState().snapshot?.activeCards[0].agentConversations).toHaveLength(1))
+        await vi.waitFor(() => expect(service.getState().snapshot?.backgroundCards).toHaveLength(3))
         const loadedReferences = loadAgentConversation.mock.calls.map(([, reference]) => reference)
-        expect(loadedReferences).toEqual(expect.arrayContaining([
-            'design/activity/card__archived-card.json#conversation=archived',
-            'design/history/v1/card__released-card.json#conversation=released',
-        ]))
+        expect(loadedReferences).toEqual(['design/activity/card__active-card.json#conversation=active'])
         expect(loadedReferences).not.toContain('design/activity/card__action-document.json#conversation=action')
+        expect(service.getState().snapshot?.backgroundCards.every(({ agentConversations }) => agentConversations.length === 0)).toBe(true)
+    })
+
+    it('automatically caches project conversations and shares an in-flight popup request', async () => {
+        configService.init()
+        const projectConversationLoad = createDeferred<AgentConversation>()
+        const projectReference = 'design/activity/project.json#conversation=project-agent'
+        const loadAgentConversation = vi.fn(async () => projectConversationLoad.promise)
+        const listAgentConversationReferences = vi.fn(async () => [projectReference])
+        const storage = createStorage({ loadAgentConversation, listAgentConversationReferences })
+        const service = createDataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const context = { kind: 'project' as const }
+        const firstRequest = service.listAgentConversations(context)
+        const secondRequest = service.listAgentConversations(context)
+        await vi.waitFor(() => expect(loadAgentConversation).toHaveBeenCalledTimes(1))
+
+        const projectConversation = { ...conversation(projectReference), cardInternalId: null, cardPath: null }
+        projectConversationLoad.resolve(projectConversation)
+
+        await expect(firstRequest).resolves.toEqual([projectConversation])
+        await expect(secondRequest).resolves.toEqual([projectConversation])
+        await expect(service.listAgentConversations(context)).resolves.toEqual([projectConversation])
+        expect(listAgentConversationReferences).toHaveBeenCalledTimes(1)
+        expect(loadAgentConversation).toHaveBeenCalledTimes(1)
+    })
+
+    it('loads one historical card on demand and shares completed and concurrent requests', async () => {
+        configService.init()
+        const historicalReference = 'design/activity/card__historical-card.json#conversation=historical'
+        const activeFile: MarkdownFile = {
+            content: '---\nid: F-1\ninternalId: active-card\ntitle: Active\nstatus: active\n---\n\n# Active',
+            path: 'design/F-1-active.md',
+        }
+        const historicalFile: MarkdownFile = {
+            content: `---\nid: F-2\ninternalId: historical-card\ntitle: Historical\nstatus: released\nagents:\n  - ${historicalReference}\n---\n\n# Historical`,
+            path: 'design/history/F-2-historical.md',
+        }
+        const emptyHistoricalFile: MarkdownFile = {
+            content: '---\nid: F-3\ninternalId: empty-card\ntitle: Empty\nstatus: released\n---\n\n# Empty',
+            path: 'design/history/F-3-empty.md',
+        }
+        const historicalConversationLoad = createDeferred<AgentConversation>()
+        const loadAgentConversation = vi.fn(async () => historicalConversationLoad.promise)
+        const storage = createStorage({
+            loadAgentConversation,
+            loadProject: vi.fn(async () => ({ files: [activeFile, historicalFile, emptyHistoricalFile], workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [activeFile], workingFolder: 'design' })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await vi.waitFor(() => expect(service.getState().snapshot?.backgroundCards).toHaveLength(2))
+        expect(loadAgentConversation).not.toHaveBeenCalled()
+
+        const emptyContext = { cardInternalId: 'empty-card', file: emptyHistoricalFile.path, kind: 'card' as const }
+        await expect(service.listAgentConversations(emptyContext)).resolves.toEqual([])
+        expect(loadAgentConversation).not.toHaveBeenCalled()
+
+        const context = { cardInternalId: 'historical-card', file: historicalFile.path, kind: 'card' as const }
+        const firstRequest = service.listAgentConversations(context)
+        const secondRequest = service.listAgentConversations(context)
+        await vi.waitFor(() => expect(loadAgentConversation).toHaveBeenCalledTimes(1))
+        const loadedConversation = {
+            ...conversation(historicalReference),
+            cardInternalId: 'historical-card',
+            cardPath: historicalFile.path,
+            id: 'historical',
+        }
+        historicalConversationLoad.resolve(loadedConversation)
+
+        await expect(firstRequest).resolves.toEqual([loadedConversation])
+        await expect(secondRequest).resolves.toEqual([loadedConversation])
+        await expect(service.listAgentConversations(context)).resolves.toEqual([loadedConversation])
+        expect(loadAgentConversation).toHaveBeenCalledTimes(1)
+        const snapshot = service.getState().snapshot
+        expect(snapshot?.backgroundCards.find(({ path }) => path === historicalFile.path)?.agentConversations).toEqual([loadedConversation])
+        expect(snapshot?.backgroundCards.find(({ path }) => path === emptyHistoricalFile.path)?.agentConversations).toEqual([])
+    })
+
+    it('keeps a historical card load failure scoped to that card', async () => {
+        configService.init()
+        const invalidReference = 'design/activity/card__historical-card.json#conversation=wrong-card'
+        const activeFile: MarkdownFile = {
+            content: '---\nid: F-1\ninternalId: active-card\ntitle: Active\nstatus: active\n---\n\n# Active',
+            path: 'design/F-1-active.md',
+        }
+        const historicalFile: MarkdownFile = {
+            content: `---\nid: F-2\ninternalId: historical-card\ntitle: Historical\nstatus: released\nagents:\n  - ${invalidReference}\n---\n\n# Historical`,
+            path: 'design/history/F-2-historical.md',
+        }
+        const otherFile: MarkdownFile = {
+            content: '---\nid: F-3\ninternalId: other-card\ntitle: Other\nstatus: released\n---\n\n# Other',
+            path: 'design/history/F-3-other.md',
+        }
+        const storage = createStorage({
+            loadAgentConversation: vi.fn(async () => ({ ...conversation(invalidReference), cardInternalId: 'other-card' })),
+            loadProject: vi.fn(async () => ({ files: [activeFile, historicalFile, otherFile], workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [activeFile], workingFolder: 'design' })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await vi.waitFor(() => expect(service.getState().snapshot?.backgroundCards).toHaveLength(2))
+
+        const context = { cardInternalId: 'historical-card', file: historicalFile.path, kind: 'card' as const }
+        await expect(service.listAgentConversations(context)).resolves.toEqual([])
+
+        const snapshot = service.getState().snapshot
+        expect(snapshot?.backgroundCards.find(({ path }) => path === historicalFile.path)?.agentConversationErrors).toEqual([{
+            message: 'Agent conversation belongs to other-card, not historical-card',
+            path: invalidReference,
+        }])
+        expect(snapshot?.backgroundCards.find(({ path }) => path === otherFile.path)?.agentConversationErrors).toEqual([])
+    })
+
+    it('ignores a historical conversation that finishes after project switching', async () => {
+        configService.init()
+        const oldReference = 'design/activity/card__old-card.json#conversation=old'
+        const oldActiveFile: MarkdownFile = {
+            content: '---\nid: F-1\ninternalId: old-active\ntitle: Old active\nstatus: active\n---\n\n# Old active',
+            path: 'design/F-1-old-active.md',
+        }
+        const oldHistoricalFile: MarkdownFile = {
+            content: `---\nid: F-2\ninternalId: old-card\ntitle: Old\nstatus: released\nagents:\n  - ${oldReference}\n---\n\n# Old`,
+            path: 'design/history/F-2-old.md',
+        }
+        const newActiveFile: MarkdownFile = {
+            content: '---\nid: F-3\ninternalId: new-active\ntitle: New active\nstatus: active\n---\n\n# New active',
+            path: 'design/F-3-new-active.md',
+        }
+        const oldConversationLoad = createDeferred<AgentConversation>()
+        const loadProjectRoot = vi.fn(async (project: { id: string }) => ({
+            files: project.id === 'old-project' ? [oldActiveFile] : [newActiveFile],
+            workingFolder: 'design',
+        }))
+        const loadProject = vi.fn(async (project: { id: string }) => ({
+            files: project.id === 'old-project' ? [oldActiveFile, oldHistoricalFile] : [newActiveFile],
+            workingFolder: 'design',
+        }))
+        const storage = createStorage({
+            loadAgentConversation: vi.fn(async () => oldConversationLoad.promise),
+            loadProject,
+            loadProjectRoot,
+        })
+        const service = createDataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'old-project' })
+        await vi.waitFor(() => expect(service.getState().snapshot?.backgroundCards).toHaveLength(1))
+        const context = { cardInternalId: 'old-card', file: oldHistoricalFile.path, kind: 'card' as const }
+        const oldRequest = service.listAgentConversations(context)
+        await vi.waitFor(() => expect(storage.loadAgentConversation).toHaveBeenCalledTimes(1))
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'new-project' })
+        oldConversationLoad.resolve({
+            ...conversation(oldReference),
+            cardInternalId: 'old-card',
+            cardPath: oldHistoricalFile.path,
+        })
+        await expect(oldRequest).resolves.toEqual([])
+
+        expect(service.getState().snapshot?.activeCards[0].header.internalId).toBe('new-active')
+        expect(service.agents.getAgentConversations('old-card')).toEqual([])
     })
 
     it('keeps conversations available while their card file is temporarily absent', async () => {
@@ -432,6 +602,7 @@ describe('AgentIntegration', () => {
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        fullProject.resolve({ files: [agentFile], workingFolder: 'design' })
 
         await vi.waitFor(() => {
             expect(service.getState().snapshot?.activeCards[0].agentConversations).toHaveLength(10)
@@ -463,6 +634,7 @@ describe('AgentIntegration', () => {
 
         expect(snapshot.activeCards[0].header.title).toBe('Root')
         expect(snapshot.activeCards[0].agentConversationErrors).toEqual([])
+        fullProject.resolve({ files: agentFiles, workingFolder: 'design' })
 
         await vi.waitFor(() => {
             expect(service.getState().snapshot?.activeCards[0].agentConversationErrors).toEqual([

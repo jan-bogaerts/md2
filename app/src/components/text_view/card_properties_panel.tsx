@@ -11,7 +11,7 @@ import TitleOutlined from '@mui/icons-material/TitleOutlined'
 import { useState, type ChangeEvent, type KeyboardEvent } from 'react'
 import { getCardType } from '../../data/action_context'
 import { defaultColumnAccent, type CardTypeConfig } from '../../data/data_types'
-import { cardMarkdownDataSource, type CardBinding } from '../editor/card_markdown_data_source'
+import { cardMarkdownDataSource, type CardBinding, type CardMarkdownDataSource } from '../editor/card_markdown_data_source'
 import { useActiveCard } from '../hooks/use_active_card'
 
 const AUTO_MERGE_POLICY_KEY = 'autoMerge'
@@ -27,6 +27,7 @@ interface PropertyDraft {
 interface CardPropertiesPanelProps {
     binding: CardBinding
     cardTypes: CardTypeConfig[]
+    dataSource?: CardMarkdownDataSource
     statusColors: Map<string, string>
 }
 
@@ -68,8 +69,8 @@ const inputSx = {
 
 /** Compact editor for user-facing card properties inside the toolbar popup. */
 export function CardPropertiesPanel(props: CardPropertiesPanelProps) {
-    const { binding, cardTypes, statusColors } = props
-    const card = useActiveCard(binding)
+    const { binding, cardTypes, dataSource = cardMarkdownDataSource, statusColors } = props
+    const card = useActiveCard(binding, dataSource)
     const documentId = card?.header.internalId ?? null
     const author = card?.header.author ?? null
     const title = card?.header.title ?? ''
@@ -100,7 +101,7 @@ export function CardPropertiesPanel(props: CardPropertiesPanelProps) {
             setTitleEdit({ baseline: title, documentId, value: title })
             return
         }
-        if (nextTitle !== title) cardMarkdownDataSource.updateActiveCardTitle(binding, nextTitle)
+        if (nextTitle !== title) dataSource.updateActiveCardTitle(binding, nextTitle)
     }
 
     const handleTitleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -117,7 +118,7 @@ export function CardPropertiesPanel(props: CardPropertiesPanelProps) {
 
     const commitAuthor = () => {
         if (authorDraft !== (author ?? '')) {
-            cardMarkdownDataSource.updateActiveCardHeaderField(binding, 'author', authorDraft)
+            dataSource.updateActiveCardHeaderField(binding, 'author', authorDraft)
         }
     }
 
@@ -131,12 +132,12 @@ export function CardPropertiesPanel(props: CardPropertiesPanelProps) {
 
     const handlePolicyChange = (event: SelectChangeEvent) => {
         const shouldAutoMerge = event.target.value === AUTO_MERGE_POLICY_VALUE
-        if (shouldAutoMerge !== autoMergeEnabled) cardMarkdownDataSource.toggleActiveCardPolicy(binding, AUTO_MERGE_POLICY_KEY)
+        if (shouldAutoMerge !== autoMergeEnabled) dataSource.toggleActiveCardPolicy(binding, AUTO_MERGE_POLICY_KEY)
     }
 
     const handleTypeChange = (event: SelectChangeEvent) => {
         const nextType = event.target.value
-        if (nextType !== typeValue) void cardMarkdownDataSource.updateActiveCardType(binding, nextType)
+        if (nextType !== typeValue) void dataSource.updateActiveCardType(binding, nextType)
     }
 
     if (!card) return null

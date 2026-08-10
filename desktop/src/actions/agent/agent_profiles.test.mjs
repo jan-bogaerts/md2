@@ -12,7 +12,9 @@ const {
     normalizeAgentProfiles,
     resolveAgentCommand,
     supportsAgentStreaming,
+    supportsPermissionMode,
     validateAgentProfiles,
+    validatePermissionMode,
     validateThinkingLevel,
 } = require('./agent_profiles.mjs');
 
@@ -24,7 +26,12 @@ describe('agent profile resolution', () => {
             model: '',
         });
 
-        expect(result).toMatchObject({ agent: 'codex', command: ['codex', '--model', 'gpt-5', '--search', 'exec', '--json'], model: 'gpt-5' });
+        expect(result).toMatchObject({
+            agent: 'codex',
+            command: ['codex', '--model', 'gpt-5', '--sandbox', 'workspace-write', '--ask-for-approval', 'on-request', '--search', 'exec', '--json'],
+            model: 'gpt-5',
+            permissionMode: 'ask-for-approval',
+        });
     });
 
     it('constructs commands with placeholders and model arguments', () => {
@@ -32,54 +39,47 @@ describe('agent profile resolution', () => {
         expect(buildAgentCommand({ command: ['codex'], modelArgument: '--model', models: ['gpt-5'], name: 'codex' }, 'gpt-5')).toEqual(['codex', '--model', 'gpt-5']);
     });
 
-    it('resolves provider permissions from run overrides, desktop defaults, then profile defaults', () => {
-        const config = {
-            accessLevel: 'read-only',
-            agent: 'codex',
-            agentProfiles: BUILTIN_AGENT_PROFILES,
-            approvalPolicy: 'untrusted',
-            model: '',
-        };
+    it.each([
+        ['codex', 'ask-for-approval', ['--sandbox', 'workspace-write', '--ask-for-approval', 'on-request']],
+        ['codex', 'approve-for-me', ['--sandbox', 'workspace-write', '--ask-for-approval', 'on-request', '-c', 'approvals_reviewer=auto_review']],
+        ['codex', 'full-access', ['--sandbox', 'danger-full-access', '--ask-for-approval', 'never']],
+        ['claude', 'ask-for-approval', ['--permission-mode', 'acceptEdits']],
+        ['claude', 'approve-for-me', ['--permission-mode', 'auto']],
+        ['claude', 'full-access', ['--permission-mode', 'bypassPermissions']],
+    ])('builds exact %s %s one-shot, streaming, and resume commands', (agent, permissionMode, permissionArguments) => {
+        const profile = BUILTIN_AGENT_PROFILES.find(({ name }) => name === agent);
+        if (!profile) throw new Error(`Missing profile ${agent}`);
+        const model = agent === 'codex' ? 'gpt-5.5' : 'sonnet';
+        const base = [agent, '--model', model, ...permissionArguments];
+        const output = agent === 'codex'
+            ? ['--search', 'exec', '--json']
+            : ['--print', '--verbose', '--output-format', 'stream-json'];
+        const streamingOutput = agent === 'codex'
+            ? ['app-server', '--stdio']
+            : [...output, '--include-partial-messages', '--input-format', 'stream-json', '--permission-prompt-tool', 'stdio'];
+        const resumed = agent === 'codex'
+            ? [...base, 'exec', 'resume', '--json', 'session-1']
+            : [...base, ...output, '--resume', 'session-1'];
 
-        expect(resolveAgentCommand(config).command).toEqual([
-            'codex', '--model', 'gpt-5.5', '--sandbox', 'read-only', '--ask-for-approval', 'untrusted', '--search', 'exec', '--json',
-        ]);
-        expect(resolveAgentCommand(config, { accessLevel: 'danger-full-access', approvalPolicy: 'never' }).command).toEqual([
-            'codex', '--model', 'gpt-5.5', '--sandbox', 'danger-full-access', '--ask-for-approval', 'never', '--search', 'exec', '--json',
-        ]);
-        expect(resolveAgentCommand({ agent: 'codex', agentProfiles: BUILTIN_AGENT_PROFILES, model: '' })).toMatchObject({
-            accessLevel: 'workspace-write',
-            approvalPolicy: 'on-request',
-        });
+        expect(buildAgentExecutionCommand(profile, model, 'none', true, permissionMode)).toEqual([...base, ...output]);
+        expect(buildAgentStreamingCommand(profile, model, 'none', permissionMode)).toEqual([...base, ...streamingOutput]);
+        expect(buildResumeAgentCommand(
+            profile,
+            'session-1',
+            buildAgentExecutionCommand(profile, model, 'none', false, permissionMode),
+        )).toEqual(resumed);
     });
 
-    it('places permissions before streaming and resumed subcommands', () => {
-        const resolved = resolveAgentCommand({ agent: 'codex', agentProfiles: BUILTIN_AGENT_PROFILES, model: '' }, {}, true);
+    it('validates shared modes and rejects permission modes for custom profiles', () => {
+        const custom = { command: ['agent'], models: ['model'], name: 'agent' };
 
-        expect(resolved.command).toEqual([
-            'codex', '--model', 'gpt-5.5', '--sandbox', 'workspace-write', '--ask-for-approval', 'on-request', 'app-server', '--stdio',
-        ]);
-        expect(buildResumeAgentCommand(resolved.profile, 'thread-1', buildAgentExecutionCommand(
-            resolved.profile,
-            resolved.model,
-            'none',
-            false,
-            { accessLevel: 'workspace-write', approvalPolicy: 'on-request' },
-        ))).toEqual([
-            'codex', '--model', 'gpt-5.5', '--sandbox', 'workspace-write', '--ask-for-approval', 'on-request',
-            'exec', 'resume', '--json', 'thread-1',
-        ]);
-    });
-
-    it('uses Claude provider policy names and rejects unsupported or malformed selections', () => {
-        const config = { agent: 'claude', agentProfiles: BUILTIN_AGENT_PROFILES, model: 'sonnet' };
-
-        expect(resolveAgentCommand(config).command).toContain('--permission-mode');
-        expect(resolveAgentCommand(config).command).toContain('default');
-        expect(() => resolveAgentCommand(config, { accessLevel: 'read-only' })).toThrow('does not support access level');
-        expect(() => resolveAgentCommand({ ...config, approvalPolicy: 'removed' })).toThrow('Unknown approval policy');
-        const missingArgumentProfile = {accessLevels: ['safe'], command: ['agent'], defaultAccessLevel: 'safe', models: ['model'], name: 'agent'};
-        expect(() => validateAgentProfiles([missingArgumentProfile])).toThrow('accessLevelArgument');
+        expect(validatePermissionMode('ask-for-approval', 'test')).toBe('ask-for-approval');
+        expect(validatePermissionMode('approve-for-me', 'test')).toBe('approve-for-me');
+        expect(validatePermissionMode('full-access', 'test')).toBe('full-access');
+        expect(() => validatePermissionMode('removed', 'test')).toThrow('Invalid permission mode in test: removed');
+        expect(supportsPermissionMode(custom)).toBe(false);
+        expect(() => buildAgentExecutionCommand(custom, 'model', 'none', true, 'ask-for-approval'))
+            .toThrow('Agent profile does not support permission modes: agent');
     });
 
     it('translates fixed thinking levels through provider-specific adapters', () => {
@@ -125,9 +125,10 @@ describe('agent profile resolution', () => {
             thinkingLevel: 'medium',
         };
 
-        expect(resolveAgentCommand(config, { thinkingLevel: 'low' })).toMatchObject({command: ['codex', '-c', 'model_reasoning_effort=low', '--search', 'exec', '--json'], thinkingLevel: 'low'});
-        expect(resolveAgentCommand(config)).toMatchObject({command: ['codex', '-c', 'model_reasoning_effort=medium', '--search', 'exec', '--json'], thinkingLevel: 'medium'});
-        expect(resolveAgentCommand({ ...config, thinkingLevel: undefined })).toMatchObject({ command: ['codex', '--search', 'exec', '--json'], thinkingLevel: 'none' });
+        const permissionArguments = ['--sandbox', 'workspace-write', '--ask-for-approval', 'on-request'];
+        expect(resolveAgentCommand(config, { thinkingLevel: 'low' })).toMatchObject({command: ['codex', '-c', 'model_reasoning_effort=low', ...permissionArguments, '--search', 'exec', '--json'], thinkingLevel: 'low'});
+        expect(resolveAgentCommand(config)).toMatchObject({command: ['codex', '-c', 'model_reasoning_effort=medium', ...permissionArguments, '--search', 'exec', '--json'], thinkingLevel: 'medium'});
+        expect(resolveAgentCommand({ ...config, thinkingLevel: undefined })).toMatchObject({ command: ['codex', ...permissionArguments, '--search', 'exec', '--json'], thinkingLevel: 'none' });
     });
 
     it('falls back to the default profile when the configured profile is missing', () => {

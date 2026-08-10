@@ -73,6 +73,28 @@ describe('ActionWorktreeRunService', () => {
         expect(run).toMatchObject({ branch: 'card', runWorktree: 1, repositoryRoot: 'C:/worktrees/card' });
     });
 
+    it('binds merge conflict action to active session repository instead of context paths', async () => {
+        const mergeConflictService = {
+            requireSession: vi.fn(() => ({
+                projectBranch: 'main', projectRoot: 'C:/repo', repositoryRoot: 'C:/worktrees/conflict',
+                worktree: 2, worktreeBranch: 'feature/conflict',
+            })),
+        };
+        const runService = new ActionWorktreeRunService({ mergeConflictService, worktreeService: { resolve: vi.fn() } });
+        const runner = vi.fn(async () => result());
+
+        const run = await runService.execute(
+            primaryProject,
+            action(),
+            { conflictFile: '../../outside', conflictSessionId: 'session-1', kind: 'merge-conflict' },
+            runner,
+        );
+
+        expect(mergeConflictService.requireSession).toHaveBeenCalledWith({ sessionId: 'session-1' });
+        expect(runner).toHaveBeenCalledWith({ branch: 'feature/conflict', id: 'C:/worktrees/conflict', rootPath: 'C:/worktrees/conflict' });
+        expect(run).toMatchObject({ repositoryRoot: 'C:/worktrees/conflict', runWorktree: 2 });
+    });
+
     it('rejects needsWorkTree actions without an assigned card worktree', async () => {
         const runner = vi.fn(async () => result());
 

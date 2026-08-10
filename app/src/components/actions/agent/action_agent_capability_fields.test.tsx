@@ -116,10 +116,9 @@ describe('ActionAgentCapabilityFields', () => {
         fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: 'claude' }))
 
         expect(onChange).toHaveBeenCalledWith(expect.objectContaining({
-            accessLevel: undefined,
             agent: 'claude',
-            approvalPolicy: 'default',
             model: undefined,
+            permissionMode: undefined,
             thinkingLevel: undefined,
         }))
     })

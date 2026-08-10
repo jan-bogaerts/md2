@@ -1,6 +1,7 @@
 import { useSyncExternalStore, type ChangeEvent } from 'react'
 import type { ActionContext } from '../../../data/action_context'
 import type { ActionDefinition } from '../../../data/action_types'
+import type { ActionRunSettingsStore } from '../../../services/actions/action_run_settings_service'
 import type { ActionConversationStore } from '../conversation/action_conversation_store'
 import type { ActionHistoryStore } from '../run/state/action_history_store'
 import { currentActionPromptDraft, currentActionRun, saveAndRunPopupAction } from '../run/popup/action_popup_operations'
@@ -18,13 +19,14 @@ interface ActionAgentPresetNameOwnerProps {
     inputStore: ActionRunInputStore
     resultStore: ActionRunResultStore
     runValidationError: string | null
+    settingsStore: ActionRunSettingsStore
 }
 
 /** Owns preset-name edits at preset field boundary. */
 export function ActionAgentPresetNameOwner(props: ActionAgentPresetNameOwnerProps) {
-    const { action, context, conversationStore, historyStore, inputStore, resultStore, runValidationError } = props
+    const { action, context, conversationStore, historyStore, inputStore, resultStore, runValidationError, settingsStore } = props
     const { actionLabel } = useSyncExternalStore(inputStore.subscribe, inputStore.getSnapshot, inputStore.getSnapshot)
-    const settings = useActionRunSettings(action, inputStore)
+    const settings = useActionRunSettings(action, settingsStore)
     const handleActionLabelChange = (event: ChangeEvent<HTMLInputElement>) => inputStore.setActionLabel(event.target.value)
     const handleRunShortcut = () => {
         const run = currentActionRun(action, context)
@@ -38,14 +40,13 @@ export function ActionAgentPresetNameOwner(props: ActionAgentPresetNameOwnerProp
             interactionReady: !!run?.interactionReady,
             runDisabledMessage: settings.runDisabledMessage,
             runStatus,
-            saveDisabled: actionLabel.trim().length === 0 || sessionActive || !!settings.runDisabledMessage,
         }
-        if (actionPopupRunDisabled(
+        const saveDisabled = actionLabel.trim().length === 0 || sessionActive || !!settings.runDisabledMessage
+        if (saveDisabled || actionPopupRunDisabled(
             action,
             runState,
             promptDraft.getSnapshot(),
             promptDraft.getEditorSnapshot().preparationStatus,
-            true,
         )) return
 
         void saveAndRunPopupAction({
@@ -57,6 +58,7 @@ export function ActionAgentPresetNameOwner(props: ActionAgentPresetNameOwnerProp
             resultStore,
             runValidationError,
             settings,
+            settingsStore,
         })
     }
 

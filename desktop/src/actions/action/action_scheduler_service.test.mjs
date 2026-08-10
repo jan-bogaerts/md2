@@ -306,7 +306,7 @@ describe('ActionSchedulerService', () => {
             ],
         }), expect.any(Function));
         expect(localGitService.histories[0]).toMatchObject({
-            entry: { accessLevel: 'workspace-write', agent: 'codex', approvalPolicy: 'on-request', model: 'gpt-5.5', thinkingLevel: 'high' },
+            entry: { agent: 'codex', model: 'gpt-5.5', permissionMode: 'ask-for-approval', thinkingLevel: 'high' },
             request: { actionId: 'implement', context, projectFolder: '' },
         });
     });

@@ -9,10 +9,9 @@ import { dialogService } from '../../services/dialog_service'
 import { openFilesService } from '../../services/open_files_service'
 import { workspaceViewService } from '../../services/project/workspace_view_service'
 import { telemetryService } from '../../services/telemetry/telemetry_service'
-import { CardActionPopupHost } from '../actions/run/popup/card_action_popup_host'
 import { AffectsEditorDialog } from './affects_editor_dialog'
 import { CardBodyPopover } from './card_body_popover'
-import { cardBodyPopoverService } from './card_body_popover_service'
+import { cardPopupService } from '../../services/card_popup_service'
 import { CardColumn } from './card_column'
 import { CardDragOverlay } from './card_drag_overlay'
 import { cardDragDropService } from './card_drag_drop_service'
@@ -77,7 +76,7 @@ export function MobileCardView(props: MobileCardViewProps) {
             if (isVisible) return
 
             queueMicrotask(() => {
-                cardBodyPopoverService.close()
+                cardPopupService.closeCardDetails()
                 setOpenAffectsPath((currentPath) => currentPath === null ? currentPath : null)
                 clearActiveCard()
             })
@@ -89,7 +88,7 @@ export function MobileCardView(props: MobileCardViewProps) {
         return () => workspaceViewService.removeEventListener('changed', updateVisibility)
     }, [clearActiveCard])
 
-    useEffect(() => () => cardBodyPopoverService.close(), [])
+    useEffect(() => () => cardPopupService.closeCardDetails(), [])
 
     const handleDragStart = useCallback((event: DragStartEvent) => {
         cardDragDropService.startDrag(
@@ -113,7 +112,7 @@ export function MobileCardView(props: MobileCardViewProps) {
     }, [clearActiveCard, selectedColumn, states])
 
     const handleOpenInFileMode = (path: string) => {
-        cardBodyPopoverService.close()
+        cardPopupService.closeCardDetails()
         workspaceViewService.selectPath(path)
         void runCardEdit(() => openFilesService.openPath(path), `File open failed: ${path}`)
         workspaceViewService.setViewMode('text')
@@ -124,7 +123,7 @@ export function MobileCardView(props: MobileCardViewProps) {
         try {
             await dataService.cards.deleteCard(path)
             workspaceViewService.clearSelectedPath(path)
-            cardBodyPopoverService.closePath(path)
+            cardPopupService.closeCardDetailsPath(path)
             if (openAffectsPath === path) setOpenAffectsPath(null)
         } catch (error) {
             dialogService.error(error, { fallbackMessage: `Card delete failed: ${path}` })
@@ -184,7 +183,6 @@ export function MobileCardView(props: MobileCardViewProps) {
                     visible
                 />
                 <AffectsEditorDialog cardPath={openAffectsPath} onClose={handleCloseAffects} onSave={handleAffectsChange} />
-                <CardActionPopupHost />
             </DndContext>
         </Box>
     )

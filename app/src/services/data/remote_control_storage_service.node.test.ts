@@ -211,12 +211,15 @@ describe('RemoteControlStorageService', () => {
         for (const request of [
             addRequest, commitSentRequest, discardRequest, integrateRequest, parkRequest, prepareRequest,
             pullRequest, pushRequest, refreshRequest, removeRequest, deleteRequest,
-        ]) socket.receive({ id: request.id, result: request === addRequest })
+        ]) {
+            const result = request === addRequest ? true : request === integrateRequest ? { status: 'completed' } : undefined
+            socket.receive({ id: request.id, result })
+        }
 
         await expect(addition).resolves.toBe(true)
         await expect(commit).resolves.toBeUndefined()
         await expect(discard).resolves.toBeUndefined()
-        await expect(integration).resolves.toBeUndefined()
+        await expect(integration).resolves.toEqual({ status: 'completed' })
         await expect(parking).resolves.toBeUndefined()
         await expect(preparation).resolves.toBeUndefined()
         await expect(pull).resolves.toBeUndefined()
@@ -224,6 +227,41 @@ describe('RemoteControlStorageService', () => {
         await expect(refresh).resolves.toBeUndefined()
         await expect(removal).resolves.toBeUndefined()
         await expect(deletion).resolves.toBeUndefined()
+    })
+
+    it('proxies merge conflict lifecycle and session events', async () => {
+        installWebSocket()
+        const service = createService()
+        const session = {
+            conflictedPaths: ['src/file.ts'], externalResolverConfigured: true, id: 'session-1',
+            operation: 'rebase' as const, phase: 'rebase' as const, repositoryRoot: 'C:/repo', worktree: 1,
+        }
+        const callback = vi.fn()
+        service.onMergeConflictSessionChanged(callback)
+        const socket = lastSocket()
+        socket.open()
+        await flushPromises()
+        const subscriptionRequest = JSON.parse(socket.sent[0]) as { id: string, method: string }
+        expect(subscriptionRequest.method).toBe('onMergeConflictSessionChanged')
+        socket.receive({ event: 'mergeConflictSessionChanged', payload: { requestId: subscriptionRequest.id, session, subscriptionId: 'conflict-1' } })
+        socket.receive({ id: subscriptionRequest.id, result: { subscriptionId: 'conflict-1' } })
+        await flushPromises()
+        expect(callback).toHaveBeenCalledWith(session)
+
+        const loaded = service.getMergeConflictSession()
+        await flushPromises()
+        const loadRequest = JSON.parse(socket.sent[1]) as { id: string, method: string }
+        expect(loadRequest.method).toBe('getMergeConflictSession')
+        socket.receive({ id: loadRequest.id, result: session })
+        await expect(loaded).resolves.toEqual(session)
+
+        const pathRequest = { path: 'src/file.ts', sessionId: 'session-1' }
+        const launch = service.launchMergeConflictResolver(pathRequest)
+        await flushPromises()
+        const launchRequest = JSON.parse(socket.sent[2]) as { id: string, method: string, params: unknown[] }
+        expect(launchRequest).toMatchObject({ method: 'launchMergeConflictResolver', params: [pathRequest] })
+        socket.receive({ id: launchRequest.id })
+        await expect(launch).resolves.toBeUndefined()
     })
 
     it('proxies primary pull', async () => {
@@ -316,21 +354,30 @@ describe('RemoteControlStorageService', () => {
         const service = createService()
         const activityRequest = { cardInternalId: 'card-1' }
         const fileRequest = { commit: 'a'.repeat(40), parent: true, path: 'design/F-1.md' }
+        const settingsRequest = {
+            actionId: 'review', cardInternalId: 'card-1',
+            settings: { agent: 'codex', model: 'gpt-5', permissionMode: 'ask-for-approval', thinkingLevel: 'high' },
+        }
         const activity = service.loadCardActivity(activityRequest)
         const historicalFile = service.readFileAtCommit(fileRequest)
+        const settingsUpdate = service.updateCardActionSettings(settingsRequest)
         const socket = lastSocket()
 
         socket.open()
         await flushPromises()
         const activityMessage = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
         const fileMessage = JSON.parse(socket.sent[1]) as { id: string, method: string, params: unknown[] }
+        const settingsMessage = JSON.parse(socket.sent[2]) as { id: string, method: string, params: unknown[] }
         expect(activityMessage).toMatchObject({ method: 'loadCardActivity', params: [activityRequest] })
         expect(fileMessage).toMatchObject({ method: 'readFileAtCommit', params: [fileRequest] })
-        socket.receive({ id: activityMessage.id, result: { conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 2 } })
+        expect(settingsMessage).toMatchObject({ method: 'updateCardActionSettings', params: [settingsRequest] })
+        socket.receive({ id: activityMessage.id, result: { actionSettings: {}, conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 4 } })
         socket.receive({ id: fileMessage.id, result: { content: '# Card', exists: true } })
+        socket.receive({ id: settingsMessage.id, result: undefined })
 
-        await expect(activity).resolves.toMatchObject({ version: 2 })
+        await expect(activity).resolves.toMatchObject({ version: 4 })
         await expect(historicalFile).resolves.toEqual({ content: '# Card', exists: true })
+        await expect(settingsUpdate).resolves.toBeUndefined()
     })
 
     it('lists agent conversation references through remote control', async () => {
@@ -363,12 +410,12 @@ describe('RemoteControlStorageService', () => {
         await expect(request).rejects.toThrow('command failed')
     })
 
-    it('preserves access and approval overrides in remote action requests', async () => {
+    it('preserves permission-mode overrides in remote action requests', async () => {
         installWebSocket()
         const service = createService()
         const actionRequest = {
             ...actionStartRequest(),
-            runInput: { accessLevel: 'read-only', approvalPolicy: 'untrusted' },
+            runInput: { permissionMode: 'approve-for-me' as const },
         }
         const request = service.startAction(actionRequest)
         const socket = lastSocket()
@@ -514,7 +561,7 @@ describe('RemoteControlStorageService', () => {
         const watchCallback = vi.fn()
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
 
-        service.watchProject(project, watchCallback)
+        service.watchProject(project, watchCallback, vi.fn())
         const socket = lastSocket()
         socket.open()
         await flushPromises()
@@ -536,7 +583,7 @@ describe('RemoteControlStorageService', () => {
         const actionCallback = vi.fn()
         const rateLimitCallback = vi.fn()
         const worktreeCallback = vi.fn()
-        const stopWatch = service.watchProject(project, watchCallback)
+        const stopWatch = service.watchProject(project, watchCallback, vi.fn())
         const stopAction = service.onActionRun(actionCallback)
         const stopRateLimits = service.onCodexRateLimits(rateLimitCallback)
         const stopWorktrees = service.onWorktreesChanged(worktreeCallback)
@@ -610,7 +657,7 @@ describe('RemoteControlStorageService', () => {
         const service = createService()
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
         const callback = vi.fn()
-        const stop = service.watchProject(project, callback)
+        const stop = service.watchProject(project, callback, vi.fn())
         const socket = lastSocket()
 
         socket.open()
@@ -626,6 +673,68 @@ describe('RemoteControlStorageService', () => {
         })
 
         expect(callback).not.toHaveBeenCalled()
+    })
+
+    it('restores each live project watch once per reconnect and never restores a stopped watch', async () => {
+        installWebSocket()
+        const service = createService()
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+        const callback = vi.fn()
+        const restored = vi.fn()
+        const stop = service.watchProject(project, callback, restored)
+        const firstSocket = lastSocket()
+
+        firstSocket.open()
+        await flushPromises()
+        const firstRequest = JSON.parse(firstSocket.sent[0]) as { id: string, method: string }
+        expect(firstRequest.method).toBe('watchProject')
+        firstSocket.receive({ id: firstRequest.id, result: { subscriptionId: 'watch-1' } })
+        await flushPromises()
+        expect(restored).not.toHaveBeenCalled()
+
+        firstSocket.close()
+        const firstReconnect = service.connect()
+        const secondSocket = lastSocket()
+        secondSocket.open()
+        await firstReconnect
+        await vi.waitFor(() => expect(secondSocket.sent).toHaveLength(1))
+        const secondRequest = JSON.parse(secondSocket.sent[0]) as { id: string, method: string }
+        expect(secondRequest.method).toBe('watchProject')
+        secondSocket.receive({ id: secondRequest.id, result: { subscriptionId: 'watch-2' } })
+        await vi.waitFor(() => expect(restored).toHaveBeenCalledTimes(1))
+        secondSocket.receive({
+            event: 'watchProject',
+            payload: {
+                event: { changeKind: 'changed', path: 'design/F-1.md' },
+                requestId: secondRequest.id,
+                subscriptionId: 'watch-2',
+            },
+        })
+        expect(callback).toHaveBeenCalledWith({ changeKind: 'changed', path: 'design/F-1.md' })
+
+        secondSocket.close()
+        const secondReconnect = service.connect()
+        const thirdSocket = lastSocket()
+        thirdSocket.open()
+        await secondReconnect
+        await vi.waitFor(() => expect(thirdSocket.sent).toHaveLength(1))
+        const thirdRequest = JSON.parse(thirdSocket.sent[0]) as { id: string, method: string }
+        expect(thirdRequest.method).toBe('watchProject')
+        thirdSocket.receive({ id: thirdRequest.id, result: { subscriptionId: 'watch-3' } })
+        await vi.waitFor(() => expect(restored).toHaveBeenCalledTimes(2))
+
+        stop()
+        await vi.waitFor(() => expect(thirdSocket.sent).toHaveLength(2))
+        expect(JSON.parse(thirdSocket.sent[1])).toEqual(expect.objectContaining({ method: 'unsubscribe', params: ['watch-3'] }))
+        thirdSocket.close()
+        const thirdReconnect = service.connect()
+        const fourthSocket = lastSocket()
+        fourthSocket.open()
+        await thirdReconnect
+        await flushPromises()
+
+        expect(fourthSocket.sent).toEqual([])
+        expect(restored).toHaveBeenCalledTimes(2)
     })
 
     it('fails pending requests clearly when the socket closes', async () => {

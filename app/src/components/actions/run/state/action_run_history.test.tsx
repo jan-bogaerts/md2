@@ -31,10 +31,9 @@ describe('ActionRunHistory', () => {
     it('renders agent, model, and permission labels', () => {
         const entries: ActionRunHistoryEntry[] = [{
             agent: 'codex',
-            accessLevel: 'workspace-write',
-            approvalPolicy: 'on-request',
             completedAt: '2026-07-05T10:00:00.000Z',
             model: 'gpt-5',
+            permissionMode: 'ask-for-approval',
             rootConversationId: 'conversation-1',
             startedAt: '2026-07-05T09:00:00.000Z',
             status: 'completed',
@@ -45,7 +44,7 @@ describe('ActionRunHistory', () => {
         render(<ActionRunHistory entries={entries} error={null} />)
 
         const completedAt = new Date('2026-07-05T10:00:00.000Z').toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
-        expect(screen.getByText(`completed (codex / gpt-5 / high / workspace-write / on-request) · ${completedAt}`)).toBeInTheDocument()
+        expect(screen.getByText(`completed (codex / gpt-5 / high / ask-for-approval) · ${completedAt}`)).toBeInTheDocument()
         expect(screen.queryByText('done')).not.toBeInTheDocument()
         expect(screen.queryByText('run')).not.toBeInTheDocument()
     })

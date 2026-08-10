@@ -232,26 +232,26 @@ export class WorktreeService extends EventTarget {
         if (!card.header.internalId) throw new Error(`Cannot integrate card without an internal ID: ${path}`)
         const branch = card.header.branch
         if (deleteBranch && !branch) throw new Error(`Cannot delete branch without stored branch identity: ${path}`)
-        if (deleteBranch && !storage.parkWorktree) throw new Error('Worktree parking requires Electron local mode')
-        if (deleteBranch && !storage.deleteLocalBranch) throw new Error('Local branch deletion requires Electron local mode')
         const projectFolder = this.requireProjectFolder()
 
         this.startCardOperation(path)
         try {
             await this.requirePendingChangesFlusher()()
-            await storage.integrateWorktree({ cardInternalId: card.header.internalId, project, projectFolder, worktree })
-            if (deleteBranch && branch) {
-                try {
-                    if (!storage.parkWorktree || !storage.deleteLocalBranch) throw new Error('Branch cleanup is not available')
-                    await storage.parkWorktree({ project, worktree })
-                    this.requireUnassignmentWriter()(path)
-                    await storage.deleteLocalBranch(project, branch)
-                    this.requireBranchClearer()(path)
-                } catch (error) {
-                    const message = error instanceof Error ? error.message : String(error)
-                    throw new Error(`Worktree integrated, but branch cleanup failed: ${message}`, { cause: error })
-                }
+            const request = {
+                ...(branch ? { branchName: branch } : {}),
+                cardInternalId: card.header.internalId,
+                deleteBranch,
+                project,
+                projectFolder,
+                worktree,
             }
+            const outcome = await storage.integrateWorktree(request)
+            if (outcome.status === 'completed' && deleteBranch) {
+                this.requireUnassignmentWriter()(path)
+                this.requireBranchClearer()(path)
+            }
+
+            return outcome
         } finally {
             this.finishCardOperation(path)
         }
@@ -264,7 +264,9 @@ export class WorktreeService extends EventTarget {
         this.startCardOperation(path)
         try {
             await this.requirePendingChangesFlusher()()
-            await storage.rebaseWorktree({ project, worktree })
+            const outcome = await storage.rebaseWorktree({ project, worktree })
+
+            return outcome
         } finally {
             this.finishCardOperation(path)
         }
@@ -293,7 +295,9 @@ export class WorktreeService extends EventTarget {
         this.startProjectOperation()
         try {
             await this.requirePendingChangesFlusher()()
-            await storage.integrateWorktree({ project, worktree })
+            const outcome = await storage.integrateWorktree({ project, worktree })
+
+            return outcome
         } finally {
             this.finishProjectOperation()
         }
@@ -306,7 +310,9 @@ export class WorktreeService extends EventTarget {
         this.startProjectOperation()
         try {
             await this.requirePendingChangesFlusher()()
-            await storage.rebaseWorktree({ project, worktree })
+            const outcome = await storage.rebaseWorktree({ project, worktree })
+
+            return outcome
         } finally {
             this.finishProjectOperation()
         }

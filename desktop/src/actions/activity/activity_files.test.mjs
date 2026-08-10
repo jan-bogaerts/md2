@@ -7,12 +7,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
 const {
+    appendActionActivity,
     closeWaitingActivityConversation,
     ensureActivityFile,
     listAgentConversationReferences,
     loadActivityConversation,
     readActivityFile,
     upsertActivityConversation,
+    updateCardActionSettings,
     updateActivityConversationViewed,
 } = require('./activity_files');
 
@@ -49,14 +51,14 @@ describe('project activity conversations', () => {
             const firstContent = await readFile(filePath, 'utf8');
             await ensureActivityFile(project, 'design', origin);
 
-            expect(JSON.parse(firstContent)).toEqual({ conversations: [], origin, records: [], version: 2 });
+            expect(JSON.parse(firstContent)).toEqual({ actionSettings: {}, conversations: [], origin, records: [], version: 4 });
             expect(await readFile(filePath, 'utf8')).toBe(firstContent);
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }
     });
 
-    it('writes migrated schema and viewed state once when reading legacy activity', async () => {
+    it('does not migrate or write legacy activity during a read', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-activity-migration-'));
         const filePath = join(rootPath, 'project.json');
         const conversation = waitingConversation();
@@ -70,19 +72,15 @@ describe('project activity conversations', () => {
         try {
             await writeFile(filePath, JSON.stringify({ conversations: [conversation], origin: { kind: 'project' }, records: [legacyRecord], version: 1 }));
 
-            const activity = await readActivityFile(filePath, { kind: 'project' });
-            const persisted = JSON.parse(await readFile(filePath, 'utf8'));
-
-            expect(activity).toMatchObject({ version: 2, conversations: [{ viewed: true }] });
-            expect(persisted).toEqual(activity);
-            expect(persisted.records[0]).not.toHaveProperty('history');
-            expect(persisted.records[0]).toMatchObject({ rootConversationId: conversation.id });
+            await expect(readActivityFile(filePath, { kind: 'project' }))
+                .rejects.toThrow('unsupported version 1');
+            expect(JSON.parse(await readFile(filePath, 'utf8'))).toEqual({conversations: [conversation], origin: { kind: 'project' }, records: [legacyRecord], version: 1});
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }
     });
 
-    it('migrates legacy activity once when concurrent readers race', async () => {
+    it('leaves legacy activity untouched when concurrent readers race', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-activity-migration-race-'));
         const filePath = join(rootPath, 'project.json');
         const conversation = waitingConversation();
@@ -96,17 +94,72 @@ describe('project activity conversations', () => {
         try {
             await writeFile(filePath, JSON.stringify({ conversations: [conversation], origin: { kind: 'project' }, records: [legacyRecord], version: 1 }));
 
-            const activities = await Promise.all([
+            const results = await Promise.allSettled([
                 readActivityFile(filePath, { kind: 'project' }),
                 readActivityFile(filePath, { kind: 'project' }),
                 readActivityFile(filePath, { kind: 'project' }),
             ]);
 
-            expect(activities.map(({ version }) => version)).toEqual([2, 2, 2]);
-            expect(rename).toHaveBeenCalledTimes(1);
+            expect(results.map(({ status }) => status)).toEqual(['rejected', 'rejected', 'rejected']);
+            expect(rename).not.toHaveBeenCalled();
             await expect(readdir(rootPath)).resolves.toEqual(['project.json']);
         } finally {
             rename.mockRestore();
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('updates one card action setting without replacing conversations or other action settings', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-action-settings-'));
+        const project = { branch: 'main', rootPath };
+        const origin = { cardInternalId: 'card-1', kind: 'card' };
+        const firstSettings = { agent: 'codex', model: 'gpt-5', permissionMode: 'ask-for-approval', thinkingLevel: 'high' };
+        const secondSettings = { agent: 'claude', model: 'sonnet', permissionMode: 'approve-for-me', thinkingLevel: 'none' };
+        const conversation = { ...waitingConversation(), cardInternalId: 'card-1' };
+        try {
+            await mkdir(join(rootPath, '.git'));
+            await upsertActivityConversation(project, 'design', origin, conversation);
+            await updateCardActionSettings(project, 'design', 'card-1', 'review', firstSettings);
+            await updateCardActionSettings(project, 'design', 'card-1', 'build', secondSettings);
+            const persisted = JSON.parse(await readFile(join(rootPath, 'design', 'activity', 'card__card-1.json'), 'utf8'));
+
+            expect(persisted.actionSettings).toEqual({ build: secondSettings, review: firstSettings });
+            expect(persisted.conversations).toHaveLength(1);
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('serializes settings, conversation, history, and viewed-state writes without losing fields', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-action-settings-race-'));
+        const project = { branch: 'main', rootPath };
+        const origin = { cardInternalId: 'card-1', kind: 'card' };
+        const settings = { agent: 'codex', model: 'gpt-5', permissionMode: 'ask-for-approval', thinkingLevel: 'high' };
+        const conversation = { ...waitingConversation(), cardInternalId: 'card-1' };
+        const secondConversation = { ...conversation, id: 'conversation-2', title: 'Second' };
+        const reference = 'design/activity/card__card-1.json#conversation=conversation-1';
+        const record = {
+            commits: [], completedAt: terminalTime, conversationIds: [],
+            details: { command: 'build', output: 'done', type: 'command' }, origin,
+            rootActionId: 'build', rootActionLabel: 'Build', runId: 'run-1',
+            startedAt: conversation.startedAt, status: 'completed',
+        };
+        try {
+            await mkdir(join(rootPath, '.git'));
+            await upsertActivityConversation(project, 'design', origin, conversation);
+            await Promise.all([
+                updateCardActionSettings(project, 'design', 'card-1', 'review', settings),
+                upsertActivityConversation(project, 'design', origin, secondConversation),
+                appendActionActivity(project, 'design', origin, record),
+                updateActivityConversationViewed(project, reference, false),
+            ]);
+            const persisted = JSON.parse(await readFile(join(rootPath, 'design', 'activity', 'card__card-1.json'), 'utf8'));
+
+            expect(persisted.actionSettings.review).toEqual(settings);
+            expect(persisted.conversations).toHaveLength(2);
+            expect(persisted.conversations.find(({ id }) => id === conversation.id).viewed).toBe(false);
+            expect(persisted.records).toEqual([record]);
+        } finally {
             await rm(rootPath, { force: true, recursive: true });
         }
     });

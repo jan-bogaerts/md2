@@ -1,6 +1,6 @@
 {
   "name": "desktop",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "MD² Electron host shell",
   "main": "main.js",
@@ -10,7 +10,9 @@
     "package:windows": "electron-builder --config electron-builder.config.cjs --win nsis --x64",
     "postpackage:windows": "node packaging/verify_windows_package.mjs",
     "start": "node start_electron.js",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:full": "vitest run",
+    "test:watch": "vitest"
   },
   "keywords": [],
   "author": "Elastetic",

@@ -7,10 +7,11 @@ import { CardColumn } from './card_column'
 import * as cardColumnModule from './card_column'
 import { actionService } from '../../services/actions/action_service'
 import type { ActionFile } from '../../data/action_types'
-import { DEFAULT_CARD_TYPES, type CardTypeConfig, type Card } from '../../data/data_types'
+import { DEFAULT_CARD_TYPES, type CardTypeConfig, type Card, type ProjectReference } from '../../data/data_types'
 import { telemetryService } from '../../services/telemetry/telemetry_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { dataService } from '../../services/data/data_service'
+import { dialogService } from '../../services/dialog_service'
 import { worktreeService } from '../../services/project/worktree_service'
 import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
 import { openFilesService } from '../../services/open_files_service'
@@ -63,9 +64,13 @@ const cards = [
     card('F-2', 'Second', 'done'),
 ]
 
-function setCards(activeCards: Card[], repositoryFiles = ['app/src/app.tsx', 'design/F-1.md']) {
+function setCards(
+    activeCards: Card[],
+    repositoryFiles = ['app/src/app.tsx', 'design/F-1.md'],
+    project: ProjectReference = { branch: 'main', id: 'project', rootPath: 'C:\\project' },
+) {
     vi.mocked(dataService.getState).mockReturnValue({
-        project: { branch: 'main', id: 'project', rootPath: 'C:\\project' },
+        project,
         runningAgents: [],
         snapshot: { activeCards, backgroundCards: [], repositoryFiles, workingFolder: 'design' },
     })
@@ -88,8 +93,9 @@ function renderCardView(
     overrides: Partial<Parameters<typeof CardView>[0]> = {},
     activeCards = cards,
     repositoryFiles = ['app/src/app.tsx', 'design/F-1.md'],
+    project: ProjectReference = { branch: 'main', id: 'project', rootPath: 'C:\\project' },
 ) {
-    setCards(activeCards, repositoryFiles)
+    setCards(activeCards, repositoryFiles, project)
     render(
         <AppThemeProvider>
             <CardView
@@ -122,7 +128,6 @@ describe('CardView', () => {
             ? target.document.getDraft().content
             : '')
         vi.spyOn(cardMarkdownDataSource, 'commit').mockReturnValue(true)
-        vi.spyOn(cardMarkdownDataSource, 'updateActiveCardTitle').mockImplementation(() => undefined)
     })
 
     afterEach(() => {
@@ -386,8 +391,7 @@ describe('CardView', () => {
         fireEvent.change(titleInput, { target: { value: 'Renamed in popup' } })
         fireEvent.keyDown(titleInput, { key: 'Enter' })
 
-        expect(cardMarkdownDataSource.updateActiveCardTitle)
-            .toHaveBeenCalledWith('board-card', 'Renamed in popup')
+        expect(dataService.cards.updateCardTitle).toHaveBeenCalledWith('design/F-1.md', 'Renamed in popup')
     })
 
     it('opens card Properties from the board popup toolbar', () => {
@@ -500,6 +504,64 @@ describe('CardView', () => {
         fireEvent.click(screen.getByRole('menuitem', { name: 'Open in file mode' }))
 
         expect(openFilesService.openPath).toHaveBeenCalledWith('design/F-1.md')
+    })
+
+    it('copies local card paths from three-dot and right-click menus and closes each menu', async () => {
+        const writeText = vi.fn().mockResolvedValue(undefined)
+        Object.assign(navigator, { clipboard: { writeText } })
+        renderCardView()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-1' }))
+        expect(screen.getByRole('menuitem', { name: 'Copy path' })).toBeInTheDocument()
+        expect(screen.getByRole('menuitem', { name: 'Copy relative path' })).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Copy path' }))
+
+        await waitFor(() => expect(writeText).toHaveBeenCalledWith('C:\\project\\design\\F-1.md'))
+        expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+
+        fireEvent.contextMenu(screen.getByText('First'))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Copy relative path' }))
+
+        await waitFor(() => expect(writeText).toHaveBeenCalledWith('design/F-1.md'))
+        expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+    })
+
+    it('offers only exact relative card paths from both remote card menus', async () => {
+        const writeText = vi.fn().mockResolvedValue(undefined)
+        const remoteProject: ProjectReference = { branch: 'main', id: 'remote', owner: 'owner', repository: 'repository' }
+        Object.assign(navigator, { clipboard: { writeText } })
+        renderCardView({}, cards, ['app/src/app.tsx', 'design/F-1.md'], remoteProject)
+
+        fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-1' }))
+        expect(screen.queryByRole('menuitem', { name: 'Copy path' })).not.toBeInTheDocument()
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Copy relative path' }))
+        await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument())
+
+        fireEvent.contextMenu(screen.getByText('First'))
+        expect(screen.queryByRole('menuitem', { name: 'Copy path' })).not.toBeInTheDocument()
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Copy relative path' }))
+
+        await waitFor(() => expect(writeText).toHaveBeenCalledTimes(2))
+        expect(writeText).toHaveBeenNthCalledWith(1, 'design/F-1.md')
+        expect(writeText).toHaveBeenNthCalledWith(2, 'design/F-1.md')
+    })
+
+    it('reports card path clipboard failure without changing card state', async () => {
+        const copyError = new Error('Clipboard denied')
+        const reportError = vi.spyOn(dialogService, 'error')
+        Object.assign(navigator, { clipboard: { writeText: vi.fn().mockRejectedValue(copyError) } })
+        renderCardView()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-1' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Copy relative path' }))
+
+        await waitFor(() => expect(reportError).toHaveBeenCalledWith(
+            copyError,
+            { fallbackMessage: 'Path could not be copied to clipboard' },
+        ))
+        expect(dataService.cards.deleteCard).not.toHaveBeenCalled()
+        expect(dataService.cards.updateCardTitle).not.toHaveBeenCalled()
+        expect(dataService.cards.toggleCardPolicy).not.toHaveBeenCalled()
     })
 
     it('confirms before deleting from the body popup', async () => {

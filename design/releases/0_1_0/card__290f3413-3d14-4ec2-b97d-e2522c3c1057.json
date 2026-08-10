@@ -1,4 +1,5 @@
 {
+  "actionSettings": {},
   "conversations": [
     {
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
@@ -3591,10 +3592,9 @@
       ],
       "details": {
         "type": "agent",
-        "accessLevel": "workspace-write",
         "agent": "codex",
-        "approvalPolicy": "on-request",
         "model": "gpt-5.5",
+        "permissionMode": "ask-for-approval",
         "thinkingLevel": "none"
       },
       "runId": "action-eeb960d1-b249-4f31-ab24-c5bf5d75f05b",
@@ -3611,6 +3611,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "65455077cd232c3f6eb2c48411fd305dc6866bd6",
           "committedAt": "2026-08-06T21:24:40+02:00",
           "deletions": 107,
@@ -3649,8 +3650,7 @@
             "desktop/src/shell/preload.test.mjs"
           ],
           "filesChanged": 32,
-          "insertions": 817,
-          "branch": "dev_main"
+          "insertions": 817
         }
       ],
       "completedAt": "2026-08-06T21:24:40+02:00",
@@ -3662,5 +3662,5 @@
       "type": "system"
     }
   ],
-  "version": 2
+  "version": 4
 }

@@ -185,6 +185,7 @@ describe('ReleaseOperations', () => {
         configService.init()
         const activityPath = 'activity/card__root-card.json'
         const activityContent = JSON.stringify({
+            actionSettings: {},
             conversations: [{
                 cardInternalId: 'root-card',
                 completedAt: '2026-08-05T12:01:00.000Z',
@@ -196,7 +197,7 @@ describe('ReleaseOperations', () => {
             }],
             origin: { cardInternalId: 'root-card', kind: 'card' },
             records: [],
-            version: 2,
+            version: 4,
         })
         const cardContent = [
             '---',

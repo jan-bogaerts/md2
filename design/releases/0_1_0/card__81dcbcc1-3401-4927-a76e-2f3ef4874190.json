@@ -1,4 +1,5 @@
 {
+  "actionSettings": {},
   "conversations": [
     {
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
@@ -1903,10 +1904,9 @@
       ],
       "details": {
         "type": "agent",
-        "accessLevel": "workspace-write",
         "agent": "codex",
-        "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
+        "permissionMode": "ask-for-approval",
         "thinkingLevel": "none"
       },
       "runId": "action-2d3f7b38-22d2-42c9-977b-281baa4c07a9",
@@ -1928,10 +1928,9 @@
       ],
       "details": {
         "type": "agent",
-        "accessLevel": "workspace-write",
         "agent": "codex",
-        "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
+        "permissionMode": "ask-for-approval",
         "thinkingLevel": "none"
       },
       "runId": "action-cdc41e12-e818-4944-9422-434e9b1b1834",
@@ -1953,10 +1952,9 @@
       ],
       "details": {
         "type": "agent",
-        "accessLevel": "workspace-write",
         "agent": "codex",
-        "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
+        "permissionMode": "ask-for-approval",
         "thinkingLevel": "none"
       },
       "runId": "action-6f778519-f87c-4356-8a02-0bb0850b4f74",
@@ -1973,6 +1971,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "b6af70d1be58cb005b4767a872ef3ed988697039",
           "committedAt": "2026-08-06T20:53:29+02:00",
           "deletions": 22,
@@ -1983,8 +1982,7 @@
             "app/src/components/worktree_selector.tsx"
           ],
           "filesChanged": 4,
-          "insertions": 182,
-          "branch": "dev_main"
+          "insertions": 182
         }
       ],
       "completedAt": "2026-08-06T20:53:29+02:00",
@@ -1996,5 +1994,5 @@
       "type": "system"
     }
   ],
-  "version": 2
+  "version": 4
 }

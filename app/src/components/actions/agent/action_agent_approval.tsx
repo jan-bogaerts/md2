@@ -67,11 +67,9 @@ function permissionLabels(approval: LiveAgentApproval) {
 
 function approvalDetails(approval: LiveAgentApproval) {
     const details: { label: string, values: string[] }[] = []
-    if (approval.provider) details.push({ label: 'Provider', values: [approval.provider] })
     if (approval.toolName) details.push({ label: 'Tool', values: [approval.toolName] })
     if (approval.command) details.push({ label: 'Command', values: [approval.command] })
     if (approval.cwd) details.push({ label: 'Working directory', values: [approval.cwd] })
-    if (approval.environmentId) details.push({ label: 'Environment', values: [approval.environmentId] })
     const commandActionLabels = approval.commandActions
         ?.map(commandActionLabel)
         .filter((label) => label !== approval.command) ?? []
@@ -94,11 +92,13 @@ function approvalDetails(approval: LiveAgentApproval) {
 
 /** Security context and exact provider decisions for one pending agent approval. */
 export function ActionAgentApproval({ approval, onDecision }: ActionAgentApprovalProps) {
+    const [actionsExpanded, setActionsExpanded] = useState(false)
     const [commandExpanded, setCommandExpanded] = useState(false)
     const [submitting, setSubmitting] = useState(false)
     const decisions = approval.availableDecisions ?? DEFAULT_APPROVAL_DECISIONS
     const disabled = submitting || approval.submitted
     const details = approvalDetails(approval)
+    const handleActionsToggle = () => setActionsExpanded((expanded) => !expanded)
     const handleCommandToggle = () => setCommandExpanded((expanded) => !expanded)
     const handleDecisionClick = async (event: MouseEvent<HTMLButtonElement>) => {
         const decisionIndex = Number(event.currentTarget.dataset.decisionIndex)
@@ -120,7 +120,19 @@ export function ActionAgentApproval({ approval, onDecision }: ActionAgentApprova
             </Stack>
             {details.map(({ label, values }) => (
                 <Stack key={label} spacing={0.25}>
-                    <Typography color="text.secondary" variant="caption">{label}</Typography>
+                    {label === 'Actions' ? (
+                        <Typography
+                            aria-expanded={actionsExpanded}
+                            aria-label="Toggle full actions"
+                            color="text.secondary"
+                            component="button"
+                            onClick={handleActionsToggle}
+                            sx={{ bgcolor: 'transparent', border: 0, cursor: 'pointer', p: 0, textAlign: 'left', width: 'fit-content' }}
+                            variant="caption"
+                        >
+                            {label}
+                        </Typography>
+                    ) : <Typography color="text.secondary" variant="caption">{label}</Typography>}
                     {values.map((value) => (
                         label === 'Command' ? (
                             <Box
@@ -143,7 +155,16 @@ export function ActionAgentApproval({ approval, onDecision }: ActionAgentApprova
                             <Box
                                 component="code"
                                 key={value}
-                                sx={{ color: 'text.primary', overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }}
+                                sx={{
+                                    color: 'text.primary',
+                                    ...(label === 'Actions' ? {
+                                        minWidth: 0,
+                                        overflow: 'hidden',
+                                        overflowWrap: actionsExpanded ? 'anywhere' : 'normal',
+                                        textOverflow: actionsExpanded ? 'clip' : 'ellipsis',
+                                        whiteSpace: actionsExpanded ? 'pre-wrap' : 'nowrap',
+                                    } : { overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }),
+                                }}
                             >
                                 {value}
                             </Box>

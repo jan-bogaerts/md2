@@ -94,9 +94,12 @@ export class ActionConversationStore {
 
             const run = actionRunRegistry.getActionRunStore(this.actionId, this.context)?.getSnapshot() ?? null
             const runActive = run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'
+            const refreshedSelection = this.snapshot.selectedConversation
+                ? conversations.find(({ path }) => path === this.snapshot.selectedConversation?.path) ?? this.snapshot.selectedConversation
+                : null
             let selectedConversation = runActive
-                ? this.snapshot.selectedConversation
-                : this.snapshot.selectedConversation ?? latestWaitingConversation(conversations, this.actionId, this.context)
+                ? refreshedSelection
+                : refreshedSelection ?? latestWaitingConversation(conversations, this.actionId, this.context)
             const initialSelectionPath = this.initialSelectionPath
             this.initialSelectionPath = null
             if (!runActive && !selectedConversation && initialSelectionPath) {
@@ -114,9 +117,7 @@ export class ActionConversationStore {
                 }
             }
             this.setSnapshot({ conversations, loading: false, selectedConversation })
-            if (selectedConversation?.status === 'waitingForInput') {
-                actionPromptDraftService.clearDraft(this.actionId, this.context, null)
-            }
+            if (selectedConversation) actionPromptDraftService.clearDraft(this.actionId, this.context, null)
         } catch (error) {
             if (request !== this.loadRequest) return
 

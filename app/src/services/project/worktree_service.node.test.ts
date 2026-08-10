@@ -35,7 +35,7 @@ function createStorage() {
         commitWorktree: vi.fn(async () => undefined),
         deleteLocalBranch: vi.fn(async () => undefined),
         discardWorktreeChanges: vi.fn(async () => undefined),
-        integrateWorktree: vi.fn(async () => undefined),
+        integrateWorktree: vi.fn(async () => ({ status: 'completed' as const })),
         onWorktreesChanged: vi.fn((callback: (state: WorktreeState) => void) => {
             listener = callback
             return cleanup
@@ -44,7 +44,7 @@ function createStorage() {
         prepareWorktree: vi.fn(async () => undefined),
         pullWorktree: vi.fn(async () => undefined),
         pushWorktree: vi.fn(async () => undefined),
-        rebaseWorktree: vi.fn(async () => undefined),
+        rebaseWorktree: vi.fn(async () => ({ status: 'completed' as const })),
         refreshWorktrees: vi.fn(async () => undefined),
         removeWorktree: vi.fn(async () => undefined),
     } as unknown as StorageService
@@ -264,13 +264,14 @@ describe('WorktreeService', () => {
         )
         expect(storage.integrateWorktree).toHaveBeenCalledWith({
             cardInternalId: assignedCard.header.internalId,
+            deleteBranch: false,
             project,
             projectFolder: 'design',
             worktree: 1,
         })
     })
 
-    it('parks, unassigns, deletes, then clears branch identity after successful integration', async () => {
+    it('asks desktop to clean branch, then clears renderer assignment after successful integration', async () => {
         const { emit, storage } = createStorage()
         const service = new WorktreeService()
         const assignedCard = card('design/F-1.md', 'Assigned', 1)
@@ -280,35 +281,38 @@ describe('WorktreeService', () => {
 
         await service.integrateCardWorktree(assignedCard.path, true)
 
-        expect(storage.deleteLocalBranch).toHaveBeenCalledWith(project, 'f-1-assigned')
-        expect(vi.mocked(storage.integrateWorktree!).mock.invocationCallOrder[0]).toBeLessThan(
-            vi.mocked(storage.parkWorktree!).mock.invocationCallOrder[0],
-        )
-        expect(vi.mocked(storage.parkWorktree!).mock.invocationCallOrder[0]).toBeLessThan(
-            unassignCardWorktree.mock.invocationCallOrder[0],
-        )
-        expect(unassignCardWorktree.mock.invocationCallOrder[0]).toBeLessThan(
-            vi.mocked(storage.deleteLocalBranch!).mock.invocationCallOrder[0],
-        )
-        expect(vi.mocked(storage.deleteLocalBranch!).mock.invocationCallOrder[0]).toBeLessThan(
-            clearCardBranch.mock.invocationCallOrder[0],
-        )
+        expect(storage.integrateWorktree).toHaveBeenCalledWith({
+            branchName: 'f-1-assigned',
+            cardInternalId: assignedCard.header.internalId,
+            deleteBranch: true,
+            project,
+            projectFolder: 'design',
+            worktree: 1,
+        })
+        expect(storage.parkWorktree).not.toHaveBeenCalled()
+        expect(storage.deleteLocalBranch).not.toHaveBeenCalled()
+        expect(unassignCardWorktree).toHaveBeenCalledWith(assignedCard.path)
+        expect(clearCardBranch).toHaveBeenCalledWith(assignedCard.path)
     })
 
-    it('retains branch identity and reports partial failure when deletion fails after integration', async () => {
+    it('retains branch identity while desktop integration is paused for conflicts', async () => {
         const { emit, storage } = createStorage()
-        storage.deleteLocalBranch = vi.fn(async () => { throw new Error('delete failed') })
+        storage.integrateWorktree = vi.fn(async () => ({
+            session: {
+                conflictedPaths: ['src/file.ts'], externalResolverConfigured: false, id: 'session-1',
+                operation: 'integrate' as const, phase: 'rebase' as const, repositoryRoot: 'C:/feature', worktree: 1,
+            },
+            status: 'conflict' as const,
+        }))
         const service = new WorktreeService()
         const assignedCard = card('design/F-1.md', 'Assigned', 1)
         assignedCard.header.branch = 'f-1-assigned'
         const { clearCardBranch, unassignCardWorktree } = initService(service, storage, snapshot([assignedCard]))
         emit(project, [first])
 
-        await expect(service.integrateCardWorktree(assignedCard.path, true)).rejects.toThrow(
-            'Worktree integrated, but branch cleanup failed: delete failed',
-        )
+        await expect(service.integrateCardWorktree(assignedCard.path, true)).resolves.toMatchObject({ status: 'conflict' })
 
-        expect(unassignCardWorktree).toHaveBeenCalledWith(assignedCard.path)
+        expect(unassignCardWorktree).not.toHaveBeenCalled()
         expect(clearCardBranch).not.toHaveBeenCalled()
         expect(assignedCard.header.branch).toBe('f-1-assigned')
     })

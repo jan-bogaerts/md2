@@ -1,5 +1,4 @@
 import ArrowUpwardOutlined from '@mui/icons-material/ArrowUpwardOutlined'
-import CheckOutlined from '@mui/icons-material/CheckOutlined'
 import StopOutlined from '@mui/icons-material/StopOutlined'
 import { Box, Button, IconButton, Tooltip } from '@mui/material'
 import CalendarOutline from 'mdi-material-ui/CalendarOutline'
@@ -7,16 +6,15 @@ import Play from 'mdi-material-ui/Play'
 import { useSyncExternalStore } from 'react'
 import type { ActionContext } from '../../../../data/action_context'
 import type { ActionDefinition } from '../../../../data/action_types'
+import type { ActionRunSettingsStore } from '../../../../services/actions/action_run_settings_service'
 import { useActionRunSelector } from '../../../hooks/use_action_runs'
 import type { ActionConversationStore } from '../../conversation/action_conversation_store'
 import type { ActionHistoryStore } from '../state/action_history_store'
 import {
     cancelPopupAction,
-    convertPromptToAction,
     currentActionPromptDraft,
     finishPopupAction,
     runPopupAction,
-    saveAndRunPopupAction,
 } from './action_popup_operations'
 import { actionPopupRunDisabled } from './action_popup_run_disabled'
 import type { ActionRunInputStore } from '../state/action_run_input_store'
@@ -24,26 +22,32 @@ import type { ActionRunResultStore } from '../state/action_run_result_store'
 import type { ActionScheduleStore } from '../schedule/action_schedule_store'
 import { ActionUsageSummaryOwner } from './action_usage_summary_owner'
 import { useActionRunSettings } from '../../shared/use_action_run_settings'
+import { ActionPopupFinishButton } from './action_popup_finish_button'
+import type { ActionUsageScopeStore } from './action_usage_scope_store'
+import { ActionAgentSelectors } from '../../agent/action_agent_selectors'
 
 interface ActionPopupBottomRowProps {
     action: ActionDefinition
     assignmentContext: ActionContext
     conversationStore: ActionConversationStore
     historyStore: ActionHistoryStore
+    /** 2 call sites: for agents it is embedded inside input. commands have no input, but need bottom row for config and info */
+    embedded?: boolean
     inputStore: ActionRunInputStore
     resultStore: ActionRunResultStore
     runValidationError: string | null
     scheduleStore: ActionScheduleStore
-    showSaveControls: boolean
+    settingsStore: ActionRunSettingsStore
+    usageScopeStore: ActionUsageScopeStore
 }
 
-/** Run controls; subscribes only to run and prompt values used by this row. */
+/** Agent settings, usage, and run controls for the popup footer. */
 export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
     const {
-        action, assignmentContext, conversationStore, historyStore, inputStore, resultStore,
-        runValidationError, scheduleStore, showSaveControls,
+        action, assignmentContext, conversationStore, embedded = false, historyStore, inputStore, resultStore,
+        runValidationError, scheduleStore, settingsStore, usageScopeStore,
     } = props
-    const settings = useActionRunSettings(action, inputStore)
+    const settings = useActionRunSettings(action, settingsStore)
     const runStatus = useActionRunSelector(action.id, assignmentContext, (run) => run?.status ?? 'idle')
     const agentActive = useActionRunSelector(action.id, assignmentContext, (run) => {
         const active = run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'
@@ -51,11 +55,6 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
         return !!active && run?.activeActionType === 'agent'
     })
     const interactionReady = useActionRunSelector(action.id, assignmentContext, (run) => !!run?.interactionReady)
-    const manualFinishAvailable = useActionRunSelector(
-        action.id,
-        assignmentContext,
-        (run) => run?.activeActionType === 'agent' && !!run.activeActionStreaming && !run.activeActionAutoFinish,
-    )
     const hasApprovals = useActionRunSelector(action.id, assignmentContext, (run) => !!run?.approvals.length)
     const hasQuestion = useActionRunSelector(action.id, assignmentContext, (run) => !!run?.question)
     const promptDraft = currentActionPromptDraft(action, assignmentContext, action.type === 'agent')
@@ -72,9 +71,15 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
     )
     const sessionActive = runStatus === 'queued' || runStatus === 'running' || runStatus === 'waitingForInput'
     const orphanWaiting = !sessionActive && conversationSnapshot.selectedConversation?.status === 'waitingForInput'
-    const showAgentSend = sessionActive ? agentActive : action.type === 'agent'
-    const showCommandRun = !sessionActive && action.type === 'command'
-    const saveDisabled = settings.actionLabel.trim().length === 0 || sessionActive || !!settings.runDisabledMessage
+    const running = runStatus === 'queued' || runStatus === 'running'
+    const waitingForAgentInput = (runStatus === 'waitingForInput' && agentActive) || orphanWaiting
+    const promptHasText = prompt.trim().length > 0
+    const showStop = running || (runStatus === 'waitingForInput' && !agentActive)
+    const showFinish = waitingForAgentInput
+    const showSchedule = (!sessionActive && !orphanWaiting) || (waitingForAgentInput && promptHasText)
+    const showAgentSend = (!sessionActive && !orphanWaiting && action.type === 'agent')
+        || (waitingForAgentInput && promptHasText)
+    const showCommandRun = !sessionActive && !orphanWaiting && action.type === 'command'
     const runState = {
         agentActive,
         hasApprovals,
@@ -82,14 +87,12 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
         interactionReady,
         runDisabledMessage: settings.runDisabledMessage,
         runStatus,
-        saveDisabled,
     }
     const runDisabled = actionPopupRunDisabled(
         action,
         runState,
         prompt,
         editorSnapshot.preparationStatus,
-        showSaveControls,
     )
     const operationInput = {
         action,
@@ -100,90 +103,101 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
         resultStore,
         runValidationError,
         settings,
+        settingsStore,
     }
 
     const handlePrimaryRun = async () => {
-        if (showSaveControls) await saveAndRunPopupAction(operationInput)
-        else await runPopupAction(operationInput)
-    }
-    const handleSave = async () => {
-        await convertPromptToAction(operationInput)
+        await runPopupAction(operationInput)
     }
     const handleCancel = () => void cancelPopupAction(action, assignmentContext, conversationStore)
     const handleFinish = () => void finishPopupAction(action, assignmentContext, conversationStore)
     const handleToggleSchedule = () => scheduleStore.toggle()
 
     return (
-        <Box sx={{ alignItems: 'center', bgcolor: 'background.default', borderTop: 1, borderColor: 'divider', display: 'flex', flexShrink: 0, gap: 1, px: 2, py: 1.5 }}>
-            <ActionUsageSummaryOwner
-                action={action}
-                context={assignmentContext}
-                conversationStore={conversationStore}
-                historyStore={historyStore}
-            />
-            <Box sx={{ flex: 1 }} />
-            {sessionActive || orphanWaiting ? (
-                <Tooltip title="Stop">
-                    <span>
-                        <IconButton aria-label="Stop" disabled={!settings.backendAvailable} onClick={handleCancel} size="small">
-                            <StopOutlined sx={{ fontSize: 18 }} />
-                        </IconButton>
-                    </span>
-                </Tooltip>
-            ) : null}
-            {manualFinishAvailable || orphanWaiting ? (
-                <Tooltip title="Finish">
-                    <span>
-                        <IconButton
-                            aria-label="Finish"
-                            disabled={!settings.backendAvailable || (sessionActive && !interactionReady)}
-                            onClick={handleFinish}
-                            size="small"
-                        >
-                            <CheckOutlined sx={{ fontSize: 18 }} />
-                        </IconButton>
-                    </span>
-                </Tooltip>
-            ) : null}
-            {showSaveControls ? (
-                <Button disabled={saveDisabled} onClick={handleSave} size="small" variant="outlined">Save</Button>
-            ) : null}
-            <Button
-                disabled={sessionActive || !settings.backendAvailable}
-                onClick={handleToggleSchedule}
-                size="small"
-                startIcon={<CalendarOutline sx={{ fontSize: '14px !important' }} />}
-                sx={{
-                    bgcolor: 'background.paper',
-                    borderColor: 'divider',
-                    color: 'text.secondary',
-                    height: 34,
-                    '&:hover': { borderColor: 'primary.main', color: 'primary.main' },
-                }}
-                variant="outlined"
+        <Box
+            data-testid="action-popup-bottom-row"
+            data-embedded={embedded ? 'true' : undefined}
+            sx={{
+                alignItems: 'center', bgcolor: embedded ? 'background.paper' : 'background.default', borderColor: 'divider',
+                containerType: 'inline-size', display: 'flex', flexShrink: 0, gap: 1,
+                justifyContent: 'space-between', px: embedded ? 1 : 2, pb: embedded ? 1 : 1.5, pt: embedded ? 0 : 1.5,
+                '@container (max-width: 420px)': {
+                    display: 'grid',
+                    gridTemplateColumns: 'minmax(0, 1fr) auto',
+                    '& [data-footer-usage]': { gridColumn: '1 / -1', gridRow: 2 },
+                },
+            }}
+        >
+            <Box data-footer-selectors sx={{ justifySelf: 'start', minWidth: 158, overflow: 'hidden' }}>
+                {action.type === 'agent' ? (
+                    <ActionAgentSelectors action={action} context={assignmentContext} settingsStore={settingsStore} />
+                ) : null}
+            </Box>
+            <Box data-footer-usage sx={{ justifySelf: 'center', minWidth: 235, justifyItems: 'center' }}>
+                <ActionUsageSummaryOwner
+                    action={action}
+                    context={assignmentContext}
+                    conversationStore={conversationStore}
+                    historyStore={historyStore}
+                    scopeStore={usageScopeStore}
+                />
+            </Box>
+            <Box
+                data-footer-controls
+                sx={{ alignItems: 'center', display: 'flex', gap: 1, justifyContent: 'flex-end', justifySelf: 'end', minWidth: 64 }}
             >
-                Schedule
-            </Button>
-            {showAgentSend ? (
-                <Tooltip title="Send">
-                    <span>
-                        <IconButton aria-label="Send" color="primary" disabled={runDisabled} onClick={handlePrimaryRun} size="small">
-                            <ArrowUpwardOutlined sx={{ fontSize: 18 }} />
-                        </IconButton>
-                    </span>
-                </Tooltip>
-            ) : showCommandRun ? (
-                <Button
-                    disabled={runDisabled}
-                    onClick={handlePrimaryRun}
-                    size="small"
-                    startIcon={<Play sx={{ fontSize: '13px !important' }} />}
-                    sx={{ height: 34, px: 2 }}
-                    variant="contained"
-                >
-                    Run
-                </Button>
-            ) : null}
+                {showFinish ? (
+                    <ActionPopupFinishButton
+                        disabled={!settings.backendAvailable || (sessionActive && !interactionReady)}
+                        onFinish={handleFinish}
+                        onStop={handleCancel}
+                    />
+                ) : null}
+                {showSchedule ? (
+                    <Tooltip title="Schedule">
+                        <span>
+                            <IconButton
+                                aria-label="Schedule"
+                                disabled={!settings.backendAvailable}
+                                onClick={handleToggleSchedule}
+                                size="small"
+                            >
+                                <CalendarOutline sx={{ fontSize: 18 }} />
+                            </IconButton>
+                        </span>
+                    </Tooltip>
+                ) : null}
+                {showAgentSend ? (
+                    <Tooltip title="Send">
+                        <span>
+                            <IconButton aria-label="Send" color="primary" disabled={runDisabled} onClick={handlePrimaryRun} size="small">
+                                <ArrowUpwardOutlined sx={{ fontSize: 18 }} />
+                            </IconButton>
+                        </span>
+                    </Tooltip>
+                ) : showCommandRun ? (
+                    <Tooltip title="Run">
+                        <Button
+                            disabled={runDisabled}
+                            onClick={handlePrimaryRun}
+                            size="small"
+                            startIcon={<Play sx={{ fontSize: '13px !important' }} />}
+                            sx={{ height: 34, px: 2 }}
+                            variant="contained"
+                        >
+                            Run
+                        </Button>
+                    </Tooltip>
+                ) : showStop ? (
+                    <Tooltip title="Stop">
+                        <span>
+                            <IconButton aria-label="Stop" disabled={!settings.backendAvailable} onClick={handleCancel} size="small">
+                                <StopOutlined sx={{ fontSize: 18 }} />
+                            </IconButton>
+                        </span>
+                    </Tooltip>
+                ) : null}
+            </Box>
         </Box>
     )
 }

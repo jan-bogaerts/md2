@@ -18,7 +18,9 @@ import { getCardIdPrefix } from '../../data/card_identifiers'
 import { defaultColumnAccent, type CardTypeConfig, type Card } from '../../data/data_types'
 import type { TreeNode, TreeNodeKind } from '../../data/file_tree'
 import { ActionEntryPoints } from '../actions/run/trigger/action_entry_points'
+import { CardPathMenuItems } from '../card_view/card_path_menu_items'
 import { useIsActiveDocument } from '../hooks/use_active_document'
+import { useProjectReference } from '../hooks/use_project_reference'
 import { useFileTreeContext } from './file_tree_context'
 
 function nodeContext(node: TreeNode, cardTypes: CardTypeConfig[], cardsByPath: Map<string, Card>): ActionContext | null {
@@ -52,11 +54,13 @@ export function FileTreeNodeRow(props: NodeRendererProps<TreeNode>) {
     const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
     const [menuPosition, setMenuPosition] = useState<{ left: number, top: number } | null>(null)
     const theme = useTheme()
+    const project = useProjectReference()
     const treeNode = node.data
     const isActiveDocument = useIsActiveDocument(treeNode.path)
     const isSelected = node.isSelected || (node.tree.hasNoSelection && isActiveDocument)
     const context = nodeContext(treeNode, cardTypes, cardsByPath)
     const card = treeNode.path ? cardsByPath.get(treeNode.path) : undefined
+    const isCard = !!card && (card.isActive || !!card.header.internalId)
     const accentColor = cardTypeColor(card, cardTypes, theme.palette.primary.main)
     const visibleId = card && treeNode.label.startsWith(`${card.header.id} `) ? card.header.id : null
     const visibleTitle = visibleId ? treeNode.label.slice(visibleId.length + 1) : treeNode.label
@@ -168,6 +172,9 @@ export function FileTreeNodeRow(props: NodeRendererProps<TreeNode>) {
                         popupAnchorElement={menuAnchor}
                         variant="menuItems"
                     />
+                ) : null}
+                {isCard && card ? (
+                    <CardPathMenuItems cardPath={card.path} onSelected={closeMenu} rootPath={project?.rootPath} />
                 ) : null}
             </Menu>
         </>

@@ -8,6 +8,11 @@ export interface AgentUsageVersion {
     usage: AgentTokenUsage
 }
 
+export interface AgentFileChangeUsage {
+    deletions: number
+    insertions: number
+}
+
 export interface ProjectAgentUsage {
     archived: AgentUsageVersion
     current: AgentUsageVersion
@@ -28,6 +33,26 @@ export function actionCardAgentTokenUsage(conversations: AgentConversation[], ac
         .map(({ usage }) => usage)
 
     return sumAgentTokenUsage(matchingUsage)
+}
+
+/** Sum completed provider patches in one canonical conversation. */
+export function conversationFileChangeUsage(conversation: AgentConversation | null): AgentFileChangeUsage | null {
+    if (!conversation) return null
+    let countedEvents = 0
+    let deletions = 0
+    let insertions = 0
+    for (const entry of conversation.entries) {
+        if (entry.kind !== 'event' || entry.type !== 'fileChange' || entry.status !== 'completed') continue
+        const { deletions: eventDeletions, insertions: eventInsertions } = entry
+        if (typeof eventDeletions !== 'number' || !Number.isSafeInteger(eventDeletions) || eventDeletions < 0) continue
+        if (typeof eventInsertions !== 'number' || !Number.isSafeInteger(eventInsertions) || eventInsertions < 0) continue
+
+        countedEvents += 1
+        deletions += eventDeletions
+        insertions += eventInsertions
+    }
+
+    return countedEvents > 0 ? { deletions, insertions } : null
 }
 
 function releaseName(cardPath: string, releasesFolder: string) {

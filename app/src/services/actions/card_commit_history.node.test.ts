@@ -22,13 +22,14 @@ function activity(): CardActivityFile {
     })
 
     return {
+        actionSettings: {},
         conversations: [],
         origin: { cardInternalId, kind: 'card' },
         records: [
             record('new', newerHash, '2026-07-20T11:00:00.000Z'),
             record('old', olderHash, '2026-07-20T10:00:00.000Z'),
         ],
-        version: 2,
+        version: 4,
     }
 }
 
@@ -63,6 +64,7 @@ describe('loadCardCommits', () => {
     it('loads one system integration commit with its system label', async () => {
         const completedAt = '2026-07-20T12:00:00.000Z'
         const integrationActivity: CardActivityFile = {
+            actionSettings: {},
             conversations: [],
             origin: { cardInternalId, kind: 'card' },
             records: [{
@@ -75,7 +77,7 @@ describe('loadCardCommits', () => {
                 origin: { cardInternalId, kind: 'card' },
                 type: 'system',
             }],
-            version: 2,
+            version: 4,
         }
         installBridge({ loadCardActivity: vi.fn(async () => integrationActivity) })
 

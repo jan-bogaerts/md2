@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { DEFAULT_STATES, defaultColumnAccent, type MarkdownFile, type StorageProjectFiles, type StorageService } from '../../data/data_types'
+import { act, renderHook } from '@testing-library/react'
+import { DEFAULT_STATES, defaultColumnAccent, type AgentConversation, type CommitRequest, type MarkdownFile, type StorageProjectFiles, type StorageService } from '../../data/data_types'
 import type { RawActionDefinition } from '../../data/action_types'
 import { actionService } from '../actions/action_service'
 import { configService } from '../config/config_service'
@@ -8,10 +9,13 @@ import { CARD_FIELDS } from '../data/card_events'
 import { DIALOG_SERVICE_EVENT, dialogService, type DialogServiceMessage, type DialogSeverity } from '../dialog_service'
 import { telemetryService } from '../telemetry/telemetry_service'
 import { GLOBAL_PROGRESS_EVENT, globalProgressService, type GlobalProgress } from '../global_progress_service'
-import { createDataService, createDeferred, createStorage, files, storageFiles, waitForWorkerTurn } from '../test_support/data_service_test_support'
+import { conversation, createDataService, createDeferred, createStorage, files, storageFiles, waitForWorkerTurn } from '../test_support/data_service_test_support'
 import { markdownParsingService } from '../data/markdown_parsing_service'
 import { RemoteControlStorageService } from '../data/remote_control_storage_service'
 import { openFilesService } from '../open_files_service'
+import { useCardColumnCards } from '../../components/card_view/use_card_column_cards'
+import { useCardBody, useCardMetadata, useCardTitle } from '../../components/card_view/use_project_card'
+import { mergeConflictService } from './merge_conflict_service'
 
 class ProjectLoadingMockWebSocket extends EventTarget {
     static instances: ProjectLoadingMockWebSocket[] = []
@@ -31,6 +35,11 @@ class ProjectLoadingMockWebSocket extends EventTarget {
     open() {
         this.readyState = 1
         this.dispatchEvent(new Event('open'))
+    }
+
+    close() {
+        this.readyState = 3
+        this.dispatchEvent(new Event('close'))
     }
 
     receive(message: unknown) {
@@ -61,6 +70,21 @@ function recordDialogMessages(severity: DialogSeverity) {
     }
 }
 
+function activityContent(
+    origin: { cardInternalId: string; kind: 'card' } | { kind: 'project' },
+    conversations: AgentConversation[],
+) {
+    return JSON.stringify({
+        actionSettings: {},
+        conversations: conversations.map((conversation) => Object.fromEntries(
+            Object.entries(conversation).filter(([fieldName]) => fieldName !== 'path'),
+        )),
+        origin,
+        records: [],
+        version: 4,
+    })
+}
+
 describe('ProjectLoading', () => {
     afterEach(() => {
         for (const document of openFilesService.getRegisteredDocuments()) openFilesService.discardDocument(document)
@@ -70,6 +94,219 @@ describe('ProjectLoading', () => {
         configService.clear()
         globalProgressService.finish()
         vi.unstubAllGlobals()
+    })
+
+    it('repairs activity and invalid card references in one project-load commit', async () => {
+        configService.init()
+        const activityPath = 'design/activity/card__root-card.json'
+        const validReference = `${activityPath}#conversation=agent-1`
+        const missingReference = `${activityPath}#conversation=missing`
+        const rootFile: MarkdownFile = {
+            content: `---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - ${validReference}\n  - ${missingReference}\n---\n`,
+            path: 'design/F-1-root.md',
+        }
+        const otherFile: MarkdownFile = {
+            content: `---\nid: F-2\ninternalId: other-card\ntitle: Other\nstatus: active\nagents:\n  - ${validReference}\n---\n`,
+            path: 'design/F-2-other.md',
+        }
+        const repairedConversation = { ...conversation(validReference), actionId: 'implement' }
+        const malformedActivity = JSON.stringify({
+            ...JSON.parse(activityContent({ cardInternalId: 'root-card', kind: 'card' }, [repairedConversation])),
+            actionSettings: { broken: { agent: 'codex' } },
+        })
+        const loadTextFile = vi.fn(async () => ({ content: malformedActivity, path: activityPath }))
+        const storage = createStorage({
+            listRepositoryFiles: vi.fn(async () => [rootFile.path, otherFile.path, activityPath]),
+            loadProject: vi.fn(async () => ({ files: [rootFile, otherFile], workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [rootFile, otherFile], workingFolder: 'design' })),
+            loadTextFile,
+        })
+        const service = createDataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await vi.waitFor(() => expect(storage.commit).toHaveBeenCalledTimes(1))
+
+        const request = vi.mocked(storage.commit).mock.calls[0][0]
+        expect(request.files.map(({ path }) => path)).toEqual([activityPath, rootFile.path, otherFile.path])
+        expect(loadTextFile).toHaveBeenCalledTimes(1)
+        expect(storage.loadAgentConversation).not.toHaveBeenCalled()
+        expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual([validReference])
+        expect(service.getState().snapshot?.activeCards[0].agentConversations).toEqual([repairedConversation])
+        expect(service.getState().snapshot?.activeCards[1].header.agentLogReferences).toEqual([])
+    })
+
+    it('does not commit clean activity and valid references', async () => {
+        configService.init()
+        const activityPath = 'design/activity/card__root-card.json'
+        const reference = `${activityPath}#conversation=agent-1`
+        const rootFile: MarkdownFile = {
+            content: `---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - ${reference}\n---\n`,
+            path: 'design/F-1-root.md',
+        }
+        const sourceConversation = conversation(reference)
+        const storage = createStorage({
+            listRepositoryFiles: vi.fn(async () => [rootFile.path, activityPath]),
+            loadProject: vi.fn(async () => ({ files: [rootFile], workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [rootFile], workingFolder: 'design' })),
+            loadTextFile: vi.fn(async () => ({
+                content: activityContent({ cardInternalId: 'root-card', kind: 'card' }, [sourceConversation]),
+                path: activityPath,
+            })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await vi.waitFor(() => expect(service.getState().snapshot?.activeCards[0].agentConversations).toHaveLength(1))
+
+        expect(storage.commit).not.toHaveBeenCalled()
+    })
+
+    it('loads project activity through same repaired raw-file path', async () => {
+        configService.init()
+        const projectActivityPath = 'activity/project.json'
+        const reference = `${projectActivityPath}#conversation=project-agent`
+        const projectConversation = {
+            ...conversation(reference),
+            actionId: null,
+            cardInternalId: null,
+            cardPath: null,
+            id: 'project-agent',
+        }
+        const storage = createStorage({
+            listRepositoryFiles: vi.fn(async () => [...storageFiles.map(({ path }) => path), projectActivityPath]),
+            loadTextFile: vi.fn(async () => ({
+                content: activityContent({ kind: 'project' }, [projectConversation]),
+                path: projectActivityPath,
+            })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await vi.waitFor(() => expect(storage.loadTextFile).toHaveBeenCalledTimes(1))
+        await expect(service.listAgentConversations({ kind: 'project' })).resolves.toEqual([projectConversation])
+
+        expect(storage.listAgentConversationReferences).not.toHaveBeenCalled()
+        expect(storage.loadAgentConversation).not.toHaveBeenCalled()
+        expect(storage.commit).not.toHaveBeenCalled()
+    })
+
+    it('does not repeat malformed JSON repair after a clean reopen', async () => {
+        configService.init()
+        const activityPath = 'design/activity/card__root-card.json'
+        const reference = `${activityPath}#conversation=missing`
+        let storedCard: MarkdownFile = {
+            content: `---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - ${reference}\n---\n`,
+            path: 'design/F-1-root.md',
+        }
+        let storedActivity: MarkdownFile = { content: '{broken', path: activityPath }
+        const commit = vi.fn(async (request: CommitRequest) => {
+            for (const file of request.files) {
+                if (file.path === storedCard.path) storedCard = file
+                if (file.path === activityPath) storedActivity = file
+            }
+
+            return []
+        })
+        const loadTextFile = vi.fn(async () => storedActivity)
+        const storage = createStorage({
+            commit,
+            listRepositoryFiles: vi.fn(async () => [storedCard.path, activityPath]),
+            loadProject: vi.fn(async () => ({ files: [storedCard], workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [storedCard], workingFolder: 'design' })),
+            loadTextFile,
+        })
+        const service = createDataService()
+        service.init({ storage })
+        const project = { branch: 'main', id: 'project' }
+
+        await service.projectLoading.openProject(project)
+        await vi.waitFor(() => expect(commit).toHaveBeenCalledTimes(1))
+        const expectedOrigin = { cardInternalId: 'root-card', kind: 'card' }
+        const expectedActivity = { actionSettings: {}, conversations: [], origin: expectedOrigin, records: [], version: 4 }
+        expect(JSON.parse(storedActivity.content)).toEqual(expectedActivity)
+
+        await service.projectLoading.openProject(project)
+        await waitForWorkerTurn()
+        await waitForWorkerTurn()
+        expect(loadTextFile).toHaveBeenCalledTimes(1)
+        expect(commit).toHaveBeenCalledTimes(1)
+    })
+
+    it('removes future-version and missing-file references without rewriting activity', async () => {
+        configService.init()
+        const futurePath = 'design/activity/card__root-card.json'
+        const missingPath = 'design/activity/card__missing-card.json'
+        const futureReference = `${futurePath}#conversation=future`
+        const missingReference = `${missingPath}#conversation=missing`
+        const rootFile: MarkdownFile = {
+            content: `---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - ${futureReference}\n  - ${missingReference}\n---\n`,
+            path: 'design/F-1-root.md',
+        }
+        const loadTextFile = vi.fn(async () => ({ content: JSON.stringify({ version: 5 }), path: futurePath }))
+        const storage = createStorage({
+            listRepositoryFiles: vi.fn(async () => [rootFile.path, futurePath]),
+            loadProject: vi.fn(async () => ({ files: [rootFile], workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [rootFile], workingFolder: 'design' })),
+            loadTextFile,
+        })
+        const service = createDataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await vi.waitFor(() => expect(storage.commit).toHaveBeenCalledTimes(1))
+
+        expect(vi.mocked(storage.commit).mock.calls[0][0].files.map(({ path }) => path)).toEqual([rootFile.path])
+        expect(loadTextFile).toHaveBeenCalledTimes(1)
+        expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual([])
+    })
+
+    it('keeps failed repair batch retryable and reports one error', async () => {
+        configService.init()
+        const activityPath = 'design/activity/card__root-card.json'
+        const validReference = `${activityPath}#conversation=agent-1`
+        const missingReference = `${activityPath}#conversation=missing`
+        const rootFile: MarkdownFile = {
+            content: `---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - ${validReference}\n  - ${missingReference}\n---\n`,
+            path: 'design/F-1-root.md',
+        }
+        const sourceConversation = { ...conversation(validReference), actionId: null }
+        const malformedActivity = JSON.stringify({
+            ...JSON.parse(activityContent({ cardInternalId: 'root-card', kind: 'card' }, [sourceConversation])),
+            actionSettings: { broken: { agent: 'codex' } },
+        })
+        let commitShouldFail = true
+        const commit = vi.fn(async (): Promise<MarkdownFile[]> => {
+            if (commitShouldFail) throw new Error('Git commit failed')
+
+            return []
+        })
+        const storage = createStorage({
+            commit,
+            listRepositoryFiles: vi.fn(async () => [rootFile.path, activityPath]),
+            loadProject: vi.fn(async () => ({ files: [rootFile], workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [rootFile], workingFolder: 'design' })),
+            loadTextFile: vi.fn(async () => ({ content: malformedActivity, path: activityPath })),
+        })
+        const dialogs = recordDialogMessages('error')
+        const service = createDataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await vi.waitFor(() => expect(dialogs.messages).toHaveLength(1))
+
+        expect(commit).toHaveBeenCalledTimes(1)
+        expect(service.getPersistenceSnapshot().hasPendingFileCommit).toBe(true)
+        expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual([validReference])
+        expect(service.getState().snapshot?.activeCards[0].agentConversations).toEqual([sourceConversation])
+
+        commitShouldFail = false
+        await service.cards.flushPendingCommits()
+        expect(commit).toHaveBeenCalledTimes(2)
+        expect(service.getPersistenceSnapshot().hasPendingFileCommit).toBe(false)
+        dialogs.stop()
     })
 
     it('blocks project navigation while an invalid action draft remains unsaved', async () => {
@@ -335,6 +572,7 @@ describe('ProjectLoading', () => {
             expect(service.getState().snapshot?.backgroundCards.map((card) => card.path)).toEqual(['projects/demo/notes/project-note.md'])
         })
         expect(service.getConfig()?.actionsFolder).toBe('projects/demo/actions')
+        await vi.waitFor(() => expect(storage.listAgentConversationReferences).toHaveBeenCalled())
     })
 
     it('dispatches the root snapshot before loading background subfolder and history cards', async () => {
@@ -863,6 +1101,33 @@ describe('ProjectLoading', () => {
         expect(card?.content).toContain('Externally changed')
     })
 
+    it('ignores watcher updates for paths owned by active merge conflict session', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        let watchChange: (event: { changeKind: 'changed'; path: string }) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const loadFile = vi.fn()
+        const storage = createStorage({
+            loadFile,
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const isConflictedPath = vi.spyOn(mergeConflictService, 'isConflictedPath').mockReturnValue(true)
+
+        watchChange({ changeKind: 'changed', path: 'design/F-1-root.md' })
+        await vi.advanceTimersByTimeAsync(150)
+
+        expect(loadFile).not.toHaveBeenCalled()
+        isConflictedPath.mockRestore()
+    })
+
     it('keeps a committed worktree assignment when another markdown file reloads', async () => {
         vi.useFakeTimers()
         configService.init()
@@ -998,6 +1263,19 @@ describe('ProjectLoading', () => {
         const cardPath = 'design/F-1-root.md'
         const publishedEvents: string[] = []
         const recordEvent = (event: Event) => publishedEvents.push(event.type)
+        const board = renderHook(() => ({
+            activePaths: useCardColumnCards('active', service),
+            body: useCardBody(cardPath, service),
+            metadata: useCardMetadata(cardPath, service),
+            readyPaths: useCardColumnCards('ready', service),
+        }))
+        const titleRendered = vi.fn()
+        const title = renderHook(() => {
+            titleRendered(useCardTitle(cardPath, service))
+
+            return null
+        })
+        const initialTitleRenderCount = titleRendered.mock.calls.length
         for (const field of CARD_FIELDS) {
             service.addEventListener(cardFieldChangedEvent(cardPath, field), recordEvent)
             service.addEventListener(cardCollectionFieldChangedEvent(field), recordEvent)
@@ -1027,12 +1305,101 @@ describe('ProjectLoading', () => {
 
         const card = service.getState().snapshot?.activeCards.find(({ path }) => path === cardPath)
         expect(card?.header.status).toBe('ready')
+        expect(board.result.current.activePaths).toEqual([])
+        expect(board.result.current.readyPaths).toEqual([cardPath])
+        expect(board.result.current.metadata?.header.status).toBe('ready')
+        expect(board.result.current.body).toContain('# Root')
+        expect(titleRendered).toHaveBeenCalledTimes(initialTitleRenderCount)
         expect(publishedEvents).toEqual([
             cardFieldChangedEvent(cardPath, 'ordering'),
             cardCollectionFieldChangedEvent('ordering'),
             cardFieldChangedEvent(cardPath, 'status'),
             cardCollectionFieldChangedEvent('status'),
         ])
+        board.unmount()
+        title.unmount()
+    })
+
+    it('restores remote project watching and resynchronizes a status change made while disconnected', async () => {
+        vi.useFakeTimers()
+        ProjectLoadingMockWebSocket.instances = []
+        vi.stubGlobal('WebSocket', ProjectLoadingMockWebSocket)
+        configService.init()
+        const remoteStorage = new RemoteControlStorageService()
+        remoteStorage.init({ endpoint: 'ws://127.0.0.1:1234', token: 'token-1' })
+        let currentFiles = storageFiles
+        const loadProject = vi.fn(async () => ({ files: currentFiles, workingFolder: 'design' }))
+        const loadFile = vi.fn(async (_project, path: string) => {
+            const file = currentFiles.find((candidate) => candidate.path === path)
+            if (!file) throw new Error(`Missing test file: ${path}`)
+
+            return file
+        })
+        const storage = createStorage({
+            loadFile,
+            loadProject,
+            watchProject: remoteStorage.watchProject.bind(remoteStorage),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const firstSocket = ProjectLoadingMockWebSocket.instances[0]
+        if (!firstSocket) throw new Error('Remote-control socket was not created')
+        const cardPath = 'design/F-1-root.md'
+        const board = renderHook(() => ({
+            activePaths: useCardColumnCards('active', service),
+            body: useCardBody(cardPath, service),
+            metadata: useCardMetadata(cardPath, service),
+            readyPaths: useCardColumnCards('ready', service),
+        }))
+        const publishedEvents: string[] = []
+        const recordEvent = (event: Event) => publishedEvents.push(event.type)
+        for (const field of CARD_FIELDS) {
+            service.addEventListener(cardFieldChangedEvent(cardPath, field), recordEvent)
+            service.addEventListener(cardCollectionFieldChangedEvent(field), recordEvent)
+        }
+
+        firstSocket.open()
+        await flushPromises()
+        const firstWatchRequest = JSON.parse(firstSocket.sent[0]) as { id: string, method: string }
+        expect(firstWatchRequest.method).toBe('watchProject')
+        firstSocket.receive({ id: firstWatchRequest.id, result: { subscriptionId: 'watch-1' } })
+        await vi.advanceTimersByTimeAsync(0)
+        publishedEvents.length = 0
+        firstSocket.close()
+        currentFiles = storageFiles.map((file) => file.path === cardPath
+            ? { ...file, content: file.content.replace('status: active', 'status: ready').replace('# Root', '# Updated remotely') }
+            : file)
+
+        const reconnection = remoteStorage.connect()
+        const secondSocket = ProjectLoadingMockWebSocket.instances[1]
+        if (!secondSocket) throw new Error('Replacement remote-control socket was not created')
+        secondSocket.open()
+        await reconnection
+        await flushPromises()
+        expect(secondSocket.sent).toHaveLength(1)
+        const restoredWatchRequest = JSON.parse(secondSocket.sent[0]) as { id: string, method: string }
+        expect(restoredWatchRequest.method).toBe('watchProject')
+        secondSocket.receive({ id: restoredWatchRequest.id, result: { subscriptionId: 'watch-2' } })
+        await act(async () => {
+            await vi.advanceTimersByTimeAsync(50)
+        })
+
+        expect(loadProject).toHaveBeenCalledTimes(2)
+        expect(loadFile).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, cardPath)
+        expect(board.result.current.activePaths).toEqual([])
+        expect(board.result.current.readyPaths).toEqual([cardPath])
+        expect(board.result.current.metadata?.header.status).toBe('ready')
+        expect(board.result.current.body).toContain('# Updated remotely')
+        expect(publishedEvents).toEqual([
+            cardFieldChangedEvent(cardPath, 'body'),
+            cardCollectionFieldChangedEvent('body'),
+            cardFieldChangedEvent(cardPath, 'ordering'),
+            cardCollectionFieldChangedEvent('ordering'),
+            cardFieldChangedEvent(cardPath, 'status'),
+            cardCollectionFieldChangedEvent('status'),
+        ])
+        board.unmount()
     })
 
     it('removes a markdown card when the watcher reports deletion', async () => {

@@ -2,7 +2,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { CardCommit } from '../../services/actions/card_commit_history'
-import { cardActionPopupService } from '../../services/actions/card_action_popup_service'
+import { cardPopupService } from '../../services/card_popup_service'
 import type { Card } from '../../data/data_types'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { listCardCommitDiffDataSource } from '../card_view/list_card_commit_diff_data_source'
@@ -11,9 +11,17 @@ import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
 import * as cardCommitsHook from '../hooks/use_card_commits'
 import { ListEditorToolbarControls } from './list_editor_toolbar_controls'
 
-vi.mock('../editor/markdown_format_toolbar_controls', () => ({MarkdownFormatToolbarControls: ({ endControls }: { endControls: ReactNode }) => <div>{endControls}</div>}))
+vi.mock('../editor/markdown_format_toolbar_controls', () => ({
+    MarkdownFormatToolbarControls: ({ endControls, undoRedoControls }: { endControls: ReactNode, undoRedoControls: ReactNode }) => (
+        <div aria-label="Markdown formatting controls">{undoRedoControls}{endControls}</div>
+    ),
+}))
 
-vi.mock('../editor/markdown_document_undo_redo', () => ({ MarkdownDocumentUndoRedo: () => null }))
+vi.mock('../editor/markdown_document_undo_redo', () => ({
+    MarkdownDocumentUndoRedo: ({ historyKey }: { historyKey: string }) => (
+        <div data-history-key={historyKey} data-testid="markdown-undo-redo" />
+    ),
+}))
 
 vi.mock('../hooks/use_project_state', () => ({useProjectState: () => ({ project: { branch: 'main', id: 'project' }, runningAgents: [], snapshot: null })}))
 
@@ -44,7 +52,7 @@ function commit(): CardCommit {
 }
 
 afterEach(() => {
-    cardActionPopupService.clear()
+    cardPopupService.clear()
     cleanup()
     vi.restoreAllMocks()
 })
@@ -58,7 +66,34 @@ const card: Card = {
     path: 'design/F-060.md',
 }
 
+const regularMarkdownFile: Card = {
+    ...card,
+    hasFrontmatter: false,
+    header: { ...card.header, id: '', internalId: null, title: 'Meeting notes' },
+    path: 'design/notes/meeting-notes.md',
+}
+
 describe('ListEditorToolbarControls', () => {
+    it('shows formatting and path-keyed undo controls without card-only controls for regular Markdown files', () => {
+        vi.spyOn(cardMarkdownDataSource, 'getActiveCard').mockReturnValue(regularMarkdownFile)
+        vi.spyOn(cardCommitsHook, 'useCardCommits').mockReturnValue({ commits: [commit()], error: null, loading: false, reload: vi.fn() })
+        render(
+            <AppThemeProvider>
+                <ListEditorToolbarControls
+                    cardTypes={[]}
+                    historyStore={new MarkdownDocumentHistoryStore()}
+                    statusColors={new Map()}
+                />
+            </AppThemeProvider>,
+        )
+
+        expect(screen.getByLabelText('Markdown formatting controls')).toBeInTheDocument()
+        expect(screen.getByTestId('markdown-undo-redo')).toHaveAttribute('data-history-key', regularMarkdownFile.path)
+        expect(screen.queryByRole('button', { name: 'Agents' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Card commit history' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Properties' })).not.toBeInTheDocument()
+    })
+
     it('hosts the card commit menu and forwards file-mode selections', () => {
         const cardCommit = commit()
         const selectCardCommit = vi.spyOn(listCardCommitDiffDataSource, 'select').mockImplementation(() => undefined)
@@ -74,6 +109,7 @@ describe('ListEditorToolbarControls', () => {
             </AppThemeProvider>,
         )
 
+        expect(screen.getByTestId('markdown-undo-redo')).toHaveAttribute('data-history-key', card.header.internalId)
         fireEvent.click(screen.getByRole('button', { name: 'Card commit history' }))
         fireEvent.click(screen.getByRole('button', { name: /Implement/ }))
 
@@ -96,11 +132,13 @@ describe('ListEditorToolbarControls', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'Agents' }))
 
-        expect(cardActionPopupService.getSnapshot()).toHaveLength(1)
-        expect(cardActionPopupService.getSnapshot()[0]?.context).toMatchObject({
-            cardInternalId: 'card-060',
-            file: card.path,
-            kind: 'file',
+        expect(cardPopupService.getSnapshot()).toHaveLength(1)
+        expect(cardPopupService.getSnapshot()[0]).toMatchObject({
+            context: {
+                cardInternalId: 'card-060',
+                file: card.path,
+                kind: 'file',
+            },
         })
     })
 })

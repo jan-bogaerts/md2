@@ -2,10 +2,11 @@ import { MenuItem, Stack } from '@mui/material'
 import type { ChangeEvent } from 'react'
 import { useEffect } from 'react'
 import {
-    defaultAccessLevelForProfile,
-    defaultApprovalPolicyForProfile,
+    PERMISSION_MODE_OPTIONS,
     findAgentProfile,
     mergeAgentProfiles,
+    supportsPermissionMode,
+    validatePermissionMode,
 } from '../../../data/agent_profiles'
 import type { RawActionDefinition } from '../../../data/action_types'
 import { agentCapabilitiesService, type AgentCapabilitiesService } from '../../../services/agents/agent_capabilities_service'
@@ -40,13 +41,11 @@ export function ActionAgentCapabilityFields(props: ActionAgentCapabilityFieldsPr
 
     const handleAgentChange = (event: ChangeEvent<HTMLInputElement>) => {
         const agent = event.target.value
-        const profile = findAgentProfile(profiles, agent)
         onChange({
             ...definition,
-            accessLevel: profile ? defaultAccessLevelForProfile(profile) ?? undefined : undefined,
             agent: agent || undefined,
-            approvalPolicy: profile ? defaultApprovalPolicyForProfile(profile) ?? undefined : undefined,
             model: undefined,
+            permissionMode: undefined,
             thinkingLevel: undefined,
         })
     }
@@ -61,12 +60,11 @@ export function ActionAgentCapabilityFields(props: ActionAgentCapabilityFieldsPr
         onChange({ ...definition, thinkingLevel: thinkingLevel === 'none' ? undefined : thinkingLevel })
     }
 
-    const handleAccessLevelChange = (event: ChangeEvent<HTMLInputElement>) => {
-        onChange({ ...definition, accessLevel: event.target.value || undefined })
-    }
-
-    const handleApprovalPolicyChange = (event: ChangeEvent<HTMLInputElement>) => {
-        onChange({ ...definition, approvalPolicy: event.target.value || undefined })
+    const handlePermissionModeChange = (event: ChangeEvent<HTMLInputElement>) => {
+        const permissionMode = event.target.value
+            ? validatePermissionMode(event.target.value, 'action permissionMode')
+            : undefined
+        onChange({ ...definition, permissionMode })
     }
 
     const selectedAvailability = definition.agent ? availability.values[definition.agent] : undefined
@@ -153,37 +151,24 @@ export function ActionAgentCapabilityFields(props: ActionAgentCapabilityFieldsPr
                     ))}
                 </ActionEditorField>
                 <ActionEditorField
-                    disabled={!definition.agent || !selectedProfile?.accessLevels}
-                    error={!!errors.accessLevel}
-                    fieldId="action-access-level"
+                    disabled={!definition.agent || !selectedProfile || !supportsPermissionMode(selectedProfile)}
+                    error={!!errors.permissionMode}
+                    fieldId="action-permission-mode"
                     fullWidth
-                    helperText={errors.accessLevel ?? (definition.agent && !selectedProfile?.accessLevels ? `${definition.agent} does not expose access levels.` : undefined)}
-                    label="Access level"
-                    onChange={handleAccessLevelChange}
+                    helperText={errors.permissionMode ?? (
+                        definition.agent && selectedProfile && !supportsPermissionMode(selectedProfile)
+                            ? `${definition.agent} does not support permission modes.`
+                            : PERMISSION_MODE_OPTIONS.find(({ value }) => value === definition.permissionMode)?.description
+                    )}
+                    label="Permission mode"
+                    onChange={handlePermissionModeChange}
                     select
                     size="small"
-                    value={definition.accessLevel ?? ''}
+                    value={definition.permissionMode ?? ''}
                 >
                     <MenuItem value="">Application default</MenuItem>
-                    {selectedProfile?.accessLevels?.map((accessLevel) => (
-                        <MenuItem key={accessLevel} value={accessLevel}>{accessLevel}</MenuItem>
-                    ))}
-                </ActionEditorField>
-                <ActionEditorField
-                    disabled={!definition.agent || !selectedProfile?.approvalPolicies}
-                    error={!!errors.approvalPolicy}
-                    fieldId="action-approval-policy"
-                    fullWidth
-                    helperText={errors.approvalPolicy ?? (definition.agent && !selectedProfile?.approvalPolicies ? `${definition.agent} does not expose approval policies.` : undefined)}
-                    label="Approval policy"
-                    onChange={handleApprovalPolicyChange}
-                    select
-                    size="small"
-                    value={definition.approvalPolicy ?? ''}
-                >
-                    <MenuItem value="">Application default</MenuItem>
-                    {selectedProfile?.approvalPolicies?.map((approvalPolicy) => (
-                        <MenuItem key={approvalPolicy} value={approvalPolicy}>{approvalPolicy}</MenuItem>
+                    {PERMISSION_MODE_OPTIONS.map(({ label, value }) => (
+                        <MenuItem key={value} value={value}>{label}</MenuItem>
                     ))}
                 </ActionEditorField>
             </Stack>

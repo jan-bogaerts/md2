@@ -1,8 +1,11 @@
 import type { ActionContext } from '../../../../data/action_context'
 import type { ActionDefinition } from '../../../../data/action_types'
-import type { ThinkingLevel } from '../../../../data/agent_profiles'
 import { actionPromptDraftService } from '../../../../services/actions/action_prompt_draft_service'
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
+import type {
+    ActionRunSettingsStore,
+    ResolvedActionRunSettings,
+} from '../../../../services/actions/action_run_settings_service'
 import { dataService } from '../../../../services/data/data_service'
 import { dialogService } from '../../../../services/dialog_service'
 import {
@@ -20,12 +23,24 @@ import type { ActionRunResultStore } from '../state/action_run_result_store'
 
 const DEFAULT_CONVERT_LABEL_LENGTH = 40
 
-export interface ResolvedActionRunSettings {
-    accessLevel: string
-    agent: string
-    approvalPolicy: string
-    model: string
-    thinkingLevel: ThinkingLevel
+function hasPersistedSubmittedMessage(
+    previousConversation: NonNullable<ReturnType<ActionConversationStore['getSnapshot']>['selectedConversation']>,
+    currentConversation: ReturnType<ActionConversationStore['getSnapshot']>['selectedConversation'],
+    prompt: string,
+) {
+    if (!currentConversation || currentConversation.path !== previousConversation.path) return false
+
+    const previousEntryIds = new Set(previousConversation.entries.map(({ id }) => id))
+
+    return currentConversation.entries.some((entry) => entry.kind === 'message'
+        && entry.role === 'user'
+        && entry.content === prompt
+        && !previousEntryIds.has(entry.id))
+}
+
+function restorePrompt(action: ActionDefinition, context: ActionContext, prompt: string) {
+    const currentRun = currentActionRun(action, context)
+    actionPromptDraftService.getDraft(action.id, context, currentRun, { prepare: false }).edit(prompt)
 }
 
 export interface ActionPopupOperationInput {
@@ -37,6 +52,7 @@ export interface ActionPopupOperationInput {
     resultStore: ActionRunResultStore
     runValidationError: string | null
     settings: ResolvedActionRunSettings
+    settingsStore: ActionRunSettingsStore
 }
 
 export function currentActionRun(action: ActionDefinition, context: ActionContext) {
@@ -50,27 +66,30 @@ export function currentActionPromptDraft(action: ActionDefinition, context: Acti
 }
 
 async function runWithPrompt(input: ActionPopupOperationInput, prompt: string, previousRunId: string | null = null) {
-    const { action, context, conversationStore, historyStore, inputStore, resultStore, runValidationError, settings } = input
+    const {
+        action, context, conversationStore, historyStore, resultStore, runValidationError, settings,
+        settingsStore,
+    } = input
     resultStore.setRunning()
     try {
         if (runValidationError) throw new Error(runValidationError)
 
         const liveConversation = currentActionRun(action, context)?.conversation ?? null
+        const previousConversation = liveConversation ?? conversationStore.getSnapshot().selectedConversation
         const continuationPath = conversationStore.continuationPath(liveConversation)
         const runInput = action.type === 'agent'
             ? {
-                ...(settings.accessLevel ? { accessLevel: settings.accessLevel } : {}),
                 ...(settings.agent ? { agent: settings.agent } : {}),
-                ...(settings.approvalPolicy ? { approvalPolicy: settings.approvalPolicy } : {}),
                 ...(continuationPath ? { continueFrom: continuationPath } : {}),
                 prompt,
                 ...(settings.model ? { model: settings.model } : {}),
+                ...(settings.permissionMode ? { permissionMode: settings.permissionMode } : {}),
                 thinkingLevel: settings.thinkingLevel,
             }
             : { extraPrompt: prompt }
         const handleStarted = (runId: string) => {
             resultStore.setRunId(runId)
-            inputStore.markSettingsApplied()
+            settingsStore.markSettingsApplied()
             actionPromptDraftService.clearDraft(action.id, context, currentActionRun(action, context))
         }
         const result = previousRunId
@@ -78,12 +97,21 @@ async function runWithPrompt(input: ActionPopupOperationInput, prompt: string, p
             : await defaultRunAction(action, context, runInput, handleStarted)
         resultStore.setResult(result)
         await historyStore.load()
-        if (action.type === 'agent') await conversationStore.load()
-    } catch (error) {
-        if (previousRunId) {
-            const currentRun = currentActionRun(action, context)
-            actionPromptDraftService.getDraft(action.id, context, currentRun, { prepare: false }).edit(prompt)
+        if (action.type === 'agent') {
+            await conversationStore.load()
+            if (previousRunId
+                && result.status === 'failed'
+                && previousConversation
+                && !hasPersistedSubmittedMessage(
+                    previousConversation,
+                    conversationStore.getSnapshot().selectedConversation,
+                    prompt,
+                )) {
+                restorePrompt(action, context, prompt)
+            }
         }
+    } catch (error) {
+        if (previousRunId) restorePrompt(action, context, prompt)
         const message = error instanceof Error ? error.message : 'Action run failed'
         resultStore.setResult({
             logs: [{
@@ -103,7 +131,7 @@ async function runWithPrompt(input: ActionPopupOperationInput, prompt: string, p
 }
 
 export async function runPopupAction(input: ActionPopupOperationInput) {
-    const { action, context, inputStore } = input
+    const { action, context, settingsStore } = input
     const run = currentActionRun(action, context)
     const promptDraft = actionPromptDraftService.getDraft(action.id, context, run, { prepare: false })
     const prompt = promptDraft.getSnapshot()
@@ -112,7 +140,7 @@ export async function runPopupAction(input: ActionPopupOperationInput) {
 
     if (agentActive && run) {
         if (run.question || run.approvals.length) return
-        if (run.status === 'waitingForInput' && inputStore.getSnapshot().settingsChangedWhileWaiting) {
+        if (run.status === 'waitingForInput' && settingsStore.getSnapshot().settingsChangedWhileWaiting) {
             await runWithPrompt(input, prompt, run.runId)
             return
         }
@@ -139,12 +167,11 @@ export async function convertPromptToAction(input: ActionPopupOperationInput) {
     try {
         const label = actionLabel.trim().length > 0 ? actionLabel : prompt.trim().slice(0, DEFAULT_CONVERT_LABEL_LENGTH)
         const convertInput = {
-            ...(settings.accessLevel ? { accessLevel: settings.accessLevel } : {}),
             ...(settings.agent ? { agent: settings.agent } : {}),
-            ...(settings.approvalPolicy ? { approvalPolicy: settings.approvalPolicy } : {}),
             context,
             label,
             ...(settings.model ? { model: settings.model } : {}),
+            ...(settings.permissionMode ? { permissionMode: settings.permissionMode } : {}),
             prompt,
         }
         const result = await defaultConvertPromptToAction(convertInput)

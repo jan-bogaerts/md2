@@ -8,6 +8,7 @@ import type {
     DeleteFileRequest,
     DeleteFolderRequest,
     AgentConversation,
+    IntegrateWorktreeRequest,
     MoveFilesRequest,
     PrepareWorktreeRequest,
     ProjectConfig,
@@ -21,6 +22,12 @@ import type {
     WorktreeState,
 } from '../../data/data_types'
 import { getElectronDataBridge, type ElectronDataBridge } from '../../data/electron_data_bridge'
+import type {
+    MergeConflictPathRequest,
+    MergeConflictSession,
+    MergeConflictSessionRequest,
+    WorktreeOperationOutcome,
+} from '../../data/merge_conflict_types'
 
 interface LocalGitStorageDependencies {
     bridge?: ElectronDataBridge
@@ -169,12 +176,63 @@ export class LocalGitStorageService implements StorageService {
         else this.pendingPushBranches.delete(project.branch)
     }
 
-    async integrateWorktree(request: WorktreeOperationRequest): Promise<void> {
+    async integrateWorktree(request: IntegrateWorktreeRequest): Promise<WorktreeOperationOutcome> {
         const bridge = this.requireBridge()
         if (!bridge.integrateWorktree) throw new Error('Electron local Git bridge cannot integrate worktrees')
 
-        await bridge.integrateWorktree(request)
+        const outcome = await bridge.integrateWorktree(request)
         this.pendingPushBranches.add(request.project.branch)
+
+        return outcome
+    }
+
+    async abortMergeConflict(request: MergeConflictSessionRequest): Promise<void> {
+        const bridge = this.requireBridge()
+        if (!bridge.abortMergeConflict) throw new Error('Electron local Git bridge cannot abort merge conflicts')
+
+        await bridge.abortMergeConflict(request)
+    }
+
+    async continueMergeConflict(request: MergeConflictSessionRequest): Promise<WorktreeOperationOutcome> {
+        const bridge = this.requireBridge()
+        if (!bridge.continueMergeConflict) throw new Error('Electron local Git bridge cannot continue merge conflicts')
+
+        return bridge.continueMergeConflict(request)
+    }
+
+    async getMergeConflictSession(): Promise<MergeConflictSession | null> {
+        const bridge = this.requireBridge()
+        if (!bridge.getMergeConflictSession) throw new Error('Electron local Git bridge cannot load merge conflicts')
+
+        return bridge.getMergeConflictSession()
+    }
+
+    async launchMergeConflictResolver(request: MergeConflictPathRequest): Promise<void> {
+        const bridge = this.requireBridge()
+        if (!bridge.launchMergeConflictResolver) throw new Error('Electron local Git bridge cannot launch merge conflict resolver')
+
+        await bridge.launchMergeConflictResolver(request)
+    }
+
+    async markMergeConflictResolved(request: MergeConflictPathRequest): Promise<MergeConflictSession> {
+        const bridge = this.requireBridge()
+        if (!bridge.markMergeConflictResolved) throw new Error('Electron local Git bridge cannot mark merge conflicts resolved')
+
+        return bridge.markMergeConflictResolved(request)
+    }
+
+    onMergeConflictSessionChanged(callback: (session: MergeConflictSession | null) => void) {
+        const bridge = this.requireBridge()
+        if (!bridge.onMergeConflictSessionChanged) throw new Error('Electron local Git bridge cannot subscribe to merge conflicts')
+
+        return bridge.onMergeConflictSessionChanged(callback)
+    }
+
+    async rescanMergeConflict(request: MergeConflictSessionRequest): Promise<MergeConflictSession> {
+        const bridge = this.requireBridge()
+        if (!bridge.rescanMergeConflict) throw new Error('Electron local Git bridge cannot rescan merge conflicts')
+
+        return bridge.rescanMergeConflict(request)
     }
 
     async checkoutBranch(project: ProjectReference, branch: string): Promise<ProjectReference> {
@@ -257,11 +315,11 @@ export class LocalGitStorageService implements StorageService {
         await bridge.pullWorktree(request)
     }
 
-    async rebaseWorktree(request: WorktreeOperationRequest): Promise<void> {
+    async rebaseWorktree(request: WorktreeOperationRequest): Promise<WorktreeOperationOutcome> {
         const bridge = this.requireBridge()
         if (!bridge.rebaseWorktree) throw new Error('Electron local Git bridge cannot rebase worktrees')
 
-        await bridge.rebaseWorktree(request)
+        return bridge.rebaseWorktree(request)
     }
 
     async pushWorktree(request: WorktreeOperationRequest): Promise<void> {

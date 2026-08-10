@@ -25,6 +25,18 @@ describe('DataService', () => {
         openFilesService.clear()
     })
 
+    it('routes project and card conversation lists through AgentIntegration loaders', async () => {
+        const service = createDataService()
+        const listProjectAgentConversations = vi.spyOn(service.agents, 'listProjectAgentConversations').mockResolvedValue([])
+        const ensureAgentConversationsForCard = vi.spyOn(service.agents, 'ensureAgentConversationsForCard').mockResolvedValue([])
+
+        await expect(service.listAgentConversations({ kind: 'project' })).resolves.toEqual([])
+        await expect(service.listAgentConversations({ cardInternalId: 'card-1', kind: 'card' })).resolves.toEqual([])
+
+        expect(listProjectAgentConversations).toHaveBeenCalledOnce()
+        expect(ensureAgentConversationsForCard).toHaveBeenCalledWith('card-1')
+    })
+
     it('handles GitHub unauthorized once when opening a project gets a 401', async () => {
         configService.init()
         const handleUnauthorized = vi.fn()

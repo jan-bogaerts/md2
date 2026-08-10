@@ -104,20 +104,42 @@ describe('CardOperations', () => {
         })
     })
 
-    it('leaves markdown files outside the working folder root untouched during project load', async () => {
+    it('adds internal IDs to archived and released cards but leaves regular markdown untouched', async () => {
         configService.init()
         const plainFiles = [
             { content: '# Notes', path: 'design/architecture/notes.md' },
-            { content: '---\ntitle: Old\n---\n\n# Old', path: 'design/history/F-3-old.md' },
+            { content: '---\ntitle: Archived\n---\n\n# Archived', path: 'design/archived/F-2-archived.md' },
+            { content: '---\ntitle: Released\n---\n\n# Released', path: 'design/history/v1/F-3-released.md' },
         ]
-        const storage = createStorage({ loadProjectRoot: vi.fn(async () => ({ files: plainFiles, workingFolder: 'design' })) })
+        const storage = createStorage({
+            loadProject: vi.fn(async () => ({ files: plainFiles, workingFolder: 'design/active' })),
+            loadProjectConfig: vi.fn(async () => ({
+                archivedFolder: 'archived',
+                projectFolder: 'design',
+                releasesFolder: 'history',
+                workingFolder: 'active',
+            })),
+            loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design/active' })),
+        })
         const service = createDataService()
         service.init({ storage })
 
-        const snapshot = await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await vi.waitFor(() => expect(service.getState().snapshot?.backgroundCards).toHaveLength(3))
 
-        expect(snapshot.backgroundCards.map(({ header }) => header.internalId)).toEqual([null, null])
-        expect(storage.commit).not.toHaveBeenCalled()
+        const cards = service.getState().snapshot?.backgroundCards ?? []
+        expect(cards.find(({ path }) => path === 'design/architecture/notes.md')?.header.internalId).toBeNull()
+        expect(cards.find(({ path }) => path === 'design/archived/F-2-archived.md')?.header.internalId).toEqual(expect.any(String))
+        expect(cards.find(({ path }) => path === 'design/history/v1/F-3-released.md')?.header.internalId).toEqual(expect.any(String))
+        expect(storage.commit).toHaveBeenCalledWith(expect.objectContaining({
+            files: expect.arrayContaining([
+                expect.objectContaining({ path: 'design/archived/F-2-archived.md' }),
+                expect.objectContaining({ path: 'design/history/v1/F-3-released.md' }),
+            ]),
+            message: 'Add missing card internal IDs',
+        }))
+        const committedPaths = vi.mocked(storage.commit).mock.calls.flatMap(([request]) => request.files.map(({ path }) => path))
+        expect(committedPaths).not.toContain('design/architecture/notes.md')
     })
 
     it('creates cards with commits and auto-pushes when configured', async () => {

@@ -1,151 +1,214 @@
-import { Box, MenuItem, TextField } from '@mui/material'
-import type { ChangeEvent } from 'react'
-import { THINKING_LEVELS, type AgentProfile, type ThinkingLevel } from '../../../data/agent_profiles'
-import type { AgentAvailability } from '../../../data/electron_data_bridge'
+import ShieldOutlined from '@mui/icons-material/ShieldOutlined'
+import {
+    Box,
+    Button,
+    IconButton,
+    ListItemText,
+    ListSubheader,
+    Menu,
+    MenuItem,
+    Tooltip,
+} from '@mui/material'
+import { useState, type MouseEvent } from 'react'
+import type { ActionContext } from '../../../data/action_context'
+import type { ActionDefinition } from '../../../data/action_types'
+import {
+    DEFAULT_PERMISSION_MODE,
+    PERMISSION_MODE_OPTIONS,
+    THINKING_LEVELS,
+    defaultModelForProfile,
+    findAgentProfile,
+    supportsPermissionMode,
+    validatePermissionMode,
+    validateThinkingLevel,
+    type PermissionMode,
+} from '../../../data/agent_profiles'
+import type { ActionRun } from '../../../services/actions/action_run_registry'
+import type { ActionRunSettingsStore } from '../../../services/actions/action_run_settings_service'
+import { useActionRunSelector } from '../../hooks/use_action_runs'
+import { useActionRunSettings } from '../shared/use_action_run_settings'
 
 interface ActionAgentSelectorsProps {
-    accessLevel: string
-    agent: string
-    agentAvailability: Record<string, AgentAvailability>
-    agentProfiles: AgentProfile[]
-    approvalPolicy: string
-    disabled: boolean
-    model: string
-    onAccessLevelChange: (event: ChangeEvent<HTMLInputElement>) => void
-    onAgentChange: (event: ChangeEvent<HTMLInputElement>) => void
-    onApprovalPolicyChange: (event: ChangeEvent<HTMLInputElement>) => void
-    onModelChange: (event: ChangeEvent<HTMLInputElement>) => void
-    onThinkingLevelChange: (event: ChangeEvent<HTMLInputElement>) => void
-    selectedAccessLevels: string[]
-    selectedAgentModels: string[]
-    selectedApprovalPolicies: string[]
-    thinkingLevel: ThinkingLevel
+    action: ActionDefinition
+    context: ActionContext
+    settingsStore: ActionRunSettingsStore
 }
 
-/** Compact agent, model and thinking selectors for an action popup. */
+const PERMISSION_MODE_COLORS: Record<PermissionMode, string> = {
+    'ask-for-approval': 'success.main',
+    'approve-for-me': 'warning.main',
+    'full-access': 'error.main',
+}
+
+function selectRunStatus(run: ActionRun | null) {
+    return run?.status ?? null
+}
+
+/** Agent run settings exposed as compact model and security menus. */
 export function ActionAgentSelectors(props: ActionAgentSelectorsProps) {
-    const {
-        accessLevel, agent, agentAvailability, agentProfiles, approvalPolicy, disabled, model,
-        onAccessLevelChange, onAgentChange, onApprovalPolicyChange, onModelChange,
-        onThinkingLevelChange, selectedAccessLevels, selectedAgentModels, selectedApprovalPolicies, thinkingLevel,
-    } = props
+    const { action, context, settingsStore } = props
+    const [modelMenuAnchor, setModelMenuAnchor] = useState<HTMLElement | null>(null)
+    const [securityMenuAnchor, setSecurityMenuAnchor] = useState<HTMLElement | null>(null)
+    const runStatus = useActionRunSelector(action.id, context, selectRunStatus)
+    const settings = useActionRunSettings(action, settingsStore)
+    const currentSettings = {
+        agent: settings.agent,
+        model: settings.model,
+        permissionMode: settings.permissionMode,
+        thinkingLevel: settings.thinkingLevel,
+    }
+    const disabled = settings.settingsLoading || runStatus === 'queued' || runStatus === 'running'
+    const changedWhileWaiting = runStatus === 'waitingForInput'
+    const permissionOption = PERMISSION_MODE_OPTIONS.find(({ value }) => value === settings.permissionMode)
+    const securityTooltip = settings.permissionModeSupported
+        ? permissionOption?.label ?? 'Security'
+        : 'Permission controls are unsupported by this agent'
+
+    const handleOpenModelMenu = (event: MouseEvent<HTMLButtonElement>) => setModelMenuAnchor(event.currentTarget)
+    const handleCloseModelMenu = () => setModelMenuAnchor(null)
+    const handleOpenSecurityMenu = (event: MouseEvent<HTMLButtonElement>) => setSecurityMenuAnchor(event.currentTarget)
+    const handleCloseSecurityMenu = () => setSecurityMenuAnchor(null)
+
+    const handleAgentChange = (event: MouseEvent<HTMLElement>) => {
+        const agent = event.currentTarget.dataset.agent
+        if (agent === undefined) throw new Error('Agent menu item is missing its agent')
+        const profile = findAgentProfile(settings.agentProfiles, agent)
+        const nextSettings: Parameters<ActionRunSettingsStore['setSettings']>[0] = {
+            agent,
+            model: profile ? defaultModelForProfile(profile) : '',
+            permissionMode: profile && supportsPermissionMode(profile) ? DEFAULT_PERMISSION_MODE : '',
+            thinkingLevel: 'none',
+        }
+        settingsStore.setSettings(nextSettings, changedWhileWaiting)
+        handleCloseModelMenu()
+    }
+
+    const handleModelChange = (event: MouseEvent<HTMLElement>) => {
+        const model = event.currentTarget.dataset.model
+        if (model === undefined) throw new Error('Model menu item is missing its model')
+        settingsStore.setSettings({ ...currentSettings, model, thinkingLevel: 'none' }, changedWhileWaiting)
+        handleCloseModelMenu()
+    }
+
+    const handleThinkingLevelChange = (event: MouseEvent<HTMLElement>) => {
+        const thinkingLevel = validateThinkingLevel(event.currentTarget.dataset.thinkingLevel, 'action run input')
+        settingsStore.setSettings({ ...currentSettings, thinkingLevel }, changedWhileWaiting)
+        handleCloseModelMenu()
+    }
+
+    const handlePermissionModeChange = (event: MouseEvent<HTMLElement>) => {
+        const permissionMode = validatePermissionMode(event.currentTarget.dataset.permissionMode, 'action run input')
+        settingsStore.setSettings({ ...currentSettings, permissionMode }, changedWhileWaiting)
+        handleCloseSecurityMenu()
+    }
 
     return (
-        <>
-            <Box sx={{ alignItems: 'center', display: 'flex', position: 'relative' }}>
-                <Box sx={{ bgcolor: 'success.main', borderRadius: '50%', height: 6, left: 8, position: 'absolute', width: 6, zIndex: 1 }} />
-                <TextField
-                    disabled={disabled}
-                    onChange={onAgentChange}
-                    select
-                    slotProps={{ select: { inputProps: { 'aria-label': 'Agent' } } }}
-                    sx={{
-                        minWidth: 82,
-                        '& .MuiInputBase-root': { borderRadius: '6px', color: 'text.secondary', fontSize: 12, fontWeight: 600, height: 26, pl: 2 },
-                        '& .MuiInputBase-root:hover': { bgcolor: 'action.hover', color: 'text.primary' },
-                        '& .MuiInput-root:before, & .MuiInput-root:after': { display: 'none' },
-                    }}
-                    value={agent}
-                    variant="standard"
-                >
-                    {agentProfiles.map((profile) => (
-                        <MenuItem
-                            disabled={agentAvailability[profile.name]?.available !== true}
-                            key={profile.name}
-                            value={profile.name}
-                        >
-                            {profile.name}{agentAvailability[profile.name]?.error ? ` — ${agentAvailability[profile.name].error}` : ''}
-                        </MenuItem>
-                    ))}
-                </TextField>
-            </Box>
-            <Box sx={{ bgcolor: 'divider', height: 14, mx: 0.25, width: '1px' }} />
-            {selectedAgentModels.length > 0 ? (
-                <TextField
-                    disabled={disabled}
-                    onChange={onModelChange}
-                    select
-                    slotProps={{ select: { inputProps: { 'aria-label': 'Model' } } }}
-                    sx={{
-                        minWidth: 90,
-                        '& .MuiInputBase-root': { borderRadius: '6px', color: 'text.secondary', fontSize: 12, fontWeight: 600, height: 26, pl: 0.75 },
-                        '& .MuiInputBase-root:hover': { bgcolor: 'action.hover', color: 'text.primary' },
-                        '& .MuiInput-root:before, & .MuiInput-root:after': { display: 'none' },
-                    }}
-                    value={model}
-                    variant="standard"
-                >
-                    {selectedAgentModels.map((agentModel) => (
-                        <MenuItem key={agentModel} value={agentModel}>{agentModel}</MenuItem>
-                    ))}
-                </TextField>
-            ) : (
-                <TextField
-                    disabled={disabled}
-                    onChange={onModelChange}
-                    placeholder="Default"
-                    slotProps={{ htmlInput: { 'aria-label': 'Model' } }}
-                    sx={{
-                        width: 90,
-                        '& .MuiInputBase-root': { borderRadius: '6px', color: 'text.secondary', fontSize: 12, fontWeight: 600, height: 26, px: 0.75 },
-                        '& .MuiInputBase-root:hover': { bgcolor: 'action.hover', color: 'text.primary' },
-                        '& .MuiInput-root:before, & .MuiInput-root:after': { display: 'none' },
-                    }}
-                    value={model}
-                    variant="standard"
-                />
-            )}
-            <Box sx={{ bgcolor: 'divider', height: 14, mx: 0.25, width: '1px' }} />
-            <TextField
+        <Box aria-label="Agent settings" role="group" sx={{ alignItems: 'center', display: 'flex', flexShrink: 1, gap: 0.5, minWidth: 0 }}>
+            <Button
+                aria-controls={modelMenuAnchor ? 'action-agent-model-menu' : undefined}
+                aria-expanded={!!modelMenuAnchor}
+                aria-haspopup="menu"
+                aria-label="Model"
                 disabled={disabled}
-                onChange={onThinkingLevelChange}
-                select
-                slotProps={{ select: { inputProps: { 'aria-label': 'Thinking level' } } }}
+                onClick={handleOpenModelMenu}
+                size="small"
                 sx={{
-                    minWidth: 72,
-                    '& .MuiInputBase-root': { borderRadius: '6px', color: 'text.secondary', fontSize: 12, fontWeight: 600, height: 26, pl: 0.75 },
-                    '& .MuiInputBase-root:hover': { bgcolor: 'action.hover', color: 'text.primary' },
-                    '& .MuiInput-root:before, & .MuiInput-root:after': { display: 'none' },
+                    borderColor: 'divider', color: 'text.secondary', flexShrink: 1, fontSize: 12, height: 28,
+                    justifyContent: 'flex-start', minWidth: 0, overflow: 'hidden', px: 1, textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap', '&:hover': { borderColor: 'primary.main', color: 'primary.main' },
                 }}
-                value={thinkingLevel}
-                variant="standard"
+                variant="outlined"
             >
-                {THINKING_LEVELS.map((level) => <MenuItem key={level} value={level}>{level}</MenuItem>)}
-            </TextField>
-            <Box sx={{ bgcolor: 'divider', height: 14, mx: 0.25, width: '1px' }} />
-            {selectedAccessLevels.length > 0 ? (
-                <TextField
-                    disabled={disabled}
-                    onChange={onAccessLevelChange}
-                    select
-                    slotProps={{ select: { inputProps: { 'aria-label': 'Access level' } } }}
-                    sx={{ minWidth: 110, '& .MuiInputBase-root': { borderRadius: '6px', color: 'text.secondary', fontSize: 12, fontWeight: 600, height: 26, pl: 0.75 }, '& .MuiInput-root:before, & .MuiInput-root:after': { display: 'none' } }}
-                    value={accessLevel}
-                    variant="standard"
-                >
-                    {!selectedAccessLevels.includes(accessLevel)
-                        ? <MenuItem value={accessLevel}>{accessLevel} - unavailable</MenuItem>
-                        : null}
-                    {selectedAccessLevels.map((level) => <MenuItem key={level} value={level}>{level}</MenuItem>)}
-                </TextField>
-            ) : <TextField disabled slotProps={{ htmlInput: { 'aria-label': 'Access level' } }} sx={{ width: 110 }} value="Not supported" variant="standard" />}
-            <Box sx={{ bgcolor: 'divider', height: 14, mx: 0.25, width: '1px' }} />
-            {selectedApprovalPolicies.length > 0 ? (
-                <TextField
-                    disabled={disabled}
-                    onChange={onApprovalPolicyChange}
-                    select
-                    slotProps={{ select: { inputProps: { 'aria-label': 'Approval policy' } } }}
-                    sx={{ minWidth: 110, '& .MuiInputBase-root': { borderRadius: '6px', color: 'text.secondary', fontSize: 12, fontWeight: 600, height: 26, pl: 0.75 }, '& .MuiInput-root:before, & .MuiInput-root:after': { display: 'none' } }}
-                    value={approvalPolicy}
-                    variant="standard"
-                >
-                    {!selectedApprovalPolicies.includes(approvalPolicy)
-                        ? <MenuItem value={approvalPolicy}>{approvalPolicy} - unavailable</MenuItem>
-                        : null}
-                    {selectedApprovalPolicies.map((policy) => <MenuItem key={policy} value={policy}>{policy}</MenuItem>)}
-                </TextField>
-            ) : <TextField disabled slotProps={{ htmlInput: { 'aria-label': 'Approval policy' } }} sx={{ width: 110 }} value="Not supported" variant="standard" />}
-        </>
+                {settings.model || 'Default'} {settings.thinkingLevel}
+            </Button>
+            <Tooltip title={securityTooltip}>
+                <span>
+                    <IconButton
+                        aria-controls={securityMenuAnchor ? 'action-agent-security-menu' : undefined}
+                        aria-expanded={!!securityMenuAnchor}
+                        aria-haspopup="menu"
+                        aria-label="Permission mode"
+                        data-permission-mode={settings.permissionMode || 'unsupported'}
+                        disabled={disabled || !settings.permissionModeSupported}
+                        onClick={handleOpenSecurityMenu}
+                        size="small"
+                        sx={{
+                            border: '1px solid', borderColor: 'divider', borderRadius: 1,
+                            color: settings.permissionModeSupported
+                                ? PERMISSION_MODE_COLORS[settings.permissionMode as PermissionMode]
+                                : 'custom.text4',
+                            height: 28, width: 28,
+                            '&:hover': { bgcolor: 'custom.track', borderColor: 'custom.borderHover' },
+                        }}
+                    >
+                        <ShieldOutlined sx={{ fontSize: 18 }} />
+                    </IconButton>
+                </span>
+            </Tooltip>
+            <Menu
+                anchorEl={modelMenuAnchor}
+                id="action-agent-model-menu"
+                onClose={handleCloseModelMenu}
+                open={!!modelMenuAnchor}
+                slotProps={{ list: { 'aria-label': 'Agent model settings' } }}
+            >
+                <ListSubheader disableSticky>Agent</ListSubheader>
+                {settings.agentProfiles.map((profile) => {
+                    const availability = settings.agentAvailability[profile.name]
+
+                    return (
+                        <MenuItem
+                            data-agent={profile.name}
+                            disabled={availability?.available !== true}
+                            key={profile.name}
+                            onClick={handleAgentChange}
+                            selected={profile.name === settings.agent}
+                        >
+                            <ListItemText primary={profile.name} secondary={availability?.error} />
+                        </MenuItem>
+                    )
+                })}
+                <ListSubheader disableSticky>Model</ListSubheader>
+                {(settings.selectedAgentModels.length > 0 ? settings.selectedAgentModels : ['']).map((model) => (
+                    <MenuItem
+                        data-model={model}
+                        key={model || 'default'}
+                        onClick={handleModelChange}
+                        selected={model === settings.model}
+                    >
+                        {model || 'Default'}
+                    </MenuItem>
+                ))}
+                <ListSubheader disableSticky>Thinking level</ListSubheader>
+                {THINKING_LEVELS.map((thinkingLevel) => (
+                    <MenuItem
+                        data-thinking-level={thinkingLevel}
+                        key={thinkingLevel}
+                        onClick={handleThinkingLevelChange}
+                        selected={thinkingLevel === settings.thinkingLevel}
+                    >
+                        {thinkingLevel}
+                    </MenuItem>
+                ))}
+            </Menu>
+            <Menu
+                anchorEl={securityMenuAnchor}
+                id="action-agent-security-menu"
+                onClose={handleCloseSecurityMenu}
+                open={!!securityMenuAnchor}
+                slotProps={{ list: { 'aria-label': 'Security settings' } }}
+            >
+                {PERMISSION_MODE_OPTIONS.map(({ description, label, value }) => (
+                    <MenuItem
+                        data-permission-mode={value}
+                        key={value}
+                        onClick={handlePermissionModeChange}
+                        selected={value === settings.permissionMode}
+                    >
+                        <ListItemText primary={label} secondary={description} />
+                    </MenuItem>
+                ))}
+            </Menu>
+        </Box>
     )
 }

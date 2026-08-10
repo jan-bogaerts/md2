@@ -7,7 +7,7 @@ import type { ActionContext } from '../../data/action_context'
 import { resolveProjectConfigPaths, type MarkdownFile, type ProjectConfig, type ProjectReference, type ProjectSnapshot, type RunningAgent, type StorageService } from '../../data/data_types'
 import type { RemarkableBridge } from '../../data/remarkable_bridge'
 import { agentAcknowledgementService } from '../agents/agent_acknowledgement_service'
-import { agentConversationService, listAgentConversationReferences, loadAgentConversation } from '../agents/agent_conversation_service'
+import { agentConversationService, loadAgentConversation } from '../agents/agent_conversation_service'
 import { CardOperations, type CardOperationsDeps } from './card_operations'
 import { configService } from '../config/config_service'
 import { type DataServiceDependencies, getProjectConfigOrNull, reportCommitFlushFailure } from './data_service_context'
@@ -22,6 +22,7 @@ import type { RemarkableImportPlan } from '../remarkable/remarkable_import_servi
 import { getService, register } from '../service_injector'
 import { telemetryService } from '../telemetry/telemetry_service'
 import { worktreeService } from '../project/worktree_service'
+import { mergeConflictService } from '../project/merge_conflict_service'
 import { dialogService } from '../dialog_service'
 import type { CardParseError } from './markdown_parsing_service'
 import type { OpenDocumentSaveReference } from '../open_files_service'
@@ -165,6 +166,7 @@ export class DataService extends EventTarget {
         agentAcknowledgementService.connectConversationStore((conversation) => this.agents.findStoredConversation(conversation))
         this.projectLoading = new ProjectLoading(
             this.createProjectLoadingDependencies(),
+            (projectLoadToken) => this.agents.prepareProjectConversationLoad(projectLoadToken),
             (snapshot, project, projectLoadToken) => this.agents.loadAgentConversationsInBackground(snapshot, project, projectLoadToken),
         )
         this.releases = new ReleaseOperations(this.createReleaseOperationsDependencies(), () => this.cards.flushPendingCommits())
@@ -178,6 +180,18 @@ export class DataService extends EventTarget {
         this.projectState.resetLoadedProject()
         this.remarkableBridge = dependencies.remarkableBridge ?? null
         this.storage = withSaveStateTracking(dependencies.storage, this.saveStateService)
+        mergeConflictService.init({
+            completeBranchCleanup: (cardInternalId) => {
+                const snapshot = this.projectState.snapshot
+                const card = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]
+                    .find((candidate) => candidate.header.internalId === cardInternalId)
+                if (!card) return
+                this.cards.updateCardWorktree(card.path, null)
+                this.cards.clearCardBranch(card.path)
+            },
+            reloadPaths: (paths) => this.projectLoading.reloadConflictPaths(paths),
+            storage: this.storage,
+        })
         worktreeService.init({
             assignCardWorktree: (path, worktree, branch) => this.cards.assignCardWorktree(path, worktree, branch),
             cardSeparatorProvider: () => this.requireDependencies().config.cardSeparator,
@@ -226,20 +240,10 @@ export class DataService extends EventTarget {
         return getProjectConfigOrNull(this.storage)
     }
     async listAgentConversations(context: ActionContext) {
-        const { config, storage } = this.requireDependencies()
-        const currentProject = this.projectState.project
-        if (!currentProject) throw new Error('Cannot list agent conversations before a project is open')
+        if (context.kind === 'project') return this.agents.listProjectAgentConversations()
+        if (!context.cardInternalId) throw new Error(`Missing cardInternalId for ${context.kind} agent conversation context`)
 
-        if (context.kind !== 'project') {
-            if (!context.cardInternalId) throw new Error(`Missing cardInternalId for ${context.kind} agent conversation context`)
-
-            return this.agents.getAgentConversations(context.cardInternalId)
-        }
-
-        const references = await listAgentConversationReferences(storage, currentProject, config.projectFolder)
-        const conversations = await Promise.all(references.map((reference) => loadAgentConversation(storage, currentProject, reference)))
-
-        return conversations.filter(({ cardInternalId }) => cardInternalId === null)
+        return this.agents.ensureAgentConversationsForCard(context.cardInternalId)
     }
     async loadAgentConversation(path: string) {
         const { storage } = this.requireDependencies()
@@ -337,6 +341,12 @@ export class DataService extends EventTarget {
     private createAgentIntegrationDependencies(): AgentIntegrationDeps {
         return {
             beginAgentConversationLoad: () => this.projectState.beginAgentConversationLoad(),
+            deferAutomaticCommit: () => this.cards.deferAutomaticCommit(),
+            flushActivityRepairs: async () => {
+                const { commitBatcher } = this.requireDependencies()
+                await commitBatcher.flush()
+                this.dispatchPersistenceChanged()
+            },
             isCurrentAgentConversationLoad: (agentConversationLoadToken) => (
                 this.projectState.isCurrentAgentConversationLoad(agentConversationLoadToken)
             ),
@@ -345,6 +355,15 @@ export class DataService extends EventTarget {
             refreshSnapshot: (workingFolder) => this.refreshSnapshot(workingFolder),
             requireDependencies: () => this.requireDependencies(),
             requireFile: (path) => this.projectState.requireFile(path),
+            scheduleActivityRepair: (file) => {
+                const { commitBatcher } = this.requireDependencies()
+                const project = this.projectState.project
+                if (!project) throw new Error('Cannot repair activity before a project is open')
+                commitBatcher.schedule(project.branch, [file], 'Repair activity files and references')
+            },
+            setAgentLogReferences: (cardPath, references) => {
+                this.cards.setAgentLogReferences(cardPath, references, 'Repair activity files and references')
+            },
             snapshot: () => this.projectState.snapshot,
             conversationChanged: (cardPath) => this.dispatchEvent(new Event(cardFieldChangedEvent(cardPath, 'conversation'))),
         }

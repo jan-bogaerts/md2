@@ -3,6 +3,7 @@ import { useSyncExternalStore } from 'react'
 import type { ActionContext } from '../../../data/action_context'
 import type { ActionDefinition } from '../../../data/action_types'
 import type { ActionRun } from '../../../services/actions/action_run_registry'
+import type { ActionRunSettingsStore } from '../../../services/actions/action_run_settings_service'
 import { dialogService } from '../../../services/dialog_service'
 import { useActionRunSelector } from '../../hooks/use_action_runs'
 import type { ActionConversationStore } from '../conversation/action_conversation_store'
@@ -21,6 +22,7 @@ interface ActionPhraseButtonsOwnerProps {
     inputStore: ActionRunInputStore
     resultStore: ActionRunResultStore
     runValidationError: string | null
+    settingsStore: ActionRunSettingsStore
 }
 
 function selectActiveRunStatus(run: ActionRun | null) {
@@ -31,15 +33,16 @@ function selectActiveRunStatus(run: ActionRun | null) {
 
 /** Owns follow-up visibility and phrase actions. */
 export function ActionPhraseButtonsOwner(props: ActionPhraseButtonsOwnerProps) {
-    const { action, context, conversationStore, historyStore, inputStore, resultStore, runValidationError } = props
+    const { action, context, conversationStore, historyStore, inputStore, resultStore, runValidationError, settingsStore } = props
     const activeRunStatus = useActionRunSelector(action.id, context, selectActiveRunStatus)
+    const hasUnresolvedApprovals = useActionRunSelector(action.id, context, (run) => !!run?.approvals.length)
     const conversationSnapshot = useSyncExternalStore(
         conversationStore.subscribe,
         conversationStore.getSnapshot,
         conversationStore.getSnapshot,
     )
     const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
-    const settings = useActionRunSettings(action, inputStore)
+    const settings = useActionRunSettings(action, settingsStore)
     const waitingForInput = activeRunStatus === 'waitingForInput'
         || (activeRunStatus === null
             && !conversationSnapshot.loading
@@ -65,11 +68,12 @@ export function ActionPhraseButtonsOwner(props: ActionPhraseButtonsOwnerProps) {
             resultStore,
             runValidationError,
             settings,
+            settingsStore,
         })
     }
 
     return (
-        <Slide direction="up" in={waitingForInput} mountOnEnter timeout={reduceMotion ? 0 : undefined} unmountOnExit>
+        <Slide direction="up" in={waitingForInput && !hasUnresolvedApprovals} mountOnEnter timeout={reduceMotion ? 0 : undefined} unmountOnExit>
             <Paper
                 elevation={4}
                 sx={{

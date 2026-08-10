@@ -2,16 +2,20 @@ import { useEffect, useSyncExternalStore } from 'react'
 import type { ActionContext } from '../../../data/action_context'
 import type { ActionDefinition } from '../../../data/action_types'
 import type { ActionRun } from '../../../services/actions/action_run_registry'
+import type { ActionRunSettingsStore } from '../../../services/actions/action_run_settings_service'
 import { dialogService } from '../../../services/dialog_service'
 import { useActionRunSelector } from '../../hooks/use_action_runs'
 import { ActionAgentPrompt } from './action_agent_prompt'
 import type { ActionConversationStore } from '../conversation/action_conversation_store'
 import type { ActionHistoryStore } from '../run/state/action_history_store'
-import { currentActionPromptDraft, runPopupAction, saveAndRunPopupAction } from '../run/popup/action_popup_operations'
+import { currentActionPromptDraft, runPopupAction } from '../run/popup/action_popup_operations'
 import { actionPopupRunDisabled } from '../run/popup/action_popup_run_disabled'
 import type { ActionRunInputStore } from '../run/state/action_run_input_store'
 import type { ActionRunResultStore } from '../run/state/action_run_result_store'
+import type { ActionScheduleStore } from '../run/schedule/action_schedule_store'
 import { defaultPreparePrompt } from '../run/popup/action_popup_defaults'
+import { ActionPopupBottomRow } from '../run/popup/action_popup_bottom_row'
+import type { ActionUsageScopeStore } from '../run/popup/action_usage_scope_store'
 import { useActionRunSettings } from '../shared/use_action_run_settings'
 import { ActionPhraseButtonsOwner } from '../editor/action_phrase_buttons_owner'
 
@@ -23,7 +27,9 @@ interface ActionAgentPromptOwnerProps {
     inputStore: ActionRunInputStore
     resultStore: ActionRunResultStore
     runValidationError: string | null
-    showSaveControls: boolean
+    scheduleStore: ActionScheduleStore
+    settingsStore: ActionRunSettingsStore
+    usageScopeStore: ActionUsageScopeStore
 }
 
 function selectSessionActive(run: ActionRun | null) {
@@ -32,7 +38,10 @@ function selectSessionActive(run: ActionRun | null) {
 
 /** Owns prompt draft binding, preparation, and keyboard-run behavior. */
 export function ActionAgentPromptOwner(props: ActionAgentPromptOwnerProps) {
-    const { action, context, conversationStore, historyStore, inputStore, resultStore, runValidationError, showSaveControls } = props
+    const {
+        action, context, conversationStore, historyStore, inputStore, resultStore, runValidationError,
+        scheduleStore, settingsStore, usageScopeStore,
+    } = props
     const sessionActive = useActionRunSelector(action.id, context, selectSessionActive)
     const activeActionType = useActionRunSelector(action.id, context, (run) => run?.activeActionType ?? null)
     const hasApprovals = useActionRunSelector(action.id, context, (run) => !!run?.approvals.length)
@@ -44,7 +53,8 @@ export function ActionAgentPromptOwner(props: ActionAgentPromptOwnerProps) {
         conversationStore.getSnapshot,
         conversationStore.getSnapshot,
     )
-    const settings = useActionRunSettings(action, inputStore)
+    const inputSnapshot = useSyncExternalStore(inputStore.subscribe, inputStore.getSnapshot, inputStore.getSnapshot)
+    const settings = useActionRunSettings(action, settingsStore)
     const prepare = action.type === 'agent'
         && !sessionActive
         && runStatus !== 'completed'
@@ -61,7 +71,6 @@ export function ActionAgentPromptOwner(props: ActionAgentPromptOwnerProps) {
 
     const handleRunShortcut = () => {
         const prompt = promptDraft.getSnapshot()
-        const saveDisabled = settings.actionLabel.trim().length === 0 || sessionActive || !!settings.runDisabledMessage
         const runState = {
             agentActive: sessionActive && activeActionType === 'agent',
             hasApprovals,
@@ -69,14 +78,12 @@ export function ActionAgentPromptOwner(props: ActionAgentPromptOwnerProps) {
             interactionReady,
             runDisabledMessage: settings.runDisabledMessage,
             runStatus,
-            saveDisabled,
         }
         if (actionPopupRunDisabled(
             action,
             runState,
             prompt,
             promptDraft.getEditorSnapshot().preparationStatus,
-            showSaveControls,
         )) return
 
         const operationInput = {
@@ -88,14 +95,29 @@ export function ActionAgentPromptOwner(props: ActionAgentPromptOwnerProps) {
             resultStore,
             runValidationError,
             settings,
+            settingsStore,
         }
-        if (showSaveControls) void saveAndRunPopupAction(operationInput)
-        else void runPopupAction(operationInput)
+        void runPopupAction(operationInput)
     }
 
     return (
         <ActionAgentPrompt
-            convertMessage={settings.convertMessage}
+            bottomRow={action.type === 'agent' || activeActionType === 'agent' ? (
+                <ActionPopupBottomRow
+                    action={action}
+                    assignmentContext={context}
+                    conversationStore={conversationStore}
+                    embedded
+                    historyStore={historyStore}
+                    inputStore={inputStore}
+                    resultStore={resultStore}
+                    runValidationError={runValidationError}
+                    scheduleStore={scheduleStore}
+                    settingsStore={settingsStore}
+                    usageScopeStore={usageScopeStore}
+                />
+            ) : undefined}
+            convertMessage={inputSnapshot.convertMessage}
             disabled={false}
             onRunShortcut={handleRunShortcut}
             promptDraft={promptDraft}
@@ -108,6 +130,7 @@ export function ActionAgentPromptOwner(props: ActionAgentPromptOwnerProps) {
                     inputStore={inputStore}
                     resultStore={resultStore}
                     runValidationError={runValidationError}
+                    settingsStore={settingsStore}
                 />
             )}
         />

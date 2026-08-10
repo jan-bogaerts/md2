@@ -4,7 +4,7 @@ const { runCommand } = require('./action_command_executor');
 const { ActionDefinitionCache } = require('./action_definition_cache');
 const { resolveActionDefinition } = require('./action_definition_resolver');
 const { ActionRun } = require('./action_run');
-const { prepareAgentPrompt } = require('./action_text');
+const { resolveAgentPrompt } = require('./action_text');
 const { validatePreparePromptRequest, validateStartRequest } = require('./action_run_request');
 const { assertReleasedCardActionAllowed } = require('../../../../shared/released_card_actions.mjs');
 
@@ -210,13 +210,14 @@ class ActionRunnerService {
         const resolution = await this.actionWorktreeRunService.resolve(project, action, promptRequest.context);
 
         return {
-            prompt: prepareAgentPrompt(
+            prompt: resolveAgentPrompt(
                 action,
                 promptRequest.context,
                 resolution.runProject,
                 project,
                 this.projectFolder,
                 this.releasesFolder,
+                '',
             ),
         };
     }

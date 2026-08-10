@@ -17,11 +17,10 @@ import type { ChangeEvent } from 'react'
 import type { ConfigEntry, ConfigValue } from '../../services/config/config_service'
 import { dialogService } from '../../services/dialog_service'
 import {
-    defaultAccessLevelForProfile,
-    defaultApprovalPolicyForProfile,
     defaultModelForProfile,
     findAgentProfile,
     mergeAgentProfiles,
+    supportsPermissionMode,
     type AgentProfile,
 } from '../../data/agent_profiles'
 import { AgentProfilesEditor } from './agent_profiles_editor'
@@ -72,21 +71,9 @@ export function ConfigValueEditor(props: ConfigValueEditorProps) {
         ? agentProfiles.map((profile) => ({ label: profile.name, value: profile.name }))
         : entry.key === 'desktop.model' && selectedAgentModels.length > 0
             ? selectedAgentModels.map((model) => ({ label: model, value: model }))
-            : entry.key === 'desktop.accessLevel' && selectedAgentProfile?.accessLevels
-                ? selectedAgentProfile.accessLevels.map((accessLevel) => ({ label: accessLevel, value: accessLevel }))
-                : entry.key === 'desktop.approvalPolicy' && selectedAgentProfile?.approvalPolicies
-                    ? [
-                        ...(!selectedAgentProfile.approvalPolicies.includes(stringValue) && stringValue
-                            ? [{ label: `${stringValue} - unavailable`, value: stringValue }]
-                            : []),
-                        ...selectedAgentProfile.approvalPolicies.map((approvalPolicy) => ({
-                            label: approvalPolicy,
-                            value: approvalPolicy,
-                        })),
-                    ]
-                    : entry.type === 'select'
-                        ? entry.options ?? []
-                        : null
+            : entry.type === 'select'
+                ? entry.options ?? []
+                : null
     const selectValue = entry.key === 'desktop.model' && selectedAgentModels.length > 0 && stringValue.length === 0
         ? defaultModelForProfile(selectedAgentProfile as AgentProfile)
         : stringValue
@@ -125,8 +112,6 @@ export function ConfigValueEditor(props: ConfigValueEditorProps) {
         if (entry.key === 'desktop.agent') {
             const profile = findAgentProfile(agentProfiles, event.target.value)
             onChange('desktop.model', profile ? defaultModelForProfile(profile) : '')
-            onChange('desktop.accessLevel', profile ? defaultAccessLevelForProfile(profile) ?? '' : '')
-            onChange('desktop.approvalPolicy', profile ? defaultApprovalPolicyForProfile(profile) ?? '' : '')
         }
         onChange(entry.key, event.target.value)
     }
@@ -149,11 +134,8 @@ export function ConfigValueEditor(props: ConfigValueEditorProps) {
 
     if (sliderConfigurationError) return null
 
-    if (entry.key === 'desktop.accessLevel' && !selectedAgentProfile?.accessLevels) {
-        return <TextField disabled fullWidth helperText={`${selectedAgentProfile?.name ?? 'Selected agent'} does not expose access levels.`} label={entry.label} value="Not supported" />
-    }
-    if (entry.key === 'desktop.approvalPolicy' && !selectedAgentProfile?.approvalPolicies) {
-        return <TextField disabled fullWidth helperText={`${selectedAgentProfile?.name ?? 'Selected agent'} does not expose approval policies.`} label={entry.label} value="Not supported" />
+    if (entry.key === 'desktop.permissionMode' && (!selectedAgentProfile || !supportsPermissionMode(selectedAgentProfile))) {
+        return <TextField disabled fullWidth helperText={`${selectedAgentProfile?.name ?? 'Selected agent'} does not support permission modes.`} label={entry.label} value="Not supported" />
     }
 
     if (entry.type === 'boolean') {

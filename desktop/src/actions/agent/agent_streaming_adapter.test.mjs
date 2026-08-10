@@ -203,6 +203,85 @@ describe('ClaudeStreamingAdapter', () => {
         });
     });
 
+    it('reconciles an aggregated assistant message that arrives after the next step cleared active blocks', async () => {
+        const { adapter, events } = harness('claude');
+        const messageStart = (id) => ({ event: { message: { id }, type: 'message_start' }, type: 'stream_event' });
+        const textStart = (index) => ({
+            event: { content_block: { text: '', type: 'text' }, index, type: 'content_block_start' },
+            type: 'stream_event',
+        });
+        const textDelta = (index, text) => ({
+            event: { delta: { text, type: 'text_delta' }, index, type: 'content_block_delta' },
+            type: 'stream_event',
+        });
+        const aggregated = (id, text) => ({ message: { content: [{ text, type: 'text' }], id }, type: 'assistant' });
+
+        // Step A streams fully, then step B's message_start clears activeBlocks before A's aggregated copy lands.
+        await adapter.handleMessage(messageStart('message-1'));
+        await adapter.handleMessage(textStart(0));
+        await adapter.handleMessage(textDelta(0, 'first step'));
+        await adapter.handleMessage(messageStart('message-2'));
+        await adapter.handleMessage(textStart(0));
+        await adapter.handleMessage(textDelta(0, 'second step'));
+        await adapter.handleMessage(aggregated('message-1', 'first step'));
+        await adapter.handleMessage(aggregated('message-2', 'second step'));
+        await adapter.handleMessage({ type: 'result' });
+
+        expect(events.filter(({ type }) => type === 'assistantStarted')).toEqual([
+            { itemId: 'message-1:text:0', type: 'assistantStarted' },
+            { itemId: 'message-2:text:0', type: 'assistantStarted' },
+        ]);
+        expect(events.filter(({ type }) => type === 'assistantCompleted')).toEqual([
+            { content: 'first step', itemId: 'message-1:text:0', type: 'assistantCompleted' },
+            { content: '\n\nsecond step', itemId: 'message-2:text:0', type: 'assistantCompleted' },
+        ]);
+    });
+
+    it('suppresses routine Claude protocol noise', async () => {
+        const { adapter, events } = harness('claude');
+
+        await adapter.handleMessage({ subtype: 'rate_limit', type: 'system' });
+        await adapter.handleMessage({ type: 'future_event' });
+        await adapter.handleMessage({ event: { type: 'future_stream_event' }, type: 'stream_event' });
+        await adapter.handleMessage({
+            event: { message: { id: 'message-1' }, type: 'message_start' },
+            type: 'stream_event',
+        });
+        await adapter.handleMessage({
+            event: { content_block: { text: '', type: 'text' }, index: 0, type: 'content_block_start' },
+            type: 'stream_event',
+        });
+        await adapter.handleMessage({
+            event: { delta: { type: 'future_delta' }, index: 0, type: 'content_block_delta' },
+            type: 'stream_event',
+        });
+
+        expect(events.filter(({ type }) => type === 'event')).toEqual([]);
+    });
+
+    it.each([
+        ['invalid stream event', { event: null, type: 'stream_event' }],
+        ['message_start missing message id', { event: { message: {}, type: 'message_start' }, type: 'stream_event' }],
+        ['invalid content_block_start', { event: { content_block: { type: 'text' }, index: 0, type: 'content_block_start' }, type: 'stream_event' }],
+        ['invalid content_block_delta', { event: { delta: { text: 'orphan', type: 'text_delta' }, index: 0, type: 'content_block_delta' }, type: 'stream_event' }],
+        ['assistant message missing content', { message: {}, type: 'assistant' }],
+    ])('emits a failed protocol error for %s', async (content, message) => {
+        const { adapter, events } = harness('claude');
+
+        await adapter.handleMessage(message);
+
+        expect(events.filter(({ type }) => type === 'event')).toEqual([{
+            event: {
+                content,
+                label: 'Claude protocol error',
+                providerItemId: 'error:unknown-message:1',
+                status: 'failed',
+                type: 'error',
+            },
+            type: 'event',
+        }]);
+    });
+
     it('keeps concurrent approvals isolated and maps Claude decisions to control responses', async () => {
         const { adapter, events, writes } = harness('claude');
         const permissionSuggestions = [{ behavior: 'allow', destination: 'session', tool: 'Bash' }];

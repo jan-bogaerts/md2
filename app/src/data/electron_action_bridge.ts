@@ -1,9 +1,9 @@
 import type { ActionContext } from './action_context'
-import type { CardActivityFile } from '../../../shared/card_activity.mjs'
+import type { ActionSettings, CardActivityFile } from '../../../shared/card_activity.mjs'
 import type { ActionScheduleTrigger } from './action_schedule_types'
 import type { AgentConversation, AgentRunEvent } from './data_types'
 import type { AgentAvailability } from './electron_data_bridge'
-import type { ThinkingLevel } from './agent_profiles'
+import type { PermissionMode, ThinkingLevel } from './agent_profiles'
 import type {
     ActionRunEvent,
     ActionPromptRequest,
@@ -21,6 +21,12 @@ export interface ActionRunHistoryRequest {
 
 export interface CardActivityRequest {
     cardInternalId: string
+}
+
+export interface CardActionSettingsRequest {
+    actionId: string
+    cardInternalId: string
+    settings: ActionSettings
 }
 
 export interface ReadFileAtCommitRequest {
@@ -62,10 +68,9 @@ interface ActionRunHistoryEntryBase {
 }
 
 export interface AgentActionRunHistoryEntry extends ActionRunHistoryEntryBase {
-    accessLevel?: string
     agent?: string | null
-    approvalPolicy?: string
     model?: string
+    permissionMode?: PermissionMode
     rootConversationId: string
     thinkingLevel?: ThinkingLevel
     type: 'agent'
@@ -153,6 +158,7 @@ export interface ElectronActionBridge {
     startAction(request: ActionStartRequest): Promise<string>
     startUnattendedAction?(request: ActionStartRequest): Promise<string>
     updateActionConversationViewed?(reference: string, viewed: boolean): Promise<AgentConversation>
+    updateCardActionSettings?(request: CardActionSettingsRequest): Promise<void>
 }
 
 declare global {

@@ -2,10 +2,10 @@ const path = require('node:path');
 const { requireRootPath } = require('../../git/git_commands');
 
 const FOLDER_PLACEHOLDER_NAMES = 'worktree-folder|repository-folder|project-folder|releases-folder';
-const CARD_PLACEHOLDER_NAMES = 'card-file|card-title|card-prompt';
-const PLACEHOLDER_PATTERN = new RegExp(`\\{\\{\\s*(${FOLDER_PLACEHOLDER_NAMES}|${CARD_PLACEHOLDER_NAMES})\\s*\\}\\}`, 'gu');
+const CARD_PLACEHOLDER_NAMES = 'card-file|this-card|card-title|card-prompt';
+const CONFLICT_PLACEHOLDER_NAMES = 'conflict-file|conflict-files';
+const PLACEHOLDER_PATTERN = new RegExp(`\\{\\{\\s*(${FOLDER_PLACEHOLDER_NAMES}|${CARD_PLACEHOLDER_NAMES}|${CONFLICT_PLACEHOLDER_NAMES})\\s*\\}\\}`, 'gu');
 const CARD_PROMPT_PLACEHOLDER_PATTERN = /\{\{\s*card-prompt\s*\}\}/u;
-const TRACKED_FILE_COMMIT_INSTRUCTION = 'Do not stage or commit changes. md2 will commit files captured from provider edit tools.';
 
 function resolvePlaceholders(text, context, runProject, primaryProject, projectFolder, releasesFolder, extraPrompt) {
     return text.replace(PLACEHOLDER_PATTERN, (_match, name) => {
@@ -28,12 +28,22 @@ function resolvePlaceholders(text, context, runProject, primaryProject, projectF
             return path.resolve(requireRootPath(primaryProject), releasesFolder);
         }
         if (name === 'card-prompt') return extraPrompt;
+        if (name === 'conflict-file') {
+            if (!context.conflictFile) throw new Error('Cannot resolve conflict-file placeholder without a selected conflict file');
+
+            return context.conflictFile;
+        }
+        if (name === 'conflict-files') {
+            if (!context.conflictFiles) throw new Error('Cannot resolve conflict-files placeholder without conflict files');
+
+            return context.conflictFiles;
+        }
         if (name === 'card-title') {
             if (!context.title) throw new Error('Cannot resolve card-title placeholder without a card title');
 
             return context.title;
         }
-        if (!context.file) throw new Error('Cannot resolve card-file placeholder without a file context');
+        if (!context.file) throw new Error(`Cannot resolve ${name} placeholder without a file context`);
 
         return context.file;
     });
@@ -46,14 +56,4 @@ function resolveAgentPrompt(action, context, runProject, primaryProject, project
     return `${prompt}\n\n${extraPrompt}`;
 }
 
-function withTrackedFileCommitInstruction(prompt, trackFileChanges) {
-    return trackFileChanges ? `${prompt}\n\n${TRACKED_FILE_COMMIT_INSTRUCTION}` : prompt;
-}
-
-function prepareAgentPrompt(action, context, runProject, primaryProject, projectFolder, releasesFolder, extraPrompt = '') {
-    const prompt = resolveAgentPrompt(action, context, runProject, primaryProject, projectFolder, releasesFolder, extraPrompt);
-
-    return withTrackedFileCommitInstruction(prompt, action.trackFileChanges);
-}
-
-module.exports = { prepareAgentPrompt, resolveAgentPrompt, resolvePlaceholders, withTrackedFileCommitInstruction };
+module.exports = { resolveAgentPrompt, resolvePlaceholders };

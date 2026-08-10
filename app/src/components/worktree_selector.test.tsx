@@ -7,7 +7,7 @@ import { projectPersistenceService } from '../services/project/project_persisten
 import { worktreeService } from '../services/project/worktree_service'
 import { AppThemeProvider } from '../theme/theme_provider'
 import { WorktreeSelector } from './worktree_selector'
-import { cardBodyPopoverService } from './card_view/card_body_popover_service'
+import { cardPopupService } from '../services/card_popup_service'
 
 const worktrees: WorktreeRecord[] = [
     {
@@ -31,7 +31,7 @@ function renderAssignedWorktree(record: WorktreeRecord) {
         <AppThemeProvider>
             <WorktreeSelector
                 assignment={{ worktree: 1 }}
-                assignmentTarget={{ kind: 'card', path: 'design/F-1.md' }}
+                assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
                 primaryPath="C:\\primary"
             />
         </AppThemeProvider>,
@@ -54,7 +54,7 @@ describe('WorktreeSelector', () => {
             <AppThemeProvider>
                 <WorktreeSelector
                     assignment={{ worktree: 2, worktreeError: null, worktreeValue: '2' }}
-                    assignmentTarget={{ kind: 'card', path: 'design/F-1.md' }}
+                    assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
                     primaryPath={'C:\\primary'}
                 />
             </AppThemeProvider>,
@@ -74,7 +74,7 @@ describe('WorktreeSelector', () => {
             <AppThemeProvider>
                 <WorktreeSelector
                     assignment={{ worktree: null }}
-                    assignmentTarget={{ kind: 'card', path: 'design/F-1.md' }}
+                    assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
                     disabled
                     primaryPath={null}
                 />
@@ -95,7 +95,7 @@ describe('WorktreeSelector', () => {
             <AppThemeProvider>
                 <WorktreeSelector
                     assignment={{ worktree: null }}
-                    assignmentTarget={{ kind: 'card', path: 'design/F-1.md' }}
+                    assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
                     primaryPath={null}
                 />
             </AppThemeProvider>,
@@ -115,7 +115,7 @@ describe('WorktreeSelector', () => {
             <AppThemeProvider>
                 <WorktreeSelector
                     assignment={{ worktree: 1 }}
-                    assignmentTarget={{ kind: 'card', path: 'design/F-1.md' }}
+                    assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
                     primaryPath="C:\\primary"
                 />
             </AppThemeProvider>,
@@ -153,7 +153,7 @@ describe('WorktreeSelector', () => {
             status: { ...worktrees[0].status, ahead: 1, baseAhead: 1, hasUpstream: true },
         }
         const commitCardWorktree = vi.spyOn(worktreeService, 'commitCardWorktree').mockResolvedValue(undefined)
-        const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue(undefined)
+        const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue({ status: 'completed' })
         renderAssignedWorktree(aheadWorktree)
 
         fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
@@ -173,20 +173,20 @@ describe('WorktreeSelector', () => {
 
     it('opens current diff from same availability condition as integration', () => {
         const aheadWorktree = { ...worktrees[0], status: { ...worktrees[0].status, baseAhead: 1 } }
-        const openWorktreeDiff = vi.spyOn(cardBodyPopoverService, 'openWorktreeDiff')
+        const openWorktreeDiff = vi.spyOn(cardPopupService, 'openWorktreeDiff')
         renderAssignedWorktree(aheadWorktree)
 
         fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
         fireEvent.click(screen.getByRole('menuitem', { name: 'View diff' }))
 
-        expect(openWorktreeDiff).toHaveBeenCalledWith('design/F-1.md', expect.any(HTMLElement))
+        expect(openWorktreeDiff).toHaveBeenCalledWith('card-1', 'design/F-1.md', expect.any(HTMLElement))
     })
 
     it('commits and integrates a dirty worktree from one dialog', async () => {
         const dirtyWorktree = { ...worktrees[0], status: { ...worktrees[0].status, dirty: true } }
         vi.spyOn(worktreeService, 'getCardCommitMessage').mockReturnValue('F-1: Card')
         const commitCardWorktree = vi.spyOn(worktreeService, 'commitCardWorktree').mockResolvedValue(undefined)
-        const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue(undefined)
+        const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue({ status: 'completed' })
         renderAssignedWorktree(dirtyWorktree)
 
         fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
@@ -213,7 +213,7 @@ describe('WorktreeSelector', () => {
         const dirtyWorktree = { ...worktrees[0], status: { ...worktrees[0].status, dirty: true } }
         vi.spyOn(worktreeService, 'getCardCommitMessage').mockReturnValue('F-1: Card')
         const commitCardWorktree = vi.spyOn(worktreeService, 'commitCardWorktree').mockResolvedValue(undefined)
-        const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue(undefined)
+        const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue({ status: 'completed' })
         renderAssignedWorktree(dirtyWorktree)
 
         fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
@@ -231,7 +231,7 @@ describe('WorktreeSelector', () => {
         const dirtyWorktree = { ...worktrees[0], status: { ...worktrees[0].status, dirty: true } }
         vi.spyOn(worktreeService, 'getCardCommitMessage').mockReturnValue('F-1: Card')
         const commitCardWorktree = vi.spyOn(worktreeService, 'commitCardWorktree').mockResolvedValue(undefined)
-        const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue(undefined)
+        const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue({ status: 'completed' })
         renderAssignedWorktree(dirtyWorktree)
 
         fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
@@ -250,7 +250,7 @@ describe('WorktreeSelector', () => {
             ...worktrees[0],
             status: { ...worktrees[0].status, baseBehind: 1 },
         }
-        const updateCardWorktree = vi.spyOn(worktreeService, 'updateCardWorktree').mockResolvedValue(undefined)
+        const updateCardWorktree = vi.spyOn(worktreeService, 'updateCardWorktree').mockResolvedValue({ status: 'completed' })
         renderAssignedWorktree(behindWorktree)
 
         fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
@@ -290,7 +290,7 @@ describe('WorktreeSelector', () => {
             <AppThemeProvider>
                 <WorktreeSelector
                     assignment={{ worktree: 1 }}
-                    assignmentTarget={{ kind: 'card', path: 'design/F-1.md' }}
+                    assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
                     primaryPath="C:\\primary"
                 />
             </AppThemeProvider>,
@@ -308,7 +308,7 @@ describe('WorktreeSelector', () => {
         const dirtyWorktree = { ...worktrees[0], status: { ...worktrees[0].status, dirty: true } }
         vi.spyOn(worktreeService, 'getCardCommitMessage').mockReturnValue('F-1: Card')
         const commitCardWorktree = vi.spyOn(worktreeService, 'commitCardWorktree').mockResolvedValue(undefined)
-        const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue(undefined)
+        const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue({ status: 'completed' })
         const setCardWorktree = vi.spyOn(worktreeService, 'setCardWorktree').mockResolvedValue(undefined)
         renderAssignedWorktree(dirtyWorktree)
 
@@ -331,7 +331,7 @@ describe('WorktreeSelector', () => {
             <AppThemeProvider>
                 <WorktreeSelector
                     assignment={{ worktree: 1 }}
-                    assignmentTarget={{ kind: 'card', path: 'design/F-1.md' }}
+                    assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
                     primaryPath="C:\\primary"
                 />
             </AppThemeProvider>,
@@ -350,12 +350,12 @@ describe('WorktreeSelector', () => {
         }]
         withRecords(trailingWorktrees)
         vi.spyOn(worktreeService, 'getProjectBranch').mockReturnValue('main')
-        const updateCardWorktree = vi.spyOn(worktreeService, 'updateCardWorktree').mockResolvedValue(undefined)
+        const updateCardWorktree = vi.spyOn(worktreeService, 'updateCardWorktree').mockResolvedValue({ status: 'completed' })
         render(
             <AppThemeProvider>
                 <WorktreeSelector
                     assignment={{ worktree: 1 }}
-                    assignmentTarget={{ kind: 'card', path: 'design/F-1.md' }}
+                    assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
                     primaryPath="C:\\primary"
                 />
             </AppThemeProvider>,
@@ -378,7 +378,7 @@ describe('WorktreeSelector', () => {
             <AppThemeProvider>
                 <WorktreeSelector
                     assignment={{ worktree: 1 }}
-                    assignmentTarget={{ kind: 'card', path: 'design/F-1.md' }}
+                    assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
                     primaryPath="C:\\primary"
                 />
             </AppThemeProvider>,
@@ -401,7 +401,7 @@ describe('WorktreeSelector', () => {
             <AppThemeProvider>
                 <WorktreeSelector
                     assignment={{ worktree: 1 }}
-                    assignmentTarget={{ kind: 'card', path: 'design/F-1.md' }}
+                    assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
                     primaryPath="C:\\primary"
                 />
             </AppThemeProvider>,
@@ -437,7 +437,7 @@ describe('WorktreeSelector', () => {
         const error = new Error('commit failed')
         vi.spyOn(worktreeService, 'getCardCommitMessage').mockReturnValue('F-1: Card')
         vi.spyOn(worktreeService, 'commitCardWorktree').mockRejectedValue(error)
-        const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue(undefined)
+        const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue({ status: 'completed' })
         const reportError = vi.spyOn(dialogService, 'error')
         renderAssignedWorktree(dirtyWorktree)
 
@@ -507,7 +507,7 @@ describe('WorktreeSelector', () => {
     it('restores and applies the persisted delete-branch integration choice', async () => {
         configService.setReactPreference('react.deleteBranchAfterIntegration', true)
         const aheadWorktree = { ...worktrees[0], status: { ...worktrees[0].status, baseAhead: 1 } }
-        const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue(undefined)
+        const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue({ status: 'completed' })
         renderAssignedWorktree(aheadWorktree)
 
         fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))

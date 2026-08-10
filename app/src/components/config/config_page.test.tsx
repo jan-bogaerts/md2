@@ -452,13 +452,13 @@ describe('ConfigPage', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
         expect(setDesktopConfig).toHaveBeenCalledWith({
-            accessLevel: 'workspace-write',
             agent: 'claude',
             agentProfiles: BUILTIN_AGENT_PROFILES,
-            approvalPolicy: 'on-request',
             codexSearchEnabled: false,
             editorCommand: 'notepad "{{file}}"',
+            mergeConflictResolverCommand: '',
             model: '',
+            permissionMode: 'ask-for-approval',
             thinkingLevel: 'none',
         })
 
@@ -482,6 +482,8 @@ describe('ConfigPage', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Add profile' }))
 
         expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
+        expect(screen.queryByLabelText('Access levels')).not.toBeInTheDocument()
+        expect(screen.queryByLabelText('Approval policies')).not.toBeInTheDocument()
 
         fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'local' } })
         fireEvent.change(screen.getByLabelText('Command'), { target: { value: '["local-agent", "{{model}}"]' } })

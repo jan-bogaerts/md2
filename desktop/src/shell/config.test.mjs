@@ -4,11 +4,11 @@ import { describe, expect, it } from 'vitest';
 const require = createRequire(import.meta.url);
 const {
     DEFAULT_CODEX_SEARCH_ENABLED,
-    DEFAULT_DESKTOP_ACCESS_LEVEL,
     DEFAULT_DESKTOP_AGENT,
-    DEFAULT_DESKTOP_APPROVAL_POLICY,
+    DEFAULT_DESKTOP_PERMISSION_MODE,
     DEFAULT_DESKTOP_MODEL,
     DEFAULT_EDITOR_COMMAND,
+    DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
     DESKTOP_CONFIG_STORE_KEY,
     readDesktopConfig,
     resolveAppUrl,
@@ -40,25 +40,25 @@ describe('resolveAppUrl', () => {
 describe('resolveDesktopConfig', () => {
     it('defaults desktop config values', () => {
         expect(resolveDesktopConfig({})).toEqual({
-            accessLevel: DEFAULT_DESKTOP_ACCESS_LEVEL,
             agent: DEFAULT_DESKTOP_AGENT,
             agentProfiles: expect.arrayContaining([expect.objectContaining({ command: ['codex'], name: 'codex' })]),
-            approvalPolicy: DEFAULT_DESKTOP_APPROVAL_POLICY,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             editorCommand: DEFAULT_EDITOR_COMMAND,
+            mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
             model: DEFAULT_DESKTOP_MODEL,
+            permissionMode: DEFAULT_DESKTOP_PERMISSION_MODE,
         });
     });
 
     it('uses configured desktop values', () => {
         expect(resolveDesktopConfig({MD2_AGENT: 'custom-codex'})).toEqual({
-            accessLevel: DEFAULT_DESKTOP_ACCESS_LEVEL,
             agent: DEFAULT_DESKTOP_AGENT,
             agentProfiles: expect.arrayContaining([expect.objectContaining({ command: ['custom-codex'], name: 'codex' })]),
-            approvalPolicy: DEFAULT_DESKTOP_APPROVAL_POLICY,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             editorCommand: DEFAULT_EDITOR_COMMAND,
+            mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
             model: DEFAULT_DESKTOP_MODEL,
+            permissionMode: DEFAULT_DESKTOP_PERMISSION_MODE,
         });
     });
 });
@@ -68,13 +68,13 @@ describe('readDesktopConfig', () => {
         const store = createFakeStore();
 
         expect(readDesktopConfig(store, {})).toEqual({
-            accessLevel: DEFAULT_DESKTOP_ACCESS_LEVEL,
             agent: DEFAULT_DESKTOP_AGENT,
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'codex' })]),
-            approvalPolicy: DEFAULT_DESKTOP_APPROVAL_POLICY,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             editorCommand: DEFAULT_EDITOR_COMMAND,
+            mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
             model: DEFAULT_DESKTOP_MODEL,
+            permissionMode: DEFAULT_DESKTOP_PERMISSION_MODE,
         });
     });
 
@@ -82,13 +82,13 @@ describe('readDesktopConfig', () => {
         const store = createFakeStore({ [DESKTOP_CONFIG_STORE_KEY]: { agent: 'claude' } });
 
         expect(readDesktopConfig(store, {})).toEqual({
-            accessLevel: DEFAULT_DESKTOP_ACCESS_LEVEL,
             agent: 'claude',
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'claude' })]),
-            approvalPolicy: DEFAULT_DESKTOP_APPROVAL_POLICY,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             editorCommand: DEFAULT_EDITOR_COMMAND,
+            mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
             model: DEFAULT_DESKTOP_MODEL,
+            permissionMode: DEFAULT_DESKTOP_PERMISSION_MODE,
         });
     });
 
@@ -104,16 +104,16 @@ describe('readDesktopConfig', () => {
         });
 
         expect(readDesktopConfig(store, { MD2_AGENT: 'env-codex' })).toEqual({
-            accessLevel: DEFAULT_DESKTOP_ACCESS_LEVEL,
             agent: 'custom',
             agentProfiles: expect.arrayContaining([
                 expect.objectContaining({ command: ['env-codex'], name: 'codex' }),
                 expect.objectContaining({ command: ['stored-custom'], name: 'custom' }),
             ]),
-            approvalPolicy: DEFAULT_DESKTOP_APPROVAL_POLICY,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             editorCommand: DEFAULT_EDITOR_COMMAND,
+            mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
             model: DEFAULT_DESKTOP_MODEL,
+            permissionMode: DEFAULT_DESKTOP_PERMISSION_MODE,
         });
     });
 
@@ -161,19 +161,29 @@ describe('readDesktopConfig', () => {
 });
 
 describe('writeDesktopConfig', () => {
+    it('removes obsolete permission keys from stored desktop config', () => {
+        const store = createFakeStore({[DESKTOP_CONFIG_STORE_KEY]: {accessLevel: 'read-only', approvalPolicy: 'never', model: 'gpt-5'}});
+
+        writeDesktopConfig(store, { permissionMode: 'full-access' });
+
+        expect(store.get(DESKTOP_CONFIG_STORE_KEY)).toEqual({ model: 'gpt-5', permissionMode: 'full-access' });
+        expect(readDesktopConfig(store, {})).not.toHaveProperty('accessLevel');
+        expect(readDesktopConfig(store, {})).not.toHaveProperty('approvalPolicy');
+    });
+
     it('persists values so a subsequent readDesktopConfig reflects them', () => {
         const store = createFakeStore();
 
         writeDesktopConfig(store, { agent: 'claude' });
 
         expect(readDesktopConfig(store, {})).toEqual({
-            accessLevel: DEFAULT_DESKTOP_ACCESS_LEVEL,
             agent: 'claude',
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'claude' })]),
-            approvalPolicy: DEFAULT_DESKTOP_APPROVAL_POLICY,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             editorCommand: DEFAULT_EDITOR_COMMAND,
+            mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
             model: DEFAULT_DESKTOP_MODEL,
+            permissionMode: DEFAULT_DESKTOP_PERMISSION_MODE,
         });
     });
 
@@ -184,13 +194,13 @@ describe('writeDesktopConfig', () => {
         writeDesktopConfig(store, { model: 'custom-model' });
 
         expect(readDesktopConfig(store, {})).toEqual({
-            accessLevel: DEFAULT_DESKTOP_ACCESS_LEVEL,
             agent: 'claude',
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'claude' })]),
-            approvalPolicy: DEFAULT_DESKTOP_APPROVAL_POLICY,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             editorCommand: DEFAULT_EDITOR_COMMAND,
+            mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
             model: 'custom-model',
+            permissionMode: DEFAULT_DESKTOP_PERMISSION_MODE,
         });
     });
 
@@ -208,5 +218,13 @@ describe('writeDesktopConfig', () => {
         writeDesktopConfig(store, { editorCommand: 'notepad "{{file}}"' });
 
         expect(readDesktopConfig(store, {})).toMatchObject({ editorCommand: 'notepad "{{file}}"' });
+    });
+
+    it('persists merge conflict resolver command globally', () => {
+        const store = createFakeStore();
+
+        writeDesktopConfig(store, { mergeConflictResolverCommand: 'merge-tool "{{file}}"' });
+
+        expect(readDesktopConfig(store, {})).toMatchObject({ mergeConflictResolverCommand: 'merge-tool "{{file}}"' });
     });
 });

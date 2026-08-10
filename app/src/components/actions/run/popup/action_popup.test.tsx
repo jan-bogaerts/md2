@@ -2,11 +2,13 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ActionContext } from '../../../../data/action_context'
 import type { ActionRunEvent } from '../../../../data/action_run_types'
-import type { ActionFile } from '../../../../data/action_types'
+import { CUSTOM_PROMPT_ACTION_ID, type ActionFile } from '../../../../data/action_types'
 import type { AgentConversation, ProjectReference, StorageService, WorktreeRecord } from '../../../../data/data_types'
 import { actionService } from '../../../../services/actions/action_service'
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
+import { actionRunSettingsService } from '../../../../services/actions/action_run_settings_service'
 import { actionPromptDraftService } from '../../../../services/actions/action_prompt_draft_service'
+import { agentCapabilitiesService } from '../../../../services/agents/agent_capabilities_service'
 import { dialogService } from '../../../../services/dialog_service'
 import { dataService } from '../../../../services/data/data_service'
 import { worktreeService } from '../../../../services/project/worktree_service'
@@ -246,6 +248,7 @@ describe('ActionPopup', () => {
 
     afterEach(() => {
         actionRunRegistry.stop()
+        actionRunSettingsService.clear()
         delete window.md2Actions
         actionService.clear()
         worktreeService.clear()
@@ -260,9 +263,13 @@ describe('ActionPopup', () => {
 
         const dialog = within(screen.getByRole('dialog', { name: 'Run actions' }))
         const actionGroup = within(dialog.getByRole('group', { name: 'Actions' }))
+        const scrollBody = dialog.getByTestId('action-popup-scroll-body')
+        const bottomRow = dialog.getByTestId('action-popup-bottom-row')
         expect(actionGroup.getByRole('button', { name: 'First action' })).toHaveAttribute('aria-pressed', 'true')
         expect(actionGroup.getByRole('button', { name: 'Second action' })).toHaveAttribute('aria-pressed', 'false')
         expect(dialog.getByRole('button', { name: 'Run' })).toBeInTheDocument()
+        expect(bottomRow).not.toHaveAttribute('data-embedded')
+        expect(scrollBody.nextElementSibling).toBe(bottomRow)
     })
 
     it('keeps released-card conversation history available without run controls', () => {
@@ -287,6 +294,23 @@ describe('ActionPopup', () => {
         renderPopup(context, vi.fn(), stackPosition)
 
         expect(renderProbes.agentPrompt).toHaveBeenCalledWith(stackPosition)
+    })
+
+    it('renders the agent bottom row inside the prompt surface below the scrolling editor', () => {
+        actionService.loadFromFiles([file(agentDefinition('review', { label: 'Review' }))])
+
+        renderPopup()
+
+        const scrollBody = screen.getByTestId('action-popup-scroll-body')
+        const promptSurface = within(scrollBody).getByLabelText('Prompt')
+        const editorRegion = within(promptSurface).getByTestId('action-prompt-editor-region')
+        const bottomRow = within(promptSurface).getByTestId('action-popup-bottom-row')
+
+        expect(bottomRow).toHaveAttribute('data-embedded', 'true')
+        expect(within(bottomRow).getByRole('group', { name: 'Agent settings' })).toBeInTheDocument()
+        expect(editorRegion).toHaveStyle({ overflowY: 'auto' })
+        expect(editorRegion.contains(bottomRow)).toBe(false)
+        expect(screen.getAllByTestId('action-popup-bottom-row')).toHaveLength(1)
     })
 
     it('shows Project in the project popup header and accessible title', () => {
@@ -455,15 +479,50 @@ describe('ActionPopup', () => {
         expect(actionGroup.getByRole('button', { name: 'Second action' })).toHaveAttribute('aria-pressed', 'true')
     })
 
-    it('owns add mode internally and selects the custom prompt', async () => {
+    it('selects one custom-prompt plus without conversion controls', async () => {
+        renderPopup()
+        const dialog = within(screen.getByRole('dialog', { name: 'Run actions' }))
+        const actionGroup = within(dialog.getByRole('group', { name: 'Actions' }))
+        const customPrompt = actionGroup.getByRole('button', { name: 'Custom prompt' })
+
+        expect(customPrompt).toHaveTextContent('+')
+        expect(actionGroup.getAllByText('+')).toHaveLength(1)
+        expect(dialog.queryByRole('button', { name: 'Add action' })).not.toBeInTheDocument()
+        fireEvent.click(customPrompt)
+
+        expect(customPrompt).toHaveAttribute('aria-pressed', 'true')
+        expect(dialog.queryByLabelText('Preset name')).not.toBeInTheDocument()
+        expect(dialog.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument()
+    })
+
+    it.each(['Send button', 'Ctrl+Enter'])('runs custom prompt directly through %s', async (submission) => {
+        const startAction = vi.fn(async () => 'custom-run')
+        const saveProjectFile = vi.spyOn(dataService.cards, 'saveProjectFile')
+        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({
+            availability: { error: null, loading: false, values: { '': { available: true, error: null } } },
+            models: { error: null, loading: false, values: [] },
+            thinkingLevels: { error: null, loading: false, values: [] },
+        })
+        window.md2Actions = {
+            onActionRun: vi.fn(() => vi.fn()),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
+            startAction,
+        } as unknown as typeof window.md2Actions
         renderPopup()
         const dialog = within(screen.getByRole('dialog', { name: 'Run actions' }))
 
-        fireEvent.click(dialog.getByRole('button', { name: 'Add action' }))
+        fireEvent.click(dialog.getByRole('button', { name: 'Custom prompt' }))
+        const prompt = within(await dialog.findByLabelText('Prompt')).getByRole('textbox')
+        fireEvent.change(prompt, { target: { value: 'Explain this change' } })
+        await waitFor(() => expect(dialog.getByRole('button', { name: 'Send' })).toBeEnabled())
+        if (submission === 'Send button') fireEvent.click(dialog.getByRole('button', { name: 'Send' }))
+        else fireEvent.keyDown(prompt, { ctrlKey: true, key: 'Enter' })
 
-        expect(dialog.getByRole('button', { name: 'Custom prompt' })).toHaveAttribute('aria-pressed', 'true')
-        expect(await dialog.findByLabelText('Preset name')).toBeInTheDocument()
-        expect(dialog.getByRole('button', { name: 'Save' })).toBeDisabled()
+        await waitFor(() => expect(startAction).toHaveBeenCalledWith(expect.objectContaining({
+            actionId: CUSTOM_PROMPT_ACTION_ID,
+            runInput: expect.objectContaining({ prompt: 'Explain this change' }),
+        })))
+        expect(saveProjectFile).not.toHaveBeenCalled()
     })
 
     it('filters the internal action list by context', () => {
@@ -603,6 +662,74 @@ describe('ActionPopup', () => {
         expect(prepareActionPrompt).toHaveBeenCalledOnce()
     })
 
+    it('prefills the stored prompt for a new empty conversation', async () => {
+        const prepareActionPrompt = vi.fn(async () => ({ prompt: 'Stored prompt' }))
+        window.md2Actions = {
+            onActionRun: vi.fn(() => vi.fn()),
+            prepareActionPrompt,
+        } as unknown as typeof window.md2Actions
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([])
+        actionService.loadFromFiles([file(agentDefinition('review', { label: 'Review' }))])
+
+        renderPopup({ ...context, cardInternalId: 'card-1' })
+
+        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
+        await waitFor(() => expect(prompt).toHaveValue('Stored prompt'))
+        expect(prepareActionPrompt).toHaveBeenCalledOnce()
+    })
+
+    it('keeps the prompt empty after automatically selecting the newest unseen conversation', async () => {
+        const historicalContext = { ...context, cardInternalId: 'card-1' }
+        const olderUnseenConversation = agentConversation({
+            actionId: 'review',
+            completedAt: '2026-08-01T12:01:00.000Z',
+            id: 'conversation-older',
+            path: 'conversation-older.json',
+            startedAt: '2026-08-01T12:00:00.000Z',
+            status: 'completed',
+            title: 'Older unseen review',
+            viewed: false,
+        })
+        const newestUnseenConversation = agentConversation({
+            actionId: 'review',
+            completedAt: '2026-08-02T12:01:00.000Z',
+            id: 'conversation-newest',
+            path: 'conversation-newest.json',
+            startedAt: '2026-08-02T12:00:00.000Z',
+            status: 'completed',
+            title: 'Newest unseen review',
+            viewed: false,
+        })
+        const preparedPrompt = deferredValue<{ prompt: string }>()
+        const prepareActionPrompt = vi.fn(() => preparedPrompt.promise)
+        window.md2Actions = {
+            onActionRun: vi.fn(() => vi.fn()),
+            prepareActionPrompt,
+        } as unknown as typeof window.md2Actions
+        vi.spyOn(dataService.agents, 'getAgentConversations').mockReturnValue([
+            olderUnseenConversation,
+            newestUnseenConversation,
+        ])
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([
+            olderUnseenConversation,
+            newestUnseenConversation,
+        ])
+        const loadConversation = vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(newestUnseenConversation)
+        actionService.loadFromFiles([file(agentDefinition('review', { label: 'Review' }))])
+
+        renderPopup(historicalContext)
+
+        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
+        await waitFor(() => expect(loadConversation).toHaveBeenCalledWith(newestUnseenConversation.path))
+        await act(async () => {
+            preparedPrompt.resolve({ prompt: 'Stored prompt' })
+            await preparedPrompt.promise
+        })
+
+        expect(prompt).toHaveValue('')
+        expect(prepareActionPrompt).toHaveBeenCalledOnce()
+    })
+
     it('keeps the prompt empty when selecting a completed historical conversation', async () => {
         const historicalContext = { ...context, cardInternalId: 'card-1' }
         const historicalConversation: AgentConversation = {
@@ -704,7 +831,7 @@ describe('ActionPopup', () => {
     })
 
     it('places accessible worktree and window controls above the action selector', () => {
-        renderPopup()
+        renderPopup({ ...context, cardInternalId: 'card-1' })
 
         const toolbar = screen.getByTestId('action-popup-toolbar')
         expect(within(toolbar).getByRole('button', { name: 'Primary worktree' })).toBeInTheDocument()
@@ -716,7 +843,7 @@ describe('ActionPopup', () => {
 
     it('delegates card assignment to the worktree preparation workflow', async () => {
         const setCardWorktree = vi.spyOn(worktreeService, 'setCardWorktree').mockResolvedValue(undefined)
-        renderPopup()
+        renderPopup({ ...context, cardInternalId: 'card-1' })
 
         fireEvent.click(screen.getByRole('button', { name: 'Primary worktree' }))
         fireEvent.click(screen.getByRole('menuitem', { name: /1 — C:\\feature/u }))
@@ -727,7 +854,7 @@ describe('ActionPopup', () => {
     it('keeps card selection and reports the error when worktree preparation fails', async () => {
         vi.spyOn(worktreeService, 'setCardWorktree').mockRejectedValue(new Error('preparation failed'))
         const reportError = vi.spyOn(dialogService, 'error')
-        renderPopup()
+        renderPopup({ ...context, cardInternalId: 'card-1' })
 
         fireEvent.click(screen.getByRole('button', { name: 'Primary worktree' }))
         fireEvent.click(screen.getByRole('menuitem', { name: /1 — C:\\feature/u }))
@@ -766,7 +893,7 @@ describe('ActionPopup', () => {
         }))
     })
 
-    it('shows uniform icon-only Send, Finish, and Stop controls while waiting', async () => {
+    it('shows Finish, Schedule, and Send while waiting with input, and normal Finish completes conversation', async () => {
         actionRunRegistry.stop()
         let runListener: ((event: ActionRunEvent) => void) | null = null
         const finishActionRun = vi.fn(async () => undefined)
@@ -800,9 +927,16 @@ describe('ActionPopup', () => {
             runListener?.({ ...eventBase, status: 'waitingForInput', type: 'agentState' })
         })
 
-        expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Finish' })).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'Stop' })).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Stop' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Schedule' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Send' })).not.toBeInTheDocument()
+
+        const activeRun = actionRunRegistry.getActionRunStore('stream', context)?.getSnapshot()
+        if (!activeRun) throw new Error('Expected active stream run')
+        act(() => actionPromptDraftService.getDraft('stream', context, activeRun, { prepare: false }).edit('Continue'))
+        expect(screen.getByRole('button', { name: 'Schedule' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Finish' }))
         await waitFor(() => expect(finishActionRun).toHaveBeenCalledWith('run-1'))
     })
@@ -847,7 +981,9 @@ describe('ActionPopup', () => {
         act(() => runListener?.({ ...eventBase, status: 'waitingForInput', type: 'agentState' }))
         const promptSurface = screen.getByLabelText('Prompt')
         const phraseGroup = await within(promptSurface).findByRole('group', { name: 'Predefined phrases' })
+        const bottomRow = within(promptSurface).getByTestId('action-popup-bottom-row')
         const phraseButton = within(phraseGroup).getByRole('button', { name: 'Continue' })
+        expect(promptSurface.lastElementChild).toBe(bottomRow)
 
         fireEvent.click(phraseButton)
         await waitFor(() => expect(within(promptSurface).getByRole('textbox')).toHaveValue('Continue with tests'))
@@ -860,6 +996,90 @@ describe('ActionPopup', () => {
         act(() => runListener?.({ ...eventBase, status: 'completed', type: 'run' }))
         expect(screen.getByRole('group', { name: 'Predefined phrases' })).toBeInTheDocument()
         await waitFor(() => expect(screen.queryByRole('group', { name: 'Predefined phrases' })).not.toBeInTheDocument())
+    })
+
+    it('hides response prompts until all scoped approvals resolve', async () => {
+        actionRunRegistry.stop()
+        let runListener: ((event: ActionRunEvent) => void) | null = null
+        const answerActionApproval = vi.fn(async () => undefined)
+        window.md2Actions = {
+            answerActionApproval,
+            onActionRun: vi.fn((listener) => {
+                runListener = listener
+                return vi.fn()
+            }),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
+        } as unknown as typeof window.md2Actions
+        actionRunRegistry.start()
+        actionService.loadFromFiles([file(agentDefinition('respond', {
+            label: 'Respond',
+            phrases: [{ text: 'Continue with tests', title: 'Continue' }],
+            streaming: true,
+        }))])
+        renderPopup()
+        await waitFor(() => expect(runListener).not.toBeNull())
+        const eventBase = {
+            actionId: 'respond', actionType: 'agent' as const, autoFinish: null, context, interactionReady: true,
+            phase: 'main' as const, rootActionId: 'respond', runId: 'run-1', streaming: true,
+        }
+        const firstApproval = {
+            command: 'npm test', filePaths: [], itemId: 'command-1', kind: 'commandExecution' as const,
+            reason: 'Run related tests', requestId: 41, startedAtMs: 1, threadId: 'thread-1', turnId: 'turn-1',
+        }
+        const secondApproval = {
+            command: 'npm run lint', filePaths: [], itemId: 'command-2', kind: 'commandExecution' as const,
+            reason: 'Lint changed files', requestId: 42, startedAtMs: 2, threadId: 'thread-1', turnId: 'turn-1',
+        }
+
+        act(() => runListener?.({ ...eventBase, status: 'waitingForInput', type: 'agentState' }))
+        expect(await screen.findByRole('group', { name: 'Predefined phrases' })).toBeInTheDocument()
+
+        act(() => runListener?.({
+            ...eventBase,
+            status: 'waitingForInput',
+            type: 'update',
+            update: { approval: firstApproval, kind: 'agentApproval' },
+        }))
+        await waitFor(() => expect(screen.queryByRole('group', { name: 'Predefined phrases' })).not.toBeInTheDocument())
+        const firstApprovalControls = screen.getByLabelText('Agent approval')
+        expect(firstApprovalControls).toHaveTextContent('Run related tests')
+        fireEvent.click(within(firstApprovalControls).getByRole('button', { name: 'Allow once' }))
+        await waitFor(() => expect(answerActionApproval).toHaveBeenCalledWith('run-1', 41, 'accept'))
+
+        act(() => {
+            runListener?.({
+                ...eventBase,
+                status: 'waitingForInput',
+                type: 'update',
+                update: { kind: 'agentApprovalSubmitted', requestId: 41 },
+            })
+            runListener?.({
+                ...eventBase,
+                status: 'waitingForInput',
+                type: 'update',
+                update: { approval: secondApproval, kind: 'agentApproval' },
+            })
+        })
+        expect(screen.queryByRole('group', { name: 'Predefined phrases' })).not.toBeInTheDocument()
+        expect(screen.getAllByLabelText('Agent approval')).toHaveLength(2)
+
+        act(() => runListener?.({
+            ...eventBase,
+            status: 'waitingForInput',
+            type: 'update',
+            update: { kind: 'agentApprovalResolved', requestId: 41 },
+        }))
+        expect(screen.queryByRole('group', { name: 'Predefined phrases' })).not.toBeInTheDocument()
+        expect(screen.getAllByLabelText('Agent approval')).toHaveLength(1)
+        expect(screen.getByLabelText('Agent approval')).toHaveTextContent('Lint changed files')
+
+        act(() => runListener?.({
+            ...eventBase,
+            status: 'waitingForInput',
+            type: 'update',
+            update: { kind: 'agentApprovalResolved', requestId: 42 },
+        }))
+        expect(await screen.findByRole('group', { name: 'Predefined phrases' })).toBeInTheDocument()
     })
 
     it('restores response prompts from a scoped persisted waiting conversation after restart', async () => {
@@ -1005,6 +1225,272 @@ describe('ActionPopup', () => {
         expect(model).toBeEnabled()
     })
 
+    it('switches agent through restart while keeping one rendered conversation', async () => {
+        actionRunRegistry.stop()
+        let runListener: ((event: ActionRunEvent) => void) | null = null
+        const projectContext: ActionContext = { kind: 'project' }
+        const earlierConversation = agentConversation({
+            actionId: 'stream',
+            cardInternalId: null,
+            entries: [
+                { content: 'Original request', id: 'user-1', kind: 'message', role: 'user', timestamp: '2026-08-01T12:00:00.000Z' },
+                { agent: 'codex', content: 'Original answer', id: 'assistant-1', kind: 'message', role: 'assistant', timestamp: '2026-08-01T12:01:00.000Z' },
+            ],
+            path: 'design/activity/project.json#conversation=conversation-1',
+        })
+        const switchedConversation = {
+            ...earlierConversation,
+            completedAt: '2026-08-01T12:03:00.000Z',
+            entries: [
+                ...earlierConversation.entries,
+                { content: 'Continue with Claude', id: 'user-2', kind: 'message' as const, role: 'user' as const, timestamp: '2026-08-01T12:02:00.000Z' },
+                { agent: 'claude', content: 'Claude answer', id: 'assistant-2', kind: 'message' as const, role: 'assistant' as const, timestamp: '2026-08-01T12:03:00.000Z' },
+            ],
+            providerSessions: [
+                { agent: 'codex', conversationId: 'codex-session', createdAt: '2026-08-01T12:00:00.000Z', lastUsedAt: '2026-08-01T12:01:00.000Z', synchronizedThroughMessageId: 'assistant-1' },
+                { agent: 'claude', conversationId: 'claude-session', createdAt: '2026-08-01T12:02:00.000Z', lastUsedAt: '2026-08-01T12:03:00.000Z', synchronizedThroughMessageId: 'assistant-2' },
+            ],
+            status: 'completed' as const,
+        }
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([switchedConversation])
+        vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(earlierConversation)
+        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({
+            availability: {
+                error: null,
+                loading: false,
+                values: {
+                    claude: { available: true, error: null },
+                    codex: { available: true, error: null },
+                },
+            },
+            models: { error: null, loading: false, values: [] },
+            thinkingLevels: { error: null, loading: false, values: [] },
+        })
+        const restartActionRun = vi.fn(async () => {
+            const oldEvent = {
+                actionId: 'stream', actionType: 'agent' as const, autoFinish: null, context: projectContext,
+                interactionReady: true, phase: 'main' as const, rootActionId: 'stream', runId: 'run-1', streaming: true,
+            }
+            const newEvent = { ...oldEvent, runId: 'run-2' }
+            runListener?.({ ...oldEvent, status: 'completed', type: 'run' })
+            runListener?.({ ...newEvent, status: 'running', type: 'run' })
+            runListener?.({
+                ...newEvent,
+                status: 'running',
+                type: 'update',
+                update: { continued: true, conversation: switchedConversation, kind: 'agentStarted' },
+            })
+            runListener?.({
+                ...newEvent,
+                status: 'completed',
+                type: 'update',
+                update: { conversation: switchedConversation, kind: 'agentClosed' },
+            })
+            runListener?.({ ...newEvent, status: 'completed', type: 'run' })
+
+            return 'run-2'
+        })
+        window.md2Actions = {
+            loadActionRunHistory: vi.fn(async () => []),
+            onActionRun: vi.fn((listener) => {
+                runListener = listener
+                return vi.fn()
+            }),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
+            restartActionRun,
+            startAction: vi.fn(async () => 'unused'),
+        } as unknown as typeof window.md2Actions
+        actionRunRegistry.start()
+        actionService.loadFromFiles([file(agentDefinition('stream', { agent: 'codex', label: 'Stream', streaming: true }))])
+        renderPopup(projectContext)
+        await waitFor(() => expect(runListener).not.toBeNull())
+        const eventBase = {
+            actionId: 'stream', actionType: 'agent' as const, autoFinish: null, context: projectContext,
+            interactionReady: true, phase: 'main' as const, rootActionId: 'stream', runId: 'run-1', streaming: true,
+        }
+        act(() => {
+            runListener?.({ ...eventBase, status: 'running', type: 'run' })
+            runListener?.({
+                ...eventBase,
+                status: 'running',
+                type: 'update',
+                update: { continued: false, conversation: earlierConversation, kind: 'agentStarted' },
+            })
+            runListener?.({ ...eventBase, status: 'waitingForInput', type: 'agentState' })
+        })
+        await waitFor(() => expect(screen.getByText('Original answer')).toBeInTheDocument())
+
+        fireEvent.click(screen.getByLabelText('Model'))
+        fireEvent.click(await screen.findByRole('menuitem', { name: 'claude' }))
+        const activeRun = actionRunRegistry.getActionRunStore('stream', projectContext)?.getSnapshot()
+        if (!activeRun) throw new Error('Expected active stream run')
+        act(() => actionPromptDraftService.getDraft('stream', projectContext, activeRun, { prepare: false }).edit('Continue with Claude'))
+        fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+
+        await waitFor(() => expect(restartActionRun).toHaveBeenCalledWith(
+            'run-1',
+            expect.objectContaining({
+                actionId: 'stream',
+                runInput: expect.objectContaining({
+                    agent: 'claude',
+                    continueFrom: earlierConversation.path,
+                    prompt: 'Continue with Claude',
+                }),
+            }),
+        ))
+        await waitFor(() => expect(screen.getByText('Claude answer')).toBeInTheDocument())
+        expect(screen.getAllByText('Original request')).toHaveLength(1)
+        expect(screen.getAllByText('Original answer')).toHaveLength(1)
+        expect(screen.getAllByText('Continue with Claude')).toHaveLength(1)
+        expect(screen.getAllByText('Claude answer')).toHaveLength(1)
+    })
+
+    it('disables selectors during saved-settings load', async () => {
+        const cardContext = { ...context, cardInternalId: 'card-1' }
+        const activity = deferredValue<{
+            actionSettings: Record<string, never>
+            conversations: []
+            origin: { cardInternalId: string; kind: 'card' }
+            records: []
+            version: 4
+        }>()
+        window.md2Actions = {
+            loadCardActivity: vi.fn(() => activity.promise),
+            onActionRun: vi.fn(() => vi.fn()),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: 'Plan' })),
+        } as unknown as typeof window.md2Actions
+        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({
+            availability: { error: null, loading: false, values: { codex: { available: true, error: null } } },
+            models: { error: null, loading: false, values: [] },
+            thinkingLevels: { error: null, loading: false, values: [] },
+        })
+        actionService.loadFromFiles([file(agentDefinition('review', { agent: 'codex', label: 'Review' }))])
+
+        renderPopup(cardContext)
+        expect(screen.getByLabelText('Model')).toBeDisabled()
+
+        activity.resolve({actionSettings: {}, conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 4})
+        await waitFor(() => expect(screen.getByLabelText('Model')).toBeEnabled())
+    })
+
+    it('persists complete settings across close and renderer-store restart without rendering popup roots', async () => {
+        const cardContext = { ...context, cardInternalId: 'card-1' }
+        let savedSettings: {
+            agent: string
+            model: string
+            permissionMode: string
+            thinkingLevel: string
+        } | null = null
+        const updateCardActionSettings = vi.fn(async (request) => {
+            savedSettings = request.settings
+        })
+        const loadCardActivity = vi.fn(async () => ({
+            actionSettings: savedSettings ? { review: savedSettings } : {},
+            conversations: [],
+            origin: { cardInternalId: 'card-1', kind: 'card' as const },
+            records: [],
+            version: 4 as const,
+        }))
+        window.md2Actions = {
+            loadCardActivity,
+            onActionRun: vi.fn(() => vi.fn()),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: 'Plan' })),
+            updateCardActionSettings,
+        } as unknown as typeof window.md2Actions
+        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({
+            availability: { error: null, loading: false, values: { codex: { available: true, error: null } } },
+            models: { error: null, loading: false, values: [] },
+            thinkingLevels: { error: null, loading: false, values: [] },
+        })
+        actionService.loadFromFiles([file(agentDefinition('review', { agent: 'codex', label: 'Review' }))])
+        renderPopup(cardContext)
+        await waitFor(() => expect(screen.getByLabelText('Model')).toBeEnabled())
+        Object.values(renderProbes).forEach((probe) => probe.mockClear())
+
+        fireEvent.click(screen.getByLabelText('Model'))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'gpt-5.6-sol' }))
+        await waitFor(() => expect(updateCardActionSettings).toHaveBeenCalledWith({
+            actionId: 'review',
+            cardInternalId: 'card-1',
+            settings: {agent: 'codex', model: 'gpt-5.6-sol', permissionMode: 'ask-for-approval', thinkingLevel: 'none'},
+        }))
+        expect(renderProbes.content).not.toHaveBeenCalled()
+        expect(renderProbes.popup).not.toHaveBeenCalled()
+        expect(renderProbes.selector).not.toHaveBeenCalled()
+        expect(renderProbes.chat).not.toHaveBeenCalled()
+
+        cleanup()
+        renderPopup(cardContext)
+        expect(screen.getByLabelText('Model')).toHaveTextContent('gpt-5.6-sol')
+
+        cleanup()
+        actionRunSettingsService.clear()
+        renderPopup(cardContext)
+        await waitFor(() => expect(screen.getByLabelText('Model')).toHaveTextContent('gpt-5.6-sol'))
+        expect(loadCardActivity).toHaveBeenCalledTimes(2)
+    })
+
+    it('keeps settings independent while switching actions in one card popup', async () => {
+        const cardContext = { ...context, cardInternalId: 'card-1' }
+        const updateCardActionSettings = vi.fn(async (request: { actionId: string }) => {
+            void request
+        })
+        window.md2Actions = {
+            loadCardActivity: vi.fn(async () => ({actionSettings: {}, conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 4})),
+            onActionRun: vi.fn(() => vi.fn()),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: 'Plan' })),
+            updateCardActionSettings,
+        } as unknown as typeof window.md2Actions
+        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({
+            availability: { error: null, loading: false, values: { codex: { available: true, error: null } } },
+            models: { error: null, loading: false, values: [] },
+            thinkingLevels: { error: null, loading: false, values: [] },
+        })
+        actionService.loadFromFiles([
+            file(agentDefinition('first-agent', { agent: 'codex', label: 'First agent' })),
+            file(agentDefinition('second-agent', { agent: 'codex', label: 'Second agent' })),
+        ])
+        renderPopup(cardContext)
+        await waitFor(() => expect(screen.getByLabelText('Model')).toBeEnabled())
+
+        fireEvent.click(screen.getByLabelText('Model'))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'gpt-5.6-sol' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Second agent' }))
+        await waitFor(() => expect(screen.getByLabelText('Model')).toHaveTextContent('gpt-5.5'))
+        fireEvent.click(screen.getByLabelText('Model'))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'gpt-5.6-terra' }))
+
+        fireEvent.click(screen.getByRole('button', { name: 'First agent' }))
+        await waitFor(() => expect(screen.getByLabelText('Model')).toHaveTextContent('gpt-5.6-sol'))
+        expect(updateCardActionSettings.mock.calls.map(([request]) => request.actionId)).toEqual(['first-agent', 'second-agent'])
+    })
+
+    it('uses current defaults for unavailable saved configuration without overwriting persistence', async () => {
+        const cardContext = { ...context, cardInternalId: 'card-1' }
+        const unavailableSettings = {agent: 'removed-agent', model: 'removed-model', permissionMode: '', thinkingLevel: 'high'}
+        const updateCardActionSettings = vi.fn(async () => undefined)
+        window.md2Actions = {
+            loadCardActivity: vi.fn(async () => ({
+                actionSettings: { review: unavailableSettings }, conversations: [],
+                origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 4,
+            })),
+            onActionRun: vi.fn(() => vi.fn()),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: 'Plan' })),
+            updateCardActionSettings,
+        } as unknown as typeof window.md2Actions
+        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({
+            availability: { error: null, loading: false, values: { codex: { available: true, error: null } } },
+            models: { error: null, loading: false, values: [] },
+            thinkingLevels: { error: null, loading: false, values: [] },
+        })
+        actionService.loadFromFiles([file(agentDefinition('review', { agent: 'codex', label: 'Review' }))])
+
+        renderPopup(cardContext)
+
+        await waitFor(() => expect(screen.getByLabelText('Model')).toHaveTextContent('gpt-5.5 none'))
+        expect(updateCardActionSettings).not.toHaveBeenCalled()
+    })
+
     it('uses active one-shot child controls and omits Finish', async () => {
         actionRunRegistry.stop()
         let runListener: ((event: ActionRunEvent) => void) | null = null
@@ -1037,7 +1523,8 @@ describe('ActionPopup', () => {
             })
         })
 
-        expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Send' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Schedule' })).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Stop' })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: 'Finish' })).not.toBeInTheDocument()
     })
@@ -1112,6 +1599,8 @@ describe('ActionPopup', () => {
         expect(screen.getByRole('button', { name: /Queued agent.*Action is queued/u })).toBeInTheDocument()
         const stopButton = screen.getByRole('button', { name: 'Stop' })
         expect(stopButton).toBeEnabled()
+        fireEvent.mouseOver(stopButton)
+        expect(await screen.findByText('Stop', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()
         fireEvent.click(stopButton)
         await waitFor(() => expect(cancelActionRun).toHaveBeenCalledWith('run-1'))
     })
@@ -1151,9 +1640,13 @@ describe('ActionPopup', () => {
             })
         })
 
-        expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Send' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Schedule' })).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Finish' })).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'Stop' })).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Stop' })).not.toBeInTheDocument()
+        const promptSurface = screen.getByLabelText('Prompt')
+        expect(within(promptSurface).getByTestId('action-popup-bottom-row')).toHaveAttribute('data-embedded', 'true')
+        expect(screen.getAllByTestId('action-popup-bottom-row')).toHaveLength(1)
     })
 
     it('blocks a needsWorkTree action without assignment and reports the reason', async () => {

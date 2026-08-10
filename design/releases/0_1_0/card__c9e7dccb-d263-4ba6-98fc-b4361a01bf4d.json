@@ -1,4 +1,5 @@
 {
+  "actionSettings": {},
   "conversations": [
     {
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
@@ -3665,10 +3666,9 @@
       ],
       "details": {
         "type": "agent",
-        "accessLevel": "workspace-write",
         "agent": "codex",
-        "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
+        "permissionMode": "ask-for-approval",
         "thinkingLevel": "medium"
       },
       "runId": "action-6d4c0366-3092-4e4c-84fc-19a24b6e933d",
@@ -3690,10 +3690,9 @@
       ],
       "details": {
         "type": "agent",
-        "accessLevel": "workspace-write",
         "agent": "codex",
-        "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
+        "permissionMode": "ask-for-approval",
         "thinkingLevel": "medium"
       },
       "runId": "action-186a9aca-df7c-4a5a-8300-72a4b8eee653",
@@ -3710,6 +3709,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "dbf2378ad3287f354564442ee90a82548fb5d86a",
           "committedAt": "2026-08-06T17:39:06+02:00",
           "deletions": 88,
@@ -3737,8 +3737,7 @@
             "desktop/src/shell/local_bridge_dispatch.test.mjs"
           ],
           "filesChanged": 21,
-          "insertions": 398,
-          "branch": "dev_main"
+          "insertions": 398
         }
       ],
       "completedAt": "2026-08-06T17:39:06+02:00",
@@ -3750,5 +3749,5 @@
       "type": "system"
     }
   ],
-  "version": 2
+  "version": 4
 }

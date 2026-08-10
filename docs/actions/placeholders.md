@@ -7,6 +7,7 @@ Placeholders let one action definition work for every card. They are written as 
 | Placeholder | Resolves to |
 | --- | --- |
 | `{{card-file}}` | Path to the selected card's Markdown file. |
+| `{{this-card}}` | Alias of `{{card-file}}`; the same path to the selected card's Markdown file. |
 | `{{card-title}}` | Title of the selected card. |
 | `{{card-prompt}}` | The extra text you typed in the action popup for this run. |
 | `{{worktree-folder}}` | Absolute path to the action execution checkout. |
@@ -42,7 +43,7 @@ In the prompt editor, type `{{` for a typeahead list, or insert one from the too
 
 ## Notes
 
-- A card placeholder only resolves when the action runs with card context. Use `appliesTo` with `"kind": "card"` so an action that needs `{{card-file}}` is only offered where it makes sense.
+- A card placeholder only resolves when the action runs with card context. Use `appliesTo` with `"kind": "card"` so an action that needs `{{card-file}}` or `{{this-card}}` is only offered where it makes sense.
 - `{{card-prompt}}` is empty when you run without typing anything. Write prompts that read fine either way.
 - During linked-worktree actions, `{{repository-folder}}` and `{{project-folder}}` remain under the opened repository. Only `{{worktree-folder}}` changes to the linked worktree.
 - The diff command in project configuration supports the same four folder placeholders plus `{{commit}}`, `{{branch}}`, and `{{file}}`. For diffs, `{{worktree-folder}}` and `{{repository-folder}}` both resolve to the opened repository.

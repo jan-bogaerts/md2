@@ -13,6 +13,7 @@ import type {
     ActionRunHistoryEntry,
     ActionRunHistoryRequest,
     CardActivityRequest,
+    CardActionSettingsRequest,
     DiffRequest,
     DiffResult,
     ElectronActionBridge,
@@ -53,6 +54,12 @@ import type {
     WorktreeState,
 } from '../../data/data_types'
 import { readRemoteControlConnection, type RemoteControlConnectionSettings } from '../../data/remote_control_connection'
+import type {
+    MergeConflictPathRequest,
+    MergeConflictSession,
+    MergeConflictSessionRequest,
+    WorktreeOperationOutcome,
+} from '../../data/merge_conflict_types'
 
 interface RemoteControlRequest {
     id: string
@@ -105,6 +112,20 @@ interface WorktreesChangedPayload {
     subscriptionId: string
 }
 
+interface ProjectWatchSubscription {
+    onChange: (event: ProjectWatchEvent) => void
+    onRestored: () => void
+    project: ProjectReference
+    serverSubscriptionId: string | null
+    subscribing: boolean
+}
+
+interface MergeConflictSessionChangedPayload {
+    requestId: string
+    session: MergeConflictSession | null
+    subscriptionId: string
+}
+
 const SOCKET_OPEN_STATE = 1
 
 function isResponse(message: RemoteControlResponse | RemoteControlEvent): message is RemoteControlResponse {
@@ -125,17 +146,20 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
     private codexRateLimitListeners: Set<(snapshot: CodexRateLimitSnapshot) => void>
     private codexRateLimitSubscriptions: Map<(snapshot: CodexRateLimitSnapshot) => void, string>
     private endpoint: string
+    private mergeConflictCallbacks: Map<string, (session: MergeConflictSession | null) => void>
     private nextId: number
     private readonly pendingPushBranches: Set<string>
     private pending: Map<string, PendingRequest>
     private requestAgentEvents: Map<string, (event: AgentRunEvent) => void>
     private requestActionRunEvents: Map<string, (event: ActionRunEvent) => void>
     private requestCodexRateLimitEvents: Map<string, (snapshot: CodexRateLimitSnapshot) => void>
-    private requestWatchEvents: Map<string, (event: ProjectWatchEvent) => void>
+    private requestWatchEvents: Map<string, ProjectWatchSubscription>
+    private requestMergeConflictEvents: Map<string, (session: MergeConflictSession | null) => void>
     private requestWorktreeEvents: Map<string, (state: WorktreeState) => void>
     private runAgentEvents: Map<string, (event: AgentRunEvent) => void>
     private socket: WebSocket | null
     private token: string
+    private readonly watchSubscriptions: Set<ProjectWatchSubscription>
     private watchCallbacks: Map<string, (event: ProjectWatchEvent) => void>
     private worktreeCallbacks: Map<string, (state: WorktreeState) => void>
 
@@ -149,17 +173,20 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         this.codexRateLimitListeners = new Set()
         this.codexRateLimitSubscriptions = new Map()
         this.endpoint = ''
+        this.mergeConflictCallbacks = new Map()
         this.nextId = 1
         this.pendingPushBranches = new Set()
         this.pending = new Map()
         this.requestAgentEvents = new Map()
         this.requestActionRunEvents = new Map()
         this.requestCodexRateLimitEvents = new Map()
+        this.requestMergeConflictEvents = new Map()
         this.requestWatchEvents = new Map()
         this.requestWorktreeEvents = new Map()
         this.runAgentEvents = new Map()
         this.socket = null
         this.token = ''
+        this.watchSubscriptions = new Set()
         this.watchCallbacks = new Map()
         this.worktreeCallbacks = new Map()
     }
@@ -297,9 +324,35 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         this.pendingPushBranches.add(request.branch)
     }
 
-    async integrateWorktree(request: IntegrateWorktreeRequest): Promise<void> {
-        await this.request('integrateWorktree', [request])
+    async integrateWorktree(request: IntegrateWorktreeRequest): Promise<WorktreeOperationOutcome> {
+        const outcome = await this.request<WorktreeOperationOutcome>('integrateWorktree', [request])
         this.pendingPushBranches.add(request.project.branch)
+
+        return outcome
+    }
+
+    async abortMergeConflict(request: MergeConflictSessionRequest): Promise<void> {
+        await this.request('abortMergeConflict', [request])
+    }
+
+    async continueMergeConflict(request: MergeConflictSessionRequest): Promise<WorktreeOperationOutcome> {
+        return this.request<WorktreeOperationOutcome>('continueMergeConflict', [request])
+    }
+
+    async getMergeConflictSession(): Promise<MergeConflictSession | null> {
+        return this.request<MergeConflictSession | null>('getMergeConflictSession', [])
+    }
+
+    async launchMergeConflictResolver(request: MergeConflictPathRequest): Promise<void> {
+        await this.request('launchMergeConflictResolver', [request])
+    }
+
+    async markMergeConflictResolved(request: MergeConflictPathRequest): Promise<MergeConflictSession> {
+        return this.request<MergeConflictSession>('markMergeConflictResolved', [request])
+    }
+
+    async rescanMergeConflict(request: MergeConflictSessionRequest): Promise<MergeConflictSession> {
+        return this.request<MergeConflictSession>('rescanMergeConflict', [request])
     }
 
     async push(project: ProjectReference): Promise<void> {
@@ -331,8 +384,8 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         await this.request('pullWorktree', [request])
     }
 
-    async rebaseWorktree(request: WorktreeOperationRequest): Promise<void> {
-        await this.request('rebaseWorktree', [request])
+    async rebaseWorktree(request: WorktreeOperationRequest): Promise<WorktreeOperationOutcome> {
+        return this.request<WorktreeOperationOutcome>('rebaseWorktree', [request])
     }
 
     async pushWorktree(request: WorktreeOperationRequest): Promise<void> {
@@ -360,29 +413,32 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         await this.request('stopAgent', [runId])
     }
 
-    watchProject(project: ProjectReference, onChange: (event: ProjectWatchEvent) => void): () => void {
-        const id = this.createRequestId()
-        let cancelled = false
-        let subscriptionId: string | null = null
-        this.requestWatchEvents.set(id, onChange)
-        void this.sendRequest<{ subscriptionId: string }>({ id, method: 'watchProject', params: [project] }).then((result) => {
-            subscriptionId = result.subscriptionId
-            if (cancelled) {
-                void this.request('unsubscribe', [subscriptionId])
-                return
-            }
-
-            this.watchCallbacks.set(result.subscriptionId, onChange)
-            this.requestWatchEvents.delete(id)
-        })
+    watchProject(
+        project: ProjectReference,
+        onChange: (event: ProjectWatchEvent) => void,
+        onRestored: () => void,
+    ): () => void {
+        const subscription: ProjectWatchSubscription = {
+            onChange,
+            onRestored,
+            project,
+            serverSubscriptionId: null,
+            subscribing: false,
+        }
+        this.watchSubscriptions.add(subscription)
+        void this.subscribeProjectWatch(subscription, false).catch(() => undefined)
 
         return () => {
-            cancelled = true
-            this.requestWatchEvents.delete(id)
-            if (!subscriptionId) return
+            this.watchSubscriptions.delete(subscription)
+            for (const [requestId, pendingSubscription] of this.requestWatchEvents) {
+                if (pendingSubscription === subscription) this.requestWatchEvents.delete(requestId)
+            }
+            const { serverSubscriptionId } = subscription
+            subscription.serverSubscriptionId = null
+            if (!serverSubscriptionId) return
 
-            this.watchCallbacks.delete(subscriptionId)
-            void this.request('unsubscribe', [subscriptionId])
+            this.watchCallbacks.delete(serverSubscriptionId)
+            void this.request('unsubscribe', [serverSubscriptionId]).catch(() => undefined)
         }
     }
 
@@ -412,6 +468,32 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         }
     }
 
+    onMergeConflictSessionChanged(callback: (session: MergeConflictSession | null) => void): () => void {
+        const id = this.createRequestId()
+        let cancelled = false
+        let subscriptionId: string | null = null
+        this.requestMergeConflictEvents.set(id, callback)
+        void this.sendRequest<{ subscriptionId: string }>({ id, method: 'onMergeConflictSessionChanged', params: [] }).then((result) => {
+            subscriptionId = result.subscriptionId
+            if (cancelled) {
+                void this.request('unsubscribe', [subscriptionId])
+                return
+            }
+
+            this.mergeConflictCallbacks.set(result.subscriptionId, callback)
+            this.requestMergeConflictEvents.delete(id)
+        })
+
+        return () => {
+            cancelled = true
+            this.requestMergeConflictEvents.delete(id)
+            if (!subscriptionId) return
+
+            this.mergeConflictCallbacks.delete(subscriptionId)
+            void this.request('unsubscribe', [subscriptionId])
+        }
+    }
+
     async cancelActionRun(runId: string): Promise<void> {
         await this.request('cancelActionRun', [runId])
     }
@@ -425,6 +507,10 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
 
     async updateActionConversationViewed(reference: string, viewed: boolean): Promise<AgentConversation> {
         return this.request<AgentConversation>('updateActionConversationViewed', [reference, viewed])
+    }
+
+    async updateCardActionSettings(request: CardActionSettingsRequest): Promise<void> {
+        await this.request('updateCardActionSettings', [request])
     }
 
     async sendActionMessage(runId: string, content: string): Promise<void> {
@@ -620,6 +706,7 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
                 for (const listener of this.connectionListeners) listener(true)
                 void this.restoreActionRunSubscriptions()
                 void this.restoreCodexRateLimitSubscriptions()
+                void this.restoreProjectWatchSubscriptions()
             }
             const handleError = () => {
                 this.connectPromise = null
@@ -673,6 +760,10 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
             this.handleWorktreesChangedEvent(message.payload as WorktreesChangedPayload)
             return
         }
+        if (message.event === 'mergeConflictSessionChanged') {
+            this.handleMergeConflictSessionChangedEvent(message.payload as MergeConflictSessionChangedPayload)
+            return
+        }
 
         if (message.event === 'agentRun') this.handleAgentRunEvent(message.payload as AgentRunPayload)
     }
@@ -724,6 +815,39 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         await Promise.allSettled(callbacks.map((callback) => this.subscribeCodexRateLimits(callback)))
     }
 
+    private async restoreProjectWatchSubscriptions() {
+        const subscriptions = [...this.watchSubscriptions].filter((subscription) => (
+            !subscription.subscribing && subscription.serverSubscriptionId === null
+        ))
+        await Promise.allSettled(subscriptions.map((subscription) => this.subscribeProjectWatch(subscription, true)))
+    }
+
+    private async subscribeProjectWatch(subscription: ProjectWatchSubscription, restored: boolean) {
+        if (!this.watchSubscriptions.has(subscription) || subscription.subscribing || subscription.serverSubscriptionId) return
+
+        const id = this.createRequestId()
+        subscription.subscribing = true
+        this.requestWatchEvents.set(id, subscription)
+        try {
+            const result = await this.sendRequest<{ subscriptionId: string }>({
+                id,
+                method: 'watchProject',
+                params: [subscription.project],
+            })
+            if (!this.watchSubscriptions.has(subscription)) {
+                await this.request('unsubscribe', [result.subscriptionId])
+                return
+            }
+
+            subscription.serverSubscriptionId = result.subscriptionId
+            this.watchCallbacks.set(result.subscriptionId, subscription.onChange)
+            if (restored) subscription.onRestored()
+        } finally {
+            subscription.subscribing = false
+            this.requestWatchEvents.delete(id)
+        }
+    }
+
     private async subscribeCodexRateLimits(callback: (snapshot: CodexRateLimitSnapshot) => void) {
         const id = this.createRequestId()
         this.requestCodexRateLimitEvents.set(id, callback)
@@ -745,13 +869,20 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
     }
 
     private handleWatchProjectEvent(payload: WatchProjectPayload) {
-        const callback = this.watchCallbacks.get(payload.subscriptionId) ?? this.requestWatchEvents.get(payload.requestId)
+        const callback = this.watchCallbacks.get(payload.subscriptionId)
+            ?? this.requestWatchEvents.get(payload.requestId)?.onChange
         callback?.(payload.event)
     }
 
     private handleWorktreesChangedEvent(payload: WorktreesChangedPayload) {
         const callback = this.worktreeCallbacks.get(payload.subscriptionId) ?? this.requestWorktreeEvents.get(payload.requestId)
         callback?.(payload.state)
+    }
+
+    private handleMergeConflictSessionChangedEvent(payload: MergeConflictSessionChangedPayload) {
+        const callback = this.mergeConflictCallbacks.get(payload.subscriptionId)
+            ?? this.requestMergeConflictEvents.get(payload.requestId)
+        callback?.(payload.session)
     }
 
     private handleAgentRunEvent(payload: AgentRunPayload) {
@@ -769,13 +900,19 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         this.actionRunSubscriptions.clear()
         this.codexRateLimitCallbacks.clear()
         this.codexRateLimitSubscriptions.clear()
+        this.mergeConflictCallbacks.clear()
         this.requestAgentEvents.clear()
         this.requestActionRunEvents.clear()
         this.requestCodexRateLimitEvents.clear()
+        this.requestMergeConflictEvents.clear()
         this.requestWatchEvents.clear()
         this.requestWorktreeEvents.clear()
         this.runAgentEvents.clear()
         this.watchCallbacks.clear()
+        for (const subscription of this.watchSubscriptions) {
+            subscription.serverSubscriptionId = null
+            subscription.subscribing = false
+        }
         this.worktreeCallbacks.clear()
         this.connectPromise = null
         this.socket = null

@@ -21,14 +21,11 @@ describe('history entries', () => {
 
     it('preserves agent fields without commit ownership', () => {
         const result = {
-            accessLevel: 'workspace-write', agent: 'codex', approvalPolicy: 'on-request', exitCode: 0,
-            model: 'gpt', prompt: 'review', stderr: '', stdout: 'done', thinkingLevel: 'high',
+            agent: 'codex', exitCode: 0, model: 'gpt', permissionMode: 'ask-for-approval',
+            prompt: 'review', stderr: '', stdout: 'done', thinkingLevel: 'high',
         };
 
-        expect(createAgentDetails({ action, completedAt, result })).toEqual({
-            accessLevel: 'workspace-write', agent: 'codex', approvalPolicy: 'on-request',
-            model: 'gpt', thinkingLevel: 'high', type: 'agent',
-        });
+        expect(createAgentDetails({ action, completedAt, result })).toEqual({agent: 'codex', model: 'gpt', permissionMode: 'ask-for-approval', thinkingLevel: 'high', type: 'agent'});
     });
 });
 

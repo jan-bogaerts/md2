@@ -1,6 +1,6 @@
 const { buildResumeAgentCommand, resolveAgentCommand } = require('../agent/agent_profiles.mjs');
 const { normalizeConversationContext } = require('../agent/agent_transcript');
-const { prepareAgentPrompt, resolvePlaceholders, withTrackedFileCommitInstruction } = require('./action_text');
+const { resolveAgentPrompt, resolvePlaceholders } = require('./action_text');
 
 const CONTINUE_INPUT = 'continue';
 function continuationReferencePath(reference) {
@@ -33,15 +33,13 @@ class ActionAgentExecutor {
 
     async execute(input) {
         const config = this.agentConfigProvider();
-        const accessLevel = input.runInput.accessLevel ?? input.action.accessLevel;
-        const approvalPolicy = input.runInput.approvalPolicy ?? input.action.approvalPolicy;
+        const permissionMode = input.runInput.permissionMode ?? input.action.permissionMode;
         const thinkingLevel = input.runInput.thinkingLevel ?? input.action.thinkingLevel;
         const streaming = input.action.streaming;
         const resolvedAgent = resolveAgentCommand(config, {
-            ...(accessLevel ? { accessLevel } : {}),
             ...(input.runInput.agent ? { agent: input.runInput.agent } : (input.action.agent ? { agent: input.action.agent } : {})),
-            ...(approvalPolicy ? { approvalPolicy } : {}),
             ...(input.runInput.model ? { model: input.runInput.model } : (input.action.model ? { model: input.action.model } : {})),
+            ...(permissionMode ? { permissionMode } : {}),
             ...(thinkingLevel ? { thinkingLevel } : {}),
         }, streaming);
         const sourceConversation = input.runInput.continueFrom
@@ -69,11 +67,8 @@ class ActionAgentExecutor {
                 input.runInput.extraPrompt,
             )
             : sourceConversation
-                ? withTrackedFileCommitInstruction(
-                    input.runInput.extraPrompt.trim().length > 0 ? input.runInput.extraPrompt : CONTINUE_INPUT,
-                    input.action.trackFileChanges,
-                )
-                : prepareAgentPrompt(
+                ? input.runInput.extraPrompt.trim().length > 0 ? input.runInput.extraPrompt : CONTINUE_INPUT
+                : resolveAgentPrompt(
                     input.action,
                     input.context,
                     input.project,
@@ -117,10 +112,9 @@ class ActionAgentExecutor {
 
         return {
             ...executionResult,
-            accessLevel: resolvedAgent.accessLevel,
             agent: resolvedAgent.agent,
-            approvalPolicy: resolvedAgent.approvalPolicy,
             model: resolvedAgent.model,
+            permissionMode: resolvedAgent.permissionMode,
             thinkingLevel: resolvedAgent.thinkingLevel,
         };
     }

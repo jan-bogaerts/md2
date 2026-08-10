@@ -258,7 +258,7 @@ describe('ActionRunnerService', () => {
         const worktreeProject = { ...project, branch: 'feature', rootPath: 'C:/worktrees/2' };
         actionWorktreeRunService.resolve.mockResolvedValueOnce({ runProject: worktreeProject, runWorktree: 2 });
 
-        await expect(runner.prepareActionPrompt({ actionId: 'main', context })).resolves.toEqual({prompt: `Review design/F-010.md in C:/worktrees/2; repository C:/repo; project ${path.resolve('C:/repo', 'design')}; releases ${path.resolve('C:/repo', 'design/releases')}\n\nDo not stage or commit changes. md2 will commit files captured from provider edit tools.`});
+        await expect(runner.prepareActionPrompt({ actionId: 'main', context })).resolves.toEqual({prompt: `Review design/F-010.md in C:/worktrees/2; repository C:/repo; project ${path.resolve('C:/repo', 'design')}; releases ${path.resolve('C:/repo', 'design/releases')}`});
         expect(actionWorktreeRunService.resolve).toHaveBeenCalledWith(project, expect.objectContaining({ id: 'main' }), context);
         expect(actionWorktreeRunService.execute).not.toHaveBeenCalled();
         expect(agentRunnerService.start).not.toHaveBeenCalled();

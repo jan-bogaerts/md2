@@ -306,6 +306,103 @@ describe('ResizablePopper', () => {
         expect(restoredDialog.style.height).toBe('360px')
     })
 
+    it.each([
+        ['malformed', '{'],
+        ['incomplete', JSON.stringify({ width: 500 })],
+        ['non-finite', '{"height":1e309,"width":500}'],
+    ])('uses initial size for %s stored data', (_caseName, storedValue) => {
+        const storageKey = `test.invalidResizablePopperSize.${_caseName}`
+        window.localStorage.setItem(storageKey, storedValue)
+
+        render(
+            <ResizablePopper
+                anchorElement={document.body}
+                initialSize={{ height: 300, width: 400 }}
+                labelId="popper-title"
+                onClose={vi.fn()}
+                open
+                resizeLabel="Resize test popper"
+                storageKey={storageKey}
+            >
+                <h2 id="popper-title">Test popper</h2>
+            </ResizablePopper>,
+        )
+
+        expect(screen.getByRole('dialog', { name: 'Test popper' })).toHaveStyle({ height: '300px', width: '400px' })
+    })
+
+    it('clamps stored size to configured minimum and viewport limits when enabled', () => {
+        Object.defineProperty(window, 'innerHeight', { configurable: true, value: 600, writable: true })
+        Object.defineProperty(window, 'innerWidth', { configurable: true, value: 800, writable: true })
+        const minimumStorageKey = 'test.minimumClampedResizablePopperSize'
+        window.localStorage.setItem(minimumStorageKey, JSON.stringify({ height: 20, width: 40 }))
+        const firstRender = render(
+            <ResizablePopper
+                anchorElement={document.body}
+                constrainSizeToViewport
+                initialSize={{ height: 300, width: 400 }}
+                labelId="minimum-popper-title"
+                minimumSize={{ height: 52, width: 280 }}
+                onClose={vi.fn()}
+                open
+                resizeLabel="Resize minimum popper"
+                storageKey={minimumStorageKey}
+            >
+                <h2 id="minimum-popper-title">Minimum popper</h2>
+            </ResizablePopper>,
+        )
+
+        expect(screen.getByRole('dialog', { name: 'Minimum popper' })).toHaveStyle({ height: '52px', width: '280px' })
+        firstRender.unmount()
+
+        const viewportStorageKey = 'test.viewportClampedResizablePopperSize'
+        window.localStorage.setItem(viewportStorageKey, JSON.stringify({ height: 900, width: 1200 }))
+        render(
+            <ResizablePopper
+                anchorElement={document.body}
+                constrainSizeToViewport
+                initialSize={{ height: 300, width: 400 }}
+                labelId="viewport-popper-title"
+                minimumSize={{ height: 52, width: 280 }}
+                onClose={vi.fn()}
+                open
+                resizeLabel="Resize viewport popper"
+                storageKey={viewportStorageKey}
+            >
+                <h2 id="viewport-popper-title">Viewport popper</h2>
+            </ResizablePopper>,
+        )
+
+        expect(screen.getByRole('dialog', { name: 'Viewport popper' })).toHaveStyle({ height: '568px', width: '768px' })
+    })
+
+    it('can preserve editor focus and leave Escape handling to its owner', () => {
+        render(
+            <>
+                <input aria-label="Editor" autoFocus />
+                <ResizablePopper
+                    anchorElement={document.body}
+                    closeOnEscape={false}
+                    focusOnMount={false}
+                    initialSize={{ height: 300, width: 400 }}
+                    labelId="popper-title"
+                    open
+                    resizeLabel="Resize test popper"
+                    stackPosition={2}
+                >
+                    <h2 id="popper-title">Test popper</h2>
+                </ResizablePopper>
+            </>,
+        )
+        const editor = screen.getByRole('textbox', { name: 'Editor' })
+        const dialog = screen.getByRole('dialog', { name: 'Test popper' })
+
+        fireEvent.keyDown(dialog, { key: 'Escape' })
+
+        expect(editor).toHaveFocus()
+        expect(dialog).toBeInTheDocument()
+    })
+
     it('keeps full-height presentation constrained without overwriting normal size', () => {
         const storageKey = 'test.fullHeightResizablePopperSize'
         window.localStorage.removeItem(storageKey)

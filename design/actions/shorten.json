@@ -8,5 +8,5 @@
   },
   "trackFileChanges": true,
   "phrases": [],
-  "prompt": "\\`{{card-file}}\\` is too verbose. make it more digestible, shorten it without loosing any detail.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill"
+  "prompt": "\\`{{card-file}}\\` is too verbose. make it more digestible, shorten it without loosing any detail.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill.\n\nDo not stage or commit changes. You have no need for get at this stage."
 }

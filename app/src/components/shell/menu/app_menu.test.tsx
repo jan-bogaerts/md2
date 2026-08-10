@@ -32,6 +32,7 @@ function createBridge(): ElectronDataBridge {
         createProject: vi.fn(async (project) => project),
         deleteFile: vi.fn(),
         deleteFolder: vi.fn(),
+        getMergeConflictSession: vi.fn(async () => null),
         hasPendingPush: vi.fn(async () => false),
         listBranches: vi.fn(async () => [{ name: 'main' }]),
         listRepositoryFiles: vi.fn(async () => []),
@@ -41,6 +42,7 @@ function createBridge(): ElectronDataBridge {
         loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, projectFolder: '', workingFolder: 'design' })),
+        onMergeConflictSessionChanged: vi.fn(() => vi.fn()),
         onWorktreesChanged: vi.fn(() => vi.fn()),
         moveFiles: vi.fn(),
         openProjectFolder: vi.fn(async () => ({ branch: 'main', id: 'local', rootPath: 'C:/repo' })),
@@ -278,6 +280,7 @@ describe('AppMenu', () => {
                     { command: ['local-agent'], modelArgument: '--model', models: ['local-model'], name: 'local' },
                 ],
                 model: 'gpt-5',
+                permissionMode: 'ask-for-approval',
                 thinkingLevel: 'high',
             },
         })
@@ -288,6 +291,11 @@ describe('AppMenu', () => {
         expect(screen.getByRole('combobox', { name: 'Default agent' })).toHaveTextContent('codex')
         expect(screen.getByRole('combobox', { name: 'Default model' })).toHaveTextContent('gpt-5')
         expect(screen.getByRole('combobox', { name: 'Default reasoning level' })).toHaveTextContent('high')
+        expect(screen.getByRole('combobox', { name: 'Default permission mode' })).toHaveTextContent('Ask for approval')
+
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Default permission mode' }))
+        fireEvent.click(screen.getByRole('option', { name: 'Full access — disables approvals' }))
+        expect(configService.get('desktop.permissionMode')).toBe('full-access')
 
         fireEvent.mouseOver(screen.getByRole('combobox', { name: 'Default reasoning level' }))
         expect(await screen.findByRole('tooltip')).toHaveTextContent('Default reasoning level')
@@ -305,6 +313,7 @@ describe('AppMenu', () => {
         await waitFor(() => expect(screen.getByRole('combobox', { name: 'Default agent' })).toHaveTextContent('local'))
         expect(screen.getByRole('combobox', { name: 'Default model' })).toHaveTextContent('local-model')
         expect(screen.getByRole('combobox', { name: 'Default reasoning level' })).toHaveTextContent('low')
+        expect(screen.getByDisplayValue('Permissions unsupported')).toBeDisabled()
     })
 
     it('commits pending changes before enabling manual push', async () => {

@@ -1,22 +1,23 @@
 import {
-    cardActionPopupService,
+    cardPopupService,
     type CardActionPopupEntry,
-} from '../../../../services/actions/card_action_popup_service'
+} from '../../../../services/card_popup_service'
 import { ActionPopup } from './action_popup'
 
 interface CardActionPopupHostEntryProps {
     entry: CardActionPopupEntry
     stackPosition: number
+    visible: boolean
 }
 
 /** Renders one service-owned card action popup with isolated local controller state. */
-export function CardActionPopupHostEntry({ entry, stackPosition }: CardActionPopupHostEntryProps) {
+export function CardActionPopupHostEntry({ entry, stackPosition, visible }: CardActionPopupHostEntryProps) {
     const handleClose = () => {
-        cardActionPopupService.close(entry.id)
+        cardPopupService.close(entry.id)
     }
 
     const handleActivate = () => {
-        cardActionPopupService.activate(entry.id)
+        cardPopupService.activate(entry.id)
     }
 
     const anchorElement = entry.anchorElement.isConnected ? entry.anchorElement : entry.fallbackAnchorElement
@@ -28,6 +29,7 @@ export function CardActionPopupHostEntry({ entry, stackPosition }: CardActionPop
             draggable
             onActivate={handleActivate}
             onClose={handleClose}
+            open={visible}
             popupEntryId={entry.id}
             stackPosition={stackPosition}
         />

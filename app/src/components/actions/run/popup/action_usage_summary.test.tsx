@@ -1,93 +1,176 @@
-import { fireEvent, render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AgentConversation } from '../../../../data/data_types'
 import type { ActionRunHistoryEntry, CommitReference } from '../../../../data/electron_action_bridge'
+import { AppThemeProvider } from '../../../../theme/theme_provider'
 import { ActionUsageSummary } from './action_usage_summary'
+import type { ActionUsageScope } from './action_usage_scope_store'
 
-function conversation(actionId: string, cardInternalId: string, totalTokens: number): AgentConversation {
+afterEach(cleanup)
+
+function conversation(id: string, totalTokens: number, insertions = 0, deletions = 0): AgentConversation {
     return {
-        actionId,
-        cardInternalId,
+        actionId: 'implement',
+        cardInternalId: 'card-1',
         cardPath: 'design/F-1.md',
         completedAt: 'now',
-        entries: [],
+        entries: insertions === 0 && deletions === 0 ? [] : [{
+            content: 'edit', deletions, id: `${id}-file`, insertions, kind: 'event',
+            providerItemId: `${id}-file`, status: 'completed', timestamp: 'now', type: 'fileChange',
+        }],
         hasExplicitTitle: true,
-        id: `${actionId}-${cardInternalId}`,
-        path: `logs/${actionId}.json`,
+        id,
+        path: `logs/${id}.json`,
         providerSessions: [],
         startedAt: 'now',
         status: 'completed',
-        title: 'Run',
-        viewed: true,
+        title: id,
         usage: { cachedInputTokens: 0, inputTokens: totalTokens, outputTokens: 0, reasoningTokens: 0, totalTokens },
+        viewed: true,
     }
 }
 
-function commit(commitHash: string, overrides: Partial<CommitReference> = {}): CommitReference {
+function commit(commitHash: string, insertions: number, deletions: number): CommitReference {
     return {
         actionId: 'implement',
         actionName: 'Implement',
         branch: 'main',
         commit: commitHash.padEnd(40, commitHash[0]),
         committedAt: 'now',
-        deletions: 0,
+        deletions,
         filePaths: [],
         filesChanged: 1,
-        insertions: 0,
-        repositoryRoot: `C:/${commitHash}`,
-        ...overrides,
+        insertions,
+        repositoryRoot: 'C:/project',
     }
 }
 
-function historyEntry(commits: CommitReference[], status: ActionRunHistoryEntry['status']): ActionRunHistoryEntry {
-    return { command: 'implement', commits, completedAt: 'now', output: '', startedAt: 'before', status, type: 'command' }
+function historyEntry(rootConversationId: string, commits: CommitReference[]): ActionRunHistoryEntry {
+    return {
+        commits,
+        completedAt: 'now',
+        rootConversationId,
+        startedAt: 'before',
+        status: 'completed',
+        type: 'agent',
+    }
+}
+
+interface RenderSummaryOptions {
+    conversation?: AgentConversation | null
+    conversations?: AgentConversation[]
+    history?: ActionRunHistoryEntry[]
+    onToggleScope?: () => void
+    scope?: ActionUsageScope
+}
+
+function renderSummary(options: RenderSummaryOptions = {}) {
+    const displayedConversation = options.conversation === undefined
+        ? conversation('conversation-1', 12, 2, 1)
+        : options.conversation
+
+    return render(
+        <AppThemeProvider>
+            <ActionUsageSummary
+                actionId="implement"
+                cardInternalId="card-1"
+                conversation={displayedConversation}
+                conversations={options.conversations ?? (displayedConversation ? [displayedConversation] : [])}
+                history={options.history ?? []}
+                liveConversation={null}
+                onToggleScope={options.onToggleScope ?? vi.fn()}
+                scope={options.scope ?? 'actionCard'}
+            />
+        </AppThemeProvider>,
+    )
 }
 
 describe('ActionUsageSummary', () => {
-    it('shows filtered tokens and hides lines when history has no commits', () => {
-        render(<ActionUsageSummary
-            actionId="implement"
-            cardInternalId="card-1"
-            conversations={[
-                conversation('implement', 'card-1', 12),
-                conversation('review', 'card-1', 30),
-                conversation('implement', 'card-2', 40),
-            ]}
-            history={[]}
-        />)
+    it('always renders tokens but hides zero changes and lines', () => {
+        renderSummary({ conversation: null })
 
-        expect(screen.getByText('tokens: 12')).toBeInTheDocument()
-        expect(screen.queryByText(/lines:/u)).not.toBeInTheDocument()
+        const tokens = screen.getByRole('button', { name: 'Tokens, Action/card scope' })
+        expect(tokens).toHaveAttribute('type', 'button')
+        expect(tokens).toHaveAttribute('tabindex', '0')
+        expect(tokens).toHaveTextContent('tokens: 0')
+        expect(screen.queryByRole('button', { name: 'Changes, Action/card scope' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Lines, Action/card scope' })).not.toBeInTheDocument()
     })
 
-    it('shows zero for binary-only commits and ordered aggregate details across worktrees and failed runs', async () => {
-        const firstCommit = commit('abc1234', { filesChanged: 2, repositoryRoot: 'C:/first' })
-        const secondCommit = commit('def5678', { deletions: 3, filesChanged: 1, insertions: 5, repositoryRoot: 'D:/second' })
-        render(<ActionUsageSummary
-            actionId="implement"
-            cardInternalId="card-1"
-            conversations={[]}
-            history={[historyEntry([firstCommit], 'completed'), historyEntry([secondCommit], 'failed')]}
-        />)
+    it('invokes shared scope toggle through pointer and keyboard-synthesized clicks', () => {
+        const onToggleScope = vi.fn()
+        const displayedConversation = conversation('conversation-1', 12, 2, 1)
+        renderSummary({
+            conversation: displayedConversation,
+            history: [historyEntry(displayedConversation.id, [commit('abc1234', 3, 2)])],
+            onToggleScope,
+        })
 
-        const lines = screen.getByText('lines: 8')
-        fireEvent.mouseOver(lines)
+        fireEvent.click(screen.getByRole('button', { name: 'Tokens, Action/card scope' }), { detail: 1 })
+        fireEvent.click(screen.getByRole('button', { name: 'Changes, Action/card scope' }))
+        const lines = screen.getByRole('button', { name: 'Lines, Action/card scope' })
+        lines.focus()
+        fireEvent.click(lines, { detail: 0 })
+
+        expect(onToggleScope).toHaveBeenCalledTimes(3)
+    })
+
+    it('renders conversation values for every metric under conversation scope', () => {
+        const displayedConversation = conversation('conversation-1', 12, 2, 1)
+        const otherConversation = conversation('conversation-2', 20, 5, 4)
+        const matchingCommit = commit('abc1234', 6, 3)
+        const otherCommit = commit('def5678', 8, 7)
+        renderSummary({
+            conversation: displayedConversation,
+            conversations: [displayedConversation, otherConversation],
+            history: [
+                historyEntry(displayedConversation.id, [matchingCommit]),
+                historyEntry(otherConversation.id, [otherCommit]),
+            ],
+            scope: 'conversation',
+        })
+
+        expect(screen.getByRole('button', { name: 'Tokens, Conversation scope' })).toHaveTextContent('tokens: 12')
+        expect(screen.getByRole('button', { name: 'Changes, Conversation scope' })).toHaveTextContent('changes: +2 / -1')
+        expect(screen.getByRole('button', { name: 'Lines, Conversation scope' })).toHaveTextContent('lines: 9')
+    })
+
+    it('explains metric, switching, both values, and active-scope commit details', async () => {
+        const displayedConversation = conversation('conversation-1', 12)
+        const otherConversation = conversation('conversation-2', 20)
+        const matchingCommit = commit('abc1234', 6, 3)
+        const otherCommit = commit('def5678', 8, 7)
+        renderSummary({
+            conversation: displayedConversation,
+            conversations: [displayedConversation, otherConversation],
+            history: [
+                historyEntry(displayedConversation.id, [matchingCommit]),
+                historyEntry(otherConversation.id, [otherCommit]),
+            ],
+            scope: 'conversation',
+        })
+
+        fireEvent.mouseOver(screen.getByRole('button', { name: 'Lines, Conversation scope' }))
 
         const tooltip = await screen.findByRole('tooltip')
-        expect(tooltip).toHaveTextContent('files changed: 3, insertions: 5, deletions: 3')
-        expect(tooltip).toHaveTextContent('abc1234: +0 / -0')
-        expect(tooltip).toHaveTextContent('def5678: +5 / -3')
-        expect(tooltip.textContent?.indexOf('abc1234')).toBeLessThan(tooltip.textContent?.indexOf('def5678') ?? 0)
+        expect(tooltip).toHaveTextContent('Lines are additions plus deletions in captured Git commit diffs.')
+        expect(tooltip).toHaveTextContent('Active scope: Conversation. Click to switch to Action/card.')
+        expect(tooltip).toHaveTextContent('Conversation (active): 9 lines')
+        expect(tooltip).toHaveTextContent('Action/card: 24 lines')
+        expect(tooltip).toHaveTextContent('files changed: 1, insertions: 6, deletions: 3')
+        expect(tooltip).toHaveTextContent('abc1234: +6 / -3')
+        expect(tooltip).not.toHaveTextContent('def5678: +8 / -7')
     })
 
-    it('shows lines zero when commits exist without textual changes', () => {
-        render(<ActionUsageSummary
-            actionId="implement"
-            cardInternalId="card-1"
-            conversations={[]}
-            history={[historyEntry([commit('abc1234')], 'completed')]}
-        />)
+    it('shows unavailable conversation values and keeps action/card active without a displayed conversation', async () => {
+        renderSummary({ conversation: null, scope: 'conversation' })
 
-        expect(screen.getByText('lines: 0')).toBeInTheDocument()
+        const tokens = screen.getByRole('button', { name: 'Tokens, Action/card scope' })
+        fireEvent.mouseOver(tokens)
+
+        const tooltip = await screen.findByRole('tooltip')
+        expect(tooltip).toHaveTextContent('Conversation unavailable; clicking keeps Action/card scope.')
+        expect(tooltip).toHaveTextContent('Conversation: unavailable')
+        expect(tooltip).toHaveTextContent('Action/card (active): 0 tokens')
     })
 })

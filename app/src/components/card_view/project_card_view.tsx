@@ -12,13 +12,14 @@ import { ActionEntryPoints } from '../actions/run/trigger/action_entry_points'
 import { CardRunButton } from '../actions/run/trigger/card_run_button'
 import { useRunningActionForContext } from '../hooks/use_action_runs'
 import { CardDeleteDialog } from './card_delete_dialog'
+import { CardPathMenuItems } from './card_path_menu_items'
 import { CardPolicyMenuItem } from './card_policy_menu_item'
 import { CardWorktreeIndicator } from './card_worktree_indicator'
 import { getCardTypeColor } from './card_drag'
 import { useCardMetadata, type CardMetadataSnapshot } from './use_project_card'
 import { useProjectReference } from '../hooks/use_project_reference'
 import { useIsWorkspacePathSelected } from '../hooks/use_is_workspace_path_selected'
-import { cardBodyPopoverService, subscribeCardBodyPopover } from './card_body_popover_service'
+import { cardPopupService, subscribeCardPopups } from '../../services/card_popup_service'
 import { CardDragContainer } from './project_card_drag_container'
 
 export interface CardHandlers {
@@ -40,6 +41,7 @@ interface CardViewContentProps extends CardHandlers {
     isSelected: boolean
     isMobile: boolean
     primaryPath: string
+    rootPath: string | undefined
 }
 
 interface MenuPosition {
@@ -61,13 +63,14 @@ export const CardView = memo(function CardView(props: CardViewProps) {
             card={card}
             isSelected={isSelected}
             primaryPath={primaryPath}
+            rootPath={project.rootPath}
             {...contentProps}
         />
     )
 })
 
 function CardViewContent(props: CardViewContentProps) {
-    const { card, cardTypes, isSelected, primaryPath } = props
+    const { card, cardTypes, isSelected, primaryPath, rootPath } = props
     const { onOpenInFileMode } = props
     const { onDeleteCard, onTogglePolicy, onTitleChange } = props
     const theme = useTheme()
@@ -78,8 +81,10 @@ function CardViewContent(props: CardViewContentProps) {
     const [deleteCardPath, setDeleteCardPath] = useState<string | null>(null)
     const [titleDraft, setTitleDraft] = useState(card.header.title)
     const isBodyOpen = useSyncExternalStore(
-        subscribeCardBodyPopover,
-        () => cardBodyPopoverService.getSnapshot().cardPath === card.path,
+        subscribeCardPopups,
+        () => cardPopupService.getSnapshot().some((entry) => (
+            entry.kind === 'card-details' && entry.cardInternalId === card.header.internalId
+        )),
         () => false,
     )
     const accentColor = getCardTypeColor(cardTypes, card.header.id) ?? theme.palette.primary.main
@@ -105,10 +110,14 @@ function CardViewContent(props: CardViewContentProps) {
 
     const handleCardClick = useCallback((event: MouseEvent<HTMLElement>) => {
         if (isEditingTitle) return
+        if (!card.header.internalId) {
+            dialogService.error(new Error(`Missing card internal ID: ${card.path}`), { fallbackMessage: 'Card details could not be opened' })
+            return
+        }
 
-        cardBodyPopoverService.toggle(card.path, event.currentTarget)
+        cardPopupService.toggleCardDetails(card.header.internalId, card.path, event.currentTarget)
         telemetryService.trackEvent('navigation')
-    }, [card.path, isEditingTitle])
+    }, [card.header.internalId, card.path, isEditingTitle])
 
     const stopClick = (event: MouseEvent) => {
         event.stopPropagation()
@@ -142,8 +151,9 @@ function CardViewContent(props: CardViewContentProps) {
     const openBodyFromMenu = () => {
         try {
             if (!cardElement) throw new Error(`Missing card element: ${card.path}`)
+            if (!card.header.internalId) throw new Error(`Missing card internal ID: ${card.path}`)
             closeCardActions()
-            cardBodyPopoverService.toggle(card.path, cardElement)
+            cardPopupService.toggleCardDetails(card.header.internalId, card.path, cardElement)
             telemetryService.trackEvent('navigation')
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Card details could not be opened' })
@@ -256,11 +266,14 @@ function CardViewContent(props: CardViewContentProps) {
                         </IconButton>
                     </Tooltip>
                     <Box sx={{ flex: 1 }} />
-                    <CardWorktreeIndicator
-                        cardId={card.header.id}
-                        cardPath={card.path}
-                        primaryPath={primaryPath}
-                    />
+                    {card.header.internalId ? (
+                        <CardWorktreeIndicator
+                            cardId={card.header.id}
+                            cardInternalId={card.header.internalId}
+                            cardPath={card.path}
+                            primaryPath={primaryPath}
+                        />
+                    ) : null}
                 </Stack>
             </Box>
             <Menu
@@ -286,6 +299,7 @@ function CardViewContent(props: CardViewContentProps) {
                         policyKey={policyKey}
                     />
                 ))}
+                <CardPathMenuItems cardPath={card.path} onSelected={closeCardActions} rootPath={rootPath} />
                 <MenuItem onClick={openBodyFromMenu}>Open body</MenuItem>
                 <MenuItem onClick={openInFileModeFromMenu}>Open in file mode</MenuItem>
                 <MenuItem onClick={editTitleFromMenu}>Edit title</MenuItem>

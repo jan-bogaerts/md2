@@ -1,4 +1,5 @@
 {
+  "actionSettings": {},
   "conversations": [
     {
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
@@ -2848,10 +2849,9 @@
       ],
       "details": {
         "type": "agent",
-        "accessLevel": "workspace-write",
         "agent": "codex",
-        "approvalPolicy": "on-request",
         "model": "gpt-5.5",
+        "permissionMode": "ask-for-approval",
         "thinkingLevel": "none"
       },
       "runId": "action-758ddcde-a808-44db-bfa6-322c4f586184",
@@ -2873,10 +2873,9 @@
       ],
       "details": {
         "type": "agent",
-        "accessLevel": "workspace-write",
         "agent": "codex",
-        "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
+        "permissionMode": "ask-for-approval",
         "thinkingLevel": "none"
       },
       "runId": "action-70c7e930-9432-47f3-9d87-3c94d05df93c",
@@ -2927,10 +2926,9 @@
       ],
       "details": {
         "type": "agent",
-        "accessLevel": "workspace-write",
         "agent": "codex",
-        "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
+        "permissionMode": "ask-for-approval",
         "thinkingLevel": "medium"
       },
       "runId": "action-eb16327e-74a0-4dd9-84a2-3f2c755ae9b7",
@@ -2947,6 +2945,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "44397406c7a023009bebe5033eacccc701b7b719",
           "committedAt": "2026-08-07T10:06:22+02:00",
           "deletions": 34,
@@ -2955,8 +2954,7 @@
             "app/src/components/actions/conversation/action_conversation_chat.tsx"
           ],
           "filesChanged": 2,
-          "insertions": 44,
-          "branch": "dev_main"
+          "insertions": 44
         }
       ],
       "completedAt": "2026-08-07T10:06:22+02:00",
@@ -2968,5 +2966,5 @@
       "type": "system"
     }
   ],
-  "version": 2
+  "version": 4
 }

@@ -3,10 +3,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const {
-    LEGACY_ACTIVITY_VERSION,
     createActivityFile,
     findActivityConversation,
-    migrateActivityValue,
     parseActivityValue,
 } = require('../../../../shared/card_activity.mjs');
 const {
@@ -47,14 +45,13 @@ function resolveActivityPath(rootPath, projectFolder, origin) {
     };
 }
 
-async function readStoredActivity(filePath, origin) {
+async function readStoredActivity(filePath) {
     const unwritten = unwrittenActivityValues.get(filePath);
-    if (unwritten) return { legacy: false, value: unwritten };
-    if (!await pathExists(filePath)) return { legacy: false, value: null };
+    if (unwritten) return { value: unwritten };
+    if (!await pathExists(filePath)) return { value: null };
     const value = JSON.parse(await fs.promises.readFile(filePath, 'utf8'));
-    if (value.version !== LEGACY_ACTIVITY_VERSION) return { legacy: false, value };
 
-    return { legacy: true, value: migrateActivityValue(value, origin) };
+    return { value };
 }
 
 function activityValue(stored, origin) {
@@ -66,16 +63,7 @@ async function loadActivityValue(filePath, origin) {
 }
 
 async function readActivityFile(filePath, origin) {
-    const stored = await readStoredActivity(filePath, origin);
-    if (!stored.legacy) return activityValue(stored, origin);
-
-    return queueActivityUpdate(filePath, async () => {
-        const current = await readStoredActivity(filePath, origin);
-        const activity = activityValue(current, origin);
-        if (current.legacy) await writeActivityFile(filePath, activity);
-
-        return activity;
-    });
+    return activityValue(await readStoredActivity(filePath, origin), origin);
 }
 
 async function writeActivityFile(filePath, activity) {
@@ -225,6 +213,20 @@ async function updateActivityConversationViewed(project, reference, viewed) {
     });
 }
 
+async function updateCardActionSettings(project, projectFolder, cardInternalId, actionId, settings) {
+    if (typeof cardInternalId !== 'string' || cardInternalId.length === 0) throw new Error('Missing card action settings cardInternalId');
+    if (typeof actionId !== 'string' || actionId.length === 0) throw new Error('Missing card action settings actionId');
+    const origin = { cardInternalId, kind: 'card' };
+    const validationActivity = createActivityFile(origin);
+    validationActivity.actionSettings[actionId] = settings;
+    const validatedSettings = parseActivityValue(validationActivity, origin).actionSettings[actionId];
+
+    return updateActivity(project, projectFolder, origin, (activity) => ({
+        ...activity,
+        actionSettings: { ...activity.actionSettings, [actionId]: validatedSettings },
+    }));
+}
+
 async function loadActivityConversation(project, reference) {
     const rootPath = requireRootPath(project);
     await assertGitRoot(rootPath);
@@ -351,5 +353,6 @@ module.exports = {
     resolveActivityPath,
     upsertAndCommitActivityConversation,
     upsertActivityConversation,
+    updateCardActionSettings,
     updateActivityConversationViewed,
 };

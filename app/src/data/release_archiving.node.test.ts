@@ -28,6 +28,7 @@ function card(path: string, agentLogReferences: string[] = []): Card {
 describe('buildReleaseMoves', () => {
     const activityPath = 'design/activity/card__card-1.json'
     const createActivityContent = (conversationIds: string[] = [], cardInternalId = 'card-1') => JSON.stringify({
+        actionSettings: {},
         conversations: conversationIds.map((id) => ({
             cardInternalId,
             completedAt: '2026-08-05T12:01:00.000Z',
@@ -39,7 +40,7 @@ describe('buildReleaseMoves', () => {
         })),
         origin: { cardInternalId, kind: 'card' },
         records: [],
-        version: 2,
+        version: 4,
     })
 
     it('moves card assets referenced by archived cards', () => {
@@ -173,19 +174,26 @@ describe('buildReleaseMoves', () => {
         )).toThrow(`Missing referenced activity log: ${activityPath}`)
     })
 
-    it('rejects an activity log owned by another card', () => {
+    it('moves activity content without parsing or validating it', () => {
         const source = card('design/F-1-card.md')
-        const wrongActivity = createActivityContent([], 'card-2')
+        const activityContent = '{"origin":{"cardInternalId":"card-2"},"version":3}'
 
-        expect(() => buildReleaseMoves(
+        const moves = buildReleaseMoves(
             [{ content: '# Card', path: source.path }],
             [source],
             'design',
             'design/releases',
             'v1',
             [source.path, activityPath],
-            [{ content: wrongActivity, path: activityPath }],
-        )).toThrow('Activity log does not belong to released card')
+            [{ content: activityContent, path: activityPath }],
+        )
+
+        expect(moves[1]).toEqual({
+            content: activityContent,
+            fromPath: activityPath,
+            sha: undefined,
+            toPath: 'design/releases/v1/card__card-1.json',
+        })
     })
 
     it('moves an existing activity log when the card has no conversation references', () => {
@@ -205,17 +213,28 @@ describe('buildReleaseMoves', () => {
         expect(moves.map(({ fromPath }) => fromPath)).toEqual([source.path, activityPath])
     })
 
-    it('rejects a reference to a conversation missing from the activity log', () => {
+    it('rewrites references without validating conversations in the activity log', () => {
         const source = card('design/F-1-card.md', [`${activityPath}#conversation=conversation-1`])
+        const cardContent = [
+            '---',
+            'id: F-1',
+            'internalId: card-1',
+            'agents:',
+            `  - ${activityPath}#conversation=conversation-1`,
+            '---',
+            '# Card',
+        ].join('\n')
 
-        expect(() => buildReleaseMoves(
-            [{ content: '# Card', path: source.path }],
+        const moves = buildReleaseMoves(
+            [{ content: cardContent, path: source.path }],
             [source],
             'design',
             'design/releases',
             'v1',
             [source.path, activityPath],
             [{ content: createActivityContent(), path: activityPath }],
-        )).toThrow('Referenced conversation is missing from activity log')
+        )
+
+        expect(moves[0].content).toContain('design/releases/v1/card__card-1.json#conversation=conversation-1')
     })
 })

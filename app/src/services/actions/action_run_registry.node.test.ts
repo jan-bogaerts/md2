@@ -220,7 +220,7 @@ describe('ActionRunRegistry', () => {
         service.stop()
     })
 
-    it('upserts live agent event by provider item id without changing its sequence', () => {
+    it('upserts live agent event by provider item id without changing its sequence or duplicating file metrics', () => {
         const { bridge, emit } = bridgeWithEvents()
         setActionBridgeOverride(bridge)
         const service = new ActionRunRegistry()
@@ -246,15 +246,14 @@ describe('ActionRunRegistry', () => {
             actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
             update: {
                 event: {
-                    command: 'npm test',
-                    content: '',
+                    content: 'update: app/main.ts',
                     id: 'activity-started',
                     kind: 'event',
-                    providerItemId: 'command-1',
+                    providerItemId: 'file-1',
                     sequence: 3,
                     status: 'inProgress',
                     timestamp: 'now',
-                    type: 'commandExecution',
+                    type: 'fileChange',
                 },
                 kind: 'agentEvent',
             },
@@ -275,15 +274,15 @@ describe('ActionRunRegistry', () => {
             actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
             update: {
                 event: {
-                    command: 'npm test',
-                    content: 'passed',
+                    content: 'update: app/main.ts',
+                    deletions: 2,
                     id: 'activity-completed',
+                    insertions: 4,
                     kind: 'event',
-                    output: 'passed',
-                    providerItemId: 'command-1',
+                    providerItemId: 'file-1',
                     status: 'completed',
                     timestamp: 'later',
-                    type: 'commandExecution',
+                    type: 'fileChange',
                 },
                 kind: 'agentEvent',
             },
@@ -297,7 +296,10 @@ describe('ActionRunRegistry', () => {
             entries: [
                 userMessage,
                 expect.objectContaining({ content: 'Testing passed', id: 'assistant-1', sequence: 2 }),
-                expect.objectContaining({ id: 'activity-completed', output: 'passed', providerItemId: 'command-1', sequence: 3, status: 'completed' }),
+                expect.objectContaining({
+                    deletions: 2, id: 'activity-completed', insertions: 4,
+                    providerItemId: 'file-1', sequence: 3, status: 'completed',
+                }),
                 expect.objectContaining({ content: 'Done', id: 'assistant-2', sequence: 4 }),
             ],
         })

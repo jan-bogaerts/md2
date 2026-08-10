@@ -10,22 +10,30 @@ interface PopperSize {
     width?: number
 }
 
+interface MinimumPopperSize {
+    height: number
+    width: number
+}
+
 interface PopperPosition {
     left: number
     top: number
 }
 
-interface ResizablePopperProps {
+interface ResizablePopperBaseProps {
     anchorElement: HTMLElement | null
     children: ReactNode
+    constrainSizeToViewport?: boolean
     draggable?: boolean
+    focusOnMount?: boolean
     fullHeight?: boolean
     initialSize: PopperSize
     labelId: string
+    minimumSize?: MinimumPopperSize
     onActivate?: () => void
-    onClose: () => void
     open: boolean
     paperSx?: SxProps<Theme>
+    persistSizeOnResizeEndOnly?: boolean
     placement?: PopperPlacementType
     resizeCorner?: ResizeCorner
     resizeFromAllSides?: boolean
@@ -33,6 +41,14 @@ interface ResizablePopperProps {
     stackPosition?: number
     storageKey?: string
 }
+
+type ResizablePopperProps = ResizablePopperBaseProps & ({
+    closeOnEscape: false
+    onClose?: never
+} | {
+    closeOnEscape?: true
+    onClose: () => void
+})
 
 // Controls that must keep their own click even when they sit inside a drag handle.
 // MUI selects render a div[role="combobox"], so native tag names alone are not enough.
@@ -58,7 +74,24 @@ const VIEWPORT_MODIFIERS: NonNullable<PopperProps['modifiers']> = [
 const FULL_HEIGHT_VIEWPORT_MODIFIERS: NonNullable<PopperProps['modifiers']> = [PREVENT_VIEWPORT_OVERFLOW_MODIFIER]
 const VIEWPORT_POPPER_OPTIONS: NonNullable<PopperProps['popperOptions']> = { strategy: 'fixed' }
 
-function loadSize(initialSize: PopperSize, storageKey?: string): PopperSize {
+function clampSizeToViewport(size: PopperSize, minimumSize: MinimumPopperSize) {
+    const maximumHeight = Math.max(0, window.innerHeight - VIEWPORT_MARGIN * 2)
+    const maximumWidth = Math.max(0, window.innerWidth - VIEWPORT_MARGIN * 2)
+    const minimumHeight = Math.min(minimumSize.height, maximumHeight)
+    const minimumWidth = Math.min(minimumSize.width, maximumWidth)
+
+    return {
+        height: Math.min(Math.max(size.height as number, minimumHeight), maximumHeight),
+        width: Math.min(Math.max(size.width as number, minimumWidth), maximumWidth),
+    }
+}
+
+function loadSize(
+    initialSize: PopperSize,
+    minimumSize: MinimumPopperSize,
+    constrainSizeToViewport: boolean,
+    storageKey?: string,
+): PopperSize {
     if (!storageKey) return initialSize
 
     const storedValue = window.localStorage.getItem(storageKey)
@@ -68,10 +101,12 @@ function loadSize(initialSize: PopperSize, storageKey?: string): PopperSize {
         const storedSize = JSON.parse(storedValue) as Partial<PopperSize>
         if (!Number.isFinite(storedSize.height) || !Number.isFinite(storedSize.width)) return initialSize
 
-        return {
-            height: Math.max(MIN_HEIGHT, storedSize.height as number),
-            width: Math.max(MIN_WIDTH, storedSize.width as number),
+        const size = {
+            height: Math.max(minimumSize.height, storedSize.height as number),
+            width: Math.max(minimumSize.width, storedSize.width as number),
         }
+
+        return constrainSizeToViewport ? clampSizeToViewport(size, minimumSize) : size
     } catch {
         return initialSize
     }
@@ -125,14 +160,19 @@ export function ResizablePopper(props: ResizablePopperProps) {
     const {
         anchorElement,
         children,
+        closeOnEscape = true,
+        constrainSizeToViewport = false,
         draggable = false,
+        focusOnMount: focusOnMountProp,
         fullHeight = false,
         initialSize,
         labelId,
+        minimumSize = { height: MIN_HEIGHT, width: MIN_WIDTH },
         onActivate,
         onClose,
         open,
         paperSx,
+        persistSizeOnResizeEndOnly = false,
         placement = 'bottom-start',
         resizeCorner = 'lower-right',
         resizeFromAllSides = false,
@@ -140,11 +180,12 @@ export function ResizablePopper(props: ResizablePopperProps) {
         stackPosition,
         storageKey,
     } = props
-    const [size, setSize] = useState(() => loadSize(initialSize, storageKey))
+    const focusOnMount = focusOnMountProp ?? stackPosition !== undefined
+    const [size, setSize] = useState(() => loadSize(initialSize, minimumSize, constrainSizeToViewport, storageKey))
     const [position, setPosition] = useState<PopperPosition | null>(() => draggable && !anchorElement ? centeredPosition(size) : null)
     const [detachedLeft, setDetachedLeft] = useState<number | null>(null)
     const anchoredLeftRef = useRef<number | null>(null)
-    const focusOnMountRef = useRef(stackPosition !== undefined)
+    const focusOnMountRef = useRef(focusOnMount)
     const paperRef = useRef<HTMLDivElement | null>(null)
     const resizeRef = useRef<AbortController | null>(null)
     const theme = useTheme()
@@ -165,10 +206,10 @@ export function ResizablePopper(props: ResizablePopperProps) {
         element.focus()
     }, [])
     useEffect(() => {
-        if (!storageKey) return
+        if (!storageKey || persistSizeOnResizeEndOnly) return
 
         window.localStorage.setItem(storageKey, JSON.stringify(size))
-    }, [size, storageKey])
+    }, [persistSizeOnResizeEndOnly, size, storageKey])
     useLayoutEffect(() => {
         if (!fullHeight || !paperRef.current) return
 
@@ -202,10 +243,10 @@ export function ResizablePopper(props: ResizablePopperProps) {
     }, [draggable, fullHeight, size])
 
     const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
-        if (event.key !== 'Escape') return
+        if (event.key !== 'Escape' || !closeOnEscape) return
 
         resizeRef.current?.abort()
-        onClose()
+        onClose?.()
     }
 
     const handlePaperClickCapture = () => {
@@ -266,6 +307,7 @@ export function ResizablePopper(props: ResizablePopperProps) {
                 x: event.clientX,
                 y: event.clientY,
             }
+            let completedSize = { height: start.height, width: start.width }
             resizeRef.current = controller
 
             window.addEventListener('pointermove', (move: PointerEvent) => {
@@ -276,9 +318,21 @@ export function ResizablePopper(props: ResizablePopperProps) {
                 const resizesRight = activeDirection.includes('right')
                 const resizesTop = activeDirection.includes('top')
                 const resizesBottom = activeDirection.includes('bottom')
-                const width = Math.max(MIN_WIDTH, start.width + (resizesLeft ? -horizontalDelta : resizesRight ? horizontalDelta : 0))
-                const height = Math.max(MIN_HEIGHT, start.height + (resizesTop ? -verticalDelta : resizesBottom ? verticalDelta : 0))
+                const nextSize = {
+                    height: Math.max(
+                        minimumSize.height,
+                        start.height + (resizesTop ? -verticalDelta : resizesBottom ? verticalDelta : 0),
+                    ),
+                    width: Math.max(
+                        minimumSize.width,
+                        start.width + (resizesLeft ? -horizontalDelta : resizesRight ? horizontalDelta : 0),
+                    ),
+                }
+                const { height, width } = constrainSizeToViewport
+                    ? clampSizeToViewport(nextSize, minimumSize)
+                    : nextSize
 
+                completedSize = { height, width }
                 setSize({ height, width })
                 if (draggable) {
                     const left = resizesLeft ? start.left + start.width - width : start.left
@@ -286,7 +340,12 @@ export function ResizablePopper(props: ResizablePopperProps) {
                     setPosition({ left: clampDetachedLeft(left, width), top: clampDetachedTop(top, height) })
                 }
             }, { signal: controller.signal })
-            window.addEventListener('pointerup', () => controller.abort(), { signal: controller.signal })
+            window.addEventListener('pointerup', () => {
+                if (storageKey && persistSizeOnResizeEndOnly) {
+                    window.localStorage.setItem(storageKey, JSON.stringify(completedSize))
+                }
+                controller.abort()
+            }, { signal: controller.signal })
         } catch (error) {
             resizeRef.current?.abort()
             dialogService.error(error, { fallbackMessage: 'Popup resize could not be started' })

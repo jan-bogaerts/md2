@@ -1,6 +1,6 @@
 import type { ActionContext } from './action_context'
 import type { AgentConversation, AgentConversationEventEntry, AgentConversationMessageEntry } from './data_types'
-import type { ThinkingLevel } from './agent_profiles'
+import type { PermissionMode, ThinkingLevel } from './agent_profiles'
 import type { ActionAutoFinish, ActionType } from './action_types'
 
 export type ActionRunTerminalStatus = 'cancelled' | 'completed' | 'failed' | 'okButNotAfter'
@@ -8,12 +8,11 @@ export type ActionRunStatus = ActionRunTerminalStatus | 'queued' | 'running' | '
 export type ActionRunPhase = 'after' | 'before' | 'main' | 'on'
 
 export interface ActionRunInput {
-    accessLevel?: string
     agent?: string
-    approvalPolicy?: string
     continueFrom?: string
     extraPrompt?: string
     model?: string
+    permissionMode?: PermissionMode
     prompt?: string
     thinkingLevel?: ThinkingLevel
 }
@@ -173,8 +172,7 @@ export type ActionRunEvent =
         conversationId?: string
         runWorktree?: number | null
         message?: string | null
-        accessLevel?: string
-        approvalPolicy?: string
+        permissionMode?: PermissionMode
         reference?: string
         status: ActionRunStatus
         thinkingLevel?: ThinkingLevel
@@ -191,13 +189,12 @@ export type ActionRunEvent =
     }
 
 export interface ActionRunLogEntry {
-    accessLevel?: string
     actionId: string
     actionName: string
-    approvalPolicy?: string
     command: string | null
     message: string
     phase: ActionRunPhase
+    permissionMode?: PermissionMode
     status: ActionRunStatus
     stderr: string
     stdout: string

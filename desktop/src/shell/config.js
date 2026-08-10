@@ -1,9 +1,9 @@
 const DEFAULT_DESKTOP_AGENT = 'codex';
-const DEFAULT_DESKTOP_ACCESS_LEVEL = 'workspace-write';
-const DEFAULT_DESKTOP_APPROVAL_POLICY = 'on-request';
+const DEFAULT_DESKTOP_PERMISSION_MODE = 'ask-for-approval';
 const DEFAULT_DESKTOP_MODEL = '';
 const DEFAULT_CODEX_SEARCH_ENABLED = true;
 const DEFAULT_EDITOR_COMMAND = 'code -g "{{file}}:{{line}}"';
+const DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND = '';
 const DESKTOP_CONFIG_STORE_KEY = 'desktopConfig';
 const { BUILTIN_AGENT_PROFILES, normalizeAgentProfiles } = require('../actions/agent/agent_profiles.mjs');
 
@@ -41,19 +41,25 @@ function resolveDesktopConfig(env = process.env) {
         : null;
 
     return {
-        accessLevel: DEFAULT_DESKTOP_ACCESS_LEVEL,
         agent: DEFAULT_DESKTOP_AGENT,
         agentProfiles,
-        approvalPolicy: DEFAULT_DESKTOP_APPROVAL_POLICY,
         codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
         editorCommand: DEFAULT_EDITOR_COMMAND,
+        mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
         ...(bridgeAllowedOrigins ? { bridgeAllowedOrigins } : {}),
         model: DEFAULT_DESKTOP_MODEL,
+        permissionMode: DEFAULT_DESKTOP_PERMISSION_MODE,
     };
 }
 
 function readStoredDesktopConfig(store) {
     return store.get(DESKTOP_CONFIG_STORE_KEY) || {};
+}
+
+function removeObsoletePermissionFields(value) {
+    return Object.fromEntries(Object.entries(value).filter(([fieldName]) => (
+        fieldName !== 'accessLevel' && fieldName !== 'approvalPolicy'
+    )));
 }
 
 function applyDefaultAgentProfileModels(agentProfiles) {
@@ -72,38 +78,15 @@ function applyDefaultAgentProfileModels(agentProfiles) {
     });
 }
 
-function applyDefaultAgentProfileCapabilities(agentProfiles) {
-    if (!Array.isArray(agentProfiles)) return agentProfiles;
-
-    return agentProfiles.map((profile) => {
-        if (!profile || typeof profile !== 'object' || Array.isArray(profile)) return profile;
-        const builtInProfile = BUILTIN_AGENT_PROFILES.find(({ name }) => name === profile.name);
-        if (!builtInProfile) return profile;
-
-        return {
-            ...profile,
-            ...(builtInProfile.accessLevels ? {
-                accessLevelArgument: builtInProfile.accessLevelArgument,
-                accessLevels: builtInProfile.accessLevels,
-                defaultAccessLevel: builtInProfile.defaultAccessLevel,
-            } : {}),
-            ...(builtInProfile.approvalPolicies ? {
-                approvalPolicies: builtInProfile.approvalPolicies,
-                approvalPolicyArgument: builtInProfile.approvalPolicyArgument,
-                defaultApprovalPolicy: builtInProfile.defaultApprovalPolicy,
-            } : {}),
-        };
-    });
-}
-
 function readDesktopConfig(store, env = process.env) {
     const stored = readStoredDesktopConfig(store);
-    const resolved = { ...resolveDesktopConfig(env), ...stored };
+    const storedValues = removeObsoletePermissionFields(stored);
+    if (Object.keys(storedValues).length !== Object.keys(stored).length) {
+        store.set(DESKTOP_CONFIG_STORE_KEY, storedValues);
+    }
+    const resolved = { ...resolveDesktopConfig(env), ...storedValues };
     const profilesWithDefaultModels = applyDefaultAgentProfileModels(resolved.agentProfiles);
-    const profilesWithDefaults = stored.accessLevel === undefined && stored.approvalPolicy === undefined
-        ? applyDefaultAgentProfileCapabilities(profilesWithDefaultModels)
-        : profilesWithDefaultModels;
-    const agentProfiles = normalizeAgentProfiles(profilesWithDefaults);
+    const agentProfiles = normalizeAgentProfiles(profilesWithDefaultModels);
     if (env.MD2_AGENT) {
         const defaultProfile = agentProfiles.find((profile) => profile.name === DEFAULT_DESKTOP_AGENT);
         if (defaultProfile) defaultProfile.command = [env.MD2_AGENT];
@@ -113,19 +96,20 @@ function readDesktopConfig(store, env = process.env) {
 }
 
 function writeDesktopConfig(store, values) {
-    const next = { ...readStoredDesktopConfig(store), ...values };
+    const storedValues = removeObsoletePermissionFields(readStoredDesktopConfig(store));
+    const next = { ...storedValues, ...values };
     store.set(DESKTOP_CONFIG_STORE_KEY, next);
 
     return next;
 }
 
 module.exports = {
-    DEFAULT_DESKTOP_ACCESS_LEVEL,
     DEFAULT_DESKTOP_AGENT,
-    DEFAULT_DESKTOP_APPROVAL_POLICY,
+    DEFAULT_DESKTOP_PERMISSION_MODE,
     DEFAULT_DESKTOP_MODEL,
     DEFAULT_CODEX_SEARCH_ENABLED,
     DEFAULT_EDITOR_COMMAND,
+    DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
     DESKTOP_CONFIG_STORE_KEY,
     readDesktopConfig,
     resolveBridgeAllowedOrigins,

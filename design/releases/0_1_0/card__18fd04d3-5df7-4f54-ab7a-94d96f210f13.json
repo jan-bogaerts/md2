@@ -1,4 +1,5 @@
 {
+  "actionSettings": {},
   "conversations": [
     {
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
@@ -1410,10 +1411,9 @@
       ],
       "details": {
         "type": "agent",
-        "accessLevel": "workspace-write",
         "agent": "codex",
-        "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
+        "permissionMode": "ask-for-approval",
         "thinkingLevel": "none"
       },
       "runId": "action-3b4b348b-4974-4989-a095-e2c9a51c9be2",
@@ -1435,10 +1435,9 @@
       ],
       "details": {
         "type": "agent",
-        "accessLevel": "workspace-write",
         "agent": "codex",
-        "approvalPolicy": "on-request",
         "model": "gpt-5.5",
+        "permissionMode": "ask-for-approval",
         "thinkingLevel": "none"
       },
       "runId": "action-0ea5bfe2-12af-4f48-8ca1-1630d83268ba",
@@ -1460,10 +1459,9 @@
       ],
       "details": {
         "type": "agent",
-        "accessLevel": "workspace-write",
         "agent": "codex",
-        "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
+        "permissionMode": "ask-for-approval",
         "thinkingLevel": "medium"
       },
       "runId": "action-1a0596b4-c4c0-447b-ba68-7ac328ab17e5",
@@ -1485,10 +1483,9 @@
       ],
       "details": {
         "type": "agent",
-        "accessLevel": "workspace-write",
         "agent": "codex",
-        "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
+        "permissionMode": "ask-for-approval",
         "thinkingLevel": "medium"
       },
       "runId": "action-1529130b-40d7-4672-ab69-6f0fda815235",
@@ -1505,6 +1502,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "d0c0528f843abc3d25d3d6c04449169e853fa1bb",
           "committedAt": "2026-08-06T14:40:27+02:00",
           "deletions": 1,
@@ -1513,8 +1511,7 @@
             "app/src/services/release_operations.ts"
           ],
           "filesChanged": 2,
-          "insertions": 64,
-          "branch": "dev_main"
+          "insertions": 64
         }
       ],
       "completedAt": "2026-08-06T14:40:27+02:00",
@@ -1526,5 +1523,5 @@
       "type": "system"
     }
   ],
-  "version": 2
+  "version": 4
 }

@@ -85,6 +85,13 @@ describe('preload desktop agent bridge', () => {
         expect(exposed.md2Data.discardWorktreeChanges).toEqual(expect.any(Function));
         expect(exposed.md2Data.deleteLocalBranch).toEqual(expect.any(Function));
         expect(exposed.md2Data.integrateWorktree).toEqual(expect.any(Function));
+        expect(exposed.md2Data.getMergeConflictSession).toEqual(expect.any(Function));
+        expect(exposed.md2Data.launchMergeConflictResolver).toEqual(expect.any(Function));
+        expect(exposed.md2Data.markMergeConflictResolved).toEqual(expect.any(Function));
+        expect(exposed.md2Data.continueMergeConflict).toEqual(expect.any(Function));
+        expect(exposed.md2Data.abortMergeConflict).toEqual(expect.any(Function));
+        expect(exposed.md2Data.rescanMergeConflict).toEqual(expect.any(Function));
+        expect(exposed.md2Data.onMergeConflictSessionChanged).toEqual(expect.any(Function));
         expect(exposed.md2Data.parkWorktree).toEqual(expect.any(Function));
         expect(exposed.md2Data.pullWorktree).toEqual(expect.any(Function));
         expect(exposed.md2Data.pull).toEqual(expect.any(Function));
@@ -98,6 +105,7 @@ describe('preload desktop agent bridge', () => {
         expect(exposed.md2Actions.answerActionQuestion).toEqual(expect.any(Function));
         expect(exposed.md2Actions.closeWaitingActionConversation).toEqual(expect.any(Function));
         expect(exposed.md2Actions.updateActionConversationViewed).toEqual(expect.any(Function));
+        expect(exposed.md2Actions.updateCardActionSettings).toEqual(expect.any(Function));
         expect(exposed.md2Actions.finishActionRun).toEqual(expect.any(Function));
         expect(exposed.md2Actions.generateWorktreeDiff).toEqual(expect.any(Function));
         expect(exposed.md2Actions.restartActionRun).toEqual(expect.any(Function));
