@@ -12,7 +12,6 @@ agents:
 policy:
 after: a529defa-f2ad-4307-923b-856a8ce80243
 branch: b_105_mobile_no_update_worktree_indicator
-worktree: 1
 ---
 When connected through websockets, when a card is assigned to a worktree and the worktree is updated, the component does not get notified when worktree is up to date
 
