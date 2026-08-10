@@ -1,0 +1,12 @@
+{
+  "id": "6e05571a-e93b-4e56-be1a-520efa28fd3f",
+  "label": "merge",
+  "description": "Describe this action.",
+  "type": "agent",
+  "phrases": [],
+  "prompt": "we have a merge conflict. can you resolve it?",
+  "streaming": true,
+  "appliesTo": {
+    "kind": "merge-conflict"
+  }
+}
