@@ -606,16 +606,16 @@
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-3f3e6711-8c8f-4202-af94-ee715c49c2bb-event-43",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_091a0cf8f9f9a5a3016a79b115ee348191867232fd6f3ceb84",
           "sequence": 43,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-10T11:08:08.476Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "agent": "codex",
@@ -628,16 +628,16 @@
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-3f3e6711-8c8f-4202-af94-ee715c49c2bb-event-45",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_091a0cf8f9f9a5a3016a79b11a2ec48191a0ee718ea311b855",
           "sequence": 45,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-10T11:08:12.899Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "agent": "codex",
@@ -701,6 +701,30 @@
       "startedAt": "2026-08-10T09:16:19.999Z",
       "status": "completed",
       "rootConversationId": "agent-0baac265-01c1-46fa-b6e8-b3c6b6902ecc"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-08-10T11:22:58.461Z",
+      "conversationIds": [
+        "agent-0baac265-01c1-46fa-b6e8-b3c6b6902ecc"
+      ],
+      "details": {
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-57e32bab-d57c-4e4b-82e1-92eebf6d018e",
+      "origin": {
+        "cardInternalId": "a75df9b2-d7eb-48df-ba8a-398fac272f15",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-0baac265-01c1-46fa-b6e8-b3c6b6902ecc",
+      "startedAt": "2026-08-10T11:07:59.904Z",
+      "status": "cancelled"
     }
   ],
   "version": 4
