@@ -1,3 +1,7 @@
+---
+internalId: a3b5f476-2249-4562-99ad-b1aa21da8699
+---
+
 # MD² 0.0.4
 
 - Respond to agent approval requests directly in conversations.
