@@ -4390,11 +4390,11 @@
         "agent-402bae27-1709-4c54-80c9-0c79efa44ad5"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-9e6a5d54-b766-4a97-a4be-c5b1521fb1cc",
       "origin": {
@@ -4403,9 +4403,44 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-402bae27-1709-4c54-80c9-0c79efa44ad5",
       "startedAt": "2026-08-10T12:38:03.499Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-402bae27-1709-4c54-80c9-0c79efa44ad5"
+    },
+    {
+      "commits": [
+        {
+          "commit": "d0bbc38e15d6b1c02221cadb20784f9e9e2531e9",
+          "committedAt": "2026-08-10T16:36:21+02:00",
+          "deletions": 399,
+          "filePaths": [
+            "app/src/services/agents/activity_repair.ts",
+            "app/src/services/agents/agent_integration.ts",
+            "app/src/services/data/card_operations.ts",
+            "app/src/services/data/data_service.ts",
+            "app/src/services/project/project_loading.test.ts",
+            "desktop/src/actions/action/action_files.test.mjs",
+            "desktop/src/actions/activity/activity_files.js",
+            "desktop/src/actions/activity/activity_files.test.mjs",
+            "desktop/src/actions/activity/activity_paths.test.mjs",
+            "desktop/src/actions/activity/card_activity.test.mjs",
+            "shared/activity_paths.d.mts",
+            "shared/activity_paths.mjs",
+            "shared/card_activity.d.mts",
+            "shared/card_activity.mjs"
+          ],
+          "filesChanged": 14,
+          "insertions": 668,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-10T16:36:21+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "a75df9b2-d7eb-48df-ba8a-398fac272f15",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
