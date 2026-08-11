@@ -17,6 +17,7 @@ const {
 const { AgentExecutableResolver } = require('./agent_executable_availability');
 const { createAgentEnvironment } = require('./agent_environment');
 const { diagnoseCodexCacheError, isCodexCacheError } = require('./agent_codex_cache_diagnostic');
+const { logAgentEvent } = require('./agent_file_logger');
 const agentInteractions = require('./agent_run_interactions');
 const {
     attachRunProtocol,
@@ -121,7 +122,7 @@ class AgentRunnerService {
             stdio: ['pipe', 'pipe', 'pipe'],
             // windowsHide: true,
         });
-        console.log('[agent:start]', {
+        logAgentEvent('[agent:start]', {
             arguments: configuredArguments,
             cwd: rootPath,
             actionRunId: request.actionRunId ?? null,
@@ -554,7 +555,7 @@ class AgentRunnerService {
                 && !succeeded
                 && !run.cancelled
                 && !run.suspended;
-            console.log('[agent:complete]', {
+            logAgentEvent('[agent:complete]', {
                 completedAt,
                 durationMs: Date.parse(completedAt) - Date.parse(run.startedAt),
                 actionRunId: run.request.actionRunId ?? null,

@@ -3,7 +3,7 @@ author:
 id: F_169
 internalId: d7bd3d2f-ec5c-4025-879a-5a715e2b4ffc
 title: Send btn Small screen action popup
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
