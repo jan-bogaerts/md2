@@ -9,4 +9,4 @@ affects:
 agents:
 policy:
 ---
-
+App modifies activity log. Backend somehow gets confused, thinks an older version is newer and reverts to the older version.
