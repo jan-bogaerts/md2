@@ -1,5 +1,6 @@
 const { app, BrowserWindow, Menu, dialog, ipcMain, nativeTheme, shell } = require('electron');
 const { existsSync } = require('node:fs');
+const https = require('node:https');
 const path = require('node:path');
 
 const desktopEnvironmentPath = app.isPackaged
@@ -49,6 +50,7 @@ const {
     REMOTE_CONTROL_STOP_CHANNEL,
     THEME_SET_MODE_CHANNEL,
 } = require('./src/shell/ipc_channels');
+const { checkForUpdate, registerUpdateDownload } = require('./src/shell/update_service');
 
 const QUIT_FLUSH_TIMEOUT_MS = 5000;
 const QUIT_WATCHDOG_TIMEOUT_MS = 10000;
@@ -264,6 +266,8 @@ function createWindow() {
     if (!app.isPackaged) {
         window.webContents.openDevTools();
     }
+
+    return window;
 }
 
 async function stopAndQuit() {
@@ -338,7 +342,10 @@ app.whenReady().then(async () => {
     registerRemarkableBridge();
     registerRemoteControlBridge();
     registerThemeBridge();
+    const getPrimaryWindow = () => BrowserWindow.getAllWindows()[0] ?? null;
+    registerUpdateDownload({ app, getWindow: getPrimaryWindow, https, ipcMain, shell });
     createWindow();
+    void checkForUpdate({ app, getWindow: getPrimaryWindow, https });
 
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) {

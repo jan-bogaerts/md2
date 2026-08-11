@@ -66,7 +66,7 @@ describe('preload desktop agent bridge', () => {
     it('exposes only the named desktop bridges through contextBridge', () => {
         const { electron, exposed, window } = createPreloadHarness();
 
-        expect(electron.contextBridge.exposeInMainWorld).toHaveBeenCalledTimes(8);
+        expect(electron.contextBridge.exposeInMainWorld).toHaveBeenCalledTimes(9);
         expect(Object.keys(exposed).sort()).toEqual([
             'md2Actions',
             'md2CodexRuntime',
@@ -76,6 +76,7 @@ describe('preload desktop agent bridge', () => {
             'md2Remarkable',
             'md2RemoteControl',
             'md2Theme',
+            'md2Updates',
         ]);
         expect(window.require).toBeUndefined();
         expect(exposed.md2Data.openProjectFolder).toEqual(expect.any(Function));
@@ -116,6 +117,24 @@ describe('preload desktop agent bridge', () => {
         expect(exposed.md2RemoteControl.onStatusChange).toEqual(expect.any(Function));
         expect(exposed.md2CodexRuntime.getCodexRateLimits).toEqual(expect.any(Function));
         expect(exposed.md2CodexRuntime.onCodexRateLimits).toEqual(expect.any(Function));
+        expect(exposed.md2Updates.onUpdateAvailable).toEqual(expect.any(Function));
+        expect(exposed.md2Updates.downloadUpdate).toEqual(expect.any(Function));
+        expect(exposed.md2Updates.onDownloadProgress).toEqual(expect.any(Function));
+    });
+
+    it('wraps update-available notifications without exposing ipcRenderer', () => {
+        const { electron, exposed } = createPreloadHarness();
+        const callback = vi.fn();
+        const unsubscribe = exposed.md2Updates.onUpdateAvailable(callback);
+        const listenerCall = electron.ipcRenderer.on.mock.calls.find(([channel]) => channel === 'md2-update:available');
+        const listener = listenerCall[1];
+
+        listener({ sender: 'internal' }, { downloadUrl: 'https://example.test/md2.exe', version: '0.3.0' });
+        unsubscribe();
+
+        expect(callback).toHaveBeenCalledWith({ downloadUrl: 'https://example.test/md2.exe', version: '0.3.0' });
+        expect(electron.ipcRenderer.removeListener).toHaveBeenCalledWith('md2-update:available', listener);
+        expect(exposed.md2Updates.ipcRenderer).toBeUndefined();
     });
 
     it('subscribes and unsubscribes worktree state through validated IPC channels', () => {

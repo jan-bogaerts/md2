@@ -14,6 +14,9 @@ const REMOTE_CONTROL_START_CHANNEL = 'md2-remote-control:start';
 const REMOTE_CONTROL_STATUS_CHANNEL = 'md2-remote-control:status';
 const REMOTE_CONTROL_STOP_CHANNEL = 'md2-remote-control:stop';
 const THEME_SET_MODE_CHANNEL = 'md2-theme:set-mode';
+const UPDATE_AVAILABLE_CHANNEL = 'md2-update:available';
+const UPDATE_DOWNLOAD_CHANNEL = 'md2-update:download';
+const UPDATE_PROGRESS_CHANNEL = 'md2-update:progress';
 
 module.exports = {
     CONFIG_GET_DESKTOP_CHANNEL,
@@ -32,4 +35,7 @@ module.exports = {
     REMOTE_CONTROL_STATUS_CHANNEL,
     REMOTE_CONTROL_STOP_CHANNEL,
     THEME_SET_MODE_CHANNEL,
+    UPDATE_AVAILABLE_CHANNEL,
+    UPDATE_DOWNLOAD_CHANNEL,
+    UPDATE_PROGRESS_CHANNEL,
 };
