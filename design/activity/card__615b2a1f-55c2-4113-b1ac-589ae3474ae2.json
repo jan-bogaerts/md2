@@ -1865,11 +1865,11 @@
         "agent-e09ca699-20a7-4d8a-a3ab-437f64c06105"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-8b02ed86-c7b1-4b63-99d2-11998d36d03a",
       "origin": {
@@ -1878,9 +1878,40 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-e09ca699-20a7-4d8a-a3ab-437f64c06105",
       "startedAt": "2026-08-10T18:08:10.338Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-e09ca699-20a7-4d8a-a3ab-437f64c06105"
+    },
+    {
+      "commits": [
+        {
+          "commit": "8eef7ca6c0c8c3648c04e0914064e6f0459c3a29",
+          "committedAt": "2026-08-11T16:52:59+02:00",
+          "deletions": 1,
+          "filePaths": [
+            "app/src/app.tsx",
+            "app/src/components/shell/update_notification.test.tsx",
+            "app/src/components/shell/update_notification.tsx",
+            "app/src/data/electron_update_bridge.ts",
+            "desktop/main.js",
+            "desktop/src/shell/ipc_channels.js",
+            "desktop/src/shell/preload.js",
+            "desktop/src/shell/preload.test.mjs",
+            "desktop/src/shell/update_service.js",
+            "desktop/src/shell/update_service.test.mjs"
+          ],
+          "filesChanged": 10,
+          "insertions": 730,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-11T16:52:59+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "615b2a1f-55c2-4113-b1ac-589ae3474ae2",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
