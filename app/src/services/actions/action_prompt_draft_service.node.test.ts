@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge'
+import { RemoteControlConnectionError } from '../data/remote_control_storage_service'
 import { ActionPromptDraftService, type ActionPromptRunBinding } from './action_prompt_draft_service'
 
 const context = { cardInternalId: 'card-1', file: 'design/F-1.md', kind: 'card' as const }
@@ -80,6 +81,35 @@ describe('ActionPromptDraftService', () => {
 
         expect(draft.getSnapshot()).toBe('User draft')
         expect(draft.getEditorSnapshot().preparationStatus).toBe('ready')
+    })
+
+    it('keeps connection-loss preparation loading and retries after readiness returns', async () => {
+        const service = new ActionPromptDraftService()
+        const draft = service.getDraft('review', context, null, { prepare: true })
+
+        await draft.prepare(async () => {
+            throw new RemoteControlConnectionError('connection closed')
+        })
+        expect(draft.getEditorSnapshot().preparationStatus).toBe('loading')
+
+        await draft.prepare(async () => 'Prepared after reconnect')
+        expect(draft.getSnapshot()).toBe('Prepared after reconnect')
+        expect(draft.getEditorSnapshot().preparationStatus).toBe('ready')
+    })
+
+    it('does not retry connection-loss preparation after user edits', async () => {
+        const service = new ActionPromptDraftService()
+        const draft = service.getDraft('review', context, null, { prepare: true })
+        await draft.prepare(async () => {
+            throw new RemoteControlConnectionError('connection closed')
+        })
+        draft.edit('User draft')
+        const prepare = vi.fn(async () => 'Prepared after reconnect')
+
+        await draft.prepare(prepare)
+
+        expect(prepare).not.toHaveBeenCalled()
+        expect(draft.getSnapshot()).toBe('User draft')
     })
 
     it('serializes remote writes with increasing revisions', async () => {

@@ -131,6 +131,17 @@ interface MergeConflictSessionChangedPayload {
 const SOCKET_OPEN_STATE = 1
 const WORKTREES_CHANGED_EVENT = 'worktreesChanged'
 
+export class RemoteControlConnectionError extends Error {
+    constructor(message: string) {
+        super(message)
+        this.name = 'RemoteControlConnectionError'
+    }
+}
+
+export function isRemoteControlConnectionError(error: unknown): error is RemoteControlConnectionError {
+    return error instanceof RemoteControlConnectionError
+}
+
 function isResponse(message: RemoteControlResponse | RemoteControlEvent): message is RemoteControlResponse {
     return 'id' in message
 }
@@ -158,6 +169,7 @@ export class RemoteControlStorageService implements
     private requestActionRunEvents: Map<string, (event: ActionRunEvent) => void>
     private requestCodexRateLimitEvents: Map<string, (snapshot: CodexRateLimitSnapshot) => void>
     private requestWatchEvents: Map<string, ProjectWatchSubscription>
+    private retired: boolean
     private requestMergeConflictEvents: Map<string, (session: MergeConflictSession | null) => void>
     private runAgentEvents: Map<string, (event: AgentRunEvent) => void>
     private socket: WebSocket | null
@@ -188,6 +200,7 @@ export class RemoteControlStorageService implements
         this.requestCodexRateLimitEvents = new Map()
         this.requestMergeConflictEvents = new Map()
         this.requestWatchEvents = new Map()
+        this.retired = false
         this.runAgentEvents = new Map()
         this.socket = null
         this.token = ''
@@ -205,6 +218,7 @@ export class RemoteControlStorageService implements
             : readRemoteControlConnection()
         this.endpoint = storedSettings.endpoint
         this.token = storedSettings.token
+        this.retired = false
     }
 
     async connect(): Promise<void> {
@@ -213,6 +227,17 @@ export class RemoteControlStorageService implements
 
     disconnect() {
         this.socket?.close()
+    }
+
+    retire() {
+        this.retired = true
+        this.disconnect()
+    }
+
+    getConnectionSettings(): RemoteControlConnectionSettings {
+        if (this.endpoint.length === 0 || this.token.length === 0) throw new Error('Remote-control storage is not initialized')
+
+        return { endpoint: this.endpoint, token: this.token }
     }
 
     onConnectionChanged(callback: (connected: boolean) => void) {
@@ -706,6 +731,7 @@ export class RemoteControlStorageService implements
     }
 
     private async ensureConnected() {
+        if (this.retired) throw new RemoteControlConnectionError('Remote-control connection was replaced')
         if (this.socket?.readyState === SOCKET_OPEN_STATE) return
         if (this.connectPromise) return this.connectPromise
 
@@ -725,7 +751,7 @@ export class RemoteControlStorageService implements
             }
             const handleError = () => {
                 this.connectPromise = null
-                reject(new Error('Remote-control connection failed'))
+                reject(new RemoteControlConnectionError('Remote-control connection failed'))
             }
 
             this.requireSocket().addEventListener('open', handleOpen, { once: true })
@@ -937,7 +963,7 @@ export class RemoteControlStorageService implements
     }
 
     private handleClose() {
-        const error = new Error('Remote-control connection closed')
+        const error = new RemoteControlConnectionError('Remote-control connection closed')
         for (const listener of this.connectionListeners) listener(false)
         for (const pending of this.pending.values()) pending.reject(error)
         this.pending.clear()

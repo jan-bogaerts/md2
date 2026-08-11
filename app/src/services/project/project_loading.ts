@@ -168,6 +168,11 @@ export class ProjectLoading {
         this.dependencies.beginProjectLoad()
     }
 
+    /** Rebind repository watching after storage transport replacement without reloading project data. */
+    restartProjectWatch() {
+        this.startProjectWatch()
+    }
+
     async createProject(project: ProjectReference) {
         const { config, storage } = this.dependencies.requireDependencies()
         const rawConfig = { ...configService.getProjectConfig(), backgroundShade: createRandomProjectBackgroundShade() }

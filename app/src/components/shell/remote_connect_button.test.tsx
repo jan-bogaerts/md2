@@ -6,13 +6,17 @@ import {
     REMOTE_CONTROL_ENDPOINT_KEY,
     REMOTE_CONTROL_TOKEN_KEY,
 } from '../../data/remote_control_connection'
+import { deriveAutoConnectSettings } from '../../data/remote_connect_string'
 import { projectSessionService } from '../../services/project/project_session_service'
+import { remoteConnectionService } from '../../services/data/remote_connection_service'
+import { configService } from '../../services/config/config_service'
 import { OPEN_PROJECT_DIALOG_EVENT, type OpenProjectDialogDetail } from '../project_command_events'
 import { RemoteConnectButton } from './remote_connect_button'
 
 class MockWebSocket extends EventTarget {
     static activeProject: ProjectReference | null = null
     static behavior: 'open' | 'error' = 'open'
+    static connectionCount = 0
 
     readyState = 0
     protocol: string | string[] | undefined
@@ -21,6 +25,7 @@ class MockWebSocket extends EventTarget {
 
     constructor(url: string, protocol?: string | string[]) {
         super()
+        MockWebSocket.connectionCount += 1
         this.protocol = protocol
         this.url = url
         queueMicrotask(() => {
@@ -37,10 +42,27 @@ class MockWebSocket extends EventTarget {
     send(message: string) {
         this.sent.push(message)
         const request = JSON.parse(message) as { id: string; method: string }
-        if (request.method !== 'getActiveProject') return
+        const results: Record<string, unknown> = {
+            getActiveProject: MockWebSocket.activeProject,
+            getCodexRateLimits: null,
+            loadActiveActionRunEvents: [],
+            loadAgentAvailability: {},
+            loadDesktopConfig: {
+                agent: 'custom',
+                agentProfiles: [{ command: ['custom'], models: ['custom-model'], name: 'custom' }],
+                codexSearchEnabled: true,
+                editorCommand: 'code "{{file}}"',
+                mergeConflictResolverCommand: '',
+                model: 'custom-model',
+                permissionMode: 'ask-for-approval',
+                thinkingLevel: 'high',
+            },
+            onActionRun: { subscriptionId: 'actions-1' },
+            onCodexRateLimits: { subscriptionId: 'rates-1' },
+        }
 
         queueMicrotask(() => {
-            this.dispatchEvent(new MessageEvent('message', { data: JSON.stringify({ id: request.id, result: MockWebSocket.activeProject }) }))
+            this.dispatchEvent(new MessageEvent('message', { data: JSON.stringify({ id: request.id, result: results[request.method] }) }))
         })
     }
 
@@ -72,14 +94,18 @@ async function connectTo(endpoint: string, token: string) {
 
 describe('RemoteConnectButton', () => {
     beforeEach(() => {
-        vi.spyOn(projectSessionService, 'activateRemoteConnection').mockResolvedValue()
+        remoteConnectionService.disconnect()
+        configService.init()
     })
 
     afterEach(() => {
+        remoteConnectionService.disconnect()
+        configService.clear()
         window.localStorage.removeItem(REMOTE_CONTROL_ENDPOINT_KEY)
         window.localStorage.removeItem(REMOTE_CONTROL_TOKEN_KEY)
         window.location.hash = ''
         MockWebSocket.activeProject = null
+        MockWebSocket.connectionCount = 0
         vi.unstubAllGlobals()
         vi.restoreAllMocks()
         cleanup()
@@ -203,6 +229,35 @@ describe('RemoteConnectButton', () => {
         expect(window.localStorage.getItem(REMOTE_CONTROL_TOKEN_KEY)).toBe('frag-token')
         await waitFor(() => expect(openProjectListener).toHaveBeenCalledOnce())
         window.removeEventListener(OPEN_PROJECT_DIALOG_EVENT, openProjectListener)
+    })
+
+    it('reuses startup connection when URL-token auto-connect mounts', async () => {
+        installWebSocket('open')
+        window.location.hash = '#frag-token'
+        const settings = deriveAutoConnectSettings(window.location.host, window.location.hash, window.location.protocol)
+        if (!settings) throw new Error('Expected URL-token connection settings')
+        await remoteConnectionService.connect(settings)
+        remoteConnectionService.setProjectStorageActive(true)
+        const openProjectSpy = vi.spyOn(projectSessionService, 'openProject')
+
+        render(<RemoteConnectButton />)
+
+        expect(await screen.findByRole('button', { name: 'Connected' })).toBeInTheDocument()
+        await waitFor(() => expect(MockWebSocket.connectionCount).toBe(1))
+        expect(openProjectSpy).not.toHaveBeenCalled()
+    })
+
+    it('keeps connected state across button remounts', async () => {
+        installWebSocket('open')
+        render(<RemoteConnectButton />)
+        await connectTo('ws://192.168.0.10:1234', 'token-1')
+        expect(await screen.findByRole('button', { name: 'Connected' })).toBeInTheDocument()
+
+        cleanup()
+        render(<RemoteConnectButton />)
+
+        expect(screen.getByRole('button', { name: 'Connected' })).toBeInTheDocument()
+        expect(MockWebSocket.connectionCount).toBe(1)
     })
 
     it('opens the dialog with the connection error when a fragment token is stale', async () => {

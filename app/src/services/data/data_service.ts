@@ -180,18 +180,7 @@ export class DataService extends EventTarget {
         this.projectState.resetLoadedProject()
         this.remarkableBridge = dependencies.remarkableBridge ?? null
         this.storage = withSaveStateTracking(dependencies.storage, this.saveStateService)
-        mergeConflictService.init({
-            completeBranchCleanup: (cardInternalId) => {
-                const snapshot = this.projectState.snapshot
-                const card = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]
-                    .find((candidate) => candidate.header.internalId === cardInternalId)
-                if (!card) return
-                this.cards.updateCardWorktree(card.path, null)
-                this.cards.clearCardBranch(card.path)
-            },
-            reloadPaths: (paths) => this.projectLoading.reloadConflictPaths(paths),
-            storage: this.storage,
-        })
+        this.initializeStorageServices()
         worktreeService.init({
             assignCardWorktree: (path, worktree, branch) => this.cards.assignCardWorktree(path, worktree, branch),
             cardSeparatorProvider: () => this.requireDependencies().config.cardSeparator,
@@ -216,6 +205,15 @@ export class DataService extends EventTarget {
         )
         this.dispatchChanged()
         this.dispatchPersistenceChanged()
+    }
+
+    /** Replace remote transport while preserving loaded project and its in-memory state. */
+    replaceRemoteStorage(storage: StorageService) {
+        if (!this.storage || !this.projectState.project) throw new Error('Cannot replace storage without a loaded project')
+
+        this.storage = withSaveStateTracking(storage, this.saveStateService)
+        this.initializeStorageServices()
+        this.projectLoading.restartProjectWatch()
     }
 
     getState(): DataServiceState {
@@ -413,6 +411,22 @@ export class DataService extends EventTarget {
     private refreshSnapshot(workingFolder: string) {
         this.projectState.refreshSnapshot(workingFolder)
         this.dispatchChanged()
+    }
+    private initializeStorageServices() {
+        if (!this.storage) throw new Error('Data service storage is not initialized')
+
+        mergeConflictService.init({
+            completeBranchCleanup: (cardInternalId) => {
+                const snapshot = this.projectState.snapshot
+                const card = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]
+                    .find((candidate) => candidate.header.internalId === cardInternalId)
+                if (!card) return
+                this.cards.updateCardWorktree(card.path, null)
+                this.cards.clearCardBranch(card.path)
+            },
+            reloadPaths: (paths) => this.projectLoading.reloadConflictPaths(paths),
+            storage: this.storage,
+        })
     }
     private reportCommitFlushFailure(error: unknown) {
         reportCommitFlushFailure(error, () => this.dispatchPersistenceChanged())

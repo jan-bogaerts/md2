@@ -12,6 +12,8 @@ import { getElectronActionBridge, type ActionRunHistoryEntry } from '../../../..
 import { defaultActionHistoryLoader, loadActionHistory } from '../../../../services/actions/action_history'
 import { actionFilePath, createActionDefinition, type ConvertPromptToActionInput } from '../../../../services/actions/action_definition_writer'
 import { dataService } from '../../../../services/data/data_service'
+import { remoteConnectionService } from '../../../../services/data/remote_connection_service'
+import { RemoteControlConnectionError } from '../../../../services/data/remote_control_storage_service'
 import { projectPersistenceService } from '../../../../services/project/project_persistence_service'
 import { cancelElectronAction, restartElectronAction, runElectronAction } from '../../../../services/actions/electron_action_runner'
 import {
@@ -91,7 +93,13 @@ export function defaultLoadConversations(context: ActionContext) {
 
 export async function defaultPreparePrompt(action: ActionDefinition, context: ActionContext) {
     const bridge = getElectronActionBridge()
-    if (!bridge) throw new Error('Preparing action prompts requires the Electron desktop app')
+    if (!bridge) {
+        const remoteStatus = remoteConnectionService.getSnapshot().status
+        if (remoteStatus === 'connecting' || remoteStatus === 'reconnecting') {
+            throw new RemoteControlConnectionError('Remote action backend is reconnecting')
+        }
+        throw new Error('Preparing action prompts requires the Electron desktop app')
+    }
     flushMarkdownEditors()
     if (projectPersistenceService.getSnapshot().hasPendingSave) await projectPersistenceService.flushPendingChanges()
     const result = await bridge.prepareActionPrompt({ actionId: action.id, context })

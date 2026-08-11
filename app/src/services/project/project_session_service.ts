@@ -15,6 +15,7 @@ import { activateStorageService } from '../../data/project_storage_activation'
 import { configureRemoteControlConnection } from '../../data/remote_control_connection'
 import { configService } from '../config/config_service'
 import { dataService } from '../data/data_service'
+import { remoteConnectionService } from '../data/remote_connection_service'
 import { dialogService } from '../dialog_service'
 import { GithubPendingCommitConflictError, GithubStorageService } from '../github/github_storage_service'
 import { markdownParsingService } from '../data/markdown_parsing_service'
@@ -134,9 +135,10 @@ async function loadProjectSession(storage: StorageService, storageType: StorageT
 
 async function activateProjectSession(storage: StorageService, storageType: StorageType, project: ProjectReference) {
     await projectPersistenceService.flushPendingChanges()
-    await activateStorageService(storageType, storage)
-    dataService.init({ storage })
+    const activeStorage = await activateStorageService(storageType, storage)
+    dataService.init({ storage: activeStorage })
     await dataService.projectLoading.openProject(project)
+    remoteConnectionService.setProjectStorageActive(storageType === 'remote')
     writeLastProject(storageType, project)
 }
 
@@ -271,7 +273,9 @@ export class ProjectSessionService extends EventTarget {
     }
 
     async activateRemoteConnection(storage: StorageService) {
-        await this.withLoading('Remote desktop config load failed', () => activateStorageService('remote', storage))
+        await this.withLoading('Remote desktop config load failed', async () => {
+            await activateStorageService('remote', storage)
+        })
     }
 
     async switchBranch(branch: string) {

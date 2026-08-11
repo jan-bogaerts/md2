@@ -11,6 +11,8 @@ import { actionPromptDraftService } from '../../../../services/actions/action_pr
 import { agentCapabilitiesService } from '../../../../services/agents/agent_capabilities_service'
 import { dialogService } from '../../../../services/dialog_service'
 import { dataService } from '../../../../services/data/data_service'
+import { remoteConnectionService } from '../../../../services/data/remote_connection_service'
+import { RemoteControlConnectionError, RemoteControlStorageService } from '../../../../services/data/remote_control_storage_service'
 import { worktreeService } from '../../../../services/project/worktree_service'
 import { AppThemeProvider } from '../../../../theme/theme_provider'
 import { ActionPopup, CARD_RUN_POPUP_SIZE_STORAGE_KEY, PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY } from './action_popup'
@@ -184,6 +186,15 @@ function deferredValue<T>() {
     return { promise, resolve: resolveValue }
 }
 
+function rejectableDeferred<T>() {
+    let rejectValue: (error: unknown) => void = () => undefined
+    const promise = new Promise<T>((_resolve, reject) => {
+        rejectValue = reject
+    })
+
+    return { promise, reject: rejectValue }
+}
+
 function setMobileBreakpoint(matches: boolean) {
     window.matchMedia = ((query: string) => ({
         addEventListener: vi.fn(),
@@ -224,6 +235,7 @@ function renderPopup(contextOverride: ActionContext = context, onClose = vi.fn()
 
 describe('ActionPopup', () => {
     beforeEach(async () => {
+        remoteConnectionService.disconnect()
         configService.init({ desktopConfig: { agent: 'codex', agentProfiles: BUILTIN_AGENT_PROFILES, model: '' } })
         setMobileBreakpoint(false)
         Object.values(renderProbes).forEach((probe) => probe.mockClear())
@@ -250,6 +262,7 @@ describe('ActionPopup', () => {
     })
 
     afterEach(() => {
+        remoteConnectionService.disconnect()
         actionRunRegistry.stop()
         actionRunSettingsService.clear()
         delete window.md2Actions
@@ -713,6 +726,76 @@ describe('ActionPopup', () => {
         const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
         await waitFor(() => expect(prompt).toHaveValue('Stored prompt'))
         expect(prepareActionPrompt).toHaveBeenCalledOnce()
+    })
+
+    it('keeps prompt preparation loading until remote backend becomes ready', async () => {
+        const connectionReady = deferredValue<void>()
+        const storage = new RemoteControlStorageService()
+        storage.init({ endpoint: 'ws://desktop:1234', token: 'token-1' })
+        vi.spyOn(storage, 'connect').mockReturnValue(connectionReady.promise)
+        vi.spyOn(storage, 'loadDesktopConfig').mockResolvedValue(configService.getDesktopValues())
+        vi.spyOn(storage, 'loadAgentAvailability').mockResolvedValue({})
+        vi.spyOn(storage, 'getCodexRateLimits').mockResolvedValue(null)
+        vi.spyOn(storage, 'loadActiveActionRunEvents').mockResolvedValue([])
+        vi.spyOn(storage, 'onActionRun').mockReturnValue(() => undefined)
+        vi.spyOn(storage, 'onCodexRateLimits').mockReturnValue(() => undefined)
+        const prepareActionPrompt = vi.spyOn(storage, 'prepareActionPrompt').mockResolvedValue({ prompt: 'Remote prompt' })
+        delete window.md2Actions
+        const connection = remoteConnectionService.connectExisting(storage)
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([])
+        actionService.loadFromFiles([file(agentDefinition('review', { label: 'Review' }))])
+
+        renderPopup({ ...context, cardInternalId: 'card-1' })
+
+        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
+        const promptDraft = actionPromptDraftService.getDraft(
+            'review',
+            { ...context, cardInternalId: 'card-1' },
+            null,
+            { prepare: true },
+        )
+        expect(promptDraft.getEditorSnapshot().preparationStatus).toBe('loading')
+        expect(prepareActionPrompt).not.toHaveBeenCalled()
+        connectionReady.resolve(undefined)
+        await connection
+
+        await waitFor(() => expect(prompt).toHaveValue('Remote prompt'))
+        expect(prepareActionPrompt).toHaveBeenCalledOnce()
+    })
+
+    it('retries prompt preparation through replacement bridge after remote close', async () => {
+        const firstPreparation = rejectableDeferred<never>()
+        const connectionListeners: Array<(connected: boolean) => void> = []
+        vi.spyOn(RemoteControlStorageService.prototype, 'connect').mockResolvedValue()
+        vi.spyOn(RemoteControlStorageService.prototype, 'loadDesktopConfig').mockResolvedValue(configService.getDesktopValues())
+        vi.spyOn(RemoteControlStorageService.prototype, 'loadAgentAvailability').mockResolvedValue({})
+        vi.spyOn(RemoteControlStorageService.prototype, 'getCodexRateLimits').mockResolvedValue(null)
+        vi.spyOn(RemoteControlStorageService.prototype, 'loadActiveActionRunEvents').mockResolvedValue([])
+        vi.spyOn(RemoteControlStorageService.prototype, 'onActionRun').mockReturnValue(() => undefined)
+        vi.spyOn(RemoteControlStorageService.prototype, 'onCodexRateLimits').mockReturnValue(() => undefined)
+        const prepareActionPrompt = vi.spyOn(RemoteControlStorageService.prototype, 'prepareActionPrompt')
+            .mockReturnValueOnce(firstPreparation.promise)
+            .mockResolvedValueOnce({ prompt: 'Reconnected prompt' })
+        const firstStorage = new RemoteControlStorageService()
+        firstStorage.init({ endpoint: 'ws://desktop:1234', token: 'token-1' })
+        vi.spyOn(firstStorage, 'onConnectionChanged').mockImplementation((listener) => {
+            connectionListeners.push(listener)
+
+            return () => true
+        })
+        delete window.md2Actions
+        await remoteConnectionService.connectExisting(firstStorage)
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([])
+        actionService.loadFromFiles([file(agentDefinition('review', { label: 'Review' }))])
+        renderPopup({ ...context, cardInternalId: 'card-1' })
+        await waitFor(() => expect(prepareActionPrompt).toHaveBeenCalledOnce())
+
+        connectionListeners.forEach((listener) => listener(false))
+        firstPreparation.reject(new RemoteControlConnectionError('Remote-control connection closed'))
+
+        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
+        await waitFor(() => expect(prompt).toHaveValue('Reconnected prompt'))
+        expect(prepareActionPrompt).toHaveBeenCalledTimes(2)
     })
 
     it('keeps the prompt empty after automatically selecting the newest unseen conversation', async () => {

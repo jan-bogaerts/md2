@@ -5,6 +5,7 @@ import { getElectronActionBridge, setActionBridgeOverride, type ElectronActionBr
 import { LAST_PROJECT_STORAGE_KEY } from '../../data/project_session'
 import { configureRemoteControlConnection, REMOTE_CONTROL_ENDPOINT_KEY, REMOTE_CONTROL_TOKEN_KEY } from '../../data/remote_control_connection'
 import { RemoteControlStorageService } from '../data/remote_control_storage_service'
+import { remoteConnectionService } from '../data/remote_connection_service'
 import { configService } from '../config/config_service'
 import { actionService } from '../actions/action_service'
 import { dataService } from '../data/data_service'
@@ -65,7 +66,13 @@ function mockProjectOpen() {
 
 describe('ProjectSessionService storage activation', () => {
     beforeEach(() => {
+        remoteConnectionService.disconnect()
         configService.init()
+        vi.spyOn(RemoteControlStorageService.prototype, 'connect').mockResolvedValue()
+        vi.spyOn(RemoteControlStorageService.prototype, 'getCodexRateLimits').mockResolvedValue(null)
+        vi.spyOn(RemoteControlStorageService.prototype, 'loadActiveActionRunEvents').mockResolvedValue([])
+        vi.spyOn(RemoteControlStorageService.prototype, 'onActionRun').mockReturnValue(() => undefined)
+        vi.spyOn(RemoteControlStorageService.prototype, 'onCodexRateLimits').mockReturnValue(() => undefined)
         vi.spyOn(RemoteControlStorageService.prototype, 'loadDesktopConfig').mockResolvedValue({
             agent: 'custom',
             agentProfiles: [{ command: ['custom'], models: ['custom-model'], name: 'custom' }],
@@ -83,6 +90,7 @@ describe('ProjectSessionService storage activation', () => {
     })
 
     afterEach(() => {
+        remoteConnectionService.disconnect()
         vi.restoreAllMocks()
         vi.unstubAllGlobals()
         configService.clear()
