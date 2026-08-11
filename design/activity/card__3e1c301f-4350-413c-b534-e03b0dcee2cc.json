@@ -4262,11 +4262,11 @@
         "agent-9021e149-fa8a-44a8-9318-08464e80e90b"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-7fdce45e-3c55-40c4-9adf-f2ff86abd2ea",
       "origin": {
@@ -4275,9 +4275,46 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-9021e149-fa8a-44a8-9318-08464e80e90b",
       "startedAt": "2026-08-11T17:37:54.461Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-9021e149-fa8a-44a8-9318-08464e80e90b"
+    },
+    {
+      "commits": [
+        {
+          "commit": "cba390fd2652450f107a391079ac5e3944a082cd",
+          "committedAt": "2026-08-11T20:00:18+02:00",
+          "deletions": 129,
+          "filePaths": [
+            "app/src/components/actions/agent/action_agent_prompt_owner.tsx",
+            "app/src/components/actions/run/popup/action_popup.test.tsx",
+            "app/src/components/actions/run/popup/action_popup_defaults.ts",
+            "app/src/components/shell/remote_connect_button.test.tsx",
+            "app/src/components/shell/remote_connect_button.tsx",
+            "app/src/data/project_storage_activation.ts",
+            "app/src/services/actions/action_prompt_draft_service.node.test.ts",
+            "app/src/services/actions/action_prompt_draft_service.ts",
+            "app/src/services/data/data_service.test.ts",
+            "app/src/services/data/data_service.ts",
+            "app/src/services/data/remote_connection_service.test.ts",
+            "app/src/services/data/remote_connection_service.ts",
+            "app/src/services/data/remote_control_storage_service.ts",
+            "app/src/services/project/project_loading.ts",
+            "app/src/services/project/project_session_service.test.ts",
+            "app/src/services/project/project_session_service.ts"
+          ],
+          "filesChanged": 16,
+          "insertions": 771,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-11T20:00:18+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "3e1c301f-4350-413c-b534-e03b0dcee2cc",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
