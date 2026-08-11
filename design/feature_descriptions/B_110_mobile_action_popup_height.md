@@ -3,7 +3,7 @@ author:
 id: B_110
 internalId: 12b91511-c445-404c-afcb-bdaf300ef50b
 title: Mobile popup height
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

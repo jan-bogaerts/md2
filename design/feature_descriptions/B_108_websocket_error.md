@@ -3,7 +3,7 @@ author:
 id: B_108
 internalId: 3e1c301f-4350-413c-b534-e03b0dcee2cc
 title: Websocket error
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
