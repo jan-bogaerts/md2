@@ -279,7 +279,7 @@ function CardBodyPopoverEntry(props: CardBodyPopoverEntryProps) {
                     boxSizing: 'border-box',
                     boxShadow: '0 24px 60px rgba(16, 24, 40, 0.28)',
                     flexDirection: 'column',
-                    height: isMobile ? '100vh !important' : isFullscreen ? `${fullscreenHeight} !important` : undefined,
+                    height: isMobile ? '100dvh !important' : isFullscreen ? `${fullscreenHeight} !important` : undefined,
                     left: isMobile ? '0 !important' : isFullscreen ? `${POPOVER_SIDE_MARGIN}px !important` : undefined,
                     margin: isMobile ? '0 !important' : undefined,
                     maxHeight: isMobile || isFullscreen ? 'none' : undefined,

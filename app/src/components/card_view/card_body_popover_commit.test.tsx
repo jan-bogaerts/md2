@@ -155,6 +155,42 @@ describe('CardBodyPopover commit diff', () => {
         expect(screen.queryByRole('dialog', { name: 'F-061 card details' })).not.toBeInTheDocument()
     })
 
+    it('uses dynamic viewport height and fixed mobile placement without desktop resizing or persistence', () => {
+        const storedSize = JSON.stringify({ height: 700, width: 800 })
+        window.localStorage.setItem(CARD_BODY_POPOVER_SIZE_KEY, storedSize)
+        const getStoredValue = vi.spyOn(Storage.prototype, 'getItem')
+        const setStoredValue = vi.spyOn(Storage.prototype, 'setItem')
+        const anchorElement = document.body.appendChild(document.createElement('button'))
+        cardPopupService.toggleCardDetails(card.header.internalId!, card.path, anchorElement)
+
+        render(
+            <AppThemeProvider>
+                <CardBodyPopover
+                    cardTypes={DEFAULT_CARD_TYPES}
+                    isMobile
+                    onDeleteCard={vi.fn(async () => undefined)}
+                    onOpenAffects={vi.fn()}
+                    onOpenInFileMode={vi.fn()}
+                    statusColors={new Map()}
+                    visible
+                />
+            </AppThemeProvider>,
+        )
+        const dialog = screen.getByRole('dialog', { name: 'F-060 card details' })
+
+        expect(dialog).toHaveStyle({
+            borderRadius: '0px', height: '100dvh', left: '0px', margin: '0px', maxHeight: 'none', maxWidth: 'none',
+            top: '0px', width: '100vw',
+        })
+        expect(dialog.querySelector('[data-drag-handle="true"]')).toBeNull()
+        expect(within(dialog).queryByRole('separator', { name: /Resize card details popup/u })).not.toBeInTheDocument()
+        expect(within(dialog).getByLabelText('Live card editor')).toBeInTheDocument()
+        expect(within(dialog).getByRole('button', { name: 'Close card details' })).toBeInTheDocument()
+        expect(getStoredValue).not.toHaveBeenCalledWith(CARD_BODY_POPOVER_SIZE_KEY)
+        expect(setStoredValue).not.toHaveBeenCalledWith(CARD_BODY_POPOVER_SIZE_KEY, expect.any(String))
+        expect(window.localStorage.getItem(CARD_BODY_POPOVER_SIZE_KEY)).toBe(storedSize)
+    })
+
     it('uses persisted desktop size and exposes header drag plus eight resize directions', () => {
         window.localStorage.setItem(CARD_BODY_POPOVER_SIZE_KEY, JSON.stringify({ height: 700, width: 800 }))
         const anchorElement = document.body.appendChild(document.createElement('button'))

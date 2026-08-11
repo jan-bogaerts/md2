@@ -1810,7 +1810,7 @@ describe('ActionPopup', () => {
         const dialog = screen.getByRole('dialog')
 
         expect(dialog).toHaveStyle({
-            borderRadius: '0px', height: '100vh', left: '0px', margin: '0px', maxHeight: 'none', maxWidth: 'none',
+            borderRadius: '0px', height: '100dvh', left: '0px', margin: '0px', maxHeight: 'none', maxWidth: 'none',
             top: '0px', width: '100vw',
         })
         expect(screen.queryByRole('separator', { name: /Resize action popup/u })).not.toBeInTheDocument()
@@ -1837,7 +1837,7 @@ describe('ActionPopup', () => {
 
         renderPopup({ kind: 'project' })
 
-        expect(screen.getByRole('dialog')).toHaveStyle({ height: '100vh', left: '0px', top: '0px', width: '100vw' })
+        expect(screen.getByRole('dialog')).toHaveStyle({ height: '100dvh', left: '0px', top: '0px', width: '100vw' })
         expect(screen.getByRole('combobox', { name: 'Conversation history' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument()
         expect(screen.queryByRole('separator', { name: /Resize action popup/u })).not.toBeInTheDocument()
