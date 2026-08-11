@@ -9,5 +9,8 @@ affects:
 agents:
 policy:
 ---
+When opening the action popup when in the webbrowser connected to electron over websocket, we got this error:
 
-Preparing action prompts requires the electron app.
+> Preparing action prompts requires the electron app.
+
+Perhaps timing, app was started recently.
