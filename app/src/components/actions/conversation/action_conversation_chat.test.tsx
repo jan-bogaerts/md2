@@ -8,6 +8,7 @@ import type {
     AgentConversationEventEntry,
     AgentConversationMessageEntry,
 } from '../../../data/data_types'
+import type { PopupRunStatus } from '../run/popup/action_popup_defaults'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../../data/electron_action_bridge'
 import { dataService } from '../../../services/data/data_service'
 import { dialogService } from '../../../services/dialog_service'
@@ -89,12 +90,16 @@ function conversation(
     }
 }
 
-function renderChat(value: AgentConversation | null) {
+function renderChat(value: AgentConversation | null, status: PopupRunStatus = 'idle') {
     return render(
         <AppThemeProvider>
-            <ActionConversationChat conversation={value} status="idle" />
+            <ActionConversationChat conversation={value} status={status} />
         </AppThemeProvider>,
     )
+}
+
+function reservedBlockCount() {
+    return document.querySelectorAll('[data-conversation-reserved-block]').length
 }
 
 function MarkdownContentSxOverride({ children }: { children: ReactNode }) {
@@ -247,6 +252,176 @@ describe('ActionConversationChat', () => {
         )
 
         expect(viewport.scrollTop).toBe(0)
+    })
+
+    it('reserves one block only while the conversation is active', () => {
+        const value = conversation('active.json', [message('message-1', 'Start')])
+        const { rerender } = renderChat(value, 'running')
+
+        expect(reservedBlockCount()).toBe(1)
+
+        rerender(
+            <AppThemeProvider>
+                <ActionConversationChat conversation={value} status="completed" />
+            </AppThemeProvider>,
+        )
+
+        expect(reservedBlockCount()).toBe(0)
+    })
+
+    it('replaces the baseline reservation with a running block', () => {
+        const runningReasoning = toolEvent('Reasoning', 'reasoning', 'inProgress', { summary: ['Inspect code'] })
+
+        renderChat(conversation('active.json', [runningReasoning], 'codex'), 'running')
+
+        expect(screen.getByText('Inspect code')).toBeInTheDocument()
+        expect(reservedBlockCount()).toBe(0)
+    })
+
+    it('restores one reservation for every running block that disappears', () => {
+        const firstReasoning = toolEvent('First reasoning', 'reasoning', 'inProgress', { summary: ['First'] })
+        const secondReasoning = toolEvent('Second reasoning', 'reasoning', 'inProgress', { summary: ['Second'] })
+        const runningConversation = conversation('active.json', [firstReasoning, secondReasoning], 'codex')
+        const { rerender } = renderChat(runningConversation, 'running')
+
+        expect(reservedBlockCount()).toBe(0)
+
+        rerender(
+            <AppThemeProvider>
+                <ActionConversationChat
+                    conversation={{
+                        ...runningConversation,
+                        entries: [
+                            { ...firstReasoning, status: 'completed' },
+                            { ...secondReasoning, status: 'completed' },
+                        ],
+                    }}
+                    status="running"
+                />
+            </AppThemeProvider>,
+        )
+
+        expect(reservedBlockCount()).toBe(2)
+    })
+
+    it('lets new permanent blocks consume surplus reservations down to one', () => {
+        const firstReasoning = toolEvent('First reasoning', 'reasoning', 'inProgress', { summary: ['First'] })
+        const secondReasoning = toolEvent('Second reasoning', 'reasoning', 'inProgress', { summary: ['Second'] })
+        const runningConversation = conversation('active.json', [firstReasoning, secondReasoning], 'codex')
+        const { rerender } = renderChat(runningConversation, 'running')
+        const completedEntries = [
+            { ...firstReasoning, status: 'completed' },
+            { ...secondReasoning, status: 'completed' },
+        ]
+
+        rerender(
+            <AppThemeProvider>
+                <ActionConversationChat
+                    conversation={{ ...runningConversation, entries: completedEntries }}
+                    status="running"
+                />
+            </AppThemeProvider>,
+        )
+        expect(reservedBlockCount()).toBe(2)
+
+        rerender(
+            <AppThemeProvider>
+                <ActionConversationChat
+                    conversation={{ ...runningConversation, entries: [...completedEntries, message('message-1', 'Permanent')] }}
+                    status="running"
+                />
+            </AppThemeProvider>,
+        )
+
+        expect(screen.getByText('Permanent')).toBeInTheDocument()
+        expect(reservedBlockCount()).toBe(1)
+    })
+
+    it('resets surplus reservations when the selected conversation changes', () => {
+        const firstReasoning = toolEvent('First reasoning', 'reasoning', 'inProgress', { summary: ['First'] })
+        const secondReasoning = toolEvent('Second reasoning', 'reasoning', 'inProgress', { summary: ['Second'] })
+        const runningConversation = conversation('first.json', [firstReasoning, secondReasoning], 'codex')
+        const { rerender } = renderChat(runningConversation, 'running')
+
+        rerender(
+            <AppThemeProvider>
+                <ActionConversationChat
+                    conversation={{
+                        ...runningConversation,
+                        entries: [
+                            { ...firstReasoning, status: 'completed' },
+                            { ...secondReasoning, status: 'completed' },
+                        ],
+                    }}
+                    status="running"
+                />
+            </AppThemeProvider>,
+        )
+        expect(reservedBlockCount()).toBe(2)
+
+        rerender(
+            <AppThemeProvider>
+                <ActionConversationChat conversation={conversation('second.json', [], 'codex')} status="running" />
+            </AppThemeProvider>,
+        )
+
+        expect(reservedBlockCount()).toBe(1)
+    })
+
+    it('does not move when running blocks become placeholders after the user scrolls up', () => {
+        const firstReasoning = toolEvent('First reasoning', 'reasoning', 'inProgress', { summary: ['First'] })
+        const secondReasoning = toolEvent('Second reasoning', 'reasoning', 'inProgress', { summary: ['Second'] })
+        const runningConversation = conversation('active.json', [firstReasoning, secondReasoning], 'codex')
+        const { rerender } = renderChat(runningConversation, 'running')
+        const viewport = screen.getByLabelText('Conversation chat')
+        viewport.scrollTop = 40
+        fireEvent.scroll(viewport)
+        scrollHeight = 400
+
+        rerender(
+            <AppThemeProvider>
+                <ActionConversationChat
+                    conversation={{
+                        ...runningConversation,
+                        entries: [
+                            { ...firstReasoning, status: 'completed' },
+                            { ...secondReasoning, status: 'completed' },
+                        ],
+                    }}
+                    status="running"
+                />
+            </AppThemeProvider>,
+        )
+
+        expect(reservedBlockCount()).toBe(2)
+        expect(viewport.scrollTop).toBe(40)
+    })
+
+    it('stays pinned when running blocks become placeholders', () => {
+        const firstReasoning = toolEvent('First reasoning', 'reasoning', 'inProgress', { summary: ['First'] })
+        const secondReasoning = toolEvent('Second reasoning', 'reasoning', 'inProgress', { summary: ['Second'] })
+        const runningConversation = conversation('active.json', [firstReasoning, secondReasoning], 'codex')
+        const { rerender } = renderChat(runningConversation, 'running')
+        const viewport = screen.getByLabelText('Conversation chat')
+        scrollHeight = 400
+
+        rerender(
+            <AppThemeProvider>
+                <ActionConversationChat
+                    conversation={{
+                        ...runningConversation,
+                        entries: [
+                            { ...firstReasoning, status: 'completed' },
+                            { ...secondReasoning, status: 'completed' },
+                        ],
+                    }}
+                    status="running"
+                />
+            </AppThemeProvider>,
+        )
+
+        expect(reservedBlockCount()).toBe(2)
+        expect(viewport.scrollTop).toBe(300)
     })
 
     it('opens web links outside the renderer', () => {

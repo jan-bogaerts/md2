@@ -10,10 +10,21 @@ import {
     type ChangeEvent,
     type ClipboardEvent,
     type ComponentType,
+    type KeyboardEvent,
     type ReactNode,
+    type SyntheticEvent,
 } from 'react'
 import { createPortal } from 'react-dom'
-import { PASTE_COMMAND } from 'lexical'
+import {
+    $createParagraphNode,
+    $createRangeSelection,
+    $createTextNode,
+    $getRoot,
+    $setSelection,
+    COPY_COMMAND,
+    KEY_DOWN_COMMAND,
+    PASTE_COMMAND,
+} from 'lexical'
 import { testLexicalEditor } from './lexical_composer_context_stub'
 
 /**
@@ -37,6 +48,7 @@ interface StubEditorProps {
 
 interface StubEditorHandle {
     getMarkdown: () => string
+    getSelectionMarkdown: () => string
     insertMarkdown: (markdown: string) => void
     setMarkdown: (markdown: string) => void
 }
@@ -109,6 +121,50 @@ function normalizeMarkdown(markdown: string) {
     return markdown.trimEnd()
 }
 
+function markdownToRenderedText(markdown: string) {
+    return markdown
+        .replace(/^```[^\n]*\n|\n```$/gm, '')
+        .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1')
+        .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+        .replace(/^(#{1,6}|>|\s*(?:[-+*]|\d+\.))\s+/gm, '')
+        .replace(/^(?:---|\*\*\*|___)$/gm, '')
+        .replace(/(\*\*|__|~~|`|\*|_)/g, '')
+}
+
+function selectedMarkdown(markdown: string, start: number, end: number) {
+    const selected = markdown.slice(start, end)
+    if (!selected) return ''
+
+    const before = markdown.slice(0, start)
+    const after = markdown.slice(end)
+    const boldOpen = before.lastIndexOf('**')
+    const boldClose = after.indexOf('**')
+    if (boldOpen >= 0 && boldClose >= 0 && before.slice(boldOpen + 2).indexOf('**') < 0) return `**${selected}**`
+
+    const linkOpen = before.lastIndexOf('[')
+    const linkClose = after.match(/^([^\]]*)\]\(([^)]*)\)/)
+    if (linkOpen >= 0 && linkClose) return `[${selected}](${linkClose[2]})`
+
+    return selected
+}
+
+function setTestLexicalSelection(text: string, start: number, end: number) {
+    testLexicalEditor.update(() => {
+        const root = $getRoot()
+        root.clear()
+        const textNode = $createTextNode(text)
+        root.append($createParagraphNode().append(textNode))
+        const selection = $createRangeSelection()
+        selection.anchor.set(textNode.getKey(), start, 'text')
+        selection.focus.set(textNode.getKey(), end, 'text')
+        $setSelection(selection)
+    }, { discrete: true })
+}
+
+function getTestLexicalText() {
+    return testLexicalEditor.getEditorState().read(() => $getRoot().getTextContent())
+}
+
 export const MDXEditor = forwardRef<StubEditorHandle, StubEditorProps>(
     function MDXEditorStub(props, ref) {
         const {
@@ -124,6 +180,8 @@ export const MDXEditor = forwardRef<StubEditorHandle, StubEditorProps>(
         const toolbar = plugins.find(({ toolbarContents }) => !!toolbarContents)
         const initialMarkdown = normalizeMarkdown(markdown)
         const latestMarkdownRef = useRef(initialMarkdown)
+        const selectionStartRef = useRef(0)
+        const selectionEndRef = useRef(0)
         const [renderedMarkdown, setRenderedMarkdown] = useState(initialMarkdown)
         const [realm] = useState(() => {
             const editorRealm = new StubRealm()
@@ -135,9 +193,18 @@ export const MDXEditor = forwardRef<StubEditorHandle, StubEditorProps>(
 
         useImperativeHandle(ref, () => ({
             getMarkdown: () => latestMarkdownRef.current,
+            getSelectionMarkdown: () => selectedMarkdown(
+                latestMarkdownRef.current,
+                selectionStartRef.current,
+                selectionEndRef.current,
+            ),
             insertMarkdown: (markdownToInsert: string) => {
-                const nextMarkdown = `${latestMarkdownRef.current}${markdownToInsert}`
+                const nextMarkdown = latestMarkdownRef.current.slice(0, selectionStartRef.current)
+                    + markdownToInsert
+                    + latestMarkdownRef.current.slice(selectionEndRef.current)
                 latestMarkdownRef.current = nextMarkdown
+                selectionStartRef.current += markdownToInsert.length
+                selectionEndRef.current = selectionStartRef.current
                 setRenderedMarkdown(nextMarkdown)
                 onChange?.(nextMarkdown)
             },
@@ -161,8 +228,40 @@ export const MDXEditor = forwardRef<StubEditorHandle, StubEditorProps>(
             onChange?.(event.target.value)
         }
 
+        const updateSelection = (event: SyntheticEvent<HTMLTextAreaElement>) => {
+            selectionStartRef.current = event.currentTarget.selectionStart
+            selectionEndRef.current = event.currentTarget.selectionEnd
+        }
+
+        const handleCopy = (event: ClipboardEvent<HTMLTextAreaElement>) => {
+            updateSelection(event)
+            const selectionMarkdown = selectedMarkdown(
+                latestMarkdownRef.current,
+                selectionStartRef.current,
+                selectionEndRef.current,
+            )
+            const renderedSelection = markdownToRenderedText(selectionMarkdown)
+            setTestLexicalSelection(renderedSelection, 0, renderedSelection.length)
+            testLexicalEditor.dispatchCommand(COPY_COMMAND, event.nativeEvent)
+        }
+
+        const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+            updateSelection(event)
+            testLexicalEditor.dispatchCommand(KEY_DOWN_COMMAND, event.nativeEvent)
+        }
+
         const handlePaste = (event: ClipboardEvent<HTMLTextAreaElement>) => {
-            testLexicalEditor.dispatchCommand(PASTE_COMMAND, event.nativeEvent)
+            updateSelection(event)
+            const currentMarkdown = latestMarkdownRef.current
+            setTestLexicalSelection(currentMarkdown, selectionStartRef.current, selectionEndRef.current)
+            testLexicalEditor.update(() => {
+                testLexicalEditor.dispatchCommand(PASTE_COMMAND, event.nativeEvent)
+            }, { discrete: true })
+            const nextMarkdown = getTestLexicalText()
+            if (nextMarkdown === currentMarkdown) return
+            latestMarkdownRef.current = nextMarkdown
+            setRenderedMarkdown(nextMarkdown)
+            onChange?.(nextMarkdown)
         }
 
         const handleEmitError = () => {
@@ -174,7 +273,16 @@ export const MDXEditor = forwardRef<StubEditorHandle, StubEditorProps>(
                 <div className={className} data-testid="mdx-editor">
                     {toolbar?.toolbarContents ? <div data-testid="mdx-editor-toolbar">{toolbar.toolbarContents()}</div> : null}
                     {overlayContainer ? createPortal(<div data-testid="mdx-editor-overlay" />, overlayContainer) : null}
-                    <textarea onChange={handleChange} onPaste={handlePaste} readOnly={readOnly} role="textbox" value={renderedMarkdown} />
+                    <textarea
+                        onChange={handleChange}
+                        onCopy={handleCopy}
+                        onKeyDown={handleKeyDown}
+                        onPaste={handlePaste}
+                        onSelect={updateSelection}
+                        readOnly={readOnly}
+                        role="textbox"
+                        value={renderedMarkdown}
+                    />
                     <button
                         data-testid="emit-markdown-error"
                         hidden

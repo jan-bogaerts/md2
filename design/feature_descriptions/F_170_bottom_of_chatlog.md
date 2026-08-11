@@ -3,7 +3,7 @@ author:
 id: F_170
 internalId: 012efbb1-c938-4539-a646-0f263e72dea6
 title: Bottom of chatlog
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

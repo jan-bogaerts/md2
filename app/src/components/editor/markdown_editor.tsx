@@ -263,6 +263,8 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         editorRef.current?.insertMarkdown(markdown)
     }, [])
 
+    const getSelectionMarkdown = useCallback(() => editorRef.current?.getSelectionMarkdown() ?? '', [])
+
     const defaultToolbarContents = useCallback(
         () => <MarkdownFormatToolbarControls overlayContainer={overlayContainer} placeholders={placeholders} />,
         [overlayContainer, placeholders],
@@ -290,7 +292,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         ...(hideToolbar ? [] : [toolbarPlugin({ toolbarContents })]),
         markdownPlaceholderPlugin({ overlayContainer, placeholders }),
         markdownFileSearchPlugin({ overlayContainer, repositoryFiles }),
-        markdownPastePlugin({ insertMarkdown }),
+        markdownPastePlugin({ getSelectionMarkdown, insertMarkdown, readOnly }),
         ...(historyPlugin ? [historyPlugin] : []),
     ]
 

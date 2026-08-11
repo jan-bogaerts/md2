@@ -155,7 +155,7 @@ function openTreeBranches(treeElement: HTMLElement, branchNames: string[]) {
     for (const branchName of branchNames) {
         const branchButton = tree.queryByRole('button', { name: new RegExp(`^${branchName} \\d+$`, 'u') })
         const treeItem = branchButton?.closest('[role="treeitem"]')
-        if (treeItem?.getAttribute('aria-expanded') === 'false') fireEvent.click(branchButton)
+        if (branchButton && treeItem?.getAttribute('aria-expanded') === 'false') fireEvent.click(branchButton)
     }
 }
 

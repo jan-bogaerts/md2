@@ -3,7 +3,7 @@ author:
 id: F_168
 internalId: 32276926-4cff-486d-88bb-a98fbe1bfd8a
 title: copy as markdown
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

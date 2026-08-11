@@ -1,5 +1,5 @@
 import { Stack, Typography } from '@mui/material'
-import { useLayoutEffect, useRef, type UIEvent } from 'react'
+import { useLayoutEffect, useRef, useState, type UIEvent } from 'react'
 import type { AgentConversation } from '../../../data/data_types'
 import type { PopupRunStatus } from '../run/popup/action_popup_defaults'
 import { ActionConversationEventRow } from './action_conversation_event_row'
@@ -8,6 +8,12 @@ import { actionStatusLabel } from '../shared/action_status'
 import { ConversationTimer } from './conversation_timer'
 import { buildActionConversationRenderGroups } from './action_conversation_render_groups'
 import { CompletedToolCallGroup } from './completed_tool_call_group'
+import {
+    createActionConversationReservationState,
+    reservedActionConversationBlockCount,
+    updateActionConversationReservation,
+} from './action_conversation_reservation'
+import { ActionConversationReservedBlock } from './action_conversation_reserved_block'
 
 const CHAT_END_TOLERANCE = 4
 const MIN_CHAT_HEIGHT = 96
@@ -42,6 +48,16 @@ export function ActionConversationChat({ conversation, status }: ActionConversat
     const viewportRef = useRef<HTMLDivElement>(null)
     const conversationPathRef = useRef<string | null | undefined>(undefined)
     const stuckToEndRef = useRef(true)
+    const conversationPath = conversation?.path ?? null
+    const [reservationState, setReservationState] = useState(() => updateActionConversationReservation(
+        createActionConversationReservationState(),
+        conversationPath,
+        groups,
+        status,
+    ))
+    const nextReservationState = updateActionConversationReservation(reservationState, conversationPath, groups, status)
+    if (nextReservationState !== reservationState) setReservationState(nextReservationState)
+    const reservedBlockCount = reservedActionConversationBlockCount(nextReservationState)
 
     const handleScroll = (event: UIEvent<HTMLDivElement>) => {
         stuckToEndRef.current = viewportIsAtEnd(event.currentTarget)
@@ -80,6 +96,9 @@ export function ActionConversationChat({ conversation, status }: ActionConversat
 
                 return <ActionConversationEventRow entry={entry} grouped={false} key={group.key} />
             })}
+            {Array.from({ length: reservedBlockCount }, (_, index) => (
+                <ActionConversationReservedBlock key={`reserved-block-${index}`} />
+            ))}
             {status !== 'idle' ? (
                 <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexShrink: 0 }}>
                     <Typography color={status === 'failed' ? 'error.main' : 'text.secondary'} role="status" variant="caption">
