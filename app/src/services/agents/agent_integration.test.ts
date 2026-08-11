@@ -290,6 +290,113 @@ describe('AgentIntegration', () => {
         expect(card && cardAgentState(card.agentConversations)).not.toBe('waiting for input')
     })
 
+    it('loads persisted terminal conversation instead of reusing repaired project-load snapshot', async () => {
+        configService.init()
+        let actionRunCallback: ((event: ActionRunEvent) => void) | null = null
+        window.md2Actions = {
+            onActionRun: (callback: (event: ActionRunEvent) => void) => {
+                actionRunCallback = callback
+
+                return vi.fn()
+            },
+        } as unknown as typeof window.md2Actions
+        const activityPath = 'design/activity/card__root-card.json'
+        const reference = `${activityPath}#conversation=agent-1`
+        const cardFile: MarkdownFile = {
+            content: `---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - ${reference}\n---\n\n# Root`,
+            path: 'design/F-1-root.md',
+        }
+        const repairedConversation = {
+            ...conversation(reference),
+            completedAt: null,
+            entries: [{ content: 'old', id: 'old', kind: 'message' as const, role: 'assistant' as const, timestamp: '2026-01-01T00:01:00.000Z' }],
+            status: 'running' as const,
+        }
+        const persistedConversation = {
+            ...conversation(reference),
+            entries: [{ content: 'new', id: 'new', kind: 'message' as const, role: 'assistant' as const, timestamp: '2026-01-01T00:02:00.000Z' }],
+        }
+        const activityContent = JSON.stringify({
+            actionSettings: {},
+            conversations: [repairedConversation],
+            origin: { cardInternalId: 'root-card', kind: 'card' },
+            records: [],
+            version: 4,
+        })
+        const storage = createStorage({
+            listRepositoryFiles: vi.fn(async () => [cardFile.path, activityPath]),
+            loadAgentConversation: vi.fn(async () => persistedConversation),
+            loadProject: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
+            loadTextFile: vi.fn(async () => ({ content: activityContent, path: activityPath })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await vi.waitFor(() => {
+            expect(service.getState().snapshot?.activeCards[0].agentConversations).toEqual([
+                expect.objectContaining({ entries: repairedConversation.entries, status: 'running' }),
+            ])
+        })
+        expect(storage.loadAgentConversation).not.toHaveBeenCalled()
+        if (!actionRunCallback) throw new Error('Action run callback not registered')
+        const emitActionRun = actionRunCallback as (event: ActionRunEvent) => void
+
+        emitActionRun({
+            actionId: 'implement',
+            context: { cardInternalId: 'root-card', file: cardFile.path, kind: 'card' },
+            phase: 'main',
+            reference,
+            rootActionId: 'implement',
+            runId: 'action-1',
+            runWorktree: null,
+            status: 'completed',
+            type: 'action',
+        })
+
+        await vi.waitFor(() => expect(storage.loadAgentConversation).toHaveBeenCalledTimes(1))
+        await vi.waitFor(() => {
+            expect(service.getState().snapshot?.activeCards[0].agentConversations).toEqual([persistedConversation])
+        })
+    })
+
+    it('keeps newer inserted conversation when delayed project load returns same ID', async () => {
+        configService.init()
+        const reference = 'design/activity/card__root-card.json#conversation=agent-1'
+        const cardFile: MarkdownFile = {
+            content: `---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - ${reference}\n---\n\n# Root`,
+            path: 'design/F-1-root.md',
+        }
+        const delayedConversationLoad = createDeferred<AgentConversation>()
+        const storage = createStorage({
+            loadAgentConversation: vi.fn(async () => delayedConversationLoad.promise),
+            loadProject: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await vi.waitFor(() => expect(storage.loadAgentConversation).toHaveBeenCalledTimes(1))
+        const newerConversation = {
+            ...conversation(reference),
+            entries: [{ content: 'new', id: 'new', kind: 'message' as const, role: 'assistant' as const, timestamp: '2026-01-01T00:02:00.000Z' }],
+        }
+        service.agents.updateAgentConversation(newerConversation)
+
+        delayedConversationLoad.resolve({
+            ...conversation(reference),
+            completedAt: null,
+            entries: [{ content: 'old', id: 'old', kind: 'message', role: 'assistant', timestamp: '2026-01-01T00:01:00.000Z' }],
+            status: 'running',
+        })
+
+        await waitForWorkerTurn()
+        await waitForWorkerTurn()
+        expect(service.getState().snapshot?.activeCards[0].agentConversations).toEqual([newerConversation])
+    })
+
     it('automatically loads conversations only for active cards', async () => {
         configService.init()
         const activeFile: MarkdownFile = {

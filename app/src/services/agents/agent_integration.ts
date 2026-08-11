@@ -61,8 +61,8 @@ function isOnStateActionError(error: AgentConversationError) {
 }
 
 function mergeAgentConversations(existing: AgentConversation[], loaded: AgentConversation[]) {
-    const conversationsById = new Map(existing.map((conversation) => [conversation.id, conversation]))
-    loaded.forEach((conversation) => conversationsById.set(conversation.id, conversation))
+    const conversationsById = new Map(loaded.map((conversation) => [conversation.id, conversation]))
+    existing.forEach((conversation) => conversationsById.set(conversation.id, conversation))
 
     return [...conversationsById.values()]
 }
@@ -71,20 +71,28 @@ function cardsForAgentConversationLoading(snapshot: ProjectSnapshot) {
     return snapshot.activeCards
 }
 
-async function loadAgentConversationReference(
-    task: AgentConversationLoadTask,
+async function resolveProjectLoadConversation(
+    reference: string,
     project: ProjectReference,
     storage: StorageService,
     conversationsByReference: Map<string, AgentConversation>,
     knownActivityPaths: Set<string>,
+): Promise<AgentConversation> {
+    const { activityPath } = parseConversationActivityReference(reference)
+    const repairedConversation = conversationsByReference.get(reference)
+    if (knownActivityPaths.has(activityPath) && !repairedConversation) {
+        throw new Error(`Activity conversation not found: ${reference}`)
+    }
+
+    return repairedConversation ?? loadAgentConversation(storage, project, reference)
+}
+
+async function loadAgentConversationReference(
+    task: AgentConversationLoadTask,
+    conversationLoad: Promise<AgentConversation>,
 ): Promise<AgentConversationLoadResult> {
     try {
-        const { activityPath } = parseConversationActivityReference(task.reference)
-        const repairedConversation = conversationsByReference.get(task.reference)
-        if (knownActivityPaths.has(activityPath) && !repairedConversation) {
-            throw new Error(`Activity conversation not found: ${task.reference}`)
-        }
-        const conversation = repairedConversation ?? await loadAgentConversation(storage, project, task.reference)
+        const conversation = await conversationLoad
         if (conversation.cardInternalId !== task.cardInternalId) {
             throw new Error(`Agent conversation belongs to ${conversation.cardInternalId}, not ${task.cardInternalId}`)
         }
@@ -123,7 +131,10 @@ async function resolveAgentConversations(
         }))
     })
     const results = await mapWithConcurrency(tasks, AGENT_CONVERSATION_LOAD_CONCURRENCY, async (task) => (
-        loadAgentConversationReference(task, project, storage, conversationsByReference, knownActivityPaths)
+        loadAgentConversationReference(
+            task,
+            resolveProjectLoadConversation(task.reference, project, storage, conversationsByReference, knownActivityPaths),
+        )
     ))
 
     for (const result of results) {
@@ -253,10 +264,7 @@ export class AgentIntegration {
         const { storage } = this.dependencies.requireDependencies()
         const result = await loadAgentConversationReference(
             { cardInternalId, cardPath, reference },
-            project,
-            storage,
-            this.repairedConversationsByReference,
-            this.repairedActivityPaths,
+            loadAgentConversation(storage, project, reference),
         )
         if (result.error) {
             const errors = [...(this.errorsByCardPath.get(cardPath) ?? []), result.error]
@@ -272,27 +280,34 @@ export class AgentIntegration {
     async loadAgentConversationsInBackground(snapshot: ProjectSnapshot, project: ProjectReference, projectLoadToken: number) {
         this.prepareProjectConversationLoad(projectLoadToken)
         try {
-            await this.repairProjectActivity(snapshot, project, projectLoadToken)
-        } catch (error) {
-            dialogService.warning('Activity files could not be repaired and agent conversations were skipped.', { title: 'Activity repair failed' })
-            telemetryService.captureError(error)
-            return
+            try {
+                await this.repairProjectActivity(snapshot, project, projectLoadToken)
+            } catch (error) {
+                dialogService.warning('Activity files could not be repaired and agent conversations were skipped.', { title: 'Activity repair failed' })
+                telemetryService.captureError(error)
+                return
+            } finally {
+                this.completeActivityRepair?.()
+                this.completeActivityRepair = null
+            }
+            if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
+            const cards = cardsForAgentConversationLoading(snapshot)
+
+            const results = await Promise.allSettled([
+                this.ensureProjectAgentConversationsLoaded(project, projectLoadToken),
+                this.ensureCardGroupLoaded(cards, project, projectLoadToken),
+            ])
+            for (const result of results) {
+                if (result.status !== 'rejected') continue
+
+                dialogService.warning('Agent conversations could not be loaded and were skipped.', { title: 'Some agent conversations were not loaded' })
+                telemetryService.captureError(result.reason)
+            }
         } finally {
-            this.completeActivityRepair?.()
-            this.completeActivityRepair = null
-        }
-        if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
-        const cards = cardsForAgentConversationLoading(snapshot)
-
-        const results = await Promise.allSettled([
-            this.ensureProjectAgentConversationsLoaded(project, projectLoadToken),
-            this.ensureCardGroupLoaded(cards, project, projectLoadToken),
-        ])
-        for (const result of results) {
-            if (result.status !== 'rejected') continue
-
-            dialogService.warning('Agent conversations could not be loaded and were skipped.', { title: 'Some agent conversations were not loaded' })
-            telemetryService.captureError(result.reason)
+            if (this.currentProjectLoadToken === projectLoadToken) {
+                this.repairedConversationsByReference = new Map()
+                this.repairedActivityPaths = new Set()
+            }
         }
     }
 
