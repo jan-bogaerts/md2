@@ -22,6 +22,7 @@ import {
     validatePermissionMode,
     validateThinkingLevel,
     type PermissionMode,
+    type ThinkingLevel,
 } from '../../../data/agent_profiles'
 import type { ActionRun } from '../../../services/actions/action_run_registry'
 import type { ActionRunSettingsStore } from '../../../services/actions/action_run_settings_service'
@@ -38,6 +39,14 @@ const PERMISSION_MODE_COLORS: Record<PermissionMode, string> = {
     'ask-for-approval': 'success.main',
     'approve-for-me': 'warning.main',
     'full-access': 'error.main',
+}
+
+const COMPACT_THINKING_LEVEL_LABELS: Record<ThinkingLevel, string> = {
+    high: 'h',
+    low: 'l',
+    max: 'max',
+    medium: 'm',
+    none: 'none',
 }
 
 function selectRunStatus(run: ActionRun | null) {
@@ -117,13 +126,35 @@ export function ActionAgentSelectors(props: ActionAgentSelectorsProps) {
                 onClick={handleOpenModelMenu}
                 size="small"
                 sx={{
-                    borderColor: 'divider', color: 'text.secondary', flexShrink: 1, fontSize: 12, height: 28,
+                    borderColor: 'divider', color: 'text.secondary', flexShrink: 1, fontSize: 12, gap: 0.5, height: 28,
                     justifyContent: 'flex-start', minWidth: 0, overflow: 'hidden', px: 1, textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap', '&:hover': { borderColor: 'primary.main', color: 'primary.main' },
                 }}
                 variant="outlined"
             >
-                {settings.model || 'Default'} {settings.thinkingLevel}
+                <Box
+                    component="span"
+                    data-model-label
+                    sx={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                >
+                    {settings.model || 'Default'}
+                </Box>
+                <Box component="span" data-thinking-level sx={{ flexShrink: 0 }}>
+                    <Box
+                        component="span"
+                        data-full-thinking-level
+                        sx={{ '@container (max-width: 420px)': { display: 'none' } }}
+                    >
+                        {settings.thinkingLevel}
+                    </Box>
+                    <Box
+                        component="span"
+                        data-compact-thinking-level
+                        sx={{ display: 'none', '@container (max-width: 420px)': { display: 'inline' } }}
+                    >
+                        {COMPACT_THINKING_LEVEL_LABELS[settings.thinkingLevel]}
+                    </Box>
+                </Box>
             </Button>
             <Tooltip title={securityTooltip}>
                 <span>

@@ -118,85 +118,91 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
             data-testid="action-popup-bottom-row"
             data-embedded={embedded ? 'true' : undefined}
             sx={{
-                alignItems: 'center', bgcolor: embedded ? 'background.paper' : 'background.default', borderColor: 'divider',
-                containerType: 'inline-size', display: 'flex', flexShrink: 0, gap: 1,
-                justifyContent: 'space-between', px: embedded ? 1 : 2, pb: embedded ? 1 : 1.5, pt: embedded ? 0 : 1.5,
-                '@container (max-width: 420px)': {
-                    display: 'grid',
-                    gridTemplateColumns: 'minmax(0, 1fr) auto',
-                    '& [data-footer-usage]': { gridColumn: '1 / -1', gridRow: 2 },
-                },
+                bgcolor: embedded ? 'background.paper' : 'background.default', borderColor: 'divider',
+                containerType: 'inline-size', flexShrink: 0, px: embedded ? 1 : 2,
+                pb: embedded ? 1 : 1.5, pt: embedded ? 0 : 1.5,
             }}
         >
-            <Box data-footer-selectors sx={{ justifySelf: 'start', minWidth: 158, overflow: 'hidden' }}>
-                {action.type === 'agent' ? (
-                    <ActionAgentSelectors action={action} context={assignmentContext} settingsStore={settingsStore} />
-                ) : null}
-            </Box>
-            <Box data-footer-usage sx={{ justifySelf: 'center', minWidth: 235, justifyItems: 'center' }}>
-                <ActionUsageSummaryOwner
-                    action={action}
-                    context={assignmentContext}
-                    conversationStore={conversationStore}
-                    historyStore={historyStore}
-                    scopeStore={usageScopeStore}
-                />
-            </Box>
             <Box
-                data-footer-controls
-                sx={{ alignItems: 'center', display: 'flex', gap: 1, justifyContent: 'flex-end', justifySelf: 'end', minWidth: 64 }}
+                data-footer-layout
+                sx={{
+                    alignItems: 'center', display: 'flex', gap: 1, justifyContent: 'space-between', minWidth: 0, width: '100%',
+                    '@container (max-width: 420px)': {
+                        '& [data-footer-selectors]': { minWidth: 0 },
+                        '& [data-footer-usage]': { minWidth: 0 },
+                    },
+                }}
             >
-                {showFinish ? (
-                    <ActionPopupFinishButton
-                        disabled={!settings.backendAvailable || (sessionActive && !interactionReady)}
-                        onFinish={handleFinish}
-                        onStop={handleCancel}
+                <Box data-footer-selectors sx={{ flexShrink: 1, minWidth: 158, overflow: 'hidden' }}>
+                    {action.type === 'agent' ? (
+                        <ActionAgentSelectors action={action} context={assignmentContext} settingsStore={settingsStore} />
+                    ) : null}
+                </Box>
+                <Box data-footer-usage sx={{ display: 'flex', flexShrink: 1, justifyContent: 'center', minWidth: 235, overflow: 'hidden' }}>
+                    <ActionUsageSummaryOwner
+                        action={action}
+                        context={assignmentContext}
+                        conversationStore={conversationStore}
+                        historyStore={historyStore}
+                        scopeStore={usageScopeStore}
                     />
-                ) : null}
-                {showSchedule ? (
-                    <Tooltip title="Schedule">
-                        <span>
-                            <IconButton
-                                aria-label="Schedule"
-                                disabled={!settings.backendAvailable}
-                                onClick={handleToggleSchedule}
+                </Box>
+                <Box
+                    data-footer-controls
+                    sx={{ alignItems: 'center', display: 'flex', flexShrink: 0, gap: 1, justifyContent: 'flex-end', minWidth: 64 }}
+                >
+                    {showFinish ? (
+                        <ActionPopupFinishButton
+                            disabled={!settings.backendAvailable || (sessionActive && !interactionReady)}
+                            onFinish={handleFinish}
+                            onStop={handleCancel}
+                        />
+                    ) : null}
+                    {showSchedule ? (
+                        <Tooltip title="Schedule">
+                            <span>
+                                <IconButton
+                                    aria-label="Schedule"
+                                    disabled={!settings.backendAvailable}
+                                    onClick={handleToggleSchedule}
+                                    size="small"
+                                >
+                                    <CalendarOutline sx={{ fontSize: 18 }} />
+                                </IconButton>
+                            </span>
+                        </Tooltip>
+                    ) : null}
+                    {showAgentSend ? (
+                        <Tooltip title="Send">
+                            <span>
+                                <IconButton aria-label="Send" color="primary" disabled={runDisabled} onClick={handlePrimaryRun} size="small">
+                                    <ArrowUpwardOutlined sx={{ fontSize: 18 }} />
+                                </IconButton>
+                            </span>
+                        </Tooltip>
+                    ) : showCommandRun ? (
+                        <Tooltip title="Run">
+                            <Button
+                                disabled={runDisabled}
+                                onClick={handlePrimaryRun}
                                 size="small"
+                                startIcon={<Play sx={{ fontSize: '13px !important' }} />}
+                                sx={{ height: 34, px: 2 }}
+                                variant="contained"
                             >
-                                <CalendarOutline sx={{ fontSize: 18 }} />
-                            </IconButton>
-                        </span>
-                    </Tooltip>
-                ) : null}
-                {showAgentSend ? (
-                    <Tooltip title="Send">
-                        <span>
-                            <IconButton aria-label="Send" color="primary" disabled={runDisabled} onClick={handlePrimaryRun} size="small">
-                                <ArrowUpwardOutlined sx={{ fontSize: 18 }} />
-                            </IconButton>
-                        </span>
-                    </Tooltip>
-                ) : showCommandRun ? (
-                    <Tooltip title="Run">
-                        <Button
-                            disabled={runDisabled}
-                            onClick={handlePrimaryRun}
-                            size="small"
-                            startIcon={<Play sx={{ fontSize: '13px !important' }} />}
-                            sx={{ height: 34, px: 2 }}
-                            variant="contained"
-                        >
-                            Run
-                        </Button>
-                    </Tooltip>
-                ) : showStop ? (
-                    <Tooltip title="Stop">
-                        <span>
-                            <IconButton aria-label="Stop" disabled={!settings.backendAvailable} onClick={handleCancel} size="small">
-                                <StopOutlined sx={{ fontSize: 18 }} />
-                            </IconButton>
-                        </span>
-                    </Tooltip>
-                ) : null}
+                                Run
+                            </Button>
+                        </Tooltip>
+                    ) : showStop ? (
+                        <Tooltip title="Stop">
+                            <span>
+                                <IconButton aria-label="Stop" disabled={!settings.backendAvailable} onClick={handleCancel} size="small">
+                                    <StopOutlined sx={{ fontSize: 18 }} />
+                                </IconButton>
+                            </span>
+                        </Tooltip>
+                    ) : null}
+                </Box>
             </Box>
         </Box>
     )
