@@ -11,8 +11,6 @@ agents:
   - design/activity/card__615b2a1f-55c2-4113-b1ac-589ae3474ae2.json#conversation=agent-e09ca699-20a7-4d8a-a3ab-437f64c06105
 policy:
 after: bbf61e6e-adfa-46ee-a2f4-040b8152bc4b
-branch: f_155_auto_check_for_newer_version
-worktree: 3
 ---
 The app is released on github in a public repository. this can normally be checked for new vesions.
 
