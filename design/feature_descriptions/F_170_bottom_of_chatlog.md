@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: c7fd4558-b1b2-4b60-82c0-b3c1db400479
 ---
 
 On the action popup, when the agent is running. We get a lot of 'reasoning' boxes which disapear when done. There are also lots of toolcalls which combine into 1 box. This results in the bottom of the chatlog that continuously jumps: boxes popup and go away making the whole chatlog move.
