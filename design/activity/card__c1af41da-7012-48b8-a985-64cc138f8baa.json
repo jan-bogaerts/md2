@@ -5,7 +5,7 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": "c1af41da-7012-48b8-a985-64cc138f8baa",
       "cardPath": "design/feature_descriptions/B_109_bad_log_activity_reload.md",
-      "completedAt": null,
+      "completedAt": "2026-08-11T18:01:14.481Z",
       "entries": [
         {
           "content": "We recently had this bug: design/feature_descriptions/B_109_bad_log_activity_reload.md\n\nwhile running an agent that was working in the main project folder. We had it multiple times.",
@@ -1433,7 +1433,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 102,
-          "timestamp": "2026-08-11T17:29:50.397Z"
+          "timestamp": "2026-08-11T18:01:14.481Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1443,14 +1443,14 @@
           "agent": "codex",
           "conversationId": "019ff1d4-2b9e-71e1-8781-737ea36e939f",
           "createdAt": "2026-08-11T17:17:28.216Z",
-          "lastUsedAt": "2026-08-11T17:29:50.397Z",
+          "lastUsedAt": "2026-08-11T18:01:14.481Z",
           "synchronizedThroughMessageId": "agent-turn-a3852c34-aeba-4dcc-b85a-e87a45f12730-turn-2-assistant-5"
         }
       ],
       "startedAt": "2026-08-11T17:17:21.029Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "title": "+",
-      "viewed": false,
+      "viewed": true,
       "usage": {
         "cachedInputTokens": 142848,
         "inputTokens": 152680,
