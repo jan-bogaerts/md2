@@ -10,6 +10,7 @@ agents:
   - design/activity/card__12b91511-c445-404c-afcb-bdaf300ef50b.json#conversation=agent-478a6c11-661d-4474-9e99-1f39d2d74fc9
   - design/activity/card__12b91511-c445-404c-afcb-bdaf300ef50b.json#conversation=agent-41e42698-ccb3-44b5-943e-6f785159d307
 policy:
+after: c1af41da-7012-48b8-a985-64cc138f8baa
 ---
 
 On mobile borwser, the action popup goes to full height, as if the top bar of the browser is hidden, but it isnt which results in the bottom of the input not visible.

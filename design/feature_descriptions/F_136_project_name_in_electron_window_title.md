@@ -3,14 +3,14 @@ author:
 id: F_136
 internalId: 4aa237a7-a946-4ce7-84ba-962826a44dfa
 title: project name in electron window title
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__4aa237a7-a946-4ce7-84ba-962826a44dfa.json#conversation=agent-fbb8c5ed-f874-4efa-a462-017bd6519a18
   - design/activity/card__4aa237a7-a946-4ce7-84ba-962826a44dfa.json#conversation=agent-51667e03-d5b6-441f-b3cb-7a29d4ec3c82
 policy:
-after: f63b1866-ff7a-4fe9-b984-06cf1284f74e
+after: 12b91511-c445-404c-afcb-bdaf300ef50b
 branch: f_136_project_name_in_electron_window_title
 worktree: 1
 ---

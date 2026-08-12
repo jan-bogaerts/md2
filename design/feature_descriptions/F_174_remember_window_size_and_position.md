@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: bee2d3c7-81e1-451a-bc4d-d4ba59c849e9
 ---
 
 When the electron app closes, we should save the window state, position and size so we can restore the settings when the app starts the next time.

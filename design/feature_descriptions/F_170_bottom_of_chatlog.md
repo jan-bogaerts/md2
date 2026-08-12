@@ -10,6 +10,7 @@ agents:
   - design/activity/card__012efbb1-c938-4539-a646-0f263e72dea6.json#conversation=agent-465b2d60-e4cf-44ac-867b-2651c3acdba2
   - design/activity/card__012efbb1-c938-4539-a646-0f263e72dea6.json#conversation=agent-516ae5d4-080a-4c57-8d02-bc767bdc6391
 policy:
+after: d7bd3d2f-ec5c-4025-879a-5a715e2b4ffc
 ---
 
 On the action popup, when the agent is running. We get a lot of 'reasoning' boxes which disapear when done. There are also lots of toolcalls which combine into 1 box. This results in the bottom of the chatlog that continuously jumps: boxes popup and go away making the whole chatlog move.
