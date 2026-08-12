@@ -3,7 +3,7 @@ author:
 id: J_27
 internalId: 34581d14-8a7c-4f5c-8cf3-b9137260221d
 title: Markdown editor context menu
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:

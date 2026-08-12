@@ -8,6 +8,5 @@ owner:
 affects:
 agents:
 policy:
-after: 34581d14-8a7c-4f5c-8cf3-b9137260221d
 ---
 To investigate: i think token count on action popup is only at end of conversation updated. I think we can do better and update it while the agent is still running.
