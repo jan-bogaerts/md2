@@ -3,7 +3,7 @@ author:
 id: F_176
 internalId: 6874b231-0cef-4a8a-8b0b-cc91f3daff42
 title: change accept to serve and simplify
-status: new
+status: design
 owner: 
 affects:
 agents:
