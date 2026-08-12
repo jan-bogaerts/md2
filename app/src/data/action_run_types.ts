@@ -1,5 +1,5 @@
 import type { ActionContext } from './action_context'
-import type { AgentConversation, AgentConversationEventEntry, AgentConversationMessageEntry } from './data_types'
+import type { AgentConversation, AgentConversationEventEntry, AgentConversationMessageEntry, AgentTokenUsage } from './data_types'
 import type { PermissionMode, ThinkingLevel } from './agent_profiles'
 import type { ActionAutoFinish, ActionType } from './action_types'
 
@@ -151,6 +151,10 @@ export type ActionRunUpdate =
     | {
         event: AgentConversationEventEntry
         kind: 'agentEvent'
+    }
+    | {
+        kind: 'agentUsage'
+        usage: AgentTokenUsage
     }
     | {
         command?: string

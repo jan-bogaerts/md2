@@ -606,6 +606,9 @@ export class ActionRunRegistry extends EventTarget {
                 },
             }
         }
+        if (event.type === 'update' && event.update.kind === 'agentUsage' && next.conversation) {
+            next = { ...next, conversation: { ...next.conversation, usage: event.update.usage } }
+        }
         if (event.type === 'update' && event.update.kind === 'agentQuestion') {
             next = {
                 ...next,
@@ -664,7 +667,12 @@ export class ActionRunRegistry extends EventTarget {
                 : next.conversation
             next = { ...next, conversation, logs: updateOutputLogs(next.logs, event, event.update) }
         }
-        if (event.type === 'update' && event.update.kind !== 'agentClosed' && next.conversation) {
+        if (
+            event.type === 'update'
+            && event.update.kind !== 'agentClosed'
+            && event.update.kind !== 'agentUsage'
+            && next.conversation
+        ) {
             next = {
                 ...next,
                 conversation: { ...next.conversation, status: conversationStatus(event.status) },

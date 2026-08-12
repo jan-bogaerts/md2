@@ -450,6 +450,11 @@ class ActionRun {
                 this.publish(action, phase, 'running', { type: 'update', update });
                 return;
             }
+            if (agentEvent.type === 'usage') {
+                const update = { kind: 'agentUsage', usage: agentEvent.usage };
+                this.publish(action, phase, 'running', { type: 'update', update });
+                return;
+            }
 
             const update = {
                 content: agentEvent.content,

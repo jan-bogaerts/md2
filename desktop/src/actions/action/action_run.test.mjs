@@ -531,6 +531,10 @@ describe('ActionRun', () => {
                 input.onEvent({ continued: false, conversation: runningConversation, type: 'started' });
                 input.onEvent({ content: 'chunk', messageId: 'assistant-1', sequence: 2, type: 'output' });
                 input.onEvent({
+                    type: 'usage',
+                    usage: { cachedInputTokens: 1, inputTokens: 2, outputTokens: 3, reasoningTokens: 4, totalTokens: 10 },
+                });
+                input.onEvent({
                     event: {
                         content: 'running', id: 'activity-1', label: 'Command', providerItemId: 'command-1',
                         sequence: 3, status: 'inProgress', timestamp: 'now', type: 'commandExecution',
@@ -559,6 +563,14 @@ describe('ActionRun', () => {
             status: 'running',
             type: 'update',
             update: { content: 'chunk', kind: 'output', messageId: 'assistant-1', sequence: 2 },
+        }));
+        expect(events).toContainEqual(expect.objectContaining({
+            status: 'running',
+            type: 'update',
+            update: {
+                kind: 'agentUsage',
+                usage: { cachedInputTokens: 1, inputTokens: 2, outputTokens: 3, reasoningTokens: 4, totalTokens: 10 },
+            },
         }));
         expect(events).toContainEqual(expect.objectContaining({
             status: 'completed',

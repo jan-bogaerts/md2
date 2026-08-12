@@ -299,7 +299,10 @@ class CodexStreamingAdapter {
             return;
         }
         if (method === 'thread/tokenUsage/updated') {
-            this.turnUsage = codexUsage(params);
+            const usage = codexUsage(params);
+            if (!usage) return;
+            this.turnUsage = usage;
+            await this.onEvent({ type: 'usage', usage });
             return;
         }
         if (method === 'account/rateLimits/updated') {

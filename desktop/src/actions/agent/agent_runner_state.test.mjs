@@ -140,6 +140,102 @@ describe('AgentRunnerService state handling', () => {
         }));
     });
 
+    it('replaces live turn usage and commits the latest snapshot once at turn completion', async () => {
+        const persistConversationCheckpoint = vi.fn(async () => undefined);
+        const service = new AgentRunnerService({ persistConversationCheckpoint });
+        const onEvent = vi.fn();
+        const persistedUsage = {
+            cachedInputTokens: 1,
+            inputTokens: 4,
+            outputTokens: 3,
+            reasoningTokens: 2,
+            totalTokens: 10,
+        };
+        const firstSnapshot = {
+            cachedInputTokens: 0,
+            inputTokens: 3,
+            outputTokens: 2,
+            reasoningTokens: 0,
+            totalTokens: 5,
+        };
+        const latestSnapshot = { ...firstSnapshot, inputTokens: 5, totalTokens: 7 };
+        const run = {
+            agent: 'codex',
+            conversation: {
+                entries: [{ content: 'Done', id: 'assistant-1', kind: 'message', role: 'assistant', timestamp: 'now' }],
+                providerSessions: [],
+                status: 'running',
+                usage: persistedUsage,
+            },
+            currentAssistantMessageId: 'assistant-1',
+            finishing: false,
+            id: 'run-1',
+            liveTurnUsage: null,
+            missingSession: false,
+            nextSequence: 2,
+            onEvent,
+            pendingApprovals: new Map(),
+            persistence: Promise.resolve(),
+            providerConversationId: 'provider-1',
+            queuedMessage: null,
+            request: {},
+            streaming: true,
+            turnActive: true,
+            turnIndex: 1,
+            waitingForQuestion: false,
+        };
+        service.processes.set('run-1', run);
+
+        await service.handleStreamingEvent('run-1', { type: 'usage', usage: firstSnapshot });
+        await service.handleStreamingEvent('run-1', { type: 'usage', usage: latestSnapshot });
+
+        expect(run.conversation.usage).toEqual(persistedUsage);
+        expect(onEvent).toHaveBeenNthCalledWith(1, expect.objectContaining({ type: 'usage', usage: expect.objectContaining({ totalTokens: 15 }) }));
+        expect(onEvent).toHaveBeenNthCalledWith(2, expect.objectContaining({ type: 'usage', usage: expect.objectContaining({ totalTokens: 17 }) }));
+
+        await service.handleStreamingEvent('run-1', { type: 'turnCompleted', usage: latestSnapshot });
+
+        expect(run.conversation.usage).toEqual(expect.objectContaining({ totalTokens: 17 }));
+        expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'usage', usage: expect.objectContaining({ totalTokens: 17 }) }));
+        const expectedConversation = expect.objectContaining({ usage: expect.objectContaining({ totalTokens: 17 }) });
+        expect(persistConversationCheckpoint).toHaveBeenCalledWith(expect.objectContaining({ conversation: expectedConversation }));
+    });
+
+    it('does not persist an unconfirmed live snapshot when the streaming turn fails', async () => {
+        const service = new AgentRunnerService({ terminateProcessTree: vi.fn(async () => true) });
+        const persistedUsage = {
+            cachedInputTokens: 0,
+            inputTokens: 10,
+            outputTokens: 0,
+            reasoningTokens: 0,
+            totalTokens: 10,
+        };
+        const run = {
+            child: { stdin: { end: vi.fn() } },
+            conversation: { entries: [], status: 'running', usage: persistedUsage },
+            id: 'run-1',
+            liveTurnUsage: null,
+            nextSequence: 1,
+            onEvent: vi.fn(),
+            queuedMessage: null,
+            secretValues: new Set(),
+            stderr: '',
+            streamingFailure: null,
+            termination: null,
+            waitingForQuestion: false,
+        };
+        service.processes.set('run-1', run);
+
+        await service.handleStreamingEvent('run-1', {
+            type: 'usage',
+            usage: { cachedInputTokens: 0, inputTokens: 5, outputTokens: 0, reasoningTokens: 0, totalTokens: 5 },
+        });
+        service.failStreamingRun(run, new Error('Turn failed'));
+
+        expect(run.conversation.usage).toBe(persistedUsage);
+        expect(run.liveTurnUsage).toEqual(expect.objectContaining({ totalTokens: 5 }));
+    });
+
     it('keeps streaming process stderr out of canonical conversation entries', () => {
         const service = new AgentRunnerService();
         const run = {

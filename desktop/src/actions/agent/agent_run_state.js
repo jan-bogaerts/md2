@@ -71,6 +71,7 @@ function createRun({
         onCompletionError,
         onEvent,
         interactionWrites: Promise.resolve(),
+        liveTurnUsage: null,
         pendingQuestions: [],
         pendingApprovals: new Map(),
         persistence: Promise.resolve(),

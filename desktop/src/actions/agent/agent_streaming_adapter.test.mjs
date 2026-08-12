@@ -444,6 +444,7 @@ describe('CodexStreamingAdapter', () => {
             method: 'thread/tokenUsage/updated',
             params: { tokenUsage: { last } },
         });
+        await adapter.handleMessage({ method: 'thread/tokenUsage/updated', params: {} });
         await adapter.handleMessage({
             method: 'item/started',
             params: { item: { changes: [{ diff: '', kind: 'update', path: 'design\\feature.md' }], id: 'file-1', status: 'inProgress', type: 'fileChange' } },
@@ -462,6 +463,11 @@ describe('CodexStreamingAdapter', () => {
         expect(events).toContainEqual({ content: '\n\n', itemId: 'message-1', type: 'assistant' });
         expect(events).toContainEqual({ paths: ['design/feature.md'], type: 'changedPaths' });
         expect(events).toContainEqual({ questions, requestId: 99, type: 'question' });
+        expect(events).toContainEqual({
+            type: 'usage',
+            usage: { cachedInputTokens: 2, inputTokens: 4, outputTokens: 3, reasoningTokens: 1, totalTokens: 10 },
+        });
+        expect(events.filter(({ type }) => type === 'usage')).toHaveLength(1);
         expect(events.at(-1)).toMatchObject({
             error: null,
             type: 'turnCompleted',
