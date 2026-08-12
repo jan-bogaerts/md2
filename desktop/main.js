@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, dialog, ipcMain, nativeTheme, shell } = require('electron');
+const { app, BrowserWindow, Menu, clipboard, dialog, ipcMain, nativeTheme, shell } = require('electron');
 const { existsSync } = require('node:fs');
 const https = require('node:https');
 const path = require('node:path');
@@ -26,11 +26,11 @@ const { ActionWorktreeRunService } = require('./src/actions/action/action_worktr
 const { captureError, flush, registerProcessErrorHandlers, startElectronTelemetry, trackEvent } = require('./src/integrations/telemetry');
 const { THEME_MODE_STORE_KEY, resolveThemeMode, resolveTitleBarOverlay } = require('./src/shell/theme');
 const { registerNavigationGuards, resolveRendererStaticDir, resolveRendererTarget } = require('./src/shell/renderer_security');
+const { registerTextContextMenu } = require('./src/shell/text_context_menu');
 const {
     SPELL_CHECKER_LANGUAGES_STORE_KEY,
     applyStoredSpellCheckerLanguages,
     refreshSpellCheck,
-    registerSpellCheckContextMenu,
 } = require('./src/integrations/spellcheck');
 const {
     CONFIG_GET_DESKTOP_CHANNEL,
@@ -243,7 +243,9 @@ function createWindow() {
     registerNavigationGuards(window.webContents, rendererTarget.trustedLocation, (url) => shell.openExternal(url));
     const spellCheckerSession = window.webContents.session;
     applyStoredSpellCheckerLanguages(spellCheckerSession, store.get(SPELL_CHECKER_LANGUAGES_STORE_KEY));
-    registerSpellCheckContextMenu(window.webContents, (template) => Menu.buildFromTemplate(template), {
+    registerTextContextMenu(window.webContents, {
+        buildMenu: (template) => Menu.buildFromTemplate(template),
+        clipboard,
         getActiveLanguages: () => spellCheckerSession.getSpellCheckerLanguages(),
         getAvailableLanguages: () => spellCheckerSession.availableSpellCheckerLanguages,
         setActiveLanguages: (languages) => {

@@ -33,46 +33,30 @@ function buildLanguageSubmenu(availableLanguages, activeLanguages, onSetLanguage
     }));
 }
 
-function buildSpellCheckMenuTemplate(webContents, params, options = {}) {
+function buildSpellCheckMenuSections(webContents, params, options = {}) {
     const { availableLanguages = [], activeLanguages = [], onSetLanguages } = options;
-    const template = [];
+    const correctionItems = [];
+    const languageItems = [];
 
     if (params.misspelledWord) {
         for (const suggestion of params.dictionarySuggestions ?? []) {
-            template.push({ label: suggestion, click: () => webContents.replaceMisspelling(suggestion) });
+            correctionItems.push({ label: suggestion, click: () => webContents.replaceMisspelling(suggestion) });
         }
 
-        if (template.length > 0) template.push({ type: 'separator' });
-        template.push({
+        correctionItems.push({
             label: 'Add to Dictionary',
             click: () => webContents.session.addWordToSpellCheckerDictionary(params.misspelledWord),
         });
     }
 
     if (params.isEditable && onSetLanguages && availableLanguages.length > 0) {
-        if (template.length > 0) template.push({ type: 'separator' });
-        template.push({
+        languageItems.push({
             label: 'Spelling Languages',
             submenu: buildLanguageSubmenu(availableLanguages, activeLanguages, onSetLanguages),
         });
     }
 
-    return template;
-}
-
-function registerSpellCheckContextMenu(webContents, buildMenu, options = {}) {
-    const { getAvailableLanguages, getActiveLanguages, setActiveLanguages } = options;
-
-    webContents.on('context-menu', (_event, params) => {
-        const template = buildSpellCheckMenuTemplate(webContents, params, {
-            activeLanguages: getActiveLanguages?.() ?? [],
-            availableLanguages: getAvailableLanguages?.() ?? [],
-            onSetLanguages: setActiveLanguages,
-        });
-        if (template.length === 0) return;
-
-        buildMenu(template).popup();
-    });
+    return { correctionItems, languageItems };
 }
 
 /**
@@ -114,7 +98,6 @@ module.exports = {
     REFRESH_SPELL_CHECK_SCRIPT,
     SPELL_CHECKER_LANGUAGES_STORE_KEY,
     applyStoredSpellCheckerLanguages,
-    buildSpellCheckMenuTemplate,
+    buildSpellCheckMenuSections,
     refreshSpellCheck,
-    registerSpellCheckContextMenu,
 };

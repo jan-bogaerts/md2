@@ -5,9 +5,8 @@ const require = createRequire(import.meta.url);
 const {
     REFRESH_SPELL_CHECK_SCRIPT,
     applyStoredSpellCheckerLanguages,
-    buildSpellCheckMenuTemplate,
+    buildSpellCheckMenuSections,
     refreshSpellCheck,
-    registerSpellCheckContextMenu,
 } = require('./spellcheck');
 
 function createWebContents() {
@@ -21,32 +20,35 @@ function createWebContents() {
 
 describe('spell check menu template', () => {
     it('is empty when the click is not on a misspelled word', () => {
-        expect(buildSpellCheckMenuTemplate(createWebContents(), { misspelledWord: '', dictionarySuggestions: [] })).toEqual([]);
+        expect(buildSpellCheckMenuSections(createWebContents(), { misspelledWord: '', dictionarySuggestions: [] })).toEqual({
+            correctionItems: [],
+            languageItems: [],
+        });
     });
 
     it('offers suggestions that replace the misspelling and an add-to-dictionary action', () => {
         const webContents = createWebContents();
-        const template = buildSpellCheckMenuTemplate(webContents, {
+        const { correctionItems } = buildSpellCheckMenuSections(webContents, {
             misspelledWord: 'teh',
             dictionarySuggestions: ['the', 'tech'],
         });
 
-        expect(template.map((item) => item.label ?? item.type)).toEqual(['the', 'tech', 'separator', 'Add to Dictionary']);
+        expect(correctionItems.map((item) => item.label)).toEqual(['the', 'tech', 'Add to Dictionary']);
 
-        template[0].click();
+        correctionItems[0].click();
         expect(webContents.replaceMisspelling).toHaveBeenCalledWith('the');
 
-        template[3].click();
+        correctionItems[2].click();
         expect(webContents.session.addWordToSpellCheckerDictionary).toHaveBeenCalledWith('teh');
     });
 
-    it('offers add-to-dictionary without a separator when there are no suggestions', () => {
-        const template = buildSpellCheckMenuTemplate(createWebContents(), {
+    it('offers add-to-dictionary when there are no suggestions', () => {
+        const { correctionItems } = buildSpellCheckMenuSections(createWebContents(), {
             misspelledWord: 'zzz',
             dictionarySuggestions: [],
         }, {});
 
-        expect(template.map((item) => item.label)).toEqual(['Add to Dictionary']);
+        expect(correctionItems.map((item) => item.label)).toEqual(['Add to Dictionary']);
     });
 });
 
@@ -58,8 +60,12 @@ describe('spelling languages submenu', () => {
     };
 
     it('appears for any editable target, even without a misspelled word', () => {
-        const template = buildSpellCheckMenuTemplate(createWebContents(), { misspelledWord: '', isEditable: true }, languageOptions);
-        const languages = template.find((item) => item.label === 'Spelling Languages');
+        const { languageItems } = buildSpellCheckMenuSections(
+            createWebContents(),
+            { misspelledWord: '', isEditable: true },
+            languageOptions,
+        );
+        const languages = languageItems[0];
 
         expect(languages.submenu.map((item) => ({ checked: item.checked, label: item.label }))).toEqual([
             { checked: true, label: 'American English' },
@@ -68,19 +74,23 @@ describe('spelling languages submenu', () => {
     });
 
     it('is omitted for non-editable targets', () => {
-        const template = buildSpellCheckMenuTemplate(createWebContents(), { misspelledWord: '', isEditable: false }, languageOptions);
+        const { languageItems } = buildSpellCheckMenuSections(
+            createWebContents(),
+            { misspelledWord: '', isEditable: false },
+            languageOptions,
+        );
 
-        expect(template).toEqual([]);
+        expect(languageItems).toEqual([]);
     });
 
     it('replaces the checked language rather than adding to it', () => {
         const onSetLanguages = vi.fn();
-        const template = buildSpellCheckMenuTemplate(createWebContents(), { isEditable: true }, {
+        const { languageItems } = buildSpellCheckMenuSections(createWebContents(), { isEditable: true }, {
             activeLanguages: ['en-US'],
             availableLanguages: ['en-US', 'fr'],
             onSetLanguages,
         });
-        const submenu = template[0].submenu;
+        const submenu = languageItems[0].submenu;
 
         expect(submenu.every((item) => item.type === 'radio')).toBe(true);
 
@@ -141,21 +151,5 @@ describe('applying stored spell checker languages', () => {
         applyStoredSpellCheckerLanguages(session, ['xx-YY']);
 
         expect(session.setSpellCheckerLanguages).not.toHaveBeenCalled();
-    });
-});
-
-describe('spell check context menu registration', () => {
-    it('pops up a menu only for misspelled words', () => {
-        const webContents = createWebContents();
-        const popup = vi.fn();
-        const buildMenu = vi.fn(() => ({ popup }));
-        registerSpellCheckContextMenu(webContents, buildMenu);
-
-        webContents.listeners['context-menu']({}, { misspelledWord: '', dictionarySuggestions: [] });
-        expect(buildMenu).not.toHaveBeenCalled();
-
-        webContents.listeners['context-menu']({}, { misspelledWord: 'teh', dictionarySuggestions: ['the'] });
-        expect(buildMenu).toHaveBeenCalledOnce();
-        expect(popup).toHaveBeenCalledOnce();
     });
 });
