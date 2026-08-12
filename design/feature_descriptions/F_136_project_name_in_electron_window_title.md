@@ -11,8 +11,6 @@ agents:
   - design/activity/card__4aa237a7-a946-4ce7-84ba-962826a44dfa.json#conversation=agent-51667e03-d5b6-441f-b3cb-7a29d4ec3c82
 policy:
 after: 12b91511-c445-404c-afcb-bdaf300ef50b
-branch: f_136_project_name_in_electron_window_title
-worktree: 1
 ---
 Put the project name in the electron window title so that users can easily see which project is opened in which instance when hovering the mouse over the windows taskbar
 
