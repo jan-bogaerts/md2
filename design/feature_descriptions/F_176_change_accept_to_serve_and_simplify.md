@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__6874b231-0cef-4a8a-8b0b-cc91f3daff42.json#conversation=agent-0f40322b-6275-497e-bdf8-dc289a1f5383
 policy:
+branch: f_176_change_accept_to_serve_and_simplify
+worktree: 2
 ---
 
 ## Current state
