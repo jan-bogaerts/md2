@@ -1935,11 +1935,11 @@
         "agent-76ae1dd8-2104-48b6-96ac-833486e27796"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-f6a95a6c-2c37-44c8-98b6-e42e056a8b5e",
       "origin": {
@@ -1948,9 +1948,41 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-76ae1dd8-2104-48b6-96ac-833486e27796",
       "startedAt": "2026-08-12T13:55:43.365Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-76ae1dd8-2104-48b6-96ac-833486e27796"
+    },
+    {
+      "commits": [
+        {
+          "commit": "cf1eff42800d92f3551daeadd83a4ae15b86f502",
+          "committedAt": "2026-08-12T16:35:30+02:00",
+          "deletions": 4,
+          "filePaths": [
+            "app/src/components/actions/run/popup/action_usage_summary_owner.test.tsx",
+            "app/src/data/action_run_types.ts",
+            "app/src/services/actions/action_run_registry.node.test.ts",
+            "app/src/services/actions/action_run_registry.ts",
+            "desktop/src/actions/action/action_run.js",
+            "desktop/src/actions/action/action_run.test.mjs",
+            "desktop/src/actions/agent/agent_run_state.js",
+            "desktop/src/actions/agent/agent_runner_state.test.mjs",
+            "desktop/src/actions/agent/agent_streaming_adapter.js",
+            "desktop/src/actions/agent/agent_streaming_adapter.test.mjs",
+            "desktop/src/actions/agent/agent_streaming_event_handlers.js"
+          ],
+          "filesChanged": 11,
+          "insertions": 245,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-12T16:35:30+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "bbf61e6e-adfa-46ee-a2f4-040b8152bc4b",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
