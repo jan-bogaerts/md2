@@ -3,12 +3,11 @@ author:
 id: J_27
 internalId: 34581d14-8a7c-4f5c-8cf3-b9137260221d
 title: Markdown editor context menu
-status: new
+status: design
 owner: 
 affects:
 agents:
 policy:
-after: bbf61e6e-adfa-46ee-a2f4-040b8152bc4b
 ---
 
 Add clipboard commands to the Markdown editor context menu while keeping context-menu composition separate from spellchecking.
