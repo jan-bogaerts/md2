@@ -143,7 +143,7 @@ export class DataService extends EventTarget {
         this.saveStateService = new SaveStateService()
         this.saveStateService.addEventListener('changed', () => this.dispatchPersistenceChanged())
         this.projectState = new ProjectState(
-            (cards) => this.agents.attachAgentConversations(cards),
+            (card) => this.agents.attachCardAgentConversations(card),
             (previousCards, nextCards) => this.dispatchCardChanges(previousCards, nextCards),
             reportCardParseErrors,
         )
@@ -312,6 +312,8 @@ export class DataService extends EventTarget {
     }
     private createCardOperationsDependencies(): CardOperationsDeps {
         return {
+            addRepositoryFile: (path) => this.projectState.addRepositoryFile(path),
+            applyMoves: (moves, workingFolder) => this.projectState.applyMoves(moves, workingFolder),
             cardPathChanged: (fromPath, toPath) => this.dispatchCardPathChanged(fromPath, toPath),
             dispatchChanged: () => this.dispatchChanged(),
             dispatchPersistenceChanged: () => this.dispatchPersistenceChanged(),
@@ -323,9 +325,10 @@ export class DataService extends EventTarget {
             mergeCommittedFiles: (files, workingFolder) => this.projectState.mergeCommittedFiles(files, workingFolder),
             mutateCard: (path, mutation, workingFolder) => this.projectState.mutateCard(path, mutation, workingFolder),
             project: () => this.projectState.project,
-            recordCommittedContent: (files) => this.projectState.recordCommittedContent(files),
+            recordCurrentContent: (files) => this.projectState.recordCurrentContent(files),
             refreshSnapshot: (workingFolder) => this.refreshSnapshot(workingFolder),
             reloadCurrentProjectSnapshot: () => this.projectLoading.reloadCurrentProjectSnapshot(),
+            removeFolder: (path, workingFolder) => this.projectState.removeFolder(path, workingFolder),
             renameFile: (fromPath, toPath, workingFolder) => this.projectState.renameFile(fromPath, toPath, workingFolder),
             requireDependencies: () => this.requireDependencies(),
             requireCard: (path) => this.projectState.requireCard(path),
@@ -350,7 +353,9 @@ export class DataService extends EventTarget {
             ),
             isCurrentLoad: (project, projectLoadToken) => this.projectState.isCurrentLoad(project, projectLoadToken),
             project: () => this.projectState.project,
-            refreshSnapshot: (workingFolder) => this.refreshSnapshot(workingFolder),
+            refreshCardConversations: (path, workingFolder) => (
+                this.projectState.refreshCardConversations(path, workingFolder)
+            ),
             requireDependencies: () => this.requireDependencies(),
             requireFile: (path) => this.projectState.requireFile(path),
             scheduleActivityRepair: (file) => {
@@ -377,7 +382,7 @@ export class DataService extends EventTarget {
             dispatchRepositoryChanged: (event) => this.dispatchEvent(new CustomEvent('repositoryChanged', { detail: event })),
             files: () => this.projectState.files,
             flushPendingChanges: flushAggregatePendingChanges,
-            isCommittedContent: (path, content) => this.projectState.isCommittedContent(path, content),
+            matchesCurrentContent: (path, content) => this.projectState.matchesCurrentContent(path, content),
             isCurrentLoad: (project, projectLoadToken) => this.projectState.isCurrentLoad(project, projectLoadToken),
             mergeBackgroundProjectFiles: (files, workingFolder, repositoryFiles) => (
                 this.projectState.mergeBackgroundProjectFiles(files, workingFolder, repositoryFiles)
@@ -391,6 +396,10 @@ export class DataService extends EventTarget {
             replaceProjectFiles: (files, workingFolder, repositoryFiles) => (
                 this.projectState.replaceProjectFiles(files, workingFolder, repositoryFiles)
             ),
+            updateFiles: (updatedFiles, removedPaths, workingFolder) => (
+                this.projectState.updateFiles(updatedFiles, removedPaths, workingFolder)
+            ),
+            updateRepositoryFile: (event) => this.projectState.updateRepositoryFile(event),
             requireDependencies: () => this.requireDependencies(),
             resetAgentConversations: () => this.agents.resetLoadedConversations(),
             snapshot: () => this.projectState.snapshot,
@@ -400,9 +409,10 @@ export class DataService extends EventTarget {
 
     private createReleaseOperationsDependencies(): ReleaseOperationsDeps {
         return {
+            applyMoves: (moves, workingFolder) => this.projectState.applyMoves(moves, workingFolder),
+            dispatchChanged: () => this.dispatchChanged(),
             files: () => this.projectState.files,
             project: () => this.projectState.project,
-            reloadCurrentProjectSnapshot: () => this.projectLoading.reloadCurrentProjectSnapshot(),
             requireDependencies: () => this.requireDependencies(),
             snapshot: () => this.projectState.snapshot,
         }
@@ -425,6 +435,7 @@ export class DataService extends EventTarget {
                 this.cards.clearCardBranch(card.path)
             },
             reloadPaths: (paths) => this.projectLoading.reloadConflictPaths(paths),
+            reportError: (error) => dialogService.error(error, { fallbackMessage: 'Could not verify merge conflict state' }),
             storage: this.storage,
         })
     }

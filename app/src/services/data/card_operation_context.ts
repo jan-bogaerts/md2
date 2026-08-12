@@ -1,5 +1,5 @@
 import type { CardMoveUpdate } from '../../data/card_ordering'
-import type { Card, MarkdownFile, ProjectReference, ProjectSnapshot, StorageService } from '../../data/data_types'
+import type { Card, MarkdownFile, MoveFile, ProjectReference, ProjectSnapshot, StorageService } from '../../data/data_types'
 import type { CardOpenDocument, OpenDocumentSaveReference } from '../open_files_service'
 import { openFilesService } from '../open_files_service'
 import { telemetryService } from '../telemetry/telemetry_service'
@@ -15,6 +15,8 @@ export type CommitRequest = Parameters<StorageService['commit']>[0]
 type PendingCommitFile = MarkdownFile & { saveReference?: OpenDocumentSaveReference }
 
 export interface CardOperationsDeps {
+    addRepositoryFile(path: string): void
+    applyMoves(moves: MoveFile[], workingFolder: string): void
     cardPathChanged(fromPath: string, toPath: string): void
     commitPathsInFlight(): Set<string>
     deleteFile(path: string, committedFiles: MarkdownFile[], workingFolder: string): void
@@ -24,9 +26,10 @@ export interface CardOperationsDeps {
     mergeCommittedFiles(files: MarkdownFile[], workingFolder: string): void
     mutateCard(path: string, mutation: (card: Card) => void, workingFolder: string): Card
     project(): ProjectReference | null
-    recordCommittedContent(files: MarkdownFile[]): void
+    recordCurrentContent(files: MarkdownFile[]): void
     refreshSnapshot(workingFolder: string): void
     reloadCurrentProjectSnapshot(): Promise<ProjectSnapshot | null>
+    removeFolder(path: string, workingFolder: string): void
     renameFile(fromPath: string, toPath: string, workingFolder: string): void
     requireDependencies(): RequiredDataServiceDependencies
     requireCard(path: string): Card
@@ -134,7 +137,7 @@ export class CardOperationContext {
 
         try {
             const committedFiles = await storage.commit(request)
-            this.dependencies.recordCommittedContent(request.files)
+            this.dependencies.recordCurrentContent(request.files)
 
             return committedFiles
         } finally {

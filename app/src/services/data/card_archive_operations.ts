@@ -48,7 +48,8 @@ export class CardArchiveOperations {
         this.triggerStateActions(cardPath, 'archived')
         if (config.pushMode === 'auto') await storage.push(project)
         if (config.pushMode === 'manual') dependencies.dispatchPersistenceChanged()
-        await dependencies.reloadCurrentProjectSnapshot()
+        dependencies.applyMoves(moves, config.workingFolder)
+        dependencies.dispatchChanged()
 
         const cardMove = moves.find((move) => move.fromPath === cardPath)
         if (!cardMove) throw new Error(`Missing archived card move: ${cardPath}`)

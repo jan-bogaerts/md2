@@ -47,7 +47,7 @@ export interface AgentIntegrationDeps {
     isCurrentAgentConversationLoad(agentConversationLoadToken: number): boolean
     isCurrentLoad(project: ProjectReference, projectLoadToken: number): boolean
     project(): ProjectReference | null
-    refreshSnapshot(workingFolder: string): void
+    refreshCardConversations(path: string, workingFolder: string): void
     requireDependencies(): RequiredDataServiceDependencies
     requireFile(path: string): MarkdownFile
     scheduleActivityRepair(file: MarkdownFile): void
@@ -447,14 +447,7 @@ export class AgentIntegration {
         return this.conversationsByCardInternalId.get(cardInternalId) ?? []
     }
 
-    attachAgentConversations(cards: Pick<ProjectSnapshot, 'activeCards' | 'backgroundCards'>) {
-        return {
-            activeCards: cards.activeCards.map((card) => this.attachCardAgentConversations(card)),
-            backgroundCards: cards.backgroundCards.map((card) => this.attachCardAgentConversations(card)),
-        }
-    }
-
-    private attachCardAgentConversations(card: Card) {
+    attachCardAgentConversations(card: Card) {
         card.agentConversationErrors = this.errorsByCardPath.get(card.path) ?? []
         card.agentConversations = card.header.internalId
             ? this.conversationsByCardInternalId.get(card.header.internalId) ?? []
@@ -503,8 +496,10 @@ export class AgentIntegration {
         }
         this.replaceResolvedAgentErrors(cards, resolved.errorsByCardPath)
         this.reportNewAgentLoadErrors(resolved.errorsByCardPath)
-        this.dependencies.refreshSnapshot(config.workingFolder)
-        cards.forEach(({ path }) => this.dependencies.conversationChanged(path))
+        cards.forEach(({ path }) => {
+            this.dependencies.refreshCardConversations(path, config.workingFolder)
+            this.dependencies.conversationChanged(path)
+        })
         for (const [cardInternalId, conversations] of resolved.conversationsByCardInternalId) {
             const actionIds = conversations.flatMap(({ actionId }) => actionId ? [actionId] : [])
             agentAcknowledgementService.announceConversationsChanged(cardInternalId, actionIds)
@@ -619,7 +614,7 @@ export class AgentIntegration {
         const path = `${ON_STATE_ACTION_ERROR_PATH_PREFIX}:${actionName}`
         const { config } = this.dependencies.requireDependencies()
         this.errorsByCardPath.set(cardPath, [...(this.errorsByCardPath.get(cardPath) ?? []), { message, path }])
-        this.dependencies.refreshSnapshot(config.workingFolder)
+        this.dependencies.refreshCardConversations(cardPath, config.workingFolder)
         this.dependencies.conversationChanged(cardPath)
     }
 
@@ -648,10 +643,12 @@ export class AgentIntegration {
             ? conversations.map((current) => (current.id === conversation.id ? conversation : current))
             : [...conversations, conversation]
         this.conversationsByCardInternalId.set(cardInternalId, nextConversations)
-        this.dependencies.refreshSnapshot(config.workingFolder)
         const card = this.dependencies.snapshot()?.activeCards.find(({ header }) => header.internalId === cardInternalId)
             ?? this.dependencies.snapshot()?.backgroundCards.find(({ header }) => header.internalId === cardInternalId)
-        if (card) this.dependencies.conversationChanged(card.path)
+        if (card) {
+            this.dependencies.refreshCardConversations(card.path, config.workingFolder)
+            this.dependencies.conversationChanged(card.path)
+        }
         const actionIds = conversation.actionId ? [conversation.actionId] : []
         agentAcknowledgementService.announceConversationsChanged(cardInternalId, actionIds)
     }

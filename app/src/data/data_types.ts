@@ -247,6 +247,8 @@ export interface ProjectWatchEvent {
     path: string
 }
 
+export type ProjectWatchNotification = ProjectWatchEvent | { error: string }
+
 /** A background agent/action currently running against a card or file. */
 export interface RunningAgent {
     id: string
@@ -417,6 +419,7 @@ export interface StorageService {
         project: ProjectReference,
         onChange: (event: ProjectWatchEvent) => void,
         onRestored: () => void,
+        onError: (error: Error) => void,
     ): () => void
 }
 

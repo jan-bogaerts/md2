@@ -46,6 +46,7 @@ import type {
     ProjectConfig,
     ProjectReference,
     ProjectWatchEvent,
+    ProjectWatchNotification,
     RepositoryReference,
     StorageProjectFiles,
     StorageService,
@@ -91,7 +92,7 @@ interface AgentRunPayload {
 }
 
 interface WatchProjectPayload {
-    event: ProjectWatchEvent
+    event: ProjectWatchNotification
     requestId: string
     subscriptionId: string
 }
@@ -116,6 +117,7 @@ interface WorktreesChangedPayload {
 
 interface ProjectWatchSubscription {
     onChange: (event: ProjectWatchEvent) => void
+    onError: (error: Error) => void
     onRestored: () => void
     project: ProjectReference
     serverSubscriptionId: string | null
@@ -175,7 +177,7 @@ export class RemoteControlStorageService implements
     private socket: WebSocket | null
     private token: string
     private readonly watchSubscriptions: Set<ProjectWatchSubscription>
-    private watchCallbacks: Map<string, (event: ProjectWatchEvent) => void>
+    private watchCallbacks: Map<string, ProjectWatchSubscription>
     private readonly worktreeEvents: EventTarget
     private worktreeListenerCount: number
     private worktreeRequestId: string | null
@@ -450,16 +452,18 @@ export class RemoteControlStorageService implements
         project: ProjectReference,
         onChange: (event: ProjectWatchEvent) => void,
         onRestored: () => void,
+        onError: (error: Error) => void,
     ): () => void {
         const subscription: ProjectWatchSubscription = {
             onChange,
+            onError,
             onRestored,
             project,
             serverSubscriptionId: null,
             subscribing: false,
         }
         this.watchSubscriptions.add(subscription)
-        void this.subscribeProjectWatch(subscription, false).catch(() => undefined)
+        void this.subscribeProjectWatch(subscription, false).catch(onError)
 
         return () => {
             this.watchSubscriptions.delete(subscription)
@@ -885,7 +889,7 @@ export class RemoteControlStorageService implements
             }
 
             subscription.serverSubscriptionId = result.subscriptionId
-            this.watchCallbacks.set(result.subscriptionId, subscription.onChange)
+            this.watchCallbacks.set(result.subscriptionId, subscription)
             if (restored) subscription.onRestored()
         } finally {
             subscription.subscribing = false
@@ -937,9 +941,14 @@ export class RemoteControlStorageService implements
     }
 
     private handleWatchProjectEvent(payload: WatchProjectPayload) {
-        const callback = this.watchCallbacks.get(payload.subscriptionId)
-            ?? this.requestWatchEvents.get(payload.requestId)?.onChange
-        callback?.(payload.event)
+        const subscription = this.watchCallbacks.get(payload.subscriptionId)
+            ?? this.requestWatchEvents.get(payload.requestId)
+        if ('error' in payload.event) {
+            subscription?.onError(new Error(payload.event.error))
+            return
+        }
+
+        subscription?.onChange(payload.event)
     }
 
     private handleWorktreesChangedEvent(payload: WorktreesChangedPayload) {

@@ -234,7 +234,7 @@ describe('CardOperations', () => {
         expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' })
     })
 
-    it('deletes a folder recursively and reloads repository paths', async () => {
+    it('deletes a folder recursively and removes its repository paths incrementally', async () => {
         configService.init()
         let folderDeleted = false
         const deleteFolder = vi.fn<StorageService['deleteFolder']>(async () => {
@@ -256,6 +256,8 @@ describe('CardOperations', () => {
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         await service.projectLoading.reloadCurrentProjectSnapshot()
+        const loadProjectCallsBeforeDelete = vi.mocked(storage.loadProject).mock.calls.length
+        const repositoryListCallsBeforeDelete = vi.mocked(storage.listRepositoryFiles).mock.calls.length
         await service.cards.deleteFolder('design/notes')
 
         expect(deleteFolder).toHaveBeenCalledWith({
@@ -265,6 +267,8 @@ describe('CardOperations', () => {
         })
         expect(service.getState().snapshot?.repositoryFiles).toEqual(['design/active/F-1-root.md'])
         expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' })
+        expect(storage.loadProject).toHaveBeenCalledTimes(loadProjectCallsBeforeDelete)
+        expect(storage.listRepositoryFiles).toHaveBeenCalledTimes(repositoryListCallsBeforeDelete)
     })
 
     it('keeps a created card when auto-push fails after the commit succeeds', async () => {
@@ -706,6 +710,8 @@ describe('CardOperations', () => {
             'design/active/C-1-c.md',
         ])
         expect(service.getState().snapshot?.backgroundCards.map(({ path }) => path)).toContain('design/vault/archived/B-1-b.md')
+        expect(storage.loadProject).toHaveBeenCalledOnce()
+        expect(storage.listRepositoryFiles).toHaveBeenCalledOnce()
     })
 
     it('rejects an existing archived-card target before committing', async () => {

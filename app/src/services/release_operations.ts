@@ -5,15 +5,16 @@ import {
     validateReleaseName,
 } from '../data/release_archiving'
 import { statusOf } from '../data/card_ordering'
-import type { MarkdownFile, ProjectAsset, ProjectReference, ProjectSnapshot, ReleaseBranchCandidate } from '../data/data_types'
+import type { MarkdownFile, MoveFile, ProjectAsset, ProjectReference, ProjectSnapshot, ReleaseBranchCandidate } from '../data/data_types'
 import { type RequiredDataServiceDependencies } from './data/data_service_context'
 import { markdownParsingService } from './data/markdown_parsing_service'
 import { telemetryService } from './telemetry/telemetry_service'
 
 export interface ReleaseOperationsDeps {
+    applyMoves(moves: MoveFile[], workingFolder: string): void
+    dispatchChanged(): void
     files(): MarkdownFile[]
     project(): ProjectReference | null
-    reloadCurrentProjectSnapshot(): Promise<ProjectSnapshot | null>
     requireDependencies(): RequiredDataServiceDependencies
     snapshot(): ProjectSnapshot | null
 }
@@ -127,19 +128,21 @@ export class ReleaseOperations {
             }
         }
 
+        let clearedFiles: MarkdownFile[] = []
         if (deletedCandidates.length > 0) {
             try {
-                const clearedFiles = deletedCandidates.map((candidate) => {
+                const preparedClearedFiles = deletedCandidates.map((candidate) => {
                     const move = moves.find(({ fromPath }) => fromPath === candidate.cardPath)
                     if (!move) throw new Error(`Released card move is missing: ${candidate.cardId}`)
 
                     return { content: markdownParsingService.setBranch(move.content, null), path: move.toPath }
                 })
-                await storage.commit({
+                const committedFiles = await storage.commit({
                     branch: currentProject.branch,
-                    files: clearedFiles,
+                    files: preparedClearedFiles,
                     message: 'Clear deleted release branches',
                 })
+                clearedFiles = committedFiles.length > 0 ? committedFiles : preparedClearedFiles
                 if (config.pushMode === 'auto') await storage.push(currentProject)
             } catch (error) {
                 const message = error instanceof Error ? error.message : String(error)
@@ -147,7 +150,13 @@ export class ReleaseOperations {
             }
         }
 
-        await this.dependencies.reloadCurrentProjectSnapshot()
+        const clearedFilesByPath = new Map(clearedFiles.map((file) => [file.path, file]))
+        const appliedMoves = moves.map((move) => {
+            const clearedFile = clearedFilesByPath.get(move.toPath)
+            return clearedFile ? { ...move, content: clearedFile.content, sha: clearedFile.sha } : move
+        })
+        this.dependencies.applyMoves(appliedMoves, config.workingFolder)
+        this.dependencies.dispatchChanged()
         telemetryService.trackEvent('complete_release')
 
         if (cleanupFailures.length > 0) {

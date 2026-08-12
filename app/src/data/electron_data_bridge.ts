@@ -15,7 +15,7 @@ import type {
     ProjectAsset,
     ProjectConfig,
     ProjectReference,
-    ProjectWatchEvent,
+    ProjectWatchNotification,
     StorageProjectFiles,
     TopLevelFolderReference,
     WorktreeState,
@@ -82,7 +82,7 @@ export interface ElectronDataBridge {
     saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>
     removeWorktree?(project: ProjectReference, folderPath: string): Promise<void>
     stopAgent?(runId: string): Promise<void>
-    watchProject(project: ProjectReference, callback: (event: ProjectWatchEvent) => void): () => void
+    watchProject(project: ProjectReference, callback: (notification: ProjectWatchNotification) => void): () => void
     loadFile(project: ProjectReference, path: string): Promise<MarkdownFile>
 }
 

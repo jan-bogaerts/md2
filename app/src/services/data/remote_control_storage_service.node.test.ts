@@ -697,9 +697,10 @@ describe('RemoteControlStorageService', () => {
         installWebSocket()
         const service = createService()
         const watchCallback = vi.fn()
+        const watchError = vi.fn()
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
 
-        service.watchProject(project, watchCallback, vi.fn())
+        service.watchProject(project, watchCallback, vi.fn(), watchError)
         const socket = lastSocket()
         socket.open()
         await flushPromises()
@@ -709,7 +710,12 @@ describe('RemoteControlStorageService', () => {
             event: 'watchProject',
             payload: { event: { changeKind: 'changed', path: 'design/F-1.md' }, requestId: watchRequest.id, subscriptionId: 'sub-1' },
         })
+        socket.receive({
+            event: 'watchProject',
+            payload: { event: { error: 'Native watcher unavailable' }, requestId: watchRequest.id, subscriptionId: 'sub-1' },
+        })
         expect(watchCallback).toHaveBeenCalledWith({ changeKind: 'changed', path: 'design/F-1.md' })
+        expect(watchError).toHaveBeenCalledWith(expect.objectContaining({ message: 'Native watcher unavailable' }))
     })
 
     it('routes every server-push message and cleans persistent subscriptions', async () => {
@@ -721,7 +727,7 @@ describe('RemoteControlStorageService', () => {
         const actionCallback = vi.fn()
         const rateLimitCallback = vi.fn()
         const worktreeCallback = vi.fn()
-        const stopWatch = service.watchProject(project, watchCallback, vi.fn())
+        const stopWatch = service.watchProject(project, watchCallback, vi.fn(), vi.fn())
         const stopAction = service.onActionRun(actionCallback)
         const stopRateLimits = service.onCodexRateLimits(rateLimitCallback)
         const stopWorktrees = service.onWorktreesChanged(worktreeCallback)
@@ -795,7 +801,7 @@ describe('RemoteControlStorageService', () => {
         const service = createService()
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
         const callback = vi.fn()
-        const stop = service.watchProject(project, callback, vi.fn())
+        const stop = service.watchProject(project, callback, vi.fn(), vi.fn())
         const socket = lastSocket()
 
         socket.open()
@@ -819,7 +825,7 @@ describe('RemoteControlStorageService', () => {
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
         const callback = vi.fn()
         const restored = vi.fn()
-        const stop = service.watchProject(project, callback, restored)
+        const stop = service.watchProject(project, callback, restored, vi.fn())
         const firstSocket = lastSocket()
 
         firstSocket.open()

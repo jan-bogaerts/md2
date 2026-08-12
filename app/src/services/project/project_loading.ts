@@ -26,6 +26,7 @@ import { mergeConflictService } from './merge_conflict_service'
 
 const ACTION_RELOAD_DEBOUNCE_MS = 150
 const JSON_EXTENSION = '.json'
+const MERGE_CONFLICT_VERIFY_DEBOUNCE_MS = 150
 const MARKDOWN_EXTENSION = '.md'
 const PROJECT_CONFIG_PATH = 'md2.config.json'
 // The watcher already settles each path before reporting, so this only has to group
@@ -115,13 +116,15 @@ export interface ProjectLoadingDeps {
     ensureCardInternalIds(): Promise<void>
     files(): MarkdownFile[]
     flushPendingChanges(): Promise<void>
-    isCommittedContent(path: string, content: string): boolean
+    matchesCurrentContent(path: string, content: string): boolean
     isCurrentLoad(project: ProjectReference, projectLoadToken: number): boolean
     mergeBackgroundProjectFiles(files: MarkdownFile[], workingFolder: string, repositoryFiles: string[]): void
     project(): ProjectReference | null
     replaceFiles(files: MarkdownFile[], workingFolder: string): void
     replaceProject(project: ProjectReference | null): void
     replaceProjectFiles(files: MarkdownFile[], workingFolder: string, repositoryFiles: string[]): void
+    updateFiles(updatedFiles: MarkdownFile[], removedPaths: string[], workingFolder: string): void
+    updateRepositoryFile(event: ProjectWatchEvent): void
     requireDependencies(): RequiredDataServiceDependencies
     resetAgentConversations(): void
     snapshot(): ProjectSnapshot | null
@@ -141,6 +144,7 @@ export class ProjectLoading {
     private markdownReloadEventsByPath: Map<string, ProjectWatchEvent> = new Map()
     private markdownRemovalTimeoutsByPath: Map<string, number> = new Map()
     private markdownReloadTimeout: number | null = null
+    private mergeConflictVerifyTimeout: number | null = null
     private externalCardImportInProgress: ExternalCardImportInProgress | null = null
     private watchCleanup: (() => void) | null = null
 
@@ -163,6 +167,7 @@ export class ProjectLoading {
         this.clearActionReloadTimeout()
         this.clearMarkdownReloadTimeout()
         this.clearMarkdownRemovalTimeouts()
+        this.clearMergeConflictVerifyTimeout()
         this.actionReloadChangesByPath.clear()
         this.markdownReloadEventsByPath = new Map()
         this.dependencies.beginProjectLoad()
@@ -196,6 +201,7 @@ export class ProjectLoading {
         await this.dependencies.flushPendingChanges()
         this.clearMarkdownReloadTimeout()
         this.clearMarkdownRemovalTimeouts()
+        this.clearMergeConflictVerifyTimeout()
         const projectLoadToken = this.dependencies.beginProjectLoad()
         this.dependencies.resetAgentConversations()
         this.actionReloadChangesByPath.clear()
@@ -367,6 +373,7 @@ export class ProjectLoading {
         this.clearActionReloadTimeout()
         this.clearMarkdownReloadTimeout()
         this.clearMarkdownRemovalTimeouts()
+        this.clearMergeConflictVerifyTimeout()
         this.dependencies.beginProjectLoad()
         this.dependencies.resetAgentConversations()
         this.dependencies.clearLoadedProject()
@@ -578,6 +585,7 @@ export class ProjectLoading {
             currentProject,
             (event) => this.handleProjectWatchEvent(event),
             () => void this.resynchronizeProjectAfterWatchRestore(),
+            (error) => reportOptionalProjectLoadFailure('Project file watching', error),
         )
     }
 
@@ -614,7 +622,11 @@ export class ProjectLoading {
     }
 
     private handleProjectWatchEvent(event: ProjectWatchEvent) {
-        if (mergeConflictService.isConflictedPath(event.path)) return
+        if (mergeConflictService.isConflictedPath(event.path)) {
+            this.scheduleMergeConflictVerification()
+            return
+        }
+        this.dependencies.updateRepositoryFile(event)
         this.dependencies.dispatchRepositoryChanged(event)
         if (event.path === PROJECT_CONFIG_PATH) {
             void this.reloadProjectConfigFromWatch()
@@ -653,6 +665,29 @@ export class ProjectLoading {
         this.actionReloadTimeout = window.setTimeout(() => {
             void this.reloadActionsFromCurrentProject()
         }, ACTION_RELOAD_DEBOUNCE_MS)
+    }
+
+    private scheduleMergeConflictVerification() {
+        this.clearMergeConflictVerifyTimeout()
+        this.mergeConflictVerifyTimeout = window.setTimeout(() => {
+            void this.verifyMergeConflictState()
+        }, MERGE_CONFLICT_VERIFY_DEBOUNCE_MS)
+    }
+
+    private clearMergeConflictVerifyTimeout() {
+        if (this.mergeConflictVerifyTimeout === null) return
+
+        window.clearTimeout(this.mergeConflictVerifyTimeout)
+        this.mergeConflictVerifyTimeout = null
+    }
+
+    private async verifyMergeConflictState() {
+        this.clearMergeConflictVerifyTimeout()
+        try {
+            await mergeConflictService.verifyCurrentSession()
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Could not verify merge conflict state after file change' })
+        }
     }
 
     private clearActionReloadTimeout() {
@@ -716,9 +751,7 @@ export class ProjectLoading {
         for (const event of events) {
             if (this.dependencies.commitPathsInFlight().has(event.path)) continue
             const loadedFile = event.changeKind === 'removed' ? null : await this.loadWatchedMarkdownFile(event)
-            // The watcher reports our own commits after the in-flight window has closed; the
-            // stored commit hash recognizes those echoes so they never count as external edits.
-            if (loadedFile && this.dependencies.isCommittedContent(loadedFile.path, loadedFile.content)) continue
+            if (loadedFile && this.dependencies.matchesCurrentContent(loadedFile.path, loadedFile.content)) continue
             const dirtyOpenDocument = openFilesService.getRegisteredDocuments().some((document) => (
                 document.kind === 'card' && document.path === event.path && document.dirty
             ))
@@ -751,9 +784,16 @@ export class ProjectLoading {
         const importedFiles = await this.importExternalCardFiles(watchedFiles, this.dependencies.requireDependencies().config.workingFolder)
         if (updatedFiles.length === 0 && removedPaths.length === 0 && importedFiles === watchedFiles) return
 
-        const repositoryFiles = await storage.listRepositoryFiles(currentProject)
         const { config } = this.dependencies.requireDependencies()
-        this.dependencies.replaceProjectFiles(importedFiles, config.workingFolder, repositoryFiles)
+        const currentFiles = this.dependencies.files()
+        const currentFilesByPath = new Map(currentFiles.map((file) => [file.path, file]))
+        const importedPaths = new Set(importedFiles.map((file) => file.path))
+        const changedFiles = importedFiles.filter((file) => {
+            const currentFile = currentFilesByPath.get(file.path)
+            return !currentFile || currentFile.content !== file.content || currentFile.sha !== file.sha
+        })
+        const deletedPaths = currentFiles.filter((file) => !importedPaths.has(file.path)).map((file) => file.path)
+        this.dependencies.updateFiles(changedFiles, deletedPaths, config.workingFolder)
         await this.dependencies.ensureCardInternalIds()
         this.dependencies.dispatchChanged()
     }

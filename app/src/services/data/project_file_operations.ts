@@ -26,7 +26,8 @@ export class ProjectFileOperations {
             message: `Create ${folderPath}`,
         })
         await this.context.pushCreatedItem('Folder')
-        await this.context.dependencies.reloadCurrentProjectSnapshot()
+        this.context.dependencies.addRepositoryFile(`${folderPath}/${FOLDER_PLACEHOLDER_NAME}`)
+        this.context.dependencies.dispatchChanged()
 
         return folderPath
     }
@@ -69,7 +70,8 @@ export class ProjectFileOperations {
         await this.context.flushPendingCommits()
         await storage.deleteFolder({ branch: project.branch, message: `Delete ${path}`, path })
         if (config.pushMode === 'auto') await storage.push(project)
-        await this.context.dependencies.reloadCurrentProjectSnapshot()
+        this.context.dependencies.removeFolder(path, config.workingFolder)
+        this.context.dependencies.dispatchChanged()
 
         return this.context.dependencies.snapshot()
     }

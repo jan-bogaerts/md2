@@ -15,6 +15,7 @@ import type {
     ProjectReference,
     RepositoryReference,
     ProjectWatchEvent,
+    ProjectWatchNotification,
     StorageProjectFiles,
     StorageService,
     TopLevelFolderReference,
@@ -352,8 +353,22 @@ export class LocalGitStorageService implements StorageService {
         return this.pendingPushBranches.has(project.branch)
     }
 
-    watchProject(project: ProjectReference, onChange: (event: ProjectWatchEvent) => void) {
-        return this.requireBridge().watchProject(project, onChange)
+    watchProject(
+        project: ProjectReference,
+        onChange: (event: ProjectWatchEvent) => void,
+        _onRestored: () => void,
+        onError: (error: Error) => void,
+    ) {
+        const handleNotification = (notification: ProjectWatchNotification) => {
+            if ('error' in notification) {
+                onError(new Error(notification.error))
+                return
+            }
+
+            onChange(notification)
+        }
+
+        return this.requireBridge().watchProject(project, handleNotification)
     }
 
     private requireBridge() {

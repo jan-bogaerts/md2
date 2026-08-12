@@ -96,6 +96,34 @@ describe('ProjectLoading', () => {
         vi.unstubAllGlobals()
     })
 
+    it('reports project watcher startup failures', async () => {
+        configService.init()
+        let reportWatchError: (error: Error) => void = () => {
+            throw new Error('Watcher error callback not registered')
+        }
+        const storage = createStorage({
+            watchProject: vi.fn((_project, _onChange, _onRestored, onError) => {
+                reportWatchError = onError
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        const warnings = recordDialogMessages('warning')
+
+        try {
+            await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+            reportWatchError(new Error('Native watcher unavailable'))
+
+            expect(warnings.messages).toContain(
+                'Project file watching could not be loaded and was skipped. Native watcher unavailable',
+            )
+        } finally {
+            warnings.stop()
+        }
+    })
+
     it('repairs activity and invalid card references in one project-load commit', async () => {
         configService.init()
         const activityPath = 'design/activity/card__root-card.json'
@@ -1101,7 +1129,41 @@ describe('ProjectLoading', () => {
         expect(card?.content).toContain('Externally changed')
     })
 
-    it('ignores watcher updates for paths owned by active merge conflict session', async () => {
+    it('reloads content restored externally to an earlier app value', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        let watchChange: (event: { changeKind: 'changed'; path: string }) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const externalFile = {
+            content: files[0].content.replace('# Root', '# External'),
+            path: files[0].path,
+        }
+        const loadFile = vi.fn()
+            .mockResolvedValueOnce(externalFile)
+            .mockResolvedValueOnce(files[0])
+        const storage = createStorage({
+            loadFile,
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        watchChange({ changeKind: 'changed', path: files[0].path })
+        await vi.advanceTimersByTimeAsync(150)
+        expect(service.getState().snapshot?.activeCards[0].content).toContain('# External')
+
+        watchChange({ changeKind: 'changed', path: files[0].path })
+        await vi.advanceTimersByTimeAsync(150)
+        expect(service.getState().snapshot?.activeCards[0].content).toContain('# Root')
+    })
+
+    it('verifies conflict state instead of parsing watcher updates for active conflict paths', async () => {
         vi.useFakeTimers()
         configService.init()
         let watchChange: (event: { changeKind: 'changed'; path: string }) => void = () => {
@@ -1120,12 +1182,15 @@ describe('ProjectLoading', () => {
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         const isConflictedPath = vi.spyOn(mergeConflictService, 'isConflictedPath').mockReturnValue(true)
+        const verifyCurrentSession = vi.spyOn(mergeConflictService, 'verifyCurrentSession').mockResolvedValue(undefined)
 
         watchChange({ changeKind: 'changed', path: 'design/F-1-root.md' })
         await vi.advanceTimersByTimeAsync(150)
 
         expect(loadFile).not.toHaveBeenCalled()
+        expect(verifyCurrentSession).toHaveBeenCalledOnce()
         isConflictedPath.mockRestore()
+        verifyCurrentSession.mockRestore()
     })
 
     it('keeps a committed worktree assignment when another markdown file reloads', async () => {

@@ -11,6 +11,7 @@ export interface MergeConflictSnapshot {
 interface MergeConflictServiceDependencies {
     completeBranchCleanup(cardInternalId: string): void
     reloadPaths(paths: string[]): Promise<void>
+    reportError(error: unknown): void
     storage: StorageService
 }
 
@@ -35,7 +36,7 @@ export class MergeConflictService extends EventTarget {
         if (!storage.getMergeConflictSession || !storage.onMergeConflictSessionChanged) return
 
         this.unsubscribe = storage.onMergeConflictSessionChanged((session) => this.handleSessionChanged(session))
-        void this.load()
+        void this.loadSafely()
     }
 
     clear() {
@@ -57,6 +58,11 @@ export class MergeConflictService extends EventTarget {
     async load() {
         const { storage } = this.requireDependencies()
         if (!storage.getMergeConflictSession) return
+        if (this.snapshot.session) {
+            await this.verifyCurrentSession()
+            return
+        }
+
         const session = await storage.getMergeConflictSession()
         this.handleSessionChanged(session)
     }
@@ -68,9 +74,30 @@ export class MergeConflictService extends EventTarget {
         this.setBusy(true)
         try {
             await storage.launchMergeConflictResolver({ path, sessionId: session.id })
+            await this.verifyCurrentSession()
         } finally {
             this.setBusy(false)
         }
+    }
+
+    async verifyCurrentSession() {
+        const dependencies = this.requireDependencies()
+        const session = this.snapshot.session
+        if (!session || !dependencies.storage.getMergeConflictSession) return
+
+        const nextSession = await dependencies.storage.getMergeConflictSession()
+        if (this.snapshot.session?.id !== session.id) return
+        if (nextSession) {
+            this.publish({ ...this.snapshot, session: nextSession })
+            return
+        }
+
+        const affectedPaths = [...this.affectedPaths]
+        await dependencies.reloadPaths(affectedPaths)
+        if (this.snapshot.session?.id !== session.id) return
+
+        this.affectedPaths.clear()
+        this.publish({ ...this.snapshot, session: null })
     }
 
     async markResolved(path: string) {
@@ -151,7 +178,17 @@ export class MergeConflictService extends EventTarget {
     }
 
     private handleSessionChanged(session: MergeConflictSession | null) {
+        if (!session && this.snapshot.session) return
+
         this.publish({ ...this.snapshot, session })
+    }
+
+    private async loadSafely() {
+        try {
+            await this.load()
+        } catch (error) {
+            this.requireDependencies().reportError(error)
+        }
     }
 
     private setBusy(busy: boolean) {

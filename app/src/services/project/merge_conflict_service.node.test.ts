@@ -14,7 +14,7 @@ function session(paths = ['src/one.ts', 'src/two.ts']): MergeConflictSession {
     }
 }
 
-function createHarness(initialSession: MergeConflictSession | null = session()) {
+function createHarness(initialSession: MergeConflictSession | null = session(), storageOverrides: Record<string, unknown> = {}) {
     let changeCallback: (value: MergeConflictSession | null) => void = () => undefined
     const storage = {
         abortMergeConflict: vi.fn(async () => undefined),
@@ -29,13 +29,15 @@ function createHarness(initialSession: MergeConflictSession | null = session()) 
             return vi.fn()
         }),
         rescanMergeConflict: vi.fn(async () => session(['src/two.ts'])),
+        ...storageOverrides,
     }
     const completeBranchCleanup = vi.fn()
     const reloadPaths = vi.fn(async () => undefined)
+    const reportError = vi.fn()
     const service = new MergeConflictService()
-    service.init({ completeBranchCleanup, reloadPaths, storage: storage as never })
+    service.init({ completeBranchCleanup, reloadPaths, reportError, storage: storage as never })
 
-    return { changeCallback, completeBranchCleanup, reloadPaths, service, storage }
+    return { changeCallback, completeBranchCleanup, reloadPaths, reportError, service, storage }
 }
 
 describe('MergeConflictService', () => {
@@ -53,13 +55,54 @@ describe('MergeConflictService', () => {
         expect(service.getSnapshot()).toBe(service.getSnapshot())
     })
 
-    it('launches resolver without assuming file resolved', async () => {
+    it('launches resolver then verifies current Git conflict state', async () => {
         const { service, storage } = createHarness()
 
         await service.launchResolver('src/one.ts')
 
         expect(storage.launchMergeConflictResolver).toHaveBeenCalledWith({ path: 'src/one.ts', sessionId: 'session-1' })
+        expect(storage.getMergeConflictSession).toHaveBeenCalled()
         expect(service.getSnapshot().session?.conflictedPaths).toEqual(['src/one.ts', 'src/two.ts'])
+    })
+
+    it('reloads affected paths before closing an externally ended session', async () => {
+        const { reloadPaths, service, storage } = createHarness()
+        await service.load()
+        storage.getMergeConflictSession.mockResolvedValueOnce(null)
+
+        await service.verifyCurrentSession()
+
+        expect(reloadPaths).toHaveBeenCalledWith(['src/one.ts', 'src/two.ts'])
+        expect(service.getSnapshot().session).toBeNull()
+    })
+
+    it('keeps the last known session when external-session reconciliation fails', async () => {
+        const { reloadPaths, service, storage } = createHarness()
+        await service.load()
+        storage.getMergeConflictSession.mockResolvedValueOnce(null)
+        reloadPaths.mockRejectedValueOnce(new Error('reload failed'))
+
+        await expect(service.verifyCurrentSession()).rejects.toThrow('reload failed')
+
+        expect(service.getSnapshot().session).toEqual(session())
+    })
+
+    it('reports initial conflict-session load failures', async () => {
+        const getMergeConflictSession = vi.fn(async () => {
+            throw new Error('verify failed')
+        })
+        const { reportError } = createHarness(null, { getMergeConflictSession })
+
+        await vi.waitFor(() => expect(reportError).toHaveBeenCalledWith(expect.objectContaining({ message: 'verify failed' })))
+    })
+
+    it('reconciles a restored session that Git reports as externally ended', async () => {
+        const getMergeConflictSession = vi.fn(async () => null)
+        const { reloadPaths, service } = createHarness(session(), { getMergeConflictSession })
+
+        await vi.waitFor(() => expect(service.getSnapshot().session).toBeNull())
+
+        expect(reloadPaths).toHaveBeenCalledWith(['src/one.ts', 'src/two.ts'])
     })
 
     it('marks selected path then keeps current Git rescan result', async () => {

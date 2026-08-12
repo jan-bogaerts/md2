@@ -3,6 +3,10 @@ const { resolveAgentCommand } = require('../actions/agent/agent_profiles.mjs');
 const INTEGRATION_ACTIVITY_LABEL = 'Integrate into project';
 const SEARCH_AGENT_PROMPT_PREFIX = 'Return only a single JavaScript-compatible regular expression pattern (no explanation, no surrounding text or markdown) that matches the following search request:\n\n';
 
+function watchErrorMessage(error) {
+    return error instanceof Error ? error.message : String(error);
+}
+
 function cardIntegrationTracking(request) {
     const hasCardInternalId = Object.hasOwn(request, 'cardInternalId');
     const hasProjectFolder = Object.hasOwn(request, 'projectFolder');
@@ -267,10 +271,14 @@ function createLocalBridgeDispatch(dependencies) {
         saveDesktopConfig: (values) => saveDesktopConfig(desktopConfigStore, values),
         removeWorktree: (project, folderPath) => worktreeService.remove(project, folderPath),
         stopAgent: (runId) => agentRunnerService.stop(runId),
-        watchProject: (project, callback) => localGitService.watchProject(project, (event) => {
-            if (actionSchedulerService) void actionSchedulerService.handleProjectChange(event);
-            callback(event);
-        }),
+        watchProject: (project, callback) => localGitService.watchProject(
+            project,
+            (event) => {
+                if (actionSchedulerService) void actionSchedulerService.handleProjectChange(event);
+                callback(event);
+            },
+            (error) => callback({ error: watchErrorMessage(error) }),
+        ),
     };
 
     async function finalizeIntegration(project, worktree, integration, metadata, activeConflict, conflictRequest = null) {

@@ -182,11 +182,13 @@ describe('handleDownloadRequest', () => {
 
     it('streams progress with a 4 MB buffer, launches the installer, and quits', async () => {
         const highWaterMarks = [];
-        const fs = { createWriteStream: (_path, options) => {
-            highWaterMarks.push(options?.highWaterMark);
+        const fs = {
+            createWriteStream: (_path, options) => {
+                highWaterMarks.push(options?.highWaterMark);
 
-            return createWriteStream();
-        } };
+                return createWriteStream();
+            },
+        };
         const progress = [];
         const send = vi.fn((_channel, payload) => progress.push(payload));
         const openPath = vi.fn().mockResolvedValue('');

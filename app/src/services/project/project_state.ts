@@ -1,10 +1,8 @@
-import type { Card, MarkdownFile, ProjectReference, ProjectSnapshot } from '../../data/data_types'
+import type { Card, MarkdownFile, MoveFile, ProjectReference, ProjectSnapshot, ProjectWatchEvent } from '../../data/data_types'
 import { markdownParsingService, type CardParseError } from '../data/markdown_parsing_service'
 import { mergeFiles } from '../data/data_service_context'
 
-type CardCollections = Pick<ProjectSnapshot, 'activeCards' | 'backgroundCards'>
-
-type AttachAgentConversations = (cards: CardCollections) => CardCollections
+type AttachAgentConversations = (card: Card) => Card
 type ReportCardParseErrors = (errors: CardParseError[]) => void
 type ActiveCardsChanged = (previousCards: Card[], nextCards: Card[]) => void
 
@@ -54,7 +52,7 @@ export class ProjectState {
     private currentProject: ProjectReference | null = null
     private currentSnapshot: ProjectSnapshot | null = null
     private readonly inFlightCommitPaths: Set<string> = new Set()
-    private readonly committedContentHashByPath = new Map<string, number>()
+    private readonly currentContentHashByPath = new Map<string, number>()
     private projectLoadToken = 0
     private parseErrorPaths: Set<string> = new Set()
     private readonly attachAgentConversations: AttachAgentConversations
@@ -85,7 +83,7 @@ export class ProjectState {
         this.currentProject = null
         this.currentSnapshot = null
         this.inFlightCommitPaths.clear()
-        this.committedContentHashByPath.clear()
+        this.currentContentHashByPath.clear()
         this.parseErrorPaths.clear()
         if (previousActiveCards.length > 0) this.activeCardsChanged(previousActiveCards, [])
     }
@@ -97,6 +95,7 @@ export class ProjectState {
     replaceProjectFiles(files: MarkdownFile[], workingFolder: string, repositoryFiles: string[]) {
         const previousActiveCards = this.currentSnapshot?.activeCards ?? []
         this.currentFiles = files
+        this.replaceCurrentContentHashes(files)
         this.reconcileCards(files, workingFolder)
         this.currentSnapshot = this.createSnapshot(workingFolder, repositoryFiles, true)
         if (previousActiveCards !== this.currentSnapshot.activeCards) {
@@ -108,6 +107,7 @@ export class ProjectState {
     mergeBackgroundProjectFiles(files: MarkdownFile[], workingFolder: string, repositoryFiles: string[]) {
         const previousActiveCards = this.currentSnapshot?.activeCards ?? []
         this.currentFiles = files
+        this.replaceCurrentContentHashes(files)
         this.reconcileCards(this.currentFiles, workingFolder, true)
         this.currentSnapshot = this.createSnapshot(workingFolder, repositoryFiles)
         if (previousActiveCards !== this.currentSnapshot.activeCards) {
@@ -131,20 +131,120 @@ export class ProjectState {
         this.replaceFiles(mergeFiles(this.currentFiles, files), workingFolder)
     }
 
-    /** Remembers what was written to disk so the watcher echo of our own commit can be recognized. */
-    recordCommittedContent(files: MarkdownFile[]) {
-        files.forEach((file) => this.committedContentHashByPath.set(file.path, hashContent(file.content)))
+    /** Parses and applies only changed files while preserving every unaffected card. */
+    updateFiles(updatedFiles: MarkdownFile[], removedPaths: string[], workingFolder: string) {
+        const removedPathSet = new Set(removedPaths)
+        const updatedPathSet = new Set(updatedFiles.map(({ path }) => path))
+        const changedPathSet = new Set([...removedPaths, ...updatedPathSet])
+        const previousActiveCards = this.currentSnapshot?.activeCards ?? []
+        const previousBackgroundCards = this.currentSnapshot?.backgroundCards ?? []
+        this.currentFiles = [
+            ...this.currentFiles.filter(({ path }) => !removedPathSet.has(path) && !updatedPathSet.has(path)),
+            ...updatedFiles,
+        ]
+        removedPaths.forEach((path) => {
+            this.currentCardsByPath.delete(path)
+            this.currentContentHashByPath.delete(path)
+            this.parseErrorPaths.delete(path)
+        })
+        for (const file of updatedFiles) this.updateCardFromFile(file, workingFolder)
+        this.recordCurrentContent(updatedFiles)
+        const updatedCards = updatedFiles
+            .map(({ path }) => this.currentCardsByPath.get(path))
+            .filter((card): card is Card => !!card)
+        const activeCards = [
+            ...previousActiveCards.filter(({ path }) => !changedPathSet.has(path)),
+            ...updatedCards.filter(({ isActive }) => isActive),
+        ]
+        const backgroundCards = [
+            ...previousBackgroundCards.filter(({ path }) => !changedPathSet.has(path)),
+            ...updatedCards.filter(({ isActive }) => !isActive),
+        ]
+        const nextActiveCards = isSameArray(previousActiveCards, activeCards) ? previousActiveCards : activeCards
+        const nextBackgroundCards = isSameArray(previousBackgroundCards, backgroundCards)
+            ? previousBackgroundCards
+            : backgroundCards
+        this.currentSnapshot = {
+            activeCards: nextActiveCards,
+            backgroundCards: nextBackgroundCards,
+            repositoryFiles: this.currentSnapshot?.repositoryFiles ?? [],
+            workingFolder,
+        }
+        if (previousActiveCards !== nextActiveCards) this.activeCardsChanged(previousActiveCards, nextActiveCards)
     }
 
-    isCommittedContent(path: string, content: string) {
-        return this.committedContentHashByPath.get(path) === hashContent(content)
+    /** Applies known repository moves without rereading unrelated project files. */
+    applyMoves(moves: MoveFile[], workingFolder: string) {
+        const sourcePaths = moves.map(({ fromPath }) => fromPath)
+        const loadedPathSet = new Set(this.currentFiles.map(({ path }) => path))
+        const loadedSourcePaths = sourcePaths.filter((path) => loadedPathSet.has(path))
+        const movedFiles = moves
+            .filter(({ fromPath }) => loadedPathSet.has(fromPath))
+            .map(({ content, encoding, sha, toPath }) => ({ content, encoding, path: toPath, sha }))
+        this.updateFiles(movedFiles, loadedSourcePaths, workingFolder)
+        const sourcePathSet = new Set(sourcePaths)
+        const repositoryFiles = this.currentSnapshot?.repositoryFiles ?? []
+        const movedRepositoryFiles = [
+            ...repositoryFiles.filter((path) => !sourcePathSet.has(path)),
+            ...moves.map(({ toPath }) => toPath),
+        ]
+        this.currentSnapshot = { ...this.currentSnapshot!, repositoryFiles: [...new Set(movedRepositoryFiles)].sort() }
+    }
+
+    updateRepositoryFile(event: ProjectWatchEvent) {
+        if (!this.currentSnapshot) return
+        const repositoryFiles = event.changeKind === 'removed'
+            ? this.currentSnapshot.repositoryFiles.filter((path) => path !== event.path)
+            : this.currentSnapshot.repositoryFiles.includes(event.path)
+                ? this.currentSnapshot.repositoryFiles
+                : [...this.currentSnapshot.repositoryFiles, event.path].sort()
+        if (repositoryFiles === this.currentSnapshot.repositoryFiles) return
+
+        this.currentSnapshot = { ...this.currentSnapshot, repositoryFiles }
+    }
+
+    addRepositoryFile(path: string) {
+        this.updateRepositoryFile({ changeKind: 'added', path })
+    }
+
+    removeFolder(path: string, workingFolder: string) {
+        const prefix = `${path.replace(/\/+$/u, '')}/`
+        const removedPaths = this.currentFiles.filter((file) => file.path.startsWith(prefix)).map((file) => file.path)
+        this.updateFiles([], removedPaths, workingFolder)
+        if (!this.currentSnapshot) return
+
+        this.currentSnapshot = {
+            ...this.currentSnapshot,
+            repositoryFiles: this.currentSnapshot.repositoryFiles.filter((filePath) => !filePath.startsWith(prefix)),
+        }
+    }
+
+    refreshCardConversations(path: string, workingFolder: string) {
+        const card = this.requireCard(path)
+        const previousCard = cloneCard(card)
+        const previousActiveCards = this.currentSnapshot?.activeCards ?? []
+        this.attachAgentConversations(card)
+        if (this.currentSnapshot) this.currentSnapshot = { ...this.currentSnapshot, workingFolder }
+        if (previousCard.isActive) {
+            const eventCards = previousActiveCards.map((candidate) => candidate === card ? previousCard : candidate)
+            this.activeCardsChanged(eventCards, previousActiveCards)
+        }
+    }
+
+    /** Updates current content before delayed watcher echoes can arrive. */
+    recordCurrentContent(files: MarkdownFile[]) {
+        files.forEach((file) => this.currentContentHashByPath.set(file.path, hashContent(file.content)))
+    }
+
+    matchesCurrentContent(path: string, content: string) {
+        return this.currentContentHashByPath.get(path) === hashContent(content)
     }
 
     /** Merges successful companion writes and removes a deleted file from one rebuilt snapshot. */
     deleteFile(path: string, committedFiles: MarkdownFile[], workingFolder: string) {
         const files = mergeFiles(this.currentFiles, committedFiles).filter((file) => file.path !== path)
         const repositoryFiles = (this.currentSnapshot?.repositoryFiles ?? []).filter((filePath) => filePath !== path)
-        this.committedContentHashByPath.delete(path)
+        this.currentContentHashByPath.delete(path)
 
         this.replaceProjectFiles(files, workingFolder, repositoryFiles)
     }
@@ -153,9 +253,9 @@ export class ProjectState {
     renameFile(fromPath: string, toPath: string, workingFolder: string) {
         if (fromPath === toPath) return
 
-        const movedHash = this.committedContentHashByPath.get(fromPath)
-        this.committedContentHashByPath.delete(fromPath)
-        if (movedHash !== undefined) this.committedContentHashByPath.set(toPath, movedHash)
+        const movedHash = this.currentContentHashByPath.get(fromPath)
+        this.currentContentHashByPath.delete(fromPath)
+        if (movedHash !== undefined) this.currentContentHashByPath.set(toPath, movedHash)
 
         const sourceFile = this.currentFiles.find((file) => file.path === fromPath)
         const targetFile = this.currentFiles.find((file) => file.path === toPath)
@@ -230,12 +330,11 @@ export class ProjectState {
         const previousCard = cloneCard(card)
         const previousActiveCards = this.currentSnapshot?.activeCards ?? []
         mutation(card)
-        const repositoryFiles = this.currentSnapshot?.repositoryFiles ?? []
-        this.currentSnapshot = this.createSnapshot(workingFolder, repositoryFiles, true)
+        if (this.currentSnapshot) this.currentSnapshot = { ...this.currentSnapshot, workingFolder }
 
         if (previousCard.isActive) {
             const eventCards = previousActiveCards.map((candidate) => candidate === card ? previousCard : candidate)
-            this.activeCardsChanged(eventCards, this.currentSnapshot.activeCards)
+            this.activeCardsChanged(eventCards, previousActiveCards)
         }
 
         return card
@@ -252,12 +351,8 @@ export class ProjectState {
 
     private createSnapshot(workingFolder: string, repositoryFiles: string[], forceNew = false): ProjectSnapshot {
         const cards = [...this.currentCardsByPath.values()]
-        const cardsWithConversations = this.attachAgentConversations({
-            activeCards: cards.filter(({ isActive }) => isActive),
-            backgroundCards: cards.filter(({ isActive }) => !isActive),
-        })
-        const activeCards = cardsWithConversations.activeCards
-        const backgroundCards = cardsWithConversations.backgroundCards
+        const activeCards = cards.filter(({ isActive }) => isActive)
+        const backgroundCards = cards.filter(({ isActive }) => !isActive)
 
         const previous = this.currentSnapshot
         const snapshot: ProjectSnapshot = {
@@ -297,7 +392,8 @@ export class ProjectState {
             }
 
             try {
-                nextCardsByPath.set(file.path, markdownParsingService.parseCard(file, workingFolder))
+                const card = markdownParsingService.parseCard(file, workingFolder)
+                nextCardsByPath.set(file.path, this.attachAgentConversations(card))
             } catch (error) {
                 parseErrors.push({ error, path: file.path })
             }
@@ -307,5 +403,30 @@ export class ProjectState {
         this.parseErrorPaths = new Set(parseErrors.map(({ path }) => path))
         if (newParseErrors.length > 0) this.reportCardParseErrors(newParseErrors)
         this.currentCardsByPath = nextCardsByPath
+    }
+
+    private updateCardFromFile(file: MarkdownFile, workingFolder: string) {
+        if (!markdownParsingService.isMarkdownFile(file.path)) return
+        const existingCard = this.currentCardsByPath.get(file.path)
+        if (existingCard && markdownParsingService.hasSourceContent(existingCard, file.content)) {
+            existingCard.sha = file.sha
+            existingCard.isActive = markdownParsingService.isRootWorkingFolderFile(file.path, workingFolder)
+            return
+        }
+
+        try {
+            const card = markdownParsingService.parseCard(file, workingFolder)
+            this.currentCardsByPath.set(file.path, this.attachAgentConversations(card))
+            this.parseErrorPaths.delete(file.path)
+        } catch (error) {
+            this.currentCardsByPath.delete(file.path)
+            if (!this.parseErrorPaths.has(file.path)) this.reportCardParseErrors([{ error, path: file.path }])
+            this.parseErrorPaths.add(file.path)
+        }
+    }
+
+    private replaceCurrentContentHashes(files: MarkdownFile[]) {
+        this.currentContentHashByPath.clear()
+        this.recordCurrentContent(files)
     }
 }

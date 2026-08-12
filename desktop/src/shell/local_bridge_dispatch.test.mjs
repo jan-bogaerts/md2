@@ -164,6 +164,18 @@ function createDispatch(options = {}) {
 }
 
 describe('createLocalBridgeDispatch', () => {
+    it('forwards project watcher failures to the bridge subscriber', () => {
+        const { dispatch, localGitService } = createDispatch();
+        const callback = vi.fn();
+        const error = new Error('Native watcher unavailable');
+
+        dispatch.invoke('watchProject', [{ branch: 'main', id: 'local', rootPath: 'C:/repo' }, callback]);
+        const [, , onError] = localGitService.watchProject.mock.calls[0];
+        onError(error);
+
+        expect(callback).toHaveBeenCalledWith({ error: error.message });
+    });
+
     it('loads and saves desktop config without requiring an active project', async () => {
         const desktopConfig = {
             agent: 'custom',
