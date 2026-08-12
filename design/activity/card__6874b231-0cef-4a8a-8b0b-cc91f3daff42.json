@@ -4900,11 +4900,11 @@
         "agent-2ea913e3-baf3-461e-a978-f5da649f8ad7"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-93cb9031-50cf-4735-a577-b4977f26e736",
       "origin": {
@@ -4913,9 +4913,71 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-2ea913e3-baf3-461e-a978-f5da649f8ad7",
       "startedAt": "2026-08-12T14:03:15.314Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-2ea913e3-baf3-461e-a978-f5da649f8ad7"
+    },
+    {
+      "commits": [
+        {
+          "commit": "7f6ec410913573702218b2c3882818fc1149c830",
+          "committedAt": "2026-08-12T16:30:36+02:00",
+          "deletions": 246,
+          "filePaths": [
+            "app/src/components/actions/run/popup/action_popup.test.tsx",
+            "app/src/components/config/config_page.test.tsx",
+            "app/src/components/config/config_page.tsx",
+            "app/src/components/config/config_value_editor.tsx",
+            "app/src/components/shell/project/project_dialogs.test.tsx",
+            "app/src/components/shell/project/project_open_dialog.tsx",
+            "app/src/components/shell/project/use_project_toolbar_menu_actions.ts",
+            "app/src/components/shell/remote_connect_button.test.tsx",
+            "app/src/components/shell/remote_connect_button.tsx",
+            "app/src/components/shell/remote_connect_dialog.tsx",
+            "app/src/components/shell/remote_control_button.test.tsx",
+            "app/src/components/shell/remote_control_button.tsx",
+            "app/src/components/shell/remote_control_connection_info.test.tsx",
+            "app/src/components/shell/remote_control_connection_info.tsx",
+            "app/src/components/shell/remote_control_status_indicator.test.tsx",
+            "app/src/components/shell/use_remote_control_status.ts",
+            "app/src/data/electron_remote_control_bridge.ts",
+            "app/src/data/project_session.test.ts",
+            "app/src/data/remote_connect_string.node.test.ts",
+            "app/src/data/remote_connect_string.ts",
+            "app/src/data/remote_control_connection.test.ts",
+            "app/src/data/remote_control_connection.ts",
+            "app/src/services/config/config_entries.ts",
+            "app/src/services/config/config_persistence.test.ts",
+            "app/src/services/config/config_service.test.ts",
+            "app/src/services/config/config_service.ts",
+            "app/src/services/data/remote_connection_service.test.ts",
+            "app/src/services/data/remote_connection_service.ts",
+            "app/src/services/data/remote_control_storage_service.node.test.ts",
+            "app/src/services/data/remote_control_storage_service.ts",
+            "app/src/services/project/project_loading.test.ts",
+            "app/src/services/project/project_session_service.test.ts",
+            "app/src/services/project/project_session_service.ts",
+            "design/architecture/initial description/desktop app.md",
+            "desktop/main.js",
+            "desktop/src/integrations/remote_connect_url.js",
+            "desktop/src/integrations/remote_connect_url.test.mjs",
+            "desktop/src/integrations/remote_control_service.js",
+            "desktop/src/integrations/remote_control_service.test.mjs",
+            "desktop/src/shell/config.js",
+            "desktop/src/shell/config.test.mjs"
+          ],
+          "filesChanged": 41,
+          "insertions": 401,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-12T16:30:36+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "6874b231-0cef-4a8a-8b0b-cc91f3daff42",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
