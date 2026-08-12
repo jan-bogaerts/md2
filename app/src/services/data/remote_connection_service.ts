@@ -75,7 +75,7 @@ const DEFAULT_DEPENDENCIES: RemoteConnectionServiceDependencies = {
 }
 
 function sameSettings(left: RemoteControlConnectionSettings | null, right: RemoteControlConnectionSettings) {
-    return left?.endpoint === right.endpoint && left.token === right.token
+    return left?.endpoint === right.endpoint
 }
 
 /** Owns browser-to-desktop connection state, activation order, and reconnection. */
@@ -137,13 +137,13 @@ export class RemoteConnectionService extends EventTarget {
         this.stopCurrentConnection()
         this.projectFlowHandled = false
         this.settings = settings
-        configureRemoteControlConnection(settings)
         this.publish({ endpoint: settings.endpoint, errorMessage: null, status: 'connecting' })
         const connectionPromise = this.connectOnce(settings, lifecycleId, false, initialStorage)
         this.connectionPromise = connectionPromise
         try {
             const storage = await connectionPromise
             if (!storage) throw new RemoteControlConnectionError('Remote-control connection cancelled')
+            configureRemoteControlConnection(settings)
 
             return storage
         } finally {

@@ -3,7 +3,7 @@ import type { ElectronDataBridge } from '../../data/electron_data_bridge'
 import { beforeEach } from 'vitest'
 import { getElectronActionBridge, setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge'
 import { LAST_PROJECT_STORAGE_KEY } from '../../data/project_session'
-import { configureRemoteControlConnection, REMOTE_CONTROL_ENDPOINT_KEY, REMOTE_CONTROL_TOKEN_KEY } from '../../data/remote_control_connection'
+import { configureRemoteControlConnection, REMOTE_CONTROL_ENDPOINT_KEY } from '../../data/remote_control_connection'
 import { RemoteControlStorageService } from '../data/remote_control_storage_service'
 import { remoteConnectionService } from '../data/remote_connection_service'
 import { configService } from '../config/config_service'
@@ -81,6 +81,7 @@ describe('ProjectSessionService storage activation', () => {
             mergeConflictResolverCommand: '',
             model: 'custom-model',
             permissionMode: 'ask-for-approval',
+            remoteControlPort: 20877,
             thinkingLevel: 'high',
         })
         vi.spyOn(RemoteControlStorageService.prototype, 'loadAgentAvailability')
@@ -100,12 +101,11 @@ describe('ProjectSessionService storage activation', () => {
         delete window.md2Data
         window.localStorage.removeItem(LAST_PROJECT_STORAGE_KEY)
         window.localStorage.removeItem(REMOTE_CONTROL_ENDPOINT_KEY)
-        window.localStorage.removeItem(REMOTE_CONTROL_TOKEN_KEY)
     })
 
     it('activates remote storage as the action bridge when opening a remote project', async () => {
         mockProjectOpen()
-        configureRemoteControlConnection({ endpoint: 'ws://127.0.0.1:1234', token: 'token-1' })
+        configureRemoteControlConnection({ endpoint: 'ws://127.0.0.1:1234' })
         const service = new ProjectSessionService()
 
         await service.openProject('remote', { branch: 'main', id: 'remote', rootPath: '/repo' }, null)
@@ -117,7 +117,7 @@ describe('ProjectSessionService storage activation', () => {
     it('reuses an existing remote storage connection when opening a remote project', async () => {
         mockProjectOpen()
         const storage = new RemoteControlStorageService()
-        storage.init({ endpoint: 'ws://127.0.0.1:1234', token: 'token-1' })
+        storage.init({ endpoint: 'ws://127.0.0.1:1234' })
         const service = new ProjectSessionService()
 
         await service.openProject('remote', { branch: 'main', id: 'remote', rootPath: '/repo' }, null, storage)
@@ -129,7 +129,7 @@ describe('ProjectSessionService storage activation', () => {
         const availability = createDeferred<void>()
         vi.spyOn(agentCapabilitiesService, 'reload').mockReturnValue(availability.promise)
         const storage = new RemoteControlStorageService()
-        storage.init({ endpoint: 'ws://127.0.0.1:1234', token: 'token-1' })
+        storage.init({ endpoint: 'ws://127.0.0.1:1234' })
         const service = new ProjectSessionService()
         const activation = service.activateRemoteConnection(storage)
 
@@ -146,7 +146,7 @@ describe('ProjectSessionService storage activation', () => {
         mockProjectOpen()
         vi.mocked(RemoteControlStorageService.prototype.loadDesktopConfig).mockRejectedValueOnce(new Error('host config unavailable'))
         const storage = new RemoteControlStorageService()
-        storage.init({ endpoint: 'ws://127.0.0.1:1234', token: 'token-1' })
+        storage.init({ endpoint: 'ws://127.0.0.1:1234' })
         const service = new ProjectSessionService()
 
         await expect(service.openProject('remote', { branch: 'main', id: 'remote', rootPath: '/repo' }, null, storage))
@@ -158,7 +158,7 @@ describe('ProjectSessionService storage activation', () => {
     it('clears remote desktop config and action bridge when the connection closes', async () => {
         mockProjectOpen()
         const storage = new RemoteControlStorageService()
-        storage.init({ endpoint: 'ws://127.0.0.1:1234', token: 'token-1' })
+        storage.init({ endpoint: 'ws://127.0.0.1:1234' })
         const connectionListeners: Array<(connected: boolean) => void> = []
         vi.spyOn(storage, 'onConnectionChanged').mockImplementation((callback) => {
             connectionListeners.push(callback)
@@ -179,7 +179,7 @@ describe('ProjectSessionService storage activation', () => {
         const preloadBridge = createActionBridge()
         window.md2Actions = preloadBridge
         window.md2Data = createDataBridge()
-        configureRemoteControlConnection({ endpoint: 'ws://127.0.0.1:1234', token: 'token-1' })
+        configureRemoteControlConnection({ endpoint: 'ws://127.0.0.1:1234' })
         const service = new ProjectSessionService()
         await service.openProject('remote', { branch: 'main', id: 'remote', rootPath: '/repo' }, null)
 
@@ -198,6 +198,7 @@ describe('ProjectSessionService storage activation', () => {
             mergeConflictResolverCommand: '',
             model: 'gpt-5',
             permissionMode: 'ask-for-approval' as const,
+            remoteControlPort: 20877,
             thinkingLevel: 'high' as const,
         }
         const bridge = createDataBridge()
@@ -246,7 +247,7 @@ describe('ProjectSessionService storage activation', () => {
         mockProjectOpen()
         const preloadBridge = createActionBridge()
         window.md2Actions = preloadBridge
-        configureRemoteControlConnection({ endpoint: 'ws://127.0.0.1:1234', token: 'token-1' })
+        configureRemoteControlConnection({ endpoint: 'ws://127.0.0.1:1234' })
         const service = new ProjectSessionService()
         await service.openProject('remote', { branch: 'main', id: 'remote', rootPath: '/repo' }, null)
         const config = window.btoa(JSON.stringify({ backgroundShade: 'blue', projectFolder: '', workingFolder: 'design' }))

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import remoteControlModule from './remote_control_service.js';
+import { WebSocket } from 'ws';
 
 const { RemoteControlService } = remoteControlModule;
 
@@ -8,6 +9,21 @@ function createClient() {
 }
 
 describe('RemoteControlService push protocol', () => {
+    it('accepts a tokenless WebSocket upgrade and omits token status', async () => {
+        const service = new RemoteControlService({ invoke: vi.fn() });
+        const status = await service.start({ host: '127.0.0.1', port: 0 });
+        const socket = new WebSocket(status.endpoint);
+
+        await new Promise((resolve, reject) => {
+            socket.once('open', resolve);
+            socket.once('error', reject);
+        });
+
+        expect(service.getStatus()).not.toHaveProperty('token');
+        socket.close();
+        await service.stop();
+    });
+
     it('emits every push message with matching payload and cleans subscriptions', async () => {
         const callbacks = new Map();
         const cleanups = new Map();

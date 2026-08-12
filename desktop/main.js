@@ -195,7 +195,11 @@ function registerRemoteControlBridge() {
     remoteControlService.setStatusListener(broadcastRemoteControlStatus);
 
     const staticDir = resolveRendererStaticDir(app.isPackaged, __dirname);
-    ipcMain.handle(REMOTE_CONTROL_START_CHANNEL, async () => remoteControlService.start({ host: '0.0.0.0', staticDir }));
+    ipcMain.handle(REMOTE_CONTROL_START_CHANNEL, async () => {
+        const { remoteControlPort } = readDesktopConfig(store);
+
+        return remoteControlService.start({ host: '0.0.0.0', port: remoteControlPort, staticDir });
+    });
     ipcMain.handle(REMOTE_CONTROL_STOP_CHANNEL, async () => remoteControlService.stop());
     ipcMain.handle(REMOTE_CONTROL_GET_STATUS_CHANNEL, () => remoteControlService.getStatus());
 }

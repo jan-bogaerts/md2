@@ -276,9 +276,9 @@ export class ProjectSessionService extends EventTarget {
         })
     }
 
-    configureRemote(endpoint: string, token: string) {
+    configureRemote(endpoint: string) {
         this.setError(null)
-        configureRemoteControlConnection({ endpoint, token })
+        configureRemoteControlConnection({ endpoint })
     }
 
     async activateRemoteConnection(storage: StorageService) {

@@ -68,6 +68,7 @@ describe('ConfigPage', () => {
         window.localStorage.clear()
         delete window.md2Config
         delete window.md2Data
+        delete window.md2RemoteControl
         setDesktopConfigTransportOverride(null)
     })
 
@@ -463,10 +464,149 @@ describe('ConfigPage', () => {
             mergeConflictResolverCommand: '',
             model: '',
             permissionMode: 'ask-for-approval',
+            remoteControlPort: 20877,
             thinkingLevel: 'none',
         })
 
         delete window.md2Config
+    })
+
+    it.each(['0', '65536', '20877.5'])('blocks saving invalid remote-control port %s', (port) => {
+        mockMatchMedia(false)
+        window.md2Config = {
+            getDesktopConfig: () => ({ remoteControlPort: 20877 }),
+            setDesktopConfig: vi.fn(async (values: DesktopConfigValues) => values),
+        }
+        initConfigFromElectronBridge()
+        renderConfigPage('#desktop')
+
+        fireEvent.change(screen.getByLabelText('Remote-control port'), { target: { value: port } })
+
+        expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
+    })
+
+    it('closes Config before restarting an active server on changed port', async () => {
+        mockMatchMedia(false)
+        const setDesktopConfig = vi.fn(async (values: DesktopConfigValues) => values)
+        const stop = vi.fn(async () => {
+            expect(window.location.hash).toBe('')
+
+            return { active: false, clientCount: 0, endpoint: null }
+        })
+        const start = vi.fn(async () => ({ active: true, clientCount: 0, endpoint: 'ws://127.0.0.1:20878' }))
+        window.md2Config = { getDesktopConfig: () => ({ remoteControlPort: 20877 }), setDesktopConfig }
+        window.md2RemoteControl = {
+            getStatus: vi.fn(async () => ({ active: true, clientCount: 0, endpoint: 'ws://127.0.0.1:20877' })),
+            onStatusChange: vi.fn(() => () => undefined),
+            start,
+            stop,
+        }
+        initConfigFromElectronBridge()
+        renderConfigPage('#desktop')
+
+        fireEvent.change(screen.getByLabelText('Remote-control port'), { target: { value: '20878' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+        await waitFor(() => expect(start).toHaveBeenCalledOnce())
+        expect(stop).toHaveBeenCalledOnce()
+        expect(setDesktopConfig).toHaveBeenCalledWith(expect.objectContaining({ remoteControlPort: 20878 }))
+        expect(stop.mock.invocationCallOrder[0]).toBeLessThan(start.mock.invocationCallOrder[0])
+    })
+
+    it('leaves server stopped and reports a bind failure after port save', async () => {
+        mockMatchMedia(false)
+        const bindError = new Error('listen EADDRINUSE: address already in use')
+        const error = vi.spyOn(dialogService, 'error')
+        const stop = vi.fn(async () => ({ active: false, clientCount: 0, endpoint: null }))
+        const start = vi.fn(async () => { throw bindError })
+        window.md2Config = {
+            getDesktopConfig: () => ({ remoteControlPort: 20877 }),
+            setDesktopConfig: vi.fn(async (values: DesktopConfigValues) => values),
+        }
+        window.md2RemoteControl = {
+            getStatus: vi.fn(async () => ({ active: true, clientCount: 0, endpoint: 'ws://127.0.0.1:20877' })),
+            onStatusChange: vi.fn(() => () => undefined),
+            start,
+            stop,
+        }
+        initConfigFromElectronBridge()
+        renderConfigPage('#desktop')
+
+        fireEvent.change(screen.getByLabelText('Remote-control port'), { target: { value: '20878' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+        await waitFor(() => expect(error).toHaveBeenCalledWith(bindError, { fallbackMessage: 'Remote-control restart failed' }))
+        expect(stop).toHaveBeenCalledOnce()
+        expect(start).toHaveBeenCalledOnce()
+        expect(window.location.hash).toBe('')
+    })
+
+    it('does not restart when changed port is saved while server is stopped', async () => {
+        mockMatchMedia(false)
+        const stop = vi.fn()
+        const start = vi.fn()
+        window.md2Config = {
+            getDesktopConfig: () => ({ remoteControlPort: 20877 }),
+            setDesktopConfig: vi.fn(async (values: DesktopConfigValues) => values),
+        }
+        window.md2RemoteControl = {
+            getStatus: vi.fn(async () => ({ active: false, clientCount: 0, endpoint: null })),
+            onStatusChange: vi.fn(() => () => undefined),
+            start,
+            stop,
+        }
+        initConfigFromElectronBridge()
+        renderConfigPage('#desktop')
+
+        fireEvent.change(screen.getByLabelText('Remote-control port'), { target: { value: '20878' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+        await waitFor(() => expect(window.location.hash).toBe(''))
+        expect(stop).not.toHaveBeenCalled()
+        expect(start).not.toHaveBeenCalled()
+    })
+
+    it('does not inspect or restart server when saved port is unchanged', async () => {
+        mockMatchMedia(false)
+        const getStatus = vi.fn()
+        const stop = vi.fn()
+        const start = vi.fn()
+        window.md2Config = {
+            getDesktopConfig: () => ({ remoteControlPort: 20877 }),
+            setDesktopConfig: vi.fn(async (values: DesktopConfigValues) => values),
+        }
+        window.md2RemoteControl = { getStatus, onStatusChange: vi.fn(() => () => undefined), start, stop }
+        initConfigFromElectronBridge()
+        renderConfigPage('#desktop')
+
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+        await waitFor(() => expect(window.location.hash).toBe(''))
+        expect(getStatus).not.toHaveBeenCalled()
+        expect(stop).not.toHaveBeenCalled()
+        expect(start).not.toHaveBeenCalled()
+    })
+
+    it('does not inspect or restart server when Config is cancelled', async () => {
+        mockMatchMedia(false)
+        const getStatus = vi.fn()
+        const stop = vi.fn()
+        const start = vi.fn()
+        window.md2Config = {
+            getDesktopConfig: () => ({ remoteControlPort: 20877 }),
+            setDesktopConfig: vi.fn(async (values: DesktopConfigValues) => values),
+        }
+        window.md2RemoteControl = { getStatus, onStatusChange: vi.fn(() => () => undefined), start, stop }
+        initConfigFromElectronBridge()
+        renderConfigPage('#desktop')
+
+        fireEvent.change(screen.getByLabelText('Remote-control port'), { target: { value: '20878' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+
+        await waitFor(() => expect(window.location.hash).toBe(''))
+        expect(getStatus).not.toHaveBeenCalled()
+        expect(stop).not.toHaveBeenCalled()
+        expect(start).not.toHaveBeenCalled()
     })
 
     it('awaits remote persistence, applies returned config, then reloads availability', async () => {
@@ -479,6 +619,7 @@ describe('ConfigPage', () => {
             mergeConflictResolverCommand: '',
             model: 'host-model',
             permissionMode: 'ask-for-approval',
+            remoteControlPort: 20877,
             thinkingLevel: 'medium',
         }
         let acknowledgeSave: (value: DesktopConfigValues) => void = () => undefined
@@ -513,6 +654,7 @@ describe('ConfigPage', () => {
             mergeConflictResolverCommand: '',
             model: '',
             permissionMode: 'ask-for-approval',
+            remoteControlPort: 20877,
             thinkingLevel: 'none',
         }
         const saveError = new Error('Host rejected desktop config')

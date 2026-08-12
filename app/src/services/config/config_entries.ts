@@ -34,6 +34,7 @@ export interface ConfigValueTypes {
     'desktop.mergeConflictResolverCommand': string
     'desktop.model': string
     'desktop.permissionMode': PermissionMode
+    'desktop.remoteControlPort': number
     'desktop.thinkingLevel': ThinkingLevel
     'project.actionsFolder': string
     'project.archivedFolder': string
@@ -67,6 +68,7 @@ export interface ConfigEntry {
     description: string
     editable: boolean
     input?: 'slider'
+    integer?: boolean
     key: ConfigKey
     label: string
     max?: number
@@ -88,6 +90,7 @@ export interface DesktopConfigValues {
     mergeConflictResolverCommand: string
     model: string
     permissionMode?: PermissionMode
+    remoteControlPort: number
     thinkingLevel?: ThinkingLevel
 }
 
@@ -102,6 +105,7 @@ const MIN_AUTO_COMMIT_DELAY_MS = 1000
 const MAX_AUTO_COMMIT_DELAY_MS = 120000
 export const DEFAULT_EDITOR_COMMAND = 'code -g "{{file}}:{{line}}"'
 export const DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND = ''
+export const DEFAULT_REMOTE_CONTROL_PORT = 20877
 
 export const CONFIG_ENTRIES: ConfigEntry[] = [
     {
@@ -344,6 +348,20 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         section: 'desktop',
         source: 'desktop',
         type: 'string',
+    },
+    {
+        defaultValue: DEFAULT_REMOTE_CONTROL_PORT,
+        description: 'LAN port used to serve the web app and remote-control WebSocket.',
+        editable: true,
+        integer: true,
+        key: 'desktop.remoteControlPort',
+        label: 'Remote-control port',
+        max: 65535,
+        min: 1,
+        section: 'desktop',
+        source: 'desktop',
+        step: 1,
+        type: 'number',
     },
     {
         defaultValue: 'none',

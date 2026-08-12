@@ -30,6 +30,7 @@ import {
 } from '../../theme/theme_config'
 import { MarkdownConfigSection } from './markdown_config_section'
 import { agentCapabilitiesService } from '../../services/agents/agent_capabilities_service'
+import { getElectronRemoteControlBridge } from '../../data/electron_remote_control_bridge'
 
 const CONFIG_PAGE_PADDING = 3
 const CONFIG_FORM_MAX_WIDTH = 720
@@ -162,6 +163,12 @@ export function ConfigPage(props: ConfigPageProps) {
             const shouldSaveDesktopConfig = configService.hasDraftChangesForSource('desktop')
             const previousCardSeparator = configService.get('project.cardSeparator')
             const nextCardSeparator = draft['project.cardSeparator']
+            const remoteControlBridge = getElectronRemoteControlBridge()
+            const remoteControlPortChanged = configService.hasDesktopConfig()
+                && configService.get('desktop.remoteControlPort') !== draft['desktop.remoteControlPort']
+            const shouldRestartRemoteControl = remoteControlPortChanged
+                && remoteControlBridge
+                && (await remoteControlBridge.getStatus()).active
             const shouldUpdateCardSeparator = configService.hasProjectConfig()
                 && previousCardSeparator !== nextCardSeparator
             if (shouldUpdateCardSeparator) {
@@ -179,8 +186,17 @@ export function ConfigPage(props: ConfigPageProps) {
                 setMarkdownStyle(markdownStyleDraft.name)
             }
             if (shouldSaveProjectConfig && configService.hasProjectConfig()) await dataService.projectLoading.saveProjectConfig()
-            dialogService.success('Config saved')
             navigateTo('/')
+            if (shouldRestartRemoteControl) {
+                try {
+                    await remoteControlBridge.stop()
+                    await remoteControlBridge.start()
+                } catch (error) {
+                    dialogService.error(error, { fallbackMessage: 'Remote-control restart failed' })
+                    return
+                }
+            }
+            dialogService.success('Config saved')
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Config save failed' })
         } finally {

@@ -4,7 +4,6 @@ export interface RemoteControlStatus {
     endpoint: string | null
     hostnameEndpoint?: string | null
     ipEndpoints?: string[]
-    token: string | null
 }
 
 export interface ElectronRemoteControlBridge {

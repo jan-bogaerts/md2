@@ -154,6 +154,7 @@ function validateValue<K extends ConfigKey>(key: K, value: unknown): ConfigValue
     if (entry.type === 'boolean') return requireBoolean(value, entry.key) as ConfigValueTypes[K]
     if (entry.type === 'number') {
         const numberValue = requireNumber(value, entry.key)
+        if (entry.integer && !Number.isInteger(numberValue)) throw new Error(`Config value ${entry.key} must be an integer`)
         if (entry.min !== undefined && numberValue < entry.min) throw new Error(`Config value ${entry.key} is below ${entry.min}`)
         if (entry.max !== undefined && numberValue > entry.max) throw new Error(`Config value ${entry.key} is above ${entry.max}`)
 
@@ -230,6 +231,7 @@ function readDesktopConfig(values: ConfigValues): DesktopConfigValues {
         mergeConflictResolverCommand: values['desktop.mergeConflictResolverCommand'],
         model: values['desktop.model'],
         permissionMode: values['desktop.permissionMode'],
+        remoteControlPort: values['desktop.remoteControlPort'],
         thinkingLevel: values['desktop.thinkingLevel'],
     }
 }

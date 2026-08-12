@@ -57,7 +57,7 @@ export function RemoteConnectButton() {
     }
 
     useEffect(() => {
-        const settings = deriveAutoConnectSettings(window.location.host, window.location.hash, window.location.protocol)
+        const settings = deriveAutoConnectSettings(window.location.host, window.location.protocol)
         if (!settings) return
 
         void connectRemoteProject(settings).then((connected) => {

@@ -10,6 +10,7 @@ const {
     DEFAULT_DESKTOP_THINKING_LEVEL,
     DEFAULT_EDITOR_COMMAND,
     DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
+    DEFAULT_REMOTE_CONTROL_PORT,
     DESKTOP_CONFIG_STORE_KEY,
     readDesktopConfig,
     resolveAppUrl,
@@ -49,6 +50,7 @@ describe('resolveDesktopConfig', () => {
             mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
             model: DEFAULT_DESKTOP_MODEL,
             permissionMode: DEFAULT_DESKTOP_PERMISSION_MODE,
+            remoteControlPort: DEFAULT_REMOTE_CONTROL_PORT,
             thinkingLevel: DEFAULT_DESKTOP_THINKING_LEVEL,
         });
     });
@@ -62,6 +64,7 @@ describe('resolveDesktopConfig', () => {
             mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
             model: DEFAULT_DESKTOP_MODEL,
             permissionMode: DEFAULT_DESKTOP_PERMISSION_MODE,
+            remoteControlPort: DEFAULT_REMOTE_CONTROL_PORT,
             thinkingLevel: DEFAULT_DESKTOP_THINKING_LEVEL,
         });
     });
@@ -79,6 +82,7 @@ describe('readDesktopConfig', () => {
             mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
             model: DEFAULT_DESKTOP_MODEL,
             permissionMode: DEFAULT_DESKTOP_PERMISSION_MODE,
+            remoteControlPort: DEFAULT_REMOTE_CONTROL_PORT,
             thinkingLevel: DEFAULT_DESKTOP_THINKING_LEVEL,
         });
     });
@@ -94,6 +98,7 @@ describe('readDesktopConfig', () => {
             mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
             model: DEFAULT_DESKTOP_MODEL,
             permissionMode: DEFAULT_DESKTOP_PERMISSION_MODE,
+            remoteControlPort: DEFAULT_REMOTE_CONTROL_PORT,
             thinkingLevel: DEFAULT_DESKTOP_THINKING_LEVEL,
         });
     });
@@ -120,6 +125,7 @@ describe('readDesktopConfig', () => {
             mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
             model: DEFAULT_DESKTOP_MODEL,
             permissionMode: DEFAULT_DESKTOP_PERMISSION_MODE,
+            remoteControlPort: DEFAULT_REMOTE_CONTROL_PORT,
             thinkingLevel: DEFAULT_DESKTOP_THINKING_LEVEL,
         });
     });
@@ -191,6 +197,7 @@ describe('writeDesktopConfig', () => {
             mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
             model: DEFAULT_DESKTOP_MODEL,
             permissionMode: DEFAULT_DESKTOP_PERMISSION_MODE,
+            remoteControlPort: DEFAULT_REMOTE_CONTROL_PORT,
             thinkingLevel: DEFAULT_DESKTOP_THINKING_LEVEL,
         });
     });
@@ -209,6 +216,7 @@ describe('writeDesktopConfig', () => {
             mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
             model: 'custom-model',
             permissionMode: DEFAULT_DESKTOP_PERMISSION_MODE,
+            remoteControlPort: DEFAULT_REMOTE_CONTROL_PORT,
             thinkingLevel: DEFAULT_DESKTOP_THINKING_LEVEL,
         });
     });
@@ -247,6 +255,7 @@ describe('saveDesktopConfig', () => {
         mergeConflictResolverCommand: '',
         model: 'custom-model',
         permissionMode: 'full-access',
+        remoteControlPort: 20877,
         thinkingLevel: 'high',
     };
 
@@ -265,6 +274,9 @@ describe('saveDesktopConfig', () => {
         ['merge command', { ...validConfig, mergeConflictResolverCommand: 'merge file.txt' }, 'requires {{file}} placeholder'],
         ['model', { ...validConfig, model: null }, 'Missing config field: desktop.model'],
         ['permission mode', { ...validConfig, permissionMode: 'invalid' }, 'Invalid permission mode'],
+        ['remote-control port below range', { ...validConfig, remoteControlPort: 0 }, 'must be an integer from 1 through 65535'],
+        ['remote-control port above range', { ...validConfig, remoteControlPort: 65536 }, 'must be an integer from 1 through 65535'],
+        ['remote-control port decimal', { ...validConfig, remoteControlPort: 20877.5 }, 'must be an integer from 1 through 65535'],
         ['thinking level', { ...validConfig, thinkingLevel: 'extreme' }, 'Invalid thinking level'],
     ])('rejects invalid %s before persistence', (_field, config, message) => {
         const store = createFakeStore();

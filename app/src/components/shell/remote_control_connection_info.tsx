@@ -19,18 +19,16 @@ interface ConnectTarget {
 
 /**
  * Connect targets to share, IP first: `.local` mDNS resolves unreliably on Android, so a raw LAN IP is
- * the dependable default. Each carries the token fragment so the scanned/opened link auto-connects.
+ * the dependable default.
  */
 function connectTargets(status: RemoteControlStatus): ConnectTarget[] {
-    if (!status.token) return []
-
     const targets: ConnectTarget[] = []
     for (const ip of status.ipEndpoints ?? []) {
-        const connectUrl = connectUrlFromEndpoint(ip, status.token)
+        const connectUrl = connectUrlFromEndpoint(ip)
         if (connectUrl) targets.push({ connectUrl, endpoint: ip, label: 'IP address' })
     }
     if (status.hostnameEndpoint) {
-        const connectUrl = connectUrlFromEndpoint(status.hostnameEndpoint, status.token)
+        const connectUrl = connectUrlFromEndpoint(status.hostnameEndpoint)
         if (connectUrl) targets.push({ connectUrl, endpoint: status.hostnameEndpoint, label: 'Hostname' })
     }
 
@@ -51,7 +49,7 @@ async function copyText(text: string) {
     }
 }
 
-/** Popover shown from the Accept button: hostname/IP connect links, a copy button and a QR of the selected link. */
+/** Popover shown from the Serve button: hostname/IP connect links, a copy button and a QR of the selected link. */
 export function RemoteControlConnectionInfo(props: RemoteControlConnectionInfoProps) {
     const { anchorEl, onClose, open, status } = props
     const targets = useMemo(() => connectTargets(status), [status])

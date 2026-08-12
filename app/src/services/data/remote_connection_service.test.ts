@@ -55,7 +55,7 @@ function createService(storageControls: MockStorageControl[]) {
     return { activate, clearActivation, createStorage, replaceProjectStorage, service: new RemoteConnectionService(dependencies) }
 }
 
-const SETTINGS = { endpoint: 'ws://desktop:1234', token: 'token-1' }
+const SETTINGS = { endpoint: 'ws://desktop:1234' }
 
 describe('RemoteConnectionService', () => {
     afterEach(() => vi.useRealTimers())

@@ -47,9 +47,9 @@ interface ProjectOpenDialogProps {
     onCreateWorkingFolder: () => void
     onDiscardGithubPendingCommits: () => void
     onLoadManualBranches: (owner: string, repository: string) => Promise<GithubBranchesResult | null>
-    onLoadRemoteBranches: (endpoint: string, token: string, rootPath: string, branch: string) => Promise<BranchReference[]>
+    onLoadRemoteBranches: (endpoint: string, rootPath: string, branch: string) => Promise<BranchReference[]>
     onOpenGithub: (owner: string, repository: string, branch: string) => Promise<void>
-    onOpenRemote: (endpoint: string, token: string, project: ProjectReference) => Promise<void>
+    onOpenRemote: (endpoint: string, project: ProjectReference) => Promise<void>
     onRepositoryChange: (repository: RepositoryReference) => Promise<BranchReference[]>
     onSourceChange: () => void
     onUseWorkingFolder: (folder: TopLevelFolderReference) => void
@@ -109,7 +109,6 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
     const [repositoryFilter, setRepositoryFilter] = useState('')
     const [remoteEndpoint, setRemoteEndpoint] = useState('')
     const [remoteRootPath, setRemoteRootPath] = useState('')
-    const [remoteToken, setRemoteToken] = useState('')
     const [selectedBranch, setSelectedBranch] = useState('')
     const [selectedRepositoryId, setSelectedRepositoryId] = useState('')
     const [source, setSource] = useState<ProjectSource>('github')
@@ -122,7 +121,6 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
             const stored = tryReadRemoteControlConnection()
             if (stored) {
                 if (remoteEndpoint.length === 0) setRemoteEndpoint(stored.endpoint)
-                if (remoteToken.length === 0) setRemoteToken(stored.token)
             }
             if (initialRemoteProject) {
                 if (remoteRootPath.length === 0 && initialRemoteProject.rootPath) setRemoteRootPath(initialRemoteProject.rootPath)
@@ -135,7 +133,7 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
     const missingWorkingFolder = projectOpenResolution?.kind === 'missing-working-folder' ? projectOpenResolution : null
     const filteredRepositories = repositories.filter((repository) => repositoryMatchesFilter(repository, repositoryFilter))
     const filteredRepositoryIds = filteredRepositories.map(({ id }) => id)
-    const isRemoteComplete = remoteEndpoint.length > 0 && remoteToken.length > 0 && remoteRootPath.length > 0
+    const isRemoteComplete = remoteEndpoint.length > 0 && remoteRootPath.length > 0
     const branchNames = branches.map(({ name }) => name)
     const branchSelectValue = selectValueExists(branchNames, selectedBranch) ? selectedBranch : ''
     const repositorySelectValue = selectValueExists(filteredRepositoryIds, selectedRepositoryId) ? selectedRepositoryId : ''
@@ -165,10 +163,6 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
 
     const handleRemoteRootPathChange = (event: ChangeEvent<HTMLInputElement>) => {
         setRemoteRootPath(event.target.value)
-    }
-
-    const handleRemoteTokenChange = (event: ChangeEvent<HTMLInputElement>) => {
-        setRemoteToken(event.target.value)
     }
 
     const handleBranchChange = (event: SelectChangeEvent) => {
@@ -206,7 +200,7 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
     }
 
     const handleLoadRemoteBranchesClick = async () => {
-        const nextBranches = await onLoadRemoteBranches(remoteEndpoint, remoteToken, remoteRootPath, selectedBranch || 'main')
+        const nextBranches = await onLoadRemoteBranches(remoteEndpoint, remoteRootPath, selectedBranch || 'main')
         const branch = branchValue(nextBranches, selectedBranch || 'main')
         setSelectedBranch(branch)
         onBranchChange(branch)
@@ -217,11 +211,11 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
     }
 
     const handleOpenRemoteClick = () => {
-        if (remoteEndpoint.length === 0 || remoteToken.length === 0 || remoteRootPath.length === 0) return
+        if (remoteEndpoint.length === 0 || remoteRootPath.length === 0) return
 
         const project = onCreateRemoteProject(remoteRootPath, selectedBranch || 'main')
         if (!project) return
-        void onOpenRemote(remoteEndpoint, remoteToken, project)
+        void onOpenRemote(remoteEndpoint, project)
     }
 
     const handleProjectFolderChange = (value: string) => {
@@ -283,7 +277,6 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
                     ) : !projectOpenResolution && !isDesktopMode ? (
                         <>
                             <TextField label="Endpoint" onChange={handleRemoteEndpointChange} size="small" value={remoteEndpoint} />
-                            <TextField label="Token" onChange={handleRemoteTokenChange} size="small" type="password" value={remoteToken} />
                             <TextField label="Project root path" onChange={handleRemoteRootPathChange} size="small" value={remoteRootPath} />
                             <TextField label="Branch" onChange={handleBranchTextChange} size="small" value={selectedBranch || 'main'} />
                             <Button

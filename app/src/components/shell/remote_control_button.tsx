@@ -8,11 +8,11 @@ import { RemoteControlConnectionInfo } from './remote_control_connection_info'
 import { useRemoteControlStatus } from './use_remote_control_status'
 
 function buttonLabel(status: RemoteControlStatus) {
-    return status.active ? 'Disconnect' : 'Accept'
+    return status.active ? 'Disconnect' : 'Serve'
 }
 
 function tooltipLabel(status: RemoteControlStatus) {
-    return status.active ? 'disconnect' : 'accept external connection for web control'
+    return status.active ? 'disconnect' : 'serve app for web control'
 }
 
 /** Toolbar control: starts/stops the Electron remote-control endpoint, or connects to one from the browser. */

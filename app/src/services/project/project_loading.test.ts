@@ -1230,7 +1230,7 @@ describe('ProjectLoading', () => {
         vi.stubGlobal('WebSocket', ProjectLoadingMockWebSocket)
         configService.init()
         const remoteStorage = new RemoteControlStorageService()
-        remoteStorage.init({ endpoint: 'ws://127.0.0.1:1234', token: 'token-1' })
+        remoteStorage.init({ endpoint: 'ws://127.0.0.1:1234' })
         const storage = createStorage({
             loadFile: remoteStorage.loadFile.bind(remoteStorage),
             watchProject: remoteStorage.watchProject.bind(remoteStorage),
@@ -1315,7 +1315,7 @@ describe('ProjectLoading', () => {
         vi.stubGlobal('WebSocket', ProjectLoadingMockWebSocket)
         configService.init()
         const remoteStorage = new RemoteControlStorageService()
-        remoteStorage.init({ endpoint: 'ws://127.0.0.1:1234', token: 'token-1' })
+        remoteStorage.init({ endpoint: 'ws://127.0.0.1:1234' })
         const storage = createStorage({
             loadFile: remoteStorage.loadFile.bind(remoteStorage),
             watchProject: remoteStorage.watchProject.bind(remoteStorage),
@@ -1391,7 +1391,7 @@ describe('ProjectLoading', () => {
         vi.stubGlobal('WebSocket', ProjectLoadingMockWebSocket)
         configService.init()
         const remoteStorage = new RemoteControlStorageService()
-        remoteStorage.init({ endpoint: 'ws://127.0.0.1:1234', token: 'token-1' })
+        remoteStorage.init({ endpoint: 'ws://127.0.0.1:1234' })
         let currentFiles = storageFiles
         const loadProject = vi.fn(async () => ({ files: currentFiles, workingFolder: 'design' }))
         const loadFile = vi.fn(async (_project, path: string) => {

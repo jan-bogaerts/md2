@@ -42,7 +42,7 @@ function installWebSocket() {
 
 function createService() {
     const service = new RemoteControlStorageService()
-    service.init({ endpoint: 'ws://127.0.0.1:1234', token: 'token-1' })
+    service.init({ endpoint: 'ws://127.0.0.1:1234' })
 
     return service
 }
@@ -98,6 +98,7 @@ describe('RemoteControlStorageService', () => {
             mergeConflictResolverCommand: '',
             model: 'custom-model',
             permissionMode: 'full-access' as const,
+            remoteControlPort: 20877,
             thinkingLevel: 'high' as const,
         }
         const load = service.loadDesktopConfig()
@@ -919,7 +920,7 @@ describe('RemoteControlStorageService', () => {
         await expect(connection).rejects.toThrow('Remote-control connection failed')
     })
 
-    it('sends the token as WebSocket protocol instead of a query parameter', async () => {
+    it('constructs WebSocket with endpoint only', async () => {
         installWebSocket()
         const service = createService()
         const request = service.startAction(actionStartRequest())
@@ -932,6 +933,6 @@ describe('RemoteControlStorageService', () => {
 
         await expect(request).resolves.toBe('action-1')
         expect(socket.url).toBe('ws://127.0.0.1:1234')
-        expect(socket.protocol).toBe('token-1')
+        expect(socket.protocol).toBeUndefined()
     })
 })

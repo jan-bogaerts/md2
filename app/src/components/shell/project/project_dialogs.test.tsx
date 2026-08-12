@@ -10,7 +10,6 @@ import {
 import {
     configureRemoteControlConnection,
     REMOTE_CONTROL_ENDPOINT_KEY,
-    REMOTE_CONTROL_TOKEN_KEY,
 } from '../../../data/remote_control_connection'
 import { AppThemeProvider } from '../../../theme/theme_provider'
 import { BranchSwitchDialog } from './branch_switch_dialog'
@@ -49,7 +48,6 @@ describe('project dialog components', () => {
         cleanup()
         vi.restoreAllMocks()
         window.localStorage.removeItem(REMOTE_CONTROL_ENDPOINT_KEY)
-        window.localStorage.removeItem(REMOTE_CONTROL_TOKEN_KEY)
     })
 
     it('renders the open project dialog without mounting the menu', () => {
@@ -121,7 +119,7 @@ describe('project dialog components', () => {
     })
 
     it('preselects the remote source and prefills the stored connection settings', () => {
-        configureRemoteControlConnection({ endpoint: 'ws://192.168.0.10:1234', token: 'token-1' })
+        configureRemoteControlConnection({ endpoint: 'ws://192.168.0.10:1234' })
 
         render(
             <ProjectOpenDialog
@@ -151,7 +149,7 @@ describe('project dialog components', () => {
         )
 
         expect(screen.getByLabelText('Endpoint')).toHaveValue('ws://192.168.0.10:1234')
-        expect(screen.getByLabelText('Token')).toHaveValue('token-1')
+        expect(screen.queryByLabelText('Token')).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Open Remote' })).toBeInTheDocument()
     })
 
@@ -184,7 +182,7 @@ describe('project dialog components', () => {
         )
 
         expect(screen.getByLabelText('Endpoint')).toHaveValue('')
-        expect(screen.getByLabelText('Token')).toHaveValue('')
+        expect(screen.queryByLabelText('Token')).not.toBeInTheDocument()
     })
 
     it('renders the working folder chooser without mounting the menu', () => {

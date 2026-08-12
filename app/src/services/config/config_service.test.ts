@@ -329,6 +329,7 @@ describe('ConfigService', () => {
             mergeConflictResolverCommand: 'merge-tool "{{file}}"',
             model: '',
             permissionMode: 'ask-for-approval',
+            remoteControlPort: 20877,
             thinkingLevel: 'high',
         })
     })

@@ -231,7 +231,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         }
     }
 
-    const loadRemoteBranches = async (endpoint: string, token: string, rootPath: string, branch: string) => {
+    const loadRemoteBranches = async (endpoint: string, rootPath: string, branch: string) => {
         const remoteProject = createRemoteProject(rootPath, branch)
         if (!remoteProject) {
             setBranches(EMPTY_BRANCHES)
@@ -239,7 +239,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
             return EMPTY_BRANCHES
         }
 
-        projectSessionService.configureRemote(endpoint, token)
+        projectSessionService.configureRemote(endpoint)
 
         try {
             const nextBranches = await projectSessionService.listBranches('remote', remoteProject, accessToken)
@@ -265,8 +265,8 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         }
     }
 
-    const openRemoteProject = async (endpoint: string, token: string, nextProject: ProjectReference) => {
-        projectSessionService.configureRemote(endpoint, token)
+    const openRemoteProject = async (endpoint: string, nextProject: ProjectReference) => {
+        projectSessionService.configureRemote(endpoint)
         await openProject('remote', nextProject)
     }
 

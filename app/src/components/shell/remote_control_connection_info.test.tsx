@@ -9,17 +9,16 @@ const status: RemoteControlStatus = {
     endpoint: 'ws://desktop.local:8123',
     hostnameEndpoint: 'ws://desktop.local:8123',
     ipEndpoints: ['ws://192.168.1.20:8123'],
-    token: 'abc123',
 }
 
 describe('RemoteControlConnectionInfo', () => {
     afterEach(cleanup)
 
-    it('shows hostname and IP connect links carrying the token', () => {
+    it('shows fragment-free hostname and IP connect links', () => {
         render(<RemoteControlConnectionInfo anchorEl={null} onClose={() => undefined} open status={status} />)
 
-        expect(screen.getByText('http://192.168.1.20:8123/#abc123')).toBeInTheDocument()
-        expect(screen.getByText('http://desktop.local:8123/#abc123')).toBeInTheDocument()
+        expect(screen.getByText('http://192.168.1.20:8123/')).toBeInTheDocument()
+        expect(screen.getByText('http://desktop.local:8123/')).toBeInTheDocument()
     })
 
     it('defaults copy to the IP connect link (Android-friendly)', async () => {
@@ -29,7 +28,7 @@ describe('RemoteControlConnectionInfo', () => {
 
         fireEvent.click(screen.getByRole('button', { name: /copy connect link/i }))
 
-        expect(writeText).toHaveBeenCalledWith('http://192.168.1.20:8123/#abc123')
+        expect(writeText).toHaveBeenCalledWith('http://192.168.1.20:8123/')
         expect(await screen.findByRole('button', { name: 'Copied' })).toBeInTheDocument()
     })
 
@@ -38,9 +37,9 @@ describe('RemoteControlConnectionInfo', () => {
         Object.assign(navigator, { clipboard: { writeText } })
         render(<RemoteControlConnectionInfo anchorEl={null} onClose={() => undefined} open status={status} />)
 
-        fireEvent.click(screen.getByText('http://desktop.local:8123/#abc123'))
+        fireEvent.click(screen.getByText('http://desktop.local:8123/'))
         fireEvent.click(screen.getByRole('button', { name: /copy connect link/i }))
 
-        expect(writeText).toHaveBeenCalledWith('http://desktop.local:8123/#abc123')
+        expect(writeText).toHaveBeenCalledWith('http://desktop.local:8123/')
     })
 })

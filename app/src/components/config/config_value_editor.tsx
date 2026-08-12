@@ -63,6 +63,8 @@ function renderDescription(description: string) {
 export function ConfigValueEditor(props: ConfigValueEditorProps) {
     const { disabled = false, entry, onChange, onValidityChange, value, values } = props
     const [jsonText, setJsonText] = useState(() => (entry.type === 'json' ? JSON.stringify(value, null, 2) : ''))
+    const [numberText, setNumberText] = useState(() => (entry.type === 'number' ? String(value) : ''))
+    const [numberValid, setNumberValid] = useState(true)
     const agentProfiles = mergeAgentProfiles((values?.['desktop.agentProfiles'] ?? []) as AgentProfile[])
     const selectedAgentProfile = findAgentProfile(agentProfiles, (values?.['desktop.agent'] ?? '') as string)
     const selectedAgentModels = selectedAgentProfile?.models ?? []
@@ -97,7 +99,17 @@ export function ConfigValueEditor(props: ConfigValueEditorProps) {
     }
 
     const handleNumberChange = (event: ChangeEvent<HTMLInputElement>) => {
-        onChange(entry.key, Number(event.target.value))
+        const nextText = event.target.value
+        const nextValue = Number(nextText)
+        const valid = nextText.length > 0
+            && Number.isFinite(nextValue)
+            && (!entry.integer || Number.isInteger(nextValue))
+            && (entry.min === undefined || nextValue >= entry.min)
+            && (entry.max === undefined || nextValue <= entry.max)
+        setNumberText(nextText)
+        setNumberValid(valid)
+        onValidityChange?.(entry.key, valid)
+        if (valid) onChange(entry.key, nextValue)
     }
 
     const handleSliderChange = (_event: Event, nextValue: number | number[]) => {
@@ -203,13 +215,14 @@ export function ConfigValueEditor(props: ConfigValueEditorProps) {
         return (
             <TextField
                 disabled={disabled}
+                error={!numberValid}
                 fullWidth
                 helperText={description}
                 label={entry.label}
                 onChange={handleNumberChange}
-                slotProps={{ htmlInput: { max: entry.max, min: entry.min } }}
+                slotProps={{ htmlInput: { max: entry.max, min: entry.min, step: entry.step } }}
                 type="number"
-                value={value as number}
+                value={numberText}
                 variant="outlined"
             />
         )

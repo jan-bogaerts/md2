@@ -5,6 +5,7 @@ const DEFAULT_DESKTOP_THINKING_LEVEL = 'none';
 const DEFAULT_CODEX_SEARCH_ENABLED = true;
 const DEFAULT_EDITOR_COMMAND = 'code -g "{{file}}:{{line}}"';
 const DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND = '';
+const DEFAULT_REMOTE_CONTROL_PORT = 20877;
 const DESKTOP_CONFIG_STORE_KEY = 'desktopConfig';
 const {
     BUILTIN_AGENT_PROFILES,
@@ -31,6 +32,9 @@ function validateDesktopConfig(values) {
         throw new Error('Config field desktop.mergeConflictResolverCommand requires {{file}} placeholder when configured');
     }
     if (typeof values.codexSearchEnabled !== 'boolean') throw new Error('Missing config field: desktop.codexSearchEnabled');
+    if (!Number.isInteger(values.remoteControlPort) || values.remoteControlPort < 1 || values.remoteControlPort > 65535) {
+        throw new Error('Config field desktop.remoteControlPort must be an integer from 1 through 65535');
+    }
 
     return {
         agent: requireString(values.agent, 'agent'),
@@ -40,6 +44,7 @@ function validateDesktopConfig(values) {
         mergeConflictResolverCommand,
         model: requireString(values.model, 'model', true),
         permissionMode: validatePermissionMode(values.permissionMode, 'desktop.permissionMode'),
+        remoteControlPort: values.remoteControlPort,
         thinkingLevel: validateThinkingLevel(values.thinkingLevel, 'desktop.thinkingLevel'),
     };
 }
@@ -86,6 +91,7 @@ function resolveDesktopConfig(env = process.env) {
         ...(bridgeAllowedOrigins ? { bridgeAllowedOrigins } : {}),
         model: DEFAULT_DESKTOP_MODEL,
         permissionMode: DEFAULT_DESKTOP_PERMISSION_MODE,
+        remoteControlPort: DEFAULT_REMOTE_CONTROL_PORT,
         thinkingLevel: DEFAULT_DESKTOP_THINKING_LEVEL,
     };
 }
@@ -156,6 +162,7 @@ module.exports = {
     DEFAULT_CODEX_SEARCH_ENABLED,
     DEFAULT_EDITOR_COMMAND,
     DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
+    DEFAULT_REMOTE_CONTROL_PORT,
     DESKTOP_CONFIG_STORE_KEY,
     readDesktopConfig,
     resolveBridgeAllowedOrigins,

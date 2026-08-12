@@ -175,7 +175,6 @@ export class RemoteControlStorageService implements
     private requestMergeConflictEvents: Map<string, (session: MergeConflictSession | null) => void>
     private runAgentEvents: Map<string, (event: AgentRunEvent) => void>
     private socket: WebSocket | null
-    private token: string
     private readonly watchSubscriptions: Set<ProjectWatchSubscription>
     private watchCallbacks: Map<string, ProjectWatchSubscription>
     private readonly worktreeEvents: EventTarget
@@ -205,7 +204,6 @@ export class RemoteControlStorageService implements
         this.retired = false
         this.runAgentEvents = new Map()
         this.socket = null
-        this.token = ''
         this.watchSubscriptions = new Set()
         this.watchCallbacks = new Map()
         this.worktreeEvents = new EventTarget()
@@ -215,11 +213,10 @@ export class RemoteControlStorageService implements
     }
 
     init(settings: Partial<RemoteControlConnectionSettings> = {}) {
-        const storedSettings = settings.endpoint && settings.token
+        const storedSettings = settings.endpoint
             ? settings as RemoteControlConnectionSettings
             : readRemoteControlConnection()
         this.endpoint = storedSettings.endpoint
-        this.token = storedSettings.token
         this.retired = false
     }
 
@@ -237,9 +234,9 @@ export class RemoteControlStorageService implements
     }
 
     getConnectionSettings(): RemoteControlConnectionSettings {
-        if (this.endpoint.length === 0 || this.token.length === 0) throw new Error('Remote-control storage is not initialized')
+        if (this.endpoint.length === 0) throw new Error('Remote-control storage is not initialized')
 
-        return { endpoint: this.endpoint, token: this.token }
+        return { endpoint: this.endpoint }
     }
 
     onConnectionChanged(callback: (connected: boolean) => void) {
@@ -739,7 +736,7 @@ export class RemoteControlStorageService implements
         if (this.socket?.readyState === SOCKET_OPEN_STATE) return
         if (this.connectPromise) return this.connectPromise
 
-        this.socket = new WebSocket(this.endpoint, this.token)
+        this.socket = new WebSocket(this.endpoint)
         this.socket.addEventListener('message', (event) => this.handleMessage(event))
         this.socket.addEventListener('close', () => this.handleClose())
         this.socket.addEventListener('error', () => this.handleClose())

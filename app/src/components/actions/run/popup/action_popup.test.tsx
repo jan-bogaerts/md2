@@ -731,7 +731,7 @@ describe('ActionPopup', () => {
     it('keeps prompt preparation loading until remote backend becomes ready', async () => {
         const connectionReady = deferredValue<void>()
         const storage = new RemoteControlStorageService()
-        storage.init({ endpoint: 'ws://desktop:1234', token: 'token-1' })
+        storage.init({ endpoint: 'ws://desktop:1234' })
         vi.spyOn(storage, 'connect').mockReturnValue(connectionReady.promise)
         vi.spyOn(storage, 'loadDesktopConfig').mockResolvedValue(configService.getDesktopValues())
         vi.spyOn(storage, 'loadAgentAvailability').mockResolvedValue({})
@@ -777,7 +777,7 @@ describe('ActionPopup', () => {
             .mockReturnValueOnce(firstPreparation.promise)
             .mockResolvedValueOnce({ prompt: 'Reconnected prompt' })
         const firstStorage = new RemoteControlStorageService()
-        firstStorage.init({ endpoint: 'ws://desktop:1234', token: 'token-1' })
+        firstStorage.init({ endpoint: 'ws://desktop:1234' })
         vi.spyOn(firstStorage, 'onConnectionChanged').mockImplementation((listener) => {
             connectionListeners.push(listener)
 
