@@ -936,11 +936,11 @@
         "agent-79ed5840-e0ca-49ab-893f-0c83a3fb1542"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-484a5ee3-97bf-4251-bcec-42d133ce7a16",
       "origin": {
@@ -949,9 +949,35 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-79ed5840-e0ca-49ab-893f-0c83a3fb1542",
       "startedAt": "2026-08-12T13:37:42.445Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-79ed5840-e0ca-49ab-893f-0c83a3fb1542"
+    },
+    {
+      "commits": [
+        {
+          "commit": "e901df79dc86ae6e2afdbc2a92e66fa6b052b413",
+          "committedAt": "2026-08-12T15:47:06+02:00",
+          "deletions": 60,
+          "filePaths": [
+            "desktop/main.js",
+            "desktop/src/integrations/spellcheck.js",
+            "desktop/src/integrations/spellcheck.test.mjs",
+            "desktop/src/shell/text_context_menu.js",
+            "desktop/src/shell/text_context_menu.test.mjs"
+          ],
+          "filesChanged": 5,
+          "insertions": 276,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-12T15:47:06+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "34581d14-8a7c-4f5c-8cf3-b9137260221d",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
