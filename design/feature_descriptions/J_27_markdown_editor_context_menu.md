@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__34581d14-8a7c-4f5c-8cf3-b9137260221d.json#conversation=agent-79ed5840-e0ca-49ab-893f-0c83a3fb1542
 policy:
-branch: j_27_markdown_editor_context_menu
-worktree: 2
 ---
 
 Add clipboard commands to the Markdown editor context menu while keeping context-menu composition separate from spellchecking.
