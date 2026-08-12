@@ -3,7 +3,7 @@ author:
 id: F_147
 internalId: bbf61e6e-adfa-46ee-a2f4-040b8152bc4b
 title: Live update token usage action popup
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
