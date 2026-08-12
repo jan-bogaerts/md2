@@ -96,6 +96,7 @@ describe('ProjectSessionService storage activation', () => {
         configService.clear()
         setActionBridgeOverride(null)
         delete window.md2Actions
+        delete window.md2Config
         delete window.md2Data
         window.localStorage.removeItem(LAST_PROJECT_STORAGE_KEY)
         window.localStorage.removeItem(REMOTE_CONTROL_ENDPOINT_KEY)
@@ -189,9 +190,24 @@ describe('ProjectSessionService storage activation', () => {
 
     it('restores the last local project once after resolving its current reference', async () => {
         mockProjectOpen()
+        const desktopConfig = {
+            agent: 'codex',
+            agentProfiles: [{ command: ['codex'], models: ['gpt-5'], name: 'codex' }],
+            codexSearchEnabled: true,
+            editorCommand: 'code "{{file}}"',
+            mergeConflictResolverCommand: '',
+            model: 'gpt-5',
+            permissionMode: 'ask-for-approval' as const,
+            thinkingLevel: 'high' as const,
+        }
         const bridge = createDataBridge()
         vi.mocked(bridge.resolveProject).mockResolvedValue({ branch: 'topic', id: 'C:/repo', rootPath: 'C:/repo' })
+        window.md2Config = {
+            getDesktopConfig: () => desktopConfig,
+            setDesktopConfig: vi.fn(async (values) => values),
+        }
         window.md2Data = bridge
+        configService.init({ desktopConfig })
         window.localStorage.setItem(LAST_PROJECT_STORAGE_KEY, JSON.stringify({
             project: { branch: 'main', id: 'local', rootPath: 'C:/repo' },
             storageType: 'local',
@@ -208,6 +224,8 @@ describe('ProjectSessionService storage activation', () => {
             id: 'C:/repo',
             rootPath: 'C:/repo',
         })
+        expect(configService.hasDesktopConfig()).toBe(true)
+        expect(configService.getDesktopValues()).toEqual(desktopConfig)
     })
 
     it('skips the last GitHub project when no restored token exists', async () => {

@@ -1,6 +1,6 @@
 import { Box } from '@mui/material'
 
-const RESERVED_BLOCK_HEIGHT = 34
+const RESERVED_BLOCK_HEIGHT = 36
 
 /** Keeps one collapsed-event-sized blank slot at bottom of active chat. */
 export function ActionConversationReservedBlock() {

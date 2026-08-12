@@ -55,7 +55,6 @@ export class CardMarkdownDataSource extends MarkdownDataSourceBase {
     dispose() {
         openFilesService.removeEventListener('documentChanged', this.handleDocumentChanged)
         this.setBoardDocument(null)
-        this.service = null
     }
 
     bindListCards(owner: ListCardOwner) {

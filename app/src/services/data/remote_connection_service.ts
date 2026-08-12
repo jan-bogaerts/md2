@@ -5,6 +5,7 @@ import { setCodexRuntimeBridgeOverride } from '../../data/electron_codex_runtime
 import { agentCapabilitiesService } from '../agents/agent_capabilities_service'
 import { actionRunRegistry } from '../actions/action_run_registry'
 import { codexRateLimitService } from '../agents/codex_rate_limit_service'
+import { readDesktopConfigFromBridge } from '../config/config_persistence'
 import { configService } from '../config/config_service'
 import { setDesktopConfigTransportOverride } from '../config/desktop_config_transport'
 import { getService, register } from '../service_injector'
@@ -54,7 +55,15 @@ function clearRemoteActivation() {
     setActionBridgeOverride(null)
     setCodexRuntimeBridgeOverride(null)
     setDesktopConfigTransportOverride(null)
-    if (configService.isInitialized() && configService.hasDesktopConfig()) configService.clearDesktopConfig()
+    if (!configService.isInitialized()) return
+
+    const desktopConfig = readDesktopConfigFromBridge()
+    if (desktopConfig) {
+        configService.replaceDesktopConfig(desktopConfig)
+
+        return
+    }
+    if (configService.hasDesktopConfig()) configService.clearDesktopConfig()
 }
 
 const DEFAULT_DEPENDENCIES: RemoteConnectionServiceDependencies = {

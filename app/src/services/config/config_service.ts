@@ -338,7 +338,7 @@ export class ConfigService extends EventTarget {
         this.dispatchChanged()
     }
 
-    replaceDesktopConfig(desktopConfig: DesktopConfigValues) {
+    replaceDesktopConfig(desktopConfig: Partial<DesktopConfigValues>) {
         this.requireInitialized()
         this.values = replaceDesktopValues(this.values, desktopConfig)
         if (this.draftValues) this.draftValues = replaceDesktopValues(this.draftValues, desktopConfig)

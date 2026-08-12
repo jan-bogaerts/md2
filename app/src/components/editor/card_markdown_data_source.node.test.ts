@@ -65,6 +65,17 @@ describe('CardMarkdownDataSource', () => {
         expect(cards.updateCardBody).toHaveBeenCalledWith(document.path, 'Edited', expect.any(Object))
     })
 
+    it('allows the editor cleanup to commit after the popup disposes its bindings', () => {
+        const { cards, document, source } = setup()
+        const target = { document }
+
+        source.edit('list-card', target, 'Edited before close')
+        source.dispose()
+
+        expect(source.commit('list-card', target, 'Edited before close')).toBe(true)
+        expect(cards.updateCardBody).toHaveBeenCalledWith(document.path, 'Edited before close', expect.any(Object))
+    })
+
     it('updates card type through the active binding', async () => {
         const { cards, document, source } = setup()
         cards.updateCardType.mockResolvedValue({})
