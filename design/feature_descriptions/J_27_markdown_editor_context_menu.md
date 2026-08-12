@@ -8,6 +8,8 @@ owner:
 affects:
 agents:
 policy:
+branch: j_27_markdown_editor_context_menu
+worktree: 2
 ---
 
 Add clipboard commands to the Markdown editor context menu while keeping context-menu composition separate from spellchecking.
