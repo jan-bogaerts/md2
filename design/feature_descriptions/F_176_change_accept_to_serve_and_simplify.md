@@ -11,7 +11,6 @@ agents:
   - design/activity/card__6874b231-0cef-4a8a-8b0b-cc91f3daff42.json#conversation=agent-2ea913e3-baf3-461e-a978-f5da649f8ad7
 policy:
 branch: f_176_change_accept_to_serve_and_simplify
-worktree: 2
 ---
 
 ## Current state
