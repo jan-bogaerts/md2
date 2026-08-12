@@ -300,6 +300,32 @@ describe('ProjectSessionService storage activation', () => {
         expect(service.getSnapshot()).toMatchObject({ isCommitting: false, isLoading: false })
     })
 
+    it('reports card creation separately from project-wide loading', async () => {
+        const pendingCreation = createDeferred<void>()
+        vi.spyOn(dataService.cards, 'createCard').mockImplementation(async () => {
+            await pendingCreation.promise
+
+            return { content: '', path: 'design/F-4-new-card.md' }
+        })
+        const service = new ProjectSessionService()
+        const changed = vi.fn()
+        const cardCreationChanged = vi.fn()
+        service.addEventListener('changed', changed)
+        service.addEventListener('cardCreationChanged', cardCreationChanged)
+
+        const creation = service.createCard({ body: '', title: 'New Card', type: 'feature' }, 'new')
+
+        expect(service.getSnapshot().isLoading).toBe(false)
+        expect(service.getCardCreationSnapshot().isCreatingCard).toBe(true)
+        expect(changed).not.toHaveBeenCalled()
+        expect(cardCreationChanged).toHaveBeenCalledOnce()
+
+        pendingCreation.resolve()
+        await creation
+        expect(service.getCardCreationSnapshot().isCreatingCard).toBe(false)
+        expect(cardCreationChanged).toHaveBeenCalledTimes(2)
+    })
+
     it('reports pull progress while the primary worktree pull runs', async () => {
         const pendingPull = createDeferred<void>()
         vi.spyOn(dataService.projectLoading, 'pull').mockReturnValue(pendingPull.promise)

@@ -52,6 +52,10 @@ export interface ProjectSessionState {
     pendingGithubConflictProject: ProjectReference | null
 }
 
+export interface CardCreationState {
+    isCreatingCard: boolean
+}
+
 const EMPTY_TOP_LEVEL_FOLDERS: TopLevelFolderReference[] = []
 
 function isMissingWorkingFolderError(error: unknown): error is { workingFolder: string } {
@@ -150,6 +154,7 @@ async function resolveRestoredProject(storageType: StorageType, storage: Storage
 }
 
 export class ProjectSessionService extends EventTarget {
+    private cardCreationState: CardCreationState = { isCreatingCard: false }
     private state: ProjectSessionState = {
         errorMessage: null,
         isCommitting: false,
@@ -166,6 +171,10 @@ export class ProjectSessionService extends EventTarget {
 
     getSnapshot(): ProjectSessionState {
         return this.state
+    }
+
+    getCardCreationSnapshot(): CardCreationState {
+        return this.cardCreationState
     }
 
     setError(message: string | null) {
@@ -337,7 +346,27 @@ export class ProjectSessionService extends EventTarget {
     }
 
     async createCard(draft: CardDraft, initialState: string) {
-        await this.withLoading('Card creation failed', () => dataService.cards.createCard(draft, initialState))
+        this.setCardCreationState(true)
+        if (this.state.errorMessage !== null) this.setError(null)
+
+        try {
+            await dataService.cards.createCard(draft, initialState)
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Card creation failed'
+            this.state = { ...this.state, errorMessage: message, pendingGithubConflictProject: null }
+            this.dispatchChanged()
+            if (!isProjectLoadErrorReported(error)) dialogService.error(error, { fallbackMessage: 'Card creation failed' })
+            throw error
+        } finally {
+            this.setCardCreationState(false)
+        }
+    }
+
+    private setCardCreationState(isCreatingCard: boolean) {
+        if (this.cardCreationState.isCreatingCard === isCreatingCard) return
+
+        this.cardCreationState = { isCreatingCard }
+        this.dispatchEvent(new CustomEvent<CardCreationState>('cardCreationChanged', { detail: this.cardCreationState }))
     }
 
     private async withLoading<T>(fallbackMessage: string, operation: () => Promise<T>): Promise<T> {

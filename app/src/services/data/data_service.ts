@@ -336,6 +336,9 @@ export class DataService extends EventTarget {
             requireFile: (path) => this.projectState.requireFile(path),
             replaceFiles: (files, workingFolder) => this.projectState.replaceFiles(files, workingFolder),
             snapshot: () => this.projectState.snapshot,
+            updateFiles: (updatedFiles, removedPaths, workingFolder) => (
+                this.projectState.updateFiles(updatedFiles, removedPaths, workingFolder)
+            ),
         }
     }
 

@@ -18,6 +18,7 @@ import Plus from 'mdi-material-ui/Plus'
 import type { ChangeEvent, FormEvent, KeyboardEvent } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CardDraft, CardTypeConfig, StateConfig } from '../../../data/data_types'
+import { useCardCreationState } from '../../hooks/use_card_creation_state'
 import type { MarkdownEditorHandle } from '../../editor/markdown_editor'
 import { CardTypePillGroup } from './card_type_pill_group'
 import { NewCardMarkdownEditor } from './new_card_markdown_editor'
@@ -51,6 +52,7 @@ export function NewCardDialog(props: NewCardDialogProps) {
         open,
         states,
     } = props
+    const { isCreatingCard } = useCardCreationState()
     const theme = useTheme()
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
     const bodyEditorRef = useRef<MarkdownEditorHandle>(null)
@@ -64,7 +66,7 @@ export function NewCardDialog(props: NewCardDialogProps) {
     const selectedType = cardTypes.some((typeConfig) => typeConfig.type === type) ? type : defaultType
     const selectedStatus = states.some((stateConfig) => stateConfig.state === targetStatus) ? targetStatus : defaultStatus
     const isSubmitDisabled = !isProjectOpen || title.trim().length === 0
-        || selectedType.length === 0 || selectedStatus.length === 0 || isLoading
+        || selectedType.length === 0 || selectedStatus.length === 0 || isLoading || isCreatingCard
 
     const resetForm = () => {
         bodyEditorRef.current?.setMarkdown('')

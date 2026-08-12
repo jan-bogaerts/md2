@@ -37,6 +37,7 @@ export interface CardOperationsDeps {
     requireFile(path: string): MarkdownFile
     replaceFiles(files: MarkdownFile[], workingFolder: string): void
     snapshot(): ProjectSnapshot | null
+    updateFiles(updatedFiles: MarkdownFile[], removedPaths: string[], workingFolder: string): void
 }
 
 /** The dependencies every card operation resolves once it knows a project is open. */
@@ -185,6 +186,15 @@ export class CardOperationContext {
 
         this.dependencies.mergeCommittedFiles(committedFiles, config.workingFolder)
         this.dependencies.refreshSnapshot(config.workingFolder)
+
+        return updatedFiles
+    }
+
+    /** Commits newly inserted files and applies only persistence metadata returned by storage. */
+    async commitCreatedFiles(request: CommitRequest) {
+        const { config } = this.dependencies.requireDependencies()
+        const updatedFiles = await this.commitTrackingPaths(request)
+        if (updatedFiles.length > 0) this.dependencies.updateFiles(updatedFiles, [], config.workingFolder)
 
         return updatedFiles
     }

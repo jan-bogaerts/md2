@@ -6,6 +6,8 @@ const { loadTolerantActionDefinitionGraph } = require('../../../../shared/tolera
 
 const BUILTIN_ACTION_IDS = new Set([BUILTIN_CUSTOM_PROMPT.id, BUILTIN_REMARKABLE_CONVERT.id]);
 
+class ActionPathRefreshRequired extends Error {}
+
 function defaultActionId(actionPath) {
     const pathIdentity = actionPath.replace(/\.json$/iu, '').replace(/[^A-Za-z0-9]+/gu, '-').replace(/^-|-$/gu, '').toLowerCase();
 
@@ -47,12 +49,23 @@ function referencedActionIds(content) {
     return ids;
 }
 
+function buildActionPaths(files) {
+    const actionPaths = new Map();
+    for (const file of files) {
+        const actionId = actionIdFromFile(file);
+        if (actionId && !BUILTIN_ACTION_IDS.has(actionId) && !actionPaths.has(actionId)) actionPaths.set(actionId, file.path);
+    }
+
+    return actionPaths;
+}
+
 class ActionDefinitionCache {
     constructor(dependencies) {
         this.localGitService = dependencies?.localGitService;
         this.actionPaths = new Map();
         this.actionsFolder = null;
         this.project = null;
+        this.refreshPromise = null;
         this.version = 0;
     }
 
@@ -60,15 +73,11 @@ class ActionDefinitionCache {
     async startProject(project, actionsFolder) {
         if (!this.localGitService) throw new Error('Action definition cache has no local Git service');
         const version = ++this.version;
+        this.refreshPromise = null;
         const files = await this.localGitService.loadActionFiles(project, actionsFolder);
         if (version !== this.version) return;
 
-        const actionPaths = new Map();
-        for (const file of files) {
-            const actionId = actionIdFromFile(file);
-            if (actionId && !BUILTIN_ACTION_IDS.has(actionId) && !actionPaths.has(actionId)) actionPaths.set(actionId, file.path);
-        }
-        this.actionPaths = actionPaths;
+        this.actionPaths = buildActionPaths(files);
         this.actionsFolder = actionsFolder;
         this.project = { ...project };
     }
@@ -78,13 +87,26 @@ class ActionDefinitionCache {
         this.actionPaths.clear();
         this.actionsFolder = null;
         this.project = null;
+        this.refreshPromise = null;
     }
 
     /** Resolve one current definition, reading only it and its linked definitions from disk. */
     async resolve(actionId, profiles, states) {
         if (!this.project || this.actionsFolder === null) throw new Error('Action definition cache has no project');
 
-        const files = await this.loadDefinitionFiles(actionId);
+        try {
+            return await this.resolveCurrent(actionId, profiles, states, true);
+        } catch (error) {
+            if (!(error instanceof ActionPathRefreshRequired) && error?.code !== 'ENOENT') throw error;
+        }
+
+        await this.refreshActionPaths();
+
+        return this.resolveCurrent(actionId, profiles, states, false);
+    }
+
+    async resolveCurrent(actionId, profiles, states, refreshMissingPaths) {
+        const files = await this.loadDefinitionFiles(actionId, refreshMissingPaths);
         const { actions, issues } = loadTolerantActionDefinitionGraph(files, { profiles, states });
         const action = actions.find((candidate) => candidate.id === actionId);
         if (!action) {
@@ -95,7 +117,30 @@ class ActionDefinitionCache {
         return action;
     }
 
-    async loadDefinitionFiles(actionId) {
+    async refreshActionPaths() {
+        if (this.refreshPromise) return this.refreshPromise;
+
+        const version = this.version;
+        const project = { ...this.project };
+        const actionsFolder = this.actionsFolder;
+        const refreshPromise = this.loadCurrentActionPaths(project, actionsFolder, version);
+        this.refreshPromise = refreshPromise;
+        try {
+            await refreshPromise;
+        } finally {
+            if (this.refreshPromise === refreshPromise) this.refreshPromise = null;
+        }
+    }
+
+    async loadCurrentActionPaths(project, actionsFolder, version) {
+        const files = await this.localGitService.loadActionFiles(project, actionsFolder);
+        const actionPaths = buildActionPaths(files);
+        if (version !== this.version) return;
+
+        this.actionPaths = actionPaths;
+    }
+
+    async loadDefinitionFiles(actionId, refreshMissingPaths) {
         const pendingIds = [actionId];
         const visitedIds = new Set();
         const filesByPath = new Map();
@@ -106,7 +151,11 @@ class ActionDefinitionCache {
             visitedIds.add(currentId);
 
             const actionPath = this.actionPaths.get(currentId);
-            if (!actionPath || filesByPath.has(actionPath)) continue;
+            if (!actionPath) {
+                if (refreshMissingPaths) throw new ActionPathRefreshRequired();
+                continue;
+            }
+            if (filesByPath.has(actionPath)) continue;
 
             const file = await this.localGitService.loadActionFile(this.project, actionPath);
             filesByPath.set(actionPath, file);

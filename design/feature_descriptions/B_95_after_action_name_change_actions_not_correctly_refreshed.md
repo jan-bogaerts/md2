@@ -3,7 +3,7 @@ author:
 id: B_95
 internalId: f63b1866-ff7a-4fe9-b984-06cf1284f74e
 title: after action name-change actions not correctly refreshed
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

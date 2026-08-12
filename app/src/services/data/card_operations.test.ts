@@ -155,6 +155,33 @@ describe('CardOperations', () => {
         expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' })
     })
 
+    it('adds one card incrementally without waiting for automatic push', async () => {
+        configService.init()
+        const pendingPush = createDeferred<void>()
+        const pushFinished = vi.fn()
+        const storage = createStorage({
+            push: vi.fn(async () => {
+                await pendingPush.promise
+                pushFinished()
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const parseCard = vi.spyOn(markdownParsingService, 'parseCard')
+        const added = vi.fn()
+        service.addEventListener(CARD_ADDED_EVENT, added)
+
+        const file = await service.cards.createCard({ body: 'Body', title: 'New Card', type: 'feature' }, 'new')
+
+        expect(file.path).toBe('design/F-4-new-card.md')
+        expect(parseCard).toHaveBeenCalledOnce()
+        expect(added).toHaveBeenCalledOnce()
+        expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' })
+        pendingPush.resolve()
+        await vi.waitFor(() => expect(pushFinished).toHaveBeenCalledOnce())
+    })
+
     it('emits card lifecycle events for create, update, and delete actions', async () => {
         configService.init()
         const service = createDataService()

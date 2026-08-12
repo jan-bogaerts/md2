@@ -22,6 +22,13 @@ function actionFile(id, overrides = {}) {
     };
 }
 
+function missingFileError(actionPath) {
+    const error = new Error(`ENOENT: no such file or directory, open '${actionPath}'`);
+    error.code = 'ENOENT';
+
+    return error;
+}
+
 function createRunner(actionFiles = [actionFile('main')], overrides = {}) {
     const appendActionRunHistory = vi.fn(async () => []);
     const localGitService = {
@@ -40,7 +47,12 @@ function createRunner(actionFiles = [actionFile('main')], overrides = {}) {
         appendActionRunHistory,
         activityConversationReference: vi.fn((_projectFolder, _origin, conversationId) => `design/activity/card__card-010.json#conversation=${conversationId}`),
         ensureActivityFile: vi.fn(async () => 'design/activity/card__card-010.json'),
-        loadActionFile: vi.fn(async (_project, actionPath) => actionFiles.find(({ path }) => path === actionPath)),
+        loadActionFile: vi.fn(async (_project, actionPath) => {
+            const file = actionFiles.find(({ path }) => path === actionPath);
+            if (!file) throw missingFileError(actionPath);
+
+            return file;
+        }),
         loadActionFiles: vi.fn(async () => actionFiles),
         loadAgentConversation: vi.fn(),
         loadProjectConfig: vi.fn(async () => ({ states: [{ state: 'design' }, { state: 'ready' }] })),
@@ -263,6 +275,37 @@ describe('ActionRunnerService', () => {
         expect(actionWorktreeRunService.execute).not.toHaveBeenCalled();
         expect(agentRunnerService.start).not.toHaveBeenCalled();
         expect(localGitService.appendAndCommitActionActivity).not.toHaveBeenCalled();
+    });
+
+    it('prepares the current prompt after the persisted action file is renamed', async () => {
+        const files = [actionFile('main', {
+            agent: 'codex',
+            command: undefined,
+            prompt: 'Old prompt',
+            type: 'agent',
+        })];
+        const { localGitService, runner } = createRunner(files);
+        await runner.actionCacheReady;
+        const renamedFile = {
+            ...actionFile('main', {
+                agent: 'codex',
+                command: undefined,
+                label: 'Current label',
+                prompt: 'Current prompt',
+                type: 'agent',
+            }),
+            path: 'actions/current-label.json',
+        };
+        files.splice(0, 1, renamedFile);
+
+        await expect(runner.prepareActionPrompt({ actionId: 'main', context })).resolves.toEqual({ prompt: 'Current prompt' });
+        const firstPreparationReads = localGitService.loadActionFile.mock.calls.map((call) => call[1]);
+        expect(firstPreparationReads).toEqual(['actions/main.json', 'actions/current-label.json']);
+        expect(localGitService.loadActionFiles).toHaveBeenCalledTimes(2);
+
+        await expect(runner.prepareActionPrompt({ actionId: 'main', context })).resolves.toEqual({ prompt: 'Current prompt' });
+        expect(localGitService.loadActionFile.mock.calls.slice(firstPreparationReads.length).map((call) => call[1]))
+            .toEqual(['actions/current-label.json']);
     });
 
     it('drops unknown persisted fields before run', async () => {
