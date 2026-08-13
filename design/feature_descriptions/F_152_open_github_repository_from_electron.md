@@ -9,8 +9,6 @@ affects:
 agents:
 policy:
 after: a57b89e0-49f4-4c25-9d99-deea222460cd
-branch: f_152_open_github_repository_from_electron
-worktree: 2
 ---
 When the react app is running in the electron environment, it defaults to opening projects by selecting a folder.
 
