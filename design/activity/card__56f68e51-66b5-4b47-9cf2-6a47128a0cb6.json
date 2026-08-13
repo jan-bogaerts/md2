@@ -7051,11 +7051,11 @@
         "agent-67cc4b2a-05aa-4fa0-964c-51da7fb2c01b"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-2d50f362-5c29-422d-aaa3-abdff25d9f08",
       "origin": {
@@ -7064,9 +7064,82 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-67cc4b2a-05aa-4fa0-964c-51da7fb2c01b",
       "startedAt": "2026-08-13T14:48:22.171Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-67cc4b2a-05aa-4fa0-964c-51da7fb2c01b"
+    },
+    {
+      "commits": [
+        {
+          "commit": "0a4442df7e438192a67b59f1b3fc14bd3212f9c4",
+          "committedAt": "2026-08-13T19:05:16+02:00",
+          "deletions": 160,
+          "filePaths": [
+            "app/src/components/actions/editor/action_editor_content.tsx",
+            "app/src/components/actions/editor/list_action_editor.tsx",
+            "app/src/components/actions/run/popup/action_popup.test.tsx",
+            "app/src/components/actions/run/popup/action_popup_defaults.ts",
+            "app/src/components/actions/run/trigger/action_entry_points.test.tsx",
+            "app/src/components/actions/run/trigger/action_entry_points.tsx",
+            "app/src/components/actions/run/trigger/card_run_button.tsx",
+            "app/src/components/actions/shared/use_action_run_settings.ts",
+            "app/src/components/card_view/card_body_editor.tsx",
+            "app/src/components/card_view/card_body_popover.tsx",
+            "app/src/components/card_view/card_column.tsx",
+            "app/src/components/card_view/card_policy_menu_item.tsx",
+            "app/src/components/card_view/card_popup_toolbar_controls.tsx",
+            "app/src/components/card_view/project_card_drag_container.tsx",
+            "app/src/components/card_view/project_card_view.tsx",
+            "app/src/components/config/config_page.test.tsx",
+            "app/src/components/config/config_page.tsx",
+            "app/src/components/config/project_config_section.tsx",
+            "app/src/components/editor/markdown_format_toolbar_controls.tsx",
+            "app/src/components/hooks/use_project_read_only.ts",
+            "app/src/components/project_command_events.ts",
+            "app/src/components/project_workspace.test.tsx",
+            "app/src/components/shell/menu/app_menu.tsx",
+            "app/src/components/shell/project/project_dialogs.test.tsx",
+            "app/src/components/shell/project/project_open_dialog.tsx",
+            "app/src/components/shell/project/use_project_toolbar_menu_actions.ts",
+            "app/src/components/shell/project_toolbar_menu.tsx",
+            "app/src/components/text_view/card_editor.tsx",
+            "app/src/components/text_view/file_tree_context.ts",
+            "app/src/components/text_view/file_tree_node_row.tsx",
+            "app/src/components/text_view/file_tree_toolbar.tsx",
+            "app/src/components/text_view/file_tree_view.tsx",
+            "app/src/components/text_view/list_editor_toolbar_controls.test.tsx",
+            "app/src/components/text_view/list_editor_toolbar_controls.tsx",
+            "app/src/data/project_session.test.ts",
+            "app/src/data/project_session.ts",
+            "app/src/data/recent_local_repositories.test.ts",
+            "app/src/data/recent_local_repositories.ts",
+            "app/src/services/actions/action_run_registry.ts",
+            "app/src/services/actions/action_service.ts",
+            "app/src/services/actions/electron_action_runner.ts",
+            "app/src/services/data/card_operation_context.ts",
+            "app/src/services/github/github_storage_loader.ts",
+            "app/src/services/github/github_storage_normalizers.ts",
+            "app/src/services/github/github_storage_read_only.test.ts",
+            "app/src/services/github/github_storage_service.ts",
+            "app/src/services/project/project_access_service.ts",
+            "app/src/services/project/project_loading.ts",
+            "app/src/services/project/project_read_only_guards.test.ts",
+            "app/src/services/project/project_session_service.test.ts",
+            "app/src/services/project/project_session_service.ts",
+            "app/src/services/release_operations.ts"
+          ],
+          "filesChanged": 52,
+          "insertions": 980,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-13T19:05:16+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "56f68e51-66b5-4b47-9cf2-6a47128a0cb6",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
