@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__528ea430-ce5c-4e61-ac31-70c93daf5eaa.json#conversation=agent-3cc024e7-0ddd-49f7-850c-67de72b788e3
 policy:
+branch: f_122_show_conversation_context_window_usage
+worktree: 1
 ---
 
 Show the percentage of the selected conversation's context window that is used in the action popup, beside the existing total-token usage at the left of the bottom action row.
