@@ -11,8 +11,6 @@ agents:
   - design/activity/card__d47986a5-1380-4dd1-adb9-fff106a9a143.json#conversation=agent-34cfdb60-9142-435a-868d-42d6adadaa41
 policy:
 after: 56f68e51-66b5-4b47-9cf2-6a47128a0cb6
-branch: f_104_add_local_text_search_md_editor
-worktree: 2
 ---
 Add local text search to the markdown editor so that it becomes available in all components that use the markdown editor.
 
