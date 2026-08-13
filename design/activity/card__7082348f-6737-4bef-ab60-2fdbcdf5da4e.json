@@ -3785,11 +3785,11 @@
         "agent-1b0c147c-7315-453a-a6c6-2dee0a23a06e"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-bc8ebdc4-5e30-446e-8c1d-187b6bdc8e99",
       "origin": {
@@ -3798,9 +3798,52 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-1b0c147c-7315-453a-a6c6-2dee0a23a06e",
       "startedAt": "2026-08-13T16:47:46.566Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-1b0c147c-7315-453a-a6c6-2dee0a23a06e"
+    },
+    {
+      "commits": [
+        {
+          "commit": "78d7f8884e68d5d6ab9da8923879c4d17186f51a",
+          "committedAt": "2026-08-13T19:11:13+02:00",
+          "deletions": 48,
+          "filePaths": [
+            "app/src/components/actions/agent/action_agent_prompt.test.tsx",
+            "app/src/components/editor/markdown_placeholder_toolbar_control.test.tsx",
+            "app/src/data/action_placeholders.ts",
+            "app/src/data/electron_action_bridge.ts",
+            "app/src/services/actions/action_text.node.test.ts",
+            "app/src/services/actions/action_text.ts",
+            "app/src/services/data/diff_service.node.test.ts",
+            "app/src/services/data/diff_service.ts",
+            "desktop/src/actions/action/action_agent_executor.js",
+            "desktop/src/actions/action/action_agent_executor.test.mjs",
+            "desktop/src/actions/action/action_command_executor.js",
+            "desktop/src/actions/action/action_command_executor.test.mjs",
+            "desktop/src/actions/action/action_run.js",
+            "desktop/src/actions/action/action_runner_service.js",
+            "desktop/src/actions/action/action_runner_service.test.mjs",
+            "desktop/src/actions/action/action_scheduler_service.js",
+            "desktop/src/actions/action/action_scheduler_service.test.mjs",
+            "desktop/src/actions/action/action_text.js",
+            "desktop/src/actions/action/action_text.test.mjs",
+            "desktop/src/git/diff_service.js",
+            "desktop/src/git/diff_service.test.mjs",
+            "docs/actions/placeholders.md"
+          ],
+          "filesChanged": 22,
+          "insertions": 213,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-13T19:11:13+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "7082348f-6737-4bef-ab60-2fdbcdf5da4e",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
