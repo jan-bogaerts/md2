@@ -1,4 +1,4 @@
-import { Stack, Typography } from '@mui/material'
+import { Box, Stack, Typography } from '@mui/material'
 import { useLayoutEffect, useRef, useState, type UIEvent } from 'react'
 import type { AgentConversation } from '../../../data/data_types'
 import type { PopupRunStatus } from '../run/popup/action_popup_defaults'
@@ -14,6 +14,7 @@ import {
     updateActionConversationReservation,
 } from './action_conversation_reservation'
 import { ActionConversationReservedBlock } from './action_conversation_reserved_block'
+import { contextWindowUsedPercent } from './conversation_context_window'
 
 const CHAT_END_TOLERANCE = 4
 const MIN_CHAT_HEIGHT = 96
@@ -58,6 +59,7 @@ export function ActionConversationChat({ conversation, status }: ActionConversat
     const nextReservationState = updateActionConversationReservation(reservationState, conversationPath, groups, status)
     if (nextReservationState !== reservationState) setReservationState(nextReservationState)
     const reservedBlockCount = reservedActionConversationBlockCount(nextReservationState)
+    const contextUsedPercent = contextWindowUsedPercent(conversation?.contextWindowUsage)
 
     const handleScroll = (event: UIEvent<HTMLDivElement>) => {
         stuckToEndRef.current = viewportIsAtEnd(event.currentTarget)
@@ -77,35 +79,56 @@ export function ActionConversationChat({ conversation, status }: ActionConversat
     })
 
     return (
-        <Stack
-            aria-label="Conversation chat"
-            onScroll={handleScroll}
-            ref={viewportRef}
-            spacing={1}
-            sx={{ flex: 1, minHeight: MIN_CHAT_HEIGHT, overflowX: 'hidden', overflowY: 'auto' }}
-        >
-            {groups.map((group) => {
-                if (group.kind === 'completedToolCalls') {
-                    return <CompletedToolCallGroup entries={group.entries} key={group.key} />
-                }
+        <Stack spacing={1} sx={{ flex: 1, minHeight: 0 }}>
+            <Stack
+                aria-label="Conversation chat"
+                onScroll={handleScroll}
+                ref={viewportRef}
+                spacing={1}
+                sx={{ flex: 1, minHeight: MIN_CHAT_HEIGHT, overflowX: 'hidden', overflowY: 'auto' }}
+            >
+                {groups.map((group) => {
+                    if (group.kind === 'completedToolCalls') {
+                        return <CompletedToolCallGroup entries={group.entries} key={group.key} />
+                    }
 
-                const { entry } = group
-                if (entry.kind === 'message') {
-                    return <ActionConversationMessage cardInternalId={conversation?.cardInternalId ?? null} entry={entry} key={group.key} />
-                }
+                    const { entry } = group
+                    if (entry.kind === 'message') {
+                        return (
+                            <ActionConversationMessage
+                                cardInternalId={conversation?.cardInternalId ?? null}
+                                entry={entry}
+                                key={group.key}
+                            />
+                        )
+                    }
 
-                return <ActionConversationEventRow entry={entry} grouped={false} key={group.key} />
-            })}
-            {Array.from({ length: reservedBlockCount }, (_, index) => (
-                <ActionConversationReservedBlock key={`reserved-block-${index}`} />
-            ))}
-            {status !== 'idle' ? (
-                <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexShrink: 0 }}>
-                    <Typography color={status === 'failed' ? 'error.main' : 'text.secondary'} role="status" variant="caption">
-                        {actionStatusLabel(status)}
-                    </Typography>
+                    return <ActionConversationEventRow entry={entry} grouped={false} key={group.key} />
+                })}
+                {Array.from({ length: reservedBlockCount }, (_, index) => (
+                    <ActionConversationReservedBlock key={`reserved-block-${index}`} />
+                ))}
+            </Stack>
+            {conversation || status !== 'idle' ? (
+                <Stack
+                    aria-label="Conversation metadata"
+                    direction="row"
+                    spacing={1}
+                    sx={{ alignItems: 'baseline', flexShrink: 0 }}
+                >
+                    {status !== 'idle' ? (
+                        <Typography color={status === 'failed' ? 'error.main' : 'text.secondary'} role="status" variant="caption">
+                            {actionStatusLabel(status)}
+                        </Typography>
+                    ) : null}
                     {conversation ? (
                         <ConversationTimer completedAt={conversation.completedAt} startedAt={conversation.startedAt} status={status} />
+                    ) : null}
+                    <Box sx={{ flex: 1 }} />
+                    {contextUsedPercent !== null ? (
+                        <Typography color="text.secondary" component="span" variant="caption">
+                            context: {contextUsedPercent}%
+                        </Typography>
                     ) : null}
                 </Stack>
             ) : null}

@@ -1,6 +1,7 @@
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ActionRunEvent } from '../../../data/action_run_types'
+import type { AgentConversation } from '../../../data/data_types'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../../data/electron_action_bridge'
 import { actionRunRegistry } from '../../../services/actions/action_run_registry'
 import { cardPopupService } from '../../../services/card_popup_service'
@@ -15,6 +16,48 @@ const store = {
     getSnapshot: () => snapshot,
     subscribe: () => () => undefined,
 } as unknown as ActionConversationStore
+
+function conversation(
+    id: string,
+    completedAt: string,
+    contextWindowUsage: AgentConversation['contextWindowUsage'],
+): AgentConversation {
+    return {
+        actionId: 'review',
+        cardInternalId: 'card-1',
+        cardPath: context.file,
+        completedAt,
+        contextWindowUsage,
+        entries: [],
+        hasExplicitTitle: true,
+        id,
+        path: `design/activity/card.json#conversation=${id}`,
+        providerSessions: [],
+        startedAt: '2026-08-04T10:00:00.000Z',
+        status: 'completed',
+        title: id,
+        viewed: true,
+    }
+}
+
+function createConversationStore(initialConversation: AgentConversation) {
+    const events = new EventTarget()
+    let currentSnapshot = { conversations: [initialConversation], loading: false, selectedConversation: initialConversation }
+    const selectableStore = {
+        getSnapshot: () => currentSnapshot,
+        subscribe: (listener: () => void) => {
+            events.addEventListener('changed', listener)
+
+            return () => events.removeEventListener('changed', listener)
+        },
+    } as unknown as ActionConversationStore
+    const selectConversation = (selectedConversation: AgentConversation) => {
+        currentSnapshot = { conversations: [initialConversation, selectedConversation], loading: false, selectedConversation }
+        events.dispatchEvent(new Event('changed'))
+    }
+
+    return { selectConversation, store: selectableStore }
+}
 
 describe('ActionConversationChatOwner', () => {
     afterEach(() => {
@@ -56,6 +99,7 @@ describe('ActionConversationChatOwner', () => {
                         cardInternalId: null,
                         cardPath: context.file,
                         completedAt: null,
+                        contextWindowUsage: { capacityTokens: 200, usedTokens: 50 },
                         entries: [],
                         hasExplicitTitle: false,
                         id: 'conversation-1',
@@ -78,6 +122,34 @@ describe('ActionConversationChatOwner', () => {
         }))
 
         expect(screen.getByText('streamed')).toBeInTheDocument()
+        expect(screen.getByText('context: 25%')).toBeInTheDocument()
+    })
+
+    it('updates duration and context together when selected conversation changes', () => {
+        const firstConversation = conversation(
+            'conversation-1',
+            '2026-08-04T10:01:00.000Z',
+            { capacityTokens: 258_400, usedTokens: 42_000 },
+        )
+        const secondConversation = conversation(
+            'conversation-2',
+            '2026-08-04T10:02:30.000Z',
+            { capacityTokens: 200, usedTokens: 100 },
+        )
+        const { selectConversation, store: selectableStore } = createConversationStore(firstConversation)
+
+        render(
+            <AppThemeProvider>
+                <ActionConversationChatOwner actionId="review" context={context} store={selectableStore} />
+            </AppThemeProvider>,
+        )
+        expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('1:00')
+        expect(screen.getByText('context: 16%')).toBeInTheDocument()
+
+        act(() => selectConversation(secondConversation))
+
+        expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('2:30')
+        expect(screen.getByText('context: 50%')).toBeInTheDocument()
     })
 
     it.each(['activated', 'newly exposed'])('acknowledges unseen chat when popup becomes topmost: %s', async (scenario) => {

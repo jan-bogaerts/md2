@@ -120,20 +120,6 @@ describe('ActionUsageSummaryOwner', () => {
         expect(screen.getByRole('button', { name: 'Changes, Conversation scope' })).toHaveTextContent('changes: +5 / -4')
     })
 
-    it('updates or hides context occupancy when displayed conversation changes', () => {
-        const firstConversation = conversation('first', 2, 1)
-        firstConversation.contextWindowUsage = { capacityTokens: 258_400, usedTokens: 42_000 }
-        const secondConversation = conversation('second', 5, 4)
-        const { selectConversation, store } = createConversationStore(firstConversation)
-
-        renderOwner(store, new ActionUsageScopeStore())
-        expect(screen.getByText('context: 16%')).toBeInTheDocument()
-
-        act(() => selectConversation(secondConversation))
-
-        expect(screen.queryByText(/context:/u)).not.toBeInTheDocument()
-    })
-
     it('includes live updates in action/card totals once and uses live conversation when selected', () => {
         let listener: ((event: ActionRunEvent) => void) | null = null
         setActionBridgeOverride({

@@ -4,7 +4,7 @@ import type { AgentConversation, AgentTokenUsage } from '../../../../data/data_t
 import type { ActionRunHistoryEntry, CommitReference } from '../../../../data/electron_action_bridge'
 import type { AgentFileChangeUsage } from '../../../../services/agents/agent_usage'
 import type { ActionUsageScope } from './action_usage_scope_store'
-import { contextWindowUsedPercent, scopedActionUsage, type LineUsage } from './action_usage_summary_data'
+import { scopedActionUsage, type LineUsage } from './action_usage_summary_data'
 
 const NUMBER_FORMAT = new Intl.NumberFormat('en-US')
 const USAGE_CONTROL_SX: SxProps<Theme> = {
@@ -118,8 +118,6 @@ export function ActionUsageSummary(props: ActionUsageSummaryProps) {
         </>
     )
     const activeScopeName = scopeName(activeScope)
-    const contextUsedPercent = contextWindowUsedPercent(conversation?.contextWindowUsage)
-
     return (
         <Box
             sx={{
@@ -148,11 +146,6 @@ export function ActionUsageSummary(props: ActionUsageSummaryProps) {
                     {NUMBER_FORMAT.format(activeUsage.tokens.totalTokens)}
                 </ButtonBase>
             </Tooltip>
-            {contextUsedPercent !== null ? (
-                <Typography color="text.secondary" component="span" variant="caption">
-                    context: {contextUsedPercent}%
-                </Typography>
-            ) : null}
             {hasChanges ? (
                 <Tooltip describeChild title={scopeTooltip(
                     'Changes are additions and deletions across completed provider file-change patches.',

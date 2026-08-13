@@ -99,29 +99,12 @@ describe('ActionUsageSummary', () => {
         expect(screen.queryByText(/context:/u)).not.toBeInTheDocument()
     })
 
-    it('shows displayed conversation context occupancy beside tokens and caps over-capacity values', () => {
+    it('does not render displayed conversation context occupancy', () => {
         const displayedConversation = conversation('conversation-1', 12)
         displayedConversation.contextWindowUsage = { capacityTokens: 258_400, usedTokens: 42_000 }
-        const { rerender } = renderSummary({ conversation: displayedConversation })
+        renderSummary({ conversation: displayedConversation })
 
-        expect(screen.getByText('context: 16%')).toBeInTheDocument()
-
-        displayedConversation.contextWindowUsage = { capacityTokens: 100, usedTokens: 125 }
-        rerender(
-            <AppThemeProvider>
-                <ActionUsageSummary
-                    actionId="implement"
-                    cardInternalId="card-1"
-                    conversation={displayedConversation}
-                    conversations={[displayedConversation]}
-                    history={[]}
-                    liveConversation={null}
-                    onToggleScope={vi.fn()}
-                    scope="actionCard"
-                />
-            </AppThemeProvider>,
-        )
-        expect(screen.getByText('context: 100%')).toBeInTheDocument()
+        expect(screen.queryByText(/context:/u)).not.toBeInTheDocument()
     })
 
     it('invokes shared scope toggle through pointer and keyboard-synthesized clicks', () => {

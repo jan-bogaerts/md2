@@ -152,6 +152,52 @@ describe('ActionConversationChat', () => {
         expect(screen.getByLabelText('Conversation chat').scrollTop).toBe(200)
     })
 
+    it('keeps duration and context in a metadata row outside the scrollable transcript', () => {
+        const value = conversation('first.json', [message('message-1', 'First')])
+        value.contextWindowUsage = { capacityTokens: 258_400, usedTokens: 42_000 }
+        renderChat(value)
+
+        const viewport = screen.getByLabelText('Conversation chat')
+        const metadata = screen.getByLabelText('Conversation metadata')
+        expect(viewport).not.toContainElement(metadata)
+        expect(metadata).toContainElement(screen.getByLabelText('Elapsed time'))
+        expect(metadata).toContainElement(screen.getByText('context: 16%'))
+        expect(metadata).toHaveStyle({ alignItems: 'baseline' })
+
+        viewport.scrollTop = 40
+        fireEvent.scroll(viewport)
+
+        expect(screen.getByText('context: 16%')).toBeInTheDocument()
+        expect(screen.getByLabelText('Elapsed time')).toBeInTheDocument()
+    })
+
+    it('caps context occupancy and hides unavailable context without hiding duration', () => {
+        const value = conversation('first.json', [])
+        value.contextWindowUsage = { capacityTokens: 100, usedTokens: 125 }
+        const { rerender } = renderChat(value)
+
+        expect(screen.getByText('context: 100%')).toBeInTheDocument()
+
+        rerender(
+            <AppThemeProvider>
+                <ActionConversationChat
+                    conversation={{ ...value, contextWindowUsage: { capacityTokens: 0, usedTokens: 1 } }}
+                    status="idle"
+                />
+            </AppThemeProvider>,
+        )
+
+        expect(screen.queryByText(/context:/u)).not.toBeInTheDocument()
+        expect(screen.getByLabelText('Elapsed time')).toBeInTheDocument()
+    })
+
+    it('hides idle status while keeping duration visible', () => {
+        renderChat(conversation('completed.json', []))
+
+        expect(screen.queryByRole('status')).not.toBeInTheDocument()
+        expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('1:00')
+    })
+
     it('uses the derived Markdown style provided by the app theme', () => {
         render(
             <AppThemeProvider>
