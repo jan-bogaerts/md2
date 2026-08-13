@@ -2,7 +2,7 @@
 author: 
 id: F_104
 internalId: d47986a5-1380-4dd1-adb9-fff106a9a143
-title: add local text search
+title: add local text search md editor
 status: new
 owner: 
 affects:
