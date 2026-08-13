@@ -1,7 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 const CONFIG_SET_DESKTOP_CHANNEL = 'md2-config:set-desktop';
-const LIFECYCLE_FLUSH_DONE_CHANNEL = 'md2-lifecycle:flush-pending-commits-done';
+const LIFECYCLE_FLUSH_RESULT_CHANNEL = 'md2-lifecycle:flush-pending-commits-result';
 const LIFECYCLE_FLUSH_REQUEST_CHANNEL = 'md2-lifecycle:flush-pending-commits';
 const LOCAL_BRIDGE_EVENT_CHANNEL = 'md2-local-bridge:event';
 const LOCAL_BRIDGE_INVOKE_CHANNEL = 'md2-local-bridge:invoke';
@@ -206,9 +206,9 @@ if (!isAllowedOrigin()) {
 } else {
     const themeBridge = { setThemeMode: (mode) => ipcRenderer.send(THEME_SET_MODE_CHANNEL, mode) };
     const lifecycleBridge = {
-        confirmFlush: (requestId) => ipcRenderer.send(LIFECYCLE_FLUSH_DONE_CHANNEL, requestId),
+        reportFlushResult: (result) => ipcRenderer.send(LIFECYCLE_FLUSH_RESULT_CHANNEL, result),
         onFlushRequested: (callback) => {
-            const listener = (_event, requestId) => callback(requestId);
+            const listener = (_event, request) => callback(request);
             ipcRenderer.on(LIFECYCLE_FLUSH_REQUEST_CHANNEL, listener);
 
             return () => ipcRenderer.removeListener(LIFECYCLE_FLUSH_REQUEST_CHANNEL, listener);

@@ -10,7 +10,7 @@ import { MARKDOWN_STYLE_PRESETS } from '../../theme/theme_config'
 import { useAppTheme } from '../../theme/use_app_theme'
 import { MarkdownEditor, type MarkdownEditorHandle } from './markdown_editor'
 import { MarkdownDocumentHistoryStore } from './markdown_document_history_store'
-import { flushMarkdownEditors } from './markdown_editor_flush'
+import { stageMarkdownEditors } from '../../services/project/markdown_editor_staging'
 import { buildMarkdownContentSx } from './markdown_style_sx'
 import {
     MarkdownDataSourceBase,
@@ -320,7 +320,7 @@ describe('MarkdownEditor', () => {
         expect(onDirtyChange).toHaveBeenLastCalledWith(true)
         expect(onChange).not.toHaveBeenCalled()
 
-        flushMarkdownEditors()
+        stageMarkdownEditors()
         expect(onDirtyChange).toHaveBeenLastCalledWith(false)
     })
 
@@ -343,7 +343,7 @@ describe('MarkdownEditor', () => {
         expect(dataSource.edit).toHaveBeenCalledExactlyOnceWith('list-action', target, 'edited')
         expect(dataSource.commit).not.toHaveBeenCalled()
 
-        flushMarkdownEditors()
+        stageMarkdownEditors()
         expect(dataSource.commit).toHaveBeenCalledExactlyOnceWith('list-action', target, 'edited')
     })
 
@@ -371,10 +371,11 @@ describe('MarkdownEditor', () => {
         fireEvent.change(failedEditor, { target: { value: 'failed edit' } })
         fireEvent.change(successfulEditor, { target: { value: 'saved edit' } })
 
-        flushMarkdownEditors()
+        const staged = stageMarkdownEditors()
 
         expect(failedDataSource.commit).toHaveBeenCalledExactlyOnceWith('list-card', failedTarget, 'failed edit')
         expect(successfulDataSource.commit).toHaveBeenCalledExactlyOnceWith('board-card', savedTarget, 'saved edit')
+        expect(staged).toBe(false)
     })
 
     it('drops the dirty buffer without committing when the binding clears with discard', () => {
@@ -420,7 +421,7 @@ describe('MarkdownEditor', () => {
 
         dataSource.commit.mockReturnValue(true)
         await act(async () => {
-            flushMarkdownEditors()
+            stageMarkdownEditors()
             await Promise.resolve()
         })
 
@@ -456,7 +457,7 @@ describe('MarkdownEditor', () => {
         const [boardEditor] = screen.getAllByRole('textbox')
         fireEvent.change(boardEditor, { target: { value: 'board edit' } })
 
-        flushMarkdownEditors()
+        stageMarkdownEditors()
 
         expect(dataSource.commit).toHaveBeenCalledExactlyOnceWith('board-card', sharedTarget, 'board edit')
         expect(boardEditorRef.current?.getMarkdown()).toBe('board edit')
@@ -568,7 +569,7 @@ describe('MarkdownEditor', () => {
         )
 
         fireEvent.change(screen.getByRole('textbox'), { target: { value: 'edited' } })
-        flushMarkdownEditors()
+        stageMarkdownEditors()
 
         expect(onChange).toHaveBeenCalledExactlyOnceWith('edited')
     })
@@ -582,7 +583,7 @@ describe('MarkdownEditor', () => {
         )
 
         fireEvent.change(screen.getByRole('textbox'), { target: { value: 'edited' } })
-        flushMarkdownEditors()
+        stageMarkdownEditors()
         unmount()
 
         expect(onChange).toHaveBeenCalledExactlyOnceWith('edited')

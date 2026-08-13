@@ -23,7 +23,6 @@ import {
     finishActionRun,
     sendActionMessage,
 } from '../../../../services/actions/action_run_registry'
-import { flushMarkdownEditors } from '../../../editor/markdown_editor_flush'
 
 export type PopupRunStatus = 'idle' | 'queued' | 'running' | 'waitingForInput' | ActionRunResult['status']
 export type CancelAction = (runId: string) => Promise<void>
@@ -101,8 +100,7 @@ export async function defaultPreparePrompt(action: ActionDefinition, context: Ac
         }
         throw new Error('Preparing action prompts requires the Electron desktop app')
     }
-    flushMarkdownEditors()
-    if (projectPersistenceService.getSnapshot().hasPendingSave) await projectPersistenceService.flushPendingChanges()
+    await projectPersistenceService.flushPendingChanges()
     const result = await bridge.prepareActionPrompt({ actionId: action.id, context })
 
     return result.prompt

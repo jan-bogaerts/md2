@@ -62,4 +62,21 @@ describe('SaveStateService', () => {
         await result
         expect(service.getState().isSaving).toBe(false)
     })
+
+    it('drains active writes and writes started while draining', async () => {
+        const firstWrite = createDeferred<void>()
+        const secondWrite = createDeferred<void>()
+        const service = new SaveStateService()
+        void service.track(() => firstWrite.promise)
+        const drain = service.drain()
+
+        void service.track(() => secondWrite.promise)
+        firstWrite.resolve()
+        await Promise.resolve()
+        expect(service.getState().isSaving).toBe(true)
+
+        secondWrite.resolve()
+        await drain
+        expect(service.getState().isSaving).toBe(false)
+    })
 })

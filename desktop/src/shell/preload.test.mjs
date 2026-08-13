@@ -207,13 +207,15 @@ describe('preload desktop agent bridge', () => {
         const unsubscribe = exposed.md2Lifecycle.onFlushRequested(callback);
         const listener = electron.ipcRenderer.on.mock.calls[0][1];
 
-        listener({ sender: 'internal' }, 'quit-1');
-        exposed.md2Lifecycle.confirmFlush('quit-1');
+        const request = { reason: 'app-quit', requestId: 'quit-1' };
+        const result = { requestId: 'quit-1', success: true };
+        listener({ sender: 'internal' }, request);
+        exposed.md2Lifecycle.reportFlushResult(result);
         unsubscribe();
 
         expect(electron.ipcRenderer.on).toHaveBeenCalledWith('md2-lifecycle:flush-pending-commits', expect.any(Function));
-        expect(callback).toHaveBeenCalledWith('quit-1');
-        expect(electron.ipcRenderer.send).toHaveBeenCalledWith('md2-lifecycle:flush-pending-commits-done', 'quit-1');
+        expect(callback).toHaveBeenCalledWith(request);
+        expect(electron.ipcRenderer.send).toHaveBeenCalledWith('md2-lifecycle:flush-pending-commits-result', result);
         expect(electron.ipcRenderer.removeListener).toHaveBeenCalledWith('md2-lifecycle:flush-pending-commits', listener);
         expect(exposed.md2Lifecycle.ipcRenderer).toBeUndefined();
     });
@@ -276,13 +278,12 @@ describe('electron main isolation settings', () => {
         expect(source).toContain('sandbox: true');
     });
 
-    it('waits for renderer pending commit flush before quitting', () => {
+    it('coordinates renderer flushing before remaining quit cleanup', () => {
         const source = readFileSync(mainPath, 'utf8');
 
         expect(source).toContain('LIFECYCLE_FLUSH_REQUEST_CHANNEL');
-        expect(source).toContain('const QUIT_FLUSH_TIMEOUT_MS = 5000');
-        expect(source).toContain('await flushRendererPendingCommits()');
-        expect(source.indexOf('await flushRendererPendingCommits()')).toBeLessThan(source.indexOf('await remoteControlService.stop()'));
+        expect(source).toContain('closeCoordinator.requestApplicationQuit()');
+        expect(source).toContain('completeApplicationQuit: () => stopAndQuit()');
     });
 
     it('opens renderer developer tools when Electron runs unpackaged', () => {

@@ -1,6 +1,6 @@
 const CONFIG_GET_DESKTOP_CHANNEL = 'md2-config:get-desktop';
 const CONFIG_SET_DESKTOP_CHANNEL = 'md2-config:set-desktop';
-const LIFECYCLE_FLUSH_DONE_CHANNEL = 'md2-lifecycle:flush-pending-commits-done';
+const LIFECYCLE_FLUSH_RESULT_CHANNEL = 'md2-lifecycle:flush-pending-commits-result';
 const LIFECYCLE_FLUSH_REQUEST_CHANNEL = 'md2-lifecycle:flush-pending-commits';
 const LOCAL_BRIDGE_EVENT_CHANNEL = 'md2-local-bridge:event';
 const LOCAL_BRIDGE_INVOKE_CHANNEL = 'md2-local-bridge:invoke';
@@ -21,7 +21,7 @@ const UPDATE_PROGRESS_CHANNEL = 'md2-update:progress';
 module.exports = {
     CONFIG_GET_DESKTOP_CHANNEL,
     CONFIG_SET_DESKTOP_CHANNEL,
-    LIFECYCLE_FLUSH_DONE_CHANNEL,
+    LIFECYCLE_FLUSH_RESULT_CHANNEL,
     LIFECYCLE_FLUSH_REQUEST_CHANNEL,
     LOCAL_BRIDGE_EVENT_CHANNEL,
     LOCAL_BRIDGE_INVOKE_CHANNEL,

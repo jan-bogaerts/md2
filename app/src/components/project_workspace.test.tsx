@@ -418,6 +418,36 @@ describe('ProjectWorkspace', () => {
         visibilityState.mockRestore()
     })
 
+    it('flushes pending commits on pagehide', async () => {
+        const bridge = createBridge()
+        window.md2Data = bridge
+
+        renderProjectSurface()
+        await openLocalProject()
+        await findRootCard()
+
+        dataService.cards.updateCardBody('design/F-1-root.md', 'Changed before page hide')
+        await waitFor(() => expect(projectPersistenceService.getSnapshot().hasPendingSave).toBe(true))
+        window.dispatchEvent(new Event('pagehide'))
+
+        await waitFor(() => expect(bridge.commit).toHaveBeenCalledWith(expect.objectContaining({files: [expect.objectContaining({ path: 'design/F-1-root.md' })]})))
+    })
+
+    it('flushes pending commits when window loses focus', async () => {
+        const bridge = createBridge()
+        window.md2Data = bridge
+
+        renderProjectSurface()
+        await openLocalProject()
+        await findRootCard()
+
+        dataService.cards.updateCardBody('design/F-1-root.md', 'Changed before blur')
+        await waitFor(() => expect(projectPersistenceService.getSnapshot().hasPendingSave).toBe(true))
+        window.dispatchEvent(new Event('blur'))
+
+        await waitFor(() => expect(bridge.commit).toHaveBeenCalledWith(expect.objectContaining({files: [expect.objectContaining({ path: 'design/F-1-root.md' })]})))
+    })
+
     it('confirms close only while commits are pending', async () => {
         window.md2Data = createBridge()
 
@@ -473,10 +503,10 @@ describe('ProjectWorkspace', () => {
 
     it('flushes and confirms Electron quit flush requests', async () => {
         const bridge = createBridge()
-        let flushRequested: ((requestId: string) => void) | null = null
+        let flushRequested: ((request: { reason: 'app-quit' | 'window-close', requestId: string }) => void) | null = null
         window.md2Data = bridge
         window.md2Lifecycle = {
-            confirmFlush: vi.fn(),
+            reportFlushResult: vi.fn(),
             onFlushRequested: vi.fn((callback) => {
                 flushRequested = callback
 
@@ -490,16 +520,16 @@ describe('ProjectWorkspace', () => {
 
         dataService.cards.updateCardBody('design/F-1-root.md', 'Changed before quit')
         await waitFor(() => expect(projectPersistenceService.getSnapshot().hasPendingSave).toBe(true))
-        act(() => flushRequested?.('quit-1'))
+        act(() => flushRequested?.({ reason: 'app-quit', requestId: 'quit-1' }))
 
         await waitFor(() => expect(bridge.commit).toHaveBeenCalled())
-        await waitFor(() => expect(window.md2Lifecycle?.confirmFlush).toHaveBeenCalledWith('quit-1'))
+        await waitFor(() => expect(window.md2Lifecycle?.reportFlushResult).toHaveBeenCalledWith({ requestId: 'quit-1', success: true }))
     })
 
     it('does not confirm Electron quit when an invalid action draft cannot flush', async () => {
-        let flushRequested: ((requestId: string) => void) | null = null
+        let flushRequested: ((request: { reason: 'app-quit' | 'window-close', requestId: string }) => void) | null = null
         window.md2Lifecycle = {
-            confirmFlush: vi.fn(),
+            reportFlushResult: vi.fn(),
             onFlushRequested: vi.fn((callback) => {
                 flushRequested = callback
 
@@ -513,10 +543,10 @@ describe('ProjectWorkspace', () => {
         }])
         actionService.draftStore.updateDraft('actions/run.json', { command: 'run', description: 'Run', id: 'run', label: '', type: 'command' })
 
-        act(() => flushRequested?.('quit-invalid'))
+        act(() => flushRequested?.({ reason: 'app-quit', requestId: 'quit-invalid' }))
 
         await screen.findByText(/invalid unsaved changes/u)
-        expect(window.md2Lifecycle.confirmFlush).not.toHaveBeenCalled()
+        expect(window.md2Lifecycle.reportFlushResult).toHaveBeenCalledWith({ requestId: 'quit-invalid', success: false })
         expect(projectPersistenceService.getSnapshot().hasPendingSave).toBe(true)
     })
 

@@ -35,7 +35,7 @@ const {
 const {
     CONFIG_GET_DESKTOP_CHANNEL,
     CONFIG_SET_DESKTOP_CHANNEL,
-    LIFECYCLE_FLUSH_DONE_CHANNEL,
+    LIFECYCLE_FLUSH_RESULT_CHANNEL,
     LIFECYCLE_FLUSH_REQUEST_CHANNEL,
     LOCAL_BRIDGE_EVENT_CHANNEL,
     LOCAL_BRIDGE_INVOKE_CHANNEL,
@@ -51,8 +51,8 @@ const {
     THEME_SET_MODE_CHANNEL,
 } = require('./src/shell/ipc_channels');
 const { checkForUpdate, registerUpdateDownload } = require('./src/shell/update_service');
+const { CloseCoordinator } = require('./src/shell/close_coordinator');
 
-const QUIT_FLUSH_TIMEOUT_MS = 5000;
 const QUIT_WATCHDOG_TIMEOUT_MS = 10000;
 const EVENT_METHODS = new Set(['runSearchRegexpAgent', 'startAgentConversation']);
 const SUBSCRIPTION_METHODS = new Set(['onActionRun', 'onCodexRateLimits', 'onMergeConflictSessionChanged', 'onWorktreesChanged', 'watchProject']);
@@ -107,6 +107,12 @@ const remoteControlService = new RemoteControlService(localBridgeDispatch);
 const electronTelemetryStarted = startElectronTelemetry({ isDevelopment: !app.isPackaged });
 const subscriptionCleanups = new Map();
 let isQuittingAfterTelemetry = false;
+const closeCoordinator = new CloseCoordinator({
+    completeApplicationQuit: () => stopAndQuit(),
+    getWindows: () => BrowserWindow.getAllWindows(),
+    sendFlushRequest: (webContents, request) => webContents.send(LIFECYCLE_FLUSH_REQUEST_CHANNEL, request),
+    showMessageBox: (...parameters) => dialog.showMessageBox(...parameters),
+});
 
 registerProcessErrorHandlers();
 
@@ -243,6 +249,7 @@ function createWindow() {
             sandbox: true,
         },
     });
+    closeCoordinator.bindWindow(window);
 
     registerNavigationGuards(window.webContents, rendererTarget.trustedLocation, (url) => shell.openExternal(url));
     const spellCheckerSession = window.webContents.session;
@@ -285,7 +292,6 @@ async function stopAndQuit() {
     const watchdog = setTimeout(() => app.exit(0), QUIT_WATCHDOG_TIMEOUT_MS);
 
     try {
-        await flushRendererPendingCommits();
         await remoteControlService.stop();
         actionSchedulerService.stop();
         await actionRunnerService.suspend();
@@ -298,47 +304,6 @@ async function stopAndQuit() {
         clearTimeout(watchdog);
         app.quit();
     }
-}
-
-function waitForRendererFlush(browserWindow, requestId) {
-    if (browserWindow.webContents.isDestroyed()) return Promise.resolve();
-
-    return new Promise((resolve) => {
-        let isSettled = false;
-        let timeoutId = null;
-
-        function settle() {
-            if (isSettled) return;
-
-            isSettled = true;
-            if (timeoutId !== null) clearTimeout(timeoutId);
-            ipcMain.removeListener(LIFECYCLE_FLUSH_DONE_CHANNEL, handleFlushDone);
-            resolve();
-        }
-
-        function handleFlushDone(event, completedRequestId) {
-            if (event.sender !== browserWindow.webContents) return;
-            if (completedRequestId !== requestId) return;
-
-            settle();
-        }
-
-        timeoutId = setTimeout(settle, QUIT_FLUSH_TIMEOUT_MS);
-        ipcMain.on(LIFECYCLE_FLUSH_DONE_CHANNEL, handleFlushDone);
-
-        try {
-            browserWindow.webContents.send(LIFECYCLE_FLUSH_REQUEST_CHANNEL, requestId);
-        } catch {
-            settle();
-        }
-    });
-}
-
-async function flushRendererPendingCommits() {
-    const windows = BrowserWindow.getAllWindows();
-    const flushes = windows.map((browserWindow, index) => waitForRendererFlush(browserWindow, `quit-${Date.now()}-${index}`));
-
-    await Promise.all(flushes);
 }
 
 app.whenReady().then(async () => {
@@ -370,5 +335,9 @@ app.on('before-quit', (event) => {
     if (isQuittingAfterTelemetry) return;
 
     event.preventDefault();
-    void stopAndQuit();
+    void closeCoordinator.requestApplicationQuit();
+});
+
+ipcMain.on(LIFECYCLE_FLUSH_RESULT_CHANNEL, (event, result) => {
+    closeCoordinator.handleFlushResult(event.sender, result);
 });

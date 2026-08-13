@@ -21,7 +21,7 @@ import { markdownFileSearchPlugin } from './markdown_file_search_realm_plugin'
 import { markdownLocalTextSearchPlugin } from './markdown_local_text_search_realm_plugin'
 import { plainMarkdownPlugin } from './plain_markdown_realm_plugin'
 import { markdownPlaceholderPlugin } from './markdown_placeholder_realm_plugin'
-import { registerMarkdownEditorFlush } from './markdown_editor_flush'
+import { registerMarkdownEditorStage } from '../../services/project/markdown_editor_staging'
 import { markdownPastePlugin } from './markdown_paste_realm_plugin'
 import type {
     ActiveMarkdownDocumentChangedDetail,
@@ -139,7 +139,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
 
         const activeTarget = activeTargetRef.current
         if (dataSource && binding) {
-            if (!activeTarget) return true
+            if (!activeTarget) return false
             const committed = dataSource.commit(binding, activeTarget, latestMarkdownRef.current)
             if (!committed) return false
         } else {
@@ -224,7 +224,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     }, [])
 
     useEffect(() => {
-        const unregister = registerMarkdownEditorFlush(flush)
+        const unregister = registerMarkdownEditorStage(flush)
 
         return () => {
             unregister()

@@ -234,6 +234,10 @@ export class DataService extends EventTarget {
         }
     }
 
+    async drainPendingStorageWrites() {
+        await this.saveStateService.drain()
+    }
+
     getConfig(): ProjectConfig | null {
         return getProjectConfigOrNull(this.storage)
     }

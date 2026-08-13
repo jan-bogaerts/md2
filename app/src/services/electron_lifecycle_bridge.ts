@@ -1,6 +1,18 @@
+export type ElectronCloseReason = 'app-quit' | 'window-close'
+
+export interface ElectronFlushRequest {
+    reason: ElectronCloseReason
+    requestId: string
+}
+
+export interface ElectronFlushResult {
+    requestId: string
+    success: boolean
+}
+
 export interface ElectronLifecycleBridge {
-    confirmFlush(requestId: string): void
-    onFlushRequested(callback: (requestId: string) => void): () => void
+    onFlushRequested(callback: (request: ElectronFlushRequest) => void): () => void
+    reportFlushResult(result: ElectronFlushResult): void
 }
 
 declare global {

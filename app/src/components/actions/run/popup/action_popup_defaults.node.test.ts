@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ActionDefinition } from '../../../../data/action_types'
 import type { ElectronActionBridge } from '../../../../data/electron_action_bridge'
 import { projectPersistenceService } from '../../../../services/project/project_persistence_service'
-import { registerMarkdownEditorFlush } from '../../../editor/markdown_editor_flush'
 import { defaultPreparePrompt } from './action_popup_defaults'
 
 const action = {id: 'review'} as ActionDefinition
@@ -14,14 +13,8 @@ describe('action popup defaults', () => {
         vi.restoreAllMocks()
     })
 
-    it('flushes editor content and pending persistence before preparing the prompt', async () => {
+    it('flushes aggregate pending persistence before preparing the prompt', async () => {
         const calls: string[] = []
-        const unregisterEditorFlush = registerMarkdownEditorFlush(() => calls.push('editor'))
-        vi.spyOn(projectPersistenceService, 'getSnapshot').mockReturnValue({
-            hasPendingPush: false,
-            hasPendingSave: true,
-            localSaveState: 'dirty',
-        })
         vi.spyOn(projectPersistenceService, 'flushPendingChanges').mockImplementation(async () => {
             calls.push('persistence')
         })
@@ -34,17 +27,11 @@ describe('action popup defaults', () => {
 
         await expect(defaultPreparePrompt(action, context)).resolves.toBe('Current prompt')
 
-        expect(calls).toEqual(['editor', 'persistence', 'prepare'])
-        unregisterEditorFlush()
+        expect(calls).toEqual(['persistence', 'prepare'])
     })
 
     it('does not prepare the prompt when pending persistence fails', async () => {
         const saveError = new Error('disk unavailable')
-        vi.spyOn(projectPersistenceService, 'getSnapshot').mockReturnValue({
-            hasPendingPush: false,
-            hasPendingSave: true,
-            localSaveState: 'dirty',
-        })
         vi.spyOn(projectPersistenceService, 'flushPendingChanges').mockRejectedValue(saveError)
         const prepareActionPrompt = vi.fn(async () => ({ prompt: 'Stale prompt' }))
         window.md2Actions = { prepareActionPrompt } as unknown as ElectronActionBridge
