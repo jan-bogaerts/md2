@@ -2472,11 +2472,11 @@
         "agent-90e9d66f-b87f-4c0a-ac7e-8a66361a2279"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-5a135a90-e861-4ffd-b3b3-49532f98843f",
       "origin": {
@@ -2485,9 +2485,48 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-90e9d66f-b87f-4c0a-ac7e-8a66361a2279",
       "startedAt": "2026-08-13T11:43:57.799Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-90e9d66f-b87f-4c0a-ac7e-8a66361a2279"
+    },
+    {
+      "commits": [
+        {
+          "commit": "9475af3b180c76009531f6504cae14ae59ad9f51",
+          "committedAt": "2026-08-13T14:21:03+02:00",
+          "deletions": 11,
+          "filePaths": [
+            "app/src/components/actions/run/popup/action_usage_summary.test.tsx",
+            "app/src/components/actions/run/popup/action_usage_summary.tsx",
+            "app/src/components/actions/run/popup/action_usage_summary_data.node.test.ts",
+            "app/src/components/actions/run/popup/action_usage_summary_data.ts",
+            "app/src/components/actions/run/popup/action_usage_summary_owner.test.tsx",
+            "app/src/data/action_run_types.ts",
+            "app/src/data/data_types.ts",
+            "app/src/services/actions/action_run_registry.node.test.ts",
+            "app/src/services/actions/action_run_registry.ts",
+            "app/src/services/agents/agent_conversation_service.node.test.ts",
+            "desktop/src/actions/action/action_run.js",
+            "desktop/src/actions/action/action_run.test.mjs",
+            "desktop/src/actions/activity/activity_files.test.mjs",
+            "desktop/src/actions/agent/agent_runner_state.test.mjs",
+            "desktop/src/actions/agent/agent_streaming_adapter.js",
+            "desktop/src/actions/agent/agent_streaming_adapter.test.mjs",
+            "desktop/src/actions/agent/agent_streaming_event_handlers.js",
+            "shared/agent_conversations.mjs"
+          ],
+          "filesChanged": 18,
+          "insertions": 222,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-13T14:21:03+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "528ea430-ce5c-4e61-ac31-70c93daf5eaa",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
