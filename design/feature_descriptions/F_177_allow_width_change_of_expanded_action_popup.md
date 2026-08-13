@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 38781d24-46e6-4824-9587-b95bf62a0738
 ---
 
 When an action popup is fully expanded, you can no longer change it's width. this should still be possible.
