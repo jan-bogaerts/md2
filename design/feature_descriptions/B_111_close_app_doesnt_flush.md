@@ -3,7 +3,7 @@ author:
 id: B_111
 internalId: 43bf8521-8caa-4127-88fc-c31454193b90
 title: close app doesnt flush
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
