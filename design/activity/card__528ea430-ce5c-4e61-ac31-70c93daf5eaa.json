@@ -129,6 +129,29 @@
       "status": "cancelled",
       "title": "+",
       "viewed": true
+    },
+    {
+      "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "cardInternalId": "528ea430-ce5c-4e61-ac31-70c93daf5eaa",
+      "cardPath": "design/feature_descriptions/F_122_show_conversation_context_window_usage.md",
+      "completedAt": "2026-08-13T11:43:22.414Z",
+      "entries": [
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/F_122_show_conversation_context_window_usage.md`.&#x20;\nupdate the field `status` in the markdown feature description file to `ready for implementation`.\n\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill.\n\nDo not stage or commit changes. You have no need for get at this time.",
+          "id": "agent-turn-807e13e4-7fb2-4fc1-b96d-3a182be48025-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-08-13T11:43:19.308Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-7f79f527-4d62-425d-8f89-49f858d39ff5",
+      "providerSessions": [],
+      "startedAt": "2026-08-13T11:43:19.308Z",
+      "status": "cancelled",
+      "title": "complete",
+      "viewed": true
     }
   ],
   "origin": {
@@ -167,11 +190,11 @@
         "agent-3cc024e7-0ddd-49f7-850c-67de72b788e3"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "ask-for-approval",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-6dfbed14-d9c1-46cc-b089-4d262dd1411d",
       "origin": {
@@ -180,9 +203,9 @@
       },
       "rootActionId": "md2.custom-prompt",
       "rootActionLabel": "+",
-      "rootConversationId": "agent-3cc024e7-0ddd-49f7-850c-67de72b788e3",
       "startedAt": "2026-08-10T17:09:17.929Z",
-      "status": "failed"
+      "status": "failed",
+      "rootConversationId": "agent-3cc024e7-0ddd-49f7-850c-67de72b788e3"
     }
   ],
   "version": 4
