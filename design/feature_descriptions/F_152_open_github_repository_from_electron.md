@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
   - design/activity/card__56f68e51-66b5-4b47-9cf2-6a47128a0cb6.json#conversation=agent-5cd5e295-50f9-4601-b85f-b778fe8ab5f7
+  - design/activity/card__56f68e51-66b5-4b47-9cf2-6a47128a0cb6.json#conversation=agent-67cc4b2a-05aa-4fa0-964c-51da7fb2c01b
 policy:
 after: a57b89e0-49f4-4c25-9d99-deea222460cd
 branch: f_152_open_github_repository_from_electron
