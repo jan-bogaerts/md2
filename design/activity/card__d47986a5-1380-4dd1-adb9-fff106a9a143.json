@@ -2654,11 +2654,11 @@
         "agent-34cfdb60-9142-435a-868d-42d6adadaa41"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-0958d4e0-8937-469e-b980-950f37bae7f3",
       "origin": {
@@ -2667,9 +2667,43 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-34cfdb60-9142-435a-868d-42d6adadaa41",
       "startedAt": "2026-08-13T12:49:18.055Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-34cfdb60-9142-435a-868d-42d6adadaa41"
+    },
+    {
+      "commits": [
+        {
+          "commit": "dd1226b73d697c234eb2188b07c4b346b90a9720",
+          "committedAt": "2026-08-13T16:46:51+02:00",
+          "deletions": 11,
+          "filePaths": [
+            "app/src/components/actions/agent/action_agent_prompt.test.tsx",
+            "app/src/components/actions/agent/action_agent_prompt.tsx",
+            "app/src/components/editor/markdown_editor.tsx",
+            "app/src/components/editor/markdown_editor_local_text_search.test.tsx",
+            "app/src/components/editor/markdown_format_toolbar_controls.tsx",
+            "app/src/components/editor/markdown_local_text_search.node.test.ts",
+            "app/src/components/editor/markdown_local_text_search.ts",
+            "app/src/components/editor/markdown_local_text_search_command.ts",
+            "app/src/components/editor/markdown_local_text_search_config_cell.ts",
+            "app/src/components/editor/markdown_local_text_search_plugin.tsx",
+            "app/src/components/editor/markdown_local_text_search_realm_plugin.ts",
+            "app/src/components/editor/markdown_local_text_search_toolbar_control.tsx",
+            "app/src/test/mdx_editor_stub.tsx"
+          ],
+          "filesChanged": 13,
+          "insertions": 731,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-13T16:46:51+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "d47986a5-1380-4dd1-adb9-fff106a9a143",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
