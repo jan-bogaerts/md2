@@ -3,12 +3,12 @@ author:
 id: F_104
 internalId: d47986a5-1380-4dd1-adb9-fff106a9a143
 title: add local text search md editor
-status: new
+status: design
 owner: 
 affects:
 agents:
 policy:
-after: 0f92d6ef-ec13-478c-b3f9-d1b0bfcf391d
+after: 56f68e51-66b5-4b47-9cf2-6a47128a0cb6
 ---
 
 Add local text search to the markdown editor so that it becomes available in all components that use the markdown editor.
