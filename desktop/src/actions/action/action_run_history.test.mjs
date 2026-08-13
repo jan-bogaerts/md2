@@ -70,19 +70,60 @@ describe('captureCommitReferences', () => {
         }]);
     });
 
-    it('never parses commit summaries from untracked agent output', async () => {
+    it('resolves multiple agent stdout markers in first-seen order', async () => {
         const untrackedAgent = { ...action, type: 'agent' };
-        const result = { stderr: '', stdout: '[main abc1234] text that only mentions a commit' };
+        const result = { stderr: '', stdout: 'First Commit: abc1234\nprose\nSecond Commit: def5678' };
+        const localGitService = {
+            resolveCommitMetadata: vi.fn(async (_rootPath, commit) => ({
+                commit: commit.padEnd(40, commit.at(-1)), committedAt: completedAt, deletions: 0,
+                filePaths: [`${commit}.md`], filesChanged: 1, insertions: 1,
+            })),
+        };
+
+        const references = await captureCommitReferences(localGitService, { action: untrackedAgent, project, result });
+
+        expect(references.map(({ branch, commit }) => ({branch, commit}))).toEqual([
+            { branch: 'worktree', commit: 'abc1234444444444444444444444444444444444' },
+            { branch: 'worktree', commit: 'def5678888888888888888888888888888888888' },
+        ]);
+        expect(localGitService.resolveCommitMetadata).toHaveBeenNthCalledWith(1, 'C:/worktree', 'abc1234');
+        expect(localGitService.resolveCommitMetadata).toHaveBeenNthCalledWith(2, 'C:/worktree', 'def5678');
+    });
+
+    it('ignores command summaries, malformed markers, and stderr markers in agent output', async () => {
+        const untrackedAgent = { ...action, type: 'agent' };
+        const result = {
+            stderr: 'Commit: abc1234',
+            stdout: '[main abc1234] command summary\ncommit: def5678\nCommit: bad-id',
+        };
         const localGitService = { resolveCommitMetadata: vi.fn() };
 
         await expect(captureCommitReferences(localGitService, { action: untrackedAgent, project, result })).resolves.toEqual([]);
         expect(localGitService.resolveCommitMetadata).not.toHaveBeenCalled();
     });
 
+    it('resolves tracked commit before repeated reported commits for run-scoped deduplication', async () => {
+        const trackedAction = { ...action, trackFileChanges: true, type: 'agent' };
+        const result = { stderr: '', stdout: 'Commit: abc1234\nCommit: abc1234', trackedCommit: 'abc1234' };
+        const localGitService = {
+            resolveCommitMetadata: vi.fn(async () => ({
+                commit: 'abc1234567890123456789012345678901234567', committedAt: completedAt, deletions: 0,
+                filePaths: ['app/a.ts'], filesChanged: 1, insertions: 1,
+            })),
+        };
+
+        const references = await captureCommitReferences(localGitService, { action: trackedAction, project, result });
+
+        expect(references).toHaveLength(3);
+        expect(references.every(({ commit }) => commit === 'abc1234567890123456789012345678901234567')).toBe(true);
+        expect(localGitService.resolveCommitMetadata).toHaveBeenCalledTimes(3);
+    });
+
     it('propagates required Git metadata failure', async () => {
         const localGitService = { resolveCommitMetadata: vi.fn(async () => { throw new Error('unknown commit'); }) };
-        const result = { stderr: '', stdout: '[topic abcdef1] commit' };
+        const agentAction = { ...action, type: 'agent' };
+        const result = { stderr: '', stdout: 'Commit: abcdef1' };
 
-        await expect(captureCommitReferences(localGitService, { action, project, result })).rejects.toThrow('unknown commit');
+        await expect(captureCommitReferences(localGitService, { action: agentAction, project, result })).rejects.toThrow('unknown commit');
     });
 });

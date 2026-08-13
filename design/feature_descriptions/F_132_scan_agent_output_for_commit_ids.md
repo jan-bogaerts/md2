@@ -3,7 +3,7 @@ author:
 id: F_132
 internalId: a57b89e0-49f4-4c25-9d99-deea222460cd
 title: scan agent output for commit ids
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

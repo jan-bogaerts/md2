@@ -1,28 +1,49 @@
-import { Box, IconButton, Popover, Stack, Tooltip, Typography } from '@mui/material'
+import ExpandLessOutlined from '@mui/icons-material/ExpandLessOutlined'
+import ExpandMoreOutlined from '@mui/icons-material/ExpandMoreOutlined'
+import { Box, Button, IconButton, Popover, Stack, Tooltip, Typography } from '@mui/material'
 import AlertCircle from 'mdi-material-ui/AlertCircle'
 import type { MouseEvent } from 'react'
 import { useState } from 'react'
 import type { ActionRunLogEntry } from '../../../data/action_run_types'
+import { isErrorLog } from './action_log_error_selector'
 
 interface ActionLogErrorDisplayProps {
     logs: ActionRunLogEntry[]
 }
 
-/** Red alert icon summarizing run-log errors; opens a popover with the error lines. */
+const ESCAPE_CHARACTER = String.fromCharCode(27)
+const ANSI_ESCAPE_PATTERN = new RegExp(`${ESCAPE_CHARACTER}\\[[0-?]*[ -/]*[@-~]`, 'gu')
+
+function cleanTechnicalOutput(value: string) {
+    return value.replace(ANSI_ESCAPE_PATTERN, '').trim()
+}
+
+/** Red alert icon summarizing failed action phases; raw process output stays collapsed. */
 export function ActionLogErrorDisplay(props: ActionLogErrorDisplayProps) {
     const { logs } = props
     const [anchorElement, setAnchorElement] = useState<HTMLElement | null>(null)
+    const [detailsExpanded, setDetailsExpanded] = useState(false)
     const handleOpen = (event: MouseEvent<HTMLElement>) => setAnchorElement(event.currentTarget)
-    const handleClose = () => setAnchorElement(null)
+    const handleClose = () => {
+        setAnchorElement(null)
+        setDetailsExpanded(false)
+    }
+    const handleDetailsToggle = () => setDetailsExpanded((expanded) => !expanded)
 
-    const errors = logs.filter(({ status, stderr }) => status === 'failed' || stderr.length > 0)
+    const errors = logs.filter(isErrorLog)
     if (errors.length === 0) return null
+
+    const failureLabel = `${errors.length} failed action${errors.length === 1 ? '' : 's'}`
+    const technicalOutput = errors
+        .map(({ stderr }) => cleanTechnicalOutput(stderr))
+        .filter((output) => output.length > 0)
+        .join('\n\n')
 
     return (
         <>
-            <Tooltip title={`${errors.length} error${errors.length === 1 ? '' : 's'}`}>
+            <Tooltip title={failureLabel}>
                 <IconButton
-                    aria-label={`Show ${errors.length} error${errors.length === 1 ? '' : 's'}`}
+                    aria-label={`Show ${failureLabel}`}
                     onClick={handleOpen}
                     size="small"
                     sx={{ color: 'error.main', height: 26, width: 26 }}
@@ -37,21 +58,53 @@ export function ActionLogErrorDisplay(props: ActionLogErrorDisplayProps) {
                 open={!!anchorElement}
                 transformOrigin={{ horizontal: 'right', vertical: 'top' }}
             >
-                <Box sx={{ maxHeight: 360, maxWidth: 560, minWidth: 320, overflow: 'auto', px: 1.5, py: 1 }}>
+                <Box sx={{ maxHeight: 480, maxWidth: 640, minWidth: 320, overflow: 'auto', px: 1.5, py: 1 }}>
                     <Typography color="error.main" sx={{ fontSize: 12, fontWeight: 600 }} variant="caption">
-                        Errors
+                        {failureLabel}
                     </Typography>
                     <Stack spacing={0.5}>
                         {errors.map((error, index) => (
                             <Typography
-                                color="error.main"
                                 key={`${error.actionName}-${error.phase}-${index}`}
-                                sx={{ whiteSpace: 'pre-wrap' }}
+                                color="text.secondary"
                                 variant="caption"
                             >
-                                {error.stderr || error.message}
+                                {error.actionName} ({error.phase}): {error.message}
                             </Typography>
                         ))}
+                        {technicalOutput ? (
+                            <>
+                                <Button
+                                    endIcon={detailsExpanded ? <ExpandLessOutlined /> : <ExpandMoreOutlined />}
+                                    onClick={handleDetailsToggle}
+                                    size="small"
+                                    sx={{ alignSelf: 'flex-start' }}
+                                    variant="text"
+                                >
+                                    {detailsExpanded ? 'Hide technical details' : 'Show technical details'}
+                                </Button>
+                                {detailsExpanded ? (
+                                    <Box
+                                        component="pre"
+                                        sx={{
+                                            bgcolor: 'background.default',
+                                            border: '1px solid',
+                                            borderColor: 'divider',
+                                            borderRadius: 1,
+                                            color: 'text.secondary',
+                                            m: 0,
+                                            maxHeight: 240,
+                                            overflow: 'auto',
+                                            p: 1,
+                                            whiteSpace: 'pre-wrap',
+                                            wordBreak: 'break-word',
+                                        }}
+                                    >
+                                        {technicalOutput}
+                                    </Box>
+                                ) : null}
+                            </>
+                        ) : null}
                     </Stack>
                 </Box>
             </Popover>

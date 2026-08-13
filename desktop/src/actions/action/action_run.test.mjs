@@ -700,6 +700,31 @@ describe('ActionRun', () => {
         expect(service.appendAndCommitActionActivity.mock.calls[0][3].commits[0].actionId).toBe('tracked');
     });
 
+    it('stores repeated reported agent commit and matching tracked commit once', async () => {
+        const agentExecutor = {
+            execute: vi.fn(async () => ({
+                agent: 'codex', changedPaths: ['app/a.ts'], conversationId: 'conversation', exitCode: 0, model: 'gpt',
+                prompt: 'edit', stderr: 'Commit: abc1234', stdout: 'Commit: abc1234\nCommit: abc1234', thinkingLevel: 'none',
+            })),
+        };
+        const rootAction = action('main', {agent: 'codex', model: 'gpt', prompt: 'edit', trackFileChanges: true, type: 'agent'});
+        const localGitService = {
+            commitTrackedPaths: vi.fn(async () => 'abc1234'),
+            resolveCommitMetadata: vi.fn(async () => ({
+                commit: 'abc1234567890123456789012345678901234567', committedAt: '2026-07-15T10:00:00+00:00',
+                deletions: 0, filePaths: ['app/a.ts'], filesChanged: 1, insertions: 1,
+            })),
+        };
+        const { run, localGitService: service } = createRun(rootAction, { agentExecutor, localGitService });
+
+        await expect(run.completion).resolves.toMatchObject({ status: 'completed' });
+
+        const record = service.appendAndCommitActionActivity.mock.calls[0][3];
+        expect(record.commits).toHaveLength(1);
+        expect(record.commits[0].commit).toBe('abc1234567890123456789012345678901234567');
+        expect(service.resolveCommitMetadata).toHaveBeenCalledTimes(3);
+    });
+
     it('retains captured commits when a later action fails', async () => {
         const rootAction = action('main', { onAfter: [action('after')] });
         const commandRunner = vi.fn(async (_project, command) => ({

@@ -149,16 +149,17 @@ export function NewCardDialog(props: NewCardDialogProps) {
     }
 
     const handleFormKeyDown = (event: KeyboardEvent<HTMLFormElement>) => {
-        if (event.key === 'Escape') {
-            event.preventDefault()
-            closeDialog()
+        if (event.key !== 'Escape') return
 
-            return
-        }
+        event.preventDefault()
+        closeDialog()
+    }
 
+    const handleFormKeyDownCapture = (event: KeyboardEvent<HTMLFormElement>) => {
         if (event.key !== 'Enter' || !event.ctrlKey) return
 
         event.preventDefault()
+        event.stopPropagation()
         void handleCreateClick()
     }
 
@@ -214,6 +215,7 @@ export function NewCardDialog(props: NewCardDialogProps) {
             <Box
                 component="form"
                 onKeyDown={handleFormKeyDown}
+                onKeyDownCapture={handleFormKeyDownCapture}
                 onSubmit={handleSubmit}
                 sx={{ display: 'flex', flexDirection: 'column', height: isMobile ? '100%' : 'auto', maxHeight: '100dvh', minHeight: 0 }}
             >

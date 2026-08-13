@@ -39,7 +39,7 @@ const {
     requireString,
 } = require('./agent_run_validation');
 const { redactSecrets } = require('./agent_secret_redaction');
-const { filterCompleteStderrLines, isHiddenStderrLine } = require('./agent_stderr_filter');
+const { filterCompleteStderrLines, isHiddenStderrLine, stripAnsi } = require('./agent_stderr_filter');
 const { STREAMING_EVENT_HANDLERS } = require('./agent_streaming_event_handlers');
 const { terminateProcessTree } = require('../process_tree');
 const { assertGitRoot, ensureInsideRoot, requireRootPath } = require('../../git/git_commands');
@@ -325,7 +325,7 @@ class AgentRunnerService {
     recordStderr(run, content) {
         const parts = content.split(/(\r\n|\r|\n)/u);
         for (let index = 0; index < parts.length; index += 2) {
-            const line = parts[index];
+            const line = stripAnsi(parts[index]);
             const delimiter = parts[index + 1] ?? '';
             if (line.length === 0 && delimiter.length === 0) continue;
             if (run.agent !== 'codex' || !isCodexCacheError(line)) {

@@ -39,6 +39,14 @@ function getDescriptionEditor() {
     return within(screen.getByRole('group', { name: 'Description' })).getByRole('textbox')
 }
 
+function insertEditorNewline(event: Event) {
+    const keyboardEvent = event as globalThis.KeyboardEvent
+    if (keyboardEvent.key !== 'Enter') return
+
+    const editor = event.currentTarget as HTMLTextAreaElement
+    fireEvent.change(editor, { target: { value: `${editor.value}\n` } })
+}
+
 describe('project dialog components', () => {
     beforeEach(() => {
         mockMatchMedia(false)
@@ -483,17 +491,32 @@ describe('project dialog components', () => {
             { wrapper: AppThemeProvider },
         )
 
-        fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: 'Keyboard card' } })
-        fireEvent.keyDown(screen.getByRole('textbox', { name: 'Title' }), { key: 'Escape' })
+        const title = screen.getByRole('textbox', { name: 'Title' })
+        fireEvent.change(title, { target: { value: 'Keyboard card' } })
+        fireEvent.keyDown(title, { key: 'Escape' })
         expect(confirm).toHaveBeenCalledWith('Discard this new card draft?')
         expect(close).not.toHaveBeenCalled()
 
+        fireEvent.change(title, { target: { value: '' } })
         const description = getDescriptionEditor()
         fireEvent.change(description, { target: { value: 'Shortcut body' } })
+        const editorKeyDown = vi.fn(insertEditorNewline)
+        description.addEventListener('keydown', editorKeyDown)
+
+        fireEvent.keyDown(description, { ctrlKey: true, key: 'Enter' })
+        expect(createCard).not.toHaveBeenCalled()
+
+        fireEvent.change(title, { target: { value: 'Keyboard card' } })
+        fireEvent.keyDown(description, { key: 'Enter' })
+        fireEvent.keyDown(description, { key: 'Enter', shiftKey: true })
+        expect(description).toHaveValue('Shortcut body\n\n')
+
+        editorKeyDown.mockClear()
         fireEvent.keyDown(description, { ctrlKey: true, key: 'Enter' })
 
+        expect(editorKeyDown).not.toHaveBeenCalled()
         await waitFor(() => expect(createCard).toHaveBeenCalledWith({
-            body: 'Shortcut body',
+            body: 'Shortcut body\n\n',
             bodyIncludesTemplate: true,
             title: 'Keyboard card',
             type: 'feature',

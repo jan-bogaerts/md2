@@ -3,7 +3,7 @@ author:
 id: B_112
 internalId: e0010544-02b5-4372-82c7-bc05bd62929c
 title: ctrl enter on new card
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
