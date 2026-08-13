@@ -33,6 +33,7 @@ import {
     type CardDetailsPopupEntry,
 } from '../../services/card_popup_service'
 import { MarkdownTypeaheadLayerProvider } from '../editor/markdown_typeahead_layer_provider'
+import { useProjectReadOnly } from '../hooks/use_project_read_only'
 
 const CARD_BODY_POPOVER_WIDTH = 760
 const CARD_BODY_POPOVER_HEIGHT = 620
@@ -108,6 +109,7 @@ function CardBodyPopoverEntry(props: CardBodyPopoverEntryProps) {
         stackPosition,
         visible,
     } = props
+    const readOnly = useProjectReadOnly()
     const { cardPath, diffSelection } = entry
     const anchorElement = entry.anchorElement.isConnected ? entry.anchorElement : entry.fallbackAnchorElement
     const card = useCardMetadata(cardPath)
@@ -350,6 +352,7 @@ function CardBodyPopoverEntry(props: CardBodyPopoverEntryProps) {
                                     onChange={handleTitleChange}
                                     onKeyDown={handleTitleKeyDown}
                                     placeholder="Card title"
+                                    readOnly={readOnly}
                                     sx={(theme) => ({
                                         '&:focus-within': {
                                             backgroundColor: 'background.paper',
@@ -438,12 +441,12 @@ function CardBodyPopoverEntry(props: CardBodyPopoverEntryProps) {
                                 {isMobile ? (
                                     <>
                                         <Tooltip title="Delete">
-                                            <IconButton aria-label="Delete" color="error" onClick={openDeleteCardDialog}>
+                                            <IconButton aria-label="Delete" color="error" disabled={readOnly} onClick={openDeleteCardDialog}>
                                                 <DeleteOutline />
                                             </IconButton>
                                         </Tooltip>
                                         <Tooltip title="Affects">
-                                            <IconButton aria-label="Affects" onClick={openAffects}>
+                                            <IconButton aria-label="Affects" disabled={readOnly} onClick={openAffects}>
                                                 <FolderSearchOutline />
                                             </IconButton>
                                         </Tooltip>
@@ -455,8 +458,8 @@ function CardBodyPopoverEntry(props: CardBodyPopoverEntryProps) {
                                     </>
                                 ) : (
                                     <>
-                                        <Button color="error" onClick={openDeleteCardDialog} startIcon={<DeleteOutline />} variant="outlined">Delete</Button>
-                                        <Button onClick={openAffects} startIcon={<FolderSearchOutline />} variant="outlined">Affects</Button>
+                                        <Button color="error" disabled={readOnly} onClick={openDeleteCardDialog} startIcon={<DeleteOutline />} variant="outlined">Delete</Button>
+                                        <Button disabled={readOnly} onClick={openAffects} startIcon={<FolderSearchOutline />} variant="outlined">Affects</Button>
                                         <Button onClick={openInFileMode} startIcon={<FileDocumentOutline />} variant="outlined">Open in file mode</Button>
                                     </>
                                 )}

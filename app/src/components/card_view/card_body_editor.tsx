@@ -5,6 +5,7 @@ import { MarkdownEditor } from '../editor/markdown_editor'
 import type { CardMarkdownDataSource } from '../editor/card_markdown_data_source'
 import type { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
 import { CardPopupToolbarControls } from './card_popup_toolbar_controls'
+import { useProjectReadOnly } from '../hooks/use_project_read_only'
 
 interface CardBodyEditorProps {
     cardTypes: CardTypeConfig[]
@@ -22,6 +23,7 @@ interface CardBodyEditorProps {
  */
 export const CardBodyEditor = memo(function CardBodyEditor(props: CardBodyEditorProps) {
     const {cardTypes, dataSource, historyStore, isFullscreen, isMobile = false, onToggleFullscreen, overlayContainer, statusColors} = props
+    const readOnly = useProjectReadOnly()
     const ToolbarContents = useCallback(
         () => (
             <CardPopupToolbarControls
@@ -30,10 +32,11 @@ export const CardBodyEditor = memo(function CardBodyEditor(props: CardBodyEditor
                 isFullscreen={isFullscreen}
                 isMobile={isMobile}
                 onToggleFullscreen={onToggleFullscreen}
+                readOnly={readOnly}
                 statusColors={statusColors}
             />
         ),
-        [cardTypes, dataSource, isFullscreen, isMobile, onToggleFullscreen, statusColors],
+        [cardTypes, dataSource, isFullscreen, isMobile, onToggleFullscreen, readOnly, statusColors],
     )
     return (
         <Box
@@ -82,6 +85,7 @@ export const CardBodyEditor = memo(function CardBodyEditor(props: CardBodyEditor
                 dataSource={dataSource}
                 historyStore={historyStore}
                 overlayContainer={overlayContainer}
+                readOnly={readOnly}
                 toolbarContents={ToolbarContents}
             />
         </Box>

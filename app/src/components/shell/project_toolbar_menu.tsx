@@ -8,6 +8,7 @@ import { NewCardDialog } from './project/new_card_dialog'
 import { ProjectOpenDialog } from './project/project_open_dialog'
 import { useProjectToolbarMenuActions } from './project/use_project_toolbar_menu_actions'
 import { useProjectPersistence } from '../hooks/use_project_persistence'
+import { useProjectReadOnly } from '../hooks/use_project_read_only'
 
 type ProjectDialogMode = 'open' | 'branch' | 'card' | 'release'
 
@@ -22,6 +23,7 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
     const [anchorElement, setAnchorElement] = useState<HTMLElement | null>(null)
     const [dialogMode, setDialogMode] = useState<ProjectDialogMode | null>(null)
     const { hasPendingPush, hasPendingSave } = useProjectPersistence()
+    const readOnly = useProjectReadOnly()
     const isMenuOpen = !!anchorElement
 
     const openDialog = useCallback((mode: ProjectDialogMode) => {
@@ -76,14 +78,22 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
                 <MenuItem onClick={handleOpenProject}>Open project...</MenuItem>
                 {actions.isProjectOpen ? <MenuItem onClick={actions.openBranchDialog}>Switch branch...</MenuItem> : null}
                 {actions.isProjectOpen && actions.pushMode === 'manual' ? (
-                    <MenuItem disabled={actions.isLoading || (!hasPendingPush && !hasPendingSave)} onClick={handlePushClick}>Push</MenuItem>
+                    <MenuItem
+                        disabled={readOnly || actions.isLoading || (!hasPendingPush && !hasPendingSave)}
+                        onClick={handlePushClick}
+                    >
+                        Push
+                    </MenuItem>
                 ) : null}
                 {actions.isProjectOpen ? (
-                    <MenuItem disabled={actions.isReleaseCompleting || actions.activeCards.length === 0} onClick={handleOpenReleaseDialog}>
+                    <MenuItem
+                        disabled={readOnly || actions.isReleaseCompleting || actions.activeCards.length === 0}
+                        onClick={handleOpenReleaseDialog}
+                    >
                         Complete release...
                     </MenuItem>
                 ) : null}
-                {actions.isProjectOpen ? <MenuItem onClick={handleOpenCardDialog}>New card...</MenuItem> : null}
+                {actions.isProjectOpen ? <MenuItem disabled={readOnly} onClick={handleOpenCardDialog}>New card...</MenuItem> : null}
             </Menu>
             <ProjectOpenDialog
                 branches={actions.branches}
@@ -92,6 +102,7 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
                 isDesktopMode={actions.isDesktopMode}
                 isGithubAuthenticated={isGithubAuthenticated}
                 isLoading={actions.isLoading}
+                onChooseLocalFolder={actions.chooseLocalProjectFolder}
                 onCreateProjectFolders={handleCreateProjectFolders}
                 projectOpenResolution={actions.projectOpenResolution}
                 onBranchChange={() => undefined}
@@ -102,12 +113,14 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
                 onLoadManualBranches={actions.loadManualBranches}
                 onLoadRemoteBranches={actions.loadRemoteBranches}
                 onOpenGithub={actions.openGithubProject}
+                onOpenLocal={actions.openLocalProject}
                 onOpenRemote={actions.openRemoteProject}
                 onRepositoryChange={actions.loadRepositoryBranches}
                 onSourceChange={actions.clearOpenDialogState}
                 onUseWorkingFolder={(folder) => void actions.openWorkingFolder(folder)}
                 open={dialogMode === 'open'}
                 pendingGithubConflictProject={actions.pendingGithubConflictProject}
+                recentLocalRepositories={actions.recentLocalRepositories}
                 repositories={actions.repositories}
             />
             <BranchSwitchDialog

@@ -23,6 +23,7 @@ import { register } from '../service_injector'
 import { createRandomProjectBackgroundShade } from '../../theme/project_background_shade'
 import { isProjectLoadErrorReported } from './project_loading'
 import { projectPersistenceService } from './project_persistence_service'
+import { projectAccessService } from './project_access_service'
 import { createDefaultActionFiles } from '../../project_template/project_template'
 
 export interface MissingWorkingFolderResolution {
@@ -66,8 +67,8 @@ function isMissingWorkingFolderError(error: unknown): error is { workingFolder: 
     return storageError.code === MISSING_WORKING_FOLDER_ERROR && typeof storageError.workingFolder === 'string'
 }
 
-function createGithubStorage(accessToken: string | null) {
-    const storage = new GithubStorageService()
+function createGithubStorage(accessToken: string | null, isReadOnly = false) {
+    const storage = new GithubStorageService(isReadOnly)
     storage.init({ accessToken: accessToken ?? '' })
 
     return storage
@@ -125,9 +126,15 @@ async function createMissingWorkingFolderResolution(
     }
 }
 
-async function loadProjectSession(storage: StorageService, storageType: StorageType, project: ProjectReference) {
+async function loadProjectSession(
+    storage: StorageService,
+    storageType: StorageType,
+    project: ProjectReference,
+    onActivated: () => void,
+) {
     try {
         await activateProjectSession(storage, storageType, project)
+        onActivated()
 
         return null
     } catch (error) {
@@ -139,6 +146,7 @@ async function loadProjectSession(storage: StorageService, storageType: StorageT
 
 async function activateProjectSession(storage: StorageService, storageType: StorageType, project: ProjectReference) {
     await projectPersistenceService.flushPendingChanges()
+    projectAccessService.setReadOnly(storageType === 'github-readonly')
     const activeStorage = await activateStorageService(storageType, storage)
     dataService.init({ storage: activeStorage })
     await dataService.projectLoading.openProject(project)
@@ -155,6 +163,7 @@ async function resolveRestoredProject(storageType: StorageType, storage: Storage
 
 export class ProjectSessionService extends EventTarget {
     private cardCreationState: CardCreationState = { isCreatingCard: false }
+    private readonly projectAccess = projectAccessService
     private state: ProjectSessionState = {
         errorMessage: null,
         isCommitting: false,
@@ -177,6 +186,10 @@ export class ProjectSessionService extends EventTarget {
         return this.cardCreationState
     }
 
+    get isReadOnly() {
+        return this.projectAccess.getSnapshot()
+    }
+
     setError(message: string | null) {
         this.state = { ...this.state, errorMessage: message, pendingGithubConflictProject: null }
         this.dispatchChanged()
@@ -187,7 +200,7 @@ export class ProjectSessionService extends EventTarget {
         this.setError(null)
         const lastProject = readLastProject()
         if (!lastProject) return
-        if (lastProject.storageType === 'github' && !accessToken) return
+        if ((lastProject.storageType === 'github' || lastProject.storageType === 'github-readonly') && !accessToken) return
 
         const storage = createStorageService(lastProject.storageType, accessToken)
         const project = await resolveRestoredProject(lastProject.storageType, storage, lastProject.project)
@@ -206,9 +219,14 @@ export class ProjectSessionService extends EventTarget {
         })
     }
 
-    async findGithubRepositoryBranches(owner: string, repositoryName: string, accessToken: string | null) {
+    async findGithubRepositoryBranches(
+        owner: string,
+        repositoryName: string,
+        accessToken: string | null,
+        storageType: 'github' | 'github-readonly' = 'github',
+    ) {
         return this.withLoading('Manual repository branch list failed', async () => {
-            const storage = createGithubStorage(accessToken)
+            const storage = createGithubStorage(accessToken, storageType === 'github-readonly')
             const repository = await storage.findRepository(owner, repositoryName)
             const branches = await storage.listBranches(repository)
 
@@ -224,37 +242,50 @@ export class ProjectSessionService extends EventTarget {
     ): Promise<ProjectOpenResolution | null> {
         return this.withLoading('Project load failed', async () => {
             const storage = existingStorage ?? createStorageService(storageType, accessToken)
-            if (storageType === 'github' || storageType === 'local') {
+            if (storageType === 'github' || storageType === 'github-readonly' || storageType === 'local') {
                 const projectConfig = await storage.loadProjectConfig(project)
-                if (projectConfig !== null) return loadProjectSession(storage, storageType, project)
+                if (storageType === 'github-readonly' || projectConfig !== null) {
+                    return loadProjectSession(
+                        storage,
+                        storageType,
+                        project,
+                        () => this.setReadOnly(storageType === 'github-readonly'),
+                    )
+                }
 
+                this.setReadOnly(false)
                 const folders = await listTopLevelFolders(storage, project)
 
                 return { folders, kind: 'project-folder-setup', project, storageType }
             }
 
-            return loadProjectSession(storage, storageType, project)
+            return loadProjectSession(storage, storageType, project, () => this.setReadOnly(false))
         })
     }
 
     async openWorkingFolder(resolution: MissingWorkingFolderResolution, folder: TopLevelFolderReference, accessToken: string | null) {
+        projectAccessService.requireWritable()
         await this.withLoading('Working folder selection failed', async () => {
             const storage = createStorageService(resolution.storageType, accessToken)
             await persistWorkingFolder(storage, resolution.project, folder.path)
             await activateProjectSession(storage, resolution.storageType, resolution.project)
+            this.setReadOnly(false)
         })
     }
 
     async createWorkingFolder(resolution: MissingWorkingFolderResolution, accessToken: string | null) {
+        projectAccessService.requireWritable()
         await this.withLoading('Working folder creation failed', async () => {
             const storage = createStorageService(resolution.storageType, accessToken)
             const project = await storage.createProject(resolution.project, resolution.resolvedWorkingFolder)
             await persistWorkingFolder(storage, project, resolution.configuredWorkingFolder)
             await activateProjectSession(storage, resolution.storageType, project)
+            this.setReadOnly(false)
         })
     }
 
     async createProjectFolders(resolution: ProjectFolderSetupResolution, projectFolder: string, accessToken: string | null) {
+        projectAccessService.requireWritable()
         await this.withLoading('Project folder creation failed', async () => {
             const storage = createStorageService(resolution.storageType, accessToken)
             const normalizedProjectFolder = requireProjectFolder(projectFolder)
@@ -273,6 +304,7 @@ export class ProjectSessionService extends EventTarget {
             await storage.saveProjectConfig(project, projectConfig)
             configService.loadProjectConfig(projectConfig)
             await activateProjectSession(storage, resolution.storageType, project)
+            this.setReadOnly(false)
         })
     }
 
@@ -292,6 +324,7 @@ export class ProjectSessionService extends EventTarget {
     }
 
     async push() {
+        projectAccessService.requireWritable()
         this.state = { ...this.state, isPushing: true }
         this.dispatchChanged()
 
@@ -307,6 +340,7 @@ export class ProjectSessionService extends EventTarget {
     }
 
     async commit() {
+        projectAccessService.requireWritable()
         this.state = { ...this.state, isCommitting: true }
         this.dispatchChanged()
 
@@ -319,6 +353,7 @@ export class ProjectSessionService extends EventTarget {
     }
 
     async pull() {
+        projectAccessService.requireWritable()
         this.state = { ...this.state, isPulling: true }
         this.dispatchChanged()
 
@@ -331,6 +366,7 @@ export class ProjectSessionService extends EventTarget {
     }
 
     discardGithubPendingCommits(project: ProjectReference, accessToken: string | null) {
+        projectAccessService.requireWritable()
         const storage = createGithubStorage(accessToken)
         storage.discardPendingCommits(project)
         this.state = { ...this.state, errorMessage: null, pendingGithubConflictProject: null }
@@ -342,10 +378,12 @@ export class ProjectSessionService extends EventTarget {
     }
 
     async completeRelease(releaseName: string, selectedBranchNames: string[]) {
+        projectAccessService.requireWritable()
         await this.withLoading('Release completion failed', () => dataService.releases.completeRelease(releaseName, selectedBranchNames))
     }
 
     async createCard(draft: CardDraft, initialState: string) {
+        projectAccessService.requireWritable()
         this.setCardCreationState(true)
         if (this.state.errorMessage !== null) this.setError(null)
 
@@ -367,6 +405,10 @@ export class ProjectSessionService extends EventTarget {
 
         this.cardCreationState = { isCreatingCard }
         this.dispatchEvent(new CustomEvent<CardCreationState>('cardCreationChanged', { detail: this.cardCreationState }))
+    }
+
+    private setReadOnly(isReadOnly: boolean) {
+        this.projectAccess.setReadOnly(isReadOnly)
     }
 
     private async withLoading<T>(fallbackMessage: string, operation: () => Promise<T>): Promise<T> {

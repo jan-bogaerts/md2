@@ -23,6 +23,7 @@ import { GithubUnauthorizedError } from '../../auth/github_api_client'
 import { createDefaultActionFiles } from '../../project_template/project_template'
 import { openFilesService } from '../open_files_service'
 import { mergeConflictService } from './merge_conflict_service'
+import { projectAccessService } from './project_access_service'
 
 const ACTION_RELOAD_DEBOUNCE_MS = 150
 const JSON_EXTENSION = '.json'
@@ -179,6 +180,7 @@ export class ProjectLoading {
     }
 
     async createProject(project: ProjectReference) {
+        projectAccessService.requireWritable()
         const { config, storage } = this.dependencies.requireDependencies()
         const rawConfig = { ...configService.getProjectConfig(), backgroundShade: createRandomProjectBackgroundShade() }
         this.dependencies.replaceProject(await storage.createProject(project, config.workingFolder))
@@ -222,7 +224,7 @@ export class ProjectLoading {
             const projectFiles = await storage.loadProjectRoot(project, config.workingFolder)
             const repositoryFiles: string[] = []
             this.dependencies.replaceProjectFiles(projectFiles.files, config.workingFolder, repositoryFiles)
-            await this.dependencies.ensureCardInternalIds()
+            await this.ensureCardInternalIds()
             this.tryStartProjectWatch()
             const currentSnapshot = this.dependencies.snapshot()
             if (!currentSnapshot) throw new Error('Project snapshot was not created')
@@ -245,6 +247,7 @@ export class ProjectLoading {
     }
 
     async saveProjectConfig() {
+        projectAccessService.requireWritable()
         const { storage } = this.dependencies.requireDependencies()
         const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot save project config before a project is open')
@@ -254,6 +257,7 @@ export class ProjectLoading {
     }
 
     async updateCardSeparator(previousSeparator: CardSeparator, nextSeparator: CardSeparator) {
+        projectAccessService.requireWritable()
         if (previousSeparator === nextSeparator) return 0
 
         const { config, storage } = this.dependencies.requireDependencies()
@@ -315,6 +319,7 @@ export class ProjectLoading {
     }
 
     async push() {
+        projectAccessService.requireWritable()
         const { storage } = this.dependencies.requireDependencies()
         const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot push before a project is open')
@@ -324,6 +329,7 @@ export class ProjectLoading {
     }
 
     async pull() {
+        projectAccessService.requireWritable()
         const { storage } = this.dependencies.requireDependencies()
         const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot pull before a project is open')
@@ -342,7 +348,7 @@ export class ProjectLoading {
         const projectFiles = await storage.loadProject(currentProject, config.projectFolder)
         const repositoryFiles = await storage.listRepositoryFiles(currentProject)
         this.dependencies.replaceProjectFiles(projectFiles.files, config.workingFolder, repositoryFiles)
-        await this.dependencies.ensureCardInternalIds()
+        await this.ensureCardInternalIds()
         this.dependencies.dispatchChanged()
         const currentSnapshot = this.dependencies.snapshot()
         if (currentSnapshot) await this.loadAgentConversationsInBackground(currentSnapshot, project, projectLoadToken)
@@ -444,6 +450,8 @@ export class ProjectLoading {
     }
 
     private async importExternalCardFiles(files: MarkdownFile[], workingFolder: string) {
+        if (projectAccessService.getSnapshot()) return files
+
         const currentProject = this.dependencies.project()
         if (!currentProject) return files
 
@@ -565,7 +573,7 @@ export class ProjectLoading {
         if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
 
         this.dependencies.mergeBackgroundProjectFiles(nextFiles, workingFolder, repositoryFiles)
-        await this.dependencies.ensureCardInternalIds()
+        await this.ensureCardInternalIds()
         this.dependencies.dispatchChanged()
         const currentSnapshot = this.dependencies.snapshot()
         if (currentSnapshot) await this.loadAgentConversationsInBackground(currentSnapshot, project, projectLoadToken)
@@ -794,8 +802,14 @@ export class ProjectLoading {
         })
         const deletedPaths = currentFiles.filter((file) => !importedPaths.has(file.path)).map((file) => file.path)
         this.dependencies.updateFiles(changedFiles, deletedPaths, config.workingFolder)
-        await this.dependencies.ensureCardInternalIds()
+        await this.ensureCardInternalIds()
         this.dependencies.dispatchChanged()
+    }
+
+    private async ensureCardInternalIds() {
+        if (projectAccessService.getSnapshot()) return
+
+        await this.dependencies.ensureCardInternalIds()
     }
 
     private async loadWatchedMarkdownFile(event: ProjectWatchEvent) {

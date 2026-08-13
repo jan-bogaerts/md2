@@ -9,6 +9,12 @@ interface GithubRepositoryResponse {
     full_name?: unknown
     name?: unknown
     owner?: { login?: unknown }
+    visibility?: unknown
+}
+
+export function requirePublicRepository(payload: unknown) {
+    const response = payload as GithubRepositoryResponse
+    if (response.visibility !== 'public') throw new Error('GitHub repository is not public')
 }
 
 interface GithubBranchResponse {

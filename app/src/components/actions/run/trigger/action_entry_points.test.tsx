@@ -12,6 +12,7 @@ import type { ActionRunEvent } from '../../../../data/action_run_types'
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
 import { AppThemeProvider } from '../../../../theme/theme_provider'
 import { dialogService } from '../../../../services/dialog_service'
+import { projectAccessService } from '../../../../services/project/project_access_service'
 
 function file(definition: { id: string }): ActionFile {
     return { content: JSON.stringify(definition), path: `actions/${definition.id}.json` }
@@ -47,6 +48,7 @@ afterEach(() => {
     delete window.md2Actions
     cleanup()
     actionService.clear()
+    projectAccessService.setReadOnly(false)
     vi.restoreAllMocks()
 })
 
@@ -56,6 +58,14 @@ describe('ActionEntryPoints filtering', () => {
             file(agentDefinition('implement', { appliesTo: { type: 'feature' }, label: 'Implement' })),
             file(commandDefinition('fix', { appliesTo: { type: 'bug' }, label: 'Fix' })),
         ])
+    })
+
+    it('disables matching action entry points for read-only projects', () => {
+        projectAccessService.setReadOnly(true)
+
+        render(<ActionEntryPoints context={cardContext(featureCard, DEFAULT_CARD_TYPES)} variant="icons" />)
+
+        expect(screen.getByRole('button', { name: 'Implement' })).toBeDisabled()
     })
 
     it('shows only actions whose appliesTo matches the context, plus the always-on custom prompt', () => {

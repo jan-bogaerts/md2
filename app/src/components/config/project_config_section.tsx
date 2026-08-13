@@ -6,13 +6,18 @@ import { WorktreeConfigList } from './worktree_config_list'
 const PROJECT_CONFIG_SECTION_ID = 'project'
 const PROJECT_CONFIG_SECTION_LABEL = 'Project'
 
-export function ProjectConfigSection(props: ConfigSectionProps) {
-    const { draft, entries, onChange, onValidityChange } = props
+interface ProjectConfigSectionProps extends ConfigSectionProps {
+    disabled?: boolean
+}
+
+export function ProjectConfigSection(props: ProjectConfigSectionProps) {
+    const { disabled = false, draft, entries, onChange, onValidityChange } = props
     const sectionEntries = entries.filter((entry) => entry.section === PROJECT_CONFIG_SECTION_ID)
 
     return (
         <>
             <ConfigSectionLayout
+                disabled={disabled}
                 draft={draft}
                 entries={sectionEntries}
                 id={PROJECT_CONFIG_SECTION_ID}
@@ -20,7 +25,7 @@ export function ProjectConfigSection(props: ConfigSectionProps) {
                 onChange={onChange}
                 onValidityChange={onValidityChange}
             />
-            {worktreeService.isSupported() ? <WorktreeConfigList /> : null}
+            {worktreeService.isSupported() && !disabled ? <WorktreeConfigList /> : null}
         </>
     )
 }

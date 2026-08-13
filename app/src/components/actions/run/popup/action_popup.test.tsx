@@ -533,7 +533,8 @@ describe('ActionPopup', () => {
 
         fireEvent.click(dialog.getByRole('button', { name: 'Custom prompt' }))
         const model = await dialog.findByRole('button', { name: 'Model' })
-        expect(model).toHaveTextContent('host-model high')
+        expect(model.querySelector('[data-model-label]')).toHaveTextContent('host-model')
+        expect(model.querySelector('[data-full-thinking-level]')).toHaveTextContent('high')
         fireEvent.click(model)
 
         expect(screen.getByRole('menuitem', { name: 'custom' })).toHaveClass('Mui-selected')
@@ -1607,7 +1608,11 @@ describe('ActionPopup', () => {
 
         renderPopup(cardContext)
 
-        await waitFor(() => expect(screen.getByLabelText('Model')).toHaveTextContent('gpt-5.5 none'))
+        await waitFor(() => {
+            const model = screen.getByLabelText('Model')
+            expect(model.querySelector('[data-model-label]')).toHaveTextContent('gpt-5.5')
+            expect(model.querySelector('[data-full-thinking-level]')).toHaveTextContent('none')
+        })
         expect(updateCardActionSettings).not.toHaveBeenCalled()
     })
 

@@ -11,31 +11,36 @@ interface MarkdownFormatToolbarControlsProps {
     endControls?: ReactNode
     overlayContainer?: HTMLElement | null
     placeholders?: readonly ActionPlaceholder[]
+    readOnly?: boolean
     undoRedoControls?: ReactNode
 }
 
 /** The full formatting command set supported by the shared markdown editor. */
 export function MarkdownFormatToolbarControls(props: MarkdownFormatToolbarControlsProps = {}) {
-    const { endControls, overlayContainer, placeholders = [], undoRedoControls } = props
+    const { endControls, overlayContainer, placeholders = [], readOnly = false, undoRedoControls } = props
 
     return (
         <>
-            {undoRedoControls ?? <UndoRedo />}
-            <Separator />
-            <BoldItalicUnderlineToggles />
-            <Separator />
-            <ListsToggle />
-            <BlockTypeSelect />
-            <Separator />
-            <CreateLink />
-            <InsertImage />
-            <Separator />
-            <InsertTable />
-            <InsertThematicBreak />
-            <InsertCodeBlock />
-            <Separator />
+            {!readOnly ? (
+                <>
+                    {undoRedoControls ?? <UndoRedo />}
+                    <Separator />
+                    <BoldItalicUnderlineToggles />
+                    <Separator />
+                    <ListsToggle />
+                    <BlockTypeSelect />
+                    <Separator />
+                    <CreateLink />
+                    <InsertImage />
+                    <Separator />
+                    <InsertTable />
+                    <InsertThematicBreak />
+                    <InsertCodeBlock />
+                    <Separator />
+                </>
+            ) : null}
             <MarkdownLocalTextSearchToolbarControl />
-            {placeholders.length > 0 ? (
+            {!readOnly && placeholders.length > 0 ? (
                 <>
                     <Separator />
                     <MarkdownPlaceholderToolbarControl overlayContainer={overlayContainer} placeholders={placeholders} />

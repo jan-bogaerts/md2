@@ -11,6 +11,7 @@ import { openFilesService } from '../../../services/open_files_service'
 import { useWorktrees } from '../../hooks/use_worktrees'
 import { ActionDefinitionFields } from './action_definition_fields'
 import { ACTION_DEFINITION_TAB } from './action_phrase_editor_state'
+import { useProjectReadOnly } from '../../hooks/use_project_read_only'
 
 interface ActionEditorContentProps {
     action: ActionDefinition
@@ -23,6 +24,7 @@ interface ActionEditorContentProps {
 /** Definition and recovery region backed directly by ActionService. */
 export function ActionEditorContent(props: ActionEditorContentProps) {
     const { action, cardTypes, sourcePath, specialContextTypes, states } = props
+    const readOnly = useProjectReadOnly()
     const [, setRevision] = useState(0)
     useEffect(() => {
         const handleChanged = (event: Event) => {
@@ -59,9 +61,11 @@ export function ActionEditorContent(props: ActionEditorContentProps) {
 
     return (
         <Box
+            component="fieldset"
             data-testid="action-editor-content"
+            disabled={readOnly}
             hidden={!showActionContent}
-            sx={{ flex: activeTab === ACTION_DEFINITION_TAB || definition.type !== 'agent' ? 1 : '0 0 auto', minHeight: 0, order: 1, overflowY: 'auto', p: 2 }}
+            sx={{ border: 0, flex: activeTab === ACTION_DEFINITION_TAB || definition.type !== 'agent' ? 1 : '0 0 auto', m: 0, minHeight: 0, order: 1, overflowY: 'auto', p: 2 }}
         >
             {saveError ? (
                 <Alert action={<Button color="inherit" disabled={!canRetry} onClick={handleRetry} size="small">Retry save</Button>} severity="error" sx={{ mb: 2 }}>

@@ -71,6 +71,12 @@ describe('createStorageService', () => {
         expect(getElectronActionBridge()).toBe(overrideBridge)
     })
 
+    it('creates distinct read-only GitHub storage', () => {
+        const storage = createStorageService('github-readonly', 'token-1')
+
+        expect(storage).toMatchObject({ isReadOnly: true })
+    })
+
     it('does not clear an existing override when creating local storage', () => {
         const overrideBridge = createActionBridge()
         setActionBridgeOverride(overrideBridge)
@@ -113,5 +119,15 @@ describe('readLastProject', () => {
 
         expect(readLastProject()).toEqual(lastProject)
         expect(JSON.parse(window.localStorage.getItem(LAST_PROJECT_STORAGE_KEY) ?? '{}')).toEqual(lastProject)
+    })
+
+    it('keeps read-only GitHub storage type during restoration', () => {
+        const lastProject = {
+            project: { branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' },
+            storageType: 'github-readonly',
+        }
+        window.localStorage.setItem(LAST_PROJECT_STORAGE_KEY, JSON.stringify(lastProject))
+
+        expect(readLastProject()).toEqual(lastProject)
     })
 })

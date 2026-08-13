@@ -5,6 +5,7 @@ import {
     validateReleaseName,
 } from '../data/release_archiving'
 import { statusOf } from '../data/card_ordering'
+import { projectAccessService } from './project/project_access_service'
 import type { MarkdownFile, MoveFile, ProjectAsset, ProjectReference, ProjectSnapshot, ReleaseBranchCandidate } from '../data/data_types'
 import { type RequiredDataServiceDependencies } from './data/data_service_context'
 import { markdownParsingService } from './data/markdown_parsing_service'
@@ -66,6 +67,7 @@ export class ReleaseOperations {
     }
 
     async completeRelease(releaseName: string, selectedBranchNames: string[]) {
+        projectAccessService.requireWritable()
         const { config, storage } = this.dependencies.requireDependencies()
         const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot complete a release before a project is open')

@@ -65,6 +65,7 @@ describe('project dialog components', () => {
                 isDesktopMode={false}
                 isGithubAuthenticated
                 isLoading={false}
+                onChooseLocalFolder={vi.fn(async () => undefined)}
                 projectOpenResolution={null}
                 onBranchChange={vi.fn()}
                 onClose={vi.fn()}
@@ -75,18 +76,145 @@ describe('project dialog components', () => {
                 onLoadManualBranches={vi.fn(async () => ({ branches: BRANCHES, repository: REPOSITORIES[0] }))}
                 onLoadRemoteBranches={vi.fn(async () => BRANCHES)}
                 onOpenGithub={vi.fn()}
+                onOpenLocal={vi.fn(async () => undefined)}
                 onOpenRemote={vi.fn()}
                 onRepositoryChange={vi.fn(async () => BRANCHES)}
                 onSourceChange={vi.fn()}
                 onUseWorkingFolder={vi.fn()}
                 open
                 pendingGithubConflictProject={null}
+                recentLocalRepositories={[]}
                 repositories={REPOSITORIES}
             />,
         )
 
         expect(screen.getByRole('dialog', { name: 'Open project' })).toBeInTheDocument()
         expect(screen.getByLabelText('Filter repositories')).toBeInTheDocument()
+    })
+
+    it('offers personal, public, and remote sources in browser mode', async () => {
+        render(
+            <ProjectOpenDialog
+                branches={[]}
+                isDesktopMode={false}
+                isGithubAuthenticated
+                isLoading={false}
+                onBranchChange={vi.fn()}
+                onChooseLocalFolder={vi.fn(async () => undefined)}
+                onClose={vi.fn()}
+                onCreateProjectFolders={vi.fn()}
+                onCreateRemoteProject={vi.fn()}
+                onCreateWorkingFolder={vi.fn()}
+                onDiscardGithubPendingCommits={vi.fn()}
+                onLoadManualBranches={vi.fn(async () => null)}
+                onLoadRemoteBranches={vi.fn(async () => [])}
+                onOpenGithub={vi.fn()}
+                onOpenLocal={vi.fn(async () => undefined)}
+                onOpenRemote={vi.fn()}
+                onRepositoryChange={vi.fn(async () => [])}
+                onSourceChange={vi.fn()}
+                onUseWorkingFolder={vi.fn()}
+                open
+                pendingGithubConflictProject={null}
+                projectOpenResolution={null}
+                recentLocalRepositories={[]}
+                repositories={[]}
+            />,
+        )
+
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Source' }))
+        expect(await screen.findByRole('option', { name: 'Personal repository' })).toBeInTheDocument()
+        expect(screen.getByRole('option', { name: 'Public repository' })).toBeInTheDocument()
+        expect(screen.getByRole('option', { name: 'Remote' })).toBeInTheDocument()
+        expect(screen.queryByRole('option', { name: 'Local folder' })).toBeNull()
+    })
+
+    it('opens typed, picked, and recent local folders only after Local folder is selected', async () => {
+        const chooseLocalFolder = vi.fn(async () => undefined)
+        const openLocal = vi.fn(async () => undefined)
+        render(
+            <ProjectOpenDialog
+                branches={[]}
+                isDesktopMode
+                isGithubAuthenticated={false}
+                isLoading={false}
+                onBranchChange={vi.fn()}
+                onChooseLocalFolder={chooseLocalFolder}
+                onClose={vi.fn()}
+                onCreateProjectFolders={vi.fn()}
+                onCreateRemoteProject={vi.fn()}
+                onCreateWorkingFolder={vi.fn()}
+                onDiscardGithubPendingCommits={vi.fn()}
+                onLoadManualBranches={vi.fn(async () => null)}
+                onLoadRemoteBranches={vi.fn(async () => [])}
+                onOpenGithub={vi.fn()}
+                onOpenLocal={openLocal}
+                onOpenRemote={vi.fn()}
+                onRepositoryChange={vi.fn(async () => [])}
+                onSourceChange={vi.fn()}
+                onUseWorkingFolder={vi.fn()}
+                open
+                pendingGithubConflictProject={null}
+                projectOpenResolution={null}
+                recentLocalRepositories={['C:/recent']}
+                repositories={[]}
+            />,
+        )
+
+        expect(screen.queryByLabelText('Local repository folder')).toBeNull()
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Source' }))
+        fireEvent.click(await screen.findByRole('option', { name: 'Local folder' }))
+        expect(screen.queryByRole('option', { name: 'Remote' })).toBeNull()
+
+        fireEvent.change(screen.getByLabelText('Local repository folder'), { target: { value: 'C:/typed' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))
+        expect(openLocal).toHaveBeenCalledWith('C:/typed')
+        fireEvent.click(screen.getByRole('button', { name: 'Choose local repository folder' }))
+        expect(chooseLocalFolder).toHaveBeenCalledOnce()
+        fireEvent.click(screen.getByText('C:/recent'))
+        expect(openLocal).toHaveBeenLastCalledWith('C:/recent')
+    })
+
+    it('marks manual public lookup and open requests as public', async () => {
+        const loadManualBranches = vi.fn(async () => ({ branches: BRANCHES, repository: REPOSITORIES[0] }))
+        const openGithub = vi.fn(async () => undefined)
+        render(
+            <ProjectOpenDialog
+                branches={BRANCHES}
+                isDesktopMode={false}
+                isGithubAuthenticated
+                isLoading={false}
+                onBranchChange={vi.fn()}
+                onChooseLocalFolder={vi.fn(async () => undefined)}
+                onClose={vi.fn()}
+                onCreateProjectFolders={vi.fn()}
+                onCreateRemoteProject={vi.fn()}
+                onCreateWorkingFolder={vi.fn()}
+                onDiscardGithubPendingCommits={vi.fn()}
+                onLoadManualBranches={loadManualBranches}
+                onLoadRemoteBranches={vi.fn(async () => [])}
+                onOpenGithub={openGithub}
+                onOpenLocal={vi.fn(async () => undefined)}
+                onOpenRemote={vi.fn()}
+                onRepositoryChange={vi.fn(async () => [])}
+                onSourceChange={vi.fn()}
+                onUseWorkingFolder={vi.fn()}
+                open
+                pendingGithubConflictProject={null}
+                projectOpenResolution={null}
+                recentLocalRepositories={[]}
+                repositories={[]}
+            />,
+        )
+
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Source' }))
+        fireEvent.click(await screen.findByRole('option', { name: 'Public repository' }))
+        fireEvent.change(screen.getByLabelText('Owner'), { target: { value: 'octo' } })
+        fireEvent.change(screen.getByRole('textbox', { name: 'Repository' }), { target: { value: 'demo' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Load branches' }))
+        await waitFor(() => expect(loadManualBranches).toHaveBeenCalledWith('octo', 'demo', true))
+        fireEvent.click(screen.getByRole('button', { name: 'Open Public' }))
+        expect(openGithub).toHaveBeenCalledWith('octo', 'demo', 'main', true)
     })
 
     it('keeps branch entry editable when no branch options exist', () => {
@@ -98,6 +226,7 @@ describe('project dialog components', () => {
                 isDesktopMode={false}
                 isGithubAuthenticated
                 isLoading={false}
+                onChooseLocalFolder={vi.fn(async () => undefined)}
                 projectOpenResolution={null}
                 onBranchChange={vi.fn()}
                 onClose={vi.fn()}
@@ -108,12 +237,14 @@ describe('project dialog components', () => {
                 onLoadManualBranches={vi.fn(async () => ({ branches: BRANCHES, repository: REPOSITORIES[0] }))}
                 onLoadRemoteBranches={vi.fn(async () => BRANCHES)}
                 onOpenGithub={openGithub}
+                onOpenLocal={vi.fn(async () => undefined)}
                 onOpenRemote={vi.fn()}
                 onRepositoryChange={vi.fn(async () => BRANCHES)}
                 onSourceChange={vi.fn()}
                 onUseWorkingFolder={vi.fn()}
                 open
                 pendingGithubConflictProject={null}
+                recentLocalRepositories={[]}
                 repositories={[]}
             />,
         )
@@ -121,9 +252,9 @@ describe('project dialog components', () => {
         fireEvent.change(screen.getByLabelText('Owner'), { target: { value: 'octo' } })
         fireEvent.change(screen.getByRole('textbox', { name: 'Repository' }), { target: { value: 'demo' } })
         fireEvent.change(screen.getByLabelText('Branch'), { target: { value: 'topic' } })
-        fireEvent.click(screen.getByRole('button', { name: 'Open GitHub' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Open Personal' }))
 
-        expect(openGithub).toHaveBeenCalledWith('octo', 'demo', 'topic')
+        expect(openGithub).toHaveBeenCalledWith('octo', 'demo', 'topic', false)
     })
 
     it('preselects the remote source and prefills the stored connection settings', () => {
@@ -136,6 +267,7 @@ describe('project dialog components', () => {
                 isDesktopMode={false}
                 isGithubAuthenticated={false}
                 isLoading={false}
+                onChooseLocalFolder={vi.fn(async () => undefined)}
                 projectOpenResolution={null}
                 onBranchChange={vi.fn()}
                 onClose={vi.fn()}
@@ -146,12 +278,14 @@ describe('project dialog components', () => {
                 onLoadManualBranches={vi.fn(async () => ({ branches: BRANCHES, repository: REPOSITORIES[0] }))}
                 onLoadRemoteBranches={vi.fn(async () => BRANCHES)}
                 onOpenGithub={vi.fn()}
+                onOpenLocal={vi.fn(async () => undefined)}
                 onOpenRemote={vi.fn()}
                 onRepositoryChange={vi.fn(async () => BRANCHES)}
                 onSourceChange={vi.fn()}
                 onUseWorkingFolder={vi.fn()}
                 open
                 pendingGithubConflictProject={null}
+                recentLocalRepositories={[]}
                 repositories={[]}
             />,
         )
@@ -169,6 +303,7 @@ describe('project dialog components', () => {
                 isDesktopMode={false}
                 isGithubAuthenticated={false}
                 isLoading={false}
+                onChooseLocalFolder={vi.fn(async () => undefined)}
                 projectOpenResolution={null}
                 onBranchChange={vi.fn()}
                 onClose={vi.fn()}
@@ -179,12 +314,14 @@ describe('project dialog components', () => {
                 onLoadManualBranches={vi.fn(async () => ({ branches: BRANCHES, repository: REPOSITORIES[0] }))}
                 onLoadRemoteBranches={vi.fn(async () => BRANCHES)}
                 onOpenGithub={vi.fn()}
+                onOpenLocal={vi.fn(async () => undefined)}
                 onOpenRemote={vi.fn()}
                 onRepositoryChange={vi.fn(async () => BRANCHES)}
                 onSourceChange={vi.fn()}
                 onUseWorkingFolder={vi.fn()}
                 open
                 pendingGithubConflictProject={null}
+                recentLocalRepositories={[]}
                 repositories={[]}
             />,
         )
@@ -219,6 +356,7 @@ describe('project dialog components', () => {
                 isDesktopMode
                 isGithubAuthenticated={false}
                 isLoading={false}
+                onChooseLocalFolder={vi.fn(async () => undefined)}
                 projectOpenResolution={{
                     configuredWorkingFolder: 'missing',
                     folders: [{ name: 'docs', path: 'docs' }],
@@ -236,12 +374,14 @@ describe('project dialog components', () => {
                 onLoadManualBranches={vi.fn(async () => ({ branches: BRANCHES, repository: REPOSITORIES[0] }))}
                 onLoadRemoteBranches={vi.fn(async () => BRANCHES)}
                 onOpenGithub={vi.fn()}
+                onOpenLocal={vi.fn(async () => undefined)}
                 onOpenRemote={vi.fn()}
                 onRepositoryChange={vi.fn(async () => BRANCHES)}
                 onSourceChange={vi.fn()}
                 onUseWorkingFolder={vi.fn()}
                 open
                 pendingGithubConflictProject={null}
+                recentLocalRepositories={[]}
                 repositories={REPOSITORIES}
             />,
         )
@@ -260,6 +400,7 @@ describe('project dialog components', () => {
                 isDesktopMode
                 isGithubAuthenticated={false}
                 isLoading={false}
+                onChooseLocalFolder={vi.fn(async () => undefined)}
                 onBranchChange={vi.fn()}
                 onClose={vi.fn()}
                 onCreateProjectFolders={createProjectFolders}
@@ -269,6 +410,7 @@ describe('project dialog components', () => {
                 onLoadManualBranches={vi.fn(async () => ({ branches: BRANCHES, repository: REPOSITORIES[0] }))}
                 onLoadRemoteBranches={vi.fn(async () => BRANCHES)}
                 onOpenGithub={vi.fn()}
+                onOpenLocal={vi.fn(async () => undefined)}
                 onOpenRemote={vi.fn()}
                 onRepositoryChange={vi.fn(async () => BRANCHES)}
                 onSourceChange={vi.fn()}
@@ -281,6 +423,7 @@ describe('project dialog components', () => {
                     project: PROJECT,
                     storageType: 'local',
                 }}
+                recentLocalRepositories={[]}
                 repositories={[]}
             />,
         )

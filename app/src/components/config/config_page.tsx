@@ -31,6 +31,7 @@ import {
 import { MarkdownConfigSection } from './markdown_config_section'
 import { agentCapabilitiesService } from '../../services/agents/agent_capabilities_service'
 import { getElectronRemoteControlBridge } from '../../data/electron_remote_control_bridge'
+import { useProjectReadOnly } from '../hooks/use_project_read_only'
 
 const CONFIG_PAGE_PADDING = 3
 const CONFIG_FORM_MAX_WIDTH = 720
@@ -77,6 +78,7 @@ export function ConfigPage(props: ConfigPageProps) {
     const { hash } = props
     const theme = useTheme()
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
+    const readOnly = useProjectReadOnly()
     const {
         markdownStyle,
         markdownStyleConfig,
@@ -273,7 +275,7 @@ export function ConfigPage(props: ConfigPageProps) {
                                 onChange={handleMarkdownStyleChange}
                             />
                         ) : null}
-                        {activeSection === 'project' ? <ProjectConfigSection {...sectionProps} /> : null}
+                        {activeSection === 'project' ? <ProjectConfigSection {...sectionProps} disabled={readOnly} /> : null}
                         {activeSection === 'desktop' ? <DesktopConfigSection {...sectionProps} disabled={!configService.hasDesktopConfig()} /> : null}
                     </Stack>
                 </Box>

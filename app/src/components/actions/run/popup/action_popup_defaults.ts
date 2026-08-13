@@ -15,6 +15,7 @@ import { dataService } from '../../../../services/data/data_service'
 import { remoteConnectionService } from '../../../../services/data/remote_connection_service'
 import { RemoteControlConnectionError } from '../../../../services/data/remote_control_storage_service'
 import { projectPersistenceService } from '../../../../services/project/project_persistence_service'
+import { projectAccessService } from '../../../../services/project/project_access_service'
 import { cancelElectronAction, restartElectronAction, runElectronAction } from '../../../../services/actions/electron_action_runner'
 import {
     answerActionApproval,
@@ -154,6 +155,7 @@ export function defaultAnswerApproval(
 }
 
 export async function defaultScheduleAction(action: ActionDefinition, context: ActionContext, trigger: ActionScheduleTrigger) {
+    projectAccessService.requireWritable()
     const bridge = getElectronActionBridge()
     if (!bridge?.registerActionSchedule) throw new Error('Scheduling actions requires Electron local mode')
 

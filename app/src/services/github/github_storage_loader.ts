@@ -8,6 +8,7 @@ import {
     normalizeProjectAsset,
     normalizeRepositories,
     normalizeRepository,
+    requirePublicRepository,
 } from './github_storage_normalizers'
 import type { GithubStorageContext } from './github_storage_context'
 import type { GithubStorageGitData } from './github_storage_git_data'
@@ -155,8 +156,9 @@ export class GithubStorageLoader {
             .map((entry) => ({ name: entry.path, path: entry.path }))
     }
 
-    async findRepository(owner: string, repository: string) {
+    async findRepository(owner: string, repository: string, requirePublic: boolean) {
         const payload = await this.context.getApiClient().requestJson(`/repos/${owner}/${repository}`)
+        if (requirePublic) requirePublicRepository(payload)
         const project = normalizeRepository(payload)
 
         return { ...project, branch: project.branch }

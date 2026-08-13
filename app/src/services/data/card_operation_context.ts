@@ -3,6 +3,7 @@ import type { Card, MarkdownFile, MoveFile, ProjectReference, ProjectSnapshot, S
 import type { CardOpenDocument, OpenDocumentSaveReference } from '../open_files_service'
 import { openFilesService } from '../open_files_service'
 import { telemetryService } from '../telemetry/telemetry_service'
+import { projectAccessService } from '../project/project_access_service'
 import {
     errorMessage,
     type RequiredDataServiceDependencies,
@@ -64,6 +65,7 @@ export class CardOperationContext {
 
     /** Resolves the storage dependencies plus the open project, or throws `Cannot <action> before a project is open`. */
     requireProject(action: string): OpenProjectDependencies {
+        projectAccessService.requireWritable()
         const { commitBatcher, config, storage } = this.dependencies.requireDependencies()
         const project = this.dependencies.project()
         if (!project) throw new Error(`Cannot ${action} before a project is open`)

@@ -12,6 +12,7 @@ import {
     type TopLevelFolderReference,
 } from '../../../data/data_types'
 import { getElectronDataBridge } from '../../../data/electron_data_bridge'
+import { readRecentLocalRepositories, recordRecentLocalRepository } from '../../../data/recent_local_repositories'
 import type { StorageType } from '../../../data/project_session'
 import { dialogService } from '../../../services/dialog_service'
 import { configService } from '../../../services/config/config_service'
@@ -29,6 +30,7 @@ import {
 } from '../../project_command_events'
 
 type ProjectDialogMode = 'open' | 'branch' | 'card' | 'release'
+type ProjectOpenResult = 'failed' | 'opened' | 'resolution'
 
 const EMPTY_BRANCHES: BranchReference[] = []
 const EMPTY_REPOSITORIES: RepositoryReference[] = []
@@ -63,6 +65,8 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
     const [initialProjectSource, setInitialProjectSource] = useState<ProjectDialogSource | null>(null)
     const [initialRemoteProject, setInitialRemoteProject] = useState<ProjectReference | null>(null)
     const [newCardInitialStatus, setNewCardInitialStatus] = useState('')
+    const [pendingLocalRootPath, setPendingLocalRootPath] = useState<string | null>(null)
+    const [recentLocalRepositories, setRecentLocalRepositories] = useState(() => readRecentLocalRepositories())
     const [repositories, setRepositories] = useState<RepositoryReference[]>(EMPTY_REPOSITORIES)
     const [releaseBranchCandidates, setReleaseBranchCandidates] = useState<ReleaseBranchCandidate[]>([])
     const [switchBranch, setSwitchBranch] = useState(project?.branch ?? '')
@@ -79,7 +83,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         projectSessionService.setError(null)
     }, [onCloseDialog])
 
-    const openProject = useCallback(async (storageType: StorageType, nextProject: ProjectReference) => {
+    const openProject = useCallback(async (storageType: StorageType, nextProject: ProjectReference): Promise<ProjectOpenResult> => {
         setProjectOpenResolution(null)
 
         try {
@@ -88,16 +92,31 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
                 setProjectOpenResolution(resolution)
                 onOpenDialog('open')
 
-                return
+                return 'resolution'
             }
 
             closeDialog()
+            return 'opened'
         } catch {
             // ProjectSessionService emits the user-visible error.
+            return 'failed'
         }
     }, [accessToken, closeDialog, onOpenDialog])
 
-    const openElectronProject = useCallback(async () => {
+    const recordOpenedLocalProject = useCallback((rootPath: string) => {
+        setRecentLocalRepositories(recordRecentLocalRepository(rootPath))
+        setPendingLocalRootPath(null)
+    }, [])
+
+    const openResolvedLocalProject = useCallback(async (nextProject: ProjectReference) => {
+        if (!nextProject.rootPath) throw new Error('Resolved local repository has no root path')
+
+        const result = await openProject('local', nextProject)
+        if (result === 'opened') recordOpenedLocalProject(nextProject.rootPath)
+        if (result === 'resolution') setPendingLocalRootPath(nextProject.rootPath)
+    }, [openProject, recordOpenedLocalProject])
+
+    const chooseLocalProjectFolder = useCallback(async () => {
         if (!electronBridge) return
 
         let nextProject: ProjectReference | null
@@ -109,8 +128,22 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
             return
         }
 
-        if (nextProject) await openProject('local', nextProject)
-    }, [electronBridge, openProject])
+        if (nextProject) await openResolvedLocalProject(nextProject)
+    }, [electronBridge, openResolvedLocalProject])
+
+    const openLocalProject = useCallback(async (rootPath: string) => {
+        if (!electronBridge) return
+
+        const normalizedPath = rootPath.trim()
+        if (normalizedPath.length === 0) return
+
+        try {
+            const nextProject = await electronBridge.resolveProject({ branch: '', id: normalizedPath, rootPath: normalizedPath })
+            await openResolvedLocalProject(nextProject)
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Local project selection failed' })
+        }
+    }, [electronBridge, openResolvedLocalProject])
 
     const loadRepositories = useCallback(async () => {
         try {
@@ -135,11 +168,6 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
 
     useEffect(() => {
         const handleOpenProjectDialog = (event: Event) => {
-            if (electronBridge) {
-                void openElectronProject()
-                return
-            }
-
             const detail = (event as CustomEvent<OpenProjectDialogDetail>).detail
             setInitialProjectSource(detail?.source ?? null)
             setInitialRemoteProject(detail?.project ?? null)
@@ -151,7 +179,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         window.addEventListener(OPEN_PROJECT_DIALOG_EVENT, handleOpenProjectDialog)
 
         return () => window.removeEventListener(OPEN_PROJECT_DIALOG_EVENT, handleOpenProjectDialog)
-    }, [electronBridge, isGithubAuthenticated, loadRepositories, onOpenDialog, openElectronProject])
+    }, [isGithubAuthenticated, loadRepositories, onOpenDialog])
 
     useEffect(() => {
         const handleOpenNewCardDialog = (event: Event) => {
@@ -174,11 +202,6 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
     }
 
     const openProjectDialog = () => {
-        if (electronBridge) {
-            void openElectronProject()
-            return
-        }
-
         setInitialProjectSource(null)
         setInitialRemoteProject(null)
         onOpenDialog('open')
@@ -208,9 +231,10 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         }
     }
 
-    const loadManualBranches = async (owner: string, repositoryName: string) => {
+    const loadManualBranches = async (owner: string, repositoryName: string, isPublic: boolean) => {
         try {
-            const result = await projectSessionService.findGithubRepositoryBranches(owner, repositoryName, accessToken)
+            const storageType = isPublic ? 'github-readonly' : 'github'
+            const result = await projectSessionService.findGithubRepositoryBranches(owner, repositoryName, accessToken, storageType)
             setBranches(result.branches)
 
             return result
@@ -253,13 +277,14 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         }
     }
 
-    const openGithubProject = async (owner: string, repositoryName: string, branch: string) => {
+    const openGithubProject = async (owner: string, repositoryName: string, branch: string, isPublic: boolean) => {
         try {
-            const result = await projectSessionService.findGithubRepositoryBranches(owner, repositoryName, accessToken)
+            const storageType = isPublic ? 'github-readonly' : 'github'
+            const result = await projectSessionService.findGithubRepositoryBranches(owner, repositoryName, accessToken, storageType)
             const fallbackBranches = branches.length > 0 ? branches : result.branches
             const selectedBranch = branch || branchValue(fallbackBranches, result.repository.branch)
             setBranches(fallbackBranches)
-            await openProject('github', { ...result.repository, branch: selectedBranch })
+            await openProject(storageType, { ...result.repository, branch: selectedBranch })
         } catch {
             // ProjectSessionService emits the user-visible error.
         }
@@ -275,6 +300,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
 
         try {
             await projectSessionService.openWorkingFolder(projectOpenResolution, folder, accessToken)
+            if (pendingLocalRootPath) recordOpenedLocalProject(pendingLocalRootPath)
             closeDialog()
         } catch {
             // ProjectSessionService emits the user-visible error.
@@ -286,6 +312,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
 
         try {
             await projectSessionService.createWorkingFolder(projectOpenResolution, accessToken)
+            if (pendingLocalRootPath) recordOpenedLocalProject(pendingLocalRootPath)
             closeDialog()
         } catch {
             // ProjectSessionService emits the user-visible error.
@@ -297,6 +324,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
 
         try {
             await projectSessionService.createProjectFolders(projectOpenResolution, projectFolder, accessToken)
+            if (pendingLocalRootPath) recordOpenedLocalProject(pendingLocalRootPath)
             closeDialog()
         } catch {
             // ProjectSessionService emits the user-visible error.
@@ -347,6 +375,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         branches,
         cardBodyTemplate,
         cardTypes,
+        chooseLocalProjectFolder,
         clearOpenDialogState,
         closeDialog,
         commit: () => projectSessionService.commit(),
@@ -369,6 +398,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         projectOpenResolution,
         openBranchDialog,
         openGithubProject,
+        openLocalProject,
         openNewCardDialog,
         openWorkingFolder,
         openProjectDialog,
@@ -378,6 +408,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         pull: () => projectSessionService.pull(),
         push: () => projectSessionService.push(),
         pushMode,
+        recentLocalRepositories,
         repositories,
         releaseBranchCandidates,
         releaseSelectAllDefault,

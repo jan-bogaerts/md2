@@ -9,6 +9,7 @@ import { ActionEditor, type ActionMarkdownPresentation } from './action_editor'
 import { useOpenFiles } from '../../hooks/use_open_files'
 import { actionService } from '../../../services/actions/action_service'
 import { useRetainedActionDocument } from './use_retained_action_document'
+import { useProjectReadOnly } from '../../hooks/use_project_read_only'
 
 interface ListActionEditorProps {
     cardTypes: string[]
@@ -19,6 +20,7 @@ interface ListActionEditorProps {
 /** Lifetime-stable list action editor surface and binding-owned undo store. */
 export const ListActionEditor = memo(function ListActionEditor(props: ListActionEditorProps) {
     const { cardTypes, specialContextTypes, states } = props
+    const readOnly = useProjectReadOnly()
     const { activeDocument } = useOpenFiles()
     const activeActionDocument = activeDocument?.kind === 'action' ? activeDocument : null
     const retainedActionDocument = useRetainedActionDocument()
@@ -80,7 +82,8 @@ export const ListActionEditor = memo(function ListActionEditor(props: ListAction
                     flushOnBlur
                     historyStore={historyStore}
                     placeholders={presentation?.placeholders}
-                    toolbarContents={presentation?.toolbarContents}
+                    readOnly={readOnly}
+                    toolbarContents={readOnly ? undefined : presentation?.toolbarContents}
                 />
             </Box>
         </Box>

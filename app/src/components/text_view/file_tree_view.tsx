@@ -9,6 +9,7 @@ import { openFilesService } from '../../services/open_files_service'
 import { telemetryService } from '../../services/telemetry/telemetry_service'
 import { useActionFileTreeActions } from '../hooks/use_action_file_tree_actions'
 import { useProjectState } from '../hooks/use_project_state'
+import { useProjectReadOnly } from '../hooks/use_project_read_only'
 import { CreateTreeItemDialog, type CreateTreeItemKind } from './create_tree_item_dialog'
 import { FileTreeContext, type FileTreeContextValue } from './file_tree_context'
 import { FileTreeNodeRow } from './file_tree_node_row'
@@ -113,6 +114,7 @@ export function FileTreeView(props: FileTreeViewProps) {
         workingFolder,
     } = props
     const { snapshot } = useProjectState()
+    const readOnly = useProjectReadOnly()
     const activeCards = snapshot?.activeCards ?? EMPTY_CARDS
     const backgroundCards = snapshot?.backgroundCards ?? EMPTY_CARDS
     const repositoryFiles = snapshot?.repositoryFiles ?? EMPTY_REPOSITORY_FILES
@@ -206,8 +208,9 @@ export function FileTreeView(props: FileTreeViewProps) {
         onDeleteFile,
         onDeleteFolder,
         onRequestCreate: requestCreate,
+        readOnly,
         statusColors,
-    }), [cardTypes, cardsByPath, onDeleteFile, onDeleteFolder, requestCreate, statusColors])
+    }), [cardTypes, cardsByPath, onDeleteFile, onDeleteFolder, readOnly, requestCreate, statusColors])
 
     return (
         <FileTreeContext.Provider value={treeContext}>
@@ -216,6 +219,7 @@ export function FileTreeView(props: FileTreeViewProps) {
                     nodes={nodes}
                     onRequestCreate={requestCreate}
                     projectFolder={projectFolder}
+                    readOnly={readOnly}
                     selectedNodeId={selectedNodeId}
                 />
                 <Box sx={{ display: 'flex', flex: 1, minHeight: 0, minWidth: 0 }}>

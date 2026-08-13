@@ -9,6 +9,7 @@ import { useRunningActionForContext } from '../../../hooks/use_action_runs'
 import { ActionIcon } from './action_icon'
 import { resolveActionIcon, type ActionIconSource } from './action_icon_resolver'
 import { ActionPopup } from '../popup/action_popup'
+import { useProjectReadOnly } from '../../../hooks/use_project_read_only'
 
 /** How action entry points are rendered in an existing toolbar or menu. */
 export type ActionEntryVariant = 'icons' | 'menuItems'
@@ -39,7 +40,8 @@ export function ActionEntryPoints(props: ActionEntryPointsProps) {
     const { context, onMenuItemSelected, popupAnchorElement, variant, visibility = 'all-matching' } = props
     const { actions: loadedActions } = useActions()
     const runningRun = useRunningActionForContext(context)
-    const runDisabled = !!runningRun
+    const readOnly = useProjectReadOnly()
+    const runDisabled = readOnly || !!runningRun
     const [iconSources, setIconSources] = useState<Record<string, ActionIconSource>>({})
     const [popupState, setPopupState] = useState<ActionPopupState | null>(null)
 

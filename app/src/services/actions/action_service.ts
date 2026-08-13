@@ -18,6 +18,7 @@ import { ActionDraftStore } from './action_draft_store'
 import { actionPromptDraftService } from './action_prompt_draft_service'
 import { actionPath, actionValidationResult, nextActionName, preserveActionEditorStates } from './action_service_helpers'
 import type { OpenDocumentSaveReference } from '../open_files_service'
+import { projectAccessService } from '../project/project_access_service'
 import {
     ACTIONS_CHANGED_EVENT,
     ACTION_DRAFT_CHANGED_EVENT,
@@ -167,6 +168,7 @@ export class ActionService extends EventTarget {
     }
 
     createDefinition(actionsFolder: string): { definition: RawActionDefinition, path: string } {
+        projectAccessService.requireWritable()
         const name = nextActionName(this.files)
         const definition: RawActionDefinition = {
             description: 'Describe this action.',
@@ -191,6 +193,7 @@ export class ActionService extends EventTarget {
         saveReference?: OpenDocumentSaveReference,
         onPersisted?: () => void,
     ): Promise<ActionDefinition> {
+        projectAccessService.requireWritable()
         const definitions = this.definitionsWithDefinition(path, definition)
         const actions = preserveActionEditorStates(this.actions, validateActionDefinitionGraph(definitions))
         const content = serializeActionDefinition(definition)

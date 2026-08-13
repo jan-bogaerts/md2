@@ -14,6 +14,7 @@ import { projectPersistenceService } from './project_persistence_service'
 import { openFilesService } from '../open_files_service'
 import { createDeferred } from '../test_support/data_service_test_support'
 import { agentCapabilitiesService } from '../agents/agent_capabilities_service'
+import { projectAccessService, READ_ONLY_PROJECT_ERROR } from './project_access_service'
 
 function createActionBridge(): ElectronActionBridge {
     return {
@@ -101,6 +102,7 @@ describe('ProjectSessionService storage activation', () => {
         delete window.md2Data
         window.localStorage.removeItem(LAST_PROJECT_STORAGE_KEY)
         window.localStorage.removeItem(REMOTE_CONTROL_ENDPOINT_KEY)
+        projectAccessService.setReadOnly(false)
     })
 
     it('activates remote storage as the action bridge when opening a remote project', async () => {
@@ -241,6 +243,44 @@ describe('ProjectSessionService storage activation', () => {
 
         expect(dataService.init).not.toHaveBeenCalled()
         expect(dataService.projectLoading.openProject).not.toHaveBeenCalled()
+    })
+
+    it('opens a public GitHub project with default config as read-only', async () => {
+        mockProjectOpen()
+        vi.stubGlobal('fetch', vi.fn(async () => new Response('', { status: 404 })))
+        const service = new ProjectSessionService()
+        const project = { branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' }
+
+        await expect(service.openProject('github-readonly', project, 'token-1')).resolves.toBeNull()
+
+        expect(service.isReadOnly).toBe(true)
+        expect(JSON.parse(window.localStorage.getItem(LAST_PROJECT_STORAGE_KEY) ?? '{}')).toEqual({
+            project,
+            storageType: 'github-readonly',
+        })
+    })
+
+    it('restores public GitHub access mode as read-only', async () => {
+        mockProjectOpen()
+        const project = { branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' }
+        window.localStorage.setItem(LAST_PROJECT_STORAGE_KEY, JSON.stringify({ project, storageType: 'github-readonly' }))
+        const service = new ProjectSessionService()
+
+        await service.restoreLastProject('token-1')
+
+        expect(service.isReadOnly).toBe(true)
+        expect(dataService.projectLoading.openProject).toHaveBeenCalledWith(project)
+    })
+
+    it('blocks direct session mutations while public project is read-only', async () => {
+        projectAccessService.setReadOnly(true)
+        const service = new ProjectSessionService()
+
+        await expect(service.commit()).rejects.toThrow(READ_ONLY_PROJECT_ERROR)
+        await expect(service.push()).rejects.toThrow(READ_ONLY_PROJECT_ERROR)
+        await expect(service.pull()).rejects.toThrow(READ_ONLY_PROJECT_ERROR)
+        await expect(service.createCard({ body: '', title: 'Blocked', type: 'feature' }, 'new')).rejects.toThrow(READ_ONLY_PROJECT_ERROR)
+        await expect(service.completeRelease('v1', [])).rejects.toThrow(READ_ONLY_PROJECT_ERROR)
     })
 
     it('restores the preload action bridge when opening a GitHub project after remote storage', async () => {

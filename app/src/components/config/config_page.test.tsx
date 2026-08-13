@@ -13,6 +13,7 @@ import { MARKDOWN_STYLE_PRESETS, type MarkdownStyleConfig, type MarkdownStylePre
 import type { DesktopConfigValues } from '../../services/config/config_entries'
 import { setDesktopConfigTransportOverride } from '../../services/config/desktop_config_transport'
 import { agentCapabilitiesService } from '../../services/agents/agent_capabilities_service'
+import { projectAccessService } from '../../services/project/project_access_service'
 
 const useAppThemeMock = vi.hoisted(() => vi.fn())
 
@@ -70,6 +71,7 @@ describe('ConfigPage', () => {
         delete window.md2Data
         delete window.md2RemoteControl
         setDesktopConfigTransportOverride(null)
+        projectAccessService.setReadOnly(false)
     })
 
     it('renders typed editors with descriptions', () => {
@@ -263,6 +265,18 @@ describe('ConfigPage', () => {
 
         expect(screen.getByLabelText('Releases folder')).toHaveValue('history')
         expect(screen.getByLabelText('Archived folder')).toHaveValue('archived')
+    })
+
+    it('disables project configuration fields for read-only projects', () => {
+        mockMatchMedia(false)
+        configService.init()
+        configService.loadProjectConfig(null)
+        projectAccessService.setReadOnly(true)
+
+        renderConfigPage('#project')
+
+        expect(screen.getByLabelText('Releases folder')).toBeDisabled()
+        expect(screen.getByLabelText('Archived folder')).toBeDisabled()
     })
 
     it('offers the allowed background shades in the Project section', () => {

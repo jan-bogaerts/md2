@@ -10,6 +10,7 @@ import { cardDragDropService } from './card_drag_drop_service'
 import { CardView, type CardHandlers } from './project_card_view'
 import type { VisibleCardColumn } from './use_card_view_columns'
 import { useCardColumnCards } from './use_card_column_cards'
+import { useProjectReadOnly } from '../hooks/use_project_read_only'
 
 const MIN_COLUMN_WIDTH = 200
 const MAX_COLUMN_WIDTH = 320
@@ -27,6 +28,7 @@ export function CardColumn(props: CardColumnProps) {
         ...handlers
     } = props
     const cardPaths = useCardColumnCards(column.status)
+    const readOnly = useProjectReadOnly()
     const subscribe = useCallback(
         (listener: () => void) => cardDragDropService.subscribeColumn(column.status, listener),
         [column.status],
@@ -102,7 +104,7 @@ export function CardColumn(props: CardColumnProps) {
                 />
                 <Box sx={{ flex: 1 }} />
                 <Tooltip title="New card">
-                    <IconButton aria-label={`Add card from ${columnLabel} column`} onClick={handleAddCard} size="small" sx={{ height: 26, width: 26 }}>
+                    <IconButton aria-label={`Add card from ${columnLabel} column`} disabled={readOnly} onClick={handleAddCard} size="small" sx={{ height: 26, width: 26 }}>
                         <Plus sx={{ fontSize: 16 }} />
                     </IconButton>
                 </Tooltip>
