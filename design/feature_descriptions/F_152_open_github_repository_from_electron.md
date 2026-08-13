@@ -3,7 +3,7 @@ author:
 id: F_152
 internalId: 56f68e51-66b5-4b47-9cf2-6a47128a0cb6
 title: open github repository from electron
-status: new
+status: design
 owner: 
 affects:
 agents:

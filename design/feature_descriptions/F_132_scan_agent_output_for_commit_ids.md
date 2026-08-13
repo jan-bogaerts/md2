@@ -3,12 +3,11 @@ author:
 id: F_132
 internalId: a57b89e0-49f4-4c25-9d99-deea222460cd
 title: scan agent output for commit ids
-status: new
+status: design
 owner: 
 affects:
 agents:
 policy:
-after: 3d893637-4714-428d-be90-b839925b7cad
 ---
 scan the agent's output to see if it contains any commit ids, like:&#x20;
 
