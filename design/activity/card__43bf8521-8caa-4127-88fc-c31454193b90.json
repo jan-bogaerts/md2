@@ -3488,11 +3488,11 @@
         "agent-0bf74ce0-162e-4d6d-bbc3-f5a1b82101d9"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-59a1eb84-9bc5-456d-9ed0-7d80369e13fd",
       "origin": {
@@ -3501,9 +3501,50 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-0bf74ce0-162e-4d6d-bbc3-f5a1b82101d9",
       "startedAt": "2026-08-13T16:47:17.281Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-0bf74ce0-162e-4d6d-bbc3-f5a1b82101d9"
+    },
+    {
+      "commits": [
+        {
+          "commit": "0e0099303f35fb6c0c9f48610ec7dec11f63558c",
+          "committedAt": "2026-08-13T19:05:35+02:00",
+          "deletions": 140,
+          "filePaths": [
+            "app/src/components/actions/run/popup/action_popup_defaults.node.test.ts",
+            "app/src/components/actions/run/popup/action_popup_defaults.ts",
+            "app/src/components/editor/markdown_editor.test.tsx",
+            "app/src/components/editor/markdown_editor.tsx",
+            "app/src/components/editor/markdown_editor_flush.ts",
+            "app/src/components/project_workspace.test.tsx",
+            "app/src/components/project_workspace.tsx",
+            "app/src/services/data/data_service.ts",
+            "app/src/services/electron_lifecycle_bridge.ts",
+            "app/src/services/project/markdown_editor_staging.ts",
+            "app/src/services/project/project_persistence_service.node.test.ts",
+            "app/src/services/project/project_persistence_service.ts",
+            "app/src/services/project/save_state_service.node.test.ts",
+            "app/src/services/project/save_state_service.ts",
+            "desktop/main.js",
+            "desktop/src/shell/close_coordinator.js",
+            "desktop/src/shell/close_coordinator.test.mjs",
+            "desktop/src/shell/ipc_channels.js",
+            "desktop/src/shell/preload.js",
+            "desktop/src/shell/preload.test.mjs"
+          ],
+          "filesChanged": 20,
+          "insertions": 522,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-13T19:05:35+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "43bf8521-8caa-4127-88fc-c31454193b90",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
