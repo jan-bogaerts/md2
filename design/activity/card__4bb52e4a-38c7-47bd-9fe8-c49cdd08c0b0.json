@@ -2245,11 +2245,11 @@
         "agent-ecbfc86c-1205-4b23-b963-a7e5614f908d"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-d0e67629-2974-4ec4-9f00-bc4c6dad61d9",
       "origin": {
@@ -2258,9 +2258,42 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-ecbfc86c-1205-4b23-b963-a7e5614f908d",
       "startedAt": "2026-08-13T17:06:46.819Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-ecbfc86c-1205-4b23-b963-a7e5614f908d"
+    },
+    {
+      "commits": [
+        {
+          "commit": "4f5bfb3d3036bd2bbedbc410944a1a499c29f061",
+          "committedAt": "2026-08-13T19:16:02+02:00",
+          "deletions": 108,
+          "filePaths": [
+            "app/src/components/actions/conversation/action_conversation_chat.test.tsx",
+            "app/src/components/actions/conversation/action_conversation_chat.tsx",
+            "app/src/components/actions/conversation/action_conversation_chat_owner.test.tsx",
+            "app/src/components/actions/conversation/conversation_context_window.node.test.ts",
+            "app/src/components/actions/conversation/conversation_context_window.ts",
+            "app/src/components/actions/conversation/conversation_timer.test.tsx",
+            "app/src/components/actions/conversation/conversation_timer.tsx",
+            "app/src/components/actions/run/popup/action_usage_summary.test.tsx",
+            "app/src/components/actions/run/popup/action_usage_summary.tsx",
+            "app/src/components/actions/run/popup/action_usage_summary_data.node.test.ts",
+            "app/src/components/actions/run/popup/action_usage_summary_data.ts",
+            "app/src/components/actions/run/popup/action_usage_summary_owner.test.tsx"
+          ],
+          "filesChanged": 12,
+          "insertions": 232,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-13T19:16:02+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "4bb52e4a-38c7-47bd-9fe8-c49cdd08c0b0",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
