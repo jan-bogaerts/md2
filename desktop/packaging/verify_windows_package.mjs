@@ -22,6 +22,7 @@ const REQUIRED_ASAR_ENTRIES = [
     'node_modules/@aptabase/electron/package.json',
     'node_modules/@sentry/electron/package.json',
     'node_modules/electron-store/package.json',
+    'node_modules/electron-window-state/package.json',
     'node_modules/ssh2/package.json',
     'node_modules/ws/package.json',
 ];

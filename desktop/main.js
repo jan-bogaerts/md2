@@ -9,6 +9,7 @@ const desktopEnvironmentPath = app.isPackaged
 if (existsSync(desktopEnvironmentPath)) process.loadEnvFile(desktopEnvironmentPath);
 
 const Store = require('electron-store');
+const windowStateKeeper = require('electron-window-state');
 const { readDesktopConfig, resolveBridgeAllowedOrigins, saveDesktopConfig } = require('./src/shell/config');
 const { AgentRunnerService } = require('./src/actions/agent/agent_runner_service');
 const { CodexRuntimeService } = require('./src/actions/agent/codex_runtime_service');
@@ -52,6 +53,7 @@ const {
 } = require('./src/shell/ipc_channels');
 const { checkForUpdate, registerUpdateDownload } = require('./src/shell/update_service');
 const { CloseCoordinator } = require('./src/shell/close_coordinator');
+const { createManagedWindow } = require('./src/shell/window_state');
 
 const QUIT_WATCHDOG_TIMEOUT_MS = 10000;
 const EVENT_METHODS = new Set(['runSearchRegexpAgent', 'startAgentConversation']);
@@ -231,9 +233,7 @@ function createWindow() {
         : [];
     nativeTheme.themeSource = mode;
 
-    const window = new BrowserWindow({
-        width: 1280,
-        height: 900,
+    const browserWindowOptions = {
         icon: path.join(__dirname, 'build', 'md2.ico'),
         titleBarStyle: 'hidden',
         titleBarOverlay: resolveTitleBarOverlay(mode),
@@ -248,6 +248,11 @@ function createWindow() {
             contextIsolation: true,
             sandbox: true,
         },
+    };
+    const window = createManagedWindow({
+        BrowserWindow,
+        browserWindowOptions,
+        windowStateKeeper,
     });
     closeCoordinator.bindWindow(window);
 
