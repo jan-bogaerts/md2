@@ -103,6 +103,7 @@ describe('AgentRunnerService state handling', () => {
         const run = {
             agent: 'codex',
             conversation: {
+                contextWindowUsage: { capacityTokens: 100, usedTokens: 20 },
                 entries: [{ content: 'Done', id: 'assistant-1', kind: 'message', role: 'assistant', timestamp: 'now' }],
                 providerSessions: [],
                 status: 'running',
@@ -193,11 +194,20 @@ describe('AgentRunnerService state handling', () => {
         expect(onEvent).toHaveBeenNthCalledWith(1, expect.objectContaining({ type: 'usage', usage: expect.objectContaining({ totalTokens: 15 }) }));
         expect(onEvent).toHaveBeenNthCalledWith(2, expect.objectContaining({ type: 'usage', usage: expect.objectContaining({ totalTokens: 17 }) }));
 
-        await service.handleStreamingEvent('run-1', { type: 'turnCompleted', usage: latestSnapshot });
+        const contextWindowUsage = { capacityTokens: 258_400, usedTokens: 42_000 };
+        await service.handleStreamingEvent('run-1', { contextWindowUsage, type: 'turnCompleted', usage: latestSnapshot });
 
         expect(run.conversation.usage).toEqual(expect.objectContaining({ totalTokens: 17 }));
-        expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'usage', usage: expect.objectContaining({ totalTokens: 17 }) }));
-        const expectedConversation = expect.objectContaining({ usage: expect.objectContaining({ totalTokens: 17 }) });
+        expect(run.conversation.contextWindowUsage).toEqual(contextWindowUsage);
+        expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({
+            contextWindowUsage,
+            type: 'usage',
+            usage: expect.objectContaining({ totalTokens: 17 }),
+        }));
+        const expectedConversation = expect.objectContaining({
+            contextWindowUsage,
+            usage: expect.objectContaining({ totalTokens: 17 }),
+        });
         expect(persistConversationCheckpoint).toHaveBeenCalledWith(expect.objectContaining({ conversation: expectedConversation }));
     });
 

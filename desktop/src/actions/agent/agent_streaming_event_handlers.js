@@ -171,8 +171,18 @@ async function handleTurnCompleted(service, run, event, timestamp) {
     if (event.usage) {
         run.liveTurnUsage = event.usage;
         run.conversation.usage = accumulateUsage(run.conversation.usage, run.liveTurnUsage);
-        emitRunEvent(run, { type: 'usage', usage: run.conversation.usage });
         run.liveTurnUsage = null;
+    }
+    if (event.contextWindowUsage !== undefined) {
+        if (event.contextWindowUsage) run.conversation.contextWindowUsage = event.contextWindowUsage;
+        else delete run.conversation.contextWindowUsage;
+    }
+    if (event.usage || event.contextWindowUsage !== undefined) {
+        emitRunEvent(run, {
+            ...(event.contextWindowUsage !== undefined ? { contextWindowUsage: event.contextWindowUsage } : {}),
+            type: 'usage',
+            usage: run.conversation.usage,
+        });
     }
     if (event.error) {
         service.failStreamingRun(run, new Error(event.error));

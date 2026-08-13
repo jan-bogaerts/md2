@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { AgentConversation } from '../../../../data/data_types'
 import type { ActionRunHistoryEntry, CommitReference } from '../../../../data/electron_action_bridge'
-import { scopedActionUsage } from './action_usage_summary_data'
+import { contextWindowUsedPercent, scopedActionUsage } from './action_usage_summary_data'
 
 function conversation(id: string, totalTokens?: number): AgentConversation {
     return {
@@ -44,6 +44,25 @@ function commit(commitHash: string, insertions: number, deletions: number): Comm
         repositoryRoot: 'C:/project',
     }
 }
+
+describe('contextWindowUsedPercent', () => {
+    it('rounds occupancy and caps values above capacity', () => {
+        expect(contextWindowUsedPercent({ capacityTokens: 258_400, usedTokens: 42_000 })).toBe(16)
+        expect(contextWindowUsedPercent({ capacityTokens: 100, usedTokens: 125 })).toBe(100)
+    })
+
+    it.each([
+        undefined,
+        null,
+        { capacityTokens: 0, usedTokens: 1 },
+        { capacityTokens: -1, usedTokens: 1 },
+        { capacityTokens: '100', usedTokens: 1 },
+        { capacityTokens: 100, usedTokens: -1 },
+        { capacityTokens: 100, usedTokens: Number.NaN },
+    ])('returns null for unavailable or malformed snapshot %#', (snapshot) => {
+        expect(contextWindowUsedPercent(snapshot)).toBeNull()
+    })
+})
 
 function historyEntry(rootConversationId: string, commits: CommitReference[]): ActionRunHistoryEntry {
     return {

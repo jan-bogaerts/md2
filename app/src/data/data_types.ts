@@ -314,11 +314,17 @@ export interface AgentTokenUsage {
     totalTokens: number
 }
 
+export interface AgentContextWindowUsage {
+    capacityTokens: number
+    usedTokens: number
+}
+
 export interface AgentConversation {
     actionId?: string | null
     cardInternalId?: string | null
     cardPath: string | null
     completedAt: string | null
+    contextWindowUsage?: AgentContextWindowUsage
     entries: AgentConversationEntry[]
     hasExplicitTitle: boolean
     id: string

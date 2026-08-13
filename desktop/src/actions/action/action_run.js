@@ -451,7 +451,13 @@ class ActionRun {
                 return;
             }
             if (agentEvent.type === 'usage') {
-                const update = { kind: 'agentUsage', usage: agentEvent.usage };
+                const update = {
+                    ...(agentEvent.contextWindowUsage !== undefined
+                        ? { contextWindowUsage: agentEvent.contextWindowUsage }
+                        : {}),
+                    kind: 'agentUsage',
+                    usage: agentEvent.usage,
+                };
                 this.publish(action, phase, 'running', { type: 'update', update });
                 return;
             }

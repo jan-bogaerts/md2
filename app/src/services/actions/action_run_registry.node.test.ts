@@ -363,6 +363,7 @@ describe('ActionRunRegistry', () => {
         emit({
             actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
             update: {
+                contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 },
                 kind: 'agentUsage',
                 usage: { cachedInputTokens: 1, inputTokens: 2, outputTokens: 3, reasoningTokens: 4, totalTokens: 10 },
             },
@@ -372,6 +373,7 @@ describe('ActionRunRegistry', () => {
         const expectedUsage = { cachedInputTokens: 1, inputTokens: 2, outputTokens: 3, reasoningTokens: 4, totalTokens: 10 }
         expect(current.conversation).not.toBe(previous.conversation)
         expect(current.conversation?.entries).toBe(previous.conversation?.entries)
+        expect(current.conversation?.contextWindowUsage).toEqual({ capacityTokens: 258_400, usedTokens: 42_000 })
         expect(current.conversation?.usage).toEqual(expectedUsage)
         expect(current.approvals).toBe(previous.approvals)
         expect(current.logs).toBe(previous.logs)

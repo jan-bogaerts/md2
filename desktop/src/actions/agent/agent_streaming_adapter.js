@@ -38,6 +38,15 @@ function codexUsage(params) {
     });
 }
 
+function codexContextWindowUsage(params) {
+    const usedTokens = params.tokenUsage?.last?.totalTokens;
+    const capacityTokens = params.tokenUsage?.modelContextWindow;
+    if (!Number.isSafeInteger(usedTokens) || usedTokens < 0) return null;
+    if (!Number.isSafeInteger(capacityTokens) || capacityTokens <= 0) return null;
+
+    return { capacityTokens, usedTokens };
+}
+
 function ensureEventTextPart(event, field, index) {
     if (!Number.isSafeInteger(index) || index < 0) return;
     while (event[field].length <= index) event[field].push('');
@@ -84,6 +93,7 @@ class CodexStreamingAdapter {
         this.pendingRequests = new Map();
         this.pendingApprovals = new Map();
         this.threadId = null;
+        this.turnContextWindowUsage = undefined;
         this.turnUsage = null;
     }
 
@@ -248,6 +258,7 @@ class CodexStreamingAdapter {
             this.assistantItemOrder = [];
             this.assistantStreams.clear();
             this.completedItemIds.clear();
+            this.turnContextWindowUsage = undefined;
             this.activeTurnId = params.turn?.id ?? params.turnId;
             await this.onEvent({ turnId: this.activeTurnId, type: 'turnStarted' });
             return;
@@ -301,6 +312,7 @@ class CodexStreamingAdapter {
         if (method === 'thread/tokenUsage/updated') {
             const usage = codexUsage(params);
             if (!usage) return;
+            this.turnContextWindowUsage = codexContextWindowUsage(params);
             this.turnUsage = usage;
             await this.onEvent({ type: 'usage', usage });
             return;
@@ -346,7 +358,14 @@ class CodexStreamingAdapter {
             const completedTurnId = params.turn?.id ?? this.activeTurnId;
             await this.resolveApprovalsForTurn(completedTurnId);
             this.activeTurnId = null;
-            await this.onEvent({ error, type: 'turnCompleted', usage: this.turnUsage });
+            const contextWindowUsage = this.turnContextWindowUsage;
+            await this.onEvent({
+                ...(contextWindowUsage !== undefined ? { contextWindowUsage } : {}),
+                error,
+                type: 'turnCompleted',
+                usage: this.turnUsage,
+            });
+            this.turnContextWindowUsage = undefined;
             this.turnUsage = null;
             return;
         }

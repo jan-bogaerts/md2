@@ -106,6 +106,15 @@ function normalizeProviderSession(value) {
     return { agent, conversationId, createdAt, lastUsedAt, synchronizedThroughMessageId }
 }
 
+function normalizeContextWindowUsage(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+    const { capacityTokens, usedTokens } = value
+    if (!Number.isSafeInteger(usedTokens) || usedTokens < 0) return null
+    if (!Number.isSafeInteger(capacityTokens) || capacityTokens <= 0) return null
+
+    return { capacityTokens, usedTokens }
+}
+
 function normalizeArray(value, normalize) {
     if (!Array.isArray(value)) return []
 
@@ -166,6 +175,7 @@ export function parseAgentConversation(content, referencePath) {
     if (!AGENT_STATUSES.has(status)) throw new Error(`Malformed agent conversation: invalid status ${status}`)
     const startedAt = requiredString(parsed.startedAt, 'startedAt')
     const hasExplicitTitle = typeof parsed.title === 'string' && parsed.title.trim().length > 0
+    const contextWindowUsage = normalizeContextWindowUsage(parsed.contextWindowUsage)
     const usage = normalizeAgentTokenUsage(parsed.usage)
     if (parsed.viewed !== undefined && typeof parsed.viewed !== 'boolean') {
         throw new Error('Malformed agent conversation: invalid viewed')
@@ -176,6 +186,7 @@ export function parseAgentConversation(content, referencePath) {
         cardInternalId: optionalString(parsed.cardInternalId),
         cardPath: optionalString(parsed.cardPath),
         completedAt: optionalString(parsed.completedAt),
+        ...(contextWindowUsage ? { contextWindowUsage } : {}),
         entries: normalizeEntries(parsed.entries),
         hasExplicitTitle,
         id,

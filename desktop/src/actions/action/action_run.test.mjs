@@ -531,6 +531,7 @@ describe('ActionRun', () => {
                 input.onEvent({ continued: false, conversation: runningConversation, type: 'started' });
                 input.onEvent({ content: 'chunk', messageId: 'assistant-1', sequence: 2, type: 'output' });
                 input.onEvent({
+                    contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 },
                     type: 'usage',
                     usage: { cachedInputTokens: 1, inputTokens: 2, outputTokens: 3, reasoningTokens: 4, totalTokens: 10 },
                 });
@@ -568,6 +569,7 @@ describe('ActionRun', () => {
             status: 'running',
             type: 'update',
             update: {
+                contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 },
                 kind: 'agentUsage',
                 usage: { cachedInputTokens: 1, inputTokens: 2, outputTokens: 3, reasoningTokens: 4, totalTokens: 10 },
             },

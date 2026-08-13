@@ -232,6 +232,7 @@ describe('project activity conversations', () => {
             await mkdir(join(rootPath, '.git'));
             await upsertActivityConversation(project, 'design', { kind: 'project' }, {
                 completedAt: '2026-07-21T10:01:00.000Z',
+                contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 },
                 entries: [],
                 id: 'conversation-1',
                 providerSessions: [],
@@ -246,8 +247,13 @@ describe('project activity conversations', () => {
             ]);
             const persisted = JSON.parse(await readFile(join(rootPath, 'design', 'activity', 'project.json'), 'utf8'));
             expect(persisted.conversations[0]).toHaveProperty('entries');
+            expect(persisted.conversations[0].contextWindowUsage).toEqual({ capacityTokens: 258_400, usedTokens: 42_000 });
             expect(persisted.conversations[0]).not.toHaveProperty('messages');
             expect(persisted.conversations[0]).not.toHaveProperty('events');
+            await expect(loadActivityConversation(
+                project,
+                'design/activity/project.json#conversation=conversation-1',
+            )).resolves.toMatchObject({ contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 } });
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }

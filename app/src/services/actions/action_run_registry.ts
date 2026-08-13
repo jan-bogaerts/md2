@@ -607,7 +607,12 @@ export class ActionRunRegistry extends EventTarget {
             }
         }
         if (event.type === 'update' && event.update.kind === 'agentUsage' && next.conversation) {
-            next = { ...next, conversation: { ...next.conversation, usage: event.update.usage } }
+            const conversation = { ...next.conversation, usage: event.update.usage }
+            if (event.update.contextWindowUsage !== undefined) {
+                if (event.update.contextWindowUsage) conversation.contextWindowUsage = event.update.contextWindowUsage
+                else delete conversation.contextWindowUsage
+            }
+            next = { ...next, conversation }
         }
         if (event.type === 'update' && event.update.kind === 'agentQuestion') {
             next = {
