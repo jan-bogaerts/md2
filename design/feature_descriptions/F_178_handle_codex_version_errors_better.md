@@ -10,6 +10,8 @@ agents:
   - design/activity/card__894c324e-d9cf-400f-b964-5256ffff9b24.json#conversation=agent-b2952f70-3b84-46ad-b88c-22192137f11d
 policy:
 after: 6e978222-1b68-4e43-bcbf-2e1efa4f6147
+branch: f_178_handle_codex_version_errors_better
+worktree: 1
 ---
 
 When vscode updated codex plugin, the global log version has changes and the codex cli begins to complain that an update is required.
