@@ -6,7 +6,7 @@
 >
 > **Platforms:** md² is an Electron desktop app. Windows x64 has a signed installer; macOS and Linux can run from source, but do not have prebuilt packages yet.
 
-https://github.com/user-attachments/assets/8d9b4f55-6d97-42ff-bba4-ef36c5a64513
+https://github.com/user-attachments/assets/d611b4e5-8bb5-467e-98de-39bad96014dd
 
 
 ## The feature card is the center
