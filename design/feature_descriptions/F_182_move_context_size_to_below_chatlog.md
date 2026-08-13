@@ -3,7 +3,7 @@ author:
 id: F_182
 internalId: 4bb52e4a-38c7-47bd-9fe8-c49cdd08c0b0
 title: Move context size to below chatlog
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
