@@ -64,6 +64,7 @@ describe('diff-service', () => {
 
     it('resolves diff command and folder placeholders', () => {
         const values = {
+            'active-cards-folder': 'C:/repo/design/feature_descriptions',
             commit: 'abc1234',
             file: 'design/F-010.md',
             'project-folder': 'C:/repo/design',
@@ -72,11 +73,11 @@ describe('diff-service', () => {
             'worktree-folder': 'C:/repo',
         };
         const command = resolveDiffCommand(
-            'git -C {{worktree-folder}} show {{commit}} -- {{file}} {{repository-folder}} {{project-folder}} {{releases-folder}}',
+            'git -C {{worktree-folder}} show {{commit}} -- {{file}} {{repository-folder}} {{project-folder}} {{releases-folder}} {{ active-cards-folder }}',
             values,
         );
 
-        expect(command).toBe('git -C C:/repo show abc1234 -- design/F-010.md C:/repo C:/repo/design C:/repo/delivery/releases');
+        expect(command).toBe('git -C C:/repo show abc1234 -- design/F-010.md C:/repo C:/repo/design C:/repo/delivery/releases C:/repo/design/feature_descriptions');
     });
 
     it('fails fast when a diff placeholder value is missing', () => {
@@ -125,6 +126,38 @@ describe('diff-service', () => {
         );
 
         expect(runner).toHaveBeenCalledWith('echo C:/repo C:/repo', expect.objectContaining({ cwd: 'C:/repo' }));
+    });
+
+    it('resolves active cards from opened repository for configured and default project layouts', async () => {
+        const runner = vi.fn(async () => ({ stdout: SAMPLE_DIFF }));
+        await generateDiff(
+            { branch: 'main', id: 'local', rootPath: 'C:/repo' },
+            {
+                branch: 'main',
+                commit: 'abc1234',
+                filePath: '',
+                projectFolder: 'design',
+                template: 'echo {{active-cards-folder}}',
+                workingFolder: 'design/feature_descriptions',
+            },
+            runner,
+        );
+
+        expect(runner).toHaveBeenCalledWith(
+            `echo ${path.resolve('C:/repo', 'design/feature_descriptions')}`,
+            expect.objectContaining({ cwd: 'C:/repo' }),
+        );
+    });
+
+    it('fails before diff process start when active cards working-folder data is missing', async () => {
+        const runner = vi.fn();
+
+        await expect(generateDiff(
+            { branch: 'main', id: 'local', rootPath: 'C:/repo' },
+            { branch: 'main', commit: 'abc1234', filePath: '', projectFolder: '', template: 'echo {{active-cards-folder}}' },
+            runner,
+        )).rejects.toThrow('Missing diff command value: active-cards-folder');
+        expect(runner).not.toHaveBeenCalled();
     });
 
     it('fails before running when configured project folder is missing', async () => {

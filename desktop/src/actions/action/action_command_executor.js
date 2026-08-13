@@ -45,6 +45,7 @@ function executeCommandAction(input) {
         input.primaryProject,
         input.projectFolder,
         input.releasesFolder,
+        input.activeCardsFolder,
         input.extraPrompt,
     );
     const onOutput = ({ stderr, stdout }) => input.onOutput({ command, stderr, stdout });

@@ -49,6 +49,7 @@ class ActionRunnerService {
             localGitService: this.localGitService,
         });
         this.actionsFolder = null;
+        this.activeCardsFolder = null;
         this.actionCacheReady = null;
         this.completedRunResults = new Map();
         this.conversationReservations = new Map();
@@ -62,12 +63,14 @@ class ActionRunnerService {
         this.restartingRuns = new Set();
     }
 
-    async startProject(project, actionsFolder, projectFolder, releasesFolder) {
+    async startProject(project, actionsFolder, projectFolder, releasesFolder, activeCardsFolder) {
         if (typeof projectFolder !== 'string') throw new Error('Missing action runner projectFolder');
         if (typeof releasesFolder !== 'string' || releasesFolder.length === 0) throw new Error('Missing action runner releasesFolder');
+        if (typeof activeCardsFolder !== 'string' || activeCardsFolder.length === 0) throw new Error('Missing action runner activeCardsFolder');
         if (this.project) await this.stop();
         this.project = project;
         this.actionsFolder = actionsFolder;
+        this.activeCardsFolder = activeCardsFolder;
         this.projectFolder = projectFolder;
         this.releasesFolder = releasesFolder;
         this.actionCacheReady = this.actionDefinitionCache && this.localGitService
@@ -114,6 +117,7 @@ class ActionRunnerService {
     clearProject() {
         this.project = null;
         this.actionsFolder = null;
+        this.activeCardsFolder = null;
         this.actionCacheReady = null;
         this.projectFolder = null;
         this.releasesFolder = null;
@@ -143,6 +147,7 @@ class ActionRunnerService {
         const conversationReservation = this.consumeConversationReservation(startRequest, rootAction);
         const runId = createRunId();
         const run = new ActionRun({
+            activeCardsFolder: this.activeCardsFolder,
             actionsFolder,
             activityOrigin: origin,
             context: startRequest.context,
@@ -217,6 +222,7 @@ class ActionRunnerService {
                 project,
                 this.projectFolder,
                 this.releasesFolder,
+                this.activeCardsFolder,
                 '',
             ),
         };
@@ -295,6 +301,7 @@ class ActionRunnerService {
 
     requireActionsFolder() {
         if (!this.actionsFolder) throw new Error('Action runner has no actions folder');
+        if (!this.activeCardsFolder) throw new Error('Action runner has no activeCardsFolder');
 
         return this.actionsFolder;
     }

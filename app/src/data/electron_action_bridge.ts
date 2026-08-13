@@ -92,6 +92,7 @@ export interface DiffRequest {
     projectFolder: string
     releasesFolder: string
     template: string
+    workingFolder: string
 }
 
 /**

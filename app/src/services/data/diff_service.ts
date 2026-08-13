@@ -14,9 +14,9 @@ export async function generateDiff(commitReference: DiffCommitReference): Promis
 
     const { branch, commit, filePaths } = commitReference
     const template = configService.get('project.diffCommand')
-    const { projectFolder, releasesFolder } = resolveProjectConfigPaths(configService.getProjectConfig())
+    const { projectFolder, releasesFolder, workingFolder } = resolveProjectConfigPaths(configService.getProjectConfig())
 
-    return bridge.generateDiff({ branch, commit, filePath: filePaths[0] ?? '', projectFolder, releasesFolder, template })
+    return bridge.generateDiff({ branch, commit, filePath: filePaths[0] ?? '', projectFolder, releasesFolder, template, workingFolder })
 }
 
 /** Open configured external editor at file and line clicked in diff view. */

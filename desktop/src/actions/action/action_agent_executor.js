@@ -64,6 +64,7 @@ class ActionAgentExecutor {
                 input.primaryProject,
                 input.projectFolder,
                 input.releasesFolder,
+                input.activeCardsFolder,
                 input.runInput.extraPrompt,
             )
             : sourceConversation
@@ -75,6 +76,7 @@ class ActionAgentExecutor {
                     input.primaryProject,
                     input.projectFolder,
                     input.releasesFolder,
+                    input.activeCardsFolder,
                     input.runInput.extraPrompt,
                 );
         const command = executionCommand(resolvedAgent, providerSession, streaming);

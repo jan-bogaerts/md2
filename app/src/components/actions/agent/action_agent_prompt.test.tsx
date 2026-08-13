@@ -100,6 +100,7 @@ describe('ActionAgentPrompt', () => {
             ACTION_PROMPT_PLACEHOLDERS.map(({ name }) => name).join(','),
         )
         expect(screen.getByLabelText('Markdown prompt').getAttribute('data-placeholders')).toContain('this-card')
+        expect(screen.getByLabelText('Markdown prompt').getAttribute('data-placeholders')).toContain('active-cards-folder')
         expect(screen.getByLabelText('Markdown prompt')).toHaveAttribute('data-local-text-search', 'false')
     })
 

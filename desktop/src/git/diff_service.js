@@ -7,7 +7,8 @@ const { requireRootPath } = require('./git_commands');
 
 const execAsync = promisify(exec);
 const execFileAsync = promisify(execFile);
-const DIFF_PLACEHOLDER_PATTERN = /\{\{\s*(worktree-folder|repository-folder|project-folder|releases-folder|commit|branch|file)\s*\}\}/g;
+const DIFF_PLACEHOLDER_NAMES = 'active-cards-folder|worktree-folder|repository-folder|project-folder|releases-folder|commit|branch|file';
+const DIFF_PLACEHOLDER_PATTERN = new RegExp(`\\{\\{\\s*(${DIFF_PLACEHOLDER_NAMES})\\s*\\}\\}`, 'g');
 const HUNK_HEADER_PATTERN = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/;
 const DIFF_FILE_HEADER = 'diff --git ';
 const OLD_PATH_HEADER = '--- ';
@@ -112,6 +113,9 @@ async function generateDiff(project, request, runner = execAsync) {
     if (!request || typeof request.commit !== 'string' || request.commit.length === 0) throw new Error('Missing diff commit hash');
 
     const command = resolveDiffCommand(request.template, {
+        'active-cards-folder': typeof request.workingFolder === 'string' && request.workingFolder.length > 0
+            ? path.resolve(rootPath, request.workingFolder)
+            : null,
         branch: request.branch,
         commit: request.commit,
         file: request.filePath,

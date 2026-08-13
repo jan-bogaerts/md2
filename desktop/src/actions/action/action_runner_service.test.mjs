@@ -77,7 +77,7 @@ function createRunner(actionFiles = [actionFile('main')], overrides = {}) {
         localGitService,
         ...overrides,
     });
-    runner.startProject(project, 'actions', 'design', 'design/releases');
+    runner.startProject(project, 'actions', 'design', 'design/releases', 'design/feature_descriptions');
 
     return { actionWorktreeRunService, agentRunnerService, commandRunner, localGitService, runner };
 }
@@ -213,7 +213,7 @@ describe('ActionRunnerService', () => {
         const runner = new ActionRunnerService({});
 
         await expect(runner.start({ actionId: 'main', context, runInput: {} })).rejects.toThrow('Action runner has no project');
-        runner.startProject(project, 'actions', 'design', 'design/releases');
+        runner.startProject(project, 'actions', 'design', 'design/releases', 'design/feature_descriptions');
         await expect(runner.start({ actionId: 'main', context, runInput: {} })).rejects.toThrow('Action runner has no local Git service');
     });
 
@@ -262,7 +262,7 @@ describe('ActionRunnerService', () => {
         const files = [actionFile('main', {
             command: undefined,
             needsWorkTree: true,
-            prompt: 'Review {{card-file}} in {{worktree-folder}}; repository {{repository-folder}}; project {{project-folder}}; releases {{releases-folder}}',
+            prompt: 'Review {{card-file}} in {{worktree-folder}}; repository {{repository-folder}}; active {{active-cards-folder}}; project {{project-folder}}; releases {{releases-folder}}',
             trackFileChanges: true,
             type: 'agent',
         })];
@@ -270,7 +270,7 @@ describe('ActionRunnerService', () => {
         const worktreeProject = { ...project, branch: 'feature', rootPath: 'C:/worktrees/2' };
         actionWorktreeRunService.resolve.mockResolvedValueOnce({ runProject: worktreeProject, runWorktree: 2 });
 
-        await expect(runner.prepareActionPrompt({ actionId: 'main', context })).resolves.toEqual({prompt: `Review design/F-010.md in C:/worktrees/2; repository C:/repo; project ${path.resolve('C:/repo', 'design')}; releases ${path.resolve('C:/repo', 'design/releases')}`});
+        await expect(runner.prepareActionPrompt({ actionId: 'main', context })).resolves.toEqual({prompt: `Review design/F-010.md in C:/worktrees/2; repository C:/repo; active ${path.resolve('C:/repo', 'design/feature_descriptions')}; project ${path.resolve('C:/repo', 'design')}; releases ${path.resolve('C:/repo', 'design/releases')}`});
         expect(actionWorktreeRunService.resolve).toHaveBeenCalledWith(project, expect.objectContaining({ id: 'main' }), context);
         expect(actionWorktreeRunService.execute).not.toHaveBeenCalled();
         expect(agentRunnerService.start).not.toHaveBeenCalled();
@@ -335,7 +335,7 @@ describe('ActionRunnerService', () => {
 
     it('composes real run and command collaborators with ordered events', async () => {
         const files = [
-            actionFile('before'),
+            actionFile('before', { command: 'before {{active-cards-folder}}' }),
             actionFile('main', { on: [{ actionId: 'matched', condition: 'main' }], onAfter: ['after'], onBefore: ['before'] }),
             actionFile('matched'),
             actionFile('after'),
@@ -345,7 +345,12 @@ describe('ActionRunnerService', () => {
         runner.subscribe((event) => events.push(event));
 
         await expect(runToCompletion(runner)).resolves.toMatchObject({ status: 'completed' });
-        expect(commandRunner.mock.calls.map((call) => call[1])).toEqual(['before', 'main', 'matched', 'after']);
+        expect(commandRunner.mock.calls.map((call) => call[1])).toEqual([
+            `before ${path.resolve('C:/repo', 'design/feature_descriptions')}`,
+            'main',
+            'matched',
+            'after',
+        ]);
         expect(localGitService.appendAndCommitActionActivity).toHaveBeenCalledOnce();
         expect(events.filter(({ status, type }) => status === 'completed' && type === 'action').map(({ actionId, phase }) => ({actionId, phase}))).toEqual([
             { actionId: 'before', phase: 'before' },
@@ -393,7 +398,7 @@ describe('ActionRunnerService', () => {
         const runId = await runner.start({ actionId: 'main', context, runInput: {} });
         await vi.waitFor(() => expect(commandRunner).toHaveBeenCalledTimes(1));
 
-        runner.startProject({ branch: 'other', id: 'other', rootPath: 'C:/other' }, 'other-actions', 'other-design', 'other-design/releases');
+        runner.startProject({ branch: 'other', id: 'other', rootPath: 'C:/other' }, 'other-actions', 'other-design', 'other-design/releases', 'other-design/active');
         resolve();
         const result = await runner.wait(runId);
 

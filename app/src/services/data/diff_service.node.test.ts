@@ -36,6 +36,7 @@ describe('generateDiff', () => {
             projectFolder: 'design',
             releasesFolder: 'design/delivery/releases',
             template: 'git show {{commit}}',
+            workingFolder: 'design/feature_descriptions',
         })
     })
 })

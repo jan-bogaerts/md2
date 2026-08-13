@@ -46,6 +46,7 @@ function createExecutor(overrides = {}) {
 function executionInput(overrides = {}) {
     return {
         action,
+        activeCardsFolder: 'design/feature_descriptions',
         activityOrigin: { cardInternalId: 'card-1', kind: 'card' },
         context: cardContext,
         onActiveRunChange: vi.fn(),
@@ -79,6 +80,20 @@ describe('ActionAgentExecutor', () => {
         await expect(executor.execute(input)).resolves.toMatchObject({agent: 'codex', conversationId: 'run-conversation', exitCode: 0, model: 'gpt-5.5', prompt: 'Review design/card.md\n\nfocus', thinkingLevel: 'high'});
         expect(agentRunnerService.start).toHaveBeenCalledWith(project, expect.objectContaining({activityOrigin: { cardInternalId: 'card-1', kind: 'card' }, cardPath: cardContext.file, prompt: 'Review design/card.md\n\nfocus'}), expect.any(Function), expect.any(Function), expect.any(Function));
         expect(input.onActiveRunChange.mock.calls.map(([runId]) => runId)).toEqual(['active-run', null]);
+    });
+
+    it('resolves stored prompt active cards against opened repository during linked-worktree execution', async () => {
+        const { agentRunnerService, executor } = createExecutor();
+        const runProject = { branch: 'feature', rootPath: 'C:/worktree' };
+
+        await executor.execute(executionInput({
+            action: { ...action, prompt: '{{active-cards-folder}} {{worktree-folder}}' },
+            project: runProject,
+        }));
+
+        expect(agentRunnerService.start.mock.calls[0][1].prompt).toBe(
+            `${path.resolve('C:/repo', 'design/feature_descriptions')} C:/worktree`,
+        );
     });
 
     it('starts the first agent turn with its reserved conversation identity', async () => {
@@ -154,13 +169,23 @@ describe('ActionAgentExecutor', () => {
             project: runProject,
             runInput: {
                 extraPrompt: 'focus',
-                prompt: 'Review {{card-file}} and {{this-card}} in {{worktree-folder}} for {{repository-folder}} project {{project-folder}} releases {{releases-folder}}: {{card-prompt}} {{unknown}}',
+                prompt: 'Review {{card-file}} and {{this-card}} in {{worktree-folder}} for {{repository-folder}} active {{active-cards-folder}} project {{project-folder}} releases {{releases-folder}}: {{card-prompt}} {{unknown}}',
             },
         }));
 
         expect(agentRunnerService.start.mock.calls[0][1].prompt).toBe(
-            `Review design/card.md and design/card.md in C:/worktree for C:/repo project ${path.resolve('C:/repo', 'design')} releases ${path.resolve('C:/repo', 'design/releases')}: focus {{unknown}}`,
+            `Review design/card.md and design/card.md in C:/worktree for C:/repo active ${path.resolve('C:/repo', 'design/feature_descriptions')} project ${path.resolve('C:/repo', 'design')} releases ${path.resolve('C:/repo', 'design/releases')}: focus {{unknown}}`,
         );
+    });
+
+    it('rejects active-cards-folder without working-folder data before process start', async () => {
+        const { agentRunnerService, executor } = createExecutor();
+
+        await expect(executor.execute(executionInput({
+            action: { ...action, prompt: 'Review {{active-cards-folder}}' },
+            activeCardsFolder: '',
+        }))).rejects.toThrow('configured working folder');
+        expect(agentRunnerService.start).not.toHaveBeenCalled();
     });
 
     it('keeps an already prepared root prompt unchanged', async () => {

@@ -35,6 +35,7 @@ describe('MarkdownPlaceholderToolbarControl', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Insert placeholder' }))
 
         const menu = within(screen.getByRole('menu'))
+        expect(menu.getByRole('menuitem', { name: /active-cards-folder.*root-level Markdown cards.*dashboard/iu })).toBeInTheDocument()
         expect(menu.getByRole('menuitem', { name: /this-card.*alias of.*card-file/iu })).toBeInTheDocument()
         expect(menu.getByRole('menuitem', { name: /worktree-folder/u })).toBeInTheDocument()
         expect(menu.getByRole('menuitem', { name: /repository-folder/u })).toBeInTheDocument()
