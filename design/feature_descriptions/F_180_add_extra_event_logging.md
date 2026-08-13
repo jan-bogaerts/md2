@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 894c324e-d9cf-400f-b964-5256ffff9b24
 ---
 
 we currently only appear to log start and end of app. other things we can log:
