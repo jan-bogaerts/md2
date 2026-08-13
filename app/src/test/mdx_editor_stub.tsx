@@ -2,6 +2,7 @@
 import {
     createContext,
     forwardRef,
+    useCallback,
     useContext,
     useEffect,
     useImperativeHandle,
@@ -20,6 +21,8 @@ import {
     $createRangeSelection,
     $createTextNode,
     $getRoot,
+    $getSelection,
+    $isRangeSelection,
     $setSelection,
     COPY_COMMAND,
     KEY_DOWN_COMMAND,
@@ -82,6 +85,7 @@ class StubRealm {
     private readonly values = new Map<StubCell<unknown>, unknown>()
 
     constructor() {
+        this.values.set(activeEditor$, testLexicalEditor)
         this.values.set(rootEditor$, testLexicalEditor)
     }
 
@@ -92,7 +96,11 @@ class StubRealm {
     pub<T>(cell: StubCell<T>, value: T) {
         if (cell === addComposerChild$) {
             const ComposerChild = value as ComponentType
-            const supportedComposerChildren = ['MarkdownDocumentHistoryPlugin', 'MarkdownPastePlugin']
+            const supportedComposerChildren = [
+                'MarkdownDocumentHistoryPlugin',
+                'MarkdownLocalTextSearchPlugin',
+                'MarkdownPastePlugin',
+            ]
             if (supportedComposerChildren.includes(ComposerChild.name)) this.composerChildren.push(ComposerChild)
             return
         }
@@ -151,14 +159,26 @@ function selectedMarkdown(markdown: string, start: number, end: number) {
 function setTestLexicalSelection(text: string, start: number, end: number) {
     testLexicalEditor.update(() => {
         const root = $getRoot()
-        root.clear()
-        const textNode = $createTextNode(text)
-        root.append($createParagraphNode().append(textNode))
+        const existingTextNodes = root.getAllTextNodes()
+        const textNode = root.getTextContent() === text && existingTextNodes.length === 1
+            ? existingTextNodes[0]
+            : $createTextNode(text)
+        if (textNode !== existingTextNodes[0]) {
+            root.clear()
+            root.append($createParagraphNode().append(textNode))
+        }
         const selection = $createRangeSelection()
         selection.anchor.set(textNode.getKey(), start, 'text')
         selection.focus.set(textNode.getKey(), end, 'text')
         $setSelection(selection)
     }, { discrete: true })
+}
+
+function setTestLexicalMarkdownSelection(markdown: string, start: number, end: number) {
+    const renderedText = markdownToRenderedText(markdown)
+    const renderedStart = markdownToRenderedText(markdown.slice(0, start)).length
+    const renderedEnd = markdownToRenderedText(markdown.slice(0, end)).length
+    setTestLexicalSelection(renderedText, renderedStart, renderedEnd)
 }
 
 function getTestLexicalText() {
@@ -182,6 +202,8 @@ export const MDXEditor = forwardRef<StubEditorHandle, StubEditorProps>(
         const latestMarkdownRef = useRef(initialMarkdown)
         const selectionStartRef = useRef(0)
         const selectionEndRef = useRef(0)
+        const suppressSelectionMirrorRef = useRef(false)
+        const textareaRef = useRef<HTMLTextAreaElement | null>(null)
         const [renderedMarkdown, setRenderedMarkdown] = useState(initialMarkdown)
         const [realm] = useState(() => {
             const editorRealm = new StubRealm()
@@ -222,6 +244,33 @@ export const MDXEditor = forwardRef<StubEditorHandle, StubEditorProps>(
             onChange?.(latestMarkdownRef.current)
         }, [onChange])
 
+        useEffect(() => testLexicalEditor.registerUpdateListener(({ editorState }) => {
+            editorState.read(() => {
+                if (suppressSelectionMirrorRef.current) return
+                const selection = $getSelection()
+                if (!$isRangeSelection(selection)) return
+
+                const points = selection.getStartEndPoints()
+                if (!points || points[0].type !== 'text' || points[1].type !== 'text') return
+                textareaRef.current?.setSelectionRange(points[0].offset, points[1].offset)
+            })
+        }), [])
+
+        const prepareLexicalSelection = (start: number, end: number) => {
+            suppressSelectionMirrorRef.current = true
+            setTestLexicalMarkdownSelection(latestMarkdownRef.current, start, end)
+            suppressSelectionMirrorRef.current = false
+        }
+
+        const handleTextareaRef = useCallback((textarea: HTMLTextAreaElement | null) => {
+            textareaRef.current = textarea
+            if (!textarea) return
+
+            suppressSelectionMirrorRef.current = true
+            setTestLexicalMarkdownSelection(initialMarkdown, 0, 0)
+            suppressSelectionMirrorRef.current = false
+        }, [initialMarkdown])
+
         const handleChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
             latestMarkdownRef.current = event.target.value
             setRenderedMarkdown(event.target.value)
@@ -235,25 +284,24 @@ export const MDXEditor = forwardRef<StubEditorHandle, StubEditorProps>(
 
         const handleCopy = (event: ClipboardEvent<HTMLTextAreaElement>) => {
             updateSelection(event)
-            const selectionMarkdown = selectedMarkdown(
-                latestMarkdownRef.current,
-                selectionStartRef.current,
-                selectionEndRef.current,
-            )
-            const renderedSelection = markdownToRenderedText(selectionMarkdown)
-            setTestLexicalSelection(renderedSelection, 0, renderedSelection.length)
+            prepareLexicalSelection(selectionStartRef.current, selectionEndRef.current)
             testLexicalEditor.dispatchCommand(COPY_COMMAND, event.nativeEvent)
         }
 
         const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
             updateSelection(event)
+            if (event.key.toLowerCase() === 'f') {
+                prepareLexicalSelection(selectionStartRef.current, selectionEndRef.current)
+            }
             testLexicalEditor.dispatchCommand(KEY_DOWN_COMMAND, event.nativeEvent)
         }
 
         const handlePaste = (event: ClipboardEvent<HTMLTextAreaElement>) => {
             updateSelection(event)
             const currentMarkdown = latestMarkdownRef.current
+            suppressSelectionMirrorRef.current = true
             setTestLexicalSelection(currentMarkdown, selectionStartRef.current, selectionEndRef.current)
+            suppressSelectionMirrorRef.current = false
             testLexicalEditor.update(() => {
                 testLexicalEditor.dispatchCommand(PASTE_COMMAND, event.nativeEvent)
             }, { discrete: true })
@@ -280,6 +328,7 @@ export const MDXEditor = forwardRef<StubEditorHandle, StubEditorProps>(
                         onPaste={handlePaste}
                         onSelect={updateSelection}
                         readOnly={readOnly}
+                        ref={handleTextareaRef}
                         role="textbox"
                         value={renderedMarkdown}
                     />

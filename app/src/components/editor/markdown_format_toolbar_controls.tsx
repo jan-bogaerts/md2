@@ -4,6 +4,7 @@ import {
 } from '@mdxeditor/editor'
 import type { ReactNode } from 'react'
 import type { ActionPlaceholder } from '../../data/action_placeholders'
+import { MarkdownLocalTextSearchToolbarControl } from './markdown_local_text_search_toolbar_control'
 import { MarkdownPlaceholderToolbarControl } from './markdown_placeholder_toolbar_control'
 
 interface MarkdownFormatToolbarControlsProps {
@@ -32,6 +33,8 @@ export function MarkdownFormatToolbarControls(props: MarkdownFormatToolbarContro
             <InsertTable />
             <InsertThematicBreak />
             <InsertCodeBlock />
+            <Separator />
+            <MarkdownLocalTextSearchToolbarControl />
             {placeholders.length > 0 ? (
                 <>
                     <Separator />

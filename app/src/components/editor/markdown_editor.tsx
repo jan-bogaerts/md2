@@ -18,6 +18,7 @@ import { markdownDocumentHistoryPlugin } from './markdown_document_history_realm
 import type { MarkdownDocumentHistoryStore } from './markdown_document_history_store'
 import { MarkdownFormatToolbarControls } from './markdown_format_toolbar_controls'
 import { markdownFileSearchPlugin } from './markdown_file_search_realm_plugin'
+import { markdownLocalTextSearchPlugin } from './markdown_local_text_search_realm_plugin'
 import { plainMarkdownPlugin } from './plain_markdown_realm_plugin'
 import { markdownPlaceholderPlugin } from './markdown_placeholder_realm_plugin'
 import { registerMarkdownEditorFlush } from './markdown_editor_flush'
@@ -45,6 +46,8 @@ interface MarkdownEditorPresentationProps {
     flushOnBlur?: boolean
     /** Omit format toolbar entirely. */
     hideToolbar?: boolean
+    /** Set false when containing surface owns Ctrl+F behavior. */
+    localTextSearch?: boolean
     overlayContainer?: HTMLElement | null
     placeholders?: readonly ActionPlaceholder[]
     readOnly?: boolean
@@ -96,6 +99,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         flushOnBlur = false,
         diffMarkdown,
         hideToolbar = false,
+        localTextSearch = true,
         overlayContainer,
         placeholders = EMPTY_PLACEHOLDERS,
         readOnly = false,
@@ -292,6 +296,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         ...(hideToolbar ? [] : [toolbarPlugin({ toolbarContents })]),
         markdownPlaceholderPlugin({ overlayContainer, placeholders }),
         markdownFileSearchPlugin({ overlayContainer, repositoryFiles }),
+        ...(localTextSearch ? [markdownLocalTextSearchPlugin({ overlayContainer })] : []),
         markdownPastePlugin({ getSelectionMarkdown, insertMarkdown, readOnly }),
         ...(historyPlugin ? [historyPlugin] : []),
     ]

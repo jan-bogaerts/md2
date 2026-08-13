@@ -12,6 +12,7 @@ vi.mock('../../editor/markdown_editor', async () => {
     return {
         MarkdownEditor: forwardRef(function MarkdownEditorMock(props: {
             flushOnBlur?: boolean
+            localTextSearch?: boolean
             markdown: string
             onChange: (markdown: string) => void
             onLiveChange?: (markdown: string) => void
@@ -38,6 +39,7 @@ vi.mock('../../editor/markdown_editor', async () => {
                 <textarea
                     aria-label="Markdown prompt"
                     data-flush-on-blur={props.flushOnBlur ? 'true' : 'false'}
+                    data-local-text-search={props.localTextSearch === false ? 'false' : 'true'}
                     data-placeholders={props.placeholders?.map(({ name }) => name).join(',')}
                     value={value}
                     onBlur={(event) => props.onChange(event.currentTarget.value)}
@@ -98,6 +100,7 @@ describe('ActionAgentPrompt', () => {
             ACTION_PROMPT_PLACEHOLDERS.map(({ name }) => name).join(','),
         )
         expect(screen.getByLabelText('Markdown prompt').getAttribute('data-placeholders')).toContain('this-card')
+        expect(screen.getByLabelText('Markdown prompt')).toHaveAttribute('data-local-text-search', 'false')
     })
 
     it('keeps typing local and synchronizes the prompt on blur', () => {
