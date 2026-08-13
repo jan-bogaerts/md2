@@ -10,6 +10,8 @@ agents:
   - design/activity/card__7082348f-6737-4bef-ab60-2fdbcdf5da4e.json#conversation=agent-0c7acf1f-3e2c-45b1-b22c-cb28a68d26d6
 policy:
 after: 43bf8521-8caa-4127-88fc-c31454193b90
+branch: f_179_add_support_placeholder
+worktree: 1
 ---
 
 we need to add a new placeholder:
