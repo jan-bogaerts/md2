@@ -3,7 +3,7 @@ author:
 id: F_122
 internalId: 528ea430-ce5c-4e61-ac31-70c93daf5eaa
 title: show conversation context-window usage
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
