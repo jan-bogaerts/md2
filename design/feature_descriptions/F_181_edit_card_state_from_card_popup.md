@@ -9,4 +9,8 @@ affects:
 agents:
 policy:
 ---
+We should make it easier for the user to change the state of a card from a card popup.&#x20;
 
+At the bottom row where the delete button and such are, put a selector to change state.
+
+On mobile, all current items on bottom bar are to the left. Put the selector to the right
