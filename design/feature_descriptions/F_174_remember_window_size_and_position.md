@@ -3,7 +3,7 @@ author:
 id: F_174
 internalId: fc4322fa-2432-4365-b355-32cf5e6e6af2
 title: remember window size and position
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

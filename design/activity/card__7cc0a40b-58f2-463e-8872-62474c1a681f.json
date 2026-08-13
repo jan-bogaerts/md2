@@ -675,7 +675,7 @@
       "startedAt": "2026-08-13T17:00:40.140Z",
       "status": "waitingForInput",
       "title": "complete",
-      "viewed": false,
+      "viewed": true,
       "usage": {
         "cachedInputTokens": 59136,
         "inputTokens": 60106,

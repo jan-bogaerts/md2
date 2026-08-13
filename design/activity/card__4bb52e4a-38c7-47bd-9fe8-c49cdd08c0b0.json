@@ -1531,7 +1531,7 @@
       "startedAt": "2026-08-13T17:06:46.820Z",
       "status": "running",
       "title": "implement",
-      "viewed": true,
+      "viewed": false,
       "usage": {
         "cachedInputTokens": 57088,
         "inputTokens": 58089,
