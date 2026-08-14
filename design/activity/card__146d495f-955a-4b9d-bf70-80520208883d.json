@@ -2103,11 +2103,11 @@
         "agent-0e1bcda0-2a46-44db-adc7-879a6df7ca3a"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-6aa74be6-fce6-4537-8595-895fa24b3bb0",
       "origin": {
@@ -2116,9 +2116,38 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-0e1bcda0-2a46-44db-adc7-879a6df7ca3a",
       "startedAt": "2026-08-14T15:46:33.027Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-0e1bcda0-2a46-44db-adc7-879a6df7ca3a"
+    },
+    {
+      "commits": [
+        {
+          "commit": "9abed0a2abd0f2a73a9708cd4eedff79064352ac",
+          "committedAt": "2026-08-14T18:23:27+02:00",
+          "deletions": 40,
+          "filePaths": [
+            "app/src/components/actions/conversation/action_conversation_chat.test.tsx",
+            "app/src/components/actions/conversation/action_conversation_chat.tsx",
+            "app/src/components/actions/conversation/action_conversation_chat_owner.test.tsx",
+            "app/src/services/actions/action_run_registry.node.test.ts",
+            "desktop/src/actions/agent/agent_runner_state.test.mjs",
+            "desktop/src/actions/agent/agent_streaming_adapter.js",
+            "desktop/src/actions/agent/agent_streaming_adapter.test.mjs",
+            "desktop/src/actions/agent/agent_streaming_event_handlers.js"
+          ],
+          "filesChanged": 8,
+          "insertions": 117,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-14T18:23:27+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "146d495f-955a-4b9d-bf70-80520208883d",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
