@@ -2825,11 +2825,11 @@
         "agent-acf8208b-10d3-41ad-ba37-eab1506fbc06"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-dea227fa-ee82-4a6e-9817-5fc933760d36",
       "origin": {
@@ -2838,9 +2838,53 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-acf8208b-10d3-41ad-ba37-eab1506fbc06",
       "startedAt": "2026-08-14T16:23:16.959Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-acf8208b-10d3-41ad-ba37-eab1506fbc06"
+    },
+    {
+      "commits": [
+        {
+          "commit": "2a73176bbc0ac4211d721f1193ceb05c0b1d4baa",
+          "committedAt": "2026-08-14T18:56:21+02:00",
+          "deletions": 125,
+          "filePaths": [
+            "app/src/components/config/config_page.test.tsx",
+            "app/src/components/config/config_page.tsx",
+            "app/src/components/config/worktree_config_list.test.tsx",
+            "app/src/components/config/worktree_config_list.tsx",
+            "app/src/components/config/worktree_config_row.tsx",
+            "app/src/components/config/worktree_remove_dialog.tsx",
+            "app/src/components/hooks/use_worktrees.ts",
+            "app/src/components/project_workspace.test.tsx",
+            "app/src/components/shell/menu/app_menu.test.tsx",
+            "app/src/data/data_types.ts",
+            "app/src/data/electron_data_bridge.ts",
+            "app/src/services/data/local_git_storage_service.node.test.ts",
+            "app/src/services/data/local_git_storage_service.ts",
+            "app/src/services/data/remote_control_storage_service.node.test.ts",
+            "app/src/services/data/remote_control_storage_service.ts",
+            "app/src/services/project/save_state_service.node.test.ts",
+            "app/src/services/project/worktree_service.node.test.ts",
+            "app/src/services/project/worktree_service.ts",
+            "desktop/src/git/worktree_service.test.mjs",
+            "desktop/src/shell/local_bridge_dispatch.js",
+            "desktop/src/shell/local_bridge_dispatch.test.mjs",
+            "desktop/src/shell/preload.js",
+            "desktop/src/shell/preload.test.mjs"
+          ],
+          "filesChanged": 23,
+          "insertions": 539,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-14T18:56:21+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "bd257fa5-fafa-425b-be61-73a090e1ccf5",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
