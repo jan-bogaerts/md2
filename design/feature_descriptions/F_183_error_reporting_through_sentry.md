@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
   - design/activity/card__715f1a07-796d-4a83-bed9-bd3527584dce.json#conversation=agent-d01ef4eb-dd75-4451-a8ee-53a15089b636
+  - design/activity/card__715f1a07-796d-4a83-bed9-bd3527584dce.json#conversation=agent-7d274537-6eb8-41b6-86ad-f83a6f809776
 policy:
 branch: f_183_error_reporting_through_sentry
 worktree: 2
