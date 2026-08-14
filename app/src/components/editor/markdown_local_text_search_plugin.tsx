@@ -1,5 +1,5 @@
 import SearchOutlined from '@mui/icons-material/SearchOutlined'
-import { Box, InputAdornment, Popover, TextField, ToggleButton, Tooltip } from '@mui/material'
+import { Box, IconButton, InputAdornment, Popover, TextField, ToggleButton, Tooltip } from '@mui/material'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { useCellValue } from '@mdxeditor/editor'
 import { COMMAND_PRIORITY_HIGH, KEY_DOWN_COMMAND } from 'lexical'
@@ -27,10 +27,12 @@ function isOpenSearchShortcut(event: KeyboardEvent) {
 export function MarkdownLocalTextSearchPlugin() {
     const config = useCellValue(markdownLocalTextSearchConfig$)
     const [editor] = useLexicalComposerContext()
-    const [caseSensitive, setCaseSensitive] = useState(false)
+    const [activeCaseSensitive, setActiveCaseSensitive] = useState(false)
+    const [activeTerm, setActiveTerm] = useState<string | null>(null)
+    const [draftCaseSensitive, setDraftCaseSensitive] = useState(false)
+    const [draftTerm, setDraftTerm] = useState('')
     const [open, setOpen] = useState(false)
     const [searchOrigin, setSearchOrigin] = useState(0)
-    const [term, setTerm] = useState('')
     const rootElement = editor.getRootElement()
     const configError = config ? null : new Error('Cannot register Markdown local text search without configuration')
     useDialogError(configError, 'Local text search is unavailable')
@@ -42,15 +44,23 @@ export function MarkdownLocalTextSearchPlugin() {
     const openSearch = useCallback(() => {
         const selectedText = getMarkdownSearchSeed(editor)
         setSearchOrigin(getMarkdownSearchSelectionEnd(editor))
-        if (selectedText) setTerm(selectedText)
+        if (selectedText) setDraftTerm(selectedText)
         setOpen(true)
         return true
     }, [editor])
 
     const selectNextMatch = useCallback(() => {
+        if (!activeTerm) return
         const offset = getMarkdownSearchSelectionEnd(editor)
-        selectMarkdownTextMatch(editor, term, offset, caseSensitive)
-    }, [caseSensitive, editor, term])
+        selectMarkdownTextMatch(editor, activeTerm, offset, activeCaseSensitive)
+    }, [activeCaseSensitive, activeTerm, editor])
+
+    const submitSearch = useCallback(() => {
+        if (!draftTerm) return
+        setActiveTerm(draftTerm)
+        setActiveCaseSensitive(draftCaseSensitive)
+        selectMarkdownTextMatch(editor, draftTerm, searchOrigin, draftCaseSensitive)
+    }, [draftCaseSensitive, draftTerm, editor, searchOrigin])
 
     const handleKeyDown = useCallback((event: KeyboardEvent) => {
         if (isOpenSearchShortcut(event)) {
@@ -79,22 +89,23 @@ export function MarkdownLocalTextSearchPlugin() {
         }
     }, [editor, handleKeyDown, openSearch])
 
-    useEffect(() => {
-        if (open) selectMarkdownTextMatch(editor, term, searchOrigin, caseSensitive)
-    }, [caseSensitive, editor, open, searchOrigin, term])
-
     const handleTermChange = (event: ChangeEvent<HTMLInputElement>) => {
-        setTerm(event.target.value)
+        setDraftTerm(event.target.value)
     }
 
     const handleCaseToggle = () => {
-        setCaseSensitive((current) => !current)
+        setDraftCaseSensitive((current) => !current)
     }
 
     const handleInputKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
         if (event.key === 'Escape') {
             event.preventDefault()
             closeSearch()
+            return
+        }
+        if (event.key === 'Enter') {
+            event.preventDefault()
+            submitSearch()
             return
         }
         if (event.key !== 'F3') return
@@ -136,18 +147,22 @@ export function MarkdownLocalTextSearchPlugin() {
                         input: {
                             startAdornment: (
                                 <InputAdornment position="start">
-                                    <SearchOutlined fontSize="small" />
+                                    <Tooltip title="Search">
+                                        <IconButton aria-label="Search" edge="start" onClick={submitSearch} size="small">
+                                            <SearchOutlined fontSize="small" />
+                                        </IconButton>
+                                    </Tooltip>
                                 </InputAdornment>
                             ),
                         },
                     }}
-                    value={term}
+                    value={draftTerm}
                 />
                 <Tooltip title="Match case">
                     <ToggleButton
                         aria-label="Match case"
                         onClick={handleCaseToggle}
-                        selected={caseSensitive}
+                        selected={draftCaseSensitive}
                         size="small"
                         value="case-sensitive"
                     >
