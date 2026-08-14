@@ -1993,11 +1993,11 @@
         "agent-40a9b118-28fe-4876-9916-72d72073d60f"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-e01a483e-b690-4065-9598-3eb7a999f15b",
       "origin": {
@@ -2006,9 +2006,32 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-40a9b118-28fe-4876-9916-72d72073d60f",
       "startedAt": "2026-08-14T17:52:22.247Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-40a9b118-28fe-4876-9916-72d72073d60f"
+    },
+    {
+      "commits": [
+        {
+          "commit": "8671829503090be86950c044a9789fd0c93b25ee",
+          "committedAt": "2026-08-14T20:28:44+02:00",
+          "deletions": 28,
+          "filePaths": [
+            "app/src/components/editor/markdown_editor_local_text_search.test.tsx",
+            "app/src/components/editor/markdown_local_text_search_plugin.tsx"
+          ],
+          "filesChanged": 2,
+          "insertions": 123,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-14T20:28:44+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "332eb86e-d703-4707-a8de-0bdec67e23f5",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
