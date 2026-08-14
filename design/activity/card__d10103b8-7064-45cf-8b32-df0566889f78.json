@@ -3103,11 +3103,11 @@
         "agent-3cc7820a-7470-44e0-909a-0cbf625f4eae"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-a71415ed-8465-46c0-9867-6376386ca8d1",
       "origin": {
@@ -3116,9 +3116,55 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-3cc7820a-7470-44e0-909a-0cbf625f4eae",
       "startedAt": "2026-08-14T17:02:28.916Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-3cc7820a-7470-44e0-909a-0cbf625f4eae"
+    },
+    {
+      "commits": [
+        {
+          "commit": "d6b36620a18b105f9d3bf0cb3648f1e46583401e",
+          "committedAt": "2026-08-14T19:53:35+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "app/src/app.tsx",
+            "app/src/components/config/config_page.test.tsx",
+            "app/src/components/config/config_page.tsx",
+            "app/src/components/config/sentry_config_section.test.tsx",
+            "app/src/components/config/sentry_config_section.tsx",
+            "app/src/components/hooks/use_sentry_connection.ts",
+            "app/src/components/hooks/use_sentry_import.ts",
+            "app/src/components/sentry_import_confirmation_dialog.test.tsx",
+            "app/src/components/sentry_import_confirmation_dialog.tsx",
+            "app/src/data/data_types.ts",
+            "app/src/services/application_startup_service.ts",
+            "app/src/services/data/card_operations.test.ts",
+            "app/src/services/data/card_operations.ts",
+            "app/src/services/data/data_service.ts",
+            "app/src/services/data/markdown_parsing_service.node.test.ts",
+            "app/src/services/data/markdown_parsing_service.ts",
+            "app/src/services/project/project_loading.ts",
+            "app/src/services/sentry/sentry_api_client.node.test.ts",
+            "app/src/services/sentry/sentry_api_client.ts",
+            "app/src/services/sentry/sentry_connection_service.node.test.ts",
+            "app/src/services/sentry/sentry_connection_service.ts",
+            "app/src/services/sentry/sentry_import_service.node.test.ts",
+            "app/src/services/sentry/sentry_import_service.ts",
+            "app/src/services/sentry/sentry_issue_markdown.ts",
+            "app/src/services/sentry/sentry_types.ts"
+          ],
+          "filesChanged": 25,
+          "insertions": 2000,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-14T19:53:35+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "d10103b8-7064-45cf-8b32-df0566889f78",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
