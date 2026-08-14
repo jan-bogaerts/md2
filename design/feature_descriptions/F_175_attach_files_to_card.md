@@ -10,7 +10,10 @@ agents:
 policy:
 after: bee2d3c7-81e1-451a-bc4d-d4ba59c849e9
 ---
-
 add possibility to attach files to a card.&#x20;
 
 These files (or links to them) should be included in the prompt for the agent.
+
+ways to do this:&#x20;
+
+* Drop file on card in board view
