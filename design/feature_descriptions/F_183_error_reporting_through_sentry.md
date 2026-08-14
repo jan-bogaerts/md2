@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__715f1a07-796d-4a83-bed9-bd3527584dce.json#conversation=agent-d01ef4eb-dd75-4451-a8ee-53a15089b636
 policy:
+branch: f_183_error_reporting_through_sentry
+worktree: 2
 ---
 
 ## Current state
