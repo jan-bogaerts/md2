@@ -3,12 +3,13 @@ author:
 id: F_185
 internalId: d10103b8-7064-45cf-8b32-df0566889f78
 title: Import Sentry issues as bug cards
-status: new
+status: ready for implementation
 owner: 
 affects:
 agents:
 policy:
-after: 96236df6-2c3a-4846-9d52-f29b7ee9041d
+branch: f_185_import_sentry_issues_as_bug_cards
+worktree: 1
 ---
 
 ## Goal

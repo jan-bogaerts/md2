@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: c00ec008-cf20-4fd2-81e2-254b2b400c48
 ---
 
 when loading the project, we should also search for markdown files that contain agent instructions:
