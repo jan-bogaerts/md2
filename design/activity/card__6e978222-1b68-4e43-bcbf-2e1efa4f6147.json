@@ -1782,11 +1782,11 @@
         "agent-b3a008b7-b0a7-4c85-95b2-6399f343a50e"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-28a30f20-e2dc-4e4e-b3aa-2b97c0a9ab6d",
       "origin": {
@@ -1795,9 +1795,34 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-b3a008b7-b0a7-4c85-95b2-6399f343a50e",
       "startedAt": "2026-08-14T09:10:59.087Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-b3a008b7-b0a7-4c85-95b2-6399f343a50e"
+    },
+    {
+      "commits": [
+        {
+          "commit": "4954c527574e8f3dbae53dbe25eea1fbf162267a",
+          "committedAt": "2026-08-14T11:21:26+02:00",
+          "deletions": 4,
+          "filePaths": [
+            "app/src/components/actions/run/popup/action_popup.test.tsx",
+            "app/src/components/actions/run/popup/action_popup_frame.tsx",
+            "app/src/components/resizable_popper.test.tsx",
+            "app/src/components/resizable_popper.tsx"
+          ],
+          "filesChanged": 4,
+          "insertions": 117,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-14T11:21:26+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "6e978222-1b68-4e43-bcbf-2e1efa4f6147",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
