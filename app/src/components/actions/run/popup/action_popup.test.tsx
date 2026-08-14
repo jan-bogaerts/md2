@@ -1855,9 +1855,16 @@ describe('ActionPopup', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'Expand upward' }))
         expect(dialog.style.height).toBe('100vh')
+        const leftResizeHandle = screen.getByRole('separator', { name: 'Resize action popup from left' })
+        const rightResizeHandle = screen.getByRole('separator', { name: 'Resize action popup from right' })
+        expect(leftResizeHandle).toHaveStyle({ cursor: 'ew-resize' })
+        expect(rightResizeHandle).toHaveStyle({ cursor: 'ew-resize' })
+        expect(screen.getAllByRole('separator', { name: /Resize action popup from/u })).toHaveLength(2)
+        expect(screen.queryByRole('separator', { name: 'Resize action popup from top' })).not.toBeInTheDocument()
 
         fireEvent.click(screen.getByRole('button', { name: 'Collapse downward' }))
         expect(dialog.style.height).toBe('450px')
+        expect(screen.getAllByRole('separator', { name: /Resize action popup from/u })).toHaveLength(8)
 
         fireEvent.click(screen.getByRole('button', { name: 'Expand upward' }))
         fireEvent.click(screen.getByRole('button', { name: 'Close' }))

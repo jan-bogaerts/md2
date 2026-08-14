@@ -82,6 +82,7 @@ export function ActionPopupFrame({ children, contentProps, conversationStore }: 
                 width: isMobile ? '100vw !important' : undefined,
             }}
             resizeFromAllSides
+            resizeHorizontallyWhenFullHeight={!isMobile}
             resizeLabel="Resize action popup"
             stackPosition={stackPosition}
             storageKey={isMobile ? undefined : sizeStorageKey}

@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ResizablePopper } from './resizable_popper'
 
-function ExpandablePopper() {
+function ExpandablePopper({ storageKey }: { storageKey?: string }) {
     const [fullHeight, setFullHeight] = useState(false)
     const handleToggleFullHeight = () => setFullHeight((current) => !current)
 
@@ -16,7 +16,9 @@ function ExpandablePopper() {
             onClose={vi.fn()}
             open
             resizeFromAllSides
+            resizeHorizontallyWhenFullHeight
             resizeLabel="Resize expandable popper"
+            storageKey={storageKey}
         >
             <h2 id="expandable-popper-title">Expandable popper</h2>
             <button onClick={handleToggleFullHeight} type="button">
@@ -469,5 +471,76 @@ describe('ResizablePopper', () => {
         expect(dialog.style.left).toBe('')
         expect(dialog.style.height).toBe('300px')
         expect(screen.getAllByRole('separator', { name: /Resize expandable popper from/u })).toHaveLength(8)
+    })
+
+    it('resizes both full-height edges, persists width, and restores normal height on collapse', () => {
+        const storageKey = 'test.expandableFullHeightWidth'
+        Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1000, writable: true })
+        render(<ExpandablePopper storageKey={storageKey} />)
+        const dialog = screen.getByRole('dialog', { name: 'Expandable popper' })
+        dialog.getBoundingClientRect = vi.fn(() => {
+            const fullHeight = dialog.getAttribute('data-full-height') === 'true'
+            const left = fullHeight ? Number.parseFloat(dialog.style.left) : 300
+            const width = Number.parseFloat(dialog.style.width)
+            return new DOMRect(left, 0, width, fullHeight ? window.innerHeight : 300)
+        })
+
+        fireEvent.click(screen.getByRole('button', { name: 'Expand' }))
+        const rightHandle = screen.getByRole('separator', { name: 'Resize expandable popper from right' })
+        fireEvent.pointerDown(rightHandle, { clientX: 700, pointerId: 1 })
+        fireEvent.pointerMove(window, { clientX: 850, pointerId: 1 })
+        fireEvent.pointerUp(window, { pointerId: 1 })
+
+        expect(dialog.style.left).toBe('300px')
+        expect(dialog.style.width).toBe('550px')
+
+        const leftHandle = screen.getByRole('separator', { name: 'Resize expandable popper from left' })
+        fireEvent.pointerDown(leftHandle, { clientX: 300, pointerId: 2 })
+        fireEvent.pointerMove(window, { clientX: 500, pointerId: 2 })
+        fireEvent.pointerUp(window, { pointerId: 2 })
+
+        expect(dialog.style.height).toBe('100vh')
+        expect(dialog.style.left).toBe('500px')
+        expect(dialog.style.width).toBe('350px')
+        expect(JSON.parse(window.localStorage.getItem(storageKey) ?? '{}')).toEqual({ height: 300, width: 350 })
+
+        fireEvent.click(screen.getByRole('button', { name: 'Collapse' }))
+
+        expect(dialog.style.height).toBe('300px')
+        expect(dialog.style.width).toBe('350px')
+        expect(screen.getAllByRole('separator', { name: /Resize expandable popper from/u })).toHaveLength(8)
+    })
+
+    it('clamps full-height horizontal resizing to minimum width and viewport edges', () => {
+        Object.defineProperty(window, 'innerWidth', { configurable: true, value: 600, writable: true })
+        render(<ExpandablePopper />)
+        const dialog = screen.getByRole('dialog', { name: 'Expandable popper' })
+        dialog.getBoundingClientRect = vi.fn(() => {
+            const left = dialog.getAttribute('data-full-height') === 'true' ? Number.parseFloat(dialog.style.left) : 100
+            return new DOMRect(left, 0, Number.parseFloat(dialog.style.width), 300)
+        })
+
+        fireEvent.click(screen.getByRole('button', { name: 'Expand' }))
+        const rightHandle = screen.getByRole('separator', { name: 'Resize expandable popper from right' })
+        fireEvent.pointerDown(rightHandle, { clientX: 500, pointerId: 1 })
+        fireEvent.pointerMove(window, { clientX: 0, pointerId: 1 })
+        fireEvent.pointerUp(window, { pointerId: 1 })
+        expect(dialog).toHaveStyle({ left: '100px', width: '280px' })
+
+        fireEvent.pointerDown(rightHandle, { clientX: 380, pointerId: 2 })
+        fireEvent.pointerMove(window, { clientX: 900, pointerId: 2 })
+        fireEvent.pointerUp(window, { pointerId: 2 })
+        expect(dialog).toHaveStyle({ left: '100px', width: '500px' })
+
+        const leftHandle = screen.getByRole('separator', { name: 'Resize expandable popper from left' })
+        fireEvent.pointerDown(leftHandle, { clientX: 100, pointerId: 3 })
+        fireEvent.pointerMove(window, { clientX: 500, pointerId: 3 })
+        fireEvent.pointerUp(window, { pointerId: 3 })
+        expect(dialog).toHaveStyle({ left: '320px', width: '280px' })
+
+        fireEvent.pointerDown(leftHandle, { clientX: 320, pointerId: 4 })
+        fireEvent.pointerMove(window, { clientX: -500, pointerId: 4 })
+        fireEvent.pointerUp(window, { pointerId: 4 })
+        expect(dialog).toHaveStyle({ left: '0px', width: '600px' })
     })
 })
