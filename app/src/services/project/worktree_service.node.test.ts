@@ -31,7 +31,7 @@ function createStorage() {
     let listener: ((state: WorktreeState) => void) | null = null
     const cleanup = vi.fn()
     const storage = {
-        addWorktree: vi.fn(async () => true),
+        addWorktree: vi.fn(async () => undefined),
         commitWorktree: vi.fn(async () => undefined),
         deleteLocalBranch: vi.fn(async () => undefined),
         discardWorktreeChanges: vi.fn(async () => undefined),
@@ -47,6 +47,7 @@ function createStorage() {
         rebaseWorktree: vi.fn(async () => ({ status: 'completed' as const })),
         refreshWorktrees: vi.fn(async () => undefined),
         removeWorktree: vi.fn(async () => undefined),
+        selectWorktreeFolder: vi.fn(async () => 'C:\\new'),
     } as unknown as StorageService
     const emit = (stateProject: ProjectReference | null, records: WorktreeRecord[], error: string | null = null) => {
         if (!listener) throw new Error('Missing worktree subscription')
@@ -120,33 +121,90 @@ describe('WorktreeService', () => {
         expect(service.getRecords()).toEqual([])
     })
 
-    it('reports creation progress and relies on the pushed result', async () => {
-        const pendingAddition = createDeferred<boolean>()
+    it('stages additions and removals without changing live records or Git', async () => {
         const { emit, storage } = createStorage()
-        storage.addWorktree = vi.fn(() => pendingAddition.promise)
         const service = new WorktreeService()
         initService(service, storage)
         emit(project, [first])
+        service.startDraft()
 
-        const addition = service.add()
-        expect(service.isAdding()).toBe(true)
-        emit(project, [first, second])
-        pendingAddition.resolve(true)
-        await addition
+        await service.selectDraftAddition()
+        service.stageDraftRemoval(first.path)
 
-        expect(service.isAdding()).toBe(false)
-        expect(service.getRecords()).toEqual([first, second])
+        expect(service.getDraft()).toMatchObject({ additions: ['C:\\new'], removals: [first.path] })
+        expect(service.getRecords()).toEqual([first])
+        expect(storage.addWorktree).not.toHaveBeenCalled()
+        expect(storage.removeWorktree).not.toHaveBeenCalled()
+
+        service.discardDraft()
+        expect(service.getDraft()).toBeNull()
     })
 
-    it('removes the selected worktree without consuming a command result', async () => {
+    it('leaves draft unchanged when folder selection is cancelled', async () => {
+        const { emit, storage } = createStorage()
+        storage.selectWorktreeFolder = vi.fn(async () => null)
+        const service = new WorktreeService()
+        initService(service, storage)
+        emit(project, [first])
+        service.startDraft()
+
+        await expect(service.selectDraftAddition()).resolves.toBeNull()
+
+        expect(service.getDraft()).toMatchObject({ additions: [], records: [first], removals: [] })
+    })
+
+    it('rejects primary, existing, and pending worktree paths', async () => {
         const { emit, storage } = createStorage()
         const service = new WorktreeService()
         initService(service, storage)
         emit(project, [first])
+        service.startDraft()
 
-        await service.remove(0)
+        storage.selectWorktreeFolder = vi.fn(async () => 'c:/PROJECT/')
+        await expect(service.selectDraftAddition()).rejects.toThrow('Primary worktree cannot be added')
+        storage.selectWorktreeFolder = vi.fn(async () => 'c:/FEATURE')
+        await expect(service.selectDraftAddition()).rejects.toThrow('Folder is already a linked worktree')
+        storage.selectWorktreeFolder = vi.fn(async () => 'C:\\new')
+        await service.selectDraftAddition()
+        storage.selectWorktreeFolder = vi.fn(async () => 'c:/NEW/')
+        await expect(service.selectDraftAddition()).rejects.toThrow('Folder is already pending addition')
+    })
+
+    it('applies removals before additions and clears completed draft items', async () => {
+        const { emit, storage } = createStorage()
+        const service = new WorktreeService()
+        initService(service, storage)
+        emit(project, [first])
+        service.startDraft()
+        service.stageDraftRemoval(first.path)
+        await service.selectDraftAddition()
+
+        await service.applyDraft()
 
         expect(storage.removeWorktree).toHaveBeenCalledWith(project, first.path)
+        expect(storage.addWorktree).toHaveBeenCalledWith(project, 'C:\\new')
+        expect(vi.mocked(storage.removeWorktree!).mock.invocationCallOrder[0])
+            .toBeLessThan(vi.mocked(storage.addWorktree!).mock.invocationCallOrder[0])
+        expect(service.getDraft()).toMatchObject({ additions: [], applying: false, removals: [] })
+    })
+
+    it('refreshes live records and retains unapplied items after partial failure', async () => {
+        const { emit, storage } = createStorage()
+        const failure = new Error('second removal failed')
+        storage.removeWorktree = vi.fn()
+            .mockResolvedValueOnce(undefined)
+            .mockRejectedValueOnce(failure)
+        const service = new WorktreeService()
+        initService(service, storage)
+        emit(project, [first, second])
+        service.startDraft()
+        service.stageDraftRemoval(first.path)
+        service.stageDraftRemoval(second.path)
+
+        await expect(service.applyDraft()).rejects.toBe(failure)
+
+        expect(storage.refreshWorktrees).toHaveBeenCalledWith(project)
+        expect(service.getDraft()).toMatchObject({ applying: false, removals: [second.path] })
     })
 
     it('prepares an available worktree before assigning it', async () => {

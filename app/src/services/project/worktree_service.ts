@@ -24,17 +24,29 @@ interface WorktreeServiceDependencies {
     unassignCardWorktree: (path: string) => void
 }
 
+export interface WorktreeDraft {
+    additions: string[]
+    applying: boolean
+    records: WorktreeRecord[]
+    removals: string[]
+    selecting: boolean
+}
+
+function worktreePathKey(folderPath: string) {
+    return folderPath.replace(/\\/gu, '/').replace(/\/+$/u, '').toLowerCase()
+}
+
 /** Same outgoing-status condition used by worktree integration and diff controls. */
 export function isWorktreeIntegratable(record: WorktreeRecord | null | undefined) {
     return !!record?.valid && (record.status.dirty || record.status.baseAhead > 0)
 }
 
 export class WorktreeService extends EventTarget {
-    private adding = false
     private assignCardWorktreeValue: ((path: string, worktree: number, branch: string) => void) | null = null
     private cardSeparatorProvider: (() => CardSeparator) | null = null
     private clearCardBranchValue: ((path: string) => void) | null = null
     private error: string | null = null
+    private draft: WorktreeDraft | null = null
     private flushPendingChanges: (() => Promise<void>) | null = null
     private pendingAssignments = new Map<number, string>()
     private preparingCardPaths = new Set<string>()
@@ -75,8 +87,8 @@ export class WorktreeService extends EventTarget {
         return this.error
     }
 
-    isAdding() {
-        return this.adding
+    getDraft() {
+        return this.draft
     }
 
     isPreparingCard(path: string) {
@@ -135,10 +147,25 @@ export class WorktreeService extends EventTarget {
     }
 
     clear() {
+        this.draft = null
         this.projectActionWorktree = null
         this.primaryStatus = null
         this.error = null
         this.records = []
+        this.dispatchChanged()
+    }
+
+    startDraft() {
+        if (this.draft) return
+
+        this.draft = { additions: [], applying: false, records: this.records, removals: [], selecting: false }
+        this.dispatchChanged()
+    }
+
+    discardDraft() {
+        if (!this.draft) return
+
+        this.draft = null
         this.dispatchChanged()
     }
 
@@ -333,31 +360,107 @@ export class WorktreeService extends EventTarget {
         }
     }
 
-    async add() {
+    async selectDraftAddition() {
         const storage = this.requireStorage()
         const project = this.requireProject()
-        if (!storage.addWorktree) throw new Error('Worktree creation requires Electron local mode')
-        if (this.adding) throw new Error('Worktree creation is already in progress')
+        const draft = this.requireDraft()
+        if (!storage.selectWorktreeFolder) throw new Error('Worktree folder selection requires Electron local mode')
+        if (draft.selecting) throw new Error('Worktree folder selection is already in progress')
+        if (draft.applying) throw new Error('Worktree draft is being applied')
 
-        this.adding = true
-        this.dispatchChanged()
+        this.replaceDraft({ ...draft, selecting: true })
         try {
-            const added = await storage.addWorktree(project)
+            const folderPath = await storage.selectWorktreeFolder()
+            if (folderPath === null) return null
+            if (folderPath.length === 0) throw new Error('Missing linked worktree folder')
 
-            return added
+            const pathKey = worktreePathKey(folderPath)
+            const currentDraft = this.requireDraft()
+            if (typeof project.rootPath !== 'string' || project.rootPath.length === 0) throw new Error('Missing primary project rootPath')
+            if (pathKey === worktreePathKey(project.rootPath)) throw new Error('Primary worktree cannot be added as a linked worktree')
+            if (currentDraft.records.some(({ path }) => worktreePathKey(path) === pathKey)) throw new Error('Folder is already a linked worktree')
+            if (currentDraft.additions.some((path) => worktreePathKey(path) === pathKey)) throw new Error('Folder is already pending addition')
+
+            this.replaceDraft({ ...currentDraft, additions: [...currentDraft.additions, folderPath] })
+
+            return folderPath
         } finally {
-            this.adding = false
-            this.dispatchChanged()
+            const currentDraft = this.draft
+            if (currentDraft) this.replaceDraft({ ...currentDraft, selecting: false })
         }
     }
 
-    async remove(index: number) {
+    stageDraftRemoval(folderPath: string) {
+        const draft = this.requireEditableDraft()
+        const pathKey = worktreePathKey(folderPath)
+        const pendingAddition = draft.additions.find((path) => worktreePathKey(path) === pathKey)
+        if (pendingAddition) {
+            this.replaceDraft({ ...draft, additions: draft.additions.filter((path) => path !== pendingAddition) })
+            return
+        }
+
+        const record = draft.records.find(({ path }) => worktreePathKey(path) === pathKey)
+        if (!record) throw new Error('Worktree removal target no longer exists')
+        if (draft.removals.some((path) => worktreePathKey(path) === pathKey)) return
+
+        this.replaceDraft({ ...draft, removals: [...draft.removals, record.path] })
+    }
+
+    async applyDraft() {
         const storage = this.requireStorage()
         const project = this.requireProject()
+        const draft = this.requireEditableDraft()
+        if (!storage.addWorktree) throw new Error('Worktree creation requires Electron local mode')
         if (!storage.removeWorktree) throw new Error('Worktree removal requires Electron local mode')
-        if (!Number.isInteger(index) || index < 0 || index >= this.records.length) throw new Error(`Invalid worktree list index: ${index}`)
+        if (!storage.refreshWorktrees) throw new Error('Worktree refresh requires Electron local mode')
 
-        await storage.removeWorktree(project, this.records[index].path)
+        this.replaceDraft({ ...draft, applying: true })
+        try {
+            for (const folderPath of draft.removals) {
+                await storage.removeWorktree(project, folderPath)
+                const currentDraft = this.draft
+                if (currentDraft) {
+                    this.replaceDraft({
+                        ...currentDraft,
+                        removals: currentDraft.removals.filter((path) => path !== folderPath),
+                    })
+                }
+            }
+            for (const folderPath of draft.additions) {
+                await storage.addWorktree(project, folderPath)
+                const currentDraft = this.draft
+                if (currentDraft) {
+                    this.replaceDraft({
+                        ...currentDraft,
+                        additions: currentDraft.additions.filter((path) => path !== folderPath),
+                    })
+                }
+            }
+        } catch (error) {
+            await storage.refreshWorktrees(project)
+            throw error
+        } finally {
+            const currentDraft = this.draft
+            if (currentDraft) this.replaceDraft({ ...currentDraft, applying: false })
+        }
+    }
+
+    private requireDraft() {
+        if (!this.draft) throw new Error('Worktree draft is not initialized')
+
+        return this.draft
+    }
+
+    private requireEditableDraft() {
+        const draft = this.requireDraft()
+        if (draft.applying) throw new Error('Worktree draft is being applied')
+
+        return draft
+    }
+
+    private replaceDraft(draft: WorktreeDraft) {
+        this.draft = draft
+        this.dispatchChanged()
     }
 
     private requireProject() {
@@ -375,6 +478,7 @@ export class WorktreeService extends EventTarget {
         if (!recordsChanged && !primaryStatusChanged && this.error === state.error) return
 
         if (recordsChanged) this.records = state.records
+        if (recordsChanged && this.draft) this.draft = { ...this.draft, records: state.records }
         if (primaryStatusChanged) this.primaryStatus = state.primaryStatus
         this.error = state.error
         this.dispatchChanged()

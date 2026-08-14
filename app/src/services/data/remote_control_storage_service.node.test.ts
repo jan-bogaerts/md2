@@ -199,7 +199,8 @@ describe('RemoteControlStorageService', () => {
         installWebSocket()
         const service = createService()
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
-        const addition = service.addWorktree(project)
+        const selection = service.selectWorktreeFolder()
+        const addition = service.addWorktree(project, 'C:/feature')
         const preparationRequest = { branchName: 'card-title', project, worktree: 1 }
         const operationRequest = { project, worktree: 1 }
         const integrationRequest = { ...operationRequest, cardInternalId: 'stable-card-id', projectFolder: 'design' }
@@ -218,18 +219,20 @@ describe('RemoteControlStorageService', () => {
 
         socket.open()
         await flushPromises()
-        const addRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
-        const commitSentRequest = JSON.parse(socket.sent[1]) as { id: string, method: string, params: unknown[] }
-        const discardRequest = JSON.parse(socket.sent[2]) as { id: string, method: string, params: unknown[] }
-        const integrateRequest = JSON.parse(socket.sent[3]) as { id: string, method: string, params: unknown[] }
-        const parkRequest = JSON.parse(socket.sent[4]) as { id: string, method: string, params: unknown[] }
-        const prepareRequest = JSON.parse(socket.sent[5]) as { id: string, method: string, params: unknown[] }
-        const pullRequest = JSON.parse(socket.sent[6]) as { id: string, method: string, params: unknown[] }
-        const pushRequest = JSON.parse(socket.sent[7]) as { id: string, method: string, params: unknown[] }
-        const refreshRequest = JSON.parse(socket.sent[8]) as { id: string, method: string, params: unknown[] }
-        const removeRequest = JSON.parse(socket.sent[9]) as { id: string, method: string, params: unknown[] }
-        const deleteRequest = JSON.parse(socket.sent[10]) as { id: string, method: string, params: unknown[] }
-        expect(addRequest).toMatchObject({ method: 'addWorktree', params: [project] })
+        const selectionRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
+        const addRequest = JSON.parse(socket.sent[1]) as { id: string, method: string, params: unknown[] }
+        const commitSentRequest = JSON.parse(socket.sent[2]) as { id: string, method: string, params: unknown[] }
+        const discardRequest = JSON.parse(socket.sent[3]) as { id: string, method: string, params: unknown[] }
+        const integrateRequest = JSON.parse(socket.sent[4]) as { id: string, method: string, params: unknown[] }
+        const parkRequest = JSON.parse(socket.sent[5]) as { id: string, method: string, params: unknown[] }
+        const prepareRequest = JSON.parse(socket.sent[6]) as { id: string, method: string, params: unknown[] }
+        const pullRequest = JSON.parse(socket.sent[7]) as { id: string, method: string, params: unknown[] }
+        const pushRequest = JSON.parse(socket.sent[8]) as { id: string, method: string, params: unknown[] }
+        const refreshRequest = JSON.parse(socket.sent[9]) as { id: string, method: string, params: unknown[] }
+        const removeRequest = JSON.parse(socket.sent[10]) as { id: string, method: string, params: unknown[] }
+        const deleteRequest = JSON.parse(socket.sent[11]) as { id: string, method: string, params: unknown[] }
+        expect(selectionRequest).toMatchObject({ method: 'selectWorktreeFolder', params: [] })
+        expect(addRequest).toMatchObject({ method: 'addWorktree', params: [project, 'C:/feature'] })
         expect(commitSentRequest).toMatchObject({ method: 'commitWorktree', params: [commitRequest] })
         expect(discardRequest).toMatchObject({ method: 'discardWorktreeChanges', params: [operationRequest] })
         expect(integrateRequest).toMatchObject({ method: 'integrateWorktree', params: [integrationRequest] })
@@ -241,14 +244,17 @@ describe('RemoteControlStorageService', () => {
         expect(removeRequest).toMatchObject({ method: 'removeWorktree', params: [project, 'C:/feature'] })
         expect(deleteRequest).toMatchObject({ method: 'deleteLocalBranch', params: [project, 'feature'] })
         for (const request of [
-            addRequest, commitSentRequest, discardRequest, integrateRequest, parkRequest, prepareRequest,
+            selectionRequest, addRequest, commitSentRequest, discardRequest, integrateRequest, parkRequest, prepareRequest,
             pullRequest, pushRequest, refreshRequest, removeRequest, deleteRequest,
         ]) {
-            const result = request === addRequest ? true : request === integrateRequest ? { status: 'completed' } : undefined
+            const result = request === selectionRequest
+                ? 'C:/feature'
+                : request === integrateRequest ? { status: 'completed' } : undefined
             socket.receive({ id: request.id, result })
         }
+        await expect(selection).resolves.toBe('C:/feature')
 
-        await expect(addition).resolves.toBe(true)
+        await expect(addition).resolves.toBeUndefined()
         await expect(commit).resolves.toBeUndefined()
         await expect(discard).resolves.toBeUndefined()
         await expect(integration).resolves.toEqual({ status: 'completed' })

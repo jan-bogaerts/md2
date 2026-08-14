@@ -1,6 +1,7 @@
 import {
     Box,
     Button,
+    CircularProgress,
     Dialog,
     DialogActions,
     DialogContent,
@@ -8,6 +9,7 @@ import {
     Stack,
     Tab,
     Tabs,
+    Typography,
     useMediaQuery,
     useTheme,
 } from '@mui/material'
@@ -32,12 +34,15 @@ import { MarkdownConfigSection } from './markdown_config_section'
 import { agentCapabilitiesService } from '../../services/agents/agent_capabilities_service'
 import { getElectronRemoteControlBridge } from '../../data/electron_remote_control_bridge'
 import { useProjectReadOnly } from '../hooks/use_project_read_only'
+import { useWorktreeDraft } from '../hooks/use_worktrees'
+import { worktreeService } from '../../services/project/worktree_service'
 
 const CONFIG_PAGE_PADDING = 3
 const CONFIG_FORM_MAX_WIDTH = 720
 const CONFIG_SIDEBAR_WIDTH = 220
 const DRAFT_DISCARD_DELAY_MS = 0
 const MARKDOWN_CONFIG_SECTION = { id: 'markdown', label: 'Markdown' }
+let configPageMountGeneration = 0
 
 interface MarkdownStyleDraft {
     config: MarkdownStyleConfig
@@ -86,6 +91,7 @@ export function ConfigPage(props: ConfigPageProps) {
         setMarkdownStyle,
     } = useAppTheme()
     const draft = useSyncExternalStore(subscribeToConfigChanges, getConfigDraftSnapshot)
+    const worktreeDraft = useWorktreeDraft()
     const [invalidConfigKeys, setInvalidConfigKeys] = useState<Set<ConfigKey>>(() => new Set())
     const [isSaving, setIsSaving] = useState(false)
     const [markdownStyleDraft, setMarkdownStyleDraft] = useState<MarkdownStyleDraft>(() => ({
@@ -105,6 +111,8 @@ export function ConfigPage(props: ConfigPageProps) {
     }, [visibleSections.length])
 
     useEffect(() => {
+        configPageMountGeneration += 1
+        const mountGeneration = configPageMountGeneration
         if (draftDiscardTimeoutRef.current !== null) {
             window.clearTimeout(draftDiscardTimeoutRef.current)
             draftDiscardTimeoutRef.current = null
@@ -112,10 +120,13 @@ export function ConfigPage(props: ConfigPageProps) {
 
         const currentDraft = configService.getDraft()
         if (!currentDraft) configService.loadDraft()
+        if (worktreeService.isSupported()) worktreeService.startDraft()
         return () => {
             // React StrictMode mounts, unmounts, and remounts effects; delay discard so the remount can cancel it.
             draftDiscardTimeoutRef.current = window.setTimeout(() => {
+                if (configPageMountGeneration !== mountGeneration) return
                 configService.discardDraft()
+                worktreeService.discardDraft()
                 draftDiscardTimeoutRef.current = null
             }, DRAFT_DISCARD_DELAY_MS)
         }
@@ -160,7 +171,11 @@ export function ConfigPage(props: ConfigPageProps) {
 
     const handleSaveClick = async () => {
         setIsSaving(true)
+        let applyingWorktrees = !!worktreeDraft
+            && (worktreeDraft.additions.length > 0 || worktreeDraft.removals.length > 0)
         try {
+            if (applyingWorktrees) await worktreeService.applyDraft()
+            applyingWorktrees = false
             const shouldSaveProjectConfig = configService.hasDraftChangesForSource('project')
             const shouldSaveDesktopConfig = configService.hasDraftChangesForSource('desktop')
             const previousCardSeparator = configService.get('project.cardSeparator')
@@ -200,7 +215,7 @@ export function ConfigPage(props: ConfigPageProps) {
             }
             dialogService.success('Config saved')
         } catch (error) {
-            dialogService.error(error, { fallbackMessage: 'Config save failed' })
+            dialogService.error(error, { fallbackMessage: applyingWorktrees ? 'Worktree setup failed' : 'Config save failed' })
         } finally {
             setIsSaving(false)
         }
@@ -208,6 +223,7 @@ export function ConfigPage(props: ConfigPageProps) {
 
     const handleCancelClick = () => {
         configService.discardDraft()
+        worktreeService.discardDraft()
         navigateTo('/')
     }
 
@@ -238,7 +254,7 @@ export function ConfigPage(props: ConfigPageProps) {
             fullScreen={isMobile}
             fullWidth
             maxWidth="lg"
-            onClose={handleCancelClick}
+            onClose={isSaving ? undefined : handleCancelClick}
             open
         >
             <DialogTitle id="config-dialog-title" sx={{ borderBottom: 1, borderColor: 'divider' }}>
@@ -281,7 +297,13 @@ export function ConfigPage(props: ConfigPageProps) {
                 </Box>
             </DialogContent>
             <DialogActions sx={{ bgcolor: 'background.default', borderTop: 1, borderColor: 'divider' }}>
-                <Button onClick={handleCancelClick} variant="outlined">
+                {worktreeDraft?.applying ? (
+                    <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                        <CircularProgress size={20} />
+                        <Typography variant="body2">Setting up worktrees with Git...</Typography>
+                    </Stack>
+                ) : null}
+                <Button disabled={isSaving} onClick={handleCancelClick} variant="outlined">
                     Cancel
                 </Button>
                 <Button disabled={isSaving || invalidConfigKeys.size > 0 || !markdownStyleValid} onClick={handleSaveClick} variant="contained">

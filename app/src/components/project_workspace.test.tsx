@@ -94,7 +94,7 @@ function createBridge(actionFiles: ActionFile[] = []): ElectronDataBridge {
         push: vi.fn(),
         resolveProject: vi.fn(async (project) => project),
         saveProjectConfig: vi.fn(),
-        addWorktree: vi.fn(async () => false),
+        addWorktree: vi.fn(async () => undefined),
         removeWorktree: vi.fn(async () => undefined),
         watchProject: vi.fn(() => vi.fn()),
     }

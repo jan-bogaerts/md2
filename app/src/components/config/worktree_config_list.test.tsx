@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ProjectReference, StorageService, WorktreeRecord } from '../../data/data_types'
 import { worktreeService } from '../../services/project/worktree_service'
@@ -36,58 +36,58 @@ describe('WorktreeConfigList', () => {
         worktreeService.clear()
     })
 
-    it('adds and removes Git worktrees immediately', async () => {
-        let callback: ((state: {
-            error: null
-            primaryStatus: null
-            project: ProjectReference
-            records: WorktreeRecord[]
-        }) => void) | null = null
+    it('shows additions and removals as pending without mutating Git', async () => {
         const storage = {
-            addWorktree: vi.fn(async () => {
-                callback?.({ error: null, primaryStatus: null, project, records: [first, second] })
-                return true
-            }),
+            addWorktree: vi.fn(async () => undefined),
             onWorktreesChanged: vi.fn((listener) => {
-                callback = listener
                 listener({ error: null, primaryStatus: null, project, records: [first] })
                 return vi.fn()
             }),
-            removeWorktree: vi.fn(async () => callback?.({ error: null, primaryStatus: null, project, records: [second] })),
+            removeWorktree: vi.fn(async () => undefined),
+            selectWorktreeFolder: vi.fn(async () => second.path),
         } as unknown as StorageService
         initWorktreeService(storage)
+        worktreeService.startDraft()
 
         render(<AppThemeProvider><WorktreeConfigList /></AppThemeProvider>)
         expect(screen.getByText('C:\\one')).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Add linked worktree' }))
         expect(await screen.findByText('C:\\two')).toBeInTheDocument()
+        expect(screen.getByText('Pending addition')).toBeInTheDocument()
+        expect(storage.addWorktree).not.toHaveBeenCalled()
 
         fireEvent.click(screen.getByRole('button', { name: 'Remove worktree 1' }))
-        expect(screen.getByText(/Git will remove the checkout folder C:\\one/u)).toBeInTheDocument()
-        fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
+        const removeDialog = screen.getByRole('dialog', { name: 'Remove linked worktree?' })
+        expect(within(removeDialog).getByText(/after Save/u)).toBeInTheDocument()
+        fireEvent.click(within(removeDialog).getByRole('button', { name: 'Remove' }))
 
-        await waitFor(() => expect(worktreeService.getRecords()).toEqual([second]))
-        expect(storage.removeWorktree).toHaveBeenCalledWith(project, first.path)
+        expect(screen.getByText('Pending removal')).toBeInTheDocument()
+        expect(storage.removeWorktree).not.toHaveBeenCalled()
+
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Remove linked worktree?' })).not.toBeInTheDocument())
+        fireEvent.click(screen.getByRole('button', { name: 'Remove worktree 2' }))
+        expect(screen.queryByText('C:\\two')).not.toBeInTheDocument()
     })
 
-    it('shows progress while creating a Git worktree', async () => {
-        const pendingAddition = createDeferred<boolean>()
+    it('shows progress while selecting a worktree folder', async () => {
+        const pendingSelection = createDeferred<string | null>()
         const storage = {
-            addWorktree: vi.fn(() => pendingAddition.promise),
             onWorktreesChanged: vi.fn((listener) => {
                 listener({ error: null, primaryStatus: null, project, records: [first] })
                 return vi.fn()
             }),
+            selectWorktreeFolder: vi.fn(() => pendingSelection.promise),
         } as unknown as StorageService
         initWorktreeService(storage)
+        worktreeService.startDraft()
 
         render(<AppThemeProvider><WorktreeConfigList /></AppThemeProvider>)
         fireEvent.click(screen.getByRole('button', { name: 'Add linked worktree' }))
 
-        expect(await screen.findByRole('progressbar', { name: 'Creating linked worktree' })).toBeInTheDocument()
+        expect(await screen.findByRole('progressbar', { name: 'Selecting linked worktree folder' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Add linked worktree' })).toBeDisabled()
 
-        pendingAddition.resolve(true)
-        await waitFor(() => expect(screen.queryByRole('progressbar', { name: 'Creating linked worktree' })).not.toBeInTheDocument())
+        pendingSelection.resolve(null)
+        await waitFor(() => expect(screen.queryByRole('progressbar', { name: 'Selecting linked worktree folder' })).not.toBeInTheDocument())
     })
 })

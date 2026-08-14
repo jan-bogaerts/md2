@@ -370,7 +370,7 @@ export interface StorageProjectFiles {
 }
 
 export interface StorageService {
-    addWorktree?(project: ProjectReference): Promise<boolean>
+    addWorktree?(project: ProjectReference, folderPath: string): Promise<void>
     checkoutBranch(project: ProjectReference, branch: string): Promise<ProjectReference>
     commit(request: CommitRequest): Promise<CommitResult>
     commitWorktree?(request: CommitWorktreeRequest): Promise<void>
@@ -419,6 +419,7 @@ export interface StorageService {
     refreshWorktrees?(project: ProjectReference): Promise<void>
     saveActionSchedules?(project: ProjectReference, actionsFolder: string, schedules: ActionSchedule[]): Promise<ActionSchedule[]>
     saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>
+    selectWorktreeFolder?(): Promise<string | null>
     removeWorktree?(project: ProjectReference, folderPath: string): Promise<void>
     stopAgent?(project: ProjectReference, runId: string): Promise<void>
     watchProject?(

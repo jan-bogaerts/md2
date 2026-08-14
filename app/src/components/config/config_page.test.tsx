@@ -14,8 +14,15 @@ import type { DesktopConfigValues } from '../../services/config/config_entries'
 import { setDesktopConfigTransportOverride } from '../../services/config/desktop_config_transport'
 import { agentCapabilitiesService } from '../../services/agents/agent_capabilities_service'
 import { projectAccessService } from '../../services/project/project_access_service'
+import type { ProjectReference, StorageService, WorktreeRecord } from '../../data/data_types'
+import { createDeferred } from '../../services/test_support/data_service_test_support'
 
 const useAppThemeMock = vi.hoisted(() => vi.fn())
+const worktreeProject: ProjectReference = { branch: 'main', id: 'project', rootPath: 'C:\\primary' }
+const worktreeRecord: WorktreeRecord = {
+    branch: 'one', error: null, parkingBranch: 'md2/parking/one', path: 'C:\\one',
+    status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false }, valid: true,
+}
 
 vi.mock('../../theme/use_app_theme', () => ({ useAppTheme: useAppThemeMock }))
 
@@ -41,6 +48,23 @@ function mockMatchMedia(matches: boolean) {
 function initConfigFromElectronBridge() {
     const desktopConfig = window.md2Config?.getDesktopConfig() ?? null
     configService.init({ desktopConfig })
+}
+
+function initWorktreeConfig(storage: StorageService, records: WorktreeRecord[] = [worktreeRecord]) {
+    worktreeService.init({
+        assignCardWorktree: vi.fn(),
+        cardSeparatorProvider: () => '-',
+        clearCardBranch: vi.fn(),
+        flushPendingChanges: vi.fn(async () => undefined),
+        projectFolderProvider: () => 'design',
+        projectProvider: () => worktreeProject,
+        snapshotProvider: () => null,
+        storageProvider: () => storage,
+        unassignCardWorktree: vi.fn(),
+    })
+    const subscription = vi.mocked(storage.onWorktreesChanged!).mock.calls[0]?.[0]
+    if (!subscription) throw new Error('Missing worktree subscription')
+    subscription({ error: null, primaryStatus: null, project: worktreeProject, records })
 }
 
 describe('ConfigPage', () => {
@@ -368,6 +392,109 @@ describe('ConfigPage', () => {
         expect(screen.getByRole('tablist', { name: 'Config sections' })).toBeInTheDocument()
         expect(screen.getByLabelText('Push mode')).toBeInTheDocument()
         saveProjectConfig.mockRestore()
+    })
+
+    it('applies worktree removals before additions and before project config persistence', async () => {
+        mockMatchMedia(false)
+        configService.init()
+        configService.loadProjectConfig(null)
+        const pendingAddition = createDeferred<void>()
+        const storage = {
+            addWorktree: vi.fn(() => pendingAddition.promise),
+            onWorktreesChanged: vi.fn(() => vi.fn()),
+            refreshWorktrees: vi.fn(async () => undefined),
+            removeWorktree: vi.fn(async () => undefined),
+            selectWorktreeFolder: vi.fn(async () => 'C:\\two'),
+        } as unknown as StorageService
+        initWorktreeConfig(storage)
+        const saveProjectConfig = vi.spyOn(dataService.projectLoading, 'saveProjectConfig').mockResolvedValue()
+
+        renderConfigPage('#project')
+        fireEvent.click(screen.getByRole('button', { name: 'Add linked worktree' }))
+        await screen.findByText('Pending addition')
+        fireEvent.click(screen.getByRole('button', { name: 'Remove worktree 1' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Remove linked worktree?' })).not.toBeInTheDocument())
+        configService.setDraftValue('project.pushMode', 'auto')
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+        await waitFor(() => expect(storage.addWorktree).toHaveBeenCalledWith(worktreeProject, 'C:\\two'))
+        expect(storage.removeWorktree).toHaveBeenCalledWith(worktreeProject, worktreeRecord.path)
+        expect(vi.mocked(storage.removeWorktree!).mock.invocationCallOrder[0])
+            .toBeLessThan(vi.mocked(storage.addWorktree!).mock.invocationCallOrder[0])
+        expect(saveProjectConfig).not.toHaveBeenCalled()
+        expect(screen.getByText('Setting up worktrees with Git...')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Add linked worktree' })).toBeDisabled()
+        expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled()
+        expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
+
+        pendingAddition.resolve()
+        await waitFor(() => expect(saveProjectConfig).toHaveBeenCalledOnce())
+        expect(vi.mocked(storage.addWorktree!).mock.invocationCallOrder[0])
+            .toBeLessThan(saveProjectConfig.mock.invocationCallOrder[0])
+        saveProjectConfig.mockRestore()
+    })
+
+    it('keeps unapplied worktree and config drafts after partial Git failure', async () => {
+        mockMatchMedia(false)
+        configService.init()
+        configService.loadProjectConfig(null)
+        const secondRecord = { ...worktreeRecord, branch: 'two', path: 'C:\\two' }
+        const failure = new Error('second removal failed')
+        const storage = {
+            addWorktree: vi.fn(async () => undefined),
+            onWorktreesChanged: vi.fn(() => vi.fn()),
+            refreshWorktrees: vi.fn(async () => undefined),
+            removeWorktree: vi.fn().mockResolvedValueOnce(undefined).mockRejectedValueOnce(failure),
+            selectWorktreeFolder: vi.fn(async () => null),
+        } as unknown as StorageService
+        initWorktreeConfig(storage, [worktreeRecord, secondRecord])
+        const reportError = vi.spyOn(dialogService, 'error')
+        const saveProjectConfig = vi.spyOn(dataService.projectLoading, 'saveProjectConfig').mockResolvedValue()
+        const previousPushMode = configService.get('project.pushMode')
+
+        renderConfigPage('#project')
+        fireEvent.click(screen.getByRole('button', { name: 'Remove worktree 1' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Remove linked worktree?' })).not.toBeInTheDocument())
+        fireEvent.click(screen.getByRole('button', { name: 'Remove worktree 2' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
+        await waitFor(() => expect(screen.getAllByText('Pending removal')).toHaveLength(2))
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Remove linked worktree?' })).not.toBeInTheDocument())
+        configService.setDraftValue('project.pushMode', previousPushMode === 'auto' ? 'manual' : 'auto')
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+        await waitFor(() => expect(reportError).toHaveBeenCalledWith(failure, { fallbackMessage: 'Worktree setup failed' }))
+        expect(storage.refreshWorktrees).toHaveBeenCalledWith(worktreeProject)
+        expect(worktreeService.getDraft()?.removals).toEqual([secondRecord.path])
+        expect(configService.get('project.pushMode')).toBe(previousPushMode)
+        expect(saveProjectConfig).not.toHaveBeenCalled()
+        expect(window.location.hash).toBe('#/config')
+        reportError.mockRestore()
+        saveProjectConfig.mockRestore()
+    })
+
+    it('discards pending worktree changes on Cancel', async () => {
+        mockMatchMedia(false)
+        configService.init()
+        configService.loadProjectConfig(null)
+        const storage = {
+            addWorktree: vi.fn(async () => undefined),
+            onWorktreesChanged: vi.fn(() => vi.fn()),
+            refreshWorktrees: vi.fn(async () => undefined),
+            removeWorktree: vi.fn(async () => undefined),
+            selectWorktreeFolder: vi.fn(async () => 'C:\\two'),
+        } as unknown as StorageService
+        initWorktreeConfig(storage)
+
+        renderConfigPage('#project')
+        fireEvent.click(screen.getByRole('button', { name: 'Add linked worktree' }))
+        await screen.findByText('Pending addition')
+        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+
+        expect(worktreeService.getDraft()).toBeNull()
+        expect(storage.addWorktree).not.toHaveBeenCalled()
+        expect(storage.removeWorktree).not.toHaveBeenCalled()
     })
 
     it('reports project config save errors through the dialog service', async () => {

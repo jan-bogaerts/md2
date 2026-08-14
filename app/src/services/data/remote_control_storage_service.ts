@@ -150,8 +150,8 @@ function isResponse(message: RemoteControlResponse | RemoteControlEvent): messag
 
 export class RemoteControlStorageService implements
     StorageService, ElectronActionBridge, ElectronCodexRuntimeBridge, DesktopConfigTransport {
-    async addWorktree(project: ProjectReference): Promise<boolean> {
-        return this.request<boolean>('addWorktree', [project])
+    async addWorktree(project: ProjectReference, folderPath: string): Promise<void> {
+        await this.request('addWorktree', [project, folderPath])
     }
 
     private actionRunCallbacks: Map<string, (event: ActionRunEvent) => void>
@@ -343,6 +343,10 @@ export class RemoteControlStorageService implements
 
     async removeWorktree(project: ProjectReference, folderPath: string): Promise<void> {
         await this.request('removeWorktree', [project, folderPath])
+    }
+
+    async selectWorktreeFolder(): Promise<string | null> {
+        return this.request<string | null>('selectWorktreeFolder', [])
     }
 
     async loadPendingPush(project: ProjectReference) {

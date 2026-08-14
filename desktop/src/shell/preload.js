@@ -66,6 +66,7 @@ const DATA_METHODS = [
     'resolveProject',
     'saveActionSchedules',
     'saveProjectConfig',
+    'selectWorktreeFolder',
     'stopAgent',
 ];
 const ACTION_METHODS = [

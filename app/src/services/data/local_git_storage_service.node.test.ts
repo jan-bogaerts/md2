@@ -69,7 +69,7 @@ describe('LocalGitStorageService binary write path', () => {
     it('forwards linked worktree mutations to the bridge', async () => {
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
         const worktree = { branch: 'feature', error: null, path: 'C:/feature', valid: true }
-        const addWorktree = vi.fn().mockResolvedValue(true)
+        const addWorktree = vi.fn().mockResolvedValue(undefined)
         const commitWorktree = vi.fn().mockResolvedValue(undefined)
         const discardWorktreeChanges = vi.fn().mockResolvedValue(undefined)
         const deleteLocalBranch = vi.fn().mockResolvedValue(undefined)
@@ -80,18 +80,20 @@ describe('LocalGitStorageService binary write path', () => {
         const pushWorktree = vi.fn().mockResolvedValue(undefined)
         const refreshWorktrees = vi.fn().mockResolvedValue(undefined)
         const removeWorktree = vi.fn().mockResolvedValue(undefined)
+        const selectWorktreeFolder = vi.fn().mockResolvedValue('C:/feature')
         const service = new LocalGitStorageService()
         service.init({
             bridge: createBridge({
                 addWorktree, commitWorktree, deleteLocalBranch, discardWorktreeChanges, integrateWorktree, parkWorktree, prepareWorktree,
-                pullWorktree, pushWorktree, refreshWorktrees, removeWorktree,
+                pullWorktree, pushWorktree, refreshWorktrees, removeWorktree, selectWorktreeFolder,
             }),
         })
         const preparationRequest = { branchName: 'card-title', project, worktree: 1 }
         const operationRequest = { project, worktree: 1 }
         const commitRequest = { ...operationRequest, message: 'F-1: Card' }
 
-        await expect(service.addWorktree(project)).resolves.toBe(true)
+        await expect(service.selectWorktreeFolder()).resolves.toBe('C:/feature')
+        await expect(service.addWorktree(project, worktree.path)).resolves.toBeUndefined()
         await expect(service.commitWorktree(commitRequest)).resolves.toBeUndefined()
         await expect(service.discardWorktreeChanges(operationRequest)).resolves.toBeUndefined()
         await expect(service.deleteLocalBranch(project, 'feature')).resolves.toBeUndefined()
@@ -102,7 +104,8 @@ describe('LocalGitStorageService binary write path', () => {
         await expect(service.pushWorktree(operationRequest)).resolves.toBeUndefined()
         await expect(service.refreshWorktrees(project)).resolves.toBeUndefined()
         await expect(service.removeWorktree(project, worktree.path)).resolves.toBeUndefined()
-        expect(addWorktree).toHaveBeenCalledWith(project)
+        expect(selectWorktreeFolder).toHaveBeenCalledOnce()
+        expect(addWorktree).toHaveBeenCalledWith(project, worktree.path)
         expect(commitWorktree).toHaveBeenCalledWith(commitRequest)
         expect(discardWorktreeChanges).toHaveBeenCalledWith(operationRequest)
         expect(deleteLocalBranch).toHaveBeenCalledWith(project, 'feature')

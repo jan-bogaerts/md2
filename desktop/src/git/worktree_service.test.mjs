@@ -54,6 +54,44 @@ function createService(options = {}) {
     });
 }
 
+describe('WorktreeService linked worktree mutations', () => {
+    it('creates a linked worktree and prepares its parking branch', async () => {
+        const repository = await createRepository();
+        const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };
+        const service = createService();
+        const addedPath = join(repository.folderPath, 'added');
+
+        try {
+            await service.startProject(project);
+            await service.add(project, addedPath);
+
+            const addedRecord = service.getRecords(project).find((record) => record.path === addedPath);
+            expect(addedRecord).toBeDefined();
+            expect(await runGit(addedPath, ['branch', '--show-current'])).toBe(addedRecord.parkingBranch);
+        } finally {
+            service.stopProject();
+            await rm(repository.folderPath, { force: true, recursive: true });
+        }
+    }, 30_000);
+
+    it('removes a clean checkout without deleting its branch', async () => {
+        const repository = await createRepository();
+        const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };
+        const service = createService();
+
+        try {
+            await service.startProject(project);
+            await service.remove(project, repository.linkedPath);
+
+            expect(service.getRecords(project)).toEqual([]);
+            expect(await runGit(repository.primaryPath, ['branch', '--list', 'feature'])).toBe('feature');
+        } finally {
+            service.stopProject();
+            await rm(repository.folderPath, { force: true, recursive: true });
+        }
+    }, 30_000);
+});
+
 async function commitConflictingChanges(repository) {
     await writeFile(join(repository.linkedPath, 'base.txt'), 'linked\n');
     await runGit(repository.linkedPath, ['add', 'base.txt']);

@@ -35,7 +35,7 @@ export interface AgentAvailability {
 
 export interface ElectronDataBridge {
     abortMergeConflict?(request: MergeConflictSessionRequest): Promise<void>
-    addWorktree?(project: ProjectReference): Promise<boolean>
+    addWorktree?(project: ProjectReference, folderPath: string): Promise<void>
     checkoutBranch(project: ProjectReference, branch: string): Promise<ProjectReference>
     commit(request: CommitRequest): Promise<CommitResult>
     commitWorktree?(request: CommitWorktreeRequest): Promise<void>
@@ -80,6 +80,7 @@ export interface ElectronDataBridge {
     resolveProject(project: ProjectReference): Promise<ProjectReference>
     saveActionSchedules?(project: ProjectReference, actionsFolder: string, schedules: ActionSchedule[]): Promise<ActionSchedule[]>
     saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>
+    selectWorktreeFolder?(): Promise<string | null>
     removeWorktree?(project: ProjectReference, folderPath: string): Promise<void>
     stopAgent?(runId: string): Promise<void>
     watchProject(project: ProjectReference, callback: (notification: ProjectWatchNotification) => void): () => void

@@ -328,12 +328,27 @@ describe('createLocalBridgeDispatch', () => {
         expect(worktreeService.startProject).toHaveBeenCalledOnce();
     });
 
-    it('adds a worktree at the selected folder and returns the picker status', async () => {
+    it('selects a worktree folder without mutating Git', async () => {
         const openWorktreeFolder = vi.fn(async () => 'C:/feature');
         const { dispatch, worktreeService } = createDispatch({ openWorktreeFolder });
+
+        await expect(dispatch.dataBridge.selectWorktreeFolder()).resolves.toBe('C:/feature');
+        expect(worktreeService.add).not.toHaveBeenCalled();
+    });
+
+    it('returns null when worktree folder selection is cancelled', async () => {
+        const openWorktreeFolder = vi.fn(async () => null);
+        const { dispatch, worktreeService } = createDispatch({ openWorktreeFolder });
+
+        await expect(dispatch.dataBridge.selectWorktreeFolder()).resolves.toBeNull();
+        expect(worktreeService.add).not.toHaveBeenCalled();
+    });
+
+    it('adds a worktree at the supplied folder', async () => {
+        const { dispatch, worktreeService } = createDispatch();
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
 
-        await expect(dispatch.dataBridge.addWorktree(project)).resolves.toBe(true);
+        await expect(dispatch.dataBridge.addWorktree(project, 'C:/feature')).resolves.toBeUndefined();
         expect(worktreeService.add).toHaveBeenCalledWith(project, 'C:/feature');
     });
 
