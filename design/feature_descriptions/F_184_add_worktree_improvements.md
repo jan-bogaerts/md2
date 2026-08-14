@@ -3,12 +3,11 @@ author:
 id: F_184
 internalId: bd257fa5-fafa-425b-be61-73a090e1ccf5
 title: add worktree improvements
-status: new
+status: design
 owner: 
 affects:
 agents:
 policy:
-after: 96236df6-2c3a-4846-9d52-f29b7ee9041d
 ---
 
 after selecting a folder, the spinner on the 'folder tree' keeps spinning for some time while git is setting up the folder.
