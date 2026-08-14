@@ -228,6 +228,7 @@ export function CardView(props: CardViewProps) {
                     onDeleteCard={handleDeleteCard}
                     onOpenAffects={handleOpenAffects}
                     onOpenInFileMode={handleOpenInFileMode}
+                    states={states}
                     statusColors={statusColors}
                     visible
                 />

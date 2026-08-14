@@ -63,6 +63,8 @@ const secondCard: Card = {
     path: 'design/F-061.md',
 }
 
+const states = [{ alwaysVisible: true, state: 'ready' }]
+
 afterEach(() => {
     cleanup()
     cardPopupService.clear()
@@ -100,6 +102,7 @@ describe('CardBodyPopover commit diff', () => {
                     onDeleteCard={vi.fn(async () => undefined)}
                     onOpenAffects={vi.fn()}
                     onOpenInFileMode={vi.fn()}
+                    states={states}
                     statusColors={new Map()}
                     visible
                 />
@@ -142,6 +145,7 @@ describe('CardBodyPopover commit diff', () => {
                     onDeleteCard={vi.fn(async () => undefined)}
                     onOpenAffects={vi.fn()}
                     onOpenInFileMode={vi.fn()}
+                    states={states}
                     statusColors={new Map()}
                     visible
                 />
@@ -171,6 +175,7 @@ describe('CardBodyPopover commit diff', () => {
                     onDeleteCard={vi.fn(async () => undefined)}
                     onOpenAffects={vi.fn()}
                     onOpenInFileMode={vi.fn()}
+                    states={states}
                     statusColors={new Map()}
                     visible
                 />
@@ -204,6 +209,7 @@ describe('CardBodyPopover commit diff', () => {
                     onDeleteCard={vi.fn(async () => undefined)}
                     onOpenAffects={vi.fn()}
                     onOpenInFileMode={vi.fn()}
+                    states={states}
                     statusColors={new Map()}
                     visible
                 />
@@ -227,6 +233,7 @@ describe('CardBodyPopover commit diff', () => {
             onDeleteCard: vi.fn(async () => undefined),
             onOpenAffects: vi.fn(),
             onOpenInFileMode: vi.fn(),
+            states,
             statusColors: new Map<string, string>(),
             visible: true,
         }
@@ -259,6 +266,7 @@ describe('CardBodyPopover commit diff', () => {
                     onDeleteCard={vi.fn(async () => undefined)}
                     onOpenAffects={vi.fn()}
                     onOpenInFileMode={vi.fn()}
+                    states={states}
                     statusColors={new Map()}
                     visible
                 />
@@ -304,6 +312,7 @@ describe('CardBodyPopover commit diff', () => {
                     onDeleteCard={vi.fn(async () => undefined)}
                     onOpenAffects={vi.fn()}
                     onOpenInFileMode={vi.fn()}
+                    states={states}
                     statusColors={new Map()}
                     visible
                 />

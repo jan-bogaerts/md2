@@ -5,7 +5,7 @@ import Close from 'mdi-material-ui/Close'
 import DeleteOutline from 'mdi-material-ui/DeleteOutline'
 import FileDocumentOutline from 'mdi-material-ui/FileDocumentOutline'
 import FolderSearchOutline from 'mdi-material-ui/FolderSearchOutline'
-import type { CardTypeConfig } from '../../data/data_types'
+import type { CardTypeConfig, StateConfig } from '../../data/data_types'
 import type { ActionContext } from '../../data/action_context'
 import { POPOVER_SIDE_MARGIN, POPOVER_TOP_MARGIN } from '../resizable_popover'
 import { ResizablePopper } from '../resizable_popper'
@@ -34,6 +34,7 @@ import {
 } from '../../services/card_popup_service'
 import { MarkdownTypeaheadLayerProvider } from '../editor/markdown_typeahead_layer_provider'
 import { useProjectReadOnly } from '../hooks/use_project_read_only'
+import { CardStateSelector } from './card_state_selector'
 
 const CARD_BODY_POPOVER_WIDTH = 760
 const CARD_BODY_POPOVER_HEIGHT = 620
@@ -67,6 +68,7 @@ interface CardBodyPopoverProps {
     onDeleteCard: (path: string) => Promise<void>
     onOpenAffects: (path: string) => void
     onOpenInFileMode: (path: string) => void
+    states: StateConfig[]
     statusColors: Map<string, string>
     visible: boolean
 }
@@ -105,6 +107,7 @@ function CardBodyPopoverEntry(props: CardBodyPopoverEntryProps) {
         onDeleteCard,
         onOpenAffects,
         onOpenInFileMode,
+        states,
         statusColors,
         stackPosition,
         visible,
@@ -426,6 +429,7 @@ function CardBodyPopoverEntry(props: CardBodyPopoverEntryProps) {
                             </Box>
 
                             <Box
+                                data-card-details-footer="true"
                                 sx={{
                                     alignItems: 'center',
                                     backgroundColor: 'background.default',
@@ -464,7 +468,14 @@ function CardBodyPopoverEntry(props: CardBodyPopoverEntryProps) {
                                     </>
                                 )}
                                 <AgentUsageDisplay usage={cardAgentTokenUsage(activity?.conversations ?? [])} />
-                                <Box sx={{ flex: 1 }} />
+                                <Box data-card-details-footer-spacer="true" sx={{ flex: 1 }} />
+                                <CardStateSelector
+                                    cardPath={card.path}
+                                    currentState={card.header.status}
+                                    disabled={readOnly}
+                                    states={states}
+                                    statusColors={statusColors}
+                                />
                                 {!isMobile ? <Button onClick={closePopover} variant="contained">Close</Button> : null}
                             </Box>
                         </Box>
