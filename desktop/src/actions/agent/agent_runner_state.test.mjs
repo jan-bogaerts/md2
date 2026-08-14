@@ -226,25 +226,47 @@ describe('AgentRunnerService state handling', () => {
         };
         service.processes.set('run-1', run);
 
-        await service.handleStreamingEvent('run-1', { type: 'usage', usage: firstSnapshot });
-        await service.handleStreamingEvent('run-1', { type: 'usage', usage: latestSnapshot });
+        const firstContextWindowUsage = { capacityTokens: 100_000, usedTokens: 5_000 };
+        const latestContextWindowUsage = { capacityTokens: 258_400, usedTokens: 42_000 };
+        await service.handleStreamingEvent('run-1', {
+            contextWindowUsage: firstContextWindowUsage,
+            type: 'usage',
+            usage: firstSnapshot,
+        });
+        await service.handleStreamingEvent('run-1', {
+            contextWindowUsage: latestContextWindowUsage,
+            type: 'usage',
+            usage: latestSnapshot,
+        });
 
         expect(run.conversation.usage).toEqual(persistedUsage);
-        expect(onEvent).toHaveBeenNthCalledWith(1, expect.objectContaining({ type: 'usage', usage: expect.objectContaining({ totalTokens: 15 }) }));
-        expect(onEvent).toHaveBeenNthCalledWith(2, expect.objectContaining({ type: 'usage', usage: expect.objectContaining({ totalTokens: 17 }) }));
+        expect(run.conversation).not.toHaveProperty('contextWindowUsage');
+        expect(onEvent).toHaveBeenNthCalledWith(1, expect.objectContaining({
+            contextWindowUsage: firstContextWindowUsage,
+            type: 'usage',
+            usage: expect.objectContaining({ totalTokens: 15 }),
+        }));
+        expect(onEvent).toHaveBeenNthCalledWith(2, expect.objectContaining({
+            contextWindowUsage: latestContextWindowUsage,
+            type: 'usage',
+            usage: expect.objectContaining({ totalTokens: 17 }),
+        }));
 
-        const contextWindowUsage = { capacityTokens: 258_400, usedTokens: 42_000 };
-        await service.handleStreamingEvent('run-1', { contextWindowUsage, type: 'turnCompleted', usage: latestSnapshot });
+        await service.handleStreamingEvent('run-1', {
+            contextWindowUsage: latestContextWindowUsage,
+            type: 'turnCompleted',
+            usage: latestSnapshot,
+        });
 
         expect(run.conversation.usage).toEqual(expect.objectContaining({ totalTokens: 17 }));
-        expect(run.conversation.contextWindowUsage).toEqual(contextWindowUsage);
+        expect(run.conversation.contextWindowUsage).toEqual(latestContextWindowUsage);
         expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({
-            contextWindowUsage,
+            contextWindowUsage: latestContextWindowUsage,
             type: 'usage',
             usage: expect.objectContaining({ totalTokens: 17 }),
         }));
         const expectedConversation = expect.objectContaining({
-            contextWindowUsage,
+            contextWindowUsage: latestContextWindowUsage,
             usage: expect.objectContaining({ totalTokens: 17 }),
         });
         expect(persistConversationCheckpoint).toHaveBeenCalledWith(expect.objectContaining({ conversation: expectedConversation }));
@@ -276,12 +298,14 @@ describe('AgentRunnerService state handling', () => {
         service.processes.set('run-1', run);
 
         await service.handleStreamingEvent('run-1', {
+            contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 },
             type: 'usage',
             usage: { cachedInputTokens: 0, inputTokens: 5, outputTokens: 0, reasoningTokens: 0, totalTokens: 5 },
         });
         service.failStreamingRun(run, new Error('Turn failed'));
 
         expect(run.conversation.usage).toBe(persistedUsage);
+        expect(run.conversation).not.toHaveProperty('contextWindowUsage');
         expect(run.liveTurnUsage).toEqual(expect.objectContaining({ totalTokens: 5 }));
     });
 

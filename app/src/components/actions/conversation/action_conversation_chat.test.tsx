@@ -152,14 +152,15 @@ describe('ActionConversationChat', () => {
         expect(screen.getByLabelText('Conversation chat').scrollTop).toBe(200)
     })
 
-    it('keeps duration and context in a metadata row outside the scrollable transcript', () => {
+    it('keeps duration and context as the final row inside the scrollable transcript', () => {
         const value = conversation('first.json', [message('message-1', 'First')])
         value.contextWindowUsage = { capacityTokens: 258_400, usedTokens: 42_000 }
         renderChat(value)
 
         const viewport = screen.getByLabelText('Conversation chat')
         const metadata = screen.getByLabelText('Conversation metadata')
-        expect(viewport).not.toContainElement(metadata)
+        expect(viewport).toContainElement(metadata)
+        expect(viewport.lastElementChild).toBe(metadata)
         expect(metadata).toContainElement(screen.getByLabelText('Elapsed time'))
         expect(metadata).toContainElement(screen.getByText('context: 16%'))
         expect(metadata).toHaveStyle({ alignItems: 'baseline' })
@@ -167,8 +168,7 @@ describe('ActionConversationChat', () => {
         viewport.scrollTop = 40
         fireEvent.scroll(viewport)
 
-        expect(screen.getByText('context: 16%')).toBeInTheDocument()
-        expect(screen.getByLabelText('Elapsed time')).toBeInTheDocument()
+        expect(viewport.scrollTop).toBe(40)
     })
 
     it('caps context occupancy and hides unavailable context without hiding duration', () => {

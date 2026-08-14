@@ -32,7 +32,11 @@ function handleTurnStarted(service, run) {
 function handleUsage(service, run, event) {
     run.liveTurnUsage = event.usage;
     const usage = accumulateUsage(run.conversation.usage, event.usage);
-    emitRunEvent(run, { type: 'usage', usage });
+    emitRunEvent(run, {
+        ...(event.contextWindowUsage !== undefined ? { contextWindowUsage: event.contextWindowUsage } : {}),
+        type: 'usage',
+        usage,
+    });
 }
 
 function handleAssistantStarted(service, run, event, timestamp) {

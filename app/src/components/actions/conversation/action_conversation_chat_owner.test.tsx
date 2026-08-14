@@ -99,7 +99,6 @@ describe('ActionConversationChatOwner', () => {
                         cardInternalId: null,
                         cardPath: context.file,
                         completedAt: null,
-                        contextWindowUsage: { capacityTokens: 200, usedTokens: 50 },
                         entries: [],
                         hasExplicitTitle: false,
                         id: 'conversation-1',
@@ -122,7 +121,19 @@ describe('ActionConversationChatOwner', () => {
         }))
 
         expect(screen.getByText('streamed')).toBeInTheDocument()
-        expect(screen.getByText('context: 25%')).toBeInTheDocument()
+        expect(screen.queryByText(/context:/u)).not.toBeInTheDocument()
+
+        act(() => emit({
+            ...event,
+            type: 'update',
+            update: {
+                contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 },
+                kind: 'agentUsage',
+                usage: { cachedInputTokens: 0, inputTokens: 41_000, outputTokens: 1_000, reasoningTokens: 0, totalTokens: 42_000 },
+            },
+        }))
+
+        expect(screen.getByText('context: 16%')).toBeInTheDocument()
     })
 
     it('updates duration and context together when selected conversation changes', () => {

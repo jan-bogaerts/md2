@@ -318,7 +318,7 @@ class CodexStreamingAdapter {
             if (!usage) return;
             this.turnContextWindowUsage = codexContextWindowUsage(params);
             this.turnUsage = usage;
-            await this.onEvent({ type: 'usage', usage });
+            await this.onEvent({ contextWindowUsage: this.turnContextWindowUsage, type: 'usage', usage });
             return;
         }
         if (method === 'account/rateLimits/updated') {

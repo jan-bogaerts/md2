@@ -116,30 +116,30 @@ export function ActionConversationChat({ conversation, status }: ActionConversat
                 {Array.from({ length: reservedBlockCount }, (_, index) => (
                     <ActionConversationReservedBlock key={`reserved-block-${index}`} />
                 ))}
+                {conversation || status !== 'idle' ? (
+                    <Stack
+                        aria-label="Conversation metadata"
+                        direction="row"
+                        spacing={1}
+                        sx={{ alignItems: 'baseline', flexShrink: 0 }}
+                    >
+                        {status !== 'idle' ? (
+                            <Typography color={status === 'failed' ? 'error.main' : 'text.secondary'} role="status" variant="caption">
+                                {actionStatusLabel(status)}
+                            </Typography>
+                        ) : null}
+                        {conversation ? (
+                            <ConversationTimer completedAt={conversation.completedAt} startedAt={conversation.startedAt} status={status} />
+                        ) : null}
+                        <Box sx={{ flex: 1 }} />
+                        {contextUsedPercent !== null ? (
+                            <Typography color="text.secondary" component="span" variant="caption">
+                                context: {contextUsedPercent}%
+                            </Typography>
+                        ) : null}
+                    </Stack>
+                ) : null}
             </Stack>
-            {conversation || status !== 'idle' ? (
-                <Stack
-                    aria-label="Conversation metadata"
-                    direction="row"
-                    spacing={1}
-                    sx={{ alignItems: 'baseline', flexShrink: 0 }}
-                >
-                    {status !== 'idle' ? (
-                        <Typography color={status === 'failed' ? 'error.main' : 'text.secondary'} role="status" variant="caption">
-                            {actionStatusLabel(status)}
-                        </Typography>
-                    ) : null}
-                    {conversation ? (
-                        <ConversationTimer completedAt={conversation.completedAt} startedAt={conversation.startedAt} status={status} />
-                    ) : null}
-                    <Box sx={{ flex: 1 }} />
-                    {contextUsedPercent !== null ? (
-                        <Typography color="text.secondary" component="span" variant="caption">
-                            context: {contextUsedPercent}%
-                        </Typography>
-                    ) : null}
-                </Stack>
-            ) : null}
         </Stack>
     )
 }

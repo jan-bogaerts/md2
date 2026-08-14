@@ -464,6 +464,7 @@ describe('CodexStreamingAdapter', () => {
         expect(events).toContainEqual({ paths: ['design/feature.md'], type: 'changedPaths' });
         expect(events).toContainEqual({ questions, requestId: 99, type: 'question' });
         expect(events).toContainEqual({
+            contextWindowUsage: { capacityTokens: 258_400, usedTokens: 10 },
             type: 'usage',
             usage: { cachedInputTokens: 2, inputTokens: 4, outputTokens: 3, reasoningTokens: 1, totalTokens: 10 },
         });
@@ -493,10 +494,33 @@ describe('CodexStreamingAdapter', () => {
         });
         await adapter.handleMessage({ method: 'turn/completed', params: { turn: { status: 'completed' } } });
 
+        expect(events.filter(({ type }) => type === 'usage')).toEqual([
+            expect.objectContaining({ contextWindowUsage: { capacityTokens: 100_000, usedTokens: 5 } }),
+            expect.objectContaining({ contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 } }),
+        ]);
         expect(events.at(-1)).toMatchObject({
             contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 },
             type: 'turnCompleted',
         });
+    });
+
+    it('clears live context-window usage when a token notification has invalid context data', async () => {
+        const { adapter, events } = harness('codex');
+        const last = { cachedInputTokens: 0, inputTokens: 4, outputTokens: 1, totalTokens: 5 };
+
+        await adapter.handleMessage({ method: 'turn/started', params: { turn: { id: 'turn-1' } } });
+        await adapter.handleMessage({
+            method: 'thread/tokenUsage/updated',
+            params: { tokenUsage: { last, modelContextWindow: 100_000 } },
+        });
+        await adapter.handleMessage({
+            method: 'thread/tokenUsage/updated',
+            params: { tokenUsage: { last, modelContextWindow: 0 } },
+        });
+        await adapter.handleMessage({ method: 'turn/completed', params: { turn: { status: 'completed' } } });
+
+        expect(events.filter(({ type }) => type === 'usage').at(-1)).toMatchObject({ contextWindowUsage: null });
+        expect(events.at(-1)).toMatchObject({ contextWindowUsage: null, type: 'turnCompleted' });
     });
 
     it('tracks concurrent approval requests and writes only supported decisions', async () => {

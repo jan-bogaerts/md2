@@ -379,6 +379,20 @@ describe('ActionRunRegistry', () => {
         expect(current.logs).toBe(previous.logs)
         expect(current.status).toBe('waitingForInput')
         expect(current.conversation?.status).toBe('waitingForInput')
+
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: {
+                contextWindowUsage: { capacityTokens: 100_000, usedTokens: 25_000 },
+                kind: 'agentUsage',
+                usage: { cachedInputTokens: 2, inputTokens: 4, outputTokens: 6, reasoningTokens: 8, totalTokens: 20 },
+            },
+        })
+
+        const replaced = getRun(service)
+        expect(replaced.conversation).not.toBe(current.conversation)
+        expect(current.conversation?.contextWindowUsage).toEqual({ capacityTokens: 258_400, usedTokens: 42_000 })
+        expect(replaced.conversation?.contextWindowUsage).toEqual({ capacityTokens: 100_000, usedTokens: 25_000 })
         service.stop()
     })
 
