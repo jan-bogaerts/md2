@@ -16,6 +16,6 @@ These files (or links to them) should be included in the prompt for the agent.
 
 ways to do this:&#x20;
 
-* File is added to the '
-* Drop file on card in board view
+* File is added to the 'references list, an optional card header field
+* ,Drop file on card in board view
 *
