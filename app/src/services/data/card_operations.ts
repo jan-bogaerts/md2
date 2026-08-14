@@ -5,6 +5,7 @@ import type { OpenDocumentSaveReference } from '../open_files_service'
 import { telemetryService } from '../telemetry/telemetry_service'
 import { CardArchiveOperations } from './card_archive_operations'
 import { CardInternalIdOperations } from './card_internal_id_operations'
+import { CardImageOperations } from './card_image_operations'
 import {
     CardOperationContext,
     type CardOperationsDeps,
@@ -30,6 +31,7 @@ export class CardOperations {
     private readonly context: CardOperationContext
     private readonly archives: CardArchiveOperations
     private readonly internalIds: CardInternalIdOperations
+    private readonly images: CardImageOperations
     private readonly projectFiles: ProjectFileOperations
     private readonly renames: CardRenameOperations
     private readonly triggerStateActions: (cardPath: string, state: string) => void
@@ -43,6 +45,7 @@ export class CardOperations {
         this.archives = new CardArchiveOperations(this.context, triggerStateActions)
         this.renames = new CardRenameOperations(this.context)
         this.internalIds = new CardInternalIdOperations(this.context, () => this.renames.reset())
+        this.images = new CardImageOperations(this.context)
         this.projectFiles = new ProjectFileOperations(this.context)
     }
 
@@ -70,6 +73,18 @@ export class CardOperations {
         telemetryService.trackEvent('create_card')
 
         return file
+    }
+
+    savePastedImageForCard(cardPath: string, file: File) {
+        return this.images.saveForCard(cardPath, file)
+    }
+
+    savePastedImageForNewCard(file: File) {
+        return this.images.saveForNewCard(file)
+    }
+
+    deletePastedImage(path: string) {
+        return this.images.delete(path)
     }
 
     createFolder(parentDirectory: string, name: string) {

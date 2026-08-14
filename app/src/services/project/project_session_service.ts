@@ -163,6 +163,8 @@ async function resolveRestoredProject(storageType: StorageType, storage: Storage
 
 export class ProjectSessionService extends EventTarget {
     private cardCreationState: CardCreationState = { isCreatingCard: false }
+    private readonly newCardImageSaves = new Set<Promise<void>>()
+    private readonly newCardImagePaths = new Set<string>()
     private readonly projectAccess = projectAccessService
     private state: ProjectSessionState = {
         errorMessage: null,
@@ -188,6 +190,40 @@ export class ProjectSessionService extends EventTarget {
 
     get isReadOnly() {
         return this.projectAccess.getSnapshot()
+    }
+
+    hasNewCardDraftImages() {
+        return this.newCardImagePaths.size > 0 || this.newCardImageSaves.size > 0
+    }
+
+    async pasteNewCardImage(file: File, insertMarkdown: (markdown: string) => void) {
+        const operation = this.saveAndInsertNewCardImage(file, insertMarkdown)
+        this.newCardImageSaves.add(operation)
+        try {
+            await operation
+        } finally {
+            this.newCardImageSaves.delete(operation)
+        }
+    }
+
+    async waitForNewCardImageSaves() {
+        while (this.newCardImageSaves.size > 0) {
+            await Promise.allSettled([...this.newCardImageSaves])
+        }
+    }
+
+    async discardNewCardDraftImages() {
+        await this.waitForNewCardImageSaves()
+        let deletionError: unknown = null
+        for (const path of [...this.newCardImagePaths]) {
+            try {
+                await dataService.cards.deletePastedImage(path)
+                this.newCardImagePaths.delete(path)
+            } catch (error) {
+                deletionError ??= error
+            }
+        }
+        if (deletionError) throw deletionError
     }
 
     setError(message: string | null) {
@@ -388,7 +424,9 @@ export class ProjectSessionService extends EventTarget {
         if (this.state.errorMessage !== null) this.setError(null)
 
         try {
+            await this.waitForNewCardImageSaves()
             await dataService.cards.createCard(draft, initialState)
+            this.newCardImagePaths.clear()
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Card creation failed'
             this.state = { ...this.state, errorMessage: message, pendingGithubConflictProject: null }
@@ -405,6 +443,22 @@ export class ProjectSessionService extends EventTarget {
 
         this.cardCreationState = { isCreatingCard }
         this.dispatchEvent(new CustomEvent<CardCreationState>('cardCreationChanged', { detail: this.cardCreationState }))
+    }
+
+    private async saveAndInsertNewCardImage(file: File, insertMarkdown: (markdown: string) => void) {
+        const savedImage = await dataService.cards.savePastedImageForNewCard(file)
+        this.newCardImagePaths.add(savedImage.path)
+        try {
+            insertMarkdown(`![pasted image](<${savedImage.fileName}>)`)
+        } catch (error) {
+            try {
+                await dataService.cards.deletePastedImage(savedImage.path)
+                this.newCardImagePaths.delete(savedImage.path)
+            } catch (cleanupError) {
+                dialogService.error(cleanupError, { fallbackMessage: `Could not remove ${savedImage.path}` })
+            }
+            throw error
+        }
     }
 
     private setReadOnly(isReadOnly: boolean) {

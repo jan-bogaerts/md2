@@ -41,6 +41,13 @@ function isControlShortcut(event: KeyboardEvent, key: string) {
     return event.ctrlKey && !event.altKey && !event.metaKey && event.key.toLowerCase() === key
 }
 
+function clipboardImageFile(clipboardData: DataTransfer) {
+    if (!clipboardData.items) return null
+    const imageItem = [...clipboardData.items].find(({ kind, type }) => kind === 'file' && type.startsWith('image/'))
+
+    return imageItem?.getAsFile() ?? null
+}
+
 /** Handles Markdown-aware and literal-text clipboard operations for MDXEditor. */
 export function MarkdownPastePlugin() {
     const config = useCellValue(markdownPasteConfig$)
@@ -86,6 +93,15 @@ export function MarkdownPastePlugin() {
         if (!config || config.readOnly || !('clipboardData' in event) || !event.clipboardData) return false
 
         try {
+            const imageFile = clipboardImageFile(event.clipboardData)
+            if (imageFile && config.imagePasteHandler) {
+                event.preventDefault()
+                void config.imagePasteHandler(imageFile, config.insertMarkdown).catch((error: unknown) => {
+                    dialogService.error(error, { fallbackMessage: 'Clipboard image could not be pasted' })
+                })
+                return true
+            }
+
             if (shifted) {
                 const plainText = event.clipboardData.getData(PLAIN_TEXT_MIME_TYPE)
                 if (!plainText) return false

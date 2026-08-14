@@ -12,11 +12,13 @@ import {
     type MarkdownBindingKind,
     type MarkdownDocumentTarget,
 } from './markdown_data_source'
+import { saveAndInsertPastedImage } from '../../services/data/card_image_operations'
 
 export type CardBinding = Exclude<MarkdownBindingKind, 'list-action'>
 type CardMarkdownOwner = EventTarget & Pick<DataService, 'getState'> & {
     cards: Pick<DataService['cards'],
-        'toggleCardPolicy' | 'updateCardBody' | 'updateCardHeaderFields' | 'updateCardTitle' | 'updateCardType'>
+        'deletePastedImage' | 'savePastedImageForCard' | 'toggleCardPolicy' | 'updateCardBody'
+        | 'updateCardHeaderFields' | 'updateCardTitle' | 'updateCardType'>
 }
 type ListCardOwner = EventTarget & Pick<OpenFilesService, 'getSnapshot'>
 
@@ -110,6 +112,18 @@ export class CardMarkdownDataSource extends MarkdownDataSourceBase {
     toggleActiveCardPolicy(binding: CardBinding, policyKey: string) {
         const document = this.requireActiveDocument(binding)
         this.requireService().cards.toggleCardPolicy(document.path, policyKey)
+    }
+
+    async pasteImage(binding: CardBinding, file: File, insertMarkdown: (markdown: string) => void) {
+        const document = this.requireActiveDocument(binding)
+        const { cards } = this.requireService()
+
+        await saveAndInsertPastedImage(
+            file,
+            insertMarkdown,
+            (clipboardFile) => cards.savePastedImageForCard(document.path, clipboardFile),
+            (path) => cards.deletePastedImage(path),
+        )
     }
 
     readonly getMarkdown = readCardMarkdown

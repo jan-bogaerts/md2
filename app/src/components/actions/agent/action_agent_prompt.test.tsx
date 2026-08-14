@@ -12,6 +12,7 @@ vi.mock('../../editor/markdown_editor', async () => {
     return {
         MarkdownEditor: forwardRef(function MarkdownEditorMock(props: {
             flushOnBlur?: boolean
+            imagePasteHandler?: (file: File, insertMarkdown: (markdown: string) => void) => Promise<void>
             localTextSearch?: boolean
             markdown: string
             onChange: (markdown: string) => void
@@ -39,6 +40,7 @@ vi.mock('../../editor/markdown_editor', async () => {
                 <textarea
                     aria-label="Markdown prompt"
                     data-flush-on-blur={props.flushOnBlur ? 'true' : 'false'}
+                    data-image-paste={props.imagePasteHandler ? 'true' : 'false'}
                     data-local-text-search={props.localTextSearch === false ? 'false' : 'true'}
                     data-placeholders={props.placeholders?.map(({ name }) => name).join(',')}
                     value={value}
@@ -102,6 +104,7 @@ describe('ActionAgentPrompt', () => {
         expect(screen.getByLabelText('Markdown prompt').getAttribute('data-placeholders')).toContain('this-card')
         expect(screen.getByLabelText('Markdown prompt').getAttribute('data-placeholders')).toContain('active-cards-folder')
         expect(screen.getByLabelText('Markdown prompt')).toHaveAttribute('data-local-text-search', 'false')
+        expect(screen.getByLabelText('Markdown prompt')).toHaveAttribute('data-image-paste', 'false')
     })
 
     it('keeps typing local and synchronizes the prompt on blur', () => {

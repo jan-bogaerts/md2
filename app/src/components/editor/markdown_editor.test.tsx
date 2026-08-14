@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createRef, type ReactNode } from 'react'
 import { AppThemeContext } from '../../theme/theme_context'
@@ -73,6 +73,13 @@ function clipboardData(initialData: Record<string, string> = {}) {
         getData: (type: string) => data.get(type) ?? '',
         setData: (type: string, value: string) => data.set(type, value),
         value: (type: string) => data.get(type) ?? '',
+    }
+}
+
+function imageClipboardData(file: File, plainText = '') {
+    return {
+        getData: (type: string) => type === 'text/plain' ? plainText : '',
+        items: [{ getAsFile: () => file, kind: 'file', type: file.type }],
     }
 }
 
@@ -152,6 +159,78 @@ describe('MarkdownEditor', () => {
         const pasteHandled = fireEvent.paste(screen.getByRole('textbox'), {clipboardData: { getData: () => '' }})
 
         expect(pasteHandled).toBe(true)
+        expect(screen.getByRole('textbox')).toHaveValue('')
+    })
+
+    it('routes a binary image before clipboard text and inserts after the handler completes', async () => {
+        const file = new File(['image'], 'clipboard.png', { type: 'image/png' })
+        const imagePasteHandler = vi.fn(async (_file: File, insertMarkdown: (markdown: string) => void) => {
+            insertMarkdown('![pasted image](<saved.png>)')
+        })
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor imagePasteHandler={imagePasteHandler} markdown="before " onChange={vi.fn()} />
+            </AppThemeProvider>,
+        )
+
+        const pasteHandled = fireEvent.paste(
+            screen.getByRole('textbox'),
+            { clipboardData: imageClipboardData(file, 'fallback text') },
+        )
+
+        expect(pasteHandled).toBe(false)
+        expect(imagePasteHandler).toHaveBeenCalledWith(file, expect.any(Function))
+        await waitFor(() => expect(screen.getByRole('textbox')).toHaveValue('![pasted image](<saved.png>)before'))
+    })
+
+    it('leaves image clipboard items unchanged when no image handler is supplied', () => {
+        const file = new File(['image'], 'clipboard.png', { type: 'image/png' })
+        renderEditor()
+
+        const pasteHandled = fireEvent.paste(
+            screen.getByRole('textbox'),
+            { clipboardData: imageClipboardData(file) },
+        )
+
+        expect(pasteHandled).toBe(true)
+        expect(screen.getByRole('textbox')).toHaveValue('')
+    })
+
+    it('does not invoke an image handler in a read-only editor', () => {
+        const file = new File(['image'], 'clipboard.png', { type: 'image/png' })
+        const imagePasteHandler = vi.fn()
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor imagePasteHandler={imagePasteHandler} markdown="locked" onChange={vi.fn()} readOnly />
+            </AppThemeProvider>,
+        )
+
+        fireEvent.paste(screen.getByRole('textbox'), { clipboardData: imageClipboardData(file) })
+
+        expect(imagePasteHandler).not.toHaveBeenCalled()
+        expect(screen.getByRole('textbox')).toHaveValue('locked')
+    })
+
+    it('reports failed image persistence without inserting Markdown', async () => {
+        const file = new File(['image'], 'clipboard.png', { type: 'image/png' })
+        const persistenceError = new Error('save failed')
+        const reportError = vi.spyOn(dialogService, 'error')
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor
+                    imagePasteHandler={vi.fn(async () => { throw persistenceError })}
+                    markdown=""
+                    onChange={vi.fn()}
+                />
+            </AppThemeProvider>,
+        )
+
+        fireEvent.paste(screen.getByRole('textbox'), { clipboardData: imageClipboardData(file) })
+
+        await waitFor(() => expect(reportError).toHaveBeenCalledWith(
+            persistenceError,
+            { fallbackMessage: 'Clipboard image could not be pasted' },
+        ))
         expect(screen.getByRole('textbox')).toHaveValue('')
     })
 

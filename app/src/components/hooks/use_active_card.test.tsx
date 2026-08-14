@@ -22,6 +22,7 @@ function sourceWithCard(initialCard: Card) {
     const dataSource = new CardMarkdownDataSource()
     const owner = Object.assign(new EventTarget(), {
         cards: {
+            deletePastedImage: vi.fn(), savePastedImageForCard: vi.fn(),
             toggleCardPolicy: vi.fn(), updateCardBody: vi.fn(), updateCardHeaderFields: vi.fn(),
             updateCardTitle: vi.fn(), updateCardType: vi.fn(),
         },

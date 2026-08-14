@@ -450,4 +450,57 @@ describe('ProjectSessionService storage activation', () => {
         }))
         expect(dataService.projectLoading.openProject).toHaveBeenCalledWith(project)
     })
+
+    it('waits for an in-flight draft image save before cancellation deletes the asset', async () => {
+        const savedImage = createDeferred<{ fileName: string; path: string }>()
+        vi.spyOn(dataService.cards, 'savePastedImageForNewCard').mockReturnValue(savedImage.promise)
+        const deleteImage = vi.spyOn(dataService.cards, 'deletePastedImage').mockResolvedValue()
+        const service = new ProjectSessionService()
+        const insertMarkdown = vi.fn()
+
+        const paste = service.pasteNewCardImage({ type: 'image/png' } as File, insertMarkdown)
+        const discard = service.discardNewCardDraftImages()
+        expect(service.hasNewCardDraftImages()).toBe(true)
+        expect(deleteImage).not.toHaveBeenCalled()
+
+        savedImage.resolve({ fileName: 'saved.png', path: 'design/saved.png' })
+        await paste
+        await discard
+
+        expect(insertMarkdown).toHaveBeenCalledWith('![pasted image](<saved.png>)')
+        expect(deleteImage).toHaveBeenCalledWith('design/saved.png')
+        expect(service.hasNewCardDraftImages()).toBe(false)
+    })
+
+    it('transfers draft image ownership only after successful card creation', async () => {
+        vi.spyOn(dataService.cards, 'savePastedImageForNewCard').mockResolvedValue({
+            fileName: 'saved.png',
+            path: 'design/saved.png',
+        })
+        vi.spyOn(dataService.cards, 'createCard').mockResolvedValue({ content: '', path: 'design/F-1-card.md' })
+        const deleteImage = vi.spyOn(dataService.cards, 'deletePastedImage').mockResolvedValue()
+        const service = new ProjectSessionService()
+        await service.pasteNewCardImage({ type: 'image/png' } as File, vi.fn())
+
+        await service.createCard({ body: '![pasted image](<saved.png>)', title: 'Card', type: 'feature' }, 'new')
+        await service.discardNewCardDraftImages()
+
+        expect(deleteImage).not.toHaveBeenCalled()
+        expect(service.hasNewCardDraftImages()).toBe(false)
+    })
+
+    it('keeps failed draft image deletions owned so cancellation can retry', async () => {
+        vi.spyOn(dataService.cards, 'savePastedImageForNewCard').mockResolvedValue({
+            fileName: 'saved.png',
+            path: 'design/saved.png',
+        })
+        const deletionError = new Error('delete failed')
+        vi.spyOn(dataService.cards, 'deletePastedImage').mockRejectedValue(deletionError)
+        const service = new ProjectSessionService()
+        await service.pasteNewCardImage({ type: 'image/png' } as File, vi.fn())
+
+        await expect(service.discardNewCardDraftImages()).rejects.toBe(deletionError)
+
+        expect(service.hasNewCardDraftImages()).toBe(true)
+    })
 })

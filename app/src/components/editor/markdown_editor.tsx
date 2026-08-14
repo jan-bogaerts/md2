@@ -23,6 +23,7 @@ import { plainMarkdownPlugin } from './plain_markdown_realm_plugin'
 import { markdownPlaceholderPlugin } from './markdown_placeholder_realm_plugin'
 import { registerMarkdownEditorStage } from '../../services/project/markdown_editor_staging'
 import { markdownPastePlugin } from './markdown_paste_realm_plugin'
+import type { MarkdownImagePasteHandler } from './markdown_paste_cell'
 import type {
     ActiveMarkdownDocumentChangedDetail,
     MarkdownBindingKind,
@@ -46,6 +47,7 @@ interface MarkdownEditorPresentationProps {
     flushOnBlur?: boolean
     /** Omit format toolbar entirely. */
     hideToolbar?: boolean
+    imagePasteHandler?: MarkdownImagePasteHandler
     /** Set false when containing surface owns Ctrl+F behavior. */
     localTextSearch?: boolean
     overlayContainer?: HTMLElement | null
@@ -99,6 +101,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         flushOnBlur = false,
         diffMarkdown,
         hideToolbar = false,
+        imagePasteHandler,
         localTextSearch = true,
         overlayContainer,
         placeholders = EMPTY_PLACEHOLDERS,
@@ -297,7 +300,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         markdownPlaceholderPlugin({ overlayContainer, placeholders }),
         markdownFileSearchPlugin({ overlayContainer, repositoryFiles }),
         ...(localTextSearch ? [markdownLocalTextSearchPlugin({ overlayContainer })] : []),
-        markdownPastePlugin({ getSelectionMarkdown, insertMarkdown, readOnly }),
+        markdownPastePlugin({ getSelectionMarkdown, imagePasteHandler, insertMarkdown, readOnly }),
         ...(historyPlugin ? [historyPlugin] : []),
     ]
 

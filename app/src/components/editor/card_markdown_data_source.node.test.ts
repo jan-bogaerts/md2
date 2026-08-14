@@ -35,7 +35,8 @@ function setup() {
     const document = openFiles.openDocument(Card)
     if (document.kind !== 'card') throw new Error('Expected card document')
     const cards = {
-        toggleCardPolicy: vi.fn(), updateCardBody: vi.fn(), updateCardHeaderFields: vi.fn(),
+        deletePastedImage: vi.fn(), savePastedImageForCard: vi.fn(), toggleCardPolicy: vi.fn(),
+        updateCardBody: vi.fn(), updateCardHeaderFields: vi.fn(),
         updateCardTitle: vi.fn().mockResolvedValue({}), updateCardType: vi.fn(),
     }
     const source = new CardMarkdownDataSource()
@@ -97,6 +98,19 @@ describe('CardMarkdownDataSource', () => {
         expect(cards.toggleCardPolicy).toHaveBeenCalledWith(document.path, 'review')
         expect(document.getDraft()).toEqual({ content: 'Original' })
         expect(document.dirty).toBe(false)
+    })
+
+    it('saves pasted images beside the active card before inserting their Markdown reference', async () => {
+        const { cards, document, source } = setup()
+        const file = { type: 'image/png' } as File
+        cards.savePastedImageForCard.mockResolvedValue({ fileName: 'saved.png', path: 'design/saved.png' })
+        const insertMarkdown = vi.fn()
+
+        await source.pasteImage('list-card', file, insertMarkdown)
+
+        expect(cards.savePastedImageForCard).toHaveBeenCalledWith(document.path, file)
+        expect(insertMarkdown).toHaveBeenCalledWith('![pasted image](<saved.png>)')
+        expect(cards.savePastedImageForCard.mock.invocationCallOrder[0]).toBeLessThan(insertMarkdown.mock.invocationCallOrder[0])
     })
 
     it('reports card type persistence failures', async () => {

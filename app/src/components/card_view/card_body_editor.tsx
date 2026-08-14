@@ -24,6 +24,10 @@ interface CardBodyEditorProps {
 export const CardBodyEditor = memo(function CardBodyEditor(props: CardBodyEditorProps) {
     const {cardTypes, dataSource, historyStore, isFullscreen, isMobile = false, onToggleFullscreen, overlayContainer, statusColors} = props
     const readOnly = useProjectReadOnly()
+    const handleImagePaste = useCallback(
+        (file: File, insertMarkdown: (markdown: string) => void) => dataSource.pasteImage('board-card', file, insertMarkdown),
+        [dataSource],
+    )
     const ToolbarContents = useCallback(
         () => (
             <CardPopupToolbarControls
@@ -84,6 +88,7 @@ export const CardBodyEditor = memo(function CardBodyEditor(props: CardBodyEditor
                 binding="board-card"
                 dataSource={dataSource}
                 historyStore={historyStore}
+                imagePasteHandler={handleImagePaste}
                 overlayContainer={overlayContainer}
                 readOnly={readOnly}
                 toolbarContents={ToolbarContents}

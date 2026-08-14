@@ -18,6 +18,10 @@ export const CardEditor = memo(function CardEditor(props: CardEditorProps) {
     const { cardTypes, statusColors } = props
     const readOnly = useProjectReadOnly()
     const [historyStore] = useState(() => new MarkdownDocumentHistoryStore())
+    const handleImagePaste = useCallback(
+        (file: File, insertMarkdown: (markdown: string) => void) => cardMarkdownDataSource.pasteImage('list-card', file, insertMarkdown),
+        [],
+    )
 
     useEffect(() => {
         const handleCardDocumentClosed = (event: Event) => {
@@ -49,6 +53,7 @@ export const CardEditor = memo(function CardEditor(props: CardEditorProps) {
                     binding="list-card"
                     dataSource={cardMarkdownDataSource}
                     historyStore={historyStore}
+                    imagePasteHandler={handleImagePaste}
                     readOnly={readOnly}
                     toolbarContents={toolbarContents}
                 />

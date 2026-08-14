@@ -22,6 +22,8 @@ import { useCardCreationState } from '../../hooks/use_card_creation_state'
 import type { MarkdownEditorHandle } from '../../editor/markdown_editor'
 import { CardTypePillGroup } from './card_type_pill_group'
 import { NewCardMarkdownEditor } from './new_card_markdown_editor'
+import { projectSessionService } from '../../../services/project/project_session_service'
+import { dialogService } from '../../../services/dialog_service'
 import { NewCardColumnPicker } from './new_card_column_picker'
 
 const DIALOG_WIDTH = 480
@@ -87,20 +89,27 @@ export function NewCardDialog(props: NewCardDialogProps) {
         wasOpenRef.current = open && isProjectOpen
     }, [defaultType, initialTargetStatus, isProjectOpen, open])
 
-    const closeDialog = () => {
+    const closeDialog = async () => {
         const body = bodyEditorRef.current?.getMarkdown() ?? ''
         const isDirty = title.length > 0
             || body.length > 0
             || selectedType !== defaultType
             || selectedStatus !== initialTargetStatus
+            || projectSessionService.hasNewCardDraftImages()
         if (isDirty && !window.confirm(DISCARD_CARD_MESSAGE)) return
 
+        try {
+            await projectSessionService.discardNewCardDraftImages()
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Pasted draft images could not be removed' })
+            return
+        }
         resetForm()
         onClose()
     }
 
     const handleDialogClose = () => {
-        closeDialog()
+        void closeDialog()
     }
 
     const handleTitleChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -128,6 +137,7 @@ export function NewCardDialog(props: NewCardDialogProps) {
     const handleCreateClick = async () => {
         if (isSubmitDisabled) return
 
+        await projectSessionService.waitForNewCardImageSaves()
         const body = bodyEditorRef.current?.getMarkdown() ?? ''
         const draft: CardDraft = {
             body,
@@ -152,7 +162,7 @@ export function NewCardDialog(props: NewCardDialogProps) {
         if (event.key !== 'Escape') return
 
         event.preventDefault()
-        closeDialog()
+        void closeDialog()
     }
 
     const handleFormKeyDownCapture = (event: KeyboardEvent<HTMLFormElement>) => {
@@ -235,7 +245,7 @@ export function NewCardDialog(props: NewCardDialogProps) {
                     }}
                 >
                     {isMobile ? (
-                        <Button onClick={closeDialog} sx={{ minHeight: 44, minWidth: 72 }} type="button" variant="text">
+                        <Button onClick={handleDialogClose} sx={{ minHeight: 44, minWidth: 72 }} type="button" variant="text">
                             Cancel
                         </Button>
                     ) : (
@@ -272,7 +282,7 @@ export function NewCardDialog(props: NewCardDialogProps) {
                         </Button>
                     ) : (
                         <Tooltip title="Close">
-                            <IconButton aria-label="Close" onClick={closeDialog} size="small" sx={{ height: 30, width: 30 }}>
+                            <IconButton aria-label="Close" onClick={handleDialogClose} size="small" sx={{ height: 30, width: 30 }}>
                                 <Close sx={{ fontSize: 17 }} />
                             </IconButton>
                         </Tooltip>
@@ -405,7 +415,7 @@ export function NewCardDialog(props: NewCardDialogProps) {
                     />
                     {isMobile ? createButton : (
                         <Stack direction="row" spacing={1}>
-                            <Button onClick={closeDialog} type="button" variant="outlined">
+                            <Button onClick={handleDialogClose} type="button" variant="outlined">
                                 Cancel
                             </Button>
                             {createButton}
