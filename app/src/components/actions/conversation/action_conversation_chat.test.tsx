@@ -52,7 +52,7 @@ function toolEvent(
 
 function completedReasoning(id: string): AgentConversationEventEntry {
     return {
-        content: `${id} hidden content`,
+        content: '  ',
         id,
         kind: 'event',
         providerItemId: id,
@@ -324,7 +324,7 @@ describe('ActionConversationChat', () => {
         expect(reservedBlockCount()).toBe(0)
     })
 
-    it('restores one reservation for every running block that disappears', () => {
+    it('keeps one baseline reservation when displayable running reasoning completes', () => {
         const firstReasoning = toolEvent('First reasoning', 'reasoning', 'inProgress', { summary: ['First'] })
         const secondReasoning = toolEvent('Second reasoning', 'reasoning', 'inProgress', { summary: ['Second'] })
         const runningConversation = conversation('active.json', [firstReasoning, secondReasoning], 'codex')
@@ -347,7 +347,7 @@ describe('ActionConversationChat', () => {
             </AppThemeProvider>,
         )
 
-        expect(reservedBlockCount()).toBe(2)
+        expect(reservedBlockCount()).toBe(1)
     })
 
     it('lets new permanent blocks consume surplus reservations down to one', () => {
@@ -356,8 +356,8 @@ describe('ActionConversationChat', () => {
         const runningConversation = conversation('active.json', [firstReasoning, secondReasoning], 'codex')
         const { rerender } = renderChat(runningConversation, 'running')
         const completedEntries = [
-            { ...firstReasoning, status: 'completed' },
-            { ...secondReasoning, status: 'completed' },
+            { ...firstReasoning, status: 'completed', summary: ['  '] },
+            { ...secondReasoning, status: 'completed', summary: ['\n'] },
         ]
 
         rerender(
@@ -403,7 +403,7 @@ describe('ActionConversationChat', () => {
                 />
             </AppThemeProvider>,
         )
-        expect(reservedBlockCount()).toBe(2)
+        expect(reservedBlockCount()).toBe(1)
 
         rerender(
             <AppThemeProvider>
@@ -414,7 +414,7 @@ describe('ActionConversationChat', () => {
         expect(reservedBlockCount()).toBe(1)
     })
 
-    it('does not move when running blocks become placeholders after the user scrolls up', () => {
+    it('does not move when running reasoning becomes retained completed blocks after the user scrolls up', () => {
         const firstReasoning = toolEvent('First reasoning', 'reasoning', 'inProgress', { summary: ['First'] })
         const secondReasoning = toolEvent('Second reasoning', 'reasoning', 'inProgress', { summary: ['Second'] })
         const runningConversation = conversation('active.json', [firstReasoning, secondReasoning], 'codex')
@@ -439,11 +439,11 @@ describe('ActionConversationChat', () => {
             </AppThemeProvider>,
         )
 
-        expect(reservedBlockCount()).toBe(2)
+        expect(reservedBlockCount()).toBe(1)
         expect(viewport.scrollTop).toBe(40)
     })
 
-    it('stays pinned when running blocks become placeholders', () => {
+    it('stays pinned when running reasoning becomes retained completed blocks', () => {
         const firstReasoning = toolEvent('First reasoning', 'reasoning', 'inProgress', { summary: ['First'] })
         const secondReasoning = toolEvent('Second reasoning', 'reasoning', 'inProgress', { summary: ['Second'] })
         const runningConversation = conversation('active.json', [firstReasoning, secondReasoning], 'codex')
@@ -466,7 +466,7 @@ describe('ActionConversationChat', () => {
             </AppThemeProvider>,
         )
 
-        expect(reservedBlockCount()).toBe(2)
+        expect(reservedBlockCount()).toBe(1)
         expect(viewport.scrollTop).toBe(300)
     })
 
@@ -572,7 +572,7 @@ describe('ActionConversationChat', () => {
         }
     })
 
-    it('omits completed reasoning while its conversation runs', () => {
+    it('keeps completed reasoning with text collapsed while its conversation runs', () => {
         const activity: AgentConversationEvent = {
             content: 'Inspect code',
             id: 'reasoning-1',
@@ -594,11 +594,13 @@ describe('ActionConversationChat', () => {
         }
         renderChat(runningConversation)
 
+        const button = screen.getByRole('button', { name: 'Reasoning details' })
+        expect(button).toHaveAttribute('aria-expanded', 'false')
+        expect(screen.getByText('Completed')).toBeInTheDocument()
         expect(screen.queryByText('Inspect code')).not.toBeInTheDocument()
-        expect(screen.queryByText('Reasoning')).not.toBeInTheDocument()
     })
 
-    it('omits completed reasoning when a conversation opens', () => {
+    it('keeps completed reasoning with text collapsed when a conversation opens', () => {
         const activity: AgentConversationEvent = {
             content: 'Finished inspection',
             id: 'reasoning-1',
@@ -617,7 +619,51 @@ describe('ActionConversationChat', () => {
         ))
 
         expect(screen.getByText('Saved answer')).toBeInTheDocument()
+        const button = screen.getByRole('button', { name: 'Reasoning details' })
+        expect(button).toHaveAttribute('aria-expanded', 'false')
         expect(screen.queryByText('Finished inspection')).not.toBeInTheDocument()
+        fireEvent.click(button)
+        expect(screen.getByText('Finished inspection')).toBeInTheDocument()
+    })
+
+    it.each([
+        ['summary', { content: 'ignored content', details: ['ignored detail'], summary: ['Selected summary'] }, 'Selected summary'],
+        ['details', { content: 'ignored content', details: ['Selected detail'], summary: [] }, 'Selected detail'],
+        ['content', { content: 'Selected content', details: [], summary: [] }, 'Selected content'],
+    ])('renders completed reasoning from %s after expansion', (_source, fields, selectedText) => {
+        const activity: AgentConversationEvent = {
+            id: `reasoning-${_source}`,
+            providerItemId: `reasoning-${_source}`,
+            status: 'completed',
+            timestamp: 'now',
+            type: 'reasoning',
+            ...fields,
+        }
+        renderChat(conversation('codex.json', [eventEntry(activity)], 'codex'))
+
+        fireEvent.click(screen.getByRole('button', { name: 'Reasoning details' }))
+
+        expect(screen.getByText(selectedText)).toBeInTheDocument()
+        expect(screen.queryByText('ignored detail')).not.toBeInTheDocument()
+        expect(screen.queryByText('ignored content')).not.toBeInTheDocument()
+    })
+
+    it('omits completed reasoning when selected sections contain only whitespace', () => {
+        const activity: AgentConversationEvent = {
+            content: 'ignored content',
+            details: ['ignored detail'],
+            id: 'reasoning-whitespace',
+            providerItemId: 'reasoning-whitespace',
+            status: 'completed',
+            summary: [' ', '\n\t'],
+            timestamp: 'now',
+            type: 'reasoning',
+        }
+        renderChat(conversation('codex.json', [eventEntry(activity)], 'codex'))
+
+        expect(screen.queryByRole('button', { name: 'Reasoning details' })).not.toBeInTheDocument()
+        expect(screen.queryByText('ignored detail')).not.toBeInTheDocument()
+        expect(screen.queryByText('ignored content')).not.toBeInTheDocument()
     })
 
     it.each([
@@ -754,46 +800,32 @@ describe('ActionConversationChat', () => {
         expect(screen.getByText('Search output')).toBeInTheDocument()
     })
 
-    it('groups completed calls across hidden reasoning and splits them at visible entries', () => {
+    it('groups completed calls across textless reasoning and splits them at displayable reasoning', () => {
         const entries: AgentConversationEntry[] = [
             toolEvent('First command', 'commandExecution', 'completed', { command: 'powershell.exe -Command "Get-Content first"' }),
             completedReasoning('first-reasoning'),
             toolEvent('Second command', 'commandExecution', 'completed', { command: 'powershell.exe -Command "Get-Content second"' }),
-            completedReasoning('second-reasoning'),
+            { ...completedReasoning('visible-reasoning'), content: 'Visible reasoning' },
             toolEvent('Third command', 'commandExecution', 'completed', { command: 'powershell.exe -Command "Get-Content third"' }),
-            message('boundary-message', 'Visible boundary'),
+            completedReasoning('second-reasoning'),
             toolEvent('Fourth command', 'commandExecution', 'completed', { command: 'powershell.exe -Command "Get-Content fourth"' }),
-            completedReasoning('third-reasoning'),
-            toolEvent('Fifth command', 'commandExecution', 'completed', { command: 'powershell.exe -Command "Get-Content fifth"' }),
-            toolEvent('Running boundary', 'webSearch', 'inProgress'),
-            toolEvent('Sixth command', 'commandExecution', 'completed', { command: 'powershell.exe -Command "Get-Content sixth"' }),
-            completedReasoning('fourth-reasoning'),
-            toolEvent('Seventh command', 'commandExecution', 'completed', { command: 'powershell.exe -Command "Get-Content seventh"' }),
         ]
         renderChat(conversation('tool-boundaries.json', entries, 'codex'))
 
         const groups = screen.getAllByRole('group', { name: 'Completed tool calls' })
-        expect(groups).toHaveLength(3)
-        const firstSummary = within(groups[0]).getByRole('button', { name: 'Tools called (3)' })
+        expect(groups).toHaveLength(2)
+        const firstSummary = within(groups[0]).getByRole('button', { name: 'Tools called (2)' })
         const secondSummary = within(groups[1]).getByRole('button', { name: 'Tools called (2)' })
-        const thirdSummary = within(groups[2]).getByRole('button', { name: 'Tools called (2)' })
         expect(within(groups[0]).queryByRole('button', { name: /command details/u })).not.toBeInTheDocument()
         expect(within(groups[1]).queryByRole('button', { name: /command details/u })).not.toBeInTheDocument()
-        expect(within(groups[2]).queryByRole('button', { name: /command details/u })).not.toBeInTheDocument()
 
         fireEvent.click(firstSummary)
         fireEvent.click(secondSummary)
-        fireEvent.click(thirdSummary)
 
-        expect(within(groups[0]).getAllByRole('button')).toHaveLength(4)
+        expect(within(groups[0]).getAllByRole('button')).toHaveLength(3)
         expect(within(groups[1]).getAllByRole('button')).toHaveLength(3)
-        expect(within(groups[2]).getAllByRole('button')).toHaveLength(3)
-        expect(screen.queryByText('first-reasoning hidden content')).not.toBeInTheDocument()
-        expect(screen.queryByText('second-reasoning hidden content')).not.toBeInTheDocument()
-        expect(screen.queryByText('third-reasoning hidden content')).not.toBeInTheDocument()
-        expect(screen.queryByText('fourth-reasoning hidden content')).not.toBeInTheDocument()
-        expect(screen.getByText('Visible boundary')).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'Running boundary details' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Reasoning details' })).toHaveAttribute('aria-expanded', 'false')
+        expect(screen.queryByText('Visible reasoning')).not.toBeInTheDocument()
     })
 
     it('keeps non-completed tool calls standalone with their lifecycle status', () => {

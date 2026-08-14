@@ -15,6 +15,7 @@ import {
 } from './action_conversation_reservation'
 import { ActionConversationReservedBlock } from './action_conversation_reserved_block'
 import { contextWindowUsedPercent } from './conversation_context_window'
+import { reasoningDisplay } from './reasoning_display'
 
 const CHAT_END_TOLERANCE = 4
 const MIN_CHAT_HEIGHT = 96
@@ -34,11 +35,18 @@ function hasAgentActivity(conversation: AgentConversation) {
         || conversation.entries.some((entry) => entry.kind === 'event' && !!entry.providerItemId)
 }
 
+function conversationEventIsVisible(entry: AgentConversation['entries'][number]) {
+    if (entry.kind !== 'event' || entry.type === 'diagnostic') return false
+    if (entry.type !== 'reasoning' || entry.status !== 'completed') return true
+
+    return reasoningDisplay(entry).hasText
+}
+
 function visibleConversationGroups(conversation: AgentConversation | null) {
     if (!conversation) return []
     const showEvents = hasAgentActivity(conversation)
     const visibleEntries = conversation.entries.filter((entry) => entry.kind === 'message'
-        || (showEvents && entry.type !== 'diagnostic' && (entry.type !== 'reasoning' || entry.status !== 'completed')))
+        || (showEvents && conversationEventIsVisible(entry)))
 
     return buildActionConversationRenderGroups(visibleEntries)
 }
