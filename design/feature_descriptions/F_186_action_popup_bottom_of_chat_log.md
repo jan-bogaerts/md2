@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
   - design/activity/card__146d495f-955a-4b9d-bf70-80520208883d.json#conversation=agent-574ce5d6-6049-4df6-82a2-6db7b95b914b
+  - design/activity/card__146d495f-955a-4b9d-bf70-80520208883d.json#conversation=agent-0e1bcda0-2a46-44db-adc7-879a6df7ca3a
 policy:
 branch: f_186_action_popup_bottom_of_chat_log
 worktree: 2
