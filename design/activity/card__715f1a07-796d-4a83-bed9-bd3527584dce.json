@@ -1532,11 +1532,11 @@
         "agent-7d274537-6eb8-41b6-86ad-f83a6f809776"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-af63f092-8e8b-49f2-b258-dc2f91f80f9a",
       "origin": {
@@ -1545,9 +1545,35 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-7d274537-6eb8-41b6-86ad-f83a6f809776",
       "startedAt": "2026-08-14T08:11:32.586Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-7d274537-6eb8-41b6-86ad-f83a6f809776"
+    },
+    {
+      "commits": [
+        {
+          "commit": "e6fc30333d15910617fd94fdca87405553d4fd7f",
+          "committedAt": "2026-08-14T10:21:40+02:00",
+          "deletions": 21,
+          "filePaths": [
+            "app/src/services/agents/agent_integration.ts",
+            "app/src/services/dialog_service.node.test.ts",
+            "app/src/services/dialog_service.ts",
+            "app/src/services/project/project_loading.test.ts",
+            "app/src/services/project/project_loading.ts"
+          ],
+          "filesChanged": 5,
+          "insertions": 81,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-14T10:21:40+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "715f1a07-796d-4a83-bed9-bd3527584dce",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
