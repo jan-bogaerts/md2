@@ -7,8 +7,8 @@ status: ready
 owner: 
 affects:
 agents:
-  - design/activity/card__e4d3228b-4f97-44f2-9948-8896a694c165.json#conversation=agent-0c966c23-596a-4c82-8e53-e239404b89e5
-  - design/activity/card__e4d3228b-4f97-44f2-9948-8896a694c165.json#conversation=agent-78d688d5-31f7-486a-8d23-18041dbb3080
+  - design/releases/0_3_0/card__e4d3228b-4f97-44f2-9948-8896a694c165.json#conversation=agent-0c966c23-596a-4c82-8e53-e239404b89e5
+  - design/releases/0_3_0/card__e4d3228b-4f97-44f2-9948-8896a694c165.json#conversation=agent-78d688d5-31f7-486a-8d23-18041dbb3080
 policy:
 branch: b_105_mobile_no_update_worktree_indicator
 ---
