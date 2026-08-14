@@ -11,7 +11,6 @@ agents:
   - design/releases/0_3_0/card__13c372c3-d12e-4b88-9ee3-b987068aaa0e.json#conversation=agent-33e8c8a4-8cc9-4cb8-94bf-5aad66985939
 policy:
 after: 615b2a1f-55c2-4113-b1ac-589ae3474ae2
-branch: f_159_improve_treeview
 ---
 
 * too much spacing between items, we have large trees, this much space makes it unreadable

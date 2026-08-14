@@ -10,7 +10,6 @@ agents:
   - design/releases/0_3_0/card__2b696eca-93cd-48b1-a237-b3cb9658e1d8.json#conversation=agent-c5226a92-1d97-4a04-a71c-b6302eacfb75
   - design/releases/0_3_0/card__2b696eca-93cd-48b1-a237-b3cb9658e1d8.json#conversation=agent-edb92bde-c582-41fa-bc76-b2c7409154ce
 policy:
-branch: f_172_reasoning_block_with_text
 after: 34581d14-8a7c-4f5c-8cf3-b9137260221d
 ---
 Some reasoning blocks have text. We display that text while the reasoning is still active. however, once the reasoning is done, we hide the reasoning block. This should be changed:
