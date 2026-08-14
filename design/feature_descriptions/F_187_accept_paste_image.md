@@ -3,7 +3,7 @@ author:
 id: F_187
 internalId: 030deac3-abb2-46e9-821c-c9d1db04502e
 title: accept paste image
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

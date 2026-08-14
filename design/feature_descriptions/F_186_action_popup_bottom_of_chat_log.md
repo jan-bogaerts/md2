@@ -3,7 +3,7 @@ author:
 id: F_186
 internalId: 146d495f-955a-4b9d-bf70-80520208883d
 title: action popup bottom of chat log
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
