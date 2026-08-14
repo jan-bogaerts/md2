@@ -134,7 +134,7 @@ describe('CardBodyPopover state selector', () => {
         expect(selector?.previousElementSibling).toBe(spacer)
         expect(within(footer as HTMLElement).getByRole('combobox', { name: 'Card state' })).toBeInTheDocument()
         if (closeButton) {
-            expect(selector?.nextElementSibling).toHaveRole('button', { name: 'Close' })
+            expect(selector?.nextElementSibling).toHaveRole('button')
         } else {
             expect(selector?.nextElementSibling).toBeNull()
             expect(within(footer as HTMLElement).getByRole('button', { name: 'Delete' })).toBeInTheDocument()
