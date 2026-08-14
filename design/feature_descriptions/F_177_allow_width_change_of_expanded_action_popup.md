@@ -12,7 +12,6 @@ agents:
 policy:
 after: 2b696eca-93cd-48b1-a237-b3cb9658e1d8
 branch: f_177_allow_width_change_of_expanded_action_popup
-worktree: 2
 ---
 
 When an action popup is fully expanded, you can no longer change it's width. this should still be possible.

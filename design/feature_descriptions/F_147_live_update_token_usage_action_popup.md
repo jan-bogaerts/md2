@@ -11,6 +11,7 @@ agents:
   - design/activity/card__bbf61e6e-adfa-46ee-a2f4-040b8152bc4b.json#conversation=agent-76ae1dd8-2104-48b6-96ac-833486e27796
 policy:
 branch: f_147_live_update_token_usage_action_popup
+after: 528ea430-ce5c-4e61-ac31-70c93daf5eaa
 ---
 To investigate: i think token count on action popup is only at end of conversation updated. I think we can do better and update it while the agent is still running.
 

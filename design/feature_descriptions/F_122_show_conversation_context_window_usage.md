@@ -11,6 +11,7 @@ agents:
   - design/activity/card__528ea430-ce5c-4e61-ac31-70c93daf5eaa.json#conversation=agent-7f79f527-4d62-425d-8f89-49f858d39ff5
   - design/activity/card__528ea430-ce5c-4e61-ac31-70c93daf5eaa.json#conversation=agent-90e9d66f-b87f-4c0a-ac7e-8a66361a2279
 policy:
+after: d47986a5-1380-4dd1-adb9-fff106a9a143
 ---
 
 Show the percentage of the selected conversation's context window that is used in the action popup, beside the existing total-token usage at the left of the bottom action row.

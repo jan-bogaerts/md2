@@ -11,7 +11,7 @@ agents:
   - design/activity/card__fc4322fa-2432-4365-b355-32cf5e6e6af2.json#conversation=agent-12bda6ca-a743-46ab-b0df-3881dbec13ae
   - design/activity/card__fc4322fa-2432-4365-b355-32cf5e6e6af2.json#conversation=agent-886e8bba-c34b-4402-bb08-d75cf2729479
 policy:
-after: bee2d3c7-81e1-451a-bc4d-d4ba59c849e9
+after: f63b1866-ff7a-4fe9-b984-06cf1284f74e
 ---
 When the electron app closes, we should save the window state, position and size so we can restore the settings when the app starts the next time.
 

@@ -11,6 +11,7 @@ agents:
   - design/activity/card__43bf8521-8caa-4127-88fc-c31454193b90.json#conversation=agent-4da6309c-5cc0-4dff-a44f-e8cb7a1153db
   - design/activity/card__43bf8521-8caa-4127-88fc-c31454193b90.json#conversation=agent-0bf74ce0-162e-4d6d-bbc3-f5a1b82101d9
 policy:
+after: 32276926-4cff-486d-88bb-a98fbe1bfd8a
 ---
 
 When the app is about to close, accepted editor changes must reach the shared project persistence flow before the renderer is destroyed. This includes Markdown editor buffers, dirty card documents, action drafts, and the pending commit batch described in [Data saving and commits](../architecture/data_saving_and_commits.md).

@@ -3,12 +3,12 @@ author:
 id: F_107
 internalId: a529defa-f2ad-4307-923b-856a8ce80243
 title: steering prompts disappear
-status: new
+status: ready
 owner: 
 affects:
 agents:
 policy:
-after: 0f92d6ef-ec13-478c-b3f9-d1b0bfcf391d
+after: 8fedf475-d0af-4fe3-9aa0-d00bdfacffa0
 ---
 
 When an agent is running and we send a steering prompt to it, the prompt just disappears until the backend reports back that it has been sent. this is super annoying.

@@ -10,6 +10,7 @@ agents:
   - design/activity/card__e0010544-02b5-4372-82c7-bc05bd62929c.json#conversation=agent-14e49446-c942-4dc7-b140-db6a7dcc17c5
   - design/activity/card__e0010544-02b5-4372-82c7-bc05bd62929c.json#conversation=agent-098c6fb9-a680-420a-bbba-243533348f86
 policy:
+after: 7082348f-6737-4bef-ab60-2fdbcdf5da4e
 ---
 
 We already solved a similar problem for the input on the action popup: when pressing on ctrl+enter in the 'new card' dialog, the 'add' function should be triggered. this happens ok, but before the card is created, the markdown editor still inserts a newline.
