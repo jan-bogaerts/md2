@@ -7,6 +7,7 @@ const {
     createConversation,
     createEventEntry,
     createMessageEntry,
+    snapshotConversation,
     updateProviderSession,
 } = require('./agent_conversation');
 const {
@@ -181,13 +182,14 @@ class AgentRunnerService {
         }
         const userMessage = lastMessageEntry(conversation);
         if (!userMessage || userMessage.role !== 'user') throw new Error('Missing current agent user message');
+        const conversationSnapshot = snapshotConversation(conversation);
         emitRunEvent(run, {
             continued: !!request.conversation,
-            conversation: structuredClone(conversation),
+            conversation: conversationSnapshot,
             type: 'started',
         });
 
-        return { conversation: structuredClone(conversation), reference, runId: id };
+        return { conversation: conversationSnapshot, reference, runId: id };
     }
 
     stop(runId) {
@@ -570,7 +572,7 @@ class AgentRunnerService {
             if (!continuedTurnFailedBeforeStart) await this.persistConversation(run);
             this.processes.delete(runId);
             this.runningConversationIds.delete(run.conversation.id);
-            emitRunEvent(run, { conversation: structuredClone(run.conversation), type: 'closed' });
+            emitRunEvent(run, { conversation: run.conversation, type: 'closed' });
             if (run.onComplete) run.onComplete(succeeded ? 0 : exitCode || 1, run);
         } catch (error) {
             if (run.onCompletionError) run.onCompletionError(error);
@@ -588,7 +590,7 @@ class AgentRunnerService {
     }
 
     persistCheckpoint(run) {
-        const snapshot = { ...run, conversation: structuredClone(run.conversation) };
+        const snapshot = { ...run, conversation: snapshotConversation(run.conversation) };
         const write = run.persistence.then(() => this.persistConversationCheckpoint(snapshot));
         run.persistence = write.catch(() => undefined);
 

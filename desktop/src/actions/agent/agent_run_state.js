@@ -140,7 +140,7 @@ function attachRunProtocol(run, {
 function createRunResult(request, exitCode, run) {
     return {
         command: request.command,
-        conversation: structuredClone(run.conversation),
+        conversation: run.conversation,
         exitCode,
         missingSession: run.missingSession,
         prompt: request.prompt,

@@ -195,7 +195,6 @@ function commandEvent(item, lifecycleStatus) {
         content: item.aggregatedOutput ?? '',
         durationMs: item.durationMs,
         exitCode: item.exitCode,
-        output: item.aggregatedOutput ?? '',
         workingDirectory: item.cwd,
     };
 }

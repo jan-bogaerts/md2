@@ -65,7 +65,7 @@ function normalizeEvent(value) {
     const exitCode = optionalInteger(value.exitCode)
     const insertions = optionalNonNegativeInteger(value.insertions)
     const label = optionalString(value.label)
-    const output = typeof value.output === 'string' ? value.output : null
+    const output = value.type !== 'commandExecution' && typeof value.output === 'string' ? value.output : null
     const providerItemId = optionalString(value.providerItemId)
     const sequence = optionalInteger(value.sequence)
     const status = optionalString(value.status)

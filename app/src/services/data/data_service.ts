@@ -167,7 +167,6 @@ export class DataService extends EventTarget {
         this.projectLoading = new ProjectLoading(
             this.createProjectLoadingDependencies(),
             (projectLoadToken) => this.agents.prepareProjectConversationLoad(projectLoadToken),
-            (snapshot, project, projectLoadToken) => this.agents.loadAgentConversationsInBackground(snapshot, project, projectLoadToken),
         )
         this.releases = new ReleaseOperations(this.createReleaseOperationsDependencies(), () => this.cards.flushPendingCommits())
         agentConversationService.subscribe(() => this.dispatchChanged())
@@ -349,12 +348,6 @@ export class DataService extends EventTarget {
     private createAgentIntegrationDependencies(): AgentIntegrationDeps {
         return {
             beginAgentConversationLoad: () => this.projectState.beginAgentConversationLoad(),
-            deferAutomaticCommit: () => this.cards.deferAutomaticCommit(),
-            flushActivityRepairs: async () => {
-                const { commitBatcher } = this.requireDependencies()
-                await commitBatcher.flush()
-                this.dispatchPersistenceChanged()
-            },
             isCurrentAgentConversationLoad: (agentConversationLoadToken) => (
                 this.projectState.isCurrentAgentConversationLoad(agentConversationLoadToken)
             ),
@@ -364,16 +357,6 @@ export class DataService extends EventTarget {
                 this.projectState.refreshCardConversations(path, workingFolder)
             ),
             requireDependencies: () => this.requireDependencies(),
-            requireFile: (path) => this.projectState.requireFile(path),
-            scheduleActivityRepair: (file) => {
-                const { commitBatcher } = this.requireDependencies()
-                const project = this.projectState.project
-                if (!project) throw new Error('Cannot repair activity before a project is open')
-                commitBatcher.schedule(project.branch, [file], 'Repair activity files and references')
-            },
-            setAgentLogReferences: (cardPath, references) => {
-                this.cards.setAgentLogReferences(cardPath, references, 'Repair activity files and references')
-            },
             snapshot: () => this.projectState.snapshot,
             conversationChanged: (cardPath) => this.dispatchEvent(new Event(cardFieldChangedEvent(cardPath, 'conversation'))),
         }

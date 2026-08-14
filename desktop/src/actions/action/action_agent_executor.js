@@ -142,7 +142,7 @@ class ActionAgentExecutor {
         const onComplete = (exitCode, run) => resolve({
             command: request.command,
             changedPaths: run.changedPaths ? [...run.changedPaths] : [],
-            conversation: structuredClone(run.conversation),
+            conversation: run.conversation,
             conversationId: run.conversation.id,
             exitCode,
             missingSession: run.missingSession,

@@ -170,13 +170,13 @@ describe('parseAgentConversationLog', () => {
             durationMs: 25,
             exitCode: 1,
             insertions: 4,
-            output: 'failed',
             providerItemId: 'command-1',
             sequence: 2,
             status: 'failed',
             summary: ['summary'],
             workingDirectory: 'C:\\repo',
         })
+        expect(conversation.entries[0]).not.toHaveProperty('output')
     })
 
     it('groups persisted consecutive diagnostics while preserving boundaries and first identity', () => {

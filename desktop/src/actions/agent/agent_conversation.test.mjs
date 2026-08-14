@@ -8,6 +8,7 @@ const {
     createConversation,
     createEventEntry,
     createMessageEntry,
+    snapshotConversation,
     updateProviderSession,
 } = require('./agent_conversation');
 
@@ -92,6 +93,20 @@ describe('agent conversation', () => {
         expect(resumed).toEqual({ completedAt: null, entries: [], id: 'agent-1', path: 'log.json', providerSessions: [], status: 'running', viewed: false });
         expect(resumed.entries).not.toBe(conversation.entries);
         expect(resumed.providerSessions).not.toBe(conversation.providerSessions);
+    });
+
+    it('snapshots mutable conversation collections without cloning immutable entries', () => {
+        const entry = { content: 'done', id: 'message-1', kind: 'message', role: 'assistant', timestamp: 'now' };
+        const providerSession = { agent: 'codex', conversationId: 'thread-1' };
+        const conversation = { entries: [entry], id: 'agent-1', providerSessions: [providerSession] };
+
+        const snapshot = snapshotConversation(conversation);
+
+        expect(snapshot).not.toBe(conversation);
+        expect(snapshot.entries).not.toBe(conversation.entries);
+        expect(snapshot.providerSessions).not.toBe(conversation.providerSessions);
+        expect(snapshot.entries[0]).toBe(entry);
+        expect(snapshot.providerSessions[0]).toBe(providerSession);
     });
 
     it('updates a provider session cursor when an id is available', () => {

@@ -260,7 +260,7 @@ class ActionRunnerService {
     }
 
     loadActiveRunEvents() {
-        return [...this.runEvents.values()].flatMap((events) => events.map((event) => structuredClone(event)));
+        return [...this.runEvents.values()].flat();
     }
 
     cancel(runId) {

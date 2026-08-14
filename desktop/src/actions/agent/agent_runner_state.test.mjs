@@ -93,7 +93,7 @@ describe('AgentRunnerService state handling', () => {
             persistConversationCheckpoint: vi.fn(async () => undefined),
         });
         service.processes.set('run-1', {
-            conversation: { entries: [], status: 'running' },
+            conversation: { entries: [], providerSessions: [], status: 'running' },
             id: 'run-1',
             onEvent: vi.fn(),
             pendingApprovals: new Map(),
@@ -580,7 +580,7 @@ describe('AgentRunnerService state handling', () => {
             persistConversationCheckpoint: vi.fn(async () => undefined),
         });
         const run = {
-            conversation: { entries: [], status: 'waitingForInput' },
+            conversation: { entries: [], providerSessions: [], status: 'waitingForInput' },
             id: 'run-1',
             onEvent: vi.fn(),
             pendingApprovals: new Map(),
@@ -614,7 +614,7 @@ describe('AgentRunnerService state handling', () => {
             agent: 'codex',
             assistantItemIndex: 0,
             assistantItems: new Map(),
-            conversation: { entries: [], status: 'running' },
+            conversation: { entries: [], providerSessions: [], status: 'running' },
             currentAssistantMessageId: null,
             id: 'run-1',
             nextSequence: 2,
@@ -838,7 +838,7 @@ describe('AgentRunnerService state handling', () => {
         const answerApproval = vi.fn(async () => undefined);
         const service = new AgentRunnerService({ persistConversationCheckpoint });
         const run = {
-            conversation: { entries: [], status: 'running' },
+            conversation: { entries: [], providerSessions: [], status: 'running' },
             id: 'run-1',
             interactionWrites: Promise.resolve(),
             onEvent: vi.fn(),

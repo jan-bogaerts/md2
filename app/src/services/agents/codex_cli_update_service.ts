@@ -62,7 +62,7 @@ export class CodexCliUpdateService {
         try {
             if (!bridge.updateCodexCli) throw new Error('Codex CLI update is not available')
             await bridge.updateCodexCli()
-            this.dialogs.success('Codex updated. Retry the failed action.')
+            this.dialogs.success('Codex updated successfully')
         } catch (error) {
             this.dialogs.error(error, { fallbackMessage: 'Codex update failed' })
             throw error

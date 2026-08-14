@@ -134,11 +134,6 @@ export interface ProjectLoadingDeps {
 
 export class ProjectLoading {
     private readonly dependencies: ProjectLoadingDeps
-    private readonly loadAgentConversationsInBackground: (
-        snapshot: ProjectSnapshot,
-        project: ProjectReference,
-        projectLoadToken: number,
-    ) => void
     private readonly prepareAgentConversationLoading: (projectLoadToken: number) => void
     private actionReloadChangesByPath: Map<string, ActionReloadChange> = new Map()
     private actionReloadTimeout: number | null = null
@@ -152,15 +147,9 @@ export class ProjectLoading {
     constructor(
         dependencies: ProjectLoadingDeps,
         prepareAgentConversationLoading: (projectLoadToken: number) => void,
-        loadAgentConversationsInBackground: (
-            snapshot: ProjectSnapshot,
-            project: ProjectReference,
-            projectLoadToken: number,
-        ) => void,
     ) {
         this.dependencies = dependencies
         this.prepareAgentConversationLoading = prepareAgentConversationLoading
-        this.loadAgentConversationsInBackground = loadAgentConversationsInBackground
     }
 
     reset() {
@@ -342,17 +331,14 @@ export class ProjectLoading {
         const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot reload project snapshot before a project is open')
 
-        const project = currentProject
         const projectLoadToken = this.dependencies.beginProjectLoad()
+        this.prepareAgentConversationLoading(projectLoadToken)
         const projectFiles = await storage.loadProject(currentProject, config.projectFolder)
         const repositoryFiles = await storage.listRepositoryFiles(currentProject)
         this.dependencies.replaceProjectFiles(projectFiles.files, config.workingFolder, repositoryFiles)
         await this.ensureCardInternalIds()
         this.dependencies.dispatchChanged()
-        const currentSnapshot = this.dependencies.snapshot()
-        if (currentSnapshot) await this.loadAgentConversationsInBackground(currentSnapshot, project, projectLoadToken)
-
-        return currentSnapshot
+        return this.dependencies.snapshot()
     }
 
     stopProjectWatch() {
@@ -574,8 +560,6 @@ export class ProjectLoading {
         this.dependencies.mergeBackgroundProjectFiles(nextFiles, workingFolder, repositoryFiles)
         await this.ensureCardInternalIds()
         this.dependencies.dispatchChanged()
-        const currentSnapshot = this.dependencies.snapshot()
-        if (currentSnapshot) await this.loadAgentConversationsInBackground(currentSnapshot, project, projectLoadToken)
     }
 
     private shouldApplyProjectLoad(project: ProjectReference, projectLoadToken: number) {

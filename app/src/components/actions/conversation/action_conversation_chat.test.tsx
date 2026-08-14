@@ -757,9 +757,9 @@ describe('ActionConversationChat', () => {
     it('keeps grouped tool details independently expandable', () => {
         const command = toolEvent('Command call', 'commandExecution', 'completed', {
             command: 'npm test',
+            content: 'Command output',
             durationMs: 42,
             exitCode: 0,
-            output: 'Command output',
             workingDirectory: 'C:\\repo',
         })
         const search = toolEvent('Web search', 'webSearch', 'completed', {
@@ -901,7 +901,6 @@ describe('ActionConversationChat', () => {
             durationMs: 42,
             exitCode: 1,
             id: 'command-completed',
-            output: 'line one\nline two',
             providerItemId: 'command-1',
             sequence: 2,
             status: 'failed',
@@ -1051,8 +1050,8 @@ describe('ActionConversationChat', () => {
         const { rerender } = renderChat(first)
         const completed = {
             ...started,
+            content: 'passed',
             id: 'command-completed',
-            output: 'passed',
             status: 'completed',
         }
 
@@ -1090,7 +1089,6 @@ describe('ActionConversationChat', () => {
             command: 'npm test',
             content: '',
             id: 'command-1',
-            output: '',
             providerItemId: 'command-1',
             sequence: 3,
             status: 'inProgress',
@@ -1111,7 +1109,7 @@ describe('ActionConversationChat', () => {
             [
                 ...first.entries.filter((entry) => entry.kind === 'message'),
                 eventEntry(grownActivity),
-                eventEntry({ ...commandActivity, content: 'line one\nline two', output: 'line one\nline two' }),
+                eventEntry({ ...commandActivity, content: 'line one\nline two' }),
             ],
             'codex',
         )

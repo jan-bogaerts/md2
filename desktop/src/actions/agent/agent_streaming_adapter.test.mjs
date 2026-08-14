@@ -689,15 +689,16 @@ describe('CodexStreamingAdapter', () => {
         });
 
         const command = events.filter(({ event }) => event?.providerItemId === 'command-1').map(({ event }) => event);
-        expect(command[0]).toMatchObject({ command: started.command, output: '', status: 'inProgress', workingDirectory: 'C:\\repo' });
-        expect(command[2].output).toBe('first\nsecond');
+        expect(command[0]).toMatchObject({ command: started.command, content: '', status: 'inProgress', workingDirectory: 'C:\\repo' });
+        expect(command[2].content).toBe('first\nsecond');
         expect(command.at(-1)).toMatchObject({
             command: started.command,
+            content: 'final output',
             durationMs: 25,
             exitCode: 1,
-            output: 'final output',
             status: 'failed',
         });
+        expect(command.every((event) => !Object.hasOwn(event, 'output'))).toBe(true);
     });
 
     it('retains declined command state', async () => {
