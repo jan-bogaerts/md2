@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__2b696eca-93cd-48b1-a237-b3cb9658e1d8.json#conversation=agent-c5226a92-1d97-4a04-a71c-b6302eacfb75
 policy:
+branch: f_172_reasoning_block_with_text
+worktree: 1
 ---
 Some reasoning blocks have text. We display that text while the reasoning is still active. however, once the reasoning is done, we hide the reasoning block. This should be changed:
 
