@@ -3957,11 +3957,11 @@
         "agent-818ec4fe-4330-49ea-8038-506ea6407d8f"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-4bb57087-679c-4249-aa7e-6f9be2871781",
       "origin": {
@@ -3969,8 +3969,31 @@
       },
       "rootActionId": "65ad68d5-4ad3-4afe-b861-0bbb00d2505e",
       "rootActionLabel": "write release note",
-      "rootConversationId": "agent-818ec4fe-4330-49ea-8038-506ea6407d8f",
       "startedAt": "2026-08-14T11:50:18.878Z",
+      "status": "cancelled",
+      "rootConversationId": "agent-818ec4fe-4330-49ea-8038-506ea6407d8f"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-08-14T12:32:40.596Z",
+      "conversationIds": [
+        "agent-4584d639-df91-48bf-b538-3cec6d1d2c2b"
+      ],
+      "details": {
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-e2c9a07d-7bc3-42be-bd32-7bb46e3cb7db",
+      "origin": {
+        "kind": "project"
+      },
+      "rootActionId": "md2.custom-prompt",
+      "rootActionLabel": "+",
+      "rootConversationId": "agent-4584d639-df91-48bf-b538-3cec6d1d2c2b",
+      "startedAt": "2026-08-14T11:16:59.971Z",
       "status": "cancelled"
     }
   ],
