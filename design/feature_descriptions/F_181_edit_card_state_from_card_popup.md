@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
   - design/activity/card__7cc0a40b-58f2-463e-8872-62474c1a681f.json#conversation=agent-f5cb7e2a-bdbb-4005-9ea9-0e8855cea21b
+  - design/activity/card__7cc0a40b-58f2-463e-8872-62474c1a681f.json#conversation=agent-b5574b33-17a6-4076-862e-ec770ba563bb
 policy:
 branch: f_181_edit_card_state_from_card_popup
 worktree: 3
