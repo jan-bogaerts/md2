@@ -12,6 +12,7 @@ import { AppThemeProvider } from './theme/theme_provider'
 import { readStartupSplashPreference } from './services/config/config_service'
 import { dialogService } from './services/dialog_service'
 import type { ApplicationStartupService } from './services/application_startup_service'
+import { SentryImportConfirmationDialog } from './components/sentry_import_confirmation_dialog'
 
 interface AppProps {
     startupService?: ApplicationStartupService
@@ -42,6 +43,7 @@ export function App({ startupService }: AppProps = {}) {
             <ProjectWindowTitle />
             <UpdateNotification />
             <MergeConflictDialog />
+            <SentryImportConfirmationDialog />
             {bootstrap.phase === 'starting' ? (
                 showStartupSplash ? <StartupSplash /> : null
             ) : (

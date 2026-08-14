@@ -78,6 +78,9 @@ export interface CardHeader {
     internalId: string | null
     owner: string | null
     policy: Record<string, boolean>
+    sentryBaseUrl?: string
+    sentryIssueId?: string
+    sentryOrganization?: string
     status: string | null
     title: string
     worktree?: number | null

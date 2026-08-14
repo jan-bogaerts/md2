@@ -32,6 +32,9 @@ export interface NewCardHeader {
     internalId: string
     owner?: string | null
     policy?: Record<string, boolean>
+    sentryBaseUrl?: string
+    sentryIssueId?: string
+    sentryOrganization?: string
     status?: string | null
     title: string
 }
@@ -101,6 +104,15 @@ function currentHeaderFields(card: Card, source: CardSourceState): MarkdownHeade
     if (header.internalId !== sourceHeader.internalId) setNullableHeaderField(fields, 'internalId', header.internalId)
     if (header.owner !== sourceHeader.owner) setNullableHeaderField(fields, 'owner', header.owner)
     if (!sameBooleanMap(header.policy, sourceHeader.policy)) fields.policy = serializePolicy(header.policy)
+    if (header.sentryBaseUrl !== sourceHeader.sentryBaseUrl) {
+        setNullableHeaderField(fields, 'sentryBaseUrl', header.sentryBaseUrl ?? null)
+    }
+    if (header.sentryIssueId !== sourceHeader.sentryIssueId) {
+        setNullableHeaderField(fields, 'sentryIssueId', header.sentryIssueId ?? null)
+    }
+    if (header.sentryOrganization !== sourceHeader.sentryOrganization) {
+        setNullableHeaderField(fields, 'sentryOrganization', header.sentryOrganization ?? null)
+    }
     if (header.status !== sourceHeader.status) setNullableHeaderField(fields, 'status', header.status)
     if (header.title !== sourceHeader.title) fields.title = header.title
     if (header.worktree !== sourceHeader.worktree || header.worktreeError !== sourceHeader.worktreeError) {
@@ -323,6 +335,9 @@ function parseCardHeader(fields: MarkdownHeaderFields, file: MarkdownFile, body:
         internalId: getStringField(fields, 'internalId'),
         owner: getStringField(fields, 'owner'),
         policy: parsePolicyMap(fields),
+        sentryBaseUrl: getStringField(fields, 'sentryBaseUrl') ?? undefined,
+        sentryIssueId: getStringField(fields, 'sentryIssueId') ?? undefined,
+        sentryOrganization: getStringField(fields, 'sentryOrganization') ?? undefined,
         status,
         title,
         ...worktree,
@@ -461,6 +476,9 @@ function serializeNewHeader(header: NewCardHeader) {
     lines.push('affects:', ...affects.map((entry) => `${LIST_ITEM_PREFIX}${entry}`))
     lines.push('agents:', ...agentLogReferences.map((entry) => `${LIST_ITEM_PREFIX}${entry}`))
     lines.push('policy:', ...Object.entries(policy).map(([key, value]) => `${CHILD_INDENT}${key}: ${value ? 'true' : 'false'}`))
+    if (header.sentryIssueId) lines.push(`sentryIssueId: ${header.sentryIssueId}`)
+    if (header.sentryOrganization) lines.push(`sentryOrganization: ${header.sentryOrganization}`)
+    if (header.sentryBaseUrl) lines.push(`sentryBaseUrl: ${header.sentryBaseUrl}`)
 
     return lines.join('\n')
 }

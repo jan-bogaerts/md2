@@ -550,6 +550,7 @@ describe('ConfigPage', () => {
         expect(screen.getByRole('region', { name: 'Config section content' })).toHaveStyle({ overflow: 'auto' })
         expect(screen.getByRole('tablist', { name: 'Config sections' })).toHaveAttribute('aria-orientation', 'vertical')
         expect(screen.getByRole('tab', { name: 'Project' })).toHaveAttribute('href', '#/config/project')
+        expect(screen.getByRole('tab', { name: 'Sentry' })).toHaveAttribute('href', '#/config/sentry')
         expect(screen.getByRole('tab', { name: 'Desktop' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Cancel' })).toHaveClass('MuiButton-outlined')
         expect(screen.getByRole('button', { name: 'Save' })).toHaveClass('MuiButton-contained')

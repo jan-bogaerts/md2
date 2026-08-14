@@ -134,6 +134,7 @@ export class DataService extends EventTarget {
     private commitBatcher: CommitBatcher | null = null
     private remarkableBridge: RemarkableBridge | null = null
     private storage: StorageService | null = null
+    private fullProjectLoaded = false
     private readonly projectState: ProjectState
     private readonly saveStateService: SaveStateService
     private persistenceSnapshot: DataPersistenceSnapshot = { hasPendingFileCommit: false, hasPendingPush: false, isSaving: false }
@@ -177,6 +178,7 @@ export class DataService extends EventTarget {
         this.projectLoading.reset()
         this.agents.reset()
         this.projectState.resetLoadedProject()
+        this.fullProjectLoaded = false
         this.remarkableBridge = dependencies.remarkableBridge ?? null
         this.storage = withSaveStateTracking(dependencies.storage, this.saveStateService)
         this.initializeStorageServices()
@@ -221,6 +223,10 @@ export class DataService extends EventTarget {
             runningAgents: agentConversationService.getRunningAgents(),
             snapshot: this.projectState.snapshot,
         }
+    }
+
+    isFullProjectLoaded() {
+        return this.fullProjectLoaded
     }
 
     getPersistenceSnapshot(): DataPersistenceSnapshot {
@@ -364,7 +370,10 @@ export class DataService extends EventTarget {
 
     private createProjectLoadingDependencies(): ProjectLoadingDeps {
         return {
-            beginProjectLoad: () => this.projectState.beginProjectLoad(),
+            beginProjectLoad: () => {
+                this.fullProjectLoaded = false
+                return this.projectState.beginProjectLoad()
+            },
             clearLoadedProject: () => this.projectState.resetLoadedProject(),
             commitPathsInFlight: () => this.projectState.commitPathsInFlight,
             dispatchChanged: () => this.dispatchChanged(),
@@ -377,6 +386,9 @@ export class DataService extends EventTarget {
             mergeBackgroundProjectFiles: (files, workingFolder, repositoryFiles) => (
                 this.projectState.mergeBackgroundProjectFiles(files, workingFolder, repositoryFiles)
             ),
+            markFullProjectLoaded: () => {
+                this.fullProjectLoaded = true
+            },
             project: () => this.projectState.project,
             replaceFiles: (files, workingFolder) => this.projectState.replaceFiles(files, workingFolder),
             replaceProject: (project) => this.projectState.replaceProject(project),

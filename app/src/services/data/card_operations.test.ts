@@ -17,6 +17,28 @@ import {
     type CardRemovedEventDetail,
 } from './data_service'
 import { markdownParsingService } from './markdown_parsing_service'
+import type { SentryIssueImport } from '../sentry/sentry_types'
+
+function sentryIssue(id: string, title = `Issue ${id}`): SentryIssueImport {
+    return {
+        event: {
+            environment: 'production',
+            eventId: `event-${id}`,
+            message: `Message ${id}`,
+            release: '1.0.0',
+            stackFrames: [{ columnNumber: 4, fileName: 'app.ts', functionName: 'run', lineNumber: 12 }],
+        },
+        issue: {
+            count: '3',
+            culprit: 'run',
+            firstSeen: '2026-01-01T00:00:00Z',
+            id,
+            lastSeen: '2026-01-02T00:00:00Z',
+            link: `https://sentry.example.com/issues/${id}`,
+            title,
+        },
+    }
+}
 
 function recordDialogMessages(severity: DialogSeverity) {
     const messages: string[] = []
@@ -153,6 +175,131 @@ describe('CardOperations', () => {
 
         expect(storage.commit).toHaveBeenCalledWith(expect.objectContaining({ message: 'Create design/F-4-new-card.md' }) as CommitRequest)
         expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' })
+    })
+
+    it('imports unseen Sentry issues with sequential IDs in one commit and one local batch', async () => {
+        configService.init()
+        const storage = createStorage()
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const added = vi.fn()
+        service.addEventListener(CARD_ADDED_EVENT, added)
+        vi.mocked(storage.commit).mockClear()
+
+        const importedFiles = await service.cards.importSentryIssues({
+            apiBaseUrl: 'https://sentry.example.com/',
+            cardState: 'to fix',
+            cardType: 'bug',
+            issues: [sentryIssue('100'), sentryIssue('101'), sentryIssue('100')],
+            organization: 'acme',
+            projectId: 'project',
+        })
+
+        expect(importedFiles.map(({ path }) => path)).toEqual([
+            'design/B-1-issue-100.md',
+            'design/B-2-issue-101.md',
+        ])
+        expect(storage.commit).toHaveBeenCalledOnce()
+        expect(storage.commit).toHaveBeenCalledWith(expect.objectContaining({
+            branch: 'main',
+            files: importedFiles,
+            message: 'Import 2 Sentry issues',
+        }))
+        expect(added).toHaveBeenCalledTimes(2)
+        const importedCards = service.getState().snapshot?.activeCards.filter(({ header }) => !!header.sentryIssueId) ?? []
+        expect(new Set(importedCards.map(({ header }) => header.internalId)).size).toBe(2)
+        expect(importedCards.map(({ header }) => header.status)).toEqual(['to fix', 'to fix'])
+        expect(importedCards[0].header).toMatchObject({
+            sentryBaseUrl: 'https://sentry.example.com',
+            sentryIssueId: '100',
+            sentryOrganization: 'acme',
+        })
+        expect(importedFiles[0].content).toContain('**Event ID:** event-100')
+        expect(importedFiles[0].content).toContain('`app.ts:12:4` — run')
+        await vi.waitFor(() => expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' }))
+    })
+
+    it('deduplicates repeated imports from current loaded card identities', async () => {
+        configService.init()
+        const storage = createStorage()
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const request = {
+            apiBaseUrl: 'https://sentry.example.com',
+            cardState: 'to fix',
+            cardType: 'bug',
+            issues: [sentryIssue('100')],
+            organization: 'acme',
+            projectId: 'project',
+        }
+        vi.mocked(storage.commit).mockClear()
+
+        await service.cards.importSentryIssues(request)
+        const secondImport = await service.cards.importSentryIssues(request)
+
+        expect(secondImport).toEqual([])
+        expect(storage.commit).toHaveBeenCalledOnce()
+    })
+
+    it('uses normalized base URL and organization as part of Sentry identity scope', async () => {
+        configService.init()
+        const storage = createStorage()
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        vi.mocked(storage.commit).mockClear()
+
+        await service.cards.importSentryIssues({ apiBaseUrl: 'https://one.example.com', cardState: 'to fix', cardType: 'bug', issues: [sentryIssue('100')], organization: 'acme', projectId: 'project' })
+        await service.cards.importSentryIssues({ apiBaseUrl: 'https://two.example.com', cardState: 'to fix', cardType: 'bug', issues: [sentryIssue('100')], organization: 'acme', projectId: 'project' })
+
+        expect(storage.commit).toHaveBeenCalledTimes(2)
+        expect(service.getState().snapshot?.activeCards.filter(({ header }) => header.sentryIssueId === '100')).toHaveLength(2)
+    })
+
+    it('fails missing Sentry card configuration before changing local state', async () => {
+        configService.init()
+        const storage = createStorage()
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const originalCount = service.getState().snapshot?.activeCards.length
+        vi.mocked(storage.commit).mockClear()
+
+        await expect(service.cards.importSentryIssues({
+            apiBaseUrl: 'https://sentry.example.com',
+            cardState: 'missing',
+            cardType: 'bug',
+            issues: [sentryIssue('100')],
+            organization: 'acme',
+            projectId: 'project',
+        })).rejects.toThrow('Configured Sentry card state no longer exists: missing')
+
+        expect(service.getState().snapshot?.activeCards).toHaveLength(originalCount ?? 0)
+        expect(storage.commit).not.toHaveBeenCalled()
+    })
+
+    it('leaves no partial in-memory cards when preparation fails', async () => {
+        configService.init()
+        const storage = createStorage()
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const originalCount = service.getState().snapshot?.activeCards.length
+        vi.mocked(storage.commit).mockClear()
+
+        await expect(service.cards.importSentryIssues({
+            apiBaseUrl: 'https://sentry.example.com',
+            cardState: 'to fix',
+            cardType: 'bug',
+            issues: [sentryIssue('100'), sentryIssue('101', '')],
+            organization: 'acme',
+            projectId: 'project',
+        })).rejects.toThrow('Cannot generate a card without a title')
+
+        expect(service.getState().snapshot?.activeCards).toHaveLength(originalCount ?? 0)
+        expect(storage.commit).not.toHaveBeenCalled()
     })
 
     it('adds one card incrementally without waiting for automatic push', async () => {

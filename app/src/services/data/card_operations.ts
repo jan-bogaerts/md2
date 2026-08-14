@@ -13,6 +13,7 @@ import {
 } from './card_operation_context'
 import { CardRenameOperations } from './card_rename_operations'
 import { ProjectFileOperations } from './project_file_operations'
+import { markdownParsingService } from './markdown_parsing_service'
 import {
     clearCardBranch,
     setCardAffects,
@@ -23,8 +24,28 @@ import {
     setCardWorktreeAssignment,
     toggleCardPolicy,
 } from './card_mutations'
+import { buildSentryIssueMarkdown } from '../sentry/sentry_issue_markdown'
+import { normalizeSentryBaseUrl, sentryIdentityKey, type SentryIssueImport } from '../sentry/sentry_types'
 
 export type { CardOperationsDeps }
+
+export interface SentryIssueImportRequest {
+    apiBaseUrl: string
+    cardState: string
+    cardType: CardType
+    issues: SentryIssueImport[]
+    organization: string
+    projectId: string
+}
+
+function importedSentryIdentities(cards: Card[]) {
+    return new Set(cards.flatMap(({ header }) => {
+        const { sentryBaseUrl, sentryIssueId, sentryOrganization } = header
+        if (!sentryBaseUrl || !sentryIssueId || !sentryOrganization) return []
+
+        return [sentryIdentityKey(sentryBaseUrl, sentryOrganization, sentryIssueId)]
+    }))
+}
 
 /** The card-facing surface of the data service, delegating to focused operation modules. */
 export class CardOperations {
@@ -73,6 +94,66 @@ export class CardOperations {
         telemetryService.trackEvent('create_card')
 
         return file
+    }
+
+    /** Creates unseen Sentry issues through one local-state update and one storage commit. */
+    async importSentryIssues(request: SentryIssueImportRequest) {
+        const { config, project } = this.context.requireProject('import Sentry issues')
+        if (project.id !== request.projectId) throw new Error('Opened project changed before Sentry import persistence')
+        if (!config.cardTypes.some(({ type }) => type === request.cardType)) {
+            throw new Error(`Configured Sentry card type no longer exists: ${request.cardType}`)
+        }
+        if (!config.states.some(({ state }) => state === request.cardState)) {
+            throw new Error(`Configured Sentry card state no longer exists: ${request.cardState}`)
+        }
+
+        const snapshot = this.context.dependencies.snapshot()
+        if (!snapshot) throw new Error('Cannot import Sentry issues before project cards are loaded')
+        const identities = importedSentryIdentities([...snapshot.activeCards, ...snapshot.backgroundCards])
+        const normalizedBaseUrl = normalizeSentryBaseUrl(request.apiBaseUrl)
+        const preparedFiles: MarkdownFile[] = []
+
+        for (const importedIssue of request.issues) {
+            const identity = sentryIdentityKey(normalizedBaseUrl, request.organization, importedIssue.issue.id)
+            if (identities.has(identity)) continue
+
+            const draft = {
+                body: buildSentryIssueMarkdown(importedIssue),
+                title: importedIssue.issue.title,
+                type: request.cardType,
+            }
+            const file = createCardFile(
+                [...this.context.dependencies.files(), ...preparedFiles],
+                config.workingFolder,
+                config.cardSeparator,
+                config.cardTypes,
+                config.cardBodyTemplate,
+                request.cardState,
+                draft,
+            )
+            const content = markdownParsingService.rewriteHeader(file.content, {
+                sentryBaseUrl: normalizedBaseUrl,
+                sentryIssueId: importedIssue.issue.id,
+                sentryOrganization: request.organization.trim(),
+            })
+            preparedFiles.push({ ...file, content })
+            identities.add(identity)
+        }
+
+        if (preparedFiles.length === 0) return []
+        if (this.context.dependencies.project()?.id !== request.projectId) {
+            throw new Error('Opened project changed before Sentry import persistence')
+        }
+
+        this.context.dependencies.updateFiles(preparedFiles, [], config.workingFolder)
+        await this.context.commitCreatedFiles({
+            branch: project.branch,
+            files: preparedFiles,
+            message: `Import ${preparedFiles.length} Sentry issue${preparedFiles.length === 1 ? '' : 's'}`,
+        })
+        void this.context.pushCreatedItem('Sentry issues')
+
+        return preparedFiles
     }
 
     savePastedImageForCard(cardPath: string, file: File) {

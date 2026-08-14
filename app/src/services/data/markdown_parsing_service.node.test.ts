@@ -107,6 +107,29 @@ describe('markdownParsingService.parseCard', () => {
         expect(markdownParsingService.serializeCard(card).content).toBe(content)
     })
 
+    it('parses and preserves Sentry identity through edits and reloads', () => {
+        const content = '---\nid: B-2\ninternalId: card-2\ntitle: Sentry bug\ncustomField: keep me\nsentryIssueId: 12345\nsentryOrganization: acme\nsentryBaseUrl: https://sentry.example.com\n---\n\n# Sentry bug'
+        const card = markdownParsingService.parseCard({ content, path: 'design/B-2-sentry-bug.md' }, 'design')
+
+        expect(card.header).toMatchObject({
+            sentryBaseUrl: 'https://sentry.example.com',
+            sentryIssueId: '12345',
+            sentryOrganization: 'acme',
+        })
+
+        card.content = '# Edited Sentry bug'
+        const serialized = markdownParsingService.serializeCard(card)
+        const reloaded = markdownParsingService.parseCard(serialized, 'design')
+
+        expect(serialized.content).toContain('customField: keep me')
+        expect(reloaded.header).toMatchObject({
+            sentryBaseUrl: 'https://sentry.example.com',
+            sentryIssueId: '12345',
+            sentryOrganization: 'acme',
+        })
+        expect(reloaded.content).toBe('# Edited Sentry bug')
+    })
+
     it('defaults after to null and policy to an empty map when absent', () => {
         const card = markdownParsingService.parseCard(ROOT_FILE, 'design')
 

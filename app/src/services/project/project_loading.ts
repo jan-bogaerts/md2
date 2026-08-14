@@ -120,6 +120,7 @@ export interface ProjectLoadingDeps {
     matchesCurrentContent(path: string, content: string): boolean
     isCurrentLoad(project: ProjectReference, projectLoadToken: number): boolean
     mergeBackgroundProjectFiles(files: MarkdownFile[], workingFolder: string, repositoryFiles: string[]): void
+    markFullProjectLoaded(): void
     project(): ProjectReference | null
     replaceFiles(files: MarkdownFile[], workingFolder: string): void
     replaceProject(project: ProjectReference | null): void
@@ -337,6 +338,7 @@ export class ProjectLoading {
         const repositoryFiles = await storage.listRepositoryFiles(currentProject)
         this.dependencies.replaceProjectFiles(projectFiles.files, config.workingFolder, repositoryFiles)
         await this.ensureCardInternalIds()
+        this.dependencies.markFullProjectLoaded()
         this.dependencies.dispatchChanged()
         return this.dependencies.snapshot()
     }
@@ -559,6 +561,7 @@ export class ProjectLoading {
 
         this.dependencies.mergeBackgroundProjectFiles(nextFiles, workingFolder, repositoryFiles)
         await this.ensureCardInternalIds()
+        if (projectFilesLoaded) this.dependencies.markFullProjectLoaded()
         this.dependencies.dispatchChanged()
     }
 

@@ -36,12 +36,14 @@ import { getElectronRemoteControlBridge } from '../../data/electron_remote_contr
 import { useProjectReadOnly } from '../hooks/use_project_read_only'
 import { useWorktreeDraft } from '../hooks/use_worktrees'
 import { worktreeService } from '../../services/project/worktree_service'
+import { SentryConfigSection } from './sentry_config_section'
 
 const CONFIG_PAGE_PADDING = 3
 const CONFIG_FORM_MAX_WIDTH = 720
 const CONFIG_SIDEBAR_WIDTH = 220
 const DRAFT_DISCARD_DELAY_MS = 0
 const MARKDOWN_CONFIG_SECTION = { id: 'markdown', label: 'Markdown' }
+const SENTRY_CONFIG_SECTION = { id: 'sentry', label: 'Sentry' }
 let configPageMountGeneration = 0
 
 interface MarkdownStyleDraft {
@@ -65,7 +67,10 @@ function getActiveSection(hash: string, sections: typeof CONFIG_SECTIONS) {
 function getVisibleSections(entries: ConfigEntry[]) {
     return CONFIG_SECTIONS.flatMap((section) => {
         const visibleSection = entries.some((entry) => entry.section === section.id) ? [section] : []
-        return section.id === 'react' ? [...visibleSection, MARKDOWN_CONFIG_SECTION] : visibleSection
+        if (section.id === 'react') return [...visibleSection, MARKDOWN_CONFIG_SECTION]
+        if (section.id === 'project') return [...visibleSection, SENTRY_CONFIG_SECTION]
+
+        return visibleSection
     })
 }
 
@@ -292,6 +297,7 @@ export function ConfigPage(props: ConfigPageProps) {
                             />
                         ) : null}
                         {activeSection === 'project' ? <ProjectConfigSection {...sectionProps} disabled={readOnly} /> : null}
+                        {activeSection === 'sentry' ? <SentryConfigSection /> : null}
                         {activeSection === 'desktop' ? <DesktopConfigSection {...sectionProps} disabled={!configService.hasDesktopConfig()} /> : null}
                     </Stack>
                 </Box>
