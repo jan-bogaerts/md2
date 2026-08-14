@@ -3272,11 +3272,11 @@
         "agent-84c09c05-305f-43d9-8ee7-79a326bdae5c"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-5bde886e-6f70-4fd3-b430-68f1ffd061fd",
       "origin": {
@@ -3285,9 +3285,53 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-84c09c05-305f-43d9-8ee7-79a326bdae5c",
       "startedAt": "2026-08-13T17:12:09.347Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-84c09c05-305f-43d9-8ee7-79a326bdae5c"
+    },
+    {
+      "commits": [
+        {
+          "commit": "79f1e8b59ca35a3b261e5451e7adf9fca88e73eb",
+          "committedAt": "2026-08-14T09:59:10+02:00",
+          "deletions": 20,
+          "filePaths": [
+            "app/src/components/dialog_display.test.tsx",
+            "app/src/components/dialog_display.tsx",
+            "app/src/components/shell/codex_rate_limit_status.test.tsx",
+            "app/src/data/electron_codex_runtime_bridge.ts",
+            "app/src/services/agents/codex_cli_update_service.test.ts",
+            "app/src/services/agents/codex_cli_update_service.ts",
+            "app/src/services/agents/codex_rate_limit_service.test.ts",
+            "app/src/services/application_startup_service.ts",
+            "app/src/services/dialog_service.node.test.ts",
+            "app/src/services/dialog_service.ts",
+            "desktop/main.js",
+            "desktop/src/actions/agent/agent_codex_cache_diagnostic.js",
+            "desktop/src/actions/agent/agent_codex_cache_diagnostic.test.mjs",
+            "desktop/src/actions/agent/agent_runner_service.js",
+            "desktop/src/actions/agent/agent_runner_state.test.mjs",
+            "desktop/src/actions/agent/codex_cli_update.js",
+            "desktop/src/actions/agent/codex_cli_update.test.mjs",
+            "desktop/src/actions/agent/codex_runtime_service.js",
+            "desktop/src/actions/agent/codex_runtime_service.test.mjs",
+            "desktop/src/shell/local_bridge_dispatch.js",
+            "desktop/src/shell/local_bridge_dispatch.test.mjs",
+            "desktop/src/shell/preload.js",
+            "desktop/src/shell/preload.test.mjs"
+          ],
+          "filesChanged": 23,
+          "insertions": 542,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-14T09:59:10+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "894c324e-d9cf-400f-b964-5256ffff9b24",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
