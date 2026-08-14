@@ -9,4 +9,7 @@ affects:
 agents:
 policy:
 ---
+Some reasoning blocks have text. We display that text while the reasoning is still active. however, once the reasoning is done, we hide the reasoning block. This should be changed:
 
+* only hide the block if there is no text
+* if there is text, collapse it. user can still expand it again to look at the text.
