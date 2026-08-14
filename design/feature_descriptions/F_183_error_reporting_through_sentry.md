@@ -3,7 +3,7 @@ author:
 id: F_183
 internalId: 715f1a07-796d-4a83-bed9-bd3527584dce
 title: error reporting through sentry
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
