@@ -3,7 +3,7 @@ author:
 id: F_184
 internalId: bd257fa5-fafa-425b-be61-73a090e1ccf5
 title: add worktree improvements
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
