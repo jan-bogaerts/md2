@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__332eb86e-d703-4707-a8de-0bdec67e23f5.json#conversation=agent-a98b10c5-842d-4233-8c7d-595d760dc975
 policy:
+branch: b_113_local_search_not_working_correctly
+worktree: 2
 ---
 
 we recently implemented local search in cards, see [F\_104\_add\_local\_text\_search\_md\_editor.md](design/releases/0_3_0/F_104_add_local_text_search_md_editor.md)
