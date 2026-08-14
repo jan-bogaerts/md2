@@ -2730,11 +2730,11 @@
         "agent-dfb5e2f5-59f5-4cfd-afa4-46158e48a11a"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-f6f1e410-0010-495b-8e1e-bd4cf8463f3e",
       "origin": {
@@ -2743,9 +2743,48 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-dfb5e2f5-59f5-4cfd-afa4-46158e48a11a",
       "startedAt": "2026-08-14T15:41:04.909Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-dfb5e2f5-59f5-4cfd-afa4-46158e48a11a"
+    },
+    {
+      "commits": [
+        {
+          "commit": "54f641dfabfb622029e106c88306e6041c98dd3d",
+          "committedAt": "2026-08-14T18:34:44+02:00",
+          "deletions": 12,
+          "filePaths": [
+            "app/src/components/actions/agent/action_agent_prompt.test.tsx",
+            "app/src/components/card_view/card_body_editor.tsx",
+            "app/src/components/editor/card_markdown_data_source.node.test.ts",
+            "app/src/components/editor/card_markdown_data_source.ts",
+            "app/src/components/editor/markdown_editor.test.tsx",
+            "app/src/components/editor/markdown_editor.tsx",
+            "app/src/components/editor/markdown_paste_cell.ts",
+            "app/src/components/editor/markdown_paste_plugin.tsx",
+            "app/src/components/hooks/use_active_card.test.tsx",
+            "app/src/components/shell/project/new_card_dialog.tsx",
+            "app/src/components/shell/project/new_card_dialog_render.test.tsx",
+            "app/src/components/shell/project/new_card_markdown_editor.tsx",
+            "app/src/components/text_view/card_editor.tsx",
+            "app/src/services/data/card_image_operations.test.ts",
+            "app/src/services/data/card_image_operations.ts",
+            "app/src/services/data/card_operations.ts",
+            "app/src/services/project/project_session_service.test.ts",
+            "app/src/services/project/project_session_service.ts"
+          ],
+          "filesChanged": 18,
+          "insertions": 683,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-14T18:34:44+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "030deac3-abb2-46e9-821c-c9d1db04502e",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
