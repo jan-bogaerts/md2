@@ -7,6 +7,7 @@ status: ready for implementation
 owner: 
 affects:
 agents:
+  - design/activity/card__d10103b8-7064-45cf-8b32-df0566889f78.json#conversation=agent-3cc7820a-7470-44e0-909a-0cbf625f4eae
 policy:
 branch: f_185_import_sentry_issues_as_bug_cards
 worktree: 1
