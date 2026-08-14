@@ -2173,11 +2173,11 @@
         "agent-edb92bde-c582-41fa-bc76-b2c7409154ce"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-9afa8f5f-7624-4f94-b513-3e542a75e823",
       "origin": {
@@ -2186,9 +2186,36 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-edb92bde-c582-41fa-bc76-b2c7409154ce",
       "startedAt": "2026-08-14T09:10:17.453Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-edb92bde-c582-41fa-bc76-b2c7409154ce"
+    },
+    {
+      "commits": [
+        {
+          "commit": "f9a87fefd52f0bac66386ce598140233ef5a6e25",
+          "committedAt": "2026-08-14T11:21:34+02:00",
+          "deletions": 50,
+          "filePaths": [
+            "app/src/components/actions/conversation/action_conversation_chat.test.tsx",
+            "app/src/components/actions/conversation/action_conversation_chat.tsx",
+            "app/src/components/actions/conversation/reasoning_display.test.ts",
+            "app/src/components/actions/conversation/reasoning_display.ts",
+            "app/src/components/actions/conversation/reasoning_event.test.tsx",
+            "app/src/components/actions/conversation/reasoning_event.tsx"
+          ],
+          "filesChanged": 6,
+          "insertions": 248,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-14T11:21:34+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "2b696eca-93cd-48b1-a237-b3cb9658e1d8",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
