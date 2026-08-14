@@ -3,7 +3,7 @@ author:
 id: B_113
 internalId: 332eb86e-d703-4707-a8de-0bdec67e23f5
 title: local search not working correctly
-status: new
+status: design
 owner: 
 affects:
 agents:
