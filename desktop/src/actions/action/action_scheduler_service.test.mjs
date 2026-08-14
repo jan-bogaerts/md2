@@ -176,10 +176,11 @@ describe('ActionSchedulerService', () => {
 
     it('loads schedules and actions from the actions folder inside the configured project folder', async () => {
         const schedule = createSchedule('schedule-1', 'implement', { timestamp: '2026-07-06T09:59:00.000Z', type: 'at' });
-        const localGitService = createLocalGitService([schedule], [createAction('implement', { command: 'echo {{releases-folder}}' })], {
+        const localGitService = createLocalGitService([schedule], [createAction('implement', { command: 'echo {{releases-folder}} {{active-cards-folder}}' })], {
             actionsFolder: 'actions',
             projectFolder: 'projects/demo',
             releasesFolder: 'delivery/releases',
+            workingFolder: 'feature_descriptions',
         });
         const scheduler = createScheduler(localGitService);
 
@@ -190,16 +191,39 @@ describe('ActionSchedulerService', () => {
         expect(localGitService.loadActionFiles).toHaveBeenCalledWith(project, 'projects/demo/actions');
         expect(localGitService.runCommand).toHaveBeenCalledWith(
             project,
-            `echo ${path.resolve('C:/repo', 'projects/demo/delivery/releases')}`,
+            `echo ${path.resolve('C:/repo', 'projects/demo/delivery/releases')} ${path.resolve('C:/repo', 'projects/demo/feature_descriptions')}`,
         );
         expect(localGitService.histories).toEqual([expect.objectContaining({
             entry: expect.objectContaining({
-                command: `echo ${path.resolve('C:/repo', 'projects/demo/delivery/releases')}`,
+                command: `echo ${path.resolve('C:/repo', 'projects/demo/delivery/releases')} ${path.resolve('C:/repo', 'projects/demo/feature_descriptions')}`,
                 output: 'done',
                 status: 'completed',
             }),
             request: expect.objectContaining({ actionId: 'implement', projectFolder: 'projects/demo' }),
         })]);
+    });
+
+    it('uses default working folder directly under repository when project folder is empty', async () => {
+        const schedule = createSchedule('schedule-1', 'implement', { timestamp: '2026-07-06T09:59:00.000Z', type: 'at' });
+        const localGitService = createLocalGitService(
+            [schedule],
+            [createAction('implement', { command: 'echo {{active-cards-folder}}' })],
+            { actionsFolder: 'actions', projectFolder: '', releasesFolder: 'releases' },
+        );
+        const scheduler = createScheduler(localGitService);
+
+        await scheduler.startProject(project);
+        await scheduler.fireSchedule('schedule-1');
+
+        expect(localGitService.runCommand).toHaveBeenCalledWith(project, `echo ${path.resolve('C:/repo', 'active')}`);
+    });
+
+    it('rejects invalid configured working folder before scheduled process start', async () => {
+        const localGitService = createLocalGitService([], undefined, { workingFolder: '' });
+        const scheduler = createScheduler(localGitService);
+
+        await expect(scheduler.startProject(project)).rejects.toThrow('Invalid project workingFolder');
+        expect(localGitService.runCommand).not.toHaveBeenCalled();
     });
 
     it('fires a due schedule and marks it done', async () => {

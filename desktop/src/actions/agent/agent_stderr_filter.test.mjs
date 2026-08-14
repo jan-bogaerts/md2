@@ -2,7 +2,7 @@ import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
 
 const require = createRequire(import.meta.url);
-const { filterCompleteStderrLines, isHiddenStderrLine } = require('./agent_stderr_filter');
+const { filterCompleteStderrLines, isHiddenStderrLine, stripAnsi } = require('./agent_stderr_filter');
 
 describe('agent stderr filter', () => {
     it('hides debugger and completion noise', () => {
@@ -26,5 +26,13 @@ describe('agent stderr filter', () => {
 
     it('returns no content when every complete line is hidden', () => {
         expect(filterCompleteStderrLines('completed\nDebugger attached.\n').content).toBe('');
+    });
+
+    it('removes terminal formatting from visible and hidden lines', () => {
+        const escape = String.fromCharCode(27);
+
+        expect(stripAnsi(`${escape}[31mERROR${escape}[0m`)).toBe('ERROR');
+        expect(filterCompleteStderrLines(`${escape}[2mcompleted${escape}[0m\n${escape}[31mfailed${escape}[0m\n`))
+            .toEqual({ content: 'failed\n', remainder: '' });
     });
 });

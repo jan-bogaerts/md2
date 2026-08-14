@@ -25,7 +25,14 @@ function handleTurnStarted(service, run) {
     run.assistantItemIndex = 0;
     run.assistantItems.clear();
     run.currentAssistantMessageId = null;
+    run.liveTurnUsage = null;
     run.turnStarted = true;
+}
+
+function handleUsage(service, run, event) {
+    run.liveTurnUsage = event.usage;
+    const usage = accumulateUsage(run.conversation.usage, event.usage);
+    emitRunEvent(run, { type: 'usage', usage });
 }
 
 function handleAssistantStarted(service, run, event, timestamp) {
@@ -161,7 +168,22 @@ async function handleTurnCompleted(service, run, event, timestamp) {
     run.pendingApprovals.clear();
     run.missingSession = run.missingSession || event.missingSession;
     if (event.missingSession) run.finishing = true;
-    if (event.usage) run.conversation.usage = accumulateUsage(run.conversation.usage, event.usage);
+    if (event.usage) {
+        run.liveTurnUsage = event.usage;
+        run.conversation.usage = accumulateUsage(run.conversation.usage, run.liveTurnUsage);
+        run.liveTurnUsage = null;
+    }
+    if (event.contextWindowUsage !== undefined) {
+        if (event.contextWindowUsage) run.conversation.contextWindowUsage = event.contextWindowUsage;
+        else delete run.conversation.contextWindowUsage;
+    }
+    if (event.usage || event.contextWindowUsage !== undefined) {
+        emitRunEvent(run, {
+            ...(event.contextWindowUsage !== undefined ? { contextWindowUsage: event.contextWindowUsage } : {}),
+            type: 'usage',
+            usage: run.conversation.usage,
+        });
+    }
     if (event.error) {
         service.failStreamingRun(run, new Error(event.error));
         return;
@@ -204,6 +226,7 @@ const STREAMING_EVENT_HANDLERS = {
     transcript: handleTranscript,
     turnCompleted: handleTurnCompleted,
     turnStarted: handleTurnStarted,
+    usage: handleUsage,
 };
 
 module.exports = { STREAMING_EVENT_HANDLERS };

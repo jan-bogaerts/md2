@@ -4,6 +4,7 @@ import type { ActionDefinition } from '../../../data/action_types'
 import type { ActionRun } from '../../../services/actions/action_run_registry'
 import type { ActionRunSettingsStore } from '../../../services/actions/action_run_settings_service'
 import { dialogService } from '../../../services/dialog_service'
+import { remoteConnectionService } from '../../../services/data/remote_connection_service'
 import { useActionRunSelector } from '../../hooks/use_action_runs'
 import { ActionAgentPrompt } from './action_agent_prompt'
 import type { ActionConversationStore } from '../conversation/action_conversation_store'
@@ -54,6 +55,11 @@ export function ActionAgentPromptOwner(props: ActionAgentPromptOwnerProps) {
         conversationStore.getSnapshot,
     )
     const inputSnapshot = useSyncExternalStore(inputStore.subscribe, inputStore.getSnapshot, inputStore.getSnapshot)
+    const remoteConnection = useSyncExternalStore(
+        remoteConnectionService.subscribe,
+        remoteConnectionService.getSnapshot,
+        remoteConnectionService.getSnapshot,
+    )
     const settings = useActionRunSettings(action, settingsStore)
     const prepare = action.type === 'agent'
         && !sessionActive
@@ -62,12 +68,12 @@ export function ActionAgentPromptOwner(props: ActionAgentPromptOwnerProps) {
     const promptDraft = currentActionPromptDraft(action, context, prepare)
 
     useEffect(() => {
-        if (!prepare) return
+        if (!prepare || remoteConnection.status === 'connecting' || remoteConnection.status === 'reconnecting') return
 
         void promptDraft.prepare(() => defaultPreparePrompt(action, context)).catch((error: unknown) => {
             dialogService.error(error, { fallbackMessage: 'Could not prepare action prompt' })
         })
-    }, [action, context, prepare, promptDraft])
+    }, [action, context, prepare, promptDraft, remoteConnection.status])
 
     const handleRunShortcut = () => {
         const prompt = promptDraft.getSnapshot()

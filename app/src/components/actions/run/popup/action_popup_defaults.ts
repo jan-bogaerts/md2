@@ -12,7 +12,10 @@ import { getElectronActionBridge, type ActionRunHistoryEntry } from '../../../..
 import { defaultActionHistoryLoader, loadActionHistory } from '../../../../services/actions/action_history'
 import { actionFilePath, createActionDefinition, type ConvertPromptToActionInput } from '../../../../services/actions/action_definition_writer'
 import { dataService } from '../../../../services/data/data_service'
+import { remoteConnectionService } from '../../../../services/data/remote_connection_service'
+import { RemoteControlConnectionError } from '../../../../services/data/remote_control_storage_service'
 import { projectPersistenceService } from '../../../../services/project/project_persistence_service'
+import { projectAccessService } from '../../../../services/project/project_access_service'
 import { cancelElectronAction, restartElectronAction, runElectronAction } from '../../../../services/actions/electron_action_runner'
 import {
     answerActionApproval,
@@ -20,7 +23,6 @@ import {
     finishActionRun,
     sendActionMessage,
 } from '../../../../services/actions/action_run_registry'
-import { flushMarkdownEditors } from '../../../editor/markdown_editor_flush'
 
 export type PopupRunStatus = 'idle' | 'queued' | 'running' | 'waitingForInput' | ActionRunResult['status']
 export type CancelAction = (runId: string) => Promise<void>
@@ -91,9 +93,14 @@ export function defaultLoadConversations(context: ActionContext) {
 
 export async function defaultPreparePrompt(action: ActionDefinition, context: ActionContext) {
     const bridge = getElectronActionBridge()
-    if (!bridge) throw new Error('Preparing action prompts requires the Electron desktop app')
-    flushMarkdownEditors()
-    if (projectPersistenceService.getSnapshot().hasPendingSave) await projectPersistenceService.flushPendingChanges()
+    if (!bridge) {
+        const remoteStatus = remoteConnectionService.getSnapshot().status
+        if (remoteStatus === 'connecting' || remoteStatus === 'reconnecting') {
+            throw new RemoteControlConnectionError('Remote action backend is reconnecting')
+        }
+        throw new Error('Preparing action prompts requires the Electron desktop app')
+    }
+    await projectPersistenceService.flushPendingChanges()
     const result = await bridge.prepareActionPrompt({ actionId: action.id, context })
 
     return result.prompt
@@ -146,6 +153,7 @@ export function defaultAnswerApproval(
 }
 
 export async function defaultScheduleAction(action: ActionDefinition, context: ActionContext, trigger: ActionScheduleTrigger) {
+    projectAccessService.requireWritable()
     const bridge = getElectronActionBridge()
     if (!bridge?.registerActionSchedule) throw new Error('Scheduling actions requires Electron local mode')
 

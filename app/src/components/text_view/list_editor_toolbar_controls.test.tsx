@@ -82,6 +82,7 @@ describe('ListEditorToolbarControls', () => {
                 <ListEditorToolbarControls
                     cardTypes={[]}
                     historyStore={new MarkdownDocumentHistoryStore()}
+                    readOnly={false}
                     statusColors={new Map()}
                 />
             </AppThemeProvider>,
@@ -104,6 +105,7 @@ describe('ListEditorToolbarControls', () => {
                 <ListEditorToolbarControls
                     cardTypes={[]}
                     historyStore={new MarkdownDocumentHistoryStore()}
+                    readOnly={false}
                     statusColors={new Map()}
                 />
             </AppThemeProvider>,
@@ -125,6 +127,7 @@ describe('ListEditorToolbarControls', () => {
                 <ListEditorToolbarControls
                     cardTypes={[]}
                     historyStore={new MarkdownDocumentHistoryStore()}
+                    readOnly={false}
                     statusColors={new Map()}
                 />
             </AppThemeProvider>,

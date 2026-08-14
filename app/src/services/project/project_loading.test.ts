@@ -96,7 +96,61 @@ describe('ProjectLoading', () => {
         vi.unstubAllGlobals()
     })
 
-    it('repairs activity and invalid card references in one project-load commit', async () => {
+    it('reports project watcher startup failures', async () => {
+        configService.init()
+        let reportWatchError: (error: Error) => void = () => {
+            throw new Error('Watcher error callback not registered')
+        }
+        const storage = createStorage({
+            watchProject: vi.fn((_project, _onChange, _onRestored, onError) => {
+                reportWatchError = onError
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        const warnings = recordDialogMessages('warning')
+
+        try {
+            await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+            reportWatchError(new Error('Native watcher unavailable'))
+
+            expect(warnings.messages).toContain(
+                'Project file watching could not be loaded and was skipped. Native watcher unavailable',
+            )
+        } finally {
+            warnings.stop()
+        }
+    })
+
+    it('reports a primary project-load failure once with the original error', async () => {
+        configService.init()
+        const error = new Error('Project root unavailable')
+        const storage = createStorage({
+            loadProjectRoot: vi.fn(async () => {
+                throw error
+            }),
+        })
+        const service = createDataService()
+        const errors = recordDialogMessages('error')
+        const captureError = vi.spyOn(telemetryService, 'captureError').mockImplementation(() => undefined)
+
+        try {
+            service.init({ storage })
+
+            await expect(service.projectLoading.openProject({ branch: 'main', id: 'project' })).rejects.toBe(error)
+
+            expect(errors.messages).toEqual(['Project root unavailable'])
+            expect(captureError).toHaveBeenCalledTimes(1)
+            expect(captureError).toHaveBeenCalledWith(error)
+        } finally {
+            errors.stop()
+            captureError.mockRestore()
+        }
+    })
+
+    it('does not inspect or repair card activity during project load', async () => {
         configService.init()
         const activityPath = 'design/activity/card__root-card.json'
         const validReference = `${activityPath}#conversation=agent-1`
@@ -125,18 +179,16 @@ describe('ProjectLoading', () => {
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
-        await vi.waitFor(() => expect(storage.commit).toHaveBeenCalledTimes(1))
-
-        const request = vi.mocked(storage.commit).mock.calls[0][0]
-        expect(request.files.map(({ path }) => path)).toEqual([activityPath, rootFile.path, otherFile.path])
-        expect(loadTextFile).toHaveBeenCalledTimes(1)
+        expect(storage.commit).not.toHaveBeenCalled()
+        expect(loadTextFile).not.toHaveBeenCalled()
         expect(storage.loadAgentConversation).not.toHaveBeenCalled()
-        expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual([validReference])
-        expect(service.getState().snapshot?.activeCards[0].agentConversations).toEqual([repairedConversation])
-        expect(service.getState().snapshot?.activeCards[1].header.agentLogReferences).toEqual([])
+        expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual([validReference, missingReference])
+        expect(service.getState().snapshot?.activeCards[0].agentConversations).toEqual([])
+        expect(service.getState().snapshot?.activeCards[1].header.agentLogReferences).toEqual([validReference])
+        expect(repairedConversation.actionId).toBe('implement')
     })
 
-    it('does not commit clean activity and valid references', async () => {
+    it('does not inspect clean activity during project load', async () => {
         configService.init()
         const activityPath = 'design/activity/card__root-card.json'
         const reference = `${activityPath}#conversation=agent-1`
@@ -158,12 +210,13 @@ describe('ProjectLoading', () => {
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
-        await vi.waitFor(() => expect(service.getState().snapshot?.activeCards[0].agentConversations).toHaveLength(1))
 
+        expect(storage.loadTextFile).not.toHaveBeenCalled()
+        expect(service.getState().snapshot?.activeCards[0].agentConversations).toEqual([])
         expect(storage.commit).not.toHaveBeenCalled()
     })
 
-    it('loads project activity through same repaired raw-file path', async () => {
+    it('loads project conversations only through the requested storage API', async () => {
         configService.init()
         const projectActivityPath = 'activity/project.json'
         const reference = `${projectActivityPath}#conversation=project-agent`
@@ -176,6 +229,8 @@ describe('ProjectLoading', () => {
         }
         const storage = createStorage({
             listRepositoryFiles: vi.fn(async () => [...storageFiles.map(({ path }) => path), projectActivityPath]),
+            listAgentConversationReferences: vi.fn(async () => [reference]),
+            loadAgentConversation: vi.fn(async () => projectConversation),
             loadTextFile: vi.fn(async () => ({
                 content: activityContent({ kind: 'project' }, [projectConversation]),
                 path: projectActivityPath,
@@ -185,15 +240,17 @@ describe('ProjectLoading', () => {
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
-        await vi.waitFor(() => expect(storage.loadTextFile).toHaveBeenCalledTimes(1))
-        await expect(service.listAgentConversations({ kind: 'project' })).resolves.toEqual([projectConversation])
-
+        expect(storage.loadTextFile).not.toHaveBeenCalled()
         expect(storage.listAgentConversationReferences).not.toHaveBeenCalled()
         expect(storage.loadAgentConversation).not.toHaveBeenCalled()
+        await expect(service.listAgentConversations({ kind: 'project' })).resolves.toEqual([projectConversation])
+
+        expect(storage.listAgentConversationReferences).toHaveBeenCalledTimes(1)
+        expect(storage.loadAgentConversation).toHaveBeenCalledTimes(1)
         expect(storage.commit).not.toHaveBeenCalled()
     })
 
-    it('does not repeat malformed JSON repair after a clean reopen', async () => {
+    it('does not parse or repair malformed history when reopening a project', async () => {
         configService.init()
         const activityPath = 'design/activity/card__root-card.json'
         const reference = `${activityPath}#conversation=missing`
@@ -223,19 +280,13 @@ describe('ProjectLoading', () => {
         const project = { branch: 'main', id: 'project' }
 
         await service.projectLoading.openProject(project)
-        await vi.waitFor(() => expect(commit).toHaveBeenCalledTimes(1))
-        const expectedOrigin = { cardInternalId: 'root-card', kind: 'card' }
-        const expectedActivity = { actionSettings: {}, conversations: [], origin: expectedOrigin, records: [], version: 4 }
-        expect(JSON.parse(storedActivity.content)).toEqual(expectedActivity)
-
         await service.projectLoading.openProject(project)
-        await waitForWorkerTurn()
-        await waitForWorkerTurn()
-        expect(loadTextFile).toHaveBeenCalledTimes(1)
-        expect(commit).toHaveBeenCalledTimes(1)
+        expect(storedActivity.content).toBe('{broken')
+        expect(loadTextFile).not.toHaveBeenCalled()
+        expect(commit).not.toHaveBeenCalled()
     })
 
-    it('removes future-version and missing-file references without rewriting activity', async () => {
+    it('leaves future-version and missing-file history references untouched during project load', async () => {
         configService.init()
         const futurePath = 'design/activity/card__root-card.json'
         const missingPath = 'design/activity/card__missing-card.json'
@@ -256,14 +307,12 @@ describe('ProjectLoading', () => {
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
-        await vi.waitFor(() => expect(storage.commit).toHaveBeenCalledTimes(1))
-
-        expect(vi.mocked(storage.commit).mock.calls[0][0].files.map(({ path }) => path)).toEqual([rootFile.path])
-        expect(loadTextFile).toHaveBeenCalledTimes(1)
-        expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual([])
+        expect(storage.commit).not.toHaveBeenCalled()
+        expect(loadTextFile).not.toHaveBeenCalled()
+        expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual([futureReference, missingReference])
     })
 
-    it('keeps failed repair batch retryable and reports one error', async () => {
+    it('does not schedule a repair batch for malformed history', async () => {
         configService.init()
         const activityPath = 'design/activity/card__root-card.json'
         const validReference = `${activityPath}#conversation=agent-1`
@@ -277,9 +326,10 @@ describe('ProjectLoading', () => {
             ...JSON.parse(activityContent({ cardInternalId: 'root-card', kind: 'card' }, [sourceConversation])),
             actionSettings: { broken: { agent: 'codex' } },
         })
-        let commitShouldFail = true
+        const repairError = new Error('Git commit failed')
+        const commitShouldFail = true
         const commit = vi.fn(async (): Promise<MarkdownFile[]> => {
-            if (commitShouldFail) throw new Error('Git commit failed')
+            if (commitShouldFail) throw repairError
 
             return []
         })
@@ -291,22 +341,26 @@ describe('ProjectLoading', () => {
             loadTextFile: vi.fn(async () => ({ content: malformedActivity, path: activityPath })),
         })
         const dialogs = recordDialogMessages('error')
+        const captureError = vi.spyOn(telemetryService, 'captureError').mockImplementation(() => undefined)
         const service = createDataService()
-        service.init({ storage })
 
-        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
-        await vi.waitFor(() => expect(dialogs.messages).toHaveLength(1))
+        try {
+            service.init({ storage })
 
-        expect(commit).toHaveBeenCalledTimes(1)
-        expect(service.getPersistenceSnapshot().hasPendingFileCommit).toBe(true)
-        expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual([validReference])
-        expect(service.getState().snapshot?.activeCards[0].agentConversations).toEqual([sourceConversation])
-
-        commitShouldFail = false
-        await service.cards.flushPendingCommits()
-        expect(commit).toHaveBeenCalledTimes(2)
-        expect(service.getPersistenceSnapshot().hasPendingFileCommit).toBe(false)
-        dialogs.stop()
+            await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+            expect(dialogs.messages).toEqual([])
+            expect(storage.loadTextFile).not.toHaveBeenCalled()
+            expect(commit).not.toHaveBeenCalled()
+            expect(captureError).not.toHaveBeenCalled()
+            expect(service.getPersistenceSnapshot().hasPendingFileCommit).toBe(false)
+            expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual([validReference, missingReference])
+            expect(sourceConversation.actionId).toBeNull()
+            expect(repairError.message).toBe('Git commit failed')
+            expect(commitShouldFail).toBe(true)
+        } finally {
+            dialogs.stop()
+            captureError.mockRestore()
+        }
     })
 
     it('blocks project navigation while an invalid action draft remains unsaved', async () => {
@@ -572,7 +626,7 @@ describe('ProjectLoading', () => {
             expect(service.getState().snapshot?.backgroundCards.map((card) => card.path)).toEqual(['projects/demo/notes/project-note.md'])
         })
         expect(service.getConfig()?.actionsFolder).toBe('projects/demo/actions')
-        await vi.waitFor(() => expect(storage.listAgentConversationReferences).toHaveBeenCalled())
+        expect(storage.listAgentConversationReferences).not.toHaveBeenCalled()
     })
 
     it('dispatches the root snapshot before loading background subfolder and history cards', async () => {
@@ -1101,7 +1155,41 @@ describe('ProjectLoading', () => {
         expect(card?.content).toContain('Externally changed')
     })
 
-    it('ignores watcher updates for paths owned by active merge conflict session', async () => {
+    it('reloads content restored externally to an earlier app value', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        let watchChange: (event: { changeKind: 'changed'; path: string }) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const externalFile = {
+            content: files[0].content.replace('# Root', '# External'),
+            path: files[0].path,
+        }
+        const loadFile = vi.fn()
+            .mockResolvedValueOnce(externalFile)
+            .mockResolvedValueOnce(files[0])
+        const storage = createStorage({
+            loadFile,
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        watchChange({ changeKind: 'changed', path: files[0].path })
+        await vi.advanceTimersByTimeAsync(150)
+        expect(service.getState().snapshot?.activeCards[0].content).toContain('# External')
+
+        watchChange({ changeKind: 'changed', path: files[0].path })
+        await vi.advanceTimersByTimeAsync(150)
+        expect(service.getState().snapshot?.activeCards[0].content).toContain('# Root')
+    })
+
+    it('verifies conflict state instead of parsing watcher updates for active conflict paths', async () => {
         vi.useFakeTimers()
         configService.init()
         let watchChange: (event: { changeKind: 'changed'; path: string }) => void = () => {
@@ -1120,12 +1208,15 @@ describe('ProjectLoading', () => {
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         const isConflictedPath = vi.spyOn(mergeConflictService, 'isConflictedPath').mockReturnValue(true)
+        const verifyCurrentSession = vi.spyOn(mergeConflictService, 'verifyCurrentSession').mockResolvedValue(undefined)
 
         watchChange({ changeKind: 'changed', path: 'design/F-1-root.md' })
         await vi.advanceTimersByTimeAsync(150)
 
         expect(loadFile).not.toHaveBeenCalled()
+        expect(verifyCurrentSession).toHaveBeenCalledOnce()
         isConflictedPath.mockRestore()
+        verifyCurrentSession.mockRestore()
     })
 
     it('keeps a committed worktree assignment when another markdown file reloads', async () => {
@@ -1165,7 +1256,7 @@ describe('ProjectLoading', () => {
         vi.stubGlobal('WebSocket', ProjectLoadingMockWebSocket)
         configService.init()
         const remoteStorage = new RemoteControlStorageService()
-        remoteStorage.init({ endpoint: 'ws://127.0.0.1:1234', token: 'token-1' })
+        remoteStorage.init({ endpoint: 'ws://127.0.0.1:1234' })
         const storage = createStorage({
             loadFile: remoteStorage.loadFile.bind(remoteStorage),
             watchProject: remoteStorage.watchProject.bind(remoteStorage),
@@ -1250,7 +1341,7 @@ describe('ProjectLoading', () => {
         vi.stubGlobal('WebSocket', ProjectLoadingMockWebSocket)
         configService.init()
         const remoteStorage = new RemoteControlStorageService()
-        remoteStorage.init({ endpoint: 'ws://127.0.0.1:1234', token: 'token-1' })
+        remoteStorage.init({ endpoint: 'ws://127.0.0.1:1234' })
         const storage = createStorage({
             loadFile: remoteStorage.loadFile.bind(remoteStorage),
             watchProject: remoteStorage.watchProject.bind(remoteStorage),
@@ -1326,7 +1417,7 @@ describe('ProjectLoading', () => {
         vi.stubGlobal('WebSocket', ProjectLoadingMockWebSocket)
         configService.init()
         const remoteStorage = new RemoteControlStorageService()
-        remoteStorage.init({ endpoint: 'ws://127.0.0.1:1234', token: 'token-1' })
+        remoteStorage.init({ endpoint: 'ws://127.0.0.1:1234' })
         let currentFiles = storageFiles
         const loadProject = vi.fn(async () => ({ files: currentFiles, workingFolder: 'design' }))
         const loadFile = vi.fn(async (_project, path: string) => {

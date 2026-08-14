@@ -1,6 +1,6 @@
 const CONFIG_GET_DESKTOP_CHANNEL = 'md2-config:get-desktop';
 const CONFIG_SET_DESKTOP_CHANNEL = 'md2-config:set-desktop';
-const LIFECYCLE_FLUSH_DONE_CHANNEL = 'md2-lifecycle:flush-pending-commits-done';
+const LIFECYCLE_FLUSH_RESULT_CHANNEL = 'md2-lifecycle:flush-pending-commits-result';
 const LIFECYCLE_FLUSH_REQUEST_CHANNEL = 'md2-lifecycle:flush-pending-commits';
 const LOCAL_BRIDGE_EVENT_CHANNEL = 'md2-local-bridge:event';
 const LOCAL_BRIDGE_INVOKE_CHANNEL = 'md2-local-bridge:invoke';
@@ -14,11 +14,14 @@ const REMOTE_CONTROL_START_CHANNEL = 'md2-remote-control:start';
 const REMOTE_CONTROL_STATUS_CHANNEL = 'md2-remote-control:status';
 const REMOTE_CONTROL_STOP_CHANNEL = 'md2-remote-control:stop';
 const THEME_SET_MODE_CHANNEL = 'md2-theme:set-mode';
+const UPDATE_AVAILABLE_CHANNEL = 'md2-update:available';
+const UPDATE_DOWNLOAD_CHANNEL = 'md2-update:download';
+const UPDATE_PROGRESS_CHANNEL = 'md2-update:progress';
 
 module.exports = {
     CONFIG_GET_DESKTOP_CHANNEL,
     CONFIG_SET_DESKTOP_CHANNEL,
-    LIFECYCLE_FLUSH_DONE_CHANNEL,
+    LIFECYCLE_FLUSH_RESULT_CHANNEL,
     LIFECYCLE_FLUSH_REQUEST_CHANNEL,
     LOCAL_BRIDGE_EVENT_CHANNEL,
     LOCAL_BRIDGE_INVOKE_CHANNEL,
@@ -32,4 +35,7 @@ module.exports = {
     REMOTE_CONTROL_STATUS_CHANNEL,
     REMOTE_CONTROL_STOP_CHANNEL,
     THEME_SET_MODE_CHANNEL,
+    UPDATE_AVAILABLE_CHANNEL,
+    UPDATE_DOWNLOAD_CHANNEL,
+    UPDATE_PROGRESS_CHANNEL,
 };

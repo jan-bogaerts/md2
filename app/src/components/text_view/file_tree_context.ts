@@ -9,6 +9,7 @@ export interface FileTreeContextValue {
     onDeleteFile: (path: string) => Promise<void>
     onDeleteFolder: (path: string) => Promise<void>
     onRequestCreate: (kind: CreateTreeItemKind, parentDirectory: string) => void
+    readOnly: boolean
     statusColors: Map<string, string>
 }
 
@@ -22,6 +23,7 @@ const FALLBACK_FILE_TREE_CONTEXT: FileTreeContextValue = {
     onDeleteFile: ignoreDelete,
     onDeleteFolder: ignoreDelete,
     onRequestCreate: ignoreCreateRequest,
+    readOnly: false,
     statusColors: new Map(),
 }
 

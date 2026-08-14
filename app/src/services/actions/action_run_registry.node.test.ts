@@ -339,6 +339,49 @@ describe('ActionRunRegistry', () => {
         service.stop()
     })
 
+    it('replaces live usage immutably without changing other run state', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        service.start()
+        const entries = [{ content: 'Review', id: 'message-1', kind: 'message' as const, role: 'user' as const, timestamp: 'now' }]
+        const approval = {
+            filePaths: [], itemId: 'command-1', kind: 'commandExecution' as const, provider: 'codex' as const,
+            requestId: 41, startedAtMs: 0, threadId: 'thread-1', turnId: 'turn-1',
+        }
+
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { conversation: agentConversation(entries), kind: 'agentStarted' },
+        })
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'waitingForInput', type: 'update',
+            update: { approval, kind: 'agentApproval' },
+        })
+        const previous = getRun(service)
+
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: {
+                contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 },
+                kind: 'agentUsage',
+                usage: { cachedInputTokens: 1, inputTokens: 2, outputTokens: 3, reasoningTokens: 4, totalTokens: 10 },
+            },
+        })
+
+        const current = getRun(service)
+        const expectedUsage = { cachedInputTokens: 1, inputTokens: 2, outputTokens: 3, reasoningTokens: 4, totalTokens: 10 }
+        expect(current.conversation).not.toBe(previous.conversation)
+        expect(current.conversation?.entries).toBe(previous.conversation?.entries)
+        expect(current.conversation?.contextWindowUsage).toEqual({ capacityTokens: 258_400, usedTokens: 42_000 })
+        expect(current.conversation?.usage).toEqual(expectedUsage)
+        expect(current.approvals).toBe(previous.approvals)
+        expect(current.logs).toBe(previous.logs)
+        expect(current.status).toBe('waitingForInput')
+        expect(current.conversation?.status).toBe('waitingForInput')
+        service.stop()
+    })
+
     it('sets question updates to waiting and restores running when answered without agent state events', () => {
         const { bridge, emit } = bridgeWithEvents()
         setActionBridgeOverride(bridge)

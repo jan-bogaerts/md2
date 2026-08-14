@@ -3,6 +3,10 @@ const { resolveAgentCommand } = require('../actions/agent/agent_profiles.mjs');
 const INTEGRATION_ACTIVITY_LABEL = 'Integrate into project';
 const SEARCH_AGENT_PROMPT_PREFIX = 'Return only a single JavaScript-compatible regular expression pattern (no explanation, no surrounding text or markdown) that matches the following search request:\n\n';
 
+function watchErrorMessage(error) {
+    return error instanceof Error ? error.message : String(error);
+}
+
 function cardIntegrationTracking(request) {
     const hasCardInternalId = Object.hasOwn(request, 'cardInternalId');
     const hasProjectFolder = Object.hasOwn(request, 'projectFolder');
@@ -55,6 +59,8 @@ function createLocalBridgeDispatch(dependencies) {
         openProjectFolder,
         openWorktreeFolder,
         readDesktopConfig,
+        saveDesktopConfig,
+        updateCodexCli,
         worktreeService,
     } = dependencies;
     let currentLocalProject = null;
@@ -133,6 +139,7 @@ function createLocalBridgeDispatch(dependencies) {
 
             return agentExecutableAvailability(agentProfiles);
         },
+        loadDesktopConfig: () => readDesktopConfig(desktopConfigStore),
         loadFile: (project, path) => localGitService.loadFile(project, path),
         loadTextFile: (project, path) => localGitService.loadTextFile(project, path),
         loadProjectAsset: (project, path) => localGitService.loadProjectAsset(project, path),
@@ -262,12 +269,17 @@ function createLocalBridgeDispatch(dependencies) {
         },
         saveActionSchedules: (project, actionsFolder, schedules) => localGitService.saveActionSchedules(project, actionsFolder, schedules),
         saveProjectConfig: (project, config) => localGitService.saveProjectConfig(project, config),
+        saveDesktopConfig: (values) => saveDesktopConfig(desktopConfigStore, values),
         removeWorktree: (project, folderPath) => worktreeService.remove(project, folderPath),
         stopAgent: (runId) => agentRunnerService.stop(runId),
-        watchProject: (project, callback) => localGitService.watchProject(project, (event) => {
-            if (actionSchedulerService) void actionSchedulerService.handleProjectChange(event);
-            callback(event);
-        }),
+        watchProject: (project, callback) => localGitService.watchProject(
+            project,
+            (event) => {
+                if (actionSchedulerService) void actionSchedulerService.handleProjectChange(event);
+                callback(event);
+            },
+            (error) => callback({ error: watchErrorMessage(error) }),
+        ),
     };
 
     async function finalizeIntegration(project, worktree, integration, metadata, activeConflict, conflictRequest = null) {
@@ -501,6 +513,16 @@ function createLocalBridgeDispatch(dependencies) {
             if (!codexRuntimeService) throw new Error('Codex runtime service is not available');
 
             return codexRuntimeService.subscribe(callback);
+        },
+        onCodexUpdateRequired: (callback) => {
+            if (!codexRuntimeService) throw new Error('Codex runtime service is not available');
+
+            return codexRuntimeService.subscribeUpdateRequired(callback);
+        },
+        updateCodexCli: async () => {
+            if (!updateCodexCli) throw new Error('Codex CLI update is not available');
+
+            await updateCodexCli();
         },
     };
 

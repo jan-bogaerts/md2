@@ -37,6 +37,25 @@ describe('DataService', () => {
         expect(ensureAgentConversationsForCard).toHaveBeenCalledWith('card-1')
     })
 
+    it('replaces remote storage and project watch without reopening loaded project', async () => {
+        configService.init()
+        const firstWatchCleanup = vi.fn()
+        const firstStorage = createStorage({ watchProject: vi.fn(() => firstWatchCleanup) })
+        const secondStorage = createStorage({ watchProject: vi.fn(() => vi.fn()) })
+        const service = createDataService()
+        service.init({ storage: firstStorage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const loadedSnapshot = service.getState().snapshot
+        const openProject = vi.spyOn(service.projectLoading, 'openProject')
+
+        service.replaceRemoteStorage(secondStorage)
+
+        expect(service.getState().snapshot).toBe(loadedSnapshot)
+        expect(firstWatchCleanup).toHaveBeenCalledOnce()
+        expect(secondStorage.watchProject).toHaveBeenCalledOnce()
+        expect(openProject).not.toHaveBeenCalled()
+    })
+
     it('handles GitHub unauthorized once when opening a project gets a 401', async () => {
         configService.init()
         const handleUnauthorized = vi.fn()

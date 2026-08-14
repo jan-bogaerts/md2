@@ -1,4 +1,4 @@
-const { extractCommitSummaries } = require('../../../../shared/action_history.mjs');
+const { extractAgentCommitIds, extractCommitSummaries } = require('../../../../shared/action_history.mjs');
 const { requireRootPath } = require('../../git/git_commands');
 
 function combineOutput(result) {
@@ -25,11 +25,15 @@ function createAgentDetails(input) {
 
 function commitCandidates(input) {
     if (input.action.type === 'agent') {
-        return input.action.trackFileChanges
+        const trackedCandidates = input.action.trackFileChanges
             && typeof input.result.trackedCommit === 'string'
             && input.result.trackedCommit.length > 0
             ? [{ branch: input.project.branch, commit: input.result.trackedCommit }]
             : [];
+        const reportedCandidates = extractAgentCommitIds(input.result.stdout)
+            .map((commit) => ({ branch: input.project.branch, commit }));
+
+        return [...trackedCandidates, ...reportedCandidates];
     }
 
     return extractCommitSummaries(combineOutput(input.result));

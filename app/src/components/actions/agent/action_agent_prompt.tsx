@@ -204,6 +204,7 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
                     <MarkdownEditor
                         flushOnBlur
                         hideToolbar
+                        localTextSearch={false}
                         markdown={prompt}
                         onChange={handlePromptChange}
                         onLiveChange={handleLivePromptChange}

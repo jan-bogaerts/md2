@@ -9,6 +9,7 @@ import { validateAgentProfiles, validatePermissionMode, validateThinkingLevel, t
 import {
     CONFIG_ENTRIES,
     createDefaultValues,
+    DESKTOP_KEYS,
     PROJECT_KEYS,
     requireConfigEntry,
     type ConfigEntry,
@@ -153,6 +154,7 @@ function validateValue<K extends ConfigKey>(key: K, value: unknown): ConfigValue
     if (entry.type === 'boolean') return requireBoolean(value, entry.key) as ConfigValueTypes[K]
     if (entry.type === 'number') {
         const numberValue = requireNumber(value, entry.key)
+        if (entry.integer && !Number.isInteger(numberValue)) throw new Error(`Config value ${entry.key} must be an integer`)
         if (entry.min !== undefined && numberValue < entry.min) throw new Error(`Config value ${entry.key} is below ${entry.min}`)
         if (entry.max !== undefined && numberValue > entry.max) throw new Error(`Config value ${entry.key} is above ${entry.max}`)
 
@@ -220,10 +222,50 @@ function readProjectConfig(values: ConfigValues): ProjectConfig {
     }
 }
 
+function readDesktopConfig(values: ConfigValues): DesktopConfigValues {
+    return {
+        agent: values['desktop.agent'],
+        agentProfiles: values['desktop.agentProfiles'],
+        codexSearchEnabled: values['desktop.codexSearchEnabled'],
+        editorCommand: values['desktop.editorCommand'],
+        mergeConflictResolverCommand: values['desktop.mergeConflictResolverCommand'],
+        model: values['desktop.model'],
+        permissionMode: values['desktop.permissionMode'],
+        remoteControlPort: values['desktop.remoteControlPort'],
+        thinkingLevel: values['desktop.thinkingLevel'],
+    }
+}
+
 function isConfigValueEqual(first: ConfigValue, second: ConfigValue) {
     if (Object.is(first, second)) return true
 
     return JSON.stringify(first) === JSON.stringify(second)
+}
+
+function replaceDesktopValues(values: ConfigValues, desktopConfig: Partial<DesktopConfigValues> | null) {
+    const defaults = createDefaultValues()
+    let nextValues = values
+    for (const key of DESKTOP_KEYS) nextValues = { ...nextValues, [key]: defaults[key] }
+
+    if (!desktopConfig) return nextValues
+    if (desktopConfig.agent !== undefined) nextValues = mergeValue(nextValues, 'desktop.agent', desktopConfig.agent)
+    if (desktopConfig.agentProfiles !== undefined) nextValues = mergeValue(nextValues, 'desktop.agentProfiles', desktopConfig.agentProfiles)
+    if (desktopConfig.codexSearchEnabled !== undefined) {
+        nextValues = mergeValue(nextValues, 'desktop.codexSearchEnabled', desktopConfig.codexSearchEnabled)
+    }
+    if (desktopConfig.editorCommand !== undefined) nextValues = mergeValue(nextValues, 'desktop.editorCommand', desktopConfig.editorCommand)
+    if (desktopConfig.mergeConflictResolverCommand !== undefined) {
+        nextValues = mergeValue(nextValues, 'desktop.mergeConflictResolverCommand', desktopConfig.mergeConflictResolverCommand)
+    }
+    if (desktopConfig.model !== undefined) nextValues = mergeValue(nextValues, 'desktop.model', desktopConfig.model)
+    if (desktopConfig.permissionMode !== undefined) {
+        nextValues = mergeValue(nextValues, 'desktop.permissionMode', desktopConfig.permissionMode)
+    }
+    if (desktopConfig.thinkingLevel !== undefined) {
+        nextValues = mergeValue(nextValues, 'desktop.thinkingLevel', desktopConfig.thinkingLevel)
+    }
+
+    return nextValues
 }
 
 export class ConfigService extends EventTarget {
@@ -252,22 +294,7 @@ export class ConfigService extends EventTarget {
 
         nextValues = mergeStoredReactValues(nextValues, mergeValue)
 
-        if (desktopConfig?.agent !== undefined) nextValues = mergeValue(nextValues, 'desktop.agent', desktopConfig.agent)
-        if (desktopConfig?.agentProfiles !== undefined) nextValues = mergeValue(nextValues, 'desktop.agentProfiles', desktopConfig.agentProfiles)
-        if (desktopConfig?.codexSearchEnabled !== undefined) {
-            nextValues = mergeValue(nextValues, 'desktop.codexSearchEnabled', desktopConfig.codexSearchEnabled)
-        }
-        if (desktopConfig?.editorCommand !== undefined) nextValues = mergeValue(nextValues, 'desktop.editorCommand', desktopConfig.editorCommand)
-        if (desktopConfig?.mergeConflictResolverCommand !== undefined) {
-            nextValues = mergeValue(nextValues, 'desktop.mergeConflictResolverCommand', desktopConfig.mergeConflictResolverCommand)
-        }
-        if (desktopConfig?.model !== undefined) nextValues = mergeValue(nextValues, 'desktop.model', desktopConfig.model)
-        if (desktopConfig?.permissionMode !== undefined) {
-            nextValues = mergeValue(nextValues, 'desktop.permissionMode', desktopConfig.permissionMode)
-        }
-        if (desktopConfig?.thinkingLevel !== undefined) {
-            nextValues = mergeValue(nextValues, 'desktop.thinkingLevel', desktopConfig.thinkingLevel)
-        }
+        nextValues = replaceDesktopValues(nextValues, desktopConfig ?? null)
 
         this.initialized = true
         this.values = nextValues
@@ -310,6 +337,22 @@ export class ConfigService extends EventTarget {
         this.desktopAvailable = false
         this.projectLoaded = false
         this.initialized = false
+        this.dispatchChanged()
+    }
+
+    replaceDesktopConfig(desktopConfig: Partial<DesktopConfigValues>) {
+        this.requireInitialized()
+        this.values = replaceDesktopValues(this.values, desktopConfig)
+        if (this.draftValues) this.draftValues = replaceDesktopValues(this.draftValues, desktopConfig)
+        this.desktopAvailable = true
+        this.dispatchChanged()
+    }
+
+    clearDesktopConfig() {
+        this.requireInitialized()
+        this.values = replaceDesktopValues(this.values, null)
+        if (this.draftValues) this.draftValues = replaceDesktopValues(this.draftValues, null)
+        this.desktopAvailable = false
         this.dispatchChanged()
     }
 
@@ -362,16 +405,11 @@ export class ConfigService extends EventTarget {
     getDesktopValues(): DesktopConfigValues {
         this.requireInitialized()
 
-        return {
-            agent: this.values['desktop.agent'],
-            agentProfiles: this.values['desktop.agentProfiles'],
-            codexSearchEnabled: this.values['desktop.codexSearchEnabled'],
-            editorCommand: this.values['desktop.editorCommand'],
-            mergeConflictResolverCommand: this.values['desktop.mergeConflictResolverCommand'],
-            model: this.values['desktop.model'],
-            permissionMode: this.values['desktop.permissionMode'],
-            thinkingLevel: this.values['desktop.thinkingLevel'],
-        }
+        return readDesktopConfig(this.values)
+    }
+
+    getDraftDesktopValues(): DesktopConfigValues {
+        return readDesktopConfig(this.requireDraft())
     }
 
     loadDraft() {

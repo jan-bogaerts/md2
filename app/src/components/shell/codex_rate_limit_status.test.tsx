@@ -47,6 +47,8 @@ function runtimeBridge(initialSnapshot: CodexRateLimitSnapshot | null) {
 
             return vi.fn()
         }),
+        onCodexUpdateRequired: vi.fn(() => vi.fn()),
+        updateCodexCli: vi.fn(async () => undefined),
     }
 
     return {

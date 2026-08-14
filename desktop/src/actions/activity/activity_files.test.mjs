@@ -176,15 +176,49 @@ describe('project activity conversations', () => {
             await mkdir(join(rootPath, '.git'));
             await upsertActivityConversation(project, 'design', { kind: 'project' }, seed);
 
-            rename.mockRejectedValueOnce(Object.assign(new Error('rename failed'), { code: 'EPERM' }));
+            rename.mockClear();
+            rename.mockRejectedValue(Object.assign(new Error('rename failed'), { code: 'EPERM' }));
             await expect(upsertActivityConversation(project, 'design', { kind: 'project' }, unwritten))
                 .rejects.toThrow('rename failed');
+            expect(rename).toHaveBeenCalledTimes(5);
             expect((await readdir(activityFolder)).filter((name) => name.endsWith('.tmp'))).toEqual([]);
 
+            rename.mockRestore();
             await upsertActivityConversation(project, 'design', { kind: 'project' }, recovered);
             const persisted = JSON.parse(await readFile(join(activityFolder, 'project.json'), 'utf8'));
 
             expect(persisted.conversations.map(({ id }) => id)).toEqual([seed.id, unwritten.id, recovered.id]);
+        } finally {
+            rename.mockRestore();
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('retries a locked rename while preserving the existing activity file', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-activity-rename-retry-'));
+        const activityFolder = join(rootPath, 'design', 'activity');
+        const filePath = join(activityFolder, 'project.json');
+        const project = { branch: 'main', rootPath };
+        const seed = { ...waitingConversation(), id: 'conversation-seed', title: 'Seed' };
+        const added = { ...waitingConversation(), id: 'conversation-added', title: 'Added' };
+        const originalRename = fs.promises.rename.bind(fs.promises);
+        const rename = vi.spyOn(fs.promises, 'rename');
+        try {
+            await mkdir(join(rootPath, '.git'));
+            await upsertActivityConversation(project, 'design', { kind: 'project' }, seed);
+            const originalContent = await readFile(filePath, 'utf8');
+            rename.mockClear();
+            rename.mockImplementationOnce(async () => {
+                expect(await readFile(filePath, 'utf8')).toBe(originalContent);
+                throw Object.assign(new Error('file is locked'), { code: 'EPERM' });
+            });
+            rename.mockImplementation(originalRename);
+
+            await upsertActivityConversation(project, 'design', { kind: 'project' }, added);
+            const persisted = JSON.parse(await readFile(filePath, 'utf8'));
+
+            expect(rename).toHaveBeenCalledTimes(2);
+            expect(persisted.conversations.map(({ id }) => id)).toEqual([seed.id, added.id]);
         } finally {
             rename.mockRestore();
             await rm(rootPath, { force: true, recursive: true });
@@ -198,6 +232,7 @@ describe('project activity conversations', () => {
             await mkdir(join(rootPath, '.git'));
             await upsertActivityConversation(project, 'design', { kind: 'project' }, {
                 completedAt: '2026-07-21T10:01:00.000Z',
+                contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 },
                 entries: [],
                 id: 'conversation-1',
                 providerSessions: [],
@@ -212,8 +247,13 @@ describe('project activity conversations', () => {
             ]);
             const persisted = JSON.parse(await readFile(join(rootPath, 'design', 'activity', 'project.json'), 'utf8'));
             expect(persisted.conversations[0]).toHaveProperty('entries');
+            expect(persisted.conversations[0].contextWindowUsage).toEqual({ capacityTokens: 258_400, usedTokens: 42_000 });
             expect(persisted.conversations[0]).not.toHaveProperty('messages');
             expect(persisted.conversations[0]).not.toHaveProperty('events');
+            await expect(loadActivityConversation(
+                project,
+                'design/activity/project.json#conversation=conversation-1',
+            )).resolves.toMatchObject({ contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 } });
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }

@@ -1,10 +1,17 @@
 import { register } from './service_injector'
+import { telemetryService } from './telemetry/telemetry_service'
 
 export const DIALOG_SERVICE_EVENT = 'md2:dialog-message'
 
 export type DialogSeverity = 'error' | 'warning' | 'info' | 'success'
 
+export interface DialogServiceAction {
+    callback(): Promise<void> | void
+    label: string
+}
+
 export interface DialogServiceMessage {
+    action?: DialogServiceAction
     critical: boolean
     id: number
     message: string
@@ -13,6 +20,7 @@ export interface DialogServiceMessage {
 }
 
 export interface DialogServiceOptions {
+    action?: DialogServiceAction
     critical?: boolean
     fallbackMessage?: string
     title?: string
@@ -42,6 +50,7 @@ export class DialogService extends EventTarget {
     }
 
     error(error: unknown, options: DialogServiceOptions = {}) {
+        telemetryService.captureError(error)
         const message = messageFrom(error, options.fallbackMessage ?? 'An error occurred')
 
         return this.show('error', message, options)
@@ -63,6 +72,7 @@ export class DialogService extends EventTarget {
         if (message.length === 0) throw new Error('Dialog message is required')
 
         const dialogMessage = {
+            ...(options.action ? { action: options.action } : {}),
             critical: !!options.critical,
             id: this.nextId,
             message,

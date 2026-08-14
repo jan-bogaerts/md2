@@ -59,15 +59,14 @@ export class CardOperations {
             initialState,
             draft,
         )
-        dependencies.replaceFiles([...dependencies.files(), file], config.workingFolder)
-        await this.context.commitAndMergeFiles({
+        dependencies.updateFiles([file], [], config.workingFolder)
+        await this.context.commitCreatedFiles({
             branch: project.branch,
             files: [file],
             message: `Create ${file.path}`,
-        }, [file])
-        await this.context.pushCreatedItem('Card')
+        })
+        void this.context.pushCreatedItem('Card')
 
-        dependencies.refreshSnapshot(config.workingFolder)
         telemetryService.trackEvent('create_card')
 
         return file

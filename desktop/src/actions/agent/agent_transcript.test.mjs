@@ -47,7 +47,7 @@ describe('normalizeConversationContext', () => {
         const result = normalizeConversationContext({
             entries: [
                 {
-                    command: 'npm test', content: '', id: 'command-1', label: 'Command', output: 'passed',
+                    command: 'npm test', content: 'passed', id: 'command-1', label: 'Command',
                     kind: 'event', providerItemId: 'command-1', sequence: 2, status: 'completed', timestamp, type: 'commandExecution',
                 },
                 {

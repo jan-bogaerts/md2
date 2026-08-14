@@ -72,7 +72,7 @@ export function ActionPopupFrame({ children, contentProps, conversationStore }: 
                 borderRadius: isMobile ? 0 : '14px',
                 boxShadow: '0 24px 60px rgba(16,24,40,0.28)',
                 flexDirection: 'column',
-                height: isMobile ? '100vh !important' : undefined,
+                height: isMobile ? '100dvh !important' : undefined,
                 left: isMobile ? '0 !important' : undefined,
                 margin: isMobile ? '0 !important' : undefined,
                 maxHeight: isMobile ? 'none' : undefined,
@@ -82,6 +82,7 @@ export function ActionPopupFrame({ children, contentProps, conversationStore }: 
                 width: isMobile ? '100vw !important' : undefined,
             }}
             resizeFromAllSides
+            resizeHorizontallyWhenFullHeight={!isMobile}
             resizeLabel="Resize action popup"
             stackPosition={stackPosition}
             storageKey={isMobile ? undefined : sizeStorageKey}

@@ -9,7 +9,6 @@ const DEFAULT_HOST = '127.0.0.1';
 const DEFAULT_PORT = 0;
 const SOCKET_OPEN_STATE = 1;
 const REMOTE_CONTROL_STOP_CODE = 1001;
-const UNAUTHORIZED_STATUS = 401;
 const NOT_FOUND_STATUS = 404;
 const AGENT_EVENT_METHODS = new Set(['runSearchRegexpAgent']);
 const STATIC_INDEX_FILE = 'index.html';
@@ -52,12 +51,7 @@ function createInactiveState() {
         endpoint: null,
         hostnameEndpoint: null,
         ipEndpoints: [],
-        token: null,
     };
-}
-
-function createToken() {
-    return crypto.randomBytes(18).toString('base64url');
 }
 
 function isLoopbackHost(host) {
@@ -93,20 +87,8 @@ function sendJson(socket, message) {
     socket.send(JSON.stringify(message));
 }
 
-function closeUnauthorized(socket) {
-    socket.write(`HTTP/1.1 ${UNAUTHORIZED_STATUS} Unauthorized\r\nConnection: close\r\n\r\n`);
-    socket.destroy();
-}
-
 function errorMessage(error) {
     return error instanceof Error ? error.message : 'Remote-control request failed';
-}
-
-function protocolTokens(request) {
-    const header = request.headers['sec-websocket-protocol'];
-    if (typeof header !== 'string') return [];
-
-    return header.split(',').map((token) => token.trim()).filter((token) => token.length > 0);
 }
 
 class RemoteControlService {
@@ -120,7 +102,6 @@ class RemoteControlService {
         this.staticDir = null;
         this.statusListener = null;
         this.subscriptions = new Map();
-        this.token = null;
         this.websocketServer = null;
     }
 
@@ -139,7 +120,6 @@ class RemoteControlService {
             endpoint: hostnameEndpoint ?? `ws://${this.host}:${port}`,
             hostnameEndpoint,
             ipEndpoints,
-            token: this.token,
         };
     }
 
@@ -149,8 +129,6 @@ class RemoteControlService {
         this.host = typeof options.host === 'string' && options.host.length > 0 ? options.host : DEFAULT_HOST;
         this.port = Number.isInteger(options.port) ? options.port : DEFAULT_PORT;
         this.staticDir = typeof options.staticDir === 'string' && options.staticDir.length > 0 ? options.staticDir : null;
-        this.token = typeof options.token === 'string' && options.token.length > 0 ? options.token : createToken();
-        if (!isLoopbackHost(this.host) && !this.token) throw new Error('Remote-control token is required for non-loopback binds');
 
         await new Promise((resolve, reject) => {
             const server = http.createServer();
@@ -159,7 +137,6 @@ class RemoteControlService {
 
             function handleError(error) {
                 server.off('listening', handleListening);
-                service.token = null;
                 reject(error);
             }
 
@@ -206,7 +183,6 @@ class RemoteControlService {
         });
 
         if (websocketServer) websocketServer.close();
-        this.token = null;
         this.emitStatus();
 
         return createInactiveState();
@@ -222,11 +198,6 @@ class RemoteControlService {
         });
 
         server.on('upgrade', (request, socket, head) => {
-            if (!this.isAuthorized(request)) {
-                closeUnauthorized(socket);
-                return;
-            }
-
             websocketServer.handleUpgrade(request, socket, head, (client) => {
                 websocketServer.emit('connection', client);
             });
@@ -270,10 +241,6 @@ class RemoteControlService {
             response.writeHead(200, { 'Content-Type': contentTypeFor(filePath) });
             response.end(request.method === 'HEAD' ? undefined : data);
         });
-    }
-
-    isAuthorized(request) {
-        return protocolTokens(request).includes(this.token);
     }
 
     async handleMessage(client, rawMessage) {

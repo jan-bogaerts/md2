@@ -13,8 +13,14 @@ function diagnosticStreamingEvent(content, providerItemId) {
 
 describe('AgentRunnerService state handling', () => {
     it('reports one diagnosed Codex cache error and suppresses repeats', async () => {
-        const diagnoseCodexCacheError = vi.fn(async () => 'Codex versions differ. Update Codex.');
-        const service = new AgentRunnerService({ diagnoseCodexCacheError });
+        const diagnoseCodexCacheError = vi.fn(async () => ({
+            cacheVersion: '0.146.0',
+            message: 'Codex versions differ. Update Codex.',
+            runningVersion: '0.144.6',
+            updateRequired: true,
+        }));
+        const codexRuntimeService = { publishUpdateRequired: vi.fn() };
+        const service = new AgentRunnerService({ codexRuntimeService, diagnoseCodexCacheError });
         const run = {
             agent: 'codex',
             child: {},
@@ -45,6 +51,39 @@ describe('AgentRunnerService state handling', () => {
         expect(run.stderr).toBe('Codex versions differ. Update Codex.\n');
         expect(run.conversation.entries).toHaveLength(1);
         expect(run.onEvent).toHaveBeenCalledOnce();
+        expect(codexRuntimeService.publishUpdateRequired).toHaveBeenCalledWith('0.144.6', '0.146.0');
+    });
+
+    it('keeps matching or unknown cache versions local to the action', async () => {
+        const diagnoseCodexCacheError = vi.fn(async () => ({
+            cacheVersion: null,
+            message: 'Codex cache failed without confirmed mismatch.',
+            runningVersion: '0.146.0',
+            updateRequired: false,
+        }));
+        const codexRuntimeService = { publishUpdateRequired: vi.fn() };
+        const service = new AgentRunnerService({ codexRuntimeService, diagnoseCodexCacheError });
+        const run = {
+            agent: 'codex',
+            codexCacheErrorReported: false,
+            conversation: { entries: [] },
+            environment: {},
+            executable: 'codex.cmd',
+            id: 'run-1',
+            nextSequence: 1,
+            onEvent: vi.fn(),
+            secretValues: new Set(),
+            stderr: '',
+            stderrBuffer: '',
+            stderrHandling: Promise.resolve(),
+        };
+        service.processes.set('run-1', run);
+
+        service.handleOutput('run-1', 'stderr', Buffer.from('failed to load models cache: broken\n'));
+        await run.stderrHandling;
+
+        expect(run.stderr).toContain('without confirmed mismatch');
+        expect(codexRuntimeService.publishUpdateRequired).not.toHaveBeenCalled();
     });
 
     it('consumes one queued revision exactly once', async () => {
@@ -54,7 +93,7 @@ describe('AgentRunnerService state handling', () => {
             persistConversationCheckpoint: vi.fn(async () => undefined),
         });
         service.processes.set('run-1', {
-            conversation: { entries: [], status: 'running' },
+            conversation: { entries: [], providerSessions: [], status: 'running' },
             id: 'run-1',
             onEvent: vi.fn(),
             pendingApprovals: new Map(),
@@ -103,6 +142,7 @@ describe('AgentRunnerService state handling', () => {
         const run = {
             agent: 'codex',
             conversation: {
+                contextWindowUsage: { capacityTokens: 100, usedTokens: 20 },
                 entries: [{ content: 'Done', id: 'assistant-1', kind: 'message', role: 'assistant', timestamp: 'now' }],
                 providerSessions: [],
                 status: 'running',
@@ -138,6 +178,111 @@ describe('AgentRunnerService state handling', () => {
                 status: 'waitingForInput',
             }),
         }));
+    });
+
+    it('replaces live turn usage and commits the latest snapshot once at turn completion', async () => {
+        const persistConversationCheckpoint = vi.fn(async () => undefined);
+        const service = new AgentRunnerService({ persistConversationCheckpoint });
+        const onEvent = vi.fn();
+        const persistedUsage = {
+            cachedInputTokens: 1,
+            inputTokens: 4,
+            outputTokens: 3,
+            reasoningTokens: 2,
+            totalTokens: 10,
+        };
+        const firstSnapshot = {
+            cachedInputTokens: 0,
+            inputTokens: 3,
+            outputTokens: 2,
+            reasoningTokens: 0,
+            totalTokens: 5,
+        };
+        const latestSnapshot = { ...firstSnapshot, inputTokens: 5, totalTokens: 7 };
+        const run = {
+            agent: 'codex',
+            conversation: {
+                entries: [{ content: 'Done', id: 'assistant-1', kind: 'message', role: 'assistant', timestamp: 'now' }],
+                providerSessions: [],
+                status: 'running',
+                usage: persistedUsage,
+            },
+            currentAssistantMessageId: 'assistant-1',
+            finishing: false,
+            id: 'run-1',
+            liveTurnUsage: null,
+            missingSession: false,
+            nextSequence: 2,
+            onEvent,
+            pendingApprovals: new Map(),
+            persistence: Promise.resolve(),
+            providerConversationId: 'provider-1',
+            queuedMessage: null,
+            request: {},
+            streaming: true,
+            turnActive: true,
+            turnIndex: 1,
+            waitingForQuestion: false,
+        };
+        service.processes.set('run-1', run);
+
+        await service.handleStreamingEvent('run-1', { type: 'usage', usage: firstSnapshot });
+        await service.handleStreamingEvent('run-1', { type: 'usage', usage: latestSnapshot });
+
+        expect(run.conversation.usage).toEqual(persistedUsage);
+        expect(onEvent).toHaveBeenNthCalledWith(1, expect.objectContaining({ type: 'usage', usage: expect.objectContaining({ totalTokens: 15 }) }));
+        expect(onEvent).toHaveBeenNthCalledWith(2, expect.objectContaining({ type: 'usage', usage: expect.objectContaining({ totalTokens: 17 }) }));
+
+        const contextWindowUsage = { capacityTokens: 258_400, usedTokens: 42_000 };
+        await service.handleStreamingEvent('run-1', { contextWindowUsage, type: 'turnCompleted', usage: latestSnapshot });
+
+        expect(run.conversation.usage).toEqual(expect.objectContaining({ totalTokens: 17 }));
+        expect(run.conversation.contextWindowUsage).toEqual(contextWindowUsage);
+        expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({
+            contextWindowUsage,
+            type: 'usage',
+            usage: expect.objectContaining({ totalTokens: 17 }),
+        }));
+        const expectedConversation = expect.objectContaining({
+            contextWindowUsage,
+            usage: expect.objectContaining({ totalTokens: 17 }),
+        });
+        expect(persistConversationCheckpoint).toHaveBeenCalledWith(expect.objectContaining({ conversation: expectedConversation }));
+    });
+
+    it('does not persist an unconfirmed live snapshot when the streaming turn fails', async () => {
+        const service = new AgentRunnerService({ terminateProcessTree: vi.fn(async () => true) });
+        const persistedUsage = {
+            cachedInputTokens: 0,
+            inputTokens: 10,
+            outputTokens: 0,
+            reasoningTokens: 0,
+            totalTokens: 10,
+        };
+        const run = {
+            child: { stdin: { end: vi.fn() } },
+            conversation: { entries: [], status: 'running', usage: persistedUsage },
+            id: 'run-1',
+            liveTurnUsage: null,
+            nextSequence: 1,
+            onEvent: vi.fn(),
+            queuedMessage: null,
+            secretValues: new Set(),
+            stderr: '',
+            streamingFailure: null,
+            termination: null,
+            waitingForQuestion: false,
+        };
+        service.processes.set('run-1', run);
+
+        await service.handleStreamingEvent('run-1', {
+            type: 'usage',
+            usage: { cachedInputTokens: 0, inputTokens: 5, outputTokens: 0, reasoningTokens: 0, totalTokens: 5 },
+        });
+        service.failStreamingRun(run, new Error('Turn failed'));
+
+        expect(run.conversation.usage).toBe(persistedUsage);
+        expect(run.liveTurnUsage).toEqual(expect.objectContaining({ totalTokens: 5 }));
     });
 
     it('keeps streaming process stderr out of canonical conversation entries', () => {
@@ -435,7 +580,7 @@ describe('AgentRunnerService state handling', () => {
             persistConversationCheckpoint: vi.fn(async () => undefined),
         });
         const run = {
-            conversation: { entries: [], status: 'waitingForInput' },
+            conversation: { entries: [], providerSessions: [], status: 'waitingForInput' },
             id: 'run-1',
             onEvent: vi.fn(),
             pendingApprovals: new Map(),
@@ -469,7 +614,7 @@ describe('AgentRunnerService state handling', () => {
             agent: 'codex',
             assistantItemIndex: 0,
             assistantItems: new Map(),
-            conversation: { entries: [], status: 'running' },
+            conversation: { entries: [], providerSessions: [], status: 'running' },
             currentAssistantMessageId: null,
             id: 'run-1',
             nextSequence: 2,
@@ -693,7 +838,7 @@ describe('AgentRunnerService state handling', () => {
         const answerApproval = vi.fn(async () => undefined);
         const service = new AgentRunnerService({ persistConversationCheckpoint });
         const run = {
-            conversation: { entries: [], status: 'running' },
+            conversation: { entries: [], providerSessions: [], status: 'running' },
             id: 'run-1',
             interactionWrites: Promise.resolve(),
             onEvent: vi.fn(),

@@ -64,6 +64,44 @@ describe('DialogDisplay', () => {
         expect(screen.queryByRole('dialog', { name: 'Startup blocked' })).toBeNull()
     })
 
+    it('disables snackbar action while pending and removes warning after success', async () => {
+        let resolve!: () => void
+        const promise = new Promise<void>((promiseResolve) => {
+            resolve = promiseResolve
+        })
+        const callback = vi.fn(() => promise)
+        render(<DialogDisplay />)
+        act(() => {
+            dialogService.warning('Codex update required', { action: { callback, label: 'Update Codex' } })
+        })
+        const button = screen.getByRole('button', { name: 'Update Codex' })
+
+        fireEvent.click(button)
+
+        expect(button).toBeDisabled()
+        expect(callback).toHaveBeenCalledOnce()
+        await act(async () => resolve())
+        expect(screen.queryByText('Codex update required')).toBeNull()
+    })
+
+    it('shows action failure first and restores retryable warning after close', async () => {
+        const callback = vi.fn(async () => {
+            dialogService.error('permission denied')
+            throw new Error('permission denied')
+        })
+        render(<DialogDisplay />)
+        act(() => {
+            dialogService.warning('Codex update required', { action: { callback, label: 'Update Codex' } })
+        })
+
+        await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Update Codex' })))
+
+        expect(screen.getByText('permission denied')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+        expect(screen.getByText('Codex update required')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Update Codex' })).toBeEnabled()
+    })
+
     it('shows global operation information and determinate progress in a backdrop', () => {
         render(<DialogDisplay />)
 

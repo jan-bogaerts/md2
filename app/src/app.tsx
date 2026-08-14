@@ -3,9 +3,11 @@ import { useGithubAuth } from './auth/use_github_auth'
 import { useAppBootstrap } from './app/use_app_bootstrap'
 import { DialogDisplay } from './components/dialog_display'
 import { MergeConflictDialog } from './components/merge_conflict_dialog'
+import { ProjectWindowTitle } from './components/project_window_title'
 import { MainWindow } from './components/shell/main_window'
 import { StartupSplash } from './components/shell/startup_splash'
 import { RemoteControlButton } from './components/shell/remote_control_button'
+import { UpdateNotification } from './components/shell/update_notification'
 import { AppThemeProvider } from './theme/theme_provider'
 import { readStartupSplashPreference } from './services/config/config_service'
 import { dialogService } from './services/dialog_service'
@@ -37,6 +39,8 @@ export function App({ startupService }: AppProps = {}) {
     return (
         <AppThemeProvider>
             <DialogDisplay />
+            <ProjectWindowTitle />
+            <UpdateNotification />
             <MergeConflictDialog />
             {bootstrap.phase === 'starting' ? (
                 showStartupSplash ? <StartupSplash /> : null

@@ -1,9 +1,10 @@
 export interface ActionPlaceholder {
     description: string
-    name: 'card-file' | 'card-prompt' | 'card-title' | 'project-folder' | 'releases-folder' | 'repository-folder' | 'this-card' | 'worktree-folder'
+    name: 'active-cards-folder' | 'card-file' | 'card-prompt' | 'card-title' | 'project-folder' | 'releases-folder' | 'repository-folder' | 'this-card' | 'worktree-folder'
 }
 
 export const ACTION_PROMPT_PLACEHOLDERS: readonly ActionPlaceholder[] = [
+    { description: 'Absolute path to the folder containing root-level Markdown cards shown on the dashboard.', name: 'active-cards-folder' },
     { description: 'Path to the selected Markdown card file.', name: 'card-file' },
     { description: 'Alias of {{card-file}} with the same selected Markdown card file path.', name: 'this-card' },
     { description: 'Title of the selected card.', name: 'card-title' },

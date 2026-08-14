@@ -3,9 +3,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ElectronRemoteControlBridge, RemoteControlStatus } from '../../data/electron_remote_control_bridge'
 import { RemoteControlStatusIndicator } from './remote_control_status_indicator'
 
-const stoppedStatus: RemoteControlStatus = { active: false, clientCount: 0, endpoint: null, token: null }
-const acceptingStatus: RemoteControlStatus = { active: true, clientCount: 0, endpoint: 'ws://127.0.0.1:1234', token: 't' }
-const connectedStatus: RemoteControlStatus = { active: true, clientCount: 1, endpoint: 'ws://127.0.0.1:1234', token: 't' }
+const stoppedStatus: RemoteControlStatus = { active: false, clientCount: 0, endpoint: null }
+const acceptingStatus: RemoteControlStatus = { active: true, clientCount: 0, endpoint: 'ws://127.0.0.1:1234' }
+const connectedStatus: RemoteControlStatus = { active: true, clientCount: 1, endpoint: 'ws://127.0.0.1:1234' }
 
 function installBridge() {
     let push: (status: RemoteControlStatus) => void = () => undefined

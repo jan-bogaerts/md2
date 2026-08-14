@@ -6,6 +6,7 @@ import { cardMarkdownDataSource, type CardDocumentClosedDetail } from '../editor
 import { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
 import { MarkdownEditor } from '../editor/markdown_editor'
 import { ListEditorToolbarControls } from './list_editor_toolbar_controls'
+import { useProjectReadOnly } from '../hooks/use_project_read_only'
 
 interface CardEditorProps {
     cardTypes: CardTypeConfig[]
@@ -15,6 +16,7 @@ interface CardEditorProps {
 /** Lifetime-stable list-card editor with private history. */
 export const CardEditor = memo(function CardEditor(props: CardEditorProps) {
     const { cardTypes, statusColors } = props
+    const readOnly = useProjectReadOnly()
     const [historyStore] = useState(() => new MarkdownDocumentHistoryStore())
 
     useEffect(() => {
@@ -35,9 +37,10 @@ export const CardEditor = memo(function CardEditor(props: CardEditorProps) {
         <ListEditorToolbarControls
             cardTypes={cardTypes}
             historyStore={historyStore}
+            readOnly={readOnly}
             statusColors={statusColors}
         />
-    ), [cardTypes, historyStore, statusColors])
+    ), [cardTypes, historyStore, readOnly, statusColors])
 
     return (
         <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0 }}>
@@ -46,6 +49,7 @@ export const CardEditor = memo(function CardEditor(props: CardEditorProps) {
                     binding="list-card"
                     dataSource={cardMarkdownDataSource}
                     historyStore={historyStore}
+                    readOnly={readOnly}
                     toolbarContents={toolbarContents}
                 />
             </ListCardCommitDiffPanel>

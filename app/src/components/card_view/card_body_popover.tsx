@@ -5,7 +5,7 @@ import Close from 'mdi-material-ui/Close'
 import DeleteOutline from 'mdi-material-ui/DeleteOutline'
 import FileDocumentOutline from 'mdi-material-ui/FileDocumentOutline'
 import FolderSearchOutline from 'mdi-material-ui/FolderSearchOutline'
-import type { CardTypeConfig } from '../../data/data_types'
+import type { CardTypeConfig, StateConfig } from '../../data/data_types'
 import type { ActionContext } from '../../data/action_context'
 import { POPOVER_SIDE_MARGIN, POPOVER_TOP_MARGIN } from '../resizable_popover'
 import { ResizablePopper } from '../resizable_popper'
@@ -33,6 +33,8 @@ import {
     type CardDetailsPopupEntry,
 } from '../../services/card_popup_service'
 import { MarkdownTypeaheadLayerProvider } from '../editor/markdown_typeahead_layer_provider'
+import { useProjectReadOnly } from '../hooks/use_project_read_only'
+import { CardStateSelector } from './card_state_selector'
 
 const CARD_BODY_POPOVER_WIDTH = 760
 const CARD_BODY_POPOVER_HEIGHT = 620
@@ -66,6 +68,7 @@ interface CardBodyPopoverProps {
     onDeleteCard: (path: string) => Promise<void>
     onOpenAffects: (path: string) => void
     onOpenInFileMode: (path: string) => void
+    states: StateConfig[]
     statusColors: Map<string, string>
     visible: boolean
 }
@@ -104,10 +107,12 @@ function CardBodyPopoverEntry(props: CardBodyPopoverEntryProps) {
         onDeleteCard,
         onOpenAffects,
         onOpenInFileMode,
+        states,
         statusColors,
         stackPosition,
         visible,
     } = props
+    const readOnly = useProjectReadOnly()
     const { cardPath, diffSelection } = entry
     const anchorElement = entry.anchorElement.isConnected ? entry.anchorElement : entry.fallbackAnchorElement
     const card = useCardMetadata(cardPath)
@@ -279,7 +284,7 @@ function CardBodyPopoverEntry(props: CardBodyPopoverEntryProps) {
                     boxSizing: 'border-box',
                     boxShadow: '0 24px 60px rgba(16, 24, 40, 0.28)',
                     flexDirection: 'column',
-                    height: isMobile ? '100vh !important' : isFullscreen ? `${fullscreenHeight} !important` : undefined,
+                    height: isMobile ? '100dvh !important' : isFullscreen ? `${fullscreenHeight} !important` : undefined,
                     left: isMobile ? '0 !important' : isFullscreen ? `${POPOVER_SIDE_MARGIN}px !important` : undefined,
                     margin: isMobile ? '0 !important' : undefined,
                     maxHeight: isMobile || isFullscreen ? 'none' : undefined,
@@ -350,6 +355,7 @@ function CardBodyPopoverEntry(props: CardBodyPopoverEntryProps) {
                                     onChange={handleTitleChange}
                                     onKeyDown={handleTitleKeyDown}
                                     placeholder="Card title"
+                                    readOnly={readOnly}
                                     sx={(theme) => ({
                                         '&:focus-within': {
                                             backgroundColor: 'background.paper',
@@ -423,6 +429,7 @@ function CardBodyPopoverEntry(props: CardBodyPopoverEntryProps) {
                             </Box>
 
                             <Box
+                                data-card-details-footer="true"
                                 sx={{
                                     alignItems: 'center',
                                     backgroundColor: 'background.default',
@@ -438,12 +445,12 @@ function CardBodyPopoverEntry(props: CardBodyPopoverEntryProps) {
                                 {isMobile ? (
                                     <>
                                         <Tooltip title="Delete">
-                                            <IconButton aria-label="Delete" color="error" onClick={openDeleteCardDialog}>
+                                            <IconButton aria-label="Delete" color="error" disabled={readOnly} onClick={openDeleteCardDialog}>
                                                 <DeleteOutline />
                                             </IconButton>
                                         </Tooltip>
                                         <Tooltip title="Affects">
-                                            <IconButton aria-label="Affects" onClick={openAffects}>
+                                            <IconButton aria-label="Affects" disabled={readOnly} onClick={openAffects}>
                                                 <FolderSearchOutline />
                                             </IconButton>
                                         </Tooltip>
@@ -455,13 +462,20 @@ function CardBodyPopoverEntry(props: CardBodyPopoverEntryProps) {
                                     </>
                                 ) : (
                                     <>
-                                        <Button color="error" onClick={openDeleteCardDialog} startIcon={<DeleteOutline />} variant="outlined">Delete</Button>
-                                        <Button onClick={openAffects} startIcon={<FolderSearchOutline />} variant="outlined">Affects</Button>
+                                        <Button color="error" disabled={readOnly} onClick={openDeleteCardDialog} startIcon={<DeleteOutline />} variant="outlined">Delete</Button>
+                                        <Button disabled={readOnly} onClick={openAffects} startIcon={<FolderSearchOutline />} variant="outlined">Affects</Button>
                                         <Button onClick={openInFileMode} startIcon={<FileDocumentOutline />} variant="outlined">Open in file mode</Button>
                                     </>
                                 )}
                                 <AgentUsageDisplay usage={cardAgentTokenUsage(activity?.conversations ?? [])} />
-                                <Box sx={{ flex: 1 }} />
+                                <Box data-card-details-footer-spacer="true" sx={{ flex: 1 }} />
+                                <CardStateSelector
+                                    cardPath={card.path}
+                                    currentState={card.header.status}
+                                    disabled={readOnly}
+                                    states={states}
+                                    statusColors={statusColors}
+                                />
                                 {!isMobile ? <Button onClick={closePopover} variant="contained">Close</Button> : null}
                             </Box>
                         </Box>

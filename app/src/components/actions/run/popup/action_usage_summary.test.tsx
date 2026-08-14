@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AgentConversation } from '../../../../data/data_types'
 import type { ActionRunHistoryEntry, CommitReference } from '../../../../data/electron_action_bridge'
+import { createAppTheme } from '../../../../theme/app_theme'
 import { AppThemeProvider } from '../../../../theme/theme_provider'
 import { ActionUsageSummary } from './action_usage_summary'
 import type { ActionUsageScope } from './action_usage_scope_store'
@@ -95,6 +96,15 @@ describe('ActionUsageSummary', () => {
         expect(tokens).toHaveTextContent('tokens: 0')
         expect(screen.queryByRole('button', { name: 'Changes, Action/card scope' })).not.toBeInTheDocument()
         expect(screen.queryByRole('button', { name: 'Lines, Action/card scope' })).not.toBeInTheDocument()
+        expect(screen.queryByText(/context:/u)).not.toBeInTheDocument()
+    })
+
+    it('does not render displayed conversation context occupancy', () => {
+        const displayedConversation = conversation('conversation-1', 12)
+        displayedConversation.contextWindowUsage = { capacityTokens: 258_400, usedTokens: 42_000 }
+        renderSummary({ conversation: displayedConversation })
+
+        expect(screen.queryByText(/context:/u)).not.toBeInTheDocument()
     })
 
     it('invokes shared scope toggle through pointer and keyboard-synthesized clicks', () => {
@@ -133,6 +143,20 @@ describe('ActionUsageSummary', () => {
         expect(screen.getByRole('button', { name: 'Tokens, Conversation scope' })).toHaveTextContent('tokens: 12')
         expect(screen.getByRole('button', { name: 'Changes, Conversation scope' })).toHaveTextContent('changes: +2 / -1')
         expect(screen.getByRole('button', { name: 'Lines, Conversation scope' })).toHaveTextContent('lines: 9')
+    })
+
+    it('keeps compactable prefixes separate while preserving accessible names and change colors', () => {
+        renderSummary({ history: [historyEntry('conversation-1', [commit('abc1234', 3, 2)])] })
+        const tokens = screen.getByRole('button', { name: 'Tokens, Action/card scope' })
+        const changes = screen.getByRole('button', { name: 'Changes, Action/card scope' })
+        const lines = screen.getByRole('button', { name: 'Lines, Action/card scope' })
+        const palette = createAppTheme('light').palette
+
+        expect(tokens.querySelector('[data-usage-prefix]')).toHaveTextContent('tokens:')
+        expect(changes.querySelector('[data-usage-prefix]')).toHaveTextContent('changes:')
+        expect(lines.querySelector('[data-usage-prefix]')).toHaveTextContent('lines:')
+        expect(changes.querySelector('[data-usage-prefix]')?.nextElementSibling).toHaveStyle({ color: palette.success.main })
+        expect(changes.querySelector('[data-usage-prefix]')?.nextElementSibling?.nextElementSibling).toHaveStyle({ color: palette.error.main })
     })
 
     it('explains metric, switching, both values, and active-scope commit details', async () => {

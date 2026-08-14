@@ -3,6 +3,11 @@ import type { ActionRun } from '../../../services/actions/action_run_registry'
 
 export const EMPTY_ERROR_LOGS: ActionRunLogEntry[] = []
 
+/** True when an action phase ended in a failure that needs user attention. */
+export function isErrorLog({ status }: ActionRunLogEntry) {
+    return status === 'failed' || status === 'okButNotAfter'
+}
+
 /** Builds an error-log selector that preserves output identity while matching logs stay unchanged. */
 export function createErrorLogsSelector() {
     let selectedLogs = EMPTY_ERROR_LOGS
@@ -10,7 +15,7 @@ export function createErrorLogsSelector() {
     return (run: ActionRun | null) => {
         if (!run) return EMPTY_ERROR_LOGS
 
-        const errors = run.logs.filter(({ status }) => status === 'failed' || status === 'okButNotAfter')
+        const errors = run.logs.filter(isErrorLog)
         if (errors.length === 0) {
             selectedLogs = EMPTY_ERROR_LOGS
             return EMPTY_ERROR_LOGS

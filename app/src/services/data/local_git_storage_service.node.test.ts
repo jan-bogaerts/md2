@@ -33,6 +33,25 @@ function createBridge(overrides: Partial<ElectronDataBridge> = {}): ElectronData
 }
 
 describe('LocalGitStorageService binary write path', () => {
+    it('routes project watcher failures to the storage error callback', () => {
+        let notify: Parameters<ElectronDataBridge['watchProject']>[1] = () => undefined
+        const watchProject = vi.fn((_project, callback: Parameters<ElectronDataBridge['watchProject']>[1]) => {
+            notify = callback
+
+            return () => undefined
+        })
+        const service = new LocalGitStorageService()
+        service.init({ bridge: createBridge({ watchProject }) })
+        const onChange = vi.fn()
+        const onError = vi.fn()
+
+        service.watchProject({ branch: 'main', id: 'local', rootPath: 'C:/repo' }, onChange, vi.fn(), onError)
+        notify({ error: 'Native watcher unavailable' })
+
+        expect(onChange).not.toHaveBeenCalled()
+        expect(onError).toHaveBeenCalledWith(expect.objectContaining({ message: 'Native watcher unavailable' }))
+    })
+
     it('forwards worktree state subscription and cleanup to the bridge', () => {
         const cleanup = vi.fn()
         const onWorktreesChanged = vi.fn(() => cleanup)

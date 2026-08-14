@@ -38,9 +38,20 @@ function codexUsage(params) {
     });
 }
 
-function ensureEventTextPart(event, field, index) {
-    if (!Number.isSafeInteger(index) || index < 0) return;
-    while (event[field].length <= index) event[field].push('');
+function codexContextWindowUsage(params) {
+    const usedTokens = params.tokenUsage?.last?.totalTokens;
+    const capacityTokens = params.tokenUsage?.modelContextWindow;
+    if (!Number.isSafeInteger(usedTokens) || usedTokens < 0) return null;
+    if (!Number.isSafeInteger(capacityTokens) || capacityTokens <= 0) return null;
+
+    return { capacityTokens, usedTokens };
+}
+
+function eventTextParts(event, field, index) {
+    const parts = [...event[field]];
+    while (parts.length <= index) parts.push('');
+
+    return parts;
 }
 
 function isCodexMissingThreadError(error, providerConversationId) {
@@ -84,6 +95,7 @@ class CodexStreamingAdapter {
         this.pendingRequests = new Map();
         this.pendingApprovals = new Map();
         this.threadId = null;
+        this.turnContextWindowUsage = undefined;
         this.turnUsage = null;
     }
 
@@ -184,7 +196,7 @@ class CodexStreamingAdapter {
                 ?.filter(({ path }) => typeof path === 'string' && path.length > 0)
                 .map(({ path }) => path) ?? []
             : [];
-        const approval = { ...structuredClone(params), filePaths, kind, provider: 'codex', requestId: message.id };
+        const approval = { ...params, filePaths, kind, provider: 'codex', requestId: message.id };
         this.pendingApprovals.set(message.id, { approval, submitted: false });
         await this.onEvent({ approval, type: 'approval' });
     }
@@ -248,6 +260,7 @@ class CodexStreamingAdapter {
             this.assistantItemOrder = [];
             this.assistantStreams.clear();
             this.completedItemIds.clear();
+            this.turnContextWindowUsage = undefined;
             this.activeTurnId = params.turn?.id ?? params.turnId;
             await this.onEvent({ turnId: this.activeTurnId, type: 'turnStarted' });
             return;
@@ -275,7 +288,10 @@ class CodexStreamingAdapter {
         if (method === 'item/reasoning/summaryPartAdded') {
             const trackedItem = await this.requireActiveItem(method, params.itemId, 'reasoning');
             if (!trackedItem) return;
-            ensureEventTextPart(trackedItem.event, 'summary', params.summaryIndex);
+            trackedItem.event = {
+                ...trackedItem.event,
+                summary: eventTextParts(trackedItem.event, 'summary', params.summaryIndex),
+            };
             await this.emitEvent(trackedItem.event);
             return;
         }
@@ -286,20 +302,23 @@ class CodexStreamingAdapter {
         if (method === 'item/commandExecution/outputDelta') {
             const trackedItem = await this.requireActiveItem(method, params.itemId, 'commandExecution');
             if (!trackedItem) return;
-            trackedItem.event.output += params.delta;
-            trackedItem.event.content = trackedItem.event.output;
+            trackedItem.event = { ...trackedItem.event, content: `${trackedItem.event.content}${params.delta}` };
             await this.emitEvent(trackedItem.event);
             return;
         }
         if (method === 'item/plan/delta') {
             const trackedItem = await this.requireActiveItem(method, params.itemId, 'plan');
             if (!trackedItem) return;
-            trackedItem.event.content += params.delta;
+            trackedItem.event = { ...trackedItem.event, content: `${trackedItem.event.content}${params.delta}` };
             await this.emitEvent(trackedItem.event);
             return;
         }
         if (method === 'thread/tokenUsage/updated') {
-            this.turnUsage = codexUsage(params);
+            const usage = codexUsage(params);
+            if (!usage) return;
+            this.turnContextWindowUsage = codexContextWindowUsage(params);
+            this.turnUsage = usage;
+            await this.onEvent({ type: 'usage', usage });
             return;
         }
         if (method === 'account/rateLimits/updated') {
@@ -343,7 +362,14 @@ class CodexStreamingAdapter {
             const completedTurnId = params.turn?.id ?? this.activeTurnId;
             await this.resolveApprovalsForTurn(completedTurnId);
             this.activeTurnId = null;
-            await this.onEvent({ error, type: 'turnCompleted', usage: this.turnUsage });
+            const contextWindowUsage = this.turnContextWindowUsage;
+            await this.onEvent({
+                ...(contextWindowUsage !== undefined ? { contextWindowUsage } : {}),
+                error,
+                type: 'turnCompleted',
+                usage: this.turnUsage,
+            });
+            this.turnContextWindowUsage = undefined;
             this.turnUsage = null;
             return;
         }
@@ -386,7 +412,7 @@ class CodexStreamingAdapter {
             assistantCompleted: false,
             assistantText: false,
             bufferedAssistantText: '',
-            item: structuredClone(item),
+            item,
             itemType: item.type,
         };
         this.activeItems.set(item.id, trackedItem);
@@ -449,11 +475,13 @@ class CodexStreamingAdapter {
             if (trackedItem) await this.emitDiagnostic(method, 'reasoning', params.itemId);
             return;
         }
-        ensureEventTextPart(trackedItem.event, field, index);
-        trackedItem.event[field][index] += params.delta;
-        trackedItem.event.content = trackedItem.event.summary.length > 0
-            ? trackedItem.event.summary.join('\n\n')
-            : trackedItem.event.details.join('\n\n');
+        const parts = eventTextParts(trackedItem.event, field, index);
+        parts[index] += params.delta;
+        const event = { ...trackedItem.event, [field]: parts };
+        trackedItem.event = {
+            ...event,
+            content: event.summary.length > 0 ? event.summary.join('\n\n') : event.details.join('\n\n'),
+        };
         await this.emitEvent(trackedItem.event);
     }
 
@@ -478,7 +506,7 @@ class CodexStreamingAdapter {
     }
 
     async emitEvent(event) {
-        await this.onEvent({ event: structuredClone(event), type: 'event' });
+        await this.onEvent({ event, type: 'event' });
     }
 
     async emitDiagnostic(method, itemType, itemId) {

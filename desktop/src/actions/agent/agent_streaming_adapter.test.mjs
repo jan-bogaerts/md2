@@ -442,8 +442,9 @@ describe('CodexStreamingAdapter', () => {
         const last = { cachedInputTokens: 2, inputTokens: 4, outputTokens: 3, reasoningOutputTokens: 1, totalTokens: 10 };
         await adapter.handleMessage({
             method: 'thread/tokenUsage/updated',
-            params: { tokenUsage: { last } },
+            params: { tokenUsage: { last, modelContextWindow: 258_400 } },
         });
+        await adapter.handleMessage({ method: 'thread/tokenUsage/updated', params: {} });
         await adapter.handleMessage({
             method: 'item/started',
             params: { item: { changes: [{ diff: '', kind: 'update', path: 'design\\feature.md' }], id: 'file-1', status: 'inProgress', type: 'fileChange' } },
@@ -462,12 +463,40 @@ describe('CodexStreamingAdapter', () => {
         expect(events).toContainEqual({ content: '\n\n', itemId: 'message-1', type: 'assistant' });
         expect(events).toContainEqual({ paths: ['design/feature.md'], type: 'changedPaths' });
         expect(events).toContainEqual({ questions, requestId: 99, type: 'question' });
+        expect(events).toContainEqual({
+            type: 'usage',
+            usage: { cachedInputTokens: 2, inputTokens: 4, outputTokens: 3, reasoningTokens: 1, totalTokens: 10 },
+        });
+        expect(events.filter(({ type }) => type === 'usage')).toHaveLength(1);
         expect(events.at(-1)).toMatchObject({
+            contextWindowUsage: { capacityTokens: 258_400, usedTokens: 10 },
             error: null,
             type: 'turnCompleted',
             usage: { cachedInputTokens: 2, inputTokens: 4, outputTokens: 3, reasoningTokens: 1, totalTokens: 10 },
         });
         expect(writes.at(-1)).toEqual({ id: 99, result: { answers: { confirm: { answers: ['Yes'] } } } });
+    });
+
+    it('keeps only latest valid context-window snapshot for completed Codex turn', async () => {
+        const { adapter, events } = harness('codex');
+        const firstLast = { cachedInputTokens: 0, inputTokens: 4, outputTokens: 1, totalTokens: 5 };
+        const latestLast = { cachedInputTokens: 0, inputTokens: 41_000, outputTokens: 1_000, totalTokens: 42_000 };
+
+        await adapter.handleMessage({ method: 'turn/started', params: { turn: { id: 'turn-1' } } });
+        await adapter.handleMessage({
+            method: 'thread/tokenUsage/updated',
+            params: { tokenUsage: { last: firstLast, modelContextWindow: 100_000 } },
+        });
+        await adapter.handleMessage({
+            method: 'thread/tokenUsage/updated',
+            params: { tokenUsage: { last: latestLast, modelContextWindow: 258_400 } },
+        });
+        await adapter.handleMessage({ method: 'turn/completed', params: { turn: { status: 'completed' } } });
+
+        expect(events.at(-1)).toMatchObject({
+            contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 },
+            type: 'turnCompleted',
+        });
     });
 
     it('tracks concurrent approval requests and writes only supported decisions', async () => {
@@ -660,15 +689,16 @@ describe('CodexStreamingAdapter', () => {
         });
 
         const command = events.filter(({ event }) => event?.providerItemId === 'command-1').map(({ event }) => event);
-        expect(command[0]).toMatchObject({ command: started.command, output: '', status: 'inProgress', workingDirectory: 'C:\\repo' });
-        expect(command[2].output).toBe('first\nsecond');
+        expect(command[0]).toMatchObject({ command: started.command, content: '', status: 'inProgress', workingDirectory: 'C:\\repo' });
+        expect(command[2].content).toBe('first\nsecond');
         expect(command.at(-1)).toMatchObject({
             command: started.command,
+            content: 'final output',
             durationMs: 25,
             exitCode: 1,
-            output: 'final output',
             status: 'failed',
         });
+        expect(command.every((event) => !Object.hasOwn(event, 'output'))).toBe(true);
     });
 
     it('retains declined command state', async () => {

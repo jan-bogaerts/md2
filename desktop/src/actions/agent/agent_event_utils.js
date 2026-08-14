@@ -1,5 +1,6 @@
 const path = require('node:path');
 const { normalizePath } = require('../../../../shared/path_utils.mjs');
+const { logAgentEvent } = require('./agent_file_logger');
 
 /**
  * Turn a provider-reported file path into a repo-relative POSIX pathspec, or null when the path
@@ -54,7 +55,7 @@ class JsonLineBuffer {
     emit(line) {
         if (line.trim().length === 0) return;
 
-        console.log('[agent:raw]', this.label, line);
+        logAgentEvent('[agent:raw]', this.label, line);
         this.onLine(line);
     }
 }

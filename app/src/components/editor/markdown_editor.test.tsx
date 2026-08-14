@@ -10,7 +10,7 @@ import { MARKDOWN_STYLE_PRESETS } from '../../theme/theme_config'
 import { useAppTheme } from '../../theme/use_app_theme'
 import { MarkdownEditor, type MarkdownEditorHandle } from './markdown_editor'
 import { MarkdownDocumentHistoryStore } from './markdown_document_history_store'
-import { flushMarkdownEditors } from './markdown_editor_flush'
+import { stageMarkdownEditors } from '../../services/project/markdown_editor_staging'
 import { buildMarkdownContentSx } from './markdown_style_sx'
 import {
     MarkdownDataSourceBase,
@@ -60,6 +60,20 @@ function renderEditor(markdown = '') {
             <MarkdownEditor markdown={markdown} onChange={vi.fn()} />
         </AppThemeProvider>,
     )
+}
+
+function selectText(textbox: HTMLTextAreaElement, start: number, end: number) {
+    textbox.setSelectionRange(start, end)
+    fireEvent.select(textbox)
+}
+
+function clipboardData(initialData: Record<string, string> = {}) {
+    const data = new Map(Object.entries(initialData))
+    return {
+        getData: (type: string) => data.get(type) ?? '',
+        setData: (type: string, value: string) => data.set(type, value),
+        value: (type: string) => data.get(type) ?? '',
+    }
 }
 
 function MarkdownEditorWithStyleControl() {
@@ -141,6 +155,144 @@ describe('MarkdownEditor', () => {
         expect(screen.getByRole('textbox')).toHaveValue('')
     })
 
+    it('copies selected formatted content as Markdown in both text formats', () => {
+        const markdown = '# Title\n\n**Bold** and [Link](https://example.com)\n\n- Item\n\n`code`'
+        renderEditor(markdown)
+        const textbox = screen.getByRole('textbox') as HTMLTextAreaElement
+        const clipboard = clipboardData()
+        selectText(textbox, 0, markdown.length)
+
+        const copyHandled = fireEvent.copy(textbox, { clipboardData: clipboard })
+
+        expect(copyHandled).toBe(false)
+        expect(clipboard.value('text/markdown')).toBe(markdown)
+        expect(clipboard.value('text/plain')).toBe(markdown)
+    })
+
+    it('copies only rendered text with Ctrl+Shift+C', () => {
+        const markdown = '**Bold** and [Link](https://example.com)'
+        renderEditor(markdown)
+        const textbox = screen.getByRole('textbox') as HTMLTextAreaElement
+        const clipboard = clipboardData()
+        selectText(textbox, 0, markdown.length)
+
+        fireEvent.keyDown(textbox, { ctrlKey: true, key: 'c', shiftKey: true })
+        fireEvent.copy(textbox, { clipboardData: clipboard })
+
+        expect(clipboard.value('text/plain')).toBe('Bold and Link')
+        expect(clipboard.value('text/markdown')).toBe('')
+    })
+
+    it('preserves formatting around a partial copied selection', () => {
+        renderEditor('Before **bold text** after')
+        const textbox = screen.getByRole('textbox') as HTMLTextAreaElement
+        const clipboard = clipboardData()
+        selectText(textbox, 9, 13)
+
+        fireEvent.copy(textbox, { clipboardData: clipboard })
+
+        expect(clipboard.value('text/markdown')).toBe('**bold**')
+        expect(clipboard.value('text/plain')).toBe('**bold**')
+    })
+
+    it('leaves clipboard data unchanged for a collapsed selection', () => {
+        renderEditor('Text')
+        const textbox = screen.getByRole('textbox') as HTMLTextAreaElement
+        const clipboard = clipboardData({ 'text/plain': 'existing' })
+        selectText(textbox, 2, 2)
+
+        const copyHandled = fireEvent.copy(textbox, { clipboardData: clipboard })
+
+        expect(copyHandled).toBe(true)
+        expect(clipboard.value('text/plain')).toBe('existing')
+    })
+
+    it('replaces the current selection when pasting Markdown', () => {
+        renderEditor('before old after')
+        const textbox = screen.getByRole('textbox') as HTMLTextAreaElement
+        selectText(textbox, 7, 10)
+
+        fireEvent.paste(textbox, { clipboardData: clipboardData({ 'text/plain': '**new**' }) })
+
+        expect(textbox).toHaveValue('before **new** after')
+    })
+
+    it('inserts plain clipboard text literally with Ctrl+Shift+V', () => {
+        renderEditor('old')
+        const textbox = screen.getByRole('textbox') as HTMLTextAreaElement
+        selectText(textbox, 0, 3)
+
+        fireEvent.keyDown(textbox, { ctrlKey: true, key: 'v', shiftKey: true })
+        fireEvent.paste(textbox, { clipboardData: clipboardData({ 'text/plain': '**bold**' }) })
+
+        expect(textbox).toHaveValue('**bold**')
+    })
+
+    it('consumes shifted copy intent once', () => {
+        const markdown = '**Bold**'
+        renderEditor(markdown)
+        const textbox = screen.getByRole('textbox') as HTMLTextAreaElement
+        selectText(textbox, 0, markdown.length)
+        const textClipboard = clipboardData()
+        const markdownClipboard = clipboardData()
+
+        fireEvent.keyDown(textbox, { ctrlKey: true, key: 'c', shiftKey: true })
+        fireEvent.copy(textbox, { clipboardData: textClipboard })
+        fireEvent.copy(textbox, { clipboardData: markdownClipboard })
+
+        expect(textClipboard.value('text/plain')).toBe('Bold')
+        expect(markdownClipboard.value('text/markdown')).toBe(markdown)
+    })
+
+    it('clears shifted paste intent when no matching clipboard event follows', async () => {
+        renderEditor('')
+        const textbox = screen.getByRole('textbox') as HTMLTextAreaElement
+
+        fireEvent.keyDown(textbox, { ctrlKey: true, key: 'v', shiftKey: true })
+        await act(async () => new Promise((resolve) => setTimeout(resolve, 0)))
+        fireEvent.paste(textbox, { clipboardData: clipboardData({ 'text/plain': '**bold**' }) })
+
+        expect(textbox).toHaveValue('**bold**')
+    })
+
+    it('allows copy but prevents paste changes in read-only editors', () => {
+        const markdown = '**locked**'
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor markdown={markdown} onChange={vi.fn()} readOnly />
+            </AppThemeProvider>,
+        )
+        const textbox = screen.getByRole('textbox') as HTMLTextAreaElement
+        const clipboard = clipboardData()
+        selectText(textbox, 0, markdown.length)
+
+        fireEvent.copy(textbox, { clipboardData: clipboard })
+        fireEvent.paste(textbox, { clipboardData: clipboardData({ 'text/plain': 'changed' }) })
+
+        expect(clipboard.value('text/markdown')).toBe(markdown)
+        expect(textbox).toHaveValue(markdown)
+    })
+
+    it('reports clipboard write failures without preventing default copy', () => {
+        const reportError = vi.spyOn(dialogService, 'error')
+        renderEditor('Text')
+        const textbox = screen.getByRole('textbox') as HTMLTextAreaElement
+        selectText(textbox, 0, 4)
+        const clipboard = {
+            getData: () => '',
+            setData: () => { throw new Error('Clipboard unavailable') },
+        }
+
+        const copyHandled = fireEvent.copy(textbox, { clipboardData: clipboard })
+
+        expect(copyHandled).toBe(true)
+        expect(reportError).toHaveBeenCalledWith(
+            new Error('Clipboard unavailable'),
+            { fallbackMessage: 'Selected content could not be copied' },
+        )
+        reportError.mockRestore()
+    })
+
     it('does not propagate edits while typing', () => {
         const onChange = vi.fn()
         render(
@@ -168,7 +320,7 @@ describe('MarkdownEditor', () => {
         expect(onDirtyChange).toHaveBeenLastCalledWith(true)
         expect(onChange).not.toHaveBeenCalled()
 
-        flushMarkdownEditors()
+        stageMarkdownEditors()
         expect(onDirtyChange).toHaveBeenLastCalledWith(false)
     })
 
@@ -191,7 +343,7 @@ describe('MarkdownEditor', () => {
         expect(dataSource.edit).toHaveBeenCalledExactlyOnceWith('list-action', target, 'edited')
         expect(dataSource.commit).not.toHaveBeenCalled()
 
-        flushMarkdownEditors()
+        stageMarkdownEditors()
         expect(dataSource.commit).toHaveBeenCalledExactlyOnceWith('list-action', target, 'edited')
     })
 
@@ -219,10 +371,11 @@ describe('MarkdownEditor', () => {
         fireEvent.change(failedEditor, { target: { value: 'failed edit' } })
         fireEvent.change(successfulEditor, { target: { value: 'saved edit' } })
 
-        flushMarkdownEditors()
+        const staged = stageMarkdownEditors()
 
         expect(failedDataSource.commit).toHaveBeenCalledExactlyOnceWith('list-card', failedTarget, 'failed edit')
         expect(successfulDataSource.commit).toHaveBeenCalledExactlyOnceWith('board-card', savedTarget, 'saved edit')
+        expect(staged).toBe(false)
     })
 
     it('drops the dirty buffer without committing when the binding clears with discard', () => {
@@ -268,7 +421,7 @@ describe('MarkdownEditor', () => {
 
         dataSource.commit.mockReturnValue(true)
         await act(async () => {
-            flushMarkdownEditors()
+            stageMarkdownEditors()
             await Promise.resolve()
         })
 
@@ -304,7 +457,7 @@ describe('MarkdownEditor', () => {
         const [boardEditor] = screen.getAllByRole('textbox')
         fireEvent.change(boardEditor, { target: { value: 'board edit' } })
 
-        flushMarkdownEditors()
+        stageMarkdownEditors()
 
         expect(dataSource.commit).toHaveBeenCalledExactlyOnceWith('board-card', sharedTarget, 'board edit')
         expect(boardEditorRef.current?.getMarkdown()).toBe('board edit')
@@ -416,7 +569,7 @@ describe('MarkdownEditor', () => {
         )
 
         fireEvent.change(screen.getByRole('textbox'), { target: { value: 'edited' } })
-        flushMarkdownEditors()
+        stageMarkdownEditors()
 
         expect(onChange).toHaveBeenCalledExactlyOnceWith('edited')
     })
@@ -430,7 +583,7 @@ describe('MarkdownEditor', () => {
         )
 
         fireEvent.change(screen.getByRole('textbox'), { target: { value: 'edited' } })
-        flushMarkdownEditors()
+        stageMarkdownEditors()
         unmount()
 
         expect(onChange).toHaveBeenCalledExactlyOnceWith('edited')

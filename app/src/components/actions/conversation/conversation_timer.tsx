@@ -20,8 +20,11 @@ function elapsedMs(startedAt: string, completedAt: string | null) {
  * in its own component means only this node re-renders, not the whole chat log.
  */
 export function ConversationTimer({ completedAt, startedAt, status }: ConversationTimerProps) {
-    const [elapsed, setElapsed] = useState(() => elapsedMs(startedAt, null))
+    const [timerState, setTimerState] = useState(() => ({ elapsed: elapsedMs(startedAt, null), startedAt }))
     const lastTickAtRef = useRef(0)
+    if (timerState.startedAt !== startedAt) {
+        setTimerState({ elapsed: elapsedMs(startedAt, null), startedAt })
+    }
 
     useEffect(() => {
         if (completedAt || status !== 'running') return
@@ -31,13 +34,16 @@ export function ConversationTimer({ completedAt, startedAt, status }: Conversati
             const now = Date.now()
             const elapsedSinceLastTick = now - lastTickAtRef.current
             lastTickAtRef.current = now
-            setElapsed((currentElapsed) => currentElapsed + elapsedSinceLastTick)
+            setTimerState((currentState) => ({
+                ...currentState,
+                elapsed: currentState.elapsed + elapsedSinceLastTick,
+            }))
         }, 1000)
 
         return () => clearInterval(interval)
     }, [completedAt, status])
 
-    const displayedElapsed = completedAt ? elapsedMs(startedAt, completedAt) : elapsed
+    const displayedElapsed = completedAt ? elapsedMs(startedAt, completedAt) : timerState.elapsed
 
     return (
         <Typography aria-label="Elapsed time" color="text.secondary" variant="caption">

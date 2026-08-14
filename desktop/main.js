@@ -1,5 +1,6 @@
-const { app, BrowserWindow, Menu, dialog, ipcMain, nativeTheme, shell } = require('electron');
+const { app, BrowserWindow, Menu, clipboard, dialog, ipcMain, nativeTheme, shell } = require('electron');
 const { existsSync } = require('node:fs');
+const https = require('node:https');
 const path = require('node:path');
 
 const desktopEnvironmentPath = app.isPackaged
@@ -8,9 +9,11 @@ const desktopEnvironmentPath = app.isPackaged
 if (existsSync(desktopEnvironmentPath)) process.loadEnvFile(desktopEnvironmentPath);
 
 const Store = require('electron-store');
-const { readDesktopConfig, resolveBridgeAllowedOrigins, writeDesktopConfig } = require('./src/shell/config');
+const windowStateKeeper = require('electron-window-state');
+const { readDesktopConfig, resolveBridgeAllowedOrigins, saveDesktopConfig } = require('./src/shell/config');
 const { AgentRunnerService } = require('./src/actions/agent/agent_runner_service');
 const { CodexRuntimeService } = require('./src/actions/agent/codex_runtime_service');
+const { updateCodexCli } = require('./src/actions/agent/codex_cli_update');
 const { AgentExecutableResolver, loadAgentExecutableAvailability } = require('./src/actions/agent/agent_executable_availability');
 const { ActionSchedulerService } = require('./src/actions/action/action_scheduler_service');
 const { ActionRunnerService } = require('./src/actions/action/action_runner_service');
@@ -25,16 +28,16 @@ const { ActionWorktreeRunService } = require('./src/actions/action/action_worktr
 const { captureError, flush, registerProcessErrorHandlers, startElectronTelemetry, trackEvent } = require('./src/integrations/telemetry');
 const { THEME_MODE_STORE_KEY, resolveThemeMode, resolveTitleBarOverlay } = require('./src/shell/theme');
 const { registerNavigationGuards, resolveRendererStaticDir, resolveRendererTarget } = require('./src/shell/renderer_security');
+const { registerTextContextMenu } = require('./src/shell/text_context_menu');
 const {
     SPELL_CHECKER_LANGUAGES_STORE_KEY,
     applyStoredSpellCheckerLanguages,
     refreshSpellCheck,
-    registerSpellCheckContextMenu,
 } = require('./src/integrations/spellcheck');
 const {
     CONFIG_GET_DESKTOP_CHANNEL,
     CONFIG_SET_DESKTOP_CHANNEL,
-    LIFECYCLE_FLUSH_DONE_CHANNEL,
+    LIFECYCLE_FLUSH_RESULT_CHANNEL,
     LIFECYCLE_FLUSH_REQUEST_CHANNEL,
     LOCAL_BRIDGE_EVENT_CHANNEL,
     LOCAL_BRIDGE_INVOKE_CHANNEL,
@@ -49,11 +52,13 @@ const {
     REMOTE_CONTROL_STOP_CHANNEL,
     THEME_SET_MODE_CHANNEL,
 } = require('./src/shell/ipc_channels');
+const { checkForUpdate, registerUpdateDownload } = require('./src/shell/update_service');
+const { CloseCoordinator } = require('./src/shell/close_coordinator');
+const { createManagedWindow } = require('./src/shell/window_state');
 
-const QUIT_FLUSH_TIMEOUT_MS = 5000;
 const QUIT_WATCHDOG_TIMEOUT_MS = 10000;
 const EVENT_METHODS = new Set(['runSearchRegexpAgent', 'startAgentConversation']);
-const SUBSCRIPTION_METHODS = new Set(['onActionRun', 'onCodexRateLimits', 'onMergeConflictSessionChanged', 'onWorktreesChanged', 'watchProject']);
+const SUBSCRIPTION_METHODS = new Set(['onActionRun', 'onCodexRateLimits', 'onCodexUpdateRequired', 'onMergeConflictSessionChanged', 'onWorktreesChanged', 'watchProject']);
 
 const store = new Store();
 Store.initRenderer();
@@ -98,12 +103,20 @@ const localBridgeDispatch = createLocalBridgeDispatch({
     openProjectFolder: () => openProjectFolder(BrowserWindow.getFocusedWindow()),
     openWorktreeFolder: () => openWorktreeFolder(BrowserWindow.getFocusedWindow()),
     readDesktopConfig,
+    saveDesktopConfig,
+    updateCodexCli,
     worktreeService,
 });
 const remoteControlService = new RemoteControlService(localBridgeDispatch);
 const electronTelemetryStarted = startElectronTelemetry({ isDevelopment: !app.isPackaged });
 const subscriptionCleanups = new Map();
 let isQuittingAfterTelemetry = false;
+const closeCoordinator = new CloseCoordinator({
+    completeApplicationQuit: () => stopAndQuit(),
+    getWindows: () => BrowserWindow.getAllWindows(),
+    sendFlushRequest: (webContents, request) => webContents.send(LIFECYCLE_FLUSH_REQUEST_CHANNEL, request),
+    showMessageBox: (...parameters) => dialog.showMessageBox(...parameters),
+});
 
 registerProcessErrorHandlers();
 
@@ -173,7 +186,7 @@ function registerLocalBridge() {
 
 function registerConfigBridge() {
     ipcMain.handle(CONFIG_GET_DESKTOP_CHANNEL, () => readDesktopConfig(store));
-    ipcMain.handle(CONFIG_SET_DESKTOP_CHANNEL, (_event, values) => writeDesktopConfig(store, values));
+    ipcMain.handle(CONFIG_SET_DESKTOP_CHANNEL, (_event, values) => localBridgeDispatch.invoke('saveDesktopConfig', [values]));
 }
 
 function broadcastRemoteControlStatus(status) {
@@ -192,7 +205,11 @@ function registerRemoteControlBridge() {
     remoteControlService.setStatusListener(broadcastRemoteControlStatus);
 
     const staticDir = resolveRendererStaticDir(app.isPackaged, __dirname);
-    ipcMain.handle(REMOTE_CONTROL_START_CHANNEL, async () => remoteControlService.start({ host: '0.0.0.0', staticDir }));
+    ipcMain.handle(REMOTE_CONTROL_START_CHANNEL, async () => {
+        const { remoteControlPort } = readDesktopConfig(store);
+
+        return remoteControlService.start({ host: '0.0.0.0', port: remoteControlPort, staticDir });
+    });
     ipcMain.handle(REMOTE_CONTROL_STOP_CHANNEL, async () => remoteControlService.stop());
     ipcMain.handle(REMOTE_CONTROL_GET_STATUS_CHANNEL, () => remoteControlService.getStatus());
 }
@@ -218,9 +235,7 @@ function createWindow() {
         : [];
     nativeTheme.themeSource = mode;
 
-    const window = new BrowserWindow({
-        width: 1280,
-        height: 900,
+    const browserWindowOptions = {
         icon: path.join(__dirname, 'build', 'md2.ico'),
         titleBarStyle: 'hidden',
         titleBarOverlay: resolveTitleBarOverlay(mode),
@@ -235,12 +250,20 @@ function createWindow() {
             contextIsolation: true,
             sandbox: true,
         },
+    };
+    const window = createManagedWindow({
+        BrowserWindow,
+        browserWindowOptions,
+        windowStateKeeper,
     });
+    closeCoordinator.bindWindow(window);
 
     registerNavigationGuards(window.webContents, rendererTarget.trustedLocation, (url) => shell.openExternal(url));
     const spellCheckerSession = window.webContents.session;
     applyStoredSpellCheckerLanguages(spellCheckerSession, store.get(SPELL_CHECKER_LANGUAGES_STORE_KEY));
-    registerSpellCheckContextMenu(window.webContents, (template) => Menu.buildFromTemplate(template), {
+    registerTextContextMenu(window.webContents, {
+        buildMenu: (template) => Menu.buildFromTemplate(template),
+        clipboard,
         getActiveLanguages: () => spellCheckerSession.getSpellCheckerLanguages(),
         getAvailableLanguages: () => spellCheckerSession.availableSpellCheckerLanguages,
         setActiveLanguages: (languages) => {
@@ -263,6 +286,8 @@ function createWindow() {
     if (!app.isPackaged) {
         window.webContents.openDevTools();
     }
+
+    return window;
 }
 
 async function stopAndQuit() {
@@ -274,7 +299,6 @@ async function stopAndQuit() {
     const watchdog = setTimeout(() => app.exit(0), QUIT_WATCHDOG_TIMEOUT_MS);
 
     try {
-        await flushRendererPendingCommits();
         await remoteControlService.stop();
         actionSchedulerService.stop();
         await actionRunnerService.suspend();
@@ -289,47 +313,6 @@ async function stopAndQuit() {
     }
 }
 
-function waitForRendererFlush(browserWindow, requestId) {
-    if (browserWindow.webContents.isDestroyed()) return Promise.resolve();
-
-    return new Promise((resolve) => {
-        let isSettled = false;
-        let timeoutId = null;
-
-        function settle() {
-            if (isSettled) return;
-
-            isSettled = true;
-            if (timeoutId !== null) clearTimeout(timeoutId);
-            ipcMain.removeListener(LIFECYCLE_FLUSH_DONE_CHANNEL, handleFlushDone);
-            resolve();
-        }
-
-        function handleFlushDone(event, completedRequestId) {
-            if (event.sender !== browserWindow.webContents) return;
-            if (completedRequestId !== requestId) return;
-
-            settle();
-        }
-
-        timeoutId = setTimeout(settle, QUIT_FLUSH_TIMEOUT_MS);
-        ipcMain.on(LIFECYCLE_FLUSH_DONE_CHANNEL, handleFlushDone);
-
-        try {
-            browserWindow.webContents.send(LIFECYCLE_FLUSH_REQUEST_CHANNEL, requestId);
-        } catch {
-            settle();
-        }
-    });
-}
-
-async function flushRendererPendingCommits() {
-    const windows = BrowserWindow.getAllWindows();
-    const flushes = windows.map((browserWindow, index) => waitForRendererFlush(browserWindow, `quit-${Date.now()}-${index}`));
-
-    await Promise.all(flushes);
-}
-
 app.whenReady().then(async () => {
     await electronTelemetryStarted;
     registerConfigBridge();
@@ -337,7 +320,10 @@ app.whenReady().then(async () => {
     registerRemarkableBridge();
     registerRemoteControlBridge();
     registerThemeBridge();
+    const getPrimaryWindow = () => BrowserWindow.getAllWindows()[0] ?? null;
+    registerUpdateDownload({ app, getWindow: getPrimaryWindow, https, ipcMain, shell });
     createWindow();
+    void checkForUpdate({ app, getWindow: getPrimaryWindow, https });
 
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) {
@@ -356,5 +342,9 @@ app.on('before-quit', (event) => {
     if (isQuittingAfterTelemetry) return;
 
     event.preventDefault();
-    void stopAndQuit();
+    void closeCoordinator.requestApplicationQuit();
+});
+
+ipcMain.on(LIFECYCLE_FLUSH_RESULT_CHANNEL, (event, result) => {
+    closeCoordinator.handleFlushResult(event.sender, result);
 });

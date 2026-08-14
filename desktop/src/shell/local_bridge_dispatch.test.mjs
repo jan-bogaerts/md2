@@ -37,7 +37,9 @@ function createDispatch(options = {}) {
     const codexRuntimeService = {
         getSnapshot: vi.fn(() => ({ available: true, buckets: [], observedAt: 10, rateLimitResetCredits: null })),
         subscribe: vi.fn(() => vi.fn()),
+        subscribeUpdateRequired: vi.fn(() => vi.fn()),
     };
+    const updateCodexCli = vi.fn(async () => undefined);
     const localGitService = {
         appendAndCommitSystemActivity: vi.fn(async () => undefined),
         assertGitRoot: vi.fn(),
@@ -128,6 +130,7 @@ function createDispatch(options = {}) {
         verify: vi.fn(async () => null),
     };
     const desktopConfig = options.desktopConfig ?? {agent: 'codex', agentProfiles: [{ command: ['codex'], models: ['gpt-5'], name: 'codex' }], editorCommand: 'code -g "{{file}}:{{line}}"', model: 'gpt-5'};
+    const saveDesktopConfig = vi.fn((_store, values) => values);
     const diffService = { generateDiff: vi.fn(), generateWorktreeDiff: vi.fn(), openInEditor: vi.fn() };
     const dispatch = createLocalBridgeDispatch({
         actionRunnerService,
@@ -143,6 +146,8 @@ function createDispatch(options = {}) {
         openProjectFolder: options.openProjectFolder,
         openWorktreeFolder: options.openWorktreeFolder,
         readDesktopConfig: () => desktopConfig,
+        saveDesktopConfig,
+        updateCodexCli,
         worktreeService,
     });
 
@@ -156,11 +161,43 @@ function createDispatch(options = {}) {
         diffService,
         localGitService,
         mergeConflictService,
+        saveDesktopConfig,
+        updateCodexCli,
         worktreeService,
     };
 }
 
 describe('createLocalBridgeDispatch', () => {
+    it('forwards project watcher failures to the bridge subscriber', () => {
+        const { dispatch, localGitService } = createDispatch();
+        const callback = vi.fn();
+        const error = new Error('Native watcher unavailable');
+
+        dispatch.invoke('watchProject', [{ branch: 'main', id: 'local', rootPath: 'C:/repo' }, callback]);
+        const [, , onError] = localGitService.watchProject.mock.calls[0];
+        onError(error);
+
+        expect(callback).toHaveBeenCalledWith({ error: error.message });
+    });
+
+    it('loads and saves desktop config without requiring an active project', async () => {
+        const desktopConfig = {
+            agent: 'custom',
+            agentProfiles: [{ command: ['custom'], models: ['model'], name: 'custom' }],
+            codexSearchEnabled: true,
+            editorCommand: 'code "{{file}}"',
+            mergeConflictResolverCommand: '',
+            model: 'model',
+            permissionMode: 'ask-for-approval',
+            thinkingLevel: 'high',
+        };
+        const { dispatch, saveDesktopConfig } = createDispatch({ desktopConfig });
+
+        expect(dispatch.invoke('loadDesktopConfig')).toEqual(desktopConfig);
+        expect(dispatch.invoke('saveDesktopConfig', [desktopConfig])).toEqual(desktopConfig);
+        expect(saveDesktopConfig).toHaveBeenCalledWith(expect.any(Object), desktopConfig);
+    });
+
     it('opens chat and diff files through shared configured editor launcher inputs', async () => {
         const editorCommand = 'notepad "{{file}}"';
         const { diffService, dispatch, worktreeService } = createDispatch({ desktopConfig: { agent: 'codex', agentProfiles: [], editorCommand, model: '' } });
@@ -193,9 +230,10 @@ describe('createLocalBridgeDispatch', () => {
         expect(localGitService.appendAndCommitSystemActivity).not.toHaveBeenCalled();
     });
 
-    it('exposes account-wide Codex runtime state without execution context', () => {
-        const { codexRuntimeService, dispatch } = createDispatch();
+    it('exposes account-wide Codex runtime state without execution context', async () => {
+        const { codexRuntimeService, dispatch, updateCodexCli } = createDispatch();
         const callback = vi.fn();
+        const updateCallback = vi.fn();
 
         expect(dispatch.codexRuntimeBridge.getCodexRateLimits()).toEqual({
             available: true,
@@ -205,6 +243,10 @@ describe('createLocalBridgeDispatch', () => {
         });
         dispatch.codexRuntimeBridge.onCodexRateLimits(callback);
         expect(codexRuntimeService.subscribe).toHaveBeenCalledWith(callback);
+        dispatch.codexRuntimeBridge.onCodexUpdateRequired(updateCallback);
+        expect(codexRuntimeService.subscribeUpdateRequired).toHaveBeenCalledWith(updateCallback);
+        await dispatch.codexRuntimeBridge.updateCodexCli();
+        expect(updateCodexCli).toHaveBeenCalledOnce();
     });
 
     it('loads executable availability from configured profiles', async () => {

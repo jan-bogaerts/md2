@@ -18,9 +18,10 @@ import { markdownDocumentHistoryPlugin } from './markdown_document_history_realm
 import type { MarkdownDocumentHistoryStore } from './markdown_document_history_store'
 import { MarkdownFormatToolbarControls } from './markdown_format_toolbar_controls'
 import { markdownFileSearchPlugin } from './markdown_file_search_realm_plugin'
+import { markdownLocalTextSearchPlugin } from './markdown_local_text_search_realm_plugin'
 import { plainMarkdownPlugin } from './plain_markdown_realm_plugin'
 import { markdownPlaceholderPlugin } from './markdown_placeholder_realm_plugin'
-import { registerMarkdownEditorFlush } from './markdown_editor_flush'
+import { registerMarkdownEditorStage } from '../../services/project/markdown_editor_staging'
 import { markdownPastePlugin } from './markdown_paste_realm_plugin'
 import type {
     ActiveMarkdownDocumentChangedDetail,
@@ -45,6 +46,8 @@ interface MarkdownEditorPresentationProps {
     flushOnBlur?: boolean
     /** Omit format toolbar entirely. */
     hideToolbar?: boolean
+    /** Set false when containing surface owns Ctrl+F behavior. */
+    localTextSearch?: boolean
     overlayContainer?: HTMLElement | null
     placeholders?: readonly ActionPlaceholder[]
     readOnly?: boolean
@@ -96,6 +99,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         flushOnBlur = false,
         diffMarkdown,
         hideToolbar = false,
+        localTextSearch = true,
         overlayContainer,
         placeholders = EMPTY_PLACEHOLDERS,
         readOnly = false,
@@ -135,7 +139,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
 
         const activeTarget = activeTargetRef.current
         if (dataSource && binding) {
-            if (!activeTarget) return true
+            if (!activeTarget) return false
             const committed = dataSource.commit(binding, activeTarget, latestMarkdownRef.current)
             if (!committed) return false
         } else {
@@ -220,7 +224,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     }, [])
 
     useEffect(() => {
-        const unregister = registerMarkdownEditorFlush(flush)
+        const unregister = registerMarkdownEditorStage(flush)
 
         return () => {
             unregister()
@@ -263,6 +267,8 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         editorRef.current?.insertMarkdown(markdown)
     }, [])
 
+    const getSelectionMarkdown = useCallback(() => editorRef.current?.getSelectionMarkdown() ?? '', [])
+
     const defaultToolbarContents = useCallback(
         () => <MarkdownFormatToolbarControls overlayContainer={overlayContainer} placeholders={placeholders} />,
         [overlayContainer, placeholders],
@@ -290,7 +296,8 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         ...(hideToolbar ? [] : [toolbarPlugin({ toolbarContents })]),
         markdownPlaceholderPlugin({ overlayContainer, placeholders }),
         markdownFileSearchPlugin({ overlayContainer, repositoryFiles }),
-        markdownPastePlugin({ insertMarkdown }),
+        ...(localTextSearch ? [markdownLocalTextSearchPlugin({ overlayContainer })] : []),
+        markdownPastePlugin({ getSelectionMarkdown, insertMarkdown, readOnly }),
         ...(historyPlugin ? [historyPlugin] : []),
     ]
 

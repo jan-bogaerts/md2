@@ -1,11 +1,53 @@
 const DEFAULT_DESKTOP_AGENT = 'codex';
 const DEFAULT_DESKTOP_PERMISSION_MODE = 'ask-for-approval';
 const DEFAULT_DESKTOP_MODEL = '';
+const DEFAULT_DESKTOP_THINKING_LEVEL = 'none';
 const DEFAULT_CODEX_SEARCH_ENABLED = true;
 const DEFAULT_EDITOR_COMMAND = 'code -g "{{file}}:{{line}}"';
 const DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND = '';
+const DEFAULT_REMOTE_CONTROL_PORT = 20877;
 const DESKTOP_CONFIG_STORE_KEY = 'desktopConfig';
-const { BUILTIN_AGENT_PROFILES, normalizeAgentProfiles } = require('../actions/agent/agent_profiles.mjs');
+const {
+    BUILTIN_AGENT_PROFILES,
+    normalizeAgentProfiles,
+    validateAgentProfiles,
+    validatePermissionMode,
+    validateThinkingLevel,
+} = require('../actions/agent/agent_profiles.mjs');
+
+function requireString(value, fieldName, allowEmpty = false) {
+    if (typeof value !== 'string' || (!allowEmpty && value.length === 0)) {
+        throw new Error(`Missing config field: desktop.${fieldName}`);
+    }
+
+    return value;
+}
+
+function validateDesktopConfig(values) {
+    if (!values || typeof values !== 'object' || Array.isArray(values)) throw new Error('Missing desktop config');
+    const editorCommand = requireString(values.editorCommand, 'editorCommand');
+    if (!editorCommand.includes('{{file}}')) throw new Error('Config field desktop.editorCommand requires {{file}} placeholder');
+    const mergeConflictResolverCommand = requireString(values.mergeConflictResolverCommand, 'mergeConflictResolverCommand', true);
+    if (mergeConflictResolverCommand.length > 0 && !mergeConflictResolverCommand.includes('{{file}}')) {
+        throw new Error('Config field desktop.mergeConflictResolverCommand requires {{file}} placeholder when configured');
+    }
+    if (typeof values.codexSearchEnabled !== 'boolean') throw new Error('Missing config field: desktop.codexSearchEnabled');
+    if (!Number.isInteger(values.remoteControlPort) || values.remoteControlPort < 1 || values.remoteControlPort > 65535) {
+        throw new Error('Config field desktop.remoteControlPort must be an integer from 1 through 65535');
+    }
+
+    return {
+        agent: requireString(values.agent, 'agent'),
+        agentProfiles: validateAgentProfiles(values.agentProfiles),
+        codexSearchEnabled: values.codexSearchEnabled,
+        editorCommand,
+        mergeConflictResolverCommand,
+        model: requireString(values.model, 'model', true),
+        permissionMode: validatePermissionMode(values.permissionMode, 'desktop.permissionMode'),
+        remoteControlPort: values.remoteControlPort,
+        thinkingLevel: validateThinkingLevel(values.thinkingLevel, 'desktop.thinkingLevel'),
+    };
+}
 
 function resolveAppUrl(env = process.env) {
     if (!env.MD2_APP_URL) throw new Error('MD2_APP_URL is required for the unpackaged renderer');
@@ -49,6 +91,8 @@ function resolveDesktopConfig(env = process.env) {
         ...(bridgeAllowedOrigins ? { bridgeAllowedOrigins } : {}),
         model: DEFAULT_DESKTOP_MODEL,
         permissionMode: DEFAULT_DESKTOP_PERMISSION_MODE,
+        remoteControlPort: DEFAULT_REMOTE_CONTROL_PORT,
+        thinkingLevel: DEFAULT_DESKTOP_THINKING_LEVEL,
     };
 }
 
@@ -103,17 +147,28 @@ function writeDesktopConfig(store, values) {
     return next;
 }
 
+function saveDesktopConfig(store, values, env = process.env) {
+    const normalized = validateDesktopConfig(values);
+    writeDesktopConfig(store, normalized);
+
+    return validateDesktopConfig(readDesktopConfig(store, env));
+}
+
 module.exports = {
     DEFAULT_DESKTOP_AGENT,
     DEFAULT_DESKTOP_PERMISSION_MODE,
     DEFAULT_DESKTOP_MODEL,
+    DEFAULT_DESKTOP_THINKING_LEVEL,
     DEFAULT_CODEX_SEARCH_ENABLED,
     DEFAULT_EDITOR_COMMAND,
     DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
+    DEFAULT_REMOTE_CONTROL_PORT,
     DESKTOP_CONFIG_STORE_KEY,
     readDesktopConfig,
     resolveBridgeAllowedOrigins,
     resolveDesktopConfig,
     resolveAppUrl,
+    saveDesktopConfig,
+    validateDesktopConfig,
     writeDesktopConfig,
 };

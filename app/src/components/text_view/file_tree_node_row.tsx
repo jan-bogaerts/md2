@@ -50,7 +50,7 @@ function BranchIcon(props: { kind: TreeNodeKind }) {
 /** A single react-arborist row preserving the file tree's existing controls and appearance. */
 export function FileTreeNodeRow(props: NodeRendererProps<TreeNode>) {
     const { node, style } = props
-    const { cardTypes, cardsByPath, onDeleteFile, onDeleteFolder, onRequestCreate, statusColors } = useFileTreeContext()
+    const { cardTypes, cardsByPath, onDeleteFile, onDeleteFolder, onRequestCreate, readOnly, statusColors } = useFileTreeContext()
     const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
     const [menuPosition, setMenuPosition] = useState<{ left: number, top: number } | null>(null)
     const theme = useTheme()
@@ -151,16 +151,16 @@ export function FileTreeNodeRow(props: NodeRendererProps<TreeNode>) {
                 onClose={closeMenu}
                 open={isMenuOpen}
             >
-                <MenuItem onClick={requestFolder}>
+                <MenuItem disabled={readOnly} onClick={requestFolder}>
                     <ListItemIcon><FolderPlusOutline fontSize="small" /></ListItemIcon>
                     New folder
                 </MenuItem>
-                <MenuItem onClick={requestMarkdownFile}>
+                <MenuItem disabled={readOnly} onClick={requestMarkdownFile}>
                     <ListItemIcon><FileDocumentPlusOutline fontSize="small" /></ListItemIcon>
                     New Markdown file
                 </MenuItem>
                 {isDeletableFolder ? (
-                    <MenuItem onClick={deleteFolder} sx={{ color: 'error.main' }}>
+                    <MenuItem disabled={readOnly} onClick={deleteFolder} sx={{ color: 'error.main' }}>
                         <ListItemIcon><DeleteOutline color="error" fontSize="small" /></ListItemIcon>
                         Delete folder
                     </MenuItem>
@@ -246,7 +246,7 @@ export function FileTreeNodeRow(props: NodeRendererProps<TreeNode>) {
                     sx={{ alignItems: 'center', bgcolor: 'inherit', bottom: 0, display: 'flex', position: 'absolute', right: 0.5, top: 0 }}
                 >
                     <Tooltip title="Delete file">
-                        <IconButton aria-label={`Delete ${treeNode.path}`} onClick={deleteFile} size="small" sx={{ height: 24, width: 24 }}>
+                        <IconButton aria-label={`Delete ${treeNode.path}`} disabled={readOnly} onClick={deleteFile} size="small" sx={{ height: 24, width: 24 }}>
                             <DeleteOutline sx={{ fontSize: 16 }} />
                         </IconButton>
                     </Tooltip>
@@ -325,6 +325,7 @@ export function FileTreeNodeRow(props: NodeRendererProps<TreeNode>) {
                     <Tooltip title="Delete folder">
                         <IconButton
                             aria-label={`Delete ${treeNode.directoryPath}`}
+                            disabled={readOnly}
                             onClick={deleteFolder}
                             size="small"
                             sx={{ height: 24, width: 24 }}

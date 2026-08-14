@@ -95,8 +95,8 @@ export function CommandExecutionEvent({ event, grouped }: CommandExecutionEventP
                     {event.workingDirectory ? (
                         <Box><Typography color="custom.text3" variant="caption">Working directory</Typography>{detailValue(event.workingDirectory)}</Box>
                     ) : null}
-                    {event.output ? (
-                        <Box><Typography color="custom.text3" variant="caption">Output</Typography>{detailValue(event.output)}</Box>
+                    {event.content ? (
+                        <Box><Typography color="custom.text3" variant="caption">Output</Typography>{detailValue(event.content)}</Box>
                     ) : null}
                     {exitCode !== null || durationMs !== null ? (
                         <Stack direction="row" spacing={2}>

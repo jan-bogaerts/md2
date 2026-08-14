@@ -7,12 +7,15 @@ const {
     DEFAULT_DESKTOP_AGENT,
     DEFAULT_DESKTOP_PERMISSION_MODE,
     DEFAULT_DESKTOP_MODEL,
+    DEFAULT_DESKTOP_THINKING_LEVEL,
     DEFAULT_EDITOR_COMMAND,
     DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
+    DEFAULT_REMOTE_CONTROL_PORT,
     DESKTOP_CONFIG_STORE_KEY,
     readDesktopConfig,
     resolveAppUrl,
     resolveDesktopConfig,
+    saveDesktopConfig,
     writeDesktopConfig,
 } = require('./config');
 
@@ -47,6 +50,8 @@ describe('resolveDesktopConfig', () => {
             mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
             model: DEFAULT_DESKTOP_MODEL,
             permissionMode: DEFAULT_DESKTOP_PERMISSION_MODE,
+            remoteControlPort: DEFAULT_REMOTE_CONTROL_PORT,
+            thinkingLevel: DEFAULT_DESKTOP_THINKING_LEVEL,
         });
     });
 
@@ -59,6 +64,8 @@ describe('resolveDesktopConfig', () => {
             mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
             model: DEFAULT_DESKTOP_MODEL,
             permissionMode: DEFAULT_DESKTOP_PERMISSION_MODE,
+            remoteControlPort: DEFAULT_REMOTE_CONTROL_PORT,
+            thinkingLevel: DEFAULT_DESKTOP_THINKING_LEVEL,
         });
     });
 });
@@ -75,6 +82,8 @@ describe('readDesktopConfig', () => {
             mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
             model: DEFAULT_DESKTOP_MODEL,
             permissionMode: DEFAULT_DESKTOP_PERMISSION_MODE,
+            remoteControlPort: DEFAULT_REMOTE_CONTROL_PORT,
+            thinkingLevel: DEFAULT_DESKTOP_THINKING_LEVEL,
         });
     });
 
@@ -89,6 +98,8 @@ describe('readDesktopConfig', () => {
             mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
             model: DEFAULT_DESKTOP_MODEL,
             permissionMode: DEFAULT_DESKTOP_PERMISSION_MODE,
+            remoteControlPort: DEFAULT_REMOTE_CONTROL_PORT,
+            thinkingLevel: DEFAULT_DESKTOP_THINKING_LEVEL,
         });
     });
 
@@ -114,6 +125,8 @@ describe('readDesktopConfig', () => {
             mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
             model: DEFAULT_DESKTOP_MODEL,
             permissionMode: DEFAULT_DESKTOP_PERMISSION_MODE,
+            remoteControlPort: DEFAULT_REMOTE_CONTROL_PORT,
+            thinkingLevel: DEFAULT_DESKTOP_THINKING_LEVEL,
         });
     });
 
@@ -184,6 +197,8 @@ describe('writeDesktopConfig', () => {
             mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
             model: DEFAULT_DESKTOP_MODEL,
             permissionMode: DEFAULT_DESKTOP_PERMISSION_MODE,
+            remoteControlPort: DEFAULT_REMOTE_CONTROL_PORT,
+            thinkingLevel: DEFAULT_DESKTOP_THINKING_LEVEL,
         });
     });
 
@@ -201,6 +216,8 @@ describe('writeDesktopConfig', () => {
             mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
             model: 'custom-model',
             permissionMode: DEFAULT_DESKTOP_PERMISSION_MODE,
+            remoteControlPort: DEFAULT_REMOTE_CONTROL_PORT,
+            thinkingLevel: DEFAULT_DESKTOP_THINKING_LEVEL,
         });
     });
 
@@ -226,5 +243,45 @@ describe('writeDesktopConfig', () => {
         writeDesktopConfig(store, { mergeConflictResolverCommand: 'merge-tool "{{file}}"' });
 
         expect(readDesktopConfig(store, {})).toMatchObject({ mergeConflictResolverCommand: 'merge-tool "{{file}}"' });
+    });
+});
+
+describe('saveDesktopConfig', () => {
+    const validConfig = {
+        agent: 'custom',
+        agentProfiles: [{ command: ['custom-agent'], models: ['custom-model'], name: 'custom' }],
+        codexSearchEnabled: false,
+        editorCommand: 'code "{{file}}"',
+        mergeConflictResolverCommand: '',
+        model: 'custom-model',
+        permissionMode: 'full-access',
+        remoteControlPort: 20877,
+        thinkingLevel: 'high',
+    };
+
+    it('validates, persists, and returns normalized complete desktop config', () => {
+        const store = createFakeStore();
+
+        expect(saveDesktopConfig(store, validConfig, {})).toEqual(validConfig);
+        expect(readDesktopConfig(store, {})).toEqual(validConfig);
+    });
+
+    it.each([
+        ['agent', { ...validConfig, agent: '' }, 'Missing config field: desktop.agent'],
+        ['agent profiles', { ...validConfig, agentProfiles: null }, 'Missing config field: desktop.agentProfiles'],
+        ['web search', { ...validConfig, codexSearchEnabled: 'yes' }, 'Missing config field: desktop.codexSearchEnabled'],
+        ['editor command', { ...validConfig, editorCommand: 'code file.txt' }, 'requires {{file}} placeholder'],
+        ['merge command', { ...validConfig, mergeConflictResolverCommand: 'merge file.txt' }, 'requires {{file}} placeholder'],
+        ['model', { ...validConfig, model: null }, 'Missing config field: desktop.model'],
+        ['permission mode', { ...validConfig, permissionMode: 'invalid' }, 'Invalid permission mode'],
+        ['remote-control port below range', { ...validConfig, remoteControlPort: 0 }, 'must be an integer from 1 through 65535'],
+        ['remote-control port above range', { ...validConfig, remoteControlPort: 65536 }, 'must be an integer from 1 through 65535'],
+        ['remote-control port decimal', { ...validConfig, remoteControlPort: 20877.5 }, 'must be an integer from 1 through 65535'],
+        ['thinking level', { ...validConfig, thinkingLevel: 'extreme' }, 'Invalid thinking level'],
+    ])('rejects invalid %s before persistence', (_field, config, message) => {
+        const store = createFakeStore();
+
+        expect(() => saveDesktopConfig(store, config, {})).toThrow(message);
+        expect(store.get(DESKTOP_CONFIG_STORE_KEY)).toBeUndefined();
     });
 });

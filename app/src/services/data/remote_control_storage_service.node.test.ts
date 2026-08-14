@@ -42,7 +42,7 @@ function installWebSocket() {
 
 function createService() {
     const service = new RemoteControlStorageService()
-    service.init({ endpoint: 'ws://127.0.0.1:1234', token: 'token-1' })
+    service.init({ endpoint: 'ws://127.0.0.1:1234' })
 
     return service
 }
@@ -85,6 +85,38 @@ describe('RemoteControlStorageService', () => {
 
         await expect(first).resolves.toEqual({ files: [], workingFolder: 'design' })
         await expect(second).resolves.toEqual([{ name: 'main' }])
+    })
+
+    it('loads and saves complete host desktop config through remote control', async () => {
+        installWebSocket()
+        const service = createService()
+        const desktopConfig = {
+            agent: 'custom',
+            agentProfiles: [{ command: ['custom'], models: ['custom-model'], name: 'custom' }],
+            codexSearchEnabled: false,
+            editorCommand: 'code "{{file}}"',
+            mergeConflictResolverCommand: '',
+            model: 'custom-model',
+            permissionMode: 'full-access' as const,
+            remoteControlPort: 20877,
+            thinkingLevel: 'high' as const,
+        }
+        const load = service.loadDesktopConfig()
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const loadRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
+        expect(loadRequest).toMatchObject({ method: 'loadDesktopConfig', params: [] })
+        socket.receive({ id: loadRequest.id, result: desktopConfig })
+        await expect(load).resolves.toEqual(desktopConfig)
+
+        const save = service.saveDesktopConfig(desktopConfig)
+        await flushPromises()
+        const saveRequest = JSON.parse(socket.sent[1]) as { id: string, method: string, params: unknown[] }
+        expect(saveRequest).toMatchObject({ method: 'saveDesktopConfig', params: [desktopConfig] })
+        socket.receive({ id: saveRequest.id, result: desktopConfig })
+        await expect(save).resolves.toEqual(desktopConfig)
     })
 
     it('loads one markdown file through remote control and propagates desktop errors', async () => {
@@ -332,6 +364,113 @@ describe('RemoteControlStorageService', () => {
         expect(callback).not.toHaveBeenCalled()
     })
 
+    it('restores one worktree subscription and delivers replacement snapshots once after reconnect', async () => {
+        installWebSocket()
+        const service = createService()
+        const callback = vi.fn()
+        const unsubscribe = service.onWorktreesChanged(callback)
+        const firstSocket = lastSocket()
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+        const dirtyState = {
+            error: null,
+            primaryStatus: null,
+            project,
+            records: [{ baseAhead: 0, baseBehind: 1, branch: 'feature', dirty: true, folderPath: 'C:/feature', worktree: 1 }],
+        }
+        const cleanState = {
+            error: null,
+            primaryStatus: null,
+            project,
+            records: [{ baseAhead: 0, baseBehind: 0, branch: 'feature', dirty: false, folderPath: 'C:/feature', worktree: 1 }],
+        }
+
+        firstSocket.open()
+        await flushPromises()
+        const firstRequest = JSON.parse(firstSocket.sent[0]) as { id: string, method: string }
+        firstSocket.receive({ id: firstRequest.id, result: { subscriptionId: 'worktrees-1' } })
+        await flushPromises()
+        firstSocket.close()
+
+        const reconnection = service.connect()
+        const secondSocket = lastSocket()
+        secondSocket.open()
+        await reconnection
+        await vi.waitFor(() => expect(secondSocket.sent).toHaveLength(1))
+        const replacementRequest = JSON.parse(secondSocket.sent[0]) as { id: string, method: string }
+        expect(replacementRequest.method).toBe('onWorktreesChanged')
+        await service.connect()
+        await flushPromises()
+        expect(secondSocket.sent).toHaveLength(1)
+
+        secondSocket.receive({
+            event: 'worktreesChanged',
+            payload: { requestId: replacementRequest.id, state: dirtyState, subscriptionId: 'worktrees-2' },
+        })
+        expect(callback).toHaveBeenCalledTimes(1)
+        expect(callback).toHaveBeenLastCalledWith(dirtyState)
+        secondSocket.receive({ id: replacementRequest.id, result: { subscriptionId: 'worktrees-2' } })
+        await flushPromises()
+        secondSocket.receive({
+            event: 'worktreesChanged',
+            payload: { requestId: replacementRequest.id, state: cleanState, subscriptionId: 'worktrees-2' },
+        })
+        expect(callback).toHaveBeenCalledTimes(2)
+        expect(callback).toHaveBeenLastCalledWith(cleanState)
+
+        unsubscribe()
+        await vi.waitFor(() => expect(secondSocket.sent).toHaveLength(2))
+        expect(JSON.parse(secondSocket.sent[1])).toEqual(expect.objectContaining({ method: 'unsubscribe', params: ['worktrees-2'] }))
+        secondSocket.receive({
+            event: 'worktreesChanged',
+            payload: { requestId: replacementRequest.id, state: dirtyState, subscriptionId: 'worktrees-2' },
+        })
+        expect(callback).toHaveBeenCalledTimes(2)
+
+        secondSocket.close()
+        const finalReconnection = service.connect()
+        const thirdSocket = lastSocket()
+        thirdSocket.open()
+        await finalReconnection
+        await flushPromises()
+        expect(thirdSocket.sent).toEqual([])
+    })
+
+    it('unsubscribes a replacement worktree subscription stopped during setup', async () => {
+        installWebSocket()
+        const service = createService()
+        const callback = vi.fn()
+        const unsubscribe = service.onWorktreesChanged(callback)
+        const firstSocket = lastSocket()
+
+        firstSocket.open()
+        await flushPromises()
+        const firstRequest = JSON.parse(firstSocket.sent[0]) as { id: string }
+        firstSocket.receive({ id: firstRequest.id, result: { subscriptionId: 'worktrees-1' } })
+        await flushPromises()
+        firstSocket.close()
+
+        const reconnection = service.connect()
+        const secondSocket = lastSocket()
+        secondSocket.open()
+        await reconnection
+        await vi.waitFor(() => expect(secondSocket.sent).toHaveLength(1))
+        const replacementRequest = JSON.parse(secondSocket.sent[0]) as { id: string }
+        unsubscribe()
+        secondSocket.receive({
+            event: 'worktreesChanged',
+            payload: {
+                requestId: replacementRequest.id,
+                state: { error: null, primaryStatus: null, project: null, records: [] },
+                subscriptionId: 'worktrees-2',
+            },
+        })
+        secondSocket.receive({ id: replacementRequest.id, result: { subscriptionId: 'worktrees-2' } })
+        await vi.waitFor(() => expect(secondSocket.sent).toHaveLength(2))
+
+        expect(JSON.parse(secondSocket.sent[1])).toEqual(expect.objectContaining({ method: 'unsubscribe', params: ['worktrees-2'] }))
+        expect(callback).not.toHaveBeenCalled()
+    })
+
 
     it('prepares action prompts through remote control', async () => {
         installWebSocket()
@@ -559,9 +698,10 @@ describe('RemoteControlStorageService', () => {
         installWebSocket()
         const service = createService()
         const watchCallback = vi.fn()
+        const watchError = vi.fn()
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
 
-        service.watchProject(project, watchCallback, vi.fn())
+        service.watchProject(project, watchCallback, vi.fn(), watchError)
         const socket = lastSocket()
         socket.open()
         await flushPromises()
@@ -571,7 +711,12 @@ describe('RemoteControlStorageService', () => {
             event: 'watchProject',
             payload: { event: { changeKind: 'changed', path: 'design/F-1.md' }, requestId: watchRequest.id, subscriptionId: 'sub-1' },
         })
+        socket.receive({
+            event: 'watchProject',
+            payload: { event: { error: 'Native watcher unavailable' }, requestId: watchRequest.id, subscriptionId: 'sub-1' },
+        })
         expect(watchCallback).toHaveBeenCalledWith({ changeKind: 'changed', path: 'design/F-1.md' })
+        expect(watchError).toHaveBeenCalledWith(expect.objectContaining({ message: 'Native watcher unavailable' }))
     })
 
     it('routes every server-push message and cleans persistent subscriptions', async () => {
@@ -583,7 +728,7 @@ describe('RemoteControlStorageService', () => {
         const actionCallback = vi.fn()
         const rateLimitCallback = vi.fn()
         const worktreeCallback = vi.fn()
-        const stopWatch = service.watchProject(project, watchCallback, vi.fn())
+        const stopWatch = service.watchProject(project, watchCallback, vi.fn(), vi.fn())
         const stopAction = service.onActionRun(actionCallback)
         const stopRateLimits = service.onCodexRateLimits(rateLimitCallback)
         const stopWorktrees = service.onWorktreesChanged(worktreeCallback)
@@ -657,7 +802,7 @@ describe('RemoteControlStorageService', () => {
         const service = createService()
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
         const callback = vi.fn()
-        const stop = service.watchProject(project, callback, vi.fn())
+        const stop = service.watchProject(project, callback, vi.fn(), vi.fn())
         const socket = lastSocket()
 
         socket.open()
@@ -681,7 +826,7 @@ describe('RemoteControlStorageService', () => {
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
         const callback = vi.fn()
         const restored = vi.fn()
-        const stop = service.watchProject(project, callback, restored)
+        const stop = service.watchProject(project, callback, restored, vi.fn())
         const firstSocket = lastSocket()
 
         firstSocket.open()
@@ -775,7 +920,7 @@ describe('RemoteControlStorageService', () => {
         await expect(connection).rejects.toThrow('Remote-control connection failed')
     })
 
-    it('sends the token as WebSocket protocol instead of a query parameter', async () => {
+    it('constructs WebSocket with endpoint only', async () => {
         installWebSocket()
         const service = createService()
         const request = service.startAction(actionStartRequest())
@@ -788,6 +933,6 @@ describe('RemoteControlStorageService', () => {
 
         await expect(request).resolves.toBe('action-1')
         expect(socket.url).toBe('ws://127.0.0.1:1234')
-        expect(socket.protocol).toBe('token-1')
+        expect(socket.protocol).toBeUndefined()
     })
 })

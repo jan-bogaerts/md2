@@ -64,6 +64,7 @@ class ActionAgentExecutor {
                 input.primaryProject,
                 input.projectFolder,
                 input.releasesFolder,
+                input.activeCardsFolder,
                 input.runInput.extraPrompt,
             )
             : sourceConversation
@@ -75,6 +76,7 @@ class ActionAgentExecutor {
                     input.primaryProject,
                     input.projectFolder,
                     input.releasesFolder,
+                    input.activeCardsFolder,
                     input.runInput.extraPrompt,
                 );
         const command = executionCommand(resolvedAgent, providerSession, streaming);
@@ -140,7 +142,7 @@ class ActionAgentExecutor {
         const onComplete = (exitCode, run) => resolve({
             command: request.command,
             changedPaths: run.changedPaths ? [...run.changedPaths] : [],
-            conversation: structuredClone(run.conversation),
+            conversation: run.conversation,
             conversationId: run.conversation.id,
             exitCode,
             missingSession: run.missingSession,

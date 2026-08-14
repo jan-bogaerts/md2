@@ -81,6 +81,15 @@ function createConversation(request, id, startedAt, reference) {
     };
 }
 
+/** Snapshots the mutable conversation collections while reusing immutable entries. */
+function snapshotConversation(conversation) {
+    return {
+        ...conversation,
+        entries: [...conversation.entries],
+        providerSessions: [...conversation.providerSessions],
+    };
+}
+
 function updateProviderSession(run, synchronizedThroughMessageId, completedAt) {
     const conversationId = run.providerConversationId ?? run.request.providerConversationId;
     if (!conversationId) return;
@@ -105,5 +114,6 @@ module.exports = {
     createConversation,
     createEventEntry,
     createMessageEntry,
+    snapshotConversation,
     updateProviderSession,
 };

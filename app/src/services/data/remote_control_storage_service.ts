@@ -46,6 +46,7 @@ import type {
     ProjectConfig,
     ProjectReference,
     ProjectWatchEvent,
+    ProjectWatchNotification,
     RepositoryReference,
     StorageProjectFiles,
     StorageService,
@@ -60,6 +61,8 @@ import type {
     MergeConflictSessionRequest,
     WorktreeOperationOutcome,
 } from '../../data/merge_conflict_types'
+import type { DesktopConfigValues } from '../config/config_entries'
+import type { DesktopConfigTransport } from '../config/desktop_config_transport'
 
 interface RemoteControlRequest {
     id: string
@@ -89,7 +92,7 @@ interface AgentRunPayload {
 }
 
 interface WatchProjectPayload {
-    event: ProjectWatchEvent
+    event: ProjectWatchNotification
     requestId: string
     subscriptionId: string
 }
@@ -114,6 +117,7 @@ interface WorktreesChangedPayload {
 
 interface ProjectWatchSubscription {
     onChange: (event: ProjectWatchEvent) => void
+    onError: (error: Error) => void
     onRestored: () => void
     project: ProjectReference
     serverSubscriptionId: string | null
@@ -127,12 +131,25 @@ interface MergeConflictSessionChangedPayload {
 }
 
 const SOCKET_OPEN_STATE = 1
+const WORKTREES_CHANGED_EVENT = 'worktreesChanged'
+
+export class RemoteControlConnectionError extends Error {
+    constructor(message: string) {
+        super(message)
+        this.name = 'RemoteControlConnectionError'
+    }
+}
+
+export function isRemoteControlConnectionError(error: unknown): error is RemoteControlConnectionError {
+    return error instanceof RemoteControlConnectionError
+}
 
 function isResponse(message: RemoteControlResponse | RemoteControlEvent): message is RemoteControlResponse {
     return 'id' in message
 }
 
-export class RemoteControlStorageService implements StorageService, ElectronActionBridge, ElectronCodexRuntimeBridge {
+export class RemoteControlStorageService implements
+    StorageService, ElectronActionBridge, ElectronCodexRuntimeBridge, DesktopConfigTransport {
     async addWorktree(project: ProjectReference): Promise<boolean> {
         return this.request<boolean>('addWorktree', [project])
     }
@@ -154,14 +171,16 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
     private requestActionRunEvents: Map<string, (event: ActionRunEvent) => void>
     private requestCodexRateLimitEvents: Map<string, (snapshot: CodexRateLimitSnapshot) => void>
     private requestWatchEvents: Map<string, ProjectWatchSubscription>
+    private retired: boolean
     private requestMergeConflictEvents: Map<string, (session: MergeConflictSession | null) => void>
-    private requestWorktreeEvents: Map<string, (state: WorktreeState) => void>
     private runAgentEvents: Map<string, (event: AgentRunEvent) => void>
     private socket: WebSocket | null
-    private token: string
     private readonly watchSubscriptions: Set<ProjectWatchSubscription>
-    private watchCallbacks: Map<string, (event: ProjectWatchEvent) => void>
-    private worktreeCallbacks: Map<string, (state: WorktreeState) => void>
+    private watchCallbacks: Map<string, ProjectWatchSubscription>
+    private readonly worktreeEvents: EventTarget
+    private worktreeListenerCount: number
+    private worktreeRequestId: string | null
+    private worktreeServerSubscriptionId: string | null
 
     constructor() {
         this.actionRunCallbacks = new Map()
@@ -182,21 +201,23 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         this.requestCodexRateLimitEvents = new Map()
         this.requestMergeConflictEvents = new Map()
         this.requestWatchEvents = new Map()
-        this.requestWorktreeEvents = new Map()
+        this.retired = false
         this.runAgentEvents = new Map()
         this.socket = null
-        this.token = ''
         this.watchSubscriptions = new Set()
         this.watchCallbacks = new Map()
-        this.worktreeCallbacks = new Map()
+        this.worktreeEvents = new EventTarget()
+        this.worktreeListenerCount = 0
+        this.worktreeRequestId = null
+        this.worktreeServerSubscriptionId = null
     }
 
     init(settings: Partial<RemoteControlConnectionSettings> = {}) {
-        const storedSettings = settings.endpoint && settings.token
+        const storedSettings = settings.endpoint
             ? settings as RemoteControlConnectionSettings
             : readRemoteControlConnection()
         this.endpoint = storedSettings.endpoint
-        this.token = storedSettings.token
+        this.retired = false
     }
 
     async connect(): Promise<void> {
@@ -205,6 +226,17 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
 
     disconnect() {
         this.socket?.close()
+    }
+
+    retire() {
+        this.retired = true
+        this.disconnect()
+    }
+
+    getConnectionSettings(): RemoteControlConnectionSettings {
+        if (this.endpoint.length === 0) throw new Error('Remote-control storage is not initialized')
+
+        return { endpoint: this.endpoint }
     }
 
     onConnectionChanged(callback: (connected: boolean) => void) {
@@ -417,16 +449,18 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         project: ProjectReference,
         onChange: (event: ProjectWatchEvent) => void,
         onRestored: () => void,
+        onError: (error: Error) => void,
     ): () => void {
         const subscription: ProjectWatchSubscription = {
             onChange,
+            onError,
             onRestored,
             project,
             serverSubscriptionId: null,
             subscribing: false,
         }
         this.watchSubscriptions.add(subscription)
-        void this.subscribeProjectWatch(subscription, false).catch(() => undefined)
+        void this.subscribeProjectWatch(subscription, false).catch(onError)
 
         return () => {
             this.watchSubscriptions.delete(subscription)
@@ -443,28 +477,26 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
     }
 
     onWorktreesChanged(callback: (state: WorktreeState) => void): () => void {
-        const id = this.createRequestId()
-        let cancelled = false
-        let subscriptionId: string | null = null
-        this.requestWorktreeEvents.set(id, callback)
-        void this.sendRequest<{ subscriptionId: string }>({ id, method: 'onWorktreesChanged', params: [] }).then((result) => {
-            subscriptionId = result.subscriptionId
-            if (cancelled) {
-                void this.request('unsubscribe', [subscriptionId])
-                return
-            }
-
-            this.worktreeCallbacks.set(result.subscriptionId, callback)
-            this.requestWorktreeEvents.delete(id)
-        })
+        const listener: EventListener = (event) => callback((event as CustomEvent<WorktreeState>).detail)
+        let active = true
+        this.worktreeEvents.addEventListener(WORKTREES_CHANGED_EVENT, listener)
+        this.worktreeListenerCount += 1
+        void this.subscribeWorktreesChanged().catch(() => undefined)
 
         return () => {
-            cancelled = true
-            this.requestWorktreeEvents.delete(id)
+            if (!active) return
+
+            active = false
+            this.worktreeEvents.removeEventListener(WORKTREES_CHANGED_EVENT, listener)
+            this.worktreeListenerCount -= 1
+            if (this.worktreeListenerCount > 0) return
+
+            const subscriptionId = this.worktreeServerSubscriptionId
+            this.worktreeRequestId = null
+            this.worktreeServerSubscriptionId = null
             if (!subscriptionId) return
 
-            this.worktreeCallbacks.delete(subscriptionId)
-            void this.request('unsubscribe', [subscriptionId])
+            void this.request('unsubscribe', [subscriptionId]).catch(() => undefined)
         }
     }
 
@@ -594,6 +626,14 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         return this.request<Record<string, AgentAvailability>>('loadAgentAvailability', [])
     }
 
+    async loadDesktopConfig(): Promise<DesktopConfigValues> {
+        return this.request<DesktopConfigValues>('loadDesktopConfig', [])
+    }
+
+    async saveDesktopConfig(values: DesktopConfigValues): Promise<DesktopConfigValues> {
+        return this.request<DesktopConfigValues>('saveDesktopConfig', [values])
+    }
+
     onActionRun(callback: (event: ActionRunEvent) => void): () => void {
         this.actionRunListeners.add(callback)
         void this.subscribeActionRun(callback, false).catch(() => undefined)
@@ -692,10 +732,11 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
     }
 
     private async ensureConnected() {
+        if (this.retired) throw new RemoteControlConnectionError('Remote-control connection was replaced')
         if (this.socket?.readyState === SOCKET_OPEN_STATE) return
         if (this.connectPromise) return this.connectPromise
 
-        this.socket = new WebSocket(this.endpoint, this.token)
+        this.socket = new WebSocket(this.endpoint)
         this.socket.addEventListener('message', (event) => this.handleMessage(event))
         this.socket.addEventListener('close', () => this.handleClose())
         this.socket.addEventListener('error', () => this.handleClose())
@@ -707,10 +748,11 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
                 void this.restoreActionRunSubscriptions()
                 void this.restoreCodexRateLimitSubscriptions()
                 void this.restoreProjectWatchSubscriptions()
+                void this.restoreWorktreeSubscription()
             }
             const handleError = () => {
                 this.connectPromise = null
-                reject(new Error('Remote-control connection failed'))
+                reject(new RemoteControlConnectionError('Remote-control connection failed'))
             }
 
             this.requireSocket().addEventListener('open', handleOpen, { once: true })
@@ -822,6 +864,10 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         await Promise.allSettled(subscriptions.map((subscription) => this.subscribeProjectWatch(subscription, true)))
     }
 
+    private async restoreWorktreeSubscription() {
+        await this.subscribeWorktreesChanged()
+    }
+
     private async subscribeProjectWatch(subscription: ProjectWatchSubscription, restored: boolean) {
         if (!this.watchSubscriptions.has(subscription) || subscription.subscribing || subscription.serverSubscriptionId) return
 
@@ -840,7 +886,7 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
             }
 
             subscription.serverSubscriptionId = result.subscriptionId
-            this.watchCallbacks.set(result.subscriptionId, subscription.onChange)
+            this.watchCallbacks.set(result.subscriptionId, subscription)
             if (restored) subscription.onRestored()
         } finally {
             subscription.subscribing = false
@@ -868,15 +914,46 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         }
     }
 
+    private async subscribeWorktreesChanged() {
+        if (this.worktreeListenerCount === 0 || this.worktreeRequestId || this.worktreeServerSubscriptionId) return
+
+        const id = this.createRequestId()
+        this.worktreeRequestId = id
+        try {
+            const result = await this.sendRequest<{ subscriptionId: string }>({
+                id,
+                method: 'onWorktreesChanged',
+                params: [],
+            })
+            if (this.worktreeRequestId !== id || this.worktreeListenerCount === 0) {
+                await this.request('unsubscribe', [result.subscriptionId])
+                return
+            }
+
+            this.worktreeRequestId = null
+            this.worktreeServerSubscriptionId = result.subscriptionId
+        } finally {
+            if (this.worktreeRequestId === id) this.worktreeRequestId = null
+        }
+    }
+
     private handleWatchProjectEvent(payload: WatchProjectPayload) {
-        const callback = this.watchCallbacks.get(payload.subscriptionId)
-            ?? this.requestWatchEvents.get(payload.requestId)?.onChange
-        callback?.(payload.event)
+        const subscription = this.watchCallbacks.get(payload.subscriptionId)
+            ?? this.requestWatchEvents.get(payload.requestId)
+        if ('error' in payload.event) {
+            subscription?.onError(new Error(payload.event.error))
+            return
+        }
+
+        subscription?.onChange(payload.event)
     }
 
     private handleWorktreesChangedEvent(payload: WorktreesChangedPayload) {
-        const callback = this.worktreeCallbacks.get(payload.subscriptionId) ?? this.requestWorktreeEvents.get(payload.requestId)
-        callback?.(payload.state)
+        const matchesRequest = payload.requestId === this.worktreeRequestId
+        const matchesSubscription = payload.subscriptionId === this.worktreeServerSubscriptionId
+        if (!matchesRequest && !matchesSubscription) return
+
+        this.worktreeEvents.dispatchEvent(new CustomEvent(WORKTREES_CHANGED_EVENT, { detail: payload.state }))
     }
 
     private handleMergeConflictSessionChangedEvent(payload: MergeConflictSessionChangedPayload) {
@@ -892,7 +969,7 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
     }
 
     private handleClose() {
-        const error = new Error('Remote-control connection closed')
+        const error = new RemoteControlConnectionError('Remote-control connection closed')
         for (const listener of this.connectionListeners) listener(false)
         for (const pending of this.pending.values()) pending.reject(error)
         this.pending.clear()
@@ -906,14 +983,14 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         this.requestCodexRateLimitEvents.clear()
         this.requestMergeConflictEvents.clear()
         this.requestWatchEvents.clear()
-        this.requestWorktreeEvents.clear()
         this.runAgentEvents.clear()
         this.watchCallbacks.clear()
         for (const subscription of this.watchSubscriptions) {
             subscription.serverSubscriptionId = null
             subscription.subscribing = false
         }
-        this.worktreeCallbacks.clear()
+        this.worktreeRequestId = null
+        this.worktreeServerSubscriptionId = null
         this.connectPromise = null
         this.socket = null
     }

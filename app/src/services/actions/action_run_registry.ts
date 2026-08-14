@@ -21,6 +21,7 @@ import type { ElectronActionBridge } from '../../data/electron_action_bridge'
 import { actionService } from './action_service'
 import { actionPromptDraftService } from './action_prompt_draft_service'
 import { register } from '../service_injector'
+import { projectAccessService } from '../project/project_access_service'
 
 const TERMINAL_STATUSES = new Set<ActionRunTerminalStatus>(['cancelled', 'completed', 'failed', 'okButNotAfter'])
 const ACTIVE_STATUSES = new Set<ActionRunStatus>(['queued', 'running', 'waitingForInput'])
@@ -442,6 +443,7 @@ export class ActionRunRegistry extends EventTarget {
         interactive = true,
         conversationReservation?: AgentConversationReservation,
     ) {
+        projectAccessService.requireWritable()
         const bridge = getElectronActionBridge()
         if (!bridge) throw new Error('Action run requires Electron')
         this.start()
@@ -466,6 +468,7 @@ export class ActionRunRegistry extends EventTarget {
         runInput: ActionRunInput,
         onStarted?: (runId: string) => void,
     ) {
+        projectAccessService.requireWritable()
         const bridge = getElectronActionBridge()
         if (!bridge?.restartActionRun) throw new Error('Restarting an action run requires Electron')
         this.start()
@@ -606,6 +609,14 @@ export class ActionRunRegistry extends EventTarget {
                 },
             }
         }
+        if (event.type === 'update' && event.update.kind === 'agentUsage' && next.conversation) {
+            const conversation = { ...next.conversation, usage: event.update.usage }
+            if (event.update.contextWindowUsage !== undefined) {
+                if (event.update.contextWindowUsage) conversation.contextWindowUsage = event.update.contextWindowUsage
+                else delete conversation.contextWindowUsage
+            }
+            next = { ...next, conversation }
+        }
         if (event.type === 'update' && event.update.kind === 'agentQuestion') {
             next = {
                 ...next,
@@ -664,7 +675,12 @@ export class ActionRunRegistry extends EventTarget {
                 : next.conversation
             next = { ...next, conversation, logs: updateOutputLogs(next.logs, event, event.update) }
         }
-        if (event.type === 'update' && event.update.kind !== 'agentClosed' && next.conversation) {
+        if (
+            event.type === 'update'
+            && event.update.kind !== 'agentClosed'
+            && event.update.kind !== 'agentUsage'
+            && next.conversation
+        ) {
             next = {
                 ...next,
                 conversation: { ...next.conversation, status: conversationStatus(event.status) },

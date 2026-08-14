@@ -34,6 +34,7 @@ import { useConfigValue, useHasDesktopConfig } from '../../hooks/use_config_valu
 import { useProjectState } from '../../hooks/use_project_state'
 import { useProjectPersistence } from '../../hooks/use_project_persistence'
 import { useProjectConfig } from '../../hooks/use_project_config'
+import { useProjectReadOnly } from '../../hooks/use_project_read_only'
 import { usePrimaryWorktreeStatus } from '../../hooks/use_worktrees'
 import { useWorkspaceView } from '../../hooks/use_workspace_view'
 import { ActionEntryPoints } from '../../actions/run/trigger/action_entry_points'
@@ -99,6 +100,7 @@ export function AppMenu(props: AppMenuProps) {
     const desktopAvailable = useHasDesktopConfig()
     const selectedModel = configuredModel || (selectedProfile ? defaultModelForProfile(selectedProfile) : '')
     const projectBranch = project?.branch ?? ''
+    const readOnly = useProjectReadOnly()
 
     const closeDialog = useCallback(() => {
         setDialogMode(null)
@@ -304,7 +306,7 @@ export function AppMenu(props: AppMenuProps) {
                             value={selectedBranch}
                         />
                         <MenuIconButton
-                            disabled={!actions.isProjectOpen || actions.isLoading || !hasPendingSave}
+                            disabled={readOnly || !actions.isProjectOpen || actions.isLoading || !hasPendingSave}
                             label="Commit"
                             onClick={handleCommit}
                         >
@@ -313,6 +315,7 @@ export function AppMenu(props: AppMenuProps) {
                         <MenuIconButton
                             disabled={
                                 !actions.isProjectOpen
+                                || readOnly
                                 || actions.isLoading
                                 || (!hasPendingPush && (primaryWorktreeStatus?.ahead ?? 0) <= 0)
                             }
@@ -324,6 +327,7 @@ export function AppMenu(props: AppMenuProps) {
                         <MenuIconButton
                             disabled={
                                 !actions.isProjectOpen
+                                || readOnly
                                 || actions.isLoading
                                 || hasPendingSave
                                 || hasPendingPush
@@ -350,9 +354,9 @@ export function AppMenu(props: AppMenuProps) {
                             <Divider flexItem orientation="vertical" sx={{ my: 1.5 }} />
                             {viewSection}
                             <Divider flexItem orientation="vertical" sx={{ my: 1.5 }} />
-                            <Button disabled={!project} onClick={handleCreateAction} size="small" variant="outlined">New action</Button>
+                            <Button disabled={!project || readOnly} onClick={handleCreateAction} size="small" variant="outlined">New action</Button>
                             <Button
-                                disabled={!actions.isProjectOpen}
+                                disabled={!actions.isProjectOpen || readOnly}
                                 onClick={handleOpenCardDialog}
                                 size="small"
                                 startIcon={<FileDocumentPlusOutline fontSize="small" />}
@@ -437,7 +441,7 @@ export function AppMenu(props: AppMenuProps) {
                     <Section label="Actions">
                         <ActionEntryPoints context={PROJECT_CONTEXT} variant="icons" visibility="explicit-context" />
                         <MenuIconButton
-                            disabled={!actions.isProjectOpen || actions.activeCards.length === 0 || actions.isReleaseCompleting}
+                            disabled={readOnly || !actions.isProjectOpen || actions.activeCards.length === 0 || actions.isReleaseCompleting}
                             label="Complete release"
                             onClick={handleOpenReleaseDialog}
                         >
@@ -452,6 +456,7 @@ export function AppMenu(props: AppMenuProps) {
                 isDesktopMode={actions.isDesktopMode}
                 isGithubAuthenticated={isGithubAuthenticated}
                 isLoading={actions.isLoading}
+                onChooseLocalFolder={actions.chooseLocalProjectFolder}
                 onCreateProjectFolders={handleCreateProjectFolders}
                 projectOpenResolution={actions.projectOpenResolution}
                 onBranchChange={() => undefined}
@@ -462,12 +467,14 @@ export function AppMenu(props: AppMenuProps) {
                 onLoadManualBranches={actions.loadManualBranches}
                 onLoadRemoteBranches={actions.loadRemoteBranches}
                 onOpenGithub={actions.openGithubProject}
+                onOpenLocal={actions.openLocalProject}
                 onOpenRemote={actions.openRemoteProject}
                 onRepositoryChange={actions.loadRepositoryBranches}
                 onSourceChange={actions.clearOpenDialogState}
                 onUseWorkingFolder={(folder) => void actions.openWorkingFolder(folder)}
                 open={dialogMode === 'open'}
                 pendingGithubConflictProject={actions.pendingGithubConflictProject}
+                recentLocalRepositories={actions.recentLocalRepositories}
                 repositories={actions.repositories}
             />
             <BranchSwitchDialog
@@ -508,8 +515,8 @@ export function AppMenu(props: AppMenuProps) {
             isMobile={isMobile}
             mobileAction={isMobile && currentTab === 'home' ? (
                 <MobileCreateMenu
-                    isNewActionDisabled={!project}
-                    isNewCardDisabled={!actions.isProjectOpen}
+                    isNewActionDisabled={!project || readOnly}
+                    isNewCardDisabled={!actions.isProjectOpen || readOnly}
                     onCreateAction={handleCreateAction}
                     onCreateCard={handleOpenCardDialog}
                 />

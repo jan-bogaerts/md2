@@ -247,6 +247,8 @@ export interface ProjectWatchEvent {
     path: string
 }
 
+export type ProjectWatchNotification = ProjectWatchEvent | { error: string }
+
 /** A background agent/action currently running against a card or file. */
 export interface RunningAgent {
     id: string
@@ -312,11 +314,17 @@ export interface AgentTokenUsage {
     totalTokens: number
 }
 
+export interface AgentContextWindowUsage {
+    capacityTokens: number
+    usedTokens: number
+}
+
 export interface AgentConversation {
     actionId?: string | null
     cardInternalId?: string | null
     cardPath: string | null
     completedAt: string | null
+    contextWindowUsage?: AgentContextWindowUsage
     entries: AgentConversationEntry[]
     hasExplicitTitle: boolean
     id: string
@@ -417,6 +425,7 @@ export interface StorageService {
         project: ProjectReference,
         onChange: (event: ProjectWatchEvent) => void,
         onRestored: () => void,
+        onError: (error: Error) => void,
     ): () => void
 }
 

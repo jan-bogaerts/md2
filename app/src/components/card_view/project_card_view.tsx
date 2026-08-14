@@ -21,6 +21,7 @@ import { useProjectReference } from '../hooks/use_project_reference'
 import { useIsWorkspacePathSelected } from '../hooks/use_is_workspace_path_selected'
 import { cardPopupService, subscribeCardPopups } from '../../services/card_popup_service'
 import { CardDragContainer } from './project_card_drag_container'
+import { useProjectReadOnly } from '../hooks/use_project_read_only'
 
 export interface CardHandlers {
     onDeleteCard: (path: string) => Promise<void>
@@ -74,6 +75,7 @@ function CardViewContent(props: CardViewContentProps) {
     const { onOpenInFileMode } = props
     const { onDeleteCard, onTogglePolicy, onTitleChange } = props
     const theme = useTheme()
+    const readOnly = useProjectReadOnly()
     const [cardElement, setCardElement] = useState<HTMLDivElement | null>(null)
     const [actionsAnchorElement, setActionsAnchorElement] = useState<HTMLElement | null>(null)
     const [actionsMenuPosition, setActionsMenuPosition] = useState<MenuPosition | null>(null)
@@ -294,6 +296,7 @@ function CardViewContent(props: CardViewContentProps) {
                         key={policyKey}
                         cardPath={card.path}
                         enabled={card.header.policy[policyKey] ?? false}
+                        disabled={readOnly}
                         onSelected={closeCardActions}
                         onToggle={onTogglePolicy}
                         policyKey={policyKey}
@@ -302,8 +305,8 @@ function CardViewContent(props: CardViewContentProps) {
                 <CardPathMenuItems cardPath={card.path} onSelected={closeCardActions} rootPath={rootPath} />
                 <MenuItem onClick={openBodyFromMenu}>Open body</MenuItem>
                 <MenuItem onClick={openInFileModeFromMenu}>Open in file mode</MenuItem>
-                <MenuItem onClick={editTitleFromMenu}>Edit title</MenuItem>
-                <MenuItem onClick={openDeleteCardDialog}>Delete</MenuItem>
+                <MenuItem disabled={readOnly} onClick={editTitleFromMenu}>Edit title</MenuItem>
+                <MenuItem disabled={readOnly} onClick={openDeleteCardDialog}>Delete</MenuItem>
             </Menu>
             <CardDeleteDialog cardPath={deleteCardPath} onClose={closeDeleteCardDialog} onDeleteCard={onDeleteCard} />
         </CardDragContainer>

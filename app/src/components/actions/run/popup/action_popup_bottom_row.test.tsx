@@ -16,6 +16,8 @@ import { ActionUsageScopeStore } from './action_usage_scope_store'
 import { ActionRunInputStore } from '../state/action_run_input_store'
 import { ActionRunResultStore } from '../state/action_run_result_store'
 import { ActionScheduleStore } from '../schedule/action_schedule_store'
+import { configService } from '../../../../services/config/config_service'
+import { BUILTIN_AGENT_PROFILES } from '../../../../data/agent_profiles'
 
 const context = { kind: 'project' as const }
 const action = {
@@ -88,9 +90,10 @@ function renderBottomRow(
 
 describe('ActionPopupBottomRow', () => {
     beforeEach(() => {
+        configService.init({ desktopConfig: { agent: 'codex', agentProfiles: BUILTIN_AGENT_PROFILES, model: '' } })
         window.md2Actions = { onActionRun: vi.fn(() => vi.fn()) } as unknown as typeof window.md2Actions
         vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({
-            availability: { error: null, loading: false, values: { '': { available: true, error: null } } },
+            availability: { error: null, loading: false, values: { codex: { available: true, error: null } } },
             models: { error: null, loading: false, values: [] },
             thinkingLevels: { error: null, loading: false, values: [] },
         })
@@ -101,23 +104,27 @@ describe('ActionPopupBottomRow', () => {
         actionPromptDraftService.clearAll()
         actionRunRegistry.stop()
         delete window.md2Actions
+        configService.clear()
         cleanup()
         vi.restoreAllMocks()
     })
 
-    it('lays out agent selectors left, usage centered, and run controls right in overflow-safe groups', () => {
+    it('uses an outer size container and an inner overflow-safe single row', () => {
         renderBottomRow()
         const bottomRow = screen.getByTestId('action-popup-bottom-row')
-        const [selectors, usage, controls] = Array.from(bottomRow.children)
+        const layout = bottomRow.firstElementChild as HTMLElement
+        const [selectors, usage, controls] = Array.from(layout.children)
 
-        expect(bottomRow).toHaveStyle({display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)'})
+        expect(bottomRow).toHaveStyle({containerType: 'inline-size'})
+        expect(layout).toHaveAttribute('data-footer-layout')
+        expect(layout).toHaveStyle({display: 'flex', minWidth: '0', width: '100%'})
         expect(selectors).toHaveAttribute('data-footer-selectors')
-        expect(selectors).toHaveStyle({ minWidth: '0', overflow: 'hidden' })
+        expect(selectors).toHaveStyle({ flexShrink: '1', minWidth: '158px', overflow: 'hidden' })
         expect(within(selectors as HTMLElement).getByRole('group', { name: 'Agent settings' })).toBeInTheDocument()
         expect(usage).toHaveAttribute('data-footer-usage')
-        expect(usage).toHaveStyle({ justifySelf: 'center', minWidth: '0' })
+        expect(usage).toHaveStyle({ display: 'flex', flexShrink: '1', minWidth: '235px', overflow: 'hidden' })
         expect(controls).toHaveAttribute('data-footer-controls')
-        expect(controls).toHaveStyle({ justifySelf: 'end' })
+        expect(controls).toHaveStyle({ flexShrink: '0', justifyContent: 'flex-end' })
         expect(within(controls as HTMLElement).getByRole('button', { name: 'Send' })).toBeInTheDocument()
     })
 

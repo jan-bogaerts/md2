@@ -84,7 +84,7 @@ function cacheDiagnosticMessage(errorLine, runningVersion, cacheVersion) {
         return [
             'Codex model cache is incompatible with the running CLI.',
             `Running Codex version: ${runningVersion}. Cache client version: ${cacheVersion}.`,
-            'Update Codex with `npm install --global @openai/codex@latest`, then restart MD2.',
+            'Update Codex with `npm install --global @openai/codex@latest`, then retry the action.',
             slowdownMessage,
         ].join('\n');
     }
@@ -96,7 +96,7 @@ function cacheDiagnosticMessage(errorLine, runningVersion, cacheVersion) {
     return `${errorLine.trim()}\n${versionMessage}\n${slowdownMessage}`;
 }
 
-/** Diagnose a Codex model-cache error and return one actionable user-facing message. */
+/** Diagnose a Codex model-cache error and return its message and confirmed version state. */
 async function diagnoseCodexCacheError(errorLine, executable, environment, dependencies = {}) {
     const configuredDependencies = {
         homeDirectory: dependencies.homeDirectory,
@@ -108,7 +108,12 @@ async function diagnoseCodexCacheError(errorLine, executable, environment, depen
         readCacheVersion(environment, configuredDependencies),
     ]);
 
-    return cacheDiagnosticMessage(errorLine, runningVersion, cacheVersion);
+    return {
+        cacheVersion,
+        message: cacheDiagnosticMessage(errorLine, runningVersion, cacheVersion),
+        runningVersion,
+        updateRequired: !!runningVersion && !!cacheVersion && !codexVersionsMatch(runningVersion, cacheVersion),
+    };
 }
 
 function isCodexCacheError(content) {

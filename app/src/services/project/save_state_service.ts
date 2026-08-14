@@ -22,6 +22,7 @@ export interface SaveState {
 /** Tracks active local persistence operations for global UI state. */
 export class SaveStateService extends EventTarget {
     private activeSaveCount = 0
+    private readonly activeSaveOperations = new Set<Promise<unknown>>()
 
     beginSave() {
         this.activeSaveCount += 1
@@ -43,11 +44,20 @@ export class SaveStateService extends EventTarget {
 
     async track<T>(operation: () => Promise<T>): Promise<T> {
         const finish = this.beginSave()
+        const operationPromise = operation()
+        this.activeSaveOperations.add(operationPromise)
 
         try {
-            return await operation()
+            return await operationPromise
         } finally {
+            this.activeSaveOperations.delete(operationPromise)
             finish()
+        }
+    }
+
+    async drain() {
+        while (this.activeSaveOperations.size > 0) {
+            await Promise.all([...this.activeSaveOperations])
         }
     }
 

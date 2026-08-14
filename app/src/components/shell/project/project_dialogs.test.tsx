@@ -10,7 +10,6 @@ import {
 import {
     configureRemoteControlConnection,
     REMOTE_CONTROL_ENDPOINT_KEY,
-    REMOTE_CONTROL_TOKEN_KEY,
 } from '../../../data/remote_control_connection'
 import { AppThemeProvider } from '../../../theme/theme_provider'
 import { BranchSwitchDialog } from './branch_switch_dialog'
@@ -40,6 +39,14 @@ function getDescriptionEditor() {
     return within(screen.getByRole('group', { name: 'Description' })).getByRole('textbox')
 }
 
+function insertEditorNewline(event: Event) {
+    const keyboardEvent = event as globalThis.KeyboardEvent
+    if (keyboardEvent.key !== 'Enter') return
+
+    const editor = event.currentTarget as HTMLTextAreaElement
+    fireEvent.change(editor, { target: { value: `${editor.value}\n` } })
+}
+
 describe('project dialog components', () => {
     beforeEach(() => {
         mockMatchMedia(false)
@@ -49,7 +56,6 @@ describe('project dialog components', () => {
         cleanup()
         vi.restoreAllMocks()
         window.localStorage.removeItem(REMOTE_CONTROL_ENDPOINT_KEY)
-        window.localStorage.removeItem(REMOTE_CONTROL_TOKEN_KEY)
     })
 
     it('renders the open project dialog without mounting the menu', () => {
@@ -59,6 +65,7 @@ describe('project dialog components', () => {
                 isDesktopMode={false}
                 isGithubAuthenticated
                 isLoading={false}
+                onChooseLocalFolder={vi.fn(async () => undefined)}
                 projectOpenResolution={null}
                 onBranchChange={vi.fn()}
                 onClose={vi.fn()}
@@ -69,18 +76,145 @@ describe('project dialog components', () => {
                 onLoadManualBranches={vi.fn(async () => ({ branches: BRANCHES, repository: REPOSITORIES[0] }))}
                 onLoadRemoteBranches={vi.fn(async () => BRANCHES)}
                 onOpenGithub={vi.fn()}
+                onOpenLocal={vi.fn(async () => undefined)}
                 onOpenRemote={vi.fn()}
                 onRepositoryChange={vi.fn(async () => BRANCHES)}
                 onSourceChange={vi.fn()}
                 onUseWorkingFolder={vi.fn()}
                 open
                 pendingGithubConflictProject={null}
+                recentLocalRepositories={[]}
                 repositories={REPOSITORIES}
             />,
         )
 
         expect(screen.getByRole('dialog', { name: 'Open project' })).toBeInTheDocument()
         expect(screen.getByLabelText('Filter repositories')).toBeInTheDocument()
+    })
+
+    it('offers personal, public, and remote sources in browser mode', async () => {
+        render(
+            <ProjectOpenDialog
+                branches={[]}
+                isDesktopMode={false}
+                isGithubAuthenticated
+                isLoading={false}
+                onBranchChange={vi.fn()}
+                onChooseLocalFolder={vi.fn(async () => undefined)}
+                onClose={vi.fn()}
+                onCreateProjectFolders={vi.fn()}
+                onCreateRemoteProject={vi.fn()}
+                onCreateWorkingFolder={vi.fn()}
+                onDiscardGithubPendingCommits={vi.fn()}
+                onLoadManualBranches={vi.fn(async () => null)}
+                onLoadRemoteBranches={vi.fn(async () => [])}
+                onOpenGithub={vi.fn()}
+                onOpenLocal={vi.fn(async () => undefined)}
+                onOpenRemote={vi.fn()}
+                onRepositoryChange={vi.fn(async () => [])}
+                onSourceChange={vi.fn()}
+                onUseWorkingFolder={vi.fn()}
+                open
+                pendingGithubConflictProject={null}
+                projectOpenResolution={null}
+                recentLocalRepositories={[]}
+                repositories={[]}
+            />,
+        )
+
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Source' }))
+        expect(await screen.findByRole('option', { name: 'Personal repository' })).toBeInTheDocument()
+        expect(screen.getByRole('option', { name: 'Public repository' })).toBeInTheDocument()
+        expect(screen.getByRole('option', { name: 'Remote' })).toBeInTheDocument()
+        expect(screen.queryByRole('option', { name: 'Local folder' })).toBeNull()
+    })
+
+    it('opens typed, picked, and recent local folders only after Local folder is selected', async () => {
+        const chooseLocalFolder = vi.fn(async () => undefined)
+        const openLocal = vi.fn(async () => undefined)
+        render(
+            <ProjectOpenDialog
+                branches={[]}
+                isDesktopMode
+                isGithubAuthenticated={false}
+                isLoading={false}
+                onBranchChange={vi.fn()}
+                onChooseLocalFolder={chooseLocalFolder}
+                onClose={vi.fn()}
+                onCreateProjectFolders={vi.fn()}
+                onCreateRemoteProject={vi.fn()}
+                onCreateWorkingFolder={vi.fn()}
+                onDiscardGithubPendingCommits={vi.fn()}
+                onLoadManualBranches={vi.fn(async () => null)}
+                onLoadRemoteBranches={vi.fn(async () => [])}
+                onOpenGithub={vi.fn()}
+                onOpenLocal={openLocal}
+                onOpenRemote={vi.fn()}
+                onRepositoryChange={vi.fn(async () => [])}
+                onSourceChange={vi.fn()}
+                onUseWorkingFolder={vi.fn()}
+                open
+                pendingGithubConflictProject={null}
+                projectOpenResolution={null}
+                recentLocalRepositories={['C:/recent']}
+                repositories={[]}
+            />,
+        )
+
+        expect(screen.queryByLabelText('Local repository folder')).toBeNull()
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Source' }))
+        fireEvent.click(await screen.findByRole('option', { name: 'Local folder' }))
+        expect(screen.queryByRole('option', { name: 'Remote' })).toBeNull()
+
+        fireEvent.change(screen.getByLabelText('Local repository folder'), { target: { value: 'C:/typed' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))
+        expect(openLocal).toHaveBeenCalledWith('C:/typed')
+        fireEvent.click(screen.getByRole('button', { name: 'Choose local repository folder' }))
+        expect(chooseLocalFolder).toHaveBeenCalledOnce()
+        fireEvent.click(screen.getByText('C:/recent'))
+        expect(openLocal).toHaveBeenLastCalledWith('C:/recent')
+    })
+
+    it('marks manual public lookup and open requests as public', async () => {
+        const loadManualBranches = vi.fn(async () => ({ branches: BRANCHES, repository: REPOSITORIES[0] }))
+        const openGithub = vi.fn(async () => undefined)
+        render(
+            <ProjectOpenDialog
+                branches={BRANCHES}
+                isDesktopMode={false}
+                isGithubAuthenticated
+                isLoading={false}
+                onBranchChange={vi.fn()}
+                onChooseLocalFolder={vi.fn(async () => undefined)}
+                onClose={vi.fn()}
+                onCreateProjectFolders={vi.fn()}
+                onCreateRemoteProject={vi.fn()}
+                onCreateWorkingFolder={vi.fn()}
+                onDiscardGithubPendingCommits={vi.fn()}
+                onLoadManualBranches={loadManualBranches}
+                onLoadRemoteBranches={vi.fn(async () => [])}
+                onOpenGithub={openGithub}
+                onOpenLocal={vi.fn(async () => undefined)}
+                onOpenRemote={vi.fn()}
+                onRepositoryChange={vi.fn(async () => [])}
+                onSourceChange={vi.fn()}
+                onUseWorkingFolder={vi.fn()}
+                open
+                pendingGithubConflictProject={null}
+                projectOpenResolution={null}
+                recentLocalRepositories={[]}
+                repositories={[]}
+            />,
+        )
+
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Source' }))
+        fireEvent.click(await screen.findByRole('option', { name: 'Public repository' }))
+        fireEvent.change(screen.getByLabelText('Owner'), { target: { value: 'octo' } })
+        fireEvent.change(screen.getByRole('textbox', { name: 'Repository' }), { target: { value: 'demo' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Load branches' }))
+        await waitFor(() => expect(loadManualBranches).toHaveBeenCalledWith('octo', 'demo', true))
+        fireEvent.click(screen.getByRole('button', { name: 'Open Public' }))
+        expect(openGithub).toHaveBeenCalledWith('octo', 'demo', 'main', true)
     })
 
     it('keeps branch entry editable when no branch options exist', () => {
@@ -92,6 +226,7 @@ describe('project dialog components', () => {
                 isDesktopMode={false}
                 isGithubAuthenticated
                 isLoading={false}
+                onChooseLocalFolder={vi.fn(async () => undefined)}
                 projectOpenResolution={null}
                 onBranchChange={vi.fn()}
                 onClose={vi.fn()}
@@ -102,12 +237,14 @@ describe('project dialog components', () => {
                 onLoadManualBranches={vi.fn(async () => ({ branches: BRANCHES, repository: REPOSITORIES[0] }))}
                 onLoadRemoteBranches={vi.fn(async () => BRANCHES)}
                 onOpenGithub={openGithub}
+                onOpenLocal={vi.fn(async () => undefined)}
                 onOpenRemote={vi.fn()}
                 onRepositoryChange={vi.fn(async () => BRANCHES)}
                 onSourceChange={vi.fn()}
                 onUseWorkingFolder={vi.fn()}
                 open
                 pendingGithubConflictProject={null}
+                recentLocalRepositories={[]}
                 repositories={[]}
             />,
         )
@@ -115,13 +252,13 @@ describe('project dialog components', () => {
         fireEvent.change(screen.getByLabelText('Owner'), { target: { value: 'octo' } })
         fireEvent.change(screen.getByRole('textbox', { name: 'Repository' }), { target: { value: 'demo' } })
         fireEvent.change(screen.getByLabelText('Branch'), { target: { value: 'topic' } })
-        fireEvent.click(screen.getByRole('button', { name: 'Open GitHub' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Open Personal' }))
 
-        expect(openGithub).toHaveBeenCalledWith('octo', 'demo', 'topic')
+        expect(openGithub).toHaveBeenCalledWith('octo', 'demo', 'topic', false)
     })
 
     it('preselects the remote source and prefills the stored connection settings', () => {
-        configureRemoteControlConnection({ endpoint: 'ws://192.168.0.10:1234', token: 'token-1' })
+        configureRemoteControlConnection({ endpoint: 'ws://192.168.0.10:1234' })
 
         render(
             <ProjectOpenDialog
@@ -130,6 +267,7 @@ describe('project dialog components', () => {
                 isDesktopMode={false}
                 isGithubAuthenticated={false}
                 isLoading={false}
+                onChooseLocalFolder={vi.fn(async () => undefined)}
                 projectOpenResolution={null}
                 onBranchChange={vi.fn()}
                 onClose={vi.fn()}
@@ -140,18 +278,20 @@ describe('project dialog components', () => {
                 onLoadManualBranches={vi.fn(async () => ({ branches: BRANCHES, repository: REPOSITORIES[0] }))}
                 onLoadRemoteBranches={vi.fn(async () => BRANCHES)}
                 onOpenGithub={vi.fn()}
+                onOpenLocal={vi.fn(async () => undefined)}
                 onOpenRemote={vi.fn()}
                 onRepositoryChange={vi.fn(async () => BRANCHES)}
                 onSourceChange={vi.fn()}
                 onUseWorkingFolder={vi.fn()}
                 open
                 pendingGithubConflictProject={null}
+                recentLocalRepositories={[]}
                 repositories={[]}
             />,
         )
 
         expect(screen.getByLabelText('Endpoint')).toHaveValue('ws://192.168.0.10:1234')
-        expect(screen.getByLabelText('Token')).toHaveValue('token-1')
+        expect(screen.queryByLabelText('Token')).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Open Remote' })).toBeInTheDocument()
     })
 
@@ -163,6 +303,7 @@ describe('project dialog components', () => {
                 isDesktopMode={false}
                 isGithubAuthenticated={false}
                 isLoading={false}
+                onChooseLocalFolder={vi.fn(async () => undefined)}
                 projectOpenResolution={null}
                 onBranchChange={vi.fn()}
                 onClose={vi.fn()}
@@ -173,18 +314,20 @@ describe('project dialog components', () => {
                 onLoadManualBranches={vi.fn(async () => ({ branches: BRANCHES, repository: REPOSITORIES[0] }))}
                 onLoadRemoteBranches={vi.fn(async () => BRANCHES)}
                 onOpenGithub={vi.fn()}
+                onOpenLocal={vi.fn(async () => undefined)}
                 onOpenRemote={vi.fn()}
                 onRepositoryChange={vi.fn(async () => BRANCHES)}
                 onSourceChange={vi.fn()}
                 onUseWorkingFolder={vi.fn()}
                 open
                 pendingGithubConflictProject={null}
+                recentLocalRepositories={[]}
                 repositories={[]}
             />,
         )
 
         expect(screen.getByLabelText('Endpoint')).toHaveValue('')
-        expect(screen.getByLabelText('Token')).toHaveValue('')
+        expect(screen.queryByLabelText('Token')).not.toBeInTheDocument()
     })
 
     it('renders the working folder chooser without mounting the menu', () => {
@@ -213,6 +356,7 @@ describe('project dialog components', () => {
                 isDesktopMode
                 isGithubAuthenticated={false}
                 isLoading={false}
+                onChooseLocalFolder={vi.fn(async () => undefined)}
                 projectOpenResolution={{
                     configuredWorkingFolder: 'missing',
                     folders: [{ name: 'docs', path: 'docs' }],
@@ -230,12 +374,14 @@ describe('project dialog components', () => {
                 onLoadManualBranches={vi.fn(async () => ({ branches: BRANCHES, repository: REPOSITORIES[0] }))}
                 onLoadRemoteBranches={vi.fn(async () => BRANCHES)}
                 onOpenGithub={vi.fn()}
+                onOpenLocal={vi.fn(async () => undefined)}
                 onOpenRemote={vi.fn()}
                 onRepositoryChange={vi.fn(async () => BRANCHES)}
                 onSourceChange={vi.fn()}
                 onUseWorkingFolder={vi.fn()}
                 open
                 pendingGithubConflictProject={null}
+                recentLocalRepositories={[]}
                 repositories={REPOSITORIES}
             />,
         )
@@ -254,6 +400,7 @@ describe('project dialog components', () => {
                 isDesktopMode
                 isGithubAuthenticated={false}
                 isLoading={false}
+                onChooseLocalFolder={vi.fn(async () => undefined)}
                 onBranchChange={vi.fn()}
                 onClose={vi.fn()}
                 onCreateProjectFolders={createProjectFolders}
@@ -263,6 +410,7 @@ describe('project dialog components', () => {
                 onLoadManualBranches={vi.fn(async () => ({ branches: BRANCHES, repository: REPOSITORIES[0] }))}
                 onLoadRemoteBranches={vi.fn(async () => BRANCHES)}
                 onOpenGithub={vi.fn()}
+                onOpenLocal={vi.fn(async () => undefined)}
                 onOpenRemote={vi.fn()}
                 onRepositoryChange={vi.fn(async () => BRANCHES)}
                 onSourceChange={vi.fn()}
@@ -275,6 +423,7 @@ describe('project dialog components', () => {
                     project: PROJECT,
                     storageType: 'local',
                 }}
+                recentLocalRepositories={[]}
                 repositories={[]}
             />,
         )
@@ -485,17 +634,32 @@ describe('project dialog components', () => {
             { wrapper: AppThemeProvider },
         )
 
-        fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: 'Keyboard card' } })
-        fireEvent.keyDown(screen.getByRole('textbox', { name: 'Title' }), { key: 'Escape' })
+        const title = screen.getByRole('textbox', { name: 'Title' })
+        fireEvent.change(title, { target: { value: 'Keyboard card' } })
+        fireEvent.keyDown(title, { key: 'Escape' })
         expect(confirm).toHaveBeenCalledWith('Discard this new card draft?')
         expect(close).not.toHaveBeenCalled()
 
+        fireEvent.change(title, { target: { value: '' } })
         const description = getDescriptionEditor()
         fireEvent.change(description, { target: { value: 'Shortcut body' } })
+        const editorKeyDown = vi.fn(insertEditorNewline)
+        description.addEventListener('keydown', editorKeyDown)
+
+        fireEvent.keyDown(description, { ctrlKey: true, key: 'Enter' })
+        expect(createCard).not.toHaveBeenCalled()
+
+        fireEvent.change(title, { target: { value: 'Keyboard card' } })
+        fireEvent.keyDown(description, { key: 'Enter' })
+        fireEvent.keyDown(description, { key: 'Enter', shiftKey: true })
+        expect(description).toHaveValue('Shortcut body\n\n')
+
+        editorKeyDown.mockClear()
         fireEvent.keyDown(description, { ctrlKey: true, key: 'Enter' })
 
+        expect(editorKeyDown).not.toHaveBeenCalled()
         await waitFor(() => expect(createCard).toHaveBeenCalledWith({
-            body: 'Shortcut body',
+            body: 'Shortcut body\n\n',
             bodyIncludesTemplate: true,
             title: 'Keyboard card',
             type: 'feature',

@@ -4,7 +4,7 @@ import type { ProjectOpenResolution } from '../services/project/project_session_
 export const OPEN_PROJECT_DIALOG_EVENT = 'md2:open-project-dialog'
 export const OPEN_NEW_CARD_DIALOG_EVENT = 'md2:open-new-card-dialog'
 
-export type ProjectDialogSource = 'github' | 'remote'
+export type ProjectDialogSource = 'personal' | 'public' | 'remote'
 
 export interface OpenProjectDialogDetail {
     project?: ProjectReference

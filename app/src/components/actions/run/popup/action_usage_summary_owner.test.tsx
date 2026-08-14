@@ -156,6 +156,58 @@ describe('ActionUsageSummaryOwner', () => {
         expect(screen.getByRole('button', { name: 'Changes, Conversation scope' })).toHaveTextContent('changes: +7 / -4')
     })
 
+    it('replaces live token snapshots in both scopes while keeping other conversation totals', () => {
+        let listener: ((event: ActionRunEvent) => void) | null = null
+        setActionBridgeOverride({
+            onActionRun: vi.fn((nextListener) => {
+                listener = nextListener
+
+                return vi.fn()
+            }),
+        } as unknown as ElectronActionBridge)
+        actionRunRegistry.start()
+        const selectedConversation = conversation('selected', 0, 0)
+        selectedConversation.usage = { cachedInputTokens: 0, inputTokens: 20, outputTokens: 0, reasoningTokens: 0, totalTokens: 20 }
+        const liveConversation = conversation('live', 0, 0)
+        const { store } = createConversationStore(selectedConversation)
+        const scopeStore = new ActionUsageScopeStore()
+        renderOwner(store, scopeStore)
+        if (!listener) throw new Error('Missing run listener')
+        const emit = listener as (event: ActionRunEvent) => void
+        const run = {
+            actionId: action.id, context, phase: 'main' as const, rootActionId: action.id,
+            runId: 'run-1', status: 'running' as const,
+        }
+
+        act(() => {
+            emit({ ...run, type: 'run' })
+            emit({ ...run, type: 'update', update: { conversation: liveConversation, kind: 'agentStarted' } })
+            emit({
+                ...run,
+                type: 'update',
+                update: {
+                    kind: 'agentUsage',
+                    usage: { cachedInputTokens: 0, inputTokens: 15, outputTokens: 0, reasoningTokens: 0, totalTokens: 15 },
+                },
+            })
+        })
+
+        expect(screen.getByRole('button', { name: 'Tokens, Action/card scope' })).toHaveTextContent('tokens: 35')
+
+        act(() => emit({
+            ...run,
+            type: 'update',
+            update: {
+                kind: 'agentUsage',
+                usage: { cachedInputTokens: 0, inputTokens: 17, outputTokens: 0, reasoningTokens: 0, totalTokens: 17 },
+            },
+        }))
+
+        expect(screen.getByRole('button', { name: 'Tokens, Action/card scope' })).toHaveTextContent('tokens: 37')
+        fireEvent.click(screen.getByRole('button', { name: 'Tokens, Action/card scope' }))
+        expect(screen.getByRole('button', { name: 'Tokens, Conversation scope' })).toHaveTextContent('tokens: 17')
+    })
+
     it('forces action/card scope when no conversation is displayed', () => {
         const { store } = createConversationStore(null)
         const scopeStore = new ActionUsageScopeStore()

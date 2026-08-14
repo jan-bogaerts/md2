@@ -11,5 +11,8 @@
   "devDependencies": {
     "concurrently": "^10.0.3",
     "wait-on": "^9.0.10"
+  },
+  "dependencies": {
+    "electron-window-state": "^5.0.3"
   }
 }

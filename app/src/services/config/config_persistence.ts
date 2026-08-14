@@ -60,5 +60,5 @@ export function readDesktopConfigFromBridge(): Partial<DesktopConfigValues> | nu
 }
 
 export function writeDesktopConfigToBridge(values: DesktopConfigValues) {
-    getElectronConfigBridge()?.setDesktopConfig(values)
+    void getElectronConfigBridge()?.setDesktopConfig(values)
 }

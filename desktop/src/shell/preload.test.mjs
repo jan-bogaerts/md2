@@ -66,7 +66,7 @@ describe('preload desktop agent bridge', () => {
     it('exposes only the named desktop bridges through contextBridge', () => {
         const { electron, exposed, window } = createPreloadHarness();
 
-        expect(electron.contextBridge.exposeInMainWorld).toHaveBeenCalledTimes(8);
+        expect(electron.contextBridge.exposeInMainWorld).toHaveBeenCalledTimes(9);
         expect(Object.keys(exposed).sort()).toEqual([
             'md2Actions',
             'md2CodexRuntime',
@@ -76,6 +76,7 @@ describe('preload desktop agent bridge', () => {
             'md2Remarkable',
             'md2RemoteControl',
             'md2Theme',
+            'md2Updates',
         ]);
         expect(window.require).toBeUndefined();
         expect(exposed.md2Data.openProjectFolder).toEqual(expect.any(Function));
@@ -116,6 +117,26 @@ describe('preload desktop agent bridge', () => {
         expect(exposed.md2RemoteControl.onStatusChange).toEqual(expect.any(Function));
         expect(exposed.md2CodexRuntime.getCodexRateLimits).toEqual(expect.any(Function));
         expect(exposed.md2CodexRuntime.onCodexRateLimits).toEqual(expect.any(Function));
+        expect(exposed.md2CodexRuntime.onCodexUpdateRequired).toEqual(expect.any(Function));
+        expect(exposed.md2CodexRuntime.updateCodexCli).toEqual(expect.any(Function));
+        expect(exposed.md2Updates.onUpdateAvailable).toEqual(expect.any(Function));
+        expect(exposed.md2Updates.downloadUpdate).toEqual(expect.any(Function));
+        expect(exposed.md2Updates.onDownloadProgress).toEqual(expect.any(Function));
+    });
+
+    it('wraps update-available notifications without exposing ipcRenderer', () => {
+        const { electron, exposed } = createPreloadHarness();
+        const callback = vi.fn();
+        const unsubscribe = exposed.md2Updates.onUpdateAvailable(callback);
+        const listenerCall = electron.ipcRenderer.on.mock.calls.find(([channel]) => channel === 'md2-update:available');
+        const listener = listenerCall[1];
+
+        listener({ sender: 'internal' }, { downloadUrl: 'https://example.test/md2.exe', version: '0.3.0' });
+        unsubscribe();
+
+        expect(callback).toHaveBeenCalledWith({ downloadUrl: 'https://example.test/md2.exe', version: '0.3.0' });
+        expect(electron.ipcRenderer.removeListener).toHaveBeenCalledWith('md2-update:available', listener);
+        expect(exposed.md2Updates.ipcRenderer).toBeUndefined();
     });
 
     it('subscribes and unsubscribes worktree state through validated IPC channels', () => {
@@ -154,6 +175,18 @@ describe('preload desktop agent bridge', () => {
         expect(electron.ipcRenderer.send).toHaveBeenCalledWith('md2-local-bridge:unsubscribe', subscriptionRequest.subscriptionId);
     });
 
+    it('updates Codex without accepting renderer command input', async () => {
+        const { electron, exposed } = createPreloadHarness();
+
+        await exposed.md2CodexRuntime.updateCodexCli('malicious command');
+
+        expect(electron.ipcRenderer.invoke).toHaveBeenCalledWith('md2-local-bridge:invoke', {
+            eventId: null,
+            method: 'updateCodexCli',
+            params: [],
+        });
+    });
+
     it('wraps remote-control callbacks without exposing ipcRenderer', () => {
         const { electron, exposed } = createPreloadHarness();
         const callback = vi.fn();
@@ -188,13 +221,15 @@ describe('preload desktop agent bridge', () => {
         const unsubscribe = exposed.md2Lifecycle.onFlushRequested(callback);
         const listener = electron.ipcRenderer.on.mock.calls[0][1];
 
-        listener({ sender: 'internal' }, 'quit-1');
-        exposed.md2Lifecycle.confirmFlush('quit-1');
+        const request = { reason: 'app-quit', requestId: 'quit-1' };
+        const result = { requestId: 'quit-1', success: true };
+        listener({ sender: 'internal' }, request);
+        exposed.md2Lifecycle.reportFlushResult(result);
         unsubscribe();
 
         expect(electron.ipcRenderer.on).toHaveBeenCalledWith('md2-lifecycle:flush-pending-commits', expect.any(Function));
-        expect(callback).toHaveBeenCalledWith('quit-1');
-        expect(electron.ipcRenderer.send).toHaveBeenCalledWith('md2-lifecycle:flush-pending-commits-done', 'quit-1');
+        expect(callback).toHaveBeenCalledWith(request);
+        expect(electron.ipcRenderer.send).toHaveBeenCalledWith('md2-lifecycle:flush-pending-commits-result', result);
         expect(electron.ipcRenderer.removeListener).toHaveBeenCalledWith('md2-lifecycle:flush-pending-commits', listener);
         expect(exposed.md2Lifecycle.ipcRenderer).toBeUndefined();
     });
@@ -232,12 +267,16 @@ describe('preload desktop agent bridge', () => {
         expect(blocked.exposed.md2Data).toBeUndefined();
     });
 
-    it('keeps desktop config cached while persisting updates through IPC', () => {
+    it('updates cached desktop config only after persistence acknowledgement', async () => {
         const { electron, exposed } = createPreloadHarness();
         const nextConfig = { agent: 'stored-agent', agentProfiles: [{ command: ['stored-agent'], name: 'stored-agent' }], model: '' };
+        electron.ipcRenderer.invoke.mockResolvedValueOnce(nextConfig);
 
         expect(exposed.md2Config.getDesktopConfig()).toEqual({ agent: 'codex', agentProfiles: [{ command: ['codex'], name: 'codex' }], model: '' });
-        exposed.md2Config.setDesktopConfig(nextConfig);
+        const savePromise = exposed.md2Config.setDesktopConfig(nextConfig);
+
+        expect(exposed.md2Config.getDesktopConfig()).not.toEqual(nextConfig);
+        await expect(savePromise).resolves.toEqual(nextConfig);
 
         expect(exposed.md2Config.getDesktopConfig()).toEqual(nextConfig);
         expect(electron.ipcRenderer.invoke).toHaveBeenCalledWith('md2-config:set-desktop', nextConfig);
@@ -253,13 +292,12 @@ describe('electron main isolation settings', () => {
         expect(source).toContain('sandbox: true');
     });
 
-    it('waits for renderer pending commit flush before quitting', () => {
+    it('coordinates renderer flushing before remaining quit cleanup', () => {
         const source = readFileSync(mainPath, 'utf8');
 
         expect(source).toContain('LIFECYCLE_FLUSH_REQUEST_CHANNEL');
-        expect(source).toContain('const QUIT_FLUSH_TIMEOUT_MS = 5000');
-        expect(source).toContain('await flushRendererPendingCommits()');
-        expect(source.indexOf('await flushRendererPendingCommits()')).toBeLessThan(source.indexOf('await remoteControlService.stop()'));
+        expect(source).toContain('closeCoordinator.requestApplicationQuit()');
+        expect(source).toContain('completeApplicationQuit: () => stopAndQuit()');
     });
 
     it('opens renderer developer tools when Electron runs unpackaged', () => {

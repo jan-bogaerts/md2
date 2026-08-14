@@ -3,14 +3,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ElectronRemoteControlBridge, RemoteControlStatus } from '../../data/electron_remote_control_bridge'
 import { RemoteControlButton } from './remote_control_button'
 
-const stoppedStatus: RemoteControlStatus = { active: false, clientCount: 0, endpoint: null, token: null }
+const stoppedStatus: RemoteControlStatus = { active: false, clientCount: 0, endpoint: null }
 const startedStatus: RemoteControlStatus = {
     active: true,
     clientCount: 0,
     endpoint: 'ws://127.0.0.1:1234',
     hostnameEndpoint: null,
     ipEndpoints: ['ws://127.0.0.1:1234'],
-    token: 'token-1',
 }
 
 function installBridge(overrides: Partial<ElectronRemoteControlBridge> = {}) {
@@ -32,11 +31,11 @@ describe('RemoteControlButton', () => {
         cleanup()
     })
 
-    it('starts remote control from the Accept button', async () => {
+    it('starts remote control from the Serve button', async () => {
         const bridge = installBridge()
         render(<RemoteControlButton />)
 
-        fireEvent.click(await screen.findByRole('button', { name: 'Accept' }))
+        fireEvent.click(await screen.findByRole('button', { name: 'Serve' }))
 
         expect(bridge.start).toHaveBeenCalledTimes(1)
         // The auto-opened popover marks the toolbar aria-hidden, so query it with hidden: true.
@@ -47,17 +46,17 @@ describe('RemoteControlButton', () => {
         installBridge()
         render(<RemoteControlButton />)
 
-        fireEvent.click(await screen.findByRole('button', { name: 'Accept' }))
+        fireEvent.click(await screen.findByRole('button', { name: 'Serve' }))
 
         expect(await screen.findByRole('button', { name: 'Copy connect link' })).toBeInTheDocument()
-        expect(screen.getByText('http://127.0.0.1:1234/#token-1')).toBeInTheDocument()
+        expect(screen.getByText('http://127.0.0.1:1234/')).toBeInTheDocument()
     })
 
     it('shows the disconnect tooltip while active', async () => {
         installBridge()
         render(<RemoteControlButton />)
 
-        fireEvent.click(await screen.findByRole('button', { name: 'Accept' }))
+        fireEvent.click(await screen.findByRole('button', { name: 'Serve' }))
         // Close the auto-opened popover so the toolbar is no longer aria-hidden.
         fireEvent.click(await screen.findByRole('button', { name: 'show connect link and QR code', hidden: true }))
         await waitFor(() => expect(screen.queryByRole('button', { name: 'Copy connect link' })).not.toBeInTheDocument())
@@ -71,7 +70,7 @@ describe('RemoteControlButton', () => {
         installBridge()
         render(<RemoteControlButton />)
 
-        fireEvent.click(await screen.findByRole('button', { name: 'Accept' }))
+        fireEvent.click(await screen.findByRole('button', { name: 'Serve' }))
         expect(await screen.findByRole('button', { name: 'Copy connect link' })).toBeInTheDocument()
 
         fireEvent.click(screen.getByRole('button', { name: 'show connect link and QR code', hidden: true }))
@@ -81,29 +80,28 @@ describe('RemoteControlButton', () => {
         expect(await screen.findByRole('button', { name: 'Copy connect link' })).toBeInTheDocument()
     })
 
-    it('shows the accept tooltip when idle and does not expose the token', async () => {
+    it('shows the serve tooltip when idle', async () => {
         installBridge()
         render(<RemoteControlButton />)
 
-        const button = await screen.findByRole('button', { name: 'Accept' })
+        const button = await screen.findByRole('button', { name: 'Serve' })
         fireEvent.mouseOver(button)
 
-        expect(await screen.findByRole('tooltip')).toHaveTextContent('accept external connection for web control')
-        expect(screen.queryByText(/token/)).not.toBeInTheDocument()
+        expect(await screen.findByRole('tooltip')).toHaveTextContent('serve app for web control')
     })
 
     it('renders the Connect button outside Electron', () => {
         render(<RemoteControlButton />)
 
-        expect(screen.queryByRole('button', { name: /Accept/ })).not.toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'Connect' })).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /Serve/ })).not.toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /Connect|Connecting/ })).toBeInTheDocument()
     })
 
     it('does not render the Connect button inside Electron', async () => {
         installBridge()
         render(<RemoteControlButton />)
 
-        expect(await screen.findByRole('button', { name: 'Accept' })).toBeInTheDocument()
+        expect(await screen.findByRole('button', { name: 'Serve' })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: 'Connect' })).not.toBeInTheDocument()
     })
 })

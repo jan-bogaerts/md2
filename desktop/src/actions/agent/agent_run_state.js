@@ -71,6 +71,7 @@ function createRun({
         onCompletionError,
         onEvent,
         interactionWrites: Promise.resolve(),
+        liveTurnUsage: null,
         pendingQuestions: [],
         pendingApprovals: new Map(),
         persistence: Promise.resolve(),
@@ -139,7 +140,7 @@ function attachRunProtocol(run, {
 function createRunResult(request, exitCode, run) {
     return {
         command: request.command,
-        conversation: structuredClone(run.conversation),
+        conversation: run.conversation,
         exitCode,
         missingSession: run.missingSession,
         prompt: request.prompt,

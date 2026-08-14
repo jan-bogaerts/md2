@@ -3,6 +3,7 @@ import { ACTION_PERSISTENCE_CHANGED_EVENT } from '../actions/action_service_even
 import type { DataService } from '../data/data_service'
 import { register } from '../service_injector'
 import type { OpenFilesService } from '../open_files_service'
+import { stageMarkdownEditors } from './markdown_editor_staging'
 
 export type LocalSaveState = 'dirty' | 'saved' | 'saving'
 
@@ -55,13 +56,18 @@ export class ProjectPersistenceService extends EventTarget {
 
     async flushPendingChanges() {
         const { actionService, dataService, openFilesService } = this.requireDependencies()
-        if (actionService.draftStore.hasPendingDrafts()) await actionService.draftStore.flushDrafts()
-        for (const document of openFilesService.getRegisteredDocuments()) {
-            if (document.kind === 'card' && document.dirty) {
-                dataService.cards.updateCardBody(document.path, document.getDraft().content, document.createSaveReference())
+        while (true) {
+            if (!stageMarkdownEditors()) throw new Error('A Markdown editor could not stage its pending changes')
+            if (actionService.draftStore.hasPendingDrafts()) await actionService.draftStore.flushDrafts()
+            for (const document of openFilesService.getRegisteredDocuments()) {
+                if (document.kind === 'card' && document.dirty) {
+                    dataService.cards.updateCardBody(document.path, document.getDraft().content, document.createSaveReference())
+                }
             }
+            if (dataService.getPersistenceSnapshot().hasPendingFileCommit) await dataService.cards.flushPendingCommits()
+            await dataService.drainPendingStorageWrites()
+            if (!this.getSnapshot().hasPendingSave) return
         }
-        if (dataService.getPersistenceSnapshot().hasPendingFileCommit) await dataService.cards.flushPendingCommits()
     }
 
     private readonly handleDependencyChanged = () => {

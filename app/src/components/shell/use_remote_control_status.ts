@@ -6,7 +6,7 @@ import {
 } from '../../data/electron_remote_control_bridge'
 import { dialogService } from '../../services/dialog_service'
 
-const INITIAL_STATUS: RemoteControlStatus = { active: false, clientCount: 0, endpoint: null, token: null }
+const INITIAL_STATUS: RemoteControlStatus = { active: false, clientCount: 0, endpoint: null }
 
 interface MountState {
     isMounted: boolean

@@ -1,5 +1,23 @@
 import { describe, expect, it } from 'vitest';
-import { extractCommitSummaries } from '../../../../shared/action_history.mjs';
+import { extractAgentCommitIds, extractCommitSummaries } from '../../../../shared/action_history.mjs';
+
+describe('extractAgentCommitIds', () => {
+    it('parses marked commit IDs from surrounding prose in first-seen order', () => {
+        const output = 'Created change. Commit: a1b2c3d\nLater Commit:\tABCDEF1234567890. Repeated Commit: a1b2c3d';
+
+        expect(extractAgentCommitIds(output)).toEqual(['a1b2c3d', 'ABCDEF1234567890', 'a1b2c3d']);
+    });
+
+    it.each([
+        ['wrong marker case', 'commit: a1b2c3d'],
+        ['missing whitespace', 'Commit:a1b2c3d'],
+        ['too short', 'Commit: a1b2c3'],
+        ['too long', `Commit: ${'a'.repeat(41)}`],
+        ['non-hexadecimal', 'Commit: abcdef1z'],
+    ])('ignores %s', (_label, output) => {
+        expect(extractAgentCommitIds(output)).toEqual([]);
+    });
+});
 
 describe('extractCommitSummaries', () => {
     it('parses every normal and root commit summary line', () => {

@@ -11,10 +11,14 @@ import { actionPromptDraftService } from '../../../../services/actions/action_pr
 import { agentCapabilitiesService } from '../../../../services/agents/agent_capabilities_service'
 import { dialogService } from '../../../../services/dialog_service'
 import { dataService } from '../../../../services/data/data_service'
+import { remoteConnectionService } from '../../../../services/data/remote_connection_service'
+import { RemoteControlConnectionError, RemoteControlStorageService } from '../../../../services/data/remote_control_storage_service'
 import { worktreeService } from '../../../../services/project/worktree_service'
 import { AppThemeProvider } from '../../../../theme/theme_provider'
 import { ActionPopup, CARD_RUN_POPUP_SIZE_STORAGE_KEY, PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY } from './action_popup'
 import { useMarkdownTypeaheadStackPosition } from '../../../editor/markdown_typeahead_layer_context'
+import { configService } from '../../../../services/config/config_service'
+import { BUILTIN_AGENT_PROFILES } from '../../../../data/agent_profiles'
 
 const renderProbes = vi.hoisted(() => ({
     agentPrompt: vi.fn(),
@@ -182,6 +186,15 @@ function deferredValue<T>() {
     return { promise, resolve: resolveValue }
 }
 
+function rejectableDeferred<T>() {
+    let rejectValue: (error: unknown) => void = () => undefined
+    const promise = new Promise<T>((_resolve, reject) => {
+        rejectValue = reject
+    })
+
+    return { promise, reject: rejectValue }
+}
+
 function setMobileBreakpoint(matches: boolean) {
     window.matchMedia = ((query: string) => ({
         addEventListener: vi.fn(),
@@ -222,6 +235,8 @@ function renderPopup(contextOverride: ActionContext = context, onClose = vi.fn()
 
 describe('ActionPopup', () => {
     beforeEach(async () => {
+        remoteConnectionService.disconnect()
+        configService.init({ desktopConfig: { agent: 'codex', agentProfiles: BUILTIN_AGENT_PROFILES, model: '' } })
         setMobileBreakpoint(false)
         Object.values(renderProbes).forEach((probe) => probe.mockClear())
         window.md2Actions = {
@@ -247,9 +262,11 @@ describe('ActionPopup', () => {
     })
 
     afterEach(() => {
+        remoteConnectionService.disconnect()
         actionRunRegistry.stop()
         actionRunSettingsService.clear()
         delete window.md2Actions
+        configService.clear()
         actionService.clear()
         worktreeService.clear()
         window.localStorage.clear()
@@ -495,11 +512,39 @@ describe('ActionPopup', () => {
         expect(dialog.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument()
     })
 
+    it('uses host defaults and custom profiles in action selectors', async () => {
+        configService.replaceDesktopConfig({
+            agent: 'custom',
+            agentProfiles: [{ command: ['custom'], models: ['host-model'], name: 'custom' }],
+            codexSearchEnabled: true,
+            editorCommand: 'code "{{file}}"',
+            mergeConflictResolverCommand: '',
+            model: 'host-model',
+            permissionMode: 'full-access',
+            thinkingLevel: 'high',
+        })
+        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({
+            availability: { error: null, loading: false, values: { custom: { available: true, error: null } } },
+            models: { error: null, loading: false, values: [] },
+            thinkingLevels: { error: null, loading: false, values: [] },
+        })
+        renderPopup()
+        const dialog = within(screen.getByRole('dialog', { name: 'Run actions' }))
+
+        fireEvent.click(dialog.getByRole('button', { name: 'Custom prompt' }))
+        const model = await dialog.findByRole('button', { name: 'Model' })
+        expect(model.querySelector('[data-model-label]')).toHaveTextContent('host-model')
+        expect(model.querySelector('[data-full-thinking-level]')).toHaveTextContent('high')
+        fireEvent.click(model)
+
+        expect(screen.getByRole('menuitem', { name: 'custom' })).toHaveClass('Mui-selected')
+    })
+
     it.each(['Send button', 'Ctrl+Enter'])('runs custom prompt directly through %s', async (submission) => {
         const startAction = vi.fn(async () => 'custom-run')
         const saveProjectFile = vi.spyOn(dataService.cards, 'saveProjectFile')
         vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({
-            availability: { error: null, loading: false, values: { '': { available: true, error: null } } },
+            availability: { error: null, loading: false, values: { codex: { available: true, error: null } } },
             models: { error: null, loading: false, values: [] },
             thinkingLevels: { error: null, loading: false, values: [] },
         })
@@ -520,7 +565,13 @@ describe('ActionPopup', () => {
 
         await waitFor(() => expect(startAction).toHaveBeenCalledWith(expect.objectContaining({
             actionId: CUSTOM_PROMPT_ACTION_ID,
-            runInput: expect.objectContaining({ prompt: 'Explain this change' }),
+            runInput: expect.objectContaining({
+                agent: 'codex',
+                model: 'gpt-5.5',
+                permissionMode: 'ask-for-approval',
+                prompt: 'Explain this change',
+                thinkingLevel: 'none',
+            }),
         })))
         expect(saveProjectFile).not.toHaveBeenCalled()
     })
@@ -676,6 +727,76 @@ describe('ActionPopup', () => {
         const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
         await waitFor(() => expect(prompt).toHaveValue('Stored prompt'))
         expect(prepareActionPrompt).toHaveBeenCalledOnce()
+    })
+
+    it('keeps prompt preparation loading until remote backend becomes ready', async () => {
+        const connectionReady = deferredValue<void>()
+        const storage = new RemoteControlStorageService()
+        storage.init({ endpoint: 'ws://desktop:1234' })
+        vi.spyOn(storage, 'connect').mockReturnValue(connectionReady.promise)
+        vi.spyOn(storage, 'loadDesktopConfig').mockResolvedValue(configService.getDesktopValues())
+        vi.spyOn(storage, 'loadAgentAvailability').mockResolvedValue({})
+        vi.spyOn(storage, 'getCodexRateLimits').mockResolvedValue(null)
+        vi.spyOn(storage, 'loadActiveActionRunEvents').mockResolvedValue([])
+        vi.spyOn(storage, 'onActionRun').mockReturnValue(() => undefined)
+        vi.spyOn(storage, 'onCodexRateLimits').mockReturnValue(() => undefined)
+        const prepareActionPrompt = vi.spyOn(storage, 'prepareActionPrompt').mockResolvedValue({ prompt: 'Remote prompt' })
+        delete window.md2Actions
+        const connection = remoteConnectionService.connectExisting(storage)
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([])
+        actionService.loadFromFiles([file(agentDefinition('review', { label: 'Review' }))])
+
+        renderPopup({ ...context, cardInternalId: 'card-1' })
+
+        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
+        const promptDraft = actionPromptDraftService.getDraft(
+            'review',
+            { ...context, cardInternalId: 'card-1' },
+            null,
+            { prepare: true },
+        )
+        expect(promptDraft.getEditorSnapshot().preparationStatus).toBe('loading')
+        expect(prepareActionPrompt).not.toHaveBeenCalled()
+        connectionReady.resolve(undefined)
+        await connection
+
+        await waitFor(() => expect(prompt).toHaveValue('Remote prompt'))
+        expect(prepareActionPrompt).toHaveBeenCalledOnce()
+    })
+
+    it('retries prompt preparation through replacement bridge after remote close', async () => {
+        const firstPreparation = rejectableDeferred<never>()
+        const connectionListeners: Array<(connected: boolean) => void> = []
+        vi.spyOn(RemoteControlStorageService.prototype, 'connect').mockResolvedValue()
+        vi.spyOn(RemoteControlStorageService.prototype, 'loadDesktopConfig').mockResolvedValue(configService.getDesktopValues())
+        vi.spyOn(RemoteControlStorageService.prototype, 'loadAgentAvailability').mockResolvedValue({})
+        vi.spyOn(RemoteControlStorageService.prototype, 'getCodexRateLimits').mockResolvedValue(null)
+        vi.spyOn(RemoteControlStorageService.prototype, 'loadActiveActionRunEvents').mockResolvedValue([])
+        vi.spyOn(RemoteControlStorageService.prototype, 'onActionRun').mockReturnValue(() => undefined)
+        vi.spyOn(RemoteControlStorageService.prototype, 'onCodexRateLimits').mockReturnValue(() => undefined)
+        const prepareActionPrompt = vi.spyOn(RemoteControlStorageService.prototype, 'prepareActionPrompt')
+            .mockReturnValueOnce(firstPreparation.promise)
+            .mockResolvedValueOnce({ prompt: 'Reconnected prompt' })
+        const firstStorage = new RemoteControlStorageService()
+        firstStorage.init({ endpoint: 'ws://desktop:1234' })
+        vi.spyOn(firstStorage, 'onConnectionChanged').mockImplementation((listener) => {
+            connectionListeners.push(listener)
+
+            return () => true
+        })
+        delete window.md2Actions
+        await remoteConnectionService.connectExisting(firstStorage)
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([])
+        actionService.loadFromFiles([file(agentDefinition('review', { label: 'Review' }))])
+        renderPopup({ ...context, cardInternalId: 'card-1' })
+        await waitFor(() => expect(prepareActionPrompt).toHaveBeenCalledOnce())
+
+        connectionListeners.forEach((listener) => listener(false))
+        firstPreparation.reject(new RemoteControlConnectionError('Remote-control connection closed'))
+
+        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
+        await waitFor(() => expect(prompt).toHaveValue('Reconnected prompt'))
+        expect(prepareActionPrompt).toHaveBeenCalledTimes(2)
     })
 
     it('keeps the prompt empty after automatically selecting the newest unseen conversation', async () => {
@@ -1487,7 +1608,11 @@ describe('ActionPopup', () => {
 
         renderPopup(cardContext)
 
-        await waitFor(() => expect(screen.getByLabelText('Model')).toHaveTextContent('gpt-5.5 none'))
+        await waitFor(() => {
+            const model = screen.getByLabelText('Model')
+            expect(model.querySelector('[data-model-label]')).toHaveTextContent('gpt-5.5')
+            expect(model.querySelector('[data-full-thinking-level]')).toHaveTextContent('none')
+        })
         expect(updateCardActionSettings).not.toHaveBeenCalled()
     })
 
@@ -1690,7 +1815,7 @@ describe('ActionPopup', () => {
         const dialog = screen.getByRole('dialog')
 
         expect(dialog).toHaveStyle({
-            borderRadius: '0px', height: '100vh', left: '0px', margin: '0px', maxHeight: 'none', maxWidth: 'none',
+            borderRadius: '0px', height: '100dvh', left: '0px', margin: '0px', maxHeight: 'none', maxWidth: 'none',
             top: '0px', width: '100vw',
         })
         expect(screen.queryByRole('separator', { name: /Resize action popup/u })).not.toBeInTheDocument()
@@ -1717,7 +1842,7 @@ describe('ActionPopup', () => {
 
         renderPopup({ kind: 'project' })
 
-        expect(screen.getByRole('dialog')).toHaveStyle({ height: '100vh', left: '0px', top: '0px', width: '100vw' })
+        expect(screen.getByRole('dialog')).toHaveStyle({ height: '100dvh', left: '0px', top: '0px', width: '100vw' })
         expect(screen.getByRole('combobox', { name: 'Conversation history' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument()
         expect(screen.queryByRole('separator', { name: /Resize action popup/u })).not.toBeInTheDocument()
@@ -1730,9 +1855,16 @@ describe('ActionPopup', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'Expand upward' }))
         expect(dialog.style.height).toBe('100vh')
+        const leftResizeHandle = screen.getByRole('separator', { name: 'Resize action popup from left' })
+        const rightResizeHandle = screen.getByRole('separator', { name: 'Resize action popup from right' })
+        expect(leftResizeHandle).toHaveStyle({ cursor: 'ew-resize' })
+        expect(rightResizeHandle).toHaveStyle({ cursor: 'ew-resize' })
+        expect(screen.getAllByRole('separator', { name: /Resize action popup from/u })).toHaveLength(2)
+        expect(screen.queryByRole('separator', { name: 'Resize action popup from top' })).not.toBeInTheDocument()
 
         fireEvent.click(screen.getByRole('button', { name: 'Collapse downward' }))
         expect(dialog.style.height).toBe('450px')
+        expect(screen.getAllByRole('separator', { name: /Resize action popup from/u })).toHaveLength(8)
 
         fireEvent.click(screen.getByRole('button', { name: 'Expand upward' }))
         fireEvent.click(screen.getByRole('button', { name: 'Close' }))

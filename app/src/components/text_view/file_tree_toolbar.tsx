@@ -9,6 +9,7 @@ interface FileTreeToolbarProps {
     nodes: TreeNode[]
     onRequestCreate: (kind: CreateTreeItemKind, parentDirectory: string) => void
     projectFolder: string
+    readOnly: boolean
     selectedNodeId: string | null
 }
 
@@ -25,7 +26,7 @@ function findTreeNode(nodes: TreeNode[], id: string): TreeNode | null {
 
 /** File-tree heading and creation actions. */
 export function FileTreeToolbar(props: FileTreeToolbarProps) {
-    const { nodes, onRequestCreate, projectFolder, selectedNodeId } = props
+    const { nodes, onRequestCreate, projectFolder, readOnly, selectedNodeId } = props
     const activeDocumentPath = useActiveDocumentPath()
     const effectiveSelectedNodeId = selectedNodeId ?? activeDocumentPath
     const selectedNode = effectiveSelectedNodeId ? findTreeNode(nodes, effectiveSelectedNodeId) : null
@@ -64,6 +65,7 @@ export function FileTreeToolbar(props: FileTreeToolbarProps) {
             <Tooltip title="New folder">
                 <IconButton
                     aria-label="New folder"
+                    disabled={readOnly}
                     onClick={requestFolder}
                     size="small"
                     sx={{
@@ -80,6 +82,7 @@ export function FileTreeToolbar(props: FileTreeToolbarProps) {
             <Tooltip title="New Markdown file">
                 <IconButton
                     aria-label="New Markdown file"
+                    disabled={readOnly}
                     onClick={requestMarkdownFile}
                     size="small"
                     sx={{

@@ -98,6 +98,35 @@ describe('parseAgentConversationLog', () => {
         })
     })
 
+    it('preserves valid context-window usage and omits malformed optional snapshots', () => {
+        const source = {
+            completedAt: null,
+            entries: [],
+            id: 'agent-1',
+            startedAt: '2026-01-01T00:00:00.000Z',
+            status: 'completed',
+        }
+        const valid = parseAgentConversationLog(JSON.stringify({
+            ...source,
+            contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 },
+        }), 'design/logs/one.json')
+
+        expect(valid.contextWindowUsage).toEqual({ capacityTokens: 258_400, usedTokens: 42_000 })
+
+        for (const contextWindowUsage of [
+            { capacityTokens: 0, usedTokens: 42_000 },
+            { capacityTokens: -1, usedTokens: 42_000 },
+            { capacityTokens: '258400', usedTokens: 42_000 },
+            { capacityTokens: 258_400, usedTokens: -1 },
+        ]) {
+            const conversation = parseAgentConversationLog(
+                JSON.stringify({ ...source, contextWindowUsage }),
+                'design/logs/one.json',
+            )
+            expect(conversation).not.toHaveProperty('contextWindowUsage')
+        }
+    })
+
     it('preserves structured sequenced conversation activity', () => {
         const conversation = parseAgentConversationLog(JSON.stringify({
             completedAt: null,
@@ -141,13 +170,13 @@ describe('parseAgentConversationLog', () => {
             durationMs: 25,
             exitCode: 1,
             insertions: 4,
-            output: 'failed',
             providerItemId: 'command-1',
             sequence: 2,
             status: 'failed',
             summary: ['summary'],
             workingDirectory: 'C:\\repo',
         })
+        expect(conversation.entries[0]).not.toHaveProperty('output')
     })
 
     it('groups persisted consecutive diagnostics while preserving boundaries and first identity', () => {

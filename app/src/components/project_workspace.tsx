@@ -12,7 +12,7 @@ import {
 } from '../data/data_types'
 import { dataService } from '../services/data/data_service'
 import { dialogService } from '../services/dialog_service'
-import { getElectronLifecycleBridge, type ElectronLifecycleBridge } from '../services/electron_lifecycle_bridge'
+import { getElectronLifecycleBridge, type ElectronFlushRequest, type ElectronLifecycleBridge } from '../services/electron_lifecycle_bridge'
 import { openFilesService } from '../services/open_files_service'
 import type { OpenDocument } from '../services/open_files_service'
 import { telemetryService } from '../services/telemetry/telemetry_service'
@@ -23,7 +23,7 @@ import { CardView } from './card_view/card_view'
 import { MobileCardViewMenu } from './card_view/mobile_card_view_menu'
 import { MobileCardView } from './card_view/mobile_card_view'
 import { CardActionPopupHost } from './actions/run/popup/card_action_popup_host'
-import { flushMarkdownEditors } from './editor/markdown_editor_flush'
+import { stageMarkdownEditors } from '../services/project/markdown_editor_staging'
 import { useProjectReference } from './hooks/use_project_reference'
 import { TextView } from './text_view/text_view'
 import { FileTreeView } from './text_view/file_tree_view'
@@ -41,19 +41,18 @@ function openDocumentPath(document: OpenDocument) {
 }
 
 function flushPendingCommits() {
-    flushMarkdownEditors()
     void projectPersistenceService.flushPendingChanges().catch((error: unknown) => {
         dialogService.error(error, { fallbackMessage: 'Pending changes could not be saved' })
     })
 }
 
-async function flushAndConfirmPendingCommits(lifecycleBridge: ElectronLifecycleBridge, requestId: string) {
+async function flushAndReportPendingCommits(lifecycleBridge: ElectronLifecycleBridge, request: ElectronFlushRequest) {
     try {
-        flushMarkdownEditors()
         await projectPersistenceService.flushPendingChanges()
-        lifecycleBridge.confirmFlush(requestId)
+        lifecycleBridge.reportFlushResult({ requestId: request.requestId, success: true })
     } catch (error) {
         dialogService.error(error, { fallbackMessage: 'Pending changes could not be saved before closing' })
+        lifecycleBridge.reportFlushResult({ requestId: request.requestId, success: false })
     }
 }
 
@@ -135,12 +134,12 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
 
     useEffect(() => {
         const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-            flushMarkdownEditors()
+            const staged = stageMarkdownEditors()
             const { hasPendingPush, hasPendingSave } = projectPersistenceService.getSnapshot()
             // In Electron, vetoing beforeunload silently cancels the window close (no confirm
             // dialog), leaving the app unclosable. The main process flushes pending commits on
             // quit instead, so only prompt in a plain browser build.
-            if ((hasPendingPush || hasPendingSave) && !getElectronLifecycleBridge()) {
+            if ((!staged || hasPendingPush || hasPendingSave) && !getElectronLifecycleBridge()) {
                 event.preventDefault()
                 event.returnValue = ''
             }
@@ -152,19 +151,20 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
             if (document.visibilityState === 'hidden') flushPendingCommits()
         }
 
-        const handleBlur = () => {
-            flushMarkdownEditors()
-            if (projectPersistenceService.getSnapshot().hasPendingSave) flushPendingCommits()
-        }
+        const handleBlur = () => flushPendingCommits()
+
+        const handlePageHide = () => flushPendingCommits()
 
         document.addEventListener('visibilitychange', handleVisibilityChange)
         window.addEventListener('beforeunload', handleBeforeUnload)
         window.addEventListener('blur', handleBlur)
+        window.addEventListener('pagehide', handlePageHide)
 
         return () => {
             document.removeEventListener('visibilitychange', handleVisibilityChange)
             window.removeEventListener('beforeunload', handleBeforeUnload)
             window.removeEventListener('blur', handleBlur)
+            window.removeEventListener('pagehide', handlePageHide)
         }
     }, [])
 
@@ -172,8 +172,8 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         const lifecycleBridge = getElectronLifecycleBridge()
         if (!lifecycleBridge) return undefined
 
-        return lifecycleBridge.onFlushRequested((requestId) => {
-            void flushAndConfirmPendingCommits(lifecycleBridge, requestId)
+        return lifecycleBridge.onFlushRequested((request) => {
+            void flushAndReportPendingCommits(lifecycleBridge, request)
         })
     }, [])
 

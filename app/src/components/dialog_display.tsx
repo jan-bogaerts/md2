@@ -1,4 +1,5 @@
-import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, Snackbar } from '@mui/material'
+import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined'
+import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Snackbar, Tooltip } from '@mui/material'
 import type { SyntheticEvent } from 'react'
 import { useEffect, useState } from 'react'
 import { DIALOG_SERVICE_EVENT, dialogService, type DialogServiceMessage } from '../services/dialog_service'
@@ -12,6 +13,7 @@ const SNACKBAR_TRANSITION_DURATION_MS = { exit: IMMEDIATE_TRANSITION_MS }
 /** Renders dialog service events as snackbars or blocking dialogs. */
 export function DialogDisplay() {
     const [dialogMessage, setDialogMessage] = useState<DialogServiceMessage | null>(null)
+    const [pendingMessageId, setPendingMessageId] = useState<number | null>(null)
     const [snackbarMessages, setSnackbarMessages] = useState<DialogServiceMessage[]>([])
     const snackbarMessage = snackbarMessages[0] ?? null
     const snackbarSeverity = snackbarMessage?.severity ?? 'info'
@@ -40,6 +42,24 @@ export function DialogDisplay() {
         setSnackbarMessages((currentMessages) => currentMessages.slice(1))
     }
 
+    const handleSnackbarAction = async () => {
+        if (!snackbarMessage?.action) return
+        const { action, id } = snackbarMessage
+        setPendingMessageId(id)
+        try {
+            await action.callback()
+            setSnackbarMessages((currentMessages) => currentMessages.filter((message) => message.id !== id))
+        } catch {
+            setSnackbarMessages((currentMessages) => {
+                if (currentMessages[0]?.id !== id || currentMessages.length === 1) return currentMessages
+
+                return [...currentMessages.slice(1), currentMessages[0]]
+            })
+        } finally {
+            setPendingMessageId((currentId) => currentId === id ? null : currentId)
+        }
+    }
+
     const handleCloseDialog = () => {
         setDialogMessage(null)
     }
@@ -55,7 +75,29 @@ export function DialogDisplay() {
                 transitionDuration={SNACKBAR_TRANSITION_DURATION_MS}
             >
                 <Alert
-                    onClose={handleCloseSnackbarAlert}
+                    action={snackbarMessage?.action ? (
+                        <Box sx={{ alignItems: 'center', display: 'flex', gap: 0.5 }}>
+                            <Button
+                                color="inherit"
+                                disabled={pendingMessageId === snackbarMessage.id}
+                                onClick={handleSnackbarAction}
+                                size="small"
+                            >
+                                {snackbarMessage.action.label}
+                            </Button>
+                            <Tooltip title="Close">
+                                <IconButton
+                                    aria-label="Close"
+                                    color="inherit"
+                                    onClick={handleCloseSnackbarAlert}
+                                    size="small"
+                                >
+                                    <CloseOutlinedIcon fontSize="small" />
+                                </IconButton>
+                            </Tooltip>
+                        </Box>
+                    ) : undefined}
+                    onClose={snackbarMessage?.action ? undefined : handleCloseSnackbarAlert}
                     severity={snackbarSeverity}
                     sx={{ width: '100%' }}
                     variant="filled"

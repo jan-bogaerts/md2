@@ -13,6 +13,7 @@ import { telemetryService } from '../services/telemetry/telemetry_service'
 import { workspaceNavigationService } from '../services/project/workspace_navigation_service'
 import { workspaceViewService } from '../services/project/workspace_view_service'
 import { projectPersistenceService } from '../services/project/project_persistence_service'
+import { projectAccessService } from '../services/project/project_access_service'
 import { cardMarkdownDataSource } from './editor/card_markdown_data_source'
 import { AppThemeProvider } from '../theme/theme_provider'
 import { DialogDisplay } from './dialog_display'
@@ -150,6 +151,15 @@ function renderProjectSurface(isGithubAuthenticated = false) {
     )
 }
 
+function openTreeBranches(treeElement: HTMLElement, branchNames: string[]) {
+    const tree = within(treeElement)
+    for (const branchName of branchNames) {
+        const branchButton = tree.queryByRole('button', { name: new RegExp(`^${branchName} \\d+$`, 'u') })
+        const treeItem = branchButton?.closest('[role="treeitem"]')
+        if (branchButton && treeItem?.getAttribute('aria-expanded') === 'false') fireEvent.click(branchButton)
+    }
+}
+
 async function openProjectDialog() {
     fireEvent.click(screen.getByRole('button', { name: 'Project' }))
     fireEvent.click(screen.getByRole('menuitem', { name: 'Open project...' }))
@@ -161,13 +171,16 @@ async function chooseBranch(branch: string) {
     fireEvent.click(await screen.findByRole('option', { name: branch }))
 }
 
-function requestLocalProject() {
+async function requestLocalProject() {
     fireEvent.click(screen.getByRole('button', { name: 'Project' }))
     fireEvent.click(screen.getByRole('menuitem', { name: 'Open project...' }))
+    fireEvent.mouseDown(await screen.findByRole('combobox', { name: 'Source' }))
+    fireEvent.click(await screen.findByRole('option', { name: 'Local folder' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Choose local repository folder' }))
 }
 
 async function openLocalProject() {
-    requestLocalProject()
+    await requestLocalProject()
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Open project' })).toBeNull())
 }
 
@@ -210,6 +223,7 @@ describe('ProjectWorkspace', () => {
         actionService.clear()
         configService.clear()
         window.localStorage.clear()
+        projectAccessService.setReadOnly(false)
         setActionBridgeOverride(null)
         delete window.md2Actions
         delete window.md2Data
@@ -233,6 +247,24 @@ describe('ProjectWorkspace', () => {
             justifyContent: 'center',
             textAlign: 'center',
         })
+    })
+
+    it('does not launch the Electron folder picker before Local folder is chosen', async () => {
+        const bridge = createBridge()
+        window.md2Data = bridge
+        renderProjectSurface(false)
+
+        fireEvent.click(screen.getByRole('button', { name: 'Project' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Open project...' }))
+
+        expect(await screen.findByRole('dialog', { name: 'Open project' })).toBeInTheDocument()
+        expect(bridge.openProjectFolder).not.toHaveBeenCalled()
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Source' }))
+        fireEvent.click(await screen.findByRole('option', { name: 'Local folder' }))
+        expect(bridge.openProjectFolder).not.toHaveBeenCalled()
+        fireEvent.click(screen.getByRole('button', { name: 'Choose local repository folder' }))
+
+        await waitFor(() => expect(bridge.openProjectFolder).toHaveBeenCalledOnce())
     })
 
     it('opens a local project and shows root cards in the card view before background cards', async () => {
@@ -265,6 +297,30 @@ describe('ProjectWorkspace', () => {
 
         expect(await screen.findByLabelText('File tree')).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Project agent' })).toBeInTheDocument()
+    })
+
+    it('disables project mutations while keeping branch switching and file navigation available', async () => {
+        window.md2Actions = createActionBridge()
+        window.md2Data = createBridge()
+        renderProjectSurface()
+        await openLocalProject()
+        await findRootCard()
+
+        act(() => projectAccessService.setReadOnly(true))
+
+        expect(screen.getByRole('button', { name: 'Add card from active column' })).toBeDisabled()
+        expect(screen.getByRole('button', { name: /^Run/u })).toBeDisabled()
+        const projectMenuButton = screen.getByRole('button', { name: 'Project' })
+        fireEvent.click(projectMenuButton)
+        expect(screen.getByRole('menuitem', { name: 'Switch branch...' })).toBeEnabled()
+        expect(screen.getByRole('menuitem', { name: 'Complete release...' })).toHaveAttribute('aria-disabled', 'true')
+        expect(screen.getByRole('menuitem', { name: 'New card...' })).toHaveAttribute('aria-disabled', 'true')
+        fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' })
+
+        act(() => workspaceViewService.setViewMode('text'))
+        expect(await screen.findByLabelText('File tree')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'New folder' })).toBeDisabled()
+        expect(screen.getByRole('button', { name: 'New Markdown file' })).toBeDisabled()
     })
 
     it('hides project agent in a browser without an Electron action-run backend', async () => {
@@ -303,7 +359,7 @@ describe('ProjectWorkspace', () => {
         window.md2Data = bridge
 
         renderProjectSurface(false)
-        requestLocalProject()
+        await requestLocalProject()
 
         expect(await screen.findByText('Selected folder is not inside a Git work tree')).toBeInTheDocument()
         expect(dataService.getState().project).toBeNull()
@@ -316,7 +372,7 @@ describe('ProjectWorkspace', () => {
         window.md2Data = bridge
 
         renderProjectSurface(false)
-        requestLocalProject()
+        await requestLocalProject()
 
         expect(await screen.findByRole('dialog', { name: 'Create project' })).toBeInTheDocument()
         expect(screen.getByLabelText('Project folder')).toHaveValue('design')
@@ -360,6 +416,36 @@ describe('ProjectWorkspace', () => {
         expect(projectPersistenceService.getSnapshot().hasPendingSave).toBe(false)
 
         visibilityState.mockRestore()
+    })
+
+    it('flushes pending commits on pagehide', async () => {
+        const bridge = createBridge()
+        window.md2Data = bridge
+
+        renderProjectSurface()
+        await openLocalProject()
+        await findRootCard()
+
+        dataService.cards.updateCardBody('design/F-1-root.md', 'Changed before page hide')
+        await waitFor(() => expect(projectPersistenceService.getSnapshot().hasPendingSave).toBe(true))
+        window.dispatchEvent(new Event('pagehide'))
+
+        await waitFor(() => expect(bridge.commit).toHaveBeenCalledWith(expect.objectContaining({files: [expect.objectContaining({ path: 'design/F-1-root.md' })]})))
+    })
+
+    it('flushes pending commits when window loses focus', async () => {
+        const bridge = createBridge()
+        window.md2Data = bridge
+
+        renderProjectSurface()
+        await openLocalProject()
+        await findRootCard()
+
+        dataService.cards.updateCardBody('design/F-1-root.md', 'Changed before blur')
+        await waitFor(() => expect(projectPersistenceService.getSnapshot().hasPendingSave).toBe(true))
+        window.dispatchEvent(new Event('blur'))
+
+        await waitFor(() => expect(bridge.commit).toHaveBeenCalledWith(expect.objectContaining({files: [expect.objectContaining({ path: 'design/F-1-root.md' })]})))
     })
 
     it('confirms close only while commits are pending', async () => {
@@ -417,10 +503,10 @@ describe('ProjectWorkspace', () => {
 
     it('flushes and confirms Electron quit flush requests', async () => {
         const bridge = createBridge()
-        let flushRequested: ((requestId: string) => void) | null = null
+        let flushRequested: ((request: { reason: 'app-quit' | 'window-close', requestId: string }) => void) | null = null
         window.md2Data = bridge
         window.md2Lifecycle = {
-            confirmFlush: vi.fn(),
+            reportFlushResult: vi.fn(),
             onFlushRequested: vi.fn((callback) => {
                 flushRequested = callback
 
@@ -434,16 +520,16 @@ describe('ProjectWorkspace', () => {
 
         dataService.cards.updateCardBody('design/F-1-root.md', 'Changed before quit')
         await waitFor(() => expect(projectPersistenceService.getSnapshot().hasPendingSave).toBe(true))
-        act(() => flushRequested?.('quit-1'))
+        act(() => flushRequested?.({ reason: 'app-quit', requestId: 'quit-1' }))
 
         await waitFor(() => expect(bridge.commit).toHaveBeenCalled())
-        await waitFor(() => expect(window.md2Lifecycle?.confirmFlush).toHaveBeenCalledWith('quit-1'))
+        await waitFor(() => expect(window.md2Lifecycle?.reportFlushResult).toHaveBeenCalledWith({ requestId: 'quit-1', success: true }))
     })
 
     it('does not confirm Electron quit when an invalid action draft cannot flush', async () => {
-        let flushRequested: ((requestId: string) => void) | null = null
+        let flushRequested: ((request: { reason: 'app-quit' | 'window-close', requestId: string }) => void) | null = null
         window.md2Lifecycle = {
-            confirmFlush: vi.fn(),
+            reportFlushResult: vi.fn(),
             onFlushRequested: vi.fn((callback) => {
                 flushRequested = callback
 
@@ -457,10 +543,10 @@ describe('ProjectWorkspace', () => {
         }])
         actionService.draftStore.updateDraft('actions/run.json', { command: 'run', description: 'Run', id: 'run', label: '', type: 'command' })
 
-        act(() => flushRequested?.('quit-invalid'))
+        act(() => flushRequested?.({ reason: 'app-quit', requestId: 'quit-invalid' }))
 
         await screen.findByText(/invalid unsaved changes/u)
-        expect(window.md2Lifecycle.confirmFlush).not.toHaveBeenCalled()
+        expect(window.md2Lifecycle.reportFlushResult).toHaveBeenCalledWith({ requestId: 'quit-invalid', success: false })
         expect(projectPersistenceService.getSnapshot().hasPendingSave).toBe(true)
     })
 
@@ -488,7 +574,7 @@ describe('ProjectWorkspace', () => {
         window.md2Data = bridge
 
         renderProjectSurface()
-        requestLocalProject()
+        await requestLocalProject()
 
         expect(await screen.findByText('Working folder is missing: missing')).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Use folder docs' })).toBeInTheDocument()
@@ -534,7 +620,7 @@ describe('ProjectWorkspace', () => {
         window.md2Data = bridge
 
         renderProjectSurface()
-        requestLocalProject()
+        await requestLocalProject()
 
         await screen.findByText('Working folder is missing: missing')
         expect(bridge.createProject).not.toHaveBeenCalled()
@@ -655,7 +741,9 @@ describe('ProjectWorkspace', () => {
         renderProjectSurface()
         await openLocalProject()
         act(() => workspaceViewService.setViewMode('text'))
-        const tree = within(await screen.findByLabelText('File tree'))
+        const treeElement = await screen.findByLabelText('File tree')
+        openTreeBranches(treeElement, ['design', 'history'])
+        const tree = within(treeElement)
         fireEvent.click(tree.getByRole('button', { name: 'F-1 Root' }))
         fireEvent.click(tree.getByRole('button', { name: 'F-2 Old' }))
         expect(screen.getAllByRole('tab')).toHaveLength(2)
@@ -681,7 +769,9 @@ describe('ProjectWorkspace', () => {
             path: 'design/actions/review.json',
         }]))
         act(() => workspaceViewService.setViewMode('text'))
-        const tree = within(await screen.findByLabelText('File tree'))
+        const treeElement = await screen.findByLabelText('File tree')
+        openTreeBranches(treeElement, ['design', 'actions'])
+        const tree = within(treeElement)
         fireEvent.click(tree.getByRole('button', { name: 'Review code' }))
         fireEvent.click(screen.getByRole('tab', { name: 'Tests' }))
 
@@ -703,7 +793,9 @@ describe('ProjectWorkspace', () => {
         renderProjectSurface()
         await openLocalProject()
         act(() => workspaceViewService.setViewMode('text'))
-        const tree = within(await screen.findByLabelText('File tree'))
+        const treeElement = await screen.findByLabelText('File tree')
+        openTreeBranches(treeElement, ['design', 'actions'])
+        const tree = within(treeElement)
         fireEvent.click(tree.getByRole('button', { name: 'Test' }))
         expect(openFilesService.getSnapshot().activeDocument?.kind).toBe('action')
 

@@ -37,6 +37,7 @@ interface ResizablePopperBaseProps {
     placement?: PopperPlacementType
     resizeCorner?: ResizeCorner
     resizeFromAllSides?: boolean
+    resizeHorizontallyWhenFullHeight?: boolean
     resizeLabel: string
     stackPosition?: number
     storageKey?: string
@@ -65,6 +66,7 @@ const VIEWPORT_MARGIN = 16
 const OVERLAY_LAYER_OFFSET = 1
 const ALL_RESIZE_DIRECTIONS = ['top', 'right', 'bottom', 'left', 'top-right', 'bottom-right', 'bottom-left', 'top-left'] as const
 type ResizeDirection = typeof ALL_RESIZE_DIRECTIONS[number]
+const FULL_HEIGHT_RESIZE_DIRECTIONS: ResizeDirection[] = ['left', 'right']
 
 const PREVENT_VIEWPORT_OVERFLOW_MODIFIER = { name: 'preventOverflow', options: { altAxis: true, padding: VIEWPORT_MARGIN, tether: false } } as const
 const VIEWPORT_MODIFIERS: NonNullable<PopperProps['modifiers']> = [
@@ -176,6 +178,7 @@ export function ResizablePopper(props: ResizablePopperProps) {
         placement = 'bottom-start',
         resizeCorner = 'lower-right',
         resizeFromAllSides = false,
+        resizeHorizontallyWhenFullHeight = false,
         resizeLabel,
         stackPosition,
         storageKey,
@@ -186,6 +189,7 @@ export function ResizablePopper(props: ResizablePopperProps) {
     const [detachedLeft, setDetachedLeft] = useState<number | null>(null)
     const anchoredLeftRef = useRef<number | null>(null)
     const focusOnMountRef = useRef(focusOnMount)
+    const fullHeightRef = useRef(false)
     const paperRef = useRef<HTMLDivElement | null>(null)
     const resizeRef = useRef<AbortController | null>(null)
     const theme = useTheme()
@@ -211,12 +215,18 @@ export function ResizablePopper(props: ResizablePopperProps) {
         window.localStorage.setItem(storageKey, JSON.stringify(size))
     }, [persistSizeOnResizeEndOnly, size, storageKey])
     useLayoutEffect(() => {
-        if (!fullHeight || !paperRef.current) return
+        if (!fullHeight) {
+            fullHeightRef.current = false
+            return
+        }
+        if (!paperRef.current) return
 
         const bounds = paperRef.current.getBoundingClientRect()
         const width = size.width ?? bounds.width
         const anchoredLeft = anchoredLeftRef.current ?? bounds.left
-        setDetachedLeft(clampDetachedLeft(anchoredLeft, width))
+        const enteredFullHeight = !fullHeightRef.current
+        fullHeightRef.current = true
+        setDetachedLeft((current) => clampDetachedLeft(enteredFullHeight ? anchoredLeft : current ?? anchoredLeft, width))
     }, [fullHeight, size.width])
     useEffect(() => {
         if (!fullHeight) return
@@ -318,6 +328,19 @@ export function ResizablePopper(props: ResizablePopperProps) {
                 const resizesRight = activeDirection.includes('right')
                 const resizesTop = activeDirection.includes('top')
                 const resizesBottom = activeDirection.includes('bottom')
+                if (fullHeight && (resizesLeft || resizesRight)) {
+                    const fixedRight = start.left + start.width
+                    const maximumWidth = resizesLeft ? fixedRight : window.innerWidth - start.left
+                    const minimumWidth = Math.min(minimumSize.width, maximumWidth)
+                    const requestedWidth = start.width + (resizesLeft ? -horizontalDelta : horizontalDelta)
+                    const width = Math.min(Math.max(requestedWidth, minimumWidth), maximumWidth)
+                    const left = resizesLeft ? fixedRight - width : start.left
+
+                    completedSize = { height: start.height, width }
+                    setSize(completedSize)
+                    setDetachedLeft(left)
+                    return
+                }
                 const nextSize = {
                     height: Math.max(
                         minimumSize.height,
@@ -395,7 +418,16 @@ export function ResizablePopper(props: ResizablePopperProps) {
                 {stackPosition === undefined
                     ? children
                     : <ThemeProvider theme={overlayTheme}>{children}</ThemeProvider>}
-                {!fullHeight && resizeFromAllSides ? ALL_RESIZE_DIRECTIONS.map((direction) => (
+                {fullHeight && resizeHorizontallyWhenFullHeight ? FULL_HEIGHT_RESIZE_DIRECTIONS.map((direction) => (
+                    <Box
+                        aria-label={`${resizeLabel} from ${direction}`}
+                        data-direction={direction}
+                        key={direction}
+                        onPointerDown={startResize}
+                        role="separator"
+                        sx={{ ...directionPosition(direction), position: 'absolute', touchAction: 'none' }}
+                    />
+                )) : !fullHeight && resizeFromAllSides ? ALL_RESIZE_DIRECTIONS.map((direction) => (
                     <Box
                         aria-label={`${resizeLabel} from ${direction}`}
                         data-direction={direction}

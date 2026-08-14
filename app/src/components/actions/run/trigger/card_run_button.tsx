@@ -9,6 +9,7 @@ import { cardPopupService } from '../../../../services/card_popup_service'
 import { agentStateDescription } from '../../../../services/agents/card_agent_state'
 import { useCardAgentState } from '../../../hooks/use_agent_acknowledgements'
 import { useRunningActionForContext } from '../../../hooks/use_action_runs'
+import { useProjectReadOnly } from '../../../hooks/use_project_read_only'
 
 interface CardRunButtonProps {
     card: { header: Pick<CardHeader, 'internalId'> }
@@ -19,6 +20,7 @@ interface CardRunButtonProps {
 export function CardRunButton({ card, context }: CardRunButtonProps) {
     const agentState = useCardAgentState(card.header.internalId)
     const runningRun = useRunningActionForContext(context)
+    const readOnly = useProjectReadOnly()
     const liveStatus = runningRun?.status
     const isQueued = liveStatus === 'queued'
     const isWaiting = liveStatus ? liveStatus === 'waitingForInput' : agentState === 'waiting for input'
@@ -59,6 +61,7 @@ export function CardRunButton({ card, context }: CardRunButtonProps) {
         >
             <Button
                 aria-label={stateDescription ? `Run — ${stateDescription}` : 'Run'}
+                disabled={readOnly}
                 onClick={handleRun}
                 size="small"
                 startIcon={<Play sx={{ fontSize: '13px !important' }} />}

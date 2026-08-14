@@ -23,12 +23,13 @@ function ignoreUnavailableWorktreeSelection() {
 interface ListEditorToolbarControlsProps {
     cardTypes: CardTypeConfig[]
     historyStore: MarkdownDocumentHistoryStore
+    readOnly: boolean
     statusColors: Map<string, string>
 }
 
 /** Formatting controls and card-specific controls for the active list-card document. */
 export function ListEditorToolbarControls(props: ListEditorToolbarControlsProps) {
-    const { cardTypes, historyStore, statusColors } = props
+    const { cardTypes, historyStore, readOnly, statusColors } = props
     const card = useActiveCard('list-card')
     const cardInternalId = card?.header.internalId ?? null
     const historyKey = cardInternalId ?? card?.path ?? null
@@ -62,9 +63,11 @@ export function ListEditorToolbarControls(props: ListEditorToolbarControlsProps)
     const endControls = cardInternalId ? (
         <>
             <Separator />
-            <Button onClick={handleToggleAgentPopup} size="small" variant={isAgentPopupOpen ? 'contained' : 'outlined'}>
-                Agents{card.agentConversations.length > 0 ? ` (${card.agentConversations.length})` : ''}
-            </Button>
+            {!readOnly ? (
+                <Button onClick={handleToggleAgentPopup} size="small" variant={isAgentPopupOpen ? 'contained' : 'outlined'}>
+                    Agents{card.agentConversations.length > 0 ? ` (${card.agentConversations.length})` : ''}
+                </Button>
+            ) : null}
             <CardCommitMenu
                 commits={cardCommits.commits}
                 currentWorktreeAvailable={false}
@@ -72,16 +75,18 @@ export function ListEditorToolbarControls(props: ListEditorToolbarControlsProps)
                 onSelectCommit={listCardCommitDiffDataSource.select}
                 onSelectWorktree={ignoreUnavailableWorktreeSelection}
             />
-            <CardPropertiesControl
-                binding="list-card"
-                cardTypes={cardTypes}
-                statusColors={statusColors}
-            />
+            {!readOnly ? (
+                <CardPropertiesControl
+                    binding="list-card"
+                    cardTypes={cardTypes}
+                    statusColors={statusColors}
+                />
+            ) : null}
         </>
     ) : undefined
     const undoRedoControls = <MarkdownDocumentUndoRedo historyKey={historyKey} historyStore={historyStore} />
 
     return (
-        <MarkdownFormatToolbarControls endControls={endControls} undoRedoControls={undoRedoControls} />
+        <MarkdownFormatToolbarControls endControls={endControls} readOnly={readOnly} undoRedoControls={undoRedoControls} />
     )
 }

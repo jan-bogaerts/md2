@@ -7,6 +7,7 @@ const {
     createConversation,
     createEventEntry,
     createMessageEntry,
+    snapshotConversation,
     updateProviderSession,
 } = require('./agent_conversation');
 const {
@@ -17,6 +18,7 @@ const {
 const { AgentExecutableResolver } = require('./agent_executable_availability');
 const { createAgentEnvironment } = require('./agent_environment');
 const { diagnoseCodexCacheError, isCodexCacheError } = require('./agent_codex_cache_diagnostic');
+const { logAgentEvent } = require('./agent_file_logger');
 const agentInteractions = require('./agent_run_interactions');
 const {
     attachRunProtocol,
@@ -38,7 +40,7 @@ const {
     requireString,
 } = require('./agent_run_validation');
 const { redactSecrets } = require('./agent_secret_redaction');
-const { filterCompleteStderrLines, isHiddenStderrLine } = require('./agent_stderr_filter');
+const { filterCompleteStderrLines, isHiddenStderrLine, stripAnsi } = require('./agent_stderr_filter');
 const { STREAMING_EVENT_HANDLERS } = require('./agent_streaming_event_handlers');
 const { terminateProcessTree } = require('../process_tree');
 const { assertGitRoot, ensureInsideRoot, requireRootPath } = require('../../git/git_commands');
@@ -121,7 +123,7 @@ class AgentRunnerService {
             stdio: ['pipe', 'pipe', 'pipe'],
             // windowsHide: true,
         });
-        console.log('[agent:start]', {
+        logAgentEvent('[agent:start]', {
             arguments: configuredArguments,
             cwd: rootPath,
             actionRunId: request.actionRunId ?? null,
@@ -180,13 +182,14 @@ class AgentRunnerService {
         }
         const userMessage = lastMessageEntry(conversation);
         if (!userMessage || userMessage.role !== 'user') throw new Error('Missing current agent user message');
+        const conversationSnapshot = snapshotConversation(conversation);
         emitRunEvent(run, {
             continued: !!request.conversation,
-            conversation: structuredClone(conversation),
+            conversation: conversationSnapshot,
             type: 'started',
         });
 
-        return { conversation: structuredClone(conversation), reference, runId: id };
+        return { conversation: conversationSnapshot, reference, runId: id };
     }
 
     stop(runId) {
@@ -324,7 +327,7 @@ class AgentRunnerService {
     recordStderr(run, content) {
         const parts = content.split(/(\r\n|\r|\n)/u);
         for (let index = 0; index < parts.length; index += 2) {
-            const line = parts[index];
+            const line = stripAnsi(parts[index]);
             const delimiter = parts[index + 1] ?? '';
             if (line.length === 0 && delimiter.length === 0) continue;
             if (run.agent !== 'codex' || !isCodexCacheError(line)) {
@@ -334,8 +337,11 @@ class AgentRunnerService {
             if (run.codexCacheErrorReported) continue;
             run.codexCacheErrorReported = true;
             const diagnostic = run.stderrHandling.then(async () => {
-                const message = await this.diagnoseCodexCacheError(line, run.executable, run.environment);
-                this.recordOutput(run.id, 'stderr', `${message}\n`);
+                const result = await this.diagnoseCodexCacheError(line, run.executable, run.environment);
+                this.recordOutput(run.id, 'stderr', `${result.message}\n`);
+                if (result.updateRequired) {
+                    this.codexRuntimeService?.publishUpdateRequired(result.runningVersion, result.cacheVersion);
+                }
             });
             run.stderrHandling = diagnostic.catch(() => {
                 this.recordOutput(run.id, 'stderr', `${line}${delimiter}`);
@@ -554,7 +560,7 @@ class AgentRunnerService {
                 && !succeeded
                 && !run.cancelled
                 && !run.suspended;
-            console.log('[agent:complete]', {
+            logAgentEvent('[agent:complete]', {
                 completedAt,
                 durationMs: Date.parse(completedAt) - Date.parse(run.startedAt),
                 actionRunId: run.request.actionRunId ?? null,
@@ -566,7 +572,7 @@ class AgentRunnerService {
             if (!continuedTurnFailedBeforeStart) await this.persistConversation(run);
             this.processes.delete(runId);
             this.runningConversationIds.delete(run.conversation.id);
-            emitRunEvent(run, { conversation: structuredClone(run.conversation), type: 'closed' });
+            emitRunEvent(run, { conversation: run.conversation, type: 'closed' });
             if (run.onComplete) run.onComplete(succeeded ? 0 : exitCode || 1, run);
         } catch (error) {
             if (run.onCompletionError) run.onCompletionError(error);
@@ -584,7 +590,7 @@ class AgentRunnerService {
     }
 
     persistCheckpoint(run) {
-        const snapshot = { ...run, conversation: structuredClone(run.conversation) };
+        const snapshot = { ...run, conversation: snapshotConversation(run.conversation) };
         const write = run.persistence.then(() => this.persistConversationCheckpoint(snapshot));
         run.persistence = write.catch(() => undefined);
 

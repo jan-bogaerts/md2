@@ -24,6 +24,8 @@ const {
 
 const activityWriteQueues = new Map();
 const unwrittenActivityValues = new Map();
+const ACTIVITY_RENAME_RETRY_DELAYS_MS = [25, 50, 100, 200];
+const RETRYABLE_RENAME_ERROR_CODES = new Set(['EACCES', 'EBUSY', 'EPERM']);
 const VISIBILITY_CHECK_CONCURRENCY = 8;
 
 function requireProjectFolder(value) {
@@ -66,12 +68,33 @@ async function readActivityFile(filePath, origin) {
     return activityValue(await readStoredActivity(filePath, origin), origin);
 }
 
+function delay(milliseconds) {
+    return new Promise((resolve) => {
+        setTimeout(resolve, milliseconds);
+    });
+}
+
+async function renameActivityFile(temporaryPath, filePath) {
+    for (const retryDelay of ACTIVITY_RENAME_RETRY_DELAYS_MS) {
+        try {
+            await fs.promises.rename(temporaryPath, filePath);
+
+            return;
+        } catch (error) {
+            if (!RETRYABLE_RENAME_ERROR_CODES.has(error?.code)) throw error;
+            await delay(retryDelay);
+        }
+    }
+
+    await fs.promises.rename(temporaryPath, filePath);
+}
+
 async function writeActivityFile(filePath, activity) {
     const temporaryPath = `${filePath}.${crypto.randomUUID()}.tmp`;
     await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
     try {
         await fs.promises.writeFile(temporaryPath, `${JSON.stringify(activity, null, 2)}\n`);
-        await fs.promises.rename(temporaryPath, filePath);
+        await renameActivityFile(temporaryPath, filePath);
         unwrittenActivityValues.delete(filePath);
     } catch (error) {
         unwrittenActivityValues.set(filePath, activity);

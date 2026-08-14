@@ -48,7 +48,10 @@ function normalizeEvent(event) {
         };
     }
     if (!HANDOFF_EVENT_TYPES.has(event.type)) return null;
-    const content = [event.command, event.content, event.output]
+    const eventValues = event.type === 'commandExecution'
+        ? [event.command, event.content]
+        : [event.command, event.content, event.output];
+    const content = eventValues
         .filter((value, index, values) => typeof value === 'string' && value.length > 0 && values.indexOf(value) === index)
         .map(cleanContent)
         .filter((value) => value.length > 0)

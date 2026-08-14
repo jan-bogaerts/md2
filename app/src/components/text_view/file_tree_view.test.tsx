@@ -1,45 +1,32 @@
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { TreeNode } from '../../data/file_tree'
-import type { Card } from '../../data/data_types'
-import { dataService } from '../../services/data/data_service'
+import type { Card, ProjectSnapshot } from '../../data/data_types'
+import { dataService, type DataServiceState } from '../../services/data/data_service'
 import { openFilesService } from '../../services/open_files_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { FileTreeView } from './file_tree_view'
 
-function fileNode(index: number, directoryPath = 'design'): TreeNode {
-    const path = `${directoryPath}/F-${index}.md`
-
-    return { children: [], directoryPath, id: path, kind: 'file', label: `File ${index}`, path, status: null }
-}
-
-function Card(path: string, title: string): Card {
+function card(path: string, title: string, status: string | null = null): Card {
     return {
         agentConversationErrors: [], agentConversations: [], content: '', hasFrontmatter: true, isActive: true, path,
         header: {
             affects: [], after: null, agentLogReferences: [], author: null, id: 'F-0', internalId: path,
-            owner: null, policy: {}, status: null, title,
+            owner: null, policy: {}, status, title,
         },
     }
 }
 
-function filePaths(nodes: TreeNode[]): string[] {
-    return nodes.flatMap((node) => node.path ? [node.path] : filePaths(node.children))
+function snapshot(activeCards: Card[], backgroundCards: Card[] = [], repositoryFiles: string[] = [], workingFolder = 'design'): ProjectSnapshot {
+    return { activeCards, backgroundCards, repositoryFiles, workingFolder }
 }
 
-function renderTree(nodes: TreeNode[]) {
-    const cards = filePaths(nodes).map((path) => {
-        const index = Number(path.match(/F-(\d+)/u)?.[1] ?? 0)
-
-        return Card(path, `File ${index}`)
-    })
-    const activeCards = nodes.every((node) => node.kind === 'file') ? cards : []
-    const backgroundCards = activeCards.length > 0 ? [] : cards
-    vi.spyOn(dataService, 'getState').mockReturnValue({
+function renderTree(initialSnapshot: ProjectSnapshot | null, workingFolder = initialSnapshot?.workingFolder ?? 'design') {
+    let state: DataServiceState = {
         project: null,
         runningAgents: [],
-        snapshot: { activeCards, backgroundCards, repositoryFiles: [], workingFolder: 'design' },
-    })
+        snapshot: initialSnapshot,
+    }
+    vi.spyOn(dataService, 'getState').mockImplementation(() => state)
     render(
         <AppThemeProvider>
             <FileTreeView
@@ -52,10 +39,24 @@ function renderTree(nodes: TreeNode[]) {
                 onLeftPanelInteraction={vi.fn()}
                 projectFolder="design"
                 statusColors={new Map()}
-                workingFolder="design"
+                workingFolder={workingFolder}
             />
         </AppThemeProvider>,
     )
+
+    return {
+        updateSnapshot(nextSnapshot: ProjectSnapshot) {
+            state = { ...state, snapshot: nextSnapshot }
+            act(() => dataService.dispatchEvent(new Event('changed')))
+        },
+    }
+}
+
+function treeItemForButton(name: string): HTMLElement {
+    const treeItem = screen.getByRole('button', { name }).closest<HTMLElement>('[role="treeitem"]')
+    if (!treeItem) throw new Error(`Missing tree item for ${name}`)
+
+    return treeItem
 }
 
 describe('FileTreeView', () => {
@@ -65,16 +66,40 @@ describe('FileTreeView', () => {
         vi.restoreAllMocks()
     })
 
-    it('opens branches by default, toggles them, and activates file leaves', () => {
-        const child = fileNode(1, 'design/folder')
-        const folder: TreeNode = {children: [child], directoryPath: 'design/folder', id: 'folder', kind: 'folder', label: 'Folder', path: null, status: null}
-        renderTree([folder])
+    it('starts status groups open and regular and special folders closed', () => {
+        renderTree(snapshot(
+            [card('design/F-1.md', 'Active', 'todo')],
+            [card('design/folder/F-2.md', 'Regular'), card('design/actions/F-3.md', 'Special')],
+        ))
 
-        expect(screen.getByText('File 1')).toBeInTheDocument()
-        fireEvent.click(screen.getByRole('button', { name: 'folder 1' }))
+        expect(treeItemForButton('todo 1')).toHaveAttribute('aria-expanded', 'true')
+        expect(screen.getByRole('button', { name: 'Active' })).toBeInTheDocument()
+        expect(treeItemForButton('folder 1')).toHaveAttribute('aria-expanded', 'false')
+        expect(treeItemForButton('actions 1')).toHaveAttribute('aria-expanded', 'false')
+        expect(screen.queryByRole('button', { name: 'Regular' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Special' })).not.toBeInTheDocument()
+    })
+
+    it('reveals open status groups after the collapsed working folder is opened', () => {
+        renderTree(snapshot([card('design/active/F-1.md', 'Active', 'todo')], [], [], 'design/active'))
+
+        expect(treeItemForButton('active 1')).toHaveAttribute('aria-expanded', 'false')
+        expect(screen.queryByRole('button', { name: 'todo 1' })).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: 'active 1' }))
+
+        expect(treeItemForButton('todo 1')).toHaveAttribute('aria-expanded', 'true')
+        expect(screen.getByRole('button', { name: 'Active' })).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'todo 1' }))
+        expect(screen.queryByRole('button', { name: 'Active' })).not.toBeInTheDocument()
+    })
+
+    it('toggles folders and activates file leaves', () => {
+        renderTree(snapshot([], [card('design/folder/F-1.md', 'File 1')]))
+
         expect(screen.queryByText('File 1')).not.toBeInTheDocument()
-
         fireEvent.click(screen.getByRole('button', { name: 'folder 1' }))
+        expect(screen.getByText('File 1')).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'File 1' }))
         const activeDocument = openFilesService.getSnapshot().activeDocument
         expect(activeDocument?.kind).toBe('card')
@@ -82,9 +107,52 @@ describe('FileTreeView', () => {
         expect(activeDocument.getObject().path).toBe('design/folder/F-1.md')
     })
 
+    it('uses 28px rows with 4px top and bottom tree padding', () => {
+        renderTree(snapshot([card('design/F-1.md', 'File 1', 'todo')]))
+
+        const statusTreeItem = treeItemForButton('todo 1')
+        const fileTreeItem = treeItemForButton('File 1')
+        const treeViewport = screen.getByRole('tree').firstElementChild
+        const treeContent = treeViewport?.lastElementChild
+
+        expect(statusTreeItem).toHaveStyle({ height: '28px', top: '4px' })
+        expect(fileTreeItem).toHaveStyle({ height: '28px', top: '32px' })
+        expect(treeContent).toHaveStyle({ height: '64px' })
+    })
+
+    it('keeps user branch state after a project snapshot rebuild', () => {
+        const initialSnapshot = snapshot(
+            [card('design/F-1.md', 'Active', 'todo')],
+            [card('design/folder/F-2.md', 'Regular')],
+        )
+        const tree = renderTree(initialSnapshot)
+        fireEvent.click(screen.getByRole('button', { name: 'folder 1' }))
+        fireEvent.click(screen.getByRole('button', { name: 'todo 1' }))
+
+        tree.updateSnapshot(snapshot(
+            [card('design/F-1.md', 'Active updated', 'todo')],
+            [card('design/folder/F-2.md', 'Regular updated')],
+        ))
+
+        expect(treeItemForButton('folder 1')).toHaveAttribute('aria-expanded', 'true')
+        expect(screen.getByRole('button', { name: 'Regular updated' })).toBeInTheDocument()
+        expect(treeItemForButton('todo 1')).toHaveAttribute('aria-expanded', 'false')
+        expect(screen.queryByRole('button', { name: 'Active updated' })).not.toBeInTheDocument()
+    })
+
+    it('applies branch defaults when an initially empty tree first receives nodes', () => {
+        const tree = renderTree(null, 'design/active')
+
+        tree.updateSnapshot(snapshot([card('design/active/F-1.md', 'Active', 'todo')], [], [], 'design/active'))
+        fireEvent.click(screen.getByRole('button', { name: 'active 1' }))
+
+        expect(treeItemForButton('todo 1')).toHaveAttribute('aria-expanded', 'true')
+        expect(screen.getByRole('button', { name: 'Active' })).toBeInTheDocument()
+    })
+
     it('only mounts the rows inside the virtualized viewport', () => {
-        const nodes = Array.from({ length: 100 }, (_, index) => fileNode(index))
-        renderTree(nodes)
+        const cards = Array.from({ length: 100 }, (_, index) => card(`design/F-${index}.md`, `File ${index}`, 'todo'))
+        renderTree(snapshot(cards))
 
         expect(screen.getByText('File 0')).toBeInTheDocument()
         expect(screen.queryByText('File 99')).not.toBeInTheDocument()
@@ -92,22 +160,22 @@ describe('FileTreeView', () => {
     })
 
     it('moves the active highlight when the active document changes', () => {
-        const nodes = [fileNode(1), fileNode(2)]
-        renderTree(nodes)
+        const cards = [card('design/F-1.md', 'File 1', 'todo'), card('design/F-2.md', 'File 2', 'todo')]
+        renderTree(snapshot(cards))
 
-        act(() => openFilesService.openDocument(Card(nodes[0].path!, 'File 1')))
+        act(() => openFilesService.openDocument(cards[0]))
 
         expect(screen.getByRole('button', { name: 'File 1' }).parentElement).toHaveAttribute('data-selected', 'true')
         expect(screen.getByRole('button', { name: 'File 2' }).parentElement).not.toHaveAttribute('data-selected')
 
-        act(() => openFilesService.openDocument(Card(nodes[1].path!, 'File 2')))
+        act(() => openFilesService.openDocument(cards[1]))
 
         expect(screen.getByRole('button', { name: 'File 1' }).parentElement).not.toHaveAttribute('data-selected')
         expect(screen.getByRole('button', { name: 'File 2' }).parentElement).toHaveAttribute('data-selected', 'true')
     })
 
     it('constrains rows to the tree viewport', () => {
-        renderTree([fileNode(1)])
+        renderTree(snapshot([card('design/F-1.md', 'File 1', 'todo')]))
 
         const fileButton = screen.getByRole('button', { name: 'File 1' })
         const fileTreeItem = fileButton.closest<HTMLElement>('[role="treeitem"]')

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ElectronDataBridge } from './electron_data_bridge'
 import { getElectronActionBridge, setActionBridgeOverride, type ElectronActionBridge } from './electron_action_bridge'
 import { createStorageService, LAST_PROJECT_STORAGE_KEY, readLastProject } from './project_session'
-import { configureRemoteControlConnection, REMOTE_CONTROL_ENDPOINT_KEY, REMOTE_CONTROL_TOKEN_KEY } from './remote_control_connection'
+import { configureRemoteControlConnection, REMOTE_CONTROL_ENDPOINT_KEY } from './remote_control_connection'
 
 function createActionBridge(): ElectronActionBridge {
     return {
@@ -49,13 +49,12 @@ describe('createStorageService', () => {
         delete window.md2Actions
         delete window.md2Data
         window.localStorage.removeItem(REMOTE_CONTROL_ENDPOINT_KEY)
-        window.localStorage.removeItem(REMOTE_CONTROL_TOKEN_KEY)
     })
 
     it('does not register remote storage as the action bridge override', () => {
         const preloadBridge = createActionBridge()
         window.md2Actions = preloadBridge
-        configureRemoteControlConnection({ endpoint: 'ws://127.0.0.1:1234', token: 'token-1' })
+        configureRemoteControlConnection({ endpoint: 'ws://127.0.0.1:1234' })
 
         createStorageService('remote', null)
 
@@ -70,6 +69,12 @@ describe('createStorageService', () => {
         createStorageService('github', 'token-1')
 
         expect(getElectronActionBridge()).toBe(overrideBridge)
+    })
+
+    it('creates distinct read-only GitHub storage', () => {
+        const storage = createStorageService('github-readonly', 'token-1')
+
+        expect(storage).toMatchObject({ isReadOnly: true })
     })
 
     it('does not clear an existing override when creating local storage', () => {
@@ -114,5 +119,15 @@ describe('readLastProject', () => {
 
         expect(readLastProject()).toEqual(lastProject)
         expect(JSON.parse(window.localStorage.getItem(LAST_PROJECT_STORAGE_KEY) ?? '{}')).toEqual(lastProject)
+    })
+
+    it('keeps read-only GitHub storage type during restoration', () => {
+        const lastProject = {
+            project: { branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' },
+            storageType: 'github-readonly',
+        }
+        window.localStorage.setItem(LAST_PROJECT_STORAGE_KEY, JSON.stringify(lastProject))
+
+        expect(readLastProject()).toEqual(lastProject)
     })
 })

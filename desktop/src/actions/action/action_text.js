@@ -1,14 +1,21 @@
 const path = require('node:path');
 const { requireRootPath } = require('../../git/git_commands');
 
-const FOLDER_PLACEHOLDER_NAMES = 'worktree-folder|repository-folder|project-folder|releases-folder';
+const FOLDER_PLACEHOLDER_NAMES = 'active-cards-folder|worktree-folder|repository-folder|project-folder|releases-folder';
 const CARD_PLACEHOLDER_NAMES = 'card-file|this-card|card-title|card-prompt';
 const CONFLICT_PLACEHOLDER_NAMES = 'conflict-file|conflict-files';
 const PLACEHOLDER_PATTERN = new RegExp(`\\{\\{\\s*(${FOLDER_PLACEHOLDER_NAMES}|${CARD_PLACEHOLDER_NAMES}|${CONFLICT_PLACEHOLDER_NAMES})\\s*\\}\\}`, 'gu');
 const CARD_PROMPT_PLACEHOLDER_PATTERN = /\{\{\s*card-prompt\s*\}\}/u;
 
-function resolvePlaceholders(text, context, runProject, primaryProject, projectFolder, releasesFolder, extraPrompt) {
+function resolvePlaceholders(text, context, runProject, primaryProject, projectFolder, releasesFolder, activeCardsFolder, extraPrompt) {
     return text.replace(PLACEHOLDER_PATTERN, (_match, name) => {
+        if (name === 'active-cards-folder') {
+            if (typeof activeCardsFolder !== 'string' || activeCardsFolder.length === 0) {
+                throw new Error('Cannot resolve active-cards-folder placeholder without a configured working folder');
+            }
+
+            return path.resolve(requireRootPath(primaryProject), activeCardsFolder);
+        }
         if (name === 'worktree-folder') return requireRootPath(runProject);
         if (name === 'repository-folder') return requireRootPath(primaryProject);
         if (name === 'project-folder') {
@@ -49,8 +56,17 @@ function resolvePlaceholders(text, context, runProject, primaryProject, projectF
     });
 }
 
-function resolveAgentPrompt(action, context, runProject, primaryProject, projectFolder, releasesFolder, extraPrompt) {
-    const prompt = resolvePlaceholders(action.prompt, context, runProject, primaryProject, projectFolder, releasesFolder, extraPrompt);
+function resolveAgentPrompt(action, context, runProject, primaryProject, projectFolder, releasesFolder, activeCardsFolder, extraPrompt) {
+    const prompt = resolvePlaceholders(
+        action.prompt,
+        context,
+        runProject,
+        primaryProject,
+        projectFolder,
+        releasesFolder,
+        activeCardsFolder,
+        extraPrompt,
+    );
     if (CARD_PROMPT_PLACEHOLDER_PATTERN.test(action.prompt) || extraPrompt.trim().length === 0) return prompt;
 
     return `${prompt}\n\n${extraPrompt}`;

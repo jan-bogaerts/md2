@@ -33,6 +33,7 @@ function action(overrides: Partial<ActionDefinition> = {}): ActionDefinition {
 
 const context: ActionContext = { file: 'design/F-010.md', kind: 'card', state: 'design', title: 'Placeholder support', type: 'feature' }
 const folders = {
+    activeCardsFolder: 'C:/repo/design/feature_descriptions',
     projectFolder: 'C:/repo/design',
     releasesFolder: 'C:/repo/design/releases',
     repositoryFolder: 'C:/repo',
@@ -42,13 +43,13 @@ const folders = {
 describe('resolvePlaceholders', () => {
     it('resolves card values and all folder placeholders', () => {
         const resolvedText = resolvePlaceholders(
-            'run {{worktree-folder}} {{repository-folder}} {{project-folder}} {{releases-folder}} {{card-file}} {{card-title}} {{card-prompt}}',
+            'run {{active-cards-folder}} {{worktree-folder}} {{repository-folder}} {{project-folder}} {{releases-folder}} {{card-file}} {{card-title}} {{card-prompt}}',
             context,
             folders,
             'focus tests',
         )
 
-        expect(resolvedText).toBe('run C:/worktrees/2 C:/repo C:/repo/design C:/repo/design/releases design/F-010.md Placeholder support focus tests')
+        expect(resolvedText).toBe('run C:/repo/design/feature_descriptions C:/worktrees/2 C:/repo C:/repo/design C:/repo/design/releases design/F-010.md Placeholder support focus tests')
     })
 
     it('throws when resolving card-file without a file context', () => {
@@ -66,6 +67,8 @@ describe('resolvePlaceholders', () => {
     it('throws when resolving a required folder without its value', () => {
         expect(() => resolvePlaceholders('run {{repository-folder}}', context, { ...folders, repositoryFolder: '' }, ''))
             .toThrow('Cannot resolve repository-folder without an opened repository path')
+        expect(() => resolvePlaceholders('run {{active-cards-folder}}', context, { ...folders, activeCardsFolder: '' }, ''))
+            .toThrow('Cannot resolve active-cards-folder without a configured working folder')
         expect(() => resolvePlaceholders('run {{releases-folder}}', context, { ...folders, releasesFolder: '' }, ''))
             .toThrow('Cannot resolve releases-folder without a configured releases folder')
     })

@@ -1,6 +1,6 @@
 {
   "name": "desktop",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "MD² Electron host shell",
   "main": "main.js",
@@ -33,6 +33,7 @@
     "@sentry/electron": "^7.15.0",
     "cross-spawn": "^7.0.6",
     "electron-store": "^8.2.0",
+    "electron-window-state": "^5.0.3",
     "ssh2": "^1.17.0",
     "ws": "^8.21.0"
   }

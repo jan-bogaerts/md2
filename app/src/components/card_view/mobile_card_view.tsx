@@ -179,6 +179,7 @@ export function MobileCardView(props: MobileCardViewProps) {
                     onDeleteCard={handleDeleteCard}
                     onOpenAffects={setOpenAffectsPath}
                     onOpenInFileMode={handleOpenInFileMode}
+                    states={states}
                     statusColors={statusColors}
                     visible
                 />

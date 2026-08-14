@@ -16,6 +16,8 @@ const selectorState = vi.hoisted(() => ({
             codex: { available: true, error: null as string | null },
         },
         agentProfiles: [] as typeof BUILTIN_AGENT_PROFILES,
+        availabilityLoading: false,
+        desktopConfigAvailable: true,
         model: 'gpt-5.5',
         permissionMode: 'ask-for-approval' as 'ask-for-approval' | 'approve-for-me' | 'full-access' | '',
         permissionModeSupported: true,
@@ -53,6 +55,8 @@ describe('ActionAgentSelectors', () => {
                 codex: { available: true, error: null },
             },
             agentProfiles: BUILTIN_AGENT_PROFILES,
+            availabilityLoading: false,
+            desktopConfigAvailable: true,
             model: 'gpt-5.5',
             permissionMode: 'ask-for-approval',
             permissionModeSupported: true,
@@ -71,7 +75,9 @@ describe('ActionAgentSelectors', () => {
         renderSelectors()
 
         const modelButton = screen.getByRole('button', { name: 'Model' })
-        expect(modelButton).toHaveTextContent('gpt-5.5 high')
+        expect(modelButton.querySelector('[data-model-label]')).toHaveTextContent('gpt-5.5')
+        expect(modelButton.querySelector('[data-full-thinking-level]')).toHaveTextContent('high')
+        expect(modelButton.querySelector('[data-compact-thinking-level]')).toHaveTextContent('h')
         fireEvent.click(modelButton)
         const menu = screen.getByRole('menu', { name: 'Agent model settings' })
 
@@ -79,7 +85,51 @@ describe('ActionAgentSelectors', () => {
         expect(within(menu).getByText('Model')).toBeInTheDocument()
         expect(within(menu).getByText('Thinking level')).toBeInTheDocument()
         expect(within(menu).getByRole('menuitem', { name: 'gpt-5.6-sol' })).toBeInTheDocument()
+        expect(within(menu).getByRole('menuitem', { name: 'high' })).toBeInTheDocument()
         expect(within(menu).queryByRole('menuitem', { name: 'sonnet' })).not.toBeInTheDocument()
+    })
+
+    it.each([
+        ['low', 'l'],
+        ['medium', 'm'],
+        ['high', 'h'],
+        ['none', 'none'],
+        ['max', 'max'],
+    ] as const)('provides compact %s label %s for the narrow footer', (thinkingLevel, compactLabel) => {
+        selectorState.settings.thinkingLevel = thinkingLevel
+        renderSelectors()
+        const modelButton = screen.getByRole('button', { name: 'Model' })
+
+        expect(modelButton.querySelector('[data-full-thinking-level]')).toHaveTextContent(thinkingLevel)
+        expect(modelButton.querySelector('[data-compact-thinking-level]')).toHaveTextContent(compactLabel)
+    })
+
+    it('ellipsizes long model labels without shrinking the thinking label', () => {
+        selectorState.settings.model = 'model-with-a-very-long-display-name'
+        renderSelectors()
+        const modelButton = screen.getByRole('button', { name: 'Model' })
+
+        expect(modelButton).toHaveStyle({ minWidth: '0', overflow: 'hidden' })
+        expect(modelButton.querySelector('[data-model-label]')).toHaveStyle({minWidth: '0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'})
+        expect(modelButton.querySelector('[data-thinking-level]')).toHaveStyle({ flexShrink: '0' })
+    })
+
+    it('keeps selectors disabled until desktop config and availability are ready', () => {
+        selectorState.settings.desktopConfigAvailable = false
+        const { rerender } = renderSelectors()
+
+        expect(screen.getByRole('button', { name: 'Model' })).toBeDisabled()
+
+        selectorState.settings.desktopConfigAvailable = true
+        selectorState.settings.availabilityLoading = true
+        const settingsStore = { setSettings: vi.fn() } as unknown as ActionRunSettingsStore
+        rerender(
+            <AppThemeProvider>
+                <ActionAgentSelectors action={action} context={context} settingsStore={settingsStore} />
+            </AppThemeProvider>,
+        )
+
+        expect(screen.getByRole('button', { name: 'Model' })).toBeDisabled()
     })
 
     it('resets dependent settings when agent or model changes', () => {
@@ -92,6 +142,14 @@ describe('ActionAgentSelectors', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Model' }))
         fireEvent.click(screen.getByRole('menuitem', { name: 'gpt-5.6-sol' }))
         expect(setSettings).toHaveBeenLastCalledWith({agent: 'codex', model: 'gpt-5.6-sol', permissionMode: 'ask-for-approval', thinkingLevel: 'none'}, false)
+    })
+
+    it('stores a full thinking level selected from the full-name menu', () => {
+        const { setSettings } = renderSelectors()
+        fireEvent.click(screen.getByRole('button', { name: 'Model' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'low' }))
+
+        expect(setSettings).toHaveBeenCalledWith({agent: 'codex', model: 'gpt-5.5', permissionMode: 'ask-for-approval', thinkingLevel: 'low'}, false)
     })
 
     it('disables unavailable agents and lists models for selected agent only', () => {

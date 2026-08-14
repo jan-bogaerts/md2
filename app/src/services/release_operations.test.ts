@@ -69,6 +69,8 @@ describe('ReleaseOperations', () => {
             ],
         })
         expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' })
+        expect(storage.loadProject).toHaveBeenCalledOnce()
+        expect(storage.listRepositoryFiles).toHaveBeenCalledOnce()
         if (!snapshot) throw new Error('Expected release completion to return a snapshot')
 
         expect(snapshot.activeCards.map((card) => card.path)).toEqual(['design/active/F-2-imported.md'])

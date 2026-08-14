@@ -19,6 +19,21 @@ function bucket(limitId, usedPercent, overrides = {}) {
 }
 
 describe('CodexRuntimeService', () => {
+    it('publishes each confirmed update mismatch once per session and replays latest state', () => {
+        const service = new CodexRuntimeService();
+        const listener = vi.fn();
+        service.subscribeUpdateRequired(listener);
+
+        expect(service.publishUpdateRequired('0.144.6', '0.146.0')).toBe(true);
+        expect(service.publishUpdateRequired('0.144.6', '0.146.0')).toBe(false);
+        expect(listener).toHaveBeenCalledOnce();
+        expect(listener).toHaveBeenCalledWith({ cacheVersion: '0.146.0', runningVersion: '0.144.6' });
+
+        const lateListener = vi.fn();
+        service.subscribeUpdateRequired(lateListener);
+        expect(lateListener).toHaveBeenCalledWith({ cacheVersion: '0.146.0', runningVersion: '0.144.6' });
+    });
+
     it('normalizes multi-bucket snapshots and publishes current state to subscribers', () => {
         const service = new CodexRuntimeService();
         const listener = vi.fn();

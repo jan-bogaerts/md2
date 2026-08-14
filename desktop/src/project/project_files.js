@@ -351,7 +351,7 @@ async function closeProjectWatcher(subscription) {
     }
 }
 
-async function startProjectWatcher(rootPath, handleEvents, watcherState) {
+async function startProjectWatcher(rootPath, handleEvents, handleError, watcherState) {
     try {
         const subscription = await parcelWatcher.subscribe(rootPath, handleEvents, {
             backend: WATCHER_BACKEND,
@@ -363,7 +363,7 @@ async function startProjectWatcher(rootPath, handleEvents, watcherState) {
         }
         watcherState.subscription = subscription;
     } catch (error) {
-        if (!watcherState.isClosed) console.error('Project watcher failed:', error);
+        if (!watcherState.isClosed) handleError(error);
     }
 }
 
@@ -371,7 +371,7 @@ async function startProjectWatcher(rootPath, handleEvents, watcherState) {
  * Reports one settled change per path. Atomic rewrites can produce several native
  * events, so existence is checked only after the path stops changing.
  */
-function watchProject(project, onChange) {
+function watchProject(project, onChange, onError) {
     const rootPath = requireRootPath(project);
     const settleTimersByPath = new Map();
     const watcherState = { isClosed: false, subscription: null };
@@ -392,7 +392,7 @@ function watchProject(project, onChange) {
 
     const handleEvents = (error, events) => {
         if (error) {
-            console.error('Project watcher failed:', error);
+            onError(error);
             return;
         }
         if (watcherState.isClosed) return;
@@ -411,7 +411,7 @@ function watchProject(project, onChange) {
         }
     };
 
-    const ready = startProjectWatcher(rootPath, handleEvents, watcherState);
+    const ready = startProjectWatcher(rootPath, handleEvents, onError, watcherState);
 
     const closeWatcher = () => {
         watcherState.isClosed = true;

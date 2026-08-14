@@ -1,16 +1,14 @@
 import type { RemoteControlConnectionSettings } from './remote_control_connection'
 
 /**
- * Self-contained connect string shared via copy/QR: the Electron-served page URL with the token in
- * the fragment (`http://<host>:<port>/#<token>`, see F-043 / F-045). Building it here mirrors the
- * desktop `buildConnectUrl`; parsing lets the web connect dialog fill endpoint + token in one paste.
+ * Stable connect URL shared via copy/QR. Parsing lets the web connect dialog accept the same URL.
  */
-export function buildRemoteConnectUrl(host: string, port: number, token: string): string {
-    return `http://${host}:${port}/#${token}`
+export function buildRemoteConnectUrl(host: string, port: number): string {
+    return `http://${host}:${port}/`
 }
 
-/** Derives the shareable connect URL from a `ws(s)://host:port` endpoint plus its token. */
-export function connectUrlFromEndpoint(endpoint: string, token: string): string | null {
+/** Derives the shareable connect URL from a `ws(s)://host:port` endpoint. */
+export function connectUrlFromEndpoint(endpoint: string): string | null {
     let url: URL
     try {
         url = new URL(endpoint)
@@ -21,24 +19,21 @@ export function connectUrlFromEndpoint(endpoint: string, token: string): string 
     if (url.protocol !== 'ws:' && url.protocol !== 'wss:') return null
     const scheme = url.protocol === 'wss:' ? 'https' : 'http'
 
-    return `${scheme}://${url.host}/#${token}`
+    return `${scheme}://${url.host}/`
 }
 
 /**
- * Auto-connect settings for the Electron-served web app: when the page loaded with a `#<token>`
- * fragment, derive a same-origin WebSocket endpoint from `window.location` (F-045). Plain-http page
- * yields `ws://`, matching the non-secure context that permits it.
+ * Auto-connect settings for the Electron-served web app. Plain HTTP yields same-origin `ws://`.
  */
-export function deriveAutoConnectSettings(host: string, hash: string, protocol: string): RemoteControlConnectionSettings | null {
-    const token = hash.startsWith('#') ? hash.slice(1) : ''
-    if (!token || !host) return null
+export function deriveAutoConnectSettings(host: string, protocol: string): RemoteControlConnectionSettings | null {
+    if (!host) return null
 
     const scheme = protocol === 'https:' ? 'wss' : 'ws'
 
-    return { endpoint: `${scheme}://${host}`, token }
+    return { endpoint: `${scheme}://${host}` }
 }
 
-/** Turns a connect URL back into a WebSocket endpoint + token, or null when the input is not one. */
+/** Turns an HTTP connect URL back into a WebSocket endpoint, or null when input is not one. */
 export function parseRemoteConnectString(value: string): RemoteControlConnectionSettings | null {
     const trimmed = value.trim()
     let url: URL
@@ -49,10 +44,9 @@ export function parseRemoteConnectString(value: string): RemoteControlConnection
     }
 
     if (url.protocol !== 'http:' && url.protocol !== 'https:') return null
-    const token = url.hash.startsWith('#') ? url.hash.slice(1) : ''
-    if (!token || !url.host) return null
+    if (!url.host || url.hash.length > 0) return null
 
     const scheme = url.protocol === 'https:' ? 'wss' : 'ws'
 
-    return { endpoint: `${scheme}://${url.host}`, token }
+    return { endpoint: `${scheme}://${url.host}` }
 }

@@ -16,6 +16,7 @@ function errorMessage(error, fallback) {
 class ActionRun {
     constructor(snapshot, dependencies) {
         this.actionsFolder = snapshot.actionsFolder;
+        this.activeCardsFolder = snapshot.activeCardsFolder;
         this.activityOrigin = snapshot.activityOrigin;
         this.context = snapshot.context;
         this.conversationReservation = snapshot.conversationReservation;
@@ -359,6 +360,7 @@ class ActionRun {
 
         return executeCommandAction({
             action,
+            activeCardsFolder: this.activeCardsFolder,
             commandRunner: this.commandRunner,
             context: this.context,
             extraPrompt: isRoot ? this.runInput.extraPrompt : '',
@@ -450,6 +452,17 @@ class ActionRun {
                 this.publish(action, phase, 'running', { type: 'update', update });
                 return;
             }
+            if (agentEvent.type === 'usage') {
+                const update = {
+                    ...(agentEvent.contextWindowUsage !== undefined
+                        ? { contextWindowUsage: agentEvent.contextWindowUsage }
+                        : {}),
+                    kind: 'agentUsage',
+                    usage: agentEvent.usage,
+                };
+                this.publish(action, phase, 'running', { type: 'update', update });
+                return;
+            }
 
             const update = {
                 content: agentEvent.content,
@@ -465,6 +478,7 @@ class ActionRun {
 
         const input = {
             action,
+            activeCardsFolder: this.activeCardsFolder,
             activityOrigin: this.activityOrigin,
             context: this.context,
             conversationReservation: isRoot ? this.conversationReservation : null,

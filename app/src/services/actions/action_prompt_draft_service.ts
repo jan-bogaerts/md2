@@ -1,6 +1,7 @@
 import { actionContextIdentity, type ActionContext } from '../../data/action_context'
 import { getElectronActionBridge } from '../../data/electron_action_bridge'
 import type { ActionDefinition } from '../../data/action_types'
+import { isRemoteControlConnectionError } from '../data/remote_control_storage_service'
 import { register } from '../service_injector'
 
 export type ActionPromptPreparationStatus = 'failed' | 'loading' | 'ready'
@@ -144,6 +145,13 @@ export class ActionPromptDraft {
             this.replace(value)
         } catch (error) {
             if (this.revision !== preparationRevision) return
+
+            if (isRemoteControlConnectionError(error)) {
+                this.preparationStarted = false
+                this.setPreparationStatus('loading')
+
+                return
+            }
 
             this.preparationRequired = false
             this.setPreparationStatus('failed')

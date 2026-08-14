@@ -1,7 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 const CONFIG_SET_DESKTOP_CHANNEL = 'md2-config:set-desktop';
-const LIFECYCLE_FLUSH_DONE_CHANNEL = 'md2-lifecycle:flush-pending-commits-done';
+const LIFECYCLE_FLUSH_RESULT_CHANNEL = 'md2-lifecycle:flush-pending-commits-result';
 const LIFECYCLE_FLUSH_REQUEST_CHANNEL = 'md2-lifecycle:flush-pending-commits';
 const LOCAL_BRIDGE_EVENT_CHANNEL = 'md2-local-bridge:event';
 const LOCAL_BRIDGE_INVOKE_CHANNEL = 'md2-local-bridge:invoke';
@@ -15,6 +15,9 @@ const REMOTE_CONTROL_START_CHANNEL = 'md2-remote-control:start';
 const REMOTE_CONTROL_STATUS_CHANNEL = 'md2-remote-control:status';
 const REMOTE_CONTROL_STOP_CHANNEL = 'md2-remote-control:stop';
 const THEME_SET_MODE_CHANNEL = 'md2-theme:set-mode';
+const UPDATE_AVAILABLE_CHANNEL = 'md2-update:available';
+const UPDATE_DOWNLOAD_CHANNEL = 'md2-update:download';
+const UPDATE_PROGRESS_CHANNEL = 'md2-update:progress';
 
 const DATA_METHODS = [
     'abortMergeConflict',
@@ -203,9 +206,9 @@ if (!isAllowedOrigin()) {
 } else {
     const themeBridge = { setThemeMode: (mode) => ipcRenderer.send(THEME_SET_MODE_CHANNEL, mode) };
     const lifecycleBridge = {
-        confirmFlush: (requestId) => ipcRenderer.send(LIFECYCLE_FLUSH_DONE_CHANNEL, requestId),
+        reportFlushResult: (result) => ipcRenderer.send(LIFECYCLE_FLUSH_RESULT_CHANNEL, result),
         onFlushRequested: (callback) => {
-            const listener = (_event, requestId) => callback(requestId);
+            const listener = (_event, request) => callback(request);
             ipcRenderer.on(LIFECYCLE_FLUSH_REQUEST_CHANNEL, listener);
 
             return () => ipcRenderer.removeListener(LIFECYCLE_FLUSH_REQUEST_CHANNEL, listener);
@@ -213,9 +216,10 @@ if (!isAllowedOrigin()) {
     };
     const configBridge = {
         getDesktopConfig: () => desktopConfig,
-        setDesktopConfig: (values) => {
-            desktopConfig = { ...desktopConfig, ...values };
-            void ipcRenderer.invoke(CONFIG_SET_DESKTOP_CHANNEL, values);
+        setDesktopConfig: async (values) => {
+            desktopConfig = await ipcRenderer.invoke(CONFIG_SET_DESKTOP_CHANNEL, values);
+
+            return desktopConfig;
         },
     };
     const remoteControlBridge = {
@@ -247,6 +251,23 @@ if (!isAllowedOrigin()) {
     const codexRuntimeBridge = {
         ...createBridge(CODEX_RUNTIME_METHODS),
         onCodexRateLimits: (callback) => subscribeBridge('onCodexRateLimits', [], callback),
+        onCodexUpdateRequired: (callback) => subscribeBridge('onCodexUpdateRequired', [], callback),
+        updateCodexCli: () => invokeBridge('updateCodexCli', [], null),
+    };
+    const updatesBridge = {
+        downloadUpdate: (downloadUrl) => ipcRenderer.invoke(UPDATE_DOWNLOAD_CHANNEL, { downloadUrl }),
+        onDownloadProgress: (callback) => {
+            const listener = (_event, progress) => callback(progress);
+            ipcRenderer.on(UPDATE_PROGRESS_CHANNEL, listener);
+
+            return () => ipcRenderer.removeListener(UPDATE_PROGRESS_CHANNEL, listener);
+        },
+        onUpdateAvailable: (callback) => {
+            const listener = (_event, info) => callback(info);
+            ipcRenderer.on(UPDATE_AVAILABLE_CHANNEL, listener);
+
+            return () => ipcRenderer.removeListener(UPDATE_AVAILABLE_CHANNEL, listener);
+        },
     };
 
     contextBridge.exposeInMainWorld('md2Theme', themeBridge);
@@ -257,4 +278,5 @@ if (!isAllowedOrigin()) {
     contextBridge.exposeInMainWorld('md2Data', dataBridge);
     contextBridge.exposeInMainWorld('md2Actions', actionBridge);
     contextBridge.exposeInMainWorld('md2CodexRuntime', codexRuntimeBridge);
+    contextBridge.exposeInMainWorld('md2Updates', updatesBridge);
 }

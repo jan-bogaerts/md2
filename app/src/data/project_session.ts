@@ -6,14 +6,14 @@ import type { ProjectReference, StorageService } from './data_types'
 
 export const LAST_PROJECT_STORAGE_KEY = 'md2.lastProject'
 
-export type StorageType = 'github' | 'local' | 'remote'
+export type StorageType = 'github' | 'github-readonly' | 'local' | 'remote'
 
 export interface LastProject {
     project: ProjectReference
     storageType: StorageType
 }
 
-const STORAGE_TYPES: StorageType[] = ['github', 'local', 'remote']
+const STORAGE_TYPES: StorageType[] = ['github', 'github-readonly', 'local', 'remote']
 
 function isProjectReference(value: unknown): value is ProjectReference {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return false
@@ -48,8 +48,8 @@ export function createStorageService(storageType: StorageType, accessToken: stri
         return storage
     }
 
-    if (storageType === 'github') {
-        const storage = new GithubStorageService()
+    if (storageType === 'github' || storageType === 'github-readonly') {
+        const storage = new GithubStorageService(storageType === 'github-readonly')
         storage.init({
             accessToken: accessToken ?? '',
             onUnauthorized: () => githubAuthService.handleUnauthorized(),

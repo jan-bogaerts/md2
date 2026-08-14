@@ -1,4 +1,6 @@
 const DEFAULT_RATE_LIMIT_ID = 'default';
+const RATE_LIMIT_EVENT = 'rateLimits';
+const UPDATE_REQUIRED_EVENT = 'updateRequired';
 
 function nullableString(value) {
     return value === undefined || value === null || typeof value === 'string';
@@ -175,8 +177,10 @@ function mergeBucket(current, incoming) {
 
 class CodexRuntimeService {
     constructor() {
-        this.listeners = new Set();
+        this.events = new EventTarget();
+        this.publishedUpdateMismatches = new Set();
         this.snapshot = null;
+        this.updateRequiredSnapshot = null;
     }
 
     getSnapshot() {
@@ -184,10 +188,36 @@ class CodexRuntimeService {
     }
 
     subscribe(listener) {
-        this.listeners.add(listener);
+        const handleRateLimits = (event) => listener(event.detail);
+        this.events.addEventListener(RATE_LIMIT_EVENT, handleRateLimits);
         if (this.snapshot) listener(this.getSnapshot());
 
-        return () => this.listeners.delete(listener);
+        return () => this.events.removeEventListener(RATE_LIMIT_EVENT, handleRateLimits);
+    }
+
+    subscribeUpdateRequired(listener) {
+        const handleUpdateRequired = (event) => listener(event.detail);
+        this.events.addEventListener(UPDATE_REQUIRED_EVENT, handleUpdateRequired);
+        if (this.updateRequiredSnapshot) listener(structuredClone(this.updateRequiredSnapshot));
+
+        return () => this.events.removeEventListener(UPDATE_REQUIRED_EVENT, handleUpdateRequired);
+    }
+
+    publishUpdateRequired(runningVersion, cacheVersion) {
+        if (typeof runningVersion !== 'string' || runningVersion.length === 0) {
+            throw new Error('Running Codex version is required');
+        }
+        if (typeof cacheVersion !== 'string' || cacheVersion.length === 0) {
+            throw new Error('Codex cache client version is required');
+        }
+        const mismatchKey = `${runningVersion}\u0000${cacheVersion}`;
+        if (this.publishedUpdateMismatches.has(mismatchKey)) return false;
+
+        this.publishedUpdateMismatches.add(mismatchKey);
+        this.updateRequiredSnapshot = { cacheVersion, runningVersion };
+        this.events.dispatchEvent(new CustomEvent(UPDATE_REQUIRED_EVENT, {detail: structuredClone(this.updateRequiredSnapshot)}));
+
+        return true;
     }
 
     publishRateLimits(payload, observedAt, sparse = false) {
@@ -227,7 +257,7 @@ class CodexRuntimeService {
 
     notify() {
         const snapshot = this.getSnapshot();
-        for (const listener of this.listeners) listener(snapshot);
+        this.events.dispatchEvent(new CustomEvent(RATE_LIMIT_EVENT, { detail: snapshot }));
     }
 }
 

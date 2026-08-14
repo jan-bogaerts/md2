@@ -136,6 +136,8 @@ describe('MobileCardView', () => {
         const board = screen.getByLabelText('Mobile card board')
         fireEvent.click(screen.getByRole('button', { name: 'Drag F-1' }))
         const cardDialog = within(screen.getByRole('dialog'))
+        const stateSelector = cardDialog.getByRole('combobox', { name: 'Card state' })
+        expect(stateSelector).toHaveTextContent('todo')
         fireEvent.click(cardDialog.getByRole('button', { name: 'Properties' }))
         const properties = within(screen.getByLabelText('Card properties'))
         expect(properties.getByText('todo')).toBeInTheDocument()
@@ -146,6 +148,7 @@ describe('MobileCardView', () => {
         expect(within(board).queryByLabelText('todo column')).not.toBeInTheDocument()
         expect(within(board).getByLabelText('done column')).toBeInTheDocument()
         expect(within(board).getByRole('button', { hidden: true, name: 'Drag F-1' })).toBeInTheDocument()
+        expect(stateSelector).toHaveTextContent('done')
         expect(properties.getByText('done')).toBeInTheDocument()
     })
 

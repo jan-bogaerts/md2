@@ -5,6 +5,7 @@ const { cancelScheduleTimer, clearScheduleTimers, reconcileScheduleTimers } = re
 const DEFAULT_ACTIONS_FOLDER = 'actions';
 const DEFAULT_PROJECT_FOLDER = '';
 const DEFAULT_RELEASES_FOLDER = 'releases';
+const DEFAULT_WORKING_FOLDER = 'active';
 
 function createScheduleId() {
     return `schedule-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -68,10 +69,16 @@ class ActionSchedulerService {
 
     async startProject(project) {
         this.project = requireProject(project);
-        const { actionsFolder, projectFolder, releasesFolder } = await this.loadProjectPaths();
+        const { actionsFolder, activeCardsFolder, projectFolder, releasesFolder } = await this.loadProjectPaths();
         this.actionsFolder = actionsFolder;
         this.projectFolder = projectFolder;
-        await this.actionRunnerService.startProject(this.project, this.actionsFolder, this.projectFolder, releasesFolder);
+        await this.actionRunnerService.startProject(
+            this.project,
+            this.actionsFolder,
+            this.projectFolder,
+            releasesFolder,
+            activeCardsFolder,
+        );
         await this.reconcile();
     }
 
@@ -225,15 +232,30 @@ class ActionSchedulerService {
             throw new Error('Invalid project releasesFolder');
         }
         const releasesFolder = resolveProjectFolderPath(projectFolder, configuredReleasesFolder);
+        const configuredWorkingFolder = config?.workingFolder ?? DEFAULT_WORKING_FOLDER;
+        if (typeof configuredWorkingFolder !== 'string' || configuredWorkingFolder.length === 0) {
+            throw new Error('Invalid project workingFolder');
+        }
+        const activeCardsFolder = resolveProjectFolderPath(projectFolder, configuredWorkingFolder);
         if (config?.actionsFolder !== undefined) {
             if (typeof config.actionsFolder !== 'string' || config.actionsFolder.length === 0) {
                 throw new Error('Invalid project actionsFolder');
             }
 
-            return { actionsFolder: resolveProjectFolderPath(projectFolder, config.actionsFolder), projectFolder, releasesFolder };
+            return {
+                actionsFolder: resolveProjectFolderPath(projectFolder, config.actionsFolder),
+                activeCardsFolder,
+                projectFolder,
+                releasesFolder,
+            };
         }
 
-        return { actionsFolder: resolveProjectFolderPath(projectFolder, DEFAULT_ACTIONS_FOLDER), projectFolder, releasesFolder };
+        return {
+            actionsFolder: resolveProjectFolderPath(projectFolder, DEFAULT_ACTIONS_FOLDER),
+            activeCardsFolder,
+            projectFolder,
+            releasesFolder,
+        };
     }
 
     requireCurrentProject() {

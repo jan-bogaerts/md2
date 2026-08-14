@@ -12,19 +12,20 @@ interface CardPopupToolbarControlsProps {
     isFullscreen: boolean
     isMobile: boolean
     onToggleFullscreen: () => void
+    readOnly: boolean
     statusColors: Map<string, string>
 }
 
 /** Formatting controls arranged for the card details popup. */
 export function CardPopupToolbarControls(props: CardPopupToolbarControlsProps) {
-    const { cardTypes, dataSource, isFullscreen, isMobile, onToggleFullscreen, statusColors } = props
+    const { cardTypes, dataSource, isFullscreen, isMobile, onToggleFullscreen, readOnly, statusColors } = props
     const label = isFullscreen ? 'Exit fullscreen' : 'Fullscreen'
 
     return (
         <MarkdownFormatToolbarControls endControls={(
             <>
                 <Box sx={{ flex: 1 }} />
-                <CardPropertiesControl binding="board-card" cardTypes={cardTypes} dataSource={dataSource} statusColors={statusColors} />
+                {!readOnly ? <CardPropertiesControl binding="board-card" cardTypes={cardTypes} dataSource={dataSource} statusColors={statusColors} /> : null}
                 {!isMobile ? (
                     <Tooltip title={label}>
                         <IconButton aria-label={label} onClick={onToggleFullscreen} size="small" sx={{ height: 30, width: 30 }}>
@@ -33,6 +34,6 @@ export function CardPopupToolbarControls(props: CardPopupToolbarControlsProps) {
                     </Tooltip>
                 ) : null}
             </>
-        )} />
+        )} readOnly={readOnly} />
     )
 }

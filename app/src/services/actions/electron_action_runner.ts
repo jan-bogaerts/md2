@@ -5,6 +5,7 @@ import { getElectronActionBridge } from '../../data/electron_action_bridge'
 import { actionRunRegistry, cancelActionRun } from './action_run_registry'
 import { dataService } from '../data/data_service'
 import { projectPersistenceService } from '../project/project_persistence_service'
+import { projectAccessService } from '../project/project_access_service'
 
 function shouldReserveConversation(action: ActionDefinition, context: ActionContext, input: ActionRunInput) {
     return action.type === 'agent'
@@ -22,6 +23,7 @@ export async function runElectronAction(
     onStarted?: (runId: string) => void,
     interactive = true,
 ): Promise<ActionRunResult> {
+    projectAccessService.requireWritable()
     const handleStarted = (startedRunId: string) => {
         onStarted?.(startedRunId)
     }
@@ -54,6 +56,7 @@ export async function restartElectronAction(
     input: ActionRunInput,
     onStarted?: (runId: string) => void,
 ): Promise<ActionRunResult> {
+    projectAccessService.requireWritable()
     if (projectPersistenceService.getSnapshot().hasPendingSave) await projectPersistenceService.flushPendingChanges()
 
     return actionRunRegistry.restartRun(previousRunId, action, context, input, onStarted)

@@ -124,19 +124,20 @@ describe('executeCommandAction', () => {
         });
         const onOutput = vi.fn();
         const input = {
-            action: { command: 'run {{worktree-folder}} {{repository-folder}} {{project-folder}} {{releases-folder}} {{card-file}} {{this-card}} {{card-prompt}}' },
+            action: { command: 'run {{active-cards-folder}} {{worktree-folder}} {{repository-folder}} {{project-folder}} {{releases-folder}} {{card-file}} {{this-card}} {{card-prompt}}' },
+            activeCardsFolder: 'design/feature_descriptions',
             commandRunner,
             context: { file: 'design/card.md' },
             extraPrompt: 'focus',
             onOutput,
             primaryProject: { rootPath: 'C:/repo' },
-            project: { rootPath: 'C:/repo' },
+            project: { rootPath: 'C:/worktree' },
             projectFolder: 'design',
             releasesFolder: 'design/releases',
             signal: new AbortController().signal,
         };
 
-        const command = `run C:/repo C:/repo ${resolve('C:/repo', 'design')} ${resolve('C:/repo', 'design/releases')} design/card.md design/card.md focus`;
+        const command = `run ${resolve('C:/repo', 'design/feature_descriptions')} C:/worktree C:/repo ${resolve('C:/repo', 'design')} ${resolve('C:/repo', 'design/releases')} design/card.md design/card.md focus`;
 
         await expect(executeCommandAction(input)).resolves.toMatchObject({ command });
         expect(onOutput).toHaveBeenCalledWith({ command, stderr: '', stdout: 'chunk' });
@@ -146,6 +147,7 @@ describe('executeCommandAction', () => {
         const commandRunner = vi.fn();
         const input = {
             action: { command: `run {{${placeholderName}}}` },
+            activeCardsFolder: 'design/feature_descriptions',
             commandRunner,
             context: { kind: 'project' },
             extraPrompt: '',

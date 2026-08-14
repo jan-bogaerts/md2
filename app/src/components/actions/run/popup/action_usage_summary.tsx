@@ -118,9 +118,13 @@ export function ActionUsageSummary(props: ActionUsageSummaryProps) {
         </>
     )
     const activeScopeName = scopeName(activeScope)
-
     return (
-        <Box sx={{ alignItems: 'center', display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+        <Box
+            sx={{
+                alignItems: 'center', display: 'flex', flexWrap: 'wrap', gap: 1, minWidth: 0,
+                '@container (max-width: 420px)': { flexWrap: 'nowrap', gap: 0.5 },
+            }}
+        >
             <Tooltip describeChild title={scopeTooltip(
                 'Tokens are cumulative provider token usage.',
                 scopedUsage.conversation ? tokenValue(scopedUsage.conversation.tokens) : null,
@@ -132,7 +136,14 @@ export function ActionUsageSummary(props: ActionUsageSummaryProps) {
                     onClick={onToggleScope}
                     sx={USAGE_CONTROL_SX}
                 >
-                    tokens: {NUMBER_FORMAT.format(activeUsage.tokens.totalTokens)}
+                    <Box
+                        component="span"
+                        data-usage-prefix
+                        sx={{ '@container (max-width: 420px)': { display: 'none' } }}
+                    >
+                        tokens:{' '}
+                    </Box>
+                    {NUMBER_FORMAT.format(activeUsage.tokens.totalTokens)}
                 </ButtonBase>
             </Tooltip>
             {hasChanges ? (
@@ -147,7 +158,13 @@ export function ActionUsageSummary(props: ActionUsageSummaryProps) {
                         onClick={onToggleScope}
                         sx={USAGE_CONTROL_SX}
                     >
-                        changes:&nbsp;
+                        <Box
+                            component="span"
+                            data-usage-prefix
+                            sx={{ '@container (max-width: 420px)': { display: 'none' } }}
+                        >
+                            changes:&nbsp;
+                        </Box>
                         <Box component="span" sx={{ color: 'success.main' }}>
                             +{NUMBER_FORMAT.format(activeUsage.changes.insertions)}
                         </Box>
@@ -171,7 +188,14 @@ export function ActionUsageSummary(props: ActionUsageSummaryProps) {
                         onClick={onToggleScope}
                         sx={USAGE_CONTROL_SX}
                     >
-                        lines: {NUMBER_FORMAT.format(totalLines)}
+                        <Box
+                            component="span"
+                            data-usage-prefix
+                            sx={{ '@container (max-width: 420px)': { display: 'none' } }}
+                        >
+                            lines:{' '}
+                        </Box>
+                        {NUMBER_FORMAT.format(totalLines)}
                     </ButtonBase>
                 </Tooltip>
             ) : null}

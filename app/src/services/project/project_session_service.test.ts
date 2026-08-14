@@ -3,8 +3,9 @@ import type { ElectronDataBridge } from '../../data/electron_data_bridge'
 import { beforeEach } from 'vitest'
 import { getElectronActionBridge, setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge'
 import { LAST_PROJECT_STORAGE_KEY } from '../../data/project_session'
-import { configureRemoteControlConnection, REMOTE_CONTROL_ENDPOINT_KEY, REMOTE_CONTROL_TOKEN_KEY } from '../../data/remote_control_connection'
+import { configureRemoteControlConnection, REMOTE_CONTROL_ENDPOINT_KEY } from '../../data/remote_control_connection'
 import { RemoteControlStorageService } from '../data/remote_control_storage_service'
+import { remoteConnectionService } from '../data/remote_connection_service'
 import { configService } from '../config/config_service'
 import { actionService } from '../actions/action_service'
 import { dataService } from '../data/data_service'
@@ -12,6 +13,8 @@ import { ProjectSessionService } from './project_session_service'
 import { projectPersistenceService } from './project_persistence_service'
 import { openFilesService } from '../open_files_service'
 import { createDeferred } from '../test_support/data_service_test_support'
+import { agentCapabilitiesService } from '../agents/agent_capabilities_service'
+import { projectAccessService, READ_ONLY_PROJECT_ERROR } from './project_access_service'
 
 function createActionBridge(): ElectronActionBridge {
     return {
@@ -64,36 +67,59 @@ function mockProjectOpen() {
 
 describe('ProjectSessionService storage activation', () => {
     beforeEach(() => {
+        remoteConnectionService.disconnect()
+        configService.init()
+        vi.spyOn(RemoteControlStorageService.prototype, 'connect').mockResolvedValue()
+        vi.spyOn(RemoteControlStorageService.prototype, 'getCodexRateLimits').mockResolvedValue(null)
+        vi.spyOn(RemoteControlStorageService.prototype, 'loadActiveActionRunEvents').mockResolvedValue([])
+        vi.spyOn(RemoteControlStorageService.prototype, 'onActionRun').mockReturnValue(() => undefined)
+        vi.spyOn(RemoteControlStorageService.prototype, 'onCodexRateLimits').mockReturnValue(() => undefined)
+        vi.spyOn(RemoteControlStorageService.prototype, 'loadDesktopConfig').mockResolvedValue({
+            agent: 'custom',
+            agentProfiles: [{ command: ['custom'], models: ['custom-model'], name: 'custom' }],
+            codexSearchEnabled: true,
+            editorCommand: 'code "{{file}}"',
+            mergeConflictResolverCommand: '',
+            model: 'custom-model',
+            permissionMode: 'ask-for-approval',
+            remoteControlPort: 20877,
+            thinkingLevel: 'high',
+        })
+        vi.spyOn(RemoteControlStorageService.prototype, 'loadAgentAvailability')
+            .mockResolvedValue({ custom: { available: true, error: null } })
         openFilesService.init({ actionService, dataService })
         projectPersistenceService.init({ actionService, dataService, openFilesService })
     })
 
     afterEach(() => {
+        remoteConnectionService.disconnect()
         vi.restoreAllMocks()
         vi.unstubAllGlobals()
         configService.clear()
         setActionBridgeOverride(null)
         delete window.md2Actions
+        delete window.md2Config
         delete window.md2Data
         window.localStorage.removeItem(LAST_PROJECT_STORAGE_KEY)
         window.localStorage.removeItem(REMOTE_CONTROL_ENDPOINT_KEY)
-        window.localStorage.removeItem(REMOTE_CONTROL_TOKEN_KEY)
+        projectAccessService.setReadOnly(false)
     })
 
     it('activates remote storage as the action bridge when opening a remote project', async () => {
         mockProjectOpen()
-        configureRemoteControlConnection({ endpoint: 'ws://127.0.0.1:1234', token: 'token-1' })
+        configureRemoteControlConnection({ endpoint: 'ws://127.0.0.1:1234' })
         const service = new ProjectSessionService()
 
         await service.openProject('remote', { branch: 'main', id: 'remote', rootPath: '/repo' }, null)
 
         expect(getElectronActionBridge()).toBeInstanceOf(RemoteControlStorageService)
+        expect(configService.getDesktopValues()).toMatchObject({ agent: 'custom', model: 'custom-model', thinkingLevel: 'high' })
     })
 
     it('reuses an existing remote storage connection when opening a remote project', async () => {
         mockProjectOpen()
         const storage = new RemoteControlStorageService()
-        storage.init({ endpoint: 'ws://127.0.0.1:1234', token: 'token-1' })
+        storage.init({ endpoint: 'ws://127.0.0.1:1234' })
         const service = new ProjectSessionService()
 
         await service.openProject('remote', { branch: 'main', id: 'remote', rootPath: '/repo' }, null, storage)
@@ -101,12 +127,61 @@ describe('ProjectSessionService storage activation', () => {
         expect(getElectronActionBridge()).toBe(storage)
     })
 
+    it('keeps remote connection activation pending until desktop config and availability are ready', async () => {
+        const availability = createDeferred<void>()
+        vi.spyOn(agentCapabilitiesService, 'reload').mockReturnValue(availability.promise)
+        const storage = new RemoteControlStorageService()
+        storage.init({ endpoint: 'ws://127.0.0.1:1234' })
+        const service = new ProjectSessionService()
+        const activation = service.activateRemoteConnection(storage)
+
+        await Promise.resolve()
+        expect(storage.loadDesktopConfig).toHaveBeenCalledOnce()
+        await vi.waitFor(() => expect(configService.hasDesktopConfig()).toBe(true))
+        expect(agentCapabilitiesService.reload).toHaveBeenCalledOnce()
+
+        availability.resolve(undefined)
+        await activation
+    })
+
+    it('keeps desktop config unavailable and does not open the project when host config loading fails', async () => {
+        mockProjectOpen()
+        vi.mocked(RemoteControlStorageService.prototype.loadDesktopConfig).mockRejectedValueOnce(new Error('host config unavailable'))
+        const storage = new RemoteControlStorageService()
+        storage.init({ endpoint: 'ws://127.0.0.1:1234' })
+        const service = new ProjectSessionService()
+
+        await expect(service.openProject('remote', { branch: 'main', id: 'remote', rootPath: '/repo' }, null, storage))
+            .rejects.toThrow('Remote desktop config load failed: host config unavailable')
+        expect(configService.hasDesktopConfig()).toBe(false)
+        expect(dataService.projectLoading.openProject).not.toHaveBeenCalled()
+    })
+
+    it('clears remote desktop config and action bridge when the connection closes', async () => {
+        mockProjectOpen()
+        const storage = new RemoteControlStorageService()
+        storage.init({ endpoint: 'ws://127.0.0.1:1234' })
+        const connectionListeners: Array<(connected: boolean) => void> = []
+        vi.spyOn(storage, 'onConnectionChanged').mockImplementation((callback) => {
+            connectionListeners.push(callback)
+
+            return () => true
+        })
+        const service = new ProjectSessionService()
+        await service.openProject('remote', { branch: 'main', id: 'remote', rootPath: '/repo' }, null, storage)
+
+        for (const listener of connectionListeners) listener(false)
+
+        expect(configService.hasDesktopConfig()).toBe(false)
+        expect(getElectronActionBridge()).toBeNull()
+    })
+
     it('restores the preload action bridge when opening a local project after remote storage', async () => {
         mockProjectOpen()
         const preloadBridge = createActionBridge()
         window.md2Actions = preloadBridge
         window.md2Data = createDataBridge()
-        configureRemoteControlConnection({ endpoint: 'ws://127.0.0.1:1234', token: 'token-1' })
+        configureRemoteControlConnection({ endpoint: 'ws://127.0.0.1:1234' })
         const service = new ProjectSessionService()
         await service.openProject('remote', { branch: 'main', id: 'remote', rootPath: '/repo' }, null)
 
@@ -117,9 +192,25 @@ describe('ProjectSessionService storage activation', () => {
 
     it('restores the last local project once after resolving its current reference', async () => {
         mockProjectOpen()
+        const desktopConfig = {
+            agent: 'codex',
+            agentProfiles: [{ command: ['codex'], models: ['gpt-5'], name: 'codex' }],
+            codexSearchEnabled: true,
+            editorCommand: 'code "{{file}}"',
+            mergeConflictResolverCommand: '',
+            model: 'gpt-5',
+            permissionMode: 'ask-for-approval' as const,
+            remoteControlPort: 20877,
+            thinkingLevel: 'high' as const,
+        }
         const bridge = createDataBridge()
         vi.mocked(bridge.resolveProject).mockResolvedValue({ branch: 'topic', id: 'C:/repo', rootPath: 'C:/repo' })
+        window.md2Config = {
+            getDesktopConfig: () => desktopConfig,
+            setDesktopConfig: vi.fn(async (values) => values),
+        }
         window.md2Data = bridge
+        configService.init({ desktopConfig })
         window.localStorage.setItem(LAST_PROJECT_STORAGE_KEY, JSON.stringify({
             project: { branch: 'main', id: 'local', rootPath: 'C:/repo' },
             storageType: 'local',
@@ -136,6 +227,8 @@ describe('ProjectSessionService storage activation', () => {
             id: 'C:/repo',
             rootPath: 'C:/repo',
         })
+        expect(configService.hasDesktopConfig()).toBe(true)
+        expect(configService.getDesktopValues()).toEqual(desktopConfig)
     })
 
     it('skips the last GitHub project when no restored token exists', async () => {
@@ -152,11 +245,49 @@ describe('ProjectSessionService storage activation', () => {
         expect(dataService.projectLoading.openProject).not.toHaveBeenCalled()
     })
 
+    it('opens a public GitHub project with default config as read-only', async () => {
+        mockProjectOpen()
+        vi.stubGlobal('fetch', vi.fn(async () => new Response('', { status: 404 })))
+        const service = new ProjectSessionService()
+        const project = { branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' }
+
+        await expect(service.openProject('github-readonly', project, 'token-1')).resolves.toBeNull()
+
+        expect(service.isReadOnly).toBe(true)
+        expect(JSON.parse(window.localStorage.getItem(LAST_PROJECT_STORAGE_KEY) ?? '{}')).toEqual({
+            project,
+            storageType: 'github-readonly',
+        })
+    })
+
+    it('restores public GitHub access mode as read-only', async () => {
+        mockProjectOpen()
+        const project = { branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' }
+        window.localStorage.setItem(LAST_PROJECT_STORAGE_KEY, JSON.stringify({ project, storageType: 'github-readonly' }))
+        const service = new ProjectSessionService()
+
+        await service.restoreLastProject('token-1')
+
+        expect(service.isReadOnly).toBe(true)
+        expect(dataService.projectLoading.openProject).toHaveBeenCalledWith(project)
+    })
+
+    it('blocks direct session mutations while public project is read-only', async () => {
+        projectAccessService.setReadOnly(true)
+        const service = new ProjectSessionService()
+
+        await expect(service.commit()).rejects.toThrow(READ_ONLY_PROJECT_ERROR)
+        await expect(service.push()).rejects.toThrow(READ_ONLY_PROJECT_ERROR)
+        await expect(service.pull()).rejects.toThrow(READ_ONLY_PROJECT_ERROR)
+        await expect(service.createCard({ body: '', title: 'Blocked', type: 'feature' }, 'new')).rejects.toThrow(READ_ONLY_PROJECT_ERROR)
+        await expect(service.completeRelease('v1', [])).rejects.toThrow(READ_ONLY_PROJECT_ERROR)
+    })
+
     it('restores the preload action bridge when opening a GitHub project after remote storage', async () => {
         mockProjectOpen()
         const preloadBridge = createActionBridge()
         window.md2Actions = preloadBridge
-        configureRemoteControlConnection({ endpoint: 'ws://127.0.0.1:1234', token: 'token-1' })
+        configureRemoteControlConnection({ endpoint: 'ws://127.0.0.1:1234' })
         const service = new ProjectSessionService()
         await service.openProject('remote', { branch: 'main', id: 'remote', rootPath: '/repo' }, null)
         const config = window.btoa(JSON.stringify({ backgroundShade: 'blue', projectFolder: '', workingFolder: 'design' }))
@@ -208,6 +339,32 @@ describe('ProjectSessionService storage activation', () => {
 
         expect(flushPendingChanges).toHaveBeenCalledOnce()
         expect(service.getSnapshot()).toMatchObject({ isCommitting: false, isLoading: false })
+    })
+
+    it('reports card creation separately from project-wide loading', async () => {
+        const pendingCreation = createDeferred<void>()
+        vi.spyOn(dataService.cards, 'createCard').mockImplementation(async () => {
+            await pendingCreation.promise
+
+            return { content: '', path: 'design/F-4-new-card.md' }
+        })
+        const service = new ProjectSessionService()
+        const changed = vi.fn()
+        const cardCreationChanged = vi.fn()
+        service.addEventListener('changed', changed)
+        service.addEventListener('cardCreationChanged', cardCreationChanged)
+
+        const creation = service.createCard({ body: '', title: 'New Card', type: 'feature' }, 'new')
+
+        expect(service.getSnapshot().isLoading).toBe(false)
+        expect(service.getCardCreationSnapshot().isCreatingCard).toBe(true)
+        expect(changed).not.toHaveBeenCalled()
+        expect(cardCreationChanged).toHaveBeenCalledOnce()
+
+        pendingCreation.resolve()
+        await creation
+        expect(service.getCardCreationSnapshot().isCreatingCard).toBe(false)
+        expect(cardCreationChanged).toHaveBeenCalledTimes(2)
     })
 
     it('reports pull progress while the primary worktree pull runs', async () => {
