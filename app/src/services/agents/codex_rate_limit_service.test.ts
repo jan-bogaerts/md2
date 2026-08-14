@@ -38,11 +38,13 @@ function bridge(initialSnapshot: CodexRateLimitSnapshot | null = null) {
 
             return vi.fn()
         }),
+        onCodexUpdateRequired: vi.fn(() => vi.fn()),
         onConnectionChanged: vi.fn((listener) => {
             connectionListener = listener
 
             return vi.fn()
         }),
+        updateCodexCli: vi.fn(async () => undefined),
     }
 
     return {

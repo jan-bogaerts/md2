@@ -60,6 +60,7 @@ function createLocalBridgeDispatch(dependencies) {
         openWorktreeFolder,
         readDesktopConfig,
         saveDesktopConfig,
+        updateCodexCli,
         worktreeService,
     } = dependencies;
     let currentLocalProject = null;
@@ -512,6 +513,16 @@ function createLocalBridgeDispatch(dependencies) {
             if (!codexRuntimeService) throw new Error('Codex runtime service is not available');
 
             return codexRuntimeService.subscribe(callback);
+        },
+        onCodexUpdateRequired: (callback) => {
+            if (!codexRuntimeService) throw new Error('Codex runtime service is not available');
+
+            return codexRuntimeService.subscribeUpdateRequired(callback);
+        },
+        updateCodexCli: async () => {
+            if (!updateCodexCli) throw new Error('Codex CLI update is not available');
+
+            await updateCodexCli();
         },
     };
 

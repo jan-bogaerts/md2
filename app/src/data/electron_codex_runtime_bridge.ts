@@ -50,10 +50,17 @@ export interface CodexRateLimitSnapshot {
     rateLimitResetCredits: CodexRateLimitResetCreditsSummary | null
 }
 
+export interface CodexUpdateRequired {
+    cacheVersion: string
+    runningVersion: string
+}
+
 export interface ElectronCodexRuntimeBridge {
     getCodexRateLimits(): Promise<CodexRateLimitSnapshot | null>
     onConnectionChanged?(callback: (connected: boolean) => void): () => void
     onCodexRateLimits(callback: (snapshot: CodexRateLimitSnapshot) => void): () => void
+    onCodexUpdateRequired?(callback: (update: CodexUpdateRequired) => void): () => void
+    updateCodexCli?(): Promise<void>
 }
 
 declare global {

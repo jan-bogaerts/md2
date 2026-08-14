@@ -13,6 +13,7 @@ const windowStateKeeper = require('electron-window-state');
 const { readDesktopConfig, resolveBridgeAllowedOrigins, saveDesktopConfig } = require('./src/shell/config');
 const { AgentRunnerService } = require('./src/actions/agent/agent_runner_service');
 const { CodexRuntimeService } = require('./src/actions/agent/codex_runtime_service');
+const { updateCodexCli } = require('./src/actions/agent/codex_cli_update');
 const { AgentExecutableResolver, loadAgentExecutableAvailability } = require('./src/actions/agent/agent_executable_availability');
 const { ActionSchedulerService } = require('./src/actions/action/action_scheduler_service');
 const { ActionRunnerService } = require('./src/actions/action/action_runner_service');
@@ -57,7 +58,7 @@ const { createManagedWindow } = require('./src/shell/window_state');
 
 const QUIT_WATCHDOG_TIMEOUT_MS = 10000;
 const EVENT_METHODS = new Set(['runSearchRegexpAgent', 'startAgentConversation']);
-const SUBSCRIPTION_METHODS = new Set(['onActionRun', 'onCodexRateLimits', 'onMergeConflictSessionChanged', 'onWorktreesChanged', 'watchProject']);
+const SUBSCRIPTION_METHODS = new Set(['onActionRun', 'onCodexRateLimits', 'onCodexUpdateRequired', 'onMergeConflictSessionChanged', 'onWorktreesChanged', 'watchProject']);
 
 const store = new Store();
 Store.initRenderer();
@@ -103,6 +104,7 @@ const localBridgeDispatch = createLocalBridgeDispatch({
     openWorktreeFolder: () => openWorktreeFolder(BrowserWindow.getFocusedWindow()),
     readDesktopConfig,
     saveDesktopConfig,
+    updateCodexCli,
     worktreeService,
 });
 const remoteControlService = new RemoteControlService(localBridgeDispatch);

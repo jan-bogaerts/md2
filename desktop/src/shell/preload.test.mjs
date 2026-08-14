@@ -117,6 +117,8 @@ describe('preload desktop agent bridge', () => {
         expect(exposed.md2RemoteControl.onStatusChange).toEqual(expect.any(Function));
         expect(exposed.md2CodexRuntime.getCodexRateLimits).toEqual(expect.any(Function));
         expect(exposed.md2CodexRuntime.onCodexRateLimits).toEqual(expect.any(Function));
+        expect(exposed.md2CodexRuntime.onCodexUpdateRequired).toEqual(expect.any(Function));
+        expect(exposed.md2CodexRuntime.updateCodexCli).toEqual(expect.any(Function));
         expect(exposed.md2Updates.onUpdateAvailable).toEqual(expect.any(Function));
         expect(exposed.md2Updates.downloadUpdate).toEqual(expect.any(Function));
         expect(exposed.md2Updates.onDownloadProgress).toEqual(expect.any(Function));
@@ -171,6 +173,18 @@ describe('preload desktop agent bridge', () => {
         expect(subscriptionRequest).toEqual(expect.objectContaining({ method: 'onCodexRateLimits', params: [] }));
         expect(callback).toHaveBeenCalledWith(snapshot);
         expect(electron.ipcRenderer.send).toHaveBeenCalledWith('md2-local-bridge:unsubscribe', subscriptionRequest.subscriptionId);
+    });
+
+    it('updates Codex without accepting renderer command input', async () => {
+        const { electron, exposed } = createPreloadHarness();
+
+        await exposed.md2CodexRuntime.updateCodexCli('malicious command');
+
+        expect(electron.ipcRenderer.invoke).toHaveBeenCalledWith('md2-local-bridge:invoke', {
+            eventId: null,
+            method: 'updateCodexCli',
+            params: [],
+        });
     });
 
     it('wraps remote-control callbacks without exposing ipcRenderer', () => {

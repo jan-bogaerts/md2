@@ -52,4 +52,13 @@ describe('dialogService', () => {
 
         dialogService.removeEventListener(DIALOG_SERVICE_EVENT, listener)
     })
+
+    it('includes optional snackbar action without changing text-only messages', () => {
+        const callback = vi.fn()
+        const actionable = dialogService.warning('Codex update required', {action: { callback, label: 'Update Codex' }})
+        const textOnly = dialogService.info('Sync started')
+
+        expect(actionable.action).toEqual({ callback, label: 'Update Codex' })
+        expect(textOnly.action).toBeUndefined()
+    })
 })

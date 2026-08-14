@@ -37,7 +37,9 @@ function createDispatch(options = {}) {
     const codexRuntimeService = {
         getSnapshot: vi.fn(() => ({ available: true, buckets: [], observedAt: 10, rateLimitResetCredits: null })),
         subscribe: vi.fn(() => vi.fn()),
+        subscribeUpdateRequired: vi.fn(() => vi.fn()),
     };
+    const updateCodexCli = vi.fn(async () => undefined);
     const localGitService = {
         appendAndCommitSystemActivity: vi.fn(async () => undefined),
         assertGitRoot: vi.fn(),
@@ -145,6 +147,7 @@ function createDispatch(options = {}) {
         openWorktreeFolder: options.openWorktreeFolder,
         readDesktopConfig: () => desktopConfig,
         saveDesktopConfig,
+        updateCodexCli,
         worktreeService,
     });
 
@@ -159,6 +162,7 @@ function createDispatch(options = {}) {
         localGitService,
         mergeConflictService,
         saveDesktopConfig,
+        updateCodexCli,
         worktreeService,
     };
 }
@@ -226,9 +230,10 @@ describe('createLocalBridgeDispatch', () => {
         expect(localGitService.appendAndCommitSystemActivity).not.toHaveBeenCalled();
     });
 
-    it('exposes account-wide Codex runtime state without execution context', () => {
-        const { codexRuntimeService, dispatch } = createDispatch();
+    it('exposes account-wide Codex runtime state without execution context', async () => {
+        const { codexRuntimeService, dispatch, updateCodexCli } = createDispatch();
         const callback = vi.fn();
+        const updateCallback = vi.fn();
 
         expect(dispatch.codexRuntimeBridge.getCodexRateLimits()).toEqual({
             available: true,
@@ -238,6 +243,10 @@ describe('createLocalBridgeDispatch', () => {
         });
         dispatch.codexRuntimeBridge.onCodexRateLimits(callback);
         expect(codexRuntimeService.subscribe).toHaveBeenCalledWith(callback);
+        dispatch.codexRuntimeBridge.onCodexUpdateRequired(updateCallback);
+        expect(codexRuntimeService.subscribeUpdateRequired).toHaveBeenCalledWith(updateCallback);
+        await dispatch.codexRuntimeBridge.updateCodexCli();
+        expect(updateCodexCli).toHaveBeenCalledOnce();
     });
 
     it('loads executable availability from configured profiles', async () => {

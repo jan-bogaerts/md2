@@ -13,8 +13,14 @@ function diagnosticStreamingEvent(content, providerItemId) {
 
 describe('AgentRunnerService state handling', () => {
     it('reports one diagnosed Codex cache error and suppresses repeats', async () => {
-        const diagnoseCodexCacheError = vi.fn(async () => 'Codex versions differ. Update Codex.');
-        const service = new AgentRunnerService({ diagnoseCodexCacheError });
+        const diagnoseCodexCacheError = vi.fn(async () => ({
+            cacheVersion: '0.146.0',
+            message: 'Codex versions differ. Update Codex.',
+            runningVersion: '0.144.6',
+            updateRequired: true,
+        }));
+        const codexRuntimeService = { publishUpdateRequired: vi.fn() };
+        const service = new AgentRunnerService({ codexRuntimeService, diagnoseCodexCacheError });
         const run = {
             agent: 'codex',
             child: {},
@@ -45,6 +51,39 @@ describe('AgentRunnerService state handling', () => {
         expect(run.stderr).toBe('Codex versions differ. Update Codex.\n');
         expect(run.conversation.entries).toHaveLength(1);
         expect(run.onEvent).toHaveBeenCalledOnce();
+        expect(codexRuntimeService.publishUpdateRequired).toHaveBeenCalledWith('0.144.6', '0.146.0');
+    });
+
+    it('keeps matching or unknown cache versions local to the action', async () => {
+        const diagnoseCodexCacheError = vi.fn(async () => ({
+            cacheVersion: null,
+            message: 'Codex cache failed without confirmed mismatch.',
+            runningVersion: '0.146.0',
+            updateRequired: false,
+        }));
+        const codexRuntimeService = { publishUpdateRequired: vi.fn() };
+        const service = new AgentRunnerService({ codexRuntimeService, diagnoseCodexCacheError });
+        const run = {
+            agent: 'codex',
+            codexCacheErrorReported: false,
+            conversation: { entries: [] },
+            environment: {},
+            executable: 'codex.cmd',
+            id: 'run-1',
+            nextSequence: 1,
+            onEvent: vi.fn(),
+            secretValues: new Set(),
+            stderr: '',
+            stderrBuffer: '',
+            stderrHandling: Promise.resolve(),
+        };
+        service.processes.set('run-1', run);
+
+        service.handleOutput('run-1', 'stderr', Buffer.from('failed to load models cache: broken\n'));
+        await run.stderrHandling;
+
+        expect(run.stderr).toContain('without confirmed mismatch');
+        expect(codexRuntimeService.publishUpdateRequired).not.toHaveBeenCalled();
     });
 
     it('consumes one queued revision exactly once', async () => {

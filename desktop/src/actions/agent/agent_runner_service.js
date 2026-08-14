@@ -335,8 +335,11 @@ class AgentRunnerService {
             if (run.codexCacheErrorReported) continue;
             run.codexCacheErrorReported = true;
             const diagnostic = run.stderrHandling.then(async () => {
-                const message = await this.diagnoseCodexCacheError(line, run.executable, run.environment);
-                this.recordOutput(run.id, 'stderr', `${message}\n`);
+                const result = await this.diagnoseCodexCacheError(line, run.executable, run.environment);
+                this.recordOutput(run.id, 'stderr', `${result.message}\n`);
+                if (result.updateRequired) {
+                    this.codexRuntimeService?.publishUpdateRequired(result.runningVersion, result.cacheVersion);
+                }
             });
             run.stderrHandling = diagnostic.catch(() => {
                 this.recordOutput(run.id, 'stderr', `${line}${delimiter}`);

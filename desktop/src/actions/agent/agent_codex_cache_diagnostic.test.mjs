@@ -61,7 +61,7 @@ describe('Codex cache diagnostics', () => {
         const readFile = vi.fn(async () => JSON.stringify({ client_version: '0.146.0' }));
         const spawn = vi.fn(() => versionProcess('0.144.6'));
 
-        const message = await diagnoseCodexCacheError(
+        const result = await diagnoseCodexCacheError(
             'failed to load models cache: broken',
             'codex.cmd',
             { CODEX_HOME: 'C:\\codex-md2' },
@@ -70,7 +70,12 @@ describe('Codex cache diagnostics', () => {
 
         expect(readFile).toHaveBeenCalledWith('C:\\codex-md2\\models_cache.json', 'utf8');
         expect(spawn).toHaveBeenCalledWith('codex.cmd', ['--version'], expect.objectContaining({ windowsHide: true }));
-        expect(message).toContain('Running Codex version: 0.144.6. Cache client version: 0.146.0.');
+        expect(result).toEqual(expect.objectContaining({
+            cacheVersion: '0.146.0',
+            runningVersion: '0.144.6',
+            updateRequired: true,
+        }));
+        expect(result.message).toContain('Running Codex version: 0.144.6. Cache client version: 0.146.0.');
     });
 
     it('terminates a timed-out version probe through its owned child handle', async () => {
@@ -88,9 +93,10 @@ describe('Codex cache diagnostics', () => {
         );
 
         await vi.advanceTimersByTimeAsync(5_000);
-        const message = await messagePromise;
+        const result = await messagePromise;
 
         expect(child.kill).toHaveBeenCalledOnce();
-        expect(message).toContain('could not determine both');
+        expect(result.message).toContain('could not determine both');
+        expect(result.updateRequired).toBe(false);
     });
 });

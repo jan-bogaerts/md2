@@ -251,6 +251,8 @@ if (!isAllowedOrigin()) {
     const codexRuntimeBridge = {
         ...createBridge(CODEX_RUNTIME_METHODS),
         onCodexRateLimits: (callback) => subscribeBridge('onCodexRateLimits', [], callback),
+        onCodexUpdateRequired: (callback) => subscribeBridge('onCodexUpdateRequired', [], callback),
+        updateCodexCli: () => invokeBridge('updateCodexCli', [], null),
     };
     const updatesBridge = {
         downloadUpdate: (downloadUrl) => ipcRenderer.invoke(UPDATE_DOWNLOAD_CHANNEL, { downloadUrl }),
