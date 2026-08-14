@@ -557,7 +557,6 @@ export class AgentIntegration {
                 fallbackMessage: 'Activity repairs could not be saved. Changes remain pending for retry.',
                 title: 'Activity repair save failed',
             })
-            telemetryService.captureError(error)
         } finally {
             releaseAutomaticCommit()
         }

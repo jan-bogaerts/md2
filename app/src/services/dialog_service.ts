@@ -1,4 +1,5 @@
 import { register } from './service_injector'
+import { telemetryService } from './telemetry/telemetry_service'
 
 export const DIALOG_SERVICE_EVENT = 'md2:dialog-message'
 
@@ -49,6 +50,7 @@ export class DialogService extends EventTarget {
     }
 
     error(error: unknown, options: DialogServiceOptions = {}) {
+        telemetryService.captureError(error)
         const message = messageFrom(error, options.fallbackMessage ?? 'An error occurred')
 
         return this.show('error', message, options)

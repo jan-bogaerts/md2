@@ -240,7 +240,6 @@ export class ProjectLoading {
         } catch (error) {
             this.clearFailedProjectLoad()
             dialogService.error(error, { fallbackMessage: 'Project could not be loaded', title: 'Project load failed' })
-            telemetryService.captureError(error)
             markProjectLoadErrorReported(error)
             throw error
         }

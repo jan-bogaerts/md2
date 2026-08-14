@@ -124,6 +124,32 @@ describe('ProjectLoading', () => {
         }
     })
 
+    it('reports a primary project-load failure once with the original error', async () => {
+        configService.init()
+        const error = new Error('Project root unavailable')
+        const storage = createStorage({
+            loadProjectRoot: vi.fn(async () => {
+                throw error
+            }),
+        })
+        const service = createDataService()
+        const errors = recordDialogMessages('error')
+        const captureError = vi.spyOn(telemetryService, 'captureError').mockImplementation(() => undefined)
+
+        try {
+            service.init({ storage })
+
+            await expect(service.projectLoading.openProject({ branch: 'main', id: 'project' })).rejects.toBe(error)
+
+            expect(errors.messages).toEqual(['Project root unavailable'])
+            expect(captureError).toHaveBeenCalledTimes(1)
+            expect(captureError).toHaveBeenCalledWith(error)
+        } finally {
+            errors.stop()
+            captureError.mockRestore()
+        }
+    })
+
     it('repairs activity and invalid card references in one project-load commit', async () => {
         configService.init()
         const activityPath = 'design/activity/card__root-card.json'
@@ -305,9 +331,10 @@ describe('ProjectLoading', () => {
             ...JSON.parse(activityContent({ cardInternalId: 'root-card', kind: 'card' }, [sourceConversation])),
             actionSettings: { broken: { agent: 'codex' } },
         })
+        const repairError = new Error('Git commit failed')
         let commitShouldFail = true
         const commit = vi.fn(async (): Promise<MarkdownFile[]> => {
-            if (commitShouldFail) throw new Error('Git commit failed')
+            if (commitShouldFail) throw repairError
 
             return []
         })
@@ -319,22 +346,31 @@ describe('ProjectLoading', () => {
             loadTextFile: vi.fn(async () => ({ content: malformedActivity, path: activityPath })),
         })
         const dialogs = recordDialogMessages('error')
+        const captureError = vi.spyOn(telemetryService, 'captureError').mockImplementation(() => undefined)
         const service = createDataService()
-        service.init({ storage })
 
-        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
-        await vi.waitFor(() => expect(dialogs.messages).toHaveLength(1))
+        try {
+            service.init({ storage })
 
-        expect(commit).toHaveBeenCalledTimes(1)
-        expect(service.getPersistenceSnapshot().hasPendingFileCommit).toBe(true)
-        expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual([validReference])
-        expect(service.getState().snapshot?.activeCards[0].agentConversations).toEqual([sourceConversation])
+            await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+            await vi.waitFor(() => expect(dialogs.messages).toHaveLength(1))
 
-        commitShouldFail = false
-        await service.cards.flushPendingCommits()
-        expect(commit).toHaveBeenCalledTimes(2)
-        expect(service.getPersistenceSnapshot().hasPendingFileCommit).toBe(false)
-        dialogs.stop()
+            expect(commit).toHaveBeenCalledTimes(1)
+            expect(captureError).toHaveBeenCalledTimes(1)
+            expect(captureError).toHaveBeenCalledWith(repairError)
+            expect(service.getPersistenceSnapshot().hasPendingFileCommit).toBe(true)
+            expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual([validReference])
+            expect(service.getState().snapshot?.activeCards[0].agentConversations).toEqual([sourceConversation])
+
+            commitShouldFail = false
+            await service.cards.flushPendingCommits()
+            expect(commit).toHaveBeenCalledTimes(2)
+            expect(captureError).toHaveBeenCalledTimes(1)
+            expect(service.getPersistenceSnapshot().hasPendingFileCommit).toBe(false)
+        } finally {
+            dialogs.stop()
+            captureError.mockRestore()
+        }
     })
 
     it('blocks project navigation while an invalid action draft remains unsaved', async () => {
