@@ -10,6 +10,8 @@ agents:
   - design/activity/card__065a1db8-981d-4e22-8d62-8f8cc5995408.json#conversation=agent-6dc3d891-a742-465b-900a-a1203e5956f1
 policy:
 after: bee2d3c7-81e1-451a-bc4d-d4ba59c849e9
+branch: f_175_attach_files_to_card
+worktree: 2
 ---
 add possibility to attach files to a card.&#x20;
 
