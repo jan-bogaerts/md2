@@ -12,8 +12,6 @@ agents:
   - design/activity/card__8fc5eed5-9fc2-43a1-95d7-66c0aabd5d31.json#conversation=agent-8018c438-ee4a-4e7f-b623-431c297c745b
   - design/activity/card__8fc5eed5-9fc2-43a1-95d7-66c0aabd5d31.json#conversation=agent-8c7d557e-3ada-47d5-96ac-470ea4b49d66
 policy:
-branch: f_195_clip_icon_location_on_action_popup_and_new_card_popup
-worktree: 3
 ---
 The clip icon has been placed horribly bad on the action popup and the new card popup. it appears to have been placed simply above the markdown editor. this is horrible.
 
