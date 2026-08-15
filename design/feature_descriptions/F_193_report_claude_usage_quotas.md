@@ -72,6 +72,48 @@ Codex quota path fully built. Claude path absent.
 
 Decision: **spike both options first, then finish one.** Ship a **separate claude indicator** (not merged into codex). "Separate indicator" = its own status-bar control + service, sitting next to `CodexRateLimitStatus`, claude-specific wording and fields.
 
+### Spike result (2026-08-15, claude CLI v2.1.177) — WINNER: Option 2 (`/usage`)
+
+Both options were probed against the installed CLI. Both emit real data. **Option 2 chosen** because it carries the used-percent the codex UI centers on, plus the weekly window; Option 1 carries neither.
+
+**Option 1 — `rate_limit_event` (probed, rejected):**
+
+* Emits reliably, once per streaming turn (`claude -p --output-format stream-json --verbose`).
+* Full field set: `{ status: "allowed", resetsAt: 1786823400, rateLimitType: "five_hour", overageStatus: "rejected", overageDisabledReason: "org_level_disabled_until", isUsingOverage: false }`.
+* `resetsAt` is **unix SECONDS** (not ms). `rateLimitType` observed: `five_hour` only — the weekly window never appeared in this event.
+* No used-percent anywhere in the stream. Rejected: indicator would show reset-time + status color only, no percent, no weekly.
+
+**Option 2 — `/usage` (probed, chosen):**
+
+* **Not available in `-p`/print mode** — there `/usage` is interpreted as an LLM prompt (runs a normal model turn, costs money/quota, returns chat text). No CLI subcommand/flag for usage exists either.
+* Works **headless (no TTY)** by piping into the interactive REPL via stdin; EOF makes it process and exit clean (exit 0), emitting **plain text** (no TUI escape codes):
+
+  \`\`\`
+  echo /usage | claude
+  \`\`\`
+
+  Output shape:
+
+  \`\`\`
+  You are currently using your subscription to power your Claude Code usage
+
+  Current session: 17% used · resets Aug 15, 9:49pm (Europe/Brussels)
+  Current week (all models): 13% used · resets Aug 16, 6:59pm (Europe/Brussels)
+  \`\`\`
+
+**Field map (parse target for later phases):**
+
+* Two windows, one line each:
+  * `Current session:` → window id `five_hour`.
+  * `Current week (all models):` → window id `weekly`.
+* Per line: `N% used` → `usedPercent` (integer). `resets <localized datetime> (<IANA tz>)` → parse to a timestamp; the reset is given in **local time + timezone**, NOT unix seconds (contrast Option 1). Capture the tz string; convert to unix ms for the snapshot.
+* Leading `You are currently using your subscription…` line is a header — ignore.
+
+**Capture-mechanism constraints:**
+
+* Spawn a fresh `claude` REPL per poll (`echo /usage | claude`, no `-p`). Each spawn pays session startup (hooks fire, a few seconds) — fine for a periodic poll, not high-frequency. Poll on a timer / on demand, not per streaming turn.
+* Phase 1's `ClaudeStreamingAdapter` `onRuntimeEvent` wiring is therefore **not** the capture path for Option 2 (that was Option 1's route). Capture is an out-of-band spawn owned by desktop; the adapter `rate_limit_event` line stays dropped as today.
+
 ### Phase 0 — spike (throwaway, decides the rest)
 
 Goal: learn which option the installed claude CLI actually produces, and the exact JSON/text shape. Keep the app usable throughout.
