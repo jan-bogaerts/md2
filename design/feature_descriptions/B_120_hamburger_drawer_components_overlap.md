@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
   - design/activity/card__4a471f6a-6bca-4990-9e2d-38dc2df2ce9f.json#conversation=agent-befb61e1-df1b-42ec-9d35-e6a2ad3772d3
+  - design/activity/card__4a471f6a-6bca-4990-9e2d-38dc2df2ce9f.json#conversation=agent-5a6170a1-33f7-4693-938a-61a2f33df65f
 policy:
 branch: b_120_hamburger_drawer_components_overlap
 worktree: 1
