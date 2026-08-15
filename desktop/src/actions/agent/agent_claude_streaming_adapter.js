@@ -116,6 +116,13 @@ function toolInputContent(input) {
     return JSON.stringify(input ?? {});
 }
 
+// Text blocks carry no provider id, so they are keyed by a per-message text ordinal instead of the raw
+// content-block index. The ordinal is index-independent, so a leading thinking/tool block shifting the
+// aggregated array does not break the streamed↔aggregated reconciliation across an `AskUserQuestion` pause.
+function claudeTextItemId(messageId, textOrdinal) {
+    return `${messageId}:text:${textOrdinal}`;
+}
+
 function claudeToolEvent(block, status = 'inProgress', providerItemId = block.id) {
     const base = eventBase(providerItemId, `tool.${block.name}`, block.name, status);
     if (block.name === 'Bash') {
@@ -149,6 +156,7 @@ class ClaudeStreamingAdapter {
         this.activeBlocks = new Map();
         this.streamedTextItems = new Map();
         this.activeMessageId = null;
+        this.activeTextOrdinal = 0;
         this.protocolErrorSequence = 1;
         this.turnStarted = false;
         this.turnHasAssistantText = false;
@@ -261,6 +269,7 @@ class ClaudeStreamingAdapter {
             await this.ensureTurnStarted();
             this.activeMessageId = streamEvent.message?.id;
             this.activeBlocks.clear();
+            this.activeTextOrdinal = 0;
             if (typeof this.activeMessageId !== 'string' || this.activeMessageId.length === 0) {
                 await this.emitProtocolError('message_start missing message id');
             }
@@ -287,7 +296,9 @@ class ClaudeStreamingAdapter {
             return;
         }
         const block = structuredClone(streamEvent.content_block);
-        const providerItemId = block.id ?? `${this.activeMessageId}:${block.type}:${streamEvent.index}`;
+        const providerItemId = block.type === 'text'
+            ? claudeTextItemId(this.activeMessageId, this.activeTextOrdinal++)
+            : block.id ?? `${this.activeMessageId}:${block.type}:${streamEvent.index}`;
         const separator = block.type === 'text' && this.turnHasAssistantText ? '\n\n' : '';
         const trackedBlock = { block, inputJson: '', providerItemId, separator, text: block.text ?? block.thinking ?? '' };
         this.activeBlocks.set(streamEvent.index, trackedBlock);
@@ -353,18 +364,26 @@ class ClaudeStreamingAdapter {
         }
         const messageId = event.message.id ?? this.activeMessageId;
         if (typeof messageId !== 'string' || messageId.length === 0) throw new Error('Missing Claude assistant message id');
+        let textOrdinal = 0;
         for (const [index, block] of event.message.content.entries()) {
-            const providerItemId = block.id ?? `${messageId}:${block.type}:${index}`;
             if (block.type === 'text' && typeof block.text === 'string') {
+                // Same ordinal scheme as streaming so the aggregated copy reconciles regardless of where
+                // thinking/tool blocks sit in the aggregated array.
+                const providerItemId = claudeTextItemId(messageId, textOrdinal);
+                textOrdinal += 1;
                 const streamedItem = this.streamedTextItems.get(providerItemId);
                 const separator = streamedItem?.separator ?? (this.turnHasAssistantText ? '\n\n' : '');
                 if (!streamedItem) {
                     await this.onEvent({ itemId: providerItemId, type: 'assistantStarted' });
+                    // Record the freshly created item so a repeat aggregated delivery of the same step
+                    // (the `AskUserQuestion` pause re-emits it) reconciles in place instead of duplicating.
+                    this.streamedTextItems.set(providerItemId, { separator });
                 }
                 this.turnHasAssistantText = this.turnHasAssistantText || block.text.length > 0;
                 await this.onEvent({ content: `${separator}${block.text}`, itemId: providerItemId, type: 'assistantCompleted' });
                 continue;
             }
+            const providerItemId = block.id ?? `${messageId}:${block.type}:${index}`;
             if (block.type === 'thinking') {
                 const content = typeof block.thinking === 'string' ? block.thinking : '';
                 const reasoningEvent = {
@@ -410,6 +429,7 @@ class ClaudeStreamingAdapter {
         this.activeBlocks.clear();
         this.streamedTextItems.clear();
         this.activeMessageId = null;
+        this.activeTextOrdinal = 0;
         this.pendingQuestions.clear();
         this.turnStarted = false;
         this.turnHasAssistantText = false;

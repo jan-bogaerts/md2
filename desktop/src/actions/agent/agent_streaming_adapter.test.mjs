@@ -195,8 +195,8 @@ describe('ClaudeStreamingAdapter', () => {
         expect(events.map(({ type }) => type)).toEqual([
             'turnStarted', 'event', 'event', 'assistantStarted', 'assistant', 'event', 'event', 'event', 'assistantCompleted', 'event',
         ]);
-        expect(events).toContainEqual({ content: 'dra', itemId: 'message-1:text:1', type: 'assistant' });
-        expect(events).toContainEqual({ content: 'draft', itemId: 'message-1:text:1', type: 'assistantCompleted' });
+        expect(events).toContainEqual({ content: 'dra', itemId: 'message-1:text:0', type: 'assistant' });
+        expect(events).toContainEqual({ content: 'draft', itemId: 'message-1:text:0', type: 'assistantCompleted' });
         expect(events.at(-1)).toEqual({
             event: expect.objectContaining({ command: 'npm test', providerItemId: 'tool-1', status: 'inProgress' }),
             type: 'event',
@@ -235,6 +235,57 @@ describe('ClaudeStreamingAdapter', () => {
             { content: 'first step', itemId: 'message-1:text:0', type: 'assistantCompleted' },
             { content: '\n\nsecond step', itemId: 'message-2:text:0', type: 'assistantCompleted' },
         ]);
+    });
+
+    it('keeps one assistant item per step across an AskUserQuestion pause with re-delivered aggregates', async () => {
+        const { adapter, events } = harness('claude');
+        const messageStart = (id) => ({ event: { message: { id }, type: 'message_start' }, type: 'stream_event' });
+        const textStart = (index) => ({
+            event: { content_block: { text: '', type: 'text' }, index, type: 'content_block_start' },
+            type: 'stream_event',
+        });
+        const textDelta = (index, text) => ({
+            event: { delta: { text, type: 'text_delta' }, index, type: 'content_block_delta' },
+            type: 'stream_event',
+        });
+        // Step A's aggregate leads with a thinking block, shifting the text block off index 0 — the ordinal key
+        // still matches the streamed copy.
+        const aggregatedAfterThinking = (id, text) => ({
+            message: { content: [{ thinking: 'weigh options', type: 'thinking' }, { text, type: 'text' }], id },
+            type: 'assistant',
+        });
+        const aggregated = (id, text) => ({ message: { content: [{ text, type: 'text' }], id }, type: 'assistant' });
+
+        // Step A streams, then Claude asks a question and pauses.
+        await adapter.handleMessage(messageStart('msg-A'));
+        await adapter.handleMessage(textStart(0));
+        await adapter.handleMessage(textDelta(0, 'step A text'));
+        await adapter.handleMessage({
+            request: {
+                input: { questions: [{ header: 'Confirm', options: [{ label: 'Yes' }], question: 'Proceed?' }] },
+                subtype: 'can_use_tool',
+                tool_name: 'AskUserQuestion',
+                tool_use_id: 'tool-1',
+            },
+            request_id: 'request-1',
+            type: 'control_request',
+        });
+        await adapter.answerQuestion('request-1', { 'claude-question-0': ['Yes'] });
+        // The pause re-delivers each step's aggregate twice; step B never streamed and also arrives twice.
+        await adapter.handleMessage(aggregatedAfterThinking('msg-A', 'step A text'));
+        await adapter.handleMessage(aggregatedAfterThinking('msg-A', 'step A text'));
+        await adapter.handleMessage(aggregated('msg-B', 'step B text'));
+        await adapter.handleMessage(aggregated('msg-B', 'step B text'));
+        await adapter.handleMessage({ type: 'result' });
+
+        expect(events.filter(({ type }) => type === 'assistantStarted')).toEqual([
+            { itemId: 'msg-A:text:0', type: 'assistantStarted' },
+            { itemId: 'msg-B:text:0', type: 'assistantStarted' },
+        ]);
+        const completed = events.filter(({ type }) => type === 'assistantCompleted');
+        expect([...new Set(completed.map(({ itemId }) => itemId))]).toEqual(['msg-A:text:0', 'msg-B:text:0']);
+        expect(completed).toContainEqual({ content: 'step A text', itemId: 'msg-A:text:0', type: 'assistantCompleted' });
+        expect(completed).toContainEqual({ content: '\n\nstep B text', itemId: 'msg-B:text:0', type: 'assistantCompleted' });
     });
 
     it('suppresses routine Claude protocol noise', async () => {
