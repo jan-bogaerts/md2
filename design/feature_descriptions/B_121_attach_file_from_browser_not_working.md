@@ -8,5 +8,7 @@ owner:
 affects:
 agents:
 policy:
+references:
+  - design/feature_descriptions/20260614_075636.jpg
 ---
 
