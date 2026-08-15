@@ -11,8 +11,6 @@ agents:
   - design/activity/card__4e0cc180-caab-4998-bb3f-63411cfa21de.json#conversation=agent-c78aad14-a134-47d7-bd05-96cc47d8f7c7
 policy:
 after: 2433b65f-efed-4a22-af41-529cd35af655
-branch: b_114_placeholders_not_resolved
-worktree: 2
 ---
 When user types in a placeholder in the input box of the action popup, it is not resolved apparently, when sent to the engine
 
