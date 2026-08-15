@@ -8,7 +8,7 @@ owner:
 affects:
 agents:
 policy:
-after: 16e415b8-8ab2-4050-bb45-c6c37c0c3465
+after: b0e7104c-8f81-425e-8473-66b569a63d81
 ---
 
 on action popup: state is waiting for input, but the input box is disabled, not possible to send input. this is a bad state handling
