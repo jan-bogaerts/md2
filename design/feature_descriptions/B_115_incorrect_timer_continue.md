@@ -3,7 +3,7 @@ author:
 id: B_115
 internalId: 2433b65f-efed-4a22-af41-529cd35af655
 title: incorrect timer continue
-status: new
+status: design
 owner: 
 affects:
 agents:
