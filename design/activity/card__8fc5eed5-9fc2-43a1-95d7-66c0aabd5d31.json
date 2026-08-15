@@ -4455,16 +4455,16 @@
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-169",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_098a4e5bddfca9fa016a807a05f3d481919fc8cdf2fa322b61",
           "sequence": 169,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T14:39:02.538Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "agent": "codex",
@@ -4485,16 +4485,16 @@
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-172",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_098a4e5bddfca9fa016a807a77efc88191b6f3789bcdf70219",
           "sequence": 172,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T14:41:02.228Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "agent": "codex",
@@ -4515,16 +4515,16 @@
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-175",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_098a4e5bddfca9fa016a807ae11d6081919139824155ff40e7",
           "sequence": 175,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T14:42:41.909Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "agent": "codex",
@@ -4536,7 +4536,10 @@
           "timestamp": "2026-08-15T14:42:42.871Z"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app/src/services/attachments/attachment_choice_service.ts'\"",
           "content": "import { getOriginalFilePaths } from '../../data/electron_file_bridge'\nimport { register } from '../service_injector'\n\nexport type AttachmentLocationChoice = 'copy' | 'original'\n\nexport interface AttachmentChoiceSnapshot {\n    fileCount: number\n    fileNames: string[]\n    originalLocationAvailable: boolean\n}\n\ninterface PendingAttachmentChoice {\n    originalPaths: string[] | null\n    resolve: (choice: AttachmentSelection | null) => void\n    snapshot: AttachmentChoiceSnapshot\n}\n\nexport interface AttachmentSelection {\n    choice: AttachmentLocationChoice\n    originalPaths: string[] | null\n}\n\n/** Owns one application-wide attachment location decision. */\nexport class AttachmentChoiceService extends EventTarget {\n    private pending: PendingAttachmentChoice | null = null\n\n    constructor() {\n        super()\n        register('attachmentChoiceService', this)\n    }\n\n    readonly getSnapshot = () => this.pending?.snapshot ?? null\n\n    readonly subscribe = (listener: () => void) => {\n        this.addEventListener('changed', listener)\n\n        return () => this.removeEventListener('changed', listener)\n    }\n\n    choose(files: File[]) {\n        if (files.length === 0) throw new Error('Cannot choose attachment location without files')\n        if (this.pending) throw new Error('Another attachment choice is already open')\n\n        const originalPaths = getOriginalFilePaths(files)\n        const snapshot = {\n            fileCount: files.length,\n            fileNames: files.map(({ name }) => name),\n            originalLocationAvailable: originalPaths !== null,\n        }\n\n        return new Promise<AttachmentSelection | null>((resolve) => {\n            this.pending = { originalPaths, resolve, snapshot }\n            this.dispatchEvent(new Event('changed'))\n        })\n    }\n\n    cancel() {\n        this.complete(null)\n    }\n\n    select(choice: AttachmentLocationChoice) {\n        const pending = this.pending\n        if (!pending) throw new Error('No attachment choice is open')\n        if (choice === 'original' && !pending.originalPaths) throw new Error('Original file locations are unavailable')\n\n        this.complete({ choice, originalPaths: choice === 'original' ? pending.originalPaths : null })\n    }\n\n    private complete(selection: AttachmentSelection | null) {\n        const pending = this.pending\n        if (!pending) return\n\n        this.pending = null\n        pending.resolve(selection)\n        this.dispatchEvent(new Event('changed'))\n    }\n}\n\nexport const attachmentChoiceService = new AttachmentChoiceService()\n\r\n",
+          "durationMs": 348,
+          "exitCode": 0,
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-177",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app/src/services/attachments/attachment_choice_service.ts'\"",
@@ -4545,13 +4548,13 @@
           "status": "completed",
           "timestamp": "2026-08-15T14:42:45.558Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app/src/services/attachments/attachment_choice_service.ts'\"",
-          "durationMs": 348,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app/src/components/editor/attachment_choice_dialog.tsx'\"",
           "content": "import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, Typography } from '@mui/material'\nimport { useSyncExternalStore } from 'react'\nimport { attachmentChoiceService } from '../../services/attachments/attachment_choice_service'\n\n/** Application-wide choice shown once for each file selection or drop. */\nexport function AttachmentChoiceDialog() {\n    const snapshot = useSyncExternalStore(\n        attachmentChoiceService.subscribe,\n        attachmentChoiceService.getSnapshot,\n        attachmentChoiceService.getSnapshot,\n    )\n    const cancel = () => attachmentChoiceService.cancel()\n    const copy = () => attachmentChoiceService.select('copy')\n    const useOriginal = () => attachmentChoiceService.select('original')\n\n    return (\n        <Dialog aria-labelledby=\"attachment-choice-title\" onClose={cancel} open={snapshot !== null}>\n            <DialogTitle id=\"attachment-choice-title\">\n                Attach {snapshot?.fileCount ?? 0} file{snapshot?.fileCount === 1 ? '' : 's'}\n            </DialogTitle>\n            <DialogContent>\n                <Stack spacing={1.5}>\n                    <Typography color=\"text.secondary\">\n                        Copy into project saves a copy next to the card, so it stays with the project.\n                        Link without copying keeps each file where it is and links to it using its full path.\n                    </Typography>\n                    {!snapshot?.originalLocationAvailable ? (\n                        <Typography color=\"text.secondary\" role=\"status\" variant=\"caption\">\n                            Linking without copying is unavailable because this browser cannot access the files&apos; full paths.\n                        </Typography>\n                    ) : null}\n                </Stack>\n            </DialogContent>\n            <DialogActions sx={{ bgcolor: 'background.default', borderTop: 1, borderColor: 'divider' }}>\n                <Button onClick={cancel} variant=\"outlined\">Cancel</Button>\n                <Button disabled={!snapshot?.originalLocationAvailable} onClick={useOriginal} variant=\"outlined\">\n                    Link without copying\n                </Button>\n                <Button onClick={copy} variant=\"contained\">Copy into project</Button>\n            </DialogActions>\n        </Dialog>\n    )\n}\n\r\n",
+          "durationMs": 376,
+          "exitCode": 0,
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-178",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app/src/components/editor/attachment_choice_dialog.tsx'\"",
@@ -4560,13 +4563,13 @@
           "status": "completed",
           "timestamp": "2026-08-15T14:42:45.940Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app/src/components/editor/attachment_choice_dialog.tsx'\"",
-          "durationMs": 376,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app/src/services/attachments/attachment_choice_service.test.ts'\"",
           "content": "import { afterEach, describe, expect, it } from 'vitest'\nimport { attachmentChoiceService } from './attachment_choice_service'\n\nafterEach(() => {\n    attachmentChoiceService.cancel()\n    delete window.md2Files\n})\n\ndescribe('AttachmentChoiceService', () => {\n    it('exposes one choice and returns trusted original paths', async () => {\n        window.md2Files = { getPathForFile: (file) => `C:\\\\source\\\\${file.name}` }\n        const selection = attachmentChoiceService.choose([\n            new File(['one'], 'one.pdf'),\n            new File(['two'], 'two.zip'),\n        ])\n\n        expect(attachmentChoiceService.getSnapshot()).toMatchObject({\n            fileCount: 2,\n            originalLocationAvailable: true,\n        })\n        attachmentChoiceService.select('original')\n\n        await expect(selection).resolves.toEqual({\n            choice: 'original',\n            originalPaths: ['C:\\\\source\\\\one.pdf', 'C:\\\\source\\\\two.zip'],\n        })\n    })\n\n    it('disables original locations when any trusted path is unavailable and cancel changes nothing', async () => {\n        const selection = attachmentChoiceService.choose([new File(['one'], 'one.pdf')])\n\n        expect(attachmentChoiceService.getSnapshot()?.originalLocationAvailable).toBe(false)\n        expect(() => attachmentChoiceService.select('original')).toThrow('Original file locations are unavailable')\n        attachmentChoiceService.cancel()\n\n        await expect(selection).resolves.toBeNull()\n    })\n})\n\r\n",
+          "durationMs": 390,
+          "exitCode": 0,
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-179",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app/src/services/attachments/attachment_choice_service.test.ts'\"",
@@ -4575,143 +4578,143 @@
           "status": "completed",
           "timestamp": "2026-08-15T14:42:46.336Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app/src/services/attachments/attachment_choice_service.test.ts'\"",
-          "durationMs": 390,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-180",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_098a4e5bddfca9fa016a807ae973b481919054ac8850e15f28",
           "sequence": 180,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T14:42:57.415Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-181",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_098a4e5bddfca9fa016a807af2cb808191871114d771ed1013",
           "sequence": 181,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T14:43:04.121Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "content": "",
+          "deletions": 7,
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-182",
+          "insertions": 19,
           "kind": "event",
           "label": "File changes",
           "providerItemId": "exec-997e65ad-ce91-4af8-9c67-9afdd47bdd39",
           "sequence": 182,
           "status": "completed",
           "timestamp": "2026-08-15T14:43:16.004Z",
-          "type": "fileChange",
-          "deletions": 7,
-          "insertions": 19
+          "type": "fileChange"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-183",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_098a4e5bddfca9fa016a807b06e27c8191848fa5bbbac4f0e3",
           "sequence": 183,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T14:43:19.928Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "content": "",
+          "deletions": 3,
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-184",
+          "insertions": 1,
           "kind": "event",
           "label": "File changes",
           "providerItemId": "exec-782e8976-9e4e-43b5-b1c3-4661f4ca347b",
           "sequence": 184,
           "status": "completed",
           "timestamp": "2026-08-15T14:43:26.678Z",
-          "type": "fileChange",
-          "deletions": 3,
-          "insertions": 1
+          "type": "fileChange"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-185",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_098a4e5bddfca9fa016a807b125f188191b2de83a6651de415",
           "sequence": 185,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T14:43:29.431Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "content": "",
+          "deletions": 4,
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-186",
+          "insertions": 23,
           "kind": "event",
           "label": "File changes",
           "providerItemId": "exec-4f2e3b10-fce7-4426-9619-5d8afda15516",
           "sequence": 186,
           "status": "completed",
           "timestamp": "2026-08-15T14:43:43.479Z",
-          "type": "fileChange",
-          "deletions": 4,
-          "insertions": 23
+          "type": "fileChange"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-187",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_098a4e5bddfca9fa016a807b22632881918acea1b90c8c3c81",
           "sequence": 187,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T14:43:45.649Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "content": "",
+          "deletions": 0,
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-188",
+          "insertions": 6,
           "kind": "event",
           "label": "File changes",
           "providerItemId": "exec-711d31e4-511a-4b7e-8390-c38cf2dd3b45",
           "sequence": 188,
           "status": "completed",
           "timestamp": "2026-08-15T14:43:49.899Z",
-          "type": "fileChange",
-          "deletions": 0,
-          "insertions": 6
+          "type": "fileChange"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-189",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_098a4e5bddfca9fa016a807b29efd881918ef5fc469660b49e",
           "sequence": 189,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T14:44:00.646Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"has-attachment|attachmentHandler|Attach files\" app/src/components/actions --glob \"*.test.tsx\"'",
           "content": "app/src/components/actions\\agent\\action_agent_prompt.test.tsx:13:            attachmentHandler?: (files: File[], insertMarkdown: (markdown: string) => void) => Promise<void>\napp/src/components/actions\\agent\\action_agent_prompt.test.tsx:48:                    data-has-attachment-handler={props.attachmentHandler ? 'true' : 'false'}\napp/src/components/actions\\agent\\action_agent_prompt.test.tsx:103:                attachmentHandler={vi.fn(async () => undefined)}\napp/src/components/actions\\agent\\action_agent_prompt.test.tsx:110:        expect(screen.getByLabelText('Markdown prompt')).toHaveAttribute('data-has-attachment-handler', 'true')\napp/src/components/actions\\run\\popup\\action_popup_bottom_row.test.tsx:127:        expect(within(layout).getByRole('button', { name: 'Attach files' })\napp/src/components/actions\\run\\popup\\action_popup_bottom_row.test.tsx:142:        const attachment = within(layout).getByRole('button', { name: 'Attach files' })\napp/src/components/actions\\run\\popup\\action_popup_bottom_row.test.tsx:149:        expect(screen.getByRole('button', { name: 'Attach files' })).toBeInTheDocument()\napp/src/components/actions\\run\\popup\\action_popup_bottom_row.test.tsx:236:        expect(screen.queryByRole('button', { name: 'Attach files' })).not.toBeInTheDocument()\napp/src/components/actions\\run\\popup\\action_popup.test.tsx:332:        expect(within(promptSurface).getByRole('button', { name: 'Attach files' })).toBeInTheDocument()\n",
+          "durationMs": 543,
+          "exitCode": 0,
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-190",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"has-attachment|attachmentHandler|Attach files\" app/src/components/actions --glob \"*.test.tsx\"'",
@@ -4720,26 +4723,26 @@
           "status": "completed",
           "timestamp": "2026-08-15T14:44:01.960Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"has-attachment|attachmentHandler|Attach files\" app/src/components/actions --glob \"*.test.tsx\"'",
-          "durationMs": 543,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-191",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_098a4e5bddfca9fa016a807b34df9c8191bc33f3c896de3515",
           "sequence": 191,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T14:44:04.027Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app/src/components/actions/run/popup/action_popup.test.tsx' | Select-Object -Skip 300 -First 50\"",
           "content": "        const dialog = within(screen.getByRole('dialog', { name: 'Run actions' }))\r\n        expect(dialog.getByRole('combobox', { name: 'Conversation history' })).toBeInTheDocument()\r\n        expect(dialog.getByRole('note')).toHaveTextContent('Released cards are read-only. Create a new card for more work.')\r\n        expect(dialog.queryByRole('textbox', { name: 'Prompt' })).not.toBeInTheDocument()\r\n        expect(dialog.queryByRole('button', { name: 'Send' })).not.toBeInTheDocument()\r\n        expect(dialog.queryByRole('button', { name: 'Schedule' })).not.toBeInTheDocument()\r\n        expect(dialog.queryByRole('button', { name: 'Add action' })).not.toBeInTheDocument()\r\n    })\r\n\r\n    it('provides its stack position to Markdown typeahead menus', () => {\r\n        const stackPosition = 4\r\n        actionService.loadFromFiles([file(agentDefinition('review', { label: 'Review' }))])\r\n\r\n        renderPopup(context, vi.fn(), stackPosition)\r\n\r\n        expect(renderProbes.agentPrompt).toHaveBeenCalledWith(stackPosition)\r\n    })\r\n\r\n    it('renders the agent bottom row inside the prompt surface below the scrolling editor', () => {\r\n        actionService.loadFromFiles([file(agentDefinition('review', { label: 'Review' }))])\r\n\r\n        renderPopup()\r\n\r\n        const scrollBody = screen.getByTestId('action-popup-scroll-body')\r\n        const promptSurface = within(scrollBody).getByLabelText('Prompt')\r\n        const editorRegion = within(promptSurface).getByTestId('action-prompt-editor-region')\r\n        const bottomRow = within(promptSurface).getByTestId('action-popup-bottom-row')\r\n\r\n        expect(bottomRow).toHaveAttribute('data-embedded', 'true')\r\n        expect(within(bottomRow).getByRole('group', { name: 'Agent settings' })).toBeInTheDocument()\r\n        expect(editorRegion).toHaveStyle({ overflowY: 'auto' })\r\n        expect(within(promptSurface).getByRole('button', { name: 'Attach files' })).toBeInTheDocument()\r\n        expect(editorRegion.contains(bottomRow)).toBe(false)\r\n        expect(screen.getAllByTestId('action-popup-bottom-row')).toHaveLength(1)\r\n    })\r\n\r\n    it('shows Project in the project popup header and accessible title', () => {\r\n        renderPopup({ kind: 'project' })\r\n\r\n        const dialog = within(screen.getByRole('dialog', { name: 'Run actions for Project' }))\r\n        expect(within(dialog.getByTestId('action-popup-toolbar')).getByText('Project')).toBeInTheDocument()\r\n    })\r\n\r\n    it('does not render popup content while typing or flushing a prompt', async () => {\r\n        const loadActionRunHistory = vi.fn(async () => [])\r\n        window.md2Actions = {\r\n            loadActionRunHistory,\r\n            onActionRun: vi.fn(() => vi.fn()),\r\n            prepareActionPrompt: vi.fn(async () => ({ prompt: 'Plan' })),\r\n        } as unknown as typeof window.md2Actions\r\n",
+          "durationMs": 436,
+          "exitCode": 0,
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-192",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app/src/components/actions/run/popup/action_popup.test.tsx' | Select-Object -Skip 300 -First 50\"",
@@ -4748,75 +4751,72 @@
           "status": "completed",
           "timestamp": "2026-08-15T14:44:05.826Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app/src/components/actions/run/popup/action_popup.test.tsx' | Select-Object -Skip 300 -First 50\"",
-          "durationMs": 436,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-193",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_098a4e5bddfca9fa016a807b3bb0188191ae5ccdc8b6aa3d46",
           "sequence": 193,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T14:44:10.883Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "content": "",
+          "deletions": 7,
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-194",
+          "insertions": 6,
           "kind": "event",
           "label": "File changes",
           "providerItemId": "exec-6fa742ff-e191-4d6f-a219-456b4bb4db0d",
           "sequence": 194,
           "status": "completed",
           "timestamp": "2026-08-15T14:44:17.604Z",
-          "type": "fileChange",
-          "deletions": 7,
-          "insertions": 6
+          "type": "fileChange"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-195",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_098a4e5bddfca9fa016a807b44c6b4819191d9bdb5cdc91ea1",
           "sequence": 195,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T14:44:20.884Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "content": "",
+          "deletions": 3,
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-196",
+          "insertions": 3,
           "kind": "event",
           "label": "File changes",
           "providerItemId": "exec-55e01add-a6a1-4f98-8b29-48628020c3d8",
           "sequence": 196,
           "status": "completed",
           "timestamp": "2026-08-15T14:44:24.809Z",
-          "type": "fileChange",
-          "deletions": 3,
-          "insertions": 3
+          "type": "fileChange"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-197",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_098a4e5bddfca9fa016a807b4bd29c81919b960dca9ca13d42",
           "sequence": 197,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T14:44:31.284Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "agent": "codex",
@@ -4828,7 +4828,10 @@
           "timestamp": "2026-08-15T14:44:32.264Z"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run typecheck'",
           "content": "\n> app@0.3.0 typecheck\n> tsc --noEmit\n\n",
+          "durationMs": 13097,
+          "exitCode": 0,
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-199",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run typecheck'",
@@ -4837,13 +4840,13 @@
           "status": "completed",
           "timestamp": "2026-08-15T14:44:45.696Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run typecheck'",
-          "durationMs": 13097,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\app"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
           "content": "\n> app@0.3.0 lint\n> eslint .\n\n",
+          "durationMs": 20519,
+          "exitCode": 0,
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-200",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
@@ -4852,13 +4855,13 @@
           "status": "completed",
           "timestamp": "2026-08-15T14:45:10.727Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
-          "durationMs": 20519,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\app"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/services/attachments/attachment_workflow.test.ts src/components/actions/run/popup/action_popup_bottom_row.test.tsx src/components/actions/run/popup/action_popup.test.tsx src/components/actions/agent/action_agent_prompt.test.tsx src/components/editor/markdown_editor.test.tsx'",
           "content": "\n> app@0.3.0 test\n> vitest run src/services/attachments/attachment_workflow.test.ts src/components/actions/run/popup/action_popup_bottom_row.test.tsx src/components/actions/run/popup/action_popup.test.tsx src/components/actions/agent/action_agent_prompt.test.tsx src/components/editor/markdown_editor.test.tsx\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev3/app\n\n ❯ |ui| src/components/actions/run/popup/action_popup.test.tsx (53 tests | 1 failed) 10836ms\n     × clears stored prefill when switching to an active action and restores its draft after reopen 1233ms\n\n Test Files  1 failed | 4 passed (5)\n      Tests  1 failed | 139 passed (140)\n   Start at  16:45:15\n   Duration  27.90s (transform 1.37s, setup 481ms, import 7.99s, tests 14.06s, environment 4.59s)\n\n\n⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯\n\n FAIL  |ui| src/components/actions/run/popup/action_popup.test.tsx > ActionPopup > clears stored prefill when switching to an active action and restores its draft after reopen\nError: \u001b[2mexpect(\u001b[22m\u001b[31melement\u001b[39m\u001b[2m).toHaveValue()\u001b[22m\n\nExpected the element to have value:\n\u001b[32m\u001b[39m\nReceived:\n\u001b[31m  idle stored prompt\u001b[39m\n\nIgnored nodes: comments, script, style\n\u001b[36m<html>\u001b[39m\n  \u001b[36m<head>\u001b[39m\n    \u001b[36m<meta\u001b[39m\n      \u001b[33mcontent\u001b[39m=\u001b[32m\"\"\u001b[39m\n      \u001b[33mname\u001b[39m=\u001b[32m\"emotion-insertion-point\"\u001b[39m\n    \u001b[36m/>\u001b[39m\n  \u001b[36m</head>\u001b[39m\n  \u001b[36m<body\u001b[39m\n    \u001b[33mstyle\u001b[39m=\u001b[32m\"\"\u001b[39m\n  \u001b[36m>\u001b[39m\n    \u001b[36m<div />\u001b[39m\n    \u001b[36m<div\u001b[39m\n      \u001b[33mclass\u001b[39m=\u001b[32m\"MuiPopper-root css-p2o0fg-MuiPopper-root\"\u001b[39m\n      \u001b[33mdata-popper-escaped\u001b[39m=\u001b[32m\"\"\u001b[39m\n      \u001b[33mdata-popper-placement\u001b[39m=\u001b[32m\"bottom-start\"\u001b[39m\n      \u001b[33mdata-popper-reference-hidden\u001b[39m=\u001b[32m\"\"\u001b[39m\n      \u001b[33mrole\u001b[39m=\u001b[32m\"tooltip\"\u001b[39m\n      \u001b[33mstyle\u001b[39m=\u001b[32m\"position: fixed; top: 0px; left: 0px; margin: 0px; right: auto; bottom: auto; transform: translate(16px, 16px);\"\u001b[39m\n    \u001b[36m>\u001b[39m\n      \u001b[36m<div\u001b[39m\n        \u001b[33maria-labelledby\u001b[39m=\u001b[32m\"_r_f6_\"\u001b[39m\n        \u001b[33mclass\u001b[39m=\u001b[32m\"MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation0 css-1z0sunt-MuiPaper-root\"\u001b[39m\n        \u001b[33mrole\u001b[39m=\u001b[32m\"dialog\"\u001b[39m\n        \u001b[33mstyle\u001b[39m=\u001b[32m\"--Paper-shadow: none; height: 450px; width: 400px;\"\u001b[39m\n      \u001b[36m>\u001b[39m\n        \u001b[36m<p\u001b[39m\n          \u001b[33mclass\u001b[39m=\u001b[32m\"MuiTypography-root MuiTypography-body1 css-hbr7rr-MuiTypography-root\"\u001b[39m\n          \u001b[33mid\u001b[39m=\u001b[32m\"_r_f6_\"\u001b[39m\n        \u001b[36m>\u001b[39m\n          \u001b[0mRun actions\u001b[0m\n        \u001b[36m</p>\u001b[39m\n        \u001b[36m<div\u001b[39m\n          \u001b[33mclass\u001b[39m=\u001b[32m\"MuiBox-root css-w2fujk\"\u001b[39m\n        \u001b[36m>\u001b[39m\n          \u001b[36m<div\u001b[39m\n            \u001b[33mclass\u001b[39m=\u001b[32m\"MuiBox-root css-exd1zr\"\u001b[39m\n            \u001b[33mdata-testid\u001b[39m=\u001b[32m\"action-popup-toolbar\"\u001b[39m\n          \u001b[36m>\u001b[39m\n            \u001b[36m<div\u001b[39m\n              \u001b[33mclass\u001b[39m=\u001b[32m\"MuiFormControl-root MuiTextField-root css-j78x6e-MuiFormControl-root-MuiTextField-root\"\u001b[39m\n            \u001b[36m>\u001b[39m\n              \u001b[36m<div\u001b[39m\n                \u001b[33mclass\u001b[39m=\u001b[32m\"MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-colorPrimary Mui-disabled MuiInputBase-formControl MuiSelect-root css-1kh6yy2-MuiInputBase-root-MuiInput-root\"\u001b[39m\n              \u001b[36m>\u001b[39m\n                \u001b[36m<div\u001b[39m\n                  \u001b[33maria-disabled\u001b[39m=\u001b[32m\"true\"\u001b[39m\n                  \u001b[33maria-expanded\u001b[39m=\u001b[32m\"false\"\u001b[39m\n                  \u001b[33maria-haspopup\u001b[39m=\u001b[32m\"listbox\"\u001b[39m\n                  \u001b[33maria-label\u001b[39m=\u001b[32m\"Conversation history\"\u001b[39m\n                  \u001b[33mclass\u001b[39m=\u001b[32m\"MuiSelect-select MuiSelect-standard Mui-disabled MuiInputBase-input MuiInput-input Mui-disabled css-fcmqv5-MuiNativeSelect-root-MuiSelect-select-MuiInputBase-input-MuiInput-input\"\u001b[39m\n                  \u001b[33mid\u001b[39m=\u001b[32m\"_r_f7_\"\u001b[39m\n                  \u001b[33mrole\u001b[39m=\u001b[32m\"combobox\"\u001b[39m\n                \u001b[36m>\u001b[39m\n                  \u001b[0mConversations\u001b[0m\n                \u001b[36m</div>\u001b[39m\n                \u001b[36m<input\u001b[39m\n                  \u001b[33maria-hidden\u001b[39m=\u001b[32m\"true\"\u001b[39m\n                  \u001b[33maria-invalid\u001b[39m=\u001b[32m\"false\"\u001b[39m\n                  \u001b[33mclass\u001b[39m=\u001b[32m\"MuiSelect-nativeInput css-j0riat-MuiSelect-nativeInput\"\u001b[39m\n                  \u001b[33mdisabled\u001b[39m=\u001b[32m\"\"\u001b[39m\n                  \u001b[33mid\u001b[39m=\u001b[32m\"_r_f9_\"\u001b[39m\n                  \u001b[33mtabindex\u001b[39m=\u001b[32m\"-1\"\u001b[39m\n                  \u001b[33mvalue\u001b[39m=\u001b[32m\"\"\u001b[39m\n                \u001b[36m/>\u001b[39m\n                \u001b[36m<svg\u001b[39m\n                  \u001b[33maria-hidden\u001b[39m=\u001b[32m\"true\"\u001b[39m\n                  \u001b[33mclass\u001b[39m=\u001b[32m\"MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon Mui-disabled css-dvkvvh-MuiSvgIcon-root-MuiNativeSelect-root-MuiSelect-icon\"\u001b[39m\n                  \u001b[33mdata-testid\u001b[39m=\u001b[32m\"ArrowDropDownIcon\"\u001b[39m\n                  \u001b[33mfocusable\u001b[39m=\u001b[32m\"false\"\u001b[39m\n                  \u001b[33mviewBox\u001b[39m=\u001b[32m\"0 0 24 24\"\u001b[39m\n                \u001b[36m>\u001b[39m\n                  \u001b[36m<path\u001b[39m\n                    \u001b[33md\u001b[39m=\u001b[32m\"M7 10l5 5 5-5z\"\u001b[39m\n                  \u001b[36m/>\u001b[39m\n                \u001b[36m</svg>\u001b[39m\n              \u001b[36m</div>\u001b[39m\n            \u001b[36m</div>\u001b[39m\n            \u001b[36m<div\u001b[39m\n              \u001b[33mclass\u001b[39m=\u001b[32m\"MuiBox-root css-1rr4qq7\"\u001b[39m\n            \u001b[36m/>\u001b[39m\n            \u001b[36m<button\u001b[39m\n              \u001b[33maria-label\u001b[39m=\u001b[32m\"Expand upward\"\u001b[39m\n              \u001b[33mclass\u001b[39m=\u001b[32m\"MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeSmall css-16qaf1p-MuiButtonBase-root-MuiIconButton-root\"\u001b[39m\n              \u001b[33mdata-mui-internal-clone-element\u001b[39m=\u001b[32m\"true\"\u001b[39m\n              \u001b[33mtabindex\u001b[39m=\u001b[32m\"0\"\u001b[39m\n              \u001b[33mtype\u001b[39m=\u001b[32m\"button\"\u001b[39m\n            \u001b[36m>\u001b[39m\n              \u001b[36m<svg\u001b[39m\n                \u001b[33maria-hidden\u001b[39m=\u001b[32m\"true\"\u001b[39m\n                \u001b[33mclass\u001b[39m=\u001b[32m\"MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-qoeaxs-MuiSvgIcon-root\"\u001b[39m\n                \u001b[33mdata-testid\u001b[39m=\u001b[32m\"ArrowExpandVerticalIcon\"\u001b[39m\n                \u001b[33mfocusable\u001b[39m=\u001b[32m\"false\"\u001b[39m\n                \u001b[33mviewBox\u001b[39m=\u001b[32m\"0 0 24 24\"\u001b[39m\n              \u001b[36m>\u001b[39m\n                \u001b[36m<path\u001b[39m\n                  \u001b[33md\u001b[39m=\u001b[32m\"M13,9V15H16L12,19L8,15H11V9H8L12,5L16,9H13M4,2H20V4H4V2M4,20H20V22H4V20Z\"\u001b[39m\n                \u001b[36m/>\u001b[39m\n              \u001b[36m</svg>\u001b[39m\n            \u001b[36m</button>\u001b[39m\n            \u001b[36m<button\u001b[39m\n              \u001b[33maria-label\u001b[39m=\u001b[32m\"Close\"\u001b[39m\n              \u001b[33mclass\u001b[39m=\u001b[32m\"MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeSmall css-16qaf1p-MuiButtonBase-root-MuiIconButton-root\"\u001b[39m\n              \u001b[33mtabindex\u001b[39m=\u001b[32m\"0\"\u001b[39m\n              \u001b[33mtype\u001b[39m=\u001b[32m\"button\"\u001b[39m\n            \u001b[36m>\u001b[39m\n              \u001b[36m<svg\u001b[39m\n                \u001b[33maria-hidden\u001b[39m=\u001b[32m\"true\"\u001b[39m\n                \u001b[33mclass\u001b[39m=\u001b[32m\"MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-qoeaxs-MuiSvgIcon-root\"\u001b[39m\n                \u001b[33mdata-testid\u001b[39m=\u001b[32m\"CloseIcon\"\u001b[39m\n                \u001b[33mfocusable\u001b[39m=\u001b[32m\"false\"\u001b[39m\n                \u001b[33mviewBox\u001b[39m=\u001b[32m\"0 0 24 24\"\u001b[39m\n              \u001b[36m>\u001b[39m\n                \u001b[36m<path\u001b[39m\n                  \u001b[33md\u001b[39m=\u001b[32m\"M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z\"\u001b[39m\n                \u001b[36m/>\u001b[39m\n              \u001b[36m</svg>\u001b[39m\n            \u001b[36m</button>\u001b[39m\n          \u001b[36m</div>\u001b[39m\n          \u001b[36m<div\u001b[39m\n            \u001b[33mclass\u001b[39m=\u001b[32m\"MuiBox-root css-14rfl77\"\u001b[39m\n          \u001b[36m>\u001b[39m\n            \u001b[36m<div\u001b[39m\n              \u001b[33mclass\u001b[39m=\u001b[32m\"MuiBox-root css-31l7gp\"\u001b[39m\n            \u001b[36m>\u001b[39m\n              \u001b[36m<div\u001b[39m\n                \u001b[33maria-label\u001b[39m=\u001b[32m\"Actions\"\u001b[39m\n                \u001b[33mclass\u001b[39m=\u001b[32m\"MuiToggleButtonGroup-root MuiToggleButtonGroup-horizontal css-1py6ldo-MuiToggleButtonGroup-root\"\u001b[39m\n                \u001b[33mrole\u001b[39m=\u001b[32m\"group\"\u001b[39m\n              \u001b[36m>\u001b[39m\n                \u001b[36m<button\u001b[39m\n                  \u001b[33maria-label\u001b[39m=\u001b[32m\"Idle action\"\u001b[39m\n                  \u001b[33maria-pressed\u001b[39m=\u001b[32m\"false\"\u001b[39m\n                  \u001b[33mclass\u001b[39m=\u001b[32m\"MuiButtonBase-root MuiToggleButtonGroup-grouped MuiToggleButton-...\n ❯ src/components/actions/run/popup/action_popup.test.tsx:939:98\n    937|         fireEvent.click(actionGroup.getByRole('button', { name: /Activ…\n    938|\n    939|         await waitFor(() => expect(within(screen.getByLabelText('Promp…\n       |                                                                                                  ^\n    940|         const activeRun = actionRunRegistry.getActionRunStore('active'…\n    941|         if (!activeRun) throw new Error('Missing active run')\n ❯ runWithExpensiveErrorDiagnosticsDisabled node_modules/@testing-library/dom/dist/config.js:47:12\n ❯ checkCallback node_modules/@testing-library/dom/dist/wait-for.js:124:77\n ❯ Timeout.checkRealTimersCallback node_modules/@testing-library/dom/dist/wait-for.js:118:16\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯\n\n",
+          "durationMs": 29167,
+          "exitCode": 1,
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-201",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/services/attachments/attachment_workflow.test.ts src/components/actions/run/popup/action_popup_bottom_row.test.tsx src/components/actions/run/popup/action_popup.test.tsx src/components/actions/agent/action_agent_prompt.test.tsx src/components/editor/markdown_editor.test.tsx'",
@@ -4867,26 +4870,26 @@
           "status": "failed",
           "timestamp": "2026-08-15T14:45:43.547Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/services/attachments/attachment_workflow.test.ts src/components/actions/run/popup/action_popup_bottom_row.test.tsx src/components/actions/run/popup/action_popup.test.tsx src/components/actions/agent/action_agent_prompt.test.tsx src/components/editor/markdown_editor.test.tsx'",
-          "durationMs": 29167,
-          "exitCode": 1,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\app"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-202",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_098a4e5bddfca9fa016a807b9c4f4c81919f22b0805a5ac08a",
           "sequence": 202,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T14:45:49.713Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app/src/components/actions/run/popup/action_popup.test.tsx' | Select-Object -Skip 860 -First 100\"",
           "content": "            actionId: 'review',\r\n            cardInternalId: 'card-1',\r\n            cardPath: context.file ?? null,\r\n            completedAt: '2026-08-01T12:01:00.000Z',\r\n            entries: [],\r\n            hasExplicitTitle: true,\r\n            id: 'conversation-1',\r\n            path: 'conversation-1.json',\r\n            providerSessions: [],\r\n            startedAt: '2026-08-01T12:00:00.000Z',\r\n            status: 'completed',\r\n            title: 'Historical review',\r\n            viewed: true,\r\n        }\r\n        const prepareActionPrompt = vi.fn(async () => ({ prompt: 'Stored prompt' }))\r\n        window.md2Actions = {\r\n            onActionRun: vi.fn(() => vi.fn()),\r\n            prepareActionPrompt,\r\n        } as unknown as typeof window.md2Actions\r\n        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([historicalConversation])\r\n        vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(historicalConversation)\r\n        actionService.loadFromFiles([file(agentDefinition('review', { label: 'Review' }))])\r\n        renderPopup(historicalContext)\r\n        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')\r\n        await waitFor(() => expect(prompt).toHaveValue('Stored prompt'))\r\n\r\n        const conversationPicker = await screen.findByRole('combobox', { name: 'Conversation history' })\r\n        await waitFor(() => expect(conversationPicker).toBeEnabled())\r\n        fireEvent.mouseDown(conversationPicker)\r\n        fireEvent.click(screen.getByRole('option', { name: /Historical review/u }))\r\n\r\n        await waitFor(() => expect(prompt).toHaveValue(''))\r\n        expect(prepareActionPrompt).toHaveBeenCalledOnce()\r\n    })\r\n\r\n    it('clears stored prefill when switching to an active action and restores its draft after reopen', async () => {\r\n        actionRunRegistry.stop()\r\n        let runListener: ((event: ActionRunEvent) => void) | null = null\r\n        window.md2Actions = {\r\n            loadActionRunHistory: vi.fn(async () => []),\r\n            onActionRun: vi.fn((listener) => {\r\n                runListener = listener\r\n\r\n                return vi.fn()\r\n            }),\r\n            prepareActionPrompt: vi.fn(async ({ actionId }: { actionId: string }) => ({ prompt: `${actionId} stored prompt` })),\r\n        } as unknown as typeof window.md2Actions\r\n        actionRunRegistry.start()\r\n        actionService.loadFromFiles([\r\n            file(agentDefinition('idle', { label: 'Idle action' })),\r\n            file(agentDefinition('active', { label: 'Active action' })),\r\n        ])\r\n        renderPopup()\r\n        const actionGroup = within(screen.getByRole('group', { name: 'Actions' }))\r\n        await waitFor(() => expect(within(screen.getByLabelText('Prompt')).getByRole('textbox')).toHaveValue('idle stored prompt'))\r\n        await waitFor(() => expect(runListener).not.toBeNull())\r\n\r\n        act(() => {\r\n            runListener?.({\r\n                actionId: 'active', context, runId: 'run-1', phase: 'main',\r\n                rootActionId: 'active', status: 'running', type: 'run',\r\n            })\r\n            runListener?.({\r\n                actionId: 'active',\r\n                actionType: 'agent',\r\n                autoFinish: null,\r\n                context,\r\n                runId: 'run-1',\r\n                interactionReady: false,\r\n                phase: 'main',\r\n                rootActionId: 'active',\r\n                status: 'waitingForInput',\r\n                streaming: true,\r\n                type: 'agentState',\r\n            })\r\n        })\r\n        fireEvent.click(actionGroup.getByRole('button', { name: /Active action/u }))\r\n\r\n        await waitFor(() => expect(within(screen.getByLabelText('Prompt')).getByRole('textbox')).toHaveValue(''))\r\n        const activeRun = actionRunRegistry.getActionRunStore('active', context)?.getSnapshot()\r\n        if (!activeRun) throw new Error('Missing active run')\r\n        act(() => actionPromptDraftService.getDraft('active', context, activeRun, { prepare: false }).edit('Keep active draft'))\r\n        cleanup()\r\n        renderPopup()\r\n        fireEvent.click(within(screen.getByRole('group', { name: 'Actions' })).getByRole('button', { name: /Active action/u }))\r\n\r\n        await waitFor(() => expect(within(screen.getByLabelText('Prompt')).getByRole('textbox')).toHaveValue('Keep active draft'))\r\n    })\r\n\r\n    it('closes from the popup header', () => {\r\n        const { onClose } = renderPopup()\r\n\r\n        fireEvent.click(screen.getByRole('button', { name: 'Close' }))\r\n\r\n        expect(onClose).toHaveBeenCalledOnce()\r\n    })\r\n\r\n    it('places accessible worktree and window controls above the action selector', () => {\r\n        renderPopup({ ...context, cardInternalId: 'card-1' })\r\n\r\n",
+          "durationMs": 462,
+          "exitCode": 0,
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-203",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app/src/components/actions/run/popup/action_popup.test.tsx' | Select-Object -Skip 860 -First 100\"",
@@ -4895,23 +4898,20 @@
           "status": "completed",
           "timestamp": "2026-08-15T14:45:51.312Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app/src/components/actions/run/popup/action_popup.test.tsx' | Select-Object -Skip 860 -First 100\"",
-          "durationMs": 462,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-204",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_098a4e5bddfca9fa016a807ba24de481919757ecae9fc06163",
           "sequence": 204,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T14:45:57.870Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "agent": "codex",
@@ -4924,58 +4924,61 @@
         },
         {
           "content": "",
+          "deletions": 0,
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-206",
+          "insertions": 2,
           "kind": "event",
           "label": "File changes",
           "providerItemId": "exec-727a5806-c85b-482f-b93c-d28550c1deff",
           "sequence": 206,
           "status": "completed",
           "timestamp": "2026-08-15T14:46:00.829Z",
-          "type": "fileChange",
-          "deletions": 0,
-          "insertions": 2
+          "type": "fileChange"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-207",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_098a4e5bddfca9fa016a807bacd08881919db04ee46dd26410",
           "sequence": 207,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T14:46:04.378Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "content": "",
+          "deletions": 0,
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-208",
+          "insertions": 18,
           "kind": "event",
           "label": "File changes",
           "providerItemId": "exec-471def11-973f-433d-8aa6-3adeb15a8f1b",
           "sequence": 208,
           "status": "completed",
           "timestamp": "2026-08-15T14:46:10.308Z",
-          "type": "fileChange",
-          "deletions": 0,
-          "insertions": 18
+          "type": "fileChange"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-209",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_098a4e5bddfca9fa016a807bb5d98881919b27053a1ea3d621",
           "sequence": 209,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T14:46:13.127Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/components/actions/run/popup/action_popup.test.tsx src/components/editor/markdown_editor.test.tsx'",
           "content": "\n> app@0.3.0 test\n> vitest run src/components/actions/run/popup/action_popup.test.tsx src/components/editor/markdown_editor.test.tsx\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev3/app\n\n\n Test Files  2 passed (2)\n      Tests  106 passed (106)\n   Start at  16:46:15\n   Duration  20.19s (transform 1.47s, setup 246ms, import 5.04s, tests 12.46s, environment 2.07s)\n\n",
+          "durationMs": 21325,
+          "exitCode": 0,
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-210",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/components/actions/run/popup/action_popup.test.tsx src/components/editor/markdown_editor.test.tsx'",
@@ -4984,26 +4987,26 @@
           "status": "completed",
           "timestamp": "2026-08-15T14:46:36.208Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/components/actions/run/popup/action_popup.test.tsx src/components/editor/markdown_editor.test.tsx'",
-          "durationMs": 21325,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\app"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-211",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_098a4e5bddfca9fa016a807bcf1ea4819189e922d7ae74100f",
           "sequence": 211,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T14:46:38.515Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/services/attachments/attachment_workflow.test.ts src/components/actions/run/popup/action_popup_bottom_row.test.tsx src/components/actions/run/popup/action_popup.test.tsx src/components/actions/agent/action_agent_prompt.test.tsx src/components/editor/markdown_editor.test.tsx'",
           "content": "\n> app@0.3.0 test\n> vitest run src/services/attachments/attachment_workflow.test.ts src/components/actions/run/popup/action_popup_bottom_row.test.tsx src/components/actions/run/popup/action_popup.test.tsx src/components/actions/agent/action_agent_prompt.test.tsx src/components/editor/markdown_editor.test.tsx\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev3/app\n\n\n Test Files  5 passed (5)\n      Tests  141 passed (141)\n   Start at  16:46:41\n   Duration  30.88s (transform 1.45s, setup 502ms, import 8.79s, tests 15.75s, environment 5.00s)\n\n",
+          "durationMs": 32111,
+          "exitCode": 0,
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-212",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/services/attachments/attachment_workflow.test.ts src/components/actions/run/popup/action_popup_bottom_row.test.tsx src/components/actions/run/popup/action_popup.test.tsx src/components/actions/agent/action_agent_prompt.test.tsx src/components/editor/markdown_editor.test.tsx'",
@@ -5012,26 +5015,26 @@
           "status": "completed",
           "timestamp": "2026-08-15T14:47:12.625Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/services/attachments/attachment_workflow.test.ts src/components/actions/run/popup/action_popup_bottom_row.test.tsx src/components/actions/run/popup/action_popup.test.tsx src/components/actions/agent/action_agent_prompt.test.tsx src/components/editor/markdown_editor.test.tsx'",
-          "durationMs": 32111,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\app"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-213",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_098a4e5bddfca9fa016a807bf49cd0819195758d564c77e242",
           "sequence": 213,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T14:47:16.717Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run typecheck'",
           "content": "\n> app@0.3.0 typecheck\n> tsc --noEmit\n\n",
+          "durationMs": 13959,
+          "exitCode": 0,
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-214",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run typecheck'",
@@ -5040,13 +5043,13 @@
           "status": "completed",
           "timestamp": "2026-08-15T14:47:31.603Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run typecheck'",
-          "durationMs": 13959,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\app"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
           "content": "\n> app@0.3.0 lint\n> eslint .\n\n",
+          "durationMs": 20560,
+          "exitCode": 0,
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-215",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
@@ -5055,23 +5058,20 @@
           "status": "completed",
           "timestamp": "2026-08-15T14:47:54.700Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
-          "durationMs": 20560,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\app"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-0d9a3c20-c504-4d11-9fa3-ac61cf08e628-event-216",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_098a4e5bddfca9fa016a807c1e481c8191a638a5ca7918d100",
           "sequence": 216,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T14:47:57.192Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "agent": "codex",
@@ -5243,6 +5243,30 @@
       "startedAt": "2026-08-15T14:15:59.087Z",
       "status": "completed",
       "rootConversationId": "agent-8c7d557e-3ada-47d5-96ac-470ea4b49d66"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-08-15T14:48:02.518Z",
+      "conversationIds": [
+        "agent-8c7d557e-3ada-47d5-96ac-470ea4b49d66"
+      ],
+      "details": {
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-ffdc1e5b-1190-43a4-99af-815546256c45",
+      "origin": {
+        "cardInternalId": "8fc5eed5-9fc2-43a1-95d7-66c0aabd5d31",
+        "kind": "card"
+      },
+      "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
+      "rootActionLabel": "implement",
+      "rootConversationId": "agent-8c7d557e-3ada-47d5-96ac-470ea4b49d66",
+      "startedAt": "2026-08-15T14:38:54.300Z",
+      "status": "completed"
     }
   ],
   "version": 4
