@@ -3,7 +3,7 @@ author:
 id: F_191
 internalId: dcf2805e-c1f9-4aed-b160-e147134fe556
 title: Small screen indent btn
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

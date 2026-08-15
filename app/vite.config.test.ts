@@ -6,6 +6,8 @@ describe('production build configuration', () => {
         expect(viteConfig).toMatchObject({
             base: './',
             build: { sourcemap: false },
+            envDir: '../desktop',
+            envPrefix: 'MD2_',
         })
     })
 })

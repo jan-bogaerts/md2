@@ -1,83 +1,153 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { ElectronDataBridge } from '../../data/electron_data_bridge'
 import { TelemetryService } from './telemetry_service'
 
-function createClients() {
+const telemetryMocks = vi.hoisted(() => ({
+    aptabaseInit: vi.fn(),
+    aptabaseTrackEvent: vi.fn(async () => undefined),
+    sentryCaptureException: vi.fn(),
+    sentryFlush: vi.fn(async () => true),
+    sentryInit: vi.fn(),
+}))
+
+vi.mock('@aptabase/web', () => ({
+    init: telemetryMocks.aptabaseInit,
+    trackEvent: telemetryMocks.aptabaseTrackEvent,
+}))
+
+vi.mock('@sentry/react', () => ({
+    captureException: telemetryMocks.sentryCaptureException,
+    flush: telemetryMocks.sentryFlush,
+    init: telemetryMocks.sentryInit,
+}))
+
+function createBridge(): ElectronDataBridge {
     return {
-        aptabase: {
-            init: vi.fn(),
-            trackEvent: vi.fn(async () => undefined),
-        },
-        sentry: {
-            captureException: vi.fn(),
-            flush: vi.fn(async () => true),
-            init: vi.fn(),
-        },
+        checkoutBranch: vi.fn(async (project) => project),
+        commit: vi.fn(async () => []),
+        createProject: vi.fn(async (project) => project),
+        deleteFile: vi.fn(async () => undefined),
+        deleteFolder: vi.fn(async () => undefined),
+        hasPendingPush: vi.fn(async () => false),
+        listBranches: vi.fn(async () => []),
+        listRepositoryFiles: vi.fn(async () => []),
+        listTopLevelFolders: vi.fn(async () => []),
+        loadActionFiles: vi.fn(async () => []),
+        loadFile: vi.fn(async () => ({ content: '', path: 'design/empty.md' })),
+        loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
+        loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
+        loadProjectConfig: vi.fn(async () => null),
+        moveFiles: vi.fn(async () => undefined),
+        openProjectFolder: vi.fn(async () => null),
+        push: vi.fn(async () => undefined),
+        resolveProject: vi.fn(async (project) => project),
+        saveProjectConfig: vi.fn(async () => undefined),
+        watchProject: vi.fn(() => vi.fn()),
     }
 }
 
 describe('TelemetryService', () => {
-    afterEach(() => {
-        vi.useRealTimers()
+    beforeEach(() => {
+        vi.stubEnv('MD2_APTABASE_APP_KEY', 'aptabase-key')
+        vi.stubEnv('MD2_SENTRY_DSN', 'sentry-dsn')
+        vi.stubEnv('PROD', true)
+        telemetryMocks.aptabaseInit.mockReset()
+        telemetryMocks.aptabaseTrackEvent.mockReset().mockResolvedValue(undefined)
+        telemetryMocks.sentryCaptureException.mockReset()
+        telemetryMocks.sentryFlush.mockReset().mockResolvedValue(true)
+        telemetryMocks.sentryInit.mockReset()
     })
 
-    it('initializes configured clients and sends only runtime usage context', async () => {
-        const clients = createClients()
+    afterEach(() => {
+        delete window.md2Data
+        vi.unstubAllEnvs()
+        vi.useRealTimers()
+        vi.restoreAllMocks()
+    })
+
+    it('initializes configured clients once and sends only web runtime usage context', () => {
         const service = new TelemetryService()
 
-        service.init({
-            aptabaseAppKey: 'aptabase-key',
-            clients,
-            runtime: 'react_electron',
-            sentryDsn: 'sentry-dsn',
-        })
-        service.trackEvent('create_card')
-        await service.flush()
+        service.start()
+        service.start()
 
-        expect(clients.sentry.init).toHaveBeenCalledWith({ dsn: 'sentry-dsn' })
-        expect(clients.aptabase.init).toHaveBeenCalledWith('aptabase-key')
-        expect(clients.aptabase.trackEvent).toHaveBeenCalledWith('create_card', { runtime: 'react_electron' })
+        expect(telemetryMocks.sentryInit).toHaveBeenCalledOnce()
+        expect(telemetryMocks.sentryInit).toHaveBeenCalledWith({ dsn: 'sentry-dsn' })
+        expect(telemetryMocks.aptabaseInit).toHaveBeenCalledOnce()
+        expect(telemetryMocks.aptabaseInit).toHaveBeenCalledWith('aptabase-key')
+        expect(telemetryMocks.aptabaseTrackEvent).toHaveBeenCalledOnce()
+        expect(telemetryMocks.aptabaseTrackEvent).toHaveBeenCalledWith('react_start', { runtime: 'react_web' })
+    })
+
+    it('classifies usage as Electron-connected when the preload bridge exists', () => {
+        window.md2Data = createBridge()
+        const service = new TelemetryService()
+
+        service.start()
+
+        expect(telemetryMocks.aptabaseTrackEvent).toHaveBeenCalledWith('react_start', { runtime: 'react_electron' })
+    })
+
+    it('does not initialize Sentry in development', () => {
+        vi.stubEnv('PROD', false)
+        const service = new TelemetryService()
+
+        service.start()
+
+        expect(telemetryMocks.sentryInit).not.toHaveBeenCalled()
+        expect(telemetryMocks.aptabaseInit).toHaveBeenCalledWith('aptabase-key')
     })
 
     it('no-ops when telemetry keys are absent', async () => {
-        const clients = createClients()
+        vi.stubEnv('MD2_APTABASE_APP_KEY', '')
+        vi.stubEnv('MD2_SENTRY_DSN', '')
         const service = new TelemetryService()
 
-        service.init({ clients, runtime: 'react_web' })
-        service.trackEvent('react_start')
+        service.start()
+        service.trackEvent('create_card')
         service.captureError(new Error('boom'))
         await service.flush()
 
-        expect(clients.sentry.init).not.toHaveBeenCalled()
-        expect(clients.aptabase.init).not.toHaveBeenCalled()
-        expect(clients.aptabase.trackEvent).not.toHaveBeenCalled()
-        expect(clients.sentry.captureException).not.toHaveBeenCalled()
+        expect(telemetryMocks.sentryInit).not.toHaveBeenCalled()
+        expect(telemetryMocks.aptabaseInit).not.toHaveBeenCalled()
+        expect(telemetryMocks.aptabaseTrackEvent).not.toHaveBeenCalled()
+        expect(telemetryMocks.sentryCaptureException).not.toHaveBeenCalled()
     })
 
     it('rejects unsupported usage events before they can leak payload data', () => {
-        const clients = createClients()
         const service = new TelemetryService()
-        service.init({ aptabaseAppKey: 'aptabase-key', clients, runtime: 'react_web' })
+        service.start()
 
         expect(() => service.trackEvent('design/F-1.md' as never)).toThrow('Unsupported telemetry event')
-        expect(clients.aptabase.trackEvent).not.toHaveBeenCalled()
+        expect(telemetryMocks.aptabaseTrackEvent).toHaveBeenCalledOnce()
     })
 
-    it('captures errors and uses a bounded flush', async () => {
+    it('captures handled errors and uses a bounded flush', async () => {
         vi.useFakeTimers()
-        const clients = createClients()
-        clients.aptabase.trackEvent.mockImplementation(() => new Promise(() => undefined))
         const service = new TelemetryService()
-
-        service.init({ aptabaseAppKey: 'aptabase-key', clients, runtime: 'react_web', sentryDsn: 'sentry-dsn' })
+        service.start()
+        telemetryMocks.aptabaseTrackEvent.mockImplementation(() => new Promise(() => undefined))
         const error = new Error('failed')
+
         service.trackEvent('react_stop')
         service.captureError(error)
         const flush = service.flush(25)
-
         await vi.advanceTimersByTimeAsync(25)
         await flush
 
-        expect(clients.sentry.captureException).toHaveBeenCalledWith(error)
-        expect(clients.sentry.flush).toHaveBeenCalledWith(25)
+        expect(telemetryMocks.sentryCaptureException).toHaveBeenCalledWith(error)
+        expect(telemetryMocks.sentryFlush).toHaveBeenCalledWith(25)
+    })
+
+    it('flushes telemetry on unload without registering duplicate global error handlers', () => {
+        const addEventListener = vi.spyOn(window, 'addEventListener')
+        const service = new TelemetryService()
+
+        service.start()
+
+        expect(addEventListener).toHaveBeenCalledOnce()
+        expect(addEventListener).toHaveBeenCalledWith('beforeunload', expect.any(Function))
+        expect(addEventListener).not.toHaveBeenCalledWith('error', expect.any(Function))
+        expect(addEventListener).not.toHaveBeenCalledWith('unhandledrejection', expect.any(Function))
     })
 })

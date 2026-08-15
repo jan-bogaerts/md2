@@ -3,7 +3,7 @@ author:
 id: F_175
 internalId: 065a1db8-981d-4e22-8d62-8f8cc5995408
 title: attach files to card
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

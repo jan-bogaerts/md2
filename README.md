@@ -143,7 +143,7 @@ This starts the Vite dev server for `app` and, once it's up, launches the Electr
 
 ### Optional environment variables
 
-`app/.env.example` and `desktop/.env.example` list optional Sentry/Aptabase keys for error reporting and analytics. Copy to `.env` and fill in if you want telemetry locally — neither is required to build or run the app.
+`desktop/.env.example` lists the optional `MD2_SENTRY_DSN` and `MD2_APTABASE_APP_KEY` settings used by both the renderer and Electron for error reporting and analytics. Copy it to `desktop/.env` and fill it in if you want telemetry locally — neither setting is required to build or run the app.
 
 ### Lint & test
 

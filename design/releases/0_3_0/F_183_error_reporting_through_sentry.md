@@ -15,7 +15,7 @@ after: 4bb52e4a-38c7-47bd-9fe8-c49cdd08c0b0
 
 ## Current state
 
-React telemetry starts before application startup and rendering. In production, configured Sentry receives uncaught window errors and unhandled promise rejections through `telemetryService.captureError`.
+`TelemetryService` starts before application startup and rendering. In production, configured Sentry receives uncaught window errors and unhandled promise rejections through its default browser integrations.
 
 `dialogService.error` only converts its argument to display text and dispatches a dialog event. Its 138 production call sites across 64 files therefore show handled errors without reporting them to Sentry. Two call sites, project-load failure and activity-repair persistence failure, separately call both services and already report their errors.
 
@@ -23,10 +23,10 @@ React telemetry starts before application startup and rendering. In production, 
 
 - Make `dialogService.error` call `telemetryService.captureError` once with the original argument before converting that argument to display text. Original argument means exact `Error`, string, or other value supplied by caller, preserving an `Error` stack when available.
 - Keep dialog message, fallback message, title, critical state, event dispatch, and return value unchanged. Telemetry failure remains isolated by `TelemetryService`; Sentry failure must not block dialog display.
-- Use existing telemetry lifecycle. Sentry reporting remains enabled only after production bootstrap configures a DSN; missing configuration remains a no-op.
+- Use the existing telemetry lifecycle. Sentry reporting remains enabled only after `TelemetryService.start()` configures `MD2_SENTRY_DSN` from `desktop/.env` in production; missing configuration remains a no-op.
 - Remove adjacent `telemetryService.captureError(error)` calls from project-load failure and activity-repair persistence failure, because central reporting would otherwise send each error twice.
 - All other `dialogService.error` call sites receive central reporting without local changes. All other direct `telemetryService.captureError` calls keep current behavior because they report errors without an error dialog, or accompany warning-only UI. `warning`, `info`, and `success` keep current behavior.
-- Extend dialog-service tests with mocked telemetry capture. Verify original error value is captured once and existing dialog output remains unchanged. Keep telemetry service and bootstrap tests unchanged unless test isolation requires reset setup.
+- Extend dialog-service tests with mocked telemetry capture. Verify original error value is captured once and existing dialog output remains unchanged. Keep telemetry service tests unchanged unless test isolation requires reset setup.
 
 ## acceptance criteria
 
