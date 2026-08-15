@@ -48,8 +48,8 @@ export function MobileCreateMenu(props: MobileCreateMenuProps) {
                 </IconButton>
             </Tooltip>
             <Menu anchorEl={anchorElement} id="mobile-create-menu" onClose={handleCloseMenu} open={!!anchorElement}>
-                <MenuItem disabled={isNewActionDisabled} onClick={handleCreateAction}>New action</MenuItem>
                 <MenuItem disabled={isNewCardDisabled} onClick={handleCreateCard}>New card</MenuItem>
+                <MenuItem disabled={isNewActionDisabled} onClick={handleCreateAction}>New action</MenuItem>
             </Menu>
         </>
     )
