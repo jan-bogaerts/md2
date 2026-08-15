@@ -3323,11 +3323,11 @@
         "agent-a97570e8-1a53-414e-9ebe-3c6ef1e860c1"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-c66753c5-9f58-4cc8-9d9f-2625c214faec",
       "origin": {
@@ -3336,9 +3336,49 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-a97570e8-1a53-414e-9ebe-3c6ef1e860c1",
       "startedAt": "2026-08-15T14:51:47.931Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-a97570e8-1a53-414e-9ebe-3c6ef1e860c1"
+    },
+    {
+      "commits": [
+        {
+          "commit": "030bd26a2ba20f597ead65170d5d00a32efadec9",
+          "committedAt": "2026-08-15T18:20:11+02:00",
+          "deletions": 64,
+          "filePaths": [
+            "app/src/components/actions/conversation/action_conversation_chat.tsx",
+            "app/src/components/actions/conversation/conversation_timer.test.tsx",
+            "app/src/components/actions/conversation/conversation_timer.tsx",
+            "app/src/data/action_run_types.ts",
+            "app/src/data/data_types.ts",
+            "app/src/services/actions/action_run_registry.node.test.ts",
+            "app/src/services/actions/action_run_registry.ts",
+            "app/src/services/agents/agent_conversation_service.node.test.ts",
+            "desktop/src/actions/action/action_run.js",
+            "desktop/src/actions/action/action_run.test.mjs",
+            "desktop/src/actions/activity/activity_files.test.mjs",
+            "desktop/src/actions/agent/agent_conversation.js",
+            "desktop/src/actions/agent/agent_conversation.test.mjs",
+            "desktop/src/actions/agent/agent_run_interactions.js",
+            "desktop/src/actions/agent/agent_run_state.js",
+            "desktop/src/actions/agent/agent_runner_service.js",
+            "desktop/src/actions/agent/agent_runner_state.test.mjs",
+            "desktop/src/actions/agent/agent_streaming_event_handlers.js",
+            "shared/agent_conversations.mjs"
+          ],
+          "filesChanged": 19,
+          "insertions": 322,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-15T18:20:11+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "2433b65f-efed-4a22-af41-529cd35af655",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
