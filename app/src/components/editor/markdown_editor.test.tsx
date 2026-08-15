@@ -20,6 +20,8 @@ import {
 } from './markdown_data_source'
 import type { CardOpenDocument } from '../../services/open_files_service'
 
+const originalMatchMedia = window.matchMedia
+
 class TestMarkdownDataSource extends MarkdownDataSourceBase {
     readonly commit = vi.fn<MarkdownDataSource['commit']>(() => true)
     readonly edit = vi.fn()
@@ -60,6 +62,19 @@ function renderEditor(markdown = '') {
             <MarkdownEditor markdown={markdown} onChange={vi.fn()} />
         </AppThemeProvider>,
     )
+}
+
+function setSmallScreen(isSmallScreen: boolean) {
+    window.matchMedia = ((query: string) => ({
+        addEventListener: () => {},
+        addListener: () => {},
+        dispatchEvent: () => false,
+        matches: isSmallScreen,
+        media: query,
+        onchange: null,
+        removeEventListener: () => {},
+        removeListener: () => {},
+    })) as unknown as typeof window.matchMedia
 }
 
 function selectText(textbox: HTMLTextAreaElement, start: number, end: number) {
@@ -108,6 +123,7 @@ describe('MarkdownEditor', () => {
     afterEach(() => {
         cleanup()
         window.localStorage.clear()
+        window.matchMedia = originalMatchMedia
     })
 
     it('renders the editing surface seeded with the markdown value', () => {
@@ -672,6 +688,40 @@ describe('MarkdownEditor', () => {
         renderEditor()
 
         expect(screen.getByTestId('mdx-editor')).toContainElement(screen.getByTestId('mdx-editor-toolbar'))
+    })
+
+    it('shows list indent controls after list type controls on small editable toolbars', () => {
+        setSmallScreen(true)
+        renderEditor()
+
+        const listsToggle = screen.getByTestId('lists-toggle')
+        const increaseButton = screen.getByRole('button', { name: 'Increase indent' })
+        const decreaseButton = screen.getByRole('button', { name: 'Decrease indent' })
+        const blockTypeSelect = screen.getByTestId('block-type-select')
+
+        expect(listsToggle.compareDocumentPosition(increaseButton)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+        expect(increaseButton.compareDocumentPosition(decreaseButton)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+        expect(decreaseButton.compareDocumentPosition(blockTypeSelect)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+    })
+
+    it('omits list indent controls from large-screen toolbars', () => {
+        setSmallScreen(false)
+        renderEditor()
+
+        expect(screen.queryByRole('button', { name: 'Increase indent' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Decrease indent' })).not.toBeInTheDocument()
+    })
+
+    it('omits list indent controls from small read-only toolbars', () => {
+        setSmallScreen(true)
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor markdown="locked" onChange={vi.fn()} readOnly />
+            </AppThemeProvider>,
+        )
+
+        expect(screen.queryByRole('button', { name: 'Increase indent' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Decrease indent' })).not.toBeInTheDocument()
     })
 
     it('omits the toolbar when hideToolbar is set', () => {

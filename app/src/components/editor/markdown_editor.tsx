@@ -300,7 +300,13 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         <>
             {!hideToolbar ? (
                 customToolbarContents?.()
-                ?? <MarkdownFormatToolbarControls overlayContainer={overlayContainer} placeholders={placeholders} />
+                ?? (
+                    <MarkdownFormatToolbarControls
+                        overlayContainer={overlayContainer}
+                        placeholders={placeholders}
+                        readOnly={readOnly}
+                    />
+                )
             ) : null}
             {attachmentHandler ? <MarkdownAttachmentToolbarControl disabled={readOnly} onFiles={attachFiles} /> : null}
         </>
