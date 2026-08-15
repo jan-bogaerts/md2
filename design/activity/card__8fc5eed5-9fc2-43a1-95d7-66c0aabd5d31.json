@@ -5251,11 +5251,11 @@
         "agent-8c7d557e-3ada-47d5-96ac-470ea4b49d66"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-ffdc1e5b-1190-43a4-99af-815546256c45",
       "origin": {
@@ -5264,9 +5264,54 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-8c7d557e-3ada-47d5-96ac-470ea4b49d66",
       "startedAt": "2026-08-15T14:38:54.300Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-8c7d557e-3ada-47d5-96ac-470ea4b49d66"
+    },
+    {
+      "commits": [
+        {
+          "commit": "2ef6a980044891a557b9dee565777de9e29bd994",
+          "committedAt": "2026-08-15T16:50:30+02:00",
+          "deletions": 139,
+          "filePaths": [
+            "app/src/components/actions/agent/action_agent_prompt.test.tsx",
+            "app/src/components/actions/agent/action_agent_prompt.tsx",
+            "app/src/components/actions/agent/action_agent_prompt_owner.tsx",
+            "app/src/components/actions/run/popup/action_popup_bottom_row.test.tsx",
+            "app/src/components/actions/run/popup/action_popup_bottom_row.tsx",
+            "app/src/components/editor/markdown_attachment_control.test.tsx",
+            "app/src/components/editor/markdown_attachment_control.tsx",
+            "app/src/components/editor/markdown_attachment_toolbar_control.tsx",
+            "app/src/components/editor/markdown_editor.test.tsx",
+            "app/src/components/editor/markdown_editor.tsx",
+            "app/src/components/editor/use_markdown_draft.ts",
+            "app/src/components/shell/project/new_card_column_picker.tsx",
+            "app/src/components/shell/project/new_card_dialog.tsx",
+            "app/src/components/shell/project/new_card_dialog_render.test.tsx",
+            "app/src/components/shell/project/new_card_markdown_editor.test.tsx",
+            "app/src/components/shell/project/new_card_markdown_editor.tsx",
+            "app/src/services/actions/action_prompt_draft_service.ts",
+            "app/src/services/attachments/attachment_workflow.test.ts",
+            "app/src/services/attachments/attachment_workflow.ts",
+            "app/src/services/attachments/new_card_attachment_workflow.test.ts",
+            "app/src/services/attachments/new_card_attachment_workflow.ts",
+            "app/src/services/markdown/markdown_draft.node.test.ts",
+            "app/src/services/markdown/markdown_draft.ts",
+            "app/src/services/project/project_session_service.ts"
+          ],
+          "filesChanged": 23,
+          "insertions": 608,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-15T16:50:30+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "8fc5eed5-9fc2-43a1-95d7-66c0aabd5d31",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
