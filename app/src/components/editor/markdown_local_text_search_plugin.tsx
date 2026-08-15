@@ -1,5 +1,7 @@
+import ArrowDownwardOutlined from '@mui/icons-material/ArrowDownwardOutlined'
+import ArrowUpwardOutlined from '@mui/icons-material/ArrowUpwardOutlined'
 import SearchOutlined from '@mui/icons-material/SearchOutlined'
-import { Box, IconButton, InputAdornment, Popover, TextField, ToggleButton, Tooltip } from '@mui/material'
+import { Box, IconButton, InputAdornment, Paper, Popper, TextField, ToggleButton, Tooltip, Typography } from '@mui/material'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { useCellValue } from '@mdxeditor/editor'
 import { COMMAND_PRIORITY_HIGH, KEY_DOWN_COMMAND } from 'lexical'
@@ -14,6 +16,7 @@ import { useDialogError } from '../hooks/use_dialog_error'
 import {
     getMarkdownSearchSeed,
     getMarkdownSearchSelectionEnd,
+    getMarkdownSearchSelectionStart,
     selectMarkdownTextMatch,
 } from './markdown_local_text_search'
 import { OPEN_MARKDOWN_LOCAL_TEXT_SEARCH_COMMAND } from './markdown_local_text_search_command'
@@ -32,6 +35,7 @@ export function MarkdownLocalTextSearchPlugin() {
     const [draftCaseSensitive, setDraftCaseSensitive] = useState(false)
     const [draftTerm, setDraftTerm] = useState('')
     const [open, setOpen] = useState(false)
+    const [resultCount, setResultCount] = useState<number | null>(null)
     const [searchOrigin, setSearchOrigin] = useState(0)
     const rootElement = editor.getRootElement()
     const configError = config ? null : new Error('Cannot register Markdown local text search without configuration')
@@ -52,15 +56,31 @@ export function MarkdownLocalTextSearchPlugin() {
     const selectNextMatch = useCallback(() => {
         if (!activeTerm) return
         const offset = getMarkdownSearchSelectionEnd(editor)
-        selectMarkdownTextMatch(editor, activeTerm, offset, activeCaseSensitive)
+        const result = selectMarkdownTextMatch(editor, activeTerm, offset, activeCaseSensitive)
+        setResultCount(result.count)
+    }, [activeCaseSensitive, activeTerm, editor])
+
+    const selectPreviousMatch = useCallback(() => {
+        if (!activeTerm) return
+        const offset = getMarkdownSearchSelectionStart(editor)
+        const result = selectMarkdownTextMatch(editor, activeTerm, offset, activeCaseSensitive, 'previous')
+        setResultCount(result.count)
     }, [activeCaseSensitive, activeTerm, editor])
 
     const submitSearch = useCallback(() => {
         if (!draftTerm) return
         setActiveTerm(draftTerm)
         setActiveCaseSensitive(draftCaseSensitive)
-        selectMarkdownTextMatch(editor, draftTerm, searchOrigin, draftCaseSensitive)
+        const result = selectMarkdownTextMatch(editor, draftTerm, searchOrigin, draftCaseSensitive)
+        setResultCount(result.count)
     }, [draftCaseSensitive, draftTerm, editor, searchOrigin])
+
+    const handleWindowKeyDown = useCallback((event: KeyboardEvent) => {
+        if (!open || event.key !== 'Escape') return
+
+        event.preventDefault()
+        closeSearch()
+    }, [closeSearch, open])
 
     const handleKeyDown = useCallback((event: KeyboardEvent) => {
         if (isOpenSearchShortcut(event)) {
@@ -89,6 +109,14 @@ export function MarkdownLocalTextSearchPlugin() {
         }
     }, [editor, handleKeyDown, openSearch])
 
+    useEffect(() => {
+        window.addEventListener('keydown', handleWindowKeyDown)
+
+        return () => {
+            window.removeEventListener('keydown', handleWindowKeyDown)
+        }
+    }, [handleWindowKeyDown])
+
     const handleTermChange = (event: ChangeEvent<HTMLInputElement>) => {
         setDraftTerm(event.target.value)
     }
@@ -98,11 +126,6 @@ export function MarkdownLocalTextSearchPlugin() {
     }
 
     const handleInputKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
-        if (event.key === 'Escape') {
-            event.preventDefault()
-            closeSearch()
-            return
-        }
         if (event.key === 'Enter') {
             event.preventDefault()
             submitSearch()
@@ -115,61 +138,81 @@ export function MarkdownLocalTextSearchPlugin() {
     }
 
     return (
-        <Popover
+        <Popper
             anchorEl={rootElement}
-            anchorOrigin={{ horizontal: 'right', vertical: 'top' }}
-            anchorPosition={rootElement ? undefined : { left: 0, top: 0 }}
-            anchorReference={rootElement ? 'anchorEl' : 'anchorPosition'}
             container={config?.overlayContainer ?? undefined}
-            onClose={closeSearch}
             open={open}
-            slotProps={{
-                paper: {
-                    sx: {
-                        border: '1px solid',
-                        borderColor: 'divider',
-                        borderRadius: '14px',
-                    },
-                },
-            }}
-            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+            placement="top-end"
+            role="dialog"
+            sx={{ zIndex: 'modal' }}
         >
-            <Box sx={{ alignItems: 'center', display: 'flex', gap: 0.75, p: 1, width: 260 }}>
-                <TextField
-                    autoFocus
-                    fullWidth
-                    onChange={handleTermChange}
-                    onKeyDown={handleInputKeyDown}
-                    placeholder="Find text"
-                    size="small"
-                    slotProps={{
-                        htmlInput: { 'aria-label': 'Find text' },
-                        input: {
-                            startAdornment: (
-                                <InputAdornment position="start">
-                                    <Tooltip title="Search">
-                                        <IconButton aria-label="Search" edge="start" onClick={submitSearch} size="small">
-                                            <SearchOutlined fontSize="small" />
-                                        </IconButton>
-                                    </Tooltip>
-                                </InputAdornment>
-                            ),
-                        },
-                    }}
-                    value={draftTerm}
-                />
-                <Tooltip title="Match case">
-                    <ToggleButton
-                        aria-label="Match case"
-                        onClick={handleCaseToggle}
-                        selected={draftCaseSensitive}
+            <Paper sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '14px' }}>
+                <Box sx={{ alignItems: 'center', display: 'flex', gap: 0.75, p: 1, width: 420 }}>
+                    <TextField
+                        autoFocus
+                        fullWidth
+                        onChange={handleTermChange}
+                        onKeyDown={handleInputKeyDown}
+                        placeholder="Find text"
                         size="small"
-                        value="case-sensitive"
-                    >
-                        Aa
-                    </ToggleButton>
-                </Tooltip>
-            </Box>
-        </Popover>
+                        slotProps={{
+                            htmlInput: { 'aria-label': 'Find text' },
+                            input: {
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <Tooltip title="Search">
+                                            <IconButton aria-label="Search" edge="start" onClick={submitSearch} size="small">
+                                                <SearchOutlined fontSize="small" />
+                                            </IconButton>
+                                        </Tooltip>
+                                    </InputAdornment>
+                                ),
+                            },
+                        }}
+                        value={draftTerm}
+                    />
+                    {resultCount === null ? null : (
+                        <Typography aria-live="polite" sx={{ flexShrink: 0 }} variant="body2">
+                            {resultCount} {resultCount === 1 ? 'result' : 'results'}
+                        </Typography>
+                    )}
+                    <Tooltip title="Previous result">
+                        <span>
+                            <IconButton
+                                aria-label="Previous result"
+                                disabled={!activeTerm}
+                                onClick={selectPreviousMatch}
+                                size="small"
+                            >
+                                <ArrowUpwardOutlined fontSize="small" />
+                            </IconButton>
+                        </span>
+                    </Tooltip>
+                    <Tooltip title="Next result">
+                        <span>
+                            <IconButton
+                                aria-label="Next result"
+                                disabled={!activeTerm}
+                                onClick={selectNextMatch}
+                                size="small"
+                            >
+                                <ArrowDownwardOutlined fontSize="small" />
+                            </IconButton>
+                        </span>
+                    </Tooltip>
+                    <Tooltip title="Match case">
+                        <ToggleButton
+                            aria-label="Match case"
+                            onClick={handleCaseToggle}
+                            selected={draftCaseSensitive}
+                            size="small"
+                            value="case-sensitive"
+                        >
+                            Aa
+                        </ToggleButton>
+                    </Tooltip>
+                </Box>
+            </Paper>
+        </Popper>
     )
 }

@@ -16,6 +16,13 @@ export interface MarkdownTextMatch {
     start: number
 }
 
+export type MarkdownTextSearchDirection = 'next' | 'previous'
+
+export interface MarkdownTextSearchResult {
+    count: number
+    match: MarkdownTextMatch | null
+}
+
 interface MarkdownTextSegment {
     end: number
     key: NodeKey
@@ -50,22 +57,44 @@ function normalizeSearchText(value: string, caseSensitive: boolean) {
     return caseSensitive ? value : value.toLocaleLowerCase()
 }
 
-/** Finds next match at or after offset, wrapping once to document start. */
-export function findMarkdownTextMatch(
+/** Enumerates ordered, non-overlapping visible-text matches. */
+export function findMarkdownTextMatches(
     text: string,
     term: string,
-    offset: number,
     caseSensitive: boolean,
-): MarkdownTextMatch | null {
-    if (!term) return null
+): MarkdownTextMatch[] {
+    if (!term) return []
 
     const searchableText = normalizeSearchText(text, caseSensitive)
     const searchableTerm = normalizeSearchText(term, caseSensitive)
-    const startOffset = Math.min(Math.max(offset, 0), text.length)
-    const laterMatch = searchableText.indexOf(searchableTerm, startOffset)
-    const start = laterMatch >= 0 ? laterMatch : searchableText.indexOf(searchableTerm)
+    const matches: MarkdownTextMatch[] = []
+    let offset = 0
 
-    return start < 0 ? null : { end: start + term.length, start }
+    while (offset <= searchableText.length - searchableTerm.length) {
+        const start = searchableText.indexOf(searchableTerm, offset)
+        if (start < 0) break
+
+        const end = start + term.length
+        matches.push({ end, start })
+        offset = end
+    }
+
+    return matches
+}
+
+/** Finds match in requested direction, wrapping once at document boundary. */
+export function findMarkdownTextMatch(
+    matches: MarkdownTextMatch[],
+    offset: number,
+    direction: MarkdownTextSearchDirection,
+) {
+    if (matches.length === 0) return null
+
+    if (direction === 'previous') {
+        return matches.findLast(({ end }) => end <= offset) ?? matches.at(-1) ?? null
+    }
+
+    return matches.find(({ start }) => start >= offset) ?? matches[0]
 }
 
 function pointTextOffset(point: PointType, document: MarkdownSearchDocument) {
@@ -89,12 +118,14 @@ function pointTextOffset(point: PointType, document: MarkdownSearchDocument) {
     return lastSegment?.end ?? 0
 }
 
-function currentSelectionEnd(document: MarkdownSearchDocument) {
+function currentSelectionBoundary(document: MarkdownSearchDocument, boundary: 'end' | 'start') {
     const selection = $getSelection()
     if (!$isRangeSelection(selection)) return 0
 
     const points = selection.getStartEndPoints()
-    return points ? pointTextOffset(points[1], document) : 0
+    if (!points) return 0
+
+    return pointTextOffset(points[boundary === 'start' ? 0 : 1], document)
 }
 
 function matchPoints(match: MarkdownTextMatch, segments: MarkdownTextSegment[]) {
@@ -110,7 +141,12 @@ function matchPoints(match: MarkdownTextMatch, segments: MarkdownTextSegment[]) 
 
 /** Reads current Lexical selection end as flattened visible-text offset. */
 export function getMarkdownSearchSelectionEnd(editor: LexicalEditor) {
-    return editor.getEditorState().read(() => currentSelectionEnd(createSearchDocument()))
+    return editor.getEditorState().read(() => currentSelectionBoundary(createSearchDocument(), 'end'))
+}
+
+/** Reads current Lexical selection start as flattened visible-text offset. */
+export function getMarkdownSearchSelectionStart(editor: LexicalEditor) {
+    return editor.getEditorState().read(() => currentSelectionBoundary(createSearchDocument(), 'start'))
 }
 
 /** Reads non-empty selected visible text without Markdown delimiters. */
@@ -127,13 +163,16 @@ export function selectMarkdownTextMatch(
     term: string,
     offset: number,
     caseSensitive: boolean,
+    direction: MarkdownTextSearchDirection = 'next',
 ) {
     let selectedKey: NodeKey | null = null
-    let selectedMatch: MarkdownTextMatch | null = null
+    const result: MarkdownTextSearchResult = { count: 0, match: null }
 
     editor.update(() => {
         const document = createSearchDocument()
-        const match = findMarkdownTextMatch(document.text, term, offset, caseSensitive)
+        const matches = findMarkdownTextMatches(document.text, term, caseSensitive)
+        result.count = matches.length
+        const match = findMarkdownTextMatch(matches, offset, direction)
         if (!match) return
 
         const points = matchPoints(match, document.segments)
@@ -144,7 +183,7 @@ export function selectMarkdownTextMatch(
         selection.focus.set(points.focus.key, points.focus.offset, 'text')
         $setSelection(selection)
         selectedKey = points.anchor.key
-        selectedMatch = match
+        result.match = match
     }, {
         discrete: true,
         onUpdate: () => {
@@ -152,5 +191,5 @@ export function selectMarkdownTextMatch(
         },
     })
 
-    return selectedMatch
+    return result
 }
