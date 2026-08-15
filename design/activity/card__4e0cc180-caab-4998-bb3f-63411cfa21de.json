@@ -2722,11 +2722,11 @@
         "agent-c78aad14-a134-47d7-bd05-96cc47d8f7c7"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-7d06fca3-4982-4617-9b7f-e2cb2296687c",
       "origin": {
@@ -2735,9 +2735,36 @@
       },
       "rootActionId": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
       "rootActionLabel": "fix bug",
-      "rootConversationId": "agent-c78aad14-a134-47d7-bd05-96cc47d8f7c7",
       "startedAt": "2026-08-15T13:55:22.964Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-c78aad14-a134-47d7-bd05-96cc47d8f7c7"
+    },
+    {
+      "commits": [
+        {
+          "commit": "f0f8b081a5d20bc1853664c29084df844af614f7",
+          "committedAt": "2026-08-15T16:34:24+02:00",
+          "deletions": 8,
+          "filePaths": [
+            "desktop/src/actions/action/action_agent_executor.js",
+            "desktop/src/actions/action/action_agent_executor.test.mjs",
+            "desktop/src/actions/action/action_run.js",
+            "desktop/src/actions/action/action_run.test.mjs",
+            "desktop/src/actions/action/action_text.js",
+            "desktop/src/actions/action/action_text.test.mjs"
+          ],
+          "filesChanged": 6,
+          "insertions": 144,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-15T16:34:24+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "4e0cc180-caab-4998-bb3f-63411cfa21de",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
