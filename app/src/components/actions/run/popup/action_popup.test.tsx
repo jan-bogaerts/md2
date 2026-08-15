@@ -197,6 +197,14 @@ function rejectableDeferred<T>() {
     return { promise, reject: rejectValue }
 }
 
+function mockCodexAvailable() {
+    vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({
+        availability: { error: null, loading: false, values: { codex: { available: true, error: null } } },
+        models: { error: null, loading: false, values: [] },
+        thinkingLevels: { error: null, loading: false, values: [] },
+    })
+}
+
 function setMobileBreakpoint(matches: boolean) {
     window.matchMedia = ((query: string) => ({
         addEventListener: vi.fn(),
@@ -1066,6 +1074,208 @@ describe('ActionPopup', () => {
         await waitFor(() => expect(finishActionRun).toHaveBeenCalledWith('run-1'))
     })
 
+    it('accepts manual input after running changes to waiting and sends through the same live run', async () => {
+        actionRunRegistry.stop()
+        const waitingContext: ActionContext = { kind: 'project' }
+        let runListener: ((event: ActionRunEvent) => void) | null = null
+        const beginActionPromptDraft = vi.fn(async () => 1)
+        const sendActionQueuedMessage = vi.fn(async () => ({ sent: true as const }))
+        const setActionQueuedMessage = vi.fn(async () => ({ accepted: true }))
+        window.md2Actions = {
+            beginActionPromptDraft,
+            loadActionRunHistory: vi.fn(async () => []),
+            onActionRun: vi.fn((listener) => {
+                runListener = listener
+                return vi.fn()
+            }),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
+            sendActionQueuedMessage,
+            setActionQueuedMessage,
+        } as unknown as typeof window.md2Actions
+        mockCodexAvailable()
+        actionRunRegistry.start()
+        actionService.loadFromFiles([file(agentDefinition('stream', { label: 'Stream', streaming: true }))])
+        renderPopup(waitingContext)
+        await waitFor(() => expect(runListener).not.toBeNull())
+        const eventBase = {
+            actionId: 'stream', actionType: 'agent' as const, autoFinish: null, context: waitingContext, interactionReady: true,
+            phase: 'main' as const, rootActionId: 'stream', runId: 'run-1', streaming: true,
+        }
+
+        act(() => {
+            runListener?.({ ...eventBase, status: 'running', type: 'run' })
+            runListener?.({ ...eventBase, status: 'running', type: 'agentState' })
+            runListener?.({ ...eventBase, status: 'waitingForInput', type: 'agentState' })
+        })
+        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
+        expect(prompt).not.toHaveAttribute('readonly')
+        expect(screen.queryByRole('button', { name: 'Send' })).not.toBeInTheDocument()
+
+        fireEvent.change(prompt, { target: { value: 'Continue manually' } })
+        const sendButton = screen.getByRole('button', { name: 'Send' })
+        expect(sendButton).toBeEnabled()
+        fireEvent.click(sendButton)
+
+        await waitFor(() => expect(sendActionQueuedMessage).toHaveBeenCalledWith('run-1', 1, expect.any(Number)))
+        await waitFor(() => expect(prompt).toHaveValue(''))
+        expect(beginActionPromptDraft).toHaveBeenCalledWith('run-1')
+        expect(setActionQueuedMessage).toHaveBeenCalledWith('run-1', 1, 'Continue manually', expect.any(Number))
+    })
+
+    it('retains manually typed waiting input and reports a failed live send', async () => {
+        actionRunRegistry.stop()
+        const waitingContext: ActionContext = { kind: 'project' }
+        let runListener: ((event: ActionRunEvent) => void) | null = null
+        const sendError = new Error('live send failed')
+        window.md2Actions = {
+            beginActionPromptDraft: vi.fn(async () => 1),
+            loadActionRunHistory: vi.fn(async () => []),
+            onActionRun: vi.fn((listener) => {
+                runListener = listener
+                return vi.fn()
+            }),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
+            sendActionQueuedMessage: vi.fn(async () => {
+                throw sendError
+            }),
+            setActionQueuedMessage: vi.fn(async () => ({ accepted: true })),
+        } as unknown as typeof window.md2Actions
+        const reportError = vi.spyOn(dialogService, 'error')
+        mockCodexAvailable()
+        actionRunRegistry.start()
+        actionService.loadFromFiles([file(agentDefinition('stream', { label: 'Stream', streaming: true }))])
+        renderPopup(waitingContext)
+        await waitFor(() => expect(runListener).not.toBeNull())
+        const eventBase = {
+            actionId: 'stream', actionType: 'agent' as const, autoFinish: null, context: waitingContext, interactionReady: true,
+            phase: 'main' as const, rootActionId: 'stream', runId: 'run-1', streaming: true,
+        }
+        act(() => {
+            runListener?.({ ...eventBase, status: 'running', type: 'run' })
+            runListener?.({ ...eventBase, status: 'waitingForInput', type: 'agentState' })
+        })
+        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
+
+        fireEvent.change(prompt, { target: { value: 'Keep this draft' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+
+        await waitFor(() => expect(reportError).toHaveBeenCalledWith(sendError, { fallbackMessage: 'Could not send agent message' }))
+        expect(prompt).toHaveValue('Keep this draft')
+        expect(prompt).not.toHaveAttribute('readonly')
+    })
+
+    it('keeps prepared waiting input editable while backend or interaction channel blocks Send', async () => {
+        actionRunRegistry.stop()
+        const waitingContext: ActionContext = { kind: 'project' }
+        let runListener: ((event: ActionRunEvent) => void) | null = null
+        window.md2Actions = {
+            loadActionRunHistory: vi.fn(async () => []),
+            onActionRun: vi.fn((listener) => {
+                runListener = listener
+                return vi.fn()
+            }),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
+        } as unknown as typeof window.md2Actions
+        mockCodexAvailable()
+        actionRunRegistry.start()
+        actionService.loadFromFiles([file(agentDefinition('stream', { label: 'Stream', streaming: true }))])
+        renderPopup(waitingContext)
+        await waitFor(() => expect(runListener).not.toBeNull())
+        const eventBase = {
+            actionId: 'stream', actionType: 'agent' as const, autoFinish: null, context: waitingContext,
+            phase: 'main' as const, rootActionId: 'stream', runId: 'run-1', streaming: true,
+        }
+        act(() => {
+            runListener?.({ ...eventBase, status: 'running', type: 'run' })
+            runListener?.({ ...eventBase, interactionReady: false, status: 'waitingForInput', type: 'agentState' })
+        })
+        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
+
+        fireEvent.change(prompt, { target: { value: 'Draft while blocked' } })
+        expect(prompt).not.toHaveAttribute('readonly')
+        expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled()
+
+        act(() => runListener?.({ ...eventBase, interactionReady: true, status: 'waitingForInput', type: 'agentState' }))
+        expect(screen.getByRole('button', { name: 'Send' })).toBeEnabled()
+
+        delete window.md2Actions
+        fireEvent.change(prompt, { target: { value: 'Draft without backend' } })
+        expect(prompt).not.toHaveAttribute('readonly')
+        expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled()
+    })
+
+    it('retains waiting draft until both question and approval resolve', async () => {
+        actionRunRegistry.stop()
+        const waitingContext: ActionContext = { kind: 'project' }
+        let runListener: ((event: ActionRunEvent) => void) | null = null
+        window.md2Actions = {
+            loadActionRunHistory: vi.fn(async () => []),
+            onActionRun: vi.fn((listener) => {
+                runListener = listener
+                return vi.fn()
+            }),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
+        } as unknown as typeof window.md2Actions
+        mockCodexAvailable()
+        actionRunRegistry.start()
+        actionService.loadFromFiles([file(agentDefinition('stream', { label: 'Stream', streaming: true }))])
+        renderPopup(waitingContext)
+        await waitFor(() => expect(runListener).not.toBeNull())
+        const eventBase = {
+            actionId: 'stream', actionType: 'agent' as const, autoFinish: null, context: waitingContext, interactionReady: true,
+            phase: 'main' as const, rootActionId: 'stream', runId: 'run-1', streaming: true,
+        }
+        const conversation = agentConversation({
+            actionId: 'stream', cardInternalId: null, cardPath: null,
+            id: 'stream-conversation', path: 'stream.json',
+        })
+        const approval = {
+            command: 'npm test', filePaths: [], itemId: 'command-1', kind: 'commandExecution' as const,
+            reason: 'Run related test', requestId: 41, startedAtMs: 1, threadId: 'thread-1', turnId: 'turn-1',
+        }
+        act(() => {
+            runListener?.({ ...eventBase, status: 'running', type: 'run' })
+            runListener?.({
+                ...eventBase, status: 'running', type: 'update',
+                update: { continued: false, conversation, kind: 'agentStarted' },
+            })
+            runListener?.({ ...eventBase, status: 'waitingForInput', type: 'agentState' })
+        })
+        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
+        fireEvent.change(prompt, { target: { value: 'Draft before decisions' } })
+
+        act(() => {
+            runListener?.({
+                ...eventBase, status: 'waitingForInput', type: 'update',
+                update: { kind: 'agentQuestion', questions: [{ header: 'Confirm', id: 'confirm', question: 'Proceed?' }], requestId: 7 },
+            })
+            runListener?.({
+                ...eventBase, status: 'waitingForInput', type: 'update',
+                update: { approval, kind: 'agentApproval' },
+            })
+        })
+        expect(prompt).not.toHaveAttribute('readonly')
+        expect(prompt).toHaveValue('Draft before decisions')
+        expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled()
+
+        act(() => runListener?.({
+            ...eventBase, status: 'waitingForInput', type: 'update',
+            update: {
+                kind: 'agentQuestionAnswer',
+                userMessage: { content: 'Yes', id: 'answer-1', kind: 'message', role: 'user', timestamp: 'now' },
+            },
+        }))
+        expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled()
+        expect(prompt).toHaveValue('Draft before decisions')
+
+        act(() => runListener?.({
+            ...eventBase, status: 'waitingForInput', type: 'update',
+            update: { kind: 'agentApprovalResolved', requestId: 41 },
+        }))
+        expect(screen.getByRole('button', { name: 'Send' })).toBeEnabled()
+        expect(prompt).toHaveValue('Draft before decisions')
+    })
+
     it('shows response prompts only while scoped run waits and keeps them inside prompt surface', async () => {
         actionRunRegistry.stop()
         let runListener: ((event: ActionRunEvent) => void) | null = null
@@ -1263,6 +1473,38 @@ describe('ActionPopup', () => {
         expect(screen.queryByRole('group', { name: 'Predefined phrases' })).not.toBeInTheDocument()
         act(() => runListener?.({ ...eventBase, status: 'waitingForInput', type: 'run' }))
         expect(await screen.findByRole('group', { name: 'Predefined phrases' })).toBeInTheDocument()
+    })
+
+    it('allows manual input for a persisted waiting conversation and starts its continuation', async () => {
+        const persistedContext: ActionContext = { kind: 'project' }
+        const waitingConversation = agentConversation({actionId: 'respond', cardInternalId: null, cardPath: null, path: 'persisted-waiting.json'})
+        const startAction = vi.fn(async () => 'continued-run')
+        window.md2Actions = {
+            onActionRun: vi.fn(() => vi.fn()),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
+            startAction,
+        } as unknown as typeof window.md2Actions
+        mockCodexAvailable()
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([waitingConversation])
+        vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(waitingConversation)
+        actionService.loadFromFiles([file(agentDefinition('respond', { label: 'Respond', streaming: true }))])
+
+        renderPopup(persistedContext)
+        const conversationPicker = await screen.findByRole('combobox', { name: 'Conversation history' })
+        await waitFor(() => expect(conversationPicker).toBeEnabled())
+        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
+        expect(prompt).not.toHaveAttribute('readonly')
+
+        fireEvent.change(prompt, { target: { value: 'Continue persisted work' } })
+        const sendButton = screen.getByRole('button', { name: 'Send' })
+        expect(sendButton).toBeEnabled()
+        fireEvent.click(sendButton)
+
+        await waitFor(() => expect(startAction).toHaveBeenCalledWith({
+            actionId: 'respond',
+            context: persistedContext,
+            runInput: expect.objectContaining({ continueFrom: 'persisted-waiting.json', prompt: 'Continue persisted work' }),
+        }))
     })
 
     it('does not restore response prompts from mismatched or non-waiting persisted conversations', async () => {

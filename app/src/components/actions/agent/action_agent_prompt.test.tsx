@@ -96,13 +96,25 @@ afterEach(() => {
 })
 
 describe('ActionAgentPrompt', () => {
+    it('stays read-only during prompt preparation and becomes editable when ready', async () => {
+        const promptDraft = new ActionPromptDraft('', true, null)
+        render(<ActionAgentPrompt convertMessage={null} promptDraft={promptDraft} />)
+        const prompt = screen.getByLabelText('Markdown prompt')
+
+        expect(prompt).toHaveAttribute('readonly')
+
+        await act(async () => promptDraft.prepare(async () => 'Prepared prompt'))
+
+        expect(prompt).not.toHaveAttribute('readonly')
+        expect(prompt).toHaveValue('Prepared prompt')
+    })
+
     it('passes card attachment handler to hidden-toolbar prompt editor', () => {
         const promptDraft = new ActionPromptDraft('', false, null)
         render(
             <ActionAgentPrompt
                 attachmentHandler={vi.fn(async () => undefined)}
                 convertMessage={null}
-                disabled={false}
                 promptDraft={promptDraft}
             />,
         )
@@ -116,7 +128,6 @@ describe('ActionAgentPrompt', () => {
         render(
             <ActionAgentPrompt
                 convertMessage={null}
-                disabled={false}
                 promptDraft={promptDraft}
             />,
         )
@@ -137,7 +148,6 @@ describe('ActionAgentPrompt', () => {
         render(
             <ActionAgentPrompt
                 convertMessage={null}
-                disabled={false}
                 promptDraft={promptDraft}
             />,
         )
@@ -164,7 +174,6 @@ describe('ActionAgentPrompt', () => {
         render(
             <ActionAgentPrompt
                 convertMessage={null}
-                disabled={false}
                 onRunShortcut={handleRunShortcut}
                 promptDraft={promptDraft}
             />,
@@ -186,7 +195,6 @@ describe('ActionAgentPrompt', () => {
         render(
             <ActionAgentPrompt
                 convertMessage={null}
-                disabled={false}
                 onRunShortcut={vi.fn()}
                 promptDraft={promptDraft}
             />,
@@ -205,7 +213,6 @@ describe('ActionAgentPrompt', () => {
         render(
             <ActionAgentPrompt
                 convertMessage={null}
-                disabled={false}
                 promptDraft={promptDraft}
             />,
         )
@@ -222,7 +229,6 @@ describe('ActionAgentPrompt', () => {
         render(
             <ActionAgentPrompt
                 convertMessage={null}
-                disabled={false}
                 promptDraft={promptDraft}
             />,
         )
@@ -237,7 +243,6 @@ describe('ActionAgentPrompt', () => {
             <ActionAgentPrompt
                 bottomRow={<div>Controls</div>}
                 convertMessage={null}
-                disabled={false}
                 promptDraft={promptDraft}
                 responsePrompts={<div>Predefined phrases</div>}
             />,
@@ -252,7 +257,7 @@ describe('ActionAgentPrompt', () => {
     it('disables pointer and keyboard resize while the prompt is empty', () => {
         window.localStorage.setItem('md2.actionPromptHeight', '160')
         const promptDraft = new ActionPromptDraft('', false, null)
-        render(<ActionAgentPrompt convertMessage={null} disabled={false} promptDraft={promptDraft} />)
+        render(<ActionAgentPrompt convertMessage={null} promptDraft={promptDraft} />)
         const separator = screen.getByRole('separator', { name: 'Resize prompt' })
 
         expect(separator).toHaveAttribute('aria-disabled', 'true')
@@ -270,7 +275,7 @@ describe('ActionAgentPrompt', () => {
         window.localStorage.setItem('md2.actionPromptHeight', '188')
         mockAvailablePromptHeight(400)
         const promptDraft = new ActionPromptDraft('', false, null)
-        render(<ActionAgentPrompt convertMessage={null} disabled={false} promptDraft={promptDraft} />)
+        render(<ActionAgentPrompt convertMessage={null} promptDraft={promptDraft} />)
         const prompt = screen.getByLabelText('Markdown prompt')
         const separator = screen.getByRole('separator', { name: 'Resize prompt' })
 
@@ -291,7 +296,7 @@ describe('ActionAgentPrompt', () => {
         window.localStorage.setItem('md2.actionPromptHeight', '220')
         mockAvailablePromptHeight(250)
         const promptDraft = new ActionPromptDraft('', false, null)
-        render(<ActionAgentPrompt convertMessage={null} disabled={false} promptDraft={promptDraft} />)
+        render(<ActionAgentPrompt convertMessage={null} promptDraft={promptDraft} />)
 
         fireEvent.change(screen.getByLabelText('Markdown prompt'), { target: { value: 'Plan' } })
 
@@ -303,7 +308,7 @@ describe('ActionAgentPrompt', () => {
         window.localStorage.setItem('md2.actionPromptHeight', '160')
         mockAvailablePromptHeight(400)
         const promptDraft = new ActionPromptDraft('Plan', false, null)
-        render(<ActionAgentPrompt convertMessage={null} disabled={false} promptDraft={promptDraft} />)
+        render(<ActionAgentPrompt convertMessage={null} promptDraft={promptDraft} />)
         const separator = screen.getByRole('separator', { name: 'Resize prompt' })
 
         fireEvent.pointerDown(separator, { clientY: 200, pointerId: 2 })

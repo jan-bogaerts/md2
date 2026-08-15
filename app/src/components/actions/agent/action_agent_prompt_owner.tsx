@@ -135,7 +135,6 @@ export function ActionAgentPromptOwner(props: ActionAgentPromptOwnerProps) {
                 />
             ) : undefined}
             convertMessage={inputSnapshot.convertMessage}
-            disabled={false}
             onRunShortcut={handleRunShortcut}
             promptDraft={promptDraft}
             responsePrompts={(
