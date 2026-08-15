@@ -9,5 +9,4 @@ affects:
 agents:
 policy:
 ---
-
-The clip icon has been placed horribly b
+The clip icon has been placed horribly bad on the action popup
