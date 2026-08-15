@@ -63,7 +63,7 @@ const card: Card = {
     content: '',
     header: {
         affects: [], after: null, agentLogReferences: [], author: null, id: 'F-010', internalId: 'f-010', owner: null,
-        policy: {}, status: 'design', title: 'Feature',
+        policy: {}, references: [], status: 'design', title: 'Feature',
     },
     hasFrontmatter:true,
     isActive: true,

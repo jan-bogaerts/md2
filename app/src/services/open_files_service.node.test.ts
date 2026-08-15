@@ -12,7 +12,7 @@ function card(internalId: string, path = `design/${internalId}.md`, content = `#
         agentConversationErrors: [], agentConversations: [], content,
         header: {
             affects: [], after: null, agentLogReferences: [], author: null, id: internalId.toUpperCase(), internalId,
-            owner: null, policy: {}, status: 'todo', title: internalId, worktree: null,
+            owner: null, policy: {}, references: [], status: 'todo', title: internalId, worktree: null,
         },
         hasFrontmatter:true,
         isActive: true,

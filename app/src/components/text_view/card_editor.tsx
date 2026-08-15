@@ -7,6 +7,7 @@ import { MarkdownDocumentHistoryStore } from '../editor/markdown_document_histor
 import { MarkdownEditor } from '../editor/markdown_editor'
 import { ListEditorToolbarControls } from './list_editor_toolbar_controls'
 import { useProjectReadOnly } from '../hooks/use_project_read_only'
+import { attachFilesToCardMarkdown } from '../../services/attachments/attachment_workflow'
 
 interface CardEditorProps {
     cardTypes: CardTypeConfig[]
@@ -22,6 +23,12 @@ export const CardEditor = memo(function CardEditor(props: CardEditorProps) {
         (file: File, insertMarkdown: (markdown: string) => void) => cardMarkdownDataSource.pasteImage('list-card', file, insertMarkdown),
         [],
     )
+    const handleAttachments = useCallback((files: File[], insertMarkdown: (markdown: string) => void) => {
+        const card = cardMarkdownDataSource.getActiveCard('list-card')
+        if (!card) throw new Error('Cannot attach files without an active list card')
+
+        return attachFilesToCardMarkdown(card.path, files, insertMarkdown)
+    }, [])
 
     useEffect(() => {
         const handleCardDocumentClosed = (event: Event) => {
@@ -50,6 +57,7 @@ export const CardEditor = memo(function CardEditor(props: CardEditorProps) {
         <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0 }}>
             <ListCardCommitDiffPanel>
                 <MarkdownEditor
+                    attachmentHandler={handleAttachments}
                     binding="list-card"
                     dataSource={cardMarkdownDataSource}
                     historyStore={historyStore}

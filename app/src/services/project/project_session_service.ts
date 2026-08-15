@@ -163,6 +163,8 @@ async function resolveRestoredProject(storageType: StorageType, storage: Storage
 
 export class ProjectSessionService extends EventTarget {
     private cardCreationState: CardCreationState = { isCreatingCard: false }
+    private readonly newCardAttachmentPaths = new Set<string>()
+    private readonly newCardAttachmentSaves = new Set<Promise<unknown>>()
     private readonly newCardImageSaves = new Set<Promise<void>>()
     private readonly newCardImagePaths = new Set<string>()
     private readonly projectAccess = projectAccessService
@@ -193,7 +195,14 @@ export class ProjectSessionService extends EventTarget {
     }
 
     hasNewCardDraftImages() {
-        return this.newCardImagePaths.size > 0 || this.newCardImageSaves.size > 0
+        return this.hasNewCardDraftAssets()
+    }
+
+    hasNewCardDraftAssets() {
+        return this.newCardAttachmentPaths.size > 0
+            || this.newCardAttachmentSaves.size > 0
+            || this.newCardImagePaths.size > 0
+            || this.newCardImageSaves.size > 0
     }
 
     async pasteNewCardImage(file: File, insertMarkdown: (markdown: string) => void) {
@@ -207,18 +216,54 @@ export class ProjectSessionService extends EventTarget {
     }
 
     async waitForNewCardImageSaves() {
-        while (this.newCardImageSaves.size > 0) {
-            await Promise.allSettled([...this.newCardImageSaves])
+        await this.waitForNewCardAssetSaves()
+    }
+
+    async copyNewCardAttachments(files: File[]) {
+        const operation = dataService.cards.copyAttachmentsForNewCard(files)
+        this.newCardAttachmentSaves.add(operation)
+        try {
+            const attachments = await operation
+            attachments.forEach(({ path }) => this.newCardAttachmentPaths.add(path))
+
+            return attachments
+        } finally {
+            this.newCardAttachmentSaves.delete(operation)
+        }
+    }
+
+    async deleteNewCardDraftAttachments(paths: string[]) {
+        for (const path of paths) {
+            await dataService.cards.deleteCopiedAttachments([path])
+            this.newCardAttachmentPaths.delete(path)
+        }
+    }
+
+    async waitForNewCardAssetSaves() {
+        while (this.newCardAttachmentSaves.size > 0 || this.newCardImageSaves.size > 0) {
+            await Promise.allSettled([...this.newCardAttachmentSaves, ...this.newCardImageSaves])
         }
     }
 
     async discardNewCardDraftImages() {
-        await this.waitForNewCardImageSaves()
+        await this.discardNewCardDraftAssets()
+    }
+
+    async discardNewCardDraftAssets() {
+        await this.waitForNewCardAssetSaves()
         let deletionError: unknown = null
         for (const path of [...this.newCardImagePaths]) {
             try {
                 await dataService.cards.deletePastedImage(path)
                 this.newCardImagePaths.delete(path)
+            } catch (error) {
+                deletionError ??= error
+            }
+        }
+        for (const path of [...this.newCardAttachmentPaths]) {
+            try {
+                await dataService.cards.deleteCopiedAttachments([path])
+                this.newCardAttachmentPaths.delete(path)
             } catch (error) {
                 deletionError ??= error
             }
@@ -426,6 +471,7 @@ export class ProjectSessionService extends EventTarget {
         try {
             await this.waitForNewCardImageSaves()
             await dataService.cards.createCard(draft, initialState)
+            this.newCardAttachmentPaths.clear()
             this.newCardImagePaths.clear()
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Card creation failed'

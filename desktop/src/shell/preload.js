@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 const CONFIG_SET_DESKTOP_CHANNEL = 'md2-config:set-desktop';
 const LIFECYCLE_FLUSH_RESULT_CHANNEL = 'md2-lifecycle:flush-pending-commits-result';
@@ -239,6 +239,7 @@ if (!isAllowedOrigin()) {
         listImageFiles: (settings) => ipcRenderer.invoke(REMARKABLE_LIST_IMAGE_FILES_CHANNEL, settings),
         testConnection: (settings) => ipcRenderer.invoke(REMARKABLE_TEST_CONNECTION_CHANNEL, settings),
     };
+    const fileBridge = { getPathForFile: (file) => webUtils.getPathForFile(file) };
     const dataBridge = {
         ...createBridge(DATA_METHODS),
         onMergeConflictSessionChanged: (callback) => subscribeBridge('onMergeConflictSessionChanged', [], callback),
@@ -276,6 +277,7 @@ if (!isAllowedOrigin()) {
     contextBridge.exposeInMainWorld('md2Config', configBridge);
     contextBridge.exposeInMainWorld('md2RemoteControl', remoteControlBridge);
     contextBridge.exposeInMainWorld('md2Remarkable', remarkableBridge);
+    contextBridge.exposeInMainWorld('md2Files', fileBridge);
     contextBridge.exposeInMainWorld('md2Data', dataBridge);
     contextBridge.exposeInMainWorld('md2Actions', actionBridge);
     contextBridge.exposeInMainWorld('md2CodexRuntime', codexRuntimeBridge);

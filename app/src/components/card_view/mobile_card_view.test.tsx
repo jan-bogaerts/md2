@@ -25,7 +25,7 @@ function card(id: string, title: string, status: string): Card {
         content: `# ${title}\n\nBody of ${id}`,
         header: {
             affects: [], after: null, agentLogReferences: [], author: null, id, internalId: id.toLowerCase(), owner: null,
-            policy: {}, status, title, worktree: null, worktreeError: null, worktreeValue: null,
+            policy: {}, references: [], status, title, worktree: null, worktreeError: null, worktreeValue: null,
         },
         hasFrontmatter:true,
         isActive: true,

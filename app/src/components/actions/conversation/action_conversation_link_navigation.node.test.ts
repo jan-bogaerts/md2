@@ -132,7 +132,7 @@ describe('action conversation link navigation', () => {
         const state = dataService.getState()
         const card: Card = {
             agentConversationErrors: [], agentConversations: [], content: '', hasFrontmatter: true, isActive: true, path: 'design/F-1.md',
-            header: { affects: [], after: null, agentLogReferences: [], author: null, id: 'F-1', internalId: 'card-1', owner: null, policy: {}, status: 'design', title: 'Card', worktree: 1 },
+            header: { affects: [], after: null, agentLogReferences: [], author: null, id: 'F-1', internalId: 'card-1', owner: null, policy: {}, references: [], status: 'design', title: 'Card', worktree: 1 },
         }
         if (!state.snapshot) throw new Error('Missing test snapshot')
         state.snapshot.activeCards.push(card)

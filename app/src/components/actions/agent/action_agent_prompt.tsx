@@ -27,6 +27,7 @@ function persistPromptHeight(height: number) {
 }
 
 interface ActionAgentPromptProps {
+    attachmentHandler?: (files: File[], insertMarkdown: (markdown: string) => void) => Promise<void>
     bottomRow?: ReactNode
     convertMessage: string | null
     disabled: boolean
@@ -37,7 +38,7 @@ interface ActionAgentPromptProps {
 
 /** Resizable prompt editor shown below an agent conversation. */
 export function ActionAgentPrompt(props: ActionAgentPromptProps) {
-    const {bottomRow, convertMessage, disabled, onRunShortcut, promptDraft, responsePrompts} = props
+    const {attachmentHandler, bottomRow, convertMessage, disabled, onRunShortcut, promptDraft, responsePrompts} = props
     const promptEditorRef = useRef<MarkdownEditorHandle>(null)
     const promptHeightStartRef = useRef(0)
     const pointerStartYRef = useRef(0)
@@ -202,6 +203,7 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
                     }}
                 >
                     <MarkdownEditor
+                        attachmentHandler={attachmentHandler}
                         flushOnBlur
                         hideToolbar
                         localTextSearch={false}

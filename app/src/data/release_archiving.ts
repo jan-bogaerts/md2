@@ -39,6 +39,30 @@ function referencedCardAssets(file: MarkdownFile) {
     return assets
 }
 
+function isAbsoluteAssetReference(reference: string) {
+    const normalizedReference = normalizePath(reference)
+
+    return normalizedReference.startsWith('/')
+        || /^[a-z]:\//iu.test(normalizedReference)
+        || /^[a-z][a-z0-9+.-]*:/iu.test(normalizedReference)
+}
+
+function referencedCopiedAssets(references: string[]) {
+    return references
+        .filter((reference) => reference.length > 0 && !isAbsoluteAssetReference(reference))
+        .map(normalizePath)
+}
+
+function parsedCardReferences(file: MarkdownFile) {
+    const references = markdownParsingService.parse(file.content).header.references
+
+    return Array.isArray(references) ? referencedCopiedAssets(references) : []
+}
+
+function allReferencedCardAssets(file: MarkdownFile, references = parsedCardReferences(file)) {
+    return [...referencedCardAssets(file), ...references]
+}
+
 function targetPathForSource(targetFolder: string, sourcePath: string) {
     const fileName = sourcePath.split('/').at(-1)
     if (!fileName) throw new Error(`Cannot archive file without a file name: ${sourcePath}`)
@@ -111,7 +135,7 @@ export function findArchiveAssetPaths(files: MarkdownFile[], archivedCards: Card
     const nonArchivedAssetPaths = new Set(
         files
             .filter((file) => isMarkdownFile(file.path) && !archivedSourcePaths.has(normalizePath(file.path)))
-            .flatMap(referencedCardAssets)
+            .flatMap((file) => allReferencedCardAssets(file))
             .map(normalizePath),
     )
     const assetPaths: string[] = []
@@ -121,7 +145,8 @@ export function findArchiveAssetPaths(files: MarkdownFile[], archivedCards: Card
         const file = files.find((candidate) => normalizePath(candidate.path) === normalizePath(card.path))
         if (!file) continue
 
-        for (const assetPath of referencedCardAssets(file).map(normalizePath)) {
+        const cardAssetPaths = allReferencedCardAssets(file, referencedCopiedAssets(card.header.references))
+        for (const assetPath of cardAssetPaths.map(normalizePath)) {
             if (nonArchivedAssetPaths.has(assetPath) || plannedAssetPaths.has(assetPath)) continue
 
             plannedAssetPaths.add(assetPath)
@@ -219,6 +244,7 @@ export function buildCardArchiveMoves(
     ])
     const filesByPath = new Map(files.map((file) => [normalizePath(file.path), file]))
     const archiveAssetPaths = new Set(findArchiveAssetPaths(files, archivedCards))
+    const archivedAssetTargets = new Map<string, string>()
     const moveTargetPaths = new Set<string>()
     const moves: MoveFile[] = []
 
@@ -233,7 +259,8 @@ export function buildCardArchiveMoves(
         moveTargetPaths.add(toPath)
         moves.push(createMove(file, card.path, toPath))
 
-        for (const assetPath of referencedCardAssets(file).map(normalizePath)) {
+        const cardAssetPaths = allReferencedCardAssets(file, referencedCopiedAssets(card.header.references))
+        for (const assetPath of cardAssetPaths.map(normalizePath)) {
             if (!archiveAssetPaths.has(assetPath)) continue
 
             const assetTargetPath = targetPathForSource(targetFolder, assetPath)
@@ -246,8 +273,22 @@ export function buildCardArchiveMoves(
 
             moveTargetPaths.add(assetTargetPath)
             moves.push(createMove(assetFile, assetPath, assetTargetPath, 'base64'))
+            archivedAssetTargets.set(assetPath, assetTargetPath)
             archiveAssetPaths.delete(assetPath)
         }
+    }
+
+    for (const card of archivedCards) {
+        const cardMove = moves.find((move) => normalizePath(move.fromPath) === normalizePath(card.path))
+        if (!cardMove) continue
+
+        const rewrittenReferences = card.header.references.map((reference) => (
+            isAbsoluteAssetReference(reference)
+                ? reference
+                : archivedAssetTargets.get(normalizePath(reference)) ?? reference
+        ))
+        const hasRewrittenReference = rewrittenReferences.some((reference, index) => reference !== card.header.references[index])
+        if (hasRewrittenReference) cardMove.content = markdownParsingService.setReferences(cardMove.content, rewrittenReferences)
     }
 
     return moves

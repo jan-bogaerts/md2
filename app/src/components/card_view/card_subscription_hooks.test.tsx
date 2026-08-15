@@ -30,7 +30,7 @@ function card(path: string, status: string, title: string): Card {
         content: `# ${title}`,
         header: {
             affects: [], after: null, agentLogReferences: [], author: null, id: path, internalId: path,
-            owner: null, policy: {}, status, title,
+            owner: null, policy: {}, references: [], status, title,
         },
         hasFrontmatter:true,
         isActive: true,

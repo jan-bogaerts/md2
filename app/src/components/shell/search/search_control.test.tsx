@@ -19,6 +19,7 @@ function makeHeader(overrides: Partial<CardHeader> = {}): CardHeader {
         internalId: null,
         owner: null,
         policy: {},
+        references: [],
         status: null,
         title: 'Untitled',
         ...overrides,

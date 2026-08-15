@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { MarkdownFile, Card } from './data_types'
 import { buildReleaseMoves } from './release_archiving'
 
-function card(path: string, agentLogReferences: string[] = []): Card {
+function card(path: string, agentLogReferences: string[] = [], references: string[] = []): Card {
     return {
         agentConversationErrors: [],
         agentConversations: [],
@@ -16,6 +16,7 @@ function card(path: string, agentLogReferences: string[] = []): Card {
             internalId: 'card-1',
             owner: null,
             policy: {},
+            references,
             status: 'active',
             title: path,
         },
@@ -82,6 +83,88 @@ describe('buildReleaseMoves', () => {
         expect(moves).toEqual([
             { content: '# Archived\n\n![note](note.png)', fromPath: 'design/F-1-card.md', sha: undefined, toPath: 'design/releases/v1/F-1-card.md' },
         ])
+    })
+
+    it('moves arbitrary copied references and rewrites only their frontmatter paths', () => {
+        const content = [
+            '---',
+            'references:',
+            '  - design/files/manual.pdf',
+            '  - C:\\notes\\local.txt',
+            '  - /home/user/local.txt',
+            '---',
+            '# Card',
+        ].join('\n')
+        const source = card('design/F-1-card.md', [], [
+            'design/files/manual.pdf',
+            'C:\\notes\\local.txt',
+            '/home/user/local.txt',
+        ])
+        const files: MarkdownFile[] = [
+            { content, path: source.path },
+            { content: 'AAECAw==', encoding: 'base64', path: 'design/files/manual.pdf' },
+        ]
+
+        const moves = buildReleaseMoves(files, [source], 'design', 'design/releases', 'v1')
+
+        expect(moves).toEqual([
+            {
+                content: content.replace('design/files/manual.pdf', 'design/releases/v1/manual.pdf'),
+                fromPath: source.path,
+                sha: undefined,
+                toPath: 'design/releases/v1/F-1-card.md',
+            },
+            {
+                content: 'AAECAw==',
+                encoding: 'base64',
+                fromPath: 'design/files/manual.pdf',
+                sha: undefined,
+                toPath: 'design/releases/v1/manual.pdf',
+            },
+        ])
+    })
+
+    it('keeps copied references in place when a non-moved card still references the asset', () => {
+        const archivedContent = [
+            '---',
+            'references:',
+            '  - design/shared/data.bin',
+            '---',
+            '# Archived',
+        ].join('\n')
+        const remainingContent = [
+            '---',
+            'references:',
+            '  - design/shared/data.bin',
+            '---',
+            '# Remaining',
+        ].join('\n')
+        const source = card('design/F-1-card.md', [], ['design/shared/data.bin'])
+        const files: MarkdownFile[] = [
+            { content: archivedContent, path: source.path },
+            { content: remainingContent, path: 'design/F-2-card.md' },
+            { content: 'AAECAw==', encoding: 'base64', path: 'design/shared/data.bin' },
+        ]
+
+        const moves = buildReleaseMoves(files, [source], 'design', 'design/releases', 'v1')
+
+        expect(moves).toEqual([{
+            content: archivedContent,
+            fromPath: source.path,
+            sha: undefined,
+            toPath: 'design/releases/v1/F-1-card.md',
+        }])
+    })
+
+    it('does not treat a non-image Markdown image link as an archive asset', () => {
+        const files: MarkdownFile[] = [
+            { content: '# Card\n\n![document](manual.pdf)', path: 'design/F-1-card.md' },
+            { content: 'AAECAw==', encoding: 'base64', path: 'design/manual.pdf' },
+        ]
+
+        const moves = buildReleaseMoves(files, [card('design/F-1-card.md')], 'design', 'design/releases', 'v1')
+
+        expect(moves.map(({ fromPath }) => fromPath)).toEqual(['design/F-1-card.md'])
     })
 
     it('rejects release folders that already contain an asset target', () => {

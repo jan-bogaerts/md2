@@ -1,5 +1,6 @@
 const { buildResumeAgentCommand, resolveAgentCommand } = require('../agent/agent_profiles.mjs');
 const { normalizeConversationContext } = require('../agent/agent_transcript');
+const { appendCurrentCardReferences } = require('./action_card_references');
 const { resolveAgentPrompt, resolvePlaceholders } = require('./action_text');
 
 const CONTINUE_INPUT = 'continue';
@@ -56,7 +57,7 @@ class ActionAgentExecutor {
         const providerSession = sourceConversation?.providerSessions
             ?.find(({ agent }) => agent === resolvedAgent.agent) ?? null;
         const hasPromptOverride = Object.hasOwn(input.runInput, 'prompt');
-        const prompt = hasPromptOverride
+        const basePrompt = hasPromptOverride
             ? resolvePlaceholders(
                 input.runInput.prompt,
                 input.context,
@@ -79,6 +80,12 @@ class ActionAgentExecutor {
                     input.activeCardsFolder,
                     input.runInput.extraPrompt,
                 );
+        const prompt = await appendCurrentCardReferences(
+            basePrompt,
+            input.context,
+            input.primaryProject,
+            this.localGitService,
+        );
         const command = executionCommand(resolvedAgent, providerSession, streaming);
         const contextInput = sourceConversation
             ? normalizeConversationContext(sourceConversation, providerSession?.synchronizedThroughMessageId ?? null)

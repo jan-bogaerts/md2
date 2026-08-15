@@ -14,6 +14,8 @@ import { dataService } from '../../../../services/data/data_service'
 import { remoteConnectionService } from '../../../../services/data/remote_connection_service'
 import { RemoteControlConnectionError, RemoteControlStorageService } from '../../../../services/data/remote_control_storage_service'
 import { worktreeService } from '../../../../services/project/worktree_service'
+import { projectPersistenceService } from '../../../../services/project/project_persistence_service'
+import { openFilesService } from '../../../../services/open_files_service'
 import { AppThemeProvider } from '../../../../theme/theme_provider'
 import { ActionPopup, CARD_RUN_POPUP_SIZE_STORAGE_KEY, PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY } from './action_popup'
 import { useMarkdownTypeaheadStackPosition } from '../../../editor/markdown_typeahead_layer_context'
@@ -235,6 +237,7 @@ function renderPopup(contextOverride: ActionContext = context, onClose = vi.fn()
 
 describe('ActionPopup', () => {
     beforeEach(async () => {
+        projectPersistenceService.init({ actionService, dataService, openFilesService })
         remoteConnectionService.disconnect()
         configService.init({ desktopConfig: { agent: 'codex', agentProfiles: BUILTIN_AGENT_PROFILES, model: '' } })
         setMobileBreakpoint(false)
@@ -326,6 +329,7 @@ describe('ActionPopup', () => {
         expect(bottomRow).toHaveAttribute('data-embedded', 'true')
         expect(within(bottomRow).getByRole('group', { name: 'Agent settings' })).toBeInTheDocument()
         expect(editorRegion).toHaveStyle({ overflowY: 'auto' })
+        expect(within(promptSurface).getByRole('button', { name: 'Attach files' })).toBeInTheDocument()
         expect(editorRegion.contains(bottomRow)).toBe(false)
         expect(screen.getAllByTestId('action-popup-bottom-row')).toHaveLength(1)
     })

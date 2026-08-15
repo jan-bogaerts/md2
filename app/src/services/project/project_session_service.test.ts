@@ -435,10 +435,10 @@ describe('ProjectSessionService storage activation', () => {
         expect(bridge.commit).toHaveBeenCalledWith({
             branch: 'main',
             files: expect.arrayContaining([
-                expect.objectContaining({ path: 'design/actions/complete-card.json' }),
+                expect.objectContaining({ path: 'design/actions/complete.json' }),
                 expect.objectContaining({ path: 'design/actions/fix-bug.json' }),
                 expect.objectContaining({ path: 'design/actions/implement.json' }),
-                expect.objectContaining({ path: 'design/actions/prep-to-implement.json' }),
+                expect.objectContaining({ path: 'design/actions/plan.json' }),
             ]),
             message: 'Add default MD² actions',
         })
@@ -502,5 +502,40 @@ describe('ProjectSessionService storage activation', () => {
         await expect(service.discardNewCardDraftImages()).rejects.toBe(deletionError)
 
         expect(service.hasNewCardDraftImages()).toBe(true)
+    })
+
+    it('waits for copied draft attachments and removes them during cancellation', async () => {
+        const savedAttachments = createDeferred<Array<{ fileName: string; path: string }>>()
+        vi.spyOn(dataService.cards, 'copyAttachmentsForNewCard').mockReturnValue(savedAttachments.promise)
+        const deleteAttachments = vi.spyOn(dataService.cards, 'deleteCopiedAttachments').mockResolvedValue()
+        const service = new ProjectSessionService()
+
+        const copy = service.copyNewCardAttachments([{ name: 'report.pdf' } as File])
+        const discard = service.discardNewCardDraftAssets()
+        expect(service.hasNewCardDraftAssets()).toBe(true)
+        expect(deleteAttachments).not.toHaveBeenCalled()
+
+        savedAttachments.resolve([{ fileName: 'report.pdf', path: 'design/report.pdf' }])
+        await copy
+        await discard
+
+        expect(deleteAttachments).toHaveBeenCalledWith(['design/report.pdf'])
+        expect(service.hasNewCardDraftAssets()).toBe(false)
+    })
+
+    it('transfers copied draft attachment ownership only after card creation succeeds', async () => {
+        vi.spyOn(dataService.cards, 'copyAttachmentsForNewCard').mockResolvedValue([
+            { fileName: 'report.pdf', path: 'design/report.pdf' },
+        ])
+        vi.spyOn(dataService.cards, 'createCard').mockResolvedValue({ content: '', path: 'design/F-1-card.md' })
+        const deleteAttachments = vi.spyOn(dataService.cards, 'deleteCopiedAttachments').mockResolvedValue()
+        const service = new ProjectSessionService()
+        await service.copyNewCardAttachments([{ name: 'report.pdf' } as File])
+
+        await service.createCard({ body: '[report](<report.pdf>)', title: 'Card', type: 'feature' }, 'new')
+        await service.discardNewCardDraftAssets()
+
+        expect(deleteAttachments).not.toHaveBeenCalled()
+        expect(service.hasNewCardDraftAssets()).toBe(false)
     })
 })

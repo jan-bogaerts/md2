@@ -55,6 +55,7 @@ function createRunner(actionFiles = [actionFile('main')], overrides = {}) {
         }),
         loadActionFiles: vi.fn(async () => actionFiles),
         loadAgentConversation: vi.fn(),
+        loadFile: vi.fn(async () => ({ content: '---\ntitle: Card\n---\n# Card', path: context.file })),
         loadProjectConfig: vi.fn(async () => ({ states: [{ state: 'design' }, { state: 'ready' }] })),
     };
     const commandRunner = vi.fn(async (_project, command) => ({ command, exitCode: 0, stderr: '', stdout: command }));
@@ -275,6 +276,49 @@ describe('ActionRunnerService', () => {
         expect(actionWorktreeRunService.execute).not.toHaveBeenCalled();
         expect(agentRunnerService.start).not.toHaveBeenCalled();
         expect(localGitService.appendAndCommitActionActivity).not.toHaveBeenCalled();
+    });
+
+    it('prepares card prompt with references read from current persisted card', async () => {
+        const files = [actionFile('main', { command: undefined, prompt: 'Review card', type: 'agent' })];
+        const { localGitService, runner } = createRunner(files);
+        localGitService.loadFile.mockResolvedValueOnce({
+            content: '---\nreferences:\n  - assets/current.pdf\n  - C:\\outside\\current.txt\n---\nnot prompt content',
+            path: context.file,
+        });
+
+        await expect(runner.prepareActionPrompt({ actionId: 'main', context })).resolves.toEqual({ prompt: 'Review card\n\nCard references:\n- assets/current.pdf\n- C:\\outside\\current.txt' });
+        expect(localGitService.loadFile).toHaveBeenCalledWith(project, context.file);
+    });
+
+    it('adds current card references to linked agent phases but not command phases', async () => {
+        const files = [
+            actionFile('main', { onAfter: ['after-agent'], onBefore: ['before-agent'] }),
+            actionFile('before-agent', { command: undefined, prompt: 'Before', type: 'agent' }),
+            actionFile('after-agent', { command: undefined, prompt: 'After', type: 'agent' }),
+        ];
+        const { agentRunnerService, commandRunner, localGitService, runner } = createRunner(files);
+        agentRunnerService.start.mockImplementation(async (_project, request, _onEvent, onComplete) => {
+            onComplete(0, {
+                changedPaths: [], conversation: { id: request.actionId }, missingSession: false,
+                reference: `${request.actionId}.json`, stderr: '', stdout: request.actionId, turnStarted: true,
+            });
+
+            return { runId: request.actionId };
+        });
+        localGitService.loadFile.mockResolvedValue({
+            content: '---\nreferences:\n  - assets/reference.bin\n---\ncontents omitted',
+            path: context.file,
+        });
+
+        await expect(runToCompletion(runner)).resolves.toMatchObject({ status: 'completed' });
+
+        expect(agentRunnerService.start.mock.calls.map((call) => call[1].prompt)).toEqual([
+            'Before\n\nCard references:\n- assets/reference.bin',
+            'After\n\nCard references:\n- assets/reference.bin',
+        ]);
+        expect(localGitService.loadFile).toHaveBeenCalledTimes(2);
+        expect(commandRunner).toHaveBeenCalledOnce();
+        expect(commandRunner.mock.calls[0][1]).toBe('main');
     });
 
     it('prepares the current prompt after the persisted action file is renamed', async () => {

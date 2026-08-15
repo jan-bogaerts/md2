@@ -183,6 +183,61 @@ describe('ReleaseOperations', () => {
         })
     })
 
+    it('loads arbitrary copied card references and rewrites the released reference path', async () => {
+        configService.init()
+        const cardContent = [
+            '---',
+            'id: F-1',
+            'internalId: root-card',
+            'title: Root',
+            'status: done',
+            'references:',
+            '  - design/manual.pdf',
+            '---',
+            '',
+            '# Root',
+        ].join('\n')
+        const releaseFiles: MarkdownFile[] = [{ content: cardContent, path: 'design/F-1-root.md' }]
+        const storage = createStorage({
+            listRepositoryFiles: vi.fn(async () => ['design/F-1-root.md', 'design/manual.pdf']),
+            loadProject: vi.fn(async () => ({ files: releaseFiles, workingFolder: 'design' })),
+            loadProjectAsset: vi.fn(async () => ({
+                content: 'AAECAw==',
+                contentType: 'application/pdf',
+                encoding: 'base64' as const,
+                path: 'design/manual.pdf',
+            })),
+            loadProjectConfig: vi.fn(async () => ({ projectFolder: '', states: RELEASE_STATES, workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: releaseFiles, workingFolder: 'design' })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await service.releases.completeRelease('v1', [])
+
+        expect(storage.loadProjectAsset).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, 'design/manual.pdf')
+        expect(storage.moveFiles).toHaveBeenCalledWith({
+            branch: 'main',
+            message: 'Complete release v1',
+            moves: [
+                {
+                    content: cardContent.replace('design/manual.pdf', 'history/v1/manual.pdf'),
+                    fromPath: 'design/F-1-root.md',
+                    sha: undefined,
+                    toPath: 'history/v1/F-1-root.md',
+                },
+                {
+                    content: 'AAECAw==',
+                    encoding: 'base64',
+                    fromPath: 'design/manual.pdf',
+                    sha: undefined,
+                    toPath: 'history/v1/manual.pdf',
+                },
+            ],
+        })
+    })
+
     it('loads and moves card activity beside the released card in the same batch', async () => {
         configService.init()
         const activityPath = 'activity/card__root-card.json'

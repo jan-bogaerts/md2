@@ -4,6 +4,7 @@ import type { CardDraft, CardType, MarkdownFile, Card } from '../../data/data_ty
 import type { OpenDocumentSaveReference } from '../open_files_service'
 import { telemetryService } from '../telemetry/telemetry_service'
 import { CardArchiveOperations } from './card_archive_operations'
+import { CardAttachmentOperations } from './card_attachment_operations'
 import { CardInternalIdOperations } from './card_internal_id_operations'
 import { CardImageOperations } from './card_image_operations'
 import {
@@ -20,6 +21,7 @@ import {
     setCardAgentLogReferences,
     setCardBody,
     setCardHeaderFields,
+    setCardReferences,
     setCardWorktree,
     setCardWorktreeAssignment,
     toggleCardPolicy,
@@ -51,6 +53,7 @@ function importedSentryIdentities(cards: Card[]) {
 export class CardOperations {
     private readonly context: CardOperationContext
     private readonly archives: CardArchiveOperations
+    private readonly attachments: CardAttachmentOperations
     private readonly internalIds: CardInternalIdOperations
     private readonly images: CardImageOperations
     private readonly projectFiles: ProjectFileOperations
@@ -64,6 +67,7 @@ export class CardOperations {
         this.context = new CardOperationContext(dependencies)
         this.triggerStateActions = triggerStateActions
         this.archives = new CardArchiveOperations(this.context, triggerStateActions)
+        this.attachments = new CardAttachmentOperations(this.context)
         this.renames = new CardRenameOperations(this.context)
         this.internalIds = new CardInternalIdOperations(this.context, () => this.renames.reset())
         this.images = new CardImageOperations(this.context)
@@ -168,6 +172,18 @@ export class CardOperations {
         return this.images.delete(path)
     }
 
+    copyAttachmentsForCard(cardPath: string, files: File[]) {
+        return this.attachments.copyForCard(cardPath, files)
+    }
+
+    copyAttachmentsForNewCard(files: File[]) {
+        return this.attachments.copyForNewCard(files)
+    }
+
+    deleteCopiedAttachments(paths: string[]) {
+        return this.attachments.delete(paths)
+    }
+
     createFolder(parentDirectory: string, name: string) {
         return this.projectFiles.createFolder(parentDirectory, name)
     }
@@ -182,6 +198,24 @@ export class CardOperations {
 
     updateCardAffects(path: string, affects: string[]): Card {
         return this.context.saveCardChange(path, (card) => setCardAffects(card, affects))
+    }
+
+    addCardReferences(path: string, references: string[]) {
+        const card = this.context.dependencies.requireCard(path)
+        const nextReferences = [...new Set([...card.header.references, ...references])]
+        if (nextReferences.length === card.header.references.length) return card
+
+        return this.context.saveCardChange(path, (currentCard) => setCardReferences(currentCard, nextReferences))
+    }
+
+    setCardReferences(path: string, references: string[]) {
+        const card = this.context.dependencies.requireCard(path)
+        const nextReferences = [...new Set(references)]
+        const unchanged = card.header.references.length === nextReferences.length
+            && card.header.references.every((reference, index) => reference === nextReferences[index])
+        if (unchanged) return card
+
+        return this.context.saveCardChange(path, (currentCard) => setCardReferences(currentCard, nextReferences))
     }
 
     updateCardHeaderFields(path: string, updates: Record<string, string>, saveReference?: OpenDocumentSaveReference) {

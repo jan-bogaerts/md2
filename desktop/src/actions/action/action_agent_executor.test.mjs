@@ -32,7 +32,10 @@ function createExecutor(overrides = {}) {
         }),
         stop: vi.fn(),
     };
-    const localGitService = { loadAgentConversation: vi.fn(async () => conversation()) };
+    const localGitService = {
+        loadAgentConversation: vi.fn(async () => conversation()),
+        loadFile: vi.fn(async () => ({ content: '---\ntitle: Card\n---\n# Card', path: cardContext.file })),
+    };
     const executor = new ActionAgentExecutor({
         agentConfigProvider: () => ({ agent: 'codex', agentProfiles: [], model: '' }),
         agentRunnerService,
@@ -80,6 +83,21 @@ describe('ActionAgentExecutor', () => {
         await expect(executor.execute(input)).resolves.toMatchObject({agent: 'codex', conversationId: 'run-conversation', exitCode: 0, model: 'gpt-5.5', prompt: 'Review design/card.md\n\nfocus', thinkingLevel: 'high'});
         expect(agentRunnerService.start).toHaveBeenCalledWith(project, expect.objectContaining({activityOrigin: { cardInternalId: 'card-1', kind: 'card' }, cardPath: cardContext.file, prompt: 'Review design/card.md\n\nfocus'}), expect.any(Function), expect.any(Function), expect.any(Function));
         expect(input.onActiveRunChange.mock.calls.map(([runId]) => runId)).toEqual(['active-run', null]);
+    });
+
+    it('starts card agent with current relative and absolute reference paths only', async () => {
+        const { agentRunnerService, executor, localGitService } = createExecutor();
+        localGitService.loadFile.mockResolvedValueOnce({
+            content: '---\nreferences:\n  - assets/spec.pdf\n  - C:\\outside\\notes.txt\n---\nsecret file contents',
+            path: cardContext.file,
+        });
+
+        await executor.execute(executionInput());
+
+        expect(localGitService.loadFile).toHaveBeenCalledWith(project, cardContext.file);
+        const prompt = agentRunnerService.start.mock.calls[0][1].prompt;
+        expect(prompt).toBe('Review design/card.md\n\nCard references:\n- assets/spec.pdf\n- C:\\outside\\notes.txt');
+        expect(prompt).not.toContain('secret file contents');
     });
 
     it('resolves stored prompt active cards against opened repository during linked-worktree execution', async () => {
@@ -218,7 +236,7 @@ describe('ActionAgentExecutor', () => {
     });
 
     it('runs project-wide action without card path', async () => {
-        const { agentRunnerService, executor } = createExecutor();
+        const { agentRunnerService, executor, localGitService } = createExecutor();
         const projectAction = { ...action, prompt: '{{card-prompt}}' };
 
         await executor.execute(executionInput({action: projectAction, activityOrigin: { kind: 'project' }, context: { kind: 'project' }, runInput: { extraPrompt: 'review project' }}));
@@ -226,6 +244,7 @@ describe('ActionAgentExecutor', () => {
         const request = agentRunnerService.start.mock.calls[0][1];
         expect(request).toMatchObject({ activityOrigin: { kind: 'project' }, prompt: 'review project' });
         expect(request).not.toHaveProperty('cardPath');
+        expect(localGitService.loadFile).not.toHaveBeenCalled();
     });
 
     it('does not augment tracked-run prompts with commit instructions', async () => {

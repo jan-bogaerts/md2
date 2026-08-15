@@ -684,6 +684,43 @@ describe('MarkdownEditor', () => {
         expect(screen.queryByTestId('mdx-editor-toolbar')).not.toBeInTheDocument()
     })
 
+    it('keeps attachment control visible when formatting toolbar is hidden and handles file drops', async () => {
+        const attachmentHandler = vi.fn(async (_files: File[], insertMarkdown: (markdown: string) => void) => {
+            insertMarkdown('[report](<report.pdf>)')
+        })
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor attachmentHandler={attachmentHandler} hideToolbar markdown="start " onChange={vi.fn()} />
+            </AppThemeProvider>,
+        )
+        const file = new File(['report'], 'report.pdf', { type: 'application/pdf' })
+        const textbox = screen.getByRole('textbox')
+        const textArea = textbox as HTMLTextAreaElement
+        textbox.focus()
+        textArea.setSelectionRange(6, 6)
+
+        fireEvent.drop(textbox, { dataTransfer: { files: [file], types: ['Files'] } })
+
+        await waitFor(() => expect(attachmentHandler).toHaveBeenCalledWith([file], expect.any(Function)))
+        expect(screen.getByRole('button', { name: 'Attach files' })).toBeInTheDocument()
+        expect(screen.getByRole('textbox')).toHaveValue('[report](<report.pdf>)start')
+    })
+
+    it('rejects attachment controls and drops while read-only', () => {
+        const attachmentHandler = vi.fn(async () => undefined)
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor attachmentHandler={attachmentHandler} hideToolbar markdown="locked" onChange={vi.fn()} readOnly />
+            </AppThemeProvider>,
+        )
+        const file = new File(['report'], 'report.pdf', { type: 'application/pdf' })
+
+        expect(screen.getByRole('button', { name: 'Attach files' })).toBeDisabled()
+        fireEvent.drop(screen.getByRole('textbox'), { dataTransfer: { files: [file], types: ['Files'] } })
+
+        expect(attachmentHandler).not.toHaveBeenCalled()
+    })
+
     it('reports live edits through onLiveChange while buffering onChange', () => {
         const onChange = vi.fn()
         const onLiveChange = vi.fn()

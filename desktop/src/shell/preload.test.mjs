@@ -37,6 +37,7 @@ function createPreloadHarness(options = {}) {
     const electron = {
         contextBridge,
         ipcRenderer: { invoke: vi.fn(async () => null), on: vi.fn(), removeListener: vi.fn(), send: vi.fn() },
+        webUtils: { getPathForFile: vi.fn(() => 'C:\\Files\\report.pdf') },
     };
     const argv = [
         `--md2-bridge-allowed-origins=${encodeURIComponent(JSON.stringify(allowedOrigins))}`,
@@ -66,12 +67,13 @@ describe('preload desktop agent bridge', () => {
     it('exposes only the named desktop bridges through contextBridge', () => {
         const { electron, exposed, window } = createPreloadHarness();
 
-        expect(electron.contextBridge.exposeInMainWorld).toHaveBeenCalledTimes(9);
+        expect(electron.contextBridge.exposeInMainWorld).toHaveBeenCalledTimes(10);
         expect(Object.keys(exposed).sort()).toEqual([
             'md2Actions',
             'md2CodexRuntime',
             'md2Config',
             'md2Data',
+            'md2Files',
             'md2Lifecycle',
             'md2Remarkable',
             'md2RemoteControl',
@@ -80,6 +82,7 @@ describe('preload desktop agent bridge', () => {
         ]);
         expect(window.require).toBeUndefined();
         expect(exposed.md2Data.openProjectFolder).toEqual(expect.any(Function));
+        expect(exposed.md2Files.getPathForFile).toEqual(expect.any(Function));
         expect(exposed.md2Data.selectWorktreeFolder).toEqual(expect.any(Function));
         expect(exposed.md2Data.loadAgentAvailability).toEqual(expect.any(Function));
         expect(exposed.md2Data.prepareWorktree).toEqual(expect.any(Function));
@@ -123,6 +126,15 @@ describe('preload desktop agent bridge', () => {
         expect(exposed.md2Updates.onUpdateAvailable).toEqual(expect.any(Function));
         expect(exposed.md2Updates.downloadUpdate).toEqual(expect.any(Function));
         expect(exposed.md2Updates.onDownloadProgress).toEqual(expect.any(Function));
+    });
+
+    it('resolves renderer File paths only through Electron webUtils', () => {
+        const { electron, exposed } = createPreloadHarness();
+        const file = { name: 'report.pdf' };
+
+        expect(exposed.md2Files.getPathForFile(file)).toBe('C:\\Files\\report.pdf');
+        expect(electron.webUtils.getPathForFile).toHaveBeenCalledWith(file);
+        expect(exposed.md2Files.webUtils).toBeUndefined();
     });
 
     it('wraps update-available notifications without exposing ipcRenderer', () => {

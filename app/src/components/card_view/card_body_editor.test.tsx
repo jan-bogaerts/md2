@@ -48,6 +48,7 @@ describe('CardBodyEditor', () => {
         renderCardBodyEditor(editorProps())
 
         expect(screen.getByRole('textbox')).toHaveValue('# Alpha\n\nOriginal body')
+        expect(screen.getByRole('button', { name: 'Attach files' })).toBeInTheDocument()
         expect(cardMarkdownDataSource.getMarkdown).toHaveBeenCalledWith(target)
     })
 

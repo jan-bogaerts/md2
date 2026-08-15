@@ -8,7 +8,7 @@ import {
 import '@mdxeditor/editor/style.css'
 import {
     forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef,
-    type FocusEvent, type ReactNode,
+    type DragEvent, type FocusEvent, type ReactNode,
 } from 'react'
 import type { ActionPlaceholder } from '../../data/action_placeholders'
 import { useProjectState } from '../hooks/use_project_state'
@@ -30,6 +30,8 @@ import type {
     MarkdownDataSource,
     MarkdownDocumentTarget,
 } from './markdown_data_source'
+import { MarkdownAttachmentToolbarControl } from './markdown_attachment_toolbar_control'
+import type { AttachmentMarkdownInserter } from '../../services/attachments/attachment_workflow'
 
 const DEFAULT_CODE_LANGUAGE = ''
 const CODE_BLOCK_LANGUAGES = { '': 'Plain text', js: 'JavaScript', ts: 'TypeScript', tsx: 'TSX', bash: 'Shell' }
@@ -43,6 +45,7 @@ export interface MarkdownEditorHandle {
 }
 
 interface MarkdownEditorPresentationProps {
+    attachmentHandler?: (files: File[], insertMarkdown: AttachmentMarkdownInserter) => Promise<void>
     diffMarkdown?: string
     flushOnBlur?: boolean
     /** Omit format toolbar entirely. */
@@ -99,6 +102,7 @@ function initialDocument(props: MarkdownEditorProps): MarkdownDocumentSnapshot {
 export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(function MarkdownEditor(props, ref) {
     const {
         flushOnBlur = false,
+        attachmentHandler,
         diffMarkdown,
         hideToolbar = false,
         imagePasteHandler,
@@ -272,11 +276,35 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
 
     const getSelectionMarkdown = useCallback(() => editorRef.current?.getSelectionMarkdown() ?? '', [])
 
-    const defaultToolbarContents = useCallback(
-        () => <MarkdownFormatToolbarControls overlayContainer={overlayContainer} placeholders={placeholders} />,
-        [overlayContainer, placeholders],
-    )
-    const toolbarContents = customToolbarContents ?? defaultToolbarContents
+    const attachFiles = useCallback((files: File[]) => {
+        if (!attachmentHandler || readOnly || files.length === 0) return
+        void attachmentHandler(files, insertMarkdown).catch((error: unknown) => {
+            dialogService.error(error, { fallbackMessage: 'Files could not be attached' })
+        })
+    }, [attachmentHandler, insertMarkdown, readOnly])
+
+    const handleDragOverCapture = (event: DragEvent<HTMLDivElement>) => {
+        if (!attachmentHandler || readOnly || !event.dataTransfer.types.includes('Files')) return
+        event.preventDefault()
+        event.stopPropagation()
+    }
+
+    const handleDropCapture = (event: DragEvent<HTMLDivElement>) => {
+        if (!attachmentHandler || readOnly || !event.dataTransfer.types.includes('Files')) return
+        event.preventDefault()
+        event.stopPropagation()
+        attachFiles([...event.dataTransfer.files])
+    }
+
+    const toolbarContents = useCallback(() => (
+        <>
+            {!hideToolbar ? (
+                customToolbarContents?.()
+                ?? <MarkdownFormatToolbarControls overlayContainer={overlayContainer} placeholders={placeholders} />
+            ) : null}
+            {attachmentHandler ? <MarkdownAttachmentToolbarControl disabled={readOnly} onFiles={attachFiles} /> : null}
+        </>
+    ), [attachFiles, attachmentHandler, customToolbarContents, hideToolbar, overlayContainer, placeholders, readOnly])
     const editorSx = {
         ...markdownContentSx,
         '& .mdxeditor-toolbar': { bgcolor: 'background.paper', position: 'sticky', top: 0, zIndex: 1 },
@@ -296,7 +324,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         markdownShortcutPlugin(),
         plainMarkdownPlugin(),
         ...(viewMode ? [diffSourcePlugin({ diffMarkdown: diffMarkdown ?? '', viewMode })] : []),
-        ...(hideToolbar ? [] : [toolbarPlugin({ toolbarContents })]),
+        ...(!hideToolbar || attachmentHandler ? [toolbarPlugin({ toolbarContents })] : []),
         markdownPlaceholderPlugin({ overlayContainer, placeholders }),
         markdownFileSearchPlugin({ overlayContainer, repositoryFiles }),
         ...(localTextSearch ? [markdownLocalTextSearchPlugin({ overlayContainer })] : []),
@@ -305,7 +333,13 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     ]
 
     return (
-        <Box data-sticky-toolbar onBlur={handleBlur} sx={editorSx}>
+        <Box
+            data-sticky-toolbar
+            onBlur={handleBlur}
+            onDragOverCapture={handleDragOverCapture}
+            onDropCapture={handleDropCapture}
+            sx={editorSx}
+        >
             <MDXEditor
                 className={mode === 'dark' ? 'dark-theme' : 'light-theme'}
                 contentEditableClassName="mdxeditor-content"

@@ -11,7 +11,7 @@ function card(path: string, title: string, status: string | null = null): Card {
         agentConversationErrors: [], agentConversations: [], content: '', hasFrontmatter: true, isActive: true, path,
         header: {
             affects: [], after: null, agentLogReferences: [], author: null, id: 'F-0', internalId: path,
-            owner: null, policy: {}, status, title,
+            owner: null, policy: {}, references: [], status, title,
         },
     }
 }

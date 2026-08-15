@@ -11,6 +11,7 @@ vi.mock('../../editor/markdown_editor', async () => {
 
     return {
         MarkdownEditor: forwardRef(function MarkdownEditorMock(props: {
+            attachmentHandler?: (files: File[], insertMarkdown: (markdown: string) => void) => Promise<void>
             flushOnBlur?: boolean
             imagePasteHandler?: (file: File, insertMarkdown: (markdown: string) => void) => Promise<void>
             localTextSearch?: boolean
@@ -40,6 +41,7 @@ vi.mock('../../editor/markdown_editor', async () => {
                 <textarea
                     aria-label="Markdown prompt"
                     data-flush-on-blur={props.flushOnBlur ? 'true' : 'false'}
+                    data-has-attachment-handler={props.attachmentHandler ? 'true' : 'false'}
                     data-image-paste={props.imagePasteHandler ? 'true' : 'false'}
                     data-local-text-search={props.localTextSearch === false ? 'false' : 'true'}
                     data-placeholders={props.placeholders?.map(({ name }) => name).join(',')}
@@ -87,6 +89,20 @@ afterEach(() => {
 })
 
 describe('ActionAgentPrompt', () => {
+    it('passes card attachment handler to hidden-toolbar prompt editor', () => {
+        const promptDraft = new ActionPromptDraft('', false, null)
+        render(
+            <ActionAgentPrompt
+                attachmentHandler={vi.fn(async () => undefined)}
+                convertMessage={null}
+                disabled={false}
+                promptDraft={promptDraft}
+            />,
+        )
+
+        expect(screen.getByLabelText('Markdown prompt')).toHaveAttribute('data-has-attachment-handler', 'true')
+    })
+
     it('configures action placeholders on its hidden-toolbar editor', () => {
         const promptDraft = new ActionPromptDraft('', false, null)
         render(
@@ -224,7 +240,7 @@ describe('ActionAgentPrompt', () => {
         )
 
         expect(screen.getByLabelText('Prompt')).toHaveStyle({ height: 'auto' })
-        expect(screen.getByTestId('action-prompt-editor-region')).toHaveStyle({ height: '42px', overflowY: 'auto' })
+        expect(screen.getByTestId('action-prompt-editor-region')).toHaveStyle({ height: '56px', overflowY: 'auto' })
         expect(screen.getByText('Predefined phrases')).toBeInTheDocument()
         expect(screen.getByText('Controls')).toBeInTheDocument()
     })

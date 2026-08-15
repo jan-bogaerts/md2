@@ -29,7 +29,7 @@ function card(worktree: number | null, conversations: AgentConversation[] = []):
         content: '# Card',
         header: {
             affects: [], after: null, agentLogReferences: [], author: null, id: 'F-1', internalId: 'f-1', owner: null,
-            policy: {}, status: 'design', title: 'Card', worktree, worktreeError: null,
+            policy: {}, references: [], status: 'design', title: 'Card', worktree, worktreeError: null,
             worktreeValue: worktree === null ? null : String(worktree),
         },
         hasFrontmatter:true,

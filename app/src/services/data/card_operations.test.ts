@@ -12,6 +12,8 @@ import {
     CARD_ADDED_EVENT,
     CARD_CHANGED_EVENT,
     CARD_REMOVED_EVENT,
+    cardCollectionFieldChangedEvent,
+    cardFieldChangedEvent,
     type CardAddedEventDetail,
     type CardChangedEventDetail,
     type CardRemovedEventDetail,
@@ -812,7 +814,7 @@ describe('CardOperations', () => {
         const activeFiles: MarkdownFile[] = [
             { content: '---\nid: A\ninternalId: a\ntitle: A\nstatus: todo\n---\n\n# A', path: 'design/active/A-1-a.md' },
             {
-                content: '---\nid: B\ninternalId: b\ntitle: B\nstatus: todo\nafter: a\n---\n\n# B\n\n![note](note.png)',
+                content: '---\nid: B\ninternalId: b\ntitle: B\nstatus: todo\nafter: a\nreferences:\n  - design/active/manual.pdf\n---\n\n# B\n\n![note](note.png)',
                 path: 'design/active/B-1-b.md',
                 sha: 'sha-b',
             },
@@ -829,16 +831,20 @@ describe('CardOperations', () => {
         ]
         const storage = createStorage({
             listRepositoryFiles: vi.fn()
-                .mockResolvedValueOnce([...activeFiles.map(({ path }) => path), 'design/active/note.png'])
+                .mockResolvedValueOnce([
+                    ...activeFiles.map(({ path }) => path),
+                    'design/active/manual.pdf',
+                    'design/active/note.png',
+                ])
                 .mockResolvedValueOnce(refreshedFiles.map(({ path }) => path)),
             loadProject: vi.fn()
                 .mockResolvedValueOnce({ files: activeFiles, workingFolder: 'design' })
                 .mockResolvedValueOnce({ files: refreshedFiles, workingFolder: 'design' }),
-            loadProjectAsset: vi.fn(async () => ({
-                content: 'aW1hZ2U=',
-                contentType: 'image/png',
+            loadProjectAsset: vi.fn(async (_project, path) => ({
+                content: path.endsWith('.pdf') ? 'AAECAw==' : 'aW1hZ2U=',
+                contentType: path.endsWith('.pdf') ? 'application/pdf' : 'image/png',
                 encoding: 'base64' as const,
-                path: 'design/active/note.png',
+                path,
             })),
             loadProjectConfig: vi.fn(async () => ({
                 archivedFolder: 'vault/archived',
@@ -865,7 +871,7 @@ describe('CardOperations', () => {
             message: 'Archive design/active/B-1-b.md',
             moves: [
                 expect.objectContaining({
-                    content: expect.stringContaining('status: archived'),
+                    content: expect.stringContaining('  - design/vault/archived/manual.pdf'),
                     fromPath: 'design/active/B-1-b.md',
                     toPath: 'design/vault/archived/B-1-b.md',
                 }),
@@ -875,6 +881,13 @@ describe('CardOperations', () => {
                     fromPath: 'design/active/note.png',
                     sha: undefined,
                     toPath: 'design/vault/archived/note.png',
+                },
+                {
+                    content: 'AAECAw==',
+                    encoding: 'base64',
+                    fromPath: 'design/active/manual.pdf',
+                    sha: undefined,
+                    toPath: 'design/vault/archived/manual.pdf',
                 },
             ],
         })
@@ -1373,6 +1386,34 @@ describe('CardOperations', () => {
         expect(request.files[0].content).toContain('  - app/src/data/data_types.ts')
         expect(request.files[0].content).toContain('  requireTests: true')
         serializeCard.mockRestore()
+    })
+
+    it('deduplicates card references and dispatches only reference field events', async () => {
+        configService.init()
+        const storage = createStorage()
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const referenceChanged = vi.fn()
+        const referenceCollectionChanged = vi.fn()
+        const titleChanged = vi.fn()
+        service.addEventListener(cardFieldChangedEvent('design/F-1-root.md', 'references'), referenceChanged)
+        service.addEventListener(cardCollectionFieldChangedEvent('references'), referenceCollectionChanged)
+        service.addEventListener(cardFieldChangedEvent('design/F-1-root.md', 'title'), titleChanged)
+
+        service.cards.addCardReferences('design/F-1-root.md', ['design/one.pdf', 'design/one.pdf', 'C:\\source\\two.zip'])
+        await service.cards.flushPendingCommits()
+
+        expect(service.getState().snapshot?.activeCards[0].header.references).toEqual([
+            'design/one.pdf',
+            'C:\\source\\two.zip',
+        ])
+        expect(referenceChanged).toHaveBeenCalledOnce()
+        expect(referenceCollectionChanged).toHaveBeenCalledOnce()
+        expect(titleChanged).not.toHaveBeenCalled()
+        expect(vi.mocked(storage.commit).mock.calls.at(-1)?.[0].files[0].content).toContain(
+            'references:\n  - design/one.pdf\n  - C:\\source\\two.zip',
+        )
     })
 
     it('does not rebuild, dispatch, or commit when saved content is unchanged', async () => {

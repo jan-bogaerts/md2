@@ -18,7 +18,7 @@ function card(path: string, title: string, worktree: number | null): Card {
     return {
         agentConversationErrors: [], agentConversations: [], content: '', header: {
             affects: [], after: null, agentLogReferences: [], author: null, id: path, internalId: path,
-            owner: null, policy: {}, status: 'ready', title, worktree, worktreeError: null, worktreeValue: worktree ? String(worktree) : null,
+            owner: null, policy: {}, references: [], status: 'ready', title, worktree, worktreeError: null, worktreeValue: worktree ? String(worktree) : null,
         }, hasFrontmatter: true, isActive: true, path,
     }
 }

@@ -10,7 +10,7 @@ function card(content = 'Original', path = 'design/card.md'): Card {
         agentConversationErrors: [], agentConversations: [], content,
         header: {
             affects: [], after: null, agentLogReferences: [], author: null, id: 'C-1', internalId: 'card-1',
-            owner: null, policy: {}, status: 'todo', title: 'Card',
+            owner: null, policy: {}, references: [], status: 'todo', title: 'Card',
         },
         hasFrontmatter:true,
         isActive: true,

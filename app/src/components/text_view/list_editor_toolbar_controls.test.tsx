@@ -61,7 +61,7 @@ const card: Card = {
     agentConversationErrors: [], agentConversations: [], content: '', hasFrontmatter: true, isActive: true,
     header: {
         affects: [], after: null, agentLogReferences: [], author: null, id: 'F-060', internalId: 'card-060',
-        owner: null, policy: {}, status: 'ready', title: 'Card', worktree: null, worktreeError: null, worktreeValue: null,
+        owner: null, policy: {}, references: [], status: 'ready', title: 'Card', worktree: null, worktreeError: null, worktreeValue: null,
     },
     path: 'design/F-060.md',
 }

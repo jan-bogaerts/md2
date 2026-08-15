@@ -79,6 +79,7 @@ function eventCard(card: ProjectSnapshot['activeCards'][number]) {
             affects: [...card.header.affects],
             agentLogReferences: [...card.header.agentLogReferences],
             policy: { ...card.header.policy },
+            references: [...card.header.references],
         },
     }
 }
@@ -112,6 +113,7 @@ function cardFieldChanged(field: CardField, previousCard: CardAddedEventDetail['
     }
     if (field === 'ordering') return previousHeader.after !== header.after || previousHeader.status !== header.status
     if (field === 'policy') return !isSamePolicy(previousHeader.policy, header.policy)
+    if (field === 'references') return !isSameArray(previousHeader.references, header.references)
     if (field === 'status') return previousHeader.status !== header.status
     if (field === 'title') return previousHeader.title !== header.title
 

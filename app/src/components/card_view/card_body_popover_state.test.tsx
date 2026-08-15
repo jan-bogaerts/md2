@@ -20,7 +20,7 @@ function card(id: string, status: string): Card {
         hasFrontmatter: true,
         header: {
             affects: [], after: null, agentLogReferences: [], author: null, id, internalId: id.toLowerCase(), owner: null,
-            policy: {}, status, title: id, worktree: null, worktreeError: null, worktreeValue: null,
+            policy: {}, references: [], status, title: id, worktree: null, worktreeError: null, worktreeValue: null,
         },
         isActive: true,
         path: `design/${id}.md`,

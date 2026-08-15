@@ -48,7 +48,7 @@ function card(path: string, usages: Array<AgentTokenUsage | undefined>): Card {
         content: '',
         header: {
             affects: [], after: null, agentLogReferences: [], author: null, id: path, internalId: path,
-            owner: null, policy: {}, status: 'done', title: path,
+            owner: null, policy: {}, references: [], status: 'done', title: path,
         },
         hasFrontmatter:true,
         isActive: !path.includes('/history/'),

@@ -19,6 +19,7 @@ function card(): Card {
             internalId: 'f-1',
             owner: null,
             policy: {},
+            references: [],
             status: 'todo',
             title: 'Root',
         },
