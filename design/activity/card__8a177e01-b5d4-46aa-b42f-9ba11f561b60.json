@@ -4135,11 +4135,11 @@
         "agent-fb8e6b5a-5d19-4af4-9167-1163ea85d83a"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-e340f650-23d1-4628-bc67-1ccea5dc5e0f",
       "origin": {
@@ -4148,9 +4148,54 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-fb8e6b5a-5d19-4af4-9167-1163ea85d83a",
       "startedAt": "2026-08-15T18:01:00.390Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-fb8e6b5a-5d19-4af4-9167-1163ea85d83a"
+    },
+    {
+      "commits": [
+        {
+          "commit": "6a7afe2ddab267b6644f093fe200ef05a45e881c",
+          "committedAt": "2026-08-15T20:31:32+02:00",
+          "deletions": 4,
+          "filePaths": [
+            "app/src/components/hooks/use_claude_rate_limits.ts",
+            "app/src/components/shell/claude_rate_limit_details.tsx",
+            "app/src/components/shell/claude_rate_limit_status.test.tsx",
+            "app/src/components/shell/claude_rate_limit_status.tsx",
+            "app/src/components/shell/claude_rate_limit_status_data.ts",
+            "app/src/components/shell/mobile_project_status.tsx",
+            "app/src/components/shell/status_bar.test.tsx",
+            "app/src/components/shell/status_bar.tsx",
+            "app/src/data/electron_claude_runtime_bridge.ts",
+            "app/src/data/project_storage_activation.ts",
+            "app/src/services/agents/claude_rate_limit_service.test.ts",
+            "app/src/services/agents/claude_rate_limit_service.ts",
+            "app/src/services/application_startup_service.ts",
+            "desktop/main.js",
+            "desktop/src/actions/agent/agent_runner_service.js",
+            "desktop/src/actions/agent/agent_runner_state.test.mjs",
+            "desktop/src/actions/agent/claude_runtime_service.js",
+            "desktop/src/actions/agent/claude_runtime_service.test.mjs",
+            "desktop/src/actions/agent/claude_usage_poller.js",
+            "desktop/src/actions/agent/claude_usage_poller.test.mjs",
+            "desktop/src/shell/local_bridge_dispatch.js",
+            "desktop/src/shell/local_bridge_dispatch.test.mjs",
+            "desktop/src/shell/preload.js",
+            "desktop/src/shell/preload.test.mjs"
+          ],
+          "filesChanged": 24,
+          "insertions": 1228,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-15T20:31:32+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "8a177e01-b5d4-46aa-b42f-9ba11f561b60",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
