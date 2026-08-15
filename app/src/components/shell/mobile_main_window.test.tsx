@@ -78,14 +78,31 @@ describe('MobileMainWindow', () => {
         expect(screen.getByText('Project workspace')).toBeInTheDocument()
     })
 
+    it('contains board navigation in its own vertical scroll region', () => {
+        renderMobileMainWindow(false)
+
+        const navigationRegion = screen.getByTestId('mobile-navigation-region')
+        const cardScrollRegion = screen.getByTestId('mobile-card-navigation-scroll-region')
+
+        expect(navigationRegion).toHaveStyle({ overflow: 'hidden' })
+        expect(cardScrollRegion).toHaveStyle({ height: '100%', overflowX: 'hidden', overflowY: 'auto' })
+        expect(cardScrollRegion).toContainElement(screen.getByText('Board navigation'))
+        expect(cardScrollRegion).toBeVisible()
+        expect(screen.getByTestId('mobile-navigation-scroll-region')).not.toBeVisible()
+    })
+
     it('shows navigation in text view without rerendering it', () => {
         renderMobileMainWindow(false)
         const navigation = screen.getByText('Project navigation')
 
         act(() => workspaceViewService.setViewMode('text'))
 
+        const navigationScrollRegion = screen.getByTestId('mobile-navigation-scroll-region')
+
         expect(screen.getByText('Project navigation')).toBe(navigation)
         expect(navigation).toBeVisible()
+        expect(navigationScrollRegion).toHaveStyle({ overflow: 'auto' })
+        expect(navigationScrollRegion).toContainElement(navigation)
         expect(screen.getByText('Board navigation')).not.toBeVisible()
     })
 })

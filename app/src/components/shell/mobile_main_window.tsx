@@ -59,8 +59,14 @@ export function MobileMainWindow(props: MobileMainWindowProps) {
                         <Typography sx={{ fontWeight: 600 }} variant="body2">Theme</Typography>
                         <ThemeModeToggle />
                     </Box>
-                    <Box sx={{ flex: 1, minHeight: 0 }}>
-                        <Box ref={handleCardNavigationElement}>{cardNavigation}</Box>
+                    <Box data-testid="mobile-navigation-region" sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+                        <Box
+                            data-testid="mobile-card-navigation-scroll-region"
+                            ref={handleCardNavigationElement}
+                            sx={{ height: '100%', overflowX: 'hidden', overflowY: 'auto' }}
+                        >
+                            {cardNavigation}
+                        </Box>
                         <Box ref={handleNavigationElement} sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                             <Divider />
                             <Box data-testid="mobile-navigation-scroll-region" sx={{ flex: 1, minHeight: 0, overflow: 'auto' }}>{leftPanel}</Box>
