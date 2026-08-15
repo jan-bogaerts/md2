@@ -3,7 +3,7 @@ author:
 id: B_118
 internalId: 8355401d-f3b6-4285-a21d-8ec6ed389215
 title: waitingForInput but input disabled
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

@@ -3,7 +3,7 @@ author:
 id: B_117
 internalId: 16e415b8-8ab2-4050-bb45-c6c37c0c3465
 title: claude agent answers still duplicated
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
