@@ -1,4 +1,4 @@
-import { Box, Stack, Typography } from '@mui/material'
+import { Box, CircularProgress, Stack, Tooltip, Typography } from '@mui/material'
 import { useLayoutEffect, useRef, useState, type UIEvent } from 'react'
 import type { AgentConversation } from '../../../data/data_types'
 import type { PopupRunStatus } from '../run/popup/action_popup_defaults'
@@ -133,9 +133,15 @@ export function ActionConversationChat({ conversation, status }: ActionConversat
                         ) : null}
                         <Box sx={{ flex: 1 }} />
                         {contextUsedPercent !== null ? (
-                            <Typography color="text.secondary" component="span" variant="caption">
-                                context: {contextUsedPercent}%
-                            </Typography>
+                            <Tooltip describeChild title={`Context usage: ${contextUsedPercent}%`}>
+                                <CircularProgress
+                                    aria-label="Context usage"
+                                    color="info"
+                                    size={16}
+                                    value={contextUsedPercent}
+                                    variant="determinate"
+                                />
+                            </Tooltip>
                         ) : null}
                     </Stack>
                 ) : null}

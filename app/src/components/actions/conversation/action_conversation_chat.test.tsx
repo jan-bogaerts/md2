@@ -152,18 +152,28 @@ describe('ActionConversationChat', () => {
         expect(screen.getByLabelText('Conversation chat').scrollTop).toBe(200)
     })
 
-    it('keeps duration and context as the final row inside the scrollable transcript', () => {
+    it('keeps duration and context usage indicator as the final row inside the scrollable transcript', async () => {
         const value = conversation('first.json', [message('message-1', 'First')])
         value.contextWindowUsage = { capacityTokens: 258_400, usedTokens: 42_000 }
         renderChat(value)
 
         const viewport = screen.getByLabelText('Conversation chat')
         const metadata = screen.getByLabelText('Conversation metadata')
+        const progress = screen.getByRole('progressbar', { name: 'Context usage' })
         expect(viewport).toContainElement(metadata)
         expect(viewport.lastElementChild).toBe(metadata)
         expect(metadata).toContainElement(screen.getByLabelText('Elapsed time'))
-        expect(metadata).toContainElement(screen.getByText('context: 16%'))
+        expect(metadata).toContainElement(progress)
+        expect(progress).toHaveAttribute('aria-valuenow', '16')
+        expect(screen.queryByText('context: 16%')).not.toBeInTheDocument()
         expect(metadata).toHaveStyle({ alignItems: 'baseline' })
+
+        fireEvent.mouseOver(progress)
+        expect(await screen.findByText('Context usage: 16%', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()
+        fireEvent.mouseLeave(progress)
+        await waitFor(() => expect(screen.queryByText('Context usage: 16%', {selector: '.MuiTooltip-tooltip'})).not.toBeInTheDocument())
+        fireEvent.touchStart(progress)
+        expect(await screen.findByText('Context usage: 16%', { selector: '.MuiTooltip-tooltip' }, {timeout: 1_500})).toBeInTheDocument()
 
         viewport.scrollTop = 40
         fireEvent.scroll(viewport)
@@ -171,12 +181,15 @@ describe('ActionConversationChat', () => {
         expect(viewport.scrollTop).toBe(40)
     })
 
-    it('caps context occupancy and hides unavailable context without hiding duration', () => {
+    it('caps context occupancy and hides unavailable context without hiding duration', async () => {
         const value = conversation('first.json', [])
         value.contextWindowUsage = { capacityTokens: 100, usedTokens: 125 }
         const { rerender } = renderChat(value)
 
-        expect(screen.getByText('context: 100%')).toBeInTheDocument()
+        const progress = screen.getByRole('progressbar', { name: 'Context usage' })
+        expect(progress).toHaveAttribute('aria-valuenow', '100')
+        fireEvent.mouseOver(progress)
+        expect(await screen.findByText('Context usage: 100%', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()
 
         rerender(
             <AppThemeProvider>
@@ -187,7 +200,8 @@ describe('ActionConversationChat', () => {
             </AppThemeProvider>,
         )
 
-        expect(screen.queryByText(/context:/u)).not.toBeInTheDocument()
+        expect(screen.queryByRole('progressbar', { name: 'Context usage' })).not.toBeInTheDocument()
+        await waitFor(() => expect(screen.queryByText(/Context usage:/u, {selector: '.MuiTooltip-tooltip'})).not.toBeInTheDocument())
         expect(screen.getByLabelText('Elapsed time')).toBeInTheDocument()
     })
 
