@@ -10,8 +10,6 @@ agents:
   - design/activity/card__2433b65f-efed-4a22-af41-529cd35af655.json#conversation=agent-48c25526-8ac6-4cc0-9649-5a68d27443fe
   - design/activity/card__2433b65f-efed-4a22-af41-529cd35af655.json#conversation=agent-a97570e8-1a53-414e-9ebe-3c6ef1e860c1
 policy:
-branch: b_115_incorrect_timer_continue
-worktree: 2
 ---
 
 it seems that the timer just never stops. when a timer has been paused cause of waiting for input or any other state not running and the timer is then started again cause of new input, it seems the timer just adds the time in between to the time. so it seems that somewhere we store when the time was stopped and then when it starts again, we take the difference between last stop and restart and add that time to the timer. this is so so so wrong.
