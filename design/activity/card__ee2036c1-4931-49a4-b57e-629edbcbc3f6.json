@@ -570,6 +570,10 @@
       "cardInternalId": "ee2036c1-4931-49a4-b57e-629edbcbc3f6",
       "cardPath": "design/feature_descriptions/F_192_context_usage_display.md",
       "completedAt": "2026-08-15T13:31:45.493Z",
+      "contextWindowUsage": {
+        "capacityTokens": 258400,
+        "usedTokens": 56390
+      },
       "entries": [
         {
           "content": "Read and implement the feature/job described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/F_192_context_usage_display.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests.\n5. After implementation is done, update the field `status` in the markdown feature description file to \\`ready\\`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/F_192_context_usage_display.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria.&#x20;\n\nYou should only run the related tests, do not run the entire test suite, that will be done manually later on.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill",
@@ -581,16 +585,16 @@
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-2",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0626b98c800a4374016a806911e51c8191b99b4cd5b0704a18",
           "sequence": 2,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T13:26:42.538Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "agent": "codex",
@@ -602,7 +606,10 @@
           "timestamp": "2026-08-15T13:26:43.420Z"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev1\\\\.agents\\\\skills\\\\caveman\\\\SKILL.md'\"",
           "content": "---\nname: caveman\ndescription: >\n  Ultra-compressed communication mode. Cuts output tokens 65% (measured) by speaking like caveman\n  while keeping full technical accuracy. Supports intensity levels: lite, full (default), ultra,\n  wenyan-lite, wenyan-full, wenyan-ultra.\n  Use when user says \"caveman mode\", \"talk like caveman\", \"use caveman\", \"less tokens\",\n  \"be brief\", or invokes /caveman. Also auto-triggers when token efficiency is requested.\n---\n\nRespond terse like smart caveman. All technical substance stay. Only fluff die.\n\n## Persistence\n\nACTIVE EVERY RESPONSE. No revert after many turns. No filler drift. Still active if unsure. Off only: \"stop caveman\" / \"normal mode\".\n\nDefault: **full**. Switch: `/caveman lite|full|ultra`.\n\n## Rules\n\nDrop: articles (a/an/the), filler (just/really/basically/actually/simply), pleasantries (sure/certainly/of course/happy to), hedging. Fragments OK. Short synonyms (big not extensive, fix not \"implement a solution for\"). No tool-call narration, no decorative tables/emoji, no dumping long raw error logs unless asked â€” quote shortest decisive line. Standard well-known tech acronyms OK (DB/API/HTTP); never invent new abbreviations (cfg/impl/req/res/fn) â€” tokenizer split them same as full word: zero token saved, reader still decode. Full word cheaper AND clearer. No causal arrows (â†’) either â€” own token, save nothing. Technical terms exact. Code blocks unchanged. Errors quoted exact.\n\nPreserve user's dominant language. User write Portuguese â†’ reply Portuguese caveman. User write Spanish â†’ reply Spanish caveman. Compress the style, not the language. No forced English openings or status phrases. ALWAYS keep technical terms, code, API names, CLI commands, commit-type keywords (feat/fix/...), and exact error strings verbatim â€” unless user explicitly ask for translation.\n\nNo self-reference. Never name or announce the style. No \"caveman mode on\", \"me caveman think\", no third-person caveman tags. Output caveman-only â€” never normal answer plus \"Caveman:\" recap. Exception: user explicitly ask what the mode is.\n\nPattern: `[thing] [action] [reason]. [next step].`\n\nNot: \"Sure! I'd be happy to help you with that. The issue you're experiencing is likely caused by...\"\nYes: \"Bug in auth middleware. Token expiry check use `<` not `<=`. Fix:\"\n\n## Intensity\n\n| Level | What change |\n|-------|------------|\n| **lite** | No filler/hedging. Keep articles + full sentences. Professional but tight |\n| **full** | Drop articles, fragments OK, short synonyms. Classic caveman. No tool-call narration, no decorative tables/emoji, no long raw error-log dumps unless asked. Standard acronyms OK; no invented abbreviations |\n| **ultra** | Strip conjunctions when cause-then-effect stay unambiguous. One word when one word enough. State each fact once. NO prose abbreviations (cfg/impl/req/res/fn/auth), NO arrows (X â†’ Y) â€” measured zero token saving under tokenizer, cost decode clarity. Code symbols, function names, API names, error strings: never touch |\n| **wenyan-lite** | Semi-classical. Drop filler/hedging but keep grammar structure, classical register |\n| **wenyan-full** | Maximum classical terseness. Fully æ–‡è¨€æ–‡. 80-90% character reduction. Classical sentence patterns, verbs precede objects, subjects often omitted, classical particles (ä¹‹/ä¹ƒ/ç‚º/å…¶) |\n| **wenyan-ultra** | Extreme abbreviation while keeping classical Chinese feel. Maximum compression, ultra terse |\n\nExample â€” \"Why React component re-render?\"\n- lite: \"Your component re-renders because you create a new object reference each render. Wrap it in `useMemo`.\"\n- full: \"New object ref each render. Inline object prop = new ref = re-render. Wrap in `useMemo`.\"\n- ultra: \"Inline obj prop, new ref, re-render. `useMemo`.\"\n- wenyan-lite: \"çµ„ä»¶é »é‡ç¹ªï¼Œä»¥æ¯ç¹ªæ–°ç”Ÿå°è±¡åƒç…§æ•…ã€‚ä»¥ useMemo åŒ…ä¹‹ã€‚\"\n- wenyan-full: \"æ¯ç¹ªæ–°ç”Ÿå°è±¡åƒç…§ï¼Œæ•…é‡ç¹ªï¼›ä»¥ useMemo åŒ…ä¹‹å‰‡å…ã€‚\"\n- wenyan-ultra: \"æ–°åƒç…§å‰‡é‡ç¹ªã€‚useMemo åŒ…ä¹‹ã€‚\"\n\nExample â€” \"Explain database connection pooling.\"\n- lite: \"Connection pooling reuses open connections instead of creating new ones per request. Avoids repeated handshake overhead.\"\n- full: \"Pool reuse open DB connections. No new connection per request. Skip handshake overhead.\"\n- ultra: \"Pool reuse open DB connections. No per-request handshake.\"\n- wenyan-full: \"æ± è“„å·²é–‹ä¹‹é€£ï¼Œä¸é€è«‹è€Œæ–°é–‹ï¼Œçœæ¡æ‰‹ä¹‹è²»ã€‚\"\n- wenyan-ultra: \"æ± è“„é€£ï¼Œå…é€è«‹æ–°é–‹ï¼Œçœæ¡æ‰‹ã€‚\"\n\n## Auto-Clarity\n\nDrop caveman when:\n- Security warnings\n- Irreversible action confirmations\n- Multi-step sequences where fragment order or omitted conjunctions risk misread\n- Compression itself creates technical ambiguity (e.g., `\"migrate table drop column backup first\"` â€” order unclear without articles/conjunctions)\n- User asks to clarify or repeats question\n\nResume caveman after clear part done.\n\nExample â€” destructive op:\n> **Warning:** This will permanently delete all rows in the `users` table and cannot be undone.\n> ```sql\n> DROP TABLE users;\n> ```\n> Caveman resume. Verify backup exist first.\n\n## Boundaries\n\nCode/commits/PRs: write normal. \"stop caveman\" or \"normal mode\": revert. Level persist until changed or session end.\r\n",
+          "durationMs": 441,
+          "exitCode": 0,
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-4",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev1\\\\.agents\\\\skills\\\\caveman\\\\SKILL.md'\"",
@@ -611,13 +618,13 @@
           "status": "completed",
           "timestamp": "2026-08-15T13:26:45.910Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev1\\\\.agents\\\\skills\\\\caveman\\\\SKILL.md'\"",
-          "durationMs": 441,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\F_192_context_usage_display.md'\"",
           "content": "---\nauthor: \nid: F_192\ninternalId: ee2036c1-4931-49a4-b57e-629edbcbc3f6\ntitle: context usage display\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__ee2036c1-4931-49a4-b57e-629edbcbc3f6.json#conversation=agent-4c6a99ef-9001-4989-8dd8-4e66b685e000\n  - design/activity/card__ee2036c1-4931-49a4-b57e-629edbcbc3f6.json#conversation=agent-2ebef5dd-f89e-4846-880a-1685b7d90847\npolicy:\nbranch: f_192_context_usage_display\nworktree: 1\n---\n\ncontext usage on the chatlog of the action popup needs improving:\n\n* drop text, should be put in a tooltip\n* use a circular progress to indicate value\n\n# Current state\n\n`ActionConversationChat` renders context-window usage as visible `context: N%` caption text at right of conversation metadata row. `contextWindowUsedPercent` derives `N` from displayed conversation's latest `usedTokens / capacityTokens`, rounds to whole number, caps it at `100`, and returns no value for missing or invalid data. `ActionConversationChatOwner` selects live conversation while action runs and selected persisted conversation otherwise, so value already updates during runs and when user changes conversation.\n\nHere, **context-window usage** means share of displayed conversation's effective token capacity currently occupied. **Determinate circular progress** means ring whose filled arc represents known percentage from `0` through `100`; it is not loading spinner.\n\n# Implementation details\n\n- In `app/src/components/actions/conversation/action_conversation_chat.tsx`, replace visible `context: N%` `Typography` with compact MUI `CircularProgress` using `variant=\"determinate\"` and validated percentage as `value`.\n- Wrap ring in MUI `Tooltip` with `Context usage: N%`. Remove visible context text; keep exact percentage available on hover and touch interaction.\n- Give progress ring accessible context-usage name and numeric value so assistive technology does not depend on tooltip. Keep theme-derived informational color and align ring at right of existing metadata row without changing row height materially.\n- Keep `contextWindowUsedPercent` calculation unchanged: whole-number rounding, `100%` cap, and hiding missing, zero-capacity, negative, or malformed snapshots.\n- Keep live updates, persisted-conversation selection, duration, status, transcript scrolling, and sticky-to-end behavior unchanged. No desktop, persistence, data type, or conversation-schema change needed.\n- Update `ActionConversationChat` and owner tests to assert determinate value, accessible name, tooltip text, live usage updates, conversation switching, capped value, and hidden indicator for unavailable data. Keep helper unit tests.\n\n# Acceptance criteria\n\n- Displayed conversation with `usedTokens = 42,000` and `capacityTokens = 258,400` shows ring filled to `16`; visible `context: 16%` text is absent.\n- Hovering or touching ring shows `Context usage: 16%` tooltip. Assistive technology exposes ring as context usage with numeric value `16`.\n- Usage above capacity displays full `100` ring and `Context usage: 100%` tooltip.\n- Missing or invalid context usage renders no ring and no tooltip; duration remains visible.\n- Live usage notifications update ring and tooltip during active run. Switching displayed conversations updates both from newly displayed conversation.\n- Duration, status, metadata alignment, transcript scrolling, sticky-to-end behavior, and conversation persistence remain unchanged.\n\r\n",
+          "durationMs": 393,
+          "exitCode": 0,
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-5",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\F_192_context_usage_display.md'\"",
@@ -626,23 +633,20 @@
           "status": "completed",
           "timestamp": "2026-08-15T13:26:49.322Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\F_192_context_usage_display.md'\"",
-          "durationMs": 393,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-6",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0626b98c800a4374016a80691c34148191848ee5c7fe62add2",
           "sequence": 6,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T13:26:51.249Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "agent": "codex",
@@ -654,7 +658,10 @@
           "timestamp": "2026-08-15T13:26:52.126Z"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"contextWindowUsedPercent|ActionConversationChat|context:\" app/src design/architecture/architectural_decisions.md design/STYLE_GUIDE.md'",
           "content": "app/src\\components\\actions\\agent\\action_agent_approvals.tsx:10:    context: ActionContext\napp/src\\components\\actions\\agent\\action_agent_preset_name_owner.tsx:16:    context: ActionContext\napp/src\\components\\actions\\agent\\action_agent_prompt_owner.tsx:25:    context: ActionContext\napp/src\\components\\actions\\run\\trigger\\card_run_button.tsx:16:    context: ActionContext\napp/src\\components\\actions\\run\\trigger\\action_entry_points.tsx:19:    context: ActionContext\napp/src\\components\\actions\\agent\\action_agent_selectors.tsx:34:    context: ActionContext\napp/src\\components\\actions\\agent\\action_agent_question_owner.tsx:9:    context: ActionContext\napp/src\\components\\actions\\editor\\action_phrase_buttons_owner.tsx:19:    context: ActionContext\napp/src\\components\\actions\\run\\state\\action_run_status_owner.tsx:10:    context: ActionContext\napp/src\\components\\editor\\markdown_file_search_menu.tsx:36:function renderOption(index: number, option: MarkdownFileSearchOption, context: MarkdownFileSearchMenuContext) {\napp/src\\components\\merge_conflict_dialog.tsx:40:    context: ActionContext\napp/src\\components\\merge_conflict_dialog.test.tsx:14:    context: ActionContext\napp/src\\components\\merge_conflict_dialog.test.tsx:237:                context: popupProbe.current?.context ?? { kind: 'merge-conflict' },\napp/src\\components\\merge_conflict_dialog.test.tsx:277:            context: popupProbe.current?.context ?? { kind: 'merge-conflict' },\napp/src\\components\\actions\\run\\state\\action_history_store.ts:18:    private readonly context: ActionContext\napp/src\\components\\actions\\run\\state\\action_history_store.ts:23:    constructor(action: ActionDefinition, context: ActionContext) {\napp/src\\components\\actions\\run\\schedule\\action_schedule_owner.tsx:11:    context: ActionContext\napp/src\\components\\hooks\\use_action_runs.ts:17:function useActionRunStore(actionId: string, context: ActionContext) {\napp/src\\components\\hooks\\use_action_runs.ts:37:export function useActionRun(actionId: string, context: ActionContext) {\napp/src\\components\\hooks\\use_action_runs.ts:44:export function useActionRunSelector<T>(actionId: string, context: ActionContext, selector: (run: ActionRun | null) => T) {\napp/src\\components\\hooks\\use_action_runs.ts:51:export function useActiveActionRunsForContext(context: ActionContext) {\napp/src\\components\\hooks\\use_action_runs.ts:69:export function useRunningActionForContext(context: ActionContext) {\napp/src\\components\\hooks\\use_action_context_card.ts:5:export function useActionContextCard(context: ActionContext) {\napp/src\\components\\hooks\\use_action_runs.test.tsx:11:function runEvent(context: typeof selectedContext, runId: string, status: ActionRunEvent['status']): ActionRunEvent {\napp/src\\components\\hooks\\use_action_runs.test.tsx:57:            actionId: 'build', context: unrelatedContext, runId: 'run-2', phase: 'main', rootActionId: 'build',\napp/src\\components\\hooks\\use_card_action_unseen_results.ts:10:    context: ActionContext,\napp/src\\components\\text_view\\list_editor_toolbar_controls.test.tsx:140:            context: {\napp/src\\components\\actions\\conversation\\action_conversation_rendering.test.tsx:6:import { ActionConversationChat } from './action_conversation_chat'\napp/src\\components\\actions\\conversation\\action_conversation_rendering.test.tsx:44:describe('ActionConversationChat rendering', () => {\napp/src\\components\\actions\\conversation\\action_conversation_rendering.test.tsx:60:                <ActionConversationChat conversation={firstConversation} status=\"running\" />\napp/src\\components\\actions\\conversation\\action_conversation_rendering.test.tsx:68:                <ActionConversationChat\napp/src\\components\\actions\\conversation\\action_conversation_rendering.test.tsx:97:                <ActionConversationChat conversation={firstConversation} status=\"running\" />\napp/src\\components\\actions\\conversation\\action_conversation_rendering.test.tsx:105:                <ActionConversationChat\napp/src\\components\\actions\\conversation\\action_conversation_chat_owner.test.tsx:10:import { ActionConversationChatOwner } from './action_conversation_chat_owner'\napp/src\\components\\actions\\conversation\\action_conversation_chat_owner.test.tsx:62:describe('ActionConversationChatOwner', () => {\napp/src\\components\\actions\\conversation\\action_conversation_chat_owner.test.tsx:84:                <ActionConversationChatOwner actionId=\"review\" context={context} store={store} />\napp/src\\components\\actions\\conversation\\action_conversation_chat_owner.test.tsx:124:        expect(screen.queryByText(/context:/u)).not.toBeInTheDocument()\napp/src\\components\\actions\\conversation\\action_conversation_chat_owner.test.tsx:136:        expect(screen.getByText('context: 16%')).toBeInTheDocument()\napp/src\\components\\actions\\conversation\\action_conversation_chat_owner.test.tsx:154:                <ActionConversationChatOwner actionId=\"review\" context={context} store={selectableStore} />\napp/src\\components\\actions\\conversation\\action_conversation_chat_owner.test.tsx:158:        expect(screen.getByText('context: 16%')).toBeInTheDocument()\napp/src\\components\\actions\\conversation\\action_conversation_chat_owner.test.tsx:163:        expect(screen.getByText('context: 50%')).toBeInTheDocument()\napp/src\\components\\actions\\conversation\\action_conversation_chat_owner.test.tsx:204:                <ActionConversationChatOwner\napp/src\\components\\actions\\conversation\\action_conversation_chat_owner.test.tsx:235:                <ActionConversationChatOwner actionId=\"review\" context={context} popupEntryId={entry.id} store={store} />\napp/src\\components\\actions\\conversation\\action_conversation_picker_owner.tsx:12:    context: ActionContext\napp/src\\data\\electron_action_bridge.ts:19:    context: ActionContext\napp/src\\data\\electron_action_bridge.ts:45:    context: ActionContext\napp/src\\components\\actions\\conversation\\action_conversation_chat.tsx:17:import { contextWindowUsedPercent } from './conversation_context_window'\napp/src\\components\\actions\\conversation\\action_conversation_chat.tsx:23:interface ActionConversationChatProps {\napp/src\\components\\actions\\conversation\\action_conversation_chat.tsx:55:export function ActionConversationChat({ conversation, status }: ActionConversationChatProps) {\napp/src\\components\\actions\\conversation\\action_conversation_chat.tsx:70:    const contextUsedPercent = contextWindowUsedPercent(conversation?.contextWindowUsage)\napp/src\\components\\actions\\conversation\\action_conversation_chat.tsx:137:                                context: {contextUsedPercent}%\napp/src\\components\\actions\\conversation\\action_conversation_chat_owner.tsx:6:import { ActionConversationChat } from './action_conversation_chat'\napp/src\\components\\actions\\conversation\\action_conversation_chat_owner.tsx:9:interface ActionConversationChatOwnerProps {\napp/src\\components\\actions\\conversation\\action_conversation_chat_owner.tsx:11:    context: ActionContext\napp/src\\components\\actions\\conversation\\action_conversation_chat_owner.tsx:17:export function ActionConversationChatOwner(props: ActionConversationChatOwnerProps) {\napp/src\\components\\actions\\conversation\\action_conversation_chat_owner.tsx:46:    return <ActionConversationChat conversation={conversation} status={status} />\napp/src\\components\\actions\\conversation\\action_conversation_chat.test.tsx:18:import { ActionConversationChat } from './action_conversation_chat'\napp/src\\components\\actions\\conversation\\action_conversation_chat.test.tsx:96:            <ActionConversationChat conversation={value} status={status} />\napp/src\\components\\actions\\conversation\\action_conversation_chat.test.tsx:121:describe('ActionConversationChat', () => {\napp/src\\components\\actions\\conversation\\action_conversation_chat.test.tsx:165:        expect(metadata).toContainElement(screen.getByText('context: 16%'))\napp/src\\components\\actions\\conversation\\action_conversation_chat.test.tsx:179:        expect(screen.getByText('context: 100%')).toBeInTheDocument()\napp/src\\components\\actions\\conversation\\action_conversation_chat.test.tsx:183:                <ActionConversationChat\napp/src\\components\\actions\\conversation\\action_conversation_chat.test.tsx:190:        expect(screen.queryByText(/context:/u)).not.toBeInTheDocument()\napp/src\\components\\actions\\conversation\\action_conversation_chat.test.tsx:205:                    <ActionConversationChat\napp/src\\components\\actions\\conversation\\action_conversation_chat.test.tsx:227:                <ActionConversationChat conversation={second} status=\"idle\" />\napp/src\\components\\actions\\conversation\\action_conversation_chat.test.tsx:243:                <ActionConversationChat conversation={grown} status=\"idle\" />\napp/src\\components\\actions\\conversation\\action_conversation_chat.test.tsx:261:                <ActionConversationChat conversation={grown} status=\"idle\" />\napp/src\\components\\actions\\conversation\\action_conversation_chat.test.tsx:279:                <ActionConversationChat conversation={grown} status=\"idle\" />\napp/src\\components\\actions\\conversation\\action_conversation_chat.test.tsx:296:                <ActionConversationChat conversation={conversation('empty.json', [])} status=\"idle\" />\napp/src\\components\\actions\\conversation\\action_conversation_chat.test.tsx:311:                <ActionConversationChat conversation={value} status=\"completed\" />\napp/src\\components\\actions\\conversation\\action_conversation_chat.test.tsx:337:                <ActionConversationChat\napp/src\\components\\actions\\conversation\\action_conversation_chat.test.tsx:365:                <ActionConversationChat\napp/src\\components\\actions\\conversation\\action_conversation_chat.test.tsx:375:                <ActionConversationChat\napp/src\\components\\actions\\conversation\\action_conversation_chat.test.tsx:394:                <ActionConversationChat\napp/src\\components\\actions\\conversation\\action_conversation_chat.test.tsx:410:                <ActionConversationChat conversation={conversation('second.json', [], 'codex')} status=\"running\" />\napp/src\\components\\actions\\conversation\\action_conversation_chat.test.tsx:429:                <ActionConversationChat\napp/src\\components\\actions\\conversation\\action_conversation_chat.test.tsx:456:                <ActionConversationChat\napp/src\\components\\actions\\conversation\\action_conversation_chat.test.tsx:866:                <ActionConversationChat\napp/src\\components\\actions\\conversation\\action_conversation_chat.test.tsx:1060:                <ActionConversationChat conversation={{\napp/src\\components\\actions\\conversation\\action_conversation_chat.test.tsx:1122:                <ActionConversationChat conversation={grown} status=\"idle\" />\napp/src\\services\\card_popup_service.ts:20:    context: ActionContext\napp/src\\services\\card_popup_service.ts:81:    toggleAction(context: ActionContext, anchorElement: HTMLElement) {\napp/src\\services\\card_popup_service.ts:94:            context: { ...context },\napp/src\\components\\actions\\conversation\\action_conversation_picker.test.tsx:63:        const context: ActionContext = { cardInternalId: 'card-1', file: 'design/F-1.md', kind: 'card' }\napp/src\\data\\action_schedule_types.ts:16:    context: ActionContext\napp/src\\data\\action_schedule_types.ts:83:        context: parseScheduleContext(schedule.context),\napp/src\\data\\action_schedule_types.node.test.ts:8:            context: { file: 'design/F-022.md', kind: 'card', type: 'feature' },\napp/src\\data\\action_schedule_types.node.test.ts:26:            context: { kind: 'project' },\napp/src\\data\\action_schedule_types.node.test.ts:39:            context: { kind: 'file' },\napp/src\\data\\action_schedule_types.node.test.ts:52:            context: { kind: 'project' },\napp/src\\data\\action_run_types.ts:28:    context: ActionContext\napp/src\\data\\action_run_types.ts:43:    context: ActionContext\napp/src\\data\\action_run_types.ts:121:    context: ActionContext\napp/src\\services\\sentry\\sentry_api_client.ts:26:function requireRecord(value: unknown, context: string): Record<string, unknown> {\napp/src\\services\\remarkable\\remarkable_convert_service.ts:15:    run?: (action: ActionDefinition, context: ActionContext, input: { extraPrompt: string }) => Promise<ActionRunResult>\napp/src\\services\\remarkable\\remarkable_convert_service.ts:38:    const context: ActionContext = { file: input.cardPath, kind: 'card', ...(input.cardType ? { type: input.cardType } : {}) }\napp/src\\services\\search\\search_types.ts:20:    context: string\napp/src\\services\\search\\search_types.ts:36:    context: string\napp/src\\services\\remarkable\\remarkable_convert_service.node.test.ts:7:type RunFn = (action: ActionDefinition, context: ActionContext, input: { extraPrompt: string }) => Promise<ActionRunResult>\napp/src\\services\\search\\search_project.ts:111:            return { card, context: buildContext(value, location), field, path: card.path, source: 'header', title: card.header.title }\napp/src\\services\\search\\search_project.ts:118:            return { card, context: buildContext(card.content, location), field: BODY_FIELD, path: card.path, source: 'body', title: card.header.title }\napp/src\\services\\search\\search_project.ts:139:        if (location) return { action, context: buildContext(value, location), field, title: action.label }\napp/src\\components\\actions\\conversation\\action_log_error_owner.tsx:10:    context: ActionContext\napp/src\\services\\github\\github_storage_writer.ts:15:    private readonly context: GithubStorageContext\napp/src\\services\\github\\github_storage_writer.ts:18:    constructor(context: GithubStorageContext, gitData: GithubStorageGitData) {\napp/src\\services\\github\\github_storage_service.ts:26:    private readonly context: GithubStorageContext\napp/src\\components\\actions\\conversation\\action_conversation_store.ts:17:function belongsToContext(conversation: ConversationPickerConversation, context: ActionContext) {\napp/src\\components\\actions\\conversation\\action_conversation_store.ts:32:    context: ActionContext,\napp/src\\components\\actions\\conversation\\action_conversation_store.ts:48:function latestWaitingConversation(conversations: AgentConversation[], actionId: string, context: ActionContext) {\napp/src\\components\\actions\\conversation\\action_conversation_store.ts:59:    private readonly context: ActionContext\napp/src\\components\\actions\\conversation\\action_conversation_store.ts:66:    constructor(actionId: string, context: ActionContext) {\napp/src\\components\\actions\\conversation\\action_conversation_store.node.test.ts:8:const context: ActionContext = { cardInternalId: 'card-1', file: 'design/F-1.md', kind: 'card' }\napp/src\\components\\actions\\conversation\\conversation_context_window.ts:2:export function contextWindowUsedPercent(contextWindowUsage: unknown) {\napp/src\\components\\actions\\conversation\\conversation_context_window.node.test.ts:2:import { contextWindowUsedPercent } from './conversation_context_window'\napp/src\\components\\actions\\conversation\\conversation_context_window.node.test.ts:4:describe('contextWindowUsedPercent', () => {\napp/src\\components\\actions\\conversation\\conversation_context_window.node.test.ts:6:        expect(contextWindowUsedPercent({ capacityTokens: 258_400, usedTokens: 42_000 })).toBe(16)\napp/src\\components\\actions\\conversation\\conversation_context_window.node.test.ts:7:        expect(contextWindowUsedPercent({ capacityTokens: 100, usedTokens: 125 })).toBe(100)\napp/src\\components\\actions\\conversation\\conversation_context_window.node.test.ts:19:        expect(contextWindowUsedPercent(snapshot)).toBeNull()\napp/src\\services\\github\\github_storage_loader.ts:58:    private readonly context: GithubStorageContext\napp/src\\services\\github\\github_storage_loader.ts:61:    constructor(context: GithubStorageContext, gitData: GithubStorageGitData) {\napp/src\\components\\actions\\run\\popup\\action_popup_defaults.ts:46:export type LoadHistory = (action: ActionDefinition, context: ActionContext) => Promise<ActionRunHistoryEntry[]>\napp/src\\components\\actions\\run\\popup\\action_popup_defaults.ts:48:export type LoadConversations = (context: ActionContext) => Promise<AgentConversation[]>\napp/src\\components\\actions\\run\\popup\\action_popup_defaults.ts:49:export type PreparePrompt = (action: ActionDefinition, context: ActionContext) => Promise<string>\napp/src\\components\\actions\\run\\popup\\action_popup_defaults.ts:52:    context: ActionContext,\napp/src\\components\\actions\\run\\popup\\action_popup_defaults.ts:56:export type ScheduleAction = (action: ActionDefinition, context: ActionContext, trigger: ActionScheduleTrigger) => Promise<void>\napp/src\\components\\actions\\run\\popup\\action_popup_defaults.ts:60:    context: ActionContext,\napp/src\\components\\actions\\run\\popup\\action_popup_defaults.ts:70:    context: ActionContext,\napp/src\\components\\actions\\run\\popup\\action_popup_defaults.ts:77:export function defaultLoadHistory(action: ActionDefinition, context: ActionContext) {\napp/src\\components\\actions\\run\\popup\\action_popup_defaults.ts:90:export function defaultLoadConversations(context: ActionContext) {\napp/src\\components\\actions\\run\\popup\\action_popup_defaults.ts:94:export async function defaultPreparePrompt(action: ActionDefinition, context: ActionContext) {\napp/src\\components\\actions\\run\\popup\\action_popup_defaults.ts:155:export async function defaultScheduleAction(action: ActionDefinition, context: ActionContext, trigger: ActionScheduleTrigger) {\napp/src\\components\\actions\\run\\popup\\action_popup_runtime.ts:15:export function createActionPopupBindings(action: ActionDefinition, context: ActionContext): ActionPopupBindings {\napp/src\\components\\actions\\run\\popup\\action_popup_runtime.ts:30:export function worktreeValidationMessage(action: ActionDefinition, context: ActionContext) {\napp/src\\components\\actions\\run\\popup\\action_popup_operations.node.test.ts:15:const context: ActionContext = { file: 'design/F-1.md', kind: 'card', worktree: '3' }\napp/src\\components\\actions\\run\\popup\\action_selector.test.tsx:14:const context: ActionContext = { file: 'design/F-105.md', kind: 'card', state: 'design', type: 'feature' }\napp/src\\services\\github\\github_storage_git_data.ts:22:    private readonly context: GithubStorageContext\napp/src\\services\\github\\github_storage_git_data.ts:24:    constructor(context: GithubStorageContext) {\napp/src\\components\\actions\\run\\popup\\action_popup_frame.tsx:25:function worktreeAssignmentTarget(context: ActionContext): WorktreeAssignmentTarget | null {\napp/src\\components\\actions\\run\\popup\\action_popup_operations.ts:41:function restorePrompt(action: ActionDefinition, context: ActionContext, prompt: string) {\napp/src\\components\\actions\\run\\popup\\action_popup_operations.ts:48:    context: ActionContext\napp/src\\components\\actions\\run\\popup\\action_popup_operations.ts:58:export function currentActionRun(action: ActionDefinition, context: ActionContext) {\napp/src\\components\\actions\\run\\popup\\action_popup_operations.ts:62:export function currentActionPromptDraft(action: ActionDefinition, context: ActionContext, prepare: boolean) {\napp/src\\components\\actions\\run\\popup\\action_popup_operations.ts:196:    context: ActionContext,\napp/src\\components\\actions\\run\\popup\\action_popup_operations.ts:212:    context: ActionContext,\napp/src\\components\\actions\\run\\popup\\action_popup_operations.ts:232:    context: ActionContext,\napp/src\\components\\actions\\run\\popup\\action_selector.tsx:14:    context: ActionContext\napp/src\\components\\actions\\run\\popup\\action_popup_bottom_row.tsx:99:        context: assignmentContext,\napp/src\\services\\github\\github_project_config_storage.ts:8:    private readonly context: GithubStorageContext\napp/src\\services\\github\\github_project_config_storage.ts:12:    constructor(context: GithubStorageContext, gitData: GithubStorageGitData, writer: GithubStorageWriter) {\napp/src\\components\\actions\\run\\popup\\action_usage_summary.test.tsx:99:        expect(screen.queryByText(/context:/u)).not.toBeInTheDocument()\napp/src\\components\\actions\\run\\popup\\action_usage_summary.test.tsx:107:        expect(screen.queryByText(/context:/u)).not.toBeInTheDocument()\napp/src\\components\\actions\\run\\popup\\action_popup.tsx:12:function resolvePopupTarget(context: ActionContext, snapshot: ReturnType<typeof useProjectState>['snapshot']) {\napp/src\\components\\actions\\run\\popup\\action_popup.tsx:23:    context: ActionContext\napp/src\\components\\actions\\run\\popup\\action_popup.test.tsx:135:        ActionConversationChat: function ActionConversationChatRenderProbe(props: Parameters<typeof actual.ActionConversationChat>[0]) {\napp/src\\components\\actions\\run\\popup\\action_popup.test.tsx:138:            return actual.ActionConversationChat(props)\napp/src\\components\\actions\\run\\popup\\action_popup.test.tsx:155:const context: ActionContext = { file: 'design/F-010.md', kind: 'card', state: 'design', type: 'feature' }\napp/src\\components\\actions\\run\\popup\\action_popup.test.tsx:388:            context: { file: 'design/F-099.md', kind: 'card', state: 'design', type: 'feature' },\napp/src\\components\\actions\\run\\popup\\action_popup.test.tsx:1017:            context: { kind: 'project', worktree: '1' },\napp/src\\components\\actions\\run\\popup\\action_popup.test.tsx:1252:            context: persistedContext,\napp/src\\components\\actions\\run\\popup\\action_popup.test.tsx:1257:            actionId: 'respond', context: persistedContext, phase: 'main' as const,\napp/src\\components\\actions\\run\\popup\\action_popup.test.tsx:1396:                actionId: 'stream', actionType: 'agent' as const, autoFinish: null, context: projectContext,\napp/src\\components\\actions\\run\\popup\\action_popup.test.tsx:1433:            actionId: 'stream', actionType: 'agent' as const, autoFinish: null, context: projectContext,\napp/src\\services\\agents\\agent_acknowledgement_service.node.test.ts:37:        context: { cardInternalId, file: 'design/F-1-root.md', kind: 'card' },\napp/src\\services\\agents\\agent_integration.ts:468:    private async runStateAction(action: ActionDefinition, context: ActionContext, cardPath: string) {\napp/src\\components\\actions\\run\\popup\\action_agent_interaction.tsx:8:import { ActionConversationChatOwner } from '../../conversation/action_conversation_chat_owner'\napp/src\\components\\actions\\run\\popup\\action_agent_interaction.tsx:33:                <ActionConversationChatOwner\napp/src\\services\\data\\card_attachment_operations.ts:75:    private readonly context: CardOperationContext\napp/src\\services\\data\\card_attachment_operations.ts:78:    constructor(context: CardOperationContext) {\napp/src\\services\\data\\card_internal_id_operations.ts:25:    private readonly context: CardOperationContext\napp/src\\services\\data\\card_internal_id_operations.ts:30:    constructor(context: CardOperationContext, onProjectChanged: () => void) {\napp/src\\services\\data\\card_archive_operations.ts:9:    private readonly context: CardOperationContext\napp/src\\services\\data\\card_archive_operations.ts:12:    constructor(context: CardOperationContext, triggerStateActions: (cardPath: string, state: string) => void) {\napp/src\\services\\data\\card_image_operations.ts:84:    private readonly context: CardOperationContext\napp/src\\services\\data\\card_image_operations.ts:87:    constructor(context: CardOperationContext) {\napp/src\\services\\data\\card_operations.ts:54:    private readonly context: CardOperationContext\napp/src\\components\\actions\\run\\popup\\action_usage_summary_owner.tsx:12:    context: ActionContext\napp/src\\services\\data\\card_rename_operations.ts:14:    private readonly context: CardOperationContext\napp/src\\services\\data\\card_rename_operations.ts:19:    constructor(context: CardOperationContext) {\napp/src\\components\\actions\\run\\popup\\action_worktree_selector_owner.tsx:10:    context: ActionContext\napp/src\\components\\actions\\run\\popup\\agent_action.tsx:4:import { ActionConversationChatOwner } from '../../conversation/action_conversation_chat_owner'\napp/src\\components\\actions\\run\\popup\\agent_action.tsx:27:                <ActionConversationChatOwner\napp/src\\services\\actions\\action_definition_writer.ts:10:    context: ActionContext\napp/src\\services\\actions\\action_definition_writer.node.test.ts:5:const context: ActionContext = { file: 'design/F-010.md', kind: 'card', state: 'design', type: 'feature' }\napp/src\\services\\actions\\action_entry_point_parity.test.ts:31:                    actionId: request.actionId, command: 'run', context: request.context, runId, phase: 'main', rootActionId: request.actionId,\napp/src\\services\\actions\\action_entry_point_parity.test.ts:35:                    actionId: request.actionId, context: request.context, runId, phase: 'main', rootActionId: request.actionId,\napp/src\\services\\actions\\action_history.ts:17:    context: ActionContext\napp/src\\services\\actions\\action_history.ts:25:        context: input.context,\napp/src\\services\\data\\data_service.ts:251:    async listAgentConversations(context: ActionContext) {\napp/src\\services\\actions\\action_prompt_draft_service.ts:29:function idlePromptDraftKey(actionId: string, context: ActionContext) {\napp/src\\services\\actions\\action_prompt_draft_service.ts:246:        context: ActionContext,\napp/src\\services\\actions\\action_prompt_draft_service.ts:271:    clearDraft(actionId: string, context: ActionContext, run: ActionPromptRunBinding | null) {\napp/src\\services\\actions\\action_run_registry.node.test.ts:490:        emit({ actionId: 'build', context: runContext, runId: 'run-1', phase: 'main', rootActionId: 'build', status: 'running', type: 'run' })\r\napp/src\\services\\actions\\action_run_registry.ts:36:    context: ActionContext\napp/src\\services\\actions\\action_run_registry.ts:213:function contextKey(context: ActionContext) {\napp/src\\services\\actions\\action_run_registry.ts:300:function actionContextKey(actionId: string, context: ActionContext) {\napp/src\\services\\actions\\action_run_registry.ts:379:    getActionRunStore(actionId: string, context: ActionContext) {\napp/src\\services\\actions\\action_run_registry.ts:387:    getContextActiveSnapshot(context: ActionContext) {\napp/src\\services\\actions\\action_run_registry.ts:397:    subscribeActionRun(actionId: string, context: ActionContext, listener: StoreListener) {\napp/src\\services\\actions\\action_run_registry.ts:412:    subscribeContextActive(context: ActionContext, listener: StoreListener) {\napp/src\\services\\actions\\action_run_registry.ts:420:    subscribeContextEvents(context: ActionContext, listener: EventListener) {\napp/src\\services\\actions\\action_run_registry.ts:440:        context: ActionContext,\napp/src\\services\\actions\\action_run_registry.ts:467:        context: ActionContext,\napp/src\\services\\actions\\action_run_registry.ts:550:            context: event.context,\napp/src\\services\\actions\\action_run_registry.ts:559:        let next = { ...current, context: event.context, rootActionId: event.rootActionId }\napp/src\\services\\actions\\action_service.ts:290:    getActionsForStateTrigger(state: string, context: ActionContext): ActionDefinition[] {\napp/src\\services\\actions\\action_text.ts:20:    context: ActionContext,\napp/src\\services\\actions\\action_text.ts:77:    context: ActionContext,\napp/src\\services\\data\\project_file_operations.ts:12:    private readonly context: CardOperationContext\napp/src\\services\\data\\project_file_operations.ts:14:    constructor(context: CardOperationContext) {\napp/src\\services\\actions\\action_text.node.test.ts:34:const context: ActionContext = { file: 'design/F-010.md', kind: 'card', state: 'design', title: 'Placeholder support', type: 'feature' }\napp/src\\services\\data\\remote_control_storage_service.node.test.ts:58:    return { actionId: 'action-test', context: { file: 'design/F-1.md', kind: 'card' as const }, runInput: {} }\napp/src\\services\\data\\remote_control_storage_service.node.test.ts:484:        const request = { actionId: 'action-test', context: { file: 'design/F-1.md', kind: 'card' as const } }\napp/src\\services\\data\\remote_control_storage_service.node.test.ts:616:            service.restartActionRun('action-1', { actionId: 'review', context: { kind: 'project' }, runInput: {} }),\napp/src\\services\\data\\remote_control_storage_service.node.test.ts:631:            { method: 'restartActionRun', params: ['action-1', { actionId: 'review', context: { kind: 'project' }, runInput: {} }] },\napp/src\\services\\data\\remote_control_storage_service.node.test.ts:674:            context: { file: 'design/F-1.md', kind: 'card' },\napp/src\\services\\actions\\electron_action_runner.node.test.ts:142:        expect(bridge.reserveActionConversation).toHaveBeenCalledWith({ actionId: agentAction.id, context: cardContext, runInput: {} })\napp/src\\services\\actions\\electron_action_runner.node.test.ts:146:            context: cardContext,\napp/src\\services\\actions\\electron_action_runner.ts:10:function shouldReserveConversation(action: ActionDefinition, context: ActionContext, input: ActionRunInput) {\napp/src\\services\\actions\\electron_action_runner.ts:21:    context: ActionContext,\napp/src\\services\\actions\\electron_action_runner.ts:55:    context: ActionContext,\n",
+          "durationMs": 443,
+          "exitCode": 0,
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-8",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"contextWindowUsedPercent|ActionConversationChat|context:\" app/src design/architecture/architectural_decisions.md design/STYLE_GUIDE.md'",
@@ -663,26 +670,26 @@
           "status": "completed",
           "timestamp": "2026-08-15T13:26:53.904Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"contextWindowUsedPercent|ActionConversationChat|context:\" app/src design/architecture/architectural_decisions.md design/STYLE_GUIDE.md'",
-          "durationMs": 443,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-9",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0626b98c800a4374016a806921ab308191a9aa0cff98c7d072",
           "sequence": 9,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T13:26:57.210Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\conversation\\\\action_conversation_chat.tsx'\"",
           "content": "import { Box, Stack, Typography } from '@mui/material'\nimport { useLayoutEffect, useRef, useState, type UIEvent } from 'react'\nimport type { AgentConversation } from '../../../data/data_types'\nimport type { PopupRunStatus } from '../run/popup/action_popup_defaults'\nimport { ActionConversationEventRow } from './action_conversation_event_row'\nimport { ActionConversationMessage } from './action_conversation_message'\nimport { actionStatusLabel } from '../shared/action_status'\nimport { ConversationTimer } from './conversation_timer'\nimport { buildActionConversationRenderGroups } from './action_conversation_render_groups'\nimport { CompletedToolCallGroup } from './completed_tool_call_group'\nimport {\n    createActionConversationReservationState,\n    reservedActionConversationBlockCount,\n    updateActionConversationReservation,\n} from './action_conversation_reservation'\nimport { ActionConversationReservedBlock } from './action_conversation_reserved_block'\nimport { contextWindowUsedPercent } from './conversation_context_window'\nimport { reasoningDisplay } from './reasoning_display'\n\nconst CHAT_END_TOLERANCE = 4\nconst MIN_CHAT_HEIGHT = 96\n\ninterface ActionConversationChatProps {\n    conversation: AgentConversation | null\n    status: PopupRunStatus\n}\n\nfunction viewportIsAtEnd(viewport: HTMLDivElement) {\n    return viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop <= CHAT_END_TOLERANCE\n}\n\nfunction hasAgentActivity(conversation: AgentConversation) {\n    return conversation.providerSessions.some(({ agent }) => agent === 'codex')\n        || conversation.entries.some((entry) => entry.kind === 'message' && entry.agent === 'codex')\n        || conversation.entries.some((entry) => entry.kind === 'event' && !!entry.providerItemId)\n}\n\nfunction conversationEventIsVisible(entry: AgentConversation['entries'][number]) {\n    if (entry.kind !== 'event' || entry.type === 'diagnostic') return false\n    if (entry.type !== 'reasoning' || entry.status !== 'completed') return true\n\n    return reasoningDisplay(entry).hasText\n}\n\nfunction visibleConversationGroups(conversation: AgentConversation | null) {\n    if (!conversation) return []\n    const showEvents = hasAgentActivity(conversation)\n    const visibleEntries = conversation.entries.filter((entry) => entry.kind === 'message'\n        || (showEvents && conversationEventIsVisible(entry)))\n\n    return buildActionConversationRenderGroups(visibleEntries)\n}\n\n/** Ordered user/assistant transcript shown above the popup prompt. */\nexport function ActionConversationChat({ conversation, status }: ActionConversationChatProps) {\n    const groups = visibleConversationGroups(conversation)\n    const viewportRef = useRef<HTMLDivElement>(null)\n    const conversationPathRef = useRef<string | null | undefined>(undefined)\n    const stuckToEndRef = useRef(true)\n    const conversationPath = conversation?.path ?? null\n    const [reservationState, setReservationState] = useState(() => updateActionConversationReservation(\n        createActionConversationReservationState(),\n        conversationPath,\n        groups,\n        status,\n    ))\n    const nextReservationState = updateActionConversationReservation(reservationState, conversationPath, groups, status)\n    if (nextReservationState !== reservationState) setReservationState(nextReservationState)\n    const reservedBlockCount = reservedActionConversationBlockCount(nextReservationState)\n    const contextUsedPercent = contextWindowUsedPercent(conversation?.contextWindowUsage)\n\n    const handleScroll = (event: UIEvent<HTMLDivElement>) => {\n        stuckToEndRef.current = viewportIsAtEnd(event.currentTarget)\n    }\n\n    useLayoutEffect(() => {\n        const viewport = viewportRef.current\n        if (!viewport) return\n\n        const conversationPath = conversation?.path ?? null\n        const conversationChanged = conversationPathRef.current !== conversationPath\n        conversationPathRef.current = conversationPath\n        if (conversationChanged) stuckToEndRef.current = true\n        if (!stuckToEndRef.current) return\n\n        viewport.scrollTop = viewport.scrollHeight\n    })\n\n    return (\n        <Stack spacing={1} sx={{ flex: 1, minHeight: 0 }}>\n            <Stack\n                aria-label=\"Conversation chat\"\n                onScroll={handleScroll}\n                ref={viewportRef}\n                spacing={1}\n                sx={{ flex: 1, minHeight: MIN_CHAT_HEIGHT, overflowX: 'hidden', overflowY: 'auto' }}\n            >\n                {groups.map((group) => {\n                    if (group.kind === 'completedToolCalls') {\n                        return <CompletedToolCallGroup entries={group.entries} key={group.key} />\n                    }\n\n                    const { entry } = group\n                    if (entry.kind === 'message') {\n                        return (\n                            <ActionConversationMessage\n                                cardInternalId={conversation?.cardInternalId ?? null}\n                                entry={entry}\n                                key={group.key}\n                            />\n                        )\n                    }\n\n                    return <ActionConversationEventRow entry={entry} grouped={false} key={group.key} />\n                })}\n                {Array.from({ length: reservedBlockCount }, (_, index) => (\n                    <ActionConversationReservedBlock key={`reserved-block-${index}`} />\n                ))}\n                {conversation || status !== 'idle' ? (\n                    <Stack\n                        aria-label=\"Conversation metadata\"\n                        direction=\"row\"\n                        spacing={1}\n                        sx={{ alignItems: 'baseline', flexShrink: 0 }}\n                    >\n                        {status !== 'idle' ? (\n                            <Typography color={status === 'failed' ? 'error.main' : 'text.secondary'} role=\"status\" variant=\"caption\">\n                                {actionStatusLabel(status)}\n                            </Typography>\n                        ) : null}\n                        {conversation ? (\n                            <ConversationTimer completedAt={conversation.completedAt} startedAt={conversation.startedAt} status={status} />\n                        ) : null}\n                        <Box sx={{ flex: 1 }} />\n                        {contextUsedPercent !== null ? (\n                            <Typography color=\"text.secondary\" component=\"span\" variant=\"caption\">\n                                context: {contextUsedPercent}%\n                            </Typography>\n                        ) : null}\n                    </Stack>\n                ) : null}\n            </Stack>\n        </Stack>\n    )\n}\n\r\n",
+          "durationMs": 843,
+          "exitCode": 0,
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-10",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\conversation\\\\action_conversation_chat.tsx'\"",
@@ -691,13 +698,13 @@
           "status": "completed",
           "timestamp": "2026-08-15T13:27:01.225Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\conversation\\\\action_conversation_chat.tsx'\"",
-          "durationMs": 843,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\STYLE_GUIDE.md'\"",
           "content": "---\ninternalId: f2ec9e28-8064-4707-bce9-b62f24d57524\n---\n\n# App Style Guide â€” Kanban / MDÂ² (React + MUI)\n\nHow to build **any new component** so it matches the app. This is written for **Material UI v5+** components.\n\n**The theme is the source of truth.** All color, radius, base typography, and spacing units live in the single `createTheme` (defined in `GUIDANCE.md` Â§1/Â§9). This guide does **not** define colors â€” it tells you **which theme value to use for which role**, and covers the things the theme can't encode: layout, spacing/margins, borders, elevation, and component conventions.\n\n**The one rule that matters:** never write a raw hex, px radius, or magic color into a component. Read it from the theme (`theme.palette.*`, `theme.shape`, `theme.typography`, `theme.spacing`). If a component has a hardcoded hex in its `sx`/styled, it's wrong â€” that's exactly where the look drifts and where dark mode breaks.\n\n---\n\n## 1. How to consume the theme\n\n- **Colors:** `sx={{ color: 'text.secondary', bgcolor: 'background.paper', borderColor: 'divider' }}` â€” MUI resolves dotted palette paths automatically in `sx`. In `styled`/JS use the callback form: `styled(Box)(({ theme }) => ({ color: theme.palette.text.secondary }))`.\n- **Spacing:** use the 8px unit via the spacing scale â€” `sx={{ p: 2, gap: 1, mt: 1.5 }}` (`2` = 16px, `1` = 8px). Don't write `padding: '16px'`.\n- **Radius:** `borderRadius: 1` (= `theme.shape.borderRadius` = 8) and multiples; for the fixed non-8 radii see Â§4.\n- **Typography:** prefer `Typography variant=...` and `theme.typography.*` over ad-hoc `fontSize`.\n- **Custom tokens:** roles the default MUI palette doesn't cover (column/track surfaces, the strong/hover border steps, `text-3/4`, section-header color, `primary-bg` tint, status colors) must exist in the theme under a namespace (e.g. `theme.palette.custom.*`) with light + dark values. Consume them the same way â€” `bgcolor: 'custom.column'`. **Never inline their hex.** If a needed token doesn't exist yet, add it to the theme, don't hardcode it in the component.\n\n---\n\n## 2. Role â†’ theme slot\n\nPick the slot by the element's **role**, not by how it looks in one mode:\n\n| Role | Theme slot |\n|---|---|\n| App background; tinted footer/action bars | `background.default` |\n| Column & sidebar surface | `custom.column` |\n| Segmented-control / toolbar track, hover fill | `custom.track` |\n| Card, dialog, popup, input surface | `background.paper` |\n| Hairlines, resting borders | `divider` |\n| Input borders, vertical separators | `custom.borderStrong` |\n| Border on hover | `custom.borderHover` |\n| Titles, values, headings | `text.primary` |\n| Body copy, field labels | `text.secondary` |\n| Meta, captions, resting icons | `custom.text3` |\n| Muted / placeholder / disabled | `custom.text4` |\n| Uppercase section/column headers | `custom.colHead` |\n| The one CTA, selection, focus, links, icon-hover | `primary.main` |\n| Contained-button hover | `primary.dark` |\n| Selected/tinted bg, focus ring, ID-chip bg | `custom.primaryBg` |\n| Text/icon on a primary fill | `primary.contrastText` |\n| Active / saved / online dot | `success.main` |\n| Destructive action | `error.main` |\n| Status swatch dots & ID-chip tints (decorative only) | `custom.status.*` |\n\nRules: **one** `primary` per surface (the CTA/selection accent) â€” everything else is `text-*`/`divider`. Status colors are **decoration only** (dots, chip tints), never interactive color. Dark-mode brightness/tinting is handled inside the theme's two palettes, so a correctly-sloted component needs zero per-mode code.\n\n---\n\n## 3. Layout\n\n- **Full-height app:** column flex â€” menu row / ribbon / content (`flex: 1; minHeight: 0`) / status bar. Fixed bands `flexShrink: 0`.\n- **Board:** horizontal-scroll flex row, `gap: 2` (16px), page padding `p: 2.5` (20px); columns `width: 296, flexShrink: 0`, internal column flex `gap: 1`.\n- **List view:** two-pane flex row filling the space between ribbon and status bar â€” sidebar `width: 280, flexShrink: 0`, editor pane `flex: 1, minWidth: 0` (the `minWidth: 0` is required so long content ellipsizes instead of blowing out the row).\n- **Panels (sidebar, editor card, dialogs):** column flex with stacked bands (header / [toolbar] / body / footer). The **body scrolls** (`overflow-y: auto; minHeight: 0`); header and footer are `flexShrink: 0` and never scroll away.\n- **Spacer pattern:** push trailing items with `<Box sx={{ flex: 1 }} />` rather than `margin-left: auto` sprinkled around, so rows stay predictable.\n- Use flex `gap` for spacing between siblings â€” don't hand-space with per-child margins.\n\n---\n\n## 4. Spacing, margin & size conventions\n\n- **4/8px grid, via `theme.spacing`.** page padding `2.5`; between columns `2`; inside columns / between related controls `1`; dialog body gap `2â€“2.25`; field labelâ†’control gap `~0.9` (7px).\n- **Margins:** prefer padding on containers + flex `gap` over element margins. Where a floating panel needs breathing room (e.g. editor card, toolbar inside a panel), use container padding (`p: 2 / 2.5`), not margins on the children.\n- **Fixed heights (px):** menu row 44, ribbon 52, status bar 32, section header 40, tab row 40, standard button / control 34, dense icon button 26â€“28, input 42.\n- **Fixed widths (px):** column 296, sidebar 280, search 260, standard dialog 480, wide/editor dialog 760.\n- **Radius family (px):** buttons/icon-buttons 8 (small 6â€“7), inputs 9, cards 10, columns/panels 12, dialogs/popups 14, chips/pills 99, color swatches 3. `borderRadius: 1` covers the 8 case; use explicit `'9px'` etc. for the others.\n\n---\n\n## 5. Borders & elevation\n\n- **Rest = border, not shadow.** Resting surfaces: `border: '1px solid'`, `borderColor: 'divider'`. Inputs use `custom.borderStrong`. **Shadow only when floating or lifted** (hover, drag, dialogs/popovers).\n- **Separation between bands:** a single 1px `divider` hairline. Don't stack a heavy rule *and* an outline â€” one line, let background contrast do the rest. Vertical separators inside toolbars: a 20px-tall `custom.borderStrong` rule.\n- **Elevation ladder (only where floating):** card hover `0 4px 12px rgba(16,24,40,0.12)`; dragging MUI `elevation 8` + `rotate(2deg)`; contained button `0 1px 2px rgba(16,24,40,0.15)`; dialog/popup `0 24px 60px rgba(16,24,40,0.28)`; scrim `rgba(16,24,40,0.45)` + `backdropFilter: blur(2px)`.\n- Set `MuiPaper.elevation: 0` and `MuiButton.disableElevation` globally in the theme; add the shadows above explicitly where the ladder calls for it.\n- **On dark backgrounds shadows read as nothing** â€” the theme already handles this by making hover raise `borderColor` (`custom.borderHover`) instead of relying on shadow.\n\n---\n\n## 6. Typography usage\n\nDrive everything from theme variants / `theme.typography`; avoid ad-hoc `fontSize`.\n\n- Titles/values/headings â†’ `text.primary`; body & labels â†’ `text.secondary`; meta â†’ `custom.text3`.\n- **Field labels:** a plain `Typography` (12px/600, `text.secondary`) placed **above** the control â€” **never** MUI floating/outlined `TextField` labels (they clash with the app's flat-label style).\n- **Section/column headers:** `Typography variant=\"overline\"` (uppercase, `letterSpacing ~0.7px`, `fontWeight 700`, `custom.colHead`).\n- **ID chips only** use monospace; everything else is the theme's default family.\n- `button.textTransform: 'none'` and `button.fontWeight: 600` are set in the theme â€” don't re-uppercase buttons.\n\n---\n\n## 7. Interaction states\n\nConsistent across all components; all colors from the theme:\n\n- **Ghost icon button** (`IconButton`): transparent â†’ hover `bgcolor: track` (or `background.paper` on a colored panel) + `color: primary.main`. Override MUI's default circular hover tint via `sx`.\n- **Outlined button:** `divider` border, `text.secondary` â†’ hover `borderColor/color: primary.main`. Destructive: hover `borderColor: error.main` + `bgcolor: custom.dangerBg`.\n- **Contained (primary) CTA:** `primary.main` + small shadow â†’ hover `primary.dark`.\n- **Input/field focus:** `borderColor: primary.main` + `boxShadow: 0 0 0 3px` in `custom.primaryBg` (the soft halo). Unfocused hover: `borderColor: custom.borderHover`.\n- **List/tree row:** hover `bgcolor: track`; selected `bgcolor: custom.primaryBg` + title `text.primary`.\n- **Row-level actions** (delete, â‹®): hidden at rest, shown on `:hover`/`:focus-within` via **opacity** (keep in DOM so width doesn't jump).\n- **Active tab/menu item:** 2px `primary.main` bottom border + `primary.main` text.\n- Every icon-only control gets a `Tooltip` (theme sets `arrow: true`) **and** an `aria-label`.\n\n---\n\n## 8. Component conventions (MUI primitives)\n\n- **Buttons:** `Button variant=\"contained\"` = the single CTA per surface; `variant=\"outlined\"` = secondary; `variant=\"text\"` = tertiary. Icon-only â†’ `IconButton` in a `Tooltip`. Don't use `Link` or text `Button` where an action button belongs (that reproduces the old text-link look).\n- **Icons:** `@mui/icons-material` **Outlined** variants; `fontSize: 18` in 34px buttons, `16` in dense, `13â€“15` inline. Don't hand-draw SVG.\n- **ID chip:** monospace, accent text on `custom.primaryBg`/status tint, `radius 5, flexShrink: 0`.\n- **Count chip:** `background.paper` bg, 1px `divider`, radius 9â€“10, `custom.text3`.\n- **State dot:** 7â€“8px circle + `text-3` label; green (`success.main`) = active/saved/online.\n- **Search:** pill `TextField` (`borderRadius: 99`, `bgcolor: background.default`), search start-adornment, `âŒ˜K` keycap end-adornment.\n- **Select:** `size=\"small\"`, optional dot+name via `renderValue`; 42px / radius-9 frame. When a select has a tooltip, keep the tooltip available while the select is closed and explicitly hide it for the entire time the select menu is open so it cannot cover the first option.\n- **Segmented control** (view switch, formatting toolbar): `ToggleButtonGroup` on a `custom.track` background; selected segment `background.paper` + `0 1px 2px` shadow + `primary` text.\n- **Dialog / popup:** `Dialog`/`Popover` with `PaperProps` â†’ `background.paper`, 1px `divider`, radius 14, big shadow; scrim via `slotProps.backdrop` (blur + tint). Bands separated by hairlines; footer on a `background.default` bar with top hairline; actions right-aligned (outlined Cancel + contained CTA). `autoFocus` first field; submit on `Enter` (`âŒ˜/Ctrl+Enter` in a textarea); close on `Esc`/backdrop.\n- **Empty state:** dashed target â€” `1.5px dashed custom.borderStrong`, radius 10, centered icon + `custom.text4` label. No \"click to add\" placeholder blocks.\n\n---\n\n## 9. Definition of done for a new component\n\n1. Zero hardcoded hex / raw px colors â€” every value comes from `theme.palette` / `theme.shape` / `theme.spacing` / `theme.typography`.\n2. Correct roleâ†’slot mapping (Â§2); at most one `primary` CTA on the surface.\n3. Borders at rest, shadow only when floating (Â§5); bands split by a single hairline.\n4. Hover **and** focus states on every interactive element (Â§7); icon buttons have tooltip + `aria-label`.\n5. Body scrolls, header/footer pinned; `minWidth: 0` on flex children that hold long text.\n6. Toggle to dark mode and confirm nothing breaks â€” if it does, you hardcoded a color somewhere (Â§1).\n\nComponent-specific detail lives in `GUIDANCE.md` (theme definition + board/list/dialog), `CARD_POPUP_GUIDE.md`, `RUN_DIALOG_GUIDE.md`, and `SIDEBAR_ACTIONS_GUIDE.md`.\n\r\n",
+          "durationMs": 692,
+          "exitCode": 0,
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-11",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\STYLE_GUIDE.md'\"",
@@ -706,13 +713,13 @@
           "status": "completed",
           "timestamp": "2026-08-15T13:27:01.074Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\STYLE_GUIDE.md'\"",
-          "durationMs": 692,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\architecture\\\\architectural_decisions.md'\"",
           "content": "---\ninternalId: 583d9c88-b71c-4560-92ad-3e23d33bf1d0\n---\n\n# Architectural decisions\n\nProject-wide decisions for MDÂ². The app is a Vite React web app in `app/`; `desktop/` is a separate Electron host that can load the website and expose local capabilities through preload bridges.\n\n## File naming\n\n| Decision | Rule | Rationale |\n| --- | --- | --- |\n| Code files use lowercase snake_case names. | All code files in `app/src/` and `desktop/` use lowercase words separated by underscores, for example `github_auth_service.ts`, `project_workspace.tsx`, and `local_git_service.js`. Test files keep the same base name with `.test` before the extension, for example `github_auth_service.test.ts`. Exported symbols keep normal TypeScript/JavaScript casing such as `GithubAuthService`, `ProjectWorkspace`, and `useGithubAuth`. | A single file naming convention avoids mixed PascalCase, camelCase, and hyphenated filenames, and keeps imports predictable across Windows and case-sensitive environments. |\n\n## Services and state\n\n| Decision | Rule | Rationale |\n| --- | --- | --- |\n| Global singleton services own domain state and logic. | Each domain is a class in `src/services/**`, instantiated once at module level and exported, for example `export const indexesService = new IndexesService()`. React components do not own domain state. | Keeps business logic out of components, testable without a DOM, and shared across windows/views without Redux, Zustand, or Context stores. |\n| Service location follows usage scope. | If a service is specific to one UI element and used only there, place it beside that component. Generic or shared services, such as logging, database access, config, storage, or cross-screen domain logic, belong in `src/services/`. | Keeps component-owned behavior local while preserving `src/services/` for reusable application services. |\n| Consumers use direct imports or the service injector. | Direct import when no import cycle exists; use `src/services/service_injector.js` when a cycle would occur. Every global singleton service registers itself in its constructor with `inj.register('myService', this)`. | The service graph is dense; the injector is a bare global registry that defers resolution to call time. |\n| Services have a two-phase lifecycle. | Constructors only register and set unloaded state such as `null`. Config-dependent or service-dependent work runs in `init()`, `start()`, app bootstrap (`App.jsx`), or a `loaded` lifecycle event. `configService.config` is private; callers use `get`, `set`, and `clear`. | Module evaluation order is not guaranteed, so `configService` is not usable at import time. Reading config in a constructor is a bug. |\n\n## Card state\n\n| Decision | Rule | Rationale |\n| --- | --- | --- |\n| The application has one `Card` domain type. | Do not create separate canonical, project, snapshot, or editor card types. The card-owning service holds the loaded cards and exposes focused operations that change only the requested field. React snapshots and editor drafts are read values; they must never replace or merge a complete card. Parser bookkeeping may remain private persistence metadata, but it is not another card model. | One card concept gives state a clear owner and prevents stale copies from overwriting newer worktree, activity, ordering, policy, or body values. |\n| Card UI subscribes at field level. | A component subscribes only to the primitive or stable reference it renders, using granular `EventTarget` events and `useSyncExternalStore`. Do not clone or stringify a complete card to detect a field change. Group fields only in a deliberately small, stable projection when they are always rendered together. | A one-field change allocates and rerenders only what consumes that field, keeping memory use bounded and the UI responsive. |\n| Cards are serialized only at persistence boundaries. | Mutate the owned `Card` through a focused operation, then serialize its current state when the persistence batch flushes. Editor changes update only the edited field. Activity linking updates only activity references. External file changes are parsed and applied deliberately without replacing dirty local state. | Persistence remains deterministic while concurrent saves and external updates cannot discard unrelated newer values. |\n\n\n## Events and React integration\n\n| Decision | Rule | Rationale |\n| --- | --- | --- |\n| Services notify observers through their own `EventTarget`. | Services expose an `EventTarget` and dispatch named `CustomEvent` domain events such as `activeIndex`, `added`, `deleted`, or `changedBox`. Observers subscribe with `addEventListener` and unsubscribe with `removeEventListener` on the owning service. | Decouples producers from consumers without depending on Node `EventEmitter`, which is not available in the browser-first React app. |\n| Custom hooks bridge service events to functional components. | Hooks in `src/components/hooks/`, such as `useActiveIndex` and `useProjectConfig`, seed `useState` from a service property, subscribe in `useEffect`, unsubscribe in cleanup, and return the value. Prefer hook + service over prop chains. | Components stay declarative and avoid direct event plumbing. |\n| Components subscribe at the smallest rendering boundary. | Root and layout components compose UI regions and pass structural inputs. Components that render changing application data subscribe through hooks themselves. Do not hoist changing data into ancestors only to pass it downward. | Limits rerenders to affected UI, protects transient state such as open popups, and avoids broad prop chains. |\n| Components use the app theme service path. | `App` owns theme mode through `useThemeMode()`, builds the MUI theme with `createAppTheme(mode)`, and provides it through `ThemeProvider`. Components read theme values with MUI APIs such as `useTheme`, `useMediaQuery`, and `sx`; only controls that change the palette mode receive `mode` and `onToggleTheme`. | Theme state, persistence, and palette construction stay centralized while components remain presentation-focused. |\n\r\n",
+          "durationMs": 729,
+          "exitCode": 0,
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-12",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\architecture\\\\architectural_decisions.md'\"",
@@ -721,13 +728,13 @@
           "status": "completed",
           "timestamp": "2026-08-15T13:27:01.111Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\architecture\\\\architectural_decisions.md'\"",
-          "durationMs": 729,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\conversation\\\\action_conversation_chat_owner.tsx'\"",
           "content": "import { useEffect, useSyncExternalStore } from 'react'\nimport type { ActionContext } from '../../../data/action_context'\nimport { cardPopupService, subscribeCardPopups } from '../../../services/card_popup_service'\nimport { agentAcknowledgementService } from '../../../services/agents/agent_acknowledgement_service'\nimport { useActionRunSelector } from '../../hooks/use_action_runs'\nimport { ActionConversationChat } from './action_conversation_chat'\nimport type { ActionConversationStore } from './action_conversation_store'\n\ninterface ActionConversationChatOwnerProps {\n    actionId: string\n    context: ActionContext\n    popupEntryId?: string\n    store: ActionConversationStore\n}\n\n/** Subscribes chat boundary to selected conversation, scoped acknowledgement, and popup stacking. */\nexport function ActionConversationChatOwner(props: ActionConversationChatOwnerProps) {\n    const { actionId, context, popupEntryId, store } = props\n    const liveConversation = useActionRunSelector(actionId, context, (run) => run?.conversation ?? null)\n    const runStatus = useActionRunSelector(actionId, context, (run) => run?.status ?? 'idle')\n    const { selectedConversation } = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot)\n    const popupEntries = useSyncExternalStore(\n        subscribeCardPopups,\n        () => cardPopupService.getSnapshot(),\n        () => cardPopupService.getSnapshot(),\n    )\n    const cardInternalId = context.cardInternalId\n    const conversation = liveConversation ?? selectedConversation\n    const status = runStatus === 'idle' && conversation?.status === 'waitingForInput' ? 'waitingForInput' : runStatus\n    const visible = !!popupEntryId && popupEntries.at(-1)?.id === popupEntryId && !!cardInternalId && !!conversation\n\n    useEffect(() => {\n        if (!popupEntryId || !cardInternalId || !conversation) return undefined\n\n        agentAcknowledgementService.setConversationVisible(popupEntryId, cardInternalId, actionId, conversation, visible)\n\n        return () => agentAcknowledgementService.setConversationVisible(\n            popupEntryId,\n            cardInternalId,\n            actionId,\n            conversation,\n            false,\n        )\n    }, [actionId, cardInternalId, conversation, popupEntryId, visible])\n\n    return <ActionConversationChat conversation={conversation} status={status} />\n}\n\r\n",
+          "durationMs": 882,
+          "exitCode": 0,
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-13",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\conversation\\\\action_conversation_chat_owner.tsx'\"",
@@ -736,13 +743,13 @@
           "status": "completed",
           "timestamp": "2026-08-15T13:27:01.269Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\conversation\\\\action_conversation_chat_owner.tsx'\"",
-          "durationMs": 882,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\conversation\\\\conversation_context_window.ts'\"",
           "content": "/** Returns displayed conversation context occupancy as a whole-number percentage. */\nexport function contextWindowUsedPercent(contextWindowUsage: unknown) {\n    if (!contextWindowUsage || typeof contextWindowUsage !== 'object' || Array.isArray(contextWindowUsage)) return null\n    const { capacityTokens, usedTokens } = contextWindowUsage as Record<string, unknown>\n    if (!Number.isSafeInteger(usedTokens) || (usedTokens as number) < 0) return null\n    if (!Number.isSafeInteger(capacityTokens) || (capacityTokens as number) <= 0) return null\n\n    return Math.min(100, Math.round((usedTokens as number) / (capacityTokens as number) * 100))\n}\n\r\n",
+          "durationMs": 704,
+          "exitCode": 0,
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-14",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\conversation\\\\conversation_context_window.ts'\"",
@@ -751,26 +758,26 @@
           "status": "completed",
           "timestamp": "2026-08-15T13:27:01.087Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\conversation\\\\conversation_context_window.ts'\"",
-          "durationMs": 704,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-15",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0626b98c800a4374016a80692806b08191ba60317b906bce0e",
           "sequence": 15,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T13:27:04.144Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\conversation\\\\action_conversation_chat_owner.test.tsx'\"",
           "content": "import { act, cleanup, render, screen, waitFor } from '@testing-library/react'\nimport { afterEach, describe, expect, it, vi } from 'vitest'\nimport type { ActionRunEvent } from '../../../data/action_run_types'\nimport type { AgentConversation } from '../../../data/data_types'\nimport { setActionBridgeOverride, type ElectronActionBridge } from '../../../data/electron_action_bridge'\nimport { actionRunRegistry } from '../../../services/actions/action_run_registry'\nimport { cardPopupService } from '../../../services/card_popup_service'\nimport { agentAcknowledgementService } from '../../../services/agents/agent_acknowledgement_service'\nimport { AppThemeProvider } from '../../../theme/theme_provider'\nimport { ActionConversationChatOwner } from './action_conversation_chat_owner'\nimport type { ActionConversationStore } from './action_conversation_store'\n\nconst context = { cardInternalId: 'card-1', file: 'design/F-138.md', kind: 'card' as const }\nconst snapshot = { conversations: [], loading: false, selectedConversation: null }\nconst store = {\n    getSnapshot: () => snapshot,\n    subscribe: () => () => undefined,\n} as unknown as ActionConversationStore\n\nfunction conversation(\n    id: string,\n    completedAt: string,\n    contextWindowUsage: AgentConversation['contextWindowUsage'],\n): AgentConversation {\n    return {\n        actionId: 'review',\n        cardInternalId: 'card-1',\n        cardPath: context.file,\n        completedAt,\n        contextWindowUsage,\n        entries: [],\n        hasExplicitTitle: true,\n        id,\n        path: `design/activity/card.json#conversation=${id}`,\n        providerSessions: [],\n        startedAt: '2026-08-04T10:00:00.000Z',\n        status: 'completed',\n        title: id,\n        viewed: true,\n    }\n}\n\nfunction createConversationStore(initialConversation: AgentConversation) {\n    const events = new EventTarget()\n    let currentSnapshot = { conversations: [initialConversation], loading: false, selectedConversation: initialConversation }\n    const selectableStore = {\n        getSnapshot: () => currentSnapshot,\n        subscribe: (listener: () => void) => {\n            events.addEventListener('changed', listener)\n\n            return () => events.removeEventListener('changed', listener)\n        },\n    } as unknown as ActionConversationStore\n    const selectConversation = (selectedConversation: AgentConversation) => {\n        currentSnapshot = { conversations: [initialConversation, selectedConversation], loading: false, selectedConversation }\n        events.dispatchEvent(new Event('changed'))\n    }\n\n    return { selectConversation, store: selectableStore }\n}\n\ndescribe('ActionConversationChatOwner', () => {\n    afterEach(() => {\n        cleanup()\n        actionRunRegistry.stop()\n        cardPopupService.clear()\n        agentAcknowledgementService.reset()\n        setActionBridgeOverride(null)\n    })\n\n    it('renders streamed output from its conversation selector', () => {\n        let listener: ((event: ActionRunEvent) => void) | null = null\n        const bridge = {\n            onActionRun: vi.fn((nextListener) => {\n                listener = nextListener\n\n                return vi.fn()\n            }),\n        } as unknown as ElectronActionBridge\n        setActionBridgeOverride(bridge)\n        actionRunRegistry.start()\n        render(\n            <AppThemeProvider>\n                <ActionConversationChatOwner actionId=\"review\" context={context} store={store} />\n            </AppThemeProvider>,\n        )\n        if (!listener) throw new Error('Missing run listener')\n        const emit = listener as (event: ActionRunEvent) => void\n        const event = {actionId: 'review', context, phase: 'main' as const, rootActionId: 'review', runId: 'run-1', status: 'running' as const}\n\n        act(() => {\n            emit({ ...event, type: 'run' })\n            emit({\n                ...event,\n                type: 'update',\n                update: {\n                    conversation: {\n                        actionId: 'review',\n                        cardInternalId: null,\n                        cardPath: context.file,\n                        completedAt: null,\n                        entries: [],\n                        hasExplicitTitle: false,\n                        id: 'conversation-1',\n                        path: 'conversation.json',\n                        providerSessions: [],\n                        startedAt: '2026-08-04T10:00:00.000Z',\n                        status: 'running',\n                        title: 'Review',\n                        viewed: true,\n                    },\n                    kind: 'agentStarted',\n                },\n            })\n        })\n\n        act(() => emit({\n            ...event,\n            type: 'update',\n            update: { content: 'streamed', kind: 'output', messageId: 'assistant-1', sequence: 1 },\n        }))\n\n        expect(screen.getByText('streamed')).toBeInTheDocument()\n        expect(screen.queryByText(/context:/u)).not.toBeInTheDocument()\n\n        act(() => emit({\n            ...event,\n            type: 'update',\n            update: {\n                contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 },\n                kind: 'agentUsage',\n                usage: { cachedInputTokens: 0, inputTokens: 41_000, outputTokens: 1_000, reasoningTokens: 0, totalTokens: 42_000 },\n            },\n        }))\n\n        expect(screen.getByText('context: 16%')).toBeInTheDocument()\n    })\n\n    it('updates duration and context together when selected conversation changes', () => {\n        const firstConversation = conversation(\n            'conversation-1',\n            '2026-08-04T10:01:00.000Z',\n            { capacityTokens: 258_400, usedTokens: 42_000 },\n        )\n        const secondConversation = conversation(\n            'conversation-2',\n            '2026-08-04T10:02:30.000Z',\n            { capacityTokens: 200, usedTokens: 100 },\n        )\n        const { selectConversation, store: selectableStore } = createConversationStore(firstConversation)\n\n        render(\n            <AppThemeProvider>\n                <ActionConversationChatOwner actionId=\"review\" context={context} store={selectableStore} />\n            </AppThemeProvider>,\n        )\n        expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('1:00')\n        expect(screen.getByText('context: 16%')).toBeInTheDocument()\n\n        act(() => selectConversation(secondConversation))\n\n        expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('2:30')\n        expect(screen.getByText('context: 50%')).toBeInTheDocument()\n    })\n\n    it.each(['activated', 'newly exposed'])('acknowledges unseen chat when popup becomes topmost: %s', async (scenario) => {\n        const unseen = {\n            actionId: 'review',\n            cardInternalId: 'card-1',\n            cardPath: context.file,\n            completedAt: '2026-08-04T10:01:00.000Z',\n            entries: [],\n            hasExplicitTitle: true,\n            id: 'conversation-1',\n            path: 'design/activity/card__card-1.json#conversation=conversation-1',\n            providerSessions: [],\n            startedAt: '2026-08-04T10:00:00.000Z',\n            status: 'completed' as const,\n            title: 'Review',\n            viewed: false,\n        }\n        const selectedSnapshot = { ...snapshot, selectedConversation: unseen }\n        const selectedStore = {\n            getSnapshot: () => selectedSnapshot,\n            subscribe: () => () => undefined,\n        } as unknown as ActionConversationStore\n        const updateActionConversationViewed = vi.fn(async (_reference: string, viewed: boolean) => ({ ...unseen, viewed }))\n        setActionBridgeOverride({\n            onActionRun: vi.fn(() => vi.fn()),\n            updateActionConversationViewed,\n        } as unknown as ElectronActionBridge)\n        actionRunRegistry.start()\n        const firstAnchor = document.createElement('button')\n        const coveringAnchor = document.createElement('button')\n        cardPopupService.toggleAction(context, firstAnchor)\n        const firstEntry = cardPopupService.getSnapshot()[0]\n        const coveringContext = { cardInternalId: 'card-2', file: 'design/F-139.md', kind: 'card' as const }\n        cardPopupService.toggleAction(coveringContext, coveringAnchor)\n        const coveringEntry = cardPopupService.getSnapshot().at(-1)\n        if (!firstEntry || !coveringEntry) throw new Error('Missing popup entries')\n\n        render(\n            <AppThemeProvider>\n                <ActionConversationChatOwner\n                    actionId=\"review\"\n                    context={context}\n                    popupEntryId={firstEntry.id}\n                    store={selectedStore}\n                />\n            </AppThemeProvider>,\n        )\n        expect(updateActionConversationViewed).not.toHaveBeenCalled()\n\n        act(() => {\n            if (scenario === 'activated') cardPopupService.activate(firstEntry.id)\n            else cardPopupService.close(coveringEntry.id)\n        })\n\n        await waitFor(() => expect(updateActionConversationViewed).toHaveBeenCalledWith(unseen.path, true))\n    })\n\n    it('does not acknowledge topmost popup before conversation load succeeds', () => {\n        const updateActionConversationViewed = vi.fn()\n        setActionBridgeOverride({\n            onActionRun: vi.fn(() => vi.fn()),\n            updateActionConversationViewed,\n        } as unknown as ElectronActionBridge)\n        actionRunRegistry.start()\n        cardPopupService.toggleAction(context, document.createElement('button'))\n        const entry = cardPopupService.getSnapshot()[0]\n        if (!entry) throw new Error('Missing popup entry')\n\n        render(\n            <AppThemeProvider>\n                <ActionConversationChatOwner actionId=\"review\" context={context} popupEntryId={entry.id} store={store} />\n            </AppThemeProvider>,\n        )\n\n        expect(updateActionConversationViewed).not.toHaveBeenCalled()\n    })\n})\n\r\n",
+          "durationMs": 602,
+          "exitCode": 0,
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-16",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\conversation\\\\action_conversation_chat_owner.test.tsx'\"",
@@ -779,13 +786,13 @@
           "status": "completed",
           "timestamp": "2026-08-15T13:27:08.699Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\conversation\\\\action_conversation_chat_owner.test.tsx'\"",
-          "durationMs": 602,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\conversation\\\\action_conversation_rendering.test.tsx'\"",
           "content": "import { cleanup, render } from '@testing-library/react'\nimport type { ReactNode } from 'react'\nimport { afterEach, describe, expect, it, vi } from 'vitest'\nimport type { AgentConversation, AgentConversationEntry } from '../../../data/data_types'\nimport { AppThemeProvider } from '../../../theme/theme_provider'\nimport { ActionConversationChat } from './action_conversation_chat'\n\nconst renderProbes = vi.hoisted(() => ({ event: vi.fn(), markdown: vi.fn() }))\n\nvi.mock('react-markdown', () => ({\n    default: ({ children }: { children: ReactNode }) => {\n        renderProbes.markdown(children)\n\n        return <div>{children}</div>\n    },\n}))\n\nvi.mock('./agent_tool_event', () => ({\n    AgentToolEvent: () => {\n        renderProbes.event()\n\n        return <div>Tool event</div>\n    },\n}))\n\nfunction conversation(entries: AgentConversationEntry[]): AgentConversation {\n    return {\n        actionId: 'review',\n        cardInternalId: 'card-1',\n        cardPath: 'design/F-138.md',\n        completedAt: null,\n        entries,\n        hasExplicitTitle: false,\n        id: 'conversation-1',\n        path: 'conversation.json',\n        providerSessions: [],\n        startedAt: '2026-08-04T10:00:00.000Z',\n        status: 'running',\n        title: 'Review',\n        viewed: true,\n    }\n}\n\ndescribe('ActionConversationChat rendering', () => {\n    afterEach(() => {\n        cleanup()\n        vi.clearAllMocks()\n    })\n\n    it('rerenders only changed entries while assistant output streams', () => {\n        const historicalMessage = {content: 'Historical', id: 'message-1', kind: 'message' as const, role: 'assistant' as const, timestamp: 'now'}\n        const toolEvent = {\n            content: '', id: 'event-1', kind: 'event' as const, providerItemId: 'tool-1', status: 'completed',\n            timestamp: 'now', type: 'tool',\n        }\n        const streamingMessage = {content: 'Live', id: 'message-2', kind: 'message' as const, role: 'assistant' as const, timestamp: 'now'}\n        const firstConversation = conversation([historicalMessage, toolEvent, streamingMessage])\n        const { rerender } = render(\n            <AppThemeProvider>\n                <ActionConversationChat conversation={firstConversation} status=\"running\" />\n            </AppThemeProvider>,\n        )\n        renderProbes.markdown.mockClear()\n        renderProbes.event.mockClear()\n\n        rerender(\n            <AppThemeProvider>\n                <ActionConversationChat\n                    conversation={{\n                        ...firstConversation,\n                        entries: [historicalMessage, toolEvent, { ...streamingMessage, content: 'Live update' }],\n                    }}\n                    status=\"running\"\n                />\n            </AppThemeProvider>,\n        )\n\n        expect(renderProbes.markdown).toHaveBeenCalledOnce()\n        expect(renderProbes.markdown).toHaveBeenCalledWith('Live update')\n        expect(renderProbes.event).not.toHaveBeenCalled()\n    })\n\n    it('does not rerender unchanged grouped tool rows while assistant output streams', () => {\n        const historicalMessage = {content: 'Historical', id: 'message-1', kind: 'message' as const, role: 'assistant' as const, timestamp: 'now'}\n        const firstTool = {\n            content: '', id: 'event-1', kind: 'event' as const, providerItemId: 'tool-1', status: 'completed',\n            timestamp: 'now', type: 'webSearch',\n        }\n        const secondTool = {\n            content: '', id: 'event-2', kind: 'event' as const, providerItemId: 'tool-2', status: 'completed',\n            timestamp: 'now', type: 'mcpToolCall',\n        }\n        const streamingMessage = {content: 'Live', id: 'message-2', kind: 'message' as const, role: 'assistant' as const, timestamp: 'now'}\n        const firstConversation = conversation([historicalMessage, firstTool, secondTool, streamingMessage])\n        const { rerender } = render(\n            <AppThemeProvider>\n                <ActionConversationChat conversation={firstConversation} status=\"running\" />\n            </AppThemeProvider>,\n        )\n        renderProbes.markdown.mockClear()\n        renderProbes.event.mockClear()\n\n        rerender(\n            <AppThemeProvider>\n                <ActionConversationChat\n                    conversation={{\n                        ...firstConversation,\n                        entries: [historicalMessage, firstTool, secondTool, { ...streamingMessage, content: 'Live update' }],\n                    }}\n                    status=\"running\"\n                />\n            </AppThemeProvider>,\n        )\n\n        expect(renderProbes.markdown).toHaveBeenCalledOnce()\n        expect(renderProbes.markdown).toHaveBeenCalledWith('Live update')\n        expect(renderProbes.event).not.toHaveBeenCalled()\n    })\n})\n\r\n",
+          "durationMs": 701,
+          "exitCode": 0,
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-17",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\conversation\\\\action_conversation_rendering.test.tsx'\"",
@@ -794,13 +801,13 @@
           "status": "completed",
           "timestamp": "2026-08-15T13:27:08.699Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\conversation\\\\action_conversation_rendering.test.tsx'\"",
-          "durationMs": 701,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"CircularProgress|progressbar|Tooltip|userEvent\\\\.hover|userEvent\\\\.unhover\\\" app/src --glob \\\"*.test.tsx\\\"\"",
           "content": "app/src\\components\\actions\\run\\popup\\action_popup_bottom_row.test.tsx:202:        expect(await screen.findByText('Schedule', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()\napp/src\\components\\actions\\run\\popup\\action_popup_bottom_row.test.tsx:204:        await waitFor(() => expect(screen.queryByText('Schedule', { selector: '.MuiTooltip-tooltip' })).not.toBeInTheDocument())\napp/src\\components\\actions\\run\\popup\\action_popup_bottom_row.test.tsx:206:        expect(await screen.findByText('Send', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()\napp/src\\components\\actions\\run\\popup\\action_popup_bottom_row.test.tsx:217:        expect(await screen.findByText('Run', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()\napp/src\\components\\actions\\run\\popup\\action_popup_bottom_row.test.tsx:260:        expect(await screen.findByText(/Ctrl\\+click or long press to stop sequence/u, { selector: '.MuiTooltip-tooltip' }))\napp/src\\components\\actions\\run\\popup\\action_popup.test.tsx:1732:        expect(await screen.findByText('Stop', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()\napp/src\\components\\shell\\project_sync_status.test.tsx:38:        expect(screen.queryByRole('progressbar', { name: 'Saving' })).not.toBeInTheDocument()\napp/src\\components\\shell\\project_sync_status.test.tsx:48:        expect(screen.getByRole('progressbar', { name: 'Saving' })).toBeInTheDocument()\napp/src\\components\\shell\\project_sync_status.test.tsx:59:        expect(screen.getByRole('progressbar', { name: 'Pushing' })).toBeInTheDocument()\napp/src\\components\\shell\\update_notification.test.tsx:73:        const progressBar = screen.getByRole('progressbar')\napp/src\\components\\shell\\update_notification.test.tsx:77:        expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '60')\napp/src\\components\\config\\worktree_config_list.test.tsx:87:        expect(await screen.findByRole('progressbar', { name: 'Selecting linked worktree folder' })).toBeInTheDocument()\napp/src\\components\\config\\worktree_config_list.test.tsx:91:        await waitFor(() => expect(screen.queryByRole('progressbar', { name: 'Selecting linked worktree folder' })).not.toBeInTheDocument())\n",
+          "durationMs": 732,
+          "exitCode": 0,
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-18",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"CircularProgress|progressbar|Tooltip|userEvent\\\\.hover|userEvent\\\\.unhover\\\" app/src --glob \\\"*.test.tsx\\\"\"",
@@ -809,13 +816,13 @@
           "status": "completed",
           "timestamp": "2026-08-15T13:27:08.700Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"CircularProgress|progressbar|Tooltip|userEvent\\\\.hover|userEvent\\\\.unhover\\\" app/src --glob \\\"*.test.tsx\\\"\"",
-          "durationMs": 732,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\package.json'\"",
           "content": "{\n  \"name\": \"app\",\n  \"private\": true,\n  \"version\": \"0.3.0\",\n  \"type\": \"module\",\n  \"scripts\": {\n    \"dev\": \"vite\",\n    \"build\": \"tsc && vite build\",\n    \"lint\": \"eslint .\",\n    \"lint-fix\": \"eslint . --fix\",\n    \"preview\": \"vite preview\",\n    \"typecheck\": \"tsc --noEmit\",\n    \"test\": \"vitest run\",\n    \"test:full\": \"vitest run\",\n    \"test:related\": \"vitest related --run\",\n    \"test:ui\": \"vitest run --project ui\",\n    \"test:unit\": \"vitest run --project unit\",\n    \"test:watch\": \"vitest\"\n  },\n  \"devDependencies\": {\n    \"@eslint/js\": \"^9.39.4\",\n    \"@testing-library/jest-dom\": \"^6.9.1\",\n    \"@testing-library/react\": \"^16.3.2\",\n    \"@types/prismjs\": \"^1.26.6\",\n    \"@types/qrcode\": \"^1.5.6\",\n    \"@types/react\": \"^19.2.17\",\n    \"@types/react-dom\": \"^19.2.3\",\n    \"@vitejs/plugin-react\": \"^6.0.3\",\n    \"eslint\": \"^9.39.4\",\n    \"eslint-plugin-import\": \"^2.32.0\",\n    \"eslint-plugin-react\": \"^7.37.5\",\n    \"eslint-plugin-react-hooks\": \"^7.1.1\",\n    \"eslint-plugin-react-refresh\": \"^0.5.3\",\n    \"globals\": \"^17.7.0\",\n    \"jsdom\": \"^29.1.1\",\n    \"typescript\": \"~6.0.2\",\n    \"typescript-eslint\": \"^8.62.1\",\n    \"vite\": \"^8.1.1\",\n    \"vitest\": \"^4.1.9\"\n  },\n  \"dependencies\": {\n    \"@aptabase/web\": \"^0.5.0\",\n    \"@dnd-kit/core\": \"^6.3.1\",\n    \"@dnd-kit/sortable\": \"^10.0.0\",\n    \"@emotion/react\": \"^11.14.0\",\n    \"@emotion/styled\": \"^11.14.1\",\n    \"@lexical/history\": \"^0.35.0\",\n    \"@lexical/link\": \"^0.35.0\",\n    \"@lexical/react\": \"^0.35.0\",\n    \"@mdxeditor/editor\": \"^4.0.4\",\n    \"@mui/icons-material\": \"^9.2.0\",\n    \"@mui/material\": \"^9.2.0\",\n    \"@sentry/react\": \"^10.63.0\",\n    \"lexical\": \"^0.35.0\",\n    \"mdi-material-ui\": \"^8.0.0\",\n    \"prismjs\": \"^1.30.0\",\n    \"qrcode\": \"^1.5.4\",\n    \"react\": \"^19.2.7\",\n    \"react-arborist\": \"^3.13.2\",\n    \"react-diff-viewer-continued\": \"^4.2.2\",\n    \"react-dom\": \"^19.2.7\",\n    \"react-markdown\": \"^10.1.0\",\n    \"react-virtuoso\": \"^4.18.11\",\n    \"remark-gfm\": \"^4.0.1\",\n    \"uuid\": \"^14.0.1\"\n  }\n}\n\r\n",
+          "durationMs": 632,
+          "exitCode": 0,
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-19",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\package.json'\"",
@@ -824,13 +831,13 @@
           "status": "completed",
           "timestamp": "2026-08-15T13:27:08.699Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\package.json'\"",
-          "durationMs": 632,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app\\\\src\\\\components\\\\actions\\\\conversation\\\\action_conversation_chat.test.tsx' | Select-Object -Skip 110 -First 120\"",
           "content": "\r\nfunction restoreProperty(name: 'clientHeight' | 'scrollHeight' | 'scrollTop', descriptor?: PropertyDescriptor) {\r\n    if (descriptor) {\r\n        Object.defineProperty(HTMLElement.prototype, name, descriptor)\r\n        return\r\n    }\r\n\r\n    delete HTMLElement.prototype[name]\r\n}\r\n\r\ndescribe('ActionConversationChat', () => {\r\n    beforeEach(() => {\r\n        clientHeight = 100\r\n        scrollHeight = 300\r\n        scrollPositions = new WeakMap<HTMLElement, number>()\r\n        Object.defineProperty(HTMLElement.prototype, 'clientHeight', { configurable: true, get: () => clientHeight })\r\n        Object.defineProperty(HTMLElement.prototype, 'scrollHeight', { configurable: true, get: () => scrollHeight })\r\n        Object.defineProperty(HTMLElement.prototype, 'scrollTop', {\r\n            configurable: true,\r\n            get() {\r\n                return scrollPositions.get(this) ?? 0\r\n            },\r\n            set(value: number) {\r\n                const maximumScrollTop = Math.max(0, scrollHeight - clientHeight)\r\n                scrollPositions.set(this, Math.max(0, Math.min(value, maximumScrollTop)))\r\n            },\r\n        })\r\n    })\r\n\r\n    afterEach(() => {\r\n        cleanup()\r\n        setActionBridgeOverride(null)\r\n        vi.restoreAllMocks()\r\n        restoreProperty('clientHeight', originalClientHeight)\r\n        restoreProperty('scrollHeight', originalScrollHeight)\r\n        restoreProperty('scrollTop', originalScrollTop)\r\n    })\r\n\r\n    it('starts at the end when a conversation loads', () => {\r\n        renderChat(conversation('first.json', [message('message-1', 'First')]))\r\n\r\n        expect(screen.getByLabelText('Conversation chat').scrollTop).toBe(200)\r\n    })\r\n\r\n    it('keeps duration and context as the final row inside the scrollable transcript', () => {\r\n        const value = conversation('first.json', [message('message-1', 'First')])\r\n        value.contextWindowUsage = { capacityTokens: 258_400, usedTokens: 42_000 }\r\n        renderChat(value)\r\n\r\n        const viewport = screen.getByLabelText('Conversation chat')\r\n        const metadata = screen.getByLabelText('Conversation metadata')\r\n        expect(viewport).toContainElement(metadata)\r\n        expect(viewport.lastElementChild).toBe(metadata)\r\n        expect(metadata).toContainElement(screen.getByLabelText('Elapsed time'))\r\n        expect(metadata).toContainElement(screen.getByText('context: 16%'))\r\n        expect(metadata).toHaveStyle({ alignItems: 'baseline' })\r\n\r\n        viewport.scrollTop = 40\r\n        fireEvent.scroll(viewport)\r\n\r\n        expect(viewport.scrollTop).toBe(40)\r\n    })\r\n\r\n    it('caps context occupancy and hides unavailable context without hiding duration', () => {\r\n        const value = conversation('first.json', [])\r\n        value.contextWindowUsage = { capacityTokens: 100, usedTokens: 125 }\r\n        const { rerender } = renderChat(value)\r\n\r\n        expect(screen.getByText('context: 100%')).toBeInTheDocument()\r\n\r\n        rerender(\r\n            <AppThemeProvider>\r\n                <ActionConversationChat\r\n                    conversation={{ ...value, contextWindowUsage: { capacityTokens: 0, usedTokens: 1 } }}\r\n                    status=\"idle\"\r\n                />\r\n            </AppThemeProvider>,\r\n        )\r\n\r\n        expect(screen.queryByText(/context:/u)).not.toBeInTheDocument()\r\n        expect(screen.getByLabelText('Elapsed time')).toBeInTheDocument()\r\n    })\r\n\r\n    it('hides idle status while keeping duration visible', () => {\r\n        renderChat(conversation('completed.json', []))\r\n\r\n        expect(screen.queryByRole('status')).not.toBeInTheDocument()\r\n        expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('1:00')\r\n    })\r\n\r\n    it('uses the derived Markdown style provided by the app theme', () => {\r\n        render(\r\n            <AppThemeProvider>\r\n                <MarkdownContentSxOverride>\r\n                    <ActionConversationChat\r\n                        conversation={conversation('styled.json', [message('message-1', 'Styled')])}\r\n                        status=\"idle\"\r\n                    />\r\n                </MarkdownContentSxOverride>\r\n            </AppThemeProvider>,\r\n        )\r\n        const messageBox = screen.getByText('Styled').closest('.mdxeditor-content')?.parentElement\r\n\r\n        expect(messageBox).toHaveStyle({ paddingTop: '37px' })\r\n    })\r\n\r\n    it('returns to the end when the selected conversation changes', () => {\r\n        const first = conversation('first.json', [message('message-1', 'First')])\r\n        const second = conversation('second.json', [message('message-2', 'Second')])\r\n        const { rerender } = renderChat(first)\r\n        const viewport = screen.getByLabelText('Conversation chat')\r\n        viewport.scrollTop = 40\r\n        fireEvent.scroll(viewport)\r\n\r\n        rerender(\r\n            <AppThemeProvider>\r\n                <ActionConversationChat conversation={second} status=\"idle\" />\r\n            </AppThemeProvider>,\r\n        )\r\n\r\n",
+          "durationMs": 869,
+          "exitCode": 0,
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-20",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app\\\\src\\\\components\\\\actions\\\\conversation\\\\action_conversation_chat.test.tsx' | Select-Object -Skip 110 -First 120\"",
@@ -839,26 +846,26 @@
           "status": "completed",
           "timestamp": "2026-08-15T13:27:08.791Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app\\\\src\\\\components\\\\actions\\\\conversation\\\\action_conversation_chat.test.tsx' | Select-Object -Skip 110 -First 120\"",
-          "durationMs": 869,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-21",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0626b98c800a4374016a806930372481918ccd919027303f1e",
           "sequence": 21,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T13:27:16.121Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app\\\\src\\\\components\\\\actions\\\\run\\\\popup\\\\action_popup_bottom_row.test.tsx' | Select-Object -Skip 185 -First 40\"",
           "content": "        expect(screen.getByRole('button', { name: 'Schedule' })).toBeInTheDocument()\r\n        expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument()\r\n        expect(unrelatedRender).toHaveBeenCalledTimes(1)\r\n        act(() => promptDraft.edit(''))\r\n        expect(screen.queryByRole('button', { name: 'Schedule' })).not.toBeInTheDocument()\r\n        expect(screen.queryByRole('button', { name: 'Send' })).not.toBeInTheDocument()\r\n    })\r\n\r\n    it('renders icon-only Schedule and exposes descriptive tooltips for idle controls', async () => {\r\n        actionPromptDraftService.getDraft(action.id, context, null, { prepare: false }).edit('Plan')\r\n        renderBottomRow()\r\n        const schedule = screen.getByRole('button', { name: 'Schedule' })\r\n\r\n        expect(schedule).toHaveTextContent('')\r\n        expect(schedule.querySelector('svg')).not.toBeNull()\r\n        fireEvent.mouseOver(schedule)\r\n        expect(await screen.findByText('Schedule', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()\r\n        fireEvent.mouseLeave(schedule)\r\n        await waitFor(() => expect(screen.queryByText('Schedule', { selector: '.MuiTooltip-tooltip' })).not.toBeInTheDocument())\r\n        fireEvent.mouseOver(screen.getByRole('button', { name: 'Send' }))\r\n        expect(await screen.findByText('Send', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()\r\n    })\r\n\r\n    it('provides a tooltip for command Run', async () => {\r\n        const commandAction = { ...action, id: 'command', label: 'Command', type: 'command' as const }\r\n        renderBottomRow(commandAction)\r\n        const run = screen.getByRole('button', { name: 'Run' })\r\n\r\n        expect(screen.getByTestId('action-popup-bottom-row')).not.toHaveAttribute('data-embedded')\r\n\r\n        fireEvent.mouseOver(run)\r\n        expect(await screen.findByText('Run', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()\r\n    })\r\n\r\n    it('finishes a persisted waiting conversation on normal Finish click', async () => {\r\n        const source = waitingConversation(action.id)\r\n        const updated = { ...source, completedAt: '2026-08-04T10:30:00.000Z', status: 'completed' as const }\r\n        const closeWaitingActionConversation = vi.fn(async () => updated)\r\n        window.md2Actions = {\r\n            closeWaitingActionConversation,\r\n",
+          "durationMs": 968,
+          "exitCode": 0,
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-22",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app\\\\src\\\\components\\\\actions\\\\run\\\\popup\\\\action_popup_bottom_row.test.tsx' | Select-Object -Skip 185 -First 40\"",
@@ -867,36 +874,33 @@
           "status": "completed",
           "timestamp": "2026-08-15T13:27:18.542Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app\\\\src\\\\components\\\\actions\\\\run\\\\popup\\\\action_popup_bottom_row.test.tsx' | Select-Object -Skip 185 -First 40\"",
-          "durationMs": 968,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-23",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0626b98c800a4374016a8069392fd48191ac84af3aa0cad97f",
           "sequence": 23,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T13:27:28.684Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-24",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0626b98c800a4374016a806948324c8191ade4404a44aa2f34",
           "sequence": 24,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T13:27:35.537Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "agent": "codex",
@@ -917,16 +921,16 @@
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-27",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0626b98c800a4374016a80695bbd808191992349861ef40586",
           "sequence": 27,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T13:27:55.162Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "agent": "codex",
@@ -939,32 +943,35 @@
         },
         {
           "content": "",
+          "deletions": 4,
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-29",
+          "insertions": 10,
           "kind": "event",
           "label": "File changes",
           "providerItemId": "exec-1e66a41d-7509-44b6-a816-da4cd35fcf11",
           "sequence": 29,
           "status": "completed",
           "timestamp": "2026-08-15T13:28:06.471Z",
-          "type": "fileChange",
-          "deletions": 4,
-          "insertions": 10
+          "type": "fileChange"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-30",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0626b98c800a4374016a8069697e748191a82ce1ffd78c7a3d",
           "sequence": 30,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T13:28:08.609Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app\\\\src\\\\components\\\\actions\\\\conversation\\\\action_conversation_chat.test.tsx' | Select-Object -First 115\"",
           "content": "import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'\r\nimport type { ReactNode } from 'react'\r\nimport { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'\r\nimport type {\r\n    AgentConversation,\r\n    AgentConversationEntry,\r\n    AgentConversationEvent,\r\n    AgentConversationEventEntry,\r\n    AgentConversationMessageEntry,\r\n} from '../../../data/data_types'\r\nimport type { PopupRunStatus } from '../run/popup/action_popup_defaults'\r\nimport { setActionBridgeOverride, type ElectronActionBridge } from '../../../data/electron_action_bridge'\r\nimport { dataService } from '../../../services/data/data_service'\r\nimport { dialogService } from '../../../services/dialog_service'\r\nimport { AppThemeProvider } from '../../../theme/theme_provider'\r\nimport { AppThemeContext } from '../../../theme/theme_context'\r\nimport { useAppTheme } from '../../../theme/use_app_theme'\r\nimport { ActionConversationChat } from './action_conversation_chat'\r\n\r\nlet clientHeight = 100\r\nlet scrollHeight = 300\r\nlet scrollPositions = new WeakMap<HTMLElement, number>()\r\nconst originalClientHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientHeight')\r\nconst originalScrollHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'scrollHeight')\r\nconst originalScrollTop = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'scrollTop')\r\n\r\nfunction message(id: string, content: string): AgentConversationMessageEntry {\r\n    return { content, id, kind: 'message', role: 'assistant', timestamp: '2026-07-27T10:00:00.000Z' }\r\n}\r\n\r\nfunction eventEntry(event: AgentConversationEvent): AgentConversationEventEntry {\r\n    return { ...event, kind: 'event' }\r\n}\r\n\r\nfunction toolEvent(\r\n    id: string,\r\n    type: string,\r\n    status = 'completed',\r\n    overrides: Partial<AgentConversationEvent> = {},\r\n): AgentConversationEventEntry {\r\n    return eventEntry({\r\n        content: `${id} input`,\r\n        id,\r\n        label: id,\r\n        providerItemId: id,\r\n        status,\r\n        timestamp: 'now',\r\n        type,\r\n        ...overrides,\r\n    })\r\n}\r\n\r\nfunction completedReasoning(id: string): AgentConversationEventEntry {\r\n    return {\r\n        content: '  ',\r\n        id,\r\n        kind: 'event',\r\n        providerItemId: id,\r\n        status: 'completed',\r\n        timestamp: 'now',\r\n        type: 'reasoning',\r\n    }\r\n}\r\n\r\nfunction conversation(\r\n    path: string,\r\n    entries: AgentConversationEntry[],\r\n    agent: string | null = null,\r\n): AgentConversation {\r\n    return {\r\n        actionId: 'review',\r\n        cardInternalId: 'card-1',\r\n        cardPath: 'design/F-83.md',\r\n        completedAt: '2026-07-27T10:01:00.000Z',\r\n        entries,\r\n        hasExplicitTitle: true,\r\n        id: path,\r\n        path,\r\n        providerSessions: agent ? [{\r\n            agent,\r\n            conversationId: 'provider-1',\r\n            createdAt: '2026-07-27T10:00:00.000Z',\r\n            lastUsedAt: '2026-07-27T10:01:00.000Z',\r\n            synchronizedThroughMessageId: entries.findLast((entry) => entry.kind === 'message')?.id ?? '',\r\n        }] : [],\r\n        startedAt: '2026-07-27T10:00:00.000Z',\r\n        status: 'completed',\r\n        title: path,\r\n        viewed: true,\r\n    }\r\n}\r\n\r\nfunction renderChat(value: AgentConversation | null, status: PopupRunStatus = 'idle') {\r\n    return render(\r\n        <AppThemeProvider>\r\n            <ActionConversationChat conversation={value} status={status} />\r\n        </AppThemeProvider>,\r\n    )\r\n}\r\n\r\nfunction reservedBlockCount() {\r\n    return document.querySelectorAll('[data-conversation-reserved-block]').length\r\n}\r\n\r\nfunction MarkdownContentSxOverride({ children }: { children: ReactNode }) {\r\n    const theme = useAppTheme()\r\n    const value = { ...theme, markdownContentSx: { paddingTop: '37px' } }\r\n\r\n    return <AppThemeContext.Provider value={value}>{children}</AppThemeContext.Provider>\r\n}\r\n\r\nfunction restoreProperty(name: 'clientHeight' | 'scrollHeight' | 'scrollTop', descriptor?: PropertyDescriptor) {\r\n    if (descriptor) {\r\n        Object.defineProperty(HTMLElement.prototype, name, descriptor)\r\n        return\r\n",
+          "durationMs": 476,
+          "exitCode": 0,
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-31",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app\\\\src\\\\components\\\\actions\\\\conversation\\\\action_conversation_chat.test.tsx' | Select-Object -First 115\"",
@@ -973,49 +980,46 @@
           "status": "completed",
           "timestamp": "2026-08-15T13:28:10.491Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app\\\\src\\\\components\\\\actions\\\\conversation\\\\action_conversation_chat.test.tsx' | Select-Object -First 115\"",
-          "durationMs": 476,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-32",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0626b98c800a4374016a80696d572881918f5603cc80909c39",
           "sequence": 32,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T13:28:21.464Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "content": "",
+          "deletions": 1,
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-33",
+          "insertions": 1,
           "kind": "event",
           "label": "File changes",
           "providerItemId": "exec-303d47dd-19af-43d8-b445-0e886077075b",
           "sequence": 33,
           "status": "completed",
           "timestamp": "2026-08-15T13:28:23.913Z",
-          "type": "fileChange",
-          "deletions": 1,
-          "insertions": 1
+          "type": "fileChange"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-34",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0626b98c800a4374016a80697a89e88191b137449d1b6a5f26",
           "sequence": 34,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T13:28:32.158Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "agent": "codex",
@@ -1028,32 +1032,35 @@
         },
         {
           "content": "",
+          "deletions": 4,
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-36",
+          "insertions": 22,
           "kind": "event",
           "label": "File changes",
           "providerItemId": "exec-8f11a40b-e816-4983-aab1-9f98839e3e71",
           "sequence": 36,
           "status": "completed",
           "timestamp": "2026-08-15T13:28:52.467Z",
-          "type": "fileChange",
-          "deletions": 4,
-          "insertions": 22
+          "type": "fileChange"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-37",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0626b98c800a4374016a80699a69288191819938d04e859855",
           "sequence": 37,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T13:28:57.486Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app\\\\src\\\\components\\\\actions\\\\conversation\\\\action_conversation_chat.test.tsx' | Select-Object -Skip 145 -First 75\"",
           "content": "        restoreProperty('scrollTop', originalScrollTop)\r\n    })\r\n\r\n    it('starts at the end when a conversation loads', () => {\r\n        renderChat(conversation('first.json', [message('message-1', 'First')]))\r\n\r\n        expect(screen.getByLabelText('Conversation chat').scrollTop).toBe(200)\r\n    })\r\n\r\n    it('keeps duration and context usage indicator as the final row inside the scrollable transcript', async () => {\r\n        const value = conversation('first.json', [message('message-1', 'First')])\r\n        value.contextWindowUsage = { capacityTokens: 258_400, usedTokens: 42_000 }\r\n        renderChat(value)\r\n\r\n        const viewport = screen.getByLabelText('Conversation chat')\r\n        const metadata = screen.getByLabelText('Conversation metadata')\r\n        const progress = screen.getByRole('progressbar', { name: 'Context usage' })\r\n        expect(viewport).toContainElement(metadata)\r\n        expect(viewport.lastElementChild).toBe(metadata)\r\n        expect(metadata).toContainElement(screen.getByLabelText('Elapsed time'))\r\n        expect(metadata).toContainElement(progress)\r\n        expect(progress).toHaveAttribute('aria-valuenow', '16')\r\n        expect(screen.queryByText('context: 16%')).not.toBeInTheDocument()\r\n        expect(metadata).toHaveStyle({ alignItems: 'baseline' })\r\n\r\n        fireEvent.mouseOver(progress)\r\n        expect(await screen.findByText('Context usage: 16%', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()\r\n        fireEvent.mouseLeave(progress)\r\n        await waitFor(() => expect(screen.queryByText('Context usage: 16%', {\r\n            selector: '.MuiTooltip-tooltip',\r\n        })).not.toBeInTheDocument())\r\n        fireEvent.touchStart(progress)\r\n        expect(await screen.findByText('Context usage: 16%', { selector: '.MuiTooltip-tooltip' }, {\r\n            timeout: 1_500,\r\n        })).toBeInTheDocument()\r\n\r\n        viewport.scrollTop = 40\r\n        fireEvent.scroll(viewport)\r\n\r\n        expect(viewport.scrollTop).toBe(40)\r\n    })\r\n\r\n    it('caps context occupancy and hides unavailable context without hiding duration', () => {\r\n        const value = conversation('first.json', [])\r\n        value.contextWindowUsage = { capacityTokens: 100, usedTokens: 125 }\r\n        const { rerender } = renderChat(value)\r\n\r\n        const progress = screen.getByRole('progressbar', { name: 'Context usage' })\r\n        expect(progress).toHaveAttribute('aria-valuenow', '100')\r\n        fireEvent.mouseOver(progress)\r\n        expect(await screen.findByText('Context usage: 100%', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()\r\n\r\n        rerender(\r\n            <AppThemeProvider>\r\n                <ActionConversationChat\r\n                    conversation={{ ...value, contextWindowUsage: { capacityTokens: 0, usedTokens: 1 } }}\r\n                    status=\"idle\"\r\n                />\r\n            </AppThemeProvider>,\r\n        )\r\n\r\n        expect(screen.queryByRole('progressbar', { name: 'Context usage' })).not.toBeInTheDocument()\r\n        expect(screen.queryByText(/Context usage:/u, { selector: '.MuiTooltip-tooltip' })).not.toBeInTheDocument()\r\n        expect(screen.getByLabelText('Elapsed time')).toBeInTheDocument()\r\n    })\r\n\r\n    it('hides idle status while keeping duration visible', () => {\r\n        renderChat(conversation('completed.json', []))\r\n\r\n        expect(screen.queryByRole('status')).not.toBeInTheDocument()\r\n        expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('1:00')\r\n    })\r\n\r\n    it('uses the derived Markdown style provided by the app theme', () => {\r\n        render(\r\n",
+          "durationMs": 490,
+          "exitCode": 0,
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-38",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app\\\\src\\\\components\\\\actions\\\\conversation\\\\action_conversation_chat.test.tsx' | Select-Object -Skip 145 -First 75\"",
@@ -1062,78 +1069,78 @@
           "status": "completed",
           "timestamp": "2026-08-15T13:29:00.564Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app\\\\src\\\\components\\\\actions\\\\conversation\\\\action_conversation_chat.test.tsx' | Select-Object -Skip 145 -First 75\"",
-          "durationMs": 490,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-39",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0626b98c800a4374016a80699fb27481918268e1e9baa985f4",
           "sequence": 39,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T13:29:03.659Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "content": "",
+          "deletions": 2,
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-40",
+          "insertions": 4,
           "kind": "event",
           "label": "File changes",
           "providerItemId": "exec-41276022-1286-4f6d-ac34-fd9e76157485",
           "sequence": 40,
           "status": "completed",
           "timestamp": "2026-08-15T13:29:09.043Z",
-          "type": "fileChange",
-          "deletions": 2,
-          "insertions": 4
+          "type": "fileChange"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-41",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0626b98c800a4374016a8069a861648191bff4fa9961c5405f",
           "sequence": 41,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T13:29:11.325Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "content": "",
+          "deletions": 7,
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-42",
+          "insertions": 14,
           "kind": "event",
           "label": "File changes",
           "providerItemId": "exec-66e9ab58-7733-4e02-b924-b793a27f4327",
           "sequence": 42,
           "status": "completed",
           "timestamp": "2026-08-15T13:29:24.401Z",
-          "type": "fileChange",
-          "deletions": 7,
-          "insertions": 14
+          "type": "fileChange"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-43",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0626b98c800a4374016a8069b730e881919ccf1e7fdac253cf",
           "sequence": 43,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T13:29:26.386Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"context: [0-9]|queryByText\\\\(/context:|getByText\\\\('context:\\\" app/src/components/actions/conversation\"",
           "content": "app/src/components/actions/conversation\\action_conversation_chat.test.tsx:168:        expect(screen.queryByText('context: 16%')).not.toBeInTheDocument()\n",
+          "durationMs": 457,
+          "exitCode": 0,
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-44",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"context: [0-9]|queryByText\\\\(/context:|getByText\\\\('context:\\\" app/src/components/actions/conversation\"",
@@ -1142,23 +1149,20 @@
           "status": "completed",
           "timestamp": "2026-08-15T13:29:28.427Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"context: [0-9]|queryByText\\\\(/context:|getByText\\\\('context:\\\" app/src/components/actions/conversation\"",
-          "durationMs": 457,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-45",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0626b98c800a4374016a8069bbe1f08191a32a3ce84781e088",
           "sequence": 45,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T13:29:30.948Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "agent": "codex",
@@ -1170,7 +1174,10 @@
           "timestamp": "2026-08-15T13:29:31.832Z"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/components/actions/conversation/action_conversation_chat.test.tsx src/components/actions/conversation/action_conversation_chat_owner.test.tsx src/components/actions/conversation/conversation_context_window.node.test.ts'",
           "content": "\n> app@0.3.0 test\n> vitest run src/components/actions/conversation/action_conversation_chat.test.tsx src/components/actions/conversation/action_conversation_chat_owner.test.tsx src/components/actions/conversation/conversation_context_window.node.test.ts\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev1/app\n\n\n Test Files  3 passed (3)\n      Tests  57 passed (57)\n   Start at  15:29:39\n   Duration  10.54s (transform 609ms, setup 242ms, import 4.03s, tests 3.59s, environment 2.23s)\n\n",
+          "durationMs": 11775,
+          "exitCode": 0,
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-47",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/components/actions/conversation/action_conversation_chat.test.tsx src/components/actions/conversation/action_conversation_chat_owner.test.tsx src/components/actions/conversation/conversation_context_window.node.test.ts'",
@@ -1179,39 +1186,39 @@
           "status": "completed",
           "timestamp": "2026-08-15T13:29:50.486Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/components/actions/conversation/action_conversation_chat.test.tsx src/components/actions/conversation/action_conversation_chat_owner.test.tsx src/components/actions/conversation/conversation_context_window.node.test.ts'",
-          "durationMs": 11775,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-48",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0626b98c800a4374016a8069d0eb0c8191aaa9f714ab627f1f",
           "sequence": 48,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T13:29:51.908Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-49",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0626b98c800a4374016a8069d4c28481919ebd3bb25e2fe5a3",
           "sequence": 49,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T13:29:56.081Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint-fix -- src/components/actions/conversation/action_conversation_chat.tsx src/components/actions/conversation/action_conversation_chat.test.tsx src/components/actions/conversation/action_conversation_chat_owner.test.tsx'",
           "content": "\n> app@0.3.0 lint-fix\n> eslint . --fix src/components/actions/conversation/action_conversation_chat.tsx src/components/actions/conversation/action_conversation_chat.test.tsx src/components/actions/conversation/action_conversation_chat_owner.test.tsx\n\n",
+          "durationMs": 42852,
+          "exitCode": 0,
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-50",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint-fix -- src/components/actions/conversation/action_conversation_chat.tsx src/components/actions/conversation/action_conversation_chat.test.tsx src/components/actions/conversation/action_conversation_chat_owner.test.tsx'",
@@ -1220,36 +1227,33 @@
           "status": "completed",
           "timestamp": "2026-08-15T13:30:40.611Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint-fix -- src/components/actions/conversation/action_conversation_chat.tsx src/components/actions/conversation/action_conversation_chat.test.tsx src/components/actions/conversation/action_conversation_chat_owner.test.tsx'",
-          "durationMs": 42852,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-51",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0626b98c800a4374016a8069f09eb4819194c880777e424826",
           "sequence": 51,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T13:30:23.573Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-52",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0626b98c800a4374016a8069fe86e08191a38b7737a4bbdc23",
           "sequence": 52,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T13:30:37.424Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "agent": "codex",
@@ -1262,19 +1266,22 @@
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-54",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0626b98c800a4374016a806a0354c881919442d881f3df7adf",
           "sequence": 54,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T13:30:45.664Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-ChildItem -Path 'src' -Recurse -File | Where-Object { \"'$_.LastWriteTime -gt (Get-Date).AddMinutes(-3) } | Select-Object -ExpandProperty FullName'",
           "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\actions\\conversation\\action_conversation_chat.test.tsx\r\nC:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\actions\\conversation\\action_conversation_chat.tsx\r\nC:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\actions\\conversation\\action_conversation_chat_owner.test.tsx\r\n",
+          "durationMs": 638,
+          "exitCode": 0,
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-55",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-ChildItem -Path 'src' -Recurse -File | Where-Object { \"'$_.LastWriteTime -gt (Get-Date).AddMinutes(-3) } | Select-Object -ExpandProperty FullName'",
@@ -1283,26 +1290,26 @@
           "status": "completed",
           "timestamp": "2026-08-15T13:30:48.224Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-ChildItem -Path 'src' -Recurse -File | Where-Object { \"'$_.LastWriteTime -gt (Get-Date).AddMinutes(-3) } | Select-Object -ExpandProperty FullName'",
-          "durationMs": 638,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-56",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0626b98c800a4374016a806a0bbf1881918bf6313c8fbb7403",
           "sequence": 56,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T13:30:51.419Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \".\\\\node_modules\\\\.bin\\\\eslint.cmd src/components/actions/conversation/action_conversation_chat.tsx src/components/actions/conversation/action_conversation_chat.test.tsx src/components/actions/conversation/action_conversation_chat_owner.test.tsx\"",
           "content": "",
+          "durationMs": 2725,
+          "exitCode": 0,
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-57",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \".\\\\node_modules\\\\.bin\\\\eslint.cmd src/components/actions/conversation/action_conversation_chat.tsx src/components/actions/conversation/action_conversation_chat.test.tsx src/components/actions/conversation/action_conversation_chat_owner.test.tsx\"",
@@ -1311,26 +1318,26 @@
           "status": "completed",
           "timestamp": "2026-08-15T13:30:55.884Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \".\\\\node_modules\\\\.bin\\\\eslint.cmd src/components/actions/conversation/action_conversation_chat.tsx src/components/actions/conversation/action_conversation_chat.test.tsx src/components/actions/conversation/action_conversation_chat_owner.test.tsx\"",
-          "durationMs": 2725,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-58",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0626b98c800a4374016a806a13039881919fd31451c0457bc4",
           "sequence": 58,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T13:30:58.183Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/components/actions/conversation/action_conversation_chat.test.tsx src/components/actions/conversation/action_conversation_chat_owner.test.tsx src/components/actions/conversation/conversation_context_window.node.test.ts'",
           "content": "\n> app@0.3.0 test\n> vitest run src/components/actions/conversation/action_conversation_chat.test.tsx src/components/actions/conversation/action_conversation_chat_owner.test.tsx src/components/actions/conversation/conversation_context_window.node.test.ts\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev1/app\n\n\n Test Files  3 passed (3)\n      Tests  57 passed (57)\n   Start at  15:31:00\n   Duration  9.23s (transform 571ms, setup 198ms, import 3.58s, tests 3.28s, environment 1.75s)\n\n",
+          "durationMs": 10394,
+          "exitCode": 0,
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-59",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/components/actions/conversation/action_conversation_chat.test.tsx src/components/actions/conversation/action_conversation_chat_owner.test.tsx src/components/actions/conversation/conversation_context_window.node.test.ts'",
@@ -1339,23 +1346,20 @@
           "status": "completed",
           "timestamp": "2026-08-15T13:31:10.216Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/components/actions/conversation/action_conversation_chat.test.tsx src/components/actions/conversation/action_conversation_chat_owner.test.tsx src/components/actions/conversation/conversation_context_window.node.test.ts'",
-          "durationMs": 10394,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-60",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0626b98c800a4374016a806a2112ec819193c3af0e6da551ca",
           "sequence": 60,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T13:31:13.213Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "agent": "codex",
@@ -1368,32 +1372,35 @@
         },
         {
           "content": "",
+          "deletions": 1,
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-62",
+          "insertions": 1,
           "kind": "event",
           "label": "File changes",
           "providerItemId": "exec-609bdce7-03de-4631-b568-22b6d983bad2",
           "sequence": 62,
           "status": "completed",
           "timestamp": "2026-08-15T13:31:20.968Z",
-          "type": "fileChange",
-          "deletions": 1,
-          "insertions": 1
+          "type": "fileChange"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-63",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0626b98c800a4374016a806a2be3f08191a38b3e4531ce2e66",
           "sequence": 63,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T13:31:24.076Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git diff -- app/src/components/actions/conversation/action_conversation_chat.tsx app/src/components/actions/conversation/action_conversation_chat.test.tsx app/src/components/actions/conversation/action_conversation_chat_owner.test.tsx'",
           "content": "diff --git a/app/src/components/actions/conversation/action_conversation_chat.test.tsx b/app/src/components/actions/conversation/action_conversation_chat.test.tsx\nindex 31056ec4..4e89d176 100644\n--- a/app/src/components/actions/conversation/action_conversation_chat.test.tsx\n+++ b/app/src/components/actions/conversation/action_conversation_chat.test.tsx\n@@ -152,31 +152,44 @@ describe('ActionConversationChat', () => {\n         expect(screen.getByLabelText('Conversation chat').scrollTop).toBe(200)\n     })\n \n-    it('keeps duration and context as the final row inside the scrollable transcript', () => {\n+    it('keeps duration and context usage indicator as the final row inside the scrollable transcript', async () => {\n         const value = conversation('first.json', [message('message-1', 'First')])\n         value.contextWindowUsage = { capacityTokens: 258_400, usedTokens: 42_000 }\n         renderChat(value)\n \n         const viewport = screen.getByLabelText('Conversation chat')\n         const metadata = screen.getByLabelText('Conversation metadata')\n+        const progress = screen.getByRole('progressbar', { name: 'Context usage' })\n         expect(viewport).toContainElement(metadata)\n         expect(viewport.lastElementChild).toBe(metadata)\n         expect(metadata).toContainElement(screen.getByLabelText('Elapsed time'))\n-        expect(metadata).toContainElement(screen.getByText('context: 16%'))\n+        expect(metadata).toContainElement(progress)\n+        expect(progress).toHaveAttribute('aria-valuenow', '16')\n+        expect(screen.queryByText('context: 16%')).not.toBeInTheDocument()\n         expect(metadata).toHaveStyle({ alignItems: 'baseline' })\n \n+        fireEvent.mouseOver(progress)\n+        expect(await screen.findByText('Context usage: 16%', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()\n+        fireEvent.mouseLeave(progress)\n+        await waitFor(() => expect(screen.queryByText('Context usage: 16%', {selector: '.MuiTooltip-tooltip'})).not.toBeInTheDocument())\n+        fireEvent.touchStart(progress)\n+        expect(await screen.findByText('Context usage: 16%', { selector: '.MuiTooltip-tooltip' }, {timeout: 1_500})).toBeInTheDocument()\n+\n         viewport.scrollTop = 40\n         fireEvent.scroll(viewport)\n \n         expect(viewport.scrollTop).toBe(40)\n     })\n \n-    it('caps context occupancy and hides unavailable context without hiding duration', () => {\n+    it('caps context occupancy and hides unavailable context without hiding duration', async () => {\n         const value = conversation('first.json', [])\n         value.contextWindowUsage = { capacityTokens: 100, usedTokens: 125 }\n         const { rerender } = renderChat(value)\n \n-        expect(screen.getByText('context: 100%')).toBeInTheDocument()\n+        const progress = screen.getByRole('progressbar', { name: 'Context usage' })\n+        expect(progress).toHaveAttribute('aria-valuenow', '100')\n+        fireEvent.mouseOver(progress)\n+        expect(await screen.findByText('Context usage: 100%', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()\n \n         rerender(\n             <AppThemeProvider>\n@@ -187,7 +200,8 @@ describe('ActionConversationChat', () => {\n             </AppThemeProvider>,\n         )\n \n-        expect(screen.queryByText(/context:/u)).not.toBeInTheDocument()\n+        expect(screen.queryByRole('progressbar', { name: 'Context usage' })).not.toBeInTheDocument()\n+        await waitFor(() => expect(screen.queryByText(/Context usage:/u, {selector: '.MuiTooltip-tooltip'})).not.toBeInTheDocument())\n         expect(screen.getByLabelText('Elapsed time')).toBeInTheDocument()\n     })\n \ndiff --git a/app/src/components/actions/conversation/action_conversation_chat.tsx b/app/src/components/actions/conversation/action_conversation_chat.tsx\nindex 82f7d045..081130bc 100644\n--- a/app/src/components/actions/conversation/action_conversation_chat.tsx\n+++ b/app/src/components/actions/conversation/action_conversation_chat.tsx\n@@ -1,4 +1,4 @@\n-import { Box, Stack, Typography } from '@mui/material'\n+import { Box, CircularProgress, Stack, Tooltip, Typography } from '@mui/material'\n import { useLayoutEffect, useRef, useState, type UIEvent } from 'react'\n import type { AgentConversation } from '../../../data/data_types'\n import type { PopupRunStatus } from '../run/popup/action_popup_defaults'\n@@ -133,9 +133,15 @@ export function ActionConversationChat({ conversation, status }: ActionConversat\n                         ) : null}\n                         <Box sx={{ flex: 1 }} />\n                         {contextUsedPercent !== null ? (\n-                            <Typography color=\"text.secondary\" component=\"span\" variant=\"caption\">\n-                                context: {contextUsedPercent}%\n-                            </Typography>\n+                            <Tooltip describeChild title={`Context usage: ${contextUsedPercent}%`}>\n+                                <CircularProgress\n+                                    aria-label=\"Context usage\"\n+                                    color=\"info\"\n+                                    size={16}\n+                                    value={contextUsedPercent}\n+                                    variant=\"determinate\"\n+                                />\n+                            </Tooltip>\n                         ) : null}\n                     </Stack>\n                 ) : null}\ndiff --git a/app/src/components/actions/conversation/action_conversation_chat_owner.test.tsx b/app/src/components/actions/conversation/action_conversation_chat_owner.test.tsx\nindex 9c1f9ccb..b7dd3d86 100644\n--- a/app/src/components/actions/conversation/action_conversation_chat_owner.test.tsx\n+++ b/app/src/components/actions/conversation/action_conversation_chat_owner.test.tsx\n@@ -1,4 +1,4 @@\n-import { act, cleanup, render, screen, waitFor } from '@testing-library/react'\n+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'\n import { afterEach, describe, expect, it, vi } from 'vitest'\n import type { ActionRunEvent } from '../../../data/action_run_types'\n import type { AgentConversation } from '../../../data/data_types'\n@@ -68,7 +68,7 @@ describe('ActionConversationChatOwner', () => {\n         setActionBridgeOverride(null)\n     })\n \n-    it('renders streamed output from its conversation selector', () => {\n+    it('renders streamed output and live context usage from its conversation selector', async () => {\n         let listener: ((event: ActionRunEvent) => void) | null = null\n         const bridge = {\n             onActionRun: vi.fn((nextListener) => {\n@@ -121,7 +121,7 @@ describe('ActionConversationChatOwner', () => {\n         }))\n \n         expect(screen.getByText('streamed')).toBeInTheDocument()\n-        expect(screen.queryByText(/context:/u)).not.toBeInTheDocument()\n+        expect(screen.queryByRole('progressbar', { name: 'Context usage' })).not.toBeInTheDocument()\n \n         act(() => emit({\n             ...event,\n@@ -133,10 +133,13 @@ describe('ActionConversationChatOwner', () => {\n             },\n         }))\n \n-        expect(screen.getByText('context: 16%')).toBeInTheDocument()\n+        const progress = screen.getByRole('progressbar', { name: 'Context usage' })\n+        expect(progress).toHaveAttribute('aria-valuenow', '16')\n+        fireEvent.mouseOver(progress)\n+        expect(await screen.findByText('Context usage: 16%', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()\n     })\n \n-    it('updates duration and context together when selected conversation changes', () => {\n+    it('updates duration and context usage together when selected conversation changes', async () => {\n         const firstConversation = conversation(\n             'conversation-1',\n             '2026-08-04T10:01:00.000Z',\n@@ -155,12 +158,16 @@ describe('ActionConversationChatOwner', () => {\n             </AppThemeProvider>,\n         )\n         expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('1:00')\n-        expect(screen.getByText('context: 16%')).toBeInTheDocument()\n+        const firstProgress = screen.getByRole('progressbar', { name: 'Context usage' })\n+        expect(firstProgress).toHaveAttribute('aria-valuenow', '16')\n+        fireEvent.mouseOver(firstProgress)\n+        expect(await screen.findByText('Context usage: 16%', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()\n \n         act(() => selectConversation(secondConversation))\n \n         expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('2:30')\n-        expect(screen.getByText('context: 50%')).toBeInTheDocument()\n+        expect(screen.getByRole('progressbar', { name: 'Context usage' })).toHaveAttribute('aria-valuenow', '50')\n+        expect(await screen.findByText('Context usage: 50%', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()\n     })\n \n     it.each(['activated', 'newly exposed'])('acknowledges unseen chat when popup becomes topmost: %s', async (scenario) => {\n",
+          "durationMs": 404,
+          "exitCode": 0,
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-64",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git diff -- app/src/components/actions/conversation/action_conversation_chat.tsx app/src/components/actions/conversation/action_conversation_chat.test.tsx app/src/components/actions/conversation/action_conversation_chat_owner.test.tsx'",
@@ -1402,26 +1409,26 @@
           "status": "completed",
           "timestamp": "2026-08-15T13:31:26.136Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git diff -- app/src/components/actions/conversation/action_conversation_chat.tsx app/src/components/actions/conversation/action_conversation_chat.test.tsx app/src/components/actions/conversation/action_conversation_chat_owner.test.tsx'",
-          "durationMs": 404,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-65",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0626b98c800a4374016a806a316f548191915294775c86a3d8",
           "sequence": 65,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T13:31:32.526Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\F_192_context_usage_display.md' | Select-Object -First 12\"",
           "content": "---\r\nauthor: \r\nid: F_192\r\ninternalId: ee2036c1-4931-49a4-b57e-629edbcbc3f6\r\ntitle: context usage display\r\nstatus: ready\r\nowner: \r\naffects:\r\nagents:\r\n  - design/activity/card__ee2036c1-4931-49a4-b57e-629edbcbc3f6.json#conversation=agent-4c6a99ef-9001-4989-8dd8-4e66b685e000\r\n  - design/activity/card__ee2036c1-4931-49a4-b57e-629edbcbc3f6.json#conversation=agent-2ebef5dd-f89e-4846-880a-1685b7d90847\r\npolicy:\r\n",
+          "durationMs": 458,
+          "exitCode": 0,
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-66",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\F_192_context_usage_display.md' | Select-Object -First 12\"",
@@ -1430,23 +1437,20 @@
           "status": "completed",
           "timestamp": "2026-08-15T13:31:33.950Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\F_192_context_usage_display.md' | Select-Object -First 12\"",
-          "durationMs": 458,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-3fccfc9e-3036-491e-9141-2581155eee56-event-67",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0626b98c800a4374016a806a38aa1c8191b4b5c6e8fbe6cb2d",
           "sequence": 67,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T13:31:36.615Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "agent": "codex",
@@ -1472,7 +1476,6 @@
       "startedAt": "2026-08-15T13:26:36.177Z",
       "status": "completed",
       "title": "implement",
-      "viewed": true,
       "usage": {
         "cachedInputTokens": 98816,
         "inputTokens": 101542,
@@ -1480,10 +1483,7 @@
         "reasoningTokens": 30,
         "totalTokens": 200628
       },
-      "contextWindowUsage": {
-        "capacityTokens": 258400,
-        "usedTokens": 56390
-      }
+      "viewed": true
     }
   ],
   "origin": {
@@ -1526,6 +1526,30 @@
       "startedAt": "2026-08-15T12:03:08.170Z",
       "status": "completed",
       "rootConversationId": "agent-4c6a99ef-9001-4989-8dd8-4e66b685e000"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-08-15T13:31:45.913Z",
+      "conversationIds": [
+        "agent-2ebef5dd-f89e-4846-880a-1685b7d90847"
+      ],
+      "details": {
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-8c032a97-b638-4e1a-b676-e2d629bd1245",
+      "origin": {
+        "cardInternalId": "ee2036c1-4931-49a4-b57e-629edbcbc3f6",
+        "kind": "card"
+      },
+      "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
+      "rootActionLabel": "implement",
+      "rootConversationId": "agent-2ebef5dd-f89e-4846-880a-1685b7d90847",
+      "startedAt": "2026-08-15T13:26:36.175Z",
+      "status": "completed"
     }
   ],
   "version": 4
