@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 3a0d1119-4bc6-4bba-b47d-ddfabe12d56d
 ---
 
 When we have a merge conflict and decide to resolve it with an agent, as soon as the agent opens, we get this error:
