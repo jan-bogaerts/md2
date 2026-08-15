@@ -13,8 +13,6 @@ agents:
   - design/activity/card__8a177e01-b5d4-46aa-b42f-9ba11f561b60.json#conversation=agent-fb8e6b5a-5d19-4af4-9167-1163ea85d83a
 policy:
 after: 4191dc0a-7628-45bf-ada1-b1366e9f05f9
-branch: f_193_report_claude_usage_quotas
-worktree: 2
 ---
 
 we are already reporting usage limits for codex in the apps status bar. we need to provide similar information from the claude cli.
