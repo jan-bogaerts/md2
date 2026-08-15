@@ -2638,11 +2638,11 @@
         "agent-acc27273-09c8-4bc6-be31-ae4a1203b1c4"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-719b9975-c896-4e9b-9360-1a07ecace70f",
       "origin": {
@@ -2651,9 +2651,34 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-acc27273-09c8-4bc6-be31-ae4a1203b1c4",
       "startedAt": "2026-08-15T16:56:20.764Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-acc27273-09c8-4bc6-be31-ae4a1203b1c4"
+    },
+    {
+      "commits": [
+        {
+          "commit": "d6f7be096d2ca951b39cce340197185bed3d8577",
+          "committedAt": "2026-08-15T19:46:50+02:00",
+          "deletions": 16,
+          "filePaths": [
+            "app/src/components/actions/agent/action_agent_prompt.test.tsx",
+            "app/src/components/actions/agent/action_agent_prompt.tsx",
+            "app/src/components/actions/agent/action_agent_prompt_owner.tsx",
+            "app/src/components/actions/run/popup/action_popup.test.tsx"
+          ],
+          "filesChanged": 4,
+          "insertions": 261,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-15T19:46:50+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "8355401d-f3b6-4285-a21d-8ec6ed389215",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
