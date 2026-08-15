@@ -11,8 +11,6 @@ agents:
   - design/activity/card__f1c69bfd-cfb3-40cd-8c1e-15e78f71f839.json#conversation=agent-5cb838e4-4787-45ea-997a-88dacf343e66
   - design/activity/card__f1c69bfd-cfb3-40cd-8c1e-15e78f71f839.json#conversation=agent-f721f7b5-85e5-4665-bd28-0bfdd83b79db
 policy:
-branch: f_196_search_popup_improvements
-worktree: 3
 ---
 
 following improvements to the search popup:
