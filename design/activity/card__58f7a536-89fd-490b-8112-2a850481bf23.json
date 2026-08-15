@@ -2755,11 +2755,11 @@
         "agent-f8fc8085-fcc1-4e99-a53b-fe78097f4a9a"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-bdbdcace-3556-40f9-91ed-250cb388cc6b",
       "origin": {
@@ -2768,9 +2768,57 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-f8fc8085-fcc1-4e99-a53b-fe78097f4a9a",
       "startedAt": "2026-08-14T18:26:31.207Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-f8fc8085-fcc1-4e99-a53b-fe78097f4a9a"
+    },
+    {
+      "commits": [
+        {
+          "commit": "3a29f83d7e64cb782f23ce0857161b388486a1c5",
+          "committedAt": "2026-08-15T14:41:14+02:00",
+          "deletions": 224,
+          "filePaths": [
+            "app/src/components/shell/codex_rate_limit_details.tsx",
+            "app/src/components/shell/codex_rate_limit_status.test.tsx",
+            "app/src/components/shell/codex_rate_limit_status.tsx",
+            "app/src/components/shell/codex_rate_limit_status_data.ts",
+            "app/src/components/shell/keyboard_status.test.tsx",
+            "app/src/components/shell/keyboard_status.tsx",
+            "app/src/components/shell/main_window.test.tsx",
+            "app/src/components/shell/menu/main_toolbar.tsx",
+            "app/src/components/shell/menu/mobile_menu_button.test.tsx",
+            "app/src/components/shell/menu/mobile_menu_button.tsx",
+            "app/src/components/shell/mobile_main_window.test.tsx",
+            "app/src/components/shell/mobile_main_window.tsx",
+            "app/src/components/shell/mobile_project_status.tsx",
+            "app/src/components/shell/mobile_status_row.tsx",
+            "app/src/components/shell/project_agent_usage_details.tsx",
+            "app/src/components/shell/project_agent_usage_summary.test.tsx",
+            "app/src/components/shell/project_agent_usage_summary.tsx",
+            "app/src/components/shell/project_card_count_summary.test.tsx",
+            "app/src/components/shell/project_card_count_summary.tsx",
+            "app/src/components/shell/project_sync_status.test.tsx",
+            "app/src/components/shell/project_sync_status.tsx",
+            "app/src/components/shell/remote_control_status_indicator.test.tsx",
+            "app/src/components/shell/remote_control_status_indicator.tsx",
+            "app/src/components/shell/running_agents_details.tsx",
+            "app/src/components/shell/running_agents_indicator.test.tsx",
+            "app/src/components/shell/running_agents_indicator.tsx",
+            "app/src/components/shell/status_details_surface.tsx"
+          ],
+          "filesChanged": 27,
+          "insertions": 727,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-15T14:41:14+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "58f7a536-89fd-490b-8112-2a850481bf23",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
