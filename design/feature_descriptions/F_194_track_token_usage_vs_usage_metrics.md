@@ -3,7 +3,7 @@ author:
 id: F_194
 internalId: 4191dc0a-7628-45bf-ada1-b1366e9f05f9
 title: track token usage vs usage metrics
-status: new
+status: design
 owner: 
 affects:
 agents:
