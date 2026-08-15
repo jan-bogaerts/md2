@@ -3,7 +3,7 @@
     "5b88355d-f964-459a-bc67-6618650866ba": {
       "agent": "claude",
       "model": "opus",
-      "permissionMode": "ask-for-approval",
+      "permissionMode": "approve-for-me",
       "thinkingLevel": "medium"
     }
   },
@@ -620,7 +620,7 @@
         "runningStartedAt": null
       },
       "title": "complete",
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -635,11 +635,11 @@
         "agent-9a54b06c-2a09-4849-a51d-c71282417288"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "ask-for-approval",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-4024f9ba-4775-40ad-b2f8-68bbb12644f2",
       "origin": {
@@ -648,9 +648,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-9a54b06c-2a09-4849-a51d-c71282417288",
       "startedAt": "2026-08-15T16:40:45.834Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-9a54b06c-2a09-4849-a51d-c71282417288"
     }
   ],
   "version": 4
