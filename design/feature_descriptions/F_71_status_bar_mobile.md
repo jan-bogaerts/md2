@@ -11,8 +11,6 @@ agents:
   - design/activity/card__58f7a536-89fd-490b-8112-2a850481bf23.json#conversation=agent-f8fc8085-fcc1-4e99-a53b-fe78097f4a9a
 policy:
 after: 3d893637-4714-428d-be90-b839925b7cad
-branch: f_71_status_bar_mobile
-worktree: 1
 ---
 On mobile, user should also have project status info.
 
