@@ -3,7 +3,7 @@ author:
 id: B_114
 internalId: 4e0cc180-caab-4998-bb3f-63411cfa21de
 title: Placeholders not resolved
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

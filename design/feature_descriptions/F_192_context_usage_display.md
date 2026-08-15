@@ -3,7 +3,7 @@ author:
 id: F_192
 internalId: ee2036c1-4931-49a4-b57e-629edbcbc3f6
 title: context usage display
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
