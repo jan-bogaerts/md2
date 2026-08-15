@@ -3,7 +3,7 @@ author:
 id: B_120
 internalId: 4a471f6a-6bca-4990-9e2d-38dc2df2ce9f
 title: Hamburger drawer components overlap
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

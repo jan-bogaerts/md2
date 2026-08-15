@@ -13,8 +13,8 @@
       "thinkingLevel": "medium"
     },
     "47dafdc7-0be7-4d56-bb5a-07c813906416": {
-      "agent": "claude",
-      "model": "opus",
+      "agent": "codex",
+      "model": "gpt-5.6-sol",
       "permissionMode": "approve-for-me",
       "thinkingLevel": "medium"
     }
@@ -1412,7 +1412,7 @@
         "totalTokens": 0,
         "costUsd": 0
       },
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
@@ -1535,11 +1535,11 @@
         "agent-fb8e6b5a-5d19-4af4-9167-1163ea85d83a"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-92eb1789-b1b3-4584-816c-239a1569ac5e",
       "origin": {
@@ -1548,9 +1548,9 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-fb8e6b5a-5d19-4af4-9167-1163ea85d83a",
       "startedAt": "2026-08-15T18:00:33.309Z",
-      "status": "failed"
+      "status": "failed",
+      "rootConversationId": "agent-fb8e6b5a-5d19-4af4-9167-1163ea85d83a"
     }
   ],
   "version": 4
