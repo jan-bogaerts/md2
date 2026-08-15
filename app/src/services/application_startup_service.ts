@@ -8,6 +8,7 @@ import { actionService } from './actions/action_service'
 import { agentCapabilitiesService } from './agents/agent_capabilities_service'
 import { codexCliUpdateService } from './agents/codex_cli_update_service'
 import { codexRateLimitService } from './agents/codex_rate_limit_service'
+import { claudeRateLimitService } from './agents/claude_rate_limit_service'
 import { dataService } from './data/data_service'
 import { githubAuthService, initDefaultGithubAuthService } from './github/github_auth_service'
 import { openFilesService } from './open_files_service'
@@ -47,6 +48,7 @@ function initializeServices() {
     actionRunRegistry.start()
     actionRunSettingsService.init(dataService)
     codexCliUpdateService.start()
+    claudeRateLimitService.start()
     codexRateLimitService.start()
     sentryImportService.start()
 }

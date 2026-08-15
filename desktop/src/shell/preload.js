@@ -100,6 +100,7 @@ const ACTION_METHODS = [
 ];
 const EVENT_METHODS = new Set(['runSearchRegexpAgent']);
 const CODEX_RUNTIME_METHODS = ['getCodexRateLimits'];
+const CLAUDE_RUNTIME_METHODS = ['getClaudeRateLimits'];
 
 let nextEventId = 1;
 let desktopConfig = readArgumentJson('md2-desktop-config', {});
@@ -256,6 +257,10 @@ if (!isAllowedOrigin()) {
         onCodexUpdateRequired: (callback) => subscribeBridge('onCodexUpdateRequired', [], callback),
         updateCodexCli: () => invokeBridge('updateCodexCli', [], null),
     };
+    const claudeRuntimeBridge = {
+        ...createBridge(CLAUDE_RUNTIME_METHODS),
+        onClaudeRateLimits: (callback) => subscribeBridge('onClaudeRateLimits', [], callback),
+    };
     const updatesBridge = {
         downloadUpdate: (downloadUrl) => ipcRenderer.invoke(UPDATE_DOWNLOAD_CHANNEL, { downloadUrl }),
         onDownloadProgress: (callback) => {
@@ -280,6 +285,7 @@ if (!isAllowedOrigin()) {
     contextBridge.exposeInMainWorld('md2Files', fileBridge);
     contextBridge.exposeInMainWorld('md2Data', dataBridge);
     contextBridge.exposeInMainWorld('md2Actions', actionBridge);
+    contextBridge.exposeInMainWorld('md2ClaudeRuntime', claudeRuntimeBridge);
     contextBridge.exposeInMainWorld('md2CodexRuntime', codexRuntimeBridge);
     contextBridge.exposeInMainWorld('md2Updates', updatesBridge);
 }

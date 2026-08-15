@@ -51,6 +51,7 @@ function createLocalBridgeDispatch(dependencies) {
         actionSchedulerService,
         agentExecutableAvailability,
         agentRunnerService,
+        claudeRuntimeService,
         codexRuntimeService,
         desktopConfigStore,
         diffService,
@@ -522,10 +523,20 @@ function createLocalBridgeDispatch(dependencies) {
         },
     };
 
-    const methods = { ...dataBridge, ...actionBridge, ...codexRuntimeBridge };
+    const claudeRuntimeBridge = {
+        getClaudeRateLimits: () => claudeRuntimeService?.getSnapshot() ?? null,
+        onClaudeRateLimits: (callback) => {
+            if (!claudeRuntimeService) throw new Error('Claude runtime service is not available');
+
+            return claudeRuntimeService.subscribe(callback);
+        },
+    };
+
+    const methods = { ...dataBridge, ...actionBridge, ...claudeRuntimeBridge, ...codexRuntimeBridge };
 
     return {
         actionBridge,
+        claudeRuntimeBridge,
         codexRuntimeBridge,
         dataBridge,
         invoke: (method, params = []) => {

@@ -13,6 +13,7 @@ const windowStateKeeper = require('electron-window-state');
 const { readDesktopConfig, resolveBridgeAllowedOrigins, saveDesktopConfig } = require('./src/shell/config');
 const { AgentRunnerService } = require('./src/actions/agent/agent_runner_service');
 const { CodexRuntimeService } = require('./src/actions/agent/codex_runtime_service');
+const { ClaudeRuntimeService } = require('./src/actions/agent/claude_runtime_service');
 const { updateCodexCli } = require('./src/actions/agent/codex_cli_update');
 const { AgentExecutableResolver, loadAgentExecutableAvailability } = require('./src/actions/agent/agent_executable_availability');
 const { ActionSchedulerService } = require('./src/actions/action/action_scheduler_service');
@@ -58,13 +59,26 @@ const { createManagedWindow } = require('./src/shell/window_state');
 
 const QUIT_WATCHDOG_TIMEOUT_MS = 10000;
 const EVENT_METHODS = new Set(['runSearchRegexpAgent', 'startAgentConversation']);
-const SUBSCRIPTION_METHODS = new Set(['onActionRun', 'onCodexRateLimits', 'onCodexUpdateRequired', 'onMergeConflictSessionChanged', 'onWorktreesChanged', 'watchProject']);
+const SUBSCRIPTION_METHODS = new Set([
+    'onActionRun',
+    'onClaudeRateLimits',
+    'onCodexRateLimits',
+    'onCodexUpdateRequired',
+    'onMergeConflictSessionChanged',
+    'onWorktreesChanged',
+    'watchProject',
+]);
 
 const store = new Store();
 Store.initRenderer();
 const agentExecutableResolver = new AgentExecutableResolver();
+const claudeRuntimeService = new ClaudeRuntimeService();
 const codexRuntimeService = new CodexRuntimeService();
-const agentRunnerService = new AgentRunnerService({ codexRuntimeService, executableResolver: agentExecutableResolver });
+const agentRunnerService = new AgentRunnerService({
+    claudeRuntimeService,
+    codexRuntimeService,
+    executableResolver: agentExecutableResolver,
+});
 const mergeConflictService = new MergeConflictService({
     configProvider: () => readDesktopConfig(store),
     runGit: localGitService.runGit,
@@ -95,6 +109,7 @@ const localBridgeDispatch = createLocalBridgeDispatch({
     actionWorktreeRunService,
     agentExecutableAvailability: (profiles) => loadAgentExecutableAvailability(profiles, { resolver: agentExecutableResolver }),
     agentRunnerService,
+    claudeRuntimeService,
     codexRuntimeService,
     desktopConfigStore: store,
     diffService,

@@ -4,6 +4,7 @@ import { ProjectSyncStatus } from './project_sync_status'
 import { RunningAgentsIndicator } from './running_agents_indicator'
 import { ProjectAgentUsageSummary } from './project_agent_usage_summary'
 import { CodexRateLimitStatus } from './codex_rate_limit_status'
+import { ClaudeRateLimitStatus } from './claude_rate_limit_status'
 import { RemoteControlStatusIndicator } from './remote_control_status_indicator'
 import { KeyboardStatus } from './keyboard_status'
 
@@ -18,6 +19,7 @@ export function MobileProjectStatus() {
             <ProjectSyncStatus mobile />
             <RunningAgentsIndicator mobile />
             <ProjectAgentUsageSummary mobile />
+            <ClaudeRateLimitStatus mobile />
             <CodexRateLimitStatus mobile />
             <RemoteControlStatusIndicator mobile />
             <KeyboardStatus mobile />

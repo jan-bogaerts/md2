@@ -39,6 +39,10 @@ function createDispatch(options = {}) {
         subscribe: vi.fn(() => vi.fn()),
         subscribeUpdateRequired: vi.fn(() => vi.fn()),
     };
+    const claudeRuntimeService = {
+        getSnapshot: vi.fn(() => ({ available: true, observedAt: 11, windows: [] })),
+        subscribe: vi.fn(() => vi.fn()),
+    };
     const updateCodexCli = vi.fn(async () => undefined);
     const localGitService = {
         appendAndCommitSystemActivity: vi.fn(async () => undefined),
@@ -138,6 +142,7 @@ function createDispatch(options = {}) {
         actionWorktreeRunService,
         agentExecutableAvailability,
         agentRunnerService,
+        claudeRuntimeService,
         codexRuntimeService,
         desktopConfigStore: {},
         diffService,
@@ -156,6 +161,7 @@ function createDispatch(options = {}) {
         actionSchedulerService,
         agentExecutableAvailability,
         agentRunnerService,
+        claudeRuntimeService,
         codexRuntimeService,
         dispatch,
         diffService,
@@ -247,6 +253,16 @@ describe('createLocalBridgeDispatch', () => {
         expect(codexRuntimeService.subscribeUpdateRequired).toHaveBeenCalledWith(updateCallback);
         await dispatch.codexRuntimeBridge.updateCodexCli();
         expect(updateCodexCli).toHaveBeenCalledOnce();
+    });
+
+    it('exposes account-wide Claude runtime state without execution context', () => {
+        const { claudeRuntimeService, dispatch } = createDispatch();
+        const callback = vi.fn();
+
+        expect(dispatch.claudeRuntimeBridge.getClaudeRateLimits()).toEqual({ available: true, observedAt: 11, windows: [] });
+        dispatch.claudeRuntimeBridge.onClaudeRateLimits(callback);
+
+        expect(claudeRuntimeService.subscribe).toHaveBeenCalledWith(callback);
     });
 
     it('loads executable availability from configured profiles', async () => {

@@ -908,6 +908,26 @@ describe('AgentRunnerService state handling', () => {
         expect(persistConversation).not.toHaveBeenCalled();
     });
 
+    it('routes Claude runtime updates and requests usage only after Claude returned output', () => {
+        const claudeRuntimeService = {
+            publishRateLimits: vi.fn(),
+            publishUnavailable: vi.fn(),
+        };
+        const claudeUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };
+        const service = new AgentRunnerService({ claudeRuntimeService, claudeUsagePoller });
+        const payload = { windows: [{ id: 'five_hour' }] };
+
+        service.handleClaudeRuntimeEvent({ kind: 'snapshot', observedAt: 10, payload });
+        service.handleClaudeRuntimeEvent({ kind: 'unavailable', observedAt: 11 });
+        service.requestClaudeUsagePoll({ agent: 'claude', stdout: 'Claude answer' });
+        service.requestClaudeUsagePoll({ agent: 'claude', stdout: '  ' });
+        service.requestClaudeUsagePoll({ agent: 'codex', stdout: 'Codex answer' });
+
+        expect(claudeRuntimeService.publishRateLimits).toHaveBeenCalledWith(payload, 10);
+        expect(claudeRuntimeService.publishUnavailable).toHaveBeenCalledWith(11);
+        expect(claudeUsagePoller.requestPoll).toHaveBeenCalledOnce();
+    });
+
     it('keeps approval state separate from conversation persistence and other pending input', async () => {
         const persistConversationCheckpoint = vi.fn(async () => undefined);
         const answerApproval = vi.fn(async () => undefined);

@@ -18,6 +18,7 @@ const {
 } = require('./agent_conversation_persistence');
 const { AgentExecutableResolver } = require('./agent_executable_availability');
 const { createAgentEnvironment } = require('./agent_environment');
+const { ClaudeUsagePoller } = require('./claude_usage_poller');
 const { diagnoseCodexCacheError, isCodexCacheError } = require('./agent_codex_cache_diagnostic');
 const { logAgentEvent } = require('./agent_file_logger');
 const agentInteractions = require('./agent_run_interactions');
@@ -50,6 +51,7 @@ const AGENT_FINISH_GRACE_MS = 5_000;
 
 class AgentRunnerService {
     constructor(dependencies = {}) {
+        this.claudeRuntimeService = dependencies.claudeRuntimeService ?? null;
         this.codexRuntimeService = dependencies.codexRuntimeService ?? null;
         this.persistConversation = dependencies.persistConversation
             ?? dependencies.persistTerminalConversation
@@ -57,6 +59,10 @@ class AgentRunnerService {
         this.persistConversationCheckpoint = dependencies.persistConversationCheckpoint
             ?? persistConversationCheckpoint;
         this.executableResolver = dependencies.executableResolver ?? new AgentExecutableResolver();
+        this.claudeUsagePoller = dependencies.claudeUsagePoller ?? new ClaudeUsagePoller({
+            executableResolver: this.executableResolver,
+            onRuntimeEvent: (event) => this.handleClaudeRuntimeEvent(event),
+        });
         this.diagnoseCodexCacheError = dependencies.diagnoseCodexCacheError ?? diagnoseCodexCacheError;
         this.clearTimeout = dependencies.clearTimeout ?? clearTimeout;
         this.setTimeout = dependencies.setTimeout ?? setTimeout;
@@ -277,6 +283,7 @@ class AgentRunnerService {
     }
 
     stopAll() {
+        this.claudeUsagePoller.stop();
         const completions = [];
         for (const run of this.processes.values()) {
             run.cancelled = true;
@@ -301,6 +308,19 @@ class AgentRunnerService {
             return;
         }
         this.codexRuntimeService.publishRateLimits(event.payload, event.observedAt, event.kind === 'update');
+    }
+
+    handleClaudeRuntimeEvent(event) {
+        if (!this.claudeRuntimeService) return;
+        if (event.kind === 'unavailable') {
+            this.claudeRuntimeService.publishUnavailable(event.observedAt);
+            return;
+        }
+        this.claudeRuntimeService.publishRateLimits(event.payload, event.observedAt);
+    }
+
+    requestClaudeUsagePoll(run) {
+        if (run.agent === 'claude' && run.stdout.trim().length > 0) this.claudeUsagePoller.requestPoll();
     }
 
     handleOutput(runId, channel, chunk) {
@@ -577,6 +597,7 @@ class AgentRunnerService {
             this.processes.delete(runId);
             this.runningConversationIds.delete(run.conversation.id);
             emitRunEvent(run, { conversation: run.conversation, type: 'closed' });
+            this.requestClaudeUsagePoll(run);
             if (run.onComplete) run.onComplete(succeeded ? 0 : exitCode || 1, run);
         } catch (error) {
             if (run.onCompletionError) run.onCompletionError(error);
