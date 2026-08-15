@@ -655,16 +655,16 @@
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-ab7750ca-6a11-49de-b1e9-6e97fbde1c39-event-50",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0e28c7de7d7083ff016a8097d2439887d097a3d808ad035c47",
           "sequence": 50,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T16:46:21.024Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "agent": "codex",
@@ -677,32 +677,35 @@
         },
         {
           "content": "",
+          "deletions": 2,
           "id": "agent-turn-ab7750ca-6a11-49de-b1e9-6e97fbde1c39-event-52",
+          "insertions": 29,
           "kind": "event",
           "label": "File changes",
           "providerItemId": "exec-40fc5f09-7cb9-4880-b9a8-2ded6058508b",
           "sequence": 52,
           "status": "completed",
           "timestamp": "2026-08-15T16:46:47.001Z",
-          "type": "fileChange",
-          "deletions": 2,
-          "insertions": 29
+          "type": "fileChange"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-ab7750ca-6a11-49de-b1e9-6e97fbde1c39-event-53",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0e28c7de7d7083ff016a8097fa15f487d08b795e768ba2aae9",
           "sequence": 53,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T16:46:49.397Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\feature_descriptions\\\\B_119_attach_file_not_working_in_new_card_popup.md'\"",
           "content": "---\nauthor: \nid: B_119\ninternalId: dffba4e6-6ec5-4a40-8ee7-e68d4891aff3\ntitle: attach file not working in new card popup\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__dffba4e6-6ec5-4a40-8ee7-e68d4891aff3.json#conversation=agent-ba12b03b-3b6a-402f-8795-1b7128666790\npolicy:\nafter: 16e415b8-8ab2-4050-bb45-c6c37c0c3465\n---\n\nin the new-card popup, when clicking on the clip icon, we can select a file, but no link is inserted in the markdown text. nothing happens. then, when I cancel the card and try to create a new card, inputs don't work: not possible to enter title or type in markdown editor.\n\n## Current state\n\nNew-card footer paperclip starts `attachFilesToNewCardMarkdown`, then routes generated link through `MarkdownDraft.requestInsertion` to mounted `MarkdownEditor`. `MarkdownEditor` calls MDXEditor's imperative `insertMarkdown` without first establishing editor focus or a Lexical selection. **Lexical selection** means current cursor or selected text range inside editor.\n\nMDXEditor's insertion command inserts only when that selection exists. Attachment-location dialog and native file picker move focus away; if user never placed cursor in description editor, selection is `null`. Command then inserts nothing but returns no failure, so draft request is acknowledged and copied attachment is retained without Markdown link.\n\nCurrent tests cover insertion at existing cursor and missing mounted editor. They do not cover attachment selection before editor receives focus, nor cancelling and reopening new-card dialog after this path. No new-card code intentionally disables title or body inputs after reopen, so reported lock is downstream regression requiring integration coverage.\n\n## implementation details\n\n* Change shared `MarkdownEditor` insertion boundary so each external Markdown insertion first focuses MDXEditor. Preserve valid cursor or text selection; when none exists, create selection at document end before inserting.\n* Keep `MarkdownDraft.requestInsertion` acknowledgement semantics: acknowledge only after mounted editor accepts insertion; reject missing editor or insertion error so copied-file cleanup in `copyAndApplyAttachments` still runs.\n* After successful footer attachment, update `newCardMarkdownDraft` through existing editor `onChange` path. Link format, copy/original choice, collision handling, draft attachment ownership, and error reporting remain as defined by [F_175_attach_files_to_card.md](F_175_attach_files_to_card.md).\n* Shared insertion call sites are draft requests, file drops and paperclip actions, pasted images, and Markdown paste. Existing cursor-based behavior stays unchanged for all. Only missing-selection behavior changes: append at document end. No compatibility flag is needed because all call sites need deterministic insertion.\n* Closing new-card dialog must leave no attachment-choice modal, focus trap, pending insertion, or stale editor binding that can intercept reopened dialog. Existing confirmed-cancel cleanup still removes copied draft attachments.\n* Add focused tests for shared editor insertion with no prior focus and with existing selection. Add new-card integration regression covering untouched editor, attachment choice, visible appended link, confirmed cancel, reopen, title typing, and body typing. Keep copied-file cleanup test for rejected insertion.\n\n## acceptance criteria\n\n* Selecting file from new-card paperclip before clicking description editor inserts generated Markdown link at document end.\n* If description editor has cursor or selected text, attachment inserts at that selection instead of document end.\n* Copy and original-location choices both insert correct image or normal-link syntax. Cancelling attachment-location choice changes neither draft nor filesystem.\n* Successful copied attachment remains owned by new-card draft; failed insertion removes copied file and reports error.\n* After attachment attempt, cancelling new card and opening another new-card dialog leaves title and Markdown body editable.\n* Reopening dialog starts with cleared draft and no stale attachment dialog, pending insertion, focus trap, or editor subscription.\n* Existing file drop, toolbar attachment, Markdown paste, pasted-image, cursor insertion, template, card creation, and draft cleanup behavior remain unchanged.\n\r\n",
+          "durationMs": 305,
+          "exitCode": 0,
           "id": "agent-turn-ab7750ca-6a11-49de-b1e9-6e97fbde1c39-event-54",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\feature_descriptions\\\\B_119_attach_file_not_working_in_new_card_popup.md'\"",
@@ -711,23 +714,20 @@
           "status": "completed",
           "timestamp": "2026-08-15T16:46:51.498Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\feature_descriptions\\\\B_119_attach_file_not_working_in_new_card_popup.md'\"",
-          "durationMs": 305,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-ab7750ca-6a11-49de-b1e9-6e97fbde1c39-event-55",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0e28c7de7d7083ff016a8097fe77e887d08e51e99d123b3afc",
           "sequence": 55,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T16:46:56.305Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "agent": "codex",
@@ -764,7 +764,7 @@
         "reasoningTokens": 1145,
         "totalTokens": 328180
       },
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
@@ -795,6 +795,42 @@
       "startedAt": "2026-08-15T16:39:48.352Z",
       "status": "cancelled",
       "rootConversationId": "agent-ba12b03b-3b6a-402f-8795-1b7128666790"
+    },
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "b262ddcfed55d4040321b95ddb411951a19f065a",
+          "committedAt": "2026-08-15T18:46:58+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/B_119_attach_file_not_working_in_new_card_popup.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 29
+        }
+      ],
+      "completedAt": "2026-08-15T16:46:58.396Z",
+      "conversationIds": [
+        "agent-ba12b03b-3b6a-402f-8795-1b7128666790"
+      ],
+      "details": {
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-b4ed33d0-6680-40c7-882c-d60b7d417649",
+      "origin": {
+        "cardInternalId": "dffba4e6-6ec5-4a40-8ee7-e68d4891aff3",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-ba12b03b-3b6a-402f-8795-1b7128666790",
+      "startedAt": "2026-08-15T16:46:04.569Z",
+      "status": "completed"
     }
   ],
   "version": 4
