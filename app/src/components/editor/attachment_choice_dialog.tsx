@@ -21,12 +21,12 @@ export function AttachmentChoiceDialog() {
             <DialogContent>
                 <Stack spacing={1.5}>
                     <Typography color="text.secondary">
-                        Copy beside card stores repository files and uses relative paths.
-                        Use original location stores absolute paths and copies nothing.
+                        Copy into project saves a copy next to the card, so it stays with the project.
+                        Link without copying keeps each file where it is and links to it using its full path.
                     </Typography>
                     {!snapshot?.originalLocationAvailable ? (
                         <Typography color="text.secondary" role="status" variant="caption">
-                            Original locations are unavailable because this browser cannot provide trusted absolute file paths.
+                            Linking without copying is unavailable because this browser cannot access the files&apos; full paths.
                         </Typography>
                     ) : null}
                 </Stack>
@@ -34,9 +34,9 @@ export function AttachmentChoiceDialog() {
             <DialogActions sx={{ bgcolor: 'background.default', borderTop: 1, borderColor: 'divider' }}>
                 <Button onClick={cancel} variant="outlined">Cancel</Button>
                 <Button disabled={!snapshot?.originalLocationAvailable} onClick={useOriginal} variant="outlined">
-                    Use original location
+                    Link without copying
                 </Button>
-                <Button onClick={copy} variant="contained">Copy beside card</Button>
+                <Button onClick={copy} variant="contained">Copy into project</Button>
             </DialogActions>
         </Dialog>
     )

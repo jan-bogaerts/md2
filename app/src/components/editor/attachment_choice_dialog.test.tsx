@@ -15,9 +15,9 @@ describe('AttachmentChoiceDialog', () => {
         void attachmentChoiceService.choose([new File(['one'], 'one.pdf')])
         render(<AppThemeProvider><AttachmentChoiceDialog /></AppThemeProvider>)
 
-        expect(screen.getByText(/stores repository files and uses relative paths/iu)).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'Use original location' })).toBeDisabled()
-        expect(screen.getByRole('button', { name: 'Copy beside card' })).toBeEnabled()
+        expect(screen.getByText(/saves a copy next to the card, so it stays with the project/iu)).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Link without copying' })).toBeDisabled()
+        expect(screen.getByRole('button', { name: 'Copy into project' })).toBeEnabled()
     })
 
     it('applies one copy choice to all files', async () => {
@@ -27,7 +27,7 @@ describe('AttachmentChoiceDialog', () => {
         ])
         render(<AppThemeProvider><AttachmentChoiceDialog /></AppThemeProvider>)
 
-        fireEvent.click(screen.getByRole('button', { name: 'Copy beside card' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Copy into project' }))
 
         await expect(selection).resolves.toEqual({ choice: 'copy', originalPaths: null })
     })
