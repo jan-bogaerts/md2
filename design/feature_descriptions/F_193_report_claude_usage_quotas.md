@@ -12,39 +12,36 @@ agents:
   - design/activity/card__8a177e01-b5d4-46aa-b42f-9ba11f561b60.json#conversation=agent-5696541d-a6ca-423c-9803-4eeddc496315
 policy:
 after: 4191dc0a-7628-45bf-ada1-b1366e9f05f9
+branch: f_193_report_claude_usage_quotas
+worktree: 2
 ---
 
 we are already reporting usage limits for codex in the apps status bar. we need to provide similar information from the claude cli.
 
-options we were given:
+**Decision (2026-08-15, claude CLI v2.1.177): capture `/usage` output.** Two approaches were spiked; see [Why not the streaming event](#why-not-the-streaming-event) for the rejected one. `/usage` won because it carries the used-percent the codex UI centers on, plus a weekly window.
 
-* Claude's normal requests expose rate-limit information. For example, claude -p --output-format stream-json --verbose can emit events like:
+`/usage` works **headless (no TTY)** by piping into the interactive REPL via stdin; EOF makes it process and exit clean (exit 0), emitting **plain text** (no TUI escape codes). Note it is **not** available in `-p`/print mode — there `/usage` is interpreted as an LLM prompt (runs a model turn, costs quota). There is no CLI subcommand/flag for usage either.
 
-  \`\`\`json
-  {
-  "type": "rate\_limit\_event",
-  "rate\_limit\_info": {
-  "status": "...",
-  "resetsAt": 1778193600,
-  "rateLimitType": "five\_hour"
-  }
-  }
-  \`\`\`
-* running claude interactive and send a `/usage` string should report something like:
-
-  \`\`\`
-  Current session
-  34% used
-  Resets 10:00pm
-
-Current week (all models)
-21% used
-Resets Aug 10
+\`\`\`
+echo /usage | claude
 \`\`\`
 
+Output shape:
 
+\`\`\`
+You are currently using your subscription to power your Claude Code usage
 
-lets see which one works
+Current session: 17% used · resets Aug 15, 9:49pm (Europe/Brussels)
+Current week (all models): 13% used · resets Aug 16, 6:59pm (Europe/Brussels)
+\`\`\`
+
+**Field map (parse target):**
+
+* Two windows, one line each:
+  * `Current session:` → window id `five_hour`.
+  * `Current week (all models):` → window id `weekly`.
+* Per line: `N% used` → `usedPercent` (integer). `resets <localized datetime> (<IANA tz>)` → the reset is given in **local time + timezone**, not unix seconds. Capture the tz string; convert to unix ms for the snapshot.
+* Leading `You are currently using your subscription…` line is a header — ignore.
 
 ## Current state
 
@@ -58,80 +55,21 @@ Codex quota path fully built. Claude path absent.
 * Renderer `CodexRateLimitService` (`app/src/services/agents/codex_rate_limit_service.ts`) holds `{ receivedAt, snapshot, stale }`, schedules a "stale" flip at the earliest `resetsAt`. "Stale" = reset time passed, old numbers no longer trusted.
 * UI: `CodexRateLimitStatus` (status-bar button) + `CodexRateLimitDetails` (popover), driven by `codexRateLimitPresentation`. Mounted in `status_bar.tsx` (desktop) and `mobile_project_status.tsx` (mobile). Shows "Codex N% used", warns at 80%, error at 100%/reached.
 
-**Claude path today:**
-
-* Claude runs streaming with `--print --verbose --output-format stream-json --include-partial-messages --input-format stream-json` (see `action_agent_executor.test.mjs`).
-* `ClaudeStreamingAdapter` (`agent_claude_streaming_adapter.js`) is constructed **without** an `onRuntimeEvent` callback (`createAgentStreamingAdapter` only passes it for codex). Any `rate_limit_event` line hits the `handleMessage` fall-through and is dropped by `ignoreProtocolNoise()`.
-* No claude quota reaches the renderer. No claude status-bar indicator exists.
-
-**Unknown (why this feature spikes before committing):** which of the two options the installed claude CLI actually emits, and in what shape. Neither maps cleanly to the codex UI:
-
-* Option 1 `rate_limit_event` payload (`status`, `resetsAt`, `rateLimitType` e.g. `five_hour`) carries **no used-percent** — a number the codex UI centers on.
-* Option 2 `/usage` returns human-formatted text (percent + reset), but only from a **separate interactive** claude session, not the live streaming run.
+**Claude path today:** No claude quota reaches the renderer. No claude status-bar indicator exists. Claude runs streaming, but nothing reads usage from it.
 
 ## implementation details
 
-Decision: **spike both options first, then finish one.** Ship a **separate claude indicator** (not merged into codex). "Separate indicator" = its own status-bar control + service, sitting next to `CodexRateLimitStatus`, claude-specific wording and fields.
+Ship a **separate claude indicator** (not merged into codex). "Separate indicator" = its own status-bar control + service, sitting next to `CodexRateLimitStatus`, claude-specific wording and fields.
 
-### Spike result (2026-08-15, claude CLI v2.1.177) — WINNER: Option 2 (`/usage`)
+**Capture mechanism:** spawn a fresh `claude` REPL per poll (`echo /usage | claude`, no `-p`), out-of-band, owned by desktop. Each spawn pays session startup (hooks fire, a few seconds) — fine for a periodic poll, not high-frequency. Poll on a timer / on demand, **not** per streaming turn. This is independent of the claude streaming adapter, which stays untouched.
 
-Both options were probed against the installed CLI. Both emit real data. **Option 2 chosen** because it carries the used-percent the codex UI centers on, plus the weekly window; Option 1 carries neither.
-
-**Option 1 — `rate_limit_event` (probed, rejected):**
-
-* Emits reliably, once per streaming turn (`claude -p --output-format stream-json --verbose`).
-* Full field set: `{ status: "allowed", resetsAt: 1786823400, rateLimitType: "five_hour", overageStatus: "rejected", overageDisabledReason: "org_level_disabled_until", isUsingOverage: false }`.
-* `resetsAt` is **unix SECONDS** (not ms). `rateLimitType` observed: `five_hour` only — the weekly window never appeared in this event.
-* No used-percent anywhere in the stream. Rejected: indicator would show reset-time + status color only, no percent, no weekly.
-
-**Option 2 — `/usage` (probed, chosen):**
-
-* **Not available in `-p`/print mode** — there `/usage` is interpreted as an LLM prompt (runs a normal model turn, costs money/quota, returns chat text). No CLI subcommand/flag for usage exists either.
-* Works **headless (no TTY)** by piping into the interactive REPL via stdin; EOF makes it process and exit clean (exit 0), emitting **plain text** (no TUI escape codes):
-
-  \`\`\`
-  echo /usage | claude
-  \`\`\`
-
-  Output shape:
-
-  \`\`\`
-  You are currently using your subscription to power your Claude Code usage
-
-  Current session: 17% used · resets Aug 15, 9:49pm (Europe/Brussels)
-  Current week (all models): 13% used · resets Aug 16, 6:59pm (Europe/Brussels)
-  \`\`\`
-
-**Field map (parse target for later phases):**
-
-* Two windows, one line each:
-  * `Current session:` → window id `five_hour`.
-  * `Current week (all models):` → window id `weekly`.
-* Per line: `N% used` → `usedPercent` (integer). `resets <localized datetime> (<IANA tz>)` → parse to a timestamp; the reset is given in **local time + timezone**, NOT unix seconds (contrast Option 1). Capture the tz string; convert to unix ms for the snapshot.
-* Leading `You are currently using your subscription…` line is a header — ignore.
-
-**Capture-mechanism constraints:**
-
-* Spawn a fresh `claude` REPL per poll (`echo /usage | claude`, no `-p`). Each spawn pays session startup (hooks fire, a few seconds) — fine for a periodic poll, not high-frequency. Poll on a timer / on demand, not per streaming turn.
-* Phase 1's `ClaudeStreamingAdapter` `onRuntimeEvent` wiring is therefore **not** the capture path for Option 2 (that was Option 1's route). Capture is an out-of-band spawn owned by desktop; the adapter `rate_limit_event` line stays dropped as today.
-
-### Phase 0 — spike (throwaway, decides the rest)
-
-Goal: learn which option the installed claude CLI actually produces, and the exact JSON/text shape. Keep the app usable throughout.
-
-* Option 1 probe: in `ClaudeStreamingAdapter.handleMessage`, log any event whose `type === 'rate_limit_event'` (raw). Run a real streaming turn, confirm whether/when the line appears and capture full field set (`status` values, `resetsAt` unit — unix seconds vs ms, `rateLimitType` values e.g. `five_hour`, weekly).
-* Option 2 probe: spawn `claude` interactive out-of-band, send `/usage`, capture raw stdout. Confirm exact labels ("Current session", "Current week (all models)"), percent format, reset format ("10:00pm", "Aug 10").
-* Output of the spike = a documented field map for the winning option. Pick Option 1 if it reliably emits (rides the live run, no extra process, no scraping). Fall back to Option 2 only if Option 1 is silent or lacks reset info.
-
-Define now so "reliably emits" is testable: emits at least once per streaming turn on an authenticated account near a real limit window.
-
-### Phase 1 — desktop capture (winning option)
+### Phase 1 — desktop capture
 
 Mirror the codex wiring so the renderer path is identical in spirit.
 
-* Add a `ClaudeRuntimeService` (`desktop/src/actions/agent/claude_runtime_service.js`), modeled on `CodexRuntimeService`: validate/normalize input, hold one account-wide claude snapshot, emit a `rateLimits` event, expose `getSnapshot`/`subscribe`, guard against out-of-order `observedAt` (older observation ignored). Do not republish an unchanged snapshot (respect granular-events rule).
-* Snapshot shape must be claude-native, not forced into the codex bucket model. Minimum fields per window: an identifier/label for the window (`rateLimitType` e.g. `five_hour`, weekly), `resetsAt` (store as unix ms; convert if source is seconds), plus whichever of `usedPercent` **or** `status` the winning option provides. Snapshot carries `observedAt`, `available`.
-* Wire the callback: `createAgentStreamingAdapter` passes `onRuntimeEvent` to `ClaudeStreamingAdapter` (today only codex gets it). Adapter emits `{ kind: 'snapshot'|'update'|'unavailable', observedAt, payload }` on receiving `rate_limit_event` (Option 1) or parsed `/usage` (Option 2).
+* Add a spawner that runs `echo /usage | claude` out-of-band on a poll and parses the plain-text output per the field map above into a claude snapshot.
+* Add a `ClaudeRuntimeService` (`desktop/src/actions/agent/claude_runtime_service.js`), modeled on `CodexRuntimeService`: validate/normalize the parsed snapshot, hold one account-wide claude snapshot, emit a `rateLimits` event, expose `getSnapshot`/`subscribe`, guard against out-of-order `observedAt` (older observation ignored). Do not republish an unchanged snapshot (respect granular-events rule).
+* Snapshot shape is claude-native, not forced into the codex bucket model. Fields per window: window id (`five_hour`, `weekly`), `resetsAt` (unix ms; convert from the localized datetime + tz), `usedPercent` (integer). Snapshot carries `observedAt`, `available`.
 * `agent_runner_service.js`: add `handleClaudeRuntimeEvent`, symmetric to `handleCodexRuntimeEvent`, forwarding to `ClaudeRuntimeService`. Inject the service like `codexRuntimeService`.
 
 ### Phase 2 — bridge to renderer
@@ -142,9 +80,7 @@ Mirror the codex wiring so the renderer path is identical in spirit.
 
 * `ClaudeRateLimitService` (`app/src/services/agents/claude_rate_limit_service.ts`), mirror of `CodexRateLimitService`: `{ receivedAt, snapshot, stale }`, subscribe to bridge, schedule stale flip at earliest `resetsAt`, `EventTarget` `changed` event, `register('claudeRateLimitService', this)`.
 * Hook `use_claude_rate_limits.ts` via `useSyncExternalStore`, mirror of `use_codex_rate_limits.ts`.
-* New `ClaudeRateLimitStatus` + `ClaudeRateLimitDetails` components (do **not** overload the codex ones). Presentation depends on winning option:
-  * Option 1 (no percent): status-bar label shows window state + reset, e.g. "Claude · resets 10:00pm" and, when `status` signals throttling/rejection, warning/error color. Percent omitted.
-  * Option 2 (percent): label shows "Claude N% used" like codex; popover lists session + weekly rows with reset times.
+* New `ClaudeRateLimitStatus` + `ClaudeRateLimitDetails` components (do **not** overload the codex ones). Label shows "Claude N% used" like codex; popover lists session + weekly rows with reset times.
 * Mount the new component next to `CodexRateLimitStatus` in `status_bar.tsx` and `mobile_project_status.tsx`. Render nothing when no claude snapshot / stale (same null-render discipline as codex).
 
 ### Notes / constraints
@@ -155,27 +91,29 @@ Mirror the codex wiring so the renderer path is identical in spirit.
 
 ## acceptance criteria
 
-**Spike (Phase 0)**
-
-1. Spike documents, for the installed claude CLI, whether Option 1 `rate_limit_event` is emitted during a normal streaming turn, and its full field set (including `resetsAt` unit and `status`/`rateLimitType` value ranges).
-2. Spike documents Option 2 `/usage` raw output shape (labels, percent format, reset format).
-3. A single winning option is chosen and recorded in this doc, with the field map used by later phases.
-
 **Capture + transport**
 
-4. When the winning source reports claude limits during a run, a normalized claude snapshot reaches the renderer via `window.md2ClaudeRuntime` with `observedAt`, `resetsAt` (unix ms), window identifier, and the available metric (`usedPercent` or `status`).
-5. An older observation (`observedAt` earlier than the current snapshot) is ignored; the newest wins.
-6. Malformed/partial payloads are rejected by normalization and never crash the run or the renderer.
+1. A periodic out-of-band `echo /usage | claude` spawn parses both windows (`Current session:` → `five_hour`, `Current week (all models):` → `weekly`) into a normalized snapshot with `usedPercent` (integer) and `resetsAt` (unix ms, converted from the localized datetime + tz).
+2. The snapshot reaches the renderer via `window.md2ClaudeRuntime` with `observedAt`, `resetsAt`, window identifier, and `usedPercent`.
+3. An older observation (`observedAt` earlier than the current snapshot) is ignored; the newest wins.
+4. Malformed/partial `/usage` output is rejected by normalization and never crashes the poll or the renderer.
 
 **UI**
 
-7. A **separate** claude usage indicator renders in the desktop status bar and the mobile project-status drawer, distinct from the codex indicator; both can show simultaneously when both agents have run.
-8. Clicking/tapping the indicator opens a claude-specific details popover listing each reported window with its reset time (and percent, if Option 2).
-9. Indicator uses warning styling as a limit is approached and error styling when a limit is reached/throttled (percent thresholds for Option 2; `status` signal for Option 1).
-10. When no claude snapshot exists, or the snapshot is stale (its earliest `resetsAt` has passed), the claude indicator renders nothing — no stale numbers shown.
+5. A **separate** claude usage indicator renders in the desktop status bar and the mobile project-status drawer, distinct from the codex indicator; both can show simultaneously when both agents have run.
+6. Clicking/tapping the indicator opens a claude-specific details popover listing each reported window with its reset time and percent.
+7. Indicator shows "Claude N% used", warns as a limit is approached and shows error styling when a limit is reached.
+8. When no claude snapshot exists, or the snapshot is stale (its earliest `resetsAt` has passed), the claude indicator renders nothing — no stale numbers shown.
 
 **Regression**
 
-11. The existing codex indicator, its service, and its bridge are unchanged in behavior.
-12. Claude streaming turns (messages, tools, approvals, questions, usage/token events) behave exactly as before adding the runtime-event callback.
-13. `npm run typecheck` passes; new services/components have unit tests mirroring the codex equivalents.
+9. The existing codex indicator, its service, and its bridge are unchanged in behavior.
+10. Claude streaming turns behave exactly as before; the streaming adapter is untouched.
+11. `npm run typecheck` passes; new services/components have unit tests mirroring the codex equivalents.
+
+## Why not the streaming event
+
+Rejected approach: reading `rate_limit_event` off the live `claude -p --output-format stream-json --verbose` stream.
+
+* Emits reliably, once per streaming turn. Full field set: `{ status, resetsAt, rateLimitType: "five_hour", overageStatus, overageDisabledReason, isUsingOverage }`. `resetsAt` is unix **seconds**.
+* Rejected because it carries **no used-percent** and only the `five_hour` window ever appeared (no weekly). The indicator could show reset-time + status color only — losing the percent the codex UI centers on.
