@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
   - design/activity/card__dffba4e6-6ec5-4a40-8ee7-e68d4891aff3.json#conversation=agent-ba12b03b-3b6a-402f-8795-1b7128666790
+  - design/activity/card__dffba4e6-6ec5-4a40-8ee7-e68d4891aff3.json#conversation=agent-eaf44b60-d800-402c-8d92-45605b09a21a
 policy:
 after: 16e415b8-8ab2-4050-bb45-c6c37c0c3465
 branch: b_119_attach_file_not_working_in_new_card_popup
