@@ -2,13 +2,13 @@ import { IconButton, Tooltip } from '@mui/material'
 import Paperclip from 'mdi-material-ui/Paperclip'
 import { useRef, type ChangeEvent } from 'react'
 
-interface MarkdownAttachmentToolbarControlProps {
+interface MarkdownAttachmentControlProps {
     disabled: boolean
     onFiles: (files: File[]) => void
 }
 
-/** Paperclip file picker shared by writable Markdown editor toolbars. */
-export function MarkdownAttachmentToolbarControl(props: MarkdownAttachmentToolbarControlProps) {
+/** Placement-neutral paperclip file picker for Markdown attachment workflows. */
+export function MarkdownAttachmentControl(props: MarkdownAttachmentControlProps) {
     const { disabled, onFiles } = props
     const inputRef = useRef<HTMLInputElement>(null)
     const openFilePicker = () => inputRef.current?.click()

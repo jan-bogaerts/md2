@@ -10,14 +10,14 @@ export async function attachFilesToNewCardMarkdown(files: File[], insertMarkdown
 
     if (selection.choice === 'original') {
         if (!selection.originalPaths) throw new Error('Original attachment paths are unavailable')
-        insertMarkdown(attachmentMarkdown(files, selection.originalPaths, true))
+        await insertMarkdown(attachmentMarkdown(files, selection.originalPaths, true))
         return
     }
 
     await copyAndApplyAttachments(
         files,
         (selectedFiles) => projectSessionService.copyNewCardAttachments(selectedFiles),
-        (attachments) => insertMarkdown(attachmentMarkdown(
+        async (attachments) => insertMarkdown(attachmentMarkdown(
             files,
             attachments.map(({ fileName }) => fileName),
             false,

@@ -1,7 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { dataService } from '../data/data_service'
 import { attachmentChoiceService } from './attachment_choice_service'
-import { absoluteFileUrl, attachFilesToCard, attachFilesToCardMarkdown } from './attachment_workflow'
+import {
+    absoluteFileUrl,
+    attachFilesToCard,
+    attachFilesToCardMarkdown,
+    attachFilesToOriginalMarkdown,
+} from './attachment_workflow'
+import { MarkdownDraft } from '../markdown/markdown_draft'
 
 afterEach(() => {
     attachmentChoiceService.cancel()
@@ -36,6 +42,22 @@ describe('attachment workflow', () => {
         expect(copyAttachments).not.toHaveBeenCalled()
     })
 
+    it('inserts original links without requiring a card copy destination', async () => {
+        const files = [new File(['notes'], 'notes.txt', { type: 'text/plain' })]
+        window.md2Files = { getPathForFile: () => 'C:\\source folder\\notes.txt' }
+        const insertMarkdown = vi.fn()
+
+        await attachFilesToOriginalMarkdown(files, insertMarkdown)
+
+        expect(insertMarkdown).toHaveBeenCalledWith('[notes.txt](<file:///C:/source%20folder/notes.txt>)')
+    })
+
+    it('fails original-only attachment when trusted file paths are unavailable', async () => {
+        const operation = attachFilesToOriginalMarkdown([new File(['notes'], 'notes.txt')], vi.fn())
+
+        await expect(operation).rejects.toThrow('Original attachment paths are unavailable')
+    })
+
     it('removes copied files when Markdown insertion fails', async () => {
         const file = new File(['report'], 'report.pdf', { type: 'application/pdf' })
         vi.spyOn(dataService.cards, 'copyAttachmentsForCard').mockResolvedValue([
@@ -50,6 +72,20 @@ describe('attachment workflow', () => {
         attachmentChoiceService.select('copy')
 
         await expect(operation).rejects.toBe(insertionError)
+        expect(deleteAttachments).toHaveBeenCalledWith(['design/report.pdf'])
+    })
+
+    it('removes copied files when no mounted editor handles draft insertion', async () => {
+        const file = new File(['report'], 'report.pdf', { type: 'application/pdf' })
+        const draft = new MarkdownDraft('')
+        vi.spyOn(dataService.cards, 'copyAttachmentsForCard').mockResolvedValue([
+            { fileName: 'report.pdf', path: 'design/report.pdf' },
+        ])
+        const deleteAttachments = vi.spyOn(dataService.cards, 'deleteCopiedAttachments').mockResolvedValue()
+        const operation = attachFilesToCardMarkdown('design/F-1.md', [file], draft.requestInsertion)
+        attachmentChoiceService.select('copy')
+
+        await expect(operation).rejects.toThrow('Markdown insertion requires a mounted editor')
         expect(deleteAttachments).toHaveBeenCalledWith(['design/report.pdf'])
     })
 

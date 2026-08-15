@@ -3,6 +3,7 @@ import { getElectronActionBridge } from '../../data/electron_action_bridge'
 import type { ActionDefinition } from '../../data/action_types'
 import { isRemoteControlConnectionError } from '../data/remote_control_storage_service'
 import { register } from '../service_injector'
+import { MarkdownDraft } from '../markdown/markdown_draft'
 
 export type ActionPromptPreparationStatus = 'failed' | 'loading' | 'ready'
 
@@ -23,8 +24,6 @@ interface ActionPromptDraftOptions {
     initialValue?: string
     prepare: boolean
 }
-
-type ActionPromptDraftListener = () => void
 
 function idlePromptDraftKey(actionId: string, context: ActionContext) {
     return `idle\u0000${actionId}\u0000${actionContextIdentity(context)}`
@@ -60,16 +59,14 @@ async function sendActionQueuedMessage(runId: string, sessionId: number, revisio
 /** Stable prompt state shared by editor and prompt-dependent leaf controls. */
 export class ActionPromptDraft {
     private editorSnapshot: ActionPromptDraftEditorSnapshot
-    private readonly editorListeners = new Set<ActionPromptDraftListener>()
     private locallyEdited = false
+    readonly markdownDraft: MarkdownDraft
     private run: ActionPromptRunBinding | null
     private pendingWrite: Promise<void> = Promise.resolve()
     private preparationRequired: boolean
     private preparationStarted = false
     private promptSession: Promise<number> | null = null
     private revision = 0
-    private readonly valueListeners = new Set<ActionPromptDraftListener>()
-    private value: string
 
     constructor(
         initialValue: string,
@@ -80,25 +77,23 @@ export class ActionPromptDraft {
             preparationStatus: preparationRequired ? 'loading' : 'ready',
             replacementRevision: 0,
         }
+        this.markdownDraft = new MarkdownDraft(initialValue)
         this.run = run
         this.preparationRequired = preparationRequired
-        this.value = initialValue
     }
 
-    readonly getSnapshot = () => this.value
+    readonly getSnapshot = () => this.markdownDraft.getSnapshot()
 
     readonly getEditorSnapshot = () => this.editorSnapshot
 
-    readonly subscribe = (listener: ActionPromptDraftListener) => {
-        this.valueListeners.add(listener)
+    readonly requestInsertion = (markdown: string) => this.markdownDraft.requestInsertion(markdown)
 
-        return () => this.valueListeners.delete(listener)
-    }
+    readonly subscribe = (listener: () => void) => this.markdownDraft.subscribe(listener)
 
-    readonly subscribeEditor = (listener: ActionPromptDraftListener) => {
-        this.editorListeners.add(listener)
+    readonly subscribeEditor = (listener: () => void) => {
+        this.markdownDraft.addEventListener('actionEditorChanged', listener)
 
-        return () => this.editorListeners.delete(listener)
+        return () => this.markdownDraft.removeEventListener('actionEditorChanged', listener)
     }
 
     bindRun(run: ActionPromptRunBinding | null) {
@@ -111,7 +106,7 @@ export class ActionPromptDraft {
         this.locallyEdited = true
         this.preparationRequired = false
         this.setPreparationStatus('ready')
-        this.setValue(value)
+        this.markdownDraft.edit(value)
     }
 
     /** Replace editor content from an external source and notify editor exactly once. */
@@ -119,7 +114,7 @@ export class ActionPromptDraft {
         this.revision += 1
         this.locallyEdited = false
         this.preparationRequired = false
-        this.setValue(value)
+        this.markdownDraft.replace(value)
         this.editorSnapshot = {
             preparationStatus: 'ready',
             replacementRevision: this.editorSnapshot.replacementRevision + 1,
@@ -128,7 +123,7 @@ export class ActionPromptDraft {
     }
 
     clear() {
-        if (this.value.length === 0 && this.editorSnapshot.preparationStatus === 'ready') return
+        if (this.getSnapshot().length === 0 && this.editorSnapshot.preparationStatus === 'ready') return
 
         this.replace('')
     }
@@ -167,7 +162,7 @@ export class ActionPromptDraft {
         const run = this.run
         if (!run?.interactionReady || run.activeActionType !== 'agent' || !run.activeActionId) return
 
-        const value = this.value
+        const value = this.getSnapshot()
         const revision = this.revision
         const pendingWrite = this.pendingWrite.catch(() => undefined).then(async () => {
             const sessionId = await this.getPromptSession(run.runId)
@@ -186,10 +181,10 @@ export class ActionPromptDraft {
     async send() {
         const run = this.run
         if (!run?.activeActionId) throw new Error('Action run has no active agent')
-        if (this.value.trim().length === 0) throw new Error('Queued agent prompt is empty')
+        if (this.getSnapshot().trim().length === 0) throw new Error('Queued agent prompt is empty')
 
         await this.pendingWrite
-        const value = this.value
+        const value = this.getSnapshot()
         const revision = this.revision
         const sessionId = await this.getPromptSession(run.runId)
         try {
@@ -214,13 +209,6 @@ export class ActionPromptDraft {
         return promptSession
     }
 
-    private setValue(value: string) {
-        if (this.value === value) return
-
-        this.value = value
-        for (const listener of this.valueListeners) listener()
-    }
-
     private setPreparationStatus(preparationStatus: ActionPromptPreparationStatus) {
         if (this.editorSnapshot.preparationStatus === preparationStatus) return
 
@@ -229,7 +217,7 @@ export class ActionPromptDraft {
     }
 
     private publishEditor() {
-        for (const listener of this.editorListeners) listener()
+        this.markdownDraft.dispatchEvent(new Event('actionEditorChanged'))
     }
 }
 

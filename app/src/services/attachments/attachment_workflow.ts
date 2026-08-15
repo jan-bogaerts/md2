@@ -2,8 +2,9 @@ import type { SavedCardAttachment } from '../data/card_attachment_operations'
 import { copyAndApplyAttachments } from '../data/card_attachment_operations'
 import { dataService } from '../data/data_service'
 import { attachmentChoiceService } from './attachment_choice_service'
+import { getOriginalFilePaths } from '../../data/electron_file_bridge'
 
-export type AttachmentMarkdownInserter = (markdown: string) => void
+export type AttachmentMarkdownInserter = (markdown: string) => void | Promise<void>
 
 function escapeMarkdownLabel(label: string) {
     return label.replace(/([\\\]])/gu, '\\$1')
@@ -76,7 +77,7 @@ async function insertCopiedMarkdown(
     attachments: SavedCardAttachment[],
     insertMarkdown: AttachmentMarkdownInserter,
 ) {
-    insertMarkdown(attachmentMarkdown(files, attachments.map(({ fileName }) => fileName), false))
+    await insertMarkdown(attachmentMarkdown(files, attachments.map(({ fileName }) => fileName), false))
 }
 
 /** Runs Markdown attachment choice for an existing card-backed editor. */
@@ -90,7 +91,7 @@ export async function attachFilesToCardMarkdown(
 
     if (selection.choice === 'original') {
         if (!selection.originalPaths) throw new Error('Original attachment paths are unavailable')
-        insertMarkdown(attachmentMarkdown(files, selection.originalPaths, true))
+        await insertMarkdown(attachmentMarkdown(files, selection.originalPaths, true))
         return
     }
 
@@ -100,6 +101,14 @@ export async function attachFilesToCardMarkdown(
         (attachments) => insertCopiedMarkdown(files, attachments, insertMarkdown),
         (paths) => dataService.cards.deleteCopiedAttachments(paths),
     )
+}
+
+/** Inserts absolute attachment links when no project copy destination exists. */
+export async function attachFilesToOriginalMarkdown(files: File[], insertMarkdown: AttachmentMarkdownInserter) {
+    const originalPaths = getOriginalFilePaths(files)
+    if (!originalPaths) throw new Error('Original attachment paths are unavailable')
+
+    await insertMarkdown(attachmentMarkdown(files, originalPaths, true))
 }
 
 export { attachmentMarkdown }

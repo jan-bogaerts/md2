@@ -30,8 +30,10 @@ import type {
     MarkdownDataSource,
     MarkdownDocumentTarget,
 } from './markdown_data_source'
-import { MarkdownAttachmentToolbarControl } from './markdown_attachment_toolbar_control'
+import { MarkdownAttachmentControl } from './markdown_attachment_control'
 import type { AttachmentMarkdownInserter } from '../../services/attachments/attachment_workflow'
+import type { MarkdownDraft } from '../../services/markdown/markdown_draft'
+import { useMarkdownDraft } from './use_markdown_draft'
 
 const DEFAULT_CODE_LANGUAGE = ''
 const CODE_BLOCK_LANGUAGES = { '': 'Plain text', js: 'JavaScript', ts: 'TypeScript', tsx: 'TSX', bash: 'Shell' }
@@ -50,6 +52,8 @@ interface MarkdownEditorPresentationProps {
     flushOnBlur?: boolean
     /** Omit format toolbar entirely. */
     hideToolbar?: boolean
+    /** Hide built-in attachment control while retaining attachment drops. */
+    hideAttachmentControl?: boolean
     imagePasteHandler?: MarkdownImagePasteHandler
     /** Set false when containing surface owns Ctrl+F behavior. */
     localTextSearch?: boolean
@@ -63,6 +67,7 @@ interface MarkdownEditorPresentationProps {
 interface MarkdownEditorDataSourceProps extends MarkdownEditorPresentationProps {
     binding: MarkdownBindingKind
     dataSource: MarkdownDataSource
+    draft?: never
     historyStore: MarkdownDocumentHistoryStore
     markdown?: never
     onChange?: never
@@ -73,6 +78,7 @@ interface MarkdownEditorDataSourceProps extends MarkdownEditorPresentationProps 
 interface MarkdownEditorLocalProps extends MarkdownEditorPresentationProps {
     binding?: never
     dataSource?: never
+    draft?: never
     historyStore?: never
     markdown: string
     onChange: (markdown: string) => void
@@ -80,7 +86,18 @@ interface MarkdownEditorLocalProps extends MarkdownEditorPresentationProps {
     onLiveChange?: (markdown: string) => void
 }
 
-type MarkdownEditorProps = MarkdownEditorDataSourceProps | MarkdownEditorLocalProps
+interface MarkdownEditorDraftProps extends MarkdownEditorPresentationProps {
+    binding?: never
+    dataSource?: never
+    draft: MarkdownDraft
+    historyStore?: never
+    markdown?: never
+    onChange?: (markdown: string) => void
+    onDirtyChange?: (dirty: boolean) => void
+    onLiveChange?: (markdown: string) => void
+}
+
+type MarkdownEditorProps = MarkdownEditorDataSourceProps | MarkdownEditorLocalProps | MarkdownEditorDraftProps
 
 interface MarkdownDocumentSnapshot {
     target: MarkdownDocumentTarget | null
@@ -92,6 +109,7 @@ interface MarkdownProcessingError {
 }
 
 function initialDocument(props: MarkdownEditorProps): MarkdownDocumentSnapshot {
+    if (props.draft) return { target: null, markdown: props.draft.getSnapshot() }
     if (!props.dataSource) return { target: null, markdown: props.markdown }
 
     const target = props.dataSource.getActiveTarget(props.binding)
@@ -104,6 +122,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         flushOnBlur = false,
         attachmentHandler,
         diffMarkdown,
+        hideAttachmentControl = false,
         hideToolbar = false,
         imagePasteHandler,
         localTextSearch = true,
@@ -116,6 +135,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     const dataSource = props.dataSource
     const binding = props.binding
     const historyStore = props.historyStore
+    const draft = props.draft
     const { snapshot } = useProjectState()
     const repositoryFiles = snapshot?.repositoryFiles ?? EMPTY_REPOSITORY_FILES
     const initialDocumentRef = useRef<MarkdownDocumentSnapshot | null>(null)
@@ -187,6 +207,13 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         replacingMarkdownRef.current = false
     }, [])
 
+    const replaceDraftMarkdown = useCallback((markdown: string) => {
+        replaceMarkdown(markdown)
+        latestMarkdownRef.current = markdown
+        lastEmittedMarkdownRef.current = markdown
+        setDirty(false)
+    }, [replaceMarkdown, setDirty])
+
     const setPendingDocumentChangeRetry = useCallback((retry: () => void) => {
         applyPendingDocumentChangeRef.current = retry
     }, [])
@@ -257,9 +284,10 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         if (!dirtyBaselineEstablishedRef.current) return
         setDirty(markdown !== lastEmittedMarkdownRef.current)
         onLiveChangeRef.current?.(markdown)
+        draft?.edit(markdown)
         const activeTarget = activeTargetRef.current
         if (dataSource && binding && activeTarget) dataSource.edit(binding, activeTarget, markdown)
-    }, [binding, dataSource, setDirty])
+    }, [binding, dataSource, draft, setDirty])
 
     const handleEditorError = useCallback(({ error }: MarkdownProcessingError) => {
         dialogService.error(new Error(error), { fallbackMessage: 'Markdown could not be parsed' })
@@ -271,8 +299,11 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     }
 
     const insertMarkdown = useCallback((markdown: string) => {
-        editorRef.current?.insertMarkdown(markdown)
+        if (!editorRef.current) throw new Error('Markdown editor is not mounted')
+        editorRef.current.insertMarkdown(markdown)
     }, [])
+
+    useMarkdownDraft(draft, insertMarkdown, replaceDraftMarkdown)
 
     const getSelectionMarkdown = useCallback(() => editorRef.current?.getSelectionMarkdown() ?? '', [])
 
@@ -308,9 +339,14 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
                     />
                 )
             ) : null}
-            {attachmentHandler ? <MarkdownAttachmentToolbarControl disabled={readOnly} onFiles={attachFiles} /> : null}
+            {attachmentHandler && !hideAttachmentControl ? (
+                <MarkdownAttachmentControl disabled={readOnly} onFiles={attachFiles} />
+            ) : null}
         </>
-    ), [attachFiles, attachmentHandler, customToolbarContents, hideToolbar, overlayContainer, placeholders, readOnly])
+    ), [
+        attachFiles, attachmentHandler, customToolbarContents, hideAttachmentControl, hideToolbar, overlayContainer,
+        placeholders, readOnly,
+    ])
     const editorSx = {
         ...markdownContentSx,
         '& .mdxeditor-toolbar': { bgcolor: 'background.paper', position: 'sticky', top: 0, zIndex: 1 },
@@ -330,7 +366,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         markdownShortcutPlugin(),
         plainMarkdownPlugin(),
         ...(viewMode ? [diffSourcePlugin({ diffMarkdown: diffMarkdown ?? '', viewMode })] : []),
-        ...(!hideToolbar || attachmentHandler ? [toolbarPlugin({ toolbarContents })] : []),
+        ...(!hideToolbar || (attachmentHandler && !hideAttachmentControl) ? [toolbarPlugin({ toolbarContents })] : []),
         markdownPlaceholderPlugin({ overlayContainer, placeholders }),
         markdownFileSearchPlugin({ overlayContainer, repositoryFiles }),
         ...(localTextSearch ? [markdownLocalTextSearchPlugin({ overlayContainer })] : []),

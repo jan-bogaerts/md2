@@ -67,16 +67,15 @@ export function ActionAgentPromptOwner(props: ActionAgentPromptOwnerProps) {
         && conversationSnapshot.selectedConversation === null
     const promptDraft = currentActionPromptDraft(action, context, prepare)
     const handleAttachments = useCallback(async (files: File[], insertMarkdown: (markdown: string) => void) => {
-        if ((context.kind !== 'card' && context.kind !== 'file') || !context.file) {
-            throw new Error('Card action prompt attachments require a selected card')
+        const attachmentWorkflow = await import('../../../services/attachments/attachment_workflow')
+        if (context.file) {
+            await attachmentWorkflow.attachFilesToCardMarkdown(context.file, files, insertMarkdown)
+            return
         }
 
-        const { attachFilesToCardMarkdown } = await import('../../../services/attachments/attachment_workflow')
-        await attachFilesToCardMarkdown(context.file, files, insertMarkdown)
+        await attachmentWorkflow.attachFilesToOriginalMarkdown(files, insertMarkdown)
     }, [context])
-    const attachmentHandler = (context.kind === 'card' || context.kind === 'file') && context.file
-        ? handleAttachments
-        : undefined
+    const attachmentHandler = action.type === 'agent' ? handleAttachments : undefined
 
     useEffect(() => {
         if (!prepare || remoteConnection.status === 'connecting' || remoteConnection.status === 'reconnecting') return

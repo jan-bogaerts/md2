@@ -19,15 +19,22 @@ import type { ChangeEvent, FormEvent, KeyboardEvent } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CardDraft, CardTypeConfig, StateConfig } from '../../../data/data_types'
 import { useCardCreationState } from '../../hooks/use_card_creation_state'
-import type { MarkdownEditorHandle } from '../../editor/markdown_editor'
 import { CardTypePillGroup } from './card_type_pill_group'
 import { NewCardMarkdownEditor } from './new_card_markdown_editor'
 import { projectSessionService } from '../../../services/project/project_session_service'
 import { dialogService } from '../../../services/dialog_service'
 import { NewCardColumnPicker } from './new_card_column_picker'
+import { MarkdownAttachmentControl } from '../../editor/markdown_attachment_control'
+import { attachFilesToNewCardMarkdown } from '../../../services/attachments/new_card_attachment_workflow'
 
 const DIALOG_WIDTH = 480
 const DISCARD_CARD_MESSAGE = 'Discard this new card draft?'
+
+function attachFilesToNewCardDraft(files: File[]) {
+    void attachFilesToNewCardMarkdown(files, projectSessionService.newCardMarkdownDraft.requestInsertion).catch((error: unknown) => {
+        dialogService.error(error, { fallbackMessage: 'Files could not be attached' })
+    })
+}
 
 interface NewCardDialogProps {
     cardBodyTemplate: string
@@ -57,7 +64,6 @@ export function NewCardDialog(props: NewCardDialogProps) {
     const { isCreatingCard } = useCardCreationState()
     const theme = useTheme()
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
-    const bodyEditorRef = useRef<MarkdownEditorHandle>(null)
     const wasOpenRef = useRef(false)
     const [isInsertedTemplateUntouched, setIsInsertedTemplateUntouched] = useState(false)
     const [targetStatus, setTargetStatus] = useState('')
@@ -71,7 +77,7 @@ export function NewCardDialog(props: NewCardDialogProps) {
         || selectedType.length === 0 || selectedStatus.length === 0 || isLoading || isCreatingCard
 
     const resetForm = () => {
-        bodyEditorRef.current?.setMarkdown('')
+        projectSessionService.newCardMarkdownDraft.replace('')
         setIsInsertedTemplateUntouched(false)
         setTargetStatus(initialTargetStatus)
         setTitle('')
@@ -80,7 +86,7 @@ export function NewCardDialog(props: NewCardDialogProps) {
 
     useEffect(() => {
         if ((open && !wasOpenRef.current) || !isProjectOpen) {
-            bodyEditorRef.current?.setMarkdown('')
+            projectSessionService.newCardMarkdownDraft.replace('')
             setIsInsertedTemplateUntouched(false)
             setTargetStatus(initialTargetStatus)
             setTitle('')
@@ -90,7 +96,7 @@ export function NewCardDialog(props: NewCardDialogProps) {
     }, [defaultType, initialTargetStatus, isProjectOpen, open])
 
     const closeDialog = async () => {
-        const body = bodyEditorRef.current?.getMarkdown() ?? ''
+        const body = projectSessionService.newCardMarkdownDraft.getSnapshot()
         const isDirty = title.length > 0
             || body.length > 0
             || selectedType !== defaultType
@@ -121,16 +127,16 @@ export function NewCardDialog(props: NewCardDialogProps) {
     }, [])
 
     const handleTemplateClick = () => {
-        const body = bodyEditorRef.current?.getMarkdown() ?? ''
+        const body = projectSessionService.newCardMarkdownDraft.getSnapshot()
         if (isInsertedTemplateUntouched && body === cardBodyTemplate) {
-            bodyEditorRef.current?.setMarkdown('')
+            projectSessionService.newCardMarkdownDraft.replace('')
             setIsInsertedTemplateUntouched(false)
 
             return
         }
 
         const nextBody = body.length > 0 ? `${body}\n\n${cardBodyTemplate}` : cardBodyTemplate
-        bodyEditorRef.current?.setMarkdown(nextBody)
+        projectSessionService.newCardMarkdownDraft.replace(nextBody)
         setIsInsertedTemplateUntouched(body.length === 0)
     }
 
@@ -138,7 +144,7 @@ export function NewCardDialog(props: NewCardDialogProps) {
         if (isSubmitDisabled) return
 
         await projectSessionService.waitForNewCardImageSaves()
-        const body = bodyEditorRef.current?.getMarkdown() ?? ''
+        const body = projectSessionService.newCardMarkdownDraft.getSnapshot()
         const draft: CardDraft = {
             body,
             bodyIncludesTemplate: true,
@@ -385,8 +391,8 @@ export function NewCardDialog(props: NewCardDialogProps) {
                             }}
                         >
                             <NewCardMarkdownEditor
+                                draft={projectSessionService.newCardMarkdownDraft}
                                 onDirtyChange={handleBodyDirtyChange}
-                                ref={bodyEditorRef}
                             />
                         </Box>
                     </Stack>
@@ -407,12 +413,20 @@ export function NewCardDialog(props: NewCardDialogProps) {
                         pb: isMobile ? 'max(12px, env(safe-area-inset-bottom))' : 1.5,
                     }}
                 >
-                    <NewCardColumnPicker
-                        isMobile={isMobile}
-                        onChange={setTargetStatus}
-                        selectedStatus={selectedStatus}
-                        states={states}
-                    />
+                    <Stack
+                        data-testid="new-card-footer-start"
+                        direction="row"
+                        spacing={1}
+                        sx={{ alignItems: 'center', minWidth: 0, width: isMobile ? '100%' : 'auto' }}
+                    >
+                        <MarkdownAttachmentControl disabled={false} onFiles={attachFilesToNewCardDraft} />
+                        <NewCardColumnPicker
+                            isMobile={isMobile}
+                            onChange={setTargetStatus}
+                            selectedStatus={selectedStatus}
+                            states={states}
+                        />
+                    </Stack>
                     {isMobile ? createButton : (
                         <Stack direction="row" spacing={1}>
                             <Button onClick={handleDialogClose} type="button" variant="outlined">

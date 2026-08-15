@@ -18,8 +18,10 @@ import { ActionRunResultStore } from '../state/action_run_result_store'
 import { ActionScheduleStore } from '../schedule/action_schedule_store'
 import { configService } from '../../../../services/config/config_service'
 import { BUILTIN_AGENT_PROFILES } from '../../../../data/agent_profiles'
+import type { ActionContext } from '../../../../data/action_context'
 
 const context = { kind: 'project' as const }
+const cardContext = { cardInternalId: 'card-1', file: 'design/F-1.md', kind: 'card' as const }
 const action = {
     description: 'Custom prompt',
     id: CUSTOM_PROMPT_ACTION_ID,
@@ -49,10 +51,12 @@ function waitingConversation(actionId: string): AgentConversation {
 
 function renderBottomRow(
     actionOverride = action,
-    conversationStore = new ActionConversationStore(actionOverride.id, context),
+    conversationStore?: ActionConversationStore,
     embedded = false,
+    contextOverride: ActionContext = context,
 ) {
-    const historyStore = new ActionHistoryStore(actionOverride, context)
+    const activeConversationStore = conversationStore ?? new ActionConversationStore(actionOverride.id, contextOverride)
+    const historyStore = new ActionHistoryStore(actionOverride, contextOverride)
     const inputStore = new ActionRunInputStore()
     const resultStore = new ActionRunResultStore()
     const scheduleStore = new ActionScheduleStore()
@@ -71,8 +75,8 @@ function renderBottomRow(
             <UnrelatedContent />
             <ActionPopupBottomRow
                 action={actionOverride}
-                assignmentContext={context}
-                conversationStore={conversationStore}
+                assignmentContext={contextOverride}
+                conversationStore={activeConversationStore}
                 embedded={embedded}
                 historyStore={historyStore}
                 inputStore={inputStore}
@@ -85,7 +89,7 @@ function renderBottomRow(
         </AppThemeProvider>,
     )
 
-    return { conversationStore, unrelatedRender }
+    return { conversationStore: activeConversationStore, unrelatedRender }
 }
 
 describe('ActionPopupBottomRow', () => {
@@ -113,11 +117,15 @@ describe('ActionPopupBottomRow', () => {
         renderBottomRow()
         const bottomRow = screen.getByTestId('action-popup-bottom-row')
         const layout = bottomRow.firstElementChild as HTMLElement
-        const [selectors, usage, controls] = Array.from(layout.children)
+        const selectors = layout.querySelector('[data-footer-selectors]') as HTMLElement
+        const usage = layout.querySelector('[data-footer-usage]') as HTMLElement
+        const controls = layout.querySelector('[data-footer-controls]') as HTMLElement
 
         expect(bottomRow).toHaveStyle({containerType: 'inline-size'})
         expect(layout).toHaveAttribute('data-footer-layout')
         expect(layout).toHaveStyle({display: 'flex', minWidth: '0', width: '100%'})
+        expect(within(layout).getByRole('button', { name: 'Attach files' })
+            .compareDocumentPosition(selectors) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
         expect(selectors).toHaveAttribute('data-footer-selectors')
         expect(selectors).toHaveStyle({ flexShrink: '1', minWidth: '158px', overflow: 'hidden' })
         expect(within(selectors as HTMLElement).getByRole('group', { name: 'Agent settings' })).toBeInTheDocument()
@@ -126,6 +134,19 @@ describe('ActionPopupBottomRow', () => {
         expect(controls).toHaveAttribute('data-footer-controls')
         expect(controls).toHaveStyle({ flexShrink: '0', justifyContent: 'flex-end' })
         expect(within(controls as HTMLElement).getByRole('button', { name: 'Send' })).toBeInTheDocument()
+    })
+
+    it('renders attachment control first for card and project agent prompts', () => {
+        renderBottomRow(action, undefined, false, cardContext)
+        const layout = screen.getByTestId('action-popup-bottom-row').firstElementChild as HTMLElement
+        const attachment = within(layout).getByRole('button', { name: 'Attach files' })
+        const selectors = layout.querySelector('[data-footer-selectors]') as HTMLElement
+
+        expect(attachment.compareDocumentPosition(selectors) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
+
+        cleanup()
+        renderBottomRow()
+        expect(screen.getByRole('button', { name: 'Attach files' })).toBeInTheDocument()
     })
 
     it('marks the row as embedded without changing agent control behavior', () => {
@@ -212,6 +233,7 @@ describe('ActionPopupBottomRow', () => {
         const run = screen.getByRole('button', { name: 'Run' })
 
         expect(screen.getByTestId('action-popup-bottom-row')).not.toHaveAttribute('data-embedded')
+        expect(screen.queryByRole('button', { name: 'Attach files' })).not.toBeInTheDocument()
 
         fireEvent.mouseOver(run)
         expect(await screen.findByText('Run', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()

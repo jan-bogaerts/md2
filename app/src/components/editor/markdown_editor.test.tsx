@@ -19,6 +19,7 @@ import {
     type MarkdownDocumentTarget,
 } from './markdown_data_source'
 import type { CardOpenDocument } from '../../services/open_files_service'
+import { MarkdownDraft } from '../../services/markdown/markdown_draft'
 
 const originalMatchMedia = window.matchMedia
 
@@ -754,6 +755,66 @@ describe('MarkdownEditor', () => {
         await waitFor(() => expect(attachmentHandler).toHaveBeenCalledWith([file], expect.any(Function)))
         expect(screen.getByRole('button', { name: 'Attach files' })).toBeInTheDocument()
         expect(screen.getByRole('textbox')).toHaveValue('[report](<report.pdf>)start')
+    })
+
+    it('suppresses attachment toolbar control without disabling file drops', async () => {
+        const attachmentHandler = vi.fn(async (_files: File[], insertMarkdown: (markdown: string) => void) => {
+            insertMarkdown('[report](<report.pdf>)')
+        })
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor
+                    attachmentHandler={attachmentHandler}
+                    hideAttachmentControl
+                    hideToolbar
+                    markdown="start"
+                    onChange={vi.fn()}
+                />
+            </AppThemeProvider>,
+        )
+        const file = new File(['report'], 'report.pdf', { type: 'application/pdf' })
+
+        expect(screen.queryByRole('button', { name: 'Attach files' })).not.toBeInTheDocument()
+        expect(screen.queryByTestId('mdx-editor-toolbar')).not.toBeInTheDocument()
+        fireEvent.drop(screen.getByRole('textbox'), { dataTransfer: { files: [file], types: ['Files'] } })
+
+        await waitFor(() => expect(attachmentHandler).toHaveBeenCalledWith([file], expect.any(Function)))
+    })
+
+    it('applies acknowledged draft insertion at current selection and external replacement', async () => {
+        const draft = new MarkdownDraft('start end')
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor draft={draft} hideToolbar />
+            </AppThemeProvider>,
+        )
+        const textbox = screen.getByRole('textbox') as HTMLTextAreaElement
+        textbox.focus()
+        selectText(textbox, 6, 6)
+
+        await act(() => draft.requestInsertion('[file] '))
+        expect(textbox).toHaveValue('start [file] end')
+
+        act(() => draft.replace('Replacement'))
+        expect(textbox).toHaveValue('Replacement')
+    })
+
+    it('loads current value when mounted editor switches drafts', async () => {
+        const firstDraft = new MarkdownDraft('First')
+        const secondDraft = new MarkdownDraft('Second')
+        const view = render(
+            <AppThemeProvider>
+                <MarkdownEditor draft={firstDraft} hideToolbar />
+            </AppThemeProvider>,
+        )
+
+        view.rerender(
+            <AppThemeProvider>
+                <MarkdownEditor draft={secondDraft} hideToolbar />
+            </AppThemeProvider>,
+        )
+
+        await waitFor(() => expect(screen.getByRole('textbox')).toHaveValue('Second'))
     })
 
     it('rejects attachment controls and drops while read-only', () => {

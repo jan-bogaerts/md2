@@ -20,6 +20,7 @@ import { dialogService } from '../dialog_service'
 import { GithubPendingCommitConflictError, GithubStorageService } from '../github/github_storage_service'
 import { markdownParsingService } from '../data/markdown_parsing_service'
 import { register } from '../service_injector'
+import { MarkdownDraft } from '../markdown/markdown_draft'
 import { createRandomProjectBackgroundShade } from '../../theme/project_background_shade'
 import { isProjectLoadErrorReported } from './project_loading'
 import { projectPersistenceService } from './project_persistence_service'
@@ -167,6 +168,7 @@ export class ProjectSessionService extends EventTarget {
     private readonly newCardAttachmentSaves = new Set<Promise<unknown>>()
     private readonly newCardImageSaves = new Set<Promise<void>>()
     private readonly newCardImagePaths = new Set<string>()
+    readonly newCardMarkdownDraft = new MarkdownDraft('')
     private readonly projectAccess = projectAccessService
     private state: ProjectSessionState = {
         errorMessage: null,

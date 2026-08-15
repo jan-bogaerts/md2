@@ -3,29 +3,34 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ActionAgentPrompt } from './action_agent_prompt'
 import { ACTION_PROMPT_PLACEHOLDERS } from '../../../data/action_placeholders'
 import { ActionPromptDraft } from '../../../services/actions/action_prompt_draft_service'
-
-const setMarkdown = vi.hoisted(() => vi.fn())
+import type { MarkdownDraft } from '../../../services/markdown/markdown_draft'
 
 vi.mock('../../editor/markdown_editor', async () => {
-    const { forwardRef, useImperativeHandle, useRef, useState } = await import('react')
+    const { forwardRef, useEffect, useImperativeHandle, useRef, useState } = await import('react')
 
     return {
         MarkdownEditor: forwardRef(function MarkdownEditorMock(props: {
             attachmentHandler?: (files: File[], insertMarkdown: (markdown: string) => void) => Promise<void>
+            draft: MarkdownDraft
             flushOnBlur?: boolean
+            hideAttachmentControl?: boolean
             imagePasteHandler?: (file: File, insertMarkdown: (markdown: string) => void) => Promise<void>
             localTextSearch?: boolean
-            markdown: string
-            onChange: (markdown: string) => void
+            onChange?: (markdown: string) => void
             onLiveChange?: (markdown: string) => void
             placeholders?: readonly { name: string }[]
             readOnly?: boolean
         }, ref) {
-            const valueRef = useRef(props.markdown)
-            const [value, setValue] = useState(props.markdown)
+            const valueRef = useRef(props.draft.getSnapshot())
+            const [value, setValue] = useState(props.draft.getSnapshot())
+            useEffect(() => props.draft.subscribeEditor(() => {
+                const replacement = props.draft.getSnapshot()
+                valueRef.current = replacement
+                setValue(replacement)
+            }), [props.draft])
             useImperativeHandle(ref, () => ({
                 flush: () => {
-                    props.onChange(valueRef.current)
+                    props.onChange?.(valueRef.current)
 
                     return true
                 },
@@ -33,7 +38,6 @@ vi.mock('../../editor/markdown_editor', async () => {
                 setMarkdown: (markdown: string) => {
                     valueRef.current = markdown
                     setValue(markdown)
-                    setMarkdown(markdown)
                 },
             }))
 
@@ -42,14 +46,16 @@ vi.mock('../../editor/markdown_editor', async () => {
                     aria-label="Markdown prompt"
                     data-flush-on-blur={props.flushOnBlur ? 'true' : 'false'}
                     data-has-attachment-handler={props.attachmentHandler ? 'true' : 'false'}
+                    data-hide-attachment-control={props.hideAttachmentControl ? 'true' : 'false'}
                     data-image-paste={props.imagePasteHandler ? 'true' : 'false'}
                     data-local-text-search={props.localTextSearch === false ? 'false' : 'true'}
                     data-placeholders={props.placeholders?.map(({ name }) => name).join(',')}
                     value={value}
-                    onBlur={(event) => props.onChange(event.currentTarget.value)}
+                    onBlur={(event) => props.onChange?.(event.currentTarget.value)}
                     onChange={(event) => {
                         valueRef.current = event.currentTarget.value
                         setValue(event.currentTarget.value)
+                        props.draft.edit(event.currentTarget.value)
                         props.onLiveChange?.(event.currentTarget.value)
                     }}
                     onKeyDown={(event) => {
@@ -58,6 +64,7 @@ vi.mock('../../editor/markdown_editor', async () => {
                         const nextValue = `${valueRef.current}\n`
                         valueRef.current = nextValue
                         setValue(nextValue)
+                        props.draft.edit(nextValue)
                         props.onLiveChange?.(nextValue)
                     }}
                     readOnly={props.readOnly}
@@ -101,6 +108,7 @@ describe('ActionAgentPrompt', () => {
         )
 
         expect(screen.getByLabelText('Markdown prompt')).toHaveAttribute('data-has-attachment-handler', 'true')
+        expect(screen.getByLabelText('Markdown prompt')).toHaveAttribute('data-hide-attachment-control', 'true')
     })
 
     it('configures action placeholders on its hidden-toolbar editor', () => {
@@ -218,12 +226,8 @@ describe('ActionAgentPrompt', () => {
                 promptDraft={promptDraft}
             />,
         )
-        setMarkdown.mockClear()
-
         act(() => promptDraft.replace('Prepared'))
 
-        expect(setMarkdown).toHaveBeenCalledOnce()
-        expect(setMarkdown).toHaveBeenCalledWith('Prepared')
         expect(screen.getByLabelText('Markdown prompt')).toHaveValue('Prepared')
     })
 
