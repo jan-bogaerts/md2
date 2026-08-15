@@ -2027,11 +2027,11 @@
         "agent-dabe9973-577a-47b6-845a-4dbd8ebd6ea1"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-67fef5ad-0baa-42ac-b231-103e93af079e",
       "origin": {
@@ -2040,9 +2040,36 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-dabe9973-577a-47b6-845a-4dbd8ebd6ea1",
       "startedAt": "2026-08-14T18:27:37.538Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-dabe9973-577a-47b6-845a-4dbd8ebd6ea1"
+    },
+    {
+      "commits": [
+        {
+          "commit": "034fec2ee94a3ed5953b709c36bea9ab65222b6c",
+          "committedAt": "2026-08-15T14:49:52+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "app/src/components/editor/markdown_editor.test.tsx",
+            "app/src/components/editor/markdown_editor.tsx",
+            "app/src/components/editor/markdown_format_toolbar_controls.tsx",
+            "app/src/components/editor/markdown_list_indent_toolbar_controls.test.tsx",
+            "app/src/components/editor/markdown_list_indent_toolbar_controls.tsx",
+            "app/src/test/mdx_editor_stub.tsx"
+          ],
+          "filesChanged": 6,
+          "insertions": 198,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-15T14:49:52+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "dcf2805e-c1f9-4aed-b160-e147134fe556",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
