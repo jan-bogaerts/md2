@@ -10,6 +10,8 @@ agents:
   - design/activity/card__16e415b8-8ab2-4050-bb45-c6c37c0c3465.json#conversation=agent-9a54b06c-2a09-4849-a51d-c71282417288
 policy:
 after: 8355401d-f3b6-4285-a21d-8ec6ed389215
+branch: b_117_claude_agent_answers_still_duplicated
+worktree: 2
 ---
 we had this before with the claude agent, with responses coming from claude. seems we still have the same issue with `answers` and regular responses. so this has not been fixed at all
 
