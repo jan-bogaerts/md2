@@ -60,4 +60,13 @@ describe('ProjectSyncStatus', () => {
         expect(screen.getByText('Pushing...')).toBeInTheDocument()
         expect(screen.queryByText('Changes ready to push')).not.toBeInTheDocument()
     })
+
+    it('labels both mobile status rows', () => {
+        render(<ProjectSyncStatus mobile />)
+
+        expect(screen.getByText('Local save')).toBeInTheDocument()
+        expect(screen.getByText('Saved locally')).toBeInTheDocument()
+        expect(screen.getByText('Remote push')).toBeInTheDocument()
+        expect(screen.getByText('Synced')).toBeInTheDocument()
+    })
 })

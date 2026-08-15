@@ -76,4 +76,15 @@ describe('ProjectAgentUsageSummary', () => {
         expect(screen.getByText('v1')).toBeInTheDocument()
         expect(screen.getByText('tokens: 56')).toBeInTheDocument()
     })
+
+    it('opens shared details in a mobile dialog', () => {
+        render(<ProjectAgentUsageSummary mobile />)
+
+        const button = screen.getByRole('button', { name: 'Agent token usage summary' })
+        button.focus()
+        expect(button).toHaveFocus()
+        fireEvent.click(button)
+
+        expect(screen.getByRole('dialog', { name: 'Project agent usage' })).toHaveFocus()
+    })
 })

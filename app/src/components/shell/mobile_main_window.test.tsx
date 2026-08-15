@@ -1,4 +1,4 @@
-import { act, cleanup, render, screen } from '@testing-library/react'
+import { act, cleanup, render, screen, within } from '@testing-library/react'
 import { createRef } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { UseGithubAuthResult } from '../../auth/use_github_auth'
@@ -49,6 +49,25 @@ describe('MobileMainWindow', () => {
         expect(screen.getByText('Project workspace')).toBeInTheDocument()
         expect(screen.getByRole('button', { name: /Switch to (dark|light) theme/ })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'GitHub account' })).toBeInTheDocument()
+    })
+
+    it('pins project status directly above the account footer', () => {
+        renderMobileMainWindow(true)
+
+        const status = screen.getByRole('region', { name: 'Project status' })
+        const footer = screen.getByRole('contentinfo')
+        const separator = status.nextElementSibling
+
+        expect(within(status).getByText('Cards')).toBeInTheDocument()
+        expect(within(status).getByText('Local save')).toBeInTheDocument()
+        expect(within(status).getByText('Remote push')).toBeInTheDocument()
+        expect(within(status).getByRole('button', { name: 'Running agents: 0' })).toBeInTheDocument()
+        expect(within(status).getByRole('button', { name: 'Agent token usage summary' })).toBeInTheDocument()
+        expect(within(status).queryByText('Remote control')).toBeNull()
+        expect(within(status).queryByText('Caps Lock')).toBeNull()
+        expect(separator?.tagName).toBe('HR')
+        expect(separator?.nextElementSibling).toBe(footer)
+        expect(screen.getByTestId('mobile-navigation-scroll-region')).toHaveStyle({ overflow: 'auto' })
     })
 
     it('hides navigation without hiding workspace content', () => {

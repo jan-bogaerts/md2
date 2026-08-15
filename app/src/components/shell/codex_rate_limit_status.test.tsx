@@ -57,11 +57,11 @@ function runtimeBridge(initialSnapshot: CodexRateLimitSnapshot | null) {
     }
 }
 
-async function renderStatus(initialSnapshot: CodexRateLimitSnapshot | null) {
+async function renderStatus(initialSnapshot: CodexRateLimitSnapshot | null, mobile = false) {
     const runtime = runtimeBridge(initialSnapshot)
     setCodexRuntimeBridgeOverride(runtime.bridge)
     codexRateLimitService.start()
-    render(<CodexRateLimitStatus />)
+    render(<CodexRateLimitStatus mobile={mobile} />)
     await act(async () => {
         await Promise.resolve()
     })
@@ -149,6 +149,14 @@ describe('CodexRateLimitStatus', () => {
         fireEvent.click(button, { detail: 0 })
 
         expect(screen.getByRole('heading', { name: 'Codex account limits' })).toBeInTheDocument()
+    })
+
+    it('opens shared details in a mobile dialog', async () => {
+        await renderStatus(snapshot([bucket('Codex', 20)]), true)
+
+        fireEvent.click(screen.getByRole('button', { name: 'Codex usage 20% used' }))
+
+        expect(screen.getByRole('dialog', { name: 'Codex account limits' })).toBeInTheDocument()
     })
 
     it('uses receipt time when formatting a reset reported by a skewed remote clock', async () => {

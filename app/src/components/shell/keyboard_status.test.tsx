@@ -29,4 +29,17 @@ describe('KeyboardStatus', () => {
 
         expect(screen.getByText('CAPS')).toBeInTheDocument()
     })
+
+    it('shows enabled Caps Lock in the mobile row only while active', () => {
+        render(<KeyboardStatus mobile />)
+
+        expect(screen.queryByText('Caps Lock')).toBeNull()
+        dispatchKeyDown({ key: 'a' }, true)
+
+        expect(screen.getByText('Caps Lock')).toBeInTheDocument()
+        expect(screen.getByText('Enabled')).toBeInTheDocument()
+
+        dispatchKeyDown({ key: 'a' })
+        expect(screen.queryByText('Caps Lock')).toBeNull()
+    })
 })

@@ -1,10 +1,10 @@
-import { AppBar, Box, IconButton, Toolbar } from '@mui/material'
+import { AppBar, Box, Toolbar } from '@mui/material'
 import type { ReactNode } from 'react'
-import Menu from 'mdi-material-ui/Menu'
 import { DRAG_REGION, NO_DRAG_REGION } from '../drag_region'
 import { ThemeToggleButton } from '../theme_toggle_button'
 import { isElectron } from '../../../services/electron_lifecycle_bridge'
 import { ProjectNameLabel } from './project_name_label'
+import { MobileMenuButton } from './mobile_menu_button'
 
 const MENU_ROW_HEIGHT = 44
 const SEARCH_WIDTH = 286
@@ -41,9 +41,7 @@ export function MainToolbar(props: MainToolbarProps) {
                 variant="dense"
             >
                 {isMobile ? (
-                    <IconButton aria-label="Open menu" edge="start" onClick={onOpenMenu} style={NO_DRAG_REGION} sx={{ mr: 1 }}>
-                        <Menu />
-                    </IconButton>
+                    <MobileMenuButton onOpenMenu={onOpenMenu} />
                 ) : null}
                 <Box sx={{ alignItems: 'center', display: 'flex', flexShrink: 0 }}>
                     <Box

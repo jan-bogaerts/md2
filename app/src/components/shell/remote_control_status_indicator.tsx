@@ -1,13 +1,26 @@
 import { Box, Stack } from '@mui/material'
+import DesktopWindowsOutlined from '@mui/icons-material/DesktopWindowsOutlined'
+import { MobileStatusRow } from './mobile_status_row'
 import { useRemoteControlStatus } from './use_remote_control_status'
 
 /** Status-bar strip showing the remote-control connection state: nothing / accepting / connected. */
-export function RemoteControlStatusIndicator() {
+export function RemoteControlStatusIndicator({ mobile = false }: { mobile?: boolean }) {
     const { bridge, status } = useRemoteControlStatus()
 
     if (!bridge || !status.active) return null
 
     const isConnected = status.clientCount > 0
+
+    if (mobile) {
+        return (
+            <MobileStatusRow
+                icon={<DesktopWindowsOutlined sx={{ fontSize: 18 }} />}
+                label="Remote control"
+                tone={isConnected ? 'text.secondary' : 'warning.main'}
+                value={isConnected ? 'Connected' : 'Accepting'}
+            />
+        )
+    }
 
     return (
         <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>

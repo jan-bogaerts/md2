@@ -5,6 +5,7 @@ import type { UseGithubAuthResult } from '../../auth/use_github_auth'
 import { workspaceViewService } from '../../services/project/workspace_view_service'
 import { GithubAuthToolbarButton } from './github_auth_toolbar_button'
 import { ThemeModeToggle } from './menu/theme_mode_toggle'
+import { MobileProjectStatus } from './mobile_project_status'
 
 const MOBILE_DRAWER_WIDTH = 300
 
@@ -62,9 +63,11 @@ export function MobileMainWindow(props: MobileMainWindowProps) {
                         <Box ref={handleCardNavigationElement}>{cardNavigation}</Box>
                         <Box ref={handleNavigationElement} sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                             <Divider />
-                            <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto' }}>{leftPanel}</Box>
+                            <Box data-testid="mobile-navigation-scroll-region" sx={{ flex: 1, minHeight: 0, overflow: 'auto' }}>{leftPanel}</Box>
                         </Box>
                     </Box>
+                    <Divider />
+                    <MobileProjectStatus />
                     <Divider />
                     <Box component="footer" sx={{ display: 'flex', justifyContent: 'flex-end', p: 1.5 }}>
                         <GithubAuthToolbarButton auth={auth} />
