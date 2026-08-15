@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__ee2036c1-4931-49a4-b57e-629edbcbc3f6.json#conversation=agent-4c6a99ef-9001-4989-8dd8-4e66b685e000
 policy:
+branch: f_192_context_usage_display
+worktree: 1
 ---
 
 context usage on the chatlog of the action popup needs improving:
