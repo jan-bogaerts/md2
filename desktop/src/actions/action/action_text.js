@@ -72,4 +72,18 @@ function resolveAgentPrompt(action, context, runProject, primaryProject, project
     return `${prompt}\n\n${extraPrompt}`;
 }
 
-module.exports = { resolveAgentPrompt, resolvePlaceholders };
+/** Resolves recognized placeholders entered in the editable agent popup prompt. */
+function resolvePopupPrompt(text, context, runProject, primaryProject, projectFolder, releasesFolder, activeCardsFolder) {
+    return resolvePlaceholders(
+        text,
+        context,
+        runProject,
+        primaryProject,
+        projectFolder,
+        releasesFolder,
+        activeCardsFolder,
+        '',
+    );
+}
+
+module.exports = { resolveAgentPrompt, resolvePlaceholders, resolvePopupPrompt };

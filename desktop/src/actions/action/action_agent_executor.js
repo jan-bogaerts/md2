@@ -1,7 +1,7 @@
 const { buildResumeAgentCommand, resolveAgentCommand } = require('../agent/agent_profiles.mjs');
 const { normalizeConversationContext } = require('../agent/agent_transcript');
 const { appendCurrentCardReferences } = require('./action_card_references');
-const { resolveAgentPrompt, resolvePlaceholders } = require('./action_text');
+const { resolveAgentPrompt, resolvePopupPrompt } = require('./action_text');
 
 const CONTINUE_INPUT = 'continue';
 function continuationReferencePath(reference) {
@@ -58,7 +58,7 @@ class ActionAgentExecutor {
             ?.find(({ agent }) => agent === resolvedAgent.agent) ?? null;
         const hasPromptOverride = Object.hasOwn(input.runInput, 'prompt');
         const basePrompt = hasPromptOverride
-            ? resolvePlaceholders(
+            ? resolvePopupPrompt(
                 input.runInput.prompt,
                 input.context,
                 input.project,
@@ -66,7 +66,6 @@ class ActionAgentExecutor {
                 input.projectFolder,
                 input.releasesFolder,
                 input.activeCardsFolder,
-                input.runInput.extraPrompt,
             )
             : sourceConversation
                 ? input.runInput.extraPrompt.trim().length > 0 ? input.runInput.extraPrompt : CONTINUE_INPUT

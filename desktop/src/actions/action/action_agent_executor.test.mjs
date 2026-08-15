@@ -192,8 +192,25 @@ describe('ActionAgentExecutor', () => {
         }));
 
         expect(agentRunnerService.start.mock.calls[0][1].prompt).toBe(
-            `Review design/card.md and design/card.md in C:/worktree for C:/repo active ${path.resolve('C:/repo', 'design/feature_descriptions')} project ${path.resolve('C:/repo', 'design')} releases ${path.resolve('C:/repo', 'design/releases')}: focus {{unknown}}`,
+            `Review design/card.md and design/card.md in C:/worktree for C:/repo active ${path.resolve('C:/repo', 'design/feature_descriptions')} project ${path.resolve('C:/repo', 'design')} releases ${path.resolve('C:/repo', 'design/releases')}:  {{unknown}}`,
         );
+    });
+
+    it('resolves popup placeholders before restarting a conversation process', async () => {
+        const { agentRunnerService, executor } = createExecutor();
+        const runProject = { branch: 'feature', rootPath: 'C:/worktree' };
+
+        await executor.execute(executionInput({
+            context: { ...cardContext, title: 'Card' },
+            project: runProject,
+            runInput: {
+                continueFrom: 'source.json',
+                extraPrompt: 'ignored for popup text',
+                prompt: 'Continue in {{worktree-folder}} for {{card-title}} {{card-prompt}}',
+            },
+        }));
+
+        expect(agentRunnerService.start.mock.calls[0][1].prompt).toBe('Continue in C:/worktree for Card ');
     });
 
     it('rejects active-cards-folder without working-folder data before process start', async () => {

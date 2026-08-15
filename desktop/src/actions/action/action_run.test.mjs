@@ -70,6 +70,7 @@ function createRun(rootAction, overrides = {}) {
     const agentRunnerService = overrides.agentRunnerService ?? { stop: vi.fn() };
     const agentExecutor = overrides.agentExecutor ?? { execute: vi.fn() };
     const run = new ActionRun({
+        activeCardsFolder: 'design/feature_descriptions',
         actionsFolder: 'actions',
         activityOrigin: overrides.context?.kind === 'project'
             ? { kind: 'project' }
@@ -364,6 +365,62 @@ describe('ActionRun', () => {
             status: 'running',
             update: { kind: 'agentApprovalResolved', requestId: 42 },
         }));
+    });
+
+    it('resolves direct and queued streaming prompts against active linked worktree', async () => {
+        const agentCompletion = deferred();
+        const agentStarted = deferred();
+        const beginQueuedMessageDraft = vi.fn(() => 4);
+        const sendMessage = vi.fn(async () => undefined);
+        const sendQueuedMessage = vi.fn(async () => ({ sent: true }));
+        const setQueuedMessage = vi.fn(() => ({ accepted: true }));
+        const agentRunnerService = {
+            beginQueuedMessageDraft,
+            sendMessage,
+            sendQueuedMessage,
+            setQueuedMessage,
+            stop: vi.fn(),
+        };
+        const agentExecutor = {
+            execute: vi.fn(async (input) => {
+                input.onActiveRunChange('agent-run');
+                agentStarted.resolve();
+                await agentCompletion.promise;
+                input.onActiveRunChange(null);
+
+                return {
+                    agent: 'codex', conversationId: 'conversation', exitCode: 0, model: 'gpt', prompt: 'run',
+                    reference: 'run.json', stderr: '', stdout: '', thinkingLevel: 'none',
+                };
+            }),
+        };
+        const worktreeProject = { branch: 'feature', rootPath: 'C:/worktrees/2' };
+        const actionWorktreeRunService = {
+            execute: vi.fn(async (_primaryProject, _action, _context, runner) => ({
+                ...await runner(worktreeProject),
+                branch: worktreeProject.branch,
+                repositoryRoot: worktreeProject.rootPath,
+                runWorktree: 2,
+            })),
+        };
+        const rootAction = action('main', { agent: 'codex', model: 'gpt', prompt: 'run', streaming: true, type: 'agent' });
+        const { run } = createRun(rootAction, { actionWorktreeRunService, agentExecutor, agentRunnerService });
+        await agentStarted.promise;
+
+        await run.sendAgentMessage('Direct {{worktree-folder}} {{repository-folder}} {{card-file}} {{card-prompt}} {{unknown}}');
+        const sessionId = run.beginAgentPromptDraft();
+        run.setAgentQueuedMessage(sessionId, 'Queued {{worktree-folder}} {{card-file}}', 0);
+        expect(() => run.setAgentQueuedMessage(sessionId, 'Broken {{card-title}}', 1)).toThrow('without a card title');
+        await run.sendQueuedAgentMessage(sessionId, 0);
+
+        expect(sendMessage).toHaveBeenCalledWith('agent-run', 'Direct C:/worktrees/2 C:/repo design/card.md  {{unknown}}');
+        expect(setQueuedMessage).toHaveBeenCalledOnce();
+        expect(setQueuedMessage).toHaveBeenCalledWith('agent-run', 4, 'Queued C:/worktrees/2 design/card.md', 0);
+        expect(sendQueuedMessage).toHaveBeenCalledWith('agent-run', 4, 0);
+
+        agentCompletion.resolve();
+        await run.completion;
+        expect(run.activeAgentProject).toBeNull();
     });
 
     it('runs a queued one-shot follow-up before action completion', async () => {
