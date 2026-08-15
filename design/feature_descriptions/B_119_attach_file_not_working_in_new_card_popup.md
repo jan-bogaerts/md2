@@ -3,7 +3,7 @@ author:
 id: B_119
 internalId: dffba4e6-6ec5-4a40-8ee7-e68d4891aff3
 title: attach file not working in new card popup
-status: new
+status: design
 owner: 
 affects:
 agents:
