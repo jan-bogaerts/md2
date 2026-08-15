@@ -535,6 +535,33 @@ describe('ActionRunRegistry', () => {
         service.stop()
     })
 
+    it('replaces live conversation timer from authoritative agent state', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        service.start()
+        const runningTimer = { elapsedMs: 10_000, runningStartedAt: '2026-01-01T00:00:20.000Z' }
+
+        emit({
+            actionId: 'build', context, runId: 'run-1', phase: 'main', rootActionId: 'build', status: 'running', type: 'update',
+            update: {
+                conversation: agentConversation([], {timer: { elapsedMs: 0, runningStartedAt: '2026-01-01T00:00:00.000Z' }}),
+                kind: 'agentStarted',
+            },
+        })
+        emit({
+            actionId: 'build', context, runId: 'run-1', phase: 'main', rootActionId: 'build', status: 'waitingForInput',
+            timer: { elapsedMs: 10_000, runningStartedAt: null }, type: 'agentState',
+        })
+        emit({
+            actionId: 'build', context, runId: 'run-1', phase: 'main', rootActionId: 'build', status: 'running',
+            timer: runningTimer, type: 'agentState',
+        })
+
+        expect(getRun(service).conversation).toMatchObject({ status: 'running', timer: runningTimer })
+        service.stop()
+    })
+
     it('routes card-state changes to desktop without replaying renderer run state', async () => {
         const notifyBridge = vi.fn(async () => undefined)
         const { bridge } = bridgeWithEvents({ notifyActionCardStateChange: notifyBridge })

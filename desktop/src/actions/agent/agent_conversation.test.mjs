@@ -9,6 +9,7 @@ const {
     createEventEntry,
     createMessageEntry,
     snapshotConversation,
+    transitionConversationStatus,
     updateProviderSession,
 } = require('./agent_conversation');
 
@@ -81,18 +82,63 @@ describe('agent conversation', () => {
             providerSessions: [],
             startedAt: 'now',
             status: 'running',
+            timer: { elapsedMs: 0, runningStartedAt: 'now' },
             title: 'Review',
             viewed: true,
         });
     });
 
     it('resumes the canonical conversation at its requested reference', () => {
-        const conversation = {completedAt: 'before', entries: [], id: 'agent-1', path: 'old.json', providerSessions: [], status: 'completed', viewed: false};
-        const resumed = createConversation({ activityOrigin: { kind: 'project' }, conversation }, 'unused', 'unused', 'log.json');
+        const conversation = {
+            completedAt: 'before', entries: [], id: 'agent-1', path: 'old.json', providerSessions: [],
+            status: 'completed', timer: { elapsedMs: 10_000, runningStartedAt: null }, viewed: false,
+        };
+        const resumed = createConversation(
+            { activityOrigin: { kind: 'project' }, conversation },
+            'unused',
+            '2026-01-01T00:01:00.000Z',
+            'log.json',
+        );
 
-        expect(resumed).toEqual({ completedAt: null, entries: [], id: 'agent-1', path: 'log.json', providerSessions: [], status: 'running', viewed: false });
+        expect(resumed).toEqual({
+            completedAt: null, entries: [], id: 'agent-1', path: 'log.json', providerSessions: [], status: 'running',
+            timer: { elapsedMs: 10_000, runningStartedAt: '2026-01-01T00:01:00.000Z' }, viewed: false,
+        });
         expect(resumed.entries).not.toBe(conversation.entries);
         expect(resumed.providerSessions).not.toBe(conversation.providerSessions);
+    });
+
+    it('keeps legacy conversation duration unavailable when resumed', () => {
+        const conversation = { completedAt: 'before', entries: [], id: 'agent-1', providerSessions: [], status: 'completed' };
+
+        const resumed = createConversation(
+            { activityOrigin: { kind: 'project' }, conversation },
+            'unused',
+            '2026-01-01T00:01:00.000Z',
+            'log.json',
+        );
+
+        expect(resumed.status).toBe('running');
+        expect(resumed).not.toHaveProperty('timer');
+    });
+
+    it('adds each running period once across repeated pause and resume events', () => {
+        const conversation = {
+            status: 'running',
+            timer: { elapsedMs: 0, runningStartedAt: '2026-01-01T00:00:00.000Z' },
+        };
+
+        transitionConversationStatus(conversation, 'waitingForInput', '2026-01-01T00:00:10.000Z');
+        transitionConversationStatus(conversation, 'waitingForInput', '2026-01-01T00:00:20.000Z');
+        transitionConversationStatus(conversation, 'running', '2026-01-01T00:00:20.000Z');
+        transitionConversationStatus(conversation, 'running', '2026-01-01T00:00:25.000Z');
+        transitionConversationStatus(conversation, 'completed', '2026-01-01T00:00:30.000Z');
+        transitionConversationStatus(conversation, 'completed', '2026-01-01T00:00:40.000Z');
+
+        expect(conversation).toEqual({
+            status: 'completed',
+            timer: { elapsedMs: 20_000, runningStartedAt: null },
+        });
     });
 
     it('snapshots mutable conversation collections without cloning immutable entries', () => {

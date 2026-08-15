@@ -31,6 +31,7 @@ function waitingConversation() {
         providerSessions: [],
         startedAt: '2026-08-04T10:00:00.000Z',
         status: 'waitingForInput',
+        timer: { elapsedMs: 60_000, runningStartedAt: null },
         title: 'Review',
         usage: { cachedInputTokens: 1, inputTokens: 2, outputTokens: 3, reasoningTokens: 4, totalTokens: 10 },
         viewed: true,

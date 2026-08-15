@@ -587,7 +587,12 @@ export class ActionRunRegistry extends EventTarget {
                 activeActionStreaming: event.streaming ?? actionStreaming(event.actionId),
                 activeActionType: event.actionType ?? actionType(event.actionId),
                 conversation: next.conversation
-                    ? { ...next.conversation, completedAt: null, status: event.status }
+                    ? {
+                        ...next.conversation,
+                        completedAt: null,
+                        status: event.status,
+                        ...(event.timer ? { timer: event.timer } : {}),
+                    }
                     : null,
                 interactionReady: event.interactionReady ?? true,
             }

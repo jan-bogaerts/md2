@@ -323,6 +323,11 @@ export interface AgentContextWindowUsage {
     usedTokens: number
 }
 
+export interface AgentConversationTimer {
+    elapsedMs: number
+    runningStartedAt: string | null
+}
+
 export interface AgentConversation {
     actionId?: string | null
     cardInternalId?: string | null
@@ -336,6 +341,7 @@ export interface AgentConversation {
     providerSessions: AgentProviderSession[]
     startedAt: string
     status: AgentConversationStatus
+    timer?: AgentConversationTimer
     title: string
     usage?: AgentTokenUsage
     viewed: boolean

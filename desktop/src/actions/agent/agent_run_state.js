@@ -6,7 +6,8 @@ const { createProviderEventEntryIndexes } = require('./agent_run_transcript');
 function emitRunEvent(run, event) {
     if (!run.onEvent) return;
 
-    run.onEvent({ ...event, runId: run.id });
+    const timer = event.type === 'state' ? run.conversation.timer : undefined;
+    run.onEvent({ ...event, ...(timer ? { timer } : {}), runId: run.id });
 }
 
 function hasPendingInteraction(run) {

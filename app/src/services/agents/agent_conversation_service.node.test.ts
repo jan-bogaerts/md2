@@ -56,6 +56,41 @@ describe('parseAgentConversationLog', () => {
         }), 'design/logs/one.json')).toThrow('Malformed agent conversation: invalid viewed')
     })
 
+    it('preserves valid timer data and leaves legacy duration unavailable', () => {
+        const source = {
+            completedAt: null,
+            entries: [],
+            id: 'agent-1',
+            startedAt: '2026-01-01T00:00:00.000Z',
+            status: 'waitingForInput',
+        }
+        const timed = parseAgentConversationLog(JSON.stringify({
+            ...source,
+            timer: { elapsedMs: 10_000, runningStartedAt: null },
+        }), 'design/logs/timed.json')
+        const legacy = parseAgentConversationLog(JSON.stringify(source), 'design/logs/legacy.json')
+
+        expect(timed.timer).toEqual({ elapsedMs: 10_000, runningStartedAt: null })
+        expect(legacy).not.toHaveProperty('timer')
+    })
+
+    it.each([
+        [null, 'invalid timer'],
+        [{ elapsedMs: -1, runningStartedAt: null }, 'invalid timer.elapsedMs'],
+        [{ elapsedMs: Number.POSITIVE_INFINITY, runningStartedAt: null }, 'invalid timer.elapsedMs'],
+        [{ elapsedMs: 0, runningStartedAt: 'not-a-timestamp' }, 'invalid timer.runningStartedAt'],
+        [{ elapsedMs: 0 }, 'invalid timer.runningStartedAt'],
+    ])('rejects invalid timer data %#', (timer, message) => {
+        expect(() => parseAgentConversationLog(JSON.stringify({
+            completedAt: null,
+            entries: [],
+            id: 'agent-1',
+            startedAt: '2026-01-01T00:00:00.000Z',
+            status: 'completed',
+            timer,
+        }), 'design/logs/invalid-timer.json')).toThrow(message)
+    })
+
     it('preserves whether a title was explicit while retaining the id fallback', () => {
         const conversation = parseAgentConversationLog(JSON.stringify({
             cardPath: null,

@@ -32,12 +32,11 @@ describe('ConversationTimer', () => {
         vi.useRealTimers()
     })
 
-    it('freezes at the completed duration when the run is done', () => {
+    it('shows persisted elapsed time without ticking after completion', () => {
         render(
             <ConversationTimer
-                completedAt="2026-01-01T00:01:30.000Z"
-                startedAt="2026-01-01T00:00:00.000Z"
                 status="completed"
+                timer={{ elapsedMs: 90_000, runningStartedAt: null }}
             />,
         )
 
@@ -51,21 +50,31 @@ describe('ConversationTimer', () => {
     })
 
     it('ticks once a second while the run is active', () => {
-        render(<ConversationTimer completedAt={null} startedAt="2026-01-01T00:00:00.000Z" status="running" />)
+        render(
+            <ConversationTimer
+                status="running"
+                timer={{ elapsedMs: 10_000, runningStartedAt: '2026-01-01T00:00:00.000Z' }}
+            />,
+        )
 
-        expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('0:05')
+        expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('0:15')
 
         act(() => {
-            vi.advanceTimersByTime(3_000)
+            vi.advanceTimersByTime(999)
+        })
+        expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('0:15')
+
+        act(() => {
+            vi.advanceTimersByTime(1)
         })
 
-        expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('0:08')
+        expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('0:16')
     })
 
     it.each(['idle', 'waitingForInput', 'completed', 'failed', 'cancelled'] as const)(
         'does not tick while status is %s',
         (status) => {
-            render(<ConversationTimer completedAt={null} startedAt="2026-01-01T00:00:00.000Z" status={status} />)
+            render(<ConversationTimer status={status} timer={{ elapsedMs: 5_000, runningStartedAt: null }} />)
 
             expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('0:05')
 
@@ -77,20 +86,23 @@ describe('ConversationTimer', () => {
         },
     )
 
-    it('resets elapsed duration when the displayed conversation changes', () => {
+    it('uses persisted duration when displayed conversation changes', () => {
         const { rerender } = render(
-            <ConversationTimer completedAt={null} startedAt="2026-01-01T00:00:00.000Z" status="idle" />,
+            <ConversationTimer status="idle" timer={{ elapsedMs: 5_000, runningStartedAt: null }} />,
         )
         expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('0:05')
 
-        rerender(<ConversationTimer completedAt={null} startedAt="2026-01-01T00:00:04.000Z" status="idle" />)
+        rerender(<ConversationTimer status="idle" timer={{ elapsedMs: 1_000, runningStartedAt: null }} />)
 
         expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('0:01')
     })
 
     it('resumes from the frozen value without counting time spent waiting', () => {
         const { rerender } = render(
-            <ConversationTimer completedAt={null} startedAt="2026-01-01T00:00:00.000Z" status="running" />,
+            <ConversationTimer
+                status="running"
+                timer={{ elapsedMs: 0, runningStartedAt: '2026-01-01T00:00:00.000Z' }}
+            />,
         )
 
         act(() => {
@@ -98,17 +110,28 @@ describe('ConversationTimer', () => {
         })
         expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('0:08')
 
-        rerender(<ConversationTimer completedAt={null} startedAt="2026-01-01T00:00:00.000Z" status="waitingForInput" />)
+        rerender(<ConversationTimer status="waitingForInput" timer={{ elapsedMs: 8_000, runningStartedAt: null }} />)
         act(() => {
             vi.advanceTimersByTime(10_000)
         })
         expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('0:08')
 
-        rerender(<ConversationTimer completedAt={null} startedAt="2026-01-01T00:00:00.000Z" status="running" />)
+        rerender(
+            <ConversationTimer
+                status="running"
+                timer={{ elapsedMs: 8_000, runningStartedAt: '2026-01-01T00:00:18.000Z' }}
+            />,
+        )
         act(() => {
             vi.advanceTimersByTime(2_000)
         })
 
         expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('0:10')
+    })
+
+    it('shows no fabricated duration when timer data is unavailable', () => {
+        render(<ConversationTimer status="completed" timer={undefined} />)
+
+        expect(screen.queryByLabelText('Elapsed time')).not.toBeInTheDocument()
     })
 })

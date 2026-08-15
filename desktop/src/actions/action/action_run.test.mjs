@@ -586,6 +586,11 @@ describe('ActionRun', () => {
         const agentExecutor = {
             execute: vi.fn(async (input) => {
                 input.onEvent({ continued: false, conversation: runningConversation, type: 'started' });
+                input.onEvent({
+                    state: 'waitingForInput',
+                    timer: { elapsedMs: 10_000, runningStartedAt: null },
+                    type: 'state',
+                });
                 input.onEvent({ content: 'chunk', messageId: 'assistant-1', sequence: 2, type: 'output' });
                 input.onEvent({
                     contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 },
@@ -612,6 +617,11 @@ describe('ActionRun', () => {
 
         await run.completion;
 
+        expect(events).toContainEqual(expect.objectContaining({
+            status: 'waitingForInput',
+            timer: { elapsedMs: 10_000, runningStartedAt: null },
+            type: 'agentState',
+        }));
         expect(events).toContainEqual(expect.objectContaining({
             status: 'running',
             type: 'update',

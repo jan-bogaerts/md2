@@ -12,6 +12,55 @@ function diagnosticStreamingEvent(content, providerItemId) {
 }
 
 describe('AgentRunnerService state handling', () => {
+    it('persists timer transitions before publishing pause and resume states', async () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-01-01T00:00:10.000Z'));
+        try {
+            const persistConversationCheckpoint = vi.fn(async () => undefined);
+            const service = new AgentRunnerService({ persistConversationCheckpoint });
+            const run = {
+                conversation: {
+                    entries: [],
+                    providerSessions: [],
+                    status: 'running',
+                    timer: { elapsedMs: 0, runningStartedAt: '2026-01-01T00:00:00.000Z' },
+                },
+                id: 'run-1',
+                interactionWrites: Promise.resolve(),
+                nextSequence: 1,
+                onEvent: vi.fn(),
+                pendingApprovals: new Map(),
+                pendingQuestions: [],
+                persistence: Promise.resolve(),
+                secretValues: new Set(),
+                streaming: true,
+                streamingAdapter: { answerQuestion: vi.fn(async () => undefined) },
+                waitingForQuestion: false,
+            };
+            service.processes.set('run-1', run);
+            const pausedTimer = { elapsedMs: 10_000, runningStartedAt: null };
+            const pausedCheckpoint = expect.objectContaining({ conversation: expect.objectContaining({ timer: pausedTimer }) });
+
+            await service.handleStreamingEvent('run-1', {questions: [{ id: 'choice', isSecret: false }], requestId: 7, type: 'question'});
+            expect(run.conversation.timer).toEqual(pausedTimer);
+            expect(persistConversationCheckpoint).toHaveBeenLastCalledWith(pausedCheckpoint);
+            const pauseStateCallIndex = run.onEvent.mock.calls.findIndex(([event]) => event.type === 'state');
+            expect(persistConversationCheckpoint.mock.invocationCallOrder[0])
+                .toBeLessThan(run.onEvent.mock.invocationCallOrder[pauseStateCallIndex]);
+
+            vi.setSystemTime(new Date('2026-01-01T00:00:20.000Z'));
+            await service.answerQuestion('run-1', 7, { choice: 'continue' });
+
+            expect(run.conversation.timer).toEqual({
+                elapsedMs: 10_000,
+                runningStartedAt: '2026-01-01T00:00:20.000Z',
+            });
+            expect(persistConversationCheckpoint).toHaveBeenLastCalledWith(expect.objectContaining({conversation: expect.objectContaining({timer: { elapsedMs: 10_000, runningStartedAt: '2026-01-01T00:00:20.000Z' }})}));
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
     it('reports one diagnosed Codex cache error and suppresses repeats', async () => {
         const diagnoseCodexCacheError = vi.fn(async () => ({
             cacheVersion: '0.146.0',
@@ -335,6 +384,7 @@ describe('AgentRunnerService state handling', () => {
             cancelled: false,
             child: {},
             closed,
+            conversation: { status: 'running' },
             termination: null,
         });
         let completed = false;
@@ -356,6 +406,7 @@ describe('AgentRunnerService state handling', () => {
         service.processes.set('run-1', {
             cancelled: false,
             child,
+            conversation: { status: 'running' },
             queuedMessage: null,
             termination: null,
         });
@@ -892,7 +943,7 @@ describe('AgentRunnerService state handling', () => {
         expect(answerApproval).toHaveBeenCalledWith(41, 'accept');
         expect(run.conversation.entries).toEqual([]);
         expect(run.conversation.status).toBe('waitingForInput');
-        expect(persistConversationCheckpoint).toHaveBeenCalledOnce();
+        expect(persistConversationCheckpoint).toHaveBeenCalledTimes(2);
         expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'approval' }));
         const approvalCallIndex = run.onEvent.mock.calls.findIndex(([event]) => event.type === 'approval');
         expect(persistConversationCheckpoint.mock.invocationCallOrder[0])

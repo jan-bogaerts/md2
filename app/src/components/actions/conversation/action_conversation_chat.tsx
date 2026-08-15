@@ -129,7 +129,7 @@ export function ActionConversationChat({ conversation, status }: ActionConversat
                             </Typography>
                         ) : null}
                         {conversation ? (
-                            <ConversationTimer completedAt={conversation.completedAt} startedAt={conversation.startedAt} status={status} />
+                            <ConversationTimer status={status} timer={conversation.timer} />
                         ) : null}
                         <Box sx={{ flex: 1 }} />
                         {contextUsedPercent !== null ? (

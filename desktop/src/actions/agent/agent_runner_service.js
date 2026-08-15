@@ -8,6 +8,7 @@ const {
     createEventEntry,
     createMessageEntry,
     snapshotConversation,
+    transitionConversationStatus,
     updateProviderSession,
 } = require('./agent_conversation');
 const {
@@ -196,6 +197,7 @@ class AgentRunnerService {
         const run = this.requireRun(runId);
         run.cancelled = true;
         run.queuedMessage = null;
+        transitionConversationStatus(run.conversation, 'cancelled', new Date().toISOString());
         this.clearFinishTimeout(run);
 
         return this.ensureTermination(run);
@@ -278,6 +280,7 @@ class AgentRunnerService {
         const completions = [];
         for (const run of this.processes.values()) {
             run.cancelled = true;
+            transitionConversationStatus(run.conversation, 'cancelled', new Date().toISOString());
             this.clearFinishTimeout(run);
             completions.push(Promise.all([this.ensureTermination(run), run.closed]));
         }
@@ -497,7 +500,7 @@ class AgentRunnerService {
         const message = redactSecrets(error.message, run.secretValues);
         const timestamp = new Date().toISOString();
         run.streamingFailure = new Error(message);
-        run.conversation.status = 'failed';
+        transitionConversationStatus(run.conversation, 'failed', timestamp);
         run.queuedMessage = null;
         run.waitingForQuestion = false;
         run.pendingQuestions = [];
@@ -552,9 +555,10 @@ class AgentRunnerService {
             }
             const preserveWaitingState = run.suspended && run.conversation.status === 'waitingForInput';
             run.conversation.completedAt = preserveWaitingState ? null : completedAt;
-            run.conversation.status = preserveWaitingState
+            const status = preserveWaitingState
                 ? 'waitingForInput'
                 : run.cancelled ? 'cancelled' : succeeded ? 'completed' : 'failed';
+            transitionConversationStatus(run.conversation, status, completedAt);
             const continuedTurnFailedBeforeStart = !!run.request.conversation
                 && !run.turnStarted
                 && !succeeded

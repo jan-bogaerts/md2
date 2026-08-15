@@ -52,16 +52,48 @@ function accumulateUsage(current, turn) {
     return sumAgentTokenUsage([current, turn]);
 }
 
+/** Updates conversation status and accumulates only completed running periods. */
+function transitionConversationStatus(conversation, status, transitionedAt) {
+    if (!conversation.timer) {
+        conversation.status = status;
+        return;
+    }
+
+    const wasRunning = conversation.status === 'running';
+    const isRunning = status === 'running';
+    if (wasRunning === isRunning) {
+        conversation.status = status;
+        return;
+    }
+    const transitionedAtMs = Date.parse(transitionedAt);
+    if (Number.isNaN(transitionedAtMs)) throw new Error('Invalid agent conversation timer transition timestamp');
+
+    if (isRunning) {
+        conversation.timer = { ...conversation.timer, runningStartedAt: transitionedAt };
+    } else {
+        const runningStartedAtMs = Date.parse(conversation.timer.runningStartedAt);
+        if (Number.isNaN(runningStartedAtMs)) throw new Error('Missing agent conversation running start timestamp');
+        if (transitionedAtMs < runningStartedAtMs) throw new Error('Agent conversation timer transition precedes running start');
+        conversation.timer = {
+            elapsedMs: conversation.timer.elapsedMs + transitionedAtMs - runningStartedAtMs,
+            runningStartedAt: null,
+        };
+    }
+    conversation.status = status;
+}
+
 function createConversation(request, id, startedAt, reference) {
     if (request.conversation) {
-        return {
+        const conversation = {
             ...request.conversation,
             completedAt: null,
             entries: [...request.conversation.entries],
             path: reference,
             providerSessions: [...request.conversation.providerSessions],
-            status: 'running',
         };
+        transitionConversationStatus(conversation, 'running', startedAt);
+
+        return conversation;
     }
 
     return {
@@ -76,6 +108,7 @@ function createConversation(request, id, startedAt, reference) {
         providerSessions: [],
         startedAt,
         status: 'running',
+        timer: { elapsedMs: 0, runningStartedAt: startedAt },
         title: typeof request.title === 'string' && request.title.length > 0 ? request.title : 'Agent run',
         viewed: true,
     };
@@ -115,5 +148,6 @@ module.exports = {
     createEventEntry,
     createMessageEntry,
     snapshotConversation,
+    transitionConversationStatus,
     updateProviderSession,
 };

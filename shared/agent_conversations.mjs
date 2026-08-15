@@ -115,6 +115,22 @@ function normalizeContextWindowUsage(value) {
     return { capacityTokens, usedTokens }
 }
 
+function normalizeTimer(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        throw new Error('Malformed agent conversation: invalid timer')
+    }
+    const { elapsedMs, runningStartedAt } = value
+    if (typeof elapsedMs !== 'number' || !Number.isFinite(elapsedMs) || elapsedMs < 0) {
+        throw new Error('Malformed agent conversation: invalid timer.elapsedMs')
+    }
+    if (runningStartedAt !== null
+        && (typeof runningStartedAt !== 'string' || Number.isNaN(Date.parse(runningStartedAt)))) {
+        throw new Error('Malformed agent conversation: invalid timer.runningStartedAt')
+    }
+
+    return { elapsedMs, runningStartedAt }
+}
+
 function normalizeArray(value, normalize) {
     if (!Array.isArray(value)) return []
 
@@ -177,6 +193,7 @@ export function parseAgentConversation(content, referencePath) {
     const hasExplicitTitle = typeof parsed.title === 'string' && parsed.title.trim().length > 0
     const contextWindowUsage = normalizeContextWindowUsage(parsed.contextWindowUsage)
     const usage = normalizeAgentTokenUsage(parsed.usage)
+    const timer = parsed.timer === undefined ? null : normalizeTimer(parsed.timer)
     if (parsed.viewed !== undefined && typeof parsed.viewed !== 'boolean') {
         throw new Error('Malformed agent conversation: invalid viewed')
     }
@@ -194,6 +211,7 @@ export function parseAgentConversation(content, referencePath) {
         providerSessions: normalizeArray(parsed.providerSessions, normalizeProviderSession),
         startedAt,
         status,
+        ...(timer ? { timer } : {}),
         title: hasExplicitTitle ? parsed.title : id,
         ...(usage ? { usage } : {}),
         viewed: parsed.viewed ?? true,

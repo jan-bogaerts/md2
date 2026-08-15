@@ -4,6 +4,7 @@ import type {
     AgentConversation,
     AgentConversationEventEntry,
     AgentConversationMessageEntry,
+    AgentConversationTimer,
     AgentTokenUsage,
 } from './data_types'
 import type { PermissionMode, ThinkingLevel } from './agent_profiles'
@@ -191,6 +192,7 @@ export type ActionRunEvent =
     }
     | ActionRunEventBase & {
         status: 'running' | 'waitingForInput'
+        timer?: AgentConversationTimer
         type: 'agentState'
     }
     | ActionRunEventBase & {

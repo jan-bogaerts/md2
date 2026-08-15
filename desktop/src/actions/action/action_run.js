@@ -409,7 +409,11 @@ class ActionRun {
                 return;
             }
             if (agentEvent.type === 'state') {
-                this.publish(action, phase, agentEvent.state, { interactionReady: true, type: 'agentState' });
+                this.publish(action, phase, agentEvent.state, {
+                    interactionReady: true,
+                    ...(agentEvent.timer ? { timer: agentEvent.timer } : {}),
+                    type: 'agentState',
+                });
                 return;
             }
             if (agentEvent.type === 'question') {
