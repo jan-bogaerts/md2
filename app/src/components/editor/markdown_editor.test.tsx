@@ -754,7 +754,7 @@ describe('MarkdownEditor', () => {
 
         await waitFor(() => expect(attachmentHandler).toHaveBeenCalledWith([file], expect.any(Function)))
         expect(screen.getByRole('button', { name: 'Attach files' })).toBeInTheDocument()
-        expect(screen.getByRole('textbox')).toHaveValue('[report](<report.pdf>)start')
+        expect(screen.getByRole('textbox')).toHaveValue('start[report](<report.pdf>)')
     })
 
     it('suppresses attachment toolbar control without disabling file drops', async () => {
@@ -797,6 +797,36 @@ describe('MarkdownEditor', () => {
 
         act(() => draft.replace('Replacement'))
         expect(textbox).toHaveValue('Replacement')
+    })
+
+    it('focuses an untouched draft editor and appends insertion at document end', async () => {
+        const draft = new MarkdownDraft('Existing body')
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor draft={draft} hideToolbar />
+            </AppThemeProvider>,
+        )
+
+        await act(() => draft.requestInsertion('[report](<report.pdf>)'))
+
+        expect(screen.getByRole('textbox')).toHaveValue('Existing body[report](<report.pdf>)')
+        expect(draft.getSnapshot()).toBe('Existing body[report](<report.pdf>)')
+    })
+
+    it('preserves an existing text selection when inserting external Markdown', async () => {
+        const draft = new MarkdownDraft('start end')
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor draft={draft} hideToolbar />
+            </AppThemeProvider>,
+        )
+        const textbox = screen.getByRole('textbox') as HTMLTextAreaElement
+        textbox.focus()
+        selectText(textbox, 6, 9)
+
+        await act(() => draft.requestInsertion('[file]'))
+
+        expect(textbox).toHaveValue('start [file]')
     })
 
     it('loads current value when mounted editor switches drafts', async () => {

@@ -299,8 +299,10 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     }
 
     const insertMarkdown = useCallback((markdown: string) => {
-        if (!editorRef.current) throw new Error('Markdown editor is not mounted')
-        editorRef.current.insertMarkdown(markdown)
+        const editor = editorRef.current
+        if (!editor) throw new Error('Markdown editor is not mounted')
+
+        editor.focus(() => editor.insertMarkdown(markdown), { defaultSelection: 'rootEnd' })
     }, [])
 
     useMarkdownDraft(draft, insertMarkdown, replaceDraftMarkdown)

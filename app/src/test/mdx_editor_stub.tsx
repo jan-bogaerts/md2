@@ -50,6 +50,7 @@ interface StubEditorProps {
 }
 
 interface StubEditorHandle {
+    focus: (callbackFn?: () => void, opts?: { defaultSelection?: 'rootStart' | 'rootEnd'; preventScroll?: boolean }) => void
     getMarkdown: () => string
     getSelectionMarkdown: () => string
     insertMarkdown: (markdown: string) => void
@@ -200,6 +201,7 @@ export const MDXEditor = forwardRef<StubEditorHandle, StubEditorProps>(
         const toolbar = plugins.find(({ toolbarContents }) => !!toolbarContents)
         const initialMarkdown = normalizeMarkdown(markdown)
         const latestMarkdownRef = useRef(initialMarkdown)
+        const hasSelectionRef = useRef(false)
         const selectionStartRef = useRef(0)
         const selectionEndRef = useRef(0)
         const suppressSelectionMirrorRef = useRef(false)
@@ -214,6 +216,17 @@ export const MDXEditor = forwardRef<StubEditorHandle, StubEditorProps>(
         })
 
         useImperativeHandle(ref, () => ({
+            focus: (callbackFn, opts) => {
+                textareaRef.current?.focus({ preventScroll: opts?.preventScroll })
+                if (!hasSelectionRef.current) {
+                    const offset = opts?.defaultSelection === 'rootEnd' ? latestMarkdownRef.current.length : 0
+                    selectionStartRef.current = offset
+                    selectionEndRef.current = offset
+                    textareaRef.current?.setSelectionRange(offset, offset)
+                    hasSelectionRef.current = true
+                }
+                callbackFn?.()
+            },
             getMarkdown: () => latestMarkdownRef.current,
             getSelectionMarkdown: () => selectedMarkdown(
                 latestMarkdownRef.current,
@@ -280,6 +293,7 @@ export const MDXEditor = forwardRef<StubEditorHandle, StubEditorProps>(
         const updateSelection = (event: SyntheticEvent<HTMLTextAreaElement>) => {
             selectionStartRef.current = event.currentTarget.selectionStart
             selectionEndRef.current = event.currentTarget.selectionEnd
+            hasSelectionRef.current = true
         }
 
         const handleCopy = (event: ClipboardEvent<HTMLTextAreaElement>) => {
