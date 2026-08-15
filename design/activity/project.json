@@ -3763,6 +3763,10 @@
       "cardInternalId": null,
       "cardPath": null,
       "completedAt": "2026-08-15T12:49:40.220Z",
+      "contextWindowUsage": {
+        "capacityTokens": 258400,
+        "usedTokens": 32271
+      },
       "entries": [
         {
           "content": "we have a merge conflict. can you resolve it?",
@@ -3782,7 +3786,10 @@
           "timestamp": "2026-08-15T12:47:27.880Z"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git status --short'",
           "content": "M  app/src/components/editor/markdown_editor.test.tsx\nUU app/src/components/editor/markdown_editor.tsx\nM  app/src/components/editor/markdown_format_toolbar_controls.tsx\nA  app/src/components/editor/markdown_list_indent_toolbar_controls.test.tsx\nA  app/src/components/editor/markdown_list_indent_toolbar_controls.tsx\nM  app/src/test/mdx_editor_stub.tsx\nwarning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\nwarning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\n",
+          "durationMs": 394,
+          "exitCode": 0,
           "id": "agent-turn-4fa5f05b-0886-452f-b482-f680ef2acb48-event-3",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git status --short'",
@@ -3791,26 +3798,26 @@
           "status": "completed",
           "timestamp": "2026-08-15T12:47:29.639Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git status --short'",
-          "durationMs": 394,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-4fa5f05b-0886-452f-b482-f680ef2acb48-event-4",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0d3044c52ebf32f0016a805fe5ba588191a5df23a3535aeb9d",
           "sequence": 4,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T12:47:32.855Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git diff -- app/src/components/editor/markdown_editor.tsx; git diff --cached --stat; rg -n \"''^(<<<<<<<|=======|>>>>>>>)\" app/src/components/editor/markdown_editor.tsx'",
           "content": "diff --cc app/src/components/editor/markdown_editor.tsx\nindex ecb6f7a7,840b1ca5..00000000\n--- a/app/src/components/editor/markdown_editor.tsx\n+++ b/app/src/components/editor/markdown_editor.tsx\n@@@ -276,35 -272,17 +276,49 @@@ export const MarkdownEditor = forwardRe\n  \n      const getSelectionMarkdown = useCallback(() => editorRef.current?.getSelectionMarkdown() ?? '', [])\n  \n++<<<<<<< HEAD\n +    const attachFiles = useCallback((files: File[]) => {\n +        if (!attachmentHandler || readOnly || files.length === 0) return\n +        void attachmentHandler(files, insertMarkdown).catch((error: unknown) => {\n +            dialogService.error(error, { fallbackMessage: 'Files could not be attached' })\n +        })\n +    }, [attachmentHandler, insertMarkdown, readOnly])\n +\n +    const handleDragOverCapture = (event: DragEvent<HTMLDivElement>) => {\n +        if (!attachmentHandler || readOnly || !event.dataTransfer.types.includes('Files')) return\n +        event.preventDefault()\n +        event.stopPropagation()\n +    }\n +\n +    const handleDropCapture = (event: DragEvent<HTMLDivElement>) => {\n +        if (!attachmentHandler || readOnly || !event.dataTransfer.types.includes('Files')) return\n +        event.preventDefault()\n +        event.stopPropagation()\n +        attachFiles([...event.dataTransfer.files])\n +    }\n +\n +    const toolbarContents = useCallback(() => (\n +        <>\n +            {!hideToolbar ? (\n +                customToolbarContents?.()\n +                ?? <MarkdownFormatToolbarControls overlayContainer={overlayContainer} placeholders={placeholders} />\n +            ) : null}\n +            {attachmentHandler ? <MarkdownAttachmentToolbarControl disabled={readOnly} onFiles={attachFiles} /> : null}\n +        </>\n +    ), [attachFiles, attachmentHandler, customToolbarContents, hideToolbar, overlayContainer, placeholders, readOnly])\n++=======\n+     const defaultToolbarContents = useCallback(\n+         () => (\n+             <MarkdownFormatToolbarControls\n+                 overlayContainer={overlayContainer}\n+                 placeholders={placeholders}\n+                 readOnly={readOnly}\n+             />\n+         ),\n+         [overlayContainer, placeholders, readOnly],\n+     )\n+     const toolbarContents = customToolbarContents ?? defaultToolbarContents\n++>>>>>>> 4f89055c (F_191: Small screen indent btn)\n      const editorSx = {\n          ...markdownContentSx,\n          '& .mdxeditor-toolbar': { bgcolor: 'background.paper', position: 'sticky', top: 0, zIndex: 1 },\n app/src/components/editor/markdown_editor.test.tsx | 50 +++++++++++++\n app/src/components/editor/markdown_editor.tsx      | Unmerged\n .../editor/markdown_format_toolbar_controls.tsx    |  2 +\n .../markdown_list_indent_toolbar_controls.test.tsx | 85 ++++++++++++++++++++++\n .../markdown_list_indent_toolbar_controls.tsx      | 53 ++++++++++++++\n app/src/test/mdx_editor_stub.tsx                   |  2 +-\n 5 files changed, 191 insertions(+), 1 deletion(-)\n279:<<<<<<< HEAD\n309:=======\n321:>>>>>>> 4f89055c (F_191: Small screen indent btn)\nwarning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\n",
+          "durationMs": 360,
+          "exitCode": 0,
           "id": "agent-turn-4fa5f05b-0886-452f-b482-f680ef2acb48-event-5",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git diff -- app/src/components/editor/markdown_editor.tsx; git diff --cached --stat; rg -n \"''^(<<<<<<<|=======|>>>>>>>)\" app/src/components/editor/markdown_editor.tsx'",
@@ -3819,23 +3826,20 @@
           "status": "completed",
           "timestamp": "2026-08-15T12:47:34.756Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git diff -- app/src/components/editor/markdown_editor.tsx; git diff --cached --stat; rg -n \"''^(<<<<<<<|=======|>>>>>>>)\" app/src/components/editor/markdown_editor.tsx'",
-          "durationMs": 360,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-4fa5f05b-0886-452f-b482-f680ef2acb48-event-6",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0d3044c52ebf32f0016a805fe9657c819198a57bf78e109d3c",
           "sequence": 6,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T12:47:36.455Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "agent": "codex",
@@ -3847,7 +3851,10 @@
           "timestamp": "2026-08-15T12:47:37.637Z"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content app/src/components/editor/markdown_editor.tsx; Get-Content app/src/components/editor/markdown_format_toolbar_controls.tsx; Get-Content app/src/components/editor/markdown_list_indent_toolbar_controls.tsx'",
           "content": "import { Box } from '@mui/material'\r\nimport {\r\n    MDXEditor, codeBlockPlugin, codeMirrorPlugin, diffSourcePlugin,\r\n    headingsPlugin, imagePlugin, linkDialogPlugin, linkPlugin, listsPlugin, markdownShortcutPlugin, quotePlugin,\r\n    tablePlugin, thematicBreakPlugin, toolbarPlugin,\r\n    type MDXEditorMethods, type ViewMode,\r\n} from '@mdxeditor/editor'\r\nimport '@mdxeditor/editor/style.css'\r\nimport {\r\n    forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef,\r\n    type DragEvent, type FocusEvent, type ReactNode,\r\n} from 'react'\r\nimport type { ActionPlaceholder } from '../../data/action_placeholders'\r\nimport { useProjectState } from '../hooks/use_project_state'\r\nimport { dialogService } from '../../services/dialog_service'\r\nimport { useAppTheme } from '../../theme/use_app_theme'\r\nimport { markdownDocumentHistoryPlugin } from './markdown_document_history_realm_plugin'\r\nimport type { MarkdownDocumentHistoryStore } from './markdown_document_history_store'\r\nimport { MarkdownFormatToolbarControls } from './markdown_format_toolbar_controls'\r\nimport { markdownFileSearchPlugin } from './markdown_file_search_realm_plugin'\r\nimport { markdownLocalTextSearchPlugin } from './markdown_local_text_search_realm_plugin'\r\nimport { plainMarkdownPlugin } from './plain_markdown_realm_plugin'\r\nimport { markdownPlaceholderPlugin } from './markdown_placeholder_realm_plugin'\r\nimport { registerMarkdownEditorStage } from '../../services/project/markdown_editor_staging'\r\nimport { markdownPastePlugin } from './markdown_paste_realm_plugin'\r\nimport type { MarkdownImagePasteHandler } from './markdown_paste_cell'\r\nimport type {\r\n    ActiveMarkdownDocumentChangedDetail,\r\n    MarkdownBindingKind,\r\n    MarkdownDataSource,\r\n    MarkdownDocumentTarget,\r\n} from './markdown_data_source'\r\nimport { MarkdownAttachmentToolbarControl } from './markdown_attachment_toolbar_control'\r\nimport type { AttachmentMarkdownInserter } from '../../services/attachments/attachment_workflow'\r\n\r\nconst DEFAULT_CODE_LANGUAGE = ''\r\nconst CODE_BLOCK_LANGUAGES = { '': 'Plain text', js: 'JavaScript', ts: 'TypeScript', tsx: 'TSX', bash: 'Shell' }\r\nconst EMPTY_PLACEHOLDERS: readonly ActionPlaceholder[] = []\r\nconst EMPTY_REPOSITORY_FILES: readonly string[] = []\r\n\r\nexport interface MarkdownEditorHandle {\r\n    flush(): boolean\r\n    getMarkdown(): string\r\n    setMarkdown(markdown: string): void\r\n}\r\n\r\ninterface MarkdownEditorPresentationProps {\r\n    attachmentHandler?: (files: File[], insertMarkdown: AttachmentMarkdownInserter) => Promise<void>\r\n    diffMarkdown?: string\r\n    flushOnBlur?: boolean\r\n    /** Omit format toolbar entirely. */\r\n    hideToolbar?: boolean\r\n    imagePasteHandler?: MarkdownImagePasteHandler\r\n    /** Set false when containing surface owns Ctrl+F behavior. */\r\n    localTextSearch?: boolean\r\n    overlayContainer?: HTMLElement | null\r\n    placeholders?: readonly ActionPlaceholder[]\r\n    readOnly?: boolean\r\n    toolbarContents?: () => ReactNode\r\n    viewMode?: ViewMode\r\n}\r\n\r\ninterface MarkdownEditorDataSourceProps extends MarkdownEditorPresentationProps {\r\n    binding: MarkdownBindingKind\r\n    dataSource: MarkdownDataSource\r\n    historyStore: MarkdownDocumentHistoryStore\r\n    markdown?: never\r\n    onChange?: never\r\n    onDirtyChange?: never\r\n    onLiveChange?: never\r\n}\r\n\r\ninterface MarkdownEditorLocalProps extends MarkdownEditorPresentationProps {\r\n    binding?: never\r\n    dataSource?: never\r\n    historyStore?: never\r\n    markdown: string\r\n    onChange: (markdown: string) => void\r\n    onDirtyChange?: (dirty: boolean) => void\r\n    onLiveChange?: (markdown: string) => void\r\n}\r\n\r\ntype MarkdownEditorProps = MarkdownEditorDataSourceProps | MarkdownEditorLocalProps\r\n\r\ninterface MarkdownDocumentSnapshot {\r\n    target: MarkdownDocumentTarget | null\r\n    markdown: string\r\n}\r\n\r\ninterface MarkdownProcessingError {\r\n    error: string\r\n}\r\n\r\nfunction initialDocument(props: MarkdownEditorProps): MarkdownDocumentSnapshot {\r\n    if (!props.dataSource) return { target: null, markdown: props.markdown }\r\n\r\n    const target = props.dataSource.getActiveTarget(props.binding)\r\n    return { target, markdown: target ? props.dataSource.getMarkdown(target) : '' }\r\n}\r\n\r\n/** Reusable MDXEditor surface with local-buffer and persisted data-source modes. */\r\nexport const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(function MarkdownEditor(props, ref) {\r\n    const {\r\n        flushOnBlur = false,\r\n        attachmentHandler,\r\n        diffMarkdown,\r\n        hideToolbar = false,\r\n        imagePasteHandler,\r\n        localTextSearch = true,\r\n        overlayContainer,\r\n        placeholders = EMPTY_PLACEHOLDERS,\r\n        readOnly = false,\r\n        toolbarContents: customToolbarContents,\r\n        viewMode,\r\n    } = props\r\n    const dataSource = props.dataSource\r\n    const binding = props.binding\r\n    const historyStore = props.historyStore\r\n    const { snapshot } = useProjectState()\r\n    const repositoryFiles = snapshot?.repositoryFiles ?? EMPTY_REPOSITORY_FILES\r\n    const initialDocumentRef = useRef<MarkdownDocumentSnapshot | null>(null)\r\n    if (!initialDocumentRef.current) initialDocumentRef.current = initialDocument(props)\r\n    const initialDocumentSnapshot = initialDocumentRef.current\r\n    const { markdownContentSx, mode } = useAppTheme()\r\n    const editorRef = useRef<MDXEditorMethods>(null)\r\n    const activeTargetRef = useRef(initialDocumentSnapshot.target)\r\n    const latestMarkdownRef = useRef(initialDocumentSnapshot.markdown)\r\n    const lastEmittedMarkdownRef = useRef(initialDocumentSnapshot.markdown)\r\n    const dirtyBaselineEstablishedRef = useRef(false)\r\n    const missingEditorReportedRef = useRef(false)\r\n    const replacingMarkdownRef = useRef(false)\r\n    const onChangeRef = useRef(props.onChange)\r\n    const onDirtyChangeRef = useRef(props.onDirtyChange)\r\n    const onLiveChangeRef = useRef(props.onLiveChange)\r\n    const applyPendingDocumentChangeRef = useRef<() => void>(() => undefined)\r\n    onChangeRef.current = props.onChange\r\n    onDirtyChangeRef.current = props.onDirtyChange\r\n    onLiveChangeRef.current = props.onLiveChange\r\n\r\n    const setDirty = useCallback((dirty: boolean) => {\r\n        onDirtyChangeRef.current?.(dirty)\r\n    }, [])\r\n\r\n    const flush = useCallback(() => {\r\n        if (latestMarkdownRef.current === lastEmittedMarkdownRef.current) return true\r\n\r\n        const activeTarget = activeTargetRef.current\r\n        if (dataSource && binding) {\r\n            if (!activeTarget) return false\r\n            const committed = dataSource.commit(binding, activeTarget, latestMarkdownRef.current)\r\n            if (!committed) return false\r\n        } else {\r\n            onChangeRef.current?.(latestMarkdownRef.current)\r\n        }\r\n        lastEmittedMarkdownRef.current = latestMarkdownRef.current\r\n        setDirty(false)\r\n        queueMicrotask(() => applyPendingDocumentChangeRef.current())\r\n\r\n        return true\r\n    }, [binding, dataSource, setDirty])\r\n\r\n    const prepareDocumentSwitch = useCallback((detail: ActiveMarkdownDocumentChangedDetail, nextMarkdown: string) => {\r\n        if (detail.discard) lastEmittedMarkdownRef.current = latestMarkdownRef.current\r\n        if (!flush()) return null\r\n\r\n        const currentMarkdown = latestMarkdownRef.current\r\n        activeTargetRef.current = detail.target\r\n        latestMarkdownRef.current = nextMarkdown\r\n        lastEmittedMarkdownRef.current = nextMarkdown\r\n        setDirty(false)\r\n\r\n        return currentMarkdown\r\n    }, [flush, setDirty])\r\n\r\n    const completeDocumentSwitch = useCallback((normalizedMarkdown: string) => {\r\n        latestMarkdownRef.current = normalizedMarkdown\r\n        lastEmittedMarkdownRef.current = normalizedMarkdown\r\n        setDirty(false)\r\n    }, [setDirty])\r\n\r\n    const getMarkdown = useCallback(() => editorRef.current?.getMarkdown() ?? latestMarkdownRef.current, [])\r\n    const getTarget = useCallback(() => activeTargetRef.current, [])\r\n\r\n    const replaceMarkdown = useCallback((markdown: string) => {\r\n        replacingMarkdownRef.current = true\r\n        editorRef.current?.setMarkdown(markdown)\r\n        replacingMarkdownRef.current = false\r\n    }, [])\r\n\r\n    const setPendingDocumentChangeRetry = useCallback((retry: () => void) => {\r\n        applyPendingDocumentChangeRef.current = retry\r\n    }, [])\r\n\r\n    const historyPluginConfig = useMemo(() => historyStore && binding && dataSource\r\n        ? {\r\n            binding,\r\n            completeDocumentSwitch,\r\n            dataSource,\r\n            getTarget,\r\n            getMarkdown,\r\n            historyStore,\r\n            prepareDocumentSwitch,\r\n            replaceMarkdown,\r\n            setPendingDocumentChangeRetry,\r\n        }\r\n        : null, [\r\n        binding,\r\n        completeDocumentSwitch,\r\n        dataSource,\r\n        getTarget,\r\n        getMarkdown,\r\n        historyStore,\r\n        prepareDocumentSwitch,\r\n        replaceMarkdown,\r\n        setPendingDocumentChangeRetry,\r\n    ])\r\n\r\n    useEffect(() => {\r\n        if (!editorRef.current) {\r\n            if (!missingEditorReportedRef.current) {\r\n                missingEditorReportedRef.current = true\r\n                dialogService.error(new Error('Cannot baseline markdown before editor is mounted'), {fallbackMessage: 'Markdown editor could not be initialized'})\r\n            }\r\n            return\r\n        }\r\n\r\n        const normalizedMarkdown = editorRef.current.getMarkdown()\r\n        latestMarkdownRef.current = normalizedMarkdown\r\n        lastEmittedMarkdownRef.current = normalizedMarkdown\r\n        dirtyBaselineEstablishedRef.current = true\r\n    }, [])\r\n\r\n    useEffect(() => {\r\n        const unregister = registerMarkdownEditorStage(flush)\r\n\r\n        return () => {\r\n            unregister()\r\n            flush()\r\n        }\r\n    }, [flush])\r\n\r\n    useImperativeHandle(ref, () => ({\r\n        flush,\r\n        getMarkdown: () => latestMarkdownRef.current,\r\n        setMarkdown: (markdown: string) => {\r\n            replaceMarkdown(markdown)\r\n            latestMarkdownRef.current = markdown\r\n            lastEmittedMarkdownRef.current = markdown\r\n            setDirty(false)\r\n        },\r\n    }), [flush, replaceMarkdown, setDirty])\r\n\r\n    const handleEditorChange = useCallback((markdown: string) => {\r\n        if (replacingMarkdownRef.current || latestMarkdownRef.current === markdown) return\r\n\r\n        latestMarkdownRef.current = markdown\r\n        if (!dirtyBaselineEstablishedRef.current) return\r\n        setDirty(markdown !== lastEmittedMarkdownRef.current)\r\n        onLiveChangeRef.current?.(markdown)\r\n        const activeTarget = activeTargetRef.current\r\n        if (dataSource && binding && activeTarget) dataSource.edit(binding, activeTarget, markdown)\r\n    }, [binding, dataSource, setDirty])\r\n\r\n    const handleEditorError = useCallback(({ error }: MarkdownProcessingError) => {\r\n        dialogService.error(new Error(error), { fallbackMessage: 'Markdown could not be parsed' })\r\n    }, [])\r\n\r\n    const handleBlur = (event: FocusEvent<HTMLDivElement>) => {\r\n        if (!flushOnBlur || event.currentTarget.contains(event.relatedTarget)) return\r\n        flush()\r\n    }\r\n\r\n    const insertMarkdown = useCallback((markdown: string) => {\r\n        editorRef.current?.insertMarkdown(markdown)\r\n    }, [])\r\n\r\n    const getSelectionMarkdown = useCallback(() => editorRef.current?.getSelectionMarkdown() ?? '', [])\r\n\r\n<<<<<<< HEAD\r\n    const attachFiles = useCallback((files: File[]) => {\r\n        if (!attachmentHandler || readOnly || files.length === 0) return\r\n        void attachmentHandler(files, insertMarkdown).catch((error: unknown) => {\r\n            dialogService.error(error, { fallbackMessage: 'Files could not be attached' })\r\n        })\r\n    }, [attachmentHandler, insertMarkdown, readOnly])\r\n\r\n    const handleDragOverCapture = (event: DragEvent<HTMLDivElement>) => {\r\n        if (!attachmentHandler || readOnly || !event.dataTransfer.types.includes('Files')) return\r\n        event.preventDefault()\r\n        event.stopPropagation()\r\n    }\r\n\r\n    const handleDropCapture = (event: DragEvent<HTMLDivElement>) => {\r\n        if (!attachmentHandler || readOnly || !event.dataTransfer.types.includes('Files')) return\r\n        event.preventDefault()\r\n        event.stopPropagation()\r\n        attachFiles([...event.dataTransfer.files])\r\n    }\r\n\r\n    const toolbarContents = useCallback(() => (\r\n        <>\r\n            {!hideToolbar ? (\r\n                customToolbarContents?.()\r\n                ?? <MarkdownFormatToolbarControls overlayContainer={overlayContainer} placeholders={placeholders} />\r\n            ) : null}\r\n            {attachmentHandler ? <MarkdownAttachmentToolbarControl disabled={readOnly} onFiles={attachFiles} /> : null}\r\n        </>\r\n    ), [attachFiles, attachmentHandler, customToolbarContents, hideToolbar, overlayContainer, placeholders, readOnly])\r\n=======\r\n    const defaultToolbarContents = useCallback(\r\n        () => (\r\n            <MarkdownFormatToolbarControls\r\n                overlayContainer={overlayContainer}\r\n                placeholders={placeholders}\r\n                readOnly={readOnly}\r\n            />\r\n        ),\r\n        [overlayContainer, placeholders, readOnly],\r\n    )\r\n    const toolbarContents = customToolbarContents ?? defaultToolbarContents\r\n>>>>>>> 4f89055c (F_191: Small screen indent btn)\r\n    const editorSx = {\r\n        ...markdownContentSx,\r\n        '& .mdxeditor-toolbar': { bgcolor: 'background.paper', position: 'sticky', top: 0, zIndex: 1 },\r\n    }\r\n    const historyPlugin = historyPluginConfig ? markdownDocumentHistoryPlugin(historyPluginConfig) : null\r\n    const plugins = [\r\n        headingsPlugin(),\r\n        listsPlugin(),\r\n        quotePlugin(),\r\n        thematicBreakPlugin(),\r\n        linkPlugin(),\r\n        linkDialogPlugin(),\r\n        imagePlugin(),\r\n        tablePlugin(),\r\n        codeBlockPlugin({ defaultCodeBlockLanguage: DEFAULT_CODE_LANGUAGE }),\r\n        codeMirrorPlugin({ codeBlockLanguages: CODE_BLOCK_LANGUAGES }),\r\n        markdownShortcutPlugin(),\r\n        plainMarkdownPlugin(),\r\n        ...(viewMode ? [diffSourcePlugin({ diffMarkdown: diffMarkdown ?? '', viewMode })] : []),\r\n        ...(!hideToolbar || attachmentHandler ? [toolbarPlugin({ toolbarContents })] : []),\r\n        markdownPlaceholderPlugin({ overlayContainer, placeholders }),\r\n        markdownFileSearchPlugin({ overlayContainer, repositoryFiles }),\r\n        ...(localTextSearch ? [markdownLocalTextSearchPlugin({ overlayContainer })] : []),\r\n        markdownPastePlugin({ getSelectionMarkdown, imagePasteHandler, insertMarkdown, readOnly }),\r\n        ...(historyPlugin ? [historyPlugin] : []),\r\n    ]\r\n\r\n    return (\r\n        <Box\r\n            data-sticky-toolbar\r\n            onBlur={handleBlur}\r\n            onDragOverCapture={handleDragOverCapture}\r\n            onDropCapture={handleDropCapture}\r\n            sx={editorSx}\r\n        >\r\n            <MDXEditor\r\n                className={mode === 'dark' ? 'dark-theme' : 'light-theme'}\r\n                contentEditableClassName=\"mdxeditor-content\"\r\n                markdown={initialDocumentSnapshot.markdown}\r\n                onChange={handleEditorChange}\r\n                onError={handleEditorError}\r\n                overlayContainer={overlayContainer}\r\n                plugins={plugins}\r\n                readOnly={readOnly}\r\n                ref={editorRef}\r\n                suppressHtmlProcessing\r\n                suppressSharedHistory={!!historyStore}\r\n            />\r\n        </Box>\r\n    )\r\n})\r\nimport {\r\n    BlockTypeSelect, BoldItalicUnderlineToggles, CreateLink, InsertCodeBlock, InsertImage, InsertTable,\r\n    InsertThematicBreak, ListsToggle, Separator, UndoRedo,\r\n} from '@mdxeditor/editor'\r\nimport type { ReactNode } from 'react'\r\nimport type { ActionPlaceholder } from '../../data/action_placeholders'\r\nimport { MarkdownListIndentToolbarControls } from './markdown_list_indent_toolbar_controls'\r\nimport { MarkdownLocalTextSearchToolbarControl } from './markdown_local_text_search_toolbar_control'\r\nimport { MarkdownPlaceholderToolbarControl } from './markdown_placeholder_toolbar_control'\r\n\r\ninterface MarkdownFormatToolbarControlsProps {\r\n    endControls?: ReactNode\r\n    overlayContainer?: HTMLElement | null\r\n    placeholders?: readonly ActionPlaceholder[]\r\n    readOnly?: boolean\r\n    undoRedoControls?: ReactNode\r\n}\r\n\r\n/** The full formatting command set supported by the shared markdown editor. */\r\nexport function MarkdownFormatToolbarControls(props: MarkdownFormatToolbarControlsProps = {}) {\r\n    const { endControls, overlayContainer, placeholders = [], readOnly = false, undoRedoControls } = props\r\n\r\n    return (\r\n        <>\r\n            {!readOnly ? (\r\n                <>\r\n                    {undoRedoControls ?? <UndoRedo />}\r\n                    <Separator />\r\n                    <BoldItalicUnderlineToggles />\r\n                    <Separator />\r\n                    <ListsToggle />\r\n                    <MarkdownListIndentToolbarControls />\r\n                    <BlockTypeSelect />\r\n                    <Separator />\r\n                    <CreateLink />\r\n                    <InsertImage />\r\n                    <Separator />\r\n                    <InsertTable />\r\n                    <InsertThematicBreak />\r\n                    <InsertCodeBlock />\r\n                    <Separator />\r\n                </>\r\n            ) : null}\r\n            <MarkdownLocalTextSearchToolbarControl />\r\n            {!readOnly && placeholders.length > 0 ? (\r\n                <>\r\n                    <Separator />\r\n                    <MarkdownPlaceholderToolbarControl overlayContainer={overlayContainer} placeholders={placeholders} />\r\n                </>\r\n            ) : null}\r\n            {endControls}\r\n        </>\r\n    )\r\n}\r\nimport FormatIndentDecreaseOutlined from '@mui/icons-material/FormatIndentDecreaseOutlined'\r\nimport FormatIndentIncreaseOutlined from '@mui/icons-material/FormatIndentIncreaseOutlined'\r\nimport { IconButton, Tooltip, useMediaQuery, useTheme } from '@mui/material'\r\nimport { activeEditor$, useCellValue } from '@mdxeditor/editor'\r\nimport { INDENT_CONTENT_COMMAND, OUTDENT_CONTENT_COMMAND } from 'lexical'\r\n\r\n/** Small-screen controls for changing selected list-item nesting. */\r\nexport function MarkdownListIndentToolbarControls() {\r\n    const activeEditor = useCellValue(activeEditor$)\r\n    const theme = useTheme()\r\n    const isSmallScreen = useMediaQuery(theme.breakpoints.down('md'))\r\n\r\n    const handleIncreaseIndent = () => {\r\n        activeEditor?.dispatchCommand(INDENT_CONTENT_COMMAND, undefined)\r\n        activeEditor?.focus()\r\n    }\r\n\r\n    const handleDecreaseIndent = () => {\r\n        activeEditor?.dispatchCommand(OUTDENT_CONTENT_COMMAND, undefined)\r\n        activeEditor?.focus()\r\n    }\r\n\r\n    if (!isSmallScreen) return null\r\n\r\n    return (\r\n        <>\r\n            <Tooltip title=\"Increase indent\">\r\n                <span>\r\n                    <IconButton\r\n                        aria-label=\"Increase indent\"\r\n                        disabled={!activeEditor}\r\n                        onClick={handleIncreaseIndent}\r\n                        size=\"small\"\r\n                    >\r\n                        <FormatIndentIncreaseOutlined fontSize=\"small\" />\r\n                    </IconButton>\r\n                </span>\r\n            </Tooltip>\r\n            <Tooltip title=\"Decrease indent\">\r\n                <span>\r\n                    <IconButton\r\n                        aria-label=\"Decrease indent\"\r\n                        disabled={!activeEditor}\r\n                        onClick={handleDecreaseIndent}\r\n                        size=\"small\"\r\n                    >\r\n                        <FormatIndentDecreaseOutlined fontSize=\"small\" />\r\n                    </IconButton>\r\n                </span>\r\n            </Tooltip>\r\n        </>\r\n    )\r\n}\r\n",
+          "durationMs": 341,
+          "exitCode": 0,
           "id": "agent-turn-4fa5f05b-0886-452f-b482-f680ef2acb48-event-8",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content app/src/components/editor/markdown_editor.tsx; Get-Content app/src/components/editor/markdown_format_toolbar_controls.tsx; Get-Content app/src/components/editor/markdown_list_indent_toolbar_controls.tsx'",
@@ -3856,26 +3863,26 @@
           "status": "completed",
           "timestamp": "2026-08-15T12:47:39.478Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content app/src/components/editor/markdown_editor.tsx; Get-Content app/src/components/editor/markdown_format_toolbar_controls.tsx; Get-Content app/src/components/editor/markdown_list_indent_toolbar_controls.tsx'",
-          "durationMs": 341,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-4fa5f05b-0886-452f-b482-f680ef2acb48-event-9",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0d3044c52ebf32f0016a805fedee748191b330e6f5f06a54c8",
           "sequence": 9,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T12:47:42.320Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git show :2:app/src/components/editor/markdown_editor.tsx | Select-Object -Skip 265 -First 75; git show :3:app/src/components/editor/markdown_editor.tsx | Select-Object -Skip 260 -First 65; git diff --cached -- app/src/components/editor/markdown_editor.test.tsx app/src/components/editor/markdown_format_toolbar_controls.tsx app/src/components/editor/markdown_list_indent_toolbar_controls.test.tsx app/src/test/mdx_editor_stub.tsx'",
           "content": "    }, [])\r\n\r\n    const handleBlur = (event: FocusEvent<HTMLDivElement>) => {\r\n        if (!flushOnBlur || event.currentTarget.contains(event.relatedTarget)) return\r\n        flush()\r\n    }\r\n\r\n    const insertMarkdown = useCallback((markdown: string) => {\r\n        editorRef.current?.insertMarkdown(markdown)\r\n    }, [])\r\n\r\n    const getSelectionMarkdown = useCallback(() => editorRef.current?.getSelectionMarkdown() ?? '', [])\r\n\r\n    const attachFiles = useCallback((files: File[]) => {\r\n        if (!attachmentHandler || readOnly || files.length === 0) return\r\n        void attachmentHandler(files, insertMarkdown).catch((error: unknown) => {\r\n            dialogService.error(error, { fallbackMessage: 'Files could not be attached' })\r\n        })\r\n    }, [attachmentHandler, insertMarkdown, readOnly])\r\n\r\n    const handleDragOverCapture = (event: DragEvent<HTMLDivElement>) => {\r\n        if (!attachmentHandler || readOnly || !event.dataTransfer.types.includes('Files')) return\r\n        event.preventDefault()\r\n        event.stopPropagation()\r\n    }\r\n\r\n    const handleDropCapture = (event: DragEvent<HTMLDivElement>) => {\r\n        if (!attachmentHandler || readOnly || !event.dataTransfer.types.includes('Files')) return\r\n        event.preventDefault()\r\n        event.stopPropagation()\r\n        attachFiles([...event.dataTransfer.files])\r\n    }\r\n\r\n    const toolbarContents = useCallback(() => (\r\n        <>\r\n            {!hideToolbar ? (\r\n                customToolbarContents?.()\r\n                ?? <MarkdownFormatToolbarControls overlayContainer={overlayContainer} placeholders={placeholders} />\r\n            ) : null}\r\n            {attachmentHandler ? <MarkdownAttachmentToolbarControl disabled={readOnly} onFiles={attachFiles} /> : null}\r\n        </>\r\n    ), [attachFiles, attachmentHandler, customToolbarContents, hideToolbar, overlayContainer, placeholders, readOnly])\r\n    const editorSx = {\r\n        ...markdownContentSx,\r\n        '& .mdxeditor-toolbar': { bgcolor: 'background.paper', position: 'sticky', top: 0, zIndex: 1 },\r\n    }\r\n    const historyPlugin = historyPluginConfig ? markdownDocumentHistoryPlugin(historyPluginConfig) : null\r\n    const plugins = [\r\n        headingsPlugin(),\r\n        listsPlugin(),\r\n        quotePlugin(),\r\n        thematicBreakPlugin(),\r\n        linkPlugin(),\r\n        linkDialogPlugin(),\r\n        imagePlugin(),\r\n        tablePlugin(),\r\n        codeBlockPlugin({ defaultCodeBlockLanguage: DEFAULT_CODE_LANGUAGE }),\r\n        codeMirrorPlugin({ codeBlockLanguages: CODE_BLOCK_LANGUAGES }),\r\n        markdownShortcutPlugin(),\r\n        plainMarkdownPlugin(),\r\n        ...(viewMode ? [diffSourcePlugin({ diffMarkdown: diffMarkdown ?? '', viewMode })] : []),\r\n        ...(!hideToolbar || attachmentHandler ? [toolbarPlugin({ toolbarContents })] : []),\r\n        markdownPlaceholderPlugin({ overlayContainer, placeholders }),\r\n        markdownFileSearchPlugin({ overlayContainer, repositoryFiles }),\r\n        ...(localTextSearch ? [markdownLocalTextSearchPlugin({ overlayContainer })] : []),\r\n        markdownPastePlugin({ getSelectionMarkdown, imagePasteHandler, insertMarkdown, readOnly }),\r\n        ...(historyPlugin ? [historyPlugin] : []),\r\n    ]\r\n\r\n    return (\r\n        <Box\r\n            data-sticky-toolbar\r\n            onBlur={handleBlur}\r\n            onDragOverCapture={handleDragOverCapture}\r\n            onDropCapture={handleDropCapture}\r\n        dialogService.error(new Error(error), { fallbackMessage: 'Markdown could not be parsed' })\r\n    }, [])\r\n\r\n    const handleBlur = (event: FocusEvent<HTMLDivElement>) => {\r\n        if (!flushOnBlur || event.currentTarget.contains(event.relatedTarget)) return\r\n        flush()\r\n    }\r\n\r\n    const insertMarkdown = useCallback((markdown: string) => {\r\n        editorRef.current?.insertMarkdown(markdown)\r\n    }, [])\r\n\r\n    const getSelectionMarkdown = useCallback(() => editorRef.current?.getSelectionMarkdown() ?? '', [])\r\n\r\n    const defaultToolbarContents = useCallback(\r\n        () => (\r\n            <MarkdownFormatToolbarControls\r\n                overlayContainer={overlayContainer}\r\n                placeholders={placeholders}\r\n                readOnly={readOnly}\r\n            />\r\n        ),\r\n        [overlayContainer, placeholders, readOnly],\r\n    )\r\n    const toolbarContents = customToolbarContents ?? defaultToolbarContents\r\n    const editorSx = {\r\n        ...markdownContentSx,\r\n        '& .mdxeditor-toolbar': { bgcolor: 'background.paper', position: 'sticky', top: 0, zIndex: 1 },\r\n    }\r\n    const historyPlugin = historyPluginConfig ? markdownDocumentHistoryPlugin(historyPluginConfig) : null\r\n    const plugins = [\r\n        headingsPlugin(),\r\n        listsPlugin(),\r\n        quotePlugin(),\r\n        thematicBreakPlugin(),\r\n        linkPlugin(),\r\n        linkDialogPlugin(),\r\n        imagePlugin(),\r\n        tablePlugin(),\r\n        codeBlockPlugin({ defaultCodeBlockLanguage: DEFAULT_CODE_LANGUAGE }),\r\n        codeMirrorPlugin({ codeBlockLanguages: CODE_BLOCK_LANGUAGES }),\r\n        markdownShortcutPlugin(),\r\n        plainMarkdownPlugin(),\r\n        ...(viewMode ? [diffSourcePlugin({ diffMarkdown: diffMarkdown ?? '', viewMode })] : []),\r\n        ...(hideToolbar ? [] : [toolbarPlugin({ toolbarContents })]),\r\n        markdownPlaceholderPlugin({ overlayContainer, placeholders }),\r\n        markdownFileSearchPlugin({ overlayContainer, repositoryFiles }),\r\n        ...(localTextSearch ? [markdownLocalTextSearchPlugin({ overlayContainer })] : []),\r\n        markdownPastePlugin({ getSelectionMarkdown, imagePasteHandler, insertMarkdown, readOnly }),\r\n        ...(historyPlugin ? [historyPlugin] : []),\r\n    ]\r\n\r\n    return (\r\n        <Box data-sticky-toolbar onBlur={handleBlur} sx={editorSx}>\r\n            <MDXEditor\r\n                className={mode === 'dark' ? 'dark-theme' : 'light-theme'}\r\n                contentEditableClassName=\"mdxeditor-content\"\r\n                markdown={initialDocumentSnapshot.markdown}\r\n                onChange={handleEditorChange}\r\n                onError={handleEditorError}\r\n                overlayContainer={overlayContainer}\r\n                plugins={plugins}\r\n                readOnly={readOnly}\r\n                ref={editorRef}\r\n                suppressHtmlProcessing\r\ndiff --git a/app/src/components/editor/markdown_editor.test.tsx b/app/src/components/editor/markdown_editor.test.tsx\nindex c1b373c1..ac766103 100644\n--- a/app/src/components/editor/markdown_editor.test.tsx\n+++ b/app/src/components/editor/markdown_editor.test.tsx\n@@ -20,6 +20,8 @@ import {\n } from './markdown_data_source'\n import type { CardOpenDocument } from '../../services/open_files_service'\n \n+const originalMatchMedia = window.matchMedia\n+\n class TestMarkdownDataSource extends MarkdownDataSourceBase {\n     readonly commit = vi.fn<MarkdownDataSource['commit']>(() => true)\n     readonly edit = vi.fn()\n@@ -62,6 +64,19 @@ function renderEditor(markdown = '') {\n     )\n }\n \n+function setSmallScreen(isSmallScreen: boolean) {\n+    window.matchMedia = ((query: string) => ({\n+        addEventListener: () => {},\n+        addListener: () => {},\n+        dispatchEvent: () => false,\n+        matches: isSmallScreen,\n+        media: query,\n+        onchange: null,\n+        removeEventListener: () => {},\n+        removeListener: () => {},\n+    })) as unknown as typeof window.matchMedia\n+}\n+\n function selectText(textbox: HTMLTextAreaElement, start: number, end: number) {\n     textbox.setSelectionRange(start, end)\n     fireEvent.select(textbox)\n@@ -108,6 +123,7 @@ describe('MarkdownEditor', () => {\n     afterEach(() => {\n         cleanup()\n         window.localStorage.clear()\n+        window.matchMedia = originalMatchMedia\n     })\n \n     it('renders the editing surface seeded with the markdown value', () => {\n@@ -674,6 +690,40 @@ describe('MarkdownEditor', () => {\n         expect(screen.getByTestId('mdx-editor')).toContainElement(screen.getByTestId('mdx-editor-toolbar'))\n     })\n \n+    it('shows list indent controls after list type controls on small editable toolbars', () => {\n+        setSmallScreen(true)\n+        renderEditor()\n+\n+        const listsToggle = screen.getByTestId('lists-toggle')\n+        const increaseButton = screen.getByRole('button', { name: 'Increase indent' })\n+        const decreaseButton = screen.getByRole('button', { name: 'Decrease indent' })\n+        const blockTypeSelect = screen.getByTestId('block-type-select')\n+\n+        expect(listsToggle.compareDocumentPosition(increaseButton)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)\n+        expect(increaseButton.compareDocumentPosition(decreaseButton)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)\n+        expect(decreaseButton.compareDocumentPosition(blockTypeSelect)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)\n+    })\n+\n+    it('omits list indent controls from large-screen toolbars', () => {\n+        setSmallScreen(false)\n+        renderEditor()\n+\n+        expect(screen.queryByRole('button', { name: 'Increase indent' })).not.toBeInTheDocument()\n+        expect(screen.queryByRole('button', { name: 'Decrease indent' })).not.toBeInTheDocument()\n+    })\n+\n+    it('omits list indent controls from small read-only toolbars', () => {\n+        setSmallScreen(true)\n+        render(\n+            <AppThemeProvider>\n+                <MarkdownEditor markdown=\"locked\" onChange={vi.fn()} readOnly />\n+            </AppThemeProvider>,\n+        )\n+\n+        expect(screen.queryByRole('button', { name: 'Increase indent' })).not.toBeInTheDocument()\n+        expect(screen.queryByRole('button', { name: 'Decrease indent' })).not.toBeInTheDocument()\n+    })\n+\n     it('omits the toolbar when hideToolbar is set', () => {\n         render(\n             <AppThemeProvider>\ndiff --git a/app/src/components/editor/markdown_format_toolbar_controls.tsx b/app/src/components/editor/markdown_format_toolbar_controls.tsx\nindex 64f6a204..10c36521 100644\n--- a/app/src/components/editor/markdown_format_toolbar_controls.tsx\n+++ b/app/src/components/editor/markdown_format_toolbar_controls.tsx\n@@ -4,6 +4,7 @@ import {\n } from '@mdxeditor/editor'\n import type { ReactNode } from 'react'\n import type { ActionPlaceholder } from '../../data/action_placeholders'\n+import { MarkdownListIndentToolbarControls } from './markdown_list_indent_toolbar_controls'\n import { MarkdownLocalTextSearchToolbarControl } from './markdown_local_text_search_toolbar_control'\n import { MarkdownPlaceholderToolbarControl } from './markdown_placeholder_toolbar_control'\n \n@@ -28,6 +29,7 @@ export function MarkdownFormatToolbarControls(props: MarkdownFormatToolbarContro\n                     <BoldItalicUnderlineToggles />\n                     <Separator />\n                     <ListsToggle />\n+                    <MarkdownListIndentToolbarControls />\n                     <BlockTypeSelect />\n                     <Separator />\n                     <CreateLink />\ndiff --git a/app/src/components/editor/markdown_list_indent_toolbar_controls.test.tsx b/app/src/components/editor/markdown_list_indent_toolbar_controls.test.tsx\nnew file mode 100644\nindex 00000000..87dfd3f3\n--- /dev/null\n+++ b/app/src/components/editor/markdown_list_indent_toolbar_controls.test.tsx\n@@ -0,0 +1,85 @@\n+import { cleanup, fireEvent, render, screen } from '@testing-library/react'\n+import * as mdxEditor from '@mdxeditor/editor'\n+import { INDENT_CONTENT_COMMAND, OUTDENT_CONTENT_COMMAND } from 'lexical'\n+import { afterEach, describe, expect, it, vi } from 'vitest'\n+import { AppThemeProvider } from '../../theme/theme_provider'\n+import { MarkdownListIndentToolbarControls } from './markdown_list_indent_toolbar_controls'\n+\n+const originalMatchMedia = window.matchMedia\n+\n+function setSmallScreen(isSmallScreen: boolean) {\n+    window.matchMedia = ((query: string) => ({\n+        addEventListener: () => {},\n+        addListener: () => {},\n+        dispatchEvent: () => false,\n+        matches: isSmallScreen,\n+        media: query,\n+        onchange: null,\n+        removeEventListener: () => {},\n+        removeListener: () => {},\n+    })) as unknown as typeof window.matchMedia\n+}\n+\n+function renderControls() {\n+    return render(\n+        <AppThemeProvider>\n+            <MarkdownListIndentToolbarControls />\n+        </AppThemeProvider>,\n+    )\n+}\n+\n+describe('MarkdownListIndentToolbarControls', () => {\n+    afterEach(() => {\n+        cleanup()\n+        vi.restoreAllMocks()\n+        window.matchMedia = originalMatchMedia\n+    })\n+\n+    it('shows accessible controls and tooltips on small screens', async () => {\n+        setSmallScreen(true)\n+        vi.spyOn(mdxEditor, 'useCellValue').mockReturnValue({ dispatchCommand: vi.fn(), focus: vi.fn() } as never)\n+        renderControls()\n+\n+        const increaseButton = screen.getByRole('button', { name: 'Increase indent' })\n+        expect(screen.getByRole('button', { name: 'Decrease indent' })).toBeInTheDocument()\n+\n+        fireEvent.mouseOver(increaseButton)\n+\n+        expect(await screen.findByRole('tooltip')).toHaveTextContent('Increase indent')\n+    })\n+\n+    it('hides both controls above the small-screen breakpoint', () => {\n+        setSmallScreen(false)\n+        vi.spyOn(mdxEditor, 'useCellValue').mockReturnValue({ dispatchCommand: vi.fn(), focus: vi.fn() } as never)\n+        renderControls()\n+\n+        expect(screen.queryByRole('button', { name: 'Increase indent' })).not.toBeInTheDocument()\n+        expect(screen.queryByRole('button', { name: 'Decrease indent' })).not.toBeInTheDocument()\n+    })\n+\n+    it('disables both controls without an active editor', () => {\n+        setSmallScreen(true)\n+        vi.spyOn(mdxEditor, 'useCellValue').mockReturnValue(null)\n+        renderControls()\n+\n+        expect(screen.getByRole('button', { name: 'Increase indent' })).toBeDisabled()\n+        expect(screen.getByRole('button', { name: 'Decrease indent' })).toBeDisabled()\n+    })\n+\n+    it.each([\n+        ['Increase indent', INDENT_CONTENT_COMMAND],\n+        ['Decrease indent', OUTDENT_CONTENT_COMMAND],\n+    ])('dispatches %s once and then returns focus', (accessibleName, command) => {\n+        setSmallScreen(true)\n+        const activeEditor = { dispatchCommand: vi.fn(), focus: vi.fn() }\n+        vi.spyOn(mdxEditor, 'useCellValue').mockReturnValue(activeEditor as never)\n+        renderControls()\n+\n+        fireEvent.click(screen.getByRole('button', { name: accessibleName }))\n+\n+        expect(activeEditor.dispatchCommand).toHaveBeenCalledExactlyOnceWith(command, undefined)\n+        expect(activeEditor.focus).toHaveBeenCalledOnce()\n+        expect(activeEditor.dispatchCommand.mock.invocationCallOrder[0])\n+            .toBeLessThan(activeEditor.focus.mock.invocationCallOrder[0])\n+    })\n+})\ndiff --git a/app/src/test/mdx_editor_stub.tsx b/app/src/test/mdx_editor_stub.tsx\nindex 5c58545a..b2f6768a 100644\n--- a/app/src/test/mdx_editor_stub.tsx\n+++ b/app/src/test/mdx_editor_stub.tsx\n@@ -367,7 +367,7 @@ const NoopControl = () => null\n \n export const UndoRedo = NoopControl\n export const BoldItalicUnderlineToggles = NoopControl\n-export const ListsToggle = NoopControl\n+export const ListsToggle = () => <span data-testid=\"lists-toggle\" />\n export const BlockTypeSelect = () => <span data-testid=\"block-type-select\" />\n export const CreateLink = NoopControl\n export const InsertImage = NoopControl\nwarning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\n",
+          "durationMs": 418,
+          "exitCode": 0,
           "id": "agent-turn-4fa5f05b-0886-452f-b482-f680ef2acb48-event-10",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git show :2:app/src/components/editor/markdown_editor.tsx | Select-Object -Skip 265 -First 75; git show :3:app/src/components/editor/markdown_editor.tsx | Select-Object -Skip 260 -First 65; git diff --cached -- app/src/components/editor/markdown_editor.test.tsx app/src/components/editor/markdown_format_toolbar_controls.tsx app/src/components/editor/markdown_list_indent_toolbar_controls.test.tsx app/src/test/mdx_editor_stub.tsx'",
@@ -3884,52 +3891,52 @@
           "status": "completed",
           "timestamp": "2026-08-15T12:47:45.139Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git show :2:app/src/components/editor/markdown_editor.tsx | Select-Object -Skip 265 -First 75; git show :3:app/src/components/editor/markdown_editor.tsx | Select-Object -Skip 260 -First 65; git diff --cached -- app/src/components/editor/markdown_editor.test.tsx app/src/components/editor/markdown_format_toolbar_controls.tsx app/src/components/editor/markdown_list_indent_toolbar_controls.test.tsx app/src/test/mdx_editor_stub.tsx'",
-          "durationMs": 418,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-4fa5f05b-0886-452f-b482-f680ef2acb48-event-11",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0d3044c52ebf32f0016a805ff50d108191a7b69612588e1dd3",
           "sequence": 11,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T12:47:48.605Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "content": "",
+          "deletions": 15,
           "id": "agent-turn-4fa5f05b-0886-452f-b482-f680ef2acb48-event-12",
+          "insertions": 7,
           "kind": "event",
           "label": "File changes",
           "providerItemId": "exec-461cd6fd-1e05-4716-87a7-3105f7562e8e",
           "sequence": 12,
           "status": "completed",
           "timestamp": "2026-08-15T12:47:55.875Z",
-          "type": "fileChange",
-          "deletions": 15,
-          "insertions": 7
+          "type": "fileChange"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-4fa5f05b-0886-452f-b482-f680ef2acb48-event-13",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0d3044c52ebf32f0016a805fff54648191a1d94445686b2cc8",
           "sequence": 13,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T12:47:58.817Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"''^(<<<<<<<|=======|>>>>>>>)\" app/src; git diff --check; Get-Content app/package.json | Select-String -Pattern '\"'\\\"lint|\\\"test'\"",
           "content": "app/src\\components\\card_view\\card_view.tsx.bak:5:<<<<<<< HEAD\napp/src\\components\\card_view\\card_view.tsx.bak:6:=======\napp/src\\components\\card_view\\card_view.tsx.bak:9:>>>>>>> f_130_drop_card_has_too_many_renders\napp/src\\components\\card_view\\card_view.test.tsx.bak:3:<<<<<<< HEAD\napp/src\\components\\card_view\\card_view.test.tsx.bak:4:=======\napp/src\\components\\card_view\\card_view.test.tsx.bak:8:>>>>>>> f_130_drop_card_has_too_many_renders\napp/src\\components\\card_view\\card_view.test.tsx.bak:96:<<<<<<< HEAD\napp/src\\components\\card_view\\card_view.test.tsx.bak:106:=======\napp/src\\components\\card_view\\card_view.test.tsx.bak:122:>>>>>>> f_130_drop_card_has_too_many_renders\n\r\n    \"lint\": \"eslint .\",\r\n    \"lint-fix\": \"eslint . --fix\",\r\n    \"test\": \"vitest run\",\r\n    \"test:full\": \"vitest run\",\r\n    \"test:related\": \"vitest related --run\",\r\n    \"test:ui\": \"vitest run --project ui\",\r\n    \"test:unit\": \"vitest run --project unit\",\r\n    \"test:watch\": \"vitest\"\r\n\r\n\r\n",
+          "durationMs": 487,
+          "exitCode": 0,
           "id": "agent-turn-4fa5f05b-0886-452f-b482-f680ef2acb48-event-14",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"''^(<<<<<<<|=======|>>>>>>>)\" app/src; git diff --check; Get-Content app/package.json | Select-String -Pattern '\"'\\\"lint|\\\"test'\"",
@@ -3938,23 +3945,20 @@
           "status": "completed",
           "timestamp": "2026-08-15T12:48:00.927Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"''^(<<<<<<<|=======|>>>>>>>)\" app/src; git diff --check; Get-Content app/package.json | Select-String -Pattern '\"'\\\"lint|\\\"test'\"",
-          "durationMs": 487,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-4fa5f05b-0886-452f-b482-f680ef2acb48-event-15",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0d3044c52ebf32f0016a806003b60c819190b76d10109a4e47",
           "sequence": 15,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T12:48:03.253Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "agent": "codex",
@@ -3966,7 +3970,10 @@
           "timestamp": "2026-08-15T12:48:04.541Z"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/components/editor/markdown_editor.test.tsx src/components/editor/markdown_list_indent_toolbar_controls.test.tsx'",
           "content": "\n> app@0.3.0 test\n> vitest run src/components/editor/markdown_editor.test.tsx src/components/editor/markdown_list_indent_toolbar_controls.test.tsx\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev3/app\n\n\n Test Files  2 passed (2)\n      Tests  55 passed (55)\n   Start at  14:48:06\n   Duration  6.05s (transform 497ms, setup 209ms, import 2.74s, tests 1.21s, environment 1.64s)\n\n",
+          "durationMs": 7073,
+          "exitCode": 0,
           "id": "agent-turn-4fa5f05b-0886-452f-b482-f680ef2acb48-event-17",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/components/editor/markdown_editor.test.tsx src/components/editor/markdown_list_indent_toolbar_controls.test.tsx'",
@@ -3975,26 +3982,26 @@
           "status": "completed",
           "timestamp": "2026-08-15T12:48:12.545Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/components/editor/markdown_editor.test.tsx src/components/editor/markdown_list_indent_toolbar_controls.test.tsx'",
-          "durationMs": 7073,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\app"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-4fa5f05b-0886-452f-b482-f680ef2acb48-event-18",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0d3044c52ebf32f0016a8060113d408191ab60c823079ae3e2",
           "sequence": 18,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T12:48:16.558Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint-fix'",
           "content": "\n> app@0.3.0 lint-fix\n> eslint . --fix\n\n",
+          "durationMs": 27898,
+          "exitCode": 0,
           "id": "agent-turn-4fa5f05b-0886-452f-b482-f680ef2acb48-event-19",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint-fix'",
@@ -4003,39 +4010,39 @@
           "status": "completed",
           "timestamp": "2026-08-15T12:48:45.495Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint-fix'",
-          "durationMs": 27898,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\app"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-4fa5f05b-0886-452f-b482-f680ef2acb48-event-20",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0d3044c52ebf32f0016a80602091dc8191ad27b76682fa5af7",
           "sequence": 20,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T12:48:31.535Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-4fa5f05b-0886-452f-b482-f680ef2acb48-event-21",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0d3044c52ebf32f0016a806034dd9881919f9ceaf02805f665",
           "sequence": 21,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T12:48:52.017Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git status --short; git diff --check; git diff -- app/src/components/editor/markdown_editor.tsx'",
           "content": "M  app/src/components/editor/markdown_editor.test.tsx\nUU app/src/components/editor/markdown_editor.tsx\nM  app/src/components/editor/markdown_format_toolbar_controls.tsx\nA  app/src/components/editor/markdown_list_indent_toolbar_controls.test.tsx\nA  app/src/components/editor/markdown_list_indent_toolbar_controls.tsx\nM  app/src/test/mdx_editor_stub.tsx\ndiff --cc app/src/components/editor/markdown_editor.tsx\nindex ecb6f7a7,840b1ca5..00000000\n--- a/app/src/components/editor/markdown_editor.tsx\n+++ b/app/src/components/editor/markdown_editor.tsx\n@@@ -276,35 -272,17 +276,41 @@@ export const MarkdownEditor = forwardRe\n  \n      const getSelectionMarkdown = useCallback(() => editorRef.current?.getSelectionMarkdown() ?? '', [])\n  \n -    const defaultToolbarContents = useCallback(\n -        () => (\n -            <MarkdownFormatToolbarControls\n -                overlayContainer={overlayContainer}\n -                placeholders={placeholders}\n -                readOnly={readOnly}\n -            />\n -        ),\n -        [overlayContainer, placeholders, readOnly],\n -    )\n -    const toolbarContents = customToolbarContents ?? defaultToolbarContents\n +    const attachFiles = useCallback((files: File[]) => {\n +        if (!attachmentHandler || readOnly || files.length === 0) return\n +        void attachmentHandler(files, insertMarkdown).catch((error: unknown) => {\n +            dialogService.error(error, { fallbackMessage: 'Files could not be attached' })\n +        })\n +    }, [attachmentHandler, insertMarkdown, readOnly])\n +\n +    const handleDragOverCapture = (event: DragEvent<HTMLDivElement>) => {\n +        if (!attachmentHandler || readOnly || !event.dataTransfer.types.includes('Files')) return\n +        event.preventDefault()\n +        event.stopPropagation()\n +    }\n +\n +    const handleDropCapture = (event: DragEvent<HTMLDivElement>) => {\n +        if (!attachmentHandler || readOnly || !event.dataTransfer.types.includes('Files')) return\n +        event.preventDefault()\n +        event.stopPropagation()\n +        attachFiles([...event.dataTransfer.files])\n +    }\n +\n +    const toolbarContents = useCallback(() => (\n +        <>\n +            {!hideToolbar ? (\n +                customToolbarContents?.()\n-                 ?? <MarkdownFormatToolbarControls overlayContainer={overlayContainer} placeholders={placeholders} />\n++                ?? (\n++                    <MarkdownFormatToolbarControls\n++                        overlayContainer={overlayContainer}\n++                        placeholders={placeholders}\n++                        readOnly={readOnly}\n++                    />\n++                )\n +            ) : null}\n +            {attachmentHandler ? <MarkdownAttachmentToolbarControl disabled={readOnly} onFiles={attachFiles} /> : null}\n +        </>\n +    ), [attachFiles, attachmentHandler, customToolbarContents, hideToolbar, overlayContainer, placeholders, readOnly])\n      const editorSx = {\n          ...markdownContentSx,\n          '& .mdxeditor-toolbar': { bgcolor: 'background.paper', position: 'sticky', top: 0, zIndex: 1 },\nwarning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\nwarning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\n",
+          "durationMs": 509,
+          "exitCode": 0,
           "id": "agent-turn-4fa5f05b-0886-452f-b482-f680ef2acb48-event-22",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git status --short; git diff --check; git diff -- app/src/components/editor/markdown_editor.tsx'",
@@ -4044,26 +4051,26 @@
           "status": "completed",
           "timestamp": "2026-08-15T12:48:54.029Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git status --short; git diff --check; git diff -- app/src/components/editor/markdown_editor.tsx'",
-          "durationMs": 509,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-4fa5f05b-0886-452f-b482-f680ef2acb48-event-23",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0d3044c52ebf32f0016a80603a76988191a546dd2440abbca2",
           "sequence": 23,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T12:48:57.739Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git add app/src/components/editor/markdown_editor.tsx'",
           "content": "",
+          "durationMs": 217,
+          "exitCode": 0,
           "id": "agent-turn-4fa5f05b-0886-452f-b482-f680ef2acb48-event-24",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git add app/src/components/editor/markdown_editor.tsx'",
@@ -4072,13 +4079,13 @@
           "status": "completed",
           "timestamp": "2026-08-15T12:48:58.927Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git add app/src/components/editor/markdown_editor.tsx'",
-          "durationMs": 217,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
           "content": "\n> app@0.3.0 lint\n> eslint .\n\n",
+          "durationMs": 15147,
+          "exitCode": 0,
           "id": "agent-turn-4fa5f05b-0886-452f-b482-f680ef2acb48-event-25",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
@@ -4087,26 +4094,26 @@
           "status": "completed",
           "timestamp": "2026-08-15T12:49:18.328Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
-          "durationMs": 15147,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\app"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-4fa5f05b-0886-452f-b482-f680ef2acb48-event-26",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0d3044c52ebf32f0016a8060533fc081918cc59f5d74bfd260",
           "sequence": 26,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T12:49:22.308Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test:unit'",
           "content": "\n> app@0.3.0 test:unit\n> vitest run --project unit\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev3/app\n\n\n Test Files  83 passed (83)\n      Tests  671 passed (671)\n   Start at  14:49:24\n   Duration  4.10s (transform 735ms, setup 84ms, import 1.95s, tests 1.88s, environment 0ms)\n\n",
+          "durationMs": 5049,
+          "exitCode": 0,
           "id": "agent-turn-4fa5f05b-0886-452f-b482-f680ef2acb48-event-27",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test:unit'",
@@ -4115,23 +4122,20 @@
           "status": "completed",
           "timestamp": "2026-08-15T12:49:28.359Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test:unit'",
-          "durationMs": 5049,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\app"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-4fa5f05b-0886-452f-b482-f680ef2acb48-event-28",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0d3044c52ebf32f0016a80605c0f448191b85aa248a6461fc0",
           "sequence": 28,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-15T12:49:31.192Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "agent": "codex",
@@ -4143,7 +4147,10 @@
           "timestamp": "2026-08-15T12:49:32.046Z"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git status --short; git diff --check; git diff --cached --check; git diff --cached --stat'",
           "content": "M  app/src/components/editor/markdown_editor.test.tsx\nM  app/src/components/editor/markdown_editor.tsx\nM  app/src/components/editor/markdown_format_toolbar_controls.tsx\nA  app/src/components/editor/markdown_list_indent_toolbar_controls.test.tsx\nA  app/src/components/editor/markdown_list_indent_toolbar_controls.tsx\nM  app/src/test/mdx_editor_stub.tsx\n app/src/components/editor/markdown_editor.test.tsx | 50 +++++++++++++\n app/src/components/editor/markdown_editor.tsx      |  8 +-\n .../editor/markdown_format_toolbar_controls.tsx    |  2 +\n .../markdown_list_indent_toolbar_controls.test.tsx | 85 ++++++++++++++++++++++\n .../markdown_list_indent_toolbar_controls.tsx      | 53 ++++++++++++++\n app/src/test/mdx_editor_stub.tsx                   |  2 +-\n 6 files changed, 198 insertions(+), 2 deletions(-)\nwarning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\nwarning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\nwarning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\nwarning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\n",
+          "durationMs": 431,
+          "exitCode": 0,
           "id": "agent-turn-4fa5f05b-0886-452f-b482-f680ef2acb48-event-30",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git status --short; git diff --check; git diff --cached --check; git diff --cached --stat'",
@@ -4152,9 +4159,6 @@
           "status": "completed",
           "timestamp": "2026-08-15T12:49:33.673Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git status --short; git diff --check; git diff --cached --check; git diff --cached --stat'",
-          "durationMs": 431,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3"
         },
         {
@@ -4181,7 +4185,6 @@
       "startedAt": "2026-08-15T12:47:22.492Z",
       "status": "completed",
       "title": "merge",
-      "viewed": true,
       "usage": {
         "cachedInputTokens": 31488,
         "inputTokens": 32198,
@@ -4189,10 +4192,7 @@
         "reasoningTokens": 0,
         "totalTokens": 63759
       },
-      "contextWindowUsage": {
-        "capacityTokens": 258400,
-        "usedTokens": 32271
-      }
+      "viewed": true
     }
   ],
   "origin": {
@@ -4335,6 +4335,29 @@
       "startedAt": "2026-08-14T11:16:59.971Z",
       "status": "cancelled",
       "rootConversationId": "agent-4584d639-df91-48bf-b538-3cec6d1d2c2b"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-08-15T12:49:40.700Z",
+      "conversationIds": [
+        "agent-466a344e-082b-41fc-9b66-e05452fb5f7a"
+      ],
+      "details": {
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-1548dd28-1551-4811-81fd-73774b04683c",
+      "origin": {
+        "kind": "project"
+      },
+      "rootActionId": "6e05571a-e93b-4e56-be1a-520efa28fd3f",
+      "rootActionLabel": "merge",
+      "rootConversationId": "agent-466a344e-082b-41fc-9b66-e05452fb5f7a",
+      "startedAt": "2026-08-15T12:47:22.491Z",
+      "status": "completed"
     }
   ],
   "version": 4
