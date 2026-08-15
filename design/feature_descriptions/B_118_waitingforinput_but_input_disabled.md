@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
   - design/activity/card__8355401d-f3b6-4285-a21d-8ec6ed389215.json#conversation=agent-9e8498b4-e114-4432-93df-29831b587af2
+  - design/activity/card__8355401d-f3b6-4285-a21d-8ec6ed389215.json#conversation=agent-acc27273-09c8-4bc6-be31-ae4a1203b1c4
 policy:
 branch: b_118_waitingforinput_but_input_disabled
 worktree: 1
