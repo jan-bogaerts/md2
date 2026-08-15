@@ -3,7 +3,7 @@ author:
 id: F_190
 internalId: dcb4a726-a5e7-46b9-8873-4daba86660b6
 title: Small screen add btn first add card
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
