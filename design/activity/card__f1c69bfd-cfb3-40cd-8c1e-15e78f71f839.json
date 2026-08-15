@@ -1109,14 +1109,6 @@
           "role": "assistant",
           "sequence": 2,
           "timestamp": "2026-08-15T18:03:09.751Z"
-        },
-        {
-          "content": "You've hit your monthly spend limit · raise it at claude.ai/settings/usage",
-          "id": "agent-turn-fa1b31b2-5063-4dcf-95b4-94dd58b1b31f-error-2",
-          "kind": "event",
-          "sequence": 3,
-          "timestamp": "2026-08-15T18:03:09.640Z",
-          "type": "error"
         }
       ],
       "hasExplicitTitle": true,
@@ -1129,7 +1121,6 @@
         "runningStartedAt": null
       },
       "title": "implement",
-      "viewed": true,
       "usage": {
         "cachedInputTokens": 0,
         "inputTokens": 0,
@@ -1137,7 +1128,8 @@
         "reasoningTokens": 0,
         "totalTokens": 0,
         "costUsd": 0
-      }
+      },
+      "viewed": true
     }
   ],
   "origin": {
@@ -1204,6 +1196,30 @@
       "startedAt": "2026-08-15T17:57:23.993Z",
       "status": "failed",
       "rootConversationId": "agent-5cb838e4-4787-45ea-997a-88dacf343e66"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-08-15T18:03:09.998Z",
+      "conversationIds": [
+        "agent-f721f7b5-85e5-4665-bd28-0bfdd83b79db"
+      ],
+      "details": {
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-0974bcce-2a1a-4e98-9753-449c6cd06d8b",
+      "origin": {
+        "cardInternalId": "f1c69bfd-cfb3-40cd-8c1e-15e78f71f839",
+        "kind": "card"
+      },
+      "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
+      "rootActionLabel": "implement",
+      "rootConversationId": "agent-f721f7b5-85e5-4665-bd28-0bfdd83b79db",
+      "startedAt": "2026-08-15T18:03:08.235Z",
+      "status": "failed"
     }
   ],
   "version": 4
