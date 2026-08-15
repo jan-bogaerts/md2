@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__dcb4a726-a5e7-46b9-8873-4daba86660b6.json#conversation=agent-33c7f6c7-f7bc-4cd7-9bb3-6d7a4f7b3c33
   - design/activity/card__dcb4a726-a5e7-46b9-8873-4daba86660b6.json#conversation=agent-b8e3f855-a6f1-4651-9f8e-e42ad490b6d8
+  - design/activity/card__dcb4a726-a5e7-46b9-8873-4daba86660b6.json#conversation=agent-7322fa03-f67c-4e11-b05a-48e3fa618e93
 policy:
 after: 8a177e01-b5d4-46aa-b42f-9ba11f561b60
 branch: f_190_small_screen_add_btn_first_add_card
