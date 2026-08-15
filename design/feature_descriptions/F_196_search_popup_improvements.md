@@ -3,7 +3,7 @@ author:
 id: F_196
 internalId: f1c69bfd-cfb3-40cd-8c1e-15e78f71f839
 title: search popup improvements
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

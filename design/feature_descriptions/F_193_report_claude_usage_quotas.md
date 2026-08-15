@@ -3,7 +3,7 @@ author:
 id: F_193
 internalId: 8a177e01-b5d4-46aa-b42f-9ba11f561b60
 title: report claude usage quotas
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
