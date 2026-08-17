@@ -7,9 +7,7 @@ status: ready
 owner: 
 affects:
 agents:
-  - design/activity/card__6d6bf2a1-f9ac-430c-ad48-255ae837c9a0.json#conversation=agent-86b031c9-95f2-4a94-9bb6-fde76003a763
-  - design/activity/card__6d6bf2a1-f9ac-430c-ad48-255ae837c9a0.json#conversation=agent-a14cd2a6-7e2f-475f-90e5-9816f513b4ae
-  - design/activity/card__6d6bf2a1-f9ac-430c-ad48-255ae837c9a0.json#conversation=agent-b75f77eb-7fbb-4fff-afb1-1efe02be7bdb
+  - design/activity/card__6d6bf2a1-f9ac-430c-ad48-255ae837c9a0.json
 policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 140879683

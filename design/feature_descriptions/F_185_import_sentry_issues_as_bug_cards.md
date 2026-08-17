@@ -7,7 +7,7 @@ status: ready
 owner: 
 affects:
 agents:
-  - design/activity/card__d10103b8-7064-45cf-8b32-df0566889f78.json#conversation=agent-3cc7820a-7470-44e0-909a-0cbf625f4eae
+  - design/activity/card__d10103b8-7064-45cf-8b32-df0566889f78.json
 policy:
 ---
 

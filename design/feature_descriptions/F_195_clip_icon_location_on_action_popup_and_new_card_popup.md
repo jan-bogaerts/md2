@@ -7,10 +7,7 @@ status: ready
 owner: 
 affects:
 agents:
-  - design/activity/card__8fc5eed5-9fc2-43a1-95d7-66c0aabd5d31.json#conversation=agent-2cda9a0b-365d-47c7-b708-319e26e21d15
-  - design/activity/card__8fc5eed5-9fc2-43a1-95d7-66c0aabd5d31.json#conversation=agent-9ec4aeeb-5fa2-43e9-bfc4-0f0987ff9df8
-  - design/activity/card__8fc5eed5-9fc2-43a1-95d7-66c0aabd5d31.json#conversation=agent-8018c438-ee4a-4e7f-b623-431c297c745b
-  - design/activity/card__8fc5eed5-9fc2-43a1-95d7-66c0aabd5d31.json#conversation=agent-8c7d557e-3ada-47d5-96ac-470ea4b49d66
+  - design/activity/card__8fc5eed5-9fc2-43a1-95d7-66c0aabd5d31.json
 policy:
 ---
 The clip icon has been placed horribly bad on the action popup and the new card popup. it appears to have been placed simply above the markdown editor. this is horrible.
