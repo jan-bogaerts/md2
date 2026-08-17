@@ -10,6 +10,8 @@ agents:
   - design/activity/card__c384fd87-648d-4bbd-b5df-cfc26f176388.json
 policy:
 after: bee2d3c7-81e1-451a-bc4d-d4ba59c849e9
+branch: f_201_simplify_new_card_popup
+worktree: 2
 ---
 
 Simplify the new-card popup by removing the **Type** and **Description** labels, the bottom mobile create button, and card-body templates.
