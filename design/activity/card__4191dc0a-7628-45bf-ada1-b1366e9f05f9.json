@@ -2979,11 +2979,11 @@
         "agent-db9265a7-87e7-4c7f-b4fa-fc5e0f4a2d85"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-4e79c9d8-1f03-41a2-82c9-bed1b8d639d2",
       "origin": {
@@ -2992,9 +2992,39 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-db9265a7-87e7-4c7f-b4fa-fc5e0f4a2d85",
       "startedAt": "2026-08-17T11:40:10.070Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-db9265a7-87e7-4c7f-b4fa-fc5e0f4a2d85"
+    },
+    {
+      "commits": [
+        {
+          "commit": "de45a7bbf185ce2c56db586889689f8b6d823545",
+          "committedAt": "2026-08-17T14:05:53+02:00",
+          "deletions": 34,
+          "filePaths": [
+            "desktop/main.js",
+            "desktop/src/actions/agent/agent_run_state.js",
+            "desktop/src/actions/agent/agent_runner_service.js",
+            "desktop/src/actions/agent/agent_runner_state.test.mjs",
+            "desktop/src/actions/agent/agent_streaming_event_handlers.js",
+            "desktop/src/actions/agent/claude_usage_poller.js",
+            "desktop/src/actions/agent/claude_usage_poller.test.mjs",
+            "desktop/src/actions/agent/usage_metrics_service.js",
+            "desktop/src/actions/agent/usage_metrics_service.test.mjs"
+          ],
+          "filesChanged": 9,
+          "insertions": 848,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-17T14:05:53+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "4191dc0a-7628-45bf-ada1-b1366e9f05f9",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
