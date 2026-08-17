@@ -3,7 +3,7 @@ author:
 id: F_201
 internalId: c384fd87-648d-4bbd-b5df-cfc26f176388
 title: Simplify new card popup
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

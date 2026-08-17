@@ -3,7 +3,7 @@ author:
 id: F_173
 internalId: bee2d3c7-81e1-451a-bc4d-d4ba59c849e9
 title: token count
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
