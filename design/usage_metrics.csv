@@ -1,0 +1,4 @@
+recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,resets_at,input_tokens,cached_input_tokens,output_tokens,reasoning_tokens,total_tokens,used_percent,used_percent_delta
+2026-08-17T12:09:24.958Z,account_usage,codex,codex_bengalfox,primary,10080,2026-08-24T12:09:26.000Z,,,,,,0,
+2026-08-17T12:09:24.958Z,account_usage,codex,codex,primary,10080,2026-08-20T11:32:00.000Z,,,,,,45,
+2026-08-17T12:11:54.673Z,token_usage,codex,,,,,78917,76544,137,40,155638,,
