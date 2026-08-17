@@ -143,10 +143,10 @@ function SentryConfigForm({ connection }: SentryConfigFormProps) {
                     <TextField
                         autoComplete="off"
                         disabled={controlsDisabled}
-                        helperText="Recommended: organization auth token from an internal integration with Issues & Events: Read (event:read). A personal token with event:read also works. Do not use a DSN, client key, or client secret."
+                        helperText="Use a Personal Auth Token from User Settings > Auth > Personal Tokens with event:read. Organization Auth Tokens are for CI and cannot read issues. Do not use a DSN, client key, or client secret."
                         id="sentry-api-token"
                         onChange={updateTextField('apiToken')}
-                        placeholder="Paste organization auth token"
+                        placeholder="Paste personal auth token"
                         size="small"
                         type="password"
                         value={draft.apiToken}
