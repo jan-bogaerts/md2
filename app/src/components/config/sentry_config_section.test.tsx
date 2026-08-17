@@ -39,7 +39,14 @@ describe('SentryConfigSection', () => {
         render(<SentryConfigSection />)
 
         expect(screen.getByLabelText('Sentry API token')).toHaveAttribute('type', 'password')
-        expect(screen.getByText('Requires event:read access.')).toBeInTheDocument()
+        expect(screen.getByLabelText('Organization slug')).toHaveAttribute('placeholder', 'acme')
+        expect(screen.getByLabelText('Project slug')).toHaveAttribute('placeholder', 'frontend')
+        expect(screen.getByLabelText('Sentry API token')).toHaveAttribute('placeholder', 'Paste organization auth token')
+        expect(screen.getByText(/organization auth token from an internal integration/u)).toHaveTextContent('Issues & Events: Read (event:read)')
+        expect(screen.getByText(/personal token with event:read also works/u)).toBeInTheDocument()
+        expect(screen.getByText(/Do not use a DSN, client key, or client secret/u)).toBeInTheDocument()
+        expect(screen.getByText('Imported Sentry issues become cards of this type.')).toBeInTheDocument()
+        expect(screen.getByText('New cards start in this project state.')).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Connect' })).toBeDisabled()
 
         fireEvent.change(screen.getByLabelText('Organization slug'), { target: { value: 'acme' } })

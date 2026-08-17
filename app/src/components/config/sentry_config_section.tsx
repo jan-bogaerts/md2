@@ -4,7 +4,7 @@ import {
     Button,
     FormControl,
     FormControlLabel,
-    InputLabel,
+    FormHelperText,
     MenuItem,
     Select,
     Stack,
@@ -80,31 +80,104 @@ function SentryConfigForm({ connection }: SentryConfigFormProps) {
                     Connect this MD² project to one Sentry project. Credentials stay in this browser.
                 </Typography>
                 {!project ? <Alert severity="info">Open a project to configure Sentry imports.</Alert> : null}
-                <TextField disabled={controlsDisabled} label="Sentry API base URL" onChange={updateTextField('apiBaseUrl')} size="small" value={draft.apiBaseUrl} />
-                <TextField disabled={controlsDisabled} label="Organization slug" onChange={updateTextField('organization')} size="small" value={draft.organization} />
-                <TextField disabled={controlsDisabled} label="Project slug" onChange={updateTextField('project')} size="small" value={draft.project} />
-                <TextField disabled={controlsDisabled} label="Environment" onChange={updateTextField('environment')} size="small" value={draft.environment} />
-                <TextField
-                    disabled={controlsDisabled}
-                    helperText="Requires event:read access."
-                    label="Sentry API token"
-                    onChange={updateTextField('apiToken')}
-                    size="small"
-                    type="password"
-                    value={draft.apiToken}
-                />
-                <FormControl disabled={controlsDisabled} size="small">
-                    <InputLabel id="sentry-card-type-label">Target card type</InputLabel>
-                    <Select label="Target card type" labelId="sentry-card-type-label" onChange={handleCardTypeChange} value={draft.cardType}>
-                        {(projectConfig?.cardTypes ?? []).map(({ label, type }) => <MenuItem key={type} value={type}>{label}</MenuItem>)}
-                    </Select>
-                </FormControl>
-                <FormControl disabled={controlsDisabled} size="small">
-                    <InputLabel id="sentry-card-state-label">Target card state</InputLabel>
-                    <Select label="Target card state" labelId="sentry-card-state-label" onChange={handleCardStateChange} value={draft.cardState}>
-                        {(projectConfig?.states ?? []).map(({ state }) => <MenuItem key={state} value={state}>{state}</MenuItem>)}
-                    </Select>
-                </FormControl>
+                <Stack spacing={1}>
+                    <Typography color="text.secondary" component="label" htmlFor="sentry-api-base-url" sx={{ fontWeight: 'fontWeightMedium' }} variant="body2">
+                        Sentry API base URL
+                    </Typography>
+                    <TextField
+                        disabled={controlsDisabled}
+                        helperText="Use https://sentry.io for Sentry SaaS, or your self-hosted instance origin without /api/0."
+                        id="sentry-api-base-url"
+                        onChange={updateTextField('apiBaseUrl')}
+                        placeholder="https://sentry.io"
+                        size="small"
+                        value={draft.apiBaseUrl}
+                    />
+                </Stack>
+                <Stack spacing={1}>
+                    <Typography color="text.secondary" component="label" htmlFor="sentry-organization" sx={{ fontWeight: 'fontWeightMedium' }} variant="body2">
+                        Organization slug
+                    </Typography>
+                    <TextField
+                        disabled={controlsDisabled}
+                        helperText="Enter organization URL identifier, not its display name."
+                        id="sentry-organization"
+                        onChange={updateTextField('organization')}
+                        placeholder="acme"
+                        size="small"
+                        value={draft.organization}
+                    />
+                </Stack>
+                <Stack spacing={1}>
+                    <Typography color="text.secondary" component="label" htmlFor="sentry-project" sx={{ fontWeight: 'fontWeightMedium' }} variant="body2">
+                        Project slug
+                    </Typography>
+                    <TextField
+                        disabled={controlsDisabled}
+                        helperText="Enter project URL identifier from Sentry Project Settings, not its display name."
+                        id="sentry-project"
+                        onChange={updateTextField('project')}
+                        placeholder="frontend"
+                        size="small"
+                        value={draft.project}
+                    />
+                </Stack>
+                <Stack spacing={1}>
+                    <Typography color="text.secondary" component="label" htmlFor="sentry-environment" sx={{ fontWeight: 'fontWeightMedium' }} variant="body2">
+                        Environment
+                    </Typography>
+                    <TextField
+                        disabled={controlsDisabled}
+                        helperText="Only unresolved issues from this exact Sentry environment are imported."
+                        id="sentry-environment"
+                        onChange={updateTextField('environment')}
+                        placeholder="production"
+                        size="small"
+                        value={draft.environment}
+                    />
+                </Stack>
+                <Stack spacing={1}>
+                    <Typography color="text.secondary" component="label" htmlFor="sentry-api-token" sx={{ fontWeight: 'fontWeightMedium' }} variant="body2">
+                        Sentry API token
+                    </Typography>
+                    <TextField
+                        autoComplete="off"
+                        disabled={controlsDisabled}
+                        helperText="Recommended: organization auth token from an internal integration with Issues & Events: Read (event:read). A personal token with event:read also works. Do not use a DSN, client key, or client secret."
+                        id="sentry-api-token"
+                        onChange={updateTextField('apiToken')}
+                        placeholder="Paste organization auth token"
+                        size="small"
+                        type="password"
+                        value={draft.apiToken}
+                    />
+                </Stack>
+                <Stack spacing={1}>
+                    <Typography color="text.secondary" id="sentry-card-type-label" sx={{ fontWeight: 'fontWeightMedium' }} variant="body2">
+                        Target card type
+                    </Typography>
+                    <FormControl disabled={controlsDisabled} size="small">
+                        <Select displayEmpty labelId="sentry-card-type-label" onChange={handleCardTypeChange} value={draft.cardType}>
+                            <MenuItem disabled value=""><em>Select card type</em></MenuItem>
+                            {(projectConfig?.cardTypes ?? []).map(({ label, type }) => (
+                                <MenuItem key={type} value={type}>{label}</MenuItem>
+                            ))}
+                        </Select>
+                        <FormHelperText>Imported Sentry issues become cards of this type.</FormHelperText>
+                    </FormControl>
+                </Stack>
+                <Stack spacing={1}>
+                    <Typography color="text.secondary" id="sentry-card-state-label" sx={{ fontWeight: 'fontWeightMedium' }} variant="body2">
+                        Target card state
+                    </Typography>
+                    <FormControl disabled={controlsDisabled} size="small">
+                        <Select displayEmpty labelId="sentry-card-state-label" onChange={handleCardStateChange} value={draft.cardState}>
+                            <MenuItem disabled value=""><em>Select card state</em></MenuItem>
+                            {(projectConfig?.states ?? []).map(({ state }) => <MenuItem key={state} value={state}>{state}</MenuItem>)}
+                        </Select>
+                        <FormHelperText>New cards start in this project state.</FormHelperText>
+                    </FormControl>
+                </Stack>
                 {connection.errorMessage ? <Alert severity="error">{connection.errorMessage}</Alert> : null}
                 <Stack direction="row" spacing={1}>
                     <Button disabled={!canConnect} onClick={handleConnect} variant="contained">
