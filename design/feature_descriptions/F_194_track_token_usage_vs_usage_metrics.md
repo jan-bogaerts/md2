@@ -10,6 +10,8 @@ agents:
   - design/activity/card__4191dc0a-7628-45bf-ada1-b1366e9f05f9.json#conversation=agent-f7050ad6-e92d-484f-ac8a-8365aff70325
 policy:
 after: dffba4e6-6ec5-4a40-8ee7-e68d4891aff3
+branch: f_194_track_token_usage_vs_usage_metrics
+worktree: 1
 ---
 
 we are currently already counting the tokens used by a project. we track this pretty granularly, but always related to the project: global total, per card, per action.
