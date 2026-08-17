@@ -6807,11 +6807,11 @@
         "agent-b75f77eb-7fbb-4fff-afb1-1efe02be7bdb"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-3ba13558-563d-4639-a9db-17039b8324de",
       "origin": {
@@ -6820,9 +6820,66 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-b75f77eb-7fbb-4fff-afb1-1efe02be7bdb",
       "startedAt": "2026-08-17T12:59:19.240Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-b75f77eb-7fbb-4fff-afb1-1efe02be7bdb"
+    },
+    {
+      "commits": [
+        {
+          "commit": "441b56fa7dc44fc1aa92c4aa546f8a041b085436",
+          "committedAt": "2026-08-17T15:43:47+02:00",
+          "deletions": 173,
+          "filePaths": [
+            "app/src/data/action_run_types.ts",
+            "app/src/data/data_types.ts",
+            "app/src/data/electron_data_bridge.ts",
+            "app/src/data/release_archiving.node.test.ts",
+            "app/src/data/release_archiving.ts",
+            "app/src/services/actions/electron_action_runner.node.test.ts",
+            "app/src/services/actions/electron_action_runner.ts",
+            "app/src/services/agents/agent_conversation_service.ts",
+            "app/src/services/agents/agent_integration.test.ts",
+            "app/src/services/agents/agent_integration.ts",
+            "app/src/services/agents/agent_reference_migration.node.test.ts",
+            "app/src/services/agents/agent_reference_migration.ts",
+            "app/src/services/data/card_operations.test.ts",
+            "app/src/services/data/card_operations.ts",
+            "app/src/services/data/data_service.ts",
+            "app/src/services/data/local_git_storage_service.node.test.ts",
+            "app/src/services/data/local_git_storage_service.ts",
+            "app/src/services/data/remote_control_storage_service.node.test.ts",
+            "app/src/services/data/remote_control_storage_service.ts",
+            "app/src/services/github/github_storage_loader.ts",
+            "app/src/services/github/github_storage_loading.test.ts",
+            "app/src/services/github/github_storage_service.ts",
+            "app/src/services/project/project_loading.test.ts",
+            "app/src/services/project/project_loading.ts",
+            "app/src/services/test_support/data_service_test_support.ts",
+            "design/usage_metrics.csv",
+            "desktop/src/actions/action/action_agent_executor.test.mjs",
+            "desktop/src/actions/action/action_run_request.js",
+            "desktop/src/actions/action/action_run_request.test.mjs",
+            "desktop/src/actions/action/action_runner_service.js",
+            "desktop/src/actions/action/action_runner_service.test.mjs",
+            "desktop/src/actions/activity/activity_files.js",
+            "desktop/src/actions/activity/activity_files.test.mjs",
+            "desktop/src/shell/local_bridge_dispatch.js",
+            "desktop/src/shell/local_bridge_dispatch.test.mjs",
+            "desktop/src/shell/preload.js"
+          ],
+          "filesChanged": 36,
+          "insertions": 636,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-17T15:43:47+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "6d6bf2a1-f9ac-430c-ad48-255ae837c9a0",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
