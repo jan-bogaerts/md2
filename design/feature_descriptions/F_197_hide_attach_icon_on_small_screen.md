@@ -10,5 +10,4 @@ agents:
 policy:
 after: 5d0cd5cb-d69f-4e88-a662-45dfeb6f421b
 ---
-
-On action bottom row not enough space, hide clip icon
+When in small screen mode (mobile), on action popup, bottom row not enough space,  so hide clip icon, only for mobile.
