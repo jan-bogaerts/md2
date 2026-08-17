@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 12bd6a19-a5eb-42a7-8a03-18703e4a2669
 ---
 
 When opening an action popup and there is an action running, go to that action. if there are multiple running, go to the first running, if non are running, go to first, like now

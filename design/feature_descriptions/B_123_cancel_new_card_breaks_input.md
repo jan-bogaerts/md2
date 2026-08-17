@@ -3,12 +3,11 @@ author:
 id: B_123
 internalId: 8c67b588-6f04-46d4-973a-2104345f161e
 title: cancel new card breaks input
-status: new
+status: design
 owner: 
 affects:
 agents:
 policy:
-after: c384fd87-648d-4bbd-b5df-cfc26f176388
 ---
 
 something seriously wrong with canceling a new card:
