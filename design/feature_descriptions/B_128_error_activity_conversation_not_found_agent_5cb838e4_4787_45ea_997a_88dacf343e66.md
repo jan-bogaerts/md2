@@ -12,7 +12,6 @@ sentryBaseUrl: https://sentry.io
 sentryIssueId: 140879684
 sentryOrganization: elastetic
 ---
-
 # Goal
 
 # Current status
@@ -45,7 +44,11 @@ sentryOrganization: elastetic
 
 ### Application stack frames
 
-- `/assets/index-BZ2bioMw.js:25:6714` — WebSocket.r
-- `/assets/index-BZ2bioMw.js:32:36703` — WebSocket.<anonymous>
-- `/assets/index-BZ2bioMw.js:32:37395` — Fm.handleMessage
-- `/assets/index-BZ2bioMw.js:32:37540` — Fm.handleResponse
+* `/assets/index-BZ2bioMw.js:25:6714` — WebSocket.r
+* `/assets/index-BZ2bioMw.js:32:36703` — WebSocket.\<anonymous>
+* `/assets/index-BZ2bioMw.js:32:37395` — Fm.handleMessage
+* `/assets/index-BZ2bioMw.js:32:37540` — Fm.handleResponse
+
+
+
+note: occurred in electron-react while another web browser was connected through websocket and change occured in web browser that triggered update in electron-react

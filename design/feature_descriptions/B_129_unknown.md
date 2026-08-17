@@ -12,7 +12,6 @@ sentryBaseUrl: https://sentry.io
 sentryIssueId: 140879201
 sentryOrganization: elastetic
 ---
-
 # Goal
 
 # Current status
@@ -23,9 +22,9 @@ sentryOrganization: elastetic
 
 ## Sentry issue
 
-**Title:** <unknown>
+**Title:** \<unknown>
 
-**Message:** External change ignored for design/feature_descriptions/B_120_hamburger_drawer_components_overlap.md because the file has unsaved local edits.
+**Message:** External change ignored for design/feature\_descriptions/B\_120\_hamburger\_drawer\_components\_overlap.md because the file has unsaved local edits.
 
 **Link:** [Open issue in Sentry](https://elastetic.sentry.io/issues/140879201/)
 
@@ -45,4 +44,6 @@ sentryOrganization: elastetic
 
 ### Application stack frames
 
-- No application stack frames provided.
+* No application stack frames provided.
+
+note: occurred in electron-react while another web browser was connected through websocket and change occured in web browser that triggered update in electron-react

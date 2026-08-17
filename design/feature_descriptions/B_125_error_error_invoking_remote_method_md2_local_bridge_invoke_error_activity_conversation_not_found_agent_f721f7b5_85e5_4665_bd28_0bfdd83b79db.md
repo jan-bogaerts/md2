@@ -12,7 +12,6 @@ sentryBaseUrl: https://sentry.io
 sentryIssueId: 140879683
 sentryOrganization: elastetic
 ---
-
 # Goal
 
 # Current status
@@ -45,4 +44,8 @@ sentryOrganization: elastetic
 
 ### Application stack frames
 
-- No application stack frames provided.
+* No application stack frames provided.
+
+
+
+note: occurred in electron-react while another web browser was connected through websocket and change occured in web browser that triggered update in electron-react
