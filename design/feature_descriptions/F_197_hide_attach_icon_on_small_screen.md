@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 5d0cd5cb-d69f-4e88-a662-45dfeb6f421b
 ---
 
 On action bottom row not enough space, hide clip icon

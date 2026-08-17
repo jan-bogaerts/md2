@@ -3,7 +3,7 @@ author:
 id: B_122
 internalId: d6f7cd44-6ed1-47b7-b37f-b048ece0a720
 title: connect to sentry fails
-status: new
+status: design
 owner: 
 affects:
 agents:
