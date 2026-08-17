@@ -3,7 +3,7 @@ author:
 id: B_124
 internalId: 704af30b-54f1-43ec-b991-39a63e2d52e1
 title: RemoteControlConnectionError: Remote-control connection was replaced
-status: new
+status: design
 owner: 
 affects:
 agents:
