@@ -2218,11 +2218,11 @@
         "agent-d1a489d5-16a6-495a-8e3b-194e69d97c69"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-861ab68e-fc42-4bb6-86d5-9e916a1d0e26",
       "origin": {
@@ -2231,9 +2231,43 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-d1a489d5-16a6-495a-8e3b-194e69d97c69",
       "startedAt": "2026-08-17T08:50:04.434Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-d1a489d5-16a6-495a-8e3b-194e69d97c69"
+    },
+    {
+      "commits": [
+        {
+          "commit": "c00a0748acac4637dd857c3c4ad7d811ca20a0b4",
+          "committedAt": "2026-08-17T10:58:09+02:00",
+          "deletions": 4,
+          "filePaths": [
+            "app/src/components/config/sentry_config_section.test.tsx",
+            "app/src/data/electron_sentry_bridge.node.test.ts",
+            "app/src/data/electron_sentry_bridge.ts",
+            "app/src/services/sentry/sentry_api_client.node.test.ts",
+            "app/src/services/sentry/sentry_api_client.ts",
+            "app/src/services/sentry/sentry_connection_service.node.test.ts",
+            "app/src/services/sentry/sentry_connection_service.ts",
+            "desktop/main.js",
+            "desktop/src/integrations/sentry_service.js",
+            "desktop/src/integrations/sentry_service.test.mjs",
+            "desktop/src/shell/ipc_channels.js",
+            "desktop/src/shell/preload.js",
+            "desktop/src/shell/preload.test.mjs"
+          ],
+          "filesChanged": 13,
+          "insertions": 196,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-17T10:58:09+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "d6f7cd44-6ed1-47b7-b37f-b048ece0a720",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
