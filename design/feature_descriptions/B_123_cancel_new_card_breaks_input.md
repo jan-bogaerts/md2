@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__8c67b588-6f04-46d4-973a-2104345f161e.json
 policy:
+branch: b_123_cancel_new_card_breaks_input
+worktree: 1
 ---
 
 something seriously wrong with canceling a new card:
