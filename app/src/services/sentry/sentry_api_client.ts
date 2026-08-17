@@ -147,7 +147,7 @@ export class SentryApiClient {
     }
 
     async validateProject(request: SentryApiRequest) {
-        const url = projectUrl(request)
+        const url = `${projectUrl(request)}/`
         await this.requestJson(url, request.apiToken)
     }
 

@@ -26,7 +26,7 @@ describe('SentryApiClient', () => {
         await client.validateProject(request)
 
         expect(fetchRequest).toHaveBeenCalledWith(
-            'https://sentry.example.com/api/0/projects/acme/frontend',
+            'https://sentry.example.com/api/0/projects/acme/frontend/',
             { headers: { Accept: 'application/json', Authorization: 'Bearer secret-token' } },
         )
     })
@@ -38,7 +38,7 @@ describe('SentryApiClient', () => {
         await client.validateProject(request)
 
         expect(fetchRequest).toHaveBeenCalledWith(
-            'https://sentry.example.com/api/0/projects/acme/frontend',
+            'https://sentry.example.com/api/0/projects/acme/frontend/',
             { headers: { Accept: 'application/json', Authorization: 'Bearer secret-token' } },
         )
     })
