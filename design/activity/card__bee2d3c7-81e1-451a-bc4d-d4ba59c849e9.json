@@ -1607,29 +1607,29 @@
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-1663081b-e7a6-4e14-bc82-3e966a4c5069-event-118",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0ffb8f80c05dcae0016a8324842070819188c1057da22731d9",
           "sequence": 118,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-17T15:11:07.909Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-1663081b-e7a6-4e14-bc82-3e966a4c5069-event-119",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0ffb8f80c05dcae0016a83248d72d081918cf688b2abcb5424",
           "sequence": 119,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-17T15:11:16.221Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "agent": "codex",
@@ -1642,32 +1642,35 @@
         },
         {
           "content": "",
+          "deletions": 4,
           "id": "agent-turn-1663081b-e7a6-4e14-bc82-3e966a4c5069-event-121",
+          "insertions": 7,
           "kind": "event",
           "label": "File changes",
           "providerItemId": "exec-1b329478-84cf-422a-b0e8-1f1c430b88d3",
           "sequence": 121,
           "status": "completed",
           "timestamp": "2026-08-17T15:11:29.894Z",
-          "type": "fileChange",
-          "deletions": 4,
-          "insertions": 7
+          "type": "fileChange"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-1663081b-e7a6-4e14-bc82-3e966a4c5069-event-122",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0ffb8f80c05dcae0016a8324a645f88191872f26ea4ec0c1bf",
           "sequence": 122,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-17T15:11:35.278Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\feature_descriptions\\\\F_173_token_count.md'\"",
           "content": "---\nauthor: \nid: F_173\ninternalId: bee2d3c7-81e1-451a-bc4d-d4ba59c849e9\ntitle: token count\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__bee2d3c7-81e1-451a-bc4d-d4ba59c849e9.json\npolicy:\n---\nduring a release, the token count began to change up and down like crazy. clear indication that something is going wrong during the calculation of the token usage.\n\nWe should also perform a validation on the way that token count is calculated, we need to make certain that it is correct.\n\ntoken usage of released cards is no longer going to change. we can keep the summaries for these cards in more convenient places, like in a project wide json file for instance.\n\n## Current state\n\n`projectAgentTokenUsage` derives project and release totals from conversations currently attached to cards. Conversation loading is lazy, and release completion reparses moved cards. Totals can therefore rise or fall when activity files load or cards move, even when no new tokens were used.\n\nProvider normalization also overcounts some Codex usage. Codex cached input is part of provider `input_tokens`, and reasoning is part of provider `output_tokens`. Current streaming normalization keeps cached input inside `inputTokens`, while both Codex paths keep reasoning inside `outputTokens`; `totalTokens` then adds those overlapping buckets again.\n\nReleased activity files remain useful for opening one card's history, but released cards are read-only and their aggregate usage no longer needs repeated calculation.\n\nExisting activity files cannot always identify whether stored Codex input came from streaming or one-shot normalization. Their historical bucket split cannot be corrected reliably. Existing `totalTokens` must therefore remain a legacy baseline; corrected accounting starts with turns recorded after this change.\n\n## implementation details\n\n- Add `<projectFolder>/agent_token_usage.json` with `schemaVersion`, authoritative `projectUsage`, and immutable release entries keyed by release name. Each usage value contains preserved `legacyTotalTokens`, corrected `inputTokens`, `cachedInputTokens`, `outputTokens`, `reasoningTokens`, combined `totalTokens`, and optional `costUsd`. Do not store per-card summaries.\n- Define token buckets as disjoint. For Codex, subtract cached input from provider input and reasoning from provider output before storing their separate buckets. For Claude, keep cache creation and cache reads in `cachedInputTokens`; keep thinking in `outputTokens` while Claude does not report a separate reasoning count. Reject negative, non-finite, or inconsistent provider values. When provider total exists, verify normalized bucket sum matches it.\n- Make `projectUsage` the status-bar project's source of truth. Update it by the normalized delta only after a successful turn and conversation persistence. Serialize summary updates per project and update conversation activity plus summary in one commit so retries or concurrent turns cannot double-count or lose usage.\n- When summary file is absent in an existing project, read all card activity files once. Sum their stored `totalTokens` into `legacyTotalTokens`; do not reinterpret historical input, cache, output, or reasoning buckets. Set corrected buckets to zero, calculate project and existing-release summaries, and persist new file. For new projects, `legacyTotalTokens` starts at zero. A malformed existing summary is an error; do not silently rebuild or overwrite it.\n- Version conversation usage written after this change. When an existing conversation first continues, preserve its previous `totalTokens` as conversation-level legacy usage before accumulating corrected turn buckets. This keeps later release calculation able to separate legacy and corrected usage without adding per-card data to summary file.\n- During release, reject completion while a target card has a running action. Read target cards' activity files directly, calculate release usage, add one release entry, and commit summary update with card and activity-file moves. Existing release name remains an error. Moving cards does not change `projectUsage` because their usage was already counted.\n- Use stored release entries for release totals. Opening a released card may load its moved activity file for conversation detail, but that load must not change release or project totals.\n- Keep current and archived detail derived from their card activity. Do not add current, archived, action, or card summaries to `agent_token_usage.json`.\n- Add tests for Codex and Claude bucket semantics, provider-total validation, project-summary migration, malformed files, serialized/idempotent turn updates, concurrent turns, atomic release updates, active-run rejection, reloads, and opening released cards.\n\n## acceptance criteria\n\n- Project token total does not change when cards or activity files load, a released card opens, project reloads, or release files move.\n- Each successful persisted provider turn increases project total exactly once by normalized turn usage. Failed, cancelled, retried, or unpersisted turns add nothing.\n- Codex cached input and reasoning tokens appear in their own buckets without also remaining in input or output. Claude cache buckets are counted once, and Claude output remains correct when separate reasoning usage is unavailable.\n- For new usage, normalized bucket sum matches provider total when provider total exists. Summary `totalTokens` equals `legacyTotalTokens` plus corrected bucket sum. Invalid or overlapping new provider values produce a reported error instead of a wrong count.\n- Completing a release writes one immutable total for that release and leaves project total unchanged. Concurrent activity on target cards cannot race release calculation.\n- `agent_token_usage.json` contains only schema metadata, total project usage, and per-release usage. Card history and per-card usage remain retrievable from released activity files.\n- Existing projects without summary file receive one complete summary built from all card activity. Historical `totalTokens` is preserved as an explicitly named legacy baseline; only later turns claim corrected bucket accuracy. Malformed existing summaries are reported and preserved.\n\r\n",
+          "durationMs": 290,
+          "exitCode": 0,
           "id": "agent-turn-1663081b-e7a6-4e14-bc82-3e966a4c5069-event-123",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\feature_descriptions\\\\F_173_token_count.md'\"",
@@ -1676,23 +1679,20 @@
           "status": "completed",
           "timestamp": "2026-08-17T15:11:37.024Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\feature_descriptions\\\\F_173_token_count.md'\"",
-          "durationMs": 290,
-          "exitCode": 0,
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-1663081b-e7a6-4e14-bc82-3e966a4c5069-event-124",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_0ffb8f80c05dcae0016a8324aca3988191bcbeed8f7817069f",
           "sequence": 124,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-17T15:11:41.752Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "agent": "codex",
@@ -1772,6 +1772,42 @@
       "startedAt": "2026-08-17T14:53:50.190Z",
       "status": "completed",
       "rootConversationId": "agent-ec62bb41-8765-4822-b301-c2f39ae937ef"
+    },
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "a2f93e41c6e2334f76d78f0a9ae16ad3637ddf9b",
+          "committedAt": "2026-08-17T17:12:19+02:00",
+          "deletions": 4,
+          "filePaths": [
+            "design/feature_descriptions/F_173_token_count.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 7
+        }
+      ],
+      "completedAt": "2026-08-17T15:12:19.651Z",
+      "conversationIds": [
+        "agent-ec62bb41-8765-4822-b301-c2f39ae937ef"
+      ],
+      "details": {
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-4fc90204-3100-4679-b8fb-6dd8ba055e37",
+      "origin": {
+        "cardInternalId": "bee2d3c7-81e1-451a-bc4d-d4ba59c849e9",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-ec62bb41-8765-4822-b301-c2f39ae937ef",
+      "startedAt": "2026-08-17T15:10:52.480Z",
+      "status": "completed"
     }
   ],
   "version": 4
