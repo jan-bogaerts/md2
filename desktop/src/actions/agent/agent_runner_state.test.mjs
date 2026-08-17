@@ -231,7 +231,8 @@ describe('AgentRunnerService state handling', () => {
 
     it('replaces live turn usage and commits the latest snapshot once at turn completion', async () => {
         const persistConversationCheckpoint = vi.fn(async () => undefined);
-        const service = new AgentRunnerService({ persistConversationCheckpoint });
+        const usageMetricsService = { recordTokenUsage: vi.fn(async () => true) };
+        const service = new AgentRunnerService({ persistConversationCheckpoint, usageMetricsService });
         const onEvent = vi.fn();
         const persistedUsage = {
             cachedInputTokens: 1,
@@ -271,6 +272,7 @@ describe('AgentRunnerService state handling', () => {
             streaming: true,
             turnActive: true,
             turnIndex: 1,
+            usageMetricsDestination: { projectFolder: 'design', rootPath: 'C:/repo' },
             waitingForQuestion: false,
         };
         service.processes.set('run-1', run);
@@ -319,6 +321,12 @@ describe('AgentRunnerService state handling', () => {
             usage: expect.objectContaining({ totalTokens: 17 }),
         });
         expect(persistConversationCheckpoint).toHaveBeenCalledWith(expect.objectContaining({ conversation: expectedConversation }));
+        expect(usageMetricsService.recordTokenUsage).toHaveBeenCalledWith(
+            run.usageMetricsDestination,
+            'codex',
+            latestSnapshot,
+            expect.any(Number),
+        );
     });
 
     it('does not persist an unconfirmed live snapshot when the streaming turn fails', async () => {
@@ -465,6 +473,65 @@ describe('AgentRunnerService state handling', () => {
             stderr: '',
         }));
         expect(terminateProcessTree).not.toHaveBeenCalled();
+    });
+
+    it('records one-shot Claude usage only after successful process completion', async () => {
+        const persistConversation = vi.fn(async () => undefined);
+        const usageMetricsService = { recordTokenUsage: vi.fn(async () => true) };
+        const service = new AgentRunnerService({ persistConversation, usageMetricsService });
+        const turnUsage = {
+            cachedInputTokens: 2,
+            inputTokens: 5,
+            outputTokens: 3,
+            reasoningTokens: 0,
+            totalTokens: 10,
+        };
+        const usageMetricsDestination = { projectFolder: 'design', rootPath: 'C:/repo' };
+        const run = {
+            agent: 'claude',
+            cancelled: false,
+            changedPaths: new Set(),
+            child: { pid: 10 },
+            conversation: {
+                completedAt: null,
+                entries: [{ content: 'Done', id: 'assistant-1', kind: 'message', role: 'assistant', timestamp: 'now' }],
+                id: 'conversation-1',
+                providerSessions: [],
+                status: 'running',
+            },
+            currentAssistantMessageId: null,
+            finishing: false,
+            id: 'run-1',
+            missingSession: false,
+            onComplete: vi.fn(),
+            onEvent: vi.fn(),
+            persistence: Promise.resolve(),
+            protocolHandling: Promise.resolve(),
+            request: {},
+            startedAt: '2026-07-30T10:00:00.000Z',
+            stderr: '',
+            stderrBuffer: '',
+            stderrHandling: Promise.resolve(),
+            stdout: '',
+            streaming: false,
+            streamingFailure: null,
+            suspended: false,
+            termination: null,
+            turnUsage,
+            usageMetricsDestination,
+        };
+        service.processes.set('run-1', run);
+        service.runningConversationIds.add('conversation-1');
+
+        await service.handleClose('run-1', 0);
+
+        expect(usageMetricsService.recordTokenUsage).toHaveBeenCalledWith(
+            usageMetricsDestination,
+            'claude',
+            turnUsage,
+            expect.any(Number),
+        );
+        expect(run.onComplete).toHaveBeenCalledWith(0, run);
     });
 
     it('leaves persisted continuation unchanged when provider turn never starts', async () => {
@@ -891,41 +958,60 @@ describe('AgentRunnerService state handling', () => {
         expect(run.conversation.status).toBe('failed');
     });
 
-    it('routes account runtime updates without conversation persistence', () => {
+    it('routes Codex account updates to runtime state and originating project metrics', async () => {
         const persistConversation = vi.fn();
+        const destination = { projectFolder: 'design', rootPath: 'C:/repo' };
+        const snapshot = { available: true, buckets: [], observedAt: 10 };
         const codexRuntimeService = {
-            publishRateLimits: vi.fn(),
+            getSnapshot: vi.fn(() => snapshot),
+            publishRateLimits: vi.fn(() => true),
             publishUnavailable: vi.fn(),
         };
-        const service = new AgentRunnerService({ codexRuntimeService, persistConversation });
+        const usageMetricsService = { recordAccountUsage: vi.fn(async () => true) };
+        const service = new AgentRunnerService({ codexRuntimeService, persistConversation, usageMetricsService });
         const payload = { rateLimits: { limitId: 'codex' } };
 
-        service.handleCodexRuntimeEvent({ kind: 'update', observedAt: 10, payload });
-        service.handleCodexRuntimeEvent({ kind: 'unavailable', observedAt: 11 });
+        await service.handleCodexRuntimeEvent({ kind: 'update', observedAt: 10, payload }, destination);
+        await service.handleCodexRuntimeEvent({ kind: 'unavailable', observedAt: 11 }, destination);
 
         expect(codexRuntimeService.publishRateLimits).toHaveBeenCalledWith(payload, 10, true);
         expect(codexRuntimeService.publishUnavailable).toHaveBeenCalledWith(11);
+        expect(usageMetricsService.recordAccountUsage).toHaveBeenCalledWith(destination, 'codex', snapshot);
         expect(persistConversation).not.toHaveBeenCalled();
     });
 
-    it('routes Claude runtime updates and requests usage only after Claude returned output', () => {
+    it('routes Claude account updates to every requesting project and polls only after output', async () => {
+        const firstDestination = { projectFolder: 'design', rootPath: 'C:/repo-one' };
+        const secondDestination = { projectFolder: 'design', rootPath: 'C:/repo-two' };
+        const snapshot = { available: true, observedAt: 10, windows: [] };
         const claudeRuntimeService = {
-            publishRateLimits: vi.fn(),
+            getSnapshot: vi.fn(() => snapshot),
+            publishRateLimits: vi.fn(() => true),
             publishUnavailable: vi.fn(),
         };
         const claudeUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };
-        const service = new AgentRunnerService({ claudeRuntimeService, claudeUsagePoller });
+        const usageMetricsService = { recordAccountUsage: vi.fn(async () => true) };
+        const service = new AgentRunnerService({ claudeRuntimeService, claudeUsagePoller, usageMetricsService });
         const payload = { windows: [{ id: 'five_hour' }] };
 
-        service.handleClaudeRuntimeEvent({ kind: 'snapshot', observedAt: 10, payload });
-        service.handleClaudeRuntimeEvent({ kind: 'unavailable', observedAt: 11 });
-        service.requestClaudeUsagePoll({ agent: 'claude', stdout: 'Claude answer' });
-        service.requestClaudeUsagePoll({ agent: 'claude', stdout: '  ' });
-        service.requestClaudeUsagePoll({ agent: 'codex', stdout: 'Codex answer' });
+        await service.handleClaudeRuntimeEvent({
+            destinations: [firstDestination, secondDestination],
+            kind: 'snapshot',
+            observedAt: 10,
+            payload,
+        });
+        await service.handleClaudeRuntimeEvent({ destinations: [firstDestination], kind: 'unavailable', observedAt: 11 });
+        service.requestClaudeUsagePoll({ agent: 'claude', stdout: 'Claude answer', usageMetricsDestination: firstDestination });
+        service.requestClaudeUsagePoll({ agent: 'claude', stdout: '  ', usageMetricsDestination: firstDestination });
+        service.requestClaudeUsagePoll({ agent: 'codex', stdout: 'Codex answer', usageMetricsDestination: firstDestination });
 
         expect(claudeRuntimeService.publishRateLimits).toHaveBeenCalledWith(payload, 10);
         expect(claudeRuntimeService.publishUnavailable).toHaveBeenCalledWith(11);
+        expect(usageMetricsService.recordAccountUsage).toHaveBeenCalledTimes(2);
+        expect(usageMetricsService.recordAccountUsage).toHaveBeenCalledWith(firstDestination, 'claude', snapshot);
+        expect(usageMetricsService.recordAccountUsage).toHaveBeenCalledWith(secondDestination, 'claude', snapshot);
         expect(claudeUsagePoller.requestPoll).toHaveBeenCalledOnce();
+        expect(claudeUsagePoller.requestPoll).toHaveBeenCalledWith(firstDestination);
     });
 
     it('keeps approval state separate from conversation persistence and other pending input', async () => {

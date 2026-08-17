@@ -46,6 +46,7 @@ function createRun({
     request,
     startedAt,
     streaming,
+    usageMetricsDestination,
 }) {
     const { promise: closed, resolve: resolveClosed } = Promise.withResolvers();
 
@@ -102,6 +103,7 @@ function createRun({
         termination: null,
         suspended: false,
         turnUsage: null,
+        usageMetricsDestination,
         waitingForQuestion: false,
     };
 }

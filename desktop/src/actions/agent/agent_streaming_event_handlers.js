@@ -196,6 +196,7 @@ async function handleTurnCompleted(service, run, event, timestamp) {
         service.failStreamingRun(run, new Error(event.error));
         return;
     }
+    if (!event.missingSession && event.usage) await service.recordTokenUsage(run, event.usage, timestamp);
     if (run.finishing) {
         service.beginFinishShutdown(run);
         return;

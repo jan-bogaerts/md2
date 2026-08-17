@@ -11,6 +11,8 @@ const USAGE_OUTPUT = `You are currently using your subscription to power your Cl
 Current session: 17% used · resets Aug 15, 9:49pm (Europe/Brussels)
 Current week (all models): 13% used · resets Aug 16, 6:59pm (Europe/Brussels)
 `;
+const FIRST_DESTINATION = { projectFolder: 'design', rootPath: 'C:/repo-one' };
+const SECOND_DESTINATION = { projectFolder: 'design', rootPath: 'C:/repo-two' };
 
 function completedChild(output = USAGE_OUTPUT, exitCode = 0) {
     const child = new EventEmitter();
@@ -70,18 +72,25 @@ describe('ClaudeUsagePoller', () => {
             spawn,
         });
 
-        poller.requestPoll();
+        poller.requestPoll(FIRST_DESTINATION);
         await poller.activePoll;
         expect(spawn).toHaveBeenCalledOnce();
-        expect(runtimeListener).toHaveBeenCalledWith(expect.objectContaining({ kind: 'snapshot' }));
+        expect(runtimeListener).toHaveBeenCalledWith(expect.objectContaining({
+            destinations: [FIRST_DESTINATION],
+            kind: 'snapshot',
+        }));
 
-        poller.requestPoll();
-        poller.requestPoll();
+        poller.requestPoll(FIRST_DESTINATION);
+        poller.requestPoll(SECOND_DESTINATION);
         await vi.advanceTimersByTimeAsync(119_999);
         expect(spawn).toHaveBeenCalledOnce();
         await vi.advanceTimersByTimeAsync(1);
         await poller.activePoll;
         expect(spawn).toHaveBeenCalledTimes(2);
+        expect(runtimeListener).toHaveBeenLastCalledWith(expect.objectContaining({
+            destinations: [FIRST_DESTINATION, SECOND_DESTINATION],
+            kind: 'snapshot',
+        }));
         poller.stop();
     });
 
@@ -93,7 +102,7 @@ describe('ClaudeUsagePoller', () => {
             spawn: vi.fn(() => completedChild('partial')),
         });
 
-        malformedPoller.requestPoll();
+        malformedPoller.requestPoll(FIRST_DESTINATION);
         await malformedPoller.activePoll;
         expect(runtimeListener).not.toHaveBeenCalled();
         malformedPoller.stop();
@@ -103,7 +112,7 @@ describe('ClaudeUsagePoller', () => {
             onRuntimeEvent: runtimeListener,
             spawn: vi.fn(() => completedChild('', 1)),
         });
-        failingPoller.requestPoll();
+        failingPoller.requestPoll(FIRST_DESTINATION);
         await failingPoller.activePoll;
         expect(runtimeListener).toHaveBeenCalledWith(expect.objectContaining({ kind: 'unavailable' }));
         failingPoller.stop();

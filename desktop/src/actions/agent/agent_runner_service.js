@@ -53,6 +53,7 @@ class AgentRunnerService {
     constructor(dependencies = {}) {
         this.claudeRuntimeService = dependencies.claudeRuntimeService ?? null;
         this.codexRuntimeService = dependencies.codexRuntimeService ?? null;
+        this.usageMetricsService = dependencies.usageMetricsService ?? null;
         this.persistConversation = dependencies.persistConversation
             ?? dependencies.persistTerminalConversation
             ?? persistConversation;
@@ -103,6 +104,7 @@ class AgentRunnerService {
         const streaming = request.streaming === true;
         requireProjectFolder(request?.projectFolder);
         if (cardPath) ensureInsideRoot(rootPath, path.join(rootPath, cardPath));
+        const usageMetricsDestination = { projectFolder: request.projectFolder, rootPath };
 
         const id = `agent-turn-${crypto.randomUUID()}`;
         const startedAt = new Date().toISOString();
@@ -154,9 +156,10 @@ class AgentRunnerService {
             request,
             startedAt,
             streaming,
+            usageMetricsDestination,
         });
         attachRunProtocol(run, {
-            onCodexRuntimeEvent: (event) => this.handleCodexRuntimeEvent(event),
+            onCodexRuntimeEvent: (event) => this.handleCodexRuntimeEvent(event, usageMetricsDestination),
             onMalformedOutput: (line) => this.handleMalformedOutput(id, line),
             onProviderEvent: (event) => this.handleProviderEvent(id, event),
             onStreamingEvent: (event) => this.handleStreamingEvent(id, event),
@@ -301,26 +304,46 @@ class AgentRunnerService {
         return run.termination;
     }
 
-    handleCodexRuntimeEvent(event) {
+    async handleCodexRuntimeEvent(event, destination) {
         if (!this.codexRuntimeService) return;
         if (event.kind === 'unavailable') {
             this.codexRuntimeService.publishUnavailable(event.observedAt);
             return;
         }
-        this.codexRuntimeService.publishRateLimits(event.payload, event.observedAt, event.kind === 'update');
+        const accepted = this.codexRuntimeService.publishRateLimits(event.payload, event.observedAt, event.kind === 'update');
+        if (!accepted || !this.usageMetricsService) return;
+        await this.usageMetricsService.recordAccountUsage(destination, 'codex', this.codexRuntimeService.getSnapshot());
     }
 
-    handleClaudeRuntimeEvent(event) {
+    async handleClaudeRuntimeEvent(event) {
         if (!this.claudeRuntimeService) return;
         if (event.kind === 'unavailable') {
             this.claudeRuntimeService.publishUnavailable(event.observedAt);
             return;
         }
-        this.claudeRuntimeService.publishRateLimits(event.payload, event.observedAt);
+        const accepted = this.claudeRuntimeService.publishRateLimits(event.payload, event.observedAt);
+        if (!accepted || !this.usageMetricsService) return;
+        const snapshot = this.claudeRuntimeService.getSnapshot();
+        await Promise.all(event.destinations.map((destination) => (
+            this.usageMetricsService.recordAccountUsage(destination, 'claude', snapshot)
+        )));
     }
 
     requestClaudeUsagePoll(run) {
-        if (run.agent === 'claude' && run.stdout.trim().length > 0) this.claudeUsagePoller.requestPoll();
+        if (run.agent === 'claude' && run.stdout.trim().length > 0) {
+            this.claudeUsagePoller.requestPoll(run.usageMetricsDestination);
+        }
+    }
+
+    recordTokenUsage(run, usage, recordedAt) {
+        if (!this.usageMetricsService) return false;
+
+        return this.usageMetricsService.recordTokenUsage(
+            run.usageMetricsDestination,
+            run.agent,
+            usage,
+            Date.parse(recordedAt),
+        );
     }
 
     handleOutput(runId, channel, chunk) {
@@ -572,6 +595,7 @@ class AgentRunnerService {
                 const synchronizedMessage = lastMessageEntry(run.conversation);
                 updateProviderSession(run, synchronizedMessage.id, completedAt);
                 if (run.turnUsage) run.conversation.usage = accumulateUsage(run.conversation.usage, run.turnUsage);
+                if (!run.streaming && run.turnUsage) await this.recordTokenUsage(run, run.turnUsage, completedAt);
             }
             const preserveWaitingState = run.suspended && run.conversation.status === 'waitingForInput';
             run.conversation.completedAt = preserveWaitingState ? null : completedAt;

@@ -14,6 +14,7 @@ const { readDesktopConfig, resolveBridgeAllowedOrigins, saveDesktopConfig } = re
 const { AgentRunnerService } = require('./src/actions/agent/agent_runner_service');
 const { CodexRuntimeService } = require('./src/actions/agent/codex_runtime_service');
 const { ClaudeRuntimeService } = require('./src/actions/agent/claude_runtime_service');
+const { UsageMetricsService } = require('./src/actions/agent/usage_metrics_service');
 const { updateCodexCli } = require('./src/actions/agent/codex_cli_update');
 const { AgentExecutableResolver, loadAgentExecutableAvailability } = require('./src/actions/agent/agent_executable_availability');
 const { ActionSchedulerService } = require('./src/actions/action/action_scheduler_service');
@@ -76,10 +77,12 @@ Store.initRenderer();
 const agentExecutableResolver = new AgentExecutableResolver();
 const claudeRuntimeService = new ClaudeRuntimeService();
 const codexRuntimeService = new CodexRuntimeService();
+const usageMetricsService = new UsageMetricsService({ errorReporter: captureError });
 const agentRunnerService = new AgentRunnerService({
     claudeRuntimeService,
     codexRuntimeService,
     executableResolver: agentExecutableResolver,
+    usageMetricsService,
 });
 const mergeConflictService = new MergeConflictService({
     configProvider: () => readDesktopConfig(store),
