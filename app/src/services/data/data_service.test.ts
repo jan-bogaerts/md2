@@ -39,9 +39,18 @@ describe('DataService', () => {
 
     it('replaces remote storage and project watch without reopening loaded project', async () => {
         configService.init()
+        const firstMergeConflictCleanup = vi.fn()
         const firstWatchCleanup = vi.fn()
-        const firstStorage = createStorage({ watchProject: vi.fn(() => firstWatchCleanup) })
-        const secondStorage = createStorage({ watchProject: vi.fn(() => vi.fn()) })
+        const firstStorage = createStorage({
+            getMergeConflictSession: vi.fn(async () => null),
+            onMergeConflictSessionChanged: vi.fn(() => firstMergeConflictCleanup),
+            watchProject: vi.fn(() => firstWatchCleanup),
+        })
+        const secondStorage = createStorage({
+            getMergeConflictSession: vi.fn(async () => null),
+            onMergeConflictSessionChanged: vi.fn(() => vi.fn()),
+            watchProject: vi.fn(() => vi.fn()),
+        })
         const service = createDataService()
         service.init({ storage: firstStorage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -51,7 +60,9 @@ describe('DataService', () => {
         service.replaceRemoteStorage(secondStorage)
 
         expect(service.getState().snapshot).toBe(loadedSnapshot)
+        expect(firstMergeConflictCleanup).toHaveBeenCalledOnce()
         expect(firstWatchCleanup).toHaveBeenCalledOnce()
+        expect(secondStorage.onMergeConflictSessionChanged).toHaveBeenCalledOnce()
         expect(secondStorage.watchProject).toHaveBeenCalledOnce()
         expect(openProject).not.toHaveBeenCalled()
     })

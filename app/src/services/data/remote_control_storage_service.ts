@@ -130,6 +130,11 @@ interface MergeConflictSessionChangedPayload {
     subscriptionId: string
 }
 
+interface MergeConflictSubscription {
+    cancelled: boolean
+    subscriptionId: string | null
+}
+
 const SOCKET_OPEN_STATE = 1
 const WORKTREES_CHANGED_EVENT = 'worktreesChanged'
 
@@ -476,7 +481,7 @@ export class RemoteControlStorageService implements
             if (!serverSubscriptionId) return
 
             this.watchCallbacks.delete(serverSubscriptionId)
-            void this.request('unsubscribe', [serverSubscriptionId]).catch(() => undefined)
+            this.unsubscribeBestEffort(serverSubscriptionId)
         }
     }
 
@@ -500,33 +505,25 @@ export class RemoteControlStorageService implements
             this.worktreeServerSubscriptionId = null
             if (!subscriptionId) return
 
-            void this.request('unsubscribe', [subscriptionId]).catch(() => undefined)
+            this.unsubscribeBestEffort(subscriptionId)
         }
     }
 
     onMergeConflictSessionChanged(callback: (session: MergeConflictSession | null) => void): () => void {
         const id = this.createRequestId()
-        let cancelled = false
-        let subscriptionId: string | null = null
+        const subscription: MergeConflictSubscription = { cancelled: false, subscriptionId: null }
         this.requestMergeConflictEvents.set(id, callback)
-        void this.sendRequest<{ subscriptionId: string }>({ id, method: 'onMergeConflictSessionChanged', params: [] }).then((result) => {
-            subscriptionId = result.subscriptionId
-            if (cancelled) {
-                void this.request('unsubscribe', [subscriptionId])
-                return
-            }
-
-            this.mergeConflictCallbacks.set(result.subscriptionId, callback)
-            this.requestMergeConflictEvents.delete(id)
-        })
+        void this.subscribeMergeConflict(id, callback, subscription).catch(() => undefined)
 
         return () => {
-            cancelled = true
+            subscription.cancelled = true
             this.requestMergeConflictEvents.delete(id)
+            const { subscriptionId } = subscription
+            subscription.subscriptionId = null
             if (!subscriptionId) return
 
             this.mergeConflictCallbacks.delete(subscriptionId)
-            void this.request('unsubscribe', [subscriptionId])
+            this.unsubscribeBestEffort(subscriptionId)
         }
     }
 
@@ -652,7 +649,7 @@ export class RemoteControlStorageService implements
 
             this.actionRunSubscriptions.delete(callback)
             this.actionRunCallbacks.delete(subscriptionId)
-            void this.request('unsubscribe', [subscriptionId])
+            this.unsubscribeBestEffort(subscriptionId)
         }
     }
 
@@ -670,7 +667,7 @@ export class RemoteControlStorageService implements
 
             this.codexRateLimitSubscriptions.delete(callback)
             this.codexRateLimitCallbacks.delete(subscriptionId)
-            void this.request('unsubscribe', [subscriptionId])
+            this.unsubscribeBestEffort(subscriptionId)
         }
     }
 
@@ -733,6 +730,18 @@ export class RemoteControlStorageService implements
         this.nextId += 1
 
         return id
+    }
+
+    private unsubscribeBestEffort(subscriptionId: string) {
+        const socket = this.socket
+        if (socket?.readyState !== SOCKET_OPEN_STATE) return
+
+        const request: RemoteControlRequest = { id: this.createRequestId(), method: 'unsubscribe', params: [subscriptionId] }
+        try {
+            socket.send(JSON.stringify(request))
+        } catch {
+            // Socket closure already removes the server-side subscription.
+        }
     }
 
     private async ensureConnected() {
@@ -842,7 +851,7 @@ export class RemoteControlStorageService implements
                 params: [],
             })
             if (!this.actionRunListeners.has(callback)) {
-                await this.request('unsubscribe', [result.subscriptionId])
+                this.unsubscribeBestEffort(result.subscriptionId)
                 return
             }
             this.actionRunSubscriptions.set(callback, result.subscriptionId)
@@ -872,6 +881,30 @@ export class RemoteControlStorageService implements
         await this.subscribeWorktreesChanged()
     }
 
+    private async subscribeMergeConflict(
+        id: string,
+        callback: (session: MergeConflictSession | null) => void,
+        subscription: MergeConflictSubscription,
+    ) {
+        try {
+            const result = await this.sendRequest<{ subscriptionId: string }>({
+                id,
+                method: 'onMergeConflictSessionChanged',
+                params: [],
+            })
+            subscription.subscriptionId = result.subscriptionId
+            if (subscription.cancelled) {
+                subscription.subscriptionId = null
+                this.unsubscribeBestEffort(result.subscriptionId)
+                return
+            }
+
+            this.mergeConflictCallbacks.set(result.subscriptionId, callback)
+        } finally {
+            this.requestMergeConflictEvents.delete(id)
+        }
+    }
+
     private async subscribeProjectWatch(subscription: ProjectWatchSubscription, restored: boolean) {
         if (!this.watchSubscriptions.has(subscription) || subscription.subscribing || subscription.serverSubscriptionId) return
 
@@ -885,7 +918,7 @@ export class RemoteControlStorageService implements
                 params: [subscription.project],
             })
             if (!this.watchSubscriptions.has(subscription)) {
-                await this.request('unsubscribe', [result.subscriptionId])
+                this.unsubscribeBestEffort(result.subscriptionId)
                 return
             }
 
@@ -908,7 +941,7 @@ export class RemoteControlStorageService implements
                 params: [],
             })
             if (!this.codexRateLimitListeners.has(callback)) {
-                await this.request('unsubscribe', [result.subscriptionId])
+                this.unsubscribeBestEffort(result.subscriptionId)
                 return
             }
             this.codexRateLimitSubscriptions.set(callback, result.subscriptionId)
@@ -930,7 +963,7 @@ export class RemoteControlStorageService implements
                 params: [],
             })
             if (this.worktreeRequestId !== id || this.worktreeListenerCount === 0) {
-                await this.request('unsubscribe', [result.subscriptionId])
+                this.unsubscribeBestEffort(result.subscriptionId)
                 return
             }
 

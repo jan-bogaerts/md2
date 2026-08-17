@@ -36,7 +36,7 @@ function createMockStorage(connect: () => Promise<void> = async () => undefined)
 }
 
 function createService(storageControls: MockStorageControl[]) {
-    const activate = vi.fn(async (): Promise<void> => undefined)
+    const activate = vi.fn<RemoteConnectionServiceDependencies['activate']>(async () => undefined)
     const clearActivation = vi.fn()
     const replaceProjectStorage = vi.fn()
     const createStorage = vi.fn(() => {
@@ -82,6 +82,22 @@ describe('RemoteConnectionService', () => {
         const first = createMockStorage()
         const second = createMockStorage()
         const setup = createService([first, second])
+        const firstActionCleanup = vi.fn()
+        const firstRateLimitCleanup = vi.fn()
+        const secondActionCleanup = vi.fn()
+        const secondRateLimitCleanup = vi.fn()
+        const firstActionSubscription = vi.spyOn(first.storage, 'onActionRun').mockReturnValue(firstActionCleanup)
+        const firstRateLimitSubscription = vi.spyOn(first.storage, 'onCodexRateLimits').mockReturnValue(firstRateLimitCleanup)
+        const secondActionSubscription = vi.spyOn(second.storage, 'onActionRun').mockReturnValue(secondActionCleanup)
+        const secondRateLimitSubscription = vi.spyOn(second.storage, 'onCodexRateLimits').mockReturnValue(secondRateLimitCleanup)
+        let actionCleanup: (() => void) | null = null
+        let rateLimitCleanup: (() => void) | null = null
+        setup.activate.mockImplementation(async (storage) => {
+            actionCleanup?.()
+            rateLimitCleanup?.()
+            actionCleanup = storage.onActionRun(() => undefined)
+            rateLimitCleanup = storage.onCodexRateLimits(() => undefined)
+        })
         await setup.service.connect(SETTINGS)
         setup.service.setProjectStorageActive(true)
 
@@ -92,6 +108,13 @@ describe('RemoteConnectionService', () => {
         expect(setup.replaceProjectStorage).toHaveBeenCalledOnce()
         expect(setup.replaceProjectStorage.mock.calls[0][0]).toBe(second.storage)
         expect(setup.replaceProjectStorage.mock.calls[0][0]).not.toBe(first.storage)
+        expect(firstActionSubscription).toHaveBeenCalledOnce()
+        expect(firstRateLimitSubscription).toHaveBeenCalledOnce()
+        expect(firstActionCleanup).toHaveBeenCalledOnce()
+        expect(firstRateLimitCleanup).toHaveBeenCalledOnce()
+        expect(secondActionSubscription).toHaveBeenCalledOnce()
+        expect(secondRateLimitSubscription).toHaveBeenCalledOnce()
+        expect(setup.activate.mock.invocationCallOrder[1]).toBeLessThan(setup.replaceProjectStorage.mock.invocationCallOrder[0])
         await expect(first.storage.getActiveProject()).rejects.toThrow('Remote-control connection was replaced')
     })
 

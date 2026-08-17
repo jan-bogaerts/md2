@@ -58,6 +58,33 @@ function actionStartRequest() {
     return { actionId: 'action-test', context: { file: 'design/F-1.md', kind: 'card' as const }, runInput: {} }
 }
 
+interface PersistentSubscriptionCase {
+    method: string
+    name: string
+    subscribe(service: RemoteControlStorageService): () => void
+}
+
+const persistentSubscriptionCases: PersistentSubscriptionCase[] = [
+    {
+        method: 'onMergeConflictSessionChanged',
+        name: 'merge-conflict',
+        subscribe: (service) => service.onMergeConflictSessionChanged(() => undefined),
+    },
+    { method: 'onActionRun', name: 'action-run', subscribe: (service) => service.onActionRun(() => undefined) },
+    { method: 'onCodexRateLimits', name: 'Codex-rate-limit', subscribe: (service) => service.onCodexRateLimits(() => undefined) },
+    {
+        method: 'watchProject',
+        name: 'project-watch',
+        subscribe: (service) => service.watchProject(
+            { branch: 'main', id: 'local', rootPath: 'C:/repo' },
+            () => undefined,
+            () => undefined,
+            () => undefined,
+        ),
+    },
+    { method: 'onWorktreesChanged', name: 'worktree', subscribe: (service) => service.onWorktreesChanged(() => undefined) },
+]
+
 async function flushPromises() {
     await Promise.resolve()
     await Promise.resolve()
@@ -85,6 +112,89 @@ describe('RemoteControlStorageService', () => {
 
         await expect(first).resolves.toEqual({ files: [], workingFolder: 'design' })
         await expect(second).resolves.toEqual([{ name: 'main' }])
+    })
+
+    it.each(persistentSubscriptionCases)('cleans retired $name subscriptions locally without reconnecting', async ({ method, subscribe }) => {
+        installWebSocket()
+        const service = createService()
+        const cleanup = subscribe(service)
+        const socket = lastSocket()
+        const unhandledRejections: unknown[] = []
+        const handleUnhandledRejection = (reason: unknown) => unhandledRejections.push(reason)
+
+        process.on('unhandledRejection', handleUnhandledRejection)
+        try {
+            socket.open()
+            await flushPromises()
+            const subscriptionRequest = JSON.parse(socket.sent[0]) as { id: string, method: string }
+            expect(subscriptionRequest.method).toBe(method)
+            socket.receive({ id: subscriptionRequest.id, result: { subscriptionId: `${method}-1` } })
+            await flushPromises()
+            service.retire()
+
+            cleanup()
+            cleanup()
+            await new Promise((resolve) => setTimeout(resolve, 0))
+
+            expect(socket.sent).toHaveLength(1)
+            expect(MockWebSocket.instances).toHaveLength(1)
+            expect(unhandledRejections).toEqual([])
+        } finally {
+            process.off('unhandledRejection', handleUnhandledRejection)
+        }
+    })
+
+    it.each(persistentSubscriptionCases)('sends one unsubscribe for repeated active $name cleanup', async ({ method, subscribe }) => {
+        installWebSocket()
+        const service = createService()
+        const cleanup = subscribe(service)
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const subscriptionRequest = JSON.parse(socket.sent[0]) as { id: string, method: string }
+        expect(subscriptionRequest.method).toBe(method)
+        socket.receive({ id: subscriptionRequest.id, result: { subscriptionId: `${method}-1` } })
+        await flushPromises()
+
+        cleanup()
+        cleanup()
+
+        expect(socket.sent).toHaveLength(2)
+        expect(JSON.parse(socket.sent[1])).toEqual(expect.objectContaining({
+            method: 'unsubscribe',
+            params: [`${method}-1`],
+        }))
+    })
+
+    it.each(persistentSubscriptionCases)('unsubscribes one active $name response received after cancellation', async ({ method, subscribe }) => {
+        installWebSocket()
+        const service = createService()
+        const cleanup = subscribe(service)
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const subscriptionRequest = JSON.parse(socket.sent[0]) as { id: string, method: string }
+        expect(subscriptionRequest.method).toBe(method)
+        cleanup()
+        cleanup()
+        socket.receive({ id: subscriptionRequest.id, result: { subscriptionId: `${method}-1` } })
+        await vi.waitFor(() => expect(socket.sent).toHaveLength(2))
+
+        expect(JSON.parse(socket.sent[1])).toEqual(expect.objectContaining({
+            method: 'unsubscribe',
+            params: [`${method}-1`],
+        }))
+    })
+
+    it('keeps normal requests through retired storage rejected without creating a socket', async () => {
+        installWebSocket()
+        const service = createService()
+        service.retire()
+
+        await expect(service.getActiveProject()).rejects.toThrow('Remote-control connection was replaced')
+        expect(MockWebSocket.instances).toEqual([])
     })
 
     it('loads and saves complete host desktop config through remote control', async () => {
