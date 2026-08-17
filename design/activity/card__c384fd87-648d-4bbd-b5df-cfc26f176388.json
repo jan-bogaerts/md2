@@ -2372,11 +2372,11 @@
         "agent-74e8dfcd-aa99-44c8-8071-8f0a7b200637"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-ecd67d93-dd70-4dfa-8dea-e33a86e78f4b",
       "origin": {
@@ -2385,9 +2385,57 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-74e8dfcd-aa99-44c8-8071-8f0a7b200637",
       "startedAt": "2026-08-17T15:15:20.003Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-74e8dfcd-aa99-44c8-8071-8f0a7b200637"
+    },
+    {
+      "commits": [
+        {
+          "commit": "b6d984d1353c7e10a9150c9fd20ba41bb9805a24",
+          "committedAt": "2026-08-17T17:51:00+02:00",
+          "deletions": 248,
+          "filePaths": [
+            "app/src/components/actions/conversation/action_conversation_link_navigation.node.test.ts",
+            "app/src/components/config/config_value_editor.test.tsx",
+            "app/src/components/config/config_value_editor.tsx",
+            "app/src/components/hooks/use_project_config.test.ts",
+            "app/src/components/hooks/use_project_config.ts",
+            "app/src/components/shell/menu/app_menu.tsx",
+            "app/src/components/shell/project/card_type_pill_group.tsx",
+            "app/src/components/shell/project/new_card_dialog.tsx",
+            "app/src/components/shell/project/new_card_dialog_attachment.test.tsx",
+            "app/src/components/shell/project/new_card_dialog_cancellation.test.tsx",
+            "app/src/components/shell/project/new_card_dialog_render.test.tsx",
+            "app/src/components/shell/project/new_card_markdown_editor.test.tsx",
+            "app/src/components/shell/project/new_card_markdown_editor.tsx",
+            "app/src/components/shell/project/project_dialogs.test.tsx",
+            "app/src/components/shell/project/use_project_toolbar_menu_actions.ts",
+            "app/src/components/shell/project_toolbar_menu.tsx",
+            "app/src/data/card_naming.node.test.ts",
+            "app/src/data/card_naming.ts",
+            "app/src/data/data_types.ts",
+            "app/src/services/config/config_entries.ts",
+            "app/src/services/config/config_service.test.ts",
+            "app/src/services/config/config_service.ts",
+            "app/src/services/data/card_operations.test.ts",
+            "app/src/services/data/card_operations.ts",
+            "app/src/services/remarkable/remarkable_import_service.node.test.ts",
+            "app/src/services/remarkable/remarkable_import_service.ts",
+            "design/usage_metrics.csv"
+          ],
+          "filesChanged": 27,
+          "insertions": 123,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-17T17:51:00+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "c384fd87-648d-4bbd-b5df-cfc26f176388",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
