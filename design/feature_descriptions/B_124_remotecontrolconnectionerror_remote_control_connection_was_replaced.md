@@ -12,7 +12,6 @@ sentryBaseUrl: https://sentry.io
 sentryIssueId: 140874744
 sentryOrganization: elastetic
 ---
-
 # Goal
 
 # Current status
@@ -45,13 +44,15 @@ sentryOrganization: elastetic
 
 ### Application stack frames
 
-- `/assets/index-BZ2bioMw.js:185:30313` — async EventTarget.reconnect
-- `/assets/index-BZ2bioMw.js:185:29241` — EventTarget.connectOnce
-- `/assets/index-BZ2bioMw.js:185:26841` — Object.replaceProjectStorage
-- `/assets/index-BZ2bioMw.js:182:5699` — e.replaceRemoteStorage
-- `/assets/index-BZ2bioMw.js:182:11752` — e.initializeStorageServices
-- `/assets/index-BZ2bioMw.js:180:424` — EventTarget.init
-- `/assets/index-BZ2bioMw.js:32:32676` — EventTarget.<anonymous>
-- `/assets/index-BZ2bioMw.js:32:36140` — Fm.request
-- `/assets/index-BZ2bioMw.js:32:36238` — Fm.sendRequest
-- `/assets/index-BZ2bioMw.js:32:36485` — Fm.ensureConnected
+* `/assets/index-BZ2bioMw.js:185:30313` — async EventTarget.reconnect
+* `/assets/index-BZ2bioMw.js:185:29241` — EventTarget.connectOnce
+* `/assets/index-BZ2bioMw.js:185:26841` — Object.replaceProjectStorage
+* `/assets/index-BZ2bioMw.js:182:5699` — e.replaceRemoteStorage
+* `/assets/index-BZ2bioMw.js:182:11752` — e.initializeStorageServices
+* `/assets/index-BZ2bioMw.js:180:424` — EventTarget.init
+* `/assets/index-BZ2bioMw.js:32:32676` — EventTarget.\<anonymous>
+* `/assets/index-BZ2bioMw.js:32:36140` — Fm.request
+* `/assets/index-BZ2bioMw.js:32:36238` — Fm.sendRequest
+* `/assets/index-BZ2bioMw.js:32:36485` — Fm.ensureConnected
+
+note: occurred in electron-react while another web browser was connected through websocket and change occured in web browser that triggered update in electron-react
