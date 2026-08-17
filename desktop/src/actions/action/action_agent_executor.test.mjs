@@ -117,6 +117,7 @@ describe('ActionAgentExecutor', () => {
     it('starts the first agent turn with its reserved conversation identity', async () => {
         const { agentRunnerService, executor } = createExecutor();
         const conversationReservation = {
+            activityPath: 'design/activity/card__card-1.json',
             conversationId: 'agent-reserved',
             reference: 'design/activity/card__card-1.json#conversation=agent-reserved',
         };

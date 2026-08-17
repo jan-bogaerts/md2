@@ -27,6 +27,12 @@ export async function loadAgentConversation(storage: StorageService, project: Pr
     return storage.loadAgentConversation(project, path)
 }
 
+export async function loadActivityConversations(storage: StorageService, project: ProjectReference, path: string) {
+    if (!storage.loadActivityConversations) throw new Error('Activity conversation loading requires a storage bridge')
+
+    return storage.loadActivityConversations(project, path)
+}
+
 export class AgentConversationService extends EventTarget {
     private runningAgents: RunningAgent[]
 

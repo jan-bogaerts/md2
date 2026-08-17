@@ -261,6 +261,19 @@ async function loadActivityConversation(project, reference) {
     return { ...conversation, path: reference };
 }
 
+async function loadActivityConversations(project, activityPath) {
+    if (typeof activityPath !== 'string' || activityPath.length === 0) throw new Error('Missing activity path');
+    const rootPath = requireRootPath(project);
+    await assertGitRoot(rootPath);
+    const absolutePath = ensureInsideRoot(rootPath, path.join(rootPath, activityPath));
+    const activity = await readActivityFile(absolutePath);
+
+    return activity.conversations.map((conversation) => ({
+        ...conversation,
+        path: conversationActivityReference(activityPath, conversation.id),
+    }));
+}
+
 async function closeWaitingActivityConversation(project, reference, status) {
     if (typeof reference !== 'string' || reference.length === 0) throw new Error('Missing agent conversation reference');
     if (status !== 'completed' && status !== 'cancelled') throw new Error(`Invalid waiting conversation terminal status: ${status}`);
@@ -370,6 +383,7 @@ module.exports = {
     closeWaitingActivityConversation,
     ensureActivityFile,
     listAgentConversationReferences,
+    loadActivityConversations,
     loadCardActivity,
     loadActivityConversation,
     readActivityFile,

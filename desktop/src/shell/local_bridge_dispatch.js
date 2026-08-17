@@ -135,6 +135,9 @@ function createLocalBridgeDispatch(dependencies) {
         loadAgentConversation: async (reference) => {
             return localGitService.loadAgentConversation(currentLocalProject, reference);
         },
+        loadActivityConversations: async (activityPath) => {
+            return localGitService.loadActivityConversations(currentLocalProject, activityPath);
+        },
         loadAgentAvailability: () => {
             const { agentProfiles } = readDesktopConfig(desktopConfigStore);
 

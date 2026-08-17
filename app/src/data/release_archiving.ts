@@ -4,8 +4,6 @@ import { markdownParsingService } from '../services/data/markdown_parsing_servic
 import {
     activityFilePath,
     cardActivityFileName,
-    conversationActivityReference,
-    parseConversationActivityReference,
 } from '../../../shared/activity_paths.mjs'
 import { normalizePath } from '../../../shared/path_utils.mjs'
 
@@ -85,18 +83,14 @@ function createMove(file: MarkdownFile, fromPath: string, toPath: string, encodi
 function releaseActivitySource(card: Card, projectFolder: string) {
     const cardInternalId = card.header.internalId
     if (!cardInternalId) throw new Error(`Cannot release a card without an internal ID: ${card.path}`)
+    if (card.header.agentLogReferences.length > 1) {
+        throw new Error(`Cannot release card with multiple activity files: ${card.path}`)
+    }
 
-    const sourcePath = activityFilePath(projectFolder, { cardInternalId, kind: 'card' })
-    const conversationIds = card.header.agentLogReferences.map((reference) => {
-        const parsed = parseConversationActivityReference(reference)
-        if (normalizePath(parsed.activityPath) !== normalizePath(sourcePath)) {
-            throw new Error(`Unexpected activity path for released card ${card.path}: ${parsed.activityPath}`)
-        }
+    const referencedPath = card.header.agentLogReferences[0] ?? null
+    const sourcePath = referencedPath ?? activityFilePath(projectFolder, { cardInternalId, kind: 'card' })
 
-        return parsed.conversationId
-    })
-
-    return { cardInternalId, conversationIds, sourcePath }
+    return { cardInternalId, referenced: referencedPath !== null, sourcePath }
 }
 
 export function findReleaseActivityPaths(
@@ -108,10 +102,10 @@ export function findReleaseActivityPaths(
     const activityPaths = new Set<string>()
 
     for (const card of releaseCards) {
-        const { conversationIds, sourcePath } = releaseActivitySource(card, projectFolder)
+        const { referenced, sourcePath } = releaseActivitySource(card, projectFolder)
         const normalizedSourcePath = normalizePath(sourcePath)
         const exists = repositoryPaths.has(normalizedSourcePath)
-        if (conversationIds.length > 0 && !exists) throw new Error(`Missing referenced activity log: ${sourcePath}`)
+        if (referenced && !exists) throw new Error(`Missing referenced activity log: ${sourcePath}`)
         if (exists) activityPaths.add(sourcePath)
     }
 
@@ -194,10 +188,10 @@ export function buildReleaseMoves(
     const rewrittenCardContentByPath = new Map<string, string>()
 
     for (const card of activeCards) {
-        const { cardInternalId, conversationIds, sourcePath } = releaseActivitySource(card, projectFolder)
+        const { cardInternalId, referenced, sourcePath } = releaseActivitySource(card, projectFolder)
         const normalizedSourcePath = normalizePath(sourcePath)
         const activityExists = repositoryPaths.has(normalizedSourcePath)
-        if (conversationIds.length > 0 && !activityExists) throw new Error(`Missing referenced activity log: ${sourcePath}`)
+        if (referenced && !activityExists) throw new Error(`Missing referenced activity log: ${sourcePath}`)
         if (!activityExists) continue
 
         const activityFile = activityFilesByPath.get(normalizedSourcePath)
@@ -211,15 +205,12 @@ export function buildReleaseMoves(
         targetPaths.add(normalizedActivityTargetPath)
         cardActivityMoves.set(normalizePath(card.path), createMove(activityFile, sourcePath, activityTargetPath))
 
-        if (conversationIds.length === 0) continue
-        const references = conversationIds.map((conversationId) => (
-            conversationActivityReference(activityTargetPath, conversationId)
-        ))
+        if (!referenced) continue
         const cardMove = moves.find((move) => normalizePath(move.fromPath) === normalizePath(card.path))
         if (!cardMove) throw new Error(`Cannot find release move for card: ${card.path}`)
         rewrittenCardContentByPath.set(
             normalizePath(card.path),
-            markdownParsingService.setAgentLogReferences(cardMove.content, references),
+            markdownParsingService.setAgentLogReferences(cardMove.content, [activityTargetPath]),
         )
     }
 

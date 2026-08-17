@@ -115,6 +115,7 @@ export function createStorage(overrides: Partial<StorageService> = {}): StorageS
         listTopLevelFolders: vi.fn(async () => [{ name: 'design', path: 'design' }]),
         loadActionFiles: vi.fn(async () => []),
         loadAgentConversation: vi.fn(async (_project, path) => conversation(path)),
+        loadActivityConversations: vi.fn(async (_project, path) => [conversation(`${path}#conversation=agent-1`)]),
         loadProject: vi.fn(async () => ({ files: storageFiles, workingFolder: 'design' })),
         loadProjectRoot: vi.fn(async () => ({ files: storageFiles, workingFolder: 'design' })),
         loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, projectFolder: '', pushMode: 'auto' as const, workingFolder: 'design' })),

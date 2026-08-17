@@ -651,6 +651,23 @@ describe('RemoteControlStorageService', () => {
         await expect(references).resolves.toEqual(['design/activity/project.json#conversation=conversation-1'])
     })
 
+    it('loads one activity file through remote control', async () => {
+        installWebSocket()
+        const service = createService()
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+        const path = 'design/activity/card__card-1.json'
+        const conversations = service.loadActivityConversations(project, path)
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const sentRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
+        expect(sentRequest).toMatchObject({ method: 'loadActivityConversations', params: [path] })
+        socket.receive({ id: sentRequest.id, result: [] })
+
+        await expect(conversations).resolves.toEqual([])
+    })
+
     it('rejects error responses', async () => {
         installWebSocket()
         const service = createService()
@@ -696,6 +713,7 @@ describe('RemoteControlStorageService', () => {
         const sentRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
         expect(sentRequest).toMatchObject({ method: 'reserveActionConversation', params: [actionRequest] })
         const reservation = {
+            activityPath: 'design/activity/card.json',
             conversationId: 'conversation-1',
             reference: 'design/activity/card.json#conversation=conversation-1',
         }

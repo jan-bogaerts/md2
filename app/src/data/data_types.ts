@@ -398,6 +398,7 @@ export interface StorageService {
     loadActionSchedules?(project: ProjectReference, actionsFolder: string): Promise<ActionSchedule[]>
     cancelActionSchedule?(project: ProjectReference, actionsFolder: string, scheduleId: string): Promise<ActionSchedule[]>
     loadAgentConversation?(project: ProjectReference, path: string): Promise<AgentConversation>
+    loadActivityConversations?(project: ProjectReference, path: string): Promise<AgentConversation[]>
     loadProjectAsset?(project: ProjectReference, path: string): Promise<ProjectAsset>
     loadTextFile?(project: ProjectReference, path: string): Promise<MarkdownFile>
     loadProject(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>

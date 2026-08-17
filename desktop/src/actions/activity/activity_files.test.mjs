@@ -12,6 +12,7 @@ const {
     ensureActivityFile,
     listAgentConversationReferences,
     loadActivityConversation,
+    loadActivityConversations,
     readActivityFile,
     upsertActivityConversation,
     updateCardActionSettings,
@@ -54,6 +55,43 @@ describe('project activity conversations', () => {
 
             expect(JSON.parse(firstContent)).toEqual({ actionSettings: {}, conversations: [], origin, records: [], version: 4 });
             expect(await readFile(filePath, 'utf8')).toBe(firstContent);
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('loads an empty activity file and all later conversations in stored order', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-activity-load-file-'));
+        const project = { branch: 'main', id: 'local', rootPath };
+        const origin = { cardInternalId: 'card-1', kind: 'card' };
+        try {
+            await mkdir(join(rootPath, '.git'));
+            const activityPath = await ensureActivityFile(project, 'design', origin);
+            await expect(loadActivityConversations(project, activityPath)).resolves.toEqual([]);
+            const first = { ...waitingConversation(), cardInternalId: 'card-1', id: 'conversation-1' };
+            const second = { ...waitingConversation(), cardInternalId: 'card-1', id: 'conversation-2' };
+            await upsertActivityConversation(project, 'design', origin, first);
+            await upsertActivityConversation(project, 'design', origin, second);
+
+            const loaded = await loadActivityConversations(project, activityPath);
+
+            expect(loaded.map(({ id }) => id)).toEqual(['conversation-1', 'conversation-2']);
+            expect(loaded.map(({ path }) => path)).toEqual([
+                `${activityPath}#conversation=conversation-1`,
+                `${activityPath}#conversation=conversation-2`,
+            ]);
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('rejects unsafe activity-file paths', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-activity-unsafe-'));
+        const project = { branch: 'main', id: 'local', rootPath };
+        try {
+            await mkdir(join(rootPath, '.git'));
+
+            await expect(loadActivityConversations(project, '../outside.json')).rejects.toThrow('escapes project root');
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }

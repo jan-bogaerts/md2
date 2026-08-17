@@ -28,6 +28,7 @@ import {
 } from './card_mutations'
 import { buildSentryIssueMarkdown } from '../sentry/sentry_issue_markdown'
 import { normalizeSentryBaseUrl, sentryIdentityKey, type SentryIssueImport } from '../sentry/sentry_types'
+import { activityPathForCardReference } from '../agents/agent_reference_migration'
 
 export type { CardOperationsDeps }
 
@@ -239,10 +240,11 @@ export class CardOperations {
     }
 
     addAgentLogReference(path: string, reference: string) {
+        const activityPath = activityPathForCardReference(reference)
         const card = this.context.dependencies.requireCard(path)
-        if (card.header.agentLogReferences.includes(reference)) return card.header.internalId
+        if (card.header.agentLogReferences.includes(activityPath)) return card.header.internalId
 
-        const references = [...new Set([...card.header.agentLogReferences, reference])]
+        const references = [...new Set([...card.header.agentLogReferences, activityPath])]
         this.context.saveCardChange(path, (currentCard) => setCardAgentLogReferences(currentCard, references))
 
         return card.header.internalId

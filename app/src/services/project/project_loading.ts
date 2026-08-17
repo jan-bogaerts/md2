@@ -120,6 +120,7 @@ export interface ProjectLoadingDeps {
     matchesCurrentContent(path: string, content: string): boolean
     isCurrentLoad(project: ProjectReference, projectLoadToken: number): boolean
     mergeBackgroundProjectFiles(files: MarkdownFile[], workingFolder: string, repositoryFiles: string[]): void
+    migrateAgentLogReferences(): Promise<void>
     markFullProjectLoaded(): void
     project(): ProjectReference | null
     replaceFiles(files: MarkdownFile[], workingFolder: string): void
@@ -215,6 +216,7 @@ export class ProjectLoading {
             const repositoryFiles: string[] = []
             this.dependencies.replaceProjectFiles(projectFiles.files, config.workingFolder, repositoryFiles)
             await this.ensureCardInternalIds()
+            await this.dependencies.migrateAgentLogReferences()
             this.tryStartProjectWatch()
             const currentSnapshot = this.dependencies.snapshot()
             if (!currentSnapshot) throw new Error('Project snapshot was not created')
@@ -338,6 +340,7 @@ export class ProjectLoading {
         const repositoryFiles = await storage.listRepositoryFiles(currentProject)
         this.dependencies.replaceProjectFiles(projectFiles.files, config.workingFolder, repositoryFiles)
         await this.ensureCardInternalIds()
+        await this.dependencies.migrateAgentLogReferences()
         this.dependencies.markFullProjectLoaded()
         this.dependencies.dispatchChanged()
         return this.dependencies.snapshot()
@@ -561,6 +564,7 @@ export class ProjectLoading {
 
         this.dependencies.mergeBackgroundProjectFiles(nextFiles, workingFolder, repositoryFiles)
         await this.ensureCardInternalIds()
+        await this.dependencies.migrateAgentLogReferences()
         if (projectFilesLoaded) this.dependencies.markFullProjectLoaded()
         this.dependencies.dispatchChanged()
     }
@@ -789,6 +793,7 @@ export class ProjectLoading {
         const deletedPaths = currentFiles.filter((file) => !importedPaths.has(file.path)).map((file) => file.path)
         this.dependencies.updateFiles(changedFiles, deletedPaths, config.workingFolder)
         await this.ensureCardInternalIds()
+        await this.dependencies.migrateAgentLogReferences()
         this.dependencies.dispatchChanged()
     }
 

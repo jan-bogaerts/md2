@@ -34,6 +34,7 @@ export interface PreparedActionPrompt {
 }
 
 export interface AgentConversationReservation {
+    activityPath: string
     conversationId: string
     reference: string
 }

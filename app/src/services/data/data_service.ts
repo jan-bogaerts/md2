@@ -8,6 +8,7 @@ import { resolveProjectConfigPaths, type MarkdownFile, type ProjectConfig, type 
 import type { RemarkableBridge } from '../../data/remarkable_bridge'
 import { agentAcknowledgementService } from '../agents/agent_acknowledgement_service'
 import { agentConversationService, loadAgentConversation } from '../agents/agent_conversation_service'
+import { planAgentReferenceMigration } from '../agents/agent_reference_migration'
 import { CardOperations, type CardOperationsDeps } from './card_operations'
 import { configService } from '../config/config_service'
 import { type DataServiceDependencies, getProjectConfigOrNull, reportCommitFlushFailure } from './data_service_context'
@@ -137,6 +138,7 @@ export class DataService extends EventTarget {
     private remarkableBridge: RemarkableBridge | null = null
     private storage: StorageService | null = null
     private fullProjectLoaded = false
+    private readonly reportedAgentReferenceMigrationConflicts: Set<string> = new Set()
     private readonly projectState: ProjectState
     private readonly saveStateService: SaveStateService
     private persistenceSnapshot: DataPersistenceSnapshot = { hasPendingFileCommit: false, hasPendingPush: false, isSaving: false }
@@ -391,6 +393,7 @@ export class DataService extends EventTarget {
             markFullProjectLoaded: () => {
                 this.fullProjectLoaded = true
             },
+            migrateAgentLogReferences: () => this.migrateAgentLogReferences(),
             project: () => this.projectState.project,
             replaceFiles: (files, workingFolder) => this.projectState.replaceFiles(files, workingFolder),
             replaceProject: (project) => this.projectState.replaceProject(project),
@@ -425,6 +428,37 @@ export class DataService extends EventTarget {
     private refreshSnapshot(workingFolder: string) {
         this.projectState.refreshSnapshot(workingFolder)
         this.dispatchChanged()
+    }
+    private async migrateAgentLogReferences() {
+        const snapshot = this.projectState.snapshot
+        if (!snapshot) return
+
+        const cards = [...snapshot.activeCards, ...snapshot.backgroundCards]
+        const { conflicts, plans } = planAgentReferenceMigration(cards)
+        const project = this.projectState.project
+        const newConflicts = conflicts.filter(({ cardPath, message }) => {
+            const key = `${project?.id}:${project?.branch}:${cardPath}:${message}`
+            if (this.reportedAgentReferenceMigrationConflicts.has(key)) return false
+
+            this.reportedAgentReferenceMigrationConflicts.add(key)
+
+            return true
+        })
+        if (newConflicts.length > 0) {
+            const details = newConflicts.map(({ cardPath, message }) => `${cardPath}: ${message}`).join('\n')
+            dialogService.warning(details, { title: 'Some card activity references were not migrated' })
+        }
+        if (plans.length === 0) return
+
+        const resumeAutomaticCommit = this.cards.deferAutomaticCommit()
+        try {
+            for (const { cardPath, references } of plans) {
+                this.cards.setAgentLogReferences(cardPath, references, 'Migrate card activity references')
+            }
+        } finally {
+            resumeAutomaticCommit()
+        }
+        await this.cards.flushPendingCommits()
     }
     private initializeStorageServices() {
         if (!this.storage) throw new Error('Data service storage is not initialized')

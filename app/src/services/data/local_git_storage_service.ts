@@ -128,6 +128,13 @@ export class LocalGitStorageService implements StorageService {
         return bridge.loadAgentConversation(path)
     }
 
+    async loadActivityConversations(_project: ProjectReference, path: string): Promise<AgentConversation[]> {
+        const bridge = this.requireBridge()
+        if (!bridge.loadActivityConversations) throw new Error('Electron local Git bridge cannot load activity conversations')
+
+        return bridge.loadActivityConversations(path)
+    }
+
     async stopAgent(_project: ProjectReference, runId: string): Promise<void> {
         const bridge = this.requireBridge()
         if (!bridge.stopAgent) throw new Error('Electron local Git bridge cannot stop agents')

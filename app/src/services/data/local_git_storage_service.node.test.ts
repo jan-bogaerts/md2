@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { ElectronDataBridge } from '../../data/electron_data_bridge'
-import type { CommitRequest, DeleteFileRequest, DeleteFolderRequest } from '../../data/data_types'
+import type { AgentConversation, CommitRequest, DeleteFileRequest, DeleteFolderRequest } from '../../data/data_types'
 import { LocalGitStorageService } from './local_git_storage_service'
 
 function createBridge(overrides: Partial<ElectronDataBridge> = {}): ElectronDataBridge {
@@ -316,6 +316,18 @@ describe('LocalGitStorageService binary write path', () => {
 
         await expect(service.listAgentConversationReferences(project, 'design')).resolves.toEqual(references)
         expect(listAgentConversationReferences).toHaveBeenCalledWith(project, 'design')
+    })
+
+    it('forwards activity-file conversation loading to the bridge', async () => {
+        const conversations: AgentConversation[] = []
+        const loadActivityConversations = vi.fn().mockResolvedValue(conversations)
+        const service = new LocalGitStorageService()
+        service.init({ bridge: createBridge({ loadActivityConversations }) })
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+        const path = 'design/activity/card__card-1.json'
+
+        await expect(service.loadActivityConversations(project, path)).resolves.toEqual(conversations)
+        expect(loadActivityConversations).toHaveBeenCalledWith(path)
     })
 
     it('forwards project asset reads to the bridge unchanged', async () => {

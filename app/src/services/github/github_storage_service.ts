@@ -75,6 +75,10 @@ export class GithubStorageService implements StorageService {
         return this.loader.loadAgentConversation(project, path)
     }
 
+    async loadActivityConversations(project: ProjectReference, path: string) {
+        return this.loader.loadActivityConversations(project, path)
+    }
+
     async loadProjectAsset(project: ProjectReference, path: string) {
         return this.loader.loadProjectAsset(project, path)
     }

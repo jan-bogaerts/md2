@@ -101,6 +101,7 @@ describe('ActionRunnerService', () => {
             'design',
             { cardInternalId: context.cardInternalId, kind: 'card' },
         );
+        expect(reservation.activityPath).toBe('design/activity/card__card-010.json');
         expect(reservation.reference).toBe(`design/activity/card__card-010.json#conversation=${reservation.conversationId}`);
     });
 

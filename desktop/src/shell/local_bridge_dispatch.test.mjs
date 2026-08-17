@@ -55,6 +55,7 @@ function createDispatch(options = {}) {
         createProject: vi.fn(async (project) => project),
         hasPendingPush: vi.fn(async () => false),
         listAgentConversationReferences: vi.fn(async () => ['design/activity/project.json#conversation=conversation-1']),
+        loadActivityConversations: vi.fn(async () => []),
         loadFile: vi.fn(async () => ({ content: '# Root', path: 'design/F-1.md' })),
         loadActionFiles: vi.fn(async () => options.actionFiles ?? [{
             content: JSON.stringify({
@@ -737,6 +738,14 @@ describe('createLocalBridgeDispatch', () => {
             'design/activity/project.json#conversation=conversation-1',
         ]);
         expect(localGitService.listAgentConversationReferences).toHaveBeenCalledWith(project, 'design');
+    });
+
+    it('forwards activity-file conversation loading through the data bridge', async () => {
+        const { dispatch, localGitService } = createDispatch();
+        const path = 'design/activity/card__card-1.json';
+
+        await expect(dispatch.dataBridge.loadActivityConversations(path)).resolves.toEqual([]);
+        expect(localGitService.loadActivityConversations).toHaveBeenCalledWith(null, path);
     });
 
     it('forwards project asset reads through the data bridge', async () => {

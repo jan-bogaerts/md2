@@ -310,6 +310,10 @@ export class RemoteControlStorageService implements
         return this.request<AgentConversation>('loadAgentConversation', [path])
     }
 
+    async loadActivityConversations(_project: ProjectReference, path: string): Promise<AgentConversation[]> {
+        return this.request<AgentConversation[]>('loadActivityConversations', [path])
+    }
+
     async listAgentConversationReferences(project: ProjectReference, projectFolder: string): Promise<string[]> {
         return this.request<string[]>('listAgentConversationReferences', [project, projectFolder])
     }

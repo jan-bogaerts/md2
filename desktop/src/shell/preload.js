@@ -45,6 +45,7 @@ const DATA_METHODS = [
     'loadActionSchedules',
     'loadAgentAvailability',
     'loadAgentConversation',
+    'loadActivityConversations',
     'loadFile',
     'loadProject',
     'loadProjectAsset',

@@ -705,7 +705,8 @@ describe('CardOperations', () => {
         expect(commit).toHaveBeenCalledOnce()
         const persisted = commit.mock.calls[0][0].files[0].content
         expect(persisted).toContain('status: doing')
-        expect(persisted).toContain(`  - ${reference}`)
+        expect(persisted).toContain('  - design/activity/card__a.json')
+        expect(persisted).not.toContain('#conversation=')
     })
 
     it('serializes combined latest card state after a change during an in-flight commit', async () => {

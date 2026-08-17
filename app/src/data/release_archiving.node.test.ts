@@ -187,20 +187,16 @@ describe('buildReleaseMoves', () => {
         expect(() => buildReleaseMoves([], [], 'design', 'outside', 'v1')).toThrow('must stay inside the project folder')
     })
 
-    it('moves one activity log and rewrites every conversation reference in order', () => {
+    it('moves one referenced activity log and rewrites its file reference', () => {
         const activityContent = createActivityContent(['conversation-1', 'conversation-2'])
-        const source = card('design/F-1-card.md', [
-            `${activityPath}#conversation=conversation-1`,
-            `${activityPath}#conversation=conversation-2`,
-        ])
+        const source = card('design/F-1-card.md', [activityPath])
         const files: MarkdownFile[] = [{
             content: [
                 '---',
                 'id: F-1',
                 'internalId: card-1',
                 'agents:',
-                `  - ${activityPath}#conversation=conversation-1`,
-                `  - ${activityPath}#conversation=conversation-2`,
+                `  - ${activityPath}`,
                 '---',
                 '# Card',
             ].join('\n'),
@@ -218,8 +214,8 @@ describe('buildReleaseMoves', () => {
         )
 
         expect(moves).toHaveLength(2)
-        expect(moves[0].content).toContain('  - design/releases/v1/card__card-1.json#conversation=conversation-1')
-        expect(moves[0].content).toContain('  - design/releases/v1/card__card-1.json#conversation=conversation-2')
+        expect(moves[0].content).toContain('  - design/releases/v1/card__card-1.json')
+        expect(moves[0].content).not.toContain('#conversation=')
         expect(moves[1]).toEqual({
             content: activityContent,
             fromPath: activityPath,
@@ -228,24 +224,27 @@ describe('buildReleaseMoves', () => {
         })
     })
 
-    it('rejects a referenced activity path outside the canonical card log', () => {
+    it('moves a manually referenced activity path without enforcing stored ownership', () => {
         const activityContent = createActivityContent(['conversation-1'])
-        const source = card('design/F-1-card.md', ['design/activity/project.json#conversation=conversation-1'])
+        const manualPath = 'design/activity/project.json'
+        const source = card('design/F-1-card.md', [manualPath])
         const files: MarkdownFile[] = [{ content: '# Card', path: source.path }]
 
-        expect(() => buildReleaseMoves(
+        const moves = buildReleaseMoves(
             files,
             [source],
             'design',
             'design/releases',
             'v1',
-            [source.path, activityPath],
-            [{ content: activityContent, path: activityPath }],
-        )).toThrow('Unexpected activity path')
+            [source.path, manualPath],
+            [{ content: activityContent, path: manualPath }],
+        )
+
+        expect(moves[1].fromPath).toBe(manualPath)
     })
 
     it('rejects a missing referenced activity log', () => {
-        const source = card('design/F-1-card.md', [`${activityPath}#conversation=conversation-1`])
+        const source = card('design/F-1-card.md', [activityPath])
 
         expect(() => buildReleaseMoves(
             [{ content: '# Card', path: source.path }],
@@ -297,13 +296,13 @@ describe('buildReleaseMoves', () => {
     })
 
     it('rewrites references without validating conversations in the activity log', () => {
-        const source = card('design/F-1-card.md', [`${activityPath}#conversation=conversation-1`])
+        const source = card('design/F-1-card.md', [activityPath])
         const cardContent = [
             '---',
             'id: F-1',
             'internalId: card-1',
             'agents:',
-            `  - ${activityPath}#conversation=conversation-1`,
+            `  - ${activityPath}`,
             '---',
             '# Card',
         ].join('\n')
@@ -318,6 +317,7 @@ describe('buildReleaseMoves', () => {
             [{ content: createActivityContent(), path: activityPath }],
         )
 
-        expect(moves[0].content).toContain('design/releases/v1/card__card-1.json#conversation=conversation-1')
+        expect(moves[0].content).toContain('design/releases/v1/card__card-1.json')
+        expect(moves[0].content).not.toContain('#conversation=')
     })
 })

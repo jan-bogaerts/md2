@@ -154,13 +154,12 @@ describe('ProjectLoading', () => {
         configService.init()
         const activityPath = 'design/activity/card__root-card.json'
         const validReference = `${activityPath}#conversation=agent-1`
-        const missingReference = `${activityPath}#conversation=missing`
         const rootFile: MarkdownFile = {
-            content: `---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - ${validReference}\n  - ${missingReference}\n---\n`,
+            content: `---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - ${activityPath}\n---\n`,
             path: 'design/F-1-root.md',
         }
         const otherFile: MarkdownFile = {
-            content: `---\nid: F-2\ninternalId: other-card\ntitle: Other\nstatus: active\nagents:\n  - ${validReference}\n---\n`,
+            content: `---\nid: F-2\ninternalId: other-card\ntitle: Other\nstatus: active\nagents:\n  - ${activityPath}\n---\n`,
             path: 'design/F-2-other.md',
         }
         const repairedConversation = { ...conversation(validReference), actionId: 'implement' }
@@ -182,10 +181,91 @@ describe('ProjectLoading', () => {
         expect(storage.commit).not.toHaveBeenCalled()
         expect(loadTextFile).not.toHaveBeenCalled()
         expect(storage.loadAgentConversation).not.toHaveBeenCalled()
-        expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual([validReference, missingReference])
+        expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual([activityPath])
         expect(service.getState().snapshot?.activeCards[0].agentConversations).toEqual([])
-        expect(service.getState().snapshot?.activeCards[1].header.agentLogReferences).toEqual([validReference])
+        expect(service.getState().snapshot?.activeCards[1].header.agentLogReferences).toEqual([activityPath])
         expect(repairedConversation.actionId).toBe('implement')
+    })
+
+    it('migrates card conversation references in one batched save', async () => {
+        configService.init()
+        const activityPath = 'design/activity/card__shared.json'
+        const firstFile: MarkdownFile = {
+            content: `---\nid: F-1\ninternalId: card-1\ntitle: First\nstatus: active\nagents:\n  - ${activityPath}#conversation=agent-1\n  - ${activityPath}#conversation=agent-2\n---\n`,
+            path: 'design/F-1-first.md',
+        }
+        const secondFile: MarkdownFile = {
+            content: `---\nid: F-2\ninternalId: card-2\ntitle: Second\nstatus: active\nagents:\n  - ${activityPath}#conversation=agent-3\n---\n`,
+            path: 'design/F-2-second.md',
+        }
+        const commit = vi.fn(async (request: CommitRequest) => request.files.filter(() => false))
+        const storage = createStorage({
+            commit,
+            loadProject: vi.fn(async () => ({ files: [firstFile, secondFile], workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [firstFile, secondFile], workingFolder: 'design' })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        expect(commit).toHaveBeenCalledOnce()
+        const migrationCommit = commit.mock.calls[0]?.[0]
+        expect(migrationCommit?.files).toHaveLength(2)
+        expect(migrationCommit?.files.every(({ content }) => !content.includes('#conversation='))).toBe(true)
+        expect(service.getState().snapshot?.activeCards.map(({ header }) => header.agentLogReferences))
+            .toEqual([[activityPath], [activityPath]])
+    })
+
+    it('keeps a failed reference migration pending for retry', async () => {
+        configService.init()
+        const activityPath = 'design/activity/card__card-1.json'
+        const cardFile: MarkdownFile = {
+            content: `---\nid: F-1\ninternalId: card-1\ntitle: Card\nstatus: active\nagents:\n  - ${activityPath}#conversation=agent-1\n---\n`,
+            path: 'design/F-1-card.md',
+        }
+        const failure = new Error('Migration commit failed')
+        const storage = createStorage({
+            commit: vi.fn(async () => {
+                throw failure
+            }),
+            loadProject: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+
+        await expect(service.projectLoading.openProject({ branch: 'main', id: 'project' })).rejects.toBe(failure)
+
+        expect(service.getPersistenceSnapshot().hasPendingFileCommit).toBe(true)
+    })
+
+    it('reports conflicting activity paths without changing or saving the card', async () => {
+        configService.init()
+        const firstReference = 'design/activity/card__first.json#conversation=agent-1'
+        const secondReference = 'design/activity/card__second.json#conversation=agent-2'
+        const cardFile: MarkdownFile = {
+            content: `---\nid: F-1\ninternalId: card-1\ntitle: Card\nstatus: active\nagents:\n  - ${firstReference}\n  - ${secondReference}\n---\n`,
+            path: 'design/F-1-card.md',
+        }
+        const warnings = recordDialogMessages('warning')
+        const storage = createStorage({
+            loadProject: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
+        })
+        const service = createDataService()
+        try {
+            service.init({ storage })
+
+            await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+            expect(storage.commit).not.toHaveBeenCalled()
+            expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences)
+                .toEqual([firstReference, secondReference])
+            expect(warnings.messages.some((message) => message.includes('multiple activity files'))).toBe(true)
+        } finally {
+            warnings.stop()
+        }
     })
 
     it('does not inspect clean activity during project load', async () => {
@@ -193,7 +273,7 @@ describe('ProjectLoading', () => {
         const activityPath = 'design/activity/card__root-card.json'
         const reference = `${activityPath}#conversation=agent-1`
         const rootFile: MarkdownFile = {
-            content: `---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - ${reference}\n---\n`,
+            content: `---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - ${activityPath}\n---\n`,
             path: 'design/F-1-root.md',
         }
         const sourceConversation = conversation(reference)
@@ -253,9 +333,8 @@ describe('ProjectLoading', () => {
     it('does not parse or repair malformed history when reopening a project', async () => {
         configService.init()
         const activityPath = 'design/activity/card__root-card.json'
-        const reference = `${activityPath}#conversation=missing`
         let storedCard: MarkdownFile = {
-            content: `---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - ${reference}\n---\n`,
+            content: `---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - ${activityPath}\n---\n`,
             path: 'design/F-1-root.md',
         }
         let storedActivity: MarkdownFile = { content: '{broken', path: activityPath }
@@ -316,9 +395,8 @@ describe('ProjectLoading', () => {
         configService.init()
         const activityPath = 'design/activity/card__root-card.json'
         const validReference = `${activityPath}#conversation=agent-1`
-        const missingReference = `${activityPath}#conversation=missing`
         const rootFile: MarkdownFile = {
-            content: `---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - ${validReference}\n  - ${missingReference}\n---\n`,
+            content: `---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - ${activityPath}\n---\n`,
             path: 'design/F-1-root.md',
         }
         const sourceConversation = { ...conversation(validReference), actionId: null }
@@ -353,7 +431,7 @@ describe('ProjectLoading', () => {
             expect(commit).not.toHaveBeenCalled()
             expect(captureError).not.toHaveBeenCalled()
             expect(service.getPersistenceSnapshot().hasPendingFileCommit).toBe(false)
-            expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual([validReference, missingReference])
+            expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual([activityPath])
             expect(sourceConversation.actionId).toBeNull()
             expect(repairError.message).toBe('Git commit failed')
             expect(commitShouldFail).toBe(true)
@@ -689,12 +767,13 @@ describe('ProjectLoading', () => {
         const mergedCard = service.getState().snapshot?.activeCards[0]
         expect(mergedCard).toBe(ownedCard)
         expect(mergedCard?.header.status).toBe('ready')
-        expect(mergedCard?.header.agentLogReferences).toEqual([reference])
+        expect(mergedCard?.header.agentLogReferences).toEqual(['design/activity/card__root-card.json'])
 
         await service.cards.flushPendingCommits()
         const persisted = commit.mock.calls.at(-1)?.[0].files.find(({ path }) => path === ownedCard.path)
         expect(persisted?.content).toContain('status: ready')
-        expect(persisted?.content).toContain(`  - ${reference}`)
+        expect(persisted?.content).toContain('  - design/activity/card__root-card.json')
+        expect(persisted?.content).not.toContain('#conversation=')
     })
 
     it('reports background project load failures while keeping the root snapshot available', async () => {

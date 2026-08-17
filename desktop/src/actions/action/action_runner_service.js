@@ -185,9 +185,9 @@ class ActionRunnerService {
         const origin = activityOrigin(startRequest.context);
         const project = { ...this.project };
         const conversationId = `agent-${crypto.randomUUID()}`;
+        const activityPath = await this.localGitService.ensureActivityFile(project, this.projectFolder, origin);
         const reference = this.localGitService.activityConversationReference(this.projectFolder, origin, conversationId);
-        await this.localGitService.ensureActivityFile(project, this.projectFolder, origin);
-        const reservation = { conversationId, reference };
+        const reservation = { activityPath, conversationId, reference };
         this.conversationReservations.set(reference, reservation);
 
         return reservation;
@@ -198,7 +198,11 @@ class ActionRunnerService {
         if (!reservation) return null;
         if (rootAction.type !== 'agent') throw new Error('Command action cannot use an agent conversation reservation');
         const stored = this.conversationReservations.get(reservation.reference);
-        if (!stored || stored.conversationId !== reservation.conversationId) {
+        if (
+            !stored
+            || stored.activityPath !== reservation.activityPath
+            || stored.conversationId !== reservation.conversationId
+        ) {
             throw new Error('Unknown agent conversation reservation');
         }
         this.conversationReservations.delete(reservation.reference);
