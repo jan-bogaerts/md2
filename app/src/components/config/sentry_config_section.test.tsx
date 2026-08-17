@@ -39,6 +39,7 @@ describe('SentryConfigSection', () => {
         render(<SentryConfigSection />)
 
         expect(screen.getByLabelText('Sentry API token')).toHaveAttribute('type', 'password')
+        expect(screen.getByText('Requires event:read access.')).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Connect' })).toBeDisabled()
 
         fireEvent.change(screen.getByLabelText('Organization slug'), { target: { value: 'acme' } })
@@ -82,6 +83,7 @@ describe('SentryConfigSection', () => {
         expect(screen.getByLabelText('Sentry API token')).toHaveValue('token')
         expect(screen.getByLabelText('Target card type')).toHaveTextContent('Bug')
         expect(screen.getByLabelText('Target card state')).toHaveTextContent('to fix')
+        expect(screen.getByRole('button', { name: 'Connect' })).toBeEnabled()
     })
 
     it('enables automatic and manual imports only for a complete connected project', async () => {

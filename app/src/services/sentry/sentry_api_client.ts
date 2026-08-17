@@ -132,12 +132,28 @@ function nextPageUrl(linkHeader: string | null) {
     return nextLink?.match(/<([^>]+)>/u)?.[1] ?? null
 }
 
-function projectUrl(request: SentryApiRequest) {
+async function responseErrorDetail(response: Response) {
+    const body = await response.text()
+    if (!body) return null
+
+    try {
+        const parsed: unknown = JSON.parse(body)
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null
+        const error = parsed as Record<string, unknown>
+
+        return optionalString(error.detail) ?? optionalString(error.error)
+    } catch {
+        return null
+    }
+}
+
+function organizationIssuesUrl(request: SentryApiRequest) {
     const baseUrl = normalizeSentryBaseUrl(request.apiBaseUrl)
     const organization = encodeURIComponent(request.organization)
-    const project = encodeURIComponent(request.project)
+    const url = new URL(`${baseUrl}/api/0/organizations/${organization}/issues/`)
+    url.searchParams.set('project', request.project)
 
-    return `${baseUrl}/api/0/projects/${organization}/${project}`
+    return url
 }
 
 function electronFetchRequest(): typeof fetch | null {
@@ -170,14 +186,16 @@ export class SentryApiClient {
     }
 
     async validateProject(request: SentryApiRequest) {
-        const url = `${projectUrl(request)}/`
-        await this.requestJson(url, request.apiToken)
+        const url = organizationIssuesUrl(request)
+        url.searchParams.set('limit', '1')
+        await this.requestJson(url.toString(), request.apiToken)
     }
 
     async listUnresolvedIssues(request: SentryApiRequest) {
-        const url = new URL(`${projectUrl(request)}/issues/`)
+        const url = organizationIssuesUrl(request)
+        url.searchParams.set('environment', request.environment)
         url.searchParams.set('limit', '100')
-        url.searchParams.set('query', `is:unresolved environment:"${request.environment.replace(/"/gu, '\\"')}"`)
+        url.searchParams.set('query', 'is:unresolved')
         const issues: SentryIssueSummary[] = []
         let pageUrl: string | null = url.toString()
 
@@ -219,7 +237,9 @@ export class SentryApiClient {
 
         const retryAfter = response.headers.get('Retry-After')
         const retryMessage = retryAfter ? ` Retry after ${retryAfter} seconds.` : ''
-        throw new SentryApiError(`Sentry request failed with status ${response.status}.${retryMessage}`, response.status)
+        const detail = await responseErrorDetail(response)
+        const detailMessage = detail ? `: ${detail}` : ''
+        throw new SentryApiError(`Sentry request failed with status ${response.status}${detailMessage}.${retryMessage}`, response.status)
     }
 }
 

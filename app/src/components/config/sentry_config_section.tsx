@@ -84,7 +84,15 @@ function SentryConfigForm({ connection }: SentryConfigFormProps) {
                 <TextField disabled={controlsDisabled} label="Organization slug" onChange={updateTextField('organization')} size="small" value={draft.organization} />
                 <TextField disabled={controlsDisabled} label="Project slug" onChange={updateTextField('project')} size="small" value={draft.project} />
                 <TextField disabled={controlsDisabled} label="Environment" onChange={updateTextField('environment')} size="small" value={draft.environment} />
-                <TextField disabled={controlsDisabled} label="Sentry API token" onChange={updateTextField('apiToken')} size="small" type="password" value={draft.apiToken} />
+                <TextField
+                    disabled={controlsDisabled}
+                    helperText="Requires event:read access."
+                    label="Sentry API token"
+                    onChange={updateTextField('apiToken')}
+                    size="small"
+                    type="password"
+                    value={draft.apiToken}
+                />
                 <FormControl disabled={controlsDisabled} size="small">
                     <InputLabel id="sentry-card-type-label">Target card type</InputLabel>
                     <Select label="Target card type" labelId="sentry-card-type-label" onChange={handleCardTypeChange} value={draft.cardType}>

@@ -28,6 +28,8 @@ function errorMessage(error: unknown) {
     return error instanceof Error ? error.message : 'Unexpected Sentry connection error'
 }
 
+const SENTRY_FORBIDDEN_MESSAGE = 'Sentry denied access. Confirm token has event:read access to configured organization and project.'
+
 function readConnections(storage: Pick<Storage, 'getItem'>): StoredConnections {
     const stored = storage.getItem(SENTRY_CONNECTION_STORAGE_KEY)
     if (!stored) return {}
@@ -118,8 +120,12 @@ export class SentryConnectionService extends EventTarget {
             })
         } catch (error) {
             if (projectId !== this.projectId) return
-            if (error instanceof SentryApiError && (error.status === 401 || error.status === 403)) {
+            if (error instanceof SentryApiError && error.status === 401) {
                 this.handleUnauthorized()
+                return
+            }
+            if (error instanceof SentryApiError && error.status === 403) {
+                this.setSnapshot({ errorMessage: SENTRY_FORBIDDEN_MESSAGE, isConnecting: false })
                 return
             }
             this.setSnapshot({
@@ -163,7 +169,13 @@ export class SentryConnectionService extends EventTarget {
     }
 
     handleApiError(error: unknown) {
-        if (error instanceof SentryApiError && (error.status === 401 || error.status === 403)) this.handleUnauthorized()
+        if (error instanceof SentryApiError && error.status === 401) this.handleUnauthorized()
+        if (error instanceof SentryApiError && error.status === 403) {
+            const projectId = this.requireProjectId()
+            const settings = { ...this.snapshot.settings, automaticImport: false }
+            this.writeProjectSettings(projectId, settings)
+            this.setSnapshot({ errorMessage: SENTRY_FORBIDDEN_MESSAGE, isAuthenticated: false, isConnecting: false, settings })
+        }
     }
 
     private readProjectSettings(projectId: string) {

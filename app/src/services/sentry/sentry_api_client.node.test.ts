@@ -24,7 +24,7 @@ describe('SentryApiClient', () => {
 
         expect(requestBridge).toHaveBeenCalledWith({
             apiToken: 'secret-token',
-            url: 'https://sentry.example.com/api/0/projects/acme/frontend/',
+            url: 'https://sentry.example.com/api/0/organizations/acme/issues/?project=frontend&limit=1',
         })
     })
 
@@ -40,7 +40,7 @@ describe('SentryApiClient', () => {
         await client.validateProject(request)
 
         expect(fetchRequest).toHaveBeenCalledWith(
-            'https://sentry.example.com/api/0/projects/acme/frontend/',
+            'https://sentry.example.com/api/0/organizations/acme/issues/?project=frontend&limit=1',
             { headers: { Accept: 'application/json', Authorization: 'Bearer secret-token' } },
         )
     })
@@ -52,13 +52,13 @@ describe('SentryApiClient', () => {
         await client.validateProject(request)
 
         expect(fetchRequest).toHaveBeenCalledWith(
-            'https://sentry.example.com/api/0/projects/acme/frontend/',
+            'https://sentry.example.com/api/0/organizations/acme/issues/?project=frontend&limit=1',
             { headers: { Accept: 'application/json', Authorization: 'Bearer secret-token' } },
         )
     })
 
     it('loads every unresolved environment page through Sentry cursor links', async () => {
-        const firstHeaders = new Headers({Link: '<https://sentry.example.com/api/0/projects/acme/frontend/issues/?cursor=next>; rel="next"; results="true"'})
+        const firstHeaders = new Headers({Link: '<https://sentry.example.com/api/0/organizations/acme/issues/?cursor=next>; rel="next"; results="true"'})
         const fetchRequest = vi.fn()
             .mockResolvedValueOnce(new Response(JSON.stringify([{ id: '1', title: 'First' }]), { headers: firstHeaders }))
             .mockResolvedValueOnce(new Response(JSON.stringify([{ id: '2', title: 'Second' }])))
@@ -67,9 +67,11 @@ describe('SentryApiClient', () => {
         const issues = await client.listUnresolvedIssues(request)
 
         const firstUrl = new URL(fetchRequest.mock.calls[0][0] as string)
-        expect(firstUrl.pathname).toBe('/api/0/projects/acme/frontend/issues/')
-        expect(firstUrl.searchParams.get('query')).toBe('is:unresolved environment:"production"')
+        expect(firstUrl.pathname).toBe('/api/0/organizations/acme/issues/')
+        expect(firstUrl.searchParams.get('environment')).toBe('production')
         expect(firstUrl.searchParams.get('limit')).toBe('100')
+        expect(firstUrl.searchParams.get('project')).toBe('frontend')
+        expect(firstUrl.searchParams.get('query')).toBe('is:unresolved')
         expect(fetchRequest.mock.calls[1][0]).toContain('cursor=next')
         expect(issues.map(({ id }) => id)).toEqual(['1', '2'])
     })
@@ -132,6 +134,15 @@ describe('SentryApiClient', () => {
 
         await expect(client.listUnresolvedIssues(request)).rejects.toEqual(
             new SentryApiError('Sentry request failed with status 429. Retry after 30 seconds.', 429),
+        )
+    })
+
+    it('includes safe Sentry error detail in failed requests', async () => {
+        const fetchRequest = vi.fn(async () => new Response(JSON.stringify({ detail: 'Invalid project' }), { status: 400 }))
+        const client = new SentryApiClient({ fetch: fetchRequest })
+
+        await expect(client.validateProject(request)).rejects.toEqual(
+            new SentryApiError('Sentry request failed with status 400: Invalid project.', 400),
         )
     })
 })

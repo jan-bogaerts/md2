@@ -137,4 +137,34 @@ describe('SentryConnectionService', () => {
         expect(dependencies.storage.getItem(SENTRY_CONNECTION_STORAGE_KEY)).not.toContain('secret')
         expect(dependencies.storage.getItem(SENTRY_CONNECTION_STORAGE_KEY)).not.toContain('replacement')
     })
+
+    it('retains attempted settings when connection validation is forbidden', async () => {
+        const apiClient = { validateProject: vi.fn(async () => { throw new SentryApiError('Forbidden', 403) }) }
+        const { dependencies, service } = createService({ apiClient })
+        service.setProject(project('project-1'))
+
+        await service.connect(configuredSettings())
+
+        expect(service.getSnapshot()).toMatchObject({
+            errorMessage: 'Sentry denied access. Confirm token has event:read access to configured organization and project.',
+            isAuthenticated: false,
+            settings: { apiToken: 'secret', organization: 'acme', project: 'frontend' },
+        })
+        expect(dependencies.storage.getItem(SENTRY_CONNECTION_STORAGE_KEY)).toBeNull()
+    })
+
+    it('keeps token but disables automatic import after forbidden API response', async () => {
+        const { dependencies, service } = createService()
+        service.setProject(project('project-1'))
+        await service.connect(configuredSettings({ automaticImport: true }))
+
+        service.handleApiError(new SentryApiError('Forbidden', 403))
+
+        expect(service.getSnapshot()).toMatchObject({
+            errorMessage: 'Sentry denied access. Confirm token has event:read access to configured organization and project.',
+            isAuthenticated: false,
+            settings: { apiToken: 'secret', automaticImport: false },
+        })
+        expect(dependencies.storage.getItem(SENTRY_CONNECTION_STORAGE_KEY)).toContain('secret')
+    })
 })
