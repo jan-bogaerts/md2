@@ -59,6 +59,10 @@ class AgentRunnerService {
             ?? persistConversation;
         this.persistConversationCheckpoint = dependencies.persistConversationCheckpoint
             ?? persistConversationCheckpoint;
+        this.persistSuccessfulConversationTurn = dependencies.persistSuccessfulConversationTurn
+            ?? dependencies.persistConversation
+            ?? dependencies.persistConversationCheckpoint
+            ?? persistConversation;
         this.executableResolver = dependencies.executableResolver ?? new AgentExecutableResolver();
         this.claudeUsagePoller = dependencies.claudeUsagePoller ?? new ClaudeUsagePoller({
             executableResolver: this.executableResolver,
@@ -641,6 +645,14 @@ class AgentRunnerService {
     persistCheckpoint(run) {
         const snapshot = { ...run, conversation: snapshotConversation(run.conversation) };
         const write = run.persistence.then(() => this.persistConversationCheckpoint(snapshot));
+        run.persistence = write.catch(() => undefined);
+
+        return write;
+    }
+
+    persistSuccessfulTurn(run) {
+        const snapshot = { ...run, conversation: snapshotConversation(run.conversation) };
+        const write = run.persistence.then(() => this.persistSuccessfulConversationTurn(snapshot));
         run.persistence = write.catch(() => undefined);
 
         return write;

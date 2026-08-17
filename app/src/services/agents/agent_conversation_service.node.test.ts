@@ -129,7 +129,7 @@ describe('parseAgentConversationLog', () => {
             inputTokens: 10,
             outputTokens: 0,
             reasoningTokens: 1,
-            totalTokens: 15,
+            totalTokens: 999,
         })
     })
 

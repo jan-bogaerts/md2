@@ -1,4 +1,5 @@
 const path = require('node:path');
+const crypto = require('node:crypto');
 const { ActionCancellationError } = require('./action_cancellation_error');
 
 function requireActionContext(context) {
@@ -23,6 +24,7 @@ class ActionWorktreeRunService {
     constructor(dependencies) {
         this.mergeConflictService = dependencies.mergeConflictService ?? null;
         this.runLockStates = new Map();
+        this.releaseLockLeases = new Map();
         this.worktreeService = dependencies.worktreeService;
     }
 
@@ -100,6 +102,7 @@ class ActionWorktreeRunService {
 
         const { promise, reject, resolve } = Promise.withResolvers();
         const state = this.runLockStates.get(cardKey) ?? { activeRequest: null, pending: [] };
+        if (state.activeRequest?.release) throw new Error('Cannot start action while card release is in progress');
         const request = { acquired: false, abortHandler: null, reject, resolve, signal };
         request.abortHandler = this.cancelLockRequest.bind(this, cardKey, request);
         signal?.addEventListener('abort', request.abortHandler, { once: true });
@@ -110,6 +113,43 @@ class ActionWorktreeRunService {
         await promise;
 
         return request;
+    }
+
+    acquireReleaseCardLocks(primaryProject, cardInternalIds) {
+        if (!Array.isArray(cardInternalIds) || cardInternalIds.length === 0) throw new Error('Release card IDs are required');
+        const cardKeys = [...new Set(cardInternalIds)]
+            .map((cardInternalId) => {
+                if (typeof cardInternalId !== 'string' || cardInternalId.length === 0) {
+                    throw new Error('Release card internal ID is required');
+                }
+
+                return ActionWorktreeRunService.cardKey(primaryProject, { cardInternalId });
+            })
+            .sort();
+        const busyKey = cardKeys.find((cardKey) => {
+            const state = this.runLockStates.get(cardKey);
+
+            return !!state?.activeRequest || (state?.pending.length ?? 0) > 0;
+        });
+        if (busyKey) throw new Error('Cannot complete release while a target card has a running action');
+
+        const requests = cardKeys.map((cardKey) => {
+            const request = { acquired: true, release: true };
+            this.runLockStates.set(cardKey, { activeRequest: request, pending: [] });
+
+            return { cardKey, request };
+        });
+        const leaseId = crypto.randomUUID();
+        this.releaseLockLeases.set(leaseId, requests);
+
+        return leaseId;
+    }
+
+    releaseReleaseCardLocks(leaseId) {
+        const requests = this.releaseLockLeases.get(leaseId);
+        if (!requests) throw new Error('Unknown release card lock lease');
+        this.releaseLockLeases.delete(leaseId);
+        for (const { cardKey, request } of requests) this.releaseRunLock(cardKey, request);
     }
 
     cancelLockRequest(cardKey, request) {

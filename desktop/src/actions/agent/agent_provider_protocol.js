@@ -1,4 +1,4 @@
-const { normalizeAgentTokenUsage } = require('../../../../shared/agent_usage_math.mjs');
+const { validateAgentTokenUsage } = require('../../../../shared/agent_usage_math.mjs');
 const { claudeAssistantText, claudeChangedPaths, claudeTranscriptEvents, claudeUsage } = require('./agent_claude_events');
 const { codexChangedPaths, codexTranscriptEvents } = require('./agent_codex_events');
 const { JsonLineBuffer } = require('./agent_event_utils');
@@ -18,12 +18,16 @@ function codexUsage(event) {
     if (event.type !== 'turn.completed' || !usage || typeof usage !== 'object' || Array.isArray(usage)) return null;
     const cachedInputTokens = usage.cached_input_tokens;
 
-    return normalizeAgentTokenUsage({
-        cachedInputTokens,
-        inputTokens: (usage.input_tokens ?? 0) - (cachedInputTokens ?? 0),
-        outputTokens: usage.output_tokens,
-        reasoningTokens: usage.reasoning_output_tokens,
-    });
+    const inputTokens = usage.input_tokens;
+    const outputTokens = usage.output_tokens;
+    const reasoningTokens = usage.reasoning_output_tokens ?? 0;
+
+    return validateAgentTokenUsage({
+        cachedInputTokens: cachedInputTokens ?? 0,
+        inputTokens: inputTokens - (cachedInputTokens ?? 0),
+        outputTokens: outputTokens - reasoningTokens,
+        reasoningTokens,
+    }, usage.total_tokens);
 }
 
 function providerUsage(agent, event) {

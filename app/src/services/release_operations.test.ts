@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { MarkdownFile, StorageService } from '../data/data_types'
 import { configService } from './config/config_service'
 import { createDataService, createStorage, files, storageFiles } from './test_support/data_service_test_support'
+import { createAgentTokenUsageSummary, legacySummaryUsage, serializeAgentTokenUsageSummary } from '../../../shared/agent_token_usage_summary.mjs'
+import { createActivityFile } from '../../../shared/card_activity.mjs'
 
 const RELEASE_STATES = [
     { alwaysVisible: true, state: 'active' },
@@ -56,7 +58,7 @@ describe('ReleaseOperations', () => {
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         const snapshot = await service.releases.completeRelease('v1', [])
 
-        expect(storage.moveFiles).toHaveBeenCalledWith({
+        expect(storage.commit).toHaveBeenCalledWith(expect.objectContaining({
             branch: 'main',
             message: 'Complete release v1',
             moves: [
@@ -67,7 +69,7 @@ describe('ReleaseOperations', () => {
                     toPath: 'design/releases/v1/F-1-root.md',
                 },
             ],
-        })
+        }))
         expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' })
         expect(storage.loadProject).toHaveBeenCalledOnce()
         expect(storage.listRepositoryFiles).toHaveBeenCalledOnce()
@@ -98,6 +100,35 @@ describe('ReleaseOperations', () => {
         )
         expect(storage.moveFiles).not.toHaveBeenCalled()
         expect(storage.push).not.toHaveBeenCalled()
+    })
+
+    it('rejects release completion while a target card action owns its run lock', async () => {
+        configService.init()
+        const finalColumnFile: MarkdownFile = {
+            content: '---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: done\n---\n\n# Root',
+            path: 'design/F-1-root.md',
+        }
+        const acquireReleaseCardLocks = vi.fn(async () => {
+            throw new Error('Cannot complete release while a target card has a running action')
+        })
+        window.md2Actions = {
+            acquireReleaseCardLocks,
+            onActionRun: vi.fn(() => vi.fn()),
+            releaseReleaseCardLocks: vi.fn(),
+        } as never
+        const storage = createStorage({
+            loadProjectConfig: vi.fn(async () => ({ projectFolder: '', states: RELEASE_STATES, workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [finalColumnFile], workingFolder: 'design' })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project', rootPath: 'C:/repo' })
+
+        await expect(service.releases.completeRelease('v1', []))
+            .rejects.toThrow('Cannot complete release while a target card has a running action')
+
+        expect(acquireReleaseCardLocks).toHaveBeenCalledWith(['root-card'])
+        expect(storage.commit).not.toHaveBeenCalled()
     })
 
     it('lists every assigned active card and blocks release completion before moving or pushing', async () => {
@@ -162,7 +193,7 @@ describe('ReleaseOperations', () => {
         await service.releases.completeRelease('v1', [])
 
         expect(storage.loadProjectAsset).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, 'design/note.png')
-        expect(storage.moveFiles).toHaveBeenCalledWith({
+        expect(storage.commit).toHaveBeenCalledWith(expect.objectContaining({
             branch: 'main',
             message: 'Complete release v1',
             moves: [
@@ -180,7 +211,7 @@ describe('ReleaseOperations', () => {
                     toPath: 'history/v1/note.png',
                 },
             ],
-        })
+        }))
     })
 
     it('loads arbitrary copied card references and rewrites the released reference path', async () => {
@@ -217,7 +248,7 @@ describe('ReleaseOperations', () => {
         await service.releases.completeRelease('v1', [])
 
         expect(storage.loadProjectAsset).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, 'design/manual.pdf')
-        expect(storage.moveFiles).toHaveBeenCalledWith({
+        expect(storage.commit).toHaveBeenCalledWith(expect.objectContaining({
             branch: 'main',
             message: 'Complete release v1',
             moves: [
@@ -235,7 +266,7 @@ describe('ReleaseOperations', () => {
                     toPath: 'history/v1/manual.pdf',
                 },
             ],
-        })
+        }))
     })
 
     it('loads and moves card activity beside the released card in the same batch', async () => {
@@ -275,7 +306,9 @@ describe('ReleaseOperations', () => {
                 .mockResolvedValueOnce({ files: [], workingFolder: 'design' }),
             loadProjectConfig: vi.fn(async () => ({ projectFolder: '', states: RELEASE_STATES, workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: releaseFiles, workingFolder: 'design' })),
-            loadTextFile: vi.fn(async () => ({ content: activityContent, path: activityPath })),
+            loadTextFile: vi.fn(async (_project, path) => path === activityPath
+                ? { content: activityContent, path }
+                : { content: serializeAgentTokenUsageSummary(createAgentTokenUsageSummary()), path }),
         })
         const service = createDataService()
         service.init({ storage })
@@ -283,12 +316,12 @@ describe('ReleaseOperations', () => {
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         await service.releases.completeRelease('v1', [])
 
-        expect(storage.moveFiles).toHaveBeenCalledWith({
+        expect(storage.commit).toHaveBeenCalledWith(expect.objectContaining({
             branch: 'main',
             message: 'Complete release v1',
             moves: [
                 expect.objectContaining({
-                    content: expect.stringContaining('history/v1/card__root-card.json#conversation=conversation-1'),
+                    content: expect.stringContaining('history/v1/card__root-card.json'),
                     fromPath: 'design/F-1-root.md',
                     toPath: 'history/v1/F-1-root.md',
                 }),
@@ -299,7 +332,7 @@ describe('ReleaseOperations', () => {
                     toPath: 'history/v1/card__root-card.json',
                 },
             ],
-        })
+        }))
     })
 
     it('aborts before moving files when referenced activity cannot be loaded', async () => {
@@ -325,6 +358,50 @@ describe('ReleaseOperations', () => {
 
         await expect(service.releases.completeRelease('v1', [])).rejects.toThrow('Activity read failed')
         expect(storage.moveFiles).not.toHaveBeenCalled()
+    })
+
+    it('commits one immutable release usage entry without changing project usage', async () => {
+        configService.init()
+        const activityPath = 'design/activity/card__root-card.json'
+        const cardFile: MarkdownFile = {
+            content: `---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: done\nagents:\n  - ${activityPath}\n---\n# Root`,
+            path: 'design/F-1-root.md',
+        }
+        const activityValue = createActivityFile({ cardInternalId: 'root-card', kind: 'card' })
+        activityValue.conversations.push({
+            actionId: 'review', cardInternalId: 'root-card', cardPath: cardFile.path,
+            completedAt: '2026-08-17T10:01:00.000Z', entries: [], hasExplicitTitle: true,
+            id: 'conversation-1', providerSessions: [], startedAt: '2026-08-17T10:00:00.000Z',
+            status: 'completed', title: 'Review',
+            usage: { cachedInputTokens: 2, inputTokens: 3, outputTokens: 4, reasoningTokens: 1, totalTokens: 10 },
+            usageSchemaVersion: 1, viewed: true,
+        })
+        const activityContent = JSON.stringify(activityValue)
+        const summaryContent = serializeAgentTokenUsageSummary(createAgentTokenUsageSummary(legacySummaryUsage(50)))
+        const storage = createStorage({
+            listRepositoryFiles: vi.fn(async () => [cardFile.path, activityPath]),
+            loadProjectConfig: vi.fn(async () => ({ projectFolder: '', states: RELEASE_STATES, workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
+            loadTextFile: vi.fn(async (_project, path) => (
+                path === activityPath ? { content: activityContent, path } : { content: summaryContent, path }
+            )),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        await service.releases.completeRelease('v1', [])
+
+        const releaseCommit = vi.mocked(storage.commit).mock.calls
+            .map(([request]) => request)
+            .find(({ message }) => message === 'Complete release v1')
+        if (!releaseCommit) throw new Error('Missing release commit')
+        const committedSummary = JSON.parse(releaseCommit.files[0].content)
+        expect(committedSummary.projectUsage.totalTokens).toBe(50)
+        expect(committedSummary.releases.v1).toMatchObject({
+            cachedInputTokens: 2, inputTokens: 3, legacyTotalTokens: 0,
+            outputTokens: 4, reasoningTokens: 1, totalTokens: 10,
+        })
     })
 
     it('rejects invalid release names before moving files', async () => {
@@ -395,7 +472,7 @@ describe('ReleaseOperations', () => {
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         await service.releases.completeRelease('v1', [])
 
-        expect(storage.moveFiles).toHaveBeenCalledTimes(1)
+        expect(storage.commit).toHaveBeenCalledWith(expect.objectContaining({ message: 'Complete release v1' }))
         expect(storage.push).not.toHaveBeenCalled()
     })
 

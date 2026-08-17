@@ -57,14 +57,9 @@ describe('claude event decoders', () => {
         });
     });
 
-    it('clamps unusable provider counters instead of poisoning running totals', () => {
-        expect(claudeUsage({ type: 'result', usage: { input_tokens: -4, output_tokens: 'many' } })).toEqual({
-            cachedInputTokens: 0,
-            inputTokens: 0,
-            outputTokens: 0,
-            reasoningTokens: 0,
-            totalTokens: 0,
-        });
+    it('rejects unusable provider counters instead of poisoning running totals', () => {
+        expect(() => claudeUsage({ type: 'result', usage: { input_tokens: -4, output_tokens: 'many' } }))
+            .toThrow('Invalid provider token usage inputTokens');
         expect(claudeUsage({ type: 'assistant', usage: { input_tokens: 5 } })).toBeNull();
     });
 });

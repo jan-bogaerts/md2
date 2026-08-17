@@ -3,6 +3,7 @@ import { normalizeAgentTokenUsage } from './agent_usage_math.mjs'
 const AGENT_MESSAGE_ROLES = new Set(['assistant', 'user'])
 const AGENT_STATUSES = new Set(['cancelled', 'completed', 'failed', 'running', 'waitingForInput'])
 const INTERNAL_EVENT_TYPES = new Set(['closed', 'started', 'turnCompleted'])
+export const AGENT_CONVERSATION_USAGE_SCHEMA_VERSION = 1
 
 function requiredString(value, fieldName) {
     if (typeof value !== 'string' || value.length === 0) throw new Error(`Malformed agent conversation: missing ${fieldName}`)
@@ -193,6 +194,20 @@ export function parseAgentConversation(content, referencePath) {
     const hasExplicitTitle = typeof parsed.title === 'string' && parsed.title.trim().length > 0
     const contextWindowUsage = normalizeContextWindowUsage(parsed.contextWindowUsage)
     const usage = normalizeAgentTokenUsage(parsed.usage)
+    if (parsed.usageSchemaVersion !== undefined
+        && parsed.usageSchemaVersion !== AGENT_CONVERSATION_USAGE_SCHEMA_VERSION) {
+        throw new Error(`Malformed agent conversation: unsupported usageSchemaVersion ${String(parsed.usageSchemaVersion)}`)
+    }
+    if (usage && parsed.usageSchemaVersion === undefined
+        && typeof parsed.usage.totalTokens === 'number'
+        && Number.isFinite(parsed.usage.totalTokens)
+        && parsed.usage.totalTokens >= 0) {
+        usage.totalTokens = parsed.usage.totalTokens
+    }
+    if (usage && parsed.usageSchemaVersion === AGENT_CONVERSATION_USAGE_SCHEMA_VERSION
+        && parsed.usage.totalTokens !== usage.totalTokens) {
+        throw new Error('Malformed agent conversation: inconsistent usage.totalTokens')
+    }
     const timer = parsed.timer === undefined ? null : normalizeTimer(parsed.timer)
     if (parsed.viewed !== undefined && typeof parsed.viewed !== 'boolean') {
         throw new Error('Malformed agent conversation: invalid viewed')
@@ -214,6 +229,7 @@ export function parseAgentConversation(content, referencePath) {
         ...(timer ? { timer } : {}),
         title: hasExplicitTitle ? parsed.title : id,
         ...(usage ? { usage } : {}),
+        ...(parsed.usageSchemaVersion !== undefined ? { usageSchemaVersion: parsed.usageSchemaVersion } : {}),
         viewed: parsed.viewed ?? true,
     }
 }

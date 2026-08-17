@@ -24,6 +24,7 @@ import { createDefaultActionFiles } from '../../project_template/project_templat
 import { openFilesService } from '../open_files_service'
 import { mergeConflictService } from './merge_conflict_service'
 import { projectAccessService } from './project_access_service'
+import { createProjectAgentTokenUsageFile, projectAgentTokenUsageService } from '../agents/project_agent_token_usage_service'
 
 const ACTION_RELOAD_DEBOUNCE_MS = 150
 const JSON_EXTENSION = '.json'
@@ -163,6 +164,7 @@ export class ProjectLoading {
         this.actionReloadChangesByPath.clear()
         this.markdownReloadEventsByPath = new Map()
         this.dependencies.beginProjectLoad()
+        projectAgentTokenUsageService.clear()
     }
 
     /** Rebind repository watching after storage transport replacement without reloading project data. */
@@ -180,7 +182,10 @@ export class ProjectLoading {
 
         await storage.commit({
             branch: currentProject.branch,
-            files: createDefaultActionFiles(config.actionsFolder),
+            files: [
+                ...createDefaultActionFiles(config.actionsFolder),
+                createProjectAgentTokenUsageFile(config.projectFolder),
+            ],
             message: 'Add default MD² actions',
         })
         await storage.saveProjectConfig(currentProject, rawConfig)
@@ -209,6 +214,12 @@ export class ProjectLoading {
             if (config.pushMode === 'manual') {
                 await storage.restorePendingCommits?.(project)
                 await this.loadPendingPush(project)
+            }
+
+            try {
+                await projectAgentTokenUsageService.load(project, config, storage)
+            } catch (error) {
+                reportOptionalProjectLoadFailure('Agent token usage', error)
             }
 
             await this.loadActions(project, config.actionsFolder)
@@ -372,6 +383,7 @@ export class ProjectLoading {
         this.clearMergeConflictVerifyTimeout()
         this.dependencies.beginProjectLoad()
         this.dependencies.resetAgentConversations()
+        projectAgentTokenUsageService.clear()
         this.dependencies.clearLoadedProject()
         this.actionReloadChangesByPath.clear()
         this.markdownReloadEventsByPath.clear()

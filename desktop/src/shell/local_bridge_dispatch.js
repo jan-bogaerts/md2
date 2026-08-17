@@ -49,6 +49,7 @@ function createLocalBridgeDispatch(dependencies) {
     const {
         actionRunnerService,
         actionSchedulerService,
+        actionWorktreeRunService,
         agentExecutableAvailability,
         agentRunnerService,
         claudeRuntimeService,
@@ -341,6 +342,9 @@ function createLocalBridgeDispatch(dependencies) {
     }
 
     const actionBridge = {
+        acquireReleaseCardLocks: (cardInternalIds) => (
+            actionWorktreeRunService.acquireReleaseCardLocks(currentLocalProject, cardInternalIds)
+        ),
         answerActionApproval: (runId, requestId, decision) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
@@ -446,6 +450,7 @@ function createLocalBridgeDispatch(dependencies) {
             return actionRunnerService.prepareActionPrompt(request);
         },
         readFileAtCommit: (request) => localGitService.readFileAtCommit(currentLocalProject, request),
+        releaseReleaseCardLocks: (leaseId) => actionWorktreeRunService.releaseReleaseCardLocks(leaseId),
         registerActionSchedule: (request) => {
             if (!actionSchedulerService) throw new Error('Action scheduler is not available');
 
@@ -467,6 +472,10 @@ function createLocalBridgeDispatch(dependencies) {
             const resolved = resolveSearchAgent(readDesktopConfig(desktopConfigStore));
             const projectConfig = await localGitService.loadProjectConfig(currentLocalProject);
             const projectFolder = typeof projectConfig?.projectFolder === 'string' ? projectConfig.projectFolder : '';
+            const configuredReleasesFolder = typeof projectConfig?.releasesFolder === 'string' ? projectConfig.releasesFolder : 'history';
+            const releasesFolder = projectFolder.length > 0
+                ? `${projectFolder.replace(/[\\/]$/u, '')}/${configuredReleasesFolder.replace(/^[\\/]/u, '')}`
+                : configuredReleasesFolder;
             const request = {
                 agent: resolved.agent,
                 activityOrigin: { kind: 'project' },
@@ -474,6 +483,7 @@ function createLocalBridgeDispatch(dependencies) {
                 command: resolved.command,
                 prompt: `${SEARCH_AGENT_PROMPT_PREFIX}${input}`,
                 projectFolder,
+                releasesFolder,
                 title: 'Search RegExp',
             };
             const result = await agentRunnerService.run(currentLocalProject, request, callback);

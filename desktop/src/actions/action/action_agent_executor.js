@@ -107,6 +107,7 @@ class ActionAgentExecutor {
             actionRunId: input.runId,
             prompt,
             projectFolder: input.projectFolder,
+            releasesFolder: input.releasesFolder,
             streaming,
             ...(providerSession ? { providerConversationId: providerSession.conversationId } : {}),
             title: input.action.label,

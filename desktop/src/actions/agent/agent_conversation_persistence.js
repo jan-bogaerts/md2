@@ -1,8 +1,8 @@
 const {
     activityConversationReference,
     upsertActivityConversation,
-    upsertAndCommitActivityConversation,
 } = require('../activity/activity_files');
+const { persistConversationAndProjectUsage } = require('./project_agent_token_usage');
 
 function requireActivityRequest(request) {
     if (!request?.activityProject) throw new Error('Missing agent activityProject');
@@ -19,14 +19,8 @@ function conversationReference(request, conversationId) {
 }
 
 async function persistTerminalConversation(run) {
-    const request = requireActivityRequest(run.request);
-    await upsertAndCommitActivityConversation(
-        request.activityProject,
-        request.projectFolder,
-        request.activityOrigin,
-        run.conversation,
-        `Update ${request.activityOrigin.kind} activity`,
-    );
+    requireActivityRequest(run.request);
+    await persistConversationAndProjectUsage(run);
 }
 
 async function persistConversationCheckpoint(run) {

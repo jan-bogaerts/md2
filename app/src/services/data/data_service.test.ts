@@ -327,9 +327,19 @@ describe('DataService', () => {
             }
             if (url.includes('/git/trees/base-tree')) {
                 return createGithubResponse({
-                    tree: [{ path: 'design/F-1-root.md', sha: 'sha-1', type: 'blob' }],
+                    tree: [
+                        { path: 'agent_token_usage.json', sha: 'usage-sha', type: 'blob' },
+                        { path: 'design/F-1-root.md', sha: 'sha-1', type: 'blob' },
+                    ],
                     truncated: false,
                 })
+            }
+            if (url.includes('/git/blobs/usage-sha') && init.method !== 'POST') {
+                return createGithubRawResponse(JSON.stringify({
+                    projectUsage: { inputTokens: 0, cacheReadTokens: 0, outputTokens: 0, reasoningTokens: 0, totalTokens: 0 },
+                    releases: {},
+                    schemaVersion: 1,
+                }))
             }
             if (url.includes('/git/blobs/sha-1') && init.method !== 'POST') return createGithubRawResponse(files[0].content)
             if (url.includes('/git/blobs') && init.method === 'POST') return createGithubStatusResponse(401)

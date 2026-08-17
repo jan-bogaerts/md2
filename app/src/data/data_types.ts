@@ -311,6 +311,7 @@ export interface AgentTokenUsage {
     cachedInputTokens: number
     costUsd?: number
     inputTokens: number
+    legacyTotalTokens?: number
     outputTokens: number
     reasoningTokens: number
     totalTokens: number
@@ -342,6 +343,7 @@ export interface AgentConversation {
     timer?: AgentConversationTimer
     title: string
     usage?: AgentTokenUsage
+    usageSchemaVersion?: number
     viewed: boolean
 }
 

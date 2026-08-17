@@ -72,6 +72,7 @@ const DATA_METHODS = [
     'stopAgent',
 ];
 const ACTION_METHODS = [
+    'acquireReleaseCardLocks',
     'answerActionApproval',
     'answerActionQuestion',
     'beginActionPromptDraft',
@@ -88,6 +89,7 @@ const ACTION_METHODS = [
     'openInEditor',
     'prepareActionPrompt',
     'readFileAtCommit',
+    'releaseReleaseCardLocks',
     'registerActionSchedule',
     'reserveActionConversation',
     'restartActionRun',

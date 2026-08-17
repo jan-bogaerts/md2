@@ -132,6 +132,7 @@ export interface OpenInEditorRequest {
 }
 
 export interface ElectronActionBridge {
+    acquireReleaseCardLocks?(cardInternalIds: string[]): Promise<string>
     answerActionApproval?(runId: string, requestId: AgentApprovalRequestId, decision: AgentApprovalDecision): Promise<void>
     answerActionQuestion?(runId: string, requestId: number | string | null, answers: Record<string, string[]>): Promise<void>
     beginActionPromptDraft?(runId: string): Promise<number>
@@ -149,6 +150,7 @@ export interface ElectronActionBridge {
     openInEditor(request: OpenInEditorRequest): Promise<void>
     prepareActionPrompt(request: ActionPromptRequest): Promise<PreparedActionPrompt>
     readFileAtCommit?(request: ReadFileAtCommitRequest): Promise<HistoricalFileContent>
+    releaseReleaseCardLocks?(leaseId: string): Promise<void>
     registerActionSchedule?(request: ActionScheduleRegistrationRequest): Promise<void>
     reserveActionConversation?(request: ActionStartRequest): Promise<AgentConversationReservation>
     restartActionRun?(runId: string, request: ActionStartRequest): Promise<string>

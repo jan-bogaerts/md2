@@ -490,7 +490,7 @@ describe('CodexStreamingAdapter', () => {
             method: 'item/completed',
             params: { item: { id: 'message-1', phase: null, text: 'hello', type: 'agentMessage' } },
         });
-        const last = { cachedInputTokens: 2, inputTokens: 4, outputTokens: 3, reasoningOutputTokens: 1, totalTokens: 10 };
+        const last = { cachedInputTokens: 2, inputTokens: 4, outputTokens: 3, reasoningOutputTokens: 1, totalTokens: 7 };
         await adapter.handleMessage({
             method: 'thread/tokenUsage/updated',
             params: { tokenUsage: { last, modelContextWindow: 258_400 } },
@@ -515,16 +515,16 @@ describe('CodexStreamingAdapter', () => {
         expect(events).toContainEqual({ paths: ['design/feature.md'], type: 'changedPaths' });
         expect(events).toContainEqual({ questions, requestId: 99, type: 'question' });
         expect(events).toContainEqual({
-            contextWindowUsage: { capacityTokens: 258_400, usedTokens: 10 },
+            contextWindowUsage: { capacityTokens: 258_400, usedTokens: 7 },
             type: 'usage',
-            usage: { cachedInputTokens: 2, inputTokens: 4, outputTokens: 3, reasoningTokens: 1, totalTokens: 10 },
+            usage: { cachedInputTokens: 2, inputTokens: 2, outputTokens: 2, reasoningTokens: 1, totalTokens: 7 },
         });
         expect(events.filter(({ type }) => type === 'usage')).toHaveLength(1);
         expect(events.at(-1)).toMatchObject({
-            contextWindowUsage: { capacityTokens: 258_400, usedTokens: 10 },
+            contextWindowUsage: { capacityTokens: 258_400, usedTokens: 7 },
             error: null,
             type: 'turnCompleted',
-            usage: { cachedInputTokens: 2, inputTokens: 4, outputTokens: 3, reasoningTokens: 1, totalTokens: 10 },
+            usage: { cachedInputTokens: 2, inputTokens: 2, outputTokens: 2, reasoningTokens: 1, totalTokens: 7 },
         });
         expect(writes.at(-1)).toEqual({ id: 99, result: { answers: { confirm: { answers: ['Yes'] } } } });
     });

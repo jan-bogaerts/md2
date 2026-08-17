@@ -1,12 +1,12 @@
 import DataUsageOutlined from '@mui/icons-material/DataUsageOutlined'
 import { Button } from '@mui/material'
-import { useMemo, useState, type MouseEvent } from 'react'
+import { useMemo, useState, useSyncExternalStore, type MouseEvent } from 'react'
 import {
     DEFAULT_ARCHIVED_FOLDER,
     DEFAULT_PROJECT_FOLDER,
-    DEFAULT_RELEASES_FOLDER,
 } from '../../data/data_types'
 import { projectAgentTokenUsage } from '../../services/agents/agent_usage'
+import { projectAgentTokenUsageService } from '../../services/agents/project_agent_token_usage_service'
 import { useProjectConfig } from '../hooks/use_project_config'
 import { useProjectState } from '../hooks/use_project_state'
 import { MobileStatusRow } from './mobile_status_row'
@@ -22,11 +22,11 @@ export function ProjectAgentUsageSummary({ mobile = false }: ProjectAgentUsageSu
     const { snapshot } = useProjectState()
     const projectConfig = useProjectConfig()
     const [anchorElement, setAnchorElement] = useState<HTMLElement | null>(null)
-    const releasesFolder = projectConfig?.releasesFolder ?? `${DEFAULT_PROJECT_FOLDER}/${DEFAULT_RELEASES_FOLDER}`
     const archivedFolder = projectConfig?.archivedFolder ?? `${DEFAULT_PROJECT_FOLDER}/${DEFAULT_ARCHIVED_FOLDER}`
+    const summary = useSyncExternalStore(projectAgentTokenUsageService.subscribe, projectAgentTokenUsageService.getSnapshot)
     const totals = useMemo(
-        () => projectAgentTokenUsage(snapshot, releasesFolder, archivedFolder),
-        [archivedFolder, releasesFolder, snapshot],
+        () => summary ? projectAgentTokenUsage(snapshot, archivedFolder, summary) : null,
+        [archivedFolder, snapshot, summary],
     )
 
     const openSummary = (event: MouseEvent<HTMLElement>) => {
@@ -37,7 +37,8 @@ export function ProjectAgentUsageSummary({ mobile = false }: ProjectAgentUsageSu
         setAnchorElement(null)
     }
 
-    const versions = [totals.current, totals.archived, ...totals.releases]
+    const versions = totals ? [totals.current, totals.archived, ...totals.releases] : []
+    const totalLabel = totals ? `${totals.project.totalTokens.toLocaleString('en-US')} tokens` : 'Usage unavailable'
 
     return (
         <>
@@ -47,7 +48,7 @@ export function ProjectAgentUsageSummary({ mobile = false }: ProjectAgentUsageSu
                     icon={<DataUsageOutlined sx={{ fontSize: 18 }} />}
                     label="Project agent usage"
                     onClick={openSummary}
-                    value={`${totals.project.totalTokens.toLocaleString('en-US')} tokens`}
+                    value={totalLabel}
                 />
             ) : (
                 <Button
@@ -57,7 +58,7 @@ export function ProjectAgentUsageSummary({ mobile = false }: ProjectAgentUsageSu
                     startIcon={<DataUsageOutlined sx={{ fontSize: 14 }} />}
                     sx={{ color: 'text.secondary', fontSize: 'inherit', minWidth: 0, p: 0.5 }}
                 >
-                    {totals.project.totalTokens.toLocaleString('en-US')} tokens
+                    {totalLabel}
                 </Button>
             )}
             <StatusDetailsSurface
@@ -66,7 +67,7 @@ export function ProjectAgentUsageSummary({ mobile = false }: ProjectAgentUsageSu
                 mobile={mobile}
                 onClose={closeSummary}
             >
-                <ProjectAgentUsageDetails projectUsage={totals.project} versions={versions} />
+                {totals ? <ProjectAgentUsageDetails projectUsage={totals.project} versions={versions} /> : null}
             </StatusDetailsSurface>
         </>
     )

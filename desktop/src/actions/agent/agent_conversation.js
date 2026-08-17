@@ -1,4 +1,5 @@
 const { sumAgentTokenUsage } = require('../../../../shared/agent_usage_math.mjs');
+const { AGENT_CONVERSATION_USAGE_SCHEMA_VERSION } = require('../../../../shared/agent_conversations.mjs');
 
 function createMessageEntry(id, role, content, timestamp, agent, sequence) {
     return {
@@ -84,12 +85,25 @@ function transitionConversationStatus(conversation, status, transitionedAt) {
 
 function createConversation(request, id, startedAt, reference) {
     if (request.conversation) {
+        const legacyUsage = request.conversation.usage && request.conversation.usageSchemaVersion === undefined
+            ? {
+                cachedInputTokens: 0,
+                inputTokens: 0,
+                legacyTotalTokens: request.conversation.usage.totalTokens,
+                outputTokens: 0,
+                reasoningTokens: 0,
+                totalTokens: request.conversation.usage.totalTokens,
+                ...(request.conversation.usage.costUsd !== undefined ? { costUsd: request.conversation.usage.costUsd } : {}),
+            }
+            : request.conversation.usage;
         const conversation = {
             ...request.conversation,
             completedAt: null,
             entries: [...request.conversation.entries],
             path: reference,
             providerSessions: [...request.conversation.providerSessions],
+            ...(legacyUsage ? { usage: legacyUsage } : {}),
+            usageSchemaVersion: AGENT_CONVERSATION_USAGE_SCHEMA_VERSION,
         };
         transitionConversationStatus(conversation, 'running', startedAt);
 
@@ -110,6 +124,7 @@ function createConversation(request, id, startedAt, reference) {
         status: 'running',
         timer: { elapsedMs: 0, runningStartedAt: startedAt },
         title: typeof request.title === 'string' && request.title.length > 0 ? request.title : 'Agent run',
+        usageSchemaVersion: AGENT_CONVERSATION_USAGE_SCHEMA_VERSION,
         viewed: true,
     };
 }

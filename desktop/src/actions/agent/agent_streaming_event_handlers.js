@@ -176,18 +176,13 @@ async function handleTurnCompleted(service, run, event, timestamp) {
     run.pendingApprovals.clear();
     run.missingSession = run.missingSession || event.missingSession;
     if (event.missingSession) run.finishing = true;
-    if (event.usage) {
-        run.liveTurnUsage = event.usage;
-        run.conversation.usage = accumulateUsage(run.conversation.usage, run.liveTurnUsage);
-        run.liveTurnUsage = null;
-    }
     if (event.contextWindowUsage !== undefined) {
         if (event.contextWindowUsage) run.conversation.contextWindowUsage = event.contextWindowUsage;
         else delete run.conversation.contextWindowUsage;
     }
-    if (event.usage || event.contextWindowUsage !== undefined) {
+    if (!event.usage && event.contextWindowUsage !== undefined) {
         emitRunEvent(run, {
-            ...(event.contextWindowUsage !== undefined ? { contextWindowUsage: event.contextWindowUsage } : {}),
+            contextWindowUsage: event.contextWindowUsage,
             type: 'usage',
             usage: run.conversation.usage,
         });
@@ -196,7 +191,18 @@ async function handleTurnCompleted(service, run, event, timestamp) {
         service.failStreamingRun(run, new Error(event.error));
         return;
     }
-    if (!event.missingSession && event.usage) await service.recordTokenUsage(run, event.usage, timestamp);
+    if (!event.missingSession && event.usage) {
+        run.liveTurnUsage = event.usage;
+        run.conversation.usage = accumulateUsage(run.conversation.usage, run.liveTurnUsage);
+        run.liveTurnUsage = null;
+        await service.persistSuccessfulTurn(run);
+        await service.recordTokenUsage(run, event.usage, timestamp);
+        emitRunEvent(run, {
+            ...(event.contextWindowUsage !== undefined ? { contextWindowUsage: event.contextWindowUsage } : {}),
+            type: 'usage',
+            usage: run.conversation.usage,
+        });
+    }
     if (run.finishing) {
         service.beginFinishShutdown(run);
         return;

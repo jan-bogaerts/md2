@@ -1,4 +1,4 @@
-const { normalizeAgentTokenUsage } = require('../../../../shared/agent_usage_math.mjs');
+const { validateAgentTokenUsage } = require('../../../../shared/agent_usage_math.mjs');
 const { normalizeChangedPaths, normalizedContent } = require('./agent_event_utils');
 
 const CLAUDE_FILE_TOOLS = new Set(['Edit', 'MultiEdit', 'NotebookEdit', 'Write']);
@@ -52,13 +52,13 @@ function claudeTranscriptEvents(event) {
 function claudeUsage(event) {
     if (event.type !== 'result' || !event.usage || typeof event.usage !== 'object' || Array.isArray(event.usage)) return null;
 
-    return normalizeAgentTokenUsage({
+    return validateAgentTokenUsage({
         cachedInputTokens: (event.usage.cache_creation_input_tokens ?? 0) + (event.usage.cache_read_input_tokens ?? 0),
         costUsd: event.total_cost_usd,
         inputTokens: event.usage.input_tokens,
         outputTokens: event.usage.output_tokens,
         reasoningTokens: 0,
-    });
+    }, event.usage.total_tokens);
 }
 
 module.exports = { claudeAssistantText, claudeChangedPaths, claudeTranscriptEvents, claudeUsage };

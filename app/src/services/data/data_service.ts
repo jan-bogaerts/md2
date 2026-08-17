@@ -12,7 +12,7 @@ import { planAgentReferenceMigration } from '../agents/agent_reference_migration
 import { CardOperations, type CardOperationsDeps } from './card_operations'
 import { configService } from '../config/config_service'
 import { type DataServiceDependencies, getProjectConfigOrNull, reportCommitFlushFailure } from './data_service_context'
-import { notifyActionCardStateChange } from '../actions/action_run_registry'
+import { actionRunRegistry, notifyActionCardStateChange } from '../actions/action_run_registry'
 import { AgentIntegration, type AgentIntegrationDeps } from '../agents/agent_integration'
 import { ProjectLoading, type ProjectLoadingDeps } from '../project/project_loading'
 import { ProjectState } from '../project/project_state'
@@ -28,6 +28,7 @@ import { dialogService } from '../dialog_service'
 import type { CardParseError } from './markdown_parsing_service'
 import type { OpenDocumentSaveReference } from '../open_files_service'
 import { CARD_CHANGED_EVENT, CARD_FIELDS, cardCollectionFieldChangedEvent, cardFieldChangedEvent, type CardField } from './card_events'
+import { projectAgentTokenUsageService } from '../agents/project_agent_token_usage_service'
 
 export { CARD_CHANGED_EVENT, cardCollectionFieldChangedEvent, cardFieldChangedEvent } from './card_events'
 export type { CardField } from './card_events'
@@ -174,7 +175,18 @@ export class DataService extends EventTarget {
             (projectLoadToken) => this.agents.prepareProjectConversationLoad(projectLoadToken),
         )
         this.releases = new ReleaseOperations(this.createReleaseOperationsDependencies(), () => this.cards.flushPendingCommits())
-        agentConversationService.subscribe(() => this.dispatchChanged())
+        agentConversationService.subscribe(() => {
+            this.dispatchChanged()
+            void projectAgentTokenUsageService.refresh().catch((error: unknown) => {
+                dialogService.error(error, { fallbackMessage: 'Could not refresh project agent token usage' })
+            })
+        })
+        actionRunRegistry.subscribeActiveRunEvents((event) => {
+            if (event.type !== 'update' || event.update.kind !== 'agentUsage') return
+            void projectAgentTokenUsageService.refresh().catch((error: unknown) => {
+                dialogService.error(error, { fallbackMessage: 'Could not refresh project agent token usage' })
+            })
+        })
         register('dataService', this)
     }
 
@@ -382,7 +394,10 @@ export class DataService extends EventTarget {
             commitPathsInFlight: () => this.projectState.commitPathsInFlight,
             dispatchChanged: () => this.dispatchChanged(),
             dispatchPersistenceChanged: () => this.dispatchPersistenceChanged(),
-            dispatchRepositoryChanged: (event) => this.dispatchEvent(new CustomEvent('repositoryChanged', { detail: event })),
+            dispatchRepositoryChanged: (event) => {
+                projectAgentTokenUsageService.handleRepositoryChange(event)
+                this.dispatchEvent(new CustomEvent('repositoryChanged', { detail: event }))
+            },
             files: () => this.projectState.files,
             flushPendingChanges: flushAggregatePendingChanges,
             matchesCurrentContent: (path, content) => this.projectState.matchesCurrentContent(path, content),

@@ -3,17 +3,35 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AgentConversation, Card, ProjectSnapshot } from '../../data/data_types'
 import { ProjectAgentUsageSummary } from './project_agent_usage_summary'
 
-const { projectConfig, projectState } = vi.hoisted(() => ({
-    projectConfig: {
-        archivedFolder: 'design/records/archived',
-        projectFolder: 'design',
-        releasesFolder: 'design/records/releases',
-    },
-    projectState: { snapshot: null as ProjectSnapshot | null },
-}))
+const { projectConfig, projectState, summaryService } = vi.hoisted(() => {
+    const summary = {
+        projectUsage: {
+            cachedInputTokens: 0, inputTokens: 0, legacyTotalTokens: 56,
+            outputTokens: 0, reasoningTokens: 0, totalTokens: 56,
+        },
+        releases: {
+            v1: {
+                cachedInputTokens: 0, inputTokens: 0, legacyTotalTokens: 32,
+                outputTokens: 0, reasoningTokens: 0, totalTokens: 32,
+            },
+        },
+        schemaVersion: 1,
+    }
+
+    return {
+        projectConfig: {
+            archivedFolder: 'design/records/archived',
+            projectFolder: 'design',
+            releasesFolder: 'design/records/releases',
+        },
+        projectState: { snapshot: null as ProjectSnapshot | null },
+        summaryService: { getSnapshot: () => summary, subscribe: () => () => undefined },
+    }
+})
 
 vi.mock('../hooks/use_project_config', () => ({ useProjectConfig: () => projectConfig }))
 vi.mock('../hooks/use_project_state', () => ({ useProjectState: () => projectState }))
+vi.mock('../../services/agents/project_agent_token_usage_service', () => ({ projectAgentTokenUsageService: summaryService }))
 
 function conversation(id: string, totalTokens: number): AgentConversation {
     return {

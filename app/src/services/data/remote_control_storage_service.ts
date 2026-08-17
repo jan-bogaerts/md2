@@ -591,6 +591,14 @@ export class RemoteControlStorageService implements
         await this.request('finishActionRun', [runId])
     }
 
+    async acquireReleaseCardLocks(cardInternalIds: string[]): Promise<string> {
+        return this.request<string>('acquireReleaseCardLocks', [cardInternalIds])
+    }
+
+    async releaseReleaseCardLocks(leaseId: string): Promise<void> {
+        await this.request('releaseReleaseCardLocks', [leaseId])
+    }
+
     async reserveActionConversation(request: ActionStartRequest): Promise<AgentConversationReservation> {
         return this.request<AgentConversationReservation>('reserveActionConversation', [request])
     }

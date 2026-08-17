@@ -1,4 +1,4 @@
-const { normalizeAgentTokenUsage } = require('../../../../shared/agent_usage_math.mjs');
+const { validateAgentTokenUsage } = require('../../../../shared/agent_usage_math.mjs');
 const { ClaudeStreamingAdapter } = require('./agent_claude_streaming_adapter');
 const { codexChangedPaths } = require('./agent_codex_events');
 const { diagnosticEvent, normalizeCodexEvent, systemEvent } = require('./agent_codex_event');
@@ -25,17 +25,18 @@ function codexInput(content) {
     return [{ text: requireMessage(content), type: 'text' }];
 }
 
-// The app-server already reports cache-free input tokens, unlike `codex exec`, so no subtraction here.
 function codexUsage(params) {
     const usage = params.tokenUsage?.last;
     if (!usage) return null;
+    const cachedInputTokens = usage.cachedInputTokens ?? 0;
+    const reasoningTokens = usage.reasoningOutputTokens ?? 0;
 
-    return normalizeAgentTokenUsage({
-        cachedInputTokens: usage.cachedInputTokens,
-        inputTokens: usage.inputTokens,
-        outputTokens: usage.outputTokens,
-        reasoningTokens: usage.reasoningOutputTokens,
-    });
+    return validateAgentTokenUsage({
+        cachedInputTokens,
+        inputTokens: usage.inputTokens - cachedInputTokens,
+        outputTokens: usage.outputTokens - reasoningTokens,
+        reasoningTokens,
+    }, usage.totalTokens);
 }
 
 function codexContextWindowUsage(params) {

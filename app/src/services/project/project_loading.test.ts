@@ -16,6 +16,13 @@ import { openFilesService } from '../open_files_service'
 import { useCardColumnCards } from '../../components/card_view/use_card_column_cards'
 import { useCardBody, useCardMetadata, useCardTitle } from '../../components/card_view/use_project_card'
 import { mergeConflictService } from './merge_conflict_service'
+import { createAgentTokenUsageSummary, serializeAgentTokenUsageSummary } from '../../../../shared/agent_token_usage_summary.mjs'
+
+function loadedTextPaths(mock: unknown) {
+    const calls = (mock as { mock: { calls: unknown[][] } }).mock.calls
+
+    return calls.map((call) => call[1])
+}
 
 class ProjectLoadingMockWebSocket extends EventTarget {
     static instances: ProjectLoadingMockWebSocket[] = []
@@ -179,7 +186,7 @@ describe('ProjectLoading', () => {
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         expect(storage.commit).not.toHaveBeenCalled()
-        expect(loadTextFile).not.toHaveBeenCalled()
+        expect(loadedTextPaths(loadTextFile)).toEqual(['agent_token_usage.json'])
         expect(storage.loadAgentConversation).not.toHaveBeenCalled()
         expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual([activityPath])
         expect(service.getState().snapshot?.activeCards[0].agentConversations).toEqual([])
@@ -291,7 +298,7 @@ describe('ProjectLoading', () => {
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
-        expect(storage.loadTextFile).not.toHaveBeenCalled()
+        expect(loadedTextPaths(storage.loadTextFile)).toEqual(['agent_token_usage.json'])
         expect(service.getState().snapshot?.activeCards[0].agentConversations).toEqual([])
         expect(storage.commit).not.toHaveBeenCalled()
     })
@@ -320,7 +327,7 @@ describe('ProjectLoading', () => {
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
-        expect(storage.loadTextFile).not.toHaveBeenCalled()
+        expect(loadedTextPaths(storage.loadTextFile)).toEqual(['agent_token_usage.json'])
         expect(storage.listAgentConversationReferences).not.toHaveBeenCalled()
         expect(storage.loadAgentConversation).not.toHaveBeenCalled()
         await expect(service.listAgentConversations({ kind: 'project' })).resolves.toEqual([projectConversation])
@@ -361,7 +368,7 @@ describe('ProjectLoading', () => {
         await service.projectLoading.openProject(project)
         await service.projectLoading.openProject(project)
         expect(storedActivity.content).toBe('{broken')
-        expect(loadTextFile).not.toHaveBeenCalled()
+        expect(loadedTextPaths(loadTextFile)).toEqual(['agent_token_usage.json', 'agent_token_usage.json'])
         expect(commit).not.toHaveBeenCalled()
     })
 
@@ -387,7 +394,7 @@ describe('ProjectLoading', () => {
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         expect(storage.commit).not.toHaveBeenCalled()
-        expect(loadTextFile).not.toHaveBeenCalled()
+        expect(loadedTextPaths(loadTextFile)).toEqual(['agent_token_usage.json'])
         expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual([futureReference, missingReference])
     })
 
@@ -416,7 +423,9 @@ describe('ProjectLoading', () => {
             listRepositoryFiles: vi.fn(async () => [rootFile.path, activityPath]),
             loadProject: vi.fn(async () => ({ files: [rootFile], workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: [rootFile], workingFolder: 'design' })),
-            loadTextFile: vi.fn(async () => ({ content: malformedActivity, path: activityPath })),
+            loadTextFile: vi.fn(async (_project, path) => path === 'agent_token_usage.json'
+                ? { content: serializeAgentTokenUsageSummary(createAgentTokenUsageSummary()), path }
+                : { content: malformedActivity, path: activityPath }),
         })
         const dialogs = recordDialogMessages('error')
         const captureError = vi.spyOn(telemetryService, 'captureError').mockImplementation(() => undefined)
@@ -427,7 +436,7 @@ describe('ProjectLoading', () => {
 
             await service.projectLoading.openProject({ branch: 'main', id: 'project' })
             expect(dialogs.messages).toEqual([])
-            expect(storage.loadTextFile).not.toHaveBeenCalled()
+            expect(loadedTextPaths(storage.loadTextFile)).toEqual(['agent_token_usage.json'])
             expect(commit).not.toHaveBeenCalled()
             expect(captureError).not.toHaveBeenCalled()
             expect(service.getPersistenceSnapshot().hasPendingFileCommit).toBe(false)
