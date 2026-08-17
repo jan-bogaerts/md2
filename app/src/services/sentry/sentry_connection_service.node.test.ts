@@ -88,7 +88,11 @@ describe('SentryConnectionService', () => {
         await service.connect(configuredSettings())
 
         expect(dependencies.storage.getItem(SENTRY_CONNECTION_STORAGE_KEY)).toBeNull()
-        expect(service.getSnapshot()).toMatchObject({ errorMessage: 'Project not found', isAuthenticated: false })
+        expect(service.getSnapshot()).toMatchObject({
+            errorMessage: 'Project not found',
+            isAuthenticated: false,
+            settings: { apiToken: 'secret', organization: 'acme', project: 'frontend' },
+        })
     })
 
     it('disconnects and removes token without writing project files', async () => {

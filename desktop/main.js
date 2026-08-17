@@ -23,6 +23,7 @@ const { createLocalBridgeDispatch } = require('./src/shell/local_bridge_dispatch
 const localGitService = require('./src/git/local_git_service');
 const { RemoteControlService } = require('./src/integrations/remote_control_service');
 const remarkableService = require('./src/integrations/remarkable_service');
+const { sendSentryRequest } = require('./src/integrations/sentry_service');
 const { WorktreeService } = require('./src/git/worktree_service');
 const { MergeConflictService } = require('./src/git/merge_conflict_service');
 const { ActionWorktreeRunService } = require('./src/actions/action/action_worktree_run_service');
@@ -51,6 +52,7 @@ const {
     REMOTE_CONTROL_START_CHANNEL,
     REMOTE_CONTROL_STATUS_CHANNEL,
     REMOTE_CONTROL_STOP_CHANNEL,
+    SENTRY_REQUEST_CHANNEL,
     THEME_SET_MODE_CHANNEL,
 } = require('./src/shell/ipc_channels');
 const { checkForUpdate, registerUpdateDownload } = require('./src/shell/update_service');
@@ -216,6 +218,10 @@ function registerRemarkableBridge() {
     ipcMain.handle(REMARKABLE_IMPORT_FILES_CHANNEL, (_event, request) => remarkableService.importFiles(request));
 }
 
+function registerSentryBridge() {
+    ipcMain.handle(SENTRY_REQUEST_CHANNEL, (_event, request) => sendSentryRequest(request));
+}
+
 function registerRemoteControlBridge() {
     remoteControlService.setStatusListener(broadcastRemoteControlStatus);
 
@@ -333,6 +339,7 @@ app.whenReady().then(async () => {
     registerConfigBridge();
     registerLocalBridge();
     registerRemarkableBridge();
+    registerSentryBridge();
     registerRemoteControlBridge();
     registerThemeBridge();
     const getPrimaryWindow = () => BrowserWindow.getAllWindows()[0] ?? null;

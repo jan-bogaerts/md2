@@ -11,7 +11,21 @@ const request: SentryApiRequest = {
 
 describe('SentryApiClient', () => {
     afterEach(() => {
+        delete window.md2Sentry
         vi.unstubAllGlobals()
+    })
+
+    it('uses desktop bridge for default requests when available', async () => {
+        const requestBridge = vi.fn(async () => ({ body: '{}', headers: { link: null, retryAfter: null }, status: 200 }))
+        window.md2Sentry = { request: requestBridge }
+        const client = new SentryApiClient()
+
+        await client.validateProject(request)
+
+        expect(requestBridge).toHaveBeenCalledWith({
+            apiToken: 'secret-token',
+            url: 'https://sentry.example.com/api/0/projects/acme/frontend/',
+        })
     })
 
     it('keeps globalThis as receiver for default browser fetch', async () => {

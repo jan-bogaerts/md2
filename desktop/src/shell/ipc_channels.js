@@ -13,6 +13,7 @@ const REMOTE_CONTROL_GET_STATUS_CHANNEL = 'md2-remote-control:get-status';
 const REMOTE_CONTROL_START_CHANNEL = 'md2-remote-control:start';
 const REMOTE_CONTROL_STATUS_CHANNEL = 'md2-remote-control:status';
 const REMOTE_CONTROL_STOP_CHANNEL = 'md2-remote-control:stop';
+const SENTRY_REQUEST_CHANNEL = 'md2-sentry:request';
 const THEME_SET_MODE_CHANNEL = 'md2-theme:set-mode';
 const UPDATE_AVAILABLE_CHANNEL = 'md2-update:available';
 const UPDATE_DOWNLOAD_CHANNEL = 'md2-update:download';
@@ -34,6 +35,7 @@ module.exports = {
     REMOTE_CONTROL_START_CHANNEL,
     REMOTE_CONTROL_STATUS_CHANNEL,
     REMOTE_CONTROL_STOP_CHANNEL,
+    SENTRY_REQUEST_CHANNEL,
     THEME_SET_MODE_CHANNEL,
     UPDATE_AVAILABLE_CHANNEL,
     UPDATE_DOWNLOAD_CHANNEL,

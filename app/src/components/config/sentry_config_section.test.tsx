@@ -60,6 +60,30 @@ describe('SentryConfigSection', () => {
         expect(await screen.findByRole('button', { name: 'Reconnect' })).toBeInTheDocument()
     })
 
+    it('restores attempted settings when failed validation remounts config', async () => {
+        validateProject.mockRejectedValueOnce(new Error('Invalid Sentry request'))
+        const view = render(<SentryConfigSection />)
+
+        fireEvent.change(screen.getByLabelText('Organization slug'), { target: { value: 'acme' } })
+        fireEvent.change(screen.getByLabelText('Project slug'), { target: { value: 'frontend' } })
+        fireEvent.change(screen.getByLabelText('Sentry API token'), { target: { value: 'token' } })
+        fireEvent.mouseDown(screen.getByLabelText('Target card type'))
+        fireEvent.click(screen.getByRole('option', { name: 'Bug' }))
+        fireEvent.mouseDown(screen.getByLabelText('Target card state'))
+        fireEvent.click(screen.getByRole('option', { name: 'to fix' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Connect' }))
+        await screen.findByText('Invalid Sentry request')
+
+        view.unmount()
+        render(<SentryConfigSection />)
+
+        expect(screen.getByLabelText('Organization slug')).toHaveValue('acme')
+        expect(screen.getByLabelText('Project slug')).toHaveValue('frontend')
+        expect(screen.getByLabelText('Sentry API token')).toHaveValue('token')
+        expect(screen.getByLabelText('Target card type')).toHaveTextContent('Bug')
+        expect(screen.getByLabelText('Target card state')).toHaveTextContent('to fix')
+    })
+
     it('enables automatic and manual imports only for a complete connected project', async () => {
         await sentryConnectionService.connect({
             ...sentryConnectionService.getSnapshot().settings,

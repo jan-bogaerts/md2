@@ -67,7 +67,7 @@ describe('preload desktop agent bridge', () => {
     it('exposes only the named desktop bridges through contextBridge', () => {
         const { electron, exposed, window } = createPreloadHarness();
 
-        expect(electron.contextBridge.exposeInMainWorld).toHaveBeenCalledTimes(11);
+        expect(electron.contextBridge.exposeInMainWorld).toHaveBeenCalledTimes(12);
         expect(Object.keys(exposed).sort()).toEqual([
             'md2Actions',
             'md2ClaudeRuntime',
@@ -78,6 +78,7 @@ describe('preload desktop agent bridge', () => {
             'md2Lifecycle',
             'md2Remarkable',
             'md2RemoteControl',
+            'md2Sentry',
             'md2Theme',
             'md2Updates',
         ]);
@@ -128,6 +129,7 @@ describe('preload desktop agent bridge', () => {
         expect(exposed.md2CodexRuntime.updateCodexCli).toEqual(expect.any(Function));
         expect(exposed.md2Updates.onUpdateAvailable).toEqual(expect.any(Function));
         expect(exposed.md2Updates.downloadUpdate).toEqual(expect.any(Function));
+        expect(exposed.md2Sentry.request).toEqual(expect.any(Function));
         expect(exposed.md2Updates.onDownloadProgress).toEqual(expect.any(Function));
     });
 

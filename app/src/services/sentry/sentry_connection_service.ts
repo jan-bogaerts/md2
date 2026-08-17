@@ -104,7 +104,7 @@ export class SentryConnectionService extends EventTarget {
         const projectId = this.requireProjectId()
         const apiClient = this.requireApiClient()
         const nextSettings = normalizedSettings(settings)
-        this.setSnapshot({ errorMessage: null, isConnecting: true })
+        this.setSnapshot({ errorMessage: null, isAuthenticated: false, isConnecting: true, settings: nextSettings })
 
         try {
             await apiClient.validateProject(nextSettings)

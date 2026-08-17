@@ -1,5 +1,6 @@
 import type { SentryIssueEvent, SentryIssueSummary, SentryStackFrame } from './sentry_types'
 import { normalizeSentryBaseUrl } from './sentry_types'
+import { getElectronSentryBridge } from '../../data/electron_sentry_bridge'
 
 export interface SentryApiRequest {
     apiBaseUrl: string
@@ -139,10 +140,32 @@ function projectUrl(request: SentryApiRequest) {
     return `${baseUrl}/api/0/projects/${organization}/${project}`
 }
 
+function electronFetchRequest(): typeof fetch | null {
+    const bridge = getElectronSentryBridge()
+    if (!bridge) return null
+
+    return async (input, init) => {
+        if (typeof input !== 'string') throw new Error('Desktop Sentry request URL must be a string')
+        const authorization = new Headers(init?.headers).get('Authorization')
+        if (!authorization?.startsWith('Bearer ')) throw new Error('Desktop Sentry request requires bearer authentication')
+
+        const response = await bridge.request({ apiToken: authorization.slice('Bearer '.length), url: input })
+        const headers = new Headers()
+        if (response.headers.link) headers.set('Link', response.headers.link)
+        if (response.headers.retryAfter) headers.set('Retry-After', response.headers.retryAfter)
+
+        return new Response(response.body.length > 0 ? response.body : null, { headers, status: response.status })
+    }
+}
+
+function defaultDependencies(): SentryApiClientDependencies {
+    return { fetch: electronFetchRequest() ?? globalThis.fetch.bind(globalThis) }
+}
+
 export class SentryApiClient {
     private readonly fetchRequest: typeof fetch
 
-    constructor(dependencies: SentryApiClientDependencies = { fetch: globalThis.fetch.bind(globalThis) }) {
+    constructor(dependencies: SentryApiClientDependencies = defaultDependencies()) {
         this.fetchRequest = dependencies.fetch
     }
 
