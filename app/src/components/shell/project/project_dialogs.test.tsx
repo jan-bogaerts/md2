@@ -447,7 +447,6 @@ describe('project dialog components', () => {
 
         render(
             <NewCardDialog
-                cardBodyTemplate="# Goal"
                 cardTypes={cardTypes}
                 initialTargetStatus="new"
                 isLoading={false}
@@ -472,12 +471,9 @@ describe('project dialog components', () => {
         expect(screen.getByRole('radio', { name: 'Architecture' }).querySelector('div')).toHaveStyle({ backgroundColor: '#123456' })
     })
 
-    it('inserts, clears, and safely appends the configured description template', () => {
-        const cardBodyTemplate = '# Goal\n\n# Tasks'
-
+    it('shows directly named type and description controls without visible labels or template actions', () => {
         render(
             <NewCardDialog
-                cardBodyTemplate={cardBodyTemplate}
                 cardTypes={DEFAULT_CARD_TYPES}
                 initialTargetStatus="new"
                 isLoading={false}
@@ -490,16 +486,13 @@ describe('project dialog components', () => {
             { wrapper: AppThemeProvider },
         )
 
-        const description = getDescriptionEditor()
-        fireEvent.click(screen.getByRole('button', { name: 'Template' }))
-        expect(description).toHaveValue(cardBodyTemplate)
-        fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
-        expect(description).toHaveValue('')
-
-        fireEvent.click(screen.getByRole('button', { name: 'Template' }))
-        fireEvent.change(description, { target: { value: `${cardBodyTemplate}\nEdited` } })
-        fireEvent.click(screen.getByRole('button', { name: 'Template' }))
-        expect(description).toHaveValue(`${cardBodyTemplate}\nEdited\n\n${cardBodyTemplate}`)
+        expect(screen.getByRole('radiogroup', { name: 'Type' })).toBeInTheDocument()
+        expect(screen.getByRole('group', { name: 'Description' })).toBeInTheDocument()
+        expect(screen.queryByText('Type')).toBeNull()
+        expect(screen.queryByText('Description')).toBeNull()
+        expect(screen.queryByRole('button', { name: 'Template' })).toBeNull()
+        expect(screen.queryByRole('button', { name: 'Clear' })).toBeNull()
+        expect(getDescriptionEditor()).toHaveValue('')
     })
 
     it('selects dynamic types by click and keyboard radiogroup controls', () => {
@@ -511,7 +504,6 @@ describe('project dialog components', () => {
 
         render(
             <NewCardDialog
-                cardBodyTemplate=""
                 cardTypes={cardTypes}
                 initialTargetStatus="new"
                 isLoading={false}
@@ -540,7 +532,6 @@ describe('project dialog components', () => {
 
         render(
             <NewCardDialog
-                cardBodyTemplate="# Goal"
                 cardTypes={DEFAULT_CARD_TYPES}
                 initialTargetStatus="design"
                 isLoading={false}
@@ -562,19 +553,17 @@ describe('project dialog components', () => {
 
         await waitFor(() => expect(createCard).toHaveBeenCalledWith({
             body: 'Body',
-            bodyIncludesTemplate: true,
             title: 'New Card',
             type: 'feature',
         }, 'to fix'))
     })
 
-    it('uses full-height mobile chrome with synchronized create controls and safe footer targets', async () => {
+    it('uses full-height mobile chrome with one header create control and safe footer targets', async () => {
         mockMatchMedia(true)
         const createCard = vi.fn(async () => undefined)
 
         render(
             <NewCardDialog
-                cardBodyTemplate=""
                 cardTypes={DEFAULT_CARD_TYPES}
                 initialTargetStatus="new"
                 isLoading={false}
@@ -592,10 +581,10 @@ describe('project dialog components', () => {
         const title = dialog.querySelector('.MuiDialogTitle-root')
         const actions = dialog.querySelector('.MuiDialogActions-root')
         const topCreate = screen.getByRole('button', { name: 'Create' })
-        const footerCreate = screen.getByRole('button', { name: 'Create card' })
 
         expect(topCreate).toBeDisabled()
-        expect(footerCreate).toBeDisabled()
+        expect(within(actions as HTMLElement).queryByRole('button', { name: /Create/u })).toBeNull()
+        expect(screen.getAllByRole('button', { name: 'Create' })).toHaveLength(1)
         expect(content).toHaveStyle({ flex: '1', minHeight: '0', overflowY: 'auto' })
         expect(title).toHaveStyle({ flexShrink: '0' })
         expect(actions).toHaveStyle({ flexShrink: '0' })
@@ -604,11 +593,9 @@ describe('project dialog components', () => {
 
         fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: 'Mobile card' } })
         expect(topCreate).toBeEnabled()
-        expect(footerCreate).toBeEnabled()
         fireEvent.click(topCreate)
         await waitFor(() => expect(createCard).toHaveBeenCalledWith({
             body: '',
-            bodyIncludesTemplate: true,
             title: 'Mobile card',
             type: 'feature',
         }, 'new'))
@@ -621,7 +608,6 @@ describe('project dialog components', () => {
 
         render(
             <NewCardDialog
-                cardBodyTemplate=""
                 cardTypes={DEFAULT_CARD_TYPES}
                 initialTargetStatus="new"
                 isLoading={false}
@@ -660,7 +646,6 @@ describe('project dialog components', () => {
         expect(editorKeyDown).not.toHaveBeenCalled()
         await waitFor(() => expect(createCard).toHaveBeenCalledWith({
             body: 'Shortcut body\n\n',
-            bodyIncludesTemplate: true,
             title: 'Keyboard card',
             type: 'feature',
         }, 'new'))
@@ -672,7 +657,6 @@ describe('project dialog components', () => {
 
         render(
             <NewCardDialog
-                cardBodyTemplate=""
                 cardTypes={DEFAULT_CARD_TYPES}
                 initialTargetStatus="new"
                 isLoading={false}
@@ -696,7 +680,6 @@ describe('project dialog components', () => {
         const createCard = vi.fn(async () => undefined)
         const { rerender } = render(
             <NewCardDialog
-                cardBodyTemplate="# Goal"
                 cardTypes={DEFAULT_CARD_TYPES}
                 initialTargetStatus="new"
                 isLoading={false}
@@ -721,7 +704,6 @@ describe('project dialog components', () => {
         rerender(
             <AppThemeProvider>
                 <NewCardDialog
-                    cardBodyTemplate="# Goal"
                     cardTypes={DEFAULT_CARD_TYPES}
                     initialTargetStatus="new"
                     isLoading={false}

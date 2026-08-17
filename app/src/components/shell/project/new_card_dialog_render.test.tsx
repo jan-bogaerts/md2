@@ -13,7 +13,6 @@ const { editorBoundaryRender } = vi.hoisted(() => ({ editorBoundaryRender: vi.fn
 vi.mock('./new_card_markdown_editor', () => {
     interface EditorProps {
         draft: MarkdownDraft
-        onDirtyChange: (dirty: boolean) => void
     }
 
     function NewCardMarkdownEditor(props: EditorProps) {
@@ -21,7 +20,6 @@ vi.mock('./new_card_markdown_editor', () => {
 
         const handleChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
             props.draft.edit(event.currentTarget.value)
-            props.onDirtyChange(event.currentTarget.value.length > 0)
         }
 
         return <textarea aria-label="Draft body" defaultValue={props.draft.getSnapshot()} onChange={handleChange} />
@@ -51,7 +49,6 @@ describe('NewCardDialog editor render boundary', () => {
 
         render(
             <NewCardDialog
-                cardBodyTemplate=""
                 cardTypes={DEFAULT_CARD_TYPES}
                 initialTargetStatus="new"
                 isLoading={false}
@@ -80,7 +77,6 @@ describe('NewCardDialog editor render boundary', () => {
         })) as unknown as typeof window.matchMedia
         const view = render(
             <NewCardDialog
-                cardBodyTemplate=""
                 cardTypes={DEFAULT_CARD_TYPES}
                 initialTargetStatus="new"
                 isLoading={false}
@@ -102,14 +98,13 @@ describe('NewCardDialog editor render boundary', () => {
         expect(projectSessionService.newCardMarkdownDraft.getSnapshot()).toBe('Persistent body')
     })
 
-    it('keeps attachment and Add to in first mobile footer row with Create below', () => {
+    it('keeps attachment and Add to in the mobile footer without a second create control', () => {
         window.matchMedia = ((query: string) => ({
             addEventListener: () => {}, addListener: () => {}, dispatchEvent: () => false, matches: true,
             media: query, onchange: null, removeEventListener: () => {}, removeListener: () => {},
         })) as unknown as typeof window.matchMedia
         render(
             <NewCardDialog
-                cardBodyTemplate=""
                 cardTypes={DEFAULT_CARD_TYPES}
                 initialTargetStatus="new"
                 isLoading={false}
@@ -124,11 +119,11 @@ describe('NewCardDialog editor render boundary', () => {
         const startGroup = screen.getByTestId('new-card-footer-start')
         const footer = startGroup.parentElement as HTMLElement
         const targetColumn = within(startGroup).getByRole('combobox', { name: 'Target column' })
-        const create = within(footer).getByRole('button', { name: 'Create card' })
 
         expect(startGroup).toHaveStyle({ display: 'flex', flexDirection: 'row', width: '100%' })
         expect(targetColumn.parentElement).toHaveStyle({ flex: '1 1 0%', minWidth: '0' })
-        expect(startGroup.compareDocumentPosition(create) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
+        expect(within(footer).queryByRole('button', { name: /Create/u })).toBeNull()
+        expect(screen.getAllByRole('button', { name: 'Create' })).toHaveLength(1)
     })
 
     it('waits for draft image cleanup before confirmed cancellation closes the dialog', async () => {
@@ -144,7 +139,6 @@ describe('NewCardDialog editor render boundary', () => {
         const onClose = vi.fn()
         render(
             <NewCardDialog
-                cardBodyTemplate=""
                 cardTypes={DEFAULT_CARD_TYPES}
                 initialTargetStatus="new"
                 isLoading={false}
@@ -177,7 +171,6 @@ describe('NewCardDialog editor render boundary', () => {
         const onClose = vi.fn()
         render(
             <NewCardDialog
-                cardBodyTemplate=""
                 cardTypes={DEFAULT_CARD_TYPES}
                 initialTargetStatus="new"
                 isLoading={false}
@@ -210,7 +203,6 @@ describe('NewCardDialog editor render boundary', () => {
         const onCreateCard = vi.fn(async () => undefined)
         render(
             <NewCardDialog
-                cardBodyTemplate=""
                 cardTypes={DEFAULT_CARD_TYPES}
                 initialTargetStatus="new"
                 isLoading={false}
@@ -232,7 +224,6 @@ describe('NewCardDialog editor render boundary', () => {
 
         await waitFor(() => expect(onCreateCard).toHaveBeenCalledWith({
             body: '![pasted image](<saved.png>)',
-            bodyIncludesTemplate: true,
             title: 'Image card',
             type: 'feature',
         }, 'new'))

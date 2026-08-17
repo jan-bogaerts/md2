@@ -497,7 +497,6 @@ export function AppMenu(props: AppMenuProps) {
                 open={dialogMode === 'release'}
             />
             <NewCardDialog
-                cardBodyTemplate={actions.cardBodyTemplate}
                 cardTypes={actions.cardTypes}
                 initialTargetStatus={actions.newCardInitialStatus}
                 isLoading={actions.isLoading}

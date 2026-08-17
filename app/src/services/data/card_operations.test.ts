@@ -218,6 +218,7 @@ describe('CardOperations', () => {
             sentryOrganization: 'acme',
         })
         expect(importedFiles[0].content).toContain('**Event ID:** event-100')
+        expect(importedFiles[0].content).not.toContain('# Goal')
         expect(importedFiles[0].content).toContain('`app.ts:12:4` — run')
         await vi.waitFor(() => expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' }))
     })

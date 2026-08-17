@@ -8,7 +8,6 @@ function isSameProjectConfig(first: ProjectConfig | null, second: ProjectConfig 
     return first?.actionsFolder === second?.actionsFolder
         && first?.archivedFolder === second?.archivedFolder
         && first?.backgroundShade === second?.backgroundShade
-        && first?.cardBodyTemplate === second?.cardBodyTemplate
         && first?.cardTypes === second?.cardTypes
         && first?.diffCommand === second?.diffCommand
         && first?.projectFolder === second?.projectFolder

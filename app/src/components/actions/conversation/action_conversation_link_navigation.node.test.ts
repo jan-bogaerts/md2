@@ -34,7 +34,6 @@ function mockLoadedProject() {
         actionsFolder: 'design/actions',
         archivedFolder: 'design/archived',
         backgroundShade: 'blue',
-        cardBodyTemplate: '',
         cardSeparator: '_',
         cardTypes: [],
         diffCommand: '',

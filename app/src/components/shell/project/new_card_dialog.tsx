@@ -16,7 +16,7 @@ import {
 import Close from 'mdi-material-ui/Close'
 import Plus from 'mdi-material-ui/Plus'
 import type { ChangeEvent, FormEvent, KeyboardEvent } from 'react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { CardDraft, CardTypeConfig, StateConfig } from '../../../data/data_types'
 import { useCardCreationState } from '../../hooks/use_card_creation_state'
 import { CardTypePillGroup } from './card_type_pill_group'
@@ -37,7 +37,6 @@ function attachFilesToNewCardDraft(files: File[]) {
 }
 
 interface NewCardDialogProps {
-    cardBodyTemplate: string
     cardTypes: CardTypeConfig[]
     initialTargetStatus: string
     isLoading: boolean
@@ -51,7 +50,6 @@ interface NewCardDialogProps {
 /** Responsive form for creating a card in a selected board column. */
 export function NewCardDialog(props: NewCardDialogProps) {
     const {
-        cardBodyTemplate,
         cardTypes,
         initialTargetStatus,
         isLoading,
@@ -66,7 +64,6 @@ export function NewCardDialog(props: NewCardDialogProps) {
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
     const cancellationInProgressRef = useRef(false)
     const wasOpenRef = useRef(false)
-    const [isInsertedTemplateUntouched, setIsInsertedTemplateUntouched] = useState(false)
     const [targetStatus, setTargetStatus] = useState('')
     const [title, setTitle] = useState('')
     const [type, setType] = useState('')
@@ -79,7 +76,6 @@ export function NewCardDialog(props: NewCardDialogProps) {
 
     const resetForm = () => {
         projectSessionService.newCardMarkdownDraft.replace('')
-        setIsInsertedTemplateUntouched(false)
         setTargetStatus(initialTargetStatus)
         setTitle('')
         setType(defaultType)
@@ -88,7 +84,6 @@ export function NewCardDialog(props: NewCardDialogProps) {
     useEffect(() => {
         if ((open && !wasOpenRef.current) || !isProjectOpen) {
             projectSessionService.newCardMarkdownDraft.replace('')
-            setIsInsertedTemplateUntouched(false)
             setTargetStatus(initialTargetStatus)
             setTitle('')
             setType(defaultType)
@@ -130,24 +125,6 @@ export function NewCardDialog(props: NewCardDialogProps) {
         setTitle(event.target.value)
     }
 
-    const handleBodyDirtyChange = useCallback((dirty: boolean) => {
-        if (dirty) setIsInsertedTemplateUntouched(false)
-    }, [])
-
-    const handleTemplateClick = () => {
-        const body = projectSessionService.newCardMarkdownDraft.getSnapshot()
-        if (isInsertedTemplateUntouched && body === cardBodyTemplate) {
-            projectSessionService.newCardMarkdownDraft.replace('')
-            setIsInsertedTemplateUntouched(false)
-
-            return
-        }
-
-        const nextBody = body.length > 0 ? `${body}\n\n${cardBodyTemplate}` : cardBodyTemplate
-        projectSessionService.newCardMarkdownDraft.replace(nextBody)
-        setIsInsertedTemplateUntouched(body.length === 0)
-    }
-
     const handleCreateClick = async () => {
         if (isSubmitDisabled) return
 
@@ -155,7 +132,6 @@ export function NewCardDialog(props: NewCardDialogProps) {
         const body = projectSessionService.newCardMarkdownDraft.getSnapshot()
         const draft: CardDraft = {
             body,
-            bodyIncludesTemplate: true,
             title: title.trim(),
             type: selectedType,
         }
@@ -180,7 +156,6 @@ export function NewCardDialog(props: NewCardDialogProps) {
         void handleCreateClick()
     }
 
-    const templateButtonLabel = isInsertedTemplateUntouched ? 'Clear' : 'Template'
     const createButton = (
         <Button aria-label="Create card" disabled={isSubmitDisabled} type="submit" variant="contained">
             <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
@@ -338,29 +313,13 @@ export function NewCardDialog(props: NewCardDialogProps) {
                         selectedType={selectedType}
                     />
                     <Stack spacing={isMobile ? 1.125 : 0.875}>
-                        <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                            <Typography color="text.secondary" id="new-card-description-label" sx={{ fontSize: 12, fontWeight: 600 }}>
-                                Description
+                        {!isMobile ? (
+                            <Typography color="custom.text3" sx={{ fontSize: 11.5 }}>
+                                Markdown
                             </Typography>
-                            {!isMobile ? (
-                                <Typography color="custom.text3" sx={{ fontSize: 11.5 }}>
-                                    Markdown
-                                </Typography>
-                            ) : null}
-                            <Box sx={{ flex: 1 }} />
-                            <Button
-                                disabled={cardBodyTemplate.length === 0}
-                                onClick={handleTemplateClick}
-                                size="small"
-                                sx={{ minHeight: isMobile ? 44 : 30 }}
-                                type="button"
-                                variant="outlined"
-                            >
-                                {templateButtonLabel}
-                            </Button>
-                        </Stack>
+                        ) : null}
                         <Box
-                            aria-labelledby="new-card-description-label"
+                            aria-label="Description"
                             data-testid="new-card-description"
                             role="group"
                             sx={{
@@ -390,10 +349,7 @@ export function NewCardDialog(props: NewCardDialogProps) {
                                 },
                             }}
                         >
-                            <NewCardMarkdownEditor
-                                draft={projectSessionService.newCardMarkdownDraft}
-                                onDirtyChange={handleBodyDirtyChange}
-                            />
+                            <NewCardMarkdownEditor draft={projectSessionService.newCardMarkdownDraft} />
                         </Box>
                     </Stack>
                 </DialogContent>
@@ -427,14 +383,14 @@ export function NewCardDialog(props: NewCardDialogProps) {
                             states={states}
                         />
                     </Stack>
-                    {isMobile ? createButton : (
+                    {!isMobile ? (
                         <Stack direction="row" spacing={1}>
                             <Button onClick={handleDialogClose} type="button" variant="outlined">
                                 Cancel
                             </Button>
                             {createButton}
                         </Stack>
-                    )}
+                    ) : null}
                 </DialogActions>
             </Box>
         </Dialog>

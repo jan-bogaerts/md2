@@ -96,26 +96,6 @@ describe('ConfigValueEditor', () => {
         expect(handleChange).toHaveBeenCalledWith('react.autoCommitDelayMs', 5000)
     })
 
-    it('renders card templates as multiline monospace fields', () => {
-        const entry: ConfigEntry = {
-            defaultValue: '## Context',
-            description: 'Markdown inserted into new cards before the typed body.',
-            editable: true,
-            key: 'project.cardBodyTemplate',
-            label: 'Card body template',
-            section: 'project',
-            source: 'project',
-            type: 'string',
-        }
-
-        render(<ConfigValueEditor entry={entry} onChange={vi.fn()} value="## Context" />)
-
-        const field = screen.getByRole('textbox', { name: 'Card body template' })
-        expect(field.tagName).toBe('TEXTAREA')
-        expect(field).toHaveAccessibleDescription(entry.description)
-        expect(window.getComputedStyle(field).fontFamily).toBe('monospace')
-    })
-
     it('renders placeholder tokens as code in helper text', () => {
         const entry: ConfigEntry = {
             defaultValue: 'git show {{commit}}',

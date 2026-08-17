@@ -39,7 +39,6 @@ export interface ProjectConfig {
     actionsFolder: string
     archivedFolder: string
     backgroundShade: ProjectBackgroundShade
-    cardBodyTemplate: string
     cardSeparator: CardSeparator
     cardTypes: CardTypeConfig[]
     diffCommand: string
@@ -109,7 +108,6 @@ export interface ProjectSnapshot {
 
 export interface CardDraft {
     body: string
-    bodyIncludesTemplate?: boolean
     title: string
     type: CardType
 }
@@ -466,8 +464,6 @@ export const DEFAULT_STATES: StateConfig[] = [
     { alwaysVisible: true, color: defaultColumnAccent(4), state: 'ready' },
 ]
 
-export const DEFAULT_CARD_BODY_TEMPLATE = '# Goal\n\n# Current status\n\n# Details\n\n# Tasks'
-
 function normalizeFolderPath(folderPath: string) {
     return folderPath.replace(/\\/gu, '/').replace(/^\/+|\/+$/gu, '')
 }
@@ -493,7 +489,6 @@ export const DEFAULT_PROJECT_CONFIG: ProjectConfig = {
     actionsFolder: DEFAULT_ACTIONS_FOLDER,
     archivedFolder: DEFAULT_ARCHIVED_FOLDER,
     backgroundShade: 'neutral',
-    cardBodyTemplate: DEFAULT_CARD_BODY_TEMPLATE,
     cardSeparator: DEFAULT_CARD_SEPARATOR,
     cardTypes: DEFAULT_CARD_TYPES,
     diffCommand: DEFAULT_DIFF_COMMAND,

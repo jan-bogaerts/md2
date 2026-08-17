@@ -6,7 +6,6 @@ import type { MarkdownDraft } from '../../../services/markdown/markdown_draft'
 
 interface NewCardMarkdownEditorProps {
     draft: MarkdownDraft
-    onDirtyChange: (dirty: boolean) => void
 }
 
 const handleImagePaste = (file: File, insertMarkdown: (markdown: string) => void) => (
@@ -18,7 +17,7 @@ const handleAttachments = (files: File[], insertMarkdown: (markdown: string) => 
 
 /** Lifetime-stable Markdown editor boundary for a new-card draft. */
 export const NewCardMarkdownEditor = memo(function NewCardMarkdownEditor(props: NewCardMarkdownEditorProps) {
-    const { draft, onDirtyChange } = props
+    const { draft } = props
 
     return (
         <MarkdownEditor
@@ -27,7 +26,6 @@ export const NewCardMarkdownEditor = memo(function NewCardMarkdownEditor(props: 
             hideAttachmentControl
             hideToolbar
             imagePasteHandler={handleImagePaste}
-            onDirtyChange={onDirtyChange}
         />
     )
 })

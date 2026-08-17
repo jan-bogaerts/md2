@@ -1,5 +1,5 @@
 import { cleanup, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { AppThemeProvider } from '../../../theme/theme_provider'
 import { NewCardMarkdownEditor } from './new_card_markdown_editor'
 import { MarkdownDraft } from '../../../services/markdown/markdown_draft'
@@ -11,7 +11,7 @@ describe('NewCardMarkdownEditor', () => {
         const draft = new MarkdownDraft('')
         render(
             <AppThemeProvider>
-                <NewCardMarkdownEditor draft={draft} onDirtyChange={vi.fn()} />
+                <NewCardMarkdownEditor draft={draft} />
             </AppThemeProvider>,
         )
 

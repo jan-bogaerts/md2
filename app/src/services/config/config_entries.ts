@@ -1,7 +1,6 @@
 import {
     DEFAULT_ACTIONS_FOLDER,
     DEFAULT_ARCHIVED_FOLDER,
-    DEFAULT_CARD_BODY_TEMPLATE,
     DEFAULT_CARD_TYPES,
     DEFAULT_DIFF_COMMAND,
     DEFAULT_PROJECT_FOLDER,
@@ -39,7 +38,6 @@ export interface ConfigValueTypes {
     'project.actionsFolder': string
     'project.archivedFolder': string
     'project.backgroundShade': ProjectBackgroundShade
-    'project.cardBodyTemplate': string
     'project.cardSeparator': CardSeparator
     'project.cardTypes': CardTypeConfig[]
     'project.diffCommand': string
@@ -245,16 +243,6 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         type: 'select',
     },
     {
-        defaultValue: DEFAULT_CARD_BODY_TEMPLATE,
-        description: 'Markdown inserted into new cards before the typed body.',
-        editable: true,
-        key: 'project.cardBodyTemplate',
-        label: 'Card body template',
-        section: 'project',
-        source: 'project',
-        type: 'string',
-    },
-    {
         defaultValue: DEFAULT_CARD_SEPARATOR,
         description: 'Character used between the card ID prefix, number, and title in generated card file names.',
         editable: true,
@@ -403,7 +391,6 @@ export const PROJECT_KEYS: ConfigKey[] = [
     'project.backgroundShade',
     'project.diffCommand',
     'project.pushMode',
-    'project.cardBodyTemplate',
     'project.cardSeparator',
     'project.cardTypes',
     'project.states',

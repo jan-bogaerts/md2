@@ -84,7 +84,6 @@ export class CardOperations {
             config.workingFolder,
             config.cardSeparator,
             config.cardTypes,
-            config.cardBodyTemplate,
             initialState,
             draft,
         )
@@ -132,7 +131,6 @@ export class CardOperations {
                 config.workingFolder,
                 config.cardSeparator,
                 config.cardTypes,
-                config.cardBodyTemplate,
                 request.cardState,
                 draft,
             )

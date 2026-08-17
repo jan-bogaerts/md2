@@ -17,7 +17,6 @@ function NewCardAttachmentTestSurface() {
         <AppThemeProvider>
             <button onClick={openDialog} type="button">Open new card</button>
             <NewCardDialog
-                cardBodyTemplate=""
                 cardTypes={DEFAULT_CARD_TYPES}
                 initialTargetStatus="new"
                 isLoading={false}
