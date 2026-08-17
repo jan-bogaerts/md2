@@ -2533,7 +2533,7 @@
         "reasoningTokens": 1629,
         "totalTokens": 667230
       },
-      "viewed": false
+      "viewed": true
     },
     {
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
@@ -6732,7 +6732,7 @@
         "reasoningTokens": 513,
         "totalTokens": 594216
       },
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
