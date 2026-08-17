@@ -16,28 +16,54 @@ sentryOrganization: elastetic
 ---
 # Goal
 
+Store one activity-file reference on a card instead of one compound reference per conversation. Load the referenced activity file once and attach all conversations it contains. This removes the reservation race because the activity file exists before its path is added to the card, even though its first conversation does not yet exist.
+
 ## Current state
 
-Before a new card agent starts, `runElectronAction` reserves a conversation ID, adds its activity reference to the card, flushes that card change, then starts the action. `ActionRunnerService.reserveConversation` creates the activity file but does not insert the conversation. The conversation first enters that file at an agent checkpoint or terminal write.
+Each card has one activity JSON file. The file is created from the card's stable `internalId`, and every conversation in that file belongs to that card. No other card action may write conversations into it.
 
-The flushed card reference triggers project-watch reloads in every connected renderer. During the interval before conversation persistence, `AgentIntegration` follows the reference and `loadActivityConversation` calls strict `findActivityConversation`. The lookup throws `Activity conversation not found`; Electron wraps that rejection as `Error invoking remote method 'md2-local-bridge:invoke'`. A browser connected through WebSocket reaches the same local dispatch and can receive the unwrapped error. This is a valid transient reservation, not corrupt activity data.
+The card's `agents` frontmatter currently stores one compound `<activity-path>#conversation=<conversation-id>` reference for every conversation. `AgentIntegration` loads every reference separately, so several references to the same activity file cause repeated reads and parses of that file. The reference order duplicates ordering already owned by the activity file's `conversations` array.
+
+Before a new card agent starts, `runElectronAction` reserves a conversation ID. `ActionRunnerService.reserveConversation` creates a valid activity file with an empty `conversations` array. React then adds the reserved compound conversation reference to the card, flushes the Markdown change, and starts the action. A project-watch reload can follow the new reference before the first checkpoint persists the conversation. Electron loads the existing activity file, cannot find the reserved conversation ID, and throws `Activity conversation not found`.
 
 ## implementation details
 
-- Define a **pending conversation reference** as a reserved reference whose conversation is not persisted yet, including an unconsumed reservation and its active action run.
-- Let `ActionRunnerService` report whether a reference is pending. Check both reservation storage and active runs so the check remains valid after `startAction` consumes the reservation.
-- Keep activity loading strict. In local bridge dispatch, try the normal load first; only when that load reports the referenced conversation missing and `ActionRunnerService` confirms the reference is pending, return `null`. Re-throw malformed-file, I/O, unknown-reference, and unreserved missing-conversation errors. Remote WebSocket requests use this same dispatch, so no separate remote fallback belongs in `RemoteControlStorageService`.
-- Update bridge and `StorageService` types to allow `AgentConversation | null` for this pending result. During project/background loading, `AgentIntegration` must skip `null` without adding a conversation error, warning dialog, or telemetry event. A terminal-event load must still treat `null` as an error because terminal persistence completes before that event.
-- Preserve existing ordering: reserve and link reference, flush renderer changes, then start action. Do not create a placeholder conversation, change activity schema, delay project watchers, or weaken `findActivityConversation` for normal reads.
-- Add focused tests for pending detection before and after reservation consumption, local and WebSocket callers sharing dispatch behavior, `AgentIntegration` skipping only pending `null`, terminal loading rejecting `null`, and an unreserved dangling reference retaining current error behavior.
+- Change card `agents` entries from compound conversation references to repository-relative activity-file paths. A normal card has zero or one entry. Adding the same file path again is a no-op.
+- Keep compound `<activity-path>#conversation=<conversation-id>` references as runtime addresses for operations on one conversation, including continuation, viewed-state updates, waiting-conversation closure, and terminal-event loading. Do not persist those compound references in card Markdown.
+- Include the activity path in the conversation reservation result. `runElectronAction` adds that file path to the card, flushes the card change when needed, and then starts the action with the reserved conversation ID and runtime conversation reference. Preserve the existing reserve, link, flush, start ordering.
+- Add a storage operation that loads one activity file and returns all conversations in its `conversations` array. Local Electron, GitHub, and remote WebSocket storage must expose the same behavior. `AgentIntegration` calls it once per card activity file and attaches every returned conversation.
+- When attaching a referenced activity file, do not require its stored `origin.cardInternalId` or its conversations' stored `cardInternalId` to match the referencing card. The explicit file reference determines where the conversations are shown, allowing users to copy cards or activity files manually. Keep normal activity schema validation and repository path-safety checks.
+- Give each loaded conversation its compound runtime reference by combining the card's referenced activity path with the conversation's ID. Keep strict single-conversation lookup for operations that explicitly address one conversation.
+- Use the activity file's `conversations` array as the persisted conversation order. Do not maintain a second order in card Markdown.
+- Treat a valid activity file with no conversations as a successful load that attaches an empty list. Missing files, malformed activity JSON, unsafe paths, and failures to read the referenced file remain errors.
+- Remove the proposed pending-reference detection, nullable conversation result, and special `null` handling. They are unnecessary when project/background loading does not look up a reserved conversation ID.
+- When releasing a card, move its activity file as before and rewrite the card's single activity-file path. Do not enumerate, preserve, or rewrite conversation IDs in the card frontmatter.
+- Migrate existing card frontmatter by removing `#conversation=...` from its entries and deduplicating the resulting activity paths. Under the existing ownership invariant, all entries for one card resolve to the same path. If they resolve to more than one distinct path, report the conflict instead of silently choosing one. Persist migrated card changes through the normal batched card-save path.
+- Update activity repair so it validates and repairs each referenced file once. Repair no longer removes a card reference because an individual conversation ID is absent or belongs to a different card. File-level load and repair failures retain the existing reporting and batching behavior.
 
 ## acceptance criteria
 
-- While a reserved card conversation has no persisted record, project reloads in Electron and a connected browser produce no `Activity conversation not found` rejection, Sentry event, warning dialog, or conversation-load error.
-- Both clients continue receiving live conversation state through action-run events; pending-reference handling does not create a stored placeholder or duplicate conversation.
-- After first checkpoint or terminal persistence, the same reference loads and attaches the persisted conversation normally.
-- Missing conversations without a matching reservation or active run still fail with `Activity conversation not found`, and malformed activity files still fail with their existing validation error.
-- Conversation reservation/link/flush/start ordering, activity-file schema, strict normal reads, and terminal persistence behavior remain unchanged.
+- A card with any number of conversations stores one activity-file path in `agents`; it stores no `#conversation=...` fragments.
+- Project and background loading read and parse that activity file once and attach every conversation in its `conversations` array.
+- A referenced valid activity file with an empty `conversations` array loads without an error, warning dialog, or telemetry event in Electron and connected browsers.
+- Starting a new card agent creates the activity file before linking its path. Watcher reloads during reservation produce no `Activity conversation not found` error and require no pending-reference exception.
+- Live conversations still arrive through action-run events. After checkpoint or terminal persistence, project reload attaches the stored conversation without adding another Markdown reference.
+- Conversation continuation, viewed-state updates, waiting-conversation closure, and terminal-event loading still address the intended conversation through an in-memory compound reference and retain strict missing-conversation errors.
+- Conversation display does not depend on stored activity origin or conversation `cardInternalId` matching the referencing card.
+- Releasing a card moves one activity file and rewrites one file reference while preserving all conversations and history.
+- Existing compound card references migrate to one deduplicated activity-file path in a normal batched save. Multiple distinct paths produce a reported conflict and no arbitrary selection.
+- Missing activity files, malformed activity data, unsafe paths, and I/O failures retain their existing error behavior.
+- Activity schema, conversation persistence, and reserve/link/flush/start ordering remain unchanged outside the reference-model change.
+
+## testing
+
+- Cover reservation followed by watcher reload before conversation persistence for local Electron and WebSocket clients.
+- Cover empty, single-conversation, and multiple-conversation activity files, proving one file load and complete attachment in stored order.
+- Cover manual file references whose stored origin or conversation card identity differs from the referencing card.
+- Cover runtime compound references for continuation, viewed-state updates, waiting-conversation closure, and terminal loads.
+- Cover migration from several compound references to one path, duplicate paths, conflicting paths, migration batching, and migration failure.
+- Cover release moves and reference rewriting with zero, one, and several conversations in the activity file.
+- Keep malformed-file, missing-file, unsafe-path, and strict explicit conversation lookup regression coverage.
 
 ## Sentry issue
 
