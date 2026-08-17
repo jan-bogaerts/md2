@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
   - design/activity/card__704af30b-54f1-43ec-b991-39a63e2d52e1.json#conversation=agent-ebe541e4-f49c-477b-b469-c0ea8e6a8c42
+  - design/activity/card__704af30b-54f1-43ec-b991-39a63e2d52e1.json#conversation=agent-6d3dae09-d051-435e-b2e5-9212c32cddc6
 policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 140874744
