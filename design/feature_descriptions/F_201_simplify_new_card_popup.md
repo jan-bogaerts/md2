@@ -3,12 +3,12 @@ author:
 id: F_201
 internalId: c384fd87-648d-4bbd-b5df-cfc26f176388
 title: Simplify new card popup
-status: new
+status: design
 owner: 
 affects:
 agents:
 policy:
-after: cc3a9c43-319b-4a60-a202-f728f220e14e
+after: bee2d3c7-81e1-451a-bc4d-d4ba59c849e9
 ---
 
 * Some labels may be removed: type, description

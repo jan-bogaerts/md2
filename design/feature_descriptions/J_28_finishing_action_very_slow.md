@@ -8,7 +8,7 @@ owner:
 affects:
 agents:
 policy:
-after: bee2d3c7-81e1-451a-bc4d-d4ba59c849e9
+after: 385eccb9-06c4-4d93-8f8a-5f9b9f42e45f
 ---
 
 When user clicks on 'finish' to complete an action. The ui appears to do a lot:
