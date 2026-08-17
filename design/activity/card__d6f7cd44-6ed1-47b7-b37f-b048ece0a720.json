@@ -3225,11 +3225,11 @@
         "agent-d1a489d5-16a6-495a-8e3b-194e69d97c69"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-c8d5ad5a-658a-4243-87e0-2cb6fc65cbc2",
       "origin": {
@@ -3238,9 +3238,32 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-d1a489d5-16a6-495a-8e3b-194e69d97c69",
       "startedAt": "2026-08-17T09:13:43.283Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-d1a489d5-16a6-495a-8e3b-194e69d97c69"
+    },
+    {
+      "commits": [
+        {
+          "commit": "5466889a59e79d84da260e6cc1895e1e6b6ec6f5",
+          "committedAt": "2026-08-17T11:18:08+02:00",
+          "deletions": 27,
+          "filePaths": [
+            "app/src/components/config/sentry_config_section.test.tsx",
+            "app/src/components/config/sentry_config_section.tsx"
+          ],
+          "filesChanged": 2,
+          "insertions": 107,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-17T11:18:08+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "d6f7cd44-6ed1-47b7-b37f-b048ece0a720",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
