@@ -64,6 +64,7 @@ export function NewCardDialog(props: NewCardDialogProps) {
     const { isCreatingCard } = useCardCreationState()
     const theme = useTheme()
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
+    const cancellationInProgressRef = useRef(false)
     const wasOpenRef = useRef(false)
     const [isInsertedTemplateUntouched, setIsInsertedTemplateUntouched] = useState(false)
     const [targetStatus, setTargetStatus] = useState('')
@@ -96,22 +97,29 @@ export function NewCardDialog(props: NewCardDialogProps) {
     }, [defaultType, initialTargetStatus, isProjectOpen, open])
 
     const closeDialog = async () => {
-        const body = projectSessionService.newCardMarkdownDraft.getSnapshot()
-        const isDirty = title.length > 0
-            || body.length > 0
-            || selectedType !== defaultType
-            || selectedStatus !== initialTargetStatus
-            || projectSessionService.hasNewCardDraftImages()
-        if (isDirty && !window.confirm(DISCARD_CARD_MESSAGE)) return
+        if (cancellationInProgressRef.current) return
 
+        cancellationInProgressRef.current = true
         try {
-            await projectSessionService.discardNewCardDraftImages()
-        } catch (error) {
-            dialogService.error(error, { fallbackMessage: 'Pasted draft images could not be removed' })
-            return
+            const body = projectSessionService.newCardMarkdownDraft.getSnapshot()
+            const isDirty = title.length > 0
+                || body.length > 0
+                || selectedType !== defaultType
+                || selectedStatus !== initialTargetStatus
+                || projectSessionService.hasNewCardDraftImages()
+            if (isDirty && !window.confirm(DISCARD_CARD_MESSAGE)) return
+
+            try {
+                await projectSessionService.discardNewCardDraftImages()
+            } catch (error) {
+                dialogService.error(error, { fallbackMessage: 'Pasted draft images could not be removed' })
+                return
+            }
+            resetForm()
+            onClose()
+        } finally {
+            cancellationInProgressRef.current = false
         }
-        resetForm()
-        onClose()
     }
 
     const handleDialogClose = () => {
@@ -162,13 +170,6 @@ export function NewCardDialog(props: NewCardDialogProps) {
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault()
         await handleCreateClick()
-    }
-
-    const handleFormKeyDown = (event: KeyboardEvent<HTMLFormElement>) => {
-        if (event.key !== 'Escape') return
-
-        event.preventDefault()
-        void closeDialog()
     }
 
     const handleFormKeyDownCapture = (event: KeyboardEvent<HTMLFormElement>) => {
@@ -230,7 +231,6 @@ export function NewCardDialog(props: NewCardDialogProps) {
         >
             <Box
                 component="form"
-                onKeyDown={handleFormKeyDown}
                 onKeyDownCapture={handleFormKeyDownCapture}
                 onSubmit={handleSubmit}
                 sx={{ display: 'flex', flexDirection: 'column', height: isMobile ? '100%' : 'auto', maxHeight: '100dvh', minHeight: 0 }}

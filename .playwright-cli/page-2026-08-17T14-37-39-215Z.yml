@@ -1,0 +1,92 @@
+- generic [ref=f1e1]:
+  - generic [ref=f1e2]:
+    - alert [ref=f1e188]:
+      - generic [ref=f1e192]: Electron local Git bridge cannot subscribe to merge conflicts
+      - button [ref=f1e825] [cursor=pointer]
+    - generic [ref=f1e3]:
+      - banner [ref=f1e4]:
+        - generic [ref=f1e5]:
+          - button [ref=f1e826] [cursor=pointer]
+          - tablist [ref=f1e828]:
+            - tab [selected] [ref=f1e829] [cursor=pointer]: Home
+            - tab [ref=f1e830] [cursor=pointer]: Run
+          - paragraph [ref=f1e255]: mock-project
+          - button [ref=f1e831] [cursor=pointer]
+          - button [ref=f1e832] [cursor=pointer]
+        - tabpanel [ref=f1e30]:
+          - generic [ref=f1e31]:
+            - group [ref=f1e833]:
+              - group [ref=f1e681]:
+                - button [pressed] [ref=f1e834] [cursor=pointer]:
+                  - generic [ref=f1e685]: Board
+                - button [ref=f1e835] [cursor=pointer]:
+                  - generic [ref=f1e689]: List
+            - separator [ref=f1e690]
+            - group [ref=f1e836]:
+              - button [ref=f1e838] [cursor=pointer]
+              - generic [ref=f1e38]:
+                - combobox [ref=f1e840] [cursor=pointer]:
+                  - generic [ref=f1e263]:
+                    - paragraph [ref=f1e265]: main
+                    - generic [ref=f1e266]: branch
+                - textbox: main
+                - group
+              - generic [ref=f1e841]:
+                - button [disabled]
+              - generic [ref=f1e842]:
+                - button [disabled]
+              - generic [ref=f1e843]:
+                - button [disabled]
+            - separator [ref=f1e43]
+            - group [ref=f1e844]:
+              - button [ref=f1e846] [cursor=pointer]
+              - button [ref=f1e848] [cursor=pointer]: Connect
+      - region [ref=f1e849]:
+        - generic [ref=f1e850]:
+          - generic [ref=f1e852]:
+            - generic [ref=f1e695]:
+              - heading [level=2] [ref=f1e853]: new
+              - generic [ref=f1e698]: "0"
+              - button [ref=f1e854] [cursor=pointer]
+            - generic [ref=f1e703]: Drop a card here
+          - status [ref=f1e705]
+  - dialog [active] [ref=f1e863]:
+    - generic [ref=f1e864]:
+      - generic [ref=f1e865]:
+        - button "Cancel" [ref=f1e866] [cursor=pointer]
+        - heading "New card" [level=2] [ref=f1e867]
+        - button "Create" [disabled]
+      - generic [ref=f1e868]:
+        - generic [ref=f1e870]:
+          - textbox "Title" [ref=f1e871]:
+            - /placeholder: Card title…
+          - group
+        - generic [ref=f1e872]:
+          - paragraph [ref=f1e873]: Type
+          - radiogroup "Type" [ref=f1e874]:
+            - radio "Feature" [checked] [ref=f1e875] [cursor=pointer]
+            - radio "Job" [ref=f1e877] [cursor=pointer]
+            - radio "Bug" [ref=f1e879] [cursor=pointer]
+        - generic [ref=f1e881]:
+          - generic [ref=f1e882]:
+            - paragraph [ref=f1e883]: Description
+            - button "Template" [ref=f1e884] [cursor=pointer]
+          - group "Description" [ref=f1e885]:
+            - generic [ref=f1e888]:
+              - textbox "editable markdown" [ref=f1e890]:
+                - paragraph [ref=f1e891]
+              - generic:
+                - paragraph
+      - generic [ref=f1e892]:
+        - generic [ref=f1e893]:
+          - generic "Attach files" [ref=f1e894]:
+            - button "Attach files" [ref=f1e895] [cursor=pointer]
+          - generic [ref=f1e898]:
+            - combobox "Target column" [ref=f1e899] [cursor=pointer]:
+              - generic [ref=f1e900]:
+                - paragraph [ref=f1e901]: Add to
+                - paragraph [ref=f1e903]: new
+            - textbox: new
+            - group
+        - button "Create card" [disabled]:
+          - generic: Add
