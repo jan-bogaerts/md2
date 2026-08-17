@@ -142,7 +142,7 @@ function projectUrl(request: SentryApiRequest) {
 export class SentryApiClient {
     private readonly fetchRequest: typeof fetch
 
-    constructor(dependencies: SentryApiClientDependencies = { fetch }) {
+    constructor(dependencies: SentryApiClientDependencies = { fetch: globalThis.fetch.bind(globalThis) }) {
         this.fetchRequest = dependencies.fetch
     }
 

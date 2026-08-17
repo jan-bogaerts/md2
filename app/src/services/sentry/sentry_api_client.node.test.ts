@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { SentryApiClient, SentryApiError, type SentryApiRequest } from './sentry_api_client'
 
 const request: SentryApiRequest = {
@@ -10,6 +10,27 @@ const request: SentryApiRequest = {
 }
 
 describe('SentryApiClient', () => {
+    afterEach(() => {
+        vi.unstubAllGlobals()
+    })
+
+    it('keeps globalThis as receiver for default browser fetch', async () => {
+        const fetchRequest = vi.fn(async function receiverSensitiveFetch(this: typeof globalThis) {
+            if (this !== globalThis) throw new TypeError('Illegal invocation')
+
+            return new Response('{}')
+        })
+        vi.stubGlobal('fetch', fetchRequest)
+        const client = new SentryApiClient()
+
+        await client.validateProject(request)
+
+        expect(fetchRequest).toHaveBeenCalledWith(
+            'https://sentry.example.com/api/0/projects/acme/frontend',
+            { headers: { Accept: 'application/json', Authorization: 'Bearer secret-token' } },
+        )
+    })
+
     it('validates configured organization and project with bearer authentication', async () => {
         const fetchRequest = vi.fn(async () => new Response('{}'))
         const client = new SentryApiClient({ fetch: fetchRequest })
