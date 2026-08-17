@@ -3,7 +3,7 @@ author:
 id: B_125
 internalId: 6d6bf2a1-f9ac-430c-ad48-255ae837c9a0
 title: Error: Error invoking remote method 'md2-local-bridge:invoke': Error: Activity conversation not found: agent-f721f7b5-85e5-4665-bd28-0bfdd83b79db
-status: new
+status: design
 owner: 
 affects:
 agents:
@@ -11,7 +11,6 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 140879683
 sentryOrganization: elastetic
-after: 8c67b588-6f04-46d4-973a-2104345f161e
 ---
 # Goal
 
