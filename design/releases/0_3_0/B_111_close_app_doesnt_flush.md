@@ -7,9 +7,7 @@ status: ready
 owner: 
 affects:
 agents:
-  - design/releases/0_3_0/card__43bf8521-8caa-4127-88fc-c31454193b90.json#conversation=agent-fdd54bb6-71ec-4607-91e7-66ba1a088257
-  - design/releases/0_3_0/card__43bf8521-8caa-4127-88fc-c31454193b90.json#conversation=agent-4da6309c-5cc0-4dff-a44f-e8cb7a1153db
-  - design/releases/0_3_0/card__43bf8521-8caa-4127-88fc-c31454193b90.json#conversation=agent-0bf74ce0-162e-4d6d-bbc3-f5a1b82101d9
+  - design/releases/0_3_0/card__43bf8521-8caa-4127-88fc-c31454193b90.json
 policy:
 after: 32276926-4cff-486d-88bb-a98fbe1bfd8a
 ---

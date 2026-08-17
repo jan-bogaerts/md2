@@ -14,7 +14,7 @@ affects:
   - app/src/data/electron_action_bridge.ts
   - app/src/components/actions/action_run_history.tsx
 agents:
-  - design/releases/0_1_0/card__299444fe-cb8b-420f-a89d-3c3300bf249e.json#conversation=agent-72a0ccb7-7ec6-4ea9-85eb-5a73da5b5c75
+  - design/releases/0_1_0/card__299444fe-cb8b-420f-a89d-3c3300bf249e.json
 policy:
 after: 9df160a1-c669-422b-aea5-da5655c12134
 ---

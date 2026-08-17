@@ -5,8 +5,7 @@ status: ready
 title: move activity logs release
 after: f0fad88a-ea00-41be-aaf9-8f28a4cbdc31
 agents:
-  - design/releases/0_1_0/card__a729f80c-de80-4c12-9b53-bf0fbf29e4cb.json#conversation=agent-c823bba5-38e7-4d1b-be37-204e74e28dd3
-  - design/releases/0_1_0/card__a729f80c-de80-4c12-9b53-bf0fbf29e4cb.json#conversation=agent-ccd429ef-d69d-4053-8caf-04173b9ab872
+  - design/releases/0_1_0/card__a729f80c-de80-4c12-9b53-bf0fbf29e4cb.json
 ---
 Move the activity logs together with the cards that are moved to the release folder. this way, the 'activity' folder doesn't get to overcrowded.
 
