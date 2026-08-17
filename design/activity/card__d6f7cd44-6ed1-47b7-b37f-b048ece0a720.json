@@ -2686,11 +2686,11 @@
         "agent-d1a489d5-16a6-495a-8e3b-194e69d97c69"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-8018dc21-2da7-421f-88fb-342c0a60ecec",
       "origin": {
@@ -2699,9 +2699,36 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-d1a489d5-16a6-495a-8e3b-194e69d97c69",
       "startedAt": "2026-08-17T09:03:14.263Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-d1a489d5-16a6-495a-8e3b-194e69d97c69"
+    },
+    {
+      "commits": [
+        {
+          "commit": "5c3cd72e68dcfca252b29bb26687241426c374ae",
+          "committedAt": "2026-08-17T11:09:32+02:00",
+          "deletions": 17,
+          "filePaths": [
+            "app/src/components/config/sentry_config_section.test.tsx",
+            "app/src/components/config/sentry_config_section.tsx",
+            "app/src/services/sentry/sentry_api_client.node.test.ts",
+            "app/src/services/sentry/sentry_api_client.ts",
+            "app/src/services/sentry/sentry_connection_service.node.test.ts",
+            "app/src/services/sentry/sentry_connection_service.ts"
+          ],
+          "filesChanged": 6,
+          "insertions": 100,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-17T11:09:32+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "d6f7cd44-6ed1-47b7-b37f-b048ece0a720",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
