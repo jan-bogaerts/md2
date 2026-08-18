@@ -676,6 +676,8 @@ describe('project dialog components', () => {
 
         const dialog = screen.getByRole('dialog', { name: 'New card' })
         const content = screen.getByTestId('new-card-dialog-content')
+        const description = screen.getByRole('group', { name: 'Description' })
+        const descriptionStack = description.parentElement
         const title = dialog.querySelector('.MuiDialogTitle-root')
         const actions = dialog.querySelector('.MuiDialogActions-root')
         const topCreate = screen.getByRole('button', { name: 'Create' })
@@ -687,7 +689,8 @@ describe('project dialog components', () => {
         expect(title).toHaveStyle({ flexShrink: '0' })
         expect(actions).toHaveStyle({ flexShrink: '0' })
         expect(screen.getByRole('combobox', { name: 'Target column' }).closest('.MuiInputBase-root')).toHaveStyle({ height: '44px' })
-        expect(screen.getByRole('group', { name: 'Description' })).toHaveStyle({ minHeight: '260px', resize: 'none' })
+        expect(descriptionStack).toHaveStyle({ flexGrow: '1', minHeight: '0' })
+        expect(description).toHaveStyle({ flex: '1', minHeight: '0', resize: 'none' })
 
         fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: 'Mobile card' } })
         expect(topCreate).toBeEnabled()
@@ -697,6 +700,26 @@ describe('project dialog components', () => {
             title: 'Mobile card',
             type: 'feature',
         }, 'new'))
+    })
+
+    it('keeps fixed desktop description sizing and vertical resize behavior', () => {
+        render(
+            <NewCardDialog
+                cardTypes={DEFAULT_CARD_TYPES}
+                initialTargetStatus="new"
+                isLoading={false}
+                isProjectOpen
+                onClose={vi.fn()}
+                onCreateCard={vi.fn(async () => undefined)}
+                open
+                states={DEFAULT_STATES}
+            />,
+            { wrapper: AppThemeProvider },
+        )
+
+        const description = screen.getByRole('group', { name: 'Description' })
+
+        expect(description).toHaveStyle({ height: '270px', minHeight: '270px', resize: 'vertical' })
     })
 
     it('submits with Ctrl+Enter and confirms dirty Escape cancellation', async () => {

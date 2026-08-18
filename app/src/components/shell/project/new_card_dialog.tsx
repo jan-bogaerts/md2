@@ -312,7 +312,7 @@ export function NewCardDialog(props: NewCardDialogProps) {
                         onChange={setType}
                         selectedType={selectedType}
                     />
-                    <Stack spacing={isMobile ? 1.125 : 0.875}>
+                    <Stack spacing={isMobile ? 1.125 : 0.875} sx={isMobile ? { flexGrow: 1, minHeight: 0 } : undefined}>
                         {!isMobile ? (
                             <Typography color="custom.text3" sx={{ fontSize: 11.5 }}>
                                 Markdown
@@ -329,8 +329,9 @@ export function NewCardDialog(props: NewCardDialogProps) {
                                 borderRadius: isMobile ? '11px' : '9px',
                                 boxSizing: 'border-box',
                                 color: 'text.primary',
-                                height: isMobile ? 260 : 270,
-                                minHeight: isMobile ? 260 : 270,
+                                flex: isMobile ? 1 : undefined,
+                                height: isMobile ? undefined : 270,
+                                minHeight: isMobile ? 0 : 270,
                                 outline: 'none',
                                 overflow: 'auto',
                                 resize: isMobile ? 'none' : 'vertical',
@@ -344,7 +345,7 @@ export function NewCardDialog(props: NewCardDialogProps) {
                                 '& .light-theme, & .dark-theme': { minHeight: '100%' },
                                 '& .mdxeditor-content': {
                                     boxSizing: 'border-box',
-                                    minHeight: isMobile ? 258 : 268,
+                                    minHeight: isMobile ? '100%' : 268,
                                     p: 1.625,
                                 },
                             }}
