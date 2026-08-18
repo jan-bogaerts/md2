@@ -3,14 +3,12 @@ author:
 id: F_208
 internalId: 8690b93e-98c4-486f-95b6-aacc10931a56
 title: Add view stats
-status: new
+status: design
 owner: 
 affects:
 agents:
 policy:
-after: a992c823-0635-450a-9f89-af756fdac964
 ---
-
 Add support to view stats like:
 
 * Time per card, per action
@@ -18,8 +16,8 @@ Add support to view stats like:
 * Token usage per card, per action
 * Token usage by time
 
-STats can be viewed in chart and saved as csv.
+Stats can be viewed in chart and saved as csv.
 
-To view stats, in workspace, where list and panel are, add statsview
+To view stats, in workspace, where list and board are, add statsview
 
 Add button to ´board´, ´list´, group
