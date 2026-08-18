@@ -2928,7 +2928,7 @@
         "reasoningTokens": 276,
         "totalTokens": 341828
       },
-      "viewed": false
+      "viewed": true
     },
     {
       "actionId": "md2.custom-prompt",

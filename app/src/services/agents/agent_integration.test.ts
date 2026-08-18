@@ -808,7 +808,7 @@ describe('AgentIntegration', () => {
         expect(actionRunRegistry.getGlobalActiveSnapshot()).toHaveLength(0)
     })
 
-    it('links an agent conversation when it starts without loading it before completion', async () => {
+    it('applies started and closed conversation snapshots without reading the activity file', async () => {
         configService.init()
         let actionRunCallback: ((event: ActionRunEvent) => void) | null = null
         window.md2Actions = {
@@ -839,20 +839,27 @@ describe('AgentIntegration', () => {
         emitActionRun({ ...startedEvent, update: { ...startedEvent.update, continued: true } })
 
         expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual(['design/activity/card__root-card.json'])
+        expect(service.getState().snapshot?.activeCards[0].agentConversations).toEqual([runningConversation])
         expect(storage.loadAgentConversation).not.toHaveBeenCalled()
 
+        const completedConversation = {
+            ...runningConversation,
+            completedAt: '2026-01-01T00:01:00.000Z',
+            status: 'completed' as const,
+        }
         emitActionRun({
-            actionId: 'implement', context, runId: 'action-1', runWorktree: null, phase: 'main', reference,
-            rootActionId: 'implement', status: 'completed', type: 'action',
+            actionId: 'implement', context, runId: 'action-1', phase: 'main', rootActionId: 'implement',
+            status: 'completed', type: 'update', update: { conversation: completedConversation, kind: 'agentClosed' },
         })
 
-        await vi.waitFor(() => expect(storage.loadAgentConversation).toHaveBeenCalledTimes(1))
+        expect(service.getState().snapshot?.activeCards[0].agentConversations).toEqual([completedConversation])
+        expect(storage.loadAgentConversation).not.toHaveBeenCalled()
         expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual(['design/activity/card__root-card.json'])
         expect(service.getState().snapshot?.activeCards[0].header.worktree).toBe(3)
         expect(service.getState().snapshot?.activeCards[0].header.policy).toEqual({ allowNetwork: true })
     })
 
-    it('links the final conversation reference and loads it once', async () => {
+    it('applies a closed conversation snapshot when the started event was missed', async () => {
         configService.init()
         let actionRunCallback: ((event: ActionRunEvent) => void) | null = null
         window.md2Actions = {
@@ -870,13 +877,15 @@ describe('AgentIntegration', () => {
         const emitActionRun = actionRunCallback as (event: ActionRunEvent) => void
 
         const context = { cardInternalId: 'root-card', file: 'design/F-1-root.md', kind: 'card' as const }
+        const reference = 'design/activity/card__root-card.json#conversation=agent-1'
+        const completedConversation = { ...conversation(reference), status: 'completed' as const }
         emitActionRun({
-            actionId: 'implement', context, runId: 'action-1', runWorktree: null, phase: 'main',
-            reference: 'design/activity/card__root-card.json#conversation=agent-1', rootActionId: 'implement', status: 'completed', type: 'action',
+            actionId: 'implement', context, runId: 'action-1', phase: 'main', rootActionId: 'implement',
+            status: 'completed', type: 'update', update: { conversation: completedConversation, kind: 'agentClosed' },
         })
 
-        await vi.waitFor(() => expect(storage.loadAgentConversation).toHaveBeenCalledTimes(1))
-        await vi.waitFor(() => expect(service.getState().snapshot?.activeCards[0].agentConversations).toHaveLength(1))
+        expect(storage.loadAgentConversation).not.toHaveBeenCalled()
+        expect(service.getState().snapshot?.activeCards[0].agentConversations).toEqual([completedConversation])
         expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual(['design/activity/card__root-card.json'])
     })
 })

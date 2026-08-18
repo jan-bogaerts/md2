@@ -1,4 +1,7 @@
 import { createRequire } from 'node:module';
+import { EventEmitter } from 'node:events';
+import { resolve } from 'node:path';
+import { PassThrough } from 'node:stream';
 import { describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
@@ -12,6 +15,54 @@ function diagnosticStreamingEvent(content, providerItemId) {
 }
 
 describe('AgentRunnerService state handling', () => {
+    it('persists a new conversation before spawning its process and publishing started', async () => {
+        const initialCheckpoint = Promise.withResolvers();
+        const child = new EventEmitter();
+        child.pid = 42;
+        child.stdin = new PassThrough();
+        child.stdout = new PassThrough();
+        child.stderr = new PassThrough();
+        const persistConversationCheckpoint = vi.fn(async () => initialCheckpoint.promise);
+        const persistConversation = vi.fn(async () => undefined);
+        const spawn = vi.fn(() => child);
+        const onEvent = vi.fn();
+        const service = new AgentRunnerService({
+            executableResolver: { find: vi.fn(async () => null) },
+            persistConversation,
+            persistConversationCheckpoint,
+            spawn,
+        });
+        const project = { rootPath: resolve(import.meta.dirname, '../../../..') };
+        const request = { command: ['fake-agent'], projectFolder: 'design', prompt: 'Start work' };
+
+        const start = service.start(project, request, onEvent, vi.fn(), vi.fn());
+        await vi.waitFor(() => expect(persistConversationCheckpoint).toHaveBeenCalledOnce());
+
+        expect(spawn).not.toHaveBeenCalled();
+        expect(onEvent).not.toHaveBeenCalled();
+
+        initialCheckpoint.resolve();
+        const result = await start;
+
+        expect(persistConversationCheckpoint.mock.invocationCallOrder[0]).toBeLessThan(spawn.mock.invocationCallOrder[0]);
+        expect(spawn.mock.invocationCallOrder[0]).toBeLessThan(onEvent.mock.invocationCallOrder[0]);
+        expect(persistConversationCheckpoint).toHaveBeenCalledWith(expect.objectContaining({
+            conversation: expect.objectContaining({
+                entries: [expect.objectContaining({ content: 'Start work', role: 'user' })],
+                id: result.conversation.id,
+                status: 'running',
+            }),
+            request: expect.objectContaining({ activityProject: project, projectFolder: 'design' }),
+        }));
+        expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({
+            conversation: result.conversation,
+            type: 'started',
+        }));
+
+        child.emit('close', 0);
+        await vi.waitFor(() => expect(persistConversation).toHaveBeenCalledOnce());
+    });
+
     it('persists timer transitions before publishing pause and resume states', async () => {
         vi.useFakeTimers();
         vi.setSystemTime(new Date('2026-01-01T00:00:10.000Z'));
@@ -272,7 +323,6 @@ describe('AgentRunnerService state handling', () => {
             streaming: true,
             turnActive: true,
             turnIndex: 1,
-            usageMetricsDestination: { projectFolder: 'design', rootPath: 'C:/repo' },
             waitingForQuestion: false,
         };
         service.processes.set('run-1', run);
@@ -322,7 +372,6 @@ describe('AgentRunnerService state handling', () => {
         });
         expect(persistConversationCheckpoint).toHaveBeenCalledWith(expect.objectContaining({ conversation: expectedConversation }));
         expect(usageMetricsService.recordTokenUsage).toHaveBeenCalledWith(
-            run.usageMetricsDestination,
             'codex',
             latestSnapshot,
             expect.any(Number),
@@ -486,7 +535,6 @@ describe('AgentRunnerService state handling', () => {
             reasoningTokens: 0,
             totalTokens: 10,
         };
-        const usageMetricsDestination = { projectFolder: 'design', rootPath: 'C:/repo' };
         const run = {
             agent: 'claude',
             cancelled: false,
@@ -518,7 +566,6 @@ describe('AgentRunnerService state handling', () => {
             suspended: false,
             termination: null,
             turnUsage,
-            usageMetricsDestination,
         };
         service.processes.set('run-1', run);
         service.runningConversationIds.add('conversation-1');
@@ -526,7 +573,6 @@ describe('AgentRunnerService state handling', () => {
         await service.handleClose('run-1', 0);
 
         expect(usageMetricsService.recordTokenUsage).toHaveBeenCalledWith(
-            usageMetricsDestination,
             'claude',
             turnUsage,
             expect.any(Number),
@@ -960,7 +1006,6 @@ describe('AgentRunnerService state handling', () => {
 
     it('routes Codex account updates to runtime state and originating project metrics', async () => {
         const persistConversation = vi.fn();
-        const destination = { projectFolder: 'design', rootPath: 'C:/repo' };
         const snapshot = { available: true, buckets: [], observedAt: 10 };
         const codexRuntimeService = {
             getSnapshot: vi.fn(() => snapshot),
@@ -971,18 +1016,16 @@ describe('AgentRunnerService state handling', () => {
         const service = new AgentRunnerService({ codexRuntimeService, persistConversation, usageMetricsService });
         const payload = { rateLimits: { limitId: 'codex' } };
 
-        await service.handleCodexRuntimeEvent({ kind: 'update', observedAt: 10, payload }, destination);
-        await service.handleCodexRuntimeEvent({ kind: 'unavailable', observedAt: 11 }, destination);
+        await service.handleCodexRuntimeEvent({ kind: 'update', observedAt: 10, payload });
+        await service.handleCodexRuntimeEvent({ kind: 'unavailable', observedAt: 11 });
 
         expect(codexRuntimeService.publishRateLimits).toHaveBeenCalledWith(payload, 10, true);
         expect(codexRuntimeService.publishUnavailable).toHaveBeenCalledWith(11);
-        expect(usageMetricsService.recordAccountUsage).toHaveBeenCalledWith(destination, 'codex', snapshot);
+        expect(usageMetricsService.recordAccountUsage).toHaveBeenCalledWith('codex', snapshot);
         expect(persistConversation).not.toHaveBeenCalled();
     });
 
-    it('routes Claude account updates to every requesting project and polls only after output', async () => {
-        const firstDestination = { projectFolder: 'design', rootPath: 'C:/repo-one' };
-        const secondDestination = { projectFolder: 'design', rootPath: 'C:/repo-two' };
+    it('routes Claude account updates to active project metrics and polls only after output', async () => {
         const snapshot = { available: true, observedAt: 10, windows: [] };
         const claudeRuntimeService = {
             getSnapshot: vi.fn(() => snapshot),
@@ -995,23 +1038,21 @@ describe('AgentRunnerService state handling', () => {
         const payload = { windows: [{ id: 'five_hour' }] };
 
         await service.handleClaudeRuntimeEvent({
-            destinations: [firstDestination, secondDestination],
             kind: 'snapshot',
             observedAt: 10,
             payload,
         });
-        await service.handleClaudeRuntimeEvent({ destinations: [firstDestination], kind: 'unavailable', observedAt: 11 });
-        service.requestClaudeUsagePoll({ agent: 'claude', stdout: 'Claude answer', usageMetricsDestination: firstDestination });
-        service.requestClaudeUsagePoll({ agent: 'claude', stdout: '  ', usageMetricsDestination: firstDestination });
-        service.requestClaudeUsagePoll({ agent: 'codex', stdout: 'Codex answer', usageMetricsDestination: firstDestination });
+        await service.handleClaudeRuntimeEvent({ kind: 'unavailable', observedAt: 11 });
+        service.requestClaudeUsagePoll({ agent: 'claude', stdout: 'Claude answer' });
+        service.requestClaudeUsagePoll({ agent: 'claude', stdout: '  ' });
+        service.requestClaudeUsagePoll({ agent: 'codex', stdout: 'Codex answer' });
 
         expect(claudeRuntimeService.publishRateLimits).toHaveBeenCalledWith(payload, 10);
         expect(claudeRuntimeService.publishUnavailable).toHaveBeenCalledWith(11);
-        expect(usageMetricsService.recordAccountUsage).toHaveBeenCalledTimes(2);
-        expect(usageMetricsService.recordAccountUsage).toHaveBeenCalledWith(firstDestination, 'claude', snapshot);
-        expect(usageMetricsService.recordAccountUsage).toHaveBeenCalledWith(secondDestination, 'claude', snapshot);
+        expect(usageMetricsService.recordAccountUsage).toHaveBeenCalledOnce();
+        expect(usageMetricsService.recordAccountUsage).toHaveBeenCalledWith('claude', snapshot);
         expect(claudeUsagePoller.requestPoll).toHaveBeenCalledOnce();
-        expect(claudeUsagePoller.requestPoll).toHaveBeenCalledWith(firstDestination);
+        expect(claudeUsagePoller.requestPoll).toHaveBeenCalledWith();
     });
 
     it('keeps approval state separate from conversation persistence and other pending input', async () => {

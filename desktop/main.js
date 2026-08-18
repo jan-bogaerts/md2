@@ -103,6 +103,7 @@ const actionRunnerService = new ActionRunnerService({
     errorReporter: captureError,
     localGitService,
     mergeConflictService,
+    usageMetricsService,
 });
 const actionSchedulerService = new ActionSchedulerService({
     actionRunnerService,

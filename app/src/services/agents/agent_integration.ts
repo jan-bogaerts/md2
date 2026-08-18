@@ -216,34 +216,10 @@ export class AgentIntegration {
         return runElectronAction(action, fileContext(card, config.cardTypes), { continueFrom: sourcePath })
     }
 
-    private saveAgentConversationReference(cardPath: string, reference: string) {
+    private linkCardActivityFile(cardPath: string, reference: string) {
         const { activityPath } = parseConversationActivityReference(reference)
 
         return this.addAgentLogReference(cardPath, activityPath)
-    }
-
-    private linkAgentConversationReference(cardPath: string, reference: string) {
-        const cardInternalId = this.saveAgentConversationReference(cardPath, reference)
-        if (!cardInternalId) throw new Error(`Cannot link a card conversation without an internal ID: ${cardPath}`)
-        void this.loadLinkedAgentConversation(cardInternalId, cardPath, reference)
-    }
-
-    private async loadLinkedAgentConversation(cardInternalId: string, cardPath: string, reference: string) {
-        const project = this.dependencies.project()
-        if (!project) return
-        const { storage } = this.dependencies.requireDependencies()
-        try {
-            const conversation = await loadAgentConversation(storage, project, reference)
-            this.upsertAgentConversation(cardInternalId, conversation)
-        } catch (error) {
-            const message = error instanceof Error ? error.message : 'Agent conversation failed to load'
-            const loadError = { message, path: reference }
-            telemetryService.captureError(error)
-            const errors = [...(this.errorsByCardPath.get(cardPath) ?? []), loadError]
-            this.errorsByCardPath.set(cardPath, errors)
-            this.reportNewAgentLoadErrors(new Map([[cardPath, [loadError]]]))
-            this.dependencies.conversationChanged(cardPath)
-        }
     }
 
     async ensureAgentConversationsForCard(cardInternalId: string) {
@@ -506,19 +482,16 @@ export class AgentIntegration {
     private handleActionRunEvent(event: ActionRunEvent) {
         if (
             event.type === 'update'
-            && event.update.kind === 'agentStarted'
+            && (event.update.kind === 'agentStarted' || event.update.kind === 'agentClosed')
             && event.context.kind === 'card'
             && event.context.file
         ) {
-            this.saveAgentConversationReference(event.context.file, event.update.conversation.path)
+            const cardInternalId = this.linkCardActivityFile(event.context.file, event.update.conversation.path)
+            if (!cardInternalId) {
+                throw new Error(`Cannot link a card conversation without an internal ID: ${event.context.file}`)
+            }
+            this.upsertAgentConversation(cardInternalId, event.update.conversation)
         }
-        if (event.type === 'action') this.linkActionConversation(event)
-    }
-
-    private linkActionConversation(event: ActionRunEvent) {
-        if (event.type !== 'action' || event.status === 'running' || !event.context.file || !event.reference) return
-
-        this.linkAgentConversationReference(event.context.file, event.reference)
     }
 
     private upsertAgentConversation(cardInternalId: string, conversation: AgentConversation) {

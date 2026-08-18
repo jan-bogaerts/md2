@@ -63,6 +63,7 @@ class AgentRunnerService {
             ?? dependencies.persistConversation
             ?? dependencies.persistConversationCheckpoint
             ?? persistConversation;
+        this.spawn = dependencies.spawn ?? crossSpawn;
         this.executableResolver = dependencies.executableResolver ?? new AgentExecutableResolver();
         this.claudeUsagePoller = dependencies.claudeUsagePoller ?? new ClaudeUsagePoller({
             executableResolver: this.executableResolver,
@@ -108,7 +109,6 @@ class AgentRunnerService {
         const streaming = request.streaming === true;
         requireProjectFolder(request?.projectFolder);
         if (cardPath) ensureInsideRoot(rootPath, path.join(rootPath, cardPath));
-        const usageMetricsDestination = { projectFolder: request.projectFolder, rootPath };
 
         const id = `agent-turn-${crypto.randomUUID()}`;
         const startedAt = new Date().toISOString();
@@ -129,7 +129,9 @@ class AgentRunnerService {
         const resolvedExecutable = await this.executableResolver.find(configuredExecutable, { cwd: rootPath, env: environment });
         const executable = resolvedExecutable ?? configuredExecutable;
         const argumentsList = streaming ? configuredArguments : [...configuredArguments, prompt];
-        const child = crossSpawn(executable, argumentsList, {
+        const initialConversation = snapshotConversation(conversation);
+        await this.persistConversationCheckpoint({ conversation: initialConversation, request });
+        const child = this.spawn(executable, argumentsList, {
             cwd: rootPath,
             detached: process.platform !== 'win32',
             env: environment,
@@ -160,10 +162,9 @@ class AgentRunnerService {
             request,
             startedAt,
             streaming,
-            usageMetricsDestination,
         });
         attachRunProtocol(run, {
-            onCodexRuntimeEvent: (event) => this.handleCodexRuntimeEvent(event, usageMetricsDestination),
+            onCodexRuntimeEvent: (event) => this.handleCodexRuntimeEvent(event),
             onMalformedOutput: (line) => this.handleMalformedOutput(id, line),
             onProviderEvent: (event) => this.handleProviderEvent(id, event),
             onStreamingEvent: (event) => this.handleStreamingEvent(id, event),
@@ -196,14 +197,13 @@ class AgentRunnerService {
         }
         const userMessage = lastMessageEntry(conversation);
         if (!userMessage || userMessage.role !== 'user') throw new Error('Missing current agent user message');
-        const conversationSnapshot = snapshotConversation(conversation);
         emitRunEvent(run, {
             continued: !!request.conversation,
-            conversation: conversationSnapshot,
+            conversation: initialConversation,
             type: 'started',
         });
 
-        return { conversation: conversationSnapshot, reference, runId: id };
+        return { conversation: initialConversation, reference, runId: id };
     }
 
     stop(runId) {
@@ -308,7 +308,7 @@ class AgentRunnerService {
         return run.termination;
     }
 
-    async handleCodexRuntimeEvent(event, destination) {
+    async handleCodexRuntimeEvent(event) {
         if (!this.codexRuntimeService) return;
         if (event.kind === 'unavailable') {
             this.codexRuntimeService.publishUnavailable(event.observedAt);
@@ -316,7 +316,7 @@ class AgentRunnerService {
         }
         const accepted = this.codexRuntimeService.publishRateLimits(event.payload, event.observedAt, event.kind === 'update');
         if (!accepted || !this.usageMetricsService) return;
-        await this.usageMetricsService.recordAccountUsage(destination, 'codex', this.codexRuntimeService.getSnapshot());
+        await this.usageMetricsService.recordAccountUsage('codex', this.codexRuntimeService.getSnapshot());
     }
 
     async handleClaudeRuntimeEvent(event) {
@@ -328,14 +328,12 @@ class AgentRunnerService {
         const accepted = this.claudeRuntimeService.publishRateLimits(event.payload, event.observedAt);
         if (!accepted || !this.usageMetricsService) return;
         const snapshot = this.claudeRuntimeService.getSnapshot();
-        await Promise.all(event.destinations.map((destination) => (
-            this.usageMetricsService.recordAccountUsage(destination, 'claude', snapshot)
-        )));
+        await this.usageMetricsService.recordAccountUsage('claude', snapshot);
     }
 
     requestClaudeUsagePoll(run) {
         if (run.agent === 'claude' && run.stdout.trim().length > 0) {
-            this.claudeUsagePoller.requestPoll(run.usageMetricsDestination);
+            this.claudeUsagePoller.requestPoll();
         }
     }
 
@@ -343,7 +341,6 @@ class AgentRunnerService {
         if (!this.usageMetricsService) return false;
 
         return this.usageMetricsService.recordTokenUsage(
-            run.usageMetricsDestination,
             run.agent,
             usage,
             Date.parse(recordedAt),

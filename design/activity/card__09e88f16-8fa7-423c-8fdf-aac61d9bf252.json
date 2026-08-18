@@ -1,0 +1,17 @@
+{
+  "actionSettings": {
+    "5b88355d-f964-459a-bc67-6618650866ba": {
+      "agent": "claude",
+      "model": "opus",
+      "permissionMode": "approve-for-me",
+      "thinkingLevel": "medium"
+    }
+  },
+  "conversations": [],
+  "origin": {
+    "cardInternalId": "09e88f16-8fa7-423c-8fdf-aac61d9bf252",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 4
+}

@@ -1,5 +1,4 @@
 const crossSpawn = require('cross-spawn');
-const path = require('node:path');
 
 const CLAUDE_USAGE_POLL_COOLDOWN_MS = 120_000;
 const MONTHS = new Map([
@@ -114,18 +113,6 @@ function collectProcessOutput(child) {
     });
 }
 
-function destinationKey(destination) {
-    if (!destination || typeof destination !== 'object' || Array.isArray(destination)) {
-        throw new Error('Claude usage poll requires a project destination');
-    }
-    const { projectFolder, rootPath } = destination;
-    if (typeof rootPath !== 'string' || rootPath.length === 0 || typeof projectFolder !== 'string') {
-        throw new Error('Claude usage poll requires a project destination');
-    }
-
-    return path.resolve(rootPath, projectFolder);
-}
-
 /** Runs Claude `/usage` after Claude output, with a two-minute maximum frequency. */
 class ClaudeUsagePoller {
     constructor(dependencies = {}) {
@@ -141,16 +128,14 @@ class ClaudeUsagePoller {
         this.activePoll = null;
         this.lastPollStartedAt = Number.NEGATIVE_INFINITY;
         this.pending = false;
-        this.pendingDestinations = new Map();
         this.pendingTimer = null;
         this.stopped = false;
         if (!this.executableResolver) throw new Error('Claude usage poller requires an executable resolver');
         if (typeof this.onRuntimeEvent !== 'function') throw new Error('Claude usage poller requires a runtime event listener');
     }
 
-    requestPoll(destination) {
+    requestPoll() {
         if (this.stopped) return;
-        this.pendingDestinations.set(destinationKey(destination), { ...destination });
         this.pending = true;
         this.schedulePendingPoll();
     }
@@ -158,7 +143,6 @@ class ClaudeUsagePoller {
     stop() {
         this.stopped = true;
         this.pending = false;
-        this.pendingDestinations.clear();
         if (this.pendingTimer) this.clearTimeout(this.pendingTimer);
         this.pendingTimer = null;
     }
@@ -168,9 +152,7 @@ class ClaudeUsagePoller {
         const delay = Math.max(0, this.cooldownMs - (this.now() - this.lastPollStartedAt));
         if (delay === 0) {
             this.pending = false;
-            const destinations = [...this.pendingDestinations.values()];
-            this.pendingDestinations.clear();
-            this.activePoll = this.runPendingPoll(destinations);
+            this.activePoll = this.runPendingPoll();
             return;
         }
         this.pendingTimer = this.setTimeout(() => {
@@ -179,13 +161,13 @@ class ClaudeUsagePoller {
         }, delay);
     }
 
-    async runPendingPoll(destinations) {
-        await this.poll(destinations);
+    async runPendingPoll() {
+        await this.poll();
         this.activePoll = null;
         this.schedulePendingPoll();
     }
 
-    async poll(destinations) {
+    async poll() {
         this.lastPollStartedAt = this.now();
         const observedAt = this.now();
         try {
@@ -193,13 +175,13 @@ class ClaudeUsagePoller {
             const child = this.spawn(executable, [], { cwd: this.cwd, env: this.env, stdio: ['pipe', 'pipe', 'pipe'] });
             const { exitCode, stdout } = await collectProcessOutput(child);
             if (exitCode !== 0) {
-                await this.onRuntimeEvent({ destinations, kind: 'unavailable', observedAt: this.now() });
+                await this.onRuntimeEvent({ kind: 'unavailable', observedAt: this.now() });
                 return;
             }
             const payload = parseClaudeUsageOutput(stdout, observedAt);
-            if (payload) await this.onRuntimeEvent({ destinations, kind: 'snapshot', observedAt, payload });
+            if (payload) await this.onRuntimeEvent({ kind: 'snapshot', observedAt, payload });
         } catch {
-            await this.onRuntimeEvent({ destinations, kind: 'unavailable', observedAt: this.now() });
+            await this.onRuntimeEvent({ kind: 'unavailable', observedAt: this.now() });
         }
     }
 }

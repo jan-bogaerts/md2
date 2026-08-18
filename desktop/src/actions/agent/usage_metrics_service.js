@@ -301,9 +301,9 @@ function restoreBaselines(content) {
     return baselines;
 }
 
-function usageMetricsPath(destination) {
-    if (!destination || typeof destination !== 'object' || Array.isArray(destination)) return null;
-    const { projectFolder, rootPath } = destination;
+function usageMetricsPath(project, projectFolder) {
+    if (!project || typeof project !== 'object' || Array.isArray(project)) return null;
+    const { rootPath } = project;
     if (typeof rootPath !== 'string' || rootPath.length === 0) return null;
     if (typeof projectFolder !== 'string') return null;
     let projectFolderPath;
@@ -324,13 +324,27 @@ class UsageMetricsService {
         this.readFile = dependencies.readFile ?? fs.readFile;
         this.fileStates = new Map();
         this.fileWrites = new Map();
+        this.filePath = null;
     }
 
-    async recordTokenUsage(destination, provider, usageValue, recordedAtValue) {
-        const filePath = usageMetricsPath(destination);
+    /** Binds metrics storage to the one active primary project. */
+    startProject(project, projectFolder) {
+        const filePath = usageMetricsPath(project, projectFolder);
+        if (!filePath) throw new Error('Invalid usage metrics project');
+        this.filePath = filePath;
+    }
+
+    requireFilePath() {
+        if (!this.filePath) throw new Error('Usage metrics project is not active');
+
+        return this.filePath;
+    }
+
+    async recordTokenUsage(provider, usageValue, recordedAtValue) {
+        const filePath = this.requireFilePath();
         const usage = normalizeTokenUsage(usageValue);
         const recordedAt = isoTimestamp(recordedAtValue);
-        if (!filePath || !SUPPORTED_PROVIDERS.has(provider) || !usage || !recordedAt) return false;
+        if (!SUPPORTED_PROVIDERS.has(provider) || !usage || !recordedAt) return false;
 
         return this.runNonFatal(filePath, async () => {
             const state = await this.loadFileState(filePath);
@@ -340,10 +354,10 @@ class UsageMetricsService {
         });
     }
 
-    async recordAccountUsage(destination, provider, snapshotValue) {
-        const filePath = usageMetricsPath(destination);
+    async recordAccountUsage(provider, snapshotValue) {
+        const filePath = this.requireFilePath();
         const snapshot = normalizeAccountSnapshot(provider, snapshotValue);
-        if (!filePath || !snapshot) return false;
+        if (!snapshot) return false;
 
         return this.runNonFatal(filePath, async () => {
             const state = await this.loadFileState(filePath);

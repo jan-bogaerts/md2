@@ -60,6 +60,7 @@ function createRunner(actionFiles = [actionFile('main')], overrides = {}) {
     };
     const commandRunner = vi.fn(async (_project, command) => ({ command, exitCode: 0, stderr: '', stdout: command }));
     const agentRunnerService = { start: vi.fn(), stop: vi.fn() };
+    const usageMetricsService = overrides.usageMetricsService ?? { startProject: vi.fn() };
     const actionWorktreeRunService = {
         execute: vi.fn(async (primaryProject, _action, _context, execute) => ({
             ...await execute(primaryProject),
@@ -76,11 +77,12 @@ function createRunner(actionFiles = [actionFile('main')], overrides = {}) {
         agentRunnerService,
         commandRunner,
         localGitService,
+        usageMetricsService,
         ...overrides,
     });
     runner.startProject(project, 'actions', 'design', 'design/releases', 'design/feature_descriptions');
 
-    return { actionWorktreeRunService, agentRunnerService, commandRunner, localGitService, runner };
+    return { actionWorktreeRunService, agentRunnerService, commandRunner, localGitService, runner, usageMetricsService };
 }
 
 async function runToCompletion(runner, request = { actionId: 'main', context, runInput: {} }) {
@@ -90,6 +92,12 @@ async function runToCompletion(runner, request = { actionId: 'main', context, ru
 }
 
 describe('ActionRunnerService', () => {
+    it('binds usage metrics to primary project before any worktree run starts', () => {
+        const { usageMetricsService } = createRunner();
+
+        expect(usageMetricsService.startProject).toHaveBeenCalledWith(project, 'design');
+    });
+
     it('reserves a root agent conversation before the action starts', async () => {
         const files = [actionFile('main', { agent: 'codex', command: undefined, prompt: 'Run', type: 'agent' })];
         const { localGitService, runner } = createRunner(files);

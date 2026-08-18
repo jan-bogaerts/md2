@@ -42,6 +42,7 @@ class ActionRunnerService {
         this.commandRunner = dependencies?.commandRunner ?? runCommand;
         this.errorReporter = dependencies?.errorReporter ?? (() => undefined);
         this.localGitService = dependencies?.localGitService;
+        this.usageMetricsService = dependencies?.usageMetricsService ?? null;
         this.actionDefinitionCache = dependencies?.actionDefinitionCache
             ?? (this.localGitService ? new ActionDefinitionCache({ localGitService: this.localGitService }) : null);
         this.agentExecutor = new ActionAgentExecutor({
@@ -69,6 +70,7 @@ class ActionRunnerService {
         if (typeof releasesFolder !== 'string' || releasesFolder.length === 0) throw new Error('Missing action runner releasesFolder');
         if (typeof activeCardsFolder !== 'string' || activeCardsFolder.length === 0) throw new Error('Missing action runner activeCardsFolder');
         if (this.project) await this.stop();
+        this.usageMetricsService?.startProject(project, projectFolder);
         this.project = project;
         this.actionsFolder = actionsFolder;
         this.activeCardsFolder = activeCardsFolder;
