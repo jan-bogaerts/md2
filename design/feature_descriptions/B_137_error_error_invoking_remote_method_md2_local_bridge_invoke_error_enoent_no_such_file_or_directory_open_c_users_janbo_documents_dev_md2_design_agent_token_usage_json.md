@@ -12,10 +12,9 @@ sentryBaseUrl: https://sentry.io
 sentryIssueId: 141200034
 sentryOrganization: elastetic
 ---
-
 ## Sentry issue
 
-**Title:** Error: Error invoking remote method 'md2-local-bridge:invoke': Error: ENOENT: no such file or directory, open 'C:\Users\janbo\Documents\dev\md2\design\agent_token_usage.json'
+**Title:** Error: Error invoking remote method 'md2-local-bridge:invoke': Error: ENOENT: no such file or directory, open 'C:\Users\janbo\Documents\dev\md2\design\agent\_token\_usage.json'
 
 **Message:** Not provided
 
@@ -37,4 +36,8 @@ sentryOrganization: elastetic
 
 ### Application stack frames
 
-- No application stack frames provided.
+* No application stack frames provided.
+
+
+
+This is new. we tried to fix the following: when a card was assigned to a worktree, the app would write to agent\_token\_usage.json in the worktree, not the project folder. when trying to fix this, you introduced this new error.
