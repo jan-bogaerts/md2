@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__af16c33d-206a-4cbc-8ca9-488574f7d514.json
 policy:
+branch: b_133_height_description_new_card_popup
+worktree: 1
 ---
 We recently updated ´new card´ popup. There is more room for the editor now, but when on small screens, it is not used fully. the popup is stretched full screen in this size mode, but the markdown editor doesn't appear to adjust.
 
