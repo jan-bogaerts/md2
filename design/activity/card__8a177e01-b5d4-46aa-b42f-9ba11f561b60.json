@@ -3994,7 +3994,7 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": "8a177e01-b5d4-46aa-b42f-9ba11f561b60",
       "cardPath": "design/feature_descriptions/F_193_report_claude_usage_quotas.md",
-      "completedAt": null,
+      "completedAt": "2026-08-18T13:51:45.441Z",
       "entries": [
         {
           "content": "not certain what happened here, but we don't see anything on the UI related to usage for claude. what are we missing?",
@@ -4409,17 +4409,25 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 35,
-          "timestamp": "2026-08-18T13:50:30.179Z"
+          "timestamp": "2026-08-18T13:51:45.441Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-47e37190-b252-4021-b69f-1c10b8b1edea",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "claude",
+          "conversationId": "c310f616-9dc5-4507-ab0d-4e646d8531f5",
+          "createdAt": "2026-08-18T13:50:30.179Z",
+          "lastUsedAt": "2026-08-18T13:51:45.441Z",
+          "synchronizedThroughMessageId": "agent-turn-91c4d551-633f-42e7-a66b-69bcfb210507-turn-1-assistant-8"
+        }
+      ],
       "startedAt": "2026-08-18T13:48:15.388Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 86514,
-        "runningStartedAt": "2026-08-18T13:49:50.120Z"
+        "elapsedMs": 126573,
+        "runningStartedAt": null
       },
       "title": "+",
       "usageSchemaVersion": 1,
