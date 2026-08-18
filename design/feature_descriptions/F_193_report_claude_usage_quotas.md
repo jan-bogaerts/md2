@@ -3,7 +3,7 @@ author:
 id: F_193
 internalId: 8a177e01-b5d4-46aa-b42f-9ba11f561b60
 title: report claude usage quotas
-status: to fix
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,7 @@ agents:
 policy:
 branch: f_193_report_claude_usage_quotas
 worktree: 3
+after: 8690b93e-98c4-486f-95b6-aacc10931a56
 ---
 
 we are already reporting usage limits for codex in the apps status bar. we need to provide similar information from the claude cli.
