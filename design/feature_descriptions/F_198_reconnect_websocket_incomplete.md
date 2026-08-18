@@ -8,7 +8,7 @@ owner:
 affects:
 agents:
 policy:
-after: 328fa8a7-573d-4665-87db-c44a7c133559
+after: 32eda264-b7f3-4c65-aee1-59dd3a2a868f
 ---
 
 When websocket reconnects, worktree states are not correct. Ex: app thinks worktree is still dirty from previous branch. Reloading ap fixes it
