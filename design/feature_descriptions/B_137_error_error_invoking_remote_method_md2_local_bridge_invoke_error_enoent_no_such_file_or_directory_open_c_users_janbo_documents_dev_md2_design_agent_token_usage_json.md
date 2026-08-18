@@ -3,7 +3,7 @@ author:
 id: B_137
 internalId: 7fb7af14-458a-478c-9b9b-a0b3985214b2
 title: Error: Error invoking remote method 'md2-local-bridge:invoke': Error: ENOENT: no such file or directory, open 'C:\Users\janbo\Documents\dev\md2\design\agent_token_usage.json'
-status: new
+status: design
 owner: 
 affects:
 agents:
@@ -11,7 +11,6 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 141200034
 sentryOrganization: elastetic
-after: e3c3a79b-0a43-4123-ab48-fe98de8cb2f5
 ---
 
 ## Sentry issue
