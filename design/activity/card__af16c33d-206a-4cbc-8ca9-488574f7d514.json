@@ -1103,11 +1103,11 @@
         "agent-9ebe54a2-0916-41d3-bcf8-127793e9c7a9"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-b09453bb-9b29-4235-9a20-fb8d00af2125",
       "origin": {
@@ -1116,9 +1116,32 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-9ebe54a2-0916-41d3-bcf8-127793e9c7a9",
       "startedAt": "2026-08-18T13:12:37.452Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-9ebe54a2-0916-41d3-bcf8-127793e9c7a9"
+    },
+    {
+      "commits": [
+        {
+          "commit": "34b5560217001932a6aac7a9db2d7e5c17efa8bb",
+          "committedAt": "2026-08-18T16:13:40+02:00",
+          "deletions": 5,
+          "filePaths": [
+            "app/src/components/shell/project/new_card_dialog.tsx",
+            "app/src/components/shell/project/project_dialogs.test.tsx"
+          ],
+          "filesChanged": 2,
+          "insertions": 29,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-18T16:13:40+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "af16c33d-206a-4cbc-8ca9-488574f7d514",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
