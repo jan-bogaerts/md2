@@ -3,7 +3,7 @@ author:
 id: F_208
 internalId: 8690b93e-98c4-486f-95b6-aacc10931a56
 title: Add view stats
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

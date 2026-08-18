@@ -99,3 +99,12 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-08-18T13:06:35.185Z,token_usage,codex,,,,,1144,81664,208,37,83053,,
 2026-08-18T13:10:57.879Z,token_usage,codex,,,,,2058,151296,86,113,153553,,
 2026-08-18T13:11:18.130Z,token_usage,claude,,,,,10,183548,2517,0,186075,,
+2026-08-18T13:12:38.561Z,account_usage,codex,codex_bengalfox,primary,10080,2026-08-25T13:12:40.000Z,,,,,,0,0
+2026-08-18T13:13:57.085Z,token_usage,codex,,,,,2058,45824,111,125,48118,,
+2026-08-18T13:16:01.989Z,account_usage,codex,codex_bengalfox,primary,10080,2026-08-25T13:16:03.000Z,,,,,,0,0
+2026-08-18T13:18:22.034Z,token_usage,codex,,,,,1463,97024,146,109,98742,,
+2026-08-18T13:18:50.888Z,token_usage,codex,,,,,1348,58112,174,0,59634,,
+2026-08-18T13:29:50.986Z,account_usage,codex,codex,primary,10080,2026-08-20T11:32:00.000Z,,,,,,61,1
+2026-08-18T13:42:14.996Z,token_usage,codex,,,,,1134,182016,160,283,183593,,
+2026-08-18T13:46:19.360Z,account_usage,codex,codex_bengalfox,primary,10080,2026-08-25T13:46:21.000Z,,,,,,0,0
+2026-08-18T13:46:39.930Z,account_usage,codex,codex_bengalfox,primary,10080,2026-08-25T13:46:41.000Z,,,,,,0,0
