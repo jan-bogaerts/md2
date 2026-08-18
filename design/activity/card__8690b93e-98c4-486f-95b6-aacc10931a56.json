@@ -7725,11 +7725,11 @@
         "agent-ab54c56f-5c49-48af-ac03-5e1b0f92f3e4"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-a6c5a184-3daa-4023-838f-47039ad7a024",
       "origin": {
@@ -7738,9 +7738,58 @@
       },
       "rootActionId": "md2.custom-prompt",
       "rootActionLabel": "+",
-      "rootConversationId": "agent-ab54c56f-5c49-48af-ac03-5e1b0f92f3e4",
       "startedAt": "2026-08-18T14:47:43.818Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-ab54c56f-5c49-48af-ac03-5e1b0f92f3e4"
+    },
+    {
+      "commits": [
+        {
+          "commit": "259026d4a58c26bd3fda3ea38dc9f276c628f67f",
+          "committedAt": "2026-08-18T16:50:59+02:00",
+          "deletions": 55,
+          "filePaths": [
+            "app/src/components/actions/conversation/action_conversation_chat.test.tsx",
+            "app/src/components/actions/conversation/action_conversation_chat_owner.test.tsx",
+            "app/src/components/actions/run/popup/card_action_popup_host.tsx",
+            "app/src/components/project_workspace.test.tsx",
+            "app/src/components/project_workspace.tsx",
+            "app/src/components/shell/menu/app_menu.test.tsx",
+            "app/src/components/shell/menu/app_menu.tsx",
+            "app/src/components/shell/mobile_main_window.test.tsx",
+            "app/src/components/shell/mobile_main_window.tsx",
+            "app/src/components/stats_view/stats_bar_chart.tsx",
+            "app/src/components/stats_view/stats_content.test.tsx",
+            "app/src/components/stats_view/stats_content.tsx",
+            "app/src/components/stats_view/stats_controls.tsx",
+            "app/src/components/stats_view/stats_csv.node.test.ts",
+            "app/src/components/stats_view/stats_csv.ts",
+            "app/src/components/stats_view/stats_view.tsx",
+            "app/src/services/agents/agent_integration.test.ts",
+            "app/src/services/agents/codex_cli_update_service.test.ts",
+            "app/src/services/agents/project_usage_metrics_service.node.test.ts",
+            "app/src/services/agents/project_usage_metrics_service.ts",
+            "app/src/services/data/card_operations.test.ts",
+            "app/src/services/data/data_service.ts",
+            "app/src/services/project/project_loading.ts",
+            "app/src/services/project/workspace_view_service.node.test.ts",
+            "app/src/services/project/workspace_view_service.ts",
+            "app/src/services/release_operations.test.ts",
+            "app/src/services/stats/project_stats_service.node.test.ts",
+            "app/src/services/stats/project_stats_service.ts"
+          ],
+          "filesChanged": 28,
+          "insertions": 1475,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-18T16:50:59+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "8690b93e-98c4-486f-95b6-aacc10931a56",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
