@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__9755a9b8-8161-499f-9020-bd0c53fe17c0.json
 policy:
-branch: f_209_improve_file_open
-worktree: 1
 ---
 currently:&#x20;
 
