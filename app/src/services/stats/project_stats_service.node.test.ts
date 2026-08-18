@@ -128,6 +128,17 @@ describe('ProjectStatsService source parsing', () => {
         })
     })
 
+    it('migrates legacy version 3 activity while loading stats', async () => {
+        const legacyActivity = JSON.parse(activityContent({records: [actionRecord('legacy-run', '2026-08-12T10:00:00.000Z')]}))
+        legacyActivity.version = 3
+        const service = new ProjectStatsService()
+
+        await openService(service, storage({'design/activity/card__card-1.json': JSON.stringify(legacyActivity)}))
+
+        expect(service.getSnapshot()).toMatchObject({ status: 'ready' })
+        expect(service.getSnapshot().rows).toMatchObject([{ value: 1 }])
+    })
+
 })
 
 describe('ProjectStatsService aggregation', () => {

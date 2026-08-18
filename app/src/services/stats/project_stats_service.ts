@@ -1,5 +1,5 @@
 import { activityOriginFromPath, projectActivityFolder } from '../../../../shared/activity_paths.mjs'
-import { parseActivityFile, type CardActivityFile } from '../../../../shared/card_activity.mjs'
+import { parseActivityFileForMigration, type CardActivityFile } from '../../../../shared/card_activity.mjs'
 import type {
     AgentConversation,
     ProjectConfig,
@@ -402,7 +402,7 @@ export class ProjectStatsService extends EventTarget {
                 const origin = activityOriginFromPath(path)
                 if (!origin) throw new Error(`Invalid activity path: ${path}`)
 
-                return parseActivityFile(file.content, origin)
+                return parseActivityFileForMigration(file.content, origin)
             }))
             const usageMetrics = await projectUsageMetricsService.load(
                 binding.project,
