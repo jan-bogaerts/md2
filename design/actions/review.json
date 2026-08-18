@@ -4,7 +4,7 @@
   "description": "review an implementation",
   "type": "agent",
   "phrases": [],
-  "prompt": "Describe what the agent should do.",
+  "prompt": "we just implemented the feature description  `{{card-file}}`.\r\nCheck that:  everything is fully and correctly implemented.\r\nlist all:- missing stuff\n\n* shortcuts\n* incorrectly implemented\n* bad design,\n* not following architectural design\n* code smells\r\n  be short and to the point, use /caveman skill",
   "streaming": true,
   "appliesTo": {
     "kind": "card",
