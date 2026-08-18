@@ -10,7 +10,9 @@ agents:
 policy:
 after: 8624544e-9fd6-4a27-837c-95e504a2c5d6
 ---
+in [F\_208\_add\_view\_stats.md](design/feature_descriptions/F_208_add_view_stats.md), we added support for stats view. this needs some improvement
 
+*
 * missing scrollbar, when there are many boxes, they are outside of the edge. needs horizontal and vertical (auto) scrollbars
 * values are printed on top of each bar, but also the label, which is repeated for every box, not good, just print value, put label in a box left top (forgot name of list of definitions on chart)
 * bottom row when activity over time: every box represents a day, week or month. this is ok, but there are no boxes for missing dates between bars. if a day/week/month has no values, it should have a box with value 0 on the chart.&#x20;
