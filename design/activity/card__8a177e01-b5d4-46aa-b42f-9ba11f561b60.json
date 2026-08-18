@@ -4899,6 +4899,326 @@
           "role": "assistant",
           "sequence": 75,
           "timestamp": "2026-08-18T13:56:01.547Z"
+        },
+        {
+          "content": "running the poller in the electron context is indeed wrong, needs to be from wthin the project.\n\ndo env fix and cwd",
+          "id": "agent-turn-a0675c80-142f-4770-a3a4-8fd32509a038-user-75",
+          "kind": "message",
+          "role": "user",
+          "sequence": 76,
+          "timestamp": "2026-08-18T14:18:40.963Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-a0675c80-142f-4770-a3a4-8fd32509a038-event-77",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeAMmrtcQ66WSEFxqikX3:thinking:0",
+          "sequence": 77,
+          "status": "completed",
+          "timestamp": "2026-08-18T14:18:50.013Z",
+          "type": "reasoning",
+          "details": [
+            ""
+          ],
+          "summary": []
+        },
+        {
+          "agent": "claude",
+          "content": "Good. Let me look at how the run stores its project path and the poll design, so I can thread cwd through cleanly.",
+          "id": "agent-turn-a0675c80-142f-4770-a3a4-8fd32509a038-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 78,
+          "timestamp": "2026-08-18T14:18:50.761Z"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-a0675c80-142f-4770-a3a4-8fd32509a038-event-79",
+          "kind": "event",
+          "label": "Read",
+          "providerItemId": "toolu_01RwQxQfJNNG6kb5FhE7wLLA",
+          "sequence": 79,
+          "status": "completed",
+          "timestamp": "2026-08-18T14:18:52.591Z",
+          "type": "tool.Read",
+          "output": "40\t    id,\n41\t    nextSequence,\n42\t    onComplete,\n43\t    onCompletionError,\n44\t    onEvent,\n45\t    reference,\n46\t    request,\n47\t    startedAt,\n48\t    streaming,\n49\t}) {\n50\t    const { promise: closed, resolve: resolveClosed } = Promise.withResolvers();\n51\t\n52\t    return {\n53\t        providerEventEntryIndexes: createProviderEventEntryIndexes(conversation.entries),\n54\t        agent,\n55\t        assistantItemIndex: 0,\n56\t        assistantItems: new Map(),\n57\t        cancelled: false,\n58\t        child,\n59\t        changedPaths: new Set(),\n60\t        closed,\n61\t        conversation,\n62\t        codexCacheErrorReported: false,\n63\t        currentAssistantMessageId: null,\n64\t        environment,\n65\t        executable,\n66\t        finishForced: false,\n67\t        finishTimeout: null,\n68\t        id,\n69\t        missingSession: false,\n70\t        nextSequence,\n71\t        onComplete,\n72\t        onCompletionError,\n73\t        onEvent,\n74\t        interactionWrites: Promise.resolve(),\n75\t        liveTurnUsage: null,\n76\t        pendingQuestions: [],\n77\t        pendingApprovals: new Map(),\n78\t        persistence: Promise.resolve(),\n79\t        providerConversationId: null,\n80\t        protocolLines: null,\n81\t        protocolHandling: Promise.resolve(),\n82\t        reference,\n83\t        reportedProviderErrors: new Set(),\n84\t        resolveClosed,\n85\t        queuedMessage: null,\n86\t        queuedMessageRevision: -1,\n87\t        sentQueuedMessageRevision: -1,\n88\t        queuedMessageSessionId: 0,\n89\t        secretValues: new Set(),\n90\t        request,\n91\t        stderr: '',\n92\t        stderrBuffer: '',\n93\t        stderrHandling: Promise.resolve(),\n94\t        finishing: false,\n95\t        stdout: '',\n96\t        startedAt,\n97\t        streaming,\n98\t        streamingFailure: null,\n99\t        turnStarted: false,\n100\t        turnIndex: 1,\n101\t        turnActive: streaming,\n102\t        termination: null,\n103\t        suspended: false,\n104\t        turnUsage: null,\n105\t        waitingForQuestion: false,\n106\t    };\n107\t}"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-a0675c80-142f-4770-a3a4-8fd32509a038-event-80",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeAMni35ToDby2pPnjxkb:thinking:0",
+          "sequence": 80,
+          "status": "completed",
+          "timestamp": "2026-08-18T14:19:07.756Z",
+          "type": "reasoning",
+          "details": [
+            ""
+          ],
+          "summary": []
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nThe run doesn't store its root path, and its env is already on `run.environment`. Let me check the two affected tests before editing.",
+          "id": "agent-turn-a0675c80-142f-4770-a3a4-8fd32509a038-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 81,
+          "timestamp": "2026-08-18T14:19:08.505Z"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-a0675c80-142f-4770-a3a4-8fd32509a038-event-82",
+          "kind": "event",
+          "label": "Read",
+          "providerItemId": "toolu_01HNRsUJPkeYZf99wN7UAwwa",
+          "sequence": 82,
+          "status": "completed",
+          "timestamp": "2026-08-18T14:19:10.754Z",
+          "type": "tool.Read",
+          "output": "1080\t\n1081\t    it('routes Claude account updates to active project metrics and polls only after output', async () => {\n1082\t        const snapshot = { available: true, observedAt: 10, windows: [] };\n1083\t        const claudeRuntimeService = {\n1084\t            getSnapshot: vi.fn(() => snapshot),\n1085\t            publishRateLimits: vi.fn(() => true),\n1086\t            publishUnavailable: vi.fn(),\n1087\t        };\n1088\t        const claudeUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };\n1089\t        const usageMetricsService = { recordAccountUsage: vi.fn(async () => true) };\n1090\t        const service = new AgentRunnerService({ claudeRuntimeService, claudeUsagePoller, usageMetricsService });\n1091\t        const payload = { windows: [{ id: 'five_hour' }] };\n1092\t\n1093\t        await service.handleClaudeRuntimeEvent({\n1094\t            kind: 'snapshot',\n1095\t            observedAt: 10,\n1096\t            payload,\n1097\t        });\n1098\t        await service.handleClaudeRuntimeEvent({ kind: 'unavailable', observedAt: 11 });\n1099\t        service.requestClaudeUsagePoll({ agent: 'claude', stdout: 'Claude answer' });\n1100\t        service.requestClaudeUsagePoll({ agent: 'claude', stdout: '  ' });\n1101\t        service.requestClaudeUsagePoll({ agent: 'codex', stdout: 'Codex answer' });\n1102\t\n1103\t        expect(claudeRuntimeService.publishRateLimits).toHaveBeenCalledWith(payload, 10);\n1104\t        expect(claudeRuntimeService.publishUnavailable).toHaveBeenCalledWith(11);\n1105\t        expect(usageMetricsService.recordAccountUsage).toHaveBeenCalledOnce();\n1106\t        expect(usageMetricsService.recordAccountUsage).toHaveBeenCalledWith('claude', snapshot);\n1107\t        expect(claudeUsagePoller.requestPoll).toHaveBeenCalledOnce();\n1108\t        expect(claudeUsagePoller.requestPoll).toHaveBeenCalledWith();\n1109\t    });\n1110\t\n1111\t    it('keeps approval state separate from conversation persistence and other pending input', async () => {"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-a0675c80-142f-4770-a3a4-8fd32509a038-event-83",
+          "kind": "event",
+          "label": "Read",
+          "providerItemId": "toolu_01UYoL6Bu34sBBKqRYjPAJuy",
+          "sequence": 83,
+          "status": "completed",
+          "timestamp": "2026-08-18T14:19:11.156Z",
+          "type": "tool.Read",
+          "output": "59\tdescribe('ClaudeUsagePoller', () => {\n60\t    afterEach(() => vi.useRealTimers());\n61\t\n62\t    it('polls immediately after output and coalesces requests to one poll per two minutes', async () => {\n63\t        vi.useFakeTimers();\n64\t        vi.setSystemTime(new Date('2026-08-15T18:00:00.000Z'));\n65\t        const runtimeListener = vi.fn();\n66\t        const spawn = vi.fn(() => completedChild());\n67\t        const poller = new ClaudeUsagePoller({\n68\t            executableResolver: { find: vi.fn(async () => 'claude.cmd') },\n69\t            onRuntimeEvent: runtimeListener,\n70\t            spawn,\n71\t        });\n72\t\n73\t        poller.requestPoll();\n74\t        await poller.activePoll;\n75\t        expect(spawn).toHaveBeenCalledOnce();\n76\t        expect(runtimeListener).toHaveBeenCalledWith(expect.objectContaining({ kind: 'snapshot' }));\n77\t\n78\t        poller.requestPoll();\n79\t        poller.requestPoll();\n80\t        await vi.advanceTimersByTimeAsync(119_999);\n81\t        expect(spawn).toHaveBeenCalledOnce();\n82\t        await vi.advanceTimersByTimeAsync(1);\n83\t        await poller.activePoll;\n84\t        expect(spawn).toHaveBeenCalledTimes(2);\n85\t        expect(runtimeListener).toHaveBeenLastCalledWith(expect.objectContaining({ kind: 'snapshot' }));\n86\t        poller.stop();\n87\t    });\n88\t\n89\t    it('does not publish malformed output and reports process failure as unavailable', async () => {\n90\t        const runtimeListener = vi.fn();\n91\t        const malformedPoller = new ClaudeUsagePoller({\n92\t            executableResolver: { find: vi.fn(async () => 'claude') },\n93\t            onRuntimeEvent: runtimeListener,\n94\t            spawn: vi.fn(() => completedChild('partial')),\n95\t        });\n96\t\n97\t        malformedPoller.requestPoll();\n98\t        await malformedPoller.activePoll;\n99\t        expect(runtimeListener).not.toHaveBeenCalled();\n100\t        malformedPoller.stop();\n101\t\n102\t        const failingPoller = new ClaudeUsagePoller({\n103\t            executableResolver: { find: vi.fn(async () => 'claude') },\n104\t            onRuntimeEvent: runtimeListener,\n105\t            spawn: vi.fn(() => completedChild('', 1)),\n106\t        });\n107\t        failingPoller.requestPoll();\n108\t        await failingPoller.activePoll;\n109\t        expect(runtimeListener).toHaveBeenCalledWith(expect.objectContaining({ kind: 'unavailable' }));\n110\t        failingPoller.stop();\n111\t    });\n112\t});\n113\t"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-a0675c80-142f-4770-a3a4-8fd32509a038-event-84",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeAMp52fU8uGDSLUsJqTF:thinking:0",
+          "sequence": 84,
+          "status": "completed",
+          "timestamp": "2026-08-18T14:19:31.922Z",
+          "type": "reasoning",
+          "details": [
+            ""
+          ],
+          "summary": []
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nClear plan. The run's env is already available as `run.environment` (the `createAgentEnvironment`'d copy — exactly what we want); I just need to add `rootPath` to the run and thread `{cwd, env}` into `requestPoll`. Let me make the edits.",
+          "id": "agent-turn-a0675c80-142f-4770-a3a4-8fd32509a038-turn-2-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 85,
+          "timestamp": "2026-08-18T14:19:32.564Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-a0675c80-142f-4770-a3a4-8fd32509a038-event-86",
+          "kind": "event",
+          "label": "Edit",
+          "providerItemId": "toolu_01Wpnndz24GgHG3MdQCnPvr5",
+          "sequence": 86,
+          "status": "completed",
+          "timestamp": "2026-08-18T14:19:36.316Z",
+          "type": "fileChange",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\desktop\\src\\actions\\agent\\agent_run_state.js has been updated successfully. (file state is current in your context — no need to Read it back)"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-a0675c80-142f-4770-a3a4-8fd32509a038-event-87",
+          "kind": "event",
+          "label": "Edit",
+          "providerItemId": "toolu_01Bj3yDhgB74hK4GUEZNNiza",
+          "sequence": 87,
+          "status": "completed",
+          "timestamp": "2026-08-18T14:19:36.698Z",
+          "type": "fileChange",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\desktop\\src\\actions\\agent\\agent_run_state.js has been updated successfully. (file state is current in your context — no need to Read it back)"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNow thread `rootPath` into the `createRun` call and pass context into the poll:",
+          "id": "agent-turn-a0675c80-142f-4770-a3a4-8fd32509a038-turn-2-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 88,
+          "timestamp": "2026-08-18T14:19:38.445Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-a0675c80-142f-4770-a3a4-8fd32509a038-event-89",
+          "kind": "event",
+          "label": "Edit",
+          "providerItemId": "toolu_01Pq1KbFmLxKDTFgeage2Fs9",
+          "sequence": 89,
+          "status": "completed",
+          "timestamp": "2026-08-18T14:19:41.154Z",
+          "type": "fileChange",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\desktop\\src\\actions\\agent\\agent_runner_service.js has been updated successfully. (file state is current in your context — no need to Read it back)"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-a0675c80-142f-4770-a3a4-8fd32509a038-event-90",
+          "kind": "event",
+          "label": "Edit",
+          "providerItemId": "toolu_01MpJd2jo88Zn13NSqkyTbzo",
+          "sequence": 90,
+          "status": "completed",
+          "timestamp": "2026-08-18T14:19:42.469Z",
+          "type": "fileChange",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\desktop\\src\\actions\\agent\\agent_runner_service.js has been updated successfully. (file state is current in your context — no need to Read it back)"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNow update the poller to accept and use the per-poll `{cwd, env}`:",
+          "id": "agent-turn-a0675c80-142f-4770-a3a4-8fd32509a038-turn-2-assistant-5",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 91,
+          "timestamp": "2026-08-18T14:19:44.444Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-a0675c80-142f-4770-a3a4-8fd32509a038-event-92",
+          "kind": "event",
+          "label": "Edit",
+          "providerItemId": "toolu_01AVUk7LVHp4w5VR96aUqCTi",
+          "sequence": 92,
+          "status": "completed",
+          "timestamp": "2026-08-18T14:19:46.946Z",
+          "type": "fileChange",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\desktop\\src\\actions\\agent\\claude_usage_poller.js has been updated successfully. (file state is current in your context — no need to Read it back)"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-a0675c80-142f-4770-a3a4-8fd32509a038-event-93",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeAMrhsmKgPAi4iyjAVoG:thinking:0",
+          "sequence": 93,
+          "status": "completed",
+          "timestamp": "2026-08-18T14:19:49.737Z",
+          "type": "reasoning",
+          "details": [
+            ""
+          ],
+          "summary": []
+        },
+        {
+          "agent": "claude",
+          "content": "\n\n`poll()` already reads `this.cwd`/`this.env` for both resolve and spawn — no change needed there. Now fix the runner test assertion.",
+          "id": "agent-turn-a0675c80-142f-4770-a3a4-8fd32509a038-turn-2-assistant-6",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 94,
+          "timestamp": "2026-08-18T14:19:50.489Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-a0675c80-142f-4770-a3a4-8fd32509a038-event-95",
+          "kind": "event",
+          "label": "Edit",
+          "providerItemId": "toolu_01Gq3HpaNEfqjR7QHSEDPKLg",
+          "sequence": 95,
+          "status": "completed",
+          "timestamp": "2026-08-18T14:19:53.881Z",
+          "type": "fileChange",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\desktop\\src\\actions\\agent\\agent_runner_state.test.mjs has been updated successfully. (file state is current in your context — no need to Read it back)"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-a0675c80-142f-4770-a3a4-8fd32509a038-event-96",
+          "kind": "event",
+          "label": "Edit",
+          "providerItemId": "toolu_01RaNx4zkVyWfLYgzSmkQkCk",
+          "sequence": 96,
+          "status": "completed",
+          "timestamp": "2026-08-18T14:19:57.915Z",
+          "type": "fileChange",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\desktop\\src\\actions\\agent\\agent_runner_state.test.mjs has been updated successfully. (file state is current in your context — no need to Read it back)"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNow add poller coverage that `requestPoll` context reaches the spawn:",
+          "id": "agent-turn-a0675c80-142f-4770-a3a4-8fd32509a038-turn-2-assistant-7",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 97,
+          "timestamp": "2026-08-18T14:19:59.719Z"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-a0675c80-142f-4770-a3a4-8fd32509a038-event-98",
+          "kind": "event",
+          "label": "Read",
+          "providerItemId": "toolu_01U3f3dbyyG3xrXegvtZuvb9",
+          "sequence": 98,
+          "status": "completed",
+          "timestamp": "2026-08-18T14:20:01.134Z",
+          "type": "tool.Read",
+          "output": "1\timport { createRequire } from 'node:module';\n2\timport { EventEmitter } from 'node:events';\n3\timport { PassThrough } from 'node:stream';\n4\timport { afterEach, describe, expect, it, vi } from 'vitest';\n5\t\n6\tconst require = createRequire(import.meta.url);\n7\tconst { ClaudeUsagePoller, parseClaudeUsageOutput } = require('./claude_usage_poller');\n8\t\n9\tconst USAGE_OUTPUT = `You are currently using your subscription to power your Claude Code usage\n10\t\n11\tCurrent session: 17% used · resets Aug 15, 9:49pm (Europe/Brussels)\n12\tCurrent week (all models): 13% used · resets Aug 16, 6:59pm (Europe/Brussels)\n13\t`;\n14\t\n15\tfunction completedChild(output = USAGE_OUTPUT, exitCode = 0) {\n16\t    const child = new EventEmitter();\n17\t    child.stdin = new PassThrough();\n18\t    child.stdout = new PassThrough();\n19\t    child.stderr = new PassThrough();\n20\t    queueMicrotask(() => {\n21\t        child.stdout.write(output);\n22\t        child.stdout.end();\n23\t        child.emit('close', exitCode);\n24\t    });\n25\t\n26\t    return child;\n27\t}\n28\t\n29\tdescribe('parseClaudeUsageOutput', () => {\n30\t    it('parses both windows and converts localized IANA-zone resets to unix milliseconds', () => {\n31\t        const observedAt = Date.parse('2026-08-15T18:00:00.000Z');\n32\t\n33\t        expect(parseClaudeUsageOutput(USAGE_OUTPUT, observedAt)).toEqual({\n34\t            windows: [\n35\t                { id: 'five_hour', resetsAt: Date.parse('2026-08-15T19:49:00.000Z'), usedPercent: 17 },\n36\t                { id: 'weekly', resetsAt: Date.parse('2026-08-16T16:59:00.000Z'), usedPercent: 13 },\n37\t            ],\n38\t        });\n39\t    });\n40\t\n41\t    it('selects next year for a nearby January reset observed in December', () => {\n42\t        const output = USAGE_OUTPUT\n43\t            .replace('Aug 15, 9:49pm', 'Jan 1, 1:00am')\n44\t            .replace('Aug 16, 6:59pm', 'Jan 2, 1:00am');\n45\t        const observedAt = Date.parse('2026-12-31T22:00:00.000Z');\n46\t\n47\t        expect(parseClaudeUsageOutput(output, observedAt)?.windows[0].resetsAt).toBe(Date.parse('2027-01-01T00:00:00.000Z'));\n48\t    });\n49\t\n50\t    it('rejects partial and malformed output', () => {\n51\t        const observedAt = Date.parse('2026-08-15T18:00:00.000Z');\n52\t\n53\t        expect(parseClaudeUsageOutput(USAGE_OUTPUT.split('Current week')[0], observedAt)).toBeNull();\n54\t        expect(parseClaudeUsageOutput(USAGE_OUTPUT.replace('17% used', '101% used'), observedAt)).toBeNull();\n55\t        expect(parseClaudeUsageOutput(USAGE_OUTPUT.replace('Europe/Brussels', 'Invalid/Zone'), observedAt)).toBeNull();\n56\t    });\n57\t});\n58\t"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-a0675c80-142f-4770-a3a4-8fd32509a038-event-99",
+          "kind": "event",
+          "label": "Edit",
+          "providerItemId": "toolu_01P9Y4ahPFYRTSMzcjDcxpLM",
+          "sequence": 99,
+          "status": "completed",
+          "timestamp": "2026-08-18T14:20:07.899Z",
+          "type": "fileChange",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\desktop\\src\\actions\\agent\\claude_usage_poller.test.mjs has been updated successfully. (file state is current in your context — no need to Read it back)"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNow run the affected desktop tests:",
+          "id": "agent-turn-a0675c80-142f-4770-a3a4-8fd32509a038-turn-2-assistant-8",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 100,
+          "timestamp": "2026-08-18T14:20:09.402Z"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-a0675c80-142f-4770-a3a4-8fd32509a038-event-101",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01Wo4M5FDyUdcCreFh2mVcVo",
+          "sequence": 101,
+          "status": "completed",
+          "timestamp": "2026-08-18T14:21:01.868Z",
+          "type": "commandExecution",
+          "output": " RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev3/desktop\n\n\n Test Files  2 passed (2)\n      Tests  35 passed (35)\n   Start at  16:21:01\n   Duration  445ms (transform 63ms, setup 0ms, import 175ms, tests 237ms, environment 0ms)"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-a0675c80-142f-4770-a3a4-8fd32509a038-event-102",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeAMxEf5Lyyrhe9TP7EzH:thinking:0",
+          "sequence": 102,
+          "status": "completed",
+          "timestamp": "2026-08-18T14:21:09.029Z",
+          "type": "reasoning",
+          "details": [
+            ""
+          ],
+          "summary": []
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nAll 35 tests pass. Done.\n\n## What changed\n\nThe poller now spawns `claude` **inside the project**, with the run's sanitized environment — instead of Electron's arbitrary main-process cwd and raw env.\n\n- `claude_usage_poller.js` — `requestPoll({ cwd, env })` now accepts and stores per-poll context; `poll()` already used `this.cwd`/`this.env` for both executable resolution and spawn, so they now honor it.\n- `agent_run_state.js` — `createRun` now carries `rootPath` on the run.\n- `agent_runner_service.js` — passes `rootPath` into `createRun`, and `requestClaudeUsagePoll` now calls `requestPoll({ cwd: run.rootPath, env: run.environment })`. `run.environment` is already the `createAgentEnvironment(process.env)` copy real runs use (strips `NODE_OPTIONS`/`VSCODE_INSPECTOR_OPTIONS`), so the poll spawn matches the working context.\n- Tests updated: runner-state assertion now expects the `{ cwd, env }` payload; added a poller test asserting the spawn/resolve use the requesting project's cwd + env.\n\n## Why this fixes the blank UI\n\nEvidence was that the poll fired (a Claude turn recorded `token_usage`) but never produced an `account_usage` row — so the spawned `claude` returned nothing parseable. Manual `/usage` worked only because it ran in the project dir with a clean env; the poller didn't. With cwd = the git project and env = the sanitized copy, the spawn now reproduces the working conditions, the snapshot reaches `ClaudeRuntimeService` → bridge → renderer, and the indicator renders.\n\nI couldn't launch Electron here to confirm end-to-end live. To verify: run a Claude agent in the app, then check for an `account_usage,claude,…` row in `design/usage_metrics.csv` and the \"Claude N% used\" indicator in the status bar. Want me to add a temporary `poll()` log of `{ exitCode, stdout.length }` to make that first confirmation unambiguous?",
+          "id": "agent-turn-a0675c80-142f-4770-a3a4-8fd32509a038-turn-2-assistant-9",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 103,
+          "timestamp": "2026-08-18T14:21:17.439Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -4913,22 +5233,22 @@
         }
       ],
       "startedAt": "2026-08-18T13:48:15.388Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
-        "elapsedMs": 338174,
-        "runningStartedAt": null
+        "elapsedMs": 427929,
+        "runningStartedAt": "2026-08-18T14:21:00.129Z"
       },
       "title": "+",
       "usage": {
-        "cachedInputTokens": 1707346,
-        "inputTokens": 16541,
-        "outputTokens": 21911,
+        "cachedInputTokens": 2882383,
+        "inputTokens": 16821,
+        "outputTokens": 29954,
         "reasoningTokens": 0,
-        "totalTokens": 1745798,
-        "costUsd": 2.3959725
+        "totalTokens": 2929158,
+        "costUsd": 4.582174
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
