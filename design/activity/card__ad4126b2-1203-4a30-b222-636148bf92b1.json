@@ -565,6 +565,36 @@
           "role": "assistant",
           "sequence": 44,
           "timestamp": "2026-08-18T17:51:53.478Z"
+        },
+        {
+          "content": "1. That is the point, we want the total\n2. Why do we need this? We dont want to see this per run, just per actio: this action took 20 minutes. We dont care how many runs\n3. Again not a real problem. Just dont include actions that have nested agent-actions. Which is simple cause we dont yet have any\n4. We dont want wall-clock. Dont understand why you mention this. Forget about it, it is bad technique\n5. Skip then\n6. Wtf, we dont want command action in agent stats. Bullshit non existing problem\n7. Then skip\n8. It is exactly the point to measure this. They need to be included cause it is wasted time\n9. Then skip\n10. Ok",
+          "id": "agent-turn-e7cb7e5d-07f4-4d4e-b14d-e11956529465-user-44",
+          "kind": "message",
+          "role": "user",
+          "sequence": 45,
+          "timestamp": "2026-08-18T18:01:13.949Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-e7cb7e5d-07f4-4d4e-b14d-e11956529465-event-46",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f61018cdeca9228016a849dee657087d09f6ceb483ea00f0d",
+          "sequence": 46,
+          "status": "completed",
+          "timestamp": "2026-08-18T18:01:28.280Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "agent": "codex",
+          "content": "Agreed. I was treating a run as the statistical unit, while you mean the cumulative action conversation. That made most of those “problems” irrelevant.\n\nThe intended measurement is:\n\n> This action conversation cumulatively consumed 20 minutes, 500k tokens, and 30 tool calls, regardless of how many times it was continued.\n\nInclude completed, failed, and cancelled conversations; exclude active conversations, missing timers, missing agent/model, command actions, and actions containing nested agent actions.\n\nOnly three real considerations remain:\n\n1. **Agent/model consistency**  \n   If a continued conversation was executed with different agents or models, its cumulative totals cannot belong exclusively to one. Include conversations only when all associated records use the same agent/model; skip mixed conversations.\n\n2. **Placement on the timeline**  \n   Because the value is cumulative, assign the complete action total to its final `completedAt` bucket. The chart then means “actions completed during this day/week,” not “work performed during this day/week.”\n\n3. **Sample size**  \n   Show how many action conversations produced each average, plus how many were skipped. An average based on one action should be distinguishable from one based on fifty.\n\nWith those rules, existing data is enough:\n\n- Duration: cumulative `timer.elapsedMs`\n- Tokens: cumulative conversation usage\n- Tool calls: unique saved tool events\n- Action: conversation `actionId`\n- Agent/model: associated root activity record\n- Time bucket: final `completedAt`\n- Status: include completed, failed, and cancelled\n\nNo new invocation facts or duration persistence are necessary.\n\n",
+          "id": "agent-turn-e7cb7e5d-07f4-4d4e-b14d-e11956529465-turn-4-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 47,
+          "timestamp": "2026-08-18T18:01:33.900Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -574,29 +604,29 @@
           "agent": "codex",
           "conversationId": "01a015e8-f6eb-7531-8d59-3da524090e13",
           "createdAt": "2026-08-18T17:29:09.775Z",
-          "lastUsedAt": "2026-08-18T17:43:40.050Z",
-          "synchronizedThroughMessageId": "agent-turn-e7cb7e5d-07f4-4d4e-b14d-e11956529465-turn-2-assistant-1"
+          "lastUsedAt": "2026-08-18T17:51:53.478Z",
+          "synchronizedThroughMessageId": "agent-turn-e7cb7e5d-07f4-4d4e-b14d-e11956529465-turn-3-assistant-1"
         }
       ],
       "startedAt": "2026-08-18T17:26:23.526Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 210044,
-        "runningStartedAt": "2026-08-18T17:51:22.905Z"
+        "elapsedMs": 240617,
+        "runningStartedAt": "2026-08-18T18:01:13.949Z"
       },
       "title": "+",
       "usageSchemaVersion": 1,
       "viewed": true,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 115480
+        "usedTokens": 116490
       },
       "usage": {
-        "cachedInputTokens": 327936,
-        "inputTokens": 7735,
-        "outputTokens": 2520,
-        "reasoningTokens": 2531,
-        "totalTokens": 340722
+        "cachedInputTokens": 442368,
+        "inputTokens": 8949,
+        "outputTokens": 2848,
+        "reasoningTokens": 3047,
+        "totalTokens": 457212
       }
     }
   ],
