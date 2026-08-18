@@ -27,12 +27,14 @@ export function MobileMainWindow(props: MobileMainWindowProps) {
     const cardNavigationElementRef = useRef<HTMLDivElement>(null)
     const navigationElementRef = useRef<HTMLDivElement>(null)
     const updateDrawerVisibility = useCallback(() => {
-        const isTextView = workspaceViewService.getSnapshot().viewMode === 'text'
+        const viewMode = workspaceViewService.getSnapshot().viewMode
+        const isTextView = viewMode === 'text'
+        const isStatsView = viewMode === 'stats'
         if (navigationElementRef.current) {
-            navigationElementRef.current.style.display = isTextView || showNavigationInCards ? 'flex' : 'none'
+            navigationElementRef.current.style.display = !isStatsView && (isTextView || showNavigationInCards) ? 'flex' : 'none'
         }
         if (cardNavigationElementRef.current) {
-            cardNavigationElementRef.current.style.display = !isTextView && !showNavigationInCards ? 'block' : 'none'
+            cardNavigationElementRef.current.style.display = !isStatsView && !isTextView && !showNavigationInCards ? 'block' : 'none'
         }
     }, [showNavigationInCards])
     const handleNavigationElement = useCallback((element: HTMLDivElement | null) => {

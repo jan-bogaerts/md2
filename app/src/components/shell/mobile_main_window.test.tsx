@@ -105,4 +105,14 @@ describe('MobileMainWindow', () => {
         expect(navigationScrollRegion).toContainElement(navigation)
         expect(screen.getByText('Board navigation')).not.toBeVisible()
     })
+
+    it('hides both navigation surfaces in stats view', () => {
+        renderMobileMainWindow(false)
+
+        act(() => workspaceViewService.setViewMode('stats'))
+
+        expect(screen.getByText('Project navigation')).not.toBeVisible()
+        expect(screen.getByText('Board navigation')).not.toBeVisible()
+        expect(screen.getByText('Project workspace')).toBeVisible()
+    })
 })

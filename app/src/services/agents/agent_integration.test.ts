@@ -373,7 +373,7 @@ describe('AgentIntegration', () => {
         expect(card && cardAgentState(card.agentConversations)).not.toBe('waiting for input')
     })
 
-    it('does not parse activity during project load and reads a requested conversation directly', async () => {
+    it('does not parse card activity during project load and reads a requested conversation directly', async () => {
         configService.init()
         const activityPath = 'design/activity/card__root-card.json'
         const reference = `${activityPath}#conversation=agent-1`
@@ -386,21 +386,21 @@ describe('AgentIntegration', () => {
             entries: [{ content: 'new', id: 'new', kind: 'message' as const, role: 'assistant' as const, timestamp: '2026-01-01T00:02:00.000Z' }],
         }
         const storage = createStorage({
-            listRepositoryFiles: vi.fn(async () => [cardFile.path, activityPath]),
+            listRepositoryFiles: vi.fn(async () => ['agent_token_usage.json', cardFile.path, activityPath]),
             loadActivityConversations: vi.fn(async () => [persistedConversation]),
             loadProject: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
-            loadTextFile: vi.fn(),
         })
         const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
-        expect(storage.loadTextFile).not.toHaveBeenCalled()
+        expect(storage.loadTextFile).toHaveBeenCalledOnce()
+        expect(storage.loadTextFile).toHaveBeenCalledWith(expect.any(Object), 'agent_token_usage.json')
         expect(storage.loadActivityConversations).not.toHaveBeenCalled()
         await expect(service.listAgentConversations({ cardInternalId: 'root-card', file: cardFile.path, kind: 'card' }))
             .resolves.toEqual([persistedConversation])
-        expect(storage.loadTextFile).not.toHaveBeenCalled()
+        expect(storage.loadTextFile).toHaveBeenCalledOnce()
     })
 
     it('keeps newer inserted conversation when delayed project load returns same ID', async () => {

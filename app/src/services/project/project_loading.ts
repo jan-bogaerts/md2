@@ -25,6 +25,7 @@ import { openFilesService } from '../open_files_service'
 import { mergeConflictService } from './merge_conflict_service'
 import { projectAccessService } from './project_access_service'
 import { createProjectAgentTokenUsageFile, projectAgentTokenUsageService } from '../agents/project_agent_token_usage_service'
+import { projectStatsService } from '../stats/project_stats_service'
 
 const ACTION_RELOAD_DEBOUNCE_MS = 150
 const JSON_EXTENSION = '.json'
@@ -169,6 +170,7 @@ export class ProjectLoading {
         this.markdownReloadEventsByPath = new Map()
         this.dependencies.beginProjectLoad()
         projectAgentTokenUsageService.clear()
+        projectStatsService.clear()
     }
 
     /** Rebind repository watching after storage transport replacement without reloading project data. */
@@ -215,6 +217,7 @@ export class ProjectLoading {
             if (projectConfig === null) await this.saveMissingProjectConfig(project)
 
             const config = resolveProjectConfigPaths(configService.getProjectConfig())
+            projectStatsService.bindProject({ config, project, storage })
             if (config.pushMode === 'manual') {
                 await storage.restorePendingCommits?.(project)
                 await this.loadPendingPush(project)
@@ -388,6 +391,7 @@ export class ProjectLoading {
         this.dependencies.beginProjectLoad()
         this.dependencies.resetAgentConversations()
         projectAgentTokenUsageService.clear()
+        projectStatsService.clear()
         this.dependencies.clearLoadedProject()
         this.actionReloadChangesByPath.clear()
         this.markdownReloadEventsByPath.clear()

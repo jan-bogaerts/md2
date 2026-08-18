@@ -85,6 +85,7 @@ function conversation(
         }] : [],
         startedAt: '2026-07-27T10:00:00.000Z',
         status: 'completed',
+        timer: { elapsedMs: 60_000, runningStartedAt: null },
         title: path,
         viewed: true,
     }

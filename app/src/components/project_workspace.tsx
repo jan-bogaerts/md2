@@ -34,6 +34,7 @@ import { MobileLayout } from './shell/mobile_layout'
 import { MobileMainWindow } from './shell/mobile_main_window'
 import { SplitLayout } from './shell/split_layout'
 import { AttachmentChoiceDialog } from './editor/attachment_choice_dialog'
+import { StatsView } from './stats_view/stats_view'
 
 const WORKSPACE_PANEL_PADDING = 3
 
@@ -248,6 +249,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
             ) : (
                 <CardView cardTypes={cardTypes} states={states} statusColors={statusColors} />
             )}
+            <StatsView />
             <CardActionPopupHost />
         </ProjectWorkspaceAvailability>
     )

@@ -35,6 +35,10 @@ function conversation(
         providerSessions: [],
         startedAt: '2026-08-04T10:00:00.000Z',
         status: 'completed',
+        timer: {
+            elapsedMs: Date.parse(completedAt) - Date.parse('2026-08-04T10:00:00.000Z'),
+            runningStartedAt: null,
+        },
         title: id,
         viewed: true,
     }

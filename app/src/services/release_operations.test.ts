@@ -29,18 +29,11 @@ describe('ReleaseOperations', () => {
             { content: '---\nid: F-2\ninternalId: imported-card\ntitle: Imported\nstatus: active\n---\n\n# Imported', path: 'design/active/F-2-imported.md' },
             files[1],
         ]
-        const archivedFiles: MarkdownFile[] = [
-            { content: finalColumnFile.content, path: 'design/releases/v1/F-1-root.md' },
-            releaseFiles[1],
-            files[1],
-        ]
+        const repositoryFiles = ['design/agent_token_usage.json', 'design/active/F-1-root.md', 'design/active/F-2-imported.md']
         const storage = createStorage({
             listRepositoryFiles: vi.fn()
-                .mockResolvedValueOnce(['design/active/F-1-root.md', 'design/active/F-2-imported.md'])
-                .mockResolvedValueOnce(['design/active/F-2-imported.md', 'design/releases/v1/F-1-root.md']),
-            loadProject: vi.fn()
-                .mockResolvedValueOnce({ files: releaseFiles, workingFolder: 'design' })
-                .mockResolvedValueOnce({ files: archivedFiles, workingFolder: 'design' }),
+                .mockResolvedValue(repositoryFiles),
+            loadProject: vi.fn(async () => ({ files: releaseFiles, workingFolder: 'design' })),
             loadProjectConfig: vi.fn(async () => ({
                 archivedFolder: 'archived',
                 backgroundShade: 'blue' as const,
@@ -72,7 +65,7 @@ describe('ReleaseOperations', () => {
         }))
         expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' })
         expect(storage.loadProject).toHaveBeenCalledOnce()
-        expect(storage.listRepositoryFiles).toHaveBeenCalledOnce()
+        expect(storage.listRepositoryFiles).toHaveBeenCalledTimes(3)
         if (!snapshot) throw new Error('Expected release completion to return a snapshot')
 
         expect(snapshot.activeCards.map((card) => card.path)).toEqual(['design/active/F-2-imported.md'])

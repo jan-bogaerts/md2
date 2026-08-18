@@ -52,7 +52,7 @@ describe('CodexCliUpdateService', () => {
         expect(options.action.label).toBe('Update Codex')
         await options.action.callback()
         expect(source.value.updateCodexCli).toHaveBeenCalledOnce()
-        expect(success).toHaveBeenCalledWith('Codex updated. Retry the failed action.')
+        expect(success).toHaveBeenCalledWith('Codex updated successfully')
         service.stop()
     })
 

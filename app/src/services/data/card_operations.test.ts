@@ -822,26 +822,14 @@ describe('CardOperations', () => {
             },
             { content: '---\nid: C\ninternalId: c\ntitle: C\nstatus: todo\nafter: b\n---\n\n# C', path: 'design/active/C-1-c.md' },
         ]
-        const refreshedFiles: MarkdownFile[] = [
-            activeFiles[0],
-            { ...activeFiles[2], content: activeFiles[2].content.replace('after: b', 'after: a') },
-            {
-                ...activeFiles[1],
-                content: activeFiles[1].content.replace('status: todo', 'status: archived').replace('after: a\n', ''),
-                path: 'design/vault/archived/B-1-b.md',
-            },
-        ]
         const storage = createStorage({
-            listRepositoryFiles: vi.fn()
-                .mockResolvedValueOnce([
-                    ...activeFiles.map(({ path }) => path),
-                    'design/active/manual.pdf',
-                    'design/active/note.png',
-                ])
-                .mockResolvedValueOnce(refreshedFiles.map(({ path }) => path)),
-            loadProject: vi.fn()
-                .mockResolvedValueOnce({ files: activeFiles, workingFolder: 'design' })
-                .mockResolvedValueOnce({ files: refreshedFiles, workingFolder: 'design' }),
+            listRepositoryFiles: vi.fn(async () => [
+                'design/agent_token_usage.json',
+                ...activeFiles.map(({ path }) => path),
+                'design/active/manual.pdf',
+                'design/active/note.png',
+            ]),
+            loadProject: vi.fn(async () => ({ files: activeFiles, workingFolder: 'design' })),
             loadProjectAsset: vi.fn(async (_project, path) => ({
                 content: path.endsWith('.pdf') ? 'AAECAw==' : 'aW1hZ2U=',
                 contentType: path.endsWith('.pdf') ? 'application/pdf' : 'image/png',
@@ -900,14 +888,14 @@ describe('CardOperations', () => {
         ])
         expect(service.getState().snapshot?.backgroundCards.map(({ path }) => path)).toContain('design/vault/archived/B-1-b.md')
         expect(storage.loadProject).toHaveBeenCalledOnce()
-        expect(storage.listRepositoryFiles).toHaveBeenCalledOnce()
+        expect(storage.listRepositoryFiles).toHaveBeenCalledTimes(2)
     })
 
     it('rejects an existing archived-card target before committing', async () => {
         configService.init()
         const activeFile = activeCardFile('a')
         const storage = createStorage({
-            listRepositoryFiles: vi.fn(async () => [activeFile.path, 'archived/A-1-a.md']),
+            listRepositoryFiles: vi.fn(async () => ['agent_token_usage.json', activeFile.path, 'archived/A-1-a.md']),
             loadProject: vi.fn(async () => ({ files: [activeFile], workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: [activeFile], workingFolder: 'design' })),
         })
@@ -932,7 +920,7 @@ describe('CardOperations', () => {
         ))
         const storage = createStorage({
             commit,
-            listRepositoryFiles: vi.fn(async () => deletionFiles.map(({ path }) => path)),
+            listRepositoryFiles: vi.fn(async () => ['agent_token_usage.json', ...deletionFiles.map(({ path }) => path)]),
             loadProject: vi.fn(async () => ({ files: deletionFiles, workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: deletionFiles, workingFolder: 'design' })),
         })
@@ -963,7 +951,7 @@ describe('CardOperations', () => {
             header: expect.objectContaining({ after: 'a' }),
             sha: 'sha-c-next',
         })
-        expect(snapshot?.repositoryFiles).toEqual(['design/A-1-a.md', 'design/C-1-c.md'])
+        expect(snapshot?.repositoryFiles).toEqual(['agent_token_usage.json', 'design/A-1-a.md', 'design/C-1-c.md'])
         expect(reloadCurrentProjectSnapshot).not.toHaveBeenCalled()
         expect(storage.loadProject).toHaveBeenCalledTimes(loadProjectCalls)
         expect(storage.listRepositoryFiles).toHaveBeenCalledTimes(listRepositoryFilesCalls)
@@ -1431,7 +1419,7 @@ describe('CardOperations', () => {
         const service = createDataService()
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
-        await vi.waitFor(() => expect(service.getState().snapshot?.repositoryFiles).toHaveLength(3))
+        await vi.waitFor(() => expect(service.getState().snapshot?.repositoryFiles).toHaveLength(4))
         const snapshot = service.getState().snapshot
         const handleChanged = vi.fn()
         service.addEventListener('changed', handleChanged)

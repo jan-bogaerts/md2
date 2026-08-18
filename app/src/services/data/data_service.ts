@@ -29,6 +29,7 @@ import type { CardParseError } from './markdown_parsing_service'
 import type { OpenDocumentSaveReference } from '../open_files_service'
 import { CARD_CHANGED_EVENT, CARD_FIELDS, cardCollectionFieldChangedEvent, cardFieldChangedEvent, type CardField } from './card_events'
 import { projectAgentTokenUsageService } from '../agents/project_agent_token_usage_service'
+import { projectStatsService } from '../stats/project_stats_service'
 
 export { CARD_CHANGED_EVENT, cardCollectionFieldChangedEvent, cardFieldChangedEvent } from './card_events'
 export type { CardField } from './card_events'
@@ -262,6 +263,7 @@ export class DataService extends EventTarget {
     getConfig(): ProjectConfig | null {
         return getProjectConfigOrNull(this.storage)
     }
+
     async listAgentConversations(context: ActionContext) {
         if (context.kind === 'project') return this.agents.listProjectAgentConversations()
         if (!context.cardInternalId) throw new Error(`Missing cardInternalId for ${context.kind} agent conversation context`)
@@ -393,6 +395,7 @@ export class DataService extends EventTarget {
             dispatchPersistenceChanged: () => this.dispatchPersistenceChanged(),
             dispatchRepositoryChanged: (event) => {
                 projectAgentTokenUsageService.handleRepositoryChange(event)
+                projectStatsService.handleRepositoryChange(event)
                 this.dispatchEvent(new CustomEvent('repositoryChanged', { detail: event }))
             },
             files: () => this.projectState.files,
