@@ -338,15 +338,15 @@
           "agent": "claude",
           "conversationId": "2cbfdda3-8328-494b-a8e6-bf12e1eba7ac",
           "createdAt": "2026-08-18T15:19:02.917Z",
-          "lastUsedAt": "2026-08-18T15:19:02.917Z",
-          "synchronizedThroughMessageId": "agent-turn-68433864-675f-4eb7-8a8e-8094a4a64013-turn-1-assistant-4"
+          "lastUsedAt": "2026-08-18T15:20:15.558Z",
+          "synchronizedThroughMessageId": "agent-turn-68433864-675f-4eb7-8a8e-8094a4a64013-turn-2-assistant-1"
         }
       ],
       "startedAt": "2026-08-18T15:17:52.778Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
-        "elapsedMs": 70139,
-        "runningStartedAt": "2026-08-18T15:20:09.715Z"
+        "elapsedMs": 75982,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usageSchemaVersion": 1,

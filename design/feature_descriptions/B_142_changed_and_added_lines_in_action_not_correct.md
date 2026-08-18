@@ -3,7 +3,7 @@ author:
 id: B_142
 internalId: 5936b8d1-a0b9-4d53-9edf-e753e80796dd
 title: changed and added lines in action not correct
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
