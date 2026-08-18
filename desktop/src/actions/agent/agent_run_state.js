@@ -44,6 +44,7 @@ function createRun({
     onEvent,
     reference,
     request,
+    rootPath,
     startedAt,
     streaming,
 }) {
@@ -82,6 +83,7 @@ function createRun({
         reference,
         reportedProviderErrors: new Set(),
         resolveClosed,
+        rootPath,
         queuedMessage: null,
         queuedMessageRevision: -1,
         sentQueuedMessageRevision: -1,

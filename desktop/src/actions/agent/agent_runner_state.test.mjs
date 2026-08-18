@@ -1096,16 +1096,17 @@ describe('AgentRunnerService state handling', () => {
             payload,
         });
         await service.handleClaudeRuntimeEvent({ kind: 'unavailable', observedAt: 11 });
-        service.requestClaudeUsagePoll({ agent: 'claude', stdout: 'Claude answer' });
-        service.requestClaudeUsagePoll({ agent: 'claude', stdout: '  ' });
-        service.requestClaudeUsagePoll({ agent: 'codex', stdout: 'Codex answer' });
+        const environment = { PATH: '/bin' };
+        service.requestClaudeUsagePoll({ agent: 'claude', environment, rootPath: '/project', stdout: 'Claude answer' });
+        service.requestClaudeUsagePoll({ agent: 'claude', environment, rootPath: '/project', stdout: '  ' });
+        service.requestClaudeUsagePoll({ agent: 'codex', environment, rootPath: '/project', stdout: 'Codex answer' });
 
         expect(claudeRuntimeService.publishRateLimits).toHaveBeenCalledWith(payload, 10);
         expect(claudeRuntimeService.publishUnavailable).toHaveBeenCalledWith(11);
         expect(usageMetricsService.recordAccountUsage).toHaveBeenCalledOnce();
         expect(usageMetricsService.recordAccountUsage).toHaveBeenCalledWith('claude', snapshot);
         expect(claudeUsagePoller.requestPoll).toHaveBeenCalledOnce();
-        expect(claudeUsagePoller.requestPoll).toHaveBeenCalledWith();
+        expect(claudeUsagePoller.requestPoll).toHaveBeenCalledWith({ cwd: '/project', env: environment });
     });
 
     it('keeps approval state separate from conversation persistence and other pending input', async () => {

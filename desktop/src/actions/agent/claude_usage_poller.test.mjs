@@ -86,6 +86,25 @@ describe('ClaudeUsagePoller', () => {
         poller.stop();
     });
 
+    it('spawns within the requesting project cwd and environment', async () => {
+        const runtimeListener = vi.fn();
+        const spawn = vi.fn(() => completedChild());
+        const find = vi.fn(async () => 'claude.cmd');
+        const env = { PATH: '/project/bin' };
+        const poller = new ClaudeUsagePoller({
+            executableResolver: { find },
+            onRuntimeEvent: runtimeListener,
+            spawn,
+        });
+
+        poller.requestPoll({ cwd: '/project', env });
+        await poller.activePoll;
+
+        expect(find).toHaveBeenCalledWith('claude', { cwd: '/project', env });
+        expect(spawn).toHaveBeenCalledWith('claude.cmd', [], expect.objectContaining({ cwd: '/project', env }));
+        poller.stop();
+    });
+
     it('does not publish malformed output and reports process failure as unavailable', async () => {
         const runtimeListener = vi.fn();
         const malformedPoller = new ClaudeUsagePoller({

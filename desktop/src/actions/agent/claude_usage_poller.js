@@ -134,8 +134,10 @@ class ClaudeUsagePoller {
         if (typeof this.onRuntimeEvent !== 'function') throw new Error('Claude usage poller requires a runtime event listener');
     }
 
-    requestPoll() {
+    requestPoll({ cwd, env } = {}) {
         if (this.stopped) return;
+        if (cwd) this.cwd = cwd;
+        if (env) this.env = env;
         this.pending = true;
         this.schedulePendingPoll();
     }

@@ -160,6 +160,7 @@ class AgentRunnerService {
             onEvent,
             reference,
             request,
+            rootPath,
             startedAt,
             streaming,
         });
@@ -333,7 +334,7 @@ class AgentRunnerService {
 
     requestClaudeUsagePoll(run) {
         if (run.agent === 'claude' && run.stdout.trim().length > 0) {
-            this.claudeUsagePoller.requestPoll();
+            this.claudeUsagePoller.requestPoll({ cwd: run.rootPath, env: run.environment });
         }
     }
 
