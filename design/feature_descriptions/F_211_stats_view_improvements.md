@@ -10,7 +10,7 @@ agents:
 policy:
 after: 8624544e-9fd6-4a27-837c-95e504a2c5d6
 ---
-in [F\_208\_add\_view\_stats.md](design/feature_descriptions/F_208_add_view_stats.md), we added support for stats view. this needs some improvement
+in [F\_208\_add\_view\_stats.md](design/feature_descriptions/F_208_add_view_stats.md), we added support for stats view. this needs some improvement.
 
 *
 * missing scrollbar, when there are many boxes, they are outside of the edge. needs horizontal and vertical (auto) scrollbars
