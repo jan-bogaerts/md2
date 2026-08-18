@@ -8,7 +8,7 @@ owner:
 affects:
 agents:
 policy:
-after: 8624544e-9fd6-4a27-837c-95e504a2c5d6
+after: 3ebc6426-47fe-41b8-bb66-da98818be9d9
 ---
 in [F\_208\_add\_view\_stats.md](design/feature_descriptions/F_208_add_view_stats.md), we added support for stats view. this needs some improvement.
 
