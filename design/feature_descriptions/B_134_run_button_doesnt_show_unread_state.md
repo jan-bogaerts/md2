@@ -8,7 +8,7 @@ owner:
 affects:
 agents:
 policy:
-after: af16c33d-206a-4cbc-8ca9-488574f7d514
+after: 59bd8e9d-206f-441d-93c0-35b60d01f2bb
 ---
 The run button on a card no longer shows that an action is ready but the conversation has not yet been read.
 
