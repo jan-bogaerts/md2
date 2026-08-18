@@ -1,6 +1,6 @@
 import ArrowUpwardOutlined from '@mui/icons-material/ArrowUpwardOutlined'
 import StopOutlined from '@mui/icons-material/StopOutlined'
-import { Box, Button, IconButton, Tooltip } from '@mui/material'
+import { Box, Button, IconButton, Tooltip, useMediaQuery, useTheme } from '@mui/material'
 import CalendarOutline from 'mdi-material-ui/CalendarOutline'
 import Play from 'mdi-material-ui/Play'
 import { useSyncExternalStore } from 'react'
@@ -53,6 +53,8 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
         action, assignmentContext, conversationStore, embedded = false, historyStore, inputStore, resultStore,
         runValidationError, scheduleStore, settingsStore, usageScopeStore,
     } = props
+    const theme = useTheme()
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'))
     const settings = useActionRunSettings(action, settingsStore)
     const runStatus = useActionRunSelector(action.id, assignmentContext, (run) => run?.status ?? 'idle')
     const agentActive = useActionRunSelector(action.id, assignmentContext, (run) => {
@@ -148,7 +150,7 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
                     },
                 }}
             >
-                {action.type === 'agent' ? (
+                {action.type === 'agent' && !isMobile ? (
                     <MarkdownAttachmentControl
                         disabled={editorSnapshot.preparationStatus !== 'ready'}
                         onFiles={handleAttachmentFiles}
