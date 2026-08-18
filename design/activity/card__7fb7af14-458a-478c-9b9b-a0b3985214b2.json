@@ -97,7 +97,7 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "7fb7af14-458a-478c-9b9b-a0b3985214b2",
       "cardPath": "design/feature_descriptions/B_137_bridge_error.md",
-      "completedAt": null,
+      "completedAt": "2026-08-18T11:35:44.755Z",
       "entries": [
         {
           "content": "Read and implement the feature/job described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_137_bridge_error.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests.\n5. After implementation is done, update the field `status` in the markdown feature description file to \\`ready\\`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_137_bridge_error.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria.&#x20;\n\nYou should only run the related tests, do not run the entire test suite, that will be done manually later on.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill",
@@ -719,21 +719,29 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 45,
-          "timestamp": "2026-08-18T11:35:43.432Z"
+          "timestamp": "2026-08-18T11:35:44.755Z"
+        },
+        {
+          "content": "Malformed activity file: unsupported version 1",
+          "id": "agent-turn-1c3e6818-452f-4646-b0b7-14d021049f00-error-45",
+          "kind": "event",
+          "sequence": 46,
+          "timestamp": "2026-08-18T11:35:44.573Z",
+          "type": "error"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-6cbaca8d-9c09-426e-abb9-7bbf100dc142",
       "providerSessions": [],
       "startedAt": "2026-08-18T11:34:07.133Z",
-      "status": "running",
+      "status": "failed",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-18T11:34:07.133Z"
+        "elapsedMs": 97440,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usageSchemaVersion": 1,
-      "viewed": true,
+      "viewed": false,
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 61860
