@@ -21,4 +21,4 @@ in [F\_208\_add\_view\_stats.md](design/feature_descriptions/F_208_add_view_stat
 Also need to improve data shown. Things we want to see
 
 * Average \[time, tokens ] spend on action per \[agent, model] per \[week, day].
-*
+* Activity over time, coynt actions, split bar up in actions, each avtion its own color, always the same for each bar, put in legend
