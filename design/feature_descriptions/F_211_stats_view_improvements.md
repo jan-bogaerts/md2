@@ -20,5 +20,13 @@ in [F\_208\_add\_view\_stats.md](design/feature_descriptions/F_208_add_view_stat
 
 Also need to improve data shown. Things we want to see
 
-* Average \[time, tokens ] spend on action per \[agent, model] per \[week, day].
-* Activity over time, coynt actions, split bar up in actions, each avtion its own color, always the same for each bar, put in legend
+* Bar value: Average \[time, tokens, toolcall-count ] spend on any action per \[agent, model] \= nr of barsin each group, per \[week, day] \= x axis, groups&#x20;
+* Activity over time, count actions, split bar up in actions, each action its own color, always the same for each bar, put in legend
+* Per \[day, week] a bar per agent, value token usage vs account usage in %
+
+
+
+So questions we want answered:
+
+* Which \[agent, model] \[takes longest, uses most tokens] over all types of actions or specific actions over time
+* Which agent´s account usage drains fastest, relatively to what gets accomplished
