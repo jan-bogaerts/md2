@@ -82,7 +82,9 @@ function changeValue(usage: AgentFileChangeUsage) {
 }
 
 function lineValue(usage: LineUsage) {
-    return `${NUMBER_FORMAT.format(usage.insertions + usage.deletions)} lines`
+    const total = usage.insertions + usage.deletions
+
+    return `${NUMBER_FORMAT.format(total)} lines (+${NUMBER_FORMAT.format(usage.insertions)} / -${NUMBER_FORMAT.format(usage.deletions)})`
 }
 
 /** Three shared-scope usage controls for one agent action on one card. */
@@ -196,6 +198,15 @@ export function ActionUsageSummary(props: ActionUsageSummaryProps) {
                             lines:{' '}
                         </Box>
                         {NUMBER_FORMAT.format(totalLines)}
+                        &nbsp;(
+                        <Box component="span" sx={{ color: 'success.main' }}>
+                            +{NUMBER_FORMAT.format(activeLines.insertions)}
+                        </Box>
+                        &nbsp;/&nbsp;
+                        <Box component="span" sx={{ color: 'error.main' }}>
+                            -{NUMBER_FORMAT.format(activeLines.deletions)}
+                        </Box>
+                        )
                     </ButtonBase>
                 </Tooltip>
             ) : null}

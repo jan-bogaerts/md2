@@ -142,7 +142,31 @@ describe('ActionUsageSummary', () => {
 
         expect(screen.getByRole('button', { name: 'Tokens, Conversation scope' })).toHaveTextContent('tokens: 12')
         expect(screen.getByRole('button', { name: 'Changes, Conversation scope' })).toHaveTextContent('changes: +2 / -1')
-        expect(screen.getByRole('button', { name: 'Lines, Conversation scope' })).toHaveTextContent('lines: 9')
+        expect(screen.getByRole('button', { name: 'Lines, Conversation scope' })).toHaveTextContent('lines: 9 (+6 / -3)')
+    })
+
+    it('renders total, insertion, and deletion values under action/card scope', () => {
+        const displayedConversation = conversation('conversation-1', 12)
+        const otherConversation = conversation('conversation-2', 20)
+        renderSummary({
+            conversation: displayedConversation,
+            conversations: [displayedConversation, otherConversation],
+            history: [
+                historyEntry(displayedConversation.id, [commit('abc1234', 6, 3)]),
+                historyEntry(otherConversation.id, [commit('def5678', 8, 7)]),
+            ],
+        })
+
+        expect(screen.getByRole('button', { name: 'Lines, Action/card scope' })).toHaveTextContent('lines: 24 (+14 / -10)')
+    })
+
+    it.each([
+        { deletions: 0, expected: 'lines: 6 (+6 / -0)', insertions: 6, name: 'additions-only' },
+        { deletions: 3, expected: 'lines: 3 (+0 / -3)', insertions: 0, name: 'deletions-only' },
+    ])('renders explicit zero side for $name commit history', ({ deletions, expected, insertions }) => {
+        renderSummary({ history: [historyEntry('conversation-1', [commit('abc1234', insertions, deletions)])] })
+
+        expect(screen.getByRole('button', { name: 'Lines, Action/card scope' })).toHaveTextContent(expected)
     })
 
     it('keeps compactable prefixes separate while preserving accessible names and change colors', () => {
@@ -157,6 +181,9 @@ describe('ActionUsageSummary', () => {
         expect(lines.querySelector('[data-usage-prefix]')).toHaveTextContent('lines:')
         expect(changes.querySelector('[data-usage-prefix]')?.nextElementSibling).toHaveStyle({ color: palette.success.main })
         expect(changes.querySelector('[data-usage-prefix]')?.nextElementSibling?.nextElementSibling).toHaveStyle({ color: palette.error.main })
+        expect(lines).toHaveTextContent('lines: 5 (+3 / -2)')
+        expect(lines.querySelector('[data-usage-prefix]')?.nextElementSibling).toHaveStyle({ color: palette.success.main })
+        expect(lines.querySelector('[data-usage-prefix]')?.nextElementSibling?.nextElementSibling).toHaveStyle({ color: palette.error.main })
     })
 
     it('explains metric, switching, both values, and active-scope commit details', async () => {
@@ -179,8 +206,8 @@ describe('ActionUsageSummary', () => {
         const tooltip = await screen.findByRole('tooltip')
         expect(tooltip).toHaveTextContent('Lines are additions plus deletions in captured Git commit diffs.')
         expect(tooltip).toHaveTextContent('Active scope: Conversation. Click to switch to Action/card.')
-        expect(tooltip).toHaveTextContent('Conversation (active): 9 lines')
-        expect(tooltip).toHaveTextContent('Action/card: 24 lines')
+        expect(tooltip).toHaveTextContent('Conversation (active): 9 lines (+6 / -3)')
+        expect(tooltip).toHaveTextContent('Action/card: 24 lines (+14 / -10)')
         expect(tooltip).toHaveTextContent('files changed: 1, insertions: 6, deletions: 3')
         expect(tooltip).toHaveTextContent('abc1234: +6 / -3')
         expect(tooltip).not.toHaveTextContent('def5678: +8 / -7')
