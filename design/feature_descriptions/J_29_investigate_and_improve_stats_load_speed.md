@@ -3,7 +3,7 @@ author:
 id: J_29
 internalId: 3ebc6426-47fe-41b8-bb66-da98818be9d9
 title: investigate and improve stats load speed
-status: new
+status: design
 owner: 
 affects:
 agents:
