@@ -10,8 +10,6 @@ agents:
   - design/activity/card__879cfc1a-7a44-48a4-b533-196cd4975252.json
 policy:
 after: 5d0cd5cb-d69f-4e88-a662-45dfeb6f421b
-branch: f_197_hide_attach_icon_on_small_screen
-worktree: 1
 ---
 When in small screen mode (mobile), the action popup bottom row does not have enough space, so hide its clip icon. This applies only to the action popup; keep the clip icon on the card popup unchanged.
 
