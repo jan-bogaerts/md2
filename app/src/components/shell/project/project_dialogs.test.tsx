@@ -92,7 +92,7 @@ describe('project dialog components', () => {
         expect(screen.getByLabelText('Filter repositories')).toBeInTheDocument()
     })
 
-    it('offers personal, public, and remote sources in browser mode', async () => {
+    it('offers repository access choices and maps Folder to Remote in browser mode', async () => {
         render(
             <ProjectOpenDialog
                 branches={[]}
@@ -122,14 +122,68 @@ describe('project dialog components', () => {
             />,
         )
 
-        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Source' }))
-        expect(await screen.findByRole('option', { name: 'Personal repository' })).toBeInTheDocument()
-        expect(screen.getByRole('option', { name: 'Public repository' })).toBeInTheDocument()
-        expect(screen.getByRole('option', { name: 'Remote' })).toBeInTheDocument()
-        expect(screen.queryByRole('option', { name: 'Local folder' })).toBeNull()
+        const projectKind = screen.getByRole('group', { name: 'Project kind' })
+        expect(within(projectKind).getByRole('button', { name: 'Repository' })).toHaveAttribute('aria-pressed', 'true')
+        expect(within(projectKind).getByRole('button', { name: 'Folder' })).toHaveAttribute('aria-pressed', 'false')
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Repository access' }))
+        expect(await screen.findByRole('option', { name: 'Personal' })).toBeInTheDocument()
+        expect(screen.getByRole('option', { name: 'Public' })).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('option', { name: 'Personal' }))
+        await waitFor(() => fireEvent.click(screen.getByRole('button', { name: 'Folder' })))
+        expect(screen.getByLabelText('Endpoint')).toBeInTheDocument()
+        expect(screen.queryByLabelText('Local repository folder')).toBeNull()
     })
 
-    it('opens typed, picked, and recent local folders only after Local folder is selected', async () => {
+    it('clears repository workflow state when access or project kind changes', async () => {
+        const onSourceChange = vi.fn()
+        const openGithub = vi.fn()
+        const openRemote = vi.fn()
+        render(
+            <ProjectOpenDialog
+                branches={BRANCHES}
+                isDesktopMode={false}
+                isGithubAuthenticated
+                isLoading={false}
+                onBranchChange={vi.fn()}
+                onChooseLocalFolder={vi.fn(async () => undefined)}
+                onClose={vi.fn()}
+                onCreateProjectFolders={vi.fn()}
+                onCreateRemoteProject={vi.fn()}
+                onCreateWorkingFolder={vi.fn()}
+                onDiscardGithubPendingCommits={vi.fn()}
+                onLoadManualBranches={vi.fn(async () => null)}
+                onLoadRemoteBranches={vi.fn(async () => [])}
+                onOpenGithub={openGithub}
+                onOpenLocal={vi.fn(async () => undefined)}
+                onOpenRemote={openRemote}
+                onRepositoryChange={vi.fn(async () => BRANCHES)}
+                onSourceChange={onSourceChange}
+                onUseWorkingFolder={vi.fn()}
+                open
+                pendingGithubConflictProject={null}
+                projectOpenResolution={null}
+                recentLocalRepositories={[]}
+                repositories={REPOSITORIES}
+            />,
+        )
+
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Repository' }))
+        fireEvent.click(await screen.findByRole('option', { name: 'octo/demo' }))
+        await waitFor(() => expect(screen.getByRole('combobox', { name: 'Branch' })).toHaveTextContent('main'))
+
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Repository access' }))
+        fireEvent.click(await screen.findByRole('option', { name: 'Public' }))
+        expect(screen.getByRole('combobox', { name: 'Branch' })).not.toHaveTextContent('main')
+        expect(onSourceChange).toHaveBeenCalledOnce()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Folder' }))
+        expect(screen.getByLabelText('Endpoint')).toBeInTheDocument()
+        expect(onSourceChange).toHaveBeenCalledTimes(2)
+        expect(openGithub).not.toHaveBeenCalled()
+        expect(openRemote).not.toHaveBeenCalled()
+    })
+
+    it('opens typed, picked, and recent local folders only after Folder is selected', () => {
         const chooseLocalFolder = vi.fn(async () => undefined)
         const openLocal = vi.fn(async () => undefined)
         render(
@@ -159,20 +213,63 @@ describe('project dialog components', () => {
                 recentLocalRepositories={['C:/recent']}
                 repositories={[]}
             />,
+            { wrapper: AppThemeProvider },
         )
 
         expect(screen.queryByLabelText('Local repository folder')).toBeNull()
-        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Source' }))
-        fireEvent.click(await screen.findByRole('option', { name: 'Local folder' }))
-        expect(screen.queryByRole('option', { name: 'Remote' })).toBeNull()
+        fireEvent.click(screen.getByRole('button', { name: 'Folder' }))
 
-        fireEvent.change(screen.getByLabelText('Local repository folder'), { target: { value: 'C:/typed' } })
-        fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))
-        expect(openLocal).toHaveBeenCalledWith('C:/typed')
+        const localFolderInput = screen.getByLabelText('Local repository folder')
+        expect(localFolderInput).toHaveAttribute('placeholder', 'Choose or enter a local folder')
+        expect(screen.getByText('Local repository folder')).toHaveAttribute('data-shrink', 'true')
+        expect(screen.getByRole('button', { name: 'Open Local' })).toBeDisabled()
         fireEvent.click(screen.getByRole('button', { name: 'Choose local repository folder' }))
         expect(chooseLocalFolder).toHaveBeenCalledOnce()
+        expect(localFolderInput).toHaveValue('')
+        expect(screen.getByRole('dialog', { name: 'Open project' })).toBeInTheDocument()
+
+        fireEvent.change(localFolderInput, { target: { value: 'C:/typed' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))
+        expect(openLocal).toHaveBeenCalledWith('C:/typed')
         fireEvent.click(screen.getByText('C:/recent'))
         expect(openLocal).toHaveBeenLastCalledWith('C:/recent')
+    })
+
+    it('disables local open and folder picker while loading', () => {
+        render(
+            <ProjectOpenDialog
+                branches={[]}
+                initialSource="local"
+                isDesktopMode
+                isGithubAuthenticated={false}
+                isLoading
+                onBranchChange={vi.fn()}
+                onChooseLocalFolder={vi.fn(async () => undefined)}
+                onClose={vi.fn()}
+                onCreateProjectFolders={vi.fn()}
+                onCreateRemoteProject={vi.fn()}
+                onCreateWorkingFolder={vi.fn()}
+                onDiscardGithubPendingCommits={vi.fn()}
+                onLoadManualBranches={vi.fn(async () => null)}
+                onLoadRemoteBranches={vi.fn(async () => [])}
+                onOpenGithub={vi.fn()}
+                onOpenLocal={vi.fn(async () => undefined)}
+                onOpenRemote={vi.fn()}
+                onRepositoryChange={vi.fn(async () => [])}
+                onSourceChange={vi.fn()}
+                onUseWorkingFolder={vi.fn()}
+                open
+                pendingGithubConflictProject={null}
+                projectOpenResolution={null}
+                recentLocalRepositories={[]}
+                repositories={[]}
+            />,
+            { wrapper: AppThemeProvider },
+        )
+
+        fireEvent.change(screen.getByLabelText('Local repository folder'), { target: { value: 'C:/typed' } })
+        expect(screen.getByRole('button', { name: 'Choose local repository folder' })).toBeDisabled()
+        expect(screen.getByRole('button', { name: 'Open Local' })).toBeDisabled()
     })
 
     it('marks manual public lookup and open requests as public', async () => {
@@ -207,8 +304,8 @@ describe('project dialog components', () => {
             />,
         )
 
-        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Source' }))
-        fireEvent.click(await screen.findByRole('option', { name: 'Public repository' }))
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Repository access' }))
+        fireEvent.click(await screen.findByRole('option', { name: 'Public' }))
         fireEvent.change(screen.getByLabelText('Owner'), { target: { value: 'octo' } })
         fireEvent.change(screen.getByRole('textbox', { name: 'Repository' }), { target: { value: 'demo' } })
         fireEvent.click(screen.getByRole('button', { name: 'Load branches' }))
@@ -292,6 +389,7 @@ describe('project dialog components', () => {
 
         expect(screen.getByLabelText('Endpoint')).toHaveValue('ws://192.168.0.10:1234')
         expect(screen.queryByLabelText('Token')).not.toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Folder' })).toHaveAttribute('aria-pressed', 'true')
         expect(screen.getByRole('button', { name: 'Open Remote' })).toBeInTheDocument()
     })
 
@@ -387,7 +485,7 @@ describe('project dialog components', () => {
         )
 
         expect(screen.getByText('Working folder is missing: missing')).toBeInTheDocument()
-        expect(screen.queryByRole('combobox', { name: 'Source' })).toBeNull()
+        expect(screen.queryByRole('group', { name: 'Project kind' })).toBeNull()
         expect(screen.queryByRole('button', { name: 'Open GitHub' })).toBeNull()
         expect(screen.queryByRole('button', { name: 'Open Remote' })).toBeNull()
     })
@@ -430,7 +528,7 @@ describe('project dialog components', () => {
 
         expect(screen.getByRole('dialog', { name: 'Create project' })).toBeInTheDocument()
         expect(screen.getByLabelText('Project folder')).toHaveValue('design')
-        expect(screen.queryByRole('combobox', { name: 'Source' })).toBeNull()
+        expect(screen.queryByRole('group', { name: 'Project kind' })).toBeNull()
 
         fireEvent.change(screen.getByLabelText('Project folder'), { target: { value: 'docs' } })
         fireEvent.click(screen.getByRole('button', { name: 'Create' }))
