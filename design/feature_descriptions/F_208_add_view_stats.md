@@ -10,6 +10,8 @@ agents:
   - design/activity/card__8690b93e-98c4-486f-95b6-aacc10931a56.json
 policy:
 after: af16c33d-206a-4cbc-8ca9-488574f7d514
+branch: f_208_add_view_stats
+worktree: 2
 ---
 Add support to view stats like:
 
