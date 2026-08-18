@@ -9,8 +9,4 @@ affects:
 agents:
 policy:
 ---
-
-currently:
-
-* dropdown to select: folder, repository.
-* why is there a difference between public
+currently: dropdown to select: folder, repository, instead use toggle button row with icons.
