@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: e9c39111-06ec-4e90-98ec-3d1d0fb7e400
 ---
 
 we currently have 2 components on the status bar to display account limits. one is for claude, the other for codex. currently, we use only a label in the form of `Codex 10% used`&#x20;

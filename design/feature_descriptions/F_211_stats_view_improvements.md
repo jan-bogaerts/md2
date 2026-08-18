@@ -3,7 +3,7 @@ author:
 id: F_211
 internalId: ad4126b2-1203-4a30-b222-636148bf92b1
 title: stats view improvements
-status: new
+status: design
 owner: 
 affects:
 agents:
