@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__8a177e01-b5d4-46aa-b42f-9ba11f561b60.json
 policy:
-branch: f_193_report_claude_usage_quotas
-worktree: 3
 after: 8690b93e-98c4-486f-95b6-aacc10931a56
 ---
 
