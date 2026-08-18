@@ -88,6 +88,7 @@ export type ActivityRepairResult =
 export function createActivityFile(origin: ActivityOrigin): CardActivityFile
 export function parseActivityValue(value: unknown, expectedOrigin?: ActivityOrigin | null): CardActivityFile
 export function parseActivityFile(content: string, expectedOrigin?: ActivityOrigin | null): CardActivityFile
+export function parseActivityFileForMigration(content: string, expectedOrigin?: ActivityOrigin | null): CardActivityFile
 export function migrateActivityValue(value: unknown, expectedOrigin?: ActivityOrigin | null): CardActivityFile
 export function repairActivityFile(content: string, expectedOrigin?: ActivityOrigin | null): ActivityRepairResult
 export function findActivityConversation(activity: CardActivityFile, conversationId: string): Omit<AgentConversation, 'path'>

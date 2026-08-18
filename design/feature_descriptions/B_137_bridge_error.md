@@ -3,7 +3,7 @@ author:
 id: B_137
 internalId: 7fb7af14-458a-478c-9b9b-a0b3985214b2
 title: bridge error
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

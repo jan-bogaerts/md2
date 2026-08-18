@@ -37,6 +37,16 @@ describe('MobileCreateMenu', () => {
         expect(props.onCreateAction).toHaveBeenCalledOnce()
     })
 
+    it('inherits dense menu items from the app theme', () => {
+        renderCreateMenu()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Create' }))
+
+        screen.getAllByRole('menuitem').forEach((menuItem) => {
+            expect(menuItem).toHaveClass('MuiMenuItem-dense')
+        })
+    })
+
     it.each([
         {
             disabledStates: [false, true],

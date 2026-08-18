@@ -525,6 +525,16 @@ export function parseActivityFile(content, expectedOrigin = null) {
     return parseActivityValue(JSON.parse(content), expectedOrigin)
 }
 
+/** Parses current activity or strictly migrates a recognized legacy version in memory. */
+export function parseActivityFileForMigration(content, expectedOrigin = null) {
+    const value = JSON.parse(content)
+    if ([LEGACY_ACTIVITY_VERSION, SECOND_ACTIVITY_VERSION, PREVIOUS_ACTIVITY_VERSION].includes(value?.version)) {
+        return migrateActivityValue(value, expectedOrigin)
+    }
+
+    return parseActivityValue(value, expectedOrigin)
+}
+
 export function findActivityConversation(activity, conversationId) {
     const conversation = activity.conversations.find(({ id }) => id === conversationId)
     if (!conversation) throw new Error(`Activity conversation not found: ${conversationId}`)

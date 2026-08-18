@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const { parseActivityValue } = require('../../../../shared/card_activity.mjs');
+const { parseActivityFileForMigration } = require('../../../../shared/card_activity.mjs');
 const {
     addSummaryUsage,
     agentTokenUsageFilePath,
@@ -19,6 +19,7 @@ const {
     writeActivityFile,
 } = require('../activity/activity_files');
 const { commitTrackedPaths, ensureInsideRoot, pathExists, requireRootPath } = require('../../git/git_commands');
+const { captureError } = require('../../integrations/telemetry');
 
 const projectUsageWriteQueues = new Map();
 
@@ -96,17 +97,23 @@ async function cardActivityPaths(folderPath) {
     return paths;
 }
 
+// TEMPORARY: Internal migration only. Remove after existing internal projects have generated their summary file.
 async function migrateSummary(rootPath, projectFolder, releasesFolder) {
     const absoluteProjectFolder = ensureInsideRoot(rootPath, path.join(rootPath, projectFolder));
     const activityPaths = await cardActivityPaths(absoluteProjectFolder);
     const projectUsages = [];
     const releaseUsages = new Map();
     for (const activityPath of activityPaths) {
-        const activity = parseActivityValue(JSON.parse(await fs.promises.readFile(activityPath, 'utf8')));
-        const costUsd = activity.conversations.reduce((total, conversation) => total + (conversation.usage?.costUsd ?? 0), 0);
-        const hasCost = activity.conversations.some((conversation) => conversation.usage?.costUsd !== undefined);
-        const totalTokens = activity.conversations.reduce((total, conversation) => total + (conversation.usage?.totalTokens ?? 0), 0);
-        const usage = legacySummaryUsage(totalTokens, hasCost ? costUsd : undefined);
+        let usage;
+        try {
+            const activity = parseActivityFileForMigration(await fs.promises.readFile(activityPath, 'utf8'));
+            const costUsd = activity.conversations.reduce((total, conversation) => total + (conversation.usage?.costUsd ?? 0), 0);
+            const hasCost = activity.conversations.some((conversation) => conversation.usage?.costUsd !== undefined);
+            const totalTokens = activity.conversations.reduce((total, conversation) => total + (conversation.usage?.totalTokens ?? 0), 0);
+            usage = legacySummaryUsage(totalTokens, hasCost ? costUsd : undefined);
+        } catch {
+            continue;
+        }
         projectUsages.push(usage);
         const relativePath = normalizedPath(path.relative(rootPath, activityPath));
         const releaseName = releaseNameForActivity(relativePath, releasesFolder);
@@ -124,6 +131,15 @@ async function loadOrMigrateSummary(summaryPath, rootPath, projectFolder, releas
     }
 
     return migrateSummary(rootPath, projectFolder, releasesFolder);
+}
+
+async function reportTokenUsageFailure(error, dependencies) {
+    const reportError = dependencies.reportError ?? captureError;
+    try {
+        await reportError(error);
+    } catch {
+        // Token usage and its error reporting must not affect conversation persistence.
+    }
 }
 
 async function persistConversationAndProjectUsage(run, dependencies = {}) {
@@ -144,34 +160,36 @@ async function persistConversationAndProjectUsage(run, dependencies = {}) {
     return queueProjectUsageUpdate(summaryPath, () => queueActivityUpdate(activityPath, async () => {
         const currentActivity = await loadActivityValue(activityPath, activityOrigin);
         const storedConversation = currentActivity.conversations.find(({ id }) => id === run.conversation.id) ?? null;
-        const previousUsage = conversationSummaryUsage(storedConversation);
-        const nextUsage = conversationSummaryUsage(run.conversation);
-        const delta = usageDelta(previousUsage, nextUsage);
         const nextActivity = upsertConversation(currentActivity, run.conversation);
         let nextSummary;
-        let summaryLoadError;
-        let summaryLoadFailed = false;
+        let tokenUsageError;
         try {
+            const previousUsage = conversationSummaryUsage(storedConversation);
+            const nextUsage = conversationSummaryUsage(run.conversation);
+            const delta = usageDelta(previousUsage, nextUsage);
             const summary = await loadOrMigrateSummary(summaryPath, rootPath, projectFolder, releasesFolder);
             nextSummary = {
                 ...summary,
                 projectUsage: addSummaryUsage([summary.projectUsage, delta]),
             };
         } catch (error) {
-            summaryLoadError = error;
-            summaryLoadFailed = true;
+            tokenUsageError = error;
         }
         await writeActivityFile(activityPath, nextActivity);
         const commitPaths = dependencies.commitTrackedPaths ?? commitTrackedPaths;
-        if (summaryLoadFailed) {
+        if (tokenUsageError) {
             await commitPaths(rootPath, [activityRelativePath], `Update ${activityOrigin.kind} activity`);
-            throw summaryLoadError;
+            await reportTokenUsageFailure(tokenUsageError, dependencies);
+
+            return { activity: nextActivity, relativePath: activityRelativePath, summary: null };
         }
         try {
             await writeActivityFile(summaryPath, nextSummary);
         } catch (error) {
             await commitPaths(rootPath, [activityRelativePath], `Update ${activityOrigin.kind} activity`);
-            throw error;
+            await reportTokenUsageFailure(error, dependencies);
+
+            return { activity: nextActivity, relativePath: activityRelativePath, summary: null };
         }
         await commitPaths(rootPath, [activityRelativePath, summaryRelativePath], `Update ${activityOrigin.kind} activity`);
 

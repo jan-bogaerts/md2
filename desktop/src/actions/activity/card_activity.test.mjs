@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { migrateActivityValue, parseActivityValue, repairActivityFile } from '../../../../shared/card_activity.mjs';
+import {
+    migrateActivityValue,
+    parseActivityFileForMigration,
+    parseActivityValue,
+    repairActivityFile,
+} from '../../../../shared/card_activity.mjs';
 
 const origin = { cardInternalId: 'card-1', kind: 'card' };
 
@@ -77,6 +82,19 @@ describe('card activity action runs', () => {
             changed: true,
             status: 'repaired',
         });
+    });
+
+    it.each([1, 2, 3])('strictly migrates recognized version %s activity while parsing', (version) => {
+        const value = {
+            ...(version === 3 ? { actionSettings: {} } : {}),
+            conversations: [],
+            origin,
+            records: [],
+            version,
+        };
+
+        expect(parseActivityFileForMigration(JSON.stringify(value), origin))
+            .toEqual({ actionSettings: {}, conversations: [], origin, records: [], version: 4 });
     });
 
     it('drops repaired agent records whose required conversation link does not resolve', () => {

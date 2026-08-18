@@ -3,7 +3,7 @@ author:
 id: F_207
 internalId: 09e88f16-8fa7-423c-8fdf-aac61d9bf252
 title: Dense menus
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

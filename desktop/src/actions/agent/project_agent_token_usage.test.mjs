@@ -81,21 +81,88 @@ describe('project agent token usage persistence', () => {
         expect((await summary(rootPath)).projectUsage.totalTokens).toBe(30);
     });
 
+    it('includes legacy version-three activity during first summary migration', async () => {
+        const { commitTrackedPaths, rootPath, run } = await harness();
+        const reportError = vi.fn();
+        const legacyActivityPath = join(rootPath, 'design', 'activity', 'card__legacy.json');
+        const legacyConversation = conversation('legacy', { totalTokens: 7 });
+        delete legacyConversation.usageSchemaVersion;
+        await mkdir(join(rootPath, 'design', 'activity'), { recursive: true });
+        await writeFile(legacyActivityPath, JSON.stringify({
+            actionSettings: {},
+            conversations: [legacyConversation],
+            origin: { cardInternalId: 'legacy', kind: 'card' },
+            records: [],
+            version: 3,
+        }));
+
+        await persistConversationAndProjectUsage(
+            run('card-1', {cachedInputTokens: 0, inputTokens: 1, outputTokens: 0, reasoningTokens: 0, totalTokens: 1}),
+            { commitTrackedPaths, reportError },
+        );
+
+        expect(reportError).not.toHaveBeenCalled();
+        expect((await summary(rootPath)).projectUsage).toMatchObject({ legacyTotalTokens: 7, totalTokens: 8 });
+        expect(JSON.parse(await readFile(legacyActivityPath, 'utf8')).version).toBe(3);
+    });
+
+    it('skips activity with unrecognized legacy permissions during first summary migration', async () => {
+        const { commitTrackedPaths, rootPath, run } = await harness();
+        const reportError = vi.fn();
+        const invalidActivityPath = join(rootPath, 'design', 'activity', 'card__invalid.json');
+        await mkdir(join(rootPath, 'design', 'activity'), { recursive: true });
+        await writeFile(invalidActivityPath, JSON.stringify({
+            actionSettings: {},
+            conversations: [],
+            origin: { cardInternalId: 'invalid', kind: 'card' },
+            records: [{
+                details: { accessLevel: 'read-only', agent: 'codex', approvalPolicy: 'never', type: 'agent' },
+                type: 'action',
+            }],
+            version: 3,
+        }));
+
+        await expect(persistConversationAndProjectUsage(
+            run('card-1', {cachedInputTokens: 0, inputTokens: 1, outputTokens: 0, reasoningTokens: 0, totalTokens: 1}),
+            { commitTrackedPaths, reportError },
+        )).resolves.toMatchObject({ summary: expect.any(Object) });
+
+        expect((await summary(rootPath)).projectUsage).toMatchObject({ legacyTotalTokens: 0, totalTokens: 1 });
+        expect(reportError).not.toHaveBeenCalled();
+    });
+
     it('preserves malformed summary content but still persists terminal conversation activity', async () => {
         const { commitTrackedPaths, rootPath, run } = await harness();
+        const reportError = vi.fn();
         const summaryPath = join(rootPath, 'design', 'agent_token_usage.json');
         await mkdir(join(rootPath, 'design'), { recursive: true });
         await writeFile(summaryPath, '{broken');
 
-        await expect(persistConversationAndProjectUsage(run('card-1', {cachedInputTokens: 0, inputTokens: 1, outputTokens: 0, reasoningTokens: 0, totalTokens: 1}), { commitTrackedPaths })).rejects.toThrow('Malformed agent token usage summary');
+        await expect(persistConversationAndProjectUsage(
+            run('card-1', {cachedInputTokens: 0, inputTokens: 1, outputTokens: 0, reasoningTokens: 0, totalTokens: 1}),
+            { commitTrackedPaths, reportError },
+        )).resolves.toMatchObject({ summary: null });
 
         expect(await readFile(summaryPath, 'utf8')).toBe('{broken');
         const activity = JSON.parse(await readFile(join(rootPath, 'design', 'activity', 'card__card-1.json'), 'utf8'));
         expect(activity.conversations[0]).toMatchObject({ completedAt: '2026-08-17T10:01:00.000Z', status: 'completed' });
+        expect(reportError).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('Malformed agent token usage summary') }));
         expect(commitTrackedPaths).toHaveBeenCalledWith(
             rootPath,
             ['design/activity/card__card-1.json'],
             'Update card activity',
         );
+    });
+
+    it('does not reject when token-usage error reporting also fails', async () => {
+        const { commitTrackedPaths, rootPath, run } = await harness();
+        const summaryPath = join(rootPath, 'design', 'agent_token_usage.json');
+        await mkdir(join(rootPath, 'design'), { recursive: true });
+        await writeFile(summaryPath, '{broken');
+
+        await expect(persistConversationAndProjectUsage(
+            run('card-1', {cachedInputTokens: 0, inputTokens: 1, outputTokens: 0, reasoningTokens: 0, totalTokens: 1}),
+            { commitTrackedPaths, reportError: vi.fn(async () => { throw new Error('Reporter failed'); }) },
+        )).resolves.toMatchObject({ summary: null });
     });
 });

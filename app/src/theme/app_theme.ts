@@ -105,6 +105,7 @@ export function createAppTheme(
                 },
             },
             MuiIconButton: { styleOverrides: { root: { borderRadius: APP_BORDER_RADIUS } } },
+            MuiMenuItem: { defaultProps: { dense: true } },
             MuiInput: {
                 styleOverrides: {
                     root: {

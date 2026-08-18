@@ -101,6 +101,10 @@ function reportOptionalProjectLoadFailure(area: string, error: unknown) {
     telemetryService.captureError(error)
 }
 
+function reportAgentTokenUsageFailure(error: unknown) {
+    reportOptionalProjectLoadFailure('Agent token usage', error)
+}
+
 function initializeMissingProjectStates(projectConfig: Partial<ProjectConfig> | null, snapshot: ProjectSnapshot) {
     if (projectConfig?.states !== undefined) return
 
@@ -217,9 +221,9 @@ export class ProjectLoading {
             }
 
             try {
-                await projectAgentTokenUsageService.load(project, config, storage)
+                await projectAgentTokenUsageService.load(project, config, storage, reportAgentTokenUsageFailure)
             } catch (error) {
-                reportOptionalProjectLoadFailure('Agent token usage', error)
+                reportAgentTokenUsageFailure(error)
             }
 
             await this.loadActions(project, config.actionsFolder)
