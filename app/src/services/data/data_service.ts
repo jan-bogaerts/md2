@@ -369,18 +369,15 @@ export class DataService extends EventTarget {
 
     private createAgentIntegrationDependencies(): AgentIntegrationDeps {
         return {
-            beginAgentConversationLoad: () => this.projectState.beginAgentConversationLoad(),
-            isCurrentAgentConversationLoad: (agentConversationLoadToken) => (
-                this.projectState.isCurrentAgentConversationLoad(agentConversationLoadToken)
-            ),
+            conversationsChanged: (cardPath) => {
+                this.projectState.refreshCardConversations(cardPath, this.requireDependencies().config.workingFolder)
+                this.dispatchEvent(new Event(cardFieldChangedEvent(cardPath, 'conversation')))
+            },
+            findCardByInternalId: (cardInternalId) => this.projectState.findCardByInternalId(cardInternalId),
             isCurrentLoad: (project, projectLoadToken) => this.projectState.isCurrentLoad(project, projectLoadToken),
             project: () => this.projectState.project,
-            refreshCardConversations: (path, workingFolder) => (
-                this.projectState.refreshCardConversations(path, workingFolder)
-            ),
             requireDependencies: () => this.requireDependencies(),
             snapshot: () => this.projectState.snapshot,
-            conversationChanged: (cardPath) => this.dispatchEvent(new Event(cardFieldChangedEvent(cardPath, 'conversation'))),
         }
     }
 

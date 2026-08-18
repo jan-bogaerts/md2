@@ -348,7 +348,10 @@ export interface AgentConversation {
 }
 
 export interface AgentConversationError {
+    /** Set when the failure came from an onState action instead of an activity file load. */
+    kind?: 'onStateAction'
     message: string
+    /** Activity file that failed to load, or the action id for an onState action failure. */
     path: string
 }
 

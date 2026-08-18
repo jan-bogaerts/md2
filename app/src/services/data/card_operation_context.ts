@@ -140,7 +140,10 @@ export class CardOperationContext {
 
         try {
             const committedFiles = await storage.commit(request)
-            this.dependencies.recordCurrentContent(request.files)
+            this.dependencies.recordCurrentContent([
+                ...request.files,
+                ...(request.moves ?? []).map(({ content, toPath }) => ({ content, path: toPath })),
+            ])
 
             return committedFiles
         } finally {

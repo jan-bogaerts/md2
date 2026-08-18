@@ -1,5 +1,5 @@
-import { cardContext, fileContext, type ActionContext } from '../../data/action_context'
-import { BUILTIN_CUSTOM_PROMPT, type ActionDefinition } from '../../data/action_types'
+import { cardContext, type ActionContext } from '../../data/action_context'
+import { type ActionDefinition } from '../../data/action_types'
 import type { ActionRunEvent } from '../../data/action_run_types'
 import {
     type AgentConversation,
@@ -21,124 +21,74 @@ import { dialogService } from '../dialog_service'
 import { parseConversationActivityReference } from '../../../../shared/activity_paths.mjs'
 
 const AGENT_CONVERSATION_LOAD_CONCURRENCY = 8
-const ON_STATE_ACTION_ERROR_PATH_PREFIX = 'onState'
+const MAX_REPORTED_LOAD_ERROR_KEYS = 200
 
 interface ResolvedAgentConversations {
-    conversationsByCardInternalId: Map<string, AgentConversation[]>
-    errorsByCardPath: Map<string, AgentConversationError[]>
-}
-
-interface AgentActivityLoadCard {
-    cardInternalId: string
-    cardPath: string
-}
-
-type AgentConversationLoadResult =
-    | { activityPath: string; cards: AgentActivityLoadCard[]; conversations: AgentConversation[]; error: null }
-    | { activityPath: string; cards: AgentActivityLoadCard[]; conversations: null; error: AgentConversationError }
-
-interface AgentActivityLoadTask {
-    activityPath: string
-    cards: AgentActivityLoadCard[]
+    conversations: AgentConversation[]
+    errors: AgentConversationError[]
+    /** Activity files that loaded without failing, so an empty card is distinguishable from a failed one. */
+    loadedActivityCount: number
 }
 
 export interface AgentIntegrationDeps {
-    beginAgentConversationLoad(): number
-    isCurrentAgentConversationLoad(agentConversationLoadToken: number): boolean
+    conversationsChanged(cardPath: string): void
+    findCardByInternalId(cardInternalId: string): Card | null
     isCurrentLoad(project: ProjectReference, projectLoadToken: number): boolean
     project(): ProjectReference | null
-    refreshCardConversations(path: string, workingFolder: string): void
     requireDependencies(): RequiredDataServiceDependencies
     snapshot(): ProjectSnapshot | null
-    conversationChanged(cardPath: string): void
 }
 
 function isOnStateActionError(error: AgentConversationError) {
-    return error.path.startsWith(`${ON_STATE_ACTION_ERROR_PATH_PREFIX}:`)
+    return error.kind === 'onStateAction'
 }
 
-function mergeAgentConversations(existing: AgentConversation[], loaded: AgentConversation[]) {
+/** Keeps already-stored conversations when a load returns an older copy of the same record. */
+function preferExistingConversations(existing: AgentConversation[], loaded: AgentConversation[]) {
     const conversationsById = new Map(loaded.map((conversation) => [conversation.id, conversation]))
     existing.forEach((conversation) => conversationsById.set(conversation.id, conversation))
 
     return [...conversationsById.values()]
 }
 
-async function loadAgentActivity(
-    task: AgentActivityLoadTask,
-    conversationLoad: Promise<AgentConversation[]>,
-): Promise<AgentConversationLoadResult> {
-    try {
-        const conversations = await conversationLoad
-
-        return { activityPath: task.activityPath, cards: task.cards, conversations, error: null }
-    } catch (error) {
-        const message = error instanceof Error ? error.message : 'Agent conversation failed to load'
-        telemetryService.captureError(error)
-
-        return {
-            activityPath: task.activityPath,
-            cards: task.cards,
-            conversations: null,
-            error: { message, path: task.activityPath },
-        }
-    }
-}
-
-async function resolveAgentConversations(
-    cards: ProjectSnapshot['activeCards'],
+async function resolveCardConversations(
+    card: Card,
     project: ProjectReference,
     storage: StorageService,
 ): Promise<ResolvedAgentConversations> {
-    const conversationsByCardInternalId = new Map<string, AgentConversation[]>()
-    const errorsByCardPath = new Map<string, AgentConversationError[]>()
-    const cardsByActivityPath = new Map<string, AgentActivityLoadCard[]>()
-    for (const card of cards) {
-        const cardInternalId = card.header.internalId
-        if (!cardInternalId) throw new Error(`Cannot load card conversations without an internal ID: ${card.path}`)
+    const activityPaths = [...new Set(card.header.agentLogReferences)]
+    const results = await mapWithConcurrency(activityPaths, AGENT_CONVERSATION_LOAD_CONCURRENCY, async (activityPath) => {
+        try {
+            const conversations = await loadActivityConversations(storage, project, activityPath)
 
-        for (const activityPath of new Set(card.header.agentLogReferences)) {
-            const linkedCards = cardsByActivityPath.get(activityPath) ?? []
-            linkedCards.push({ cardInternalId, cardPath: card.path })
-            cardsByActivityPath.set(activityPath, linkedCards)
+            return { conversations, error: null }
+        } catch (error) {
+            telemetryService.captureError(error)
+            const message = error instanceof Error ? error.message : 'Agent conversation failed to load'
+
+            return { conversations: null, error: { message, path: activityPath } }
         }
+    })
+
+    return {
+        conversations: results.flatMap(({ conversations }) => conversations ?? []),
+        errors: results.flatMap(({ error }) => error ? [error] : []),
+        loadedActivityCount: results.filter(({ error }) => !error).length,
     }
-    const tasks = [...cardsByActivityPath].map(([activityPath, linkedCards]) => ({ activityPath, cards: linkedCards }))
-    const results = await mapWithConcurrency(tasks, AGENT_CONVERSATION_LOAD_CONCURRENCY, async (task) => (
-        loadAgentActivity(
-            task,
-            loadActivityConversations(storage, project, task.activityPath),
-        )
-    ))
-
-    for (const result of results) {
-        if (result.error) {
-            for (const { cardPath } of result.cards) {
-                errorsByCardPath.set(cardPath, [...(errorsByCardPath.get(cardPath) ?? []), result.error])
-            }
-            continue
-        }
-
-        for (const { cardInternalId } of result.cards) {
-            const conversations = conversationsByCardInternalId.get(cardInternalId) ?? []
-            conversationsByCardInternalId.set(cardInternalId, [...conversations, ...result.conversations])
-        }
-    }
-
-    return { conversationsByCardInternalId, errorsByCardPath }
 }
 
 export class AgentIntegration {
-    private agentConversationLoadToken: number | null = null
-    private completedConversationLoads: Set<string> = new Set()
-    private conversationsByCardInternalId: Map<string, AgentConversation[]> = new Map()
+    private readonly cardLoadsInFlight: Map<string, Promise<void>> = new Map()
+    private readonly conversationsByCardInternalId: Map<string, AgentConversation[]> = new Map()
     private conversationLoadGeneration = 0
-    private conversationLoadsInFlight: Map<string, Promise<void>> = new Map()
     private currentProjectLoadToken: number | null = null
     private readonly dependencies: AgentIntegrationDeps
-    private errorsByCardPath: Map<string, AgentConversationError[]> = new Map()
+    private readonly errorsByCardInternalId: Map<string, AgentConversationError[]> = new Map()
+    private readonly loadedCardInternalIds: Set<string> = new Set()
     private projectConversations: AgentConversation[] = []
-    private reportedLoadErrorKeys: Set<string> = new Set()
+    private projectLoad: Promise<void> | null = null
+    private projectLoadCompleted = false
+    private readonly reportedLoadErrorKeys: Set<string> = new Set()
     private readonly addAgentLogReference: (cardPath: string, reference: string) => string | null
     private scheduledRunCleanup: (() => void) | null = null
 
@@ -156,15 +106,15 @@ export class AgentIntegration {
     }
 
     resetLoadedConversations() {
-        this.dependencies.beginAgentConversationLoad()
-        this.agentConversationLoadToken = null
-        this.completedConversationLoads.clear()
-        this.conversationsByCardInternalId = new Map()
+        this.cardLoadsInFlight.clear()
+        this.conversationsByCardInternalId.clear()
         this.conversationLoadGeneration += 1
-        this.conversationLoadsInFlight.clear()
         this.currentProjectLoadToken = null
-        this.errorsByCardPath = new Map()
+        this.errorsByCardInternalId.clear()
+        this.loadedCardInternalIds.clear()
         this.projectConversations = []
+        this.projectLoad = null
+        this.projectLoadCompleted = false
         this.reportedLoadErrorKeys.clear()
         agentAcknowledgementService.reset()
     }
@@ -176,7 +126,7 @@ export class AgentIntegration {
             if (stored) return stored
         }
 
-        return null
+        return this.projectConversations.find(({ path }) => path === conversation.path) ?? null
     }
 
     startScheduledRunWatch() {
@@ -190,30 +140,11 @@ export class AgentIntegration {
         })
     }
 
-    stopScheduledRunWatch() {
+    private stopScheduledRunWatch() {
         if (!this.scheduledRunCleanup) return
 
         this.scheduledRunCleanup()
         this.scheduledRunCleanup = null
-    }
-
-    async continueAgentConversation(cardPath: string, sourcePath: string) {
-        const { config } = this.dependencies.requireDependencies()
-        const snapshot = this.dependencies.snapshot()
-        const card = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]
-            .find((candidate) => candidate.path === cardPath)
-        if (!card) throw new Error(`Cannot continue agent for unknown card: ${cardPath}`)
-        if (!card.header.internalId) throw new Error(`Cannot continue agent for card without an internal ID: ${cardPath}`)
-        await this.ensureAgentConversationsForCard(card.header.internalId)
-        const conversation = (this.conversationsByCardInternalId.get(card.header.internalId) ?? [])
-            .find(({ path }) => path === sourcePath)
-        if (!conversation) throw new Error(`Unknown agent conversation: ${sourcePath}`)
-        const action = conversation.actionId
-            ? actionService.getActions().find(({ id }) => id === conversation.actionId)
-            : BUILTIN_CUSTOM_PROMPT
-        if (!action) throw new Error(`Unknown originating action: ${conversation.actionId}`)
-
-        return runElectronAction(action, fileContext(card, config.cardTypes), { continueFrom: sourcePath })
     }
 
     private linkCardActivityFile(cardPath: string, reference: string) {
@@ -226,21 +157,11 @@ export class AgentIntegration {
         const project = this.dependencies.project()
         if (!project) throw new Error('Cannot load card conversations before a project is open')
         const projectLoadToken = this.requireProjectLoadToken()
-        const identity = AgentIntegration.cardLoadIdentity(cardInternalId)
-        const existingLoad = this.conversationLoadsInFlight.get(identity)
-        if (existingLoad) {
-            await existingLoad
-
-            return this.getAgentConversations(cardInternalId)
+        if (!this.loadedCardInternalIds.has(cardInternalId)) {
+            const existingLoad = this.cardLoadsInFlight.get(cardInternalId)
+            if (existingLoad) await existingLoad
+            else await this.loadCardConversations(cardInternalId, project, projectLoadToken)
         }
-        if (this.completedConversationLoads.has(identity)) return this.getAgentConversations(cardInternalId)
-
-        const snapshot = this.dependencies.snapshot()
-        const card = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]
-            .find(({ header }) => header.internalId === cardInternalId)
-        if (!card) throw new Error(`Cannot load conversations for unknown card: ${cardInternalId}`)
-
-        await this.ensureCardGroupLoaded([card], project, projectLoadToken)
 
         return this.getAgentConversations(cardInternalId)
     }
@@ -254,18 +175,15 @@ export class AgentIntegration {
         return this.projectConversations
     }
 
-    private static cardLoadIdentity(cardInternalId: string) {
-        return `card:${cardInternalId}`
-    }
-
     prepareProjectConversationLoad(projectLoadToken: number) {
         if (this.currentProjectLoadToken === projectLoadToken) return
 
-        this.agentConversationLoadToken = this.dependencies.beginAgentConversationLoad()
-        this.completedConversationLoads.clear()
+        this.cardLoadsInFlight.clear()
         this.conversationLoadGeneration += 1
-        this.conversationLoadsInFlight.clear()
         this.currentProjectLoadToken = projectLoadToken
+        this.loadedCardInternalIds.clear()
+        this.projectLoad = null
+        this.projectLoadCompleted = false
     }
 
     private requireProjectLoadToken() {
@@ -274,79 +192,46 @@ export class AgentIntegration {
         return this.currentProjectLoadToken
     }
 
-    private async ensureProjectAgentConversationsLoaded(project: ProjectReference, projectLoadToken: number) {
-        const identity = 'project'
-        if (this.completedConversationLoads.has(identity)) return
-        const existingLoad = this.conversationLoadsInFlight.get(identity)
-        if (existingLoad) return existingLoad
+    private ensureProjectAgentConversationsLoaded(project: ProjectReference, projectLoadToken: number) {
+        if (this.projectLoadCompleted) return Promise.resolve()
+        if (this.projectLoad) return this.projectLoad
 
-        const load = async () => {
-            const { storage } = this.dependencies.requireDependencies()
-            const references = await listAgentConversationReferences(
-                storage,
-                project,
-                this.dependencies.requireDependencies().config.projectFolder,
-            )
-            const conversations = await mapWithConcurrency(references, AGENT_CONVERSATION_LOAD_CONCURRENCY, async (reference) => (
-                loadAgentConversation(storage, project, reference)
-            ))
-            if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
-
-            this.projectConversations = conversations.filter(({ cardInternalId }) => cardInternalId === null)
-        }
-
-        return this.trackConversationLoad([identity], project, projectLoadToken, load)
-    }
-
-    private async ensureCardGroupLoaded(
-        cards: ProjectSnapshot['activeCards'],
-        project: ProjectReference,
-        projectLoadToken: number,
-    ) {
-        const loads = new Set<Promise<void>>()
-        const cardsToLoad = cards.filter((card) => {
-            const cardInternalId = card.header.internalId
-            if (!cardInternalId) throw new Error(`Cannot load card conversations without an internal ID: ${card.path}`)
-            const identity = AgentIntegration.cardLoadIdentity(cardInternalId)
-            if (this.completedConversationLoads.has(identity)) return false
-            const existingLoad = this.conversationLoadsInFlight.get(identity)
-            if (!existingLoad) return true
-
-            loads.add(existingLoad)
-            return false
-        })
-        if (cardsToLoad.length > 0) {
-            const identities = cardsToLoad.map(({ header }) => AgentIntegration.cardLoadIdentity(header.internalId as string))
-            const load = () => this.resolveAndAttachAgentConversations(cardsToLoad, project, projectLoadToken)
-            loads.add(this.trackConversationLoad(identities, project, projectLoadToken, load))
-        }
-
-        await Promise.all(loads)
-    }
-
-    private trackConversationLoad(
-        identities: string[],
-        project: ProjectReference,
-        projectLoadToken: number,
-        load: () => Promise<void>,
-    ) {
         const generation = this.conversationLoadGeneration
-        const loadPromise = load()
-        const trackedPromise = loadPromise.then(() => {
-            if (generation !== this.conversationLoadGeneration) return
-            if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
-
-            identities.forEach((identity) => this.completedConversationLoads.add(identity))
+        const tracked: Promise<void> = this.loadProjectConversations(project, projectLoadToken, generation).then(() => {
+            if (this.canApplyLoad(generation, project, projectLoadToken)) this.projectLoadCompleted = true
         }).finally(() => {
-            identities.forEach((identity) => {
-                if (this.conversationLoadsInFlight.get(identity) === trackedPromise) {
-                    this.conversationLoadsInFlight.delete(identity)
-                }
-            })
+            if (this.projectLoad === tracked) this.projectLoad = null
         })
-        identities.forEach((identity) => this.conversationLoadsInFlight.set(identity, trackedPromise))
+        this.projectLoad = tracked
 
-        return trackedPromise
+        return tracked
+    }
+
+    private async loadProjectConversations(project: ProjectReference, projectLoadToken: number, generation: number) {
+        const { config, storage } = this.dependencies.requireDependencies()
+        const references = await listAgentConversationReferences(storage, project, config.projectFolder)
+        const conversations = await mapWithConcurrency(references, AGENT_CONVERSATION_LOAD_CONCURRENCY, async (reference) => (
+            loadAgentConversation(storage, project, reference)
+        ))
+        if (!this.canApplyLoad(generation, project, projectLoadToken)) return
+
+        this.projectConversations = conversations.filter(({ cardInternalId }) => cardInternalId === null)
+    }
+
+    private loadCardConversations(cardInternalId: string, project: ProjectReference, projectLoadToken: number) {
+        const card = this.dependencies.findCardByInternalId(cardInternalId)
+        if (!card) throw new Error(`Cannot load conversations for unknown card: ${cardInternalId}`)
+
+        const generation = this.conversationLoadGeneration
+        const load = this.resolveAndAttachAgentConversations(card, cardInternalId, project, projectLoadToken, generation)
+        const tracked: Promise<void> = load.then(() => {
+            if (this.canApplyLoad(generation, project, projectLoadToken)) this.loadedCardInternalIds.add(cardInternalId)
+        }).finally(() => {
+            if (this.cardLoadsInFlight.get(cardInternalId) === tracked) this.cardLoadsInFlight.delete(cardInternalId)
+        })
+        this.cardLoadsInFlight.set(cardInternalId, tracked)
+
+        return tracked
     }
 
     getAgentConversations(cardInternalId: string) {
@@ -354,16 +239,16 @@ export class AgentIntegration {
     }
 
     attachCardAgentConversations(card: Card) {
-        card.agentConversationErrors = this.errorsByCardPath.get(card.path) ?? []
-        card.agentConversations = card.header.internalId
-            ? this.conversationsByCardInternalId.get(card.header.internalId) ?? []
-            : []
+        const cardInternalId = card.header.internalId
+        card.agentConversationErrors = cardInternalId ? this.errorsByCardInternalId.get(cardInternalId) ?? [] : []
+        card.agentConversations = cardInternalId ? this.conversationsByCardInternalId.get(cardInternalId) ?? [] : []
 
         return card
     }
 
     /** Applies a persisted conversation returned by an atomic backend update. */
     updateAgentConversation(conversation: AgentConversation) {
+        this.updateProjectConversation(conversation)
         const referencingCardInternalIds = [...this.conversationsByCardInternalId]
             .filter(([, conversations]) => conversations.some(({ path }) => path === conversation.path))
             .map(([cardInternalId]) => cardInternalId)
@@ -384,99 +269,104 @@ export class AgentIntegration {
         const context = cardContext(card, config.cardTypes)
         const actions = actionService.getActionsForStateTrigger(state, context)
         for (const action of actions) {
-            void this.runStateAction(action, context, cardPath)
+            void this.runStateAction(action, context, card.header.internalId)
         }
     }
 
     private async resolveAndAttachAgentConversations(
-        cards: ProjectSnapshot['activeCards'],
+        card: Card,
+        cardInternalId: string,
         project: ProjectReference,
         projectLoadToken: number,
+        generation: number,
     ) {
-        const { config, storage } = this.dependencies.requireDependencies()
-        const resolved = await resolveAgentConversations(
-            cards,
-            project,
-            storage,
-        )
-        if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
+        const { storage } = this.dependencies.requireDependencies()
+        const resolved = await resolveCardConversations(card, project, storage)
+        if (!this.canApplyLoad(generation, project, projectLoadToken)) return
 
-        for (const [cardInternalId, conversations] of resolved.conversationsByCardInternalId) {
+        if (resolved.loadedActivityCount > 0) {
             const existing = this.conversationsByCardInternalId.get(cardInternalId) ?? []
-            this.conversationsByCardInternalId.set(cardInternalId, mergeAgentConversations(existing, conversations))
+            this.conversationsByCardInternalId.set(cardInternalId, preferExistingConversations(existing, resolved.conversations))
         }
-        this.replaceResolvedAgentErrors(cards, resolved.errorsByCardPath)
-        this.reportNewAgentLoadErrors(resolved.errorsByCardPath)
-        cards.forEach(({ path }) => {
-            this.dependencies.refreshCardConversations(path, config.workingFolder)
-            this.dependencies.conversationChanged(path)
-        })
-        for (const [cardInternalId, conversations] of resolved.conversationsByCardInternalId) {
-            const actionIds = conversations.flatMap(({ actionId }) => actionId ? [actionId] : [])
-            agentAcknowledgementService.announceConversationsChanged(cardInternalId, actionIds)
-        }
+        this.replaceLoadErrors(cardInternalId, resolved.errors)
+        this.reportNewLoadErrors(cardInternalId, resolved.errors)
+        this.notifyConversationsChanged(cardInternalId)
+        if (resolved.loadedActivityCount === 0) return
+
+        const actionIds = resolved.conversations.flatMap(({ actionId }) => actionId ? [actionId] : [])
+        agentAcknowledgementService.announceConversationsChanged(cardInternalId, actionIds)
     }
 
-    private shouldApplyProjectLoad(project: ProjectReference, projectLoadToken: number) {
-        return this.currentProjectLoadToken === projectLoadToken
-            && this.agentConversationLoadToken !== null
-            && this.dependencies.isCurrentAgentConversationLoad(this.agentConversationLoadToken)
+    /** Drops results of loads that a project switch or a reload has already superseded. */
+    private canApplyLoad(generation: number, project: ProjectReference, projectLoadToken: number) {
+        return generation === this.conversationLoadGeneration
+            && this.currentProjectLoadToken === projectLoadToken
             && this.dependencies.isCurrentLoad(project, projectLoadToken)
     }
 
-    private replaceResolvedAgentErrors(cards: ProjectSnapshot['activeCards'], resolvedErrors: Map<string, AgentConversationError[]>) {
-        const errors = new Map(this.errorsByCardPath)
-        for (const { path: cardPath } of cards) {
-            const loadedErrors = resolvedErrors.get(cardPath) ?? []
-            const existingErrors = errors.get(cardPath) ?? []
-            const onStateErrors = existingErrors.filter(isOnStateActionError)
-            const nextErrors = [...loadedErrors, ...onStateErrors]
-            if (nextErrors.length === 0) {
-                errors.delete(cardPath)
-                continue
-            }
-
-            errors.set(cardPath, nextErrors)
+    private replaceLoadErrors(cardInternalId: string, loadedErrors: AgentConversationError[]) {
+        const onStateErrors = (this.errorsByCardInternalId.get(cardInternalId) ?? []).filter(isOnStateActionError)
+        const nextErrors = [...loadedErrors, ...onStateErrors]
+        if (nextErrors.length === 0) {
+            this.errorsByCardInternalId.delete(cardInternalId)
+            return
         }
 
-        this.errorsByCardPath = errors
+        this.errorsByCardInternalId.set(cardInternalId, nextErrors)
     }
 
-    private reportNewAgentLoadErrors(errorsByCardPath: Map<string, AgentConversationError[]>) {
-        const newErrors: AgentConversationError[] = []
-        for (const [cardPath, errors] of errorsByCardPath) {
-            for (const error of errors) {
-                const key = `${cardPath}:${error.path}:${error.message}`
-                if (this.reportedLoadErrorKeys.has(key)) continue
+    private reportNewLoadErrors(cardInternalId: string, errors: AgentConversationError[]) {
+        const newErrors = errors.filter((error) => {
+            const key = `${cardInternalId}:${error.path}:${error.message}`
+            if (this.reportedLoadErrorKeys.has(key)) return false
 
-                this.reportedLoadErrorKeys.add(key)
-                newErrors.push(error)
-            }
-        }
+            this.reportedLoadErrorKeys.add(key)
+
+            return true
+        })
+        this.trimReportedLoadErrorKeys()
         if (newErrors.length === 0) return
 
         const paths = newErrors.map(({ path }) => path).join(', ')
         dialogService.warning(`Some agent conversations could not be loaded and were skipped: ${paths}`, {title: 'Some agent conversations were not loaded'})
     }
 
-    private async runStateAction(action: ActionDefinition, context: ActionContext, cardPath: string) {
+    private trimReportedLoadErrorKeys() {
+        while (this.reportedLoadErrorKeys.size > MAX_REPORTED_LOAD_ERROR_KEYS) {
+            const [oldestKey] = this.reportedLoadErrorKeys
+
+            this.reportedLoadErrorKeys.delete(oldestKey)
+        }
+    }
+
+    private async runStateAction(action: ActionDefinition, context: ActionContext, cardInternalId: string | null) {
         try {
             const result = await runElectronAction(action, context, {}, undefined, false)
             if (result.status === 'completed') return
 
             const failedLog = result.logs.find((log) => log.status === 'failed')
-            this.recordCardAgentError(cardPath, action.id, failedLog?.message ?? `${action.label} failed`)
+            this.recordCardAgentError(cardInternalId, action.id, failedLog?.message ?? `${action.label} failed`)
         } catch (error) {
-            this.recordCardAgentError(cardPath, action.id, error instanceof Error ? error.message : `${action.label} failed`)
+            this.recordCardAgentError(cardInternalId, action.id, error instanceof Error ? error.message : `${action.label} failed`)
         }
     }
 
-    private recordCardAgentError(cardPath: string, actionName: string, message: string) {
-        const path = `${ON_STATE_ACTION_ERROR_PATH_PREFIX}:${actionName}`
-        const { config } = this.dependencies.requireDependencies()
-        this.errorsByCardPath.set(cardPath, [...(this.errorsByCardPath.get(cardPath) ?? []), { message, path }])
-        this.dependencies.refreshCardConversations(cardPath, config.workingFolder)
-        this.dependencies.conversationChanged(cardPath)
+    /** A card without an internal ID has nowhere to attach the failure, so it only reaches telemetry. */
+    private recordCardAgentError(cardInternalId: string | null, actionId: string, message: string) {
+        if (!cardInternalId) {
+            telemetryService.captureError(new Error(`${actionId}: ${message}`))
+            return
+        }
+
+        const error: AgentConversationError = { kind: 'onStateAction', message, path: actionId }
+        this.errorsByCardInternalId.set(cardInternalId, [...(this.errorsByCardInternalId.get(cardInternalId) ?? []), error])
+        this.notifyConversationsChanged(cardInternalId)
+    }
+
+    /** Notifies through the card's current path, which a rename or an archive may have changed meanwhile. */
+    private notifyConversationsChanged(cardInternalId: string) {
+        const card = this.dependencies.findCardByInternalId(cardInternalId)
+        if (card) this.dependencies.conversationsChanged(card.path)
     }
 
     private handleActionRunEvent(event: ActionRunEvent) {
@@ -494,21 +384,22 @@ export class AgentIntegration {
         }
     }
 
+    private updateProjectConversation(conversation: AgentConversation) {
+        if (!this.projectConversations.some(({ id }) => id === conversation.id)) return
+
+        this.projectConversations = this.projectConversations.map((current) => (
+            current.id === conversation.id ? conversation : current
+        ))
+    }
+
     private upsertAgentConversation(cardInternalId: string, conversation: AgentConversation) {
-        const { config } = this.dependencies.requireDependencies()
         const conversations = this.conversationsByCardInternalId.get(cardInternalId) ?? []
         const nextConversations = conversations.some((current) => current.id === conversation.id)
             ? conversations.map((current) => (current.id === conversation.id ? conversation : current))
             : [...conversations, conversation]
         this.conversationsByCardInternalId.set(cardInternalId, nextConversations)
-        const card = this.dependencies.snapshot()?.activeCards.find(({ header }) => header.internalId === cardInternalId)
-            ?? this.dependencies.snapshot()?.backgroundCards.find(({ header }) => header.internalId === cardInternalId)
-        if (card) {
-            this.dependencies.refreshCardConversations(card.path, config.workingFolder)
-            this.dependencies.conversationChanged(card.path)
-        }
+        this.notifyConversationsChanged(cardInternalId)
         const actionIds = conversation.actionId ? [conversation.actionId] : []
         agentAcknowledgementService.announceConversationsChanged(cardInternalId, actionIds)
     }
-
 }

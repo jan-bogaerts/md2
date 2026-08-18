@@ -618,11 +618,22 @@ class AgentRunnerService {
                 runId,
             });
             await run.persistence;
-            if (!continuedTurnFailedBeforeStart) await this.persistConversation(run);
+            let persistenceError = null;
+            if (!continuedTurnFailedBeforeStart) {
+                try {
+                    await this.persistConversation(run);
+                } catch (error) {
+                    persistenceError = error;
+                }
+            }
             this.processes.delete(runId);
             this.runningConversationIds.delete(run.conversation.id);
             emitRunEvent(run, { conversation: run.conversation, type: 'closed' });
             this.requestClaudeUsagePoll(run);
+            if (persistenceError) {
+                if (run.onCompletionError) run.onCompletionError(persistenceError);
+                return;
+            }
             if (run.onComplete) run.onComplete(succeeded ? 0 : exitCode || 1, run);
         } catch (error) {
             if (run.onCompletionError) run.onCompletionError(error);

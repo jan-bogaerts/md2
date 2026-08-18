@@ -524,6 +524,59 @@ describe('AgentRunnerService state handling', () => {
         expect(terminateProcessTree).not.toHaveBeenCalled();
     });
 
+    it('publishes the terminal conversation when terminal persistence fails', async () => {
+        const persistenceError = new Error('Token summary could not be written');
+        const persistConversation = vi.fn(async () => {
+            throw persistenceError;
+        });
+        const service = new AgentRunnerService({ persistConversation });
+        const run = {
+            agent: 'codex',
+            cancelled: true,
+            changedPaths: new Set(),
+            child: { pid: 10 },
+            conversation: {
+                completedAt: null,
+                entries: [{ content: 'Stopped', id: 'assistant-1', kind: 'message', role: 'assistant', timestamp: 'now' }],
+                id: 'conversation-1',
+                providerSessions: [],
+                status: 'running',
+            },
+            currentAssistantMessageId: null,
+            finishing: false,
+            id: 'run-1',
+            missingSession: false,
+            onComplete: vi.fn(),
+            onCompletionError: vi.fn(),
+            onEvent: vi.fn(),
+            persistence: Promise.resolve(),
+            protocolHandling: Promise.resolve(),
+            request: {},
+            startedAt: '2026-07-30T10:00:00.000Z',
+            stderr: '',
+            stderrBuffer: '',
+            stderrHandling: Promise.resolve(),
+            stdout: '',
+            streaming: false,
+            streamingFailure: null,
+            suspended: false,
+            termination: Promise.resolve(),
+            turnUsage: null,
+        };
+        service.processes.set('run-1', run);
+        service.runningConversationIds.add('conversation-1');
+
+        await service.handleClose('run-1', 1);
+
+        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({
+            conversation: expect.objectContaining({ completedAt: expect.any(String), status: 'cancelled' }),
+            type: 'closed',
+        }));
+        expect(run.onCompletionError).toHaveBeenCalledWith(persistenceError);
+        expect(run.onComplete).not.toHaveBeenCalled();
+        expect(service.processes.has('run-1')).toBe(false);
+    });
+
     it('records one-shot Claude usage only after successful process completion', async () => {
         const persistConversation = vi.fn(async () => undefined);
         const usageMetricsService = { recordTokenUsage: vi.fn(async () => true) };

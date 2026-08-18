@@ -1694,6 +1694,49 @@ describe('ProjectLoading', () => {
         expect(card?.content).toContain('# Root')
     })
 
+    it('ignores the watcher echo of a committed card rename while the card is still being edited', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        let watchChange: (event: { changeKind: 'added' | 'changed' | 'removed' | 'unknown'; path: string }) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        let movedContent = ''
+        const storage = createStorage({
+            commit: vi.fn(async (request: CommitRequest) => {
+                const move = request.moves?.[0]
+                if (move) movedContent = move.content
+
+                return []
+            }),
+            loadFile: vi.fn(async (_project, path) => ({ content: movedContent, path })),
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        const conflicts = recordDialogMessages('error')
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        openFilesService.init({ actionService, dataService: service })
+        const projectCard = service.getState().snapshot?.activeCards.find(({ path }) => path === 'design/F-1-root.md')
+        if (!projectCard) throw new Error('Expected loaded card')
+        const document = openFilesService.openDocument(projectCard)
+        if (document.kind !== 'card') throw new Error('Expected card document')
+
+        try {
+            await service.cards.updateCardTitle('design/F-1-root.md', 'Renamed Root')
+            document.updateDraft({ content: '# Renamed Root\n\nStill typing' }, 'list-card')
+            watchChange({ changeKind: 'added', path: 'design/F-1-renamed-root.md' })
+            await vi.advanceTimersByTimeAsync(150)
+
+            expect(conflicts.messages).toEqual([])
+        } finally {
+            conflicts.stop()
+        }
+    })
+
     it('reports a conflict and keeps local markdown content when unsaved edits exist', async () => {
         vi.useFakeTimers()
         configService.init()

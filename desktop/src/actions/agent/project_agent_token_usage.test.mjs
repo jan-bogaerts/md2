@@ -81,7 +81,7 @@ describe('project agent token usage persistence', () => {
         expect((await summary(rootPath)).projectUsage.totalTokens).toBe(30);
     });
 
-    it('preserves malformed summary content and does not write conversation activity', async () => {
+    it('preserves malformed summary content but still persists terminal conversation activity', async () => {
         const { commitTrackedPaths, rootPath, run } = await harness();
         const summaryPath = join(rootPath, 'design', 'agent_token_usage.json');
         await mkdir(join(rootPath, 'design'), { recursive: true });
@@ -90,6 +90,12 @@ describe('project agent token usage persistence', () => {
         await expect(persistConversationAndProjectUsage(run('card-1', {cachedInputTokens: 0, inputTokens: 1, outputTokens: 0, reasoningTokens: 0, totalTokens: 1}), { commitTrackedPaths })).rejects.toThrow('Malformed agent token usage summary');
 
         expect(await readFile(summaryPath, 'utf8')).toBe('{broken');
-        expect(commitTrackedPaths).not.toHaveBeenCalled();
+        const activity = JSON.parse(await readFile(join(rootPath, 'design', 'activity', 'card__card-1.json'), 'utf8'));
+        expect(activity.conversations[0]).toMatchObject({ completedAt: '2026-08-17T10:01:00.000Z', status: 'completed' });
+        expect(commitTrackedPaths).toHaveBeenCalledWith(
+            rootPath,
+            ['design/activity/card__card-1.json'],
+            'Update card activity',
+        );
     });
 });

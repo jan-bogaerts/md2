@@ -146,9 +146,64 @@ describe('AgentIntegration', () => {
         await vi.waitFor(() => {
             const movedCard = service.getState().snapshot?.activeCards.find((card) => card.path === 'design/F-2-b.md')
             expect(movedCard?.agentConversationErrors).toEqual([
-                { message: 'Ready failed with exit code 1', path: 'onState:action-ready' },
+                { kind: 'onStateAction', message: 'Ready failed with exit code 1', path: 'action-ready' },
             ])
         })
+    })
+
+    it('keeps a failed onState action on its card after a rename changes the card path', async () => {
+        configService.init()
+        vi.mocked(runElectronAction).mockResolvedValueOnce({
+            logs: [{
+                actionId: 'ready-action',
+                actionName: 'ready-action',
+                command: 'run',
+                message: 'Ready failed with exit code 1',
+                phase: 'main',
+                status: 'failed',
+                stderr: 'bad',
+                stdout: '',
+            }],
+            status: 'failed',
+        })
+        const moveFiles: MarkdownFile[] = [
+            { content: '---\nid: F-1\ninternalId: a\ntitle: A\nstatus: todo\n---\n\n# A', path: 'design/F-1-a.md' },
+            { content: '---\nid: F-2\ninternalId: b\ntitle: B\nstatus: todo\nafter: a\n---\n\n# B', path: 'design/F-2-b.md' },
+        ]
+        const actionFile = {
+            content: JSON.stringify({
+                appliesTo: { type: 'feature' },
+                command: 'run',
+                description: 'Ready',
+                id: 'action-ready',
+                label: 'Ready',
+                onState: 'ready',
+                type: 'command',
+            }),
+            path: 'actions/ready.json',
+        }
+        const storage = createStorage({
+            loadActionFiles: vi.fn(async () => [actionFile]),
+            loadProject: vi.fn(async () => ({ files: moveFiles, workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: moveFiles, workingFolder: 'design' })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        service.cards.moveCard('design/F-2-b.md', 'ready', 0)
+        await vi.waitFor(() => {
+            const movedCard = service.getState().snapshot?.activeCards.find((card) => card.path === 'design/F-2-b.md')
+            expect(movedCard?.agentConversationErrors).toHaveLength(1)
+        })
+
+        await service.cards.updateCardTitle('design/F-2-b.md', 'Renamed')
+
+        const renamedCard = service.getState().snapshot?.activeCards.find(({ header }) => header.internalId === 'b')
+        expect(renamedCard?.path).toBe('design/F-2-renamed.md')
+        expect(renamedCard?.agentConversationErrors).toEqual([
+            { kind: 'onStateAction', message: 'Ready failed with exit code 1', path: 'action-ready' },
+        ])
     })
 
     it('does not run onState actions when a card is reordered inside the same state', async () => {
@@ -753,31 +808,6 @@ describe('AgentIntegration', () => {
                 { message: 'Agent log not found', path: 'design/activity/card__root-card.json' },
             ])
         })
-    })
-
-    it('continues a conversation through its originating Electron action', async () => {
-        configService.init()
-        const sourceConversation = { ...conversation(), actionId: 'md2.custom-prompt' }
-        const cardFile = {
-            content: '---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nworktree: 3\nagents:\n  - design/activity/card__root-card.json#conversation=agent-1\n---\n\n# Root',
-            path: 'design/F-1-root.md',
-        }
-        const storage = createStorage({
-            loadActivityConversations: vi.fn(async () => [sourceConversation]),
-            loadProject: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
-            loadProjectRoot: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
-        })
-        const service = createDataService()
-        service.init({ storage })
-
-        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
-        await service.agents.continueAgentConversation('design/F-1-root.md', 'design/activity/card__root-card.json#conversation=agent-1')
-
-        expect(runElectronAction).toHaveBeenCalledWith(
-            expect.objectContaining({ id: 'md2.custom-prompt' }),
-            expect.objectContaining({ file: 'design/F-1-root.md', kind: 'file', worktree: '3' }),
-            { continueFrom: 'design/activity/card__root-card.json#conversation=agent-1' },
-        )
     })
 
     it('tracks desktop-owned scheduled runs only in the shared run registry', async () => {

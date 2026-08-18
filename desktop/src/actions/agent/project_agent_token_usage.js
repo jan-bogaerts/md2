@@ -126,11 +126,6 @@ async function loadOrMigrateSummary(summaryPath, rootPath, projectFolder, releas
     return migrateSummary(rootPath, projectFolder, releasesFolder);
 }
 
-async function restoreActivityFile(absolutePath, activityExisted, activity) {
-    if (activityExisted) await writeActivityFile(absolutePath, activity);
-    else await fs.promises.rm(absolutePath, { force: true });
-}
-
 async function persistConversationAndProjectUsage(run, dependencies = {}) {
     const { activityOrigin, activityProject, projectFolder, releasesFolder } = run.request;
     if (!activityProject) throw new Error('Missing agent activityProject');
@@ -147,26 +142,37 @@ async function persistConversationAndProjectUsage(run, dependencies = {}) {
     );
 
     return queueProjectUsageUpdate(summaryPath, () => queueActivityUpdate(activityPath, async () => {
-        const activityExisted = await pathExists(activityPath);
         const currentActivity = await loadActivityValue(activityPath, activityOrigin);
         const storedConversation = currentActivity.conversations.find(({ id }) => id === run.conversation.id) ?? null;
         const previousUsage = conversationSummaryUsage(storedConversation);
         const nextUsage = conversationSummaryUsage(run.conversation);
         const delta = usageDelta(previousUsage, nextUsage);
-        const summary = await loadOrMigrateSummary(summaryPath, rootPath, projectFolder, releasesFolder);
-        const nextSummary = {
-            ...summary,
-            projectUsage: addSummaryUsage([summary.projectUsage, delta]),
-        };
         const nextActivity = upsertConversation(currentActivity, run.conversation);
+        let nextSummary;
+        let summaryLoadError;
+        let summaryLoadFailed = false;
+        try {
+            const summary = await loadOrMigrateSummary(summaryPath, rootPath, projectFolder, releasesFolder);
+            nextSummary = {
+                ...summary,
+                projectUsage: addSummaryUsage([summary.projectUsage, delta]),
+            };
+        } catch (error) {
+            summaryLoadError = error;
+            summaryLoadFailed = true;
+        }
         await writeActivityFile(activityPath, nextActivity);
+        const commitPaths = dependencies.commitTrackedPaths ?? commitTrackedPaths;
+        if (summaryLoadFailed) {
+            await commitPaths(rootPath, [activityRelativePath], `Update ${activityOrigin.kind} activity`);
+            throw summaryLoadError;
+        }
         try {
             await writeActivityFile(summaryPath, nextSummary);
         } catch (error) {
-            await restoreActivityFile(activityPath, activityExisted, currentActivity);
+            await commitPaths(rootPath, [activityRelativePath], `Update ${activityOrigin.kind} activity`);
             throw error;
         }
-        const commitPaths = dependencies.commitTrackedPaths ?? commitTrackedPaths;
         await commitPaths(rootPath, [activityRelativePath, summaryRelativePath], `Update ${activityOrigin.kind} activity`);
 
         return { activity: nextActivity, relativePath: activityRelativePath, summary: nextSummary };
