@@ -479,30 +479,94 @@
           "role": "assistant",
           "sequence": 36,
           "timestamp": "2026-08-18T17:29:09.775Z"
+        },
+        {
+          "content": "No, this is to complex. You list a number of data points we are missing to allow for every flexibility. Lets simplify until we have a set of questions we can answer with the data that we have or can easily add. Ex, usage metrics update seems simpel, agent invocation facts seem complex. Why not add a timestamp to a toolcall when saved in json, then we have what we need.",
+          "id": "agent-turn-e7cb7e5d-07f4-4d4e-b14d-e11956529465-user-36",
+          "kind": "message",
+          "role": "user",
+          "sequence": 37,
+          "timestamp": "2026-08-18T17:42:56.255Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-e7cb7e5d-07f4-4d4e-b14d-e11956529465-event-38",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f61018cdeca9228016a8499a488c887d09f9d433c02c99af3",
+          "sequence": 38,
+          "status": "completed",
+          "timestamp": "2026-08-18T17:43:09.392Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "content": "",
+          "id": "agent-turn-e7cb7e5d-07f4-4d4e-b14d-e11956529465-event-39",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f61018cdeca9228016a8499af0e7c87d0bad07e3dafa2cb7d",
+          "sequence": 39,
+          "status": "completed",
+          "timestamp": "2026-08-18T17:43:18.804Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "content": "",
+          "id": "agent-turn-e7cb7e5d-07f4-4d4e-b14d-e11956529465-event-40",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f61018cdeca9228016a8499b8834487d09cad93929f018f66",
+          "sequence": 40,
+          "status": "completed",
+          "timestamp": "2026-08-18T17:43:30.119Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "agent": "codex",
+          "content": "You’re right—the invocation-fact proposal is overdesigned for this feature.\n\nAlso, tool calls already have timestamps in the saved conversation JSON. Each event has `timestamp`, `type`, and usually `providerItemId`, so tool calls can already be counted over time without changing the activity schema.\n\nI’d reduce the feature to these questions.\n\n### 1. What work was performed over time?\n\nAlready answerable.\n\n- Chart: stacked bars\n- X-axis: day or week\n- Value: completed root actions\n- Stack/color: action\n- Filters: date range, action\n- Missing periods: zero-value bars\n\nOptional metric: tool-call count. Count unique tool events by their existing timestamp and group them by the conversation’s `actionId`.\n\n### 2. Which agent or model uses the most tokens?\n\nThis needs only a small extension to `token_usage` rows in `usage_metrics.csv`.\n\nAdd:\n\n- `agent`\n- `model`\n- `action_id`\n- Optionally `card_internal_id` and `run_id` for filtering and traceability\n\nThe desktop already has this context when it writes the token row. Then we can show:\n\n- Chart: grouped bars\n- X-axis: day or week\n- Value: total or average tokens per completed turn\n- Group by: agent or model\n- Filters: action, agent, model, date range\n\nNo invocation-fact storage is required.\n\n### 3. Which account limit drains fastest compared with completed work?\n\nMostly already answerable. The account rows just need to be exposed by the renderer parser.\n\nShow two aligned charts with the same time axis:\n\n1. Completed actions, stacked by action\n2. Account usage change in percentage points, grouped by provider/account window\n\nControls:\n\n- Day or week\n- Provider\n- Account/limit ID\n- Window, such as five-hour or weekly\n- Date range\n\nDo not combine different account windows into one value. The UI should also mention that account usage includes activity outside this project.\n\n### 4. Which agent or model takes longest?\n\nI would leave this out of the first version. Accurate duration per turn, especially across continued conversations and waiting periods, is the one part that requires additional accounting.\n\nIf needed later, the smallest extension is adding `duration_ms` to each `token_usage` row. That row already represents one completed provider turn, so it naturally becomes the source for average duration by agent/model.\n\n## Minimal chart settings\n\nThe first version therefore only needs:\n\n- Chart: Activity / Token usage / Account usage\n- Date range\n- Granularity: Day / Week\n- Metric, where applicable\n- Group by: Action / Agent / Model / Account window\n- Relevant action, agent, model, or account filters\n\nAnd the presentation fixes already listed in F_211:\n\n- Scroll both horizontally and vertically\n- Show values above bars, not repeated labels\n- Put series labels in a legend\n- Generate missing time buckets with zero\n- Use short dates\n- Use card ID on the chart and full title in the tooltip\n\nThat gives a useful first version with one small persistence change: enriching token rows with agent/model/action identity.\n\n",
+          "id": "agent-turn-e7cb7e5d-07f4-4d4e-b14d-e11956529465-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 41,
+          "timestamp": "2026-08-18T17:43:40.050Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-c59dcbff-e9e6-4c56-99c8-3b3d3580e985",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a015e8-f6eb-7531-8d59-3da524090e13",
+          "createdAt": "2026-08-18T17:29:09.775Z",
+          "lastUsedAt": "2026-08-18T17:29:09.775Z",
+          "synchronizedThroughMessageId": "agent-turn-e7cb7e5d-07f4-4d4e-b14d-e11956529465-turn-1-assistant-4"
+        }
+      ],
       "startedAt": "2026-08-18T17:26:23.526Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-18T17:26:23.526Z"
+        "elapsedMs": 166249,
+        "runningStartedAt": "2026-08-18T17:42:56.255Z"
       },
       "title": "+",
       "usageSchemaVersion": 1,
       "viewed": true,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 110682
+        "usedTokens": 114560
       },
       "usage": {
-        "cachedInputTokens": 108288,
-        "inputTokens": 429,
-        "outputTokens": 1449,
-        "reasoningTokens": 516,
-        "totalTokens": 110682
+        "cachedInputTokens": 216576,
+        "inputTokens": 4498,
+        "outputTokens": 2100,
+        "reasoningTokens": 2068,
+        "totalTokens": 225242
       }
     }
   ],
