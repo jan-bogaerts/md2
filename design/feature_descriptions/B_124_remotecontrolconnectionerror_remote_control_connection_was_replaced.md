@@ -13,6 +13,7 @@ sentryBaseUrl: https://sentry.io
 sentryIssueId: 140874744
 sentryOrganization: elastetic
 branch: b_124_remotecontrolconnectionerror_remote_control_connection_was_replaced
+after: 8c67b588-6f04-46d4-973a-2104345f161e
 ---
 # Goal
 

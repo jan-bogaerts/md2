@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__c384fd87-648d-4bbd-b5df-cfc26f176388.json
 policy:
-after: bee2d3c7-81e1-451a-bc4d-d4ba59c849e9
+after: f1c69bfd-cfb3-40cd-8c1e-15e78f71f839
 branch: f_201_simplify_new_card_popup
 ---
 

@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__4a471f6a-6bca-4990-9e2d-38dc2df2ce9f.json
 policy:
+after: dcb4a726-a5e7-46b9-8873-4daba86660b6
 ---
 
 On small screens, project status appears in hamburger drawer, but its top overlaps bottom of board-column list.

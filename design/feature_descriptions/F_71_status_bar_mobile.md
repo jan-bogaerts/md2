@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__58f7a536-89fd-490b-8112-2a850481bf23.json
 policy:
-after: 3d893637-4714-428d-be90-b839925b7cad
+after: c384fd87-648d-4bbd-b5df-cfc26f176388
 ---
 On mobile, user should also have project status info.
 

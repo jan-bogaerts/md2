@@ -10,6 +10,7 @@ agents:
   - design/activity/card__d6f7cd44-6ed1-47b7-b37f-b048ece0a720.json
 policy:
 branch: b_122_connect_to_sentry_fails
+after: 4a471f6a-6bca-4990-9e2d-38dc2df2ce9f
 ---
 
 getting this error when trying to connect to sentry from the config page:

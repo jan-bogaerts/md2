@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__8fc5eed5-9fc2-43a1-95d7-66c0aabd5d31.json
 policy:
+after: ee2036c1-4931-49a4-b57e-629edbcbc3f6
 ---
 The clip icon has been placed horribly bad on the action popup and the new card popup. it appears to have been placed simply above the markdown editor. this is horrible.
 

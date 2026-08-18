@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__030deac3-abb2-46e9-821c-c9d1db04502e.json
 policy:
+after: 146d495f-955a-4b9d-bf70-80520208883d
 ---
 
 allow pasting an image into a markdown editor.

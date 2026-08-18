@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__ee2036c1-4931-49a4-b57e-629edbcbc3f6.json
 policy:
+after: dcf2805e-c1f9-4aed-b160-e147134fe556
 ---
 
 context usage on the chatlog of the action popup needs improving:

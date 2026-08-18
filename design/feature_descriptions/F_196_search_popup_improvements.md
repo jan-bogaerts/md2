@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__f1c69bfd-cfb3-40cd-8c1e-15e78f71f839.json
 policy:
+after: 8fc5eed5-9fc2-43a1-95d7-66c0aabd5d31
 ---
 
 following improvements to the search popup:

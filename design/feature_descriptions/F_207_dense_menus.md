@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__09e88f16-8fa7-423c-8fdf-aac61d9bf252.json
 policy:
+after: 58f7a536-89fd-490b-8112-2a850481bf23
 ---
 
 Make all menus and context menus dense.

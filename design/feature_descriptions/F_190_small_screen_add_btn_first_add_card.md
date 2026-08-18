@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__dcb4a726-a5e7-46b9-8873-4daba86660b6.json
 policy:
-after: 8a177e01-b5d4-46aa-b42f-9ba11f561b60
+after: 4191dc0a-7628-45bf-ada1-b1366e9f05f9
 ---
 
 On the context menu shown when small screen and user clicked on + at top, put 'add card' first instead of 'add action'

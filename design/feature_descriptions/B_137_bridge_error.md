@@ -13,6 +13,7 @@ sentryBaseUrl: https://sentry.io
 sentryIssueId: 141200034
 sentryOrganization: elastetic
 branch: b_137_bridge_error
+after: 6d6bf2a1-f9ac-430c-ad48-255ae837c9a0
 ---
 ## Sentry issue
 

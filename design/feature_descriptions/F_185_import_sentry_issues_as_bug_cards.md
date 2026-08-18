@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__d10103b8-7064-45cf-8b32-df0566889f78.json
 policy:
+after: bd257fa5-fafa-425b-be61-73a090e1ccf5
 ---
 
 ## Goal

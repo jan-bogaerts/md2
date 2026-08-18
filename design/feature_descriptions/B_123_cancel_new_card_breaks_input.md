@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__8c67b588-6f04-46d4-973a-2104345f161e.json
 policy:
+after: d6f7cd44-6ed1-47b7-b37f-b048ece0a720
 ---
 
 something seriously wrong with canceling a new card:
