@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__5936b8d1-a0b9-4d53-9edf-e753e80796dd.json
 policy:
-branch: b_142_changed_and_added_lines_in_action_not_correct
-worktree: 1
 ---
 
 when an agent changes files, we track the total of lines changed, deleted and added. it seems we either display it incorrectly or something is going wrong while tracking it.
