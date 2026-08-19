@@ -1,16 +1,55 @@
 import { Box, Chip, List, ListItemButton, ListItemText, Typography } from '@mui/material'
 import type { ActionDefinition } from '../../../data/action_types'
-import type { ActionSearchMatch, SearchMatch, SearchResults as SearchResultsData } from '../../../services/search/search_types'
+import type {
+    ActionSearchMatch, SearchMatch, SearchMode, SearchResults as SearchResultsData,
+} from '../../../services/search/search_types'
 
 interface SearchResultsProps {
+    mode: SearchMode
     onActionSelect: (action: ActionDefinition) => void
     onSelect: (path: string) => void
+    query: string
     results: SearchResultsData
 }
 
-function renderMatch(match: SearchMatch, onSelect: (path: string) => void) {
+function renderHighlightedContext(context: string, query: string, mode: SearchMode) {
+    let index: number
+    let matchedText: string
+
+    if (mode === 'text') {
+        index = context.toLowerCase().indexOf(query.toLowerCase())
+        if (index === -1) return context
+
+        matchedText = context.slice(index, index + query.length)
+    } else {
+        try {
+            const match = new RegExp(query).exec(context)
+            if (!match) return context
+
+            index = match.index
+            matchedText = match[0]
+        } catch {
+            return context
+        }
+    }
+
+    const before = context.slice(0, index)
+    const after = context.slice(index + matchedText.length)
+
+    return (
+        <span>
+            {before}
+            <Box component="mark" sx={{ bgcolor: 'warning.light', borderRadius: 0.25, color: 'warning.contrastText' }}>
+                {matchedText}
+            </Box>
+            {after}
+        </span>
+    )
+}
+
+function renderMatch(match: SearchMatch, onSelect: (path: string) => void, query: string, mode: SearchMode) {
     const handleClick = () => onSelect(match.path)
-    const secondary = `${match.path} — ${match.context}`
+    const context = renderHighlightedContext(match.context, query, mode)
 
     return (
         <ListItemButton dense key={match.path} onClick={handleClick}>
@@ -21,15 +60,20 @@ function renderMatch(match: SearchMatch, onSelect: (path: string) => void) {
                         <Chip color={match.source === 'header' ? 'primary' : 'default'} label={match.source} size="small" />
                     </Box>
                 }
-                secondary={secondary}
+                secondary={<span>{match.path} — {context}</span>}
             />
         </ListItemButton>
     )
 }
 
-function renderActionMatch(match: ActionSearchMatch, onActionSelect: (action: ActionDefinition) => void) {
+function renderActionMatch(
+    match: ActionSearchMatch,
+    onActionSelect: (action: ActionDefinition) => void,
+    query: string,
+    mode: SearchMode,
+) {
     const handleClick = () => onActionSelect(match.action)
-    const secondary = `${match.field} - ${match.context}`
+    const context = renderHighlightedContext(match.context, query, mode)
 
     return (
         <ListItemButton dense key={match.action.id} onClick={handleClick}>
@@ -40,7 +84,7 @@ function renderActionMatch(match: ActionSearchMatch, onActionSelect: (action: Ac
                         <Chip color="secondary" label="action" size="small" />
                     </Box>
                 }
-                secondary={secondary}
+                secondary={<span>{match.field} - {context}</span>}
             />
         </ListItemButton>
     )
@@ -48,7 +92,7 @@ function renderActionMatch(match: ActionSearchMatch, onActionSelect: (action: Ac
 
 /** Renders grouped search results: active cards first, then background cards grouped by folder. */
 export function SearchResults(props: SearchResultsProps) {
-    const { onActionSelect, onSelect, results } = props
+    const { mode, onActionSelect, onSelect, query, results } = props
     const hasAny = results.active.length > 0 || results.backgroundGroups.length > 0 || results.actions.length > 0
 
     if (!hasAny) {
@@ -69,7 +113,7 @@ export function SearchResults(props: SearchResultsProps) {
                         Active cards
                     </Typography>
                     <List dense disablePadding>
-                        {results.active.map((match) => renderMatch(match, onSelect))}
+                        {results.active.map((match) => renderMatch(match, onSelect, query, mode))}
                     </List>
                 </Box>
             ) : null}
@@ -79,7 +123,7 @@ export function SearchResults(props: SearchResultsProps) {
                         {group.folder}
                     </Typography>
                     <List dense disablePadding>
-                        {group.matches.map((match) => renderMatch(match, onSelect))}
+                        {group.matches.map((match) => renderMatch(match, onSelect, query, mode))}
                     </List>
                 </Box>
             ))}
@@ -89,7 +133,7 @@ export function SearchResults(props: SearchResultsProps) {
                         Actions
                     </Typography>
                     <List dense disablePadding>
-                        {results.actions.map((match) => renderActionMatch(match, onActionSelect))}
+                        {results.actions.map((match) => renderActionMatch(match, onActionSelect, query, mode))}
                     </List>
                 </Box>
             ) : null}
