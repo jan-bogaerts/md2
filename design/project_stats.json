@@ -21,6 +21,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "16bc6dc5-0f8e-421d-b0a9-c83d3a3a65f0",
           "completedAt": "2026-08-06T19:07:12.435Z",
           "identity": "card:16bc6dc5-0f8e-421d-b0a9-c83d3a3a65f0:action-758ddcde-a808-44db-bfa6-322c4f586184"
@@ -28,6 +30,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "16bc6dc5-0f8e-421d-b0a9-c83d3a3a65f0",
           "completedAt": "2026-08-06T19:20:10.016Z",
           "identity": "card:16bc6dc5-0f8e-421d-b0a9-c83d3a3a65f0:action-70c7e930-9432-47f3-9d87-3c94d05df93c"
@@ -35,6 +39,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "18fd04d3-5df7-4f54-ab7a-94d96f210f13",
           "completedAt": "2026-08-05T17:40:54.152Z",
           "identity": "card:18fd04d3-5df7-4f54-ab7a-94d96f210f13:action-3b4b348b-4974-4989-a095-e2c9a51c9be2"
@@ -42,6 +48,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "18fd04d3-5df7-4f54-ab7a-94d96f210f13",
           "completedAt": "2026-08-06T11:22:11.239Z",
           "identity": "card:18fd04d3-5df7-4f54-ab7a-94d96f210f13:action-1529130b-40d7-4672-ab69-6f0fda815235"
@@ -49,6 +57,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete card",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "252c6173-b044-4c83-8867-e99254db44d5",
           "completedAt": "2026-08-03T14:30:23.275Z",
           "identity": "card:252c6173-b044-4c83-8867-e99254db44d5:action-51c35df2-46fc-4f28-a928-8234dcfc62c5"
@@ -56,6 +66,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete card",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "252c6173-b044-4c83-8867-e99254db44d5",
           "completedAt": "2026-08-03T14:36:18.690Z",
           "identity": "card:252c6173-b044-4c83-8867-e99254db44d5:action-865a4c1a-aa79-4b08-b074-f88a5e2bdb0c"
@@ -63,6 +75,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "252c6173-b044-4c83-8867-e99254db44d5",
           "completedAt": "2026-08-03T14:43:13.439Z",
           "identity": "card:252c6173-b044-4c83-8867-e99254db44d5:action-ea4cd56a-25e4-4035-9cd7-58def4033286"
@@ -70,6 +84,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "290f3413-3d14-4ec2-b97d-e2522c3c1057",
           "completedAt": "2026-08-06T19:24:16.412Z",
           "identity": "card:290f3413-3d14-4ec2-b97d-e2522c3c1057:action-eeb960d1-b249-4f31-ab24-c5bf5d75f05b"
@@ -77,6 +93,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "299444fe-cb8b-420f-a89d-3c3300bf249e",
           "completedAt": "2026-08-05T12:56:50.114Z",
           "identity": "card:299444fe-cb8b-420f-a89d-3c3300bf249e:action-1a62b24e-0931-4e3f-a6d1-4e7364c8797c"
@@ -84,6 +102,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete card",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "2d44bfea-2083-4ec7-b549-3fd4d02f4af9",
           "completedAt": "2026-08-03T16:29:51.265Z",
           "identity": "card:2d44bfea-2083-4ec7-b549-3fd4d02f4af9:action-20c9c336-7e64-4cc8-ab2b-22304bdde98e"
@@ -91,6 +111,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete card",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "2d44bfea-2083-4ec7-b549-3fd4d02f4af9",
           "completedAt": "2026-08-03T16:32:43.234Z",
           "identity": "card:2d44bfea-2083-4ec7-b549-3fd4d02f4af9:action-ec899677-52b7-4778-b811-99c65e62c47e"
@@ -98,6 +120,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "2d44bfea-2083-4ec7-b549-3fd4d02f4af9",
           "completedAt": "2026-08-03T16:53:58.016Z",
           "identity": "card:2d44bfea-2083-4ec7-b549-3fd4d02f4af9:action-88060b08-e003-480b-bf95-7afe9217193d"
@@ -105,6 +129,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "451ece87-dccb-44dd-9783-a22c2709a8e2",
           "completedAt": "2026-08-06T11:30:29.372Z",
           "identity": "card:451ece87-dccb-44dd-9783-a22c2709a8e2:action-03e2e3f0-eaf9-401f-9bbb-daab7d1de28c"
@@ -112,6 +138,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "451ece87-dccb-44dd-9783-a22c2709a8e2",
           "completedAt": "2026-08-06T13:00:17.740Z",
           "identity": "card:451ece87-dccb-44dd-9783-a22c2709a8e2:action-49a68938-e478-4764-90f8-415205c19f74"
@@ -119,6 +147,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete card",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "4b1a6636-3545-4409-bbfe-eed686514d7c",
           "completedAt": "2026-08-03T16:28:25.188Z",
           "identity": "card:4b1a6636-3545-4409-bbfe-eed686514d7c:action-3356b50b-6ce4-4a59-ad25-e4dbeff40b8e"
@@ -126,6 +156,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "4b1a6636-3545-4409-bbfe-eed686514d7c",
           "completedAt": "2026-08-03T16:53:44.208Z",
           "identity": "card:4b1a6636-3545-4409-bbfe-eed686514d7c:action-53ab6d87-94ac-4d11-bed7-a1019c24cb0a"
@@ -133,6 +165,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "50ec96d2-8e7c-471a-a33b-9cbd4210b5cb",
           "completedAt": "2026-08-04T13:43:55.270Z",
           "identity": "card:50ec96d2-8e7c-471a-a33b-9cbd4210b5cb:action-618460f3-055a-429d-9912-065f64d793aa"
@@ -140,6 +174,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "5205bb65-078a-411a-9647-0796ad14953c",
           "completedAt": "2026-08-04T17:44:05.763Z",
           "identity": "card:5205bb65-078a-411a-9647-0796ad14953c:action-4b4d81d4-f3c1-40ce-bb15-e1c71c018a0c"
@@ -147,6 +183,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "5205bb65-078a-411a-9647-0796ad14953c",
           "completedAt": "2026-08-04T18:25:40.058Z",
           "identity": "card:5205bb65-078a-411a-9647-0796ad14953c:action-91dbbd0e-87ba-40ba-bb8f-1a069692c3c6"
@@ -154,6 +192,8 @@
         {
           "actionId": "md2.custom-prompt",
           "actionLabel": "Custom prompt",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "5205bb65-078a-411a-9647-0796ad14953c",
           "completedAt": "2026-08-05T12:47:33.670Z",
           "identity": "card:5205bb65-078a-411a-9647-0796ad14953c:action-4226db2f-2ed3-455e-957f-e2fedb51a6b9"
@@ -161,6 +201,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "5cdae748-9597-4d29-8dc0-3d4b5df3aa7f",
           "completedAt": "2026-08-01T17:50:00.035Z",
           "identity": "card:5cdae748-9597-4d29-8dc0-3d4b5df3aa7f:action-c5cdb8e2-6153-4308-af35-8699a6e66df8"
@@ -168,6 +210,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "63ee96f0-2707-4a40-80df-dab5b0efda35",
           "completedAt": "2026-08-06T18:44:34.796Z",
           "identity": "card:63ee96f0-2707-4a40-80df-dab5b0efda35:action-d613653e-fff9-47b1-bcb5-efdc928a97e2"
@@ -175,6 +219,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "63ee96f0-2707-4a40-80df-dab5b0efda35",
           "completedAt": "2026-08-06T18:48:46.655Z",
           "identity": "card:63ee96f0-2707-4a40-80df-dab5b0efda35:action-9a31d75d-0adc-4ed1-9c26-29982f3b4cdc"
@@ -182,6 +228,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "63ee96f0-2707-4a40-80df-dab5b0efda35",
           "completedAt": "2026-08-06T18:57:53.767Z",
           "identity": "card:63ee96f0-2707-4a40-80df-dab5b0efda35:action-88faf4f2-6b9f-4f66-b534-0510c542860a"
@@ -189,6 +237,8 @@
         {
           "actionId": "db847744-f0a2-4606-a289-c3a106472030",
           "actionLabel": "plan",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "7b158d24-318d-4081-934b-b9255a0672dc",
           "completedAt": "2026-08-04T17:45:36.849Z",
           "identity": "card:7b158d24-318d-4081-934b-b9255a0672dc:action-9daed58b-460d-444c-acf4-c326d830c468"
@@ -196,6 +246,8 @@
         {
           "actionId": "db847744-f0a2-4606-a289-c3a106472030",
           "actionLabel": "plan",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "7b158d24-318d-4081-934b-b9255a0672dc",
           "completedAt": "2026-08-05T09:06:34.926Z",
           "identity": "card:7b158d24-318d-4081-934b-b9255a0672dc:action-886d697b-d15a-457e-8616-0a9e84c36f8a"
@@ -203,6 +255,8 @@
         {
           "actionId": "db847744-f0a2-4606-a289-c3a106472030",
           "actionLabel": "plan",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "7b158d24-318d-4081-934b-b9255a0672dc",
           "completedAt": "2026-08-05T09:11:04.089Z",
           "identity": "card:7b158d24-318d-4081-934b-b9255a0672dc:action-9d3b2ded-7192-4942-8492-a4d2998ed5f9"
@@ -210,6 +264,8 @@
         {
           "actionId": "db847744-f0a2-4606-a289-c3a106472030",
           "actionLabel": "plan",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "7b158d24-318d-4081-934b-b9255a0672dc",
           "completedAt": "2026-08-05T09:20:28.605Z",
           "identity": "card:7b158d24-318d-4081-934b-b9255a0672dc:action-4aa8a641-e157-4898-bcc7-69d7bde85056"
@@ -217,6 +273,8 @@
         {
           "actionId": "db847744-f0a2-4606-a289-c3a106472030",
           "actionLabel": "plan",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "7b158d24-318d-4081-934b-b9255a0672dc",
           "completedAt": "2026-08-05T09:32:13.687Z",
           "identity": "card:7b158d24-318d-4081-934b-b9255a0672dc:action-57d3b95c-91b4-4053-af83-0c8b257ed6e7"
@@ -224,6 +282,8 @@
         {
           "actionId": "md2.custom-prompt",
           "actionLabel": "Custom prompt",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "7b158d24-318d-4081-934b-b9255a0672dc",
           "completedAt": "2026-08-05T14:49:37.477Z",
           "identity": "card:7b158d24-318d-4081-934b-b9255a0672dc:action-103002f6-b47b-4133-bb18-8cdffeb91814"
@@ -231,6 +291,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "81dcbcc1-3401-4927-a76e-2f3ef4874190",
           "completedAt": "2026-08-06T18:43:19.412Z",
           "identity": "card:81dcbcc1-3401-4927-a76e-2f3ef4874190:action-2d3f7b38-22d2-42c9-977b-281baa4c07a9"
@@ -238,6 +300,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "81dcbcc1-3401-4927-a76e-2f3ef4874190",
           "completedAt": "2026-08-06T18:46:50.829Z",
           "identity": "card:81dcbcc1-3401-4927-a76e-2f3ef4874190:action-cdc41e12-e818-4944-9422-434e9b1b1834"
@@ -245,6 +309,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "81dcbcc1-3401-4927-a76e-2f3ef4874190",
           "completedAt": "2026-08-06T18:53:12.141Z",
           "identity": "card:81dcbcc1-3401-4927-a76e-2f3ef4874190:action-6f778519-f87c-4356-8a02-0bb0850b4f74"
@@ -252,6 +318,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete card",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "88a28fc1-ccbf-4d02-b560-c6726a0394dc",
           "completedAt": "2026-08-03T12:42:58.210Z",
           "identity": "card:88a28fc1-ccbf-4d02-b560-c6726a0394dc:action-2be18acb-9001-4b89-bc5d-43c3db030289"
@@ -259,6 +327,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "88a28fc1-ccbf-4d02-b560-c6726a0394dc",
           "completedAt": "2026-08-03T13:04:28.714Z",
           "identity": "card:88a28fc1-ccbf-4d02-b560-c6726a0394dc:action-3b2e896a-af8d-4ad8-bec0-c37a372a9bc6"
@@ -266,6 +336,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "903157da-1625-4516-b5c9-b4880ef7fc40",
           "completedAt": "2026-08-05T17:30:21.079Z",
           "identity": "card:903157da-1625-4516-b5c9-b4880ef7fc40:action-0c90deb0-4584-44bf-aa47-4bc322200efa"
@@ -273,6 +345,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "903157da-1625-4516-b5c9-b4880ef7fc40",
           "completedAt": "2026-08-05T17:57:40.369Z",
           "identity": "card:903157da-1625-4516-b5c9-b4880ef7fc40:action-499703ea-feec-4fd1-bee1-ff1dd91cd1fa"
@@ -280,6 +354,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "963bef1f-5a53-4f16-8941-13f9be36b88a",
           "completedAt": "2026-08-05T17:37:13.325Z",
           "identity": "card:963bef1f-5a53-4f16-8941-13f9be36b88a:action-8218be1a-cad6-4d70-92bb-3fd81473dd86"
@@ -287,6 +363,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "972b0cb8-3d8a-4935-9197-17ca3ad037ec",
           "completedAt": "2026-08-05T13:08:59.325Z",
           "identity": "card:972b0cb8-3d8a-4935-9197-17ca3ad037ec:action-7d421f1d-c794-434f-bd36-e520530d8189"
@@ -294,6 +372,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "9df160a1-c669-422b-aea5-da5655c12134",
           "completedAt": "2026-08-04T18:27:06.870Z",
           "identity": "card:9df160a1-c669-422b-aea5-da5655c12134:action-7f2df43d-3f89-4827-9531-9c09b71ea681"
@@ -301,6 +381,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "9df160a1-c669-422b-aea5-da5655c12134",
           "completedAt": "2026-08-05T09:43:12.931Z",
           "identity": "card:9df160a1-c669-422b-aea5-da5655c12134:action-0067efd1-d5a1-4aa7-b391-c2ae1194ff82"
@@ -308,6 +390,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "a729f80c-de80-4c12-9b53-bf0fbf29e4cb",
           "completedAt": "2026-08-05T13:28:27.565Z",
           "identity": "card:a729f80c-de80-4c12-9b53-bf0fbf29e4cb:action-344d3c7c-9de1-40a7-9f98-f5132f2ea35d"
@@ -315,6 +399,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete card",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "b0ac8dca-7740-48b1-b5d4-1c1e5750ee39",
           "completedAt": "2026-08-02T17:32:39.582Z",
           "identity": "card:b0ac8dca-7740-48b1-b5d4-1c1e5750ee39:action-f647dff6-9165-4186-8393-099749716a4d"
@@ -322,6 +408,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "b0ac8dca-7740-48b1-b5d4-1c1e5750ee39",
           "completedAt": "2026-08-03T14:24:00.127Z",
           "identity": "card:b0ac8dca-7740-48b1-b5d4-1c1e5750ee39:action-0fe17b74-72f5-49b1-a1f8-21fa1eb19cb2"
@@ -329,6 +417,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "b8e6a902-e78b-43d3-9896-e43146873ba5",
           "completedAt": "2026-08-06T18:47:18.523Z",
           "identity": "card:b8e6a902-e78b-43d3-9896-e43146873ba5:action-f27885d1-57f2-4cb6-ab23-6ee5af0b0c1f"
@@ -336,6 +426,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "b8e6a902-e78b-43d3-9896-e43146873ba5",
           "completedAt": "2026-08-06T18:50:15.830Z",
           "identity": "card:b8e6a902-e78b-43d3-9896-e43146873ba5:action-ac928832-f225-4644-818f-c301af8e51d8"
@@ -343,6 +435,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "b8e6a902-e78b-43d3-9896-e43146873ba5",
           "completedAt": "2026-08-06T18:57:24.594Z",
           "identity": "card:b8e6a902-e78b-43d3-9896-e43146873ba5:action-2acd40ce-7c42-4c44-93d1-445d2e9ac974"
@@ -350,6 +444,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete card",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "b9792dd7-f034-4b29-9da5-04fc8cea37c9",
           "completedAt": "2026-08-03T14:40:05.512Z",
           "identity": "card:b9792dd7-f034-4b29-9da5-04fc8cea37c9:action-70a40873-02e4-4542-8da3-895a1b112f48"
@@ -357,6 +453,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "b9792dd7-f034-4b29-9da5-04fc8cea37c9",
           "completedAt": "2026-08-03T15:06:31.192Z",
           "identity": "card:b9792dd7-f034-4b29-9da5-04fc8cea37c9:action-817d404d-b506-43c8-b355-70677a3b0a18"
@@ -364,6 +462,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "c9e7dccb-d263-4ba6-98fc-b4361a01bf4d",
           "completedAt": "2026-08-06T14:09:31.403Z",
           "identity": "card:c9e7dccb-d263-4ba6-98fc-b4361a01bf4d:action-6d4c0366-3092-4e4c-84fc-19a24b6e933d"
@@ -371,6 +471,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "c9e7dccb-d263-4ba6-98fc-b4361a01bf4d",
           "completedAt": "2026-08-06T15:29:47.538Z",
           "identity": "card:c9e7dccb-d263-4ba6-98fc-b4361a01bf4d:action-186a9aca-df7c-4a5a-8300-72a4b8eee653"
@@ -378,6 +480,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete card",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "cf144ebc-ebd3-4148-8ad8-99bac886dd3f",
           "completedAt": "2026-08-02T17:12:35.063Z",
           "identity": "card:cf144ebc-ebd3-4148-8ad8-99bac886dd3f:action-85238c39-7f65-43b4-96cb-afd39028d250"
@@ -385,6 +489,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete card",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "cf144ebc-ebd3-4148-8ad8-99bac886dd3f",
           "completedAt": "2026-08-03T14:25:25.497Z",
           "identity": "card:cf144ebc-ebd3-4148-8ad8-99bac886dd3f:action-96ea169c-1889-4176-871e-f4968f388407"
@@ -392,6 +498,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "cf144ebc-ebd3-4148-8ad8-99bac886dd3f",
           "completedAt": "2026-08-03T14:29:57.336Z",
           "identity": "card:cf144ebc-ebd3-4148-8ad8-99bac886dd3f:action-0b2211d1-5165-45f2-a00d-6a3e096346be"
@@ -399,6 +507,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "d00ed22e-f395-4949-9b0f-ce1c2275c31e",
           "completedAt": "2026-08-04T13:22:15.124Z",
           "identity": "card:d00ed22e-f395-4949-9b0f-ce1c2275c31e:action-b7914c6d-8066-4259-b28f-e13f111be3ef"
@@ -406,6 +516,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "d00ed22e-f395-4949-9b0f-ce1c2275c31e",
           "completedAt": "2026-08-04T13:56:23.766Z",
           "identity": "card:d00ed22e-f395-4949-9b0f-ce1c2275c31e:action-1daac9ff-5d18-4d92-bd62-6faf39414626"
@@ -413,6 +525,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete card",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "dc388d9d-a25d-4e74-bc32-71325cefa426",
           "completedAt": "2026-08-03T16:46:34.341Z",
           "identity": "card:dc388d9d-a25d-4e74-bc32-71325cefa426:action-502cd4a2-d757-47e1-860f-cfa97e716ed0"
@@ -420,6 +534,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "dc388d9d-a25d-4e74-bc32-71325cefa426",
           "completedAt": "2026-08-03T17:11:15.422Z",
           "identity": "card:dc388d9d-a25d-4e74-bc32-71325cefa426:action-5cd42470-638e-491b-89c8-59a1d50d3f5d"
@@ -427,6 +543,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete card",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "e6a79155-179c-46bb-b31e-722dffd7ec2e",
           "completedAt": "2026-08-03T14:58:11.714Z",
           "identity": "card:e6a79155-179c-46bb-b31e-722dffd7ec2e:action-b7ebb01c-8cb2-4b84-be87-5af5306e8995"
@@ -434,6 +552,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "e6a79155-179c-46bb-b31e-722dffd7ec2e",
           "completedAt": "2026-08-03T15:12:08.512Z",
           "identity": "card:e6a79155-179c-46bb-b31e-722dffd7ec2e:action-cf621ae3-dfd2-41a0-ae65-1623a374a46c"
@@ -441,6 +561,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "e9906c7f-d936-4c9a-ab73-2e7df0954024",
           "completedAt": "2026-08-05T13:45:01.066Z",
           "identity": "card:e9906c7f-d936-4c9a-ab73-2e7df0954024:action-df689a8f-1e66-4411-b519-18192c8c89ec"
@@ -448,6 +570,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "ed76ce11-bea8-4942-aba9-2180b019f5f2",
           "completedAt": "2026-08-04T13:53:52.127Z",
           "identity": "card:ed76ce11-bea8-4942-aba9-2180b019f5f2:action-38481de0-8131-43e2-8933-5fc2adf31fb7"
@@ -455,6 +579,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "ed76ce11-bea8-4942-aba9-2180b019f5f2",
           "completedAt": "2026-08-04T14:09:19.549Z",
           "identity": "card:ed76ce11-bea8-4942-aba9-2180b019f5f2:action-15d8aa57-bcdc-410d-b851-6e42362e6a23"
@@ -462,6 +588,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "efdaf96e-da6f-4d8f-874f-042f30965276",
           "completedAt": "2026-08-05T17:37:23.585Z",
           "identity": "card:efdaf96e-da6f-4d8f-874f-042f30965276:action-ca22fbe1-6f4c-42aa-a9d7-e242fcf185d9"
@@ -469,6 +597,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "efdaf96e-da6f-4d8f-874f-042f30965276",
           "completedAt": "2026-08-05T17:48:14.643Z",
           "identity": "card:efdaf96e-da6f-4d8f-874f-042f30965276:action-4cbf9acd-8b02-49d3-ad1c-ec397eb46426"
@@ -476,6 +606,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "efdaf96e-da6f-4d8f-874f-042f30965276",
           "completedAt": "2026-08-06T11:46:45.441Z",
           "identity": "card:efdaf96e-da6f-4d8f-874f-042f30965276:action-d84d510b-d394-4011-9ec6-489f9d129a7e"
@@ -483,6 +615,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "f0fad88a-ea00-41be-aaf9-8f28a4cbdc31",
           "completedAt": "2026-08-04T13:34:50.858Z",
           "identity": "card:f0fad88a-ea00-41be-aaf9-8f28a4cbdc31:action-454e481e-2782-450e-87e6-cddb03bfd611"
@@ -490,6 +624,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete card",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "f9129167-19a8-4d52-8478-00f1423553d7",
           "completedAt": "2026-08-03T15:25:24.407Z",
           "identity": "card:f9129167-19a8-4d52-8478-00f1423553d7:action-10a65269-27b7-4d97-b140-548ef2c7dd59"
@@ -497,6 +633,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "f9129167-19a8-4d52-8478-00f1423553d7",
           "completedAt": "2026-08-03T16:21:44.559Z",
           "identity": "card:f9129167-19a8-4d52-8478-00f1423553d7:action-9c12036f-7bc2-42bb-ba20-70a7de3cd3fd"
@@ -504,6 +642,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "f9a450d8-0f93-4487-99f3-23dcc07b42b2",
           "completedAt": "2026-08-04T11:51:52.865Z",
           "identity": "card:f9a450d8-0f93-4487-99f3-23dcc07b42b2:action-8c155ef6-d9d6-47a0-a375-219a5a3cb441"
@@ -1690,6 +1830,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "05d5d49c-401f-42cd-b3cc-074e169631dd",
           "completedAt": "2026-08-07T13:39:11.264Z",
           "identity": "card:05d5d49c-401f-42cd-b3cc-074e169631dd:action-af9ce42f-f0c9-4dec-8357-9933950b0272"
@@ -1697,6 +1839,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "0ef8b9a6-ac40-4617-b077-17260b17a61c",
           "completedAt": "2026-08-07T16:56:12.174Z",
           "identity": "card:0ef8b9a6-ac40-4617-b077-17260b17a61c:action-0acea349-432b-4d61-93ff-b03720ce4861"
@@ -1704,6 +1848,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "0ef8b9a6-ac40-4617-b077-17260b17a61c",
           "completedAt": "2026-08-07T17:11:44.766Z",
           "identity": "card:0ef8b9a6-ac40-4617-b077-17260b17a61c:action-6fd25848-d7eb-4e8e-a6e5-87f649c55acb"
@@ -1711,6 +1857,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "1282901d-fbea-459b-92ab-6d82708948df",
           "completedAt": "2026-08-08T14:53:20.908Z",
           "identity": "card:1282901d-fbea-459b-92ab-6d82708948df:action-c4185237-28c4-4502-9309-c8b511f49d86"
@@ -1718,6 +1866,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "1282901d-fbea-459b-92ab-6d82708948df",
           "completedAt": "2026-08-08T15:18:03.558Z",
           "identity": "card:1282901d-fbea-459b-92ab-6d82708948df:action-d964187c-523e-4580-829e-1eb4b386847a"
@@ -1725,6 +1875,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "1e3a953f-e81b-42a5-9586-0dbb87e389f8",
           "completedAt": "2026-08-07T13:57:46.611Z",
           "identity": "card:1e3a953f-e81b-42a5-9586-0dbb87e389f8:action-2ee29d84-a26b-4a29-9026-b4b9aea5fb29"
@@ -1732,6 +1884,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "1e3a953f-e81b-42a5-9586-0dbb87e389f8",
           "completedAt": "2026-08-07T14:34:26.038Z",
           "identity": "card:1e3a953f-e81b-42a5-9586-0dbb87e389f8:action-3dce6686-d858-444b-aa42-a63ddc35dc57"
@@ -1739,6 +1893,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "1ebcfe45-9445-47e6-8619-6c72708bd91b",
           "completedAt": "2026-08-08T17:38:20.715Z",
           "identity": "card:1ebcfe45-9445-47e6-8619-6c72708bd91b:action-df4bd717-1c7c-4811-8d6d-63f94892a6b5"
@@ -1746,6 +1902,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "1ebcfe45-9445-47e6-8619-6c72708bd91b",
           "completedAt": "2026-08-08T18:10:59.179Z",
           "identity": "card:1ebcfe45-9445-47e6-8619-6c72708bd91b:action-57c81f6f-b9f6-464f-84a9-c5f0e191d988"
@@ -1753,6 +1911,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "26fc69f5-78ff-4e8e-81a7-c458232db575",
           "completedAt": "2026-08-07T15:13:08.167Z",
           "identity": "card:26fc69f5-78ff-4e8e-81a7-c458232db575:action-c7c8653f-a151-4a54-a83a-70a0d976776e"
@@ -1760,6 +1920,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "26fc69f5-78ff-4e8e-81a7-c458232db575",
           "completedAt": "2026-08-07T15:33:30.806Z",
           "identity": "card:26fc69f5-78ff-4e8e-81a7-c458232db575:action-c48ae5c3-0b48-43d1-9119-c176d0093b3d"
@@ -1767,6 +1929,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "3373bf52-14c0-4cc7-8f7c-555c835af9a0",
           "completedAt": "2026-08-07T17:04:07.493Z",
           "identity": "card:3373bf52-14c0-4cc7-8f7c-555c835af9a0:action-2b3fad6c-17fd-4d74-919b-41a3af92051e"
@@ -1774,6 +1938,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "3373bf52-14c0-4cc7-8f7c-555c835af9a0",
           "completedAt": "2026-08-08T11:39:39.773Z",
           "identity": "card:3373bf52-14c0-4cc7-8f7c-555c835af9a0:action-b8b15c20-505d-4929-a766-dcd882248546"
@@ -1781,6 +1947,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "3616573b-1a04-4f9f-aa5c-88ae92cb1188",
           "completedAt": "2026-08-08T15:04:21.872Z",
           "identity": "card:3616573b-1a04-4f9f-aa5c-88ae92cb1188:action-b4886946-ff72-44e9-a8a4-13bc730affef"
@@ -1788,6 +1956,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "3616573b-1a04-4f9f-aa5c-88ae92cb1188",
           "completedAt": "2026-08-08T15:56:04.310Z",
           "identity": "card:3616573b-1a04-4f9f-aa5c-88ae92cb1188:action-f4adfa09-64bb-48ab-bcd7-5d063ffcbf07"
@@ -1795,6 +1965,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "3913c1ee-9bd7-40df-bfae-1f0188881b8f",
           "completedAt": "2026-08-08T13:21:51.694Z",
           "identity": "card:3913c1ee-9bd7-40df-bfae-1f0188881b8f:action-f41b94b9-fe20-42b4-a326-39bc1297a883"
@@ -1802,6 +1974,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "425e518f-0813-4f49-a459-62f73a7c0655",
           "completedAt": "2026-08-08T15:01:45.174Z",
           "identity": "card:425e518f-0813-4f49-a459-62f73a7c0655:action-14334a33-9bf4-4180-928c-0bae5ec6a4af"
@@ -1809,6 +1983,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "425e518f-0813-4f49-a459-62f73a7c0655",
           "completedAt": "2026-08-08T16:43:55.235Z",
           "identity": "card:425e518f-0813-4f49-a459-62f73a7c0655:action-659fbf0b-6890-4c41-90b8-e108ef355156"
@@ -1816,6 +1992,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "4d8ae085-bd65-46be-933d-83544fcf77fa",
           "completedAt": "2026-08-07T14:53:22.529Z",
           "identity": "card:4d8ae085-bd65-46be-933d-83544fcf77fa:action-dfc1022c-1208-4d7c-840e-f0b895f3873d"
@@ -1823,6 +2001,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "4d8ae085-bd65-46be-933d-83544fcf77fa",
           "completedAt": "2026-08-07T15:01:12.746Z",
           "identity": "card:4d8ae085-bd65-46be-933d-83544fcf77fa:action-0d436e9a-8ee0-4e08-b196-243f60f68bee"
@@ -1830,6 +2010,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "51db4329-b855-4084-9e87-a50d3ce8eb6e",
           "completedAt": "2026-08-08T12:52:49.884Z",
           "identity": "card:51db4329-b855-4084-9e87-a50d3ce8eb6e:action-0668ae26-a31d-4a90-9097-aafd380d337d"
@@ -1837,6 +2019,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "51db4329-b855-4084-9e87-a50d3ce8eb6e",
           "completedAt": "2026-08-08T13:02:58.921Z",
           "identity": "card:51db4329-b855-4084-9e87-a50d3ce8eb6e:action-432db050-1dce-4aa0-aa5e-48318e4bd190"
@@ -1844,6 +2028,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "705b887c-4aac-4558-bfef-a5cb965f8719",
           "completedAt": "2026-08-08T18:05:04.770Z",
           "identity": "card:705b887c-4aac-4558-bfef-a5cb965f8719:action-c064cf6f-5cbb-413d-ba4c-e9c9068c357f"
@@ -1851,6 +2037,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "705b887c-4aac-4558-bfef-a5cb965f8719",
           "completedAt": "2026-08-08T18:23:55.632Z",
           "identity": "card:705b887c-4aac-4558-bfef-a5cb965f8719:action-67852c51-cfb7-454f-9cfa-e8ecbed00900"
@@ -1858,6 +2046,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "70f4d324-387f-4160-9465-51d9a8117b04",
           "completedAt": "2026-08-08T14:10:16.835Z",
           "identity": "card:70f4d324-387f-4160-9465-51d9a8117b04:action-1add8880-1934-482d-a7d6-11cfb5a5b9ef"
@@ -1865,6 +2055,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "70f4d324-387f-4160-9465-51d9a8117b04",
           "completedAt": "2026-08-08T14:11:05.838Z",
           "identity": "card:70f4d324-387f-4160-9465-51d9a8117b04:action-748bfa9c-b6c8-4796-a8f3-f43bfb26f3b0"
@@ -1872,6 +2064,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "70f4d324-387f-4160-9465-51d9a8117b04",
           "completedAt": "2026-08-08T14:30:35.399Z",
           "identity": "card:70f4d324-387f-4160-9465-51d9a8117b04:action-d49165d5-2a9c-489a-8c4e-8ab6f716ab57"
@@ -1879,6 +2073,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "claude",
           "cardInternalId": "a2cf4f9a-dc7f-417e-8591-c5993e770738",
           "completedAt": "2026-08-07T14:12:17.689Z",
           "identity": "card:a2cf4f9a-dc7f-417e-8591-c5993e770738:action-a87d7cd2-eeae-43d3-abb7-79d200aa9701"
@@ -1886,6 +2082,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "a2cf4f9a-dc7f-417e-8591-c5993e770738",
           "completedAt": "2026-08-07T14:21:16.174Z",
           "identity": "card:a2cf4f9a-dc7f-417e-8591-c5993e770738:action-01d966de-2afa-4e8f-9752-c6223f03792f"
@@ -1893,6 +2091,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "a5f03c32-1395-498d-bbfd-10184c78a633",
           "completedAt": "2026-08-07T15:03:12.527Z",
           "identity": "card:a5f03c32-1395-498d-bbfd-10184c78a633:action-16bc24b3-1dba-4958-b7d9-5c179038f7e1"
@@ -1900,6 +2100,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "a5f03c32-1395-498d-bbfd-10184c78a633",
           "completedAt": "2026-08-07T15:17:50.011Z",
           "identity": "card:a5f03c32-1395-498d-bbfd-10184c78a633:action-ebb909b9-16dd-4506-a616-10fa48f6aaaf"
@@ -1907,6 +2109,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "a75df9b2-d7eb-48df-ba8a-398fac272f15",
           "completedAt": "2026-08-10T11:05:16.235Z",
           "identity": "card:a75df9b2-d7eb-48df-ba8a-398fac272f15:action-c3ca2b00-9d33-4bc8-9f30-8dc23f0b2ab6"
@@ -1914,6 +2118,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "a75df9b2-d7eb-48df-ba8a-398fac272f15",
           "completedAt": "2026-08-10T11:43:41.440Z",
           "identity": "card:a75df9b2-d7eb-48df-ba8a-398fac272f15:action-abe3f61c-66a1-4d5c-8f88-c2370f653891"
@@ -1921,6 +2127,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "a75df9b2-d7eb-48df-ba8a-398fac272f15",
           "completedAt": "2026-08-10T12:37:31.079Z",
           "identity": "card:a75df9b2-d7eb-48df-ba8a-398fac272f15:action-d6f4af86-d7d3-4fc1-ad6a-7e28ba388251"
@@ -1928,6 +2136,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "a75df9b2-d7eb-48df-ba8a-398fac272f15",
           "completedAt": "2026-08-10T12:38:32.471Z",
           "identity": "card:a75df9b2-d7eb-48df-ba8a-398fac272f15:action-9e6a5d54-b766-4a97-a4be-c5b1521fb1cc"
@@ -1935,6 +2145,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "ade75617-2ab1-40c9-ae62-01700b995632",
           "completedAt": "2026-08-08T13:44:11.008Z",
           "identity": "card:ade75617-2ab1-40c9-ae62-01700b995632:action-f10ba3ee-6d06-437f-a5af-6c33b47d78ab"
@@ -1942,6 +2154,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "c0571d27-a3f8-41bd-9a3b-861c7969f9af",
           "completedAt": "2026-08-07T17:22:21.615Z",
           "identity": "card:c0571d27-a3f8-41bd-9a3b-861c7969f9af:action-8b29306d-0bfd-41d4-b72a-5d4219615793"
@@ -1949,6 +2163,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "c0571d27-a3f8-41bd-9a3b-861c7969f9af",
           "completedAt": "2026-08-07T18:42:31.078Z",
           "identity": "card:c0571d27-a3f8-41bd-9a3b-861c7969f9af:action-f54ffcfe-8cc3-4b5d-9841-93f09444e682"
@@ -1956,6 +2172,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "c38e7423-9b05-47e2-a728-9637a25f9a2e",
           "completedAt": "2026-08-08T17:38:23.217Z",
           "identity": "card:c38e7423-9b05-47e2-a728-9637a25f9a2e:action-14351e45-d670-4d93-a9d2-6fcf613728cc"
@@ -1963,6 +2181,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "c38e7423-9b05-47e2-a728-9637a25f9a2e",
           "completedAt": "2026-08-08T17:57:18.163Z",
           "identity": "card:c38e7423-9b05-47e2-a728-9637a25f9a2e:action-febde0ed-a38f-401b-8d2c-de3d6cfc83db"
@@ -1970,6 +2190,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "d078e271-bd1a-4a6d-86a0-d9cf3264c7e0",
           "completedAt": "2026-08-07T10:01:23.726Z",
           "identity": "card:d078e271-bd1a-4a6d-86a0-d9cf3264c7e0:action-01d743f4-38f6-492c-8a37-c5ec2fdb06d1"
@@ -1977,6 +2199,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "d078e271-bd1a-4a6d-86a0-d9cf3264c7e0",
           "completedAt": "2026-08-07T12:24:36.031Z",
           "identity": "card:d078e271-bd1a-4a6d-86a0-d9cf3264c7e0:action-4b57d816-c7dd-4189-9423-3dc5c7f643a9"
@@ -1984,6 +2208,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "db0d6a75-3aa8-49ef-b855-a0cd4253e25d",
           "completedAt": "2026-08-07T14:36:36.255Z",
           "identity": "card:db0d6a75-3aa8-49ef-b855-a0cd4253e25d:action-e0d9d74e-994b-4fd6-ab54-dbad2dfd1236"
@@ -1991,6 +2217,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "db0d6a75-3aa8-49ef-b855-a0cd4253e25d",
           "completedAt": "2026-08-07T14:53:39.008Z",
           "identity": "card:db0d6a75-3aa8-49ef-b855-a0cd4253e25d:action-7f5d608d-b9c8-4228-9d85-8ec53bf0f504"
@@ -1998,6 +2226,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete card",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "dfbc6cef-75cf-4a68-8e34-e72a7724769e",
           "completedAt": "2026-08-03T18:29:57.017Z",
           "identity": "card:dfbc6cef-75cf-4a68-8e34-e72a7724769e:action-bdd2d563-e24d-46e1-8a74-1139f1413311"
@@ -2005,6 +2235,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "dfbc6cef-75cf-4a68-8e34-e72a7724769e",
           "completedAt": "2026-08-07T14:48:24.028Z",
           "identity": "card:dfbc6cef-75cf-4a68-8e34-e72a7724769e:action-2f875d7d-9bf6-4be7-987c-ef4e74684dc1"
@@ -2012,6 +2244,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "eeb46f0d-77d7-4a9d-a83e-b64e9101b994",
           "completedAt": "2026-08-07T07:35:19.824Z",
           "identity": "card:eeb46f0d-77d7-4a9d-a83e-b64e9101b994:action-1f174f2c-e56f-4788-aee9-d7bf1738c1c2"
@@ -2019,6 +2253,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "eeb46f0d-77d7-4a9d-a83e-b64e9101b994",
           "completedAt": "2026-08-07T09:39:38.681Z",
           "identity": "card:eeb46f0d-77d7-4a9d-a83e-b64e9101b994:action-b82c25c9-f6eb-4e9d-afc4-0a85cb805832"
@@ -2026,6 +2262,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "eeb46f0d-77d7-4a9d-a83e-b64e9101b994",
           "completedAt": "2026-08-07T09:49:58.468Z",
           "identity": "card:eeb46f0d-77d7-4a9d-a83e-b64e9101b994:action-71449589-1237-4b2c-8a27-b7ea28709d9c"
@@ -2940,6 +3178,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "012efbb1-c938-4539-a646-0f263e72dea6",
           "completedAt": "2026-08-11T15:18:10.486Z",
           "identity": "card:012efbb1-c938-4539-a646-0f263e72dea6:action-b20fecd7-cdf4-4a91-bfcc-fc3a008add7a"
@@ -2947,6 +3187,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "012efbb1-c938-4539-a646-0f263e72dea6",
           "completedAt": "2026-08-11T15:47:32.076Z",
           "identity": "card:012efbb1-c938-4539-a646-0f263e72dea6:action-29c7b120-0184-4478-b58d-f6afcb6eed99"
@@ -2954,6 +3196,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "12b91511-c445-404c-afcb-bdaf300ef50b",
           "completedAt": "2026-08-11T17:24:31.840Z",
           "identity": "card:12b91511-c445-404c-afcb-bdaf300ef50b:action-a0e4b26d-587e-46db-9c74-0e8c1f8c5e5f"
@@ -2961,6 +3205,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "12b91511-c445-404c-afcb-bdaf300ef50b",
           "completedAt": "2026-08-11T17:35:17.779Z",
           "identity": "card:12b91511-c445-404c-afcb-bdaf300ef50b:action-2287ff1e-603c-41b1-863d-6e87abc49973"
@@ -2968,6 +3214,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "12b91511-c445-404c-afcb-bdaf300ef50b",
           "completedAt": "2026-08-11T17:43:34.990Z",
           "identity": "card:12b91511-c445-404c-afcb-bdaf300ef50b:action-8c9e47f3-485b-4569-9099-b68c398bc384"
@@ -2975,6 +3223,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "13c372c3-d12e-4b88-9ee3-b987068aaa0e",
           "completedAt": "2026-08-10T17:55:28.597Z",
           "identity": "card:13c372c3-d12e-4b88-9ee3-b987068aaa0e:action-ad264e03-aff9-4100-adaa-d1bddf99eb93"
@@ -2982,6 +3232,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "13c372c3-d12e-4b88-9ee3-b987068aaa0e",
           "completedAt": "2026-08-10T17:56:02.741Z",
           "identity": "card:13c372c3-d12e-4b88-9ee3-b987068aaa0e:action-9de11be2-fc83-4f9a-95fe-f11e20d3215e"
@@ -2989,6 +3241,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "13c372c3-d12e-4b88-9ee3-b987068aaa0e",
           "completedAt": "2026-08-10T18:16:37.143Z",
           "identity": "card:13c372c3-d12e-4b88-9ee3-b987068aaa0e:action-21afdc36-9c89-4247-bf77-b1380f145e9d"
@@ -2996,6 +3250,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "2b696eca-93cd-48b1-a237-b3cb9658e1d8",
           "completedAt": "2026-08-14T08:27:17.919Z",
           "identity": "card:2b696eca-93cd-48b1-a237-b3cb9658e1d8:action-18768aa4-8e5e-4dcb-a118-690826b177a6"
@@ -3003,6 +3259,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "2b696eca-93cd-48b1-a237-b3cb9658e1d8",
           "completedAt": "2026-08-14T09:19:26.790Z",
           "identity": "card:2b696eca-93cd-48b1-a237-b3cb9658e1d8:action-9afa8f5f-7624-4f94-b513-3e542a75e823"
@@ -3010,6 +3268,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "32276926-4cff-486d-88bb-a98fbe1bfd8a",
           "completedAt": "2026-08-11T14:57:52.024Z",
           "identity": "card:32276926-4cff-486d-88bb-a98fbe1bfd8a:action-107f628a-0093-48bf-930b-a231ee222d8d"
@@ -3017,6 +3277,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "32276926-4cff-486d-88bb-a98fbe1bfd8a",
           "completedAt": "2026-08-11T15:21:20.752Z",
           "identity": "card:32276926-4cff-486d-88bb-a98fbe1bfd8a:action-e11eb2e6-53b2-48b2-82eb-af7f9bd9258e"
@@ -3024,6 +3286,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "32276926-4cff-486d-88bb-a98fbe1bfd8a",
           "completedAt": "2026-08-11T15:40:24.933Z",
           "identity": "card:32276926-4cff-486d-88bb-a98fbe1bfd8a:action-535acebe-251c-4dcb-bc56-91de72dca29b"
@@ -3031,6 +3295,8 @@
         {
           "actionId": "md2.custom-prompt",
           "actionLabel": "+",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "32276926-4cff-486d-88bb-a98fbe1bfd8a",
           "completedAt": "2026-08-12T08:25:09.454Z",
           "identity": "card:32276926-4cff-486d-88bb-a98fbe1bfd8a:action-1bea8b74-ec71-4207-b1f4-aeabe1a46bf4"
@@ -3038,6 +3304,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "34581d14-8a7c-4f5c-8cf3-b9137260221d",
           "completedAt": "2026-08-12T13:46:50.232Z",
           "identity": "card:34581d14-8a7c-4f5c-8cf3-b9137260221d:action-484a5ee3-97bf-4251-bcec-42d133ce7a16"
@@ -3045,6 +3313,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "3e1c301f-4350-413c-b534-e03b0dcee2cc",
           "completedAt": "2026-08-11T17:29:44.550Z",
           "identity": "card:3e1c301f-4350-413c-b534-e03b0dcee2cc:action-b9f2b9e1-4dbf-4eff-ba03-95e8f5439e3c"
@@ -3052,6 +3322,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "3e1c301f-4350-413c-b534-e03b0dcee2cc",
           "completedAt": "2026-08-11T17:59:39.421Z",
           "identity": "card:3e1c301f-4350-413c-b534-e03b0dcee2cc:action-7fdce45e-3c55-40c4-9adf-f2ff86abd2ea"
@@ -3059,6 +3331,8 @@
         {
           "actionId": "md2.custom-prompt",
           "actionLabel": "+",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "43bf8521-8caa-4127-88fc-c31454193b90",
           "completedAt": "2026-08-13T15:05:25.367Z",
           "identity": "card:43bf8521-8caa-4127-88fc-c31454193b90:action-8b68ea88-8075-44b1-9134-14ca4e8c3f05"
@@ -3066,6 +3340,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "43bf8521-8caa-4127-88fc-c31454193b90",
           "completedAt": "2026-08-13T15:09:51.943Z",
           "identity": "card:43bf8521-8caa-4127-88fc-c31454193b90:action-5569235c-a009-451c-ad8b-5b97170f5661"
@@ -3073,6 +3349,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "43bf8521-8caa-4127-88fc-c31454193b90",
           "completedAt": "2026-08-13T16:57:30.273Z",
           "identity": "card:43bf8521-8caa-4127-88fc-c31454193b90:action-59a1eb84-9bc5-456d-9ed0-7d80369e13fd"
@@ -3080,6 +3358,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "4aa237a7-a946-4ce7-84ba-962826a44dfa",
           "completedAt": "2026-08-12T08:39:30.615Z",
           "identity": "card:4aa237a7-a946-4ce7-84ba-962826a44dfa:action-805b5358-7770-4d72-af9f-13e36f87e90a"
@@ -3087,6 +3367,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "4aa237a7-a946-4ce7-84ba-962826a44dfa",
           "completedAt": "2026-08-12T12:55:55.371Z",
           "identity": "card:4aa237a7-a946-4ce7-84ba-962826a44dfa:action-0853ee7b-cea2-4646-940b-68512aadea45"
@@ -3094,6 +3376,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "4bb52e4a-38c7-47bd-9fe8-c49cdd08c0b0",
           "completedAt": "2026-08-13T17:01:34.109Z",
           "identity": "card:4bb52e4a-38c7-47bd-9fe8-c49cdd08c0b0:action-4ea963f2-bacb-4e0e-b503-a7c1e6ea17d4"
@@ -3101,6 +3385,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "4bb52e4a-38c7-47bd-9fe8-c49cdd08c0b0",
           "completedAt": "2026-08-13T17:15:36.610Z",
           "identity": "card:4bb52e4a-38c7-47bd-9fe8-c49cdd08c0b0:action-d0e67629-2974-4ec4-9f00-bc4c6dad61d9"
@@ -3108,6 +3394,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "528ea430-ce5c-4e61-ac31-70c93daf5eaa",
           "completedAt": "2026-08-13T12:01:06.273Z",
           "identity": "card:528ea430-ce5c-4e61-ac31-70c93daf5eaa:action-5a135a90-e861-4ffd-b3b3-49532f98843f"
@@ -3115,6 +3403,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "56f68e51-66b5-4b47-9cf2-6a47128a0cb6",
           "completedAt": "2026-08-13T14:31:18.809Z",
           "identity": "card:56f68e51-66b5-4b47-9cf2-6a47128a0cb6:action-be8fda92-696f-4ff7-9dd2-3a6298cfbfec"
@@ -3122,6 +3412,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "56f68e51-66b5-4b47-9cf2-6a47128a0cb6",
           "completedAt": "2026-08-13T15:39:16.227Z",
           "identity": "card:56f68e51-66b5-4b47-9cf2-6a47128a0cb6:action-2d50f362-5c29-422d-aaa3-abdff25d9f08"
@@ -3129,6 +3421,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "claude",
           "cardInternalId": "615b2a1f-55c2-4113-b1ac-589ae3474ae2",
           "completedAt": "2026-08-10T17:56:41.525Z",
           "identity": "card:615b2a1f-55c2-4113-b1ac-589ae3474ae2:action-b46e487e-e918-40e6-b4a4-607ba155b87d"
@@ -3136,6 +3430,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "claude",
           "cardInternalId": "615b2a1f-55c2-4113-b1ac-589ae3474ae2",
           "completedAt": "2026-08-10T18:17:29.175Z",
           "identity": "card:615b2a1f-55c2-4113-b1ac-589ae3474ae2:action-8b02ed86-c7b1-4b63-99d2-11998d36d03a"
@@ -3143,6 +3439,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "6874b231-0cef-4a8a-8b0b-cc91f3daff42",
           "completedAt": "2026-08-12T14:02:23.364Z",
           "identity": "card:6874b231-0cef-4a8a-8b0b-cc91f3daff42:action-12b2cb26-444c-4bb7-aa90-3a80681fe809"
@@ -3150,6 +3448,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "6874b231-0cef-4a8a-8b0b-cc91f3daff42",
           "completedAt": "2026-08-12T14:25:33.552Z",
           "identity": "card:6874b231-0cef-4a8a-8b0b-cc91f3daff42:action-93cb9031-50cf-4735-a577-b4977f26e736"
@@ -3157,6 +3457,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "6e978222-1b68-4e43-bcbf-2e1efa4f6147",
           "completedAt": "2026-08-14T08:26:11.447Z",
           "identity": "card:6e978222-1b68-4e43-bcbf-2e1efa4f6147:action-67d14e93-fa92-434b-a4cd-0de9aa02bfc4"
@@ -3164,6 +3466,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "6e978222-1b68-4e43-bcbf-2e1efa4f6147",
           "completedAt": "2026-08-14T09:18:45.444Z",
           "identity": "card:6e978222-1b68-4e43-bcbf-2e1efa4f6147:action-28a30f20-e2dc-4e4e-b3aa-2b97c0a9ab6d"
@@ -3171,6 +3475,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "7082348f-6737-4bef-ab60-2fdbcdf5da4e",
           "completedAt": "2026-08-13T15:09:59.531Z",
           "identity": "card:7082348f-6737-4bef-ab60-2fdbcdf5da4e:action-b3860e80-5b88-4a21-b257-f4336f87031d"
@@ -3178,6 +3484,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "7082348f-6737-4bef-ab60-2fdbcdf5da4e",
           "completedAt": "2026-08-13T17:09:40.576Z",
           "identity": "card:7082348f-6737-4bef-ab60-2fdbcdf5da4e:action-bc8ebdc4-5e30-446e-8c1d-187b6bdc8e99"
@@ -3185,6 +3493,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "715f1a07-796d-4a83-bed9-bd3527584dce",
           "completedAt": "2026-08-14T08:00:35.370Z",
           "identity": "card:715f1a07-796d-4a83-bed9-bd3527584dce:action-7d781eda-c202-4f99-92f7-a5d8dcadfcc8"
@@ -3192,6 +3502,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "715f1a07-796d-4a83-bed9-bd3527584dce",
           "completedAt": "2026-08-14T08:18:36.239Z",
           "identity": "card:715f1a07-796d-4a83-bed9-bd3527584dce:action-af63f092-8e8b-49f2-b258-dc2f91f80f9a"
@@ -3199,6 +3511,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "7cc0a40b-58f2-463e-8872-62474c1a681f",
           "completedAt": "2026-08-13T17:15:16.891Z",
           "identity": "card:7cc0a40b-58f2-463e-8872-62474c1a681f:action-52e06310-7c34-47f1-9622-94ce5e7c6573"
@@ -3206,6 +3520,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "7cc0a40b-58f2-463e-8872-62474c1a681f",
           "completedAt": "2026-08-14T08:16:25.022Z",
           "identity": "card:7cc0a40b-58f2-463e-8872-62474c1a681f:action-32045567-94a9-4a3b-9c38-0614dffd0196"
@@ -3213,6 +3529,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "894c324e-d9cf-400f-b964-5256ffff9b24",
           "completedAt": "2026-08-13T17:03:58.247Z",
           "identity": "card:894c324e-d9cf-400f-b964-5256ffff9b24:action-878eb91c-e7d0-491b-b91c-bb1c45aadbf8"
@@ -3220,6 +3538,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "894c324e-d9cf-400f-b964-5256ffff9b24",
           "completedAt": "2026-08-13T17:27:18.788Z",
           "identity": "card:894c324e-d9cf-400f-b964-5256ffff9b24:action-5bde886e-6f70-4fd3-b430-68f1ffd061fd"
@@ -3227,6 +3547,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "8fedf475-d0af-4fe3-9aa0-d00bdfacffa0",
           "completedAt": "2026-08-10T17:38:21.570Z",
           "identity": "card:8fedf475-d0af-4fe3-9aa0-d00bdfacffa0:action-12823d80-b9e1-4def-9349-0767a6582490"
@@ -3234,6 +3556,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "8fedf475-d0af-4fe3-9aa0-d00bdfacffa0",
           "completedAt": "2026-08-10T18:05:30.934Z",
           "identity": "card:8fedf475-d0af-4fe3-9aa0-d00bdfacffa0:action-34d26197-9b33-43e4-8be3-c0eb5a841e43"
@@ -3241,6 +3565,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "a57b89e0-49f4-4c25-9d99-deea222460cd",
           "completedAt": "2026-08-13T12:55:41.821Z",
           "identity": "card:a57b89e0-49f4-4c25-9d99-deea222460cd:action-8871aaac-1954-4887-824c-f3192f2297e4"
@@ -3248,6 +3574,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "a57b89e0-49f4-4c25-9d99-deea222460cd",
           "completedAt": "2026-08-13T13:38:55.519Z",
           "identity": "card:a57b89e0-49f4-4c25-9d99-deea222460cd:action-bc9f72b9-a3e0-44c3-bb60-76695b9dd142"
@@ -3255,6 +3583,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "bbf61e6e-adfa-46ee-a2f4-040b8152bc4b",
           "completedAt": "2026-08-12T08:48:51.745Z",
           "identity": "card:bbf61e6e-adfa-46ee-a2f4-040b8152bc4b:action-276d3542-42a6-480a-b03b-95d0055edeaf"
@@ -3262,6 +3592,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "bbf61e6e-adfa-46ee-a2f4-040b8152bc4b",
           "completedAt": "2026-08-12T14:05:22.182Z",
           "identity": "card:bbf61e6e-adfa-46ee-a2f4-040b8152bc4b:action-f6a95a6c-2c37-44c8-98b6-e42e056a8b5e"
@@ -3269,6 +3601,8 @@
         {
           "actionId": "md2.custom-prompt",
           "actionLabel": "+",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "c1af41da-7012-48b8-a985-64cc138f8baa",
           "completedAt": "2026-08-11T18:01:14.949Z",
           "identity": "card:c1af41da-7012-48b8-a985-64cc138f8baa:action-d08b5d4a-b6a9-4332-988e-516a0eb2af57"
@@ -3276,6 +3610,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "c1af41da-7012-48b8-a985-64cc138f8baa",
           "completedAt": "2026-08-11T18:45:40.713Z",
           "identity": "card:c1af41da-7012-48b8-a985-64cc138f8baa:action-5b850f3c-e498-4baa-a926-3e1aea9fb3da"
@@ -3283,6 +3619,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "d47986a5-1380-4dd1-adb9-fff106a9a143",
           "completedAt": "2026-08-13T12:06:39.886Z",
           "identity": "card:d47986a5-1380-4dd1-adb9-fff106a9a143:action-1e0bdbc5-8e61-42cf-9162-f83a704274b6"
@@ -3290,6 +3628,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "d47986a5-1380-4dd1-adb9-fff106a9a143",
           "completedAt": "2026-08-13T13:05:05.330Z",
           "identity": "card:d47986a5-1380-4dd1-adb9-fff106a9a143:action-0958d4e0-8937-469e-b980-950f37bae7f3"
@@ -3297,6 +3637,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "d7bd3d2f-ec5c-4025-879a-5a715e2b4ffc",
           "completedAt": "2026-08-10T18:16:23.921Z",
           "identity": "card:d7bd3d2f-ec5c-4025-879a-5a715e2b4ffc:action-f8a0b656-b359-4e20-9b5f-58a40a8f1f48"
@@ -3304,6 +3646,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "d7bd3d2f-ec5c-4025-879a-5a715e2b4ffc",
           "completedAt": "2026-08-10T18:31:43.996Z",
           "identity": "card:d7bd3d2f-ec5c-4025-879a-5a715e2b4ffc:action-a8503454-7950-46dd-b7fb-69b67eb12a8b"
@@ -3311,6 +3655,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "e0010544-02b5-4372-82c7-bc05bd62929c",
           "completedAt": "2026-08-13T12:23:08.826Z",
           "identity": "card:e0010544-02b5-4372-82c7-bc05bd62929c:action-ad446a9d-e956-47d5-9dd9-ae71d93d3ae2"
@@ -3318,6 +3664,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "e0010544-02b5-4372-82c7-bc05bd62929c",
           "completedAt": "2026-08-13T12:51:47.231Z",
           "identity": "card:e0010544-02b5-4372-82c7-bc05bd62929c:action-1d4ac48b-8d19-42fe-8dc3-6c6a2103ce99"
@@ -3325,6 +3673,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "e4d3228b-4f97-44f2-9948-8896a694c165",
           "completedAt": "2026-08-10T17:19:32.246Z",
           "identity": "card:e4d3228b-4f97-44f2-9948-8896a694c165:action-f39cb167-970d-467e-bb28-49052054b8d4"
@@ -3332,6 +3682,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "e4d3228b-4f97-44f2-9948-8896a694c165",
           "completedAt": "2026-08-10T17:41:25.596Z",
           "identity": "card:e4d3228b-4f97-44f2-9948-8896a694c165:action-1692d98a-b04a-4791-970e-e25da3c1c7d0"
@@ -3339,6 +3691,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "e4d3228b-4f97-44f2-9948-8896a694c165",
           "completedAt": "2026-08-10T17:45:21.654Z",
           "identity": "card:e4d3228b-4f97-44f2-9948-8896a694c165:action-3f5c885e-3b56-41ab-b818-9813ff56a302"
@@ -3346,6 +3700,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "f63b1866-ff7a-4fe9-b984-06cf1284f74e",
           "completedAt": "2026-08-12T08:42:06.864Z",
           "identity": "card:f63b1866-ff7a-4fe9-b984-06cf1284f74e:action-331529c1-5eb5-45b6-afb8-da120f8f92bc"
@@ -3353,6 +3709,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "f63b1866-ff7a-4fe9-b984-06cf1284f74e",
           "completedAt": "2026-08-12T13:37:35.735Z",
           "identity": "card:f63b1866-ff7a-4fe9-b984-06cf1284f74e:action-20dc2a2f-3994-4e68-9ecf-be7fea291b53"
@@ -3360,6 +3718,8 @@
         {
           "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
           "actionLabel": "complete",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "fc4322fa-2432-4365-b355-32cf5e6e6af2",
           "completedAt": "2026-08-13T16:52:44.276Z",
           "identity": "card:fc4322fa-2432-4365-b355-32cf5e6e6af2:action-795e0519-0bd7-481a-a6f6-0ea2eb5f9144"
@@ -3367,6 +3727,8 @@
         {
           "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
           "actionLabel": "implement",
+          "actionType": "agent",
+          "agent": "codex",
           "cardInternalId": "fc4322fa-2432-4365-b355-32cf5e6e6af2",
           "completedAt": "2026-08-13T17:12:27.881Z",
           "identity": "card:fc4322fa-2432-4365-b355-32cf5e6e6af2:action-6808faed-95e5-40df-a0f9-d8db57f8dc10"
@@ -4430,5 +4792,5 @@
       ]
     }
   },
-  "version": 2
+  "version": 3
 }
