@@ -1016,15 +1016,15 @@
           "agent": "codex",
           "conversationId": "01a01aff-c1c5-7452-abba-33e5f8be0a49",
           "createdAt": "2026-08-19T17:11:54.726Z",
-          "lastUsedAt": "2026-08-19T17:17:08.383Z",
-          "synchronizedThroughMessageId": "agent-turn-f202be7c-ef36-4ccb-998a-36b233c41769-turn-3-assistant-1"
+          "lastUsedAt": "2026-08-19T17:20:38.866Z",
+          "synchronizedThroughMessageId": "agent-turn-f202be7c-ef36-4ccb-998a-36b233c41769-turn-4-assistant-2"
         }
       ],
       "startedAt": "2026-08-19T17:09:23.328Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
-        "elapsedMs": 169330,
-        "runningStartedAt": "2026-08-19T17:20:01.301Z"
+        "elapsedMs": 206895,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
