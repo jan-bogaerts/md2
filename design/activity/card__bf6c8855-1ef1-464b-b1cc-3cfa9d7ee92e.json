@@ -4286,11 +4286,11 @@
         "agent-4deb2037-9543-4cf1-b200-21ac73d1eda1"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-5d593032-a757-48c3-8837-2f3bbb502854",
       "origin": {
@@ -4299,9 +4299,40 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-4deb2037-9543-4cf1-b200-21ac73d1eda1",
       "startedAt": "2026-08-19T13:03:08.786Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-4deb2037-9543-4cf1-b200-21ac73d1eda1"
+    },
+    {
+      "commits": [
+        {
+          "commit": "9828a7e4b4beba10bc4ce0ba3cd26add6b109249",
+          "committedAt": "2026-08-19T15:22:25+02:00",
+          "deletions": 109,
+          "filePaths": [
+            "app/src/components/actions/run/popup/action_selector.test.tsx",
+            "app/src/components/actions/run/popup/action_selector.tsx",
+            "app/src/components/actions/run/popup/action_selector_button.tsx",
+            "app/src/components/actions/run/trigger/card_run_button.test.tsx",
+            "app/src/components/hooks/use_agent_acknowledgements.ts",
+            "app/src/components/hooks/use_card_action_agent_state.ts",
+            "app/src/services/agents/agent_integration.test.ts",
+            "app/src/services/agents/agent_integration.ts",
+            "app/src/services/data/data_service.ts",
+            "app/src/services/project/project_loading.ts"
+          ],
+          "filesChanged": 10,
+          "insertions": 230,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-19T15:22:25+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "bf6c8855-1ef1-464b-b1cc-3cfa9d7ee92e",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
