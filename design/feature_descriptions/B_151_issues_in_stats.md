@@ -18,7 +18,9 @@ policy:
 * on 'agent/model performance', bars start at half of the chart, they need to start at the bottom (width padding of course)
 * project usage vs account usage:
   * use 'vs' instead of 'versus' in the label
-  * project activity needs to go to the bottom, last chart
+  * project activity:
+    * needs to go to the bottom, last chart
+    * if&#x20;
   * account usage:
     * at top
     * has a light blue or gray bar for every day. what is the purpose of that&#x20;
