@@ -5716,11 +5716,11 @@
         "agent-30b8e045-0bb5-4298-942b-d9f4e2e5aba5"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-498d90d9-b543-4f4f-81d3-0a9b17f09972",
       "origin": {
@@ -5729,9 +5729,49 @@
       },
       "rootActionId": "32eceaf6-37d1-48b4-9bc1-c3f051eb7d8e",
       "rootActionLabel": "review",
-      "rootConversationId": "agent-30b8e045-0bb5-4298-942b-d9f4e2e5aba5",
       "startedAt": "2026-08-19T11:38:37.721Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-30b8e045-0bb5-4298-942b-d9f4e2e5aba5"
+    },
+    {
+      "commits": [
+        {
+          "commit": "b238e39e3bc06ba970fb277eda2601b915d9bcce",
+          "committedAt": "2026-08-19T14:52:31+02:00",
+          "deletions": 441,
+          "filePaths": [
+            "app/src/components/stats_view/stats_bar_chart.test.tsx",
+            "app/src/components/stats_view/stats_bar_chart.tsx",
+            "app/src/components/stats_view/stats_content.test.tsx",
+            "app/src/components/stats_view/stats_content.tsx",
+            "app/src/components/stats_view/stats_controls.tsx",
+            "app/src/components/stats_view/stats_csv.node.test.ts",
+            "app/src/components/stats_view/stats_csv.ts",
+            "app/src/components/stats_view/stats_usage_comparison_charts.tsx",
+            "app/src/services/agents/project_usage_metrics_service.node.test.ts",
+            "app/src/services/agents/project_usage_metrics_service.ts",
+            "app/src/services/stats/project_stats_schema.node.test.ts",
+            "app/src/services/stats/project_stats_service.node.test.ts",
+            "app/src/services/stats/project_stats_service.ts",
+            "app/src/theme/app_theme.node.test.ts",
+            "app/src/theme/app_theme.ts",
+            "app/src/theme/mui.d.ts",
+            "design/feature_descriptions/J_31_refactor_project_stats_service.md",
+            "shared/project_stats.d.mts",
+            "shared/project_stats.mjs"
+          ],
+          "filesChanged": 19,
+          "insertions": 1951,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-19T14:52:31+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "ad4126b2-1203-4a30-b222-636148bf92b1",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
