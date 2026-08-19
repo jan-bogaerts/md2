@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__bf6c8855-1ef1-464b-b1cc-3cfa9d7ee92e.json
 policy:
 ---
 When opening a project, the run buttons don't get the correct initial state like waitingForInput, or unread conversations.
