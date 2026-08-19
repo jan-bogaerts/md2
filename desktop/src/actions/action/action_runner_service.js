@@ -13,6 +13,8 @@ function createRunId() {
     return `action-${crypto.randomUUID()}`;
 }
 
+const TERMINAL_RECOVERY_RETENTION_MS = 5 * 60 * 1000;
+
 function activityOrigin(context) {
     if (context.kind === 'card' || context.kind === 'file') {
         if (typeof context.cardInternalId !== 'string' || context.cardInternalId.length === 0) {
@@ -54,6 +56,7 @@ class ActionRunnerService {
         this.activeCardsFolder = null;
         this.actionCacheReady = null;
         this.completedRunResults = new Map();
+        this.recoveryRunResults = new Map();
         this.conversationReservations = new Map();
         this.configuredStates = [];
         this.runEvents = new Map();
@@ -266,8 +269,22 @@ class ActionRunnerService {
         }
     }
 
-    loadActiveRunEvents() {
-        return [...this.runEvents.values()].flat();
+    loadRunRecoverySnapshot(rendererRunIds) {
+        if (!Array.isArray(rendererRunIds) || rendererRunIds.some((runId) => typeof runId !== 'string')) {
+            throw new Error('Invalid action run recovery IDs');
+        }
+
+        const now = Date.now();
+        for (const [runId, { expiresAt }] of this.recoveryRunResults) {
+            if (expiresAt <= now) this.recoveryRunResults.delete(runId);
+        }
+        const terminalResults = rendererRunIds.flatMap((runId) => {
+            const entry = this.recoveryRunResults.get(runId);
+
+            return entry ? [entry.result] : [];
+        });
+
+        return { activeRunEvents: [...this.runEvents.values()].flat(), terminalResults };
     }
 
     cancel(runId) {
@@ -332,6 +349,10 @@ class ActionRunnerService {
         this.runs.delete(run.runId);
         this.runEvents.delete(run.runId);
         this.completedRunResults.set(run.runId, result);
+        this.recoveryRunResults.set(run.runId, {
+            expiresAt: Date.now() + TERMINAL_RECOVERY_RETENTION_MS,
+            result,
+        });
         return result;
     }
 

@@ -6,6 +6,7 @@ import type { AgentAvailability } from './electron_data_bridge'
 import type { PermissionMode, ThinkingLevel } from './agent_profiles'
 import type {
     ActionRunEvent,
+    ActionRunTerminalStatus,
     ActionPromptRequest,
     ActionStartRequest,
     AgentConversationReservation,
@@ -13,6 +14,17 @@ import type {
     AgentApprovalRequestId,
     PreparedActionPrompt,
 } from './action_run_types'
+
+export interface ActionRunRecoveryTerminalResult {
+    failure: string | null
+    runId: string
+    status: ActionRunTerminalStatus
+}
+
+export interface ActionRunRecoverySnapshot {
+    activeRunEvents: ActionRunEvent[]
+    terminalResults: ActionRunRecoveryTerminalResult[]
+}
 
 export interface ActionRunHistoryRequest {
     actionId: string
@@ -142,7 +154,7 @@ export interface ElectronActionBridge {
     generateDiff(request: DiffRequest): Promise<DiffResult>
     generateWorktreeDiff(request: WorktreeDiffRequest): Promise<WorktreeDiffResult>
     loadActionRunHistory(request: ActionRunHistoryRequest): Promise<ActionRunHistoryEntry[]>
-    loadActiveActionRunEvents?(): Promise<ActionRunEvent[]>
+    loadActionRunRecoverySnapshot?(rendererRunIds: string[]): Promise<ActionRunRecoverySnapshot>
     notifyActionCardStateChange?(cardInternalId: string, state: string): Promise<void>
     loadCardActivity?(request: CardActivityRequest): Promise<CardActivityFile>
     loadAgentAvailability?(): Promise<Record<string, AgentAvailability>>

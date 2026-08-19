@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { ActionDefinition } from '../../data/action_types'
 import type { ActionRunEvent } from '../../data/action_run_types'
 import type { AgentConversation, AgentConversationEntry } from '../../data/data_types'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge'
@@ -438,7 +439,12 @@ describe('ActionRunRegistry', () => {
         const snapshot = new Promise<ActionRunEvent[]>((resolve) => {
             resolveSnapshot = resolve
         })
-        const { bridge, emit } = bridgeWithEvents({ loadActiveActionRunEvents: vi.fn(() => snapshot) })
+        const { bridge, emit } = bridgeWithEvents({
+            loadActionRunRecoverySnapshot: vi.fn(async () => ({
+                activeRunEvents: await snapshot,
+                terminalResults: [],
+            })),
+        })
         setActionBridgeOverride(bridge)
         const service = new ActionRunRegistry()
         const userMessage = { content: 'Plan', id: 'message-1', kind: 'message' as const, role: 'user' as const, timestamp: 'now' }
@@ -477,6 +483,111 @@ describe('ActionRunRegistry', () => {
             status: 'waitingForInput',
         }))
         expect(getRun(service).logs[0].stdout).toBe('proposal')
+        service.stop()
+    })
+
+    it('applies terminal result when run completes during disconnect and clears interaction state', async () => {
+        const first = bridgeWithEvents({ startAction: vi.fn(async () => 'run-1') })
+        setActionBridgeOverride(first.bridge)
+        const service = new ActionRunRegistry()
+        let resolveStarted!: (runId: string) => void
+        const started = new Promise<string>((resolve) => {
+            resolveStarted = resolve
+        })
+        const completion = service.startRun({ id: 'build' } as ActionDefinition, context, {}, resolveStarted)
+        await started
+        first.emit({ ...runEvent('running'), sequence: 1 })
+        first.emit({
+            actionId: 'build', context, interactionReady: true, runId: 'run-1', phase: 'main', rootActionId: 'build',
+            sequence: 2, status: 'running', type: 'action',
+        })
+        first.emit({
+            actionId: 'build', context, runId: 'run-1', phase: 'main', rootActionId: 'build', sequence: 3,
+            status: 'waitingForInput', type: 'update',
+            update: { kind: 'agentQuestion', questions: [{ header: 'Confirm', id: 'confirm', question: 'Proceed?' }], requestId: 7 },
+        })
+        const store = service.getRunStore('run-1')
+        if (!store) throw new Error('Missing run store')
+        const release = store.subscribe(vi.fn())
+        const second = bridgeWithEvents({
+            loadActionRunRecoverySnapshot: vi.fn(async () => ({
+                activeRunEvents: [],
+                terminalResults: [{ failure: null, runId: 'run-1', status: 'completed' as const }],
+            })),
+        })
+
+        setActionBridgeOverride(second.bridge)
+        service.start()
+
+        await vi.waitFor(() => expect(store.getSnapshot()).toMatchObject({
+            activeActionId: null,
+            approvals: [],
+            interactionReady: false,
+            question: null,
+            status: 'completed',
+        }))
+        expect(store.getSnapshot().logs[0]).toMatchObject({ message: 'build completed', status: 'completed' })
+        expect(second.bridge.loadActionRunRecoverySnapshot).toHaveBeenCalledWith(['run-1'])
+        await expect(completion).resolves.toMatchObject({ status: 'completed' })
+        release()
+        service.stop()
+    })
+
+    it('keeps live terminal event over older snapshot events during recovery', async () => {
+        const first = bridgeWithEvents()
+        setActionBridgeOverride(first.bridge)
+        const service = new ActionRunRegistry()
+        service.start()
+        first.emit({ ...runEvent('running'), sequence: 1 })
+        const store = service.getRunStore('run-1')
+        if (!store) throw new Error('Missing run store')
+        const release = store.subscribe(vi.fn())
+        let resolveSnapshot!: (snapshot: Awaited<ReturnType<NonNullable<ElectronActionBridge['loadActionRunRecoverySnapshot']>>>) => void
+        const snapshotPromise = new Promise<Awaited<ReturnType<NonNullable<ElectronActionBridge['loadActionRunRecoverySnapshot']>>>>((resolve) => {
+            resolveSnapshot = resolve
+        })
+        const second = bridgeWithEvents({ loadActionRunRecoverySnapshot: vi.fn(() => snapshotPromise) })
+        setActionBridgeOverride(second.bridge)
+        service.start()
+        second.emit({ ...runEvent('failed'), sequence: 3 })
+        resolveSnapshot({
+            activeRunEvents: [{ ...runEvent('running'), sequence: 1 }, { ...runEvent('waitingForInput'), sequence: 2 }],
+            terminalResults: [],
+        })
+
+        await vi.waitFor(() => expect(store.getSnapshot().status).toBe('failed'))
+        second.emit({ ...runEvent('running'), sequence: 4 })
+        expect(store.getSnapshot().status).toBe('failed')
+        release()
+        service.stop()
+    })
+
+    it('fails and releases local interaction when authoritative recovery has no run state', async () => {
+        const first = bridgeWithEvents()
+        setActionBridgeOverride(first.bridge)
+        const service = new ActionRunRegistry()
+        service.start()
+        first.emit({ ...runEvent('running'), sequence: 1 })
+        const store = service.getRunStore('run-1')
+        if (!store) throw new Error('Missing run store')
+        const release = store.subscribe(vi.fn())
+        const loadActionRunRecoverySnapshot = vi.fn(async () => ({ activeRunEvents: [], terminalResults: [] }))
+        const second = bridgeWithEvents({ loadActionRunRecoverySnapshot })
+
+        setActionBridgeOverride(second.bridge)
+        service.start()
+
+        await vi.waitFor(() => expect(store.getSnapshot()).toMatchObject({
+            activeActionId: null,
+            interactionReady: false,
+            question: null,
+            status: 'failed',
+        }))
+        expect(store.getSnapshot().logs.at(-1)).toMatchObject({
+            message: 'Action run state was lost during reconnection',
+            stderr: 'Action run state was lost during reconnection',
+        })
+        release()
         service.stop()
     })
 

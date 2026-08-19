@@ -12,6 +12,7 @@ import type { ActionSchedule } from '../../data/action_schedule_types'
 import type {
     ActionRunHistoryEntry,
     ActionRunHistoryRequest,
+    ActionRunRecoverySnapshot,
     CardActivityRequest,
     CardActionSettingsRequest,
     DiffRequest,
@@ -82,6 +83,7 @@ interface RemoteControlEvent {
 }
 
 interface PendingRequest {
+    method: string
     reject: (error: Error) => void
     resolve: (value: unknown) => void
 }
@@ -619,8 +621,8 @@ export class RemoteControlStorageService implements
         return this.request<ActionRunHistoryEntry[]>('loadActionRunHistory', [request])
     }
 
-    async loadActiveActionRunEvents(): Promise<ActionRunEvent[]> {
-        return this.request<ActionRunEvent[]>('loadActiveActionRunEvents', [])
+    async loadActionRunRecoverySnapshot(rendererRunIds: string[]): Promise<ActionRunRecoverySnapshot> {
+        return this.request<ActionRunRecoverySnapshot>('loadActionRunRecoverySnapshot', [rendererRunIds])
     }
 
     async getCodexRateLimits(): Promise<CodexRateLimitSnapshot | null> {
@@ -649,7 +651,7 @@ export class RemoteControlStorageService implements
 
     onActionRun(callback: (event: ActionRunEvent) => void): () => void {
         this.actionRunListeners.add(callback)
-        void this.subscribeActionRun(callback, false).catch(() => undefined)
+        void this.subscribeActionRun(callback).catch(() => undefined)
 
         return () => {
             this.actionRunListeners.delete(callback)
@@ -732,7 +734,7 @@ export class RemoteControlStorageService implements
         await this.ensureConnected()
 
         return new Promise<T>((resolve, reject) => {
-            this.pending.set(request.id, { reject, resolve: resolve as (value: unknown) => void })
+            this.pending.set(request.id, { method: request.method, reject, resolve: resolve as (value: unknown) => void })
             this.requireSocket().send(JSON.stringify(request))
         })
     }
@@ -803,7 +805,8 @@ export class RemoteControlStorageService implements
 
         this.pending.delete(response.id)
         if (response.error) {
-            pending.reject(new Error(response.error.message))
+            const cause = new Error(response.error.message)
+            pending.reject(new Error(`Remote method ${pending.method} failed: ${response.error.message}`, { cause }))
             return
         }
 
@@ -850,10 +853,10 @@ export class RemoteControlStorageService implements
     private async restoreActionRunSubscriptions() {
         const pendingCallbacks = new Set(this.requestActionRunEvents.values())
         const callbacks = [...this.actionRunListeners].filter((callback) => !pendingCallbacks.has(callback))
-        await Promise.allSettled(callbacks.map((callback) => this.subscribeActionRun(callback, true)))
+        await Promise.allSettled(callbacks.map((callback) => this.subscribeActionRun(callback)))
     }
 
-    private async subscribeActionRun(callback: (event: ActionRunEvent) => void, recover: boolean) {
+    private async subscribeActionRun(callback: (event: ActionRunEvent) => void) {
         const id = this.createRequestId()
         this.requestActionRunEvents.set(id, callback)
         try {
@@ -868,9 +871,6 @@ export class RemoteControlStorageService implements
             }
             this.actionRunSubscriptions.set(callback, result.subscriptionId)
             this.actionRunCallbacks.set(result.subscriptionId, callback)
-            if (!recover) return
-            const events = await this.loadActiveActionRunEvents()
-            for (const event of events) callback(event)
         } finally {
             this.requestActionRunEvents.delete(id)
         }

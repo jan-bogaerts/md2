@@ -1,4 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { ActionRunEvent } from '../../data/action_run_types'
+import { setActionBridgeOverride } from '../../data/electron_action_bridge'
+import { ActionRunRegistry } from '../actions/action_run_registry'
 import { createDeferred } from '../test_support/data_service_test_support'
 import { RemoteConnectionService, type RemoteConnectionServiceDependencies } from './remote_connection_service'
 import { RemoteControlConnectionError, RemoteControlStorageService } from './remote_control_storage_service'
@@ -58,7 +61,10 @@ function createService(storageControls: MockStorageControl[]) {
 const SETTINGS = { endpoint: 'ws://desktop:1234' }
 
 describe('RemoteConnectionService', () => {
-    afterEach(() => vi.useRealTimers())
+    afterEach(() => {
+        setActionBridgeOverride(null)
+        vi.useRealTimers()
+    })
 
     it('deduplicates identical connections while activation is in progress', async () => {
         const activation = createDeferred<void>()
@@ -116,6 +122,49 @@ describe('RemoteConnectionService', () => {
         expect(secondRateLimitSubscription).toHaveBeenCalledOnce()
         expect(setup.activate.mock.invocationCallOrder[1]).toBeLessThan(setup.replaceProjectStorage.mock.invocationCallOrder[0])
         await expect(first.storage.getActiveProject()).rejects.toThrow('Remote-control connection was replaced')
+    })
+
+    it('activates replacement bridge before registry recovers disconnected run', async () => {
+        const first = createMockStorage()
+        const second = createMockStorage()
+        const setup = createService([first, second])
+        const registry = new ActionRunRegistry()
+        const runningEvent: ActionRunEvent = {
+            actionId: 'build', context: { kind: 'project' }, phase: 'main', rootActionId: 'build', runId: 'run-1',
+            sequence: 1, status: 'running', type: 'run',
+        }
+        vi.spyOn(first.storage, 'onActionRun').mockReturnValue(vi.fn())
+        vi.spyOn(first.storage, 'loadActionRunRecoverySnapshot').mockResolvedValue({
+            activeRunEvents: [runningEvent],
+            terminalResults: [],
+        })
+        vi.spyOn(second.storage, 'onActionRun').mockReturnValue(vi.fn())
+        const secondRecovery = vi.spyOn(second.storage, 'loadActionRunRecoverySnapshot').mockResolvedValue({
+            activeRunEvents: [],
+            terminalResults: [{ failure: null, runId: 'run-1', status: 'completed' }],
+        })
+        setup.activate.mockImplementation(async (storage) => {
+            setActionBridgeOverride(storage)
+            registry.start()
+        })
+        setup.clearActivation.mockImplementation(() => setActionBridgeOverride(null))
+
+        try {
+            await setup.service.connect(SETTINGS)
+            await vi.waitFor(() => expect(registry.getRunStore('run-1')).not.toBeNull())
+            const store = registry.getRunStore('run-1')
+            if (!store) throw new Error('Missing recovered run')
+            const release = store.subscribe(vi.fn())
+
+            first.close()
+
+            await vi.waitFor(() => expect(store.getSnapshot().status).toBe('completed'))
+            expect(secondRecovery).toHaveBeenCalledWith(['run-1'])
+            release()
+        } finally {
+            registry.stop()
+            setup.service.disconnect()
+        }
     })
 
     it('cancels delayed retries on explicit disconnect', async () => {

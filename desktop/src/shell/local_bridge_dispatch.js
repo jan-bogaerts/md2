@@ -390,10 +390,10 @@ function createLocalBridgeDispatch(dependencies) {
 
             return localGitService.loadActionRunHistory(currentLocalProject, historyRequest);
         },
-        loadActiveActionRunEvents: () => {
+        loadActionRunRecoverySnapshot: (rendererRunIds) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
-            return actionRunnerService.loadActiveRunEvents();
+            return actionRunnerService.loadRunRecoverySnapshot(rendererRunIds);
         },
         notifyActionCardStateChange: (cardInternalId, state) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');

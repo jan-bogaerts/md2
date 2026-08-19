@@ -199,11 +199,11 @@ describe('ActionRunnerService', () => {
 
         runner.publish(firstEvent);
         runner.publish(secondEvent);
-        const events = runner.loadActiveRunEvents();
+        const { activeRunEvents: events } = runner.loadRunRecoverySnapshot([]);
         events[0].sequence = 99;
 
         expect(events).toEqual([{ ...firstEvent, sequence: 99 }, secondEvent]);
-        expect(runner.loadActiveRunEvents()).toEqual([firstEvent, secondEvent]);
+        expect(runner.loadRunRecoverySnapshot([]).activeRunEvents).toEqual([firstEvent, secondEvent]);
     });
 
     it('forwards card-state changes to every live run', () => {
@@ -437,6 +437,36 @@ describe('ActionRunnerService', () => {
 
         await expect(runner.wait(runIds[0])).resolves.toMatchObject({ status: 'completed' });
         await expect(runner.wait(runIds[100])).resolves.toMatchObject({ status: 'completed' });
+    });
+
+    it('returns terminal recovery results to multiple clients without consuming them', async () => {
+        const { runner } = createRunner();
+        const runId = await runner.start({ actionId: 'main', context, runInput: {} });
+        await expect(runner.wait(runId)).resolves.toMatchObject({ status: 'completed' });
+
+        const firstSnapshot = runner.loadRunRecoverySnapshot([runId]);
+        const secondSnapshot = runner.loadRunRecoverySnapshot([runId]);
+
+        expect(firstSnapshot).toMatchObject({
+            activeRunEvents: [],
+            terminalResults: [{ failure: null, runId, status: 'completed' }],
+        });
+        expect(secondSnapshot).toEqual(firstSnapshot);
+    });
+
+    it('expires terminal recovery results after bounded retention lifetime', async () => {
+        vi.useFakeTimers();
+        try {
+            const { runner } = createRunner();
+            const runId = await runner.start({ actionId: 'main', context, runInput: {} });
+            await vi.runAllTimersAsync();
+
+            expect(runner.loadRunRecoverySnapshot([runId]).terminalResults).toHaveLength(1);
+            vi.advanceTimersByTime(5 * 60 * 1000);
+            expect(runner.loadRunRecoverySnapshot([runId]).terminalResults).toEqual([]);
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it('cancels an active run when the project switches', async () => {

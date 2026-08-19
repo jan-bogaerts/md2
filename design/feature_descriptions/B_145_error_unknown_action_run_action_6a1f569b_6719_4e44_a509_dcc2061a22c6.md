@@ -3,7 +3,7 @@ author:
 id: B_145
 internalId: 4d69acfd-e064-44bf-b04c-81496a09b374
 title: Error: Unknown action run: action-6a1f569b-6719-4e44-a509-dcc2061a22c6
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

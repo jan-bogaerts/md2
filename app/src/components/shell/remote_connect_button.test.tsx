@@ -46,7 +46,7 @@ class MockWebSocket extends EventTarget {
         const results: Record<string, unknown> = {
             getActiveProject: MockWebSocket.activeProject,
             getCodexRateLimits: null,
-            loadActiveActionRunEvents: [],
+            loadActionRunRecoverySnapshot: { activeRunEvents: [], terminalResults: [] },
             loadAgentAvailability: {},
             loadDesktopConfig: {
                 agent: 'custom',

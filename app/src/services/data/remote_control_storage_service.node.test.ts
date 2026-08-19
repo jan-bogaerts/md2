@@ -668,18 +668,23 @@ describe('RemoteControlStorageService', () => {
         await expect(conversations).resolves.toEqual([])
     })
 
-    it('rejects error responses', async () => {
+    it('adds remote method context while preserving response error as cause', async () => {
         installWebSocket()
         const service = createService()
-        const request = service.startAction(actionStartRequest())
+        const request = service.sendActionMessage('unknown-run', 'continue')
         const socket = lastSocket()
 
         socket.open()
         await flushPromises()
         const sentRequest = JSON.parse(socket.sent[0]) as { id: string }
-        socket.receive({ error: { message: 'command failed' }, id: sentRequest.id })
+        socket.receive({ error: { message: 'Unknown action run: unknown-run' }, id: sentRequest.id })
 
-        await expect(request).rejects.toThrow('command failed')
+        const error = await request.catch((caughtError: unknown) => caughtError)
+
+        expect(error).toMatchObject({
+            cause: expect.objectContaining({ message: 'Unknown action run: unknown-run' }),
+            message: 'Remote method sendActionMessage failed: Unknown action run: unknown-run',
+        })
     })
 
     it('preserves permission-mode overrides in remote action requests', async () => {
@@ -773,7 +778,29 @@ describe('RemoteControlStorageService', () => {
         await Promise.all(operations)
     })
 
-    it('reattaches action run events and reloads active state after reconnect', async () => {
+    it('loads authoritative action recovery for renderer run IDs', async () => {
+        installWebSocket()
+        const service = createService()
+        const recovery = service.loadActionRunRecoverySnapshot(['run-active', 'run-ended'])
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const sentRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
+        expect(sentRequest).toMatchObject({
+            method: 'loadActionRunRecoverySnapshot',
+            params: [['run-active', 'run-ended']],
+        })
+        const snapshot = {
+            activeRunEvents: [],
+            terminalResults: [{ failure: null, runId: 'run-ended', status: 'completed' }],
+        }
+        socket.receive({ id: sentRequest.id, result: snapshot })
+
+        await expect(recovery).resolves.toEqual(snapshot)
+    })
+
+    it('reattaches action run subscription after reconnect', async () => {
         installWebSocket()
         const service = createService()
         const callback = vi.fn()
@@ -794,9 +821,6 @@ describe('RemoteControlStorageService', () => {
         const secondSubscription = JSON.parse(secondSocket.sent[0]) as { id: string, method: string }
         expect(secondSubscription.method).toBe('onActionRun')
         secondSocket.receive({ id: secondSubscription.id, result: { subscriptionId: 'action-events-2' } })
-        await vi.waitFor(() => expect(secondSocket.sent).toHaveLength(2))
-        const snapshotRequest = JSON.parse(secondSocket.sent[1]) as { id: string, method: string }
-        expect(snapshotRequest.method).toBe('loadActiveActionRunEvents')
         const event = {
             actionId: 'review',
             context: { file: 'design/F-1.md', kind: 'card' },
@@ -807,7 +831,10 @@ describe('RemoteControlStorageService', () => {
             status: 'running',
             type: 'run',
         }
-        secondSocket.receive({ id: snapshotRequest.id, result: [event] })
+        secondSocket.receive({
+            event: 'actionRun',
+            payload: { event, requestId: secondSubscription.id, subscriptionId: 'action-events-2' },
+        })
 
         await vi.waitFor(() => expect(callback).toHaveBeenCalledWith(event))
     })

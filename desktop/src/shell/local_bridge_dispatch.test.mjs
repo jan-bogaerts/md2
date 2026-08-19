@@ -13,7 +13,10 @@ function createDispatch(options = {}) {
         cancel: vi.fn(),
         finishAgentRun: vi.fn(),
         handleCardStateChange: vi.fn(),
-        loadActiveRunEvents: vi.fn(() => [{ runId: 'run-1', sequence: 1 }]),
+        loadRunRecoverySnapshot: vi.fn((rendererRunIds) => ({
+            activeRunEvents: [{ runId: 'run-1', sequence: 1 }],
+            terminalResults: rendererRunIds.map((runId) => ({ failure: null, runId, status: 'completed' })),
+        })),
         prepareActionPrompt: vi.fn(async () => ({ prompt: 'Prepared prompt' })),
         requireActionsFolder: vi.fn(() => 'actions'),
         requireProjectFolder: vi.fn(() => 'design'),
@@ -788,13 +791,16 @@ describe('createLocalBridgeDispatch', () => {
         expect(actionRunnerService.subscribe).toHaveBeenCalledWith(callback);
     });
 
-    it('loads active action run events through the action bridge', () => {
+    it('loads authoritative action run recovery through the action bridge', () => {
         const { actionRunnerService, dispatch } = createDispatch();
 
-        const events = dispatch.actionBridge.loadActiveActionRunEvents();
+        const snapshot = dispatch.actionBridge.loadActionRunRecoverySnapshot(['run-ended']);
 
-        expect(events).toEqual([{ runId: 'run-1', sequence: 1 }]);
-        expect(actionRunnerService.loadActiveRunEvents).toHaveBeenCalledOnce();
+        expect(snapshot).toEqual({
+            activeRunEvents: [{ runId: 'run-1', sequence: 1 }],
+            terminalResults: [{ failure: null, runId: 'run-ended', status: 'completed' }],
+        });
+        expect(actionRunnerService.loadRunRecoverySnapshot).toHaveBeenCalledWith(['run-ended']);
     });
 
     it('exposes worktree state subscriptions through the data bridge', () => {

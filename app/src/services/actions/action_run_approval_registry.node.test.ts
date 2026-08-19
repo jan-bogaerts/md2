@@ -43,7 +43,7 @@ describe('ActionRunRegistry approvals', () => {
             approvalEvent(5, fileApproval),
         ]
         const bridge = {
-            loadActiveActionRunEvents: vi.fn(async () => events),
+            loadActionRunRecoverySnapshot: vi.fn(async () => ({ activeRunEvents: events, terminalResults: [] })),
             onActionRun: vi.fn((callback) => {
                 listeners.push(callback)
 

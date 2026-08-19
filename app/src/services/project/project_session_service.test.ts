@@ -71,7 +71,8 @@ describe('ProjectSessionService storage activation', () => {
         configService.init()
         vi.spyOn(RemoteControlStorageService.prototype, 'connect').mockResolvedValue()
         vi.spyOn(RemoteControlStorageService.prototype, 'getCodexRateLimits').mockResolvedValue(null)
-        vi.spyOn(RemoteControlStorageService.prototype, 'loadActiveActionRunEvents').mockResolvedValue([])
+        vi.spyOn(RemoteControlStorageService.prototype, 'loadActionRunRecoverySnapshot')
+            .mockResolvedValue({ activeRunEvents: [], terminalResults: [] })
         vi.spyOn(RemoteControlStorageService.prototype, 'onActionRun').mockReturnValue(() => undefined)
         vi.spyOn(RemoteControlStorageService.prototype, 'onCodexRateLimits').mockReturnValue(() => undefined)
         vi.spyOn(RemoteControlStorageService.prototype, 'loadDesktopConfig').mockResolvedValue({
