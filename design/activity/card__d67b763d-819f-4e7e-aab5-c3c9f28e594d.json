@@ -685,7 +685,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 52,
-          "timestamp": "2026-08-19T12:38:36.719Z"
+          "timestamp": "2026-08-19T12:38:56.078Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -695,19 +695,19 @@
           "agent": "codex",
           "conversationId": "01a019f5-7b9f-71f1-9e2b-6f5d6d754e02",
           "createdAt": "2026-08-19T12:21:51.389Z",
-          "lastUsedAt": "2026-08-19T12:21:51.389Z",
-          "synchronizedThroughMessageId": "agent-turn-755af054-aa22-49d0-8f49-e80398ba66c5-turn-1-assistant-4"
+          "lastUsedAt": "2026-08-19T12:38:36.719Z",
+          "synchronizedThroughMessageId": "agent-turn-755af054-aa22-49d0-8f49-e80398ba66c5-turn-2-assistant-2"
         }
       ],
       "startedAt": "2026-08-19T12:18:33.281Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
-        "elapsedMs": 198108,
-        "runningStartedAt": "2026-08-19T12:38:08.739Z"
+        "elapsedMs": 226088,
+        "runningStartedAt": null
       },
       "title": "+",
       "usageSchemaVersion": 1,
-      "viewed": true,
+      "viewed": false,
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 106732
