@@ -3,7 +3,7 @@ author:
 id: B_149
 internalId: bf6c8855-1ef1-464b-b1cc-3cfa9d7ee92e
 title: run button state for active cards
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
