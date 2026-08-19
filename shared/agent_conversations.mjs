@@ -183,9 +183,8 @@ function normalizeEntries(value) {
     return coalesceDiagnosticEntries(entries.filter(isConversationEntry))
 }
 
-/** Parse one canonical conversation record and validate every ordered entry. */
-export function parseAgentConversation(content, referencePath) {
-    const parsed = JSON.parse(content)
+/** Parse one canonical conversation value and validate every ordered entry. */
+export function parseAgentConversationValue(parsed, referencePath) {
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('Malformed agent conversation: root must be an object')
     const id = requiredString(parsed.id, 'id')
     const status = requiredString(parsed.status, 'status')
@@ -232,4 +231,9 @@ export function parseAgentConversation(content, referencePath) {
         ...(parsed.usageSchemaVersion !== undefined ? { usageSchemaVersion: parsed.usageSchemaVersion } : {}),
         viewed: parsed.viewed ?? true,
     }
+}
+
+/** Parse one canonical conversation record and validate every ordered entry. */
+export function parseAgentConversation(content, referencePath) {
+    return parseAgentConversationValue(JSON.parse(content), referencePath)
 }

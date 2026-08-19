@@ -4,6 +4,7 @@ import { configService } from './config/config_service'
 import { createDataService, createStorage, files, storageFiles } from './test_support/data_service_test_support'
 import { createAgentTokenUsageSummary, legacySummaryUsage, serializeAgentTokenUsageSummary } from '../../../shared/agent_token_usage_summary.mjs'
 import { createActivityFile } from '../../../shared/card_activity.mjs'
+import { parseProjectStatsFile } from '../../../shared/project_stats.mjs'
 
 const RELEASE_STATES = [
     { alwaysVisible: true, state: 'active' },
@@ -395,6 +396,13 @@ describe('ReleaseOperations', () => {
             cachedInputTokens: 2, inputTokens: 3, legacyTotalTokens: 0,
             outputTokens: 4, reasoningTokens: 1, totalTokens: 10,
         })
+        const committedStats = parseProjectStatsFile(releaseCommit.files[1].content, 'project_stats.json')
+        expect(releaseCommit.files[1].path).toBe('project_stats.json')
+        expect(committedStats.releases.v1.conversations).toEqual([expect.objectContaining({
+            identity: 'card:root-card:conversation-1',
+            totalTokens: 10,
+        })])
+        expect(releaseCommit.files[1].content).not.toContain('entries')
     })
 
     it('rejects invalid release names before moving files', async () => {

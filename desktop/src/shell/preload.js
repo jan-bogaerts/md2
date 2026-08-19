@@ -23,7 +23,9 @@ const UPDATE_PROGRESS_CHANNEL = 'md2-update:progress';
 const DATA_METHODS = [
     'abortMergeConflict',
     'addWorktree',
+    'calculateActivityStats',
     'cancelActionSchedule',
+    'cancelActivityStatsCalculation',
     'checkoutBranch',
     'commit',
     'commitWorktree',

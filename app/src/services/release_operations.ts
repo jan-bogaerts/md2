@@ -22,6 +22,8 @@ import {
     serializeAgentTokenUsageSummary,
     type AgentSummaryUsage,
 } from '../../../shared/agent_token_usage_summary.mjs'
+import { parseProjectStatsFile, projectStatsFilePath, serializeProjectStats } from '../../../shared/project_stats.mjs'
+import { calculateActivityStatsOutsideMainThread } from './stats/project_stats_worker_client'
 
 export interface ReleaseOperationsDeps {
     applyMoves(moves: MoveFile[], workingFolder: string): void
@@ -164,6 +166,15 @@ export class ReleaseOperations {
             const assetFiles = await this.loadReleaseAssets(assetPaths)
             const activityPaths = findReleaseActivityPaths(releaseCards, config.projectFolder, repositoryFiles)
             const activityFiles = await this.loadReleaseActivityFiles(activityPaths)
+            const calculatedStats = await calculateActivityStatsOutsideMainThread(
+                storage,
+                currentProject,
+                activityPaths,
+                new AbortController().signal,
+            )
+            if (calculatedStats.warnings.length > 0) {
+                throw new Error(`Cannot calculate released stats: ${calculatedStats.warnings.join('; ')}`)
+            }
             const moves = buildReleaseMoves(
                 [...files, ...assetFiles],
                 releaseCards,
@@ -182,9 +193,26 @@ export class ReleaseOperations {
                 ...summary,
                 releases: { ...summary.releases, [safeReleaseName]: releaseUsage(activityFiles) },
             }
+            const statsPath = projectStatsFilePath(config.projectFolder)
+            const existingStatsPath = repositoryFiles.find((path) => path.replace(/\\/gu, '/') === statsPath)
+            const statsFile = existingStatsPath ? await storage.loadTextFile(currentProject, statsPath) : null
+            const parsedStats = statsFile
+                ? parseProjectStatsFile(statsFile.content, statsPath)
+                : { releases: {}, warnings: [] }
+            if (parsedStats.warnings.length > 0) {
+                throw new Error(`Cannot update malformed project stats: ${parsedStats.warnings.join('; ')}`)
+            }
+            const statsContent = serializeProjectStats({
+                ...parsedStats.releases,
+                [safeReleaseName]: calculatedStats.stats,
+            })
+            const preparedStatsFile = statsFile ? { ...statsFile, content: statsContent } : { content: statsContent, path: statsPath }
             await storage.commit({
                 branch: currentProject.branch,
-                files: [{ ...summaryFile, content: serializeAgentTokenUsageSummary(nextSummary) }],
+                files: [
+                    { ...summaryFile, content: serializeAgentTokenUsageSummary(nextSummary) },
+                    preparedStatsFile,
+                ],
                 message: `Complete release ${safeReleaseName}`,
                 moves,
             })

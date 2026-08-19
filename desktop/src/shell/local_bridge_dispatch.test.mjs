@@ -137,6 +137,10 @@ function createDispatch(options = {}) {
     const desktopConfig = options.desktopConfig ?? {agent: 'codex', agentProfiles: [{ command: ['codex'], models: ['gpt-5'], name: 'codex' }], editorCommand: 'code -g "{{file}}:{{line}}"', model: 'gpt-5'};
     const saveDesktopConfig = vi.fn((_store, values) => values);
     const diffService = { generateDiff: vi.fn(), generateWorktreeDiff: vi.fn(), openInEditor: vi.fn() };
+    const projectStatsWorkerService = {
+        calculate: vi.fn(async () => ({ stats: { actions: [], conversations: [] }, warnings: [] })),
+        cancel: vi.fn(async () => undefined),
+    };
     const dispatch = createLocalBridgeDispatch({
         actionRunnerService,
         actionSchedulerService,
@@ -151,6 +155,7 @@ function createDispatch(options = {}) {
         mergeConflictService,
         openProjectFolder: options.openProjectFolder,
         openWorktreeFolder: options.openWorktreeFolder,
+        projectStatsWorkerService,
         readDesktopConfig: () => desktopConfig,
         saveDesktopConfig,
         updateCodexCli,
@@ -168,6 +173,7 @@ function createDispatch(options = {}) {
         diffService,
         localGitService,
         mergeConflictService,
+        projectStatsWorkerService,
         saveDesktopConfig,
         updateCodexCli,
         worktreeService,
@@ -728,6 +734,22 @@ describe('createLocalBridgeDispatch', () => {
         await dispatch.dataBridge.loadTextFile(project, 'design/activity/card__card-1.json');
 
         expect(localGitService.loadTextFile).toHaveBeenCalledWith(project, 'design/activity/card__card-1.json');
+    });
+
+    it('runs and cancels stats calculations through worker service for active project', async () => {
+        const { dispatch, projectStatsWorkerService } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        await dispatch.dataBridge.loadProjectRoot(project, 'design');
+
+        await dispatch.dataBridge.calculateActivityStats(project, ['design/activity/project.json'], 'stats-1');
+        await dispatch.dataBridge.cancelActivityStatsCalculation('stats-1');
+
+        expect(projectStatsWorkerService.calculate).toHaveBeenCalledWith(
+            project.rootPath,
+            ['design/activity/project.json'],
+            'stats-1',
+        );
+        expect(projectStatsWorkerService.cancel).toHaveBeenCalledWith('stats-1');
     });
 
     it('forwards agent conversation reference listing through the data bridge', async () => {

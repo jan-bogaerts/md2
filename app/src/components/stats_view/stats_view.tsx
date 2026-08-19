@@ -1,5 +1,5 @@
 import { Box } from '@mui/material'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { projectStatsService, type StatsCardDescriptor } from '../../services/stats/project_stats_service'
 import { useProjectState } from '../hooks/use_project_state'
 import { useWorkspaceView } from '../hooks/use_workspace_view'
@@ -19,12 +19,19 @@ export function StatsView() {
             visibleId: card.header.id,
         }] : [])
     }, [snapshot])
+    const cardsRef = useRef(cards)
+
+    useEffect(() => {
+        cardsRef.current = cards
+    }, [cards])
 
     useEffect(() => {
         if (viewMode !== 'stats' || !project) return
 
-        void projectStatsService.open(cards)
-    }, [cards, project, viewMode])
+        void projectStatsService.open(cardsRef.current)
+
+        return () => projectStatsService.close()
+    }, [project, viewMode])
 
     return (
         <Box

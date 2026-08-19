@@ -59,6 +59,7 @@ const {
 const { checkForUpdate, registerUpdateDownload } = require('./src/shell/update_service');
 const { CloseCoordinator } = require('./src/shell/close_coordinator');
 const { createManagedWindow } = require('./src/shell/window_state');
+const { ProjectStatsWorkerService } = require('./src/stats/project_stats_worker_service');
 
 const QUIT_WATCHDOG_TIMEOUT_MS = 10000;
 const EVENT_METHODS = new Set(['runSearchRegexpAgent', 'startAgentConversation']);
@@ -109,6 +110,7 @@ const actionSchedulerService = new ActionSchedulerService({
     actionRunnerService,
     localGitService,
 });
+const projectStatsWorkerService = new ProjectStatsWorkerService();
 const localBridgeDispatch = createLocalBridgeDispatch({
     actionRunnerService,
     actionSchedulerService,
@@ -123,6 +125,7 @@ const localBridgeDispatch = createLocalBridgeDispatch({
     mergeConflictService,
     openProjectFolder: () => openProjectFolder(BrowserWindow.getFocusedWindow()),
     openWorktreeFolder: () => openWorktreeFolder(BrowserWindow.getFocusedWindow()),
+    projectStatsWorkerService,
     readDesktopConfig,
     saveDesktopConfig,
     updateCodexCli,

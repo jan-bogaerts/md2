@@ -1,4 +1,4 @@
-import { parseAgentConversation } from './agent_conversations.mjs'
+import { parseAgentConversationValue } from './agent_conversations.mjs'
 
 const ACTIVITY_VERSION = 4
 export const LEGACY_ACTIVITY_VERSION = 1
@@ -216,7 +216,7 @@ function parseLegacyRecord(value, index, activityOrigin) {
 
 function parseConversation(value, index, activityOrigin) {
     try {
-        const parsed = parseAgentConversation(JSON.stringify(value), '')
+        const parsed = parseAgentConversationValue(value, '')
         const expectedCardInternalId = activityOrigin.kind === 'card' ? activityOrigin.cardInternalId : null
         if (parsed.cardInternalId !== expectedCardInternalId) throw new Error('conversation cardInternalId does not match activity origin')
 
@@ -231,7 +231,7 @@ function repairConversation(value, index, activityOrigin) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return null
     const entries = Array.isArray(value.entries) ? value.entries.filter((entry) => {
         try {
-            parseAgentConversation(JSON.stringify({ ...value, entries: [entry] }), '')
+            parseAgentConversationValue({ ...value, entries: [entry] }, '')
 
             return true
         } catch {

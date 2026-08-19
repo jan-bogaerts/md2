@@ -35,7 +35,10 @@ function renderContent() {
 }
 
 describe('StatsContent', () => {
-    afterEach(() => cleanup())
+    afterEach(() => {
+        cleanup()
+        projectStatsService.clear()
+    })
 
     it('shows controls, local bucket label, UTC accessibility text, and current chart values', async () => {
         const metrics = `${metricsHeader}\r\n2026-08-12T10:00:00.000Z,token_usage,codex,,,,,3,2,4,1,10,,\r\n`

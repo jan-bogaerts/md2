@@ -1,8 +1,22 @@
 import { describe, expect, it } from 'vitest'
+import { parseAgentConversation, parseAgentConversationValue } from '../../../../shared/agent_conversations.mjs'
 import type { StorageService } from '../../data/data_types'
 import { listAgentConversationReferences, parseAgentConversationLog } from './agent_conversation_service'
 
 describe('parseAgentConversationLog', () => {
+    it('produces equivalent results from string and value parsers', () => {
+        const source = {
+            completedAt: null,
+            entries: [{ content: 'hello', id: 'message-1', kind: 'message', role: 'assistant', timestamp: '2026-01-01T00:00:00.000Z' }],
+            id: 'agent-1',
+            startedAt: '2026-01-01T00:00:00.000Z',
+            status: 'completed',
+        }
+
+        expect(parseAgentConversationValue(source, 'design/logs/one.json'))
+            .toEqual(parseAgentConversation(JSON.stringify(source), 'design/logs/one.json'))
+    })
+
     it('normalizes a persisted agent log', () => {
         const conversation = parseAgentConversationLog(
             JSON.stringify({

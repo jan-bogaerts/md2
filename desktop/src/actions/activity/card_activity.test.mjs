@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
     migrateActivityValue,
     parseActivityFileForMigration,
@@ -24,6 +24,20 @@ function record() {
 }
 
 describe('card activity action runs', () => {
+    it('parses conversation values without serializing them again', () => {
+        const conversation = {
+            actionId: 'build', cardInternalId: 'card-1', cardPath: 'design/F-1.md', completedAt: null,
+            entries: [], id: 'conversation-1', providerSessions: [], startedAt: '2026-08-01T12:00:00.000Z',
+            status: 'running', title: 'Build', viewed: true,
+        };
+        const stringify = vi.spyOn(JSON, 'stringify');
+
+        parseActivityValue({ actionSettings: {}, conversations: [conversation], origin, records: [], version: 4 }, origin);
+
+        expect(stringify).not.toHaveBeenCalled();
+        stringify.mockRestore();
+    });
+
     it('repairs malformed JSON to empty canonical activity when origin is known', () => {
         expect(repairActivityFile('{broken', origin)).toEqual({
             activity: { actionSettings: {}, conversations: [], origin, records: [], version: 4 },

@@ -35,6 +35,8 @@ interface LocalGitStorageDependencies {
 }
 
 export class LocalGitStorageService implements StorageService {
+    calculateActivityStats?: StorageService['calculateActivityStats']
+    cancelActivityStatsCalculation?: StorageService['cancelActivityStatsCalculation']
     private bridge: ElectronDataBridge | null
     private readonly pendingPushBranches: Set<string>
 
@@ -56,6 +58,12 @@ export class LocalGitStorageService implements StorageService {
         if (!bridge) throw new Error('Electron local Git bridge is not available')
 
         this.bridge = bridge
+        this.calculateActivityStats = bridge.calculateActivityStats
+            ? (project, paths, calculationId) => bridge.calculateActivityStats!(project, paths, calculationId)
+            : undefined
+        this.cancelActivityStatsCalculation = bridge.cancelActivityStatsCalculation
+            ? (calculationId) => bridge.cancelActivityStatsCalculation!(calculationId)
+            : undefined
     }
 
     async openProjectFolder() {

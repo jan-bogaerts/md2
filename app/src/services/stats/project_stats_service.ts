@@ -1,10 +1,14 @@
 import { activityOriginFromPath, projectActivityFolder } from '../../../../shared/activity_paths.mjs'
-import { parseActivityFileForMigration, type CardActivityFile } from '../../../../shared/card_activity.mjs'
+import {
+    parseProjectStatsFile,
+    projectStatsFilePath,
+    serializeProjectStats,
+    type ActivityStatsCalculationResult,
+    type ReleaseStats,
+} from '../../../../shared/project_stats.mjs'
 import type {
-    AgentConversation,
     ProjectConfig,
     ProjectReference,
-    ProjectWatchEvent,
     StorageService,
 } from '../../data/data_types'
 import {
@@ -12,6 +16,7 @@ import {
     type UsageMetricsTokenRow,
 } from '../agents/project_usage_metrics_service'
 import { register } from '../service_injector'
+import { calculateActivityStatsOutsideMainThread } from './project_stats_worker_client'
 
 export type StatsDataset = 'activityOverTime' | 'totals'
 export type StatsGranularity = 'day' | 'week' | 'month'
@@ -58,8 +63,8 @@ export interface ProjectStatsSnapshot {
 }
 
 interface LoadedStatsSource {
-    activity: CardActivityFile[]
     cards: StatsCardDescriptor[]
+    stats: ReleaseStats
     tokenRows: UsageMetricsTokenRow[]
     tokenTimeAvailable: boolean
     warnings: string[]
@@ -71,19 +76,14 @@ interface StatsProjectBinding {
     storage: StorageService
 }
 
-interface TimedConversation {
-    actionId: string | null
-    actionLabel: string | null
-    cardInternalId: string | null
-    cardPath: string | null
-    completedAt: string | null
-    elapsedMs: number | null
-    status: AgentConversation['status']
-    totalTokens: number
-}
+type StatsCalculator = (
+    storage: StorageService,
+    project: ProjectReference,
+    paths: string[],
+    signal: AbortSignal,
+) => Promise<ActivityStatsCalculationResult>
 
 const TERMINAL_CONVERSATION_STATUSES = new Set(['cancelled', 'completed', 'failed'])
-const COMPLETED_ACTION_STATUSES = new Set(['completed', 'okButNotAfter'])
 const INITIAL_CONTROLS: StatsControls = {
     activityMetric: 'actions',
     dataset: 'activityOverTime',
@@ -113,28 +113,36 @@ function isValidIsoTimestamp(value: string) {
     return Number.isFinite(milliseconds) && new Date(milliseconds).toISOString() === value
 }
 
-function recognizedActivityPath(path: string, config: ProjectConfig) {
+function recognizedCurrentActivityPath(path: string, config: ProjectConfig) {
     const normalizedPath = normalizePath(path)
     const activityFolder = normalizePath(projectActivityFolder(config.projectFolder))
     const activityPrefix = `${activityFolder}/`
     if (normalizedPath.startsWith(activityPrefix) && !normalizedPath.slice(activityPrefix.length).includes('/')) {
         return activityOriginFromPath(normalizedPath) ? normalizedPath : null
     }
-    const releasesFolder = normalizePath(config.releasesFolder)
-    const releasePrefix = `${releasesFolder}/`
-    if (!normalizedPath.startsWith(releasePrefix)) return null
-    const releaseParts = normalizedPath.slice(releasePrefix.length).split('/')
-    if (releaseParts.length !== 2 || !/^card__[^/]+\.json$/u.test(releaseParts[1])) return null
-
-    return activityOriginFromPath(normalizedPath) ? normalizedPath : null
+    return null
 }
 
 export function findStatsSourcePaths(repositoryFiles: string[], config: ProjectConfig) {
-    const activityPaths = repositoryFiles
-        .map((path) => recognizedActivityPath(path, config))
+    const currentActivityPaths = repositoryFiles
+        .map((path) => recognizedCurrentActivityPath(path, config))
         .filter((path): path is string => path !== null)
         .sort((left, right) => left.localeCompare(right))
-    return { activityPaths }
+    const releaseActivityPaths: Record<string, string[]> = {}
+    const releasesFolder = normalizePath(config.releasesFolder)
+    const releasePrefix = `${releasesFolder}/`
+    for (const path of repositoryFiles.map(normalizePath)) {
+        if (!path.startsWith(releasePrefix)) continue
+        const releaseParts = path.slice(releasePrefix.length).split('/')
+        if (releaseParts.length < 2 || releaseParts[0].length === 0) continue
+        const releaseName = releaseParts[0]
+        releaseActivityPaths[releaseName] ??= []
+        if (releaseParts.length !== 2 || !/^card__[^/]+\.json$/u.test(releaseParts[1]) || !activityOriginFromPath(path)) continue
+        releaseActivityPaths[releaseName] = [...(releaseActivityPaths[releaseName] ?? []), path]
+    }
+    for (const paths of Object.values(releaseActivityPaths)) paths.sort((left, right) => left.localeCompare(right))
+
+    return { currentActivityPaths, releaseActivityPaths }
 }
 
 function utcBucketStart(timestamp: string, granularity: StatsGranularity) {
@@ -169,58 +177,13 @@ function actionLabel(actionId: string, storedLabel: string | null) {
     return storedLabel && storedLabel !== actionId ? `${storedLabel} (${actionId})` : actionId
 }
 
-function canonicalConversations(activityFiles: CardActivityFile[]) {
-    const conversations = new Map<string, TimedConversation>()
-    const actionLabels = new Map<string, string>()
-    for (const activity of activityFiles) {
-        for (const record of activity.records) {
-            if (record.type === 'system') continue
-            actionLabels.set(record.rootActionId, record.rootActionLabel)
-        }
-        for (const conversation of activity.conversations) {
-            const originIdentity = activity.origin.kind === 'card' ? `card:${activity.origin.cardInternalId}` : 'project'
-            const identity = `${originIdentity}:${conversation.id}`
-            if (conversations.has(identity)) continue
-            const cardInternalId = conversation.cardInternalId ?? (activity.origin.kind === 'card' ? activity.origin.cardInternalId : null)
-            conversations.set(identity, {
-                actionId: conversation.actionId ?? null,
-                actionLabel: conversation.actionId ? actionLabels.get(conversation.actionId) ?? conversation.title : null,
-                cardInternalId,
-                cardPath: conversation.cardPath,
-                completedAt: conversation.completedAt,
-                elapsedMs: conversation.timer?.elapsedMs ?? null,
-                status: conversation.status,
-                totalTokens: conversation.usage?.totalTokens ?? 0,
-            })
-        }
-    }
+function mergeStats(statsSources: ReleaseStats[]) {
+    const actions = new Map(statsSources.flatMap(({ actions: sourceActions }) => sourceActions.map((action) => [action.identity, action])))
+    const conversations = new Map(statsSources.flatMap(({ conversations: sourceConversations }) => (
+        sourceConversations.map((conversation) => [conversation.identity, conversation])
+    )))
 
-    return [...conversations.values()]
-}
-
-function completedRecords(activityFiles: CardActivityFile[]) {
-    const records = new Map<string, {
-        actionId: string
-        actionLabel: string
-        cardInternalId: string | null
-        completedAt: string
-    }>()
-    for (const activity of activityFiles) {
-        for (const record of activity.records) {
-            if (record.type === 'system' || !COMPLETED_ACTION_STATUSES.has(record.status)) continue
-            const originIdentity = record.origin.kind === 'card' ? `card:${record.origin.cardInternalId}` : 'project'
-            const identity = `${originIdentity}:${record.runId}`
-            if (records.has(identity)) continue
-            records.set(identity, {
-                actionId: record.rootActionId,
-                actionLabel: record.rootActionLabel,
-                cardInternalId: record.origin.kind === 'card' ? record.origin.cardInternalId : null,
-                completedAt: record.completedAt,
-            })
-        }
-    }
-
-    return [...records.values()]
+    return { actions: [...actions.values()], conversations: [...conversations.values()] }
 }
 
 function activityRows(source: LoadedStatsSource, controls: StatsControls): StatsChartRow[] {
@@ -233,7 +196,7 @@ function activityRows(source: LoadedStatsSource, controls: StatsControls): Stats
             buckets.set(bucket, current)
         }
     } else {
-        for (const record of completedRecords(source.activity).filter(({ completedAt }) => inRange(completedAt, controls))) {
+        for (const record of source.stats.actions.filter(({ completedAt }) => inRange(completedAt, controls))) {
             const bucket = utcBucketStart(record.completedAt, controls.granularity)
             const current = buckets.get(bucket) ?? { actionCount: 0, cards: new Set<string>(), tokens: 0 }
             current.actionCount += 1
@@ -261,7 +224,7 @@ function activityRows(source: LoadedStatsSource, controls: StatsControls): Stats
 function totalsRows(source: LoadedStatsSource, controls: StatsControls): StatsChartRow[] {
     const cardsById = new Map(source.cards.map((card) => [card.internalId, card]))
     const totals = new Map<string, { label: string, value: number }>()
-    const conversations = canonicalConversations(source.activity).filter((conversation) => {
+    const conversations = source.stats.conversations.filter((conversation) => {
         if (controls.totalsMetric === 'duration') {
             return TERMINAL_CONVERSATION_STATUSES.has(conversation.status)
                 && conversation.completedAt !== null
@@ -298,7 +261,7 @@ function totalsRows(source: LoadedStatsSource, controls: StatsControls): StatsCh
 }
 
 function buildSnapshot(source: LoadedStatsSource, controls: StatsControls): ProjectStatsSnapshot {
-    const filteredConversations = canonicalConversations(source.activity).filter((conversation) => (
+    const filteredConversations = source.stats.conversations.filter((conversation) => (
         TERMINAL_CONVERSATION_STATUSES.has(conversation.status)
         && conversation.completedAt !== null
         && inRange(conversation.completedAt, controls)
@@ -322,6 +285,8 @@ function validateRangeTimestamp(value: string | null, field: string) {
 }
 
 export class ProjectStatsService extends EventTarget {
+    private abortController: AbortController | null = null
+    private readonly calculateStats: StatsCalculator
     private loadRevision = 0
     private binding: StatsProjectBinding | null = null
     private cards: StatsCardDescriptor[] = []
@@ -329,6 +294,11 @@ export class ProjectStatsService extends EventTarget {
     private projectKey: string | null = null
     private snapshot = INITIAL_SNAPSHOT
     private source: LoadedStatsSource | null = null
+
+    constructor(calculateStats: StatsCalculator = calculateActivityStatsOutsideMainThread) {
+        super()
+        this.calculateStats = calculateStats
+    }
 
     getSnapshot = () => this.snapshot
 
@@ -346,21 +316,29 @@ export class ProjectStatsService extends EventTarget {
     }
 
     clear() {
-        this.loadRevision += 1
+        this.close()
         this.binding = null
-        this.cards = []
-        this.isOpen = false
         this.projectKey = null
-        this.source = null
-        projectUsageMetricsService.clear()
-        this.publish({ ...INITIAL_SNAPSHOT, controls: this.snapshot.controls })
     }
 
     async open(cards: StatsCardDescriptor[]) {
         if (!this.binding) throw new Error('Project stats are not bound to a project')
+        if (this.isOpen) return
         this.cards = cards
         this.isOpen = true
-        await this.load(this.binding)
+        this.abortController = new AbortController()
+        await this.load(this.binding, this.abortController.signal)
+    }
+
+    close() {
+        this.loadRevision += 1
+        this.abortController?.abort()
+        this.abortController = null
+        this.cards = []
+        this.isOpen = false
+        this.source = null
+        projectUsageMetricsService.clear()
+        this.publish({ ...INITIAL_SNAPSHOT, controls: this.snapshot.controls })
     }
 
     setControls(changes: Partial<StatsControls>) {
@@ -378,54 +356,106 @@ export class ProjectStatsService extends EventTarget {
         this.publish(buildSnapshot(this.source, controls))
     }
 
-    handleRepositoryChange(event: ProjectWatchEvent) {
-        const binding = this.binding
-        if (!binding || !this.isOpen) return
-        const path = normalizePath(event.path)
-        const usageMetricsPath = normalizePath(`${binding.config.projectFolder}/usage_metrics.csv`)
-        if (path !== usageMetricsPath && !recognizedActivityPath(path, binding.config)) return
-
-        void this.load(binding)
-    }
-
-    private async load(binding: StatsProjectBinding) {
+    private async load(binding: StatsProjectBinding, signal: AbortSignal) {
         const revision = ++this.loadRevision
         this.publish({ ...this.snapshot, error: null, rows: [], status: 'loading' })
         try {
             const repositoryFiles = await binding.storage.listRepositoryFiles(binding.project)
-            if (revision !== this.loadRevision || binding !== this.binding) return
-            if (!binding.storage.loadTextFile) throw new Error('Repository text file loading is not available')
-            const { activityPaths } = findStatsSourcePaths(repositoryFiles, binding.config)
-            const activityFiles = await Promise.all(activityPaths.map(async (path) => {
-                const file = await binding.storage.loadTextFile?.(binding.project, path)
-                if (!file) throw new Error(`Activity file could not be loaded: ${path}`)
-                const origin = activityOriginFromPath(path)
-                if (!origin) throw new Error(`Invalid activity path: ${path}`)
-
-                return parseActivityFileForMigration(file.content, origin)
-            }))
+            if (!this.isCurrentLoad(revision, binding, signal)) return
+            const { currentActivityPaths, releaseActivityPaths } = findStatsSourcePaths(repositoryFiles, binding.config)
+            const [current, released] = await Promise.all([
+                this.calculateStats(binding.storage, binding.project, currentActivityPaths, signal),
+                this.loadReleasedStats(binding, repositoryFiles, releaseActivityPaths, signal),
+            ])
+            if (!this.isCurrentLoad(revision, binding, signal)) return
             const usageMetrics = await projectUsageMetricsService.load(
                 binding.project,
                 binding.config.projectFolder,
                 binding.storage,
                 repositoryFiles,
             )
-            if (revision !== this.loadRevision || binding !== this.binding) return
+            if (!this.isCurrentLoad(revision, binding, signal)) return
 
             this.source = {
-                activity: activityFiles,
                 cards: this.cards,
+                stats: mergeStats([current.stats, released.stats]),
                 tokenRows: usageMetrics.tokenRows,
                 tokenTimeAvailable: usageMetrics.available,
-                warnings: usageMetrics.warnings,
+                warnings: [...current.warnings, ...released.warnings, ...usageMetrics.warnings],
             }
             this.publish(buildSnapshot(this.source, this.snapshot.controls))
         } catch (error) {
-            if (revision !== this.loadRevision || binding !== this.binding) return
+            if (!this.isCurrentLoad(revision, binding, signal)) return
             const normalizedError = error instanceof Error ? error : new Error(String(error))
             this.source = null
             this.publish({ ...this.snapshot, error: normalizedError, rows: [], status: 'error' })
         }
+    }
+
+    private async loadReleasedStats(
+        binding: StatsProjectBinding,
+        repositoryFiles: string[],
+        releaseActivityPaths: Record<string, string[]>,
+        signal: AbortSignal,
+    ): Promise<ActivityStatsCalculationResult> {
+        const statsPath = projectStatsFilePath(binding.config.projectFolder)
+        const normalizedRepositoryFiles = new Set(repositoryFiles.map(normalizePath))
+        let cachedReleases: Record<string, ReleaseStats> = {}
+        let statsFile: Awaited<ReturnType<NonNullable<StorageService['loadTextFile']>>> | null = null
+        const warnings: string[] = []
+        if (normalizedRepositoryFiles.has(normalizePath(statsPath))) {
+            if (!binding.storage.loadTextFile) throw new Error('Repository text file loading is not available')
+            try {
+                statsFile = await binding.storage.loadTextFile(binding.project, statsPath)
+                const parsed = parseProjectStatsFile(statsFile.content, statsPath)
+                cachedReleases = parsed.releases
+                warnings.push(...parsed.warnings)
+            } catch (error) {
+                const detail = error instanceof Error ? error.message : String(error)
+                warnings.push(`${statsPath}: ${detail}`)
+            }
+        }
+
+        const releaseNames = Object.keys(releaseActivityPaths).sort((left, right) => left.localeCompare(right))
+        const releases: Record<string, ReleaseStats> = {}
+        let changed = Object.keys(cachedReleases).some((releaseName) => !releaseActivityPaths[releaseName])
+        for (const releaseName of releaseNames) {
+            const cached = cachedReleases[releaseName]
+            if (cached) {
+                releases[releaseName] = cached
+                continue
+            }
+            const calculated = await this.calculateStats(
+                binding.storage,
+                binding.project,
+                releaseActivityPaths[releaseName],
+                signal,
+            )
+            releases[releaseName] = calculated.stats
+            warnings.push(...calculated.warnings)
+            changed = true
+        }
+
+        if (changed && !signal.aborted) {
+            const content = serializeProjectStats(releases)
+            const file = statsFile ? { ...statsFile, content } : { content, path: statsPath }
+            try {
+                await binding.storage.commit({
+                    branch: binding.project.branch,
+                    files: [file],
+                    message: 'Update calculated release stats',
+                })
+            } catch (error) {
+                const detail = error instanceof Error ? error.message : String(error)
+                warnings.push(`${statsPath}: could not persist calculated release stats: ${detail}`)
+            }
+        }
+
+        return { stats: mergeStats(Object.values(releases)), warnings }
+    }
+
+    private isCurrentLoad(revision: number, binding: StatsProjectBinding, signal: AbortSignal) {
+        return !signal.aborted && this.isOpen && revision === this.loadRevision && binding === this.binding
     }
 
     private publish(snapshot: ProjectStatsSnapshot) {

@@ -1,5 +1,6 @@
 import type { ActionFile } from './action_types'
 import type { ActionSchedule } from './action_schedule_types'
+import type { ActivityStatsCalculationResult } from '../../../shared/project_stats.mjs'
 import type {
     AgentConversation,
     BranchReference,
@@ -55,6 +56,8 @@ export interface ElectronDataBridge {
     loadActionFiles(project: ProjectReference, actionsFolder: string): Promise<ActionFile[]>
     loadActionSchedules?(project: ProjectReference, actionsFolder: string): Promise<ActionSchedule[]>
     cancelActionSchedule?(project: ProjectReference, actionsFolder: string, scheduleId: string): Promise<ActionSchedule[]>
+    calculateActivityStats?(project: ProjectReference, paths: string[], calculationId: string): Promise<ActivityStatsCalculationResult>
+    cancelActivityStatsCalculation?(calculationId: string): Promise<void>
     loadProjectAsset?(project: ProjectReference, path: string): Promise<ProjectAsset>
     loadTextFile?(project: ProjectReference, path: string): Promise<MarkdownFile>
     loadProject(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>

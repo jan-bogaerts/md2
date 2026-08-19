@@ -2,6 +2,7 @@ import type { ActionFile } from './action_types'
 import type { ActionSchedule } from './action_schedule_types'
 import { DEFAULT_COLOR_SCHEME } from '../theme/theme_config'
 import type { ProjectBackgroundShade } from '../theme/project_background_shade'
+import type { ActivityStatsCalculationResult } from '../../../shared/project_stats.mjs'
 import { DEFAULT_CARD_SEPARATOR, type CardSeparator } from './card_identifiers'
 import type {
     MergeConflictPathRequest,
@@ -400,6 +401,8 @@ export interface StorageService {
     loadActionFiles(project: ProjectReference, actionsFolder: string): Promise<ActionFile[]>
     loadActionSchedules?(project: ProjectReference, actionsFolder: string): Promise<ActionSchedule[]>
     cancelActionSchedule?(project: ProjectReference, actionsFolder: string, scheduleId: string): Promise<ActionSchedule[]>
+    calculateActivityStats?(project: ProjectReference, paths: string[], calculationId: string): Promise<ActivityStatsCalculationResult>
+    cancelActivityStatsCalculation?(calculationId: string): Promise<void>
     loadAgentConversation?(project: ProjectReference, path: string): Promise<AgentConversation>
     loadActivityConversations?(project: ProjectReference, path: string): Promise<AgentConversation[]>
     loadProjectAsset?(project: ProjectReference, path: string): Promise<ProjectAsset>

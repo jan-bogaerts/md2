@@ -60,6 +60,7 @@ function createLocalBridgeDispatch(dependencies) {
         mergeConflictService,
         openProjectFolder,
         openWorktreeFolder,
+        projectStatsWorkerService,
         readDesktopConfig,
         saveDesktopConfig,
         updateCodexCli,
@@ -99,6 +100,17 @@ function createLocalBridgeDispatch(dependencies) {
     }
 
     const dataBridge = {
+        calculateActivityStats: (project, paths, calculationId) => {
+            if (!isCurrentProject(project)) throw new Error('Stats calculation project is not active');
+            if (!projectStatsWorkerService) throw new Error('Stats worker is not available');
+
+            return projectStatsWorkerService.calculate(project.rootPath, paths, calculationId);
+        },
+        cancelActivityStatsCalculation: (calculationId) => {
+            if (!projectStatsWorkerService) return undefined;
+
+            return projectStatsWorkerService.cancel(calculationId);
+        },
         checkoutBranch: async (project, branch) => {
             const checkedOutProject = await localGitService.checkoutBranch(project, branch);
             await activateProject(checkedOutProject);

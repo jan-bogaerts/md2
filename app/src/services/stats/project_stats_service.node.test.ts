@@ -6,6 +6,7 @@ import {
     ProjectStatsService,
     type StatsCardDescriptor,
 } from './project_stats_service'
+import { parseProjectStatsFile } from '../../../../shared/project_stats.mjs'
 
 const project: ProjectReference = { branch: 'main', id: 'project' }
 const config: ProjectConfig = {
@@ -82,7 +83,11 @@ function activityContent(options: {
 function storage(files: Record<string, string>): StorageService {
     return {
         checkoutBranch: vi.fn(),
-        commit: vi.fn(),
+        commit: vi.fn(async (request) => {
+            for (const file of request.files) files[file.path] = file.content
+
+            return request.files
+        }),
         createProject: vi.fn(),
         deleteFile: vi.fn(),
         deleteFolder: vi.fn(),
@@ -120,11 +125,11 @@ describe('ProjectStatsService source parsing', () => {
             'other/card__card-3.json',
             'design/usage_metrics.csv',
         ], config)).toEqual({
-            activityPaths: [
+            currentActivityPaths: [
                 'design/activity/card__card-1.json',
                 'design/activity/project.json',
-                'design/history/0_3_0/card__card-2.json',
             ],
+            releaseActivityPaths: { '0_3_0': ['design/history/0_3_0/card__card-2.json'] },
         })
     })
 
@@ -211,17 +216,19 @@ describe('ProjectStatsService aggregation', () => {
         ])
     })
 
-    it('treats missing metrics as unavailable and malformed required sources as one safe error', async () => {
+    it('treats missing metrics as unavailable and skips malformed activity with a path warning', async () => {
         const service = new ProjectStatsService()
         await openService(service, storage({}))
         expect(service.getSnapshot()).toMatchObject({ status: 'ready', tokenTimeAvailable: false })
 
+        service.close()
         await openService(service, storage({ 'design/activity/card__card-1.json': '{broken' }))
-        expect(service.getSnapshot().status).toBe('error')
+        expect(service.getSnapshot().status).toBe('ready')
         expect(service.getSnapshot().rows).toEqual([])
+        expect(service.getSnapshot().warnings).toEqual([expect.stringContaining('design/activity/card__card-1.json')])
     })
 
-    it('does not let an older load replace a newer project result', async () => {
+    it('unloads on close and prevents a late result from publishing', async () => {
         let releaseFirstList: () => void = () => undefined
         const firstStorage = storage({ 'design/activity/card__card-1.json': activityContent({ records: [actionRecord('old', '2026-08-12T10:00:00.000Z')] }) })
         firstStorage.listRepositoryFiles = vi.fn(async () => {
@@ -230,33 +237,24 @@ describe('ProjectStatsService aggregation', () => {
             })
             return ['design/activity/card__card-1.json']
         })
-        const secondStorage = storage({
-            'design/activity/card__card-1.json': activityContent({
-                records: [
-                    actionRecord('new-1', '2026-08-12T10:00:00.000Z'),
-                    actionRecord('new-2', '2026-08-12T11:00:00.000Z'),
-                ],
-            }),
-        })
         const service = new ProjectStatsService()
         service.bindProject({ config, project, storage: firstStorage })
         const firstLoad = service.open(cards)
-        service.bindProject({ config, project, storage: secondStorage })
-        await service.open(cards)
+        service.close()
         releaseFirstList()
         await firstLoad
 
-        expect(service.getSnapshot().rows).toMatchObject([{ value: 2 }])
+        expect(service.getSnapshot()).toMatchObject({ rows: [], status: 'idle' })
     })
 
-    it('refreshes relevant repository changes and ignores unrelated paths', async () => {
+    it('loads once per session and performs one fresh load after reopening', async () => {
         const files = {'design/activity/card__card-1.json': activityContent({ records: [actionRecord('run-1', '2026-08-12T10:00:00.000Z')] })}
         const statsStorage = storage(files)
         const service = new ProjectStatsService()
         await openService(service, statsStorage)
         const listRepositoryFiles = vi.mocked(statsStorage.listRepositoryFiles)
 
-        service.handleRepositoryChange({ changeKind: 'changed', path: 'design/active/F_1.md' })
+        await service.open(cards)
         expect(listRepositoryFiles).toHaveBeenCalledTimes(1)
 
         files['design/activity/card__card-1.json'] = activityContent({
@@ -265,8 +263,48 @@ describe('ProjectStatsService aggregation', () => {
                 actionRecord('run-2', '2026-08-12T11:00:00.000Z'),
             ],
         })
-        service.handleRepositoryChange({ changeKind: 'changed', path: 'design/activity/card__card-1.json' })
+        await service.open(cards)
+        expect(listRepositoryFiles).toHaveBeenCalledTimes(1)
+        service.close()
+        await service.open(cards)
+        expect(listRepositoryFiles).toHaveBeenCalledTimes(2)
+        expect(service.getSnapshot().rows).toMatchObject([{ value: 2 }])
+    })
 
-        await vi.waitFor(() => expect(service.getSnapshot().rows).toMatchObject([{ value: 2 }]))
+    it('migrates released activity once and reuses calculated facts', async () => {
+        const releasePath = 'design/history/v1/card__card-1.json'
+        const files = { [releasePath]: activityContent({ records: [actionRecord('released', '2026-08-12T10:00:00.000Z')] }) }
+        const statsStorage = storage(files)
+        const service = new ProjectStatsService()
+
+        await openService(service, statsStorage)
+        expect(service.getSnapshot().rows).toMatchObject([{ value: 1 }])
+        expect(statsStorage.commit).toHaveBeenCalledWith(expect.objectContaining({ message: 'Update calculated release stats' }))
+        service.close()
+        vi.mocked(statsStorage.loadTextFile!).mockClear()
+
+        await service.open(cards)
+
+        expect(service.getSnapshot().rows).toMatchObject([{ value: 1 }])
+        expect(statsStorage.loadTextFile).not.toHaveBeenCalledWith(project, releasePath)
+    })
+
+    it('reconciles renamed and removed release folders on next session', async () => {
+        const firstPath = 'design/history/v1/card__card-1.json'
+        const secondPath = 'design/history/v2/card__card-1.json'
+        const files: Record<string, string> = {[firstPath]: activityContent({ records: [actionRecord('released', '2026-08-12T10:00:00.000Z')] })}
+        const statsStorage = storage(files)
+        const service = new ProjectStatsService()
+        await openService(service, statsStorage)
+        files[secondPath] = files[firstPath]
+        delete files[firstPath]
+        service.close()
+
+        await service.open(cards)
+
+        const migrationCommit = vi.mocked(statsStorage.commit).mock.calls.at(-1)?.[0]
+        if (!migrationCommit) throw new Error('Missing stats migration commit')
+        const parsed = parseProjectStatsFile(migrationCommit.files[0].content, 'design/project_stats.json')
+        expect(Object.keys(parsed.releases)).toEqual(['v2'])
     })
 })
