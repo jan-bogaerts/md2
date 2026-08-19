@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__12faf0b2-355c-4860-b04b-6d5523a5c137.json
 policy:
 ---
 * in legend and bar labels, action labels: don't include internal id, just the name of the action
