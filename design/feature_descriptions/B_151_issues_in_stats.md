@@ -27,5 +27,5 @@ policy:
     * we have filters: provider, limit that only appears to be applied to this chart, but they make no sense. the point is to view claude and codex side by side on the same day
     * missing day labels on the x axis like the other charts have
   * we are missing a chart that compares numbers. We want to see:
-    * tokens per percent account usage
-    * actions per percent account usage
+    * tokens per percent account usage (so value of project token usage / percent account usage)
+    * actions per percent account usage (so actions count / percent account usage)
