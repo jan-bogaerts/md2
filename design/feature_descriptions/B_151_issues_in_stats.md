@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__12faf0b2-355c-4860-b04b-6d5523a5c137.json
 policy:
+after: cc3a9c43-319b-4a60-a202-f728f220e14e
 ---
 * in legend and bar labels, action labels: don't include internal id, just the name of the action
 * stacks are horizontally centered. that looks like shit, impossible to compare values. bars should be aligned at the bottom. this is in
