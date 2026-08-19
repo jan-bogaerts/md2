@@ -14,3 +14,4 @@ policy:
   * activity over time.
   * project activity (which is the same as above
 * bars have different widths on different charts. this is no good. they should all share the same basic styling
+  best styling seems to be on 'agent/model performance'
