@@ -887,10 +887,10 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "12faf0b2-355c-4860-b04b-6d5523a5c137",
       "cardPath": "design/feature_descriptions/B_151_issues_in_stats.md",
-      "completedAt": "2026-08-19T17:05:44.772Z",
+      "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 180089
+        "usedTokens": 180105
       },
       "entries": [
         {
@@ -4509,6 +4509,23 @@
           "role": "assistant",
           "sequence": 276,
           "timestamp": "2026-08-19T17:05:44.772Z"
+        },
+        {
+          "content": "/compact",
+          "id": "agent-turn-8b03fad5-299f-4330-a635-e06248da0400-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 277,
+          "timestamp": "2026-08-19T17:09:45.910Z"
+        },
+        {
+          "agent": "codex",
+          "content": "Context compacted.\n\n",
+          "id": "agent-turn-8b03fad5-299f-4330-a635-e06248da0400-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 278,
+          "timestamp": "2026-08-19T17:09:53.147Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -4523,18 +4540,18 @@
         }
       ],
       "startedAt": "2026-08-19T16:17:49.735Z",
-      "status": "completed",
+      "status": "running",
       "timer": {
         "elapsedMs": 1535089,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-08-19T17:09:45.910Z"
       },
       "title": "implement",
       "usage": {
-        "cachedInputTokens": 836224,
-        "inputTokens": 5579,
-        "outputTokens": 446,
+        "cachedInputTokens": 1015552,
+        "inputTokens": 6348,
+        "outputTokens": 454,
         "reasoningTokens": 93,
-        "totalTokens": 842342
+        "totalTokens": 1022447
       },
       "usageSchemaVersion": 1,
       "viewed": true
@@ -4762,6 +4779,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "407c6066414fe5f45e2d74e3d602c2668aaaf184",
           "committedAt": "2026-08-19T19:05:51+02:00",
           "deletions": 30,
@@ -4773,8 +4791,7 @@
             "app/src/components/stats_view/stats_content.tsx"
           ],
           "filesChanged": 5,
-          "insertions": 137,
-          "branch": "dev_main"
+          "insertions": 137
         }
       ],
       "completedAt": "2026-08-19T19:05:51+02:00",
