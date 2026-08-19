@@ -11,7 +11,7 @@ agents:
 policy:
 after: cc3a9c43-319b-4a60-a202-f728f220e14e
 branch: b_151_issues_in_stats
-worktree: 3
+worktree: 1
 ---
 
 Fix inconsistent bar layout and make project/account comparison show Claude and Codex together.
