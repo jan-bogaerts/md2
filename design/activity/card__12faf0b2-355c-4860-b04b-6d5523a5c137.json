@@ -3278,11 +3278,11 @@
         "agent-e350c562-9ebb-4c62-a41a-decb01fa2dd2"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-37f7ebbc-6eb2-41ab-b785-d2ccd7f4c874",
       "origin": {
@@ -3291,9 +3291,43 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-e350c562-9ebb-4c62-a41a-decb01fa2dd2",
       "startedAt": "2026-08-19T16:17:49.733Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-e350c562-9ebb-4c62-a41a-decb01fa2dd2"
+    },
+    {
+      "commits": [
+        {
+          "commit": "9fd5a6175390a3857a8fee2d8ccedca94ca2665f",
+          "committedAt": "2026-08-19T18:34:41+02:00",
+          "deletions": 269,
+          "filePaths": [
+            "app/src/components/stats_view/stats_bar_chart.test.tsx",
+            "app/src/components/stats_view/stats_bar_chart.tsx",
+            "app/src/components/stats_view/stats_content.test.tsx",
+            "app/src/components/stats_view/stats_content.tsx",
+            "app/src/components/stats_view/stats_controls.tsx",
+            "app/src/components/stats_view/stats_csv.node.test.ts",
+            "app/src/components/stats_view/stats_csv.ts",
+            "app/src/components/stats_view/stats_usage_comparison_charts.tsx",
+            "app/src/services/stats/project_stats_schema.node.test.ts",
+            "app/src/services/stats/project_stats_service.node.test.ts",
+            "app/src/services/stats/project_stats_service.ts",
+            "shared/project_stats.d.mts",
+            "shared/project_stats.mjs"
+          ],
+          "filesChanged": 13,
+          "insertions": 616,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-19T18:34:41+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "12faf0b2-355c-4860-b04b-6d5523a5c137",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
