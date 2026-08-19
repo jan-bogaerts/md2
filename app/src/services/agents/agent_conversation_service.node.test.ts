@@ -228,6 +228,37 @@ describe('parseAgentConversationLog', () => {
         expect(conversation.entries[0]).not.toHaveProperty('output')
     })
 
+    it('preserves completed file-change counts and readable content after reload', () => {
+        const timestamp = '2026-01-01T00:00:00.000Z'
+        const conversation = parseAgentConversationLog(JSON.stringify({
+            completedAt: timestamp,
+            entries: [{
+                content: 'add: generated/new-file.txt\nupdate: app/existing.txt',
+                deletions: 0,
+                id: 'file-counts',
+                insertions: 141,
+                kind: 'event',
+                label: 'File changes',
+                providerItemId: 'file-counts',
+                sequence: 1,
+                status: 'completed',
+                timestamp,
+                type: 'fileChange',
+            }],
+            id: 'agent-1',
+            startedAt: timestamp,
+            status: 'completed',
+        }), 'design/logs/file-counts.json')
+
+        expect(conversation.entries).toEqual([expect.objectContaining({
+            content: 'add: generated/new-file.txt\nupdate: app/existing.txt',
+            deletions: 0,
+            insertions: 141,
+            status: 'completed',
+            type: 'fileChange',
+        })])
+    })
+
     it('groups persisted consecutive diagnostics while preserving boundaries and first identity', () => {
         const timestamp = '2026-01-01T00:00:00.000Z'
         const conversation = parseAgentConversationLog(JSON.stringify({

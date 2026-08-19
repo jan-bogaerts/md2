@@ -58,16 +58,16 @@ function card(path: string, usages: Array<AgentTokenUsage | undefined>): Card {
 }
 
 describe('agent usage aggregation', () => {
-    it('sums every completed countable patch in one conversation', () => {
+    it('sums completed normalized add and mixed patches in one conversation', () => {
         const conversation = card('design/F-1.md', [undefined]).agentConversations[0]
         conversation.status = 'failed'
         conversation.entries = [
             {
-                content: 'first edit', deletions: 1, id: 'file-1', insertions: 2, kind: 'event',
+                content: 'add: generated/new-file.txt\nupdate: app/existing.txt', deletions: 0, id: 'file-1', insertions: 141, kind: 'event',
                 providerItemId: 'file-1', status: 'completed', timestamp: 'first', type: 'fileChange',
             },
             {
-                content: 'same line edited again', deletions: 1, id: 'file-2', insertions: 1, kind: 'event',
+                content: 'add: first.txt\nadd: second.txt\nadd: third.txt', deletions: 0, id: 'file-2', insertions: 203, kind: 'event',
                 providerItemId: 'file-2', status: 'completed', timestamp: 'second', type: 'fileChange',
             },
             {
@@ -80,7 +80,7 @@ describe('agent usage aggregation', () => {
             },
         ]
 
-        expect(conversationFileChangeUsage(conversation)).toEqual({ deletions: 2, insertions: 3 })
+        expect(conversationFileChangeUsage(conversation)).toEqual({ deletions: 0, insertions: 344 })
         expect(conversationFileChangeUsage({ ...conversation, entries: [] })).toBeNull()
         expect(conversationFileChangeUsage(null)).toBeNull()
     })

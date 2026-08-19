@@ -498,11 +498,11 @@ describe('CodexStreamingAdapter', () => {
         await adapter.handleMessage({ method: 'thread/tokenUsage/updated', params: {} });
         await adapter.handleMessage({
             method: 'item/started',
-            params: { item: { changes: [{ diff: '', kind: 'update', path: 'design\\feature.md' }], id: 'file-1', status: 'inProgress', type: 'fileChange' } },
+            params: { item: { changes: [{ diff: '', kind: { type: 'update' }, path: 'design\\feature.md' }], id: 'file-1', status: 'inProgress', type: 'fileChange' } },
         });
         await adapter.handleMessage({
             method: 'item/completed',
-            params: { item: { changes: [{ diff: '', kind: 'update', path: 'design\\feature.md' }], id: 'file-1', status: 'completed', type: 'fileChange' } },
+            params: { item: { changes: [{ diff: '', kind: { type: 'update' }, path: 'design\\feature.md' }], id: 'file-1', status: 'completed', type: 'fileChange' } },
         });
         const questions = [{ header: 'Confirm', id: 'confirm', question: 'Proceed?' }];
         await adapter.handleMessage({ id: 99, method: 'item/tool/requestUserInput', params: { questions } });
@@ -527,6 +527,37 @@ describe('CodexStreamingAdapter', () => {
             usage: { cachedInputTokens: 2, inputTokens: 2, outputTokens: 2, reasoningTokens: 1, totalTokens: 7 },
         });
         expect(writes.at(-1)).toEqual({ id: 99, result: { answers: { confirm: { answers: ['Yes'] } } } });
+    });
+
+    it('transmits completed real-shape file-change counts and readable content', async () => {
+        const { adapter, events } = harness('codex');
+        const addedContent = Array.from({ length: 126 }, (_, index) => `added line ${index + 1}`).join('\n');
+        const updateDiff = [
+            '@@ -0,0 +1,15 @@',
+            ...Array.from({ length: 15 }, (_, index) => `+updated line ${index + 1}`),
+        ].join('\n');
+        const item = {
+            changes: [
+                { diff: addedContent, kind: { type: 'add' }, path: 'generated\\new-file.txt' },
+                { diff: updateDiff, kind: { type: 'update' }, path: 'app\\existing.txt' },
+            ],
+            id: 'file-counts',
+            status: 'completed',
+            type: 'fileChange',
+        };
+
+        await adapter.handleMessage({ method: 'item/started', params: { item: { ...item, status: 'inProgress' } } });
+        await adapter.handleMessage({ method: 'item/completed', params: { item } });
+
+        const fileEvents = events.filter(({ event }) => event?.providerItemId === 'file-counts').map(({ event }) => event);
+        expect(fileEvents[0]).not.toMatchObject({ deletions: expect.anything(), insertions: expect.anything() });
+        expect(fileEvents.at(-1)).toMatchObject({
+            content: 'add: generated\\new-file.txt\nupdate: app\\existing.txt',
+            deletions: 0,
+            insertions: 141,
+            status: 'completed',
+            type: 'fileChange',
+        });
     });
 
     it('keeps only latest valid context-window snapshot for completed Codex turn', async () => {
@@ -587,7 +618,7 @@ describe('CodexStreamingAdapter', () => {
         });
         await adapter.handleMessage({
             method: 'item/started',
-            params: { item: { changes: [{ kind: 'update', path: 'app/src/main.ts' }], id: 'file-1', type: 'fileChange' } },
+            params: { item: { changes: [{ kind: { type: 'update' }, path: 'app/src/main.ts' }], id: 'file-1', type: 'fileChange' } },
         });
         await adapter.handleMessage({
             id: 41,

@@ -95,9 +95,18 @@ function fileChangeContent(changes) {
     if (!Array.isArray(changes)) return '';
 
     return changes
-        .filter((change) => typeof change?.path === 'string' && typeof change?.kind === 'string')
-        .map(({ kind, path }) => `${kind}: ${path}`)
+        .filter((change) => typeof change?.path === 'string' && typeof change?.kind?.type === 'string')
+        .map(({ kind, path }) => `${kind.type}: ${path}`)
         .join('\n');
+}
+
+/** Count lines in complete added or deleted file content without treating a terminal newline as another line. */
+function countFileContentLines(content) {
+    if (typeof content !== 'string' || content.length === 0) return 0;
+
+    const lines = content.replace(/\r\n/gu, '\n').split('\n');
+
+    return lines.at(-1) === '' ? lines.length - 1 : lines.length;
 }
 
 /** Count content-line additions and removals in one structurally valid unified diff. */
@@ -141,15 +150,25 @@ function countUnifiedDiffLines(diff) {
 
 function fileChangeLineUsage(changes) {
     if (!Array.isArray(changes)) return null;
-    const countedDiffs = changes
-        .map(({ diff }) => countUnifiedDiffLines(diff))
-        .filter((usage) => usage !== null);
-    if (countedDiffs.length === 0) return null;
+    const countedChanges = changes
+        .map(({ diff, kind }) => {
+            if (kind?.type === 'add') return { deletions: 0, insertions: countFileContentLines(diff) };
+            if (kind?.type === 'delete') return { deletions: countFileContentLines(diff), insertions: 0 };
+            if (kind?.type === 'update') return countUnifiedDiffLines(diff);
 
-    return countedDiffs.reduce((total, usage) => ({
+            return null;
+        })
+        .filter((usage) => usage !== null);
+    if (countedChanges.length === 0) return null;
+
+    return countedChanges.reduce((total, usage) => ({
         deletions: total.deletions + usage.deletions,
         insertions: total.insertions + usage.insertions,
     }), { deletions: 0, insertions: 0 });
+}
+
+function canonicalCodexItemType(type) {
+    return type.replace(/[^a-z]/giu, '').toLowerCase() === 'filechange' ? 'fileChange' : type;
 }
 
 function toolResult(item) {
@@ -247,33 +266,35 @@ function collaborationEvent(item, lifecycleStatus) {
 
 function normalizeCodexEvent(item, lifecycleStatus) {
     if (!item || typeof item.id !== 'string' || typeof item.type !== 'string') return null;
-    if (!SUPPORTED_CODEX_ITEM_TYPES.has(item.type)) return null;
-    if (item.type === 'reasoning') return reasoningEvent(item, lifecycleStatus);
-    if (item.type === 'commandExecution') return commandEvent(item, lifecycleStatus);
-    if (item.type === 'fileChange') return fileEvent(item, lifecycleStatus);
-    if (item.type === 'mcpToolCall') return mcpEvent(item, lifecycleStatus);
-    if (item.type === 'dynamicToolCall') return dynamicToolEvent(item, lifecycleStatus);
-    if (item.type === 'collabAgentToolCall') return collaborationEvent(item, lifecycleStatus);
-    if (item.type === 'webSearch') {
+    const type = canonicalCodexItemType(item.type);
+    if (!SUPPORTED_CODEX_ITEM_TYPES.has(type)) return null;
+    const normalizedItem = type === item.type ? item : { ...item, type };
+    if (type === 'reasoning') return reasoningEvent(normalizedItem, lifecycleStatus);
+    if (type === 'commandExecution') return commandEvent(normalizedItem, lifecycleStatus);
+    if (type === 'fileChange') return fileEvent(normalizedItem, lifecycleStatus);
+    if (type === 'mcpToolCall') return mcpEvent(normalizedItem, lifecycleStatus);
+    if (type === 'dynamicToolCall') return dynamicToolEvent(normalizedItem, lifecycleStatus);
+    if (type === 'collabAgentToolCall') return collaborationEvent(normalizedItem, lifecycleStatus);
+    if (type === 'webSearch') {
         return {
-            ...eventBase(item, lifecycleStatus, 'Web search'),
-            content: item.query,
-            output: optionalContent(item.action),
+            ...eventBase(normalizedItem, lifecycleStatus, 'Web search'),
+            content: normalizedItem.query,
+            output: optionalContent(normalizedItem.action),
         };
     }
-    if (item.type === 'imageView') {
-        return { ...eventBase(item, lifecycleStatus, 'Image view'), content: item.path };
+    if (type === 'imageView') {
+        return { ...eventBase(normalizedItem, lifecycleStatus, 'Image view'), content: normalizedItem.path };
     }
-    if (item.type === 'plan') {
-        return { ...eventBase(item, lifecycleStatus, 'Plan'), content: item.text };
+    if (type === 'plan') {
+        return { ...eventBase(normalizedItem, lifecycleStatus, 'Plan'), content: normalizedItem.text };
     }
-    if (item.type === 'contextCompaction') {
-        return { ...eventBase(item, lifecycleStatus, 'Context compacted') };
+    if (type === 'contextCompaction') {
+        return { ...eventBase(normalizedItem, lifecycleStatus, 'Context compacted') };
     }
-    if (item.type === 'enteredReviewMode' || item.type === 'exitedReviewMode') {
-        const label = item.type === 'enteredReviewMode' ? 'Entered review mode' : 'Exited review mode';
+    if (type === 'enteredReviewMode' || type === 'exitedReviewMode') {
+        const label = type === 'enteredReviewMode' ? 'Entered review mode' : 'Exited review mode';
 
-        return { ...eventBase(item, lifecycleStatus, label), content: item.review };
+        return { ...eventBase(normalizedItem, lifecycleStatus, label), content: normalizedItem.review };
     }
 
     return null;

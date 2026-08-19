@@ -5,7 +5,7 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": "d67b763d-819f-4e7e-aab5-c3c9f28e594d",
       "cardPath": "design/feature_descriptions/J_30_improve_activity_file_size.md",
-      "completedAt": null,
+      "completedAt": "2026-08-19T12:42:01.430Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 106732
@@ -704,7 +704,7 @@
         }
       ],
       "startedAt": "2026-08-19T12:18:33.281Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "timer": {
         "elapsedMs": 226088,
         "runningStartedAt": null
@@ -718,7 +718,7 @@
         "totalTokens": 209046
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
