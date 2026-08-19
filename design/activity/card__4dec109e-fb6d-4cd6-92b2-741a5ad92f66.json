@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 95412
+        "usedTokens": 112588
       },
       "entries": [
         {
@@ -900,6 +900,113 @@
           "role": "assistant",
           "sequence": 68,
           "timestamp": "2026-08-19T17:17:08.383Z"
+        },
+        {
+          "content": "what are those: cache\\_creation\\_input\\_tokens, cache\\_read\\_input\\_tokens?\n\nlets go over this one more time.\n\nduring a single conversation, claude regularly returns token usage. we simply add these reported token usage always up? or do we replace the value? here's the thing: are we certain that claude reports only the tokens that were used between last reporting and now or is it the total nr of consumed tokens since this conversation started?",
+          "id": "agent-turn-f202be7c-ef36-4ccb-998a-36b233c41769-user-68",
+          "kind": "message",
+          "role": "user",
+          "sequence": 69,
+          "timestamp": "2026-08-19T17:20:01.301Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f202be7c-ef36-4ccb-998a-36b233c41769-event-70",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_028c5ade2eed651d016a85e5c54fb887d0ae60cf1d321d7a95",
+          "sequence": 70,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T17:20:07.418Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Checking exact Claude `ResultMessage` contract and md2 streaming lifecycle. Key distinction: assistant-message reports during one prompt versus terminal result after prompt; resumed conversation adds another prompt.\n\n",
+          "id": "agent-turn-f202be7c-ef36-4ccb-998a-36b233c41769-turn-4-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 71,
+          "timestamp": "2026-08-19T17:20:08.244Z"
+        },
+        {
+          "content": "site:platform.claude.com/docs \"ResultMessage\" usage \"num_turns\" Claude Agent SDK ...",
+          "id": "agent-turn-f202be7c-ef36-4ccb-998a-36b233c41769-event-72",
+          "kind": "event",
+          "label": "Web search",
+          "output": "{\"type\":\"search\",\"query\":null,\"queries\":[\"site:platform.claude.com/docs \\\"ResultMessage\\\" usage \\\"num_turns\\\" Claude Agent SDK\",\"site:github.com/anthropics/claude-agent-sdk-typescript ResultMessage usage num_turns\",\"site:docs.anthropic.com/en/docs/claude-code/sdk/sdk-headless usage result num_turns\"]}",
+          "providerItemId": "exec-51c5c3c0-c2d6-4e47-8b74-602151b6f61c",
+          "sequence": 72,
+          "status": "completed",
+          "timestamp": "2026-08-19T17:20:12.749Z",
+          "type": "webSearch"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f202be7c-ef36-4ccb-998a-36b233c41769-event-73",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_028c5ade2eed651d016a85e5cfb24887d09c70993026f88716",
+          "sequence": 73,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T17:20:16.366Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'shared/agent_profiles.mjs'\"",
+          "content": "export const MODEL_PLACEHOLDER = '{{model}}'\nexport const SESSION_ID_PLACEHOLDER = '{{sessionId}}'\nexport const THINKING_LEVELS = ['none', 'low', 'medium', 'high', 'max']\nexport const DEFAULT_AGENT_PROFILE_NAME = 'codex'\nexport const PERMISSION_MODES = ['ask-for-approval', 'approve-for-me', 'full-access']\nexport const DEFAULT_PERMISSION_MODE = 'ask-for-approval'\nexport const PERMISSION_MODE_OPTIONS = [\n    {\n        description: 'Ask before commands or file changes cross the normal approval boundary.',\n        label: 'Ask for approval',\n        value: 'ask-for-approval',\n    },\n    {\n        description: 'Let the provider safety reviewer approve changes automatically.',\n        label: 'Approve for me',\n        value: 'approve-for-me',\n    },\n    {\n        description: 'Disable the normal approval boundary and allow unrestricted access.',\n        label: 'Full access â€” disables approvals',\n        value: 'full-access',\n    },\n]\n\nconst CODEX_MAX_THINKING_LEVEL = 'xhigh'\n\nfunction buildCodexOutputCommand(command, searchEnabled) {\n    return [...command, ...(searchEnabled ? ['--search'] : []), 'exec', '--json']\n}\n\nfunction buildClaudeOutputCommand(command) {\n    return [...command, '--print', '--verbose', '--output-format', 'stream-json']\n}\n\nfunction buildClaudeStreamingCommand(command) {\n    return [\n        ...buildClaudeOutputCommand(command),\n        '--include-partial-messages',\n        '--input-format',\n        'stream-json',\n        '--permission-prompt-tool',\n        'stdio',\n    ]\n}\n\nfunction buildCodexStreamingCommand(command) {\n    return [...command, 'app-server', '--stdio']\n}\n\nexport const BUILTIN_AGENT_PROFILES = [\n    {\n        command: ['codex'],\n        modelArgument: '--model',\n        models: ['gpt-5.5', 'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna'],\n        name: 'codex',\n    },\n    {\n        command: ['claude'],\n        modelArgument: '--model',\n        models: ['default', 'sonnet', 'fable', 'opus', 'haiku'],\n        name: 'claude',\n    },\n]\n\nfunction requireString(value, fieldName) {\n    if (typeof value !== 'string' || value.length === 0) throw new Error(`Missing agent profile field: ${fieldName}`)\n\n    return value\n}\n\nfunction readOptionalString(value, fieldName) {\n    if (value === undefined) return undefined\n    if (typeof value !== 'string') throw new Error(`Invalid agent profile field: ${fieldName}`)\n\n    return value\n}\n\nfunction readModels(value, fieldName) {\n    if (!Array.isArray(value)) throw new Error(`Invalid agent profile field: ${fieldName}`)\n    if (value.length === 0) throw new Error(`Empty agent profile field: ${fieldName}`)\n\n    const models = value.map((model, index) => {\n        const validatedModel = requireString(model, `${fieldName}[${index}]`)\n        if (validatedModel.trim() !== validatedModel) throw new Error(`Invalid agent profile field: ${fieldName}[${index}]`)\n\n        return validatedModel\n    })\n    if (new Set(models).size !== models.length) throw new Error(`Duplicate agent profile model in: ${fieldName}`)\n\n    return models\n}\n\nfunction readCommand(value, fieldName) {\n    if (!Array.isArray(value)) throw new Error(`Invalid agent profile field: ${fieldName}`)\n    if (value.length === 0) throw new Error(`Empty agent profile field: ${fieldName}`)\n\n    return value.map((argument, index) => requireString(argument, `${fieldName}[${index}]`))\n}\n\nfunction validateAgentProfile(profile, index, names) {\n    if (!profile || typeof profile !== 'object' || Array.isArray(profile)) throw new Error(`Invalid agent profile: ${index}`)\n    const name = requireString(profile.name, `desktop.agentProfiles[${index}].name`)\n    if (names.has(name)) throw new Error(`Duplicate agent profile: ${name}`)\n\n    const models = readModels(profile.models, `desktop.agentProfiles[${index}].models`)\n    const defaultModel = readOptionalString(profile.defaultModel, `desktop.agentProfiles[${index}].defaultModel`)\n    if (defaultModel && !models.includes(defaultModel)) {\n        throw new Error(`Invalid default model for agent profile ${name}: ${defaultModel}`)\n    }\n\n    const validated = {\n   \n[5243 characters omitted]\n-for-me', ['--sandbox', 'workspace-write', '--ask-for-approval', 'on-request', '-c', 'approvals_reviewer=auto_review']],\n        ['full-access', ['--sandbox', 'danger-full-access', '--ask-for-approval', 'never']],\n    ])],\n])\n\nexport function supportsPermissionMode(profile) {\n    return PERMISSION_MODE_ARGUMENTS.has(profile.name)\n}\n\nfunction buildPermissionModeCommand(command, profile, permissionMode) {\n    if (permissionMode === undefined) return command\n    const validatedPermissionMode = validatePermissionMode(permissionMode, `agent profile ${profile.name}`)\n    const adapter = PERMISSION_MODE_ARGUMENTS.get(profile.name)\n    if (!adapter) throw new Error(`Agent profile does not support permission modes: ${profile.name}`)\n\n    return [...command, ...adapter.get(validatedPermissionMode)]\n}\n\nconst THINKING_LEVEL_ADAPTERS = new Map([\n    ['claude', buildClaudeThinkingCommand],\n    ['codex', buildCodexThinkingCommand],\n])\n\nconst OUTPUT_COMMAND_ADAPTERS = new Map([\n    ['claude', buildClaudeOutputCommand],\n    ['codex', buildCodexOutputCommand],\n])\n\nconst STREAMING_COMMAND_ADAPTERS = new Map([\n    ['claude', buildClaudeStreamingCommand],\n    ['codex', buildCodexStreamingCommand],\n])\n\nfunction buildCodexResumeCommand(command, sessionId) {\n    const outputArguments = command.slice(-2)\n    if (outputArguments[0] !== 'exec' || outputArguments[1] !== '--json') {\n        throw new Error('Codex execution command is not structured JSON output')\n    }\n\n    return [...command.slice(0, -2), 'exec', 'resume', '--json', sessionId]\n}\n\nfunction buildClaudeResumeCommand(command, sessionId) {\n    return [...command, '--resume', sessionId]\n}\n\nconst RESUME_COMMAND_ADAPTERS = new Map([\n    ['claude', buildClaudeResumeCommand],\n    ['codex', buildCodexResumeCommand],\n])\n\nexport function buildAgentExecutionCommand(profile, model, thinkingLevel, searchEnabled = true, permissionMode = undefined) {\n    const validatedThinkingLevel = validateThinkingLevel(thinkingLevel, `agent profile ${profile.name}`)\n    let command = buildAgentCommand(profile, model)\n\n    if (validatedThinkingLevel !== 'none') {\n        const thinkingAdapter = THINKING_LEVEL_ADAPTERS.get(profile.name)\n        if (!thinkingAdapter) throw new Error(`Agent profile does not support thinking levels: ${profile.name}`)\n        command = thinkingAdapter(command, validatedThinkingLevel)\n    }\n    command = buildPermissionModeCommand(command, profile, permissionMode)\n\n    const outputAdapter = OUTPUT_COMMAND_ADAPTERS.get(profile.name)\n\n    return outputAdapter ? outputAdapter(command, searchEnabled) : command\n}\n\nexport function supportsAgentStreaming(profile) {\n    return STREAMING_COMMAND_ADAPTERS.has(profile.name)\n}\n\nexport function buildAgentStreamingCommand(profile, model, thinkingLevel, permissionMode = undefined) {\n    if (!supportsAgentStreaming(profile)) throw new Error(`Agent profile does not support streaming: ${profile.name}`)\n    const validatedThinkingLevel = validateThinkingLevel(thinkingLevel, `agent profile ${profile.name}`)\n    let command = buildAgentCommand(profile, model)\n\n    if (validatedThinkingLevel !== 'none') {\n        const thinkingAdapter = THINKING_LEVEL_ADAPTERS.get(profile.name)\n        if (!thinkingAdapter) throw new Error(`Agent profile does not support thinking levels: ${profile.name}`)\n        command = thinkingAdapter(command, validatedThinkingLevel)\n    }\n    command = buildPermissionModeCommand(command, profile, permissionMode)\n\n    return STREAMING_COMMAND_ADAPTERS.get(profile.name)(command)\n}\n\nexport function buildResumeAgentCommand(profile, sessionId, executionCommand) {\n    const resumeAdapter = RESUME_COMMAND_ADAPTERS.get(profile.name)\n    if (resumeAdapter) {\n        const command = executionCommand ?? buildAgentExecutionCommand(profile, '', 'none', false)\n\n        return resumeAdapter(command, sessionId)\n    }\n    if (!profile.resumeCommand) throw new Error(`Agent profile does not support native resume: ${profile.name}`)\n\n    return profile.resumeCommand.map((argument) => argument.replaceAll(SESSION_ID_PLACEHOLDER, sessionId))\n}\n\r\n",
+          "durationMs": 299,
+          "exitCode": 0,
+          "id": "agent-turn-f202be7c-ef36-4ccb-998a-36b233c41769-event-74",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'shared/agent_profiles.mjs'\"",
+          "providerItemId": "exec-0744e233-922e-488d-a833-ec4758d11d90",
+          "sequence": 74,
+          "status": "completed",
+          "timestamp": "2026-08-19T17:20:18.566Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'desktop/src/actions/agent/agent_claude_streaming_adapter.js'\"",
+          "content": "const { normalizedContent } = require('./agent_event_utils');\nconst { boundedAgentResult } = require('../../../../shared/agent_conversations.mjs');\nconst { claudeChangedPaths, claudeUsage } = require('./agent_claude_events');\nconst { isMissingSession } = require('./agent_provider_protocol');\n\nconst CLAUDE_APPROVAL_DECISIONS = ['accept', 'acceptForSession', 'decline', 'cancel'];\nconst CLAUDE_FILE_TOOLS = new Set(['Edit', 'MultiEdit', 'NotebookEdit', 'Write']);\nconst CLAUDE_QUESTION_TOOL = 'AskUserQuestion';\n\nfunction requireMessage(content) {\n    if (typeof content !== 'string' || content.trim().length === 0) throw new Error('Streaming agent message is required');\n\n    return content;\n}\n\nfunction claudeUserMessage(content) {\n    return { message: { content, role: 'user' }, type: 'user' };\n}\n\nfunction claudeControlResponse(requestId, response) {\n    return {\n        response: { request_id: requestId, response, subtype: 'success' },\n        type: 'control_response',\n    };\n}\n\nfunction claudeQuestionRequest(event) {\n    if (event.type !== 'control_request' || event.request?.subtype !== 'can_use_tool') return null;\n    if (event.request.tool_name !== CLAUDE_QUESTION_TOOL || !Array.isArray(event.request.input?.questions)) return null;\n\n    const questions = event.request.input.questions.map((question, index) => ({\n        ...question,\n        id: question.id ?? `claude-question-${index}`,\n    }));\n\n    return {\n        input: event.request.input,\n        questions,\n        requestId: event.request_id,\n        toolUseId: event.request.tool_use_id,\n    };\n}\n\nfunction approvalFilePaths(toolName, input) {\n    if (!CLAUDE_FILE_TOOLS.has(toolName) || !input || typeof input !== 'object' || Array.isArray(input)) return [];\n    const filePath = toolName === 'NotebookEdit' ? input.notebook_path : input.file_path;\n\n    return typeof filePath === 'string' && filePath.length > 0 ? [filePath] : [];\n}\n\nfunction claudeApprovalRequest(event) {\n    if (event.type !== 'control_request' || event.request?.subtype !== 'can_use_tool') return null;\n    if (event.request.tool_name === CLAUDE_QUESTION_TOOL) return null;\n    const { input, permission_suggestions: permissionSuggestions, tool_name: toolName, tool_use_id: toolUseId } = event.request;\n    if (event.request_id === undefined || event.request_id === null) throw new Error('Missing Claude approval request id');\n    if (typeof toolName !== 'string' || toolName.length === 0) throw new Error('Missing Claude approval tool name');\n    if (typeof toolUseId !== 'string' || toolUseId.length === 0) throw new Error('Missing Claude approval tool use id');\n    if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('Missing Claude approval input');\n    if (permissionSuggestions !== undefined && !Array.isArray(permissionSuggestions)) {\n        throw new Error('Invalid Claude approval permission suggestions');\n    }\n    const availableDecisions = permissionSuggestions?.length > 0\n        ? CLAUDE_APPROVAL_DECISIONS\n        : CLAUDE_APPROVAL_DECISIONS.filter((decision) => decision !== 'acceptForSession');\n    const approval = {\n        approvalId: toolUseId,\n        availableDecisions,\n        command: toolName === 'Bash' && typeof input.command === 'string' ? input.command : null,\n        cwd: typeof input.cwd === 'string' ? input.cwd : null,\n        filePaths: approvalFilePaths(toolName, input),\n        input: structuredClone(input),\n        itemId: toolUseId,\n        kind: toolName === 'Bash' ? 'commandExecution' : CLAUDE_FILE_TOOLS.has(toolName) ? 'fileChange' : 'toolUse',\n        permissionSuggestions: structuredClone(permissionSuggestions ?? []),\n        provider: 'claude',\n        reason: event.request.decision_reason ?? event.request.reason ?? null,\n        requestId: event.request_id,\n        startedAtMs: Date.now(),\n        toolName,\n    };\n\n    return { approval, input, permissionSuggestions: permissionSuggestions ?? [], toolUseId };\n}\n\nfunction claudeApprovalResponse(pendingApproval, decision) {\n    const { input, permissionSuggestions, toolUseId } = pendingAp\n[13640 characters omitted]\n this.onEvent({ itemId: providerItemId, type: 'assistantStarted' });\n                    // Record the freshly created item so a repeat aggregated delivery of the same step\n                    // (the `AskUserQuestion` pause re-emits it) reconciles in place instead of duplicating.\n                    this.streamedTextItems.set(providerItemId, { separator });\n                }\n                this.turnHasAssistantText = this.turnHasAssistantText || block.text.length > 0;\n                await this.onEvent({ content: `${separator}${block.text}`, itemId: providerItemId, type: 'assistantCompleted' });\n                continue;\n            }\n            const providerItemId = block.id ?? `${messageId}:${block.type}:${index}`;\n            if (block.type === 'thinking') {\n                const content = typeof block.thinking === 'string' ? block.thinking : '';\n                const reasoningEvent = {\n                    ...eventBase(providerItemId, 'reasoning', 'Thinking', 'completed'),\n                    content,\n                    details: [content],\n                    summary: [],\n                };\n                await this.onEvent({ event: reasoningEvent, type: 'event' });\n                continue;\n            }\n            if (block.type === 'tool_use') await this.onEvent({ event: claudeToolEvent(block, 'inProgress', providerItemId), type: 'event' });\n        }\n        const changedPaths = claudeChangedPaths(event, this.rootPath);\n        if (changedPaths.length > 0) await this.onEvent({ paths: changedPaths, type: 'changedPaths' });\n    }\n\n    async handleToolResults(event) {\n        if (!Array.isArray(event.message?.content)) return;\n        for (const block of event.message.content) {\n            if (block?.type !== 'tool_result' || typeof block.tool_use_id !== 'string') continue;\n            const trackedTool = [...this.activeBlocks.values()].find(({ providerItemId }) => providerItemId === block.tool_use_id);\n            const toolEvent = trackedTool?.block?.type === 'tool_use'\n                ? claudeToolEvent(trackedTool.block, block.is_error ? 'failed' : 'completed')\n                : eventBase(block.tool_use_id, 'tool.result', 'Tool result', block.is_error ? 'failed' : 'completed');\n            const result = boundedAgentResult(normalizedContent(block.content) ?? '');\n            if (toolEvent.type === 'commandExecution') toolEvent.content = result;\n            else toolEvent.output = result;\n            await this.onEvent({ event: toolEvent, type: 'event' });\n        }\n    }\n\n    async handleResult(event) {\n        const error = event.is_error === true\n            ? String(event.error ?? event.result ?? event.message ?? event.errors?.join('\\n') ?? 'Claude turn failed')\n            : null;\n        const missingSession = !this.turnStarted && (\n            isClaudeMissingSessionResult(event, this.providerConversationId)\n            || isMissingSession('claude', event, this.turnStarted)\n        );\n        for (const requestId of this.pendingApprovals.keys()) {\n            this.pendingApprovals.delete(requestId);\n            await this.onEvent({ requestId, type: 'approvalResolved' });\n        }\n        this.activeBlocks.clear();\n        this.streamedTextItems.clear();\n        this.activeMessageId = null;\n        this.activeTextOrdinal = 0;\n        this.pendingQuestions.clear();\n        this.turnStarted = false;\n        this.turnHasAssistantText = false;\n        await this.onEvent({ error, missingSession, type: 'turnCompleted', usage: claudeUsage(event) });\n    }\n\n    static ignoreProtocolNoise() {\n        // Valid protocol additions need no user-facing event until adapter support exists.\n    }\n\n    async emitProtocolError(content) {\n        const providerItemId = `error:${this.activeMessageId ?? 'unknown-message'}:${this.protocolErrorSequence}`;\n        this.protocolErrorSequence += 1;\n        const event = { ...eventBase(providerItemId, 'error', 'Claude protocol error', 'failed'), content };\n        await this.onEvent({ event, type: 'event' });\n    }\n}\n\nmodule.exports = { ClaudeStreamingAdapter };\n\r\n",
+          "durationMs": 277,
+          "exitCode": 0,
+          "id": "agent-turn-f202be7c-ef36-4ccb-998a-36b233c41769-event-75",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'desktop/src/actions/agent/agent_claude_streaming_adapter.js'\"",
+          "providerItemId": "exec-99128d0f-699f-45df-9b60-ce840b6ccbd5",
+          "sequence": 75,
+          "status": "completed",
+          "timestamp": "2026-08-19T17:20:18.849Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f202be7c-ef36-4ccb-998a-36b233c41769-event-76",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_028c5ade2eed651d016a85e5d6076487d0ac39c2b40d94e365",
+          "sequence": 76,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T17:20:30.244Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Claude reports two usage levels. md2 currently uses only terminal level.\n\n`cache_creation_input_tokens`:\n\n- Input tokens newly written into Claude prompt cache.\n- Example: system prompt, tools, conversation prefix cached for reuse.\n\n`cache_read_input_tokens`:\n\n- Input tokens reused from existing prompt cache.\n- Claude does not process them as fresh uncached input, but reports and bills them at cache-read rate.\n\nmd2 combines both into `cachedInputTokens`. Name is imprecise because it includes cache writes and reads.\n\nDuring one user prompt:\n\n1. Claude makes model request.\n2. Claude may call tool.\n3. Tool result returns.\n4. Claude makes another model request with conversation context.\n5. Claude emits assistant messages containing per-request usage.\n6. Claude emits terminal `result.usage`, aggregated across all internal model requests for that prompt.\n\nmd2 ignores assistant-message usage. It does not repeatedly add regular reports. It adds only terminal result:\n\n```text\nconversation total before prompt: C\nterminal result for prompt:       R\nnew conversation total:           C + R\n```\n\nNext user prompt:\n\n```text\nprevious conversation total: C + R\nnew terminal result:          S\nnew conversation total:       C + R + S\n```\n\nClaude’s result is prompt/query cumulative, not entire resumed-session cumulative. Official Anthropic examples show later results in same resumed session can contain lower usage and cost than earlier results; session-cumulative values could not decrease. Anthropic also describes result usage as usage “across the agent run.” [Anthropic Agent SDK example](https://platform.claude.com/cookbook/claude-agent-sdk-07-hosting-the-agent)\n\nTherefore adding terminal results should be correct. We do not replace conversation total with latest result.\n\nStill unverified in md2’s real data: whether current Claude CLI sometimes emits two terminal results for one submitted prompt. If it does, md2 would add both. That is exact duplicate-count scenario needing raw-event inspection or controlled capture. Separate reported SDK issues show duplicate processing can occur with persistent streaming input, though that would represent Claude genuinely consuming tokens twice, not md2 adding one report twice. [Anthropic SDK issue](https://github.com/anthropics/claude-agent-sdk-typescript/issues/207)\n\n",
+          "id": "agent-turn-f202be7c-ef36-4ccb-998a-36b233c41769-turn-4-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 77,
+          "timestamp": "2026-08-19T17:20:38.866Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -909,23 +1016,23 @@
           "agent": "codex",
           "conversationId": "01a01aff-c1c5-7452-abba-33e5f8be0a49",
           "createdAt": "2026-08-19T17:11:54.726Z",
-          "lastUsedAt": "2026-08-19T17:16:28.829Z",
-          "synchronizedThroughMessageId": "agent-turn-f202be7c-ef36-4ccb-998a-36b233c41769-turn-2-assistant-1"
+          "lastUsedAt": "2026-08-19T17:17:08.383Z",
+          "synchronizedThroughMessageId": "agent-turn-f202be7c-ef36-4ccb-998a-36b233c41769-turn-3-assistant-1"
         }
       ],
       "startedAt": "2026-08-19T17:09:23.328Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 162560,
-        "runningStartedAt": "2026-08-19T17:17:01.613Z"
+        "elapsedMs": 169330,
+        "runningStartedAt": "2026-08-19T17:20:01.301Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 374784,
-        "inputTokens": 4818,
-        "outputTokens": 505,
-        "reasoningTokens": 234,
-        "totalTokens": 380341
+        "cachedInputTokens": 477952,
+        "inputTokens": 13248,
+        "outputTokens": 979,
+        "reasoningTokens": 750,
+        "totalTokens": 492929
       },
       "usageSchemaVersion": 1,
       "viewed": true
