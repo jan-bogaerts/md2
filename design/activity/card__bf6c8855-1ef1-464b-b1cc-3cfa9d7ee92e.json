@@ -2408,19 +2408,19 @@
           "agent": "codex",
           "conversationId": "01a01a1e-4eeb-7350-99ca-2e9890d4ed8d",
           "createdAt": "2026-08-19T13:04:47.417Z",
-          "lastUsedAt": "2026-08-19T13:05:05.197Z",
-          "synchronizedThroughMessageId": "agent-turn-d173ac40-bd4d-41ae-8ca5-62060323a6e6-turn-1-assistant-2"
+          "lastUsedAt": "2026-08-19T13:13:51.619Z",
+          "synchronizedThroughMessageId": "agent-turn-d173ac40-bd4d-41ae-8ca5-62060323a6e6-turn-2-assistant-1"
         }
       ],
       "startedAt": "2026-08-19T13:03:08.787Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
-        "elapsedMs": 98630,
-        "runningStartedAt": "2026-08-19T13:13:03.823Z"
+        "elapsedMs": 146426,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usageSchemaVersion": 1,
-      "viewed": true,
+      "viewed": false,
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 24029
