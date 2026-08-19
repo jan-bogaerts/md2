@@ -12,7 +12,6 @@ sentryBaseUrl: https://sentry.io
 sentryIssueId: 141434007
 sentryOrganization: elastetic
 ---
-
 ## Sentry issue
 
 **Title:** Error: Unknown action run: action-6a1f569b-6719-4e44-a509-dcc2061a22c6
@@ -37,7 +36,14 @@ sentryOrganization: elastetic
 
 ### Application stack frames
 
-- `/assets/index-CVe3JLtK.js:25:6714` — WebSocket.r
-- `/assets/index-CVe3JLtK.js:26:36945` — WebSocket.<anonymous>
-- `/assets/index-CVe3JLtK.js:26:37637` — nh.handleMessage
-- `/assets/index-CVe3JLtK.js:26:37782` — nh.handleResponse
+* `/assets/index-CVe3JLtK.js:25:6714` — WebSocket.r
+* `/assets/index-CVe3JLtK.js:26:36945` — WebSocket.\<anonymous>
+* `/assets/index-CVe3JLtK.js:26:37637` — nh.handleMessage
+* `/assets/index-CVe3JLtK.js:26:37782` — nh.handleResponse
+
+This appears to be a recurring bug. we already tried to fix similar issues recently. details on the setup
+
+* electron app is running and serving websocket
+* chrome on android is connected to electron through websocket
+* on android, new cards are created, edited, agent run on cards
+* some errors appear on android like
