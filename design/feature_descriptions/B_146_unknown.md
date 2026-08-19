@@ -12,12 +12,11 @@ sentryBaseUrl: https://sentry.io
 sentryIssueId: 141426871
 sentryOrganization: elastetic
 ---
-
 ## Sentry issue
 
-**Title:** <unknown>
+**Title:** \<unknown>
 
-**Message:** External change ignored for design/feature_descriptions/F_211_stats_view_improvements.md because the file has unsaved local edits.
+**Message:** External change ignored for design/feature\_descriptions/F\_211\_stats\_view\_improvements.md because the file has unsaved local edits.
 
 **Link:** [Open issue in Sentry](https://elastetic.sentry.io/issues/141426871/)
 
@@ -37,4 +36,16 @@ sentryOrganization: elastetic
 
 ### Application stack frames
 
-- No application stack frames provided.
+* No application stack frames provided.
+
+
+
+This appears to be a recurring bug. we already tried to fix similar issues recently. details on the setup- electron app is running and serving websocket
+
+* chrome on android is connected to electron through websocket
+* on android, new cards are created, edited, agent run on cards
+* some errors appear on android like `remote-control websocket was replaced`  other only appear on the electron renderer like `Message:`` External change ignored for design/feature_descriptions/F_211_stats_view_improvements.md because the file has unsaved local edits.`
+
+lets analyze the algorithm and find the wrong sequence.
+
+might be related to [B\_145\_error\_unknown\_action\_run\_action\_6a1f569b\_6719\_4e44\_a509\_dcc2061a22c6.md](design/feature_descriptions/B_145_error_unknown_action_run_action_6a1f569b_6719_4e44_a509_dcc2061a22c6.md)
