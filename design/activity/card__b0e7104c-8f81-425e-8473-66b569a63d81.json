@@ -543,96 +543,96 @@
         },
         {
           "content": "",
+          "details": [
+            ""
+          ],
           "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-2",
           "kind": "event",
           "label": "Thinking",
           "providerItemId": "msg_011CeAfhXMbnSrxctnphsapu:thinking:0",
           "sequence": 2,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-18T18:13:46.970Z",
-          "type": "reasoning",
-          "details": [
-            ""
-          ],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "content": "{}",
           "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-3",
           "kind": "event",
           "label": "Read",
+          "output": "1\t---\n2\tauthor: \n3\tid: B_116\n4\tinternalId: b0e7104c-8f81-425e-8473-66b569a63d81\n5\ttitle: merge agent missing card internal id\n6\tstatus: ready for implementation\n7\towner: \n8\taffects:\n9\tagents:\n10\t  - design/activity/card__b0e7104c-8f81-425e-8473-66b569a63d81.json\n11\tpolicy:\n12\t---\n13\t\n14\tWhen we have a merge conflict and decide to resolve it with an agent, as soon as the agent opens, we get this error:\n15\t\n16\t`Missing cardInternalId for merge-conflict agent conversation context`\n17\t\n18\tthere is no card, so no internal id.\n19\t\n20\t## Definitions\n21\t\n22\t- **ActionContext**: the object describing what an action runs against. For a card it carries a `cardInternalId`; for a merge conflict it carries `conflictSessionId` / `conflictFile` and no card identity.\n23\t- **cardInternalId**: the stable per-card UUID used to own a card's persisted agent activity.\n24\t- **activity origin**: the ownership key the desktop assigns to a conversation's persisted activity files — either `{ kind: 'card', cardInternalId }` or `{ kind: 'project' }`.\n25\t\n26\t## Current state\n27\t\n28\tOpening a merge-conflict agent raises `Missing cardInternalId for merge-conflict agent conversation context` before any agent work starts. Cause chain:\n29\t\n30\t1. `MergeConflictDialog.handleAgent` (`app/src/components/merge_conflict_dialog.tsx:118`) calls `mergeConflictService.createActionContext(path)`, producing a context with `kind: 'merge-conflict'`, `conflictSessionId`, an optional `conflictFile`, and `conflictFiles` — deliberately **without** a `cardInternalId`, because a merge conflict is not a card.\n31\t2. `ActionPopup` mounts and its `ActionConversationStore.load()` calls `defaultLoadConversations(context)` → `dataService.listAgentConversations(context)` to show prior conversations for the action.\n32\t3. `listAgentConversations` (`app/src/services/data/data_service.ts:267-272`) returns project conversations only when `kind === 'project'`; for every other kind it requires `cardInternalId` and otherwise throws. `merge-conflict` has no `cardInternalId`, so it throws. The error is caught in `ActionConversationStore.load` and shown through `dialogService` the moment the popup opens.\n33\t\n34\tThe assumption behind the throw is wrong for merge conflicts. On the desktop, `activityOrigin()` (`desktop/src/actions/action/action_runner_service.js:16-26`) maps any non-`card`/`file` context — merge-conflict included — to `{ kind: 'project' }`. A merge-conflict run therefore persists its conversation with `cardInternalId: null` (`desktop/src/actions/agent/agent_conversation.js:115`), i.e. as a **project-level** conversation. Merge-conflict history belongs in the project conversation list, not under a card.\n35\t\n36\tA second, latent defect sits in the client filter: `belongsToContext` (`app/src/components/actions/conversation/action_conversation_store.ts:17-21`) only special-cases `project`. For a merge-conflict context it evaluates `conversation.cardInternalId (null) === context.cardInternalId (undefined)`, which is `false`. So even once conversations are listed, none would match, select, or validate for a merge-conflict popup.\n37\t\n38\t## Implementation details\n39\t\n40\t1. **Route merge-conflict listing to project conversations** — `app/src/services/data/data_service.ts`, `listAgentConversations`. Return `this.agents.listProjectAgentConversations()` for `kind === 'merge-conflict'` as well as `kind === 'project'`. Keep the `cardInternalId` requirement only for card-owned kinds. This matches where merge-conflict runs actually persist (project origin, `cardInternalId: null`).\n41\t2. **Treat merge-conflict as project in the client filter** — `app/src/components/actions/conversation/action_conversation_store.ts`, `belongsToContext`. Match project-level ownership (`conversation.cardInternalId === null`) for `merge-conflict` contexts, not just `project`. This makes history listing, initial selection, and `validateSelection` work for the popup.\n42\t3. **Scoping note (no bleed in practice):** the popup already filters by `actionId` (`conversationOptions` / `latestWaitingConversation`). Merge-conflict actions carry `appliesTo.kind === 'merge-conflict'` and have distinct ids from ordinary project agents, so project-agent history and merge-conflict history do not mix. Per-file and resolve-all invocations of the *same* merge-conflict action share one `actionId` and one project origin, so their past conversations appear together — accepted, because history is keyed by action, and `conflictFile` is not part of the stored conversation identity.\n43\t4. **No desktop / persistence change.** Origins, storage layout, and the action-run protocol stay as they are; only the two client read paths change.\n44\t5. **Tests** — extend `app/src/services/data/data_service.test.ts` to assert `listAgentConversations({ kind: 'merge-conflict', conflictSessionId })` resolves via `listProjectAgentConversations` and does not throw; extend `app/src/components/actions/conversation/action_conversation_store.node.test.ts` (and/or the popup tests) to assert a `null`-owned conversation belongs to a merge-conflict context. Run `npm run typecheck` and the app tests.\n45\t\n46\t## Acceptance criteria\n47\t\n48\t- Opening a merge-conflict agent (per-file or resolve-all) no longer raises `Missing cardInternalId for merge-conflict agent conversation context`; no error dialog appears on popup open.\n49\t- The merge-conflict popup lists prior conversations for that action (project-origin, `cardInternalId: null`) and can select one without a \"belongs to another context\" error.\n50\t- Card and project agent popups behave exactly as before; the `cardInternalId` requirement still holds for card-owned contexts.\n51\t- No desktop bridge, persistence, or action-run protocol change is introduced.\n52\t- Typecheck and the app test suite pass, including new coverage for the merge-conflict listing and filtering paths.",
           "providerItemId": "toolu_018MZrAH8SHRP6mmhGpJxZzW",
           "sequence": 3,
           "status": "completed",
           "timestamp": "2026-08-18T18:13:47.944Z",
-          "type": "tool.Read",
-          "output": "1\t---\n2\tauthor: \n3\tid: B_116\n4\tinternalId: b0e7104c-8f81-425e-8473-66b569a63d81\n5\ttitle: merge agent missing card internal id\n6\tstatus: ready for implementation\n7\towner: \n8\taffects:\n9\tagents:\n10\t  - design/activity/card__b0e7104c-8f81-425e-8473-66b569a63d81.json\n11\tpolicy:\n12\t---\n13\t\n14\tWhen we have a merge conflict and decide to resolve it with an agent, as soon as the agent opens, we get this error:\n15\t\n16\t`Missing cardInternalId for merge-conflict agent conversation context`\n17\t\n18\tthere is no card, so no internal id.\n19\t\n20\t## Definitions\n21\t\n22\t- **ActionContext**: the object describing what an action runs against. For a card it carries a `cardInternalId`; for a merge conflict it carries `conflictSessionId` / `conflictFile` and no card identity.\n23\t- **cardInternalId**: the stable per-card UUID used to own a card's persisted agent activity.\n24\t- **activity origin**: the ownership key the desktop assigns to a conversation's persisted activity files — either `{ kind: 'card', cardInternalId }` or `{ kind: 'project' }`.\n25\t\n26\t## Current state\n27\t\n28\tOpening a merge-conflict agent raises `Missing cardInternalId for merge-conflict agent conversation context` before any agent work starts. Cause chain:\n29\t\n30\t1. `MergeConflictDialog.handleAgent` (`app/src/components/merge_conflict_dialog.tsx:118`) calls `mergeConflictService.createActionContext(path)`, producing a context with `kind: 'merge-conflict'`, `conflictSessionId`, an optional `conflictFile`, and `conflictFiles` — deliberately **without** a `cardInternalId`, because a merge conflict is not a card.\n31\t2. `ActionPopup` mounts and its `ActionConversationStore.load()` calls `defaultLoadConversations(context)` → `dataService.listAgentConversations(context)` to show prior conversations for the action.\n32\t3. `listAgentConversations` (`app/src/services/data/data_service.ts:267-272`) returns project conversations only when `kind === 'project'`; for every other kind it requires `cardInternalId` and otherwise throws. `merge-conflict` has no `cardInternalId`, so it throws. The error is caught in `ActionConversationStore.load` and shown through `dialogService` the moment the popup opens.\n33\t\n34\tThe assumption behind the throw is wrong for merge conflicts. On the desktop, `activityOrigin()` (`desktop/src/actions/action/action_runner_service.js:16-26`) maps any non-`card`/`file` context — merge-conflict included — to `{ kind: 'project' }`. A merge-conflict run therefore persists its conversation with `cardInternalId: null` (`desktop/src/actions/agent/agent_conversation.js:115`), i.e. as a **project-level** conversation. Merge-conflict history belongs in the project conversation list, not under a card.\n35\t\n36\tA second, latent defect sits in the client filter: `belongsToContext` (`app/src/components/actions/conversation/action_conversation_store.ts:17-21`) only special-cases `project`. For a merge-conflict context it evaluates `conversation.cardInternalId (null) === context.cardInternalId (undefined)`, which is `false`. So even once conversations are listed, none would match, select, or validate for a merge-conflict popup.\n37\t\n38\t## Implementation details\n39\t\n40\t1. **Route merge-conflict listing to project conversations** — `app/src/services/data/data_service.ts`, `listAgentConversations`. Return `this.agents.listProjectAgentConversations()` for `kind === 'merge-conflict'` as well as `kind === 'project'`. Keep the `cardInternalId` requirement only for card-owned kinds. This matches where merge-conflict runs actually persist (project origin, `cardInternalId: null`).\n41\t2. **Treat merge-conflict as project in the client filter** — `app/src/components/actions/conversation/action_conversation_store.ts`, `belongsToContext`. Match project-level ownership (`conversation.cardInternalId === null`) for `merge-conflict` contexts, not just `project`. This makes history listing, initial selection, and `validateSelection` work for the popup.\n42\t3. **Scoping note (no bleed in practice):** the popup already filters by `actionId` (`conversationOptions` / `latestWaitingConversation`). Merge-conflict actions carry `appliesTo.kind === 'merge-conflict'` and have distinct ids from ordinary project agents, so project-agent history and merge-conflict history do not mix. Per-file and resolve-all invocations of the *same* merge-conflict action share one `actionId` and one project origin, so their past conversations appear together — accepted, because history is keyed by action, and `conflictFile` is not part of the stored conversation identity.\n43\t4. **No desktop / persistence change.** Origins, storage layout, and the action-run protocol stay as they are; only the two client read paths change.\n44\t5. **Tests** — extend `app/src/services/data/data_service.test.ts` to assert `listAgentConversations({ kind: 'merge-conflict', conflictSessionId })` resolves via `listProjectAgentConversations` and does not throw; extend `app/src/components/actions/conversation/action_conversation_store.node.test.ts` (and/or the popup tests) to assert a `null`-owned conversation belongs to a merge-conflict context. Run `npm run typecheck` and the app tests.\n45\t\n46\t## Acceptance criteria\n47\t\n48\t- Opening a merge-conflict agent (per-file or resolve-all) no longer raises `Missing cardInternalId for merge-conflict agent conversation context`; no error dialog appears on popup open.\n49\t- The merge-conflict popup lists prior conversations for that action (project-origin, `cardInternalId: null`) and can select one without a \"belongs to another context\" error.\n50\t- Card and project agent popups behave exactly as before; the `cardInternalId` requirement still holds for card-owned contexts.\n51\t- No desktop bridge, persistence, or action-run protocol change is introduced.\n52\t- Typecheck and the app test suite pass, including new coverage for the merge-conflict listing and filtering paths."
+          "type": "tool.Read"
         },
         {
           "content": "",
+          "details": [
+            ""
+          ],
           "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-4",
           "kind": "event",
           "label": "Thinking",
           "providerItemId": "msg_011CeAfhiXZ7Z2c9BK9zQsfr:thinking:0",
           "sequence": 4,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-18T18:13:49.470Z",
-          "type": "reasoning",
-          "details": [
-            ""
-          ],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "content": "{}",
           "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-5",
           "kind": "event",
           "label": "Read",
+          "output": "240\t            runningAgents: agentConversationService.getRunningAgents(),\n241\t            snapshot: this.projectState.snapshot,\n242\t        }\n243\t    }\n244\t\n245\t    isFullProjectLoaded() {\n246\t        return this.fullProjectLoaded\n247\t    }\n248\t\n249\t    getPersistenceSnapshot(): DataPersistenceSnapshot {\n250\t        const currentProject = this.projectState.project\n251\t\n252\t        return {\n253\t            hasPendingFileCommit: this.commitBatcher?.hasPending() ?? false,\n254\t            hasPendingPush: currentProject ? this.storage?.hasPendingPush?.(currentProject) ?? false : false,\n255\t            isSaving: this.saveStateService.getState().isSaving,\n256\t        }\n257\t    }\n258\t\n259\t    async drainPendingStorageWrites() {\n260\t        await this.saveStateService.drain()\n261\t    }\n262\t\n263\t    getConfig(): ProjectConfig | null {\n264\t        return getProjectConfigOrNull(this.storage)\n265\t    }\n266\t\n267\t    async listAgentConversations(context: ActionContext) {\n268\t        if (context.kind === 'project') return this.agents.listProjectAgentConversations()\n269\t        if (!context.cardInternalId) throw new Error(`Missing cardInternalId for ${context.kind} agent conversation context`)\n270\t\n271\t        return this.agents.ensureAgentConversationsForCard(context.cardInternalId)\n272\t    }\n273\t    async loadAgentConversation(path: string) {\n274\t        const { storage } = this.requireDependencies()\n275\t        const currentProject = this.projectState.project\n276\t        if (!currentProject) throw new Error('Cannot load an agent conversation before a project is open')\n277\t\n278\t        return loadAgentConversation(storage, currentProject, path)\n279\t    }\n280\t    async persistActionFile(\n281\t        file: MarkdownFile,\n282\t        sourcePath = file.path,\n283\t        onPathCommitted?: (fromPath: string, toPath: string) => void,\n284\t        sourceExists = true,\n285\t        saveReference?: OpenDocumentSaveReference,\n286\t        onPersisted?: () => void,\n287\t    ) {\n288\t        const { commitBatcher } = this.requireDependencies()\n289\t        const currentProject = this.projectState.project",
           "providerItemId": "toolu_01KBPYRGnsx6gKzjeQtqUkyh",
           "sequence": 5,
           "status": "completed",
           "timestamp": "2026-08-18T18:13:51.353Z",
-          "type": "tool.Read",
-          "output": "240\t            runningAgents: agentConversationService.getRunningAgents(),\n241\t            snapshot: this.projectState.snapshot,\n242\t        }\n243\t    }\n244\t\n245\t    isFullProjectLoaded() {\n246\t        return this.fullProjectLoaded\n247\t    }\n248\t\n249\t    getPersistenceSnapshot(): DataPersistenceSnapshot {\n250\t        const currentProject = this.projectState.project\n251\t\n252\t        return {\n253\t            hasPendingFileCommit: this.commitBatcher?.hasPending() ?? false,\n254\t            hasPendingPush: currentProject ? this.storage?.hasPendingPush?.(currentProject) ?? false : false,\n255\t            isSaving: this.saveStateService.getState().isSaving,\n256\t        }\n257\t    }\n258\t\n259\t    async drainPendingStorageWrites() {\n260\t        await this.saveStateService.drain()\n261\t    }\n262\t\n263\t    getConfig(): ProjectConfig | null {\n264\t        return getProjectConfigOrNull(this.storage)\n265\t    }\n266\t\n267\t    async listAgentConversations(context: ActionContext) {\n268\t        if (context.kind === 'project') return this.agents.listProjectAgentConversations()\n269\t        if (!context.cardInternalId) throw new Error(`Missing cardInternalId for ${context.kind} agent conversation context`)\n270\t\n271\t        return this.agents.ensureAgentConversationsForCard(context.cardInternalId)\n272\t    }\n273\t    async loadAgentConversation(path: string) {\n274\t        const { storage } = this.requireDependencies()\n275\t        const currentProject = this.projectState.project\n276\t        if (!currentProject) throw new Error('Cannot load an agent conversation before a project is open')\n277\t\n278\t        return loadAgentConversation(storage, currentProject, path)\n279\t    }\n280\t    async persistActionFile(\n281\t        file: MarkdownFile,\n282\t        sourcePath = file.path,\n283\t        onPathCommitted?: (fromPath: string, toPath: string) => void,\n284\t        sourceExists = true,\n285\t        saveReference?: OpenDocumentSaveReference,\n286\t        onPersisted?: () => void,\n287\t    ) {\n288\t        const { commitBatcher } = this.requireDependencies()\n289\t        const currentProject = this.projectState.project"
+          "type": "tool.Read"
         },
         {
           "content": "{}",
           "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-6",
           "kind": "event",
           "label": "Read",
+          "output": "1\timport type { ActionContext } from '../../../data/action_context'\n2\timport type { AgentConversation } from '../../../data/data_types'\n3\timport { actionPromptDraftService } from '../../../services/actions/action_prompt_draft_service'\n4\timport { actionRunRegistry } from '../../../services/actions/action_run_registry'\n5\timport { dialogService } from '../../../services/dialog_service'\n6\timport type { ConversationPickerConversation } from './action_conversation_picker_data'\n7\timport { defaultLoadConversation, defaultLoadConversations } from '../run/popup/action_popup_defaults'\n8\t\n9\tinterface ActionConversationSnapshot {\n10\t    conversations: AgentConversation[]\n11\t    loading: boolean\n12\t    selectedConversation: AgentConversation | null\n13\t}\n14\t\n15\ttype Listener = () => void\n16\t\n17\tfunction belongsToContext(conversation: ConversationPickerConversation, context: ActionContext) {\n18\t    return context.kind === 'project'\n19\t        ? conversation.cardInternalId === null\n20\t        : conversation.cardInternalId === context.cardInternalId\n21\t}\n22\t\n23\tfunction conversationTimestamp(conversation: ConversationPickerConversation) {\n24\t    const timestamp = Date.parse(conversation.startedAt)\n25\t\n26\t    return Number.isNaN(timestamp) ? 0 : timestamp\n27\t}\n28\t\n29\texport function conversationOptions<T extends ConversationPickerConversation>(\n30\t    conversations: T[],\n31\t    actionId: string,\n32\t    context: ActionContext,\n33\t    liveConversation: T | null,\n34\t) {\n35\t    const byId = new Map<string, T>()\n36\t    for (const conversation of conversations) {\n37\t        if (belongsToContext(conversation, context) && conversation.actionId === actionId) {\n38\t            byId.set(conversation.id, conversation)\n39\t        }\n40\t    }\n41\t    if (liveConversation && belongsToContext(liveConversation, context) && liveConversation.actionId === actionId) {\n42\t        byId.set(liveConversation.id, liveConversation)\n43\t    }\n44\t\n45\t    return [...byId.values()].sort((left, right) => conversationTimestamp(right) - conversationTimestamp(left))\n46\t}\n47\t\n48\tfunction latestWaitingConversation(conversations: AgentConversation[], actionId: string, context: ActionContext) {\n49\t    return conversations\n50\t        .filter((conversation) => belongsToContext(conversation, context)\n51\t            && conversation.actionId === actionId\n52\t            && conversation.status === 'waitingForInput')\n53\t        .sort((left, right) => conversationTimestamp(right) - conversationTimestamp(left))[0] ?? null\n54\t}\n55\t\n56\t/** Owns history loading and selection for one popup action/context binding. */\n57\texport class ActionConversationStore {\n58\t    private readonly actionId: string\n59\t    private readonly context: ActionContext\n60\t    private initialSelectionConfigured = false\n61\t    private initialSelectionPath: string | null = null\n62\t    private loadRequest = 0\n63\t    private readonly listeners = new Set<Listener>()\n64\t    private snapshot: ActionConversationSnapshot = { conversations: [], loading: true, selectedConversation: null }\n65\t\n66\t    constructor(actionId: string, context: ActionContext) {\n67\t        this.actionId = actionId\n68\t        this.context = context\n69\t    }\n70\t\n71\t    readonly getSnapshot = () => this.snapshot\n72\t\n73\t    readonly subscribe = (listener: Listener) => {\n74\t        this.listeners.add(listener)\n75\t\n76\t        return () => this.listeners.delete(listener)\n77\t    }\n78\t\n79\t    /** Sets one automatic selection consumed by initial history load. */\n80\t    configureInitialSelection(path: string | null) {\n81\t        if (this.initialSelectionConfigured) return\n82\t\n83\t        this.initialSelectionConfigured = true\n84\t        this.initialSelectionPath = path\n85\t    }\n86\t\n87\t    async load() {\n88\t        const request = this.loadRequest + 1\n89\t        this.loadRequest = request\n90\t        this.setSnapshot({ ...this.snapshot, loading: true })\n91\t        try {\n92\t            const conversations = await defaultLoadConversations(this.context)\n93\t            if (request !== this.loadRequest) return\n94\t\n95\t            const run = actionRunRegistry.getActionRunStore(this.actionId, this.context)?.getSnapshot() ?? null\n96\t            const runActive = run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'\n97\t            const refreshedSelection = this.snapshot.selectedConversation\n98\t                ? conversations.find(({ path }) => path === this.snapshot.selectedConversation?.path) ?? this.snapshot.selectedConversation\n99\t                : null\n100\t            let selectedConversation = runActive\n101\t                ? refreshedSelection\n102\t                : refreshedSelection ?? latestWaitingConversation(conversations, this.actionId, this.context)\n103\t            const initialSelectionPath = this.initialSelectionPath\n104\t            this.initialSelectionPath = null\n105\t            if (!runActive && !selectedConversation && initialSelectionPath) {\n106\t                try {\n107\t                    const loadedConversation = await defaultLoadConversation(initialSelectionPath)\n108\t                    if (request !== this.loadRequest) return\n109\t                    this.validateSelection(loadedConversation)\n110\t                    selectedConversation = loadedConversation\n111\t                } catch (error) {\n112\t                    if (request !== this.loadRequest) return\n113\t\n114\t                    this.setSnapshot({ conversations, loading: false, selectedConversation: null })\n115\t                    dialogService.error(error, { fallbackMessage: 'Could not load agent conversation' })\n116\t                    return\n117\t                }\n118\t            }\n119\t            this.setSnapshot({ conversations, loading: false, selectedConversation })\n120\t            if (selectedConversation) actionPromptDraftService.clearDraft(this.actionId, this.context, null)\n121\t        } catch (error) {\n122\t            if (request !== this.loadRequest) return\n123\t\n124\t            this.setSnapshot({ conversations: [], loading: false, selectedConversation: null })\n125\t            dialogService.error(error, { fallbackMessage: 'Could not load agent conversations' })\n126\t        }\n127\t    }\n128\t\n129\t    async select(path: string) {\n130\t        const request = this.loadRequest + 1\n131\t        this.loadRequest = request\n132\t        if (!path) {\n133\t            this.setSnapshot({ ...this.snapshot, selectedConversation: null })\n134\t            this.clearPromptDraft()\n135\t            return\n136\t        }\n137\t\n138\t        try {\n139\t            const conversation = await defaultLoadConversation(path)\n140\t            if (request !== this.loadRequest) return\n141\t            this.validateSelection(conversation)\n142\t\n143\t            this.setSnapshot({ ...this.snapshot, selectedConversation: conversation })\n144\t            this.clearPromptDraft()\n145\t        } catch (error) {\n146\t            if (request === this.loadRequest) {\n147\t                dialogService.error(error, { fallbackMessage: 'Could not load agent conversation' })\n148\t            }\n149\t        }\n150\t    }\n151\t\n152\t    conversationOptions(liveConversation: AgentConversation | null): AgentConversation[]\n153\t    conversationOptions(liveConversation: ConversationPickerConversation | null): ConversationPickerConversation[]\n154\t    conversationOptions(liveConversation: ConversationPickerConversation | null) {\n155\t        const selected = this.snapshot.selectedConversation\n156\t        const conversations = selected ? [...this.snapshot.conversations, selected] : this.snapshot.conversations\n157\t\n158\t        return conversationOptions(conversations, this.actionId, this.context, liveConversation)\n159\t    }\n160\t\n161\t    continuationPath(liveConversation: AgentConversation | null) {\n162\t        return liveConversation?.path ?? this.snapshot.selectedConversation?.path ?? null\n163\t    }\n164\t\n165\t    /** Applies one backend-returned conversation without another persistence round trip. */\n166\t    updateConversation(conversation: AgentConversation) {\n167\t        this.validateSelection(conversation)\n168\t        const conversations = this.snapshot.conversations.some(({ path }) => path === conversation.path)\n169\t            ? this.snapshot.conversations.map((current) => (current.path === conversation.path ? conversation : current))\n170\t            : [...this.snapshot.conversations, conversation]\n171\t        const selectedConversation = this.snapshot.selectedConversation?.path === conversation.path\n172\t            ? conversation\n173\t            : this.snapshot.selectedConversation\n174\t        this.setSnapshot({ ...this.snapshot, conversations, selectedConversation })\n175\t    }\n176\t\n177\t    private clearPromptDraft() {\n178\t        const run = actionRunRegistry.getActionRunStore(this.actionId, this.context)?.getSnapshot() ?? null\n179\t        actionPromptDraftService.clearDraft(this.actionId, this.context, run)\n180\t    }\n181\t\n182\t    private validateSelection(conversation: AgentConversation) {\n183\t        if (!belongsToContext(conversation, this.context)) throw new Error('Selected agent conversation belongs to another context')\n184\t        if (conversation.actionId !== this.actionId) throw new Error('Selected agent conversation belongs to another action')\n185\t    }\n186\t\n187\t    private setSnapshot(snapshot: ActionConversationSnapshot) {\n188\t        this.snapshot = snapshot\n189\t        for (const listener of this.listeners) listener()\n190\t    }\n191\t}\n192\t",
           "providerItemId": "toolu_01Bwx1W2aDz7xkYrmePof4uj",
           "sequence": 6,
           "status": "completed",
           "timestamp": "2026-08-18T18:13:51.385Z",
-          "type": "tool.Read",
-          "output": "1\timport type { ActionContext } from '../../../data/action_context'\n2\timport type { AgentConversation } from '../../../data/data_types'\n3\timport { actionPromptDraftService } from '../../../services/actions/action_prompt_draft_service'\n4\timport { actionRunRegistry } from '../../../services/actions/action_run_registry'\n5\timport { dialogService } from '../../../services/dialog_service'\n6\timport type { ConversationPickerConversation } from './action_conversation_picker_data'\n7\timport { defaultLoadConversation, defaultLoadConversations } from '../run/popup/action_popup_defaults'\n8\t\n9\tinterface ActionConversationSnapshot {\n10\t    conversations: AgentConversation[]\n11\t    loading: boolean\n12\t    selectedConversation: AgentConversation | null\n13\t}\n14\t\n15\ttype Listener = () => void\n16\t\n17\tfunction belongsToContext(conversation: ConversationPickerConversation, context: ActionContext) {\n18\t    return context.kind === 'project'\n19\t        ? conversation.cardInternalId === null\n20\t        : conversation.cardInternalId === context.cardInternalId\n21\t}\n22\t\n23\tfunction conversationTimestamp(conversation: ConversationPickerConversation) {\n24\t    const timestamp = Date.parse(conversation.startedAt)\n25\t\n26\t    return Number.isNaN(timestamp) ? 0 : timestamp\n27\t}\n28\t\n29\texport function conversationOptions<T extends ConversationPickerConversation>(\n30\t    conversations: T[],\n31\t    actionId: string,\n32\t    context: ActionContext,\n33\t    liveConversation: T | null,\n34\t) {\n35\t    const byId = new Map<string, T>()\n36\t    for (const conversation of conversations) {\n37\t        if (belongsToContext(conversation, context) && conversation.actionId === actionId) {\n38\t            byId.set(conversation.id, conversation)\n39\t        }\n40\t    }\n41\t    if (liveConversation && belongsToContext(liveConversation, context) && liveConversation.actionId === actionId) {\n42\t        byId.set(liveConversation.id, liveConversation)\n43\t    }\n44\t\n45\t    return [...byId.values()].sort((left, right) => conversationTimestamp(right) - conversationTimestamp(left))\n46\t}\n47\t\n48\tfunction latestWaitingConversation(conversations: AgentConversation[], actionId: string, context: ActionContext) {\n49\t    return conversations\n50\t        .filter((conversation) => belongsToContext(conversation, context)\n51\t            && conversation.actionId === actionId\n52\t            && conversation.status === 'waitingForInput')\n53\t        .sort((left, right) => conversationTimestamp(right) - conversationTimestamp(left))[0] ?? null\n54\t}\n55\t\n56\t/** Owns history loading and selection for one popup action/context binding. */\n57\texport class ActionConversationStore {\n58\t    private readonly actionId: string\n59\t    private readonly context: ActionContext\n60\t    private initialSelectionConfigured = false\n61\t    private initialSelectionPath: string | null = null\n62\t    private loadRequest = 0\n63\t    private readonly listeners = new Set<Listener>()\n64\t    private snapshot: ActionConversationSnapshot = { conversations: [], loading: true, selectedConversation: null }\n65\t\n66\t    constructor(actionId: string, context: ActionContext) {\n67\t        this.actionId = actionId\n68\t        this.context = context\n69\t    }\n70\t\n71\t    readonly getSnapshot = () => this.snapshot\n72\t\n73\t    readonly subscribe = (listener: Listener) => {\n74\t        this.listeners.add(listener)\n75\t\n76\t        return () => this.listeners.delete(listener)\n77\t    }\n78\t\n79\t    /** Sets one automatic selection consumed by initial history load. */\n80\t    configureInitialSelection(path: string | null) {\n81\t        if (this.initialSelectionConfigured) return\n82\t\n83\t        this.initialSelectionConfigured = true\n84\t        this.initialSelectionPath = path\n85\t    }\n86\t\n87\t    async load() {\n88\t        const request = this.loadRequest + 1\n89\t        this.loadRequest = request\n90\t        this.setSnapshot({ ...this.snapshot, loading: true })\n91\t        try {\n92\t            const conversations = await defaultLoadConversations(this.context)\n93\t            if (request !== this.loadRequest) return\n94\t\n95\t            const run = actionRunRegistry.getActionRunStore(this.actionId, this.context)?.getSnapshot() ?? null\n96\t            const runActive = run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'\n97\t            const refreshedSelection = this.snapshot.selectedConversation\n98\t                ? conversations.find(({ path }) => path === this.snapshot.selectedConversation?.path) ?? this.snapshot.selectedConversation\n99\t                : null\n100\t            let selectedConversation = runActive\n101\t                ? refreshedSelection\n102\t                : refreshedSelection ?? latestWaitingConversation(conversations, this.actionId, this.context)\n103\t            const initialSelectionPath = this.initialSelectionPath\n104\t            this.initialSelectionPath = null\n105\t            if (!runActive && !selectedConversation && initialSelectionPath) {\n106\t                try {\n107\t                    const loadedConversation = await defaultLoadConversation(initialSelectionPath)\n108\t                    if (request !== this.loadRequest) return\n109\t                    this.validateSelection(loadedConversation)\n110\t                    selectedConversation = loadedConversation\n111\t                } catch (error) {\n112\t                    if (request !== this.loadRequest) return\n113\t\n114\t                    this.setSnapshot({ conversations, loading: false, selectedConversation: null })\n115\t                    dialogService.error(error, { fallbackMessage: 'Could not load agent conversation' })\n116\t                    return\n117\t                }\n118\t            }\n119\t            this.setSnapshot({ conversations, loading: false, selectedConversation })\n120\t            if (selectedConversation) actionPromptDraftService.clearDraft(this.actionId, this.context, null)\n121\t        } catch (error) {\n122\t            if (request !== this.loadRequest) return\n123\t\n124\t            this.setSnapshot({ conversations: [], loading: false, selectedConversation: null })\n125\t            dialogService.error(error, { fallbackMessage: 'Could not load agent conversations' })\n126\t        }\n127\t    }\n128\t\n129\t    async select(path: string) {\n130\t        const request = this.loadRequest + 1\n131\t        this.loadRequest = request\n132\t        if (!path) {\n133\t            this.setSnapshot({ ...this.snapshot, selectedConversation: null })\n134\t            this.clearPromptDraft()\n135\t            return\n136\t        }\n137\t\n138\t        try {\n139\t            const conversation = await defaultLoadConversation(path)\n140\t            if (request !== this.loadRequest) return\n141\t            this.validateSelection(conversation)\n142\t\n143\t            this.setSnapshot({ ...this.snapshot, selectedConversation: conversation })\n144\t            this.clearPromptDraft()\n145\t        } catch (error) {\n146\t            if (request === this.loadRequest) {\n147\t                dialogService.error(error, { fallbackMessage: 'Could not load agent conversation' })\n148\t            }\n149\t        }\n150\t    }\n151\t\n152\t    conversationOptions(liveConversation: AgentConversation | null): AgentConversation[]\n153\t    conversationOptions(liveConversation: ConversationPickerConversation | null): ConversationPickerConversation[]\n154\t    conversationOptions(liveConversation: ConversationPickerConversation | null) {\n155\t        const selected = this.snapshot.selectedConversation\n156\t        const conversations = selected ? [...this.snapshot.conversations, selected] : this.snapshot.conversations\n157\t\n158\t        return conversationOptions(conversations, this.actionId, this.context, liveConversation)\n159\t    }\n160\t\n161\t    continuationPath(liveConversation: AgentConversation | null) {\n162\t        return liveConversation?.path ?? this.snapshot.selectedConversation?.path ?? null\n163\t    }\n164\t\n165\t    /** Applies one backend-returned conversation without another persistence round trip. */\n166\t    updateConversation(conversation: AgentConversation) {\n167\t        this.validateSelection(conversation)\n168\t        const conversations = this.snapshot.conversations.some(({ path }) => path === conversation.path)\n169\t            ? this.snapshot.conversations.map((current) => (current.path === conversation.path ? conversation : current))\n170\t            : [...this.snapshot.conversations, conversation]\n171\t        const selectedConversation = this.snapshot.selectedConversation?.path === conversation.path\n172\t            ? conversation\n173\t            : this.snapshot.selectedConversation\n174\t        this.setSnapshot({ ...this.snapshot, conversations, selectedConversation })\n175\t    }\n176\t\n177\t    private clearPromptDraft() {\n178\t        const run = actionRunRegistry.getActionRunStore(this.actionId, this.context)?.getSnapshot() ?? null\n179\t        actionPromptDraftService.clearDraft(this.actionId, this.context, run)\n180\t    }\n181\t\n182\t    private validateSelection(conversation: AgentConversation) {\n183\t        if (!belongsToContext(conversation, this.context)) throw new Error('Selected agent conversation belongs to another context')\n184\t        if (conversation.actionId !== this.actionId) throw new Error('Selected agent conversation belongs to another action')\n185\t    }\n186\t\n187\t    private setSnapshot(snapshot: ActionConversationSnapshot) {\n188\t        this.snapshot = snapshot\n189\t        for (const listener of this.listeners) listener()\n190\t    }\n191\t}\n192\t"
+          "type": "tool.Read"
         },
         {
           "content": "",
+          "details": [
+            ""
+          ],
           "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-7",
           "kind": "event",
           "label": "Thinking",
           "providerItemId": "msg_011CeAfhyJJr4AywSTwhP2zB:thinking:0",
           "sequence": 7,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-18T18:13:52.940Z",
-          "type": "reasoning",
-          "details": [
-            ""
-          ],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "content": "{}",
           "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-8",
           "kind": "event",
           "label": "Read",
+          "output": "1\timport { ACTION_APPLIES_TO_FIELDS, CUSTOM_PROMPT_ACTION_ID } from './action_types'\n2\timport type { ActionAppliesToField, ActionDefinition } from './action_types'\n3\timport type { Card, CardHeader, CardTypeConfig } from './data_types'\n4\timport { getCardIdPrefix } from './card_identifiers'\n5\t\n6\t/** The kind of item an action entry point is attached to. */\n7\texport type ActionContextKind = 'card' | 'file' | 'folder' | 'merge-conflict' | 'project'\n8\t\n9\texport type ActionContextFilterValueSource =\n10\t    'kind' | 'type' | 'state' | 'file' | 'folder' | 'worktree' | 'text'\n11\t\n12\texport interface ActionContextFilterDescriptor {\n13\t    key: ActionAppliesToField\n14\t    label: string\n15\t    supportedContextKinds: ActionContextKind[]\n16\t    valueSource: ActionContextFilterValueSource\n17\t    validate: (value: string) => string | null\n18\t}\n19\t\n20\t/**\n21\t * The selected item an action is evaluated against. `appliesTo` keys are matched\n22\t * field-by-field against this object, so every matchable property is a string.\n23\t */\n24\texport interface ActionContext {\n25\t    /** Stable card identity used for activity ownership. */\n26\t    cardInternalId?: string\n27\t    /** Title of the selected card, used for placeholder resolution. */\n28\t    title?: string\n29\t    /** Card/file type derived from the id prefix, e.g. `feature`. */\n30\t    type?: string\n31\t    /** Card state / status, e.g. `design`. */\n32\t    state?: string\n33\t    /** Path to the markdown file, used for placeholder resolution. */\n34\t    file?: string\n35\t    /** Folder name for folder contexts. */\n36\t    folder?: string\n37\t    /** Selected conflicted repository-relative path. */\n38\t    conflictFile?: string\n39\t    /** Newline-separated conflicted repository-relative paths. */\n40\t    conflictFiles?: string\n41\t    /** Active desktop conflict session binding. */\n42\t    conflictSessionId?: string\n43\t    kind: ActionContextKind\n44\t    worktree?: string\n45\t    worktreeError?: string\n46\t    [key: string]: string | undefined\n47\t}\n48\t\n49\t/**\n50\t * Stable identity of the item an action runs against, used to match a popup to its\n51\t * execution and conversation history. Mutable header fields (title, state, worktree)\n52\t * are excluded on purpose: a run that edits its own card must keep the same identity.\n53\t */\n54\texport function actionContextIdentity(context: ActionContext): string {\n55\t    if (context.kind === 'project') return 'project'\n56\t    if (context.kind === 'folder') return `folder\u0000${context.folder ?? ''}`\n57\t    if (context.kind === 'merge-conflict') {\n58\t        return `merge-conflict\u0000${context.conflictSessionId ?? ''}\u0000${context.conflictFile ?? ''}`\n59\t    }\n60\t\n61\t    return `${context.kind}\u0000${context.cardInternalId ?? context.file ?? ''}`\n62\t}\n63\t\n64\t/** Required-value validation shared by every applicability filter descriptor. */\n65\texport function validateActionContextFilterValue(value: string): string | null {\n66\t    return value.length > 0 ? null : 'Required value'\n67\t}\n68\t\n69\tconst ACTION_CONTEXT_FILTER_METADATA: Record<ActionAppliesToField, Omit<ActionContextFilterDescriptor, 'key'>> = {\n70\t    file: { label: 'Repository file', supportedContextKinds: ['card', 'file'], valueSource: 'file', validate: validateActionContextFilterValue },\n71\t    folder: { label: 'Repository folder', supportedContextKinds: ['folder'], valueSource: 'folder', validate: validateActionContextFilterValue },\n72\t    kind: { label: 'Target kind', supportedContextKinds: ['card', 'file', 'folder', 'merge-conflict', 'project'], valueSource: 'kind', validate: validateActionContextFilterValue },\n73\t    state: { label: 'Card state', supportedContextKinds: ['card', 'file'], valueSource: 'state', validate: validateActionContextFilterValue },\n74\t    type: { label: 'Context type', supportedContextKinds: ['card', 'file', 'folder'], valueSource: 'type', validate: validateActionContextFilterValue },\n75\t    worktree: { label: 'Worktree', supportedContextKinds: ['card', 'file', 'project'], valueSource: 'worktree', validate: validateActionContextFilterValue },\n76\t    worktreeError: { label: 'Worktree error', supportedContextKinds: ['card', 'file'], valueSource: 'text', validate: validateActionContextFilterValue },\n77\t}\n78\t\n79\texport const ACTION_CONTEXT_FILTER_DESCRIPTORS: ActionContextFilterDescriptor[] = ACTION_APPLIES_TO_FIELDS.map((key) => ({\n80\t    key,\n81\t    ...ACTION_CONTEXT_FILTER_METADATA[key],\n82\t}))\n83\t\n84\t/** Resolve the configured card type for a card id via its prefix (e.g. `F-005` → `feature`). */\n85\texport function getCardType(cardTypes: CardTypeConfig[], id: string): string | undefined {\n86\t    const prefix = getCardIdPrefix(id)\n87\t\n88\t    return cardTypes.find((cardType) => cardType.idPrefix === prefix)?.type\n89\t}\n90\t\n91\ttype MarkdownContextCard = Pick<Card, 'path'> & {\n92\t    header: Pick<CardHeader, 'id' | 'internalId' | 'status' | 'title' | 'worktreeError' | 'worktreeValue'>\n93\t}\n94\t\n95\tfunction markdownContext(card: MarkdownContextCard, cardTypes: CardTypeConfig[], kind: ActionContextKind): ActionContext {\n96\t    const context: ActionContext = { file: card.path, kind, title: card.header.title }\n97\t    const type = getCardType(cardTypes, card.header.id)\n98\t    if (card.header.internalId) context.cardInternalId = card.header.internalId\n99\t    if (type) context.type = type\n100\t    if (card.header.status) context.state = card.header.status\n101\t    if (card.header.worktreeValue) context.worktree = card.header.worktreeValue\n102\t    if (card.header.worktreeError) context.worktreeError = card.header.worktreeError\n103\t\n104\t    return context\n105\t}\n106\t\n107\t/** Build the action context for a card shown in card view. */\n108\texport function cardContext(card: MarkdownContextCard, cardTypes: CardTypeConfig[]): ActionContext {\n109\t    if (!card.header.internalId) throw new Error(`Cannot build action context without an internal ID: ${card.path}`)\n110\t\n111\t    return markdownContext(card, cardTypes, 'card')\n112\t}\n113\t\n114\t/**\n115\t * Build the action context for a markdown file in the tree/text view. Regular markdown files\n116\t * are not cards and carry no internal ID, so the context stays without card identity.\n117\t */\n118\texport function fileContext(card: Card, cardTypes: CardTypeConfig[]): ActionContext {\n119\t    return markdownContext(card, cardTypes, 'file')\n120\t}\n121\t\n122\t/** Build the action context for a folder node in the tree. */\n123\texport function folderContext(folder: string, isSpecial = false): ActionContext {\n124\t    const context: ActionContext = { folder, kind: 'folder' }\n125\t    if (isSpecial) context.type = folder\n126\t\n127\t    return context\n128\t}\n129\t\n130\t/** Build context for actions that run against the opened project rather than a card or file. */\n131\texport function projectContext(): ActionContext {\n132\t    return { kind: 'project' }\n133\t}\n134\t\n135\t/** Add or remove the session assignment used by project-wide popup actions. */\n136\texport function projectContextWithWorktree(context: ActionContext, worktree: number | null): ActionContext {\n137\t    if (context.kind !== 'project') return context\n138\t    if (worktree === null) {\n139\t        const unassignedContext = { ...context }\n140\t        delete unassignedContext.worktree\n141\t\n142\t        return unassignedContext\n143\t    }\n144\t\n145\t    return { ...context, worktree: String(worktree) }\n146\t}\n147\t\n148\t/**\n149\t * True when the action is allowed in the given context. An action with no\n150\t * `appliesTo` (like the built-in custom prompt) matches every context; otherwise\n151\t * every `appliesTo` key must equal the same field on the context.\n152\t */\n153\texport function actionMatchesContext(action: ActionDefinition, context: ActionContext): boolean {\n154\t    if (!action.appliesTo) return true\n155\t\n156\t    return ACTION_APPLIES_TO_FIELDS.every((key) => action.appliesTo?.[key] === undefined || context[key] === action.appliesTo[key])\n157\t}\n158\t\n159\t/** All actions that should be shown for a context, preserving load order. */\n160\texport function actionsForContext(actions: ActionDefinition[], context: ActionContext): ActionDefinition[] {\n161\t    return actions.filter((action) => (!action.builtin || action.id === CUSTOM_PROMPT_ACTION_ID) && actionMatchesContext(action, context))\n162\t}\n163\t\n164\t/** Context actions in selector order, with the built-in custom prompt last. */\n165\texport function displayActionsForContext(actions: ActionDefinition[], context: ActionContext): ActionDefinition[] {\n166\t    const contextActions = actionsForContext(actions, context)\n167\t    const customPrompt = contextActions.find(({ id }) => id === CUSTOM_PROMPT_ACTION_ID)\n168\t    const configuredActions = contextActions.filter(({ id }) => id !== CUSTOM_PROMPT_ACTION_ID)\n169\t\n170\t    return customPrompt ? [...configuredActions, customPrompt] : configuredActions\n171\t}\n172\t",
           "providerItemId": "toolu_01YV8iScSmiZSDdL8LP88xwZ",
           "sequence": 8,
           "status": "completed",
           "timestamp": "2026-08-18T18:13:53.745Z",
-          "type": "tool.Read",
-          "output": "1\timport { ACTION_APPLIES_TO_FIELDS, CUSTOM_PROMPT_ACTION_ID } from './action_types'\n2\timport type { ActionAppliesToField, ActionDefinition } from './action_types'\n3\timport type { Card, CardHeader, CardTypeConfig } from './data_types'\n4\timport { getCardIdPrefix } from './card_identifiers'\n5\t\n6\t/** The kind of item an action entry point is attached to. */\n7\texport type ActionContextKind = 'card' | 'file' | 'folder' | 'merge-conflict' | 'project'\n8\t\n9\texport type ActionContextFilterValueSource =\n10\t    'kind' | 'type' | 'state' | 'file' | 'folder' | 'worktree' | 'text'\n11\t\n12\texport interface ActionContextFilterDescriptor {\n13\t    key: ActionAppliesToField\n14\t    label: string\n15\t    supportedContextKinds: ActionContextKind[]\n16\t    valueSource: ActionContextFilterValueSource\n17\t    validate: (value: string) => string | null\n18\t}\n19\t\n20\t/**\n21\t * The selected item an action is evaluated against. `appliesTo` keys are matched\n22\t * field-by-field against this object, so every matchable property is a string.\n23\t */\n24\texport interface ActionContext {\n25\t    /** Stable card identity used for activity ownership. */\n26\t    cardInternalId?: string\n27\t    /** Title of the selected card, used for placeholder resolution. */\n28\t    title?: string\n29\t    /** Card/file type derived from the id prefix, e.g. `feature`. */\n30\t    type?: string\n31\t    /** Card state / status, e.g. `design`. */\n32\t    state?: string\n33\t    /** Path to the markdown file, used for placeholder resolution. */\n34\t    file?: string\n35\t    /** Folder name for folder contexts. */\n36\t    folder?: string\n37\t    /** Selected conflicted repository-relative path. */\n38\t    conflictFile?: string\n39\t    /** Newline-separated conflicted repository-relative paths. */\n40\t    conflictFiles?: string\n41\t    /** Active desktop conflict session binding. */\n42\t    conflictSessionId?: string\n43\t    kind: ActionContextKind\n44\t    worktree?: string\n45\t    worktreeError?: string\n46\t    [key: string]: string | undefined\n47\t}\n48\t\n49\t/**\n50\t * Stable identity of the item an action runs against, used to match a popup to its\n51\t * execution and conversation history. Mutable header fields (title, state, worktree)\n52\t * are excluded on purpose: a run that edits its own card must keep the same identity.\n53\t */\n54\texport function actionContextIdentity(context: ActionContext): string {\n55\t    if (context.kind === 'project') return 'project'\n56\t    if (context.kind === 'folder') return `folder\u0000${context.folder ?? ''}`\n57\t    if (context.kind === 'merge-conflict') {\n58\t        return `merge-conflict\u0000${context.conflictSessionId ?? ''}\u0000${context.conflictFile ?? ''}`\n59\t    }\n60\t\n61\t    return `${context.kind}\u0000${context.cardInternalId ?? context.file ?? ''}`\n62\t}\n63\t\n64\t/** Required-value validation shared by every applicability filter descriptor. */\n65\texport function validateActionContextFilterValue(value: string): string | null {\n66\t    return value.length > 0 ? null : 'Required value'\n67\t}\n68\t\n69\tconst ACTION_CONTEXT_FILTER_METADATA: Record<ActionAppliesToField, Omit<ActionContextFilterDescriptor, 'key'>> = {\n70\t    file: { label: 'Repository file', supportedContextKinds: ['card', 'file'], valueSource: 'file', validate: validateActionContextFilterValue },\n71\t    folder: { label: 'Repository folder', supportedContextKinds: ['folder'], valueSource: 'folder', validate: validateActionContextFilterValue },\n72\t    kind: { label: 'Target kind', supportedContextKinds: ['card', 'file', 'folder', 'merge-conflict', 'project'], valueSource: 'kind', validate: validateActionContextFilterValue },\n73\t    state: { label: 'Card state', supportedContextKinds: ['card', 'file'], valueSource: 'state', validate: validateActionContextFilterValue },\n74\t    type: { label: 'Context type', supportedContextKinds: ['card', 'file', 'folder'], valueSource: 'type', validate: validateActionContextFilterValue },\n75\t    worktree: { label: 'Worktree', supportedContextKinds: ['card', 'file', 'project'], valueSource: 'worktree', validate: validateActionContextFilterValue },\n76\t    worktreeError: { label: 'Worktree error', supportedContextKinds: ['card', 'file'], valueSource: 'text', validate: validateActionContextFilterValue },\n77\t}\n78\t\n79\texport const ACTION_CONTEXT_FILTER_DESCRIPTORS: ActionContextFilterDescriptor[] = ACTION_APPLIES_TO_FIELDS.map((key) => ({\n80\t    key,\n81\t    ...ACTION_CONTEXT_FILTER_METADATA[key],\n82\t}))\n83\t\n84\t/** Resolve the configured card type for a card id via its prefix (e.g. `F-005` → `feature`). */\n85\texport function getCardType(cardTypes: CardTypeConfig[], id: string): string | undefined {\n86\t    const prefix = getCardIdPrefix(id)\n87\t\n88\t    return cardTypes.find((cardType) => cardType.idPrefix === prefix)?.type\n89\t}\n90\t\n91\ttype MarkdownContextCard = Pick<Card, 'path'> & {\n92\t    header: Pick<CardHeader, 'id' | 'internalId' | 'status' | 'title' | 'worktreeError' | 'worktreeValue'>\n93\t}\n94\t\n95\tfunction markdownContext(card: MarkdownContextCard, cardTypes: CardTypeConfig[], kind: ActionContextKind): ActionContext {\n96\t    const context: ActionContext = { file: card.path, kind, title: card.header.title }\n97\t    const type = getCardType(cardTypes, card.header.id)\n98\t    if (card.header.internalId) context.cardInternalId = card.header.internalId\n99\t    if (type) context.type = type\n100\t    if (card.header.status) context.state = card.header.status\n101\t    if (card.header.worktreeValue) context.worktree = card.header.worktreeValue\n102\t    if (card.header.worktreeError) context.worktreeError = card.header.worktreeError\n103\t\n104\t    return context\n105\t}\n106\t\n107\t/** Build the action context for a card shown in card view. */\n108\texport function cardContext(card: MarkdownContextCard, cardTypes: CardTypeConfig[]): ActionContext {\n109\t    if (!card.header.internalId) throw new Error(`Cannot build action context without an internal ID: ${card.path}`)\n110\t\n111\t    return markdownContext(card, cardTypes, 'card')\n112\t}\n113\t\n114\t/**\n115\t * Build the action context for a markdown file in the tree/text view. Regular markdown files\n116\t * are not cards and carry no internal ID, so the context stays without card identity.\n117\t */\n118\texport function fileContext(card: Card, cardTypes: CardTypeConfig[]): ActionContext {\n119\t    return markdownContext(card, cardTypes, 'file')\n120\t}\n121\t\n122\t/** Build the action context for a folder node in the tree. */\n123\texport function folderContext(folder: string, isSpecial = false): ActionContext {\n124\t    const context: ActionContext = { folder, kind: 'folder' }\n125\t    if (isSpecial) context.type = folder\n126\t\n127\t    return context\n128\t}\n129\t\n130\t/** Build context for actions that run against the opened project rather than a card or file. */\n131\texport function projectContext(): ActionContext {\n132\t    return { kind: 'project' }\n133\t}\n134\t\n135\t/** Add or remove the session assignment used by project-wide popup actions. */\n136\texport function projectContextWithWorktree(context: ActionContext, worktree: number | null): ActionContext {\n137\t    if (context.kind !== 'project') return context\n138\t    if (worktree === null) {\n139\t        const unassignedContext = { ...context }\n140\t        delete unassignedContext.worktree\n141\t\n142\t        return unassignedContext\n143\t    }\n144\t\n145\t    return { ...context, worktree: String(worktree) }\n146\t}\n147\t\n148\t/**\n149\t * True when the action is allowed in the given context. An action with no\n150\t * `appliesTo` (like the built-in custom prompt) matches every context; otherwise\n151\t * every `appliesTo` key must equal the same field on the context.\n152\t */\n153\texport function actionMatchesContext(action: ActionDefinition, context: ActionContext): boolean {\n154\t    if (!action.appliesTo) return true\n155\t\n156\t    return ACTION_APPLIES_TO_FIELDS.every((key) => action.appliesTo?.[key] === undefined || context[key] === action.appliesTo[key])\n157\t}\n158\t\n159\t/** All actions that should be shown for a context, preserving load order. */\n160\texport function actionsForContext(actions: ActionDefinition[], context: ActionContext): ActionDefinition[] {\n161\t    return actions.filter((action) => (!action.builtin || action.id === CUSTOM_PROMPT_ACTION_ID) && actionMatchesContext(action, context))\n162\t}\n163\t\n164\t/** Context actions in selector order, with the built-in custom prompt last. */\n165\texport function displayActionsForContext(actions: ActionDefinition[], context: ActionContext): ActionDefinition[] {\n166\t    const contextActions = actionsForContext(actions, context)\n167\t    const customPrompt = contextActions.find(({ id }) => id === CUSTOM_PROMPT_ACTION_ID)\n168\t    const configuredActions = contextActions.filter(({ id }) => id !== CUSTOM_PROMPT_ACTION_ID)\n169\t\n170\t    return customPrompt ? [...configuredActions, customPrompt] : configuredActions\n171\t}\n172\t"
+          "type": "tool.Read"
         },
         {
           "agent": "claude",
@@ -652,8 +652,7 @@
           "sequence": 10,
           "status": "completed",
           "timestamp": "2026-08-18T18:13:58.782Z",
-          "type": "commandExecution",
-          "output": "30:        const listProjectAgentConversations = vi.spyOn(service.agents, 'listProjectAgentConversations').mockResolvedValue([])\n33:        await expect(service.listAgentConversations({ kind: 'project' })).resolves.toEqual([])\n34:        await expect(service.listAgentConversations({ cardInternalId: 'card-1', kind: 'card' })).resolves.toEqual([])\n36:        expect(listProjectAgentConversations).toHaveBeenCalledOnce()"
+          "type": "commandExecution"
         },
         {
           "content": "{}",
@@ -664,47 +663,46 @@
           "sequence": 11,
           "status": "completed",
           "timestamp": "2026-08-18T18:13:58.780Z",
-          "type": "commandExecution",
-          "output": "8:const context: ActionContext = { cardInternalId: 'card-1', file: 'design/F-1.md', kind: 'card' }\n13:        cardInternalId: 'card-1',\n85:                kind: 'message' as const,"
+          "type": "commandExecution"
         },
         {
           "content": "{}",
           "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-12",
           "kind": "event",
           "label": "Read",
+          "output": "1\timport { afterEach, describe, expect, it, vi } from 'vitest'\n2\timport { GithubUnauthorizedError } from '../../auth/github_api_client'\n3\timport { configService } from '../config/config_service'\n4\timport { actionService } from '../actions/action_service'\n5\timport { projectPersistenceService } from '../project/project_persistence_service'\n6\timport { GithubStorageService } from '../github/github_storage_service'\n7\timport { openFilesService } from '../open_files_service'\n8\timport {\n9\t    createDeferred,\n10\t    createDataService,\n11\t    createGithubRawResponse,\n12\t    createGithubResponse,\n13\t    createGithubStatusResponse,\n14\t    createStorage,\n15\t    files,\n16\t    githubProject,\n17\t} from '../test_support/data_service_test_support'\n18\t\n19\tdescribe('DataService', () => {\n20\t    afterEach(() => {\n21\t        vi.useRealTimers()\n22\t        delete window.md2Actions\n23\t        actionService.clear()\n24\t        configService.clear()\n25\t        openFilesService.clear()\n26\t    })\n27\t\n28\t    it('routes project and card conversation lists through AgentIntegration loaders', async () => {\n29\t        const service = createDataService()\n30\t        const listProjectAgentConversations = vi.spyOn(service.agents, 'listProjectAgentConversations').mockResolvedValue([])\n31\t        const ensureAgentConversationsForCard = vi.spyOn(service.agents, 'ensureAgentConversationsForCard').mockResolvedValue([])\n32\t\n33\t        await expect(service.listAgentConversations({ kind: 'project' })).resolves.toEqual([])\n34\t        await expect(service.listAgentConversations({ cardInternalId: 'card-1', kind: 'card' })).resolves.toEqual([])\n35\t\n36\t        expect(listProjectAgentConversations).toHaveBeenCalledOnce()\n37\t        expect(ensureAgentConversationsForCard).toHaveBeenCalledWith('card-1')\n38\t    })\n39\t\n40\t    it('replaces remote storage and project watch without reopening loaded project', async () => {\n41\t        configService.init()\n42\t        const firstMergeConflictCleanup = vi.fn()\n43\t        const firstWatchCleanup = vi.fn()\n44\t        const firstStorage = createStorage({\n45\t            getMergeConflictSession: vi.fn(async () => null),\n46\t            onMergeConflictSessionChanged: vi.fn(() => firstMergeConflictCleanup),\n47\t            watchProject: vi.fn(() => firstWatchCleanup),\n48\t        })\n49\t        const secondStorage = createStorage({\n50\t            getMergeConflictSession: vi.fn(async () => null),\n51\t            onMergeConflictSessionChanged: vi.fn(() => vi.fn()),\n52\t            watchProject: vi.fn(() => vi.fn()),\n53\t        })\n54\t        const service = createDataService()\n55\t        service.init({ storage: firstStorage })\n56\t        await service.projectLoading.openProject({ branch: 'main', id: 'project' })\n57\t        const loadedSnapshot = service.getState().snapshot\n58\t        const openProject = vi.spyOn(service.projectLoading, 'openProject')\n59\t\n60\t        service.replaceRemoteStorage(secondStorage)",
           "providerItemId": "toolu_01Vj9xUDkR9Tn8bhZTTEVaLN",
           "sequence": 12,
           "status": "completed",
           "timestamp": "2026-08-18T18:14:03.138Z",
-          "type": "tool.Read",
-          "output": "1\timport { afterEach, describe, expect, it, vi } from 'vitest'\n2\timport { GithubUnauthorizedError } from '../../auth/github_api_client'\n3\timport { configService } from '../config/config_service'\n4\timport { actionService } from '../actions/action_service'\n5\timport { projectPersistenceService } from '../project/project_persistence_service'\n6\timport { GithubStorageService } from '../github/github_storage_service'\n7\timport { openFilesService } from '../open_files_service'\n8\timport {\n9\t    createDeferred,\n10\t    createDataService,\n11\t    createGithubRawResponse,\n12\t    createGithubResponse,\n13\t    createGithubStatusResponse,\n14\t    createStorage,\n15\t    files,\n16\t    githubProject,\n17\t} from '../test_support/data_service_test_support'\n18\t\n19\tdescribe('DataService', () => {\n20\t    afterEach(() => {\n21\t        vi.useRealTimers()\n22\t        delete window.md2Actions\n23\t        actionService.clear()\n24\t        configService.clear()\n25\t        openFilesService.clear()\n26\t    })\n27\t\n28\t    it('routes project and card conversation lists through AgentIntegration loaders', async () => {\n29\t        const service = createDataService()\n30\t        const listProjectAgentConversations = vi.spyOn(service.agents, 'listProjectAgentConversations').mockResolvedValue([])\n31\t        const ensureAgentConversationsForCard = vi.spyOn(service.agents, 'ensureAgentConversationsForCard').mockResolvedValue([])\n32\t\n33\t        await expect(service.listAgentConversations({ kind: 'project' })).resolves.toEqual([])\n34\t        await expect(service.listAgentConversations({ cardInternalId: 'card-1', kind: 'card' })).resolves.toEqual([])\n35\t\n36\t        expect(listProjectAgentConversations).toHaveBeenCalledOnce()\n37\t        expect(ensureAgentConversationsForCard).toHaveBeenCalledWith('card-1')\n38\t    })\n39\t\n40\t    it('replaces remote storage and project watch without reopening loaded project', async () => {\n41\t        configService.init()\n42\t        const firstMergeConflictCleanup = vi.fn()\n43\t        const firstWatchCleanup = vi.fn()\n44\t        const firstStorage = createStorage({\n45\t            getMergeConflictSession: vi.fn(async () => null),\n46\t            onMergeConflictSessionChanged: vi.fn(() => firstMergeConflictCleanup),\n47\t            watchProject: vi.fn(() => firstWatchCleanup),\n48\t        })\n49\t        const secondStorage = createStorage({\n50\t            getMergeConflictSession: vi.fn(async () => null),\n51\t            onMergeConflictSessionChanged: vi.fn(() => vi.fn()),\n52\t            watchProject: vi.fn(() => vi.fn()),\n53\t        })\n54\t        const service = createDataService()\n55\t        service.init({ storage: firstStorage })\n56\t        await service.projectLoading.openProject({ branch: 'main', id: 'project' })\n57\t        const loadedSnapshot = service.getState().snapshot\n58\t        const openProject = vi.spyOn(service.projectLoading, 'openProject')\n59\t\n60\t        service.replaceRemoteStorage(secondStorage)"
+          "type": "tool.Read"
         },
         {
           "content": "{}",
           "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-13",
           "kind": "event",
           "label": "Read",
+          "output": "1\timport { afterEach, describe, expect, it, vi } from 'vitest'\n2\timport type { ActionContext } from '../../../data/action_context'\n3\timport type { AgentConversation } from '../../../data/data_types'\n4\timport { dataService } from '../../../services/data/data_service'\n5\timport { dialogService } from '../../../services/dialog_service'\n6\timport { ActionConversationStore } from './action_conversation_store'\n7\t\n8\tconst context: ActionContext = { cardInternalId: 'card-1', file: 'design/F-1.md', kind: 'card' }\n9\t\n10\tfunction conversation(path: string): AgentConversation {\n11\t    return {\n12\t        actionId: 'implement',\n13\t        cardInternalId: 'card-1',\n14\t        cardPath: 'design/F-1.md',\n15\t        completedAt: '2026-01-01T00:01:00.000Z',\n16\t        entries: [],\n17\t        hasExplicitTitle: true,\n18\t        id: path,\n19\t        path,\n20\t        providerSessions: [],\n21\t        startedAt: '2026-01-01T00:00:00.000Z',\n22\t        status: 'completed',\n23\t        title: 'Implementation',\n24\t        viewed: true,\n25\t    }\n26\t}\n27\t\n28\tdescribe('ActionConversationStore', () => {\n29\t    afterEach(() => {\n30\t        vi.restoreAllMocks()\n31\t    })\n32\t\n33\t    it('loads configured unseen conversation during initial history load', async () => {\n34\t        const unseenConversation = conversation('conversation-newest.json')\n35\t        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([unseenConversation])\n36\t        const loadConversation = vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(unseenConversation)\n37\t        const store = new ActionConversationStore('implement', context)\n38\t        store.configureInitialSelection(unseenConversation.path)\n39\t\n40\t        await store.load()\n41\t\n42\t        expect(loadConversation).toHaveBeenCalledWith(unseenConversation.path)\n43\t        expect(store.getSnapshot().selectedConversation).toBe(unseenConversation)\n44\t    })\n45\t\n46\t    it('keeps unseen conversation unselected and reports its load failure', async () => {\n47\t        const unseenConversation = conversation('conversation-newest.json')\n48\t        const loadError = new Error('conversation unavailable')\n49\t        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([unseenConversation])\n50\t        vi.spyOn(dataService, 'loadAgentConversation').mockRejectedValue(loadError)\n51\t        const reportError = vi.spyOn(dialogService, 'error')\n52\t        const store = new ActionConversationStore('implement', context)\n53\t        store.configureInitialSelection(unseenConversation.path)\n54\t\n55\t        await store.load()\n56\t\n57\t        expect(store.getSnapshot().selectedConversation).toBeNull()\n58\t        expect(reportError).toHaveBeenCalledWith(loadError, { fallbackMessage: 'Could not load agent conversation' })\n59\t    })\n60\t",
           "providerItemId": "toolu_01T3gK5XVfEAMupZZ3Uk6FPf",
           "sequence": 13,
           "status": "completed",
           "timestamp": "2026-08-18T18:14:03.157Z",
-          "type": "tool.Read",
-          "output": "1\timport { afterEach, describe, expect, it, vi } from 'vitest'\n2\timport type { ActionContext } from '../../../data/action_context'\n3\timport type { AgentConversation } from '../../../data/data_types'\n4\timport { dataService } from '../../../services/data/data_service'\n5\timport { dialogService } from '../../../services/dialog_service'\n6\timport { ActionConversationStore } from './action_conversation_store'\n7\t\n8\tconst context: ActionContext = { cardInternalId: 'card-1', file: 'design/F-1.md', kind: 'card' }\n9\t\n10\tfunction conversation(path: string): AgentConversation {\n11\t    return {\n12\t        actionId: 'implement',\n13\t        cardInternalId: 'card-1',\n14\t        cardPath: 'design/F-1.md',\n15\t        completedAt: '2026-01-01T00:01:00.000Z',\n16\t        entries: [],\n17\t        hasExplicitTitle: true,\n18\t        id: path,\n19\t        path,\n20\t        providerSessions: [],\n21\t        startedAt: '2026-01-01T00:00:00.000Z',\n22\t        status: 'completed',\n23\t        title: 'Implementation',\n24\t        viewed: true,\n25\t    }\n26\t}\n27\t\n28\tdescribe('ActionConversationStore', () => {\n29\t    afterEach(() => {\n30\t        vi.restoreAllMocks()\n31\t    })\n32\t\n33\t    it('loads configured unseen conversation during initial history load', async () => {\n34\t        const unseenConversation = conversation('conversation-newest.json')\n35\t        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([unseenConversation])\n36\t        const loadConversation = vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(unseenConversation)\n37\t        const store = new ActionConversationStore('implement', context)\n38\t        store.configureInitialSelection(unseenConversation.path)\n39\t\n40\t        await store.load()\n41\t\n42\t        expect(loadConversation).toHaveBeenCalledWith(unseenConversation.path)\n43\t        expect(store.getSnapshot().selectedConversation).toBe(unseenConversation)\n44\t    })\n45\t\n46\t    it('keeps unseen conversation unselected and reports its load failure', async () => {\n47\t        const unseenConversation = conversation('conversation-newest.json')\n48\t        const loadError = new Error('conversation unavailable')\n49\t        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([unseenConversation])\n50\t        vi.spyOn(dataService, 'loadAgentConversation').mockRejectedValue(loadError)\n51\t        const reportError = vi.spyOn(dialogService, 'error')\n52\t        const store = new ActionConversationStore('implement', context)\n53\t        store.configureInitialSelection(unseenConversation.path)\n54\t\n55\t        await store.load()\n56\t\n57\t        expect(store.getSnapshot().selectedConversation).toBeNull()\n58\t        expect(reportError).toHaveBeenCalledWith(loadError, { fallbackMessage: 'Could not load agent conversation' })\n59\t    })\n60\t"
+          "type": "tool.Read"
         },
         {
           "content": "",
+          "details": [
+            ""
+          ],
           "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-14",
           "kind": "event",
           "label": "Thinking",
           "providerItemId": "msg_011CeAfiquayUw2vSt7W4WfB:thinking:0",
           "sequence": 14,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-18T18:14:08.681Z",
-          "type": "reasoning",
-          "details": [
-            ""
-          ],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "agent": "claude",
@@ -720,63 +718,63 @@
           "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-16",
           "kind": "event",
           "label": "ToolSearch",
+          "output": "[{\"type\":\"tool_reference\",\"tool_name\":\"TaskCreate\"},{\"type\":\"tool_reference\",\"tool_name\":\"ExitPlanMode\"}]",
           "providerItemId": "toolu_0174EyAieoNfWhYZaVbnnKVA",
           "sequence": 16,
           "status": "completed",
           "timestamp": "2026-08-18T18:14:09.427Z",
-          "type": "tool.ToolSearch",
-          "output": "[{\"type\":\"tool_reference\",\"tool_name\":\"TaskCreate\"},{\"type\":\"tool_reference\",\"tool_name\":\"ExitPlanMode\"}]"
+          "type": "tool.ToolSearch"
         },
         {
           "content": "",
+          "details": [
+            ""
+          ],
           "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-17",
           "kind": "event",
           "label": "Thinking",
           "providerItemId": "msg_011CeAfjJXUtEqCEDKc41jYN:thinking:0",
           "sequence": 17,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-18T18:14:11.122Z",
-          "type": "reasoning",
-          "details": [
-            ""
-          ],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "content": "{}",
           "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-18",
           "kind": "event",
           "label": "TaskCreate",
+          "output": "Task #1 created successfully: Block 1: Route merge-conflict listing to project conversations",
           "providerItemId": "toolu_01BcZJrT1M2J6zZZuD98ijin",
           "sequence": 18,
           "status": "completed",
           "timestamp": "2026-08-18T18:14:13.816Z",
-          "type": "tool.TaskCreate",
-          "output": "Task #1 created successfully: Block 1: Route merge-conflict listing to project conversations"
+          "type": "tool.TaskCreate"
         },
         {
           "content": "{}",
           "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-19",
           "kind": "event",
           "label": "TaskCreate",
+          "output": "Task #2 created successfully: Block 2: Treat merge-conflict as project in client filter",
           "providerItemId": "toolu_01K334cim9nVyyYos9kKpkPP",
           "sequence": 19,
           "status": "completed",
           "timestamp": "2026-08-18T18:14:15.334Z",
-          "type": "tool.TaskCreate",
-          "output": "Task #2 created successfully: Block 2: Treat merge-conflict as project in client filter"
+          "type": "tool.TaskCreate"
         },
         {
           "content": "{}",
           "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-20",
           "kind": "event",
           "label": "TaskCreate",
+          "output": "Task #3 created successfully: Block 3: Tests for merge-conflict listing + filter",
           "providerItemId": "toolu_0198RUMBaAWvcMMPVnyAnBDf",
           "sequence": 20,
           "status": "completed",
           "timestamp": "2026-08-18T18:14:15.645Z",
-          "type": "tool.TaskCreate",
-          "output": "Task #3 created successfully: Block 3: Tests for merge-conflict listing + filter"
+          "type": "tool.TaskCreate"
         },
         {
           "agent": "claude",
@@ -800,24 +798,24 @@
           "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-23",
           "kind": "event",
           "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\services\\data\\data_service.ts has been updated successfully. (file state is current in your context — no need to Read it back)",
           "providerItemId": "toolu_0188gJxN3tNwcmGg3zyAtB7K",
           "sequence": 23,
           "status": "completed",
           "timestamp": "2026-08-18T18:14:39.205Z",
-          "type": "fileChange",
-          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\services\\data\\data_service.ts has been updated successfully. (file state is current in your context — no need to Read it back)"
+          "type": "fileChange"
         },
         {
           "content": "",
           "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-24",
           "kind": "event",
           "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\components\\actions\\conversation\\action_conversation_store.ts has been updated successfully. (file state is current in your context — no need to Read it back)",
           "providerItemId": "toolu_01Leth3AS3WZMi1Xvw5hXS1o",
           "sequence": 24,
           "status": "completed",
           "timestamp": "2026-08-18T18:14:39.944Z",
-          "type": "fileChange",
-          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\components\\actions\\conversation\\action_conversation_store.ts has been updated successfully. (file state is current in your context — no need to Read it back)"
+          "type": "fileChange"
         },
         {
           "agent": "claude",
@@ -833,81 +831,81 @@
           "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-26",
           "kind": "event",
           "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\services\\data\\data_service.test.ts has been updated successfully. (file state is current in your context — no need to Read it back)",
           "providerItemId": "toolu_01GVGs3EoPQKTDa9ETPPgWBR",
           "sequence": 26,
           "status": "completed",
           "timestamp": "2026-08-18T18:14:47.021Z",
-          "type": "fileChange",
-          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\services\\data\\data_service.test.ts has been updated successfully. (file state is current in your context — no need to Read it back)"
+          "type": "fileChange"
         },
         {
           "content": "",
+          "details": [
+            ""
+          ],
           "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-27",
           "kind": "event",
           "label": "Thinking",
           "providerItemId": "msg_011CeAfn5MJeor1Sg69kJeXe:thinking:0",
           "sequence": 27,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-18T18:14:52.007Z",
-          "type": "reasoning",
-          "details": [
-            ""
-          ],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "content": "{}",
           "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-28",
           "kind": "event",
           "label": "Read",
+          "output": "60\t\n61\t    it('keeps empty state without unseen results and after explicit reset', async () => {\n62\t        const historicalConversation = conversation('conversation-old.json')\n63\t        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([historicalConversation])\n64\t        const loadConversation = vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(historicalConversation)\n65\t        const store = new ActionConversationStore('implement', context)\n66\t        store.configureInitialSelection(null)\n67\t\n68\t        await store.load()\n69\t        expect(store.getSnapshot().selectedConversation).toBeNull()\n70\t\n71\t        await store.select(historicalConversation.path)\n72\t        await store.select('')\n73\t\n74\t        expect(loadConversation).toHaveBeenCalledOnce()\n75\t        expect(store.getSnapshot().selectedConversation).toBeNull()\n76\t    })\n77\t\n78\t    it('refreshes selected conversation from persistence after a continued turn', async () => {\n79\t        const originalConversation = conversation('conversation.json')\n80\t        const continuedConversation = {\n81\t            ...originalConversation,\n82\t            entries: [{\n83\t                content: 'New answer',\n84\t                id: 'assistant-2',\n85\t                kind: 'message' as const,\n86\t                role: 'assistant' as const,\n87\t                timestamp: '2026-01-01T00:02:00.000Z',\n88\t            }],\n89\t        }\n90\t        vi.spyOn(dataService, 'listAgentConversations')\n91\t            .mockResolvedValueOnce([originalConversation])\n92\t            .mockResolvedValueOnce([continuedConversation])\n93\t        vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(originalConversation)\n94\t        const store = new ActionConversationStore('implement', context)\n95\t        store.configureInitialSelection(originalConversation.path)\n96\t        await store.load()\n97\t\n98\t        await store.load()\n99\t\n100\t        expect(store.getSnapshot().selectedConversation).toBe(continuedConversation)\n101\t    })\n102\t})\n103\t",
           "providerItemId": "toolu_017L1FfS1JUkxo7JGavR8r5F",
           "sequence": 28,
           "status": "completed",
           "timestamp": "2026-08-18T18:14:52.535Z",
-          "type": "tool.Read",
-          "output": "60\t\n61\t    it('keeps empty state without unseen results and after explicit reset', async () => {\n62\t        const historicalConversation = conversation('conversation-old.json')\n63\t        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([historicalConversation])\n64\t        const loadConversation = vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(historicalConversation)\n65\t        const store = new ActionConversationStore('implement', context)\n66\t        store.configureInitialSelection(null)\n67\t\n68\t        await store.load()\n69\t        expect(store.getSnapshot().selectedConversation).toBeNull()\n70\t\n71\t        await store.select(historicalConversation.path)\n72\t        await store.select('')\n73\t\n74\t        expect(loadConversation).toHaveBeenCalledOnce()\n75\t        expect(store.getSnapshot().selectedConversation).toBeNull()\n76\t    })\n77\t\n78\t    it('refreshes selected conversation from persistence after a continued turn', async () => {\n79\t        const originalConversation = conversation('conversation.json')\n80\t        const continuedConversation = {\n81\t            ...originalConversation,\n82\t            entries: [{\n83\t                content: 'New answer',\n84\t                id: 'assistant-2',\n85\t                kind: 'message' as const,\n86\t                role: 'assistant' as const,\n87\t                timestamp: '2026-01-01T00:02:00.000Z',\n88\t            }],\n89\t        }\n90\t        vi.spyOn(dataService, 'listAgentConversations')\n91\t            .mockResolvedValueOnce([originalConversation])\n92\t            .mockResolvedValueOnce([continuedConversation])\n93\t        vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(originalConversation)\n94\t        const store = new ActionConversationStore('implement', context)\n95\t        store.configureInitialSelection(originalConversation.path)\n96\t        await store.load()\n97\t\n98\t        await store.load()\n99\t\n100\t        expect(store.getSnapshot().selectedConversation).toBe(continuedConversation)\n101\t    })\n102\t})\n103\t"
+          "type": "tool.Read"
         },
         {
           "content": "",
+          "details": [
+            ""
+          ],
           "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-29",
           "kind": "event",
           "label": "Thinking",
           "providerItemId": "msg_011CeAfnUpC5mJtRprg97yZZ:thinking:0",
           "sequence": 29,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-18T18:14:57.587Z",
-          "type": "reasoning",
-          "details": [
-            ""
-          ],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "content": "",
           "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-30",
           "kind": "event",
           "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\components\\actions\\conversation\\action_conversation_store.node.test.ts has been updated successfully. (file state is current in your context — no need to Read it back)",
           "providerItemId": "toolu_015qJxk8aTspXn5pMLj8KEFY",
           "sequence": 30,
           "status": "completed",
           "timestamp": "2026-08-18T18:15:00.394Z",
-          "type": "fileChange",
-          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\components\\actions\\conversation\\action_conversation_store.node.test.ts has been updated successfully. (file state is current in your context — no need to Read it back)"
+          "type": "fileChange"
         },
         {
           "content": "",
+          "details": [
+            ""
+          ],
           "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-31",
           "kind": "event",
           "label": "Thinking",
           "providerItemId": "msg_011CeAfo4p5xnLtccWbwYN4J:thinking:0",
           "sequence": 31,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-18T18:15:03.380Z",
-          "type": "reasoning",
-          "details": [
-            ""
-          ],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "content": "{}",
@@ -918,20 +916,19 @@
           "sequence": 32,
           "status": "completed",
           "timestamp": "2026-08-18T18:15:03.573Z",
-          "type": "commandExecution",
-          "output": "165:    cardInternalId: string\n188:    cardPath: string\n332:    cardInternalId?: string | null\n333:    cardPath: string | null"
+          "type": "commandExecution"
         },
         {
           "content": "{}",
           "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-33",
           "kind": "event",
           "label": "Read",
+          "output": "320\texport interface AgentContextWindowUsage {\n321\t    capacityTokens: number\n322\t    usedTokens: number\n323\t}\n324\t\n325\texport interface AgentConversationTimer {\n326\t    elapsedMs: number\n327\t    runningStartedAt: string | null\n328\t}\n329\t\n330\texport interface AgentConversation {\n331\t    actionId?: string | null\n332\t    cardInternalId?: string | null\n333\t    cardPath: string | null\n334\t    completedAt: string | null\n335\t    contextWindowUsage?: AgentContextWindowUsage\n336\t    entries: AgentConversationEntry[]\n337\t    hasExplicitTitle: boolean\n338\t    id: string\n339\t    path: string\n340\t    providerSessions: AgentProviderSession[]\n341\t    startedAt: string\n342\t    status: AgentConversationStatus\n343\t    timer?: AgentConversationTimer\n344\t    title: string",
           "providerItemId": "toolu_01BeXXn737jSvPf5RDbcjM1t",
           "sequence": 33,
           "status": "completed",
           "timestamp": "2026-08-18T18:15:06.496Z",
-          "type": "tool.Read",
-          "output": "320\texport interface AgentContextWindowUsage {\n321\t    capacityTokens: number\n322\t    usedTokens: number\n323\t}\n324\t\n325\texport interface AgentConversationTimer {\n326\t    elapsedMs: number\n327\t    runningStartedAt: string | null\n328\t}\n329\t\n330\texport interface AgentConversation {\n331\t    actionId?: string | null\n332\t    cardInternalId?: string | null\n333\t    cardPath: string | null\n334\t    completedAt: string | null\n335\t    contextWindowUsage?: AgentContextWindowUsage\n336\t    entries: AgentConversationEntry[]\n337\t    hasExplicitTitle: boolean\n338\t    id: string\n339\t    path: string\n340\t    providerSessions: AgentProviderSession[]\n341\t    startedAt: string\n342\t    status: AgentConversationStatus\n343\t    timer?: AgentConversationTimer\n344\t    title: string"
+          "type": "tool.Read"
         },
         {
           "agent": "claude",
@@ -947,12 +944,12 @@
           "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-35",
           "kind": "event",
           "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\components\\actions\\conversation\\action_conversation_store.node.test.ts has been updated successfully. (file state is current in your context — no need to Read it back)",
           "providerItemId": "toolu_01UoUoJrTFHviuXYzgqCK98H",
           "sequence": 35,
           "status": "completed",
           "timestamp": "2026-08-18T18:15:13.023Z",
-          "type": "fileChange",
-          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\components\\actions\\conversation\\action_conversation_store.node.test.ts has been updated successfully. (file state is current in your context — no need to Read it back)"
+          "type": "fileChange"
         },
         {
           "agent": "claude",
@@ -972,8 +969,7 @@
           "sequence": 37,
           "status": "completed",
           "timestamp": "2026-08-18T18:15:24.677Z",
-          "type": "commandExecution",
-          "output": "> app@0.3.3 typecheck\n> tsc --noEmit"
+          "type": "commandExecution"
         },
         {
           "content": "{}",
@@ -984,23 +980,22 @@
           "sequence": 38,
           "status": "failed",
           "timestamp": "2026-08-19T08:21:29.664Z",
-          "type": "commandExecution",
-          "output": "Exit code 1\n/usr/bin/bash: line 1: cd: app: No such file or directory"
+          "type": "commandExecution"
         },
         {
           "content": "",
+          "details": [
+            ""
+          ],
           "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-39",
           "kind": "event",
           "label": "Thinking",
           "providerItemId": "msg_011CeBnLtKenBciPkRyQxASA:thinking:0",
           "sequence": 39,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-19T08:21:32.555Z",
-          "type": "reasoning",
-          "details": [
-            ""
-          ],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "content": "{}",
@@ -1011,8 +1006,7 @@
           "sequence": 40,
           "status": "completed",
           "timestamp": "2026-08-19T08:21:48.509Z",
-          "type": "commandExecution",
-          "output": " RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2/app\n\n\n Test Files  2 passed (2)\n      Tests  19 passed (19)\n   Start at  10:21:45\n   Duration  2.64s (transform 645ms, setup 139ms, import 1.11s, tests 104ms, environment 1.07s)"
+          "type": "commandExecution"
         },
         {
           "agent": "claude",
@@ -1028,60 +1022,60 @@
           "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-42",
           "kind": "event",
           "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_116_merge_agent_missing_card_internal_id.md has been updated successfully. (file state is current in your context — no need to Read it back)",
           "providerItemId": "toolu_0174p7Xp4G3gcT5Zt27Cbqcc",
           "sequence": 42,
           "status": "completed",
           "timestamp": "2026-08-19T08:21:51.662Z",
-          "type": "fileChange",
-          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_116_merge_agent_missing_card_internal_id.md has been updated successfully. (file state is current in your context — no need to Read it back)"
+          "type": "fileChange"
         },
         {
           "content": "{}",
           "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-43",
           "kind": "event",
           "label": "ToolSearch",
+          "output": "[{\"type\":\"tool_reference\",\"tool_name\":\"TaskUpdate\"}]",
           "providerItemId": "toolu_013MFcunzfDTpvoQnVn2pi56",
           "sequence": 43,
           "status": "completed",
           "timestamp": "2026-08-19T08:21:53.610Z",
-          "type": "tool.ToolSearch",
-          "output": "[{\"type\":\"tool_reference\",\"tool_name\":\"TaskUpdate\"}]"
+          "type": "tool.ToolSearch"
         },
         {
           "content": "{}",
           "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-44",
           "kind": "event",
           "label": "TaskUpdate",
+          "output": "Updated task #1 status",
           "providerItemId": "toolu_018jBsiSpDf9GcnVoj78jyyy",
           "sequence": 44,
           "status": "completed",
           "timestamp": "2026-08-19T08:21:55.974Z",
-          "type": "tool.TaskUpdate",
-          "output": "Updated task #1 status"
+          "type": "tool.TaskUpdate"
         },
         {
           "content": "{}",
           "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-45",
           "kind": "event",
           "label": "TaskUpdate",
+          "output": "Updated task #2 status",
           "providerItemId": "toolu_01H5PPjjy9ZLsKjbJTGuhMfj",
           "sequence": 45,
           "status": "completed",
           "timestamp": "2026-08-19T08:21:56.848Z",
-          "type": "tool.TaskUpdate",
-          "output": "Updated task #2 status"
+          "type": "tool.TaskUpdate"
         },
         {
           "content": "{}",
           "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-46",
           "kind": "event",
           "label": "TaskUpdate",
+          "output": "Updated task #3 status",
           "providerItemId": "toolu_01MhcfuBWx5jeQTNnBHU9cKC",
           "sequence": 46,
           "status": "completed",
           "timestamp": "2026-08-19T08:21:56.862Z",
-          "type": "tool.TaskUpdate",
-          "output": "Updated task #3 status"
+          "type": "tool.TaskUpdate"
         },
         {
           "agent": "claude",
@@ -1111,8 +1105,6 @@
         "runningStartedAt": null
       },
       "title": "implement",
-      "usageSchemaVersion": 1,
-      "viewed": true,
       "usage": {
         "cachedInputTokens": 903920,
         "inputTokens": 9039,
@@ -1120,7 +1112,9 @@
         "reasoningTokens": 0,
         "totalTokens": 919517,
         "costUsd": 2.921601
-      }
+      },
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
@@ -1187,6 +1181,30 @@
       "startedAt": "2026-08-18T18:13:11.896Z",
       "status": "cancelled",
       "rootConversationId": "agent-f602e7ea-33ed-469b-9742-767c1833ffd4"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-08-19T08:22:04.464Z",
+      "conversationIds": [
+        "agent-12a8114b-9aef-4883-979d-7e9716f39cb8"
+      ],
+      "details": {
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "ask-for-approval",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-a5d25e6b-c6e8-43bc-a8d3-fd33c3a13d16",
+      "origin": {
+        "cardInternalId": "b0e7104c-8f81-425e-8473-66b569a63d81",
+        "kind": "card"
+      },
+      "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
+      "rootActionLabel": "implement",
+      "rootConversationId": "agent-12a8114b-9aef-4883-979d-7e9716f39cb8",
+      "startedAt": "2026-08-18T18:13:44.378Z",
+      "status": "completed"
     }
   ],
   "version": 4
