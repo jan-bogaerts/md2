@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__332eb86e-d703-4707-a8de-0bdec67e23f5.json
 policy:
+after: 5936b8d1-a0b9-4d53-9edf-e753e80796dd
 ---
 
 we recently implemented local search in cards, see [F\_104\_add\_local\_text\_search\_md\_editor.md](design/releases/0_3_0/F_104_add_local_text_search_md_editor.md)
