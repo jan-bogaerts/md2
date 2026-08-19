@@ -3,7 +3,7 @@ author:
 id: F_211
 internalId: ad4126b2-1203-4a30-b222-636148bf92b1
 title: stats view improvements
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,7 @@ agents:
 policy:
 branch: f_211_stats_view_improvements
 worktree: 1
+after: 4d69acfd-e064-44bf-b04c-81496a09b374
 ---
 
 [F_208_add_view_stats.md](F_208_add_view_stats.md) added the stats view. Improve its chart layout and extend it to answer:

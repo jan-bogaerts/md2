@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__b0e7104c-8f81-425e-8473-66b569a63d81.json
 policy:
+after: 8a177e01-b5d4-46aa-b42f-9ba11f561b60
 ---
 
 When we have a merge conflict and decide to resolve it with an agent, as soon as the agent opens, we get this error:
