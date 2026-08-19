@@ -763,7 +763,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 62,
-          "timestamp": "2026-08-19T09:31:26.016Z"
+          "timestamp": "2026-08-19T09:36:05.234Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -773,15 +773,15 @@
           "agent": "claude",
           "conversationId": "6ada3281-f248-4b5f-9648-dcb39ff97c24",
           "createdAt": "2026-08-19T09:01:56.198Z",
-          "lastUsedAt": "2026-08-19T09:26:34.961Z",
-          "synchronizedThroughMessageId": "agent-turn-1f0f5dd1-0b06-42e4-8395-569d52484437-turn-3-assistant-4"
+          "lastUsedAt": "2026-08-19T09:31:26.016Z",
+          "synchronizedThroughMessageId": "agent-turn-1f0f5dd1-0b06-42e4-8395-569d52484437-turn-4-assistant-1"
         }
       ],
       "startedAt": "2026-08-19T08:51:47.950Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
-        "elapsedMs": 465477,
-        "runningStartedAt": "2026-08-19T09:30:36.642Z"
+        "elapsedMs": 514851,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usageSchemaVersion": 1,
