@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 73550
+        "usedTokens": 73828
       },
       "entries": [
         {
@@ -521,6 +521,36 @@
           "role": "assistant",
           "sequence": 39,
           "timestamp": "2026-08-19T16:10:03.295Z"
+        },
+        {
+          "content": "`negative account-usage corrections` does this exist or did you make that up?",
+          "id": "agent-turn-21c95528-458d-4da2-b7fc-5b7d8142737d-user-39",
+          "kind": "message",
+          "role": "user",
+          "sequence": 40,
+          "timestamp": "2026-08-19T16:10:42.217Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-21c95528-458d-4da2-b7fc-5b7d8142737d-event-41",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_05184c77c11d264c016a85d585c8888191a60f3f61ff2610b0",
+          "sequence": 41,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:10:45.658Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "It exists. Existing design explicitly preserves negative corrections:\n\n- [F_194_track_token_usage_vs_usage_metrics.md](C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/F_194_track_token_usage_vs_usage_metrics.md:40): same-window usage can decrease; delta remains negative.\n- [F_211_stats_view_improvements.md](C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/F_211_stats_view_improvements.md:71): render negative corrections below zero baseline.\n- [usage_metrics.csv](C:/Users/janbo/Documents/dev/md2/design/usage_metrics.csv:189) contains `used_percent_delta = -1`.\n\nCause: provider reports used percentage dropping from 71% to 70% before reset, producing `-1`.\n\nShould ratio be unavailable when denominator is zero, missing, or negative?\n\n",
+          "id": "agent-turn-21c95528-458d-4da2-b7fc-5b7d8142737d-turn-3-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 42,
+          "timestamp": "2026-08-19T16:10:48.925Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -530,23 +560,23 @@
           "agent": "codex",
           "conversationId": "01a01ac6-56af-75b2-a661-dc761d9d1c98",
           "createdAt": "2026-08-19T16:07:57.347Z",
-          "lastUsedAt": "2026-08-19T16:07:57.347Z",
-          "synchronizedThroughMessageId": "agent-turn-21c95528-458d-4da2-b7fc-5b7d8142737d-turn-1-assistant-4"
+          "lastUsedAt": "2026-08-19T16:10:03.295Z",
+          "synchronizedThroughMessageId": "agent-turn-21c95528-458d-4da2-b7fc-5b7d8142737d-turn-2-assistant-2"
         }
       ],
       "startedAt": "2026-08-19T16:06:40.257Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 77090,
-        "runningStartedAt": "2026-08-19T16:09:56.545Z"
+        "elapsedMs": 83840,
+        "runningStartedAt": "2026-08-19T16:10:42.217Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 131584,
-        "inputTokens": 14459,
-        "outputTokens": 166,
-        "reasoningTokens": 584,
-        "totalTokens": 146793
+        "cachedInputTokens": 204032,
+        "inputTokens": 15584,
+        "outputTokens": 347,
+        "reasoningTokens": 658,
+        "totalTokens": 220621
       },
       "usageSchemaVersion": 1,
       "viewed": true
