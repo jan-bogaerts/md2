@@ -46,4 +46,6 @@ This appears to be a recurring bug. we already tried to fix similar issues recen
 * electron app is running and serving websocket
 * chrome on android is connected to electron through websocket
 * on android, new cards are created, edited, agent run on cards
-* some errors appear on android like
+* some errors appear on android like `remote-control websocket was replaced`  other only appear on the electron renderer like **`Message:`**` External change ignored for design/feature_descriptions/F_211_stats_view_improvements.md because the file has unsaved local edits.` &#x20;
+
+lets analyze the algorithm and find the wrong sequence.&#x20;
