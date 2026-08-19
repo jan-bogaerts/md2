@@ -20,9 +20,10 @@ policy:
   * use 'vs' instead of 'versus' in the label
   * project activity:
     * needs to go to the bottom, last chart
-    * if&#x20;
+    * can we split up bars by agent? so if on a day there  were actions completed by both claude and codex, there would be 2 bars on that day
   * account usage:
     * at top
     * has a light blue or gray bar for every day. what is the purpose of that&#x20;
     * we have filters: provider, limit that only appears to be applied to this chart, but they make no sense. the point is to view claude and codex side by side on the same day
     * missing day labels on the x axis like the other charts have
+    * value is not exactly what
