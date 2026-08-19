@@ -10,8 +10,6 @@ agents:
   - design/activity/card__12faf0b2-355c-4860-b04b-6d5523a5c137.json
 policy:
 after: cc3a9c43-319b-4a60-a202-f728f220e14e
-branch: b_151_issues_in_stats
-worktree: 3
 ---
 
 Fix inconsistent bar layout and make project/account comparison show Claude and Codex together.
