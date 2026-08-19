@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 95117
+        "usedTokens": 95412
       },
       "entries": [
         {
@@ -870,6 +870,36 @@
           "role": "assistant",
           "sequence": 65,
           "timestamp": "2026-08-19T17:16:28.829Z"
+        },
+        {
+          "content": "but you only looked at what we logged? not how we calculated it and what the actual values represent?",
+          "id": "agent-turn-f202be7c-ef36-4ccb-998a-36b233c41769-user-65",
+          "kind": "message",
+          "role": "user",
+          "sequence": 66,
+          "timestamp": "2026-08-19T17:17:01.613Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f202be7c-ef36-4ccb-998a-36b233c41769-event-67",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_028c5ade2eed651d016a85e511062c87d08f0193ea2a831d98",
+          "sequence": 67,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T17:17:05.033Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Looked at three things:\n\n- Calculation code: Claude terminal `result.usage` becomes  \n  `input_tokens + cache_creation_input_tokens + cache_read_input_tokens + output_tokens`.\n- Provider meaning: Claude’s terminal usage aggregates model requests made during one agent run. Cache reads/writes are billable token-processing buckets.\n- Logged CSV: showed high value mostly came from cache tokens.\n\nMissing decisive check: raw Claude terminal events versus persisted conversation and CSV values. Those events are in referenced agent activity files, which you told me not to read. Also did not run controlled Claude capture.\n\nSo “md2 count appears correct” was too strong. Proven: formula matches documented field meanings. Not proven: each real result is stored exactly once, resumed-session results are deltas, or logged values match raw events. Bug remains unconfirmed either way.\n\n",
+          "id": "agent-turn-f202be7c-ef36-4ccb-998a-36b233c41769-turn-3-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 68,
+          "timestamp": "2026-08-19T17:17:08.383Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -879,23 +909,23 @@
           "agent": "codex",
           "conversationId": "01a01aff-c1c5-7452-abba-33e5f8be0a49",
           "createdAt": "2026-08-19T17:11:54.726Z",
-          "lastUsedAt": "2026-08-19T17:14:58.839Z",
-          "synchronizedThroughMessageId": "agent-turn-f202be7c-ef36-4ccb-998a-36b233c41769-turn-1-assistant-1"
+          "lastUsedAt": "2026-08-19T17:16:28.829Z",
+          "synchronizedThroughMessageId": "agent-turn-f202be7c-ef36-4ccb-998a-36b233c41769-turn-2-assistant-1"
         }
       ],
       "startedAt": "2026-08-19T17:09:23.328Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 159788,
-        "runningStartedAt": "2026-08-19T17:16:26.057Z"
+        "elapsedMs": 162560,
+        "runningStartedAt": "2026-08-19T17:17:01.613Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 280832,
-        "inputTokens": 3626,
-        "outputTokens": 329,
-        "reasoningTokens": 142,
-        "totalTokens": 284929
+        "cachedInputTokens": 374784,
+        "inputTokens": 4818,
+        "outputTokens": 505,
+        "reasoningTokens": 234,
+        "totalTokens": 380341
       },
       "usageSchemaVersion": 1,
       "viewed": true
