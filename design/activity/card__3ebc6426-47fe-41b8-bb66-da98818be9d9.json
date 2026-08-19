@@ -3706,11 +3706,11 @@
         "agent-81344c85-2976-455f-9d42-2abcb1b1c4f9"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-387f138f-6e14-41c5-87c2-6741122aff31",
       "origin": {
@@ -3719,9 +3719,59 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-81344c85-2976-455f-9d42-2abcb1b1c4f9",
       "startedAt": "2026-08-18T18:05:44.963Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-81344c85-2976-455f-9d42-2abcb1b1c4f9"
+    },
+    {
+      "commits": [
+        {
+          "commit": "34c8a432fe3df932d20fe748969a411c1f358a97",
+          "committedAt": "2026-08-19T10:22:31+02:00",
+          "deletions": 148,
+          "filePaths": [
+            "app/src/components/stats_view/stats_content.test.tsx",
+            "app/src/components/stats_view/stats_view.test.tsx",
+            "app/src/components/stats_view/stats_view.tsx",
+            "app/src/data/data_types.ts",
+            "app/src/data/electron_data_bridge.ts",
+            "app/src/services/agents/agent_conversation_service.node.test.ts",
+            "app/src/services/data/data_service.ts",
+            "app/src/services/data/local_git_storage_service.ts",
+            "app/src/services/release_operations.test.ts",
+            "app/src/services/release_operations.ts",
+            "app/src/services/stats/project_stats_schema.node.test.ts",
+            "app/src/services/stats/project_stats_service.node.test.ts",
+            "app/src/services/stats/project_stats_service.ts",
+            "app/src/services/stats/project_stats_worker.ts",
+            "app/src/services/stats/project_stats_worker_client.node.test.ts",
+            "app/src/services/stats/project_stats_worker_client.ts",
+            "desktop/main.js",
+            "desktop/src/actions/activity/card_activity.test.mjs",
+            "desktop/src/shell/local_bridge_dispatch.js",
+            "desktop/src/shell/local_bridge_dispatch.test.mjs",
+            "desktop/src/shell/preload.js",
+            "desktop/src/stats/project_stats_worker.mjs",
+            "desktop/src/stats/project_stats_worker_service.js",
+            "desktop/src/stats/project_stats_worker_service.test.mjs",
+            "shared/agent_conversations.d.mts",
+            "shared/agent_conversations.mjs",
+            "shared/card_activity.mjs",
+            "shared/project_stats.d.mts",
+            "shared/project_stats.mjs"
+          ],
+          "filesChanged": 29,
+          "insertions": 1083,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-19T10:22:31+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "3ebc6426-47fe-41b8-bb66-da98818be9d9",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
