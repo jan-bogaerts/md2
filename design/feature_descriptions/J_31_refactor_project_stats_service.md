@@ -3,10 +3,11 @@ author:
 id: J_31
 internalId: b7885271-1cd8-4927-9f68-661c0d87a61f
 title: refactor ProjectStatsService into focused modules
-status: ready
+status: new
 owner:
 affects:
 policy:
+after: 47a847c9-cf6e-4a8a-823c-6a6b012bb21a
 ---
 
 `app/src/services/stats/project_stats_service.ts` combines source discovery, released-stat caching, session state, control reconciliation, time bucketing, four dataset aggregators, and presentation metadata. Split it without changing behavior.

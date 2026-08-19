@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__70a705b9-4e44-4487-8ac9-48722ba0ef92.json
 policy:
+after: ad4126b2-1203-4a30-b222-636148bf92b1
 ---
 
 Codex `fileChange` events sometimes reach conversations without `insertions` or `deletions`. Mixed events can also contain counts that cover updated files but omit added or deleted files. `ActionUsageSummary` then undercounts `changes` or hides the control when no event in scope retains counts.
