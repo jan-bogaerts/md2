@@ -1351,11 +1351,11 @@
         "agent-a5ade76a-c75a-4a28-a5b7-a0d3fd1a4551"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-d8413210-6a3e-4512-8a85-3aa6f50ffee2",
       "origin": {
@@ -1364,9 +1364,33 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-a5ade76a-c75a-4a28-a5b7-a0d3fd1a4551",
       "startedAt": "2026-08-19T16:13:51.202Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-a5ade76a-c75a-4a28-a5b7-a0d3fd1a4551"
+    },
+    {
+      "commits": [
+        {
+          "commit": "91ac154b28fed70116592a58ce36ccf4fdc09bc1",
+          "committedAt": "2026-08-19T18:34:30+02:00",
+          "deletions": 16,
+          "filePaths": [
+            "app/src/components/shell/search/search_control.test.tsx",
+            "app/src/components/shell/search/search_panel.tsx",
+            "app/src/components/shell/search/search_results.tsx"
+          ],
+          "filesChanged": 3,
+          "insertions": 96,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-19T18:34:30+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "cc3a9c43-319b-4a60-a202-f728f220e14e",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
