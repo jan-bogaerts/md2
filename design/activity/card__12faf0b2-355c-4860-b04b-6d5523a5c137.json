@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 73243
+        "usedTokens": 73550
       },
       "entries": [
         {
@@ -482,24 +482,71 @@
           "role": "assistant",
           "sequence": 35,
           "timestamp": "2026-08-19T16:07:57.347Z"
+        },
+        {
+          "content": "1. show every provider. note: usually 1 is empty (always 0% used), so if 0, hide it",
+          "id": "agent-turn-21c95528-458d-4da2-b7fc-5b7d8142737d-user-35",
+          "kind": "message",
+          "role": "user",
+          "sequence": 36,
+          "timestamp": "2026-08-19T16:09:56.545Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-21c95528-458d-4da2-b7fc-5b7d8142737d-event-37",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_05184c77c11d264c016a85d557a6588191b9816bcce35594c8",
+          "sequence": 37,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:10:01.841Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Choice understood: show each provider + limit + window series; hide series whose total account-usage change across selected range is zero. One remaining ratio edge case: negative corrections.\n\n",
+          "id": "agent-turn-21c95528-458d-4da2-b7fc-5b7d8142737d-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 38,
+          "timestamp": "2026-08-19T16:10:02.581Z"
+        },
+        {
+          "agent": "codex",
+          "content": "For ratio charts, should negative account-usage corrections produce negative ratios, or be unavailable like zero/missing denominators?\n\n",
+          "id": "agent-turn-21c95528-458d-4da2-b7fc-5b7d8142737d-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 39,
+          "timestamp": "2026-08-19T16:10:03.295Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-33601347-4821-44f5-9294-dad47f56b9b7",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a01ac6-56af-75b2-a661-dc761d9d1c98",
+          "createdAt": "2026-08-19T16:07:57.347Z",
+          "lastUsedAt": "2026-08-19T16:07:57.347Z",
+          "synchronizedThroughMessageId": "agent-turn-21c95528-458d-4da2-b7fc-5b7d8142737d-turn-1-assistant-4"
+        }
+      ],
       "startedAt": "2026-08-19T16:06:40.257Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-19T16:06:40.257Z"
+        "elapsedMs": 77090,
+        "runningStartedAt": "2026-08-19T16:09:56.545Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 59136,
-        "inputTokens": 13631,
-        "outputTokens": 94,
-        "reasoningTokens": 382,
-        "totalTokens": 73243
+        "cachedInputTokens": 131584,
+        "inputTokens": 14459,
+        "outputTokens": 166,
+        "reasoningTokens": 584,
+        "totalTokens": 146793
       },
       "usageSchemaVersion": 1,
       "viewed": true
