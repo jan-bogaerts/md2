@@ -62,6 +62,20 @@ function actionRecord(runId: string, completedAt: string, overrides: Record<stri
     }
 }
 
+function agentRecord(
+    runId: string,
+    completedAt: string,
+    rootConversationId: string,
+    overrides: Record<string, unknown> = {},
+) {
+    return actionRecord(runId, completedAt, {
+        conversationIds: [rootConversationId],
+        details: { agent: 'codex', model: 'gpt-5', type: 'agent' },
+        rootConversationId,
+        ...overrides,
+    })
+}
+
 function activityContent(options: {
     conversations?: AgentConversation[]
     origin?: { cardInternalId: string, kind: 'card' } | { kind: 'project' }
@@ -199,13 +213,16 @@ describe('ProjectStatsService aggregation', () => {
             metricsRow('2026-09-01T00:00:00.000Z', 9),
         ].join('\r\n')
         await openService(service, storage({ 'design/usage_metrics.csv': metrics }))
-        service.setControls({ activityMetric: 'tokens', granularity: 'week' })
+        service.setControls({ activityGranularity: 'week', activityMetric: 'tokens' })
         expect(service.getSnapshot().rows.map(({ utcBucketStart, value }) => [utcBucketStart, value])).toEqual([
             ['2026-07-27T00:00:00.000Z', 5],
             ['2026-08-03T00:00:00.000Z', 7],
+            ['2026-08-10T00:00:00.000Z', 0],
+            ['2026-08-17T00:00:00.000Z', 0],
+            ['2026-08-24T00:00:00.000Z', 0],
             ['2026-08-31T00:00:00.000Z', 9],
         ])
-        service.setControls({ granularity: 'month' })
+        service.setControls({ activityGranularity: 'month' })
         expect(service.getSnapshot().rows.map(({ utcBucketStart, value }) => [utcBucketStart, value])).toEqual([
             ['2026-08-01T00:00:00.000Z', 12],
             ['2026-09-01T00:00:00.000Z', 9],
@@ -306,5 +323,219 @@ describe('ProjectStatsService aggregation', () => {
         if (!migrationCommit) throw new Error('Missing stats migration commit')
         const parsed = parseProjectStatsFile(migrationCommit.files[0].content, 'design/project_stats.json')
         expect(Object.keys(parsed.releases)).toEqual(['v2'])
+    })
+
+    it('zero-fills day ranges and emits stable stacked action series', async () => {
+        const service = new ProjectStatsService()
+        await openService(service, storage({
+            'design/activity/card__card-1.json': activityContent({
+                records: [
+                    actionRecord('run-1', '2026-08-10T10:00:00.000Z'),
+                    actionRecord('run-2', '2026-08-12T10:00:00.000Z'),
+                    actionRecord('run-3', '2026-08-12T11:00:00.000Z', { rootActionId: 'test', rootActionLabel: 'Test' }),
+                ],
+            }),
+        }))
+
+        expect(service.getSnapshot().rows.map(({ identity, utcBucketStart, value }) => [identity, utcBucketStart, value])).toEqual([
+            ['review', '2026-08-10T00:00:00.000Z', 1],
+            ['2026-08-11T00:00:00.000Z', '2026-08-11T00:00:00.000Z', 0],
+            ['review', '2026-08-12T00:00:00.000Z', 1],
+            ['test', '2026-08-12T00:00:00.000Z', 1],
+        ])
+
+        service.setControls({ activityGranularity: 'month', endUtc: '2026-10-31T23:59:59.999Z', startUtc: '2026-08-01T00:00:00.000Z' })
+        const monthTotals = new Map<string | null, number>()
+        for (const { utcBucketStart, value } of service.getSnapshot().rows) {
+            monthTotals.set(utcBucketStart, (monthTotals.get(utcBucketStart) ?? 0) + value)
+        }
+        expect([...monthTotals]).toEqual([
+            ['2026-08-01T00:00:00.000Z', 3],
+            ['2026-09-01T00:00:00.000Z', 0],
+            ['2026-10-01T00:00:00.000Z', 0],
+        ])
+    })
+
+    it('counts one cumulative performance sample across continuation records', async () => {
+        const rootConversation = conversation({
+            entries: [
+                { content: 'start', id: 'tool-1-start', kind: 'event', providerItemId: 'tool-1', timestamp: '2026-08-12T09:10:00.000Z', type: 'commandExecution' },
+                { content: 'done', id: 'tool-1-done', kind: 'event', providerItemId: 'tool-1', timestamp: '2026-08-12T09:20:00.000Z', type: 'commandExecution' },
+                { content: 'search', id: 'tool-2', kind: 'event', timestamp: '2026-08-12T09:30:00.000Z', type: 'webSearch' },
+                { content: 'reason', id: 'not-tool', kind: 'event', timestamp: '2026-08-12T09:40:00.000Z', type: 'reasoning' },
+            ],
+        })
+        const service = new ProjectStatsService()
+        await openService(service, storage({
+            'design/activity/card__card-1.json': activityContent({
+                conversations: [rootConversation],
+                records: [
+                    agentRecord('run-1', '2026-08-12T10:00:00.000Z', rootConversation.id),
+                    agentRecord('run-2', '2026-08-12T10:00:00.000Z', rootConversation.id),
+                ],
+            }),
+        }))
+        service.setControls({ dataset: 'agentPerformance' })
+
+        expect(service.getSnapshot().rows).toMatchObject([{ identity: 'codex', sampleCount: 1, value: 1_500 }])
+        service.setControls({ performanceMetric: 'tokens' })
+        expect(service.getSnapshot().rows).toMatchObject([{ sampleCount: 1, value: 10 }])
+        service.setControls({ performanceMetric: 'toolCalls' })
+        expect(service.getSnapshot().rows).toMatchObject([{ sampleCount: 1, value: 2 }])
+    })
+
+    it('applies only filter belonging to selected performance grouping', async () => {
+        const conversations = [
+            conversation({ id: 'codex-conversation' }),
+            conversation({ id: 'claude-conversation' }),
+        ]
+        const service = new ProjectStatsService()
+        await openService(service, storage({
+            'design/activity/card__card-1.json': activityContent({
+                conversations,
+                records: [
+                    agentRecord('codex-run', '2026-08-12T10:00:00.000Z', 'codex-conversation'),
+                    agentRecord('claude-run', '2026-08-12T10:00:00.000Z', 'claude-conversation', {details: { agent: 'claude', model: 'sonnet', type: 'agent' }}),
+                ],
+            }),
+        }))
+        service.setControls({
+            dataset: 'agentPerformance',
+            performanceAgentIds: ['codex'],
+            performanceGrouping: 'agent',
+            performanceModelIds: ['claude\u0000sonnet'],
+        })
+        expect(service.getSnapshot().rows).toMatchObject([{ identity: 'codex' }])
+
+        service.setControls({ performanceGrouping: 'model' })
+        expect(service.getSnapshot().rows).toMatchObject([{ identity: 'claude\u0000sonnet' }])
+    })
+
+    it('includes terminal statuses and reports each in averages and status counts', async () => {
+        const conversations = [
+            conversation({ id: 'completed', timer: { elapsedMs: 100, runningStartedAt: null } }),
+            conversation({ id: 'failed', status: 'failed', timer: { elapsedMs: 200, runningStartedAt: null } }),
+            conversation({ id: 'cancelled', status: 'cancelled', timer: { elapsedMs: 300, runningStartedAt: null } }),
+        ]
+        const service = new ProjectStatsService()
+        await openService(service, storage({
+            'design/activity/card__card-1.json': activityContent({
+                conversations,
+                records: conversations.map(({ id }, index) => agentRecord(`run-${index}`, '2026-08-12T10:00:00.000Z', id)),
+            }),
+        }))
+        service.setControls({ dataset: 'agentPerformance' })
+
+        expect(service.getSnapshot().rows).toMatchObject([{
+            sampleCount: 3,
+            statusCounts: { cancelled: 1, completed: 1, failed: 1 },
+            utcBucketStart: '2026-08-12T00:00:00.000Z',
+            value: 200,
+        }])
+    })
+
+    it('reports running, waiting, missing timer, attribution, mixed, and nested exclusions', async () => {
+        const conversations = [
+            conversation({ completedAt: null, id: 'running', status: 'running' }),
+            conversation({ completedAt: null, id: 'waiting', status: 'waitingForInput' }),
+            conversation({ id: 'missing-timer', timer: undefined }),
+            conversation({ completedAt: null, id: 'missing-completion' }),
+            conversation({ id: 'missing-attribution' }),
+            conversation({ id: 'mixed-attribution' }),
+            conversation({ id: 'nested' }),
+            conversation({ id: 'child' }),
+        ]
+        const records = [
+            agentRecord('run-running', '2026-08-12T10:00:00.000Z', 'running'),
+            agentRecord('run-waiting', '2026-08-12T10:00:00.000Z', 'waiting'),
+            agentRecord('run-timer', '2026-08-12T10:00:00.000Z', 'missing-timer'),
+            agentRecord('run-completion', '2026-08-12T10:00:00.000Z', 'missing-completion'),
+            agentRecord('run-missing', '2026-08-12T10:00:00.000Z', 'missing-attribution', { details: { agent: null, type: 'agent' } }),
+            agentRecord('run-mixed-1', '2026-08-12T10:00:00.000Z', 'mixed-attribution'),
+            agentRecord('run-mixed-2', '2026-08-12T10:00:00.000Z', 'mixed-attribution', { details: { agent: 'codex', model: 'gpt-4', type: 'agent' } }),
+            agentRecord('run-nested', '2026-08-12T10:00:00.000Z', 'nested', { conversationIds: ['nested', 'child'] }),
+        ]
+        const service = new ProjectStatsService()
+        await openService(service, storage({'design/activity/card__card-1.json': activityContent({ conversations, records })}))
+        service.setControls({ dataset: 'agentPerformance' })
+
+        expect(service.getSnapshot()).toMatchObject({
+            excludedSampleCount: 7,
+            exclusionCounts: {
+                missingAttribution: 1,
+                missingCompletion: 1,
+                missingDuration: 1,
+                mixedAttribution: 1,
+                nestedConversations: 1,
+                notTerminal: 2,
+            },
+        })
+    })
+
+    it('keeps account limits and windows separate and preserves negative corrections', async () => {
+        const accountRows = [
+            '2026-08-12T09:00:00.000Z,account_usage,codex,weekly,window-a,10080,2026-08-17T00:00:00.000Z,,,,,,50,-2',
+            '2026-08-12T10:00:00.000Z,account_usage,codex,weekly,window-b,10080,2026-08-24T00:00:00.000Z,,,,,,60,9',
+        ]
+        const service = new ProjectStatsService()
+        await openService(service, storage({ 'design/usage_metrics.csv': [metricsHeader, ...accountRows].join('\r\n') }))
+        service.setControls({ dataset: 'usageComparison' })
+
+        expect(service.getSnapshot().options.accountSeries).toHaveLength(2)
+        expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole === 'accountUsage')).toMatchObject([{
+            seriesLabel: 'codex / weekly / window-a',
+            value: -2,
+        }])
+    })
+
+    it('aligns usage comparison bucket domains and clears removed account selections after reload', async () => {
+        const accountRow = '2026-08-14T09:00:00.000Z,account_usage,codex,weekly,window-a,10080,2026-08-17T00:00:00.000Z,,,,,,50,2'
+        const files: Record<string, string> = {
+            'design/activity/card__card-1.json': activityContent({ records: [actionRecord('run-1', '2026-08-12T10:00:00.000Z')] }),
+            'design/usage_metrics.csv': [metricsHeader, accountRow].join('\r\n'),
+        }
+        const service = new ProjectStatsService()
+        await openService(service, storage(files))
+        service.setControls({ dataset: 'usageComparison' })
+
+        const domains = ['activity', 'projectTokens', 'accountUsage'].map((chartRole) => (
+            service.getSnapshot().rows.filter((row) => row.chartRole === chartRole).map(({ utcBucketStart }) => utcBucketStart)
+        ))
+        expect(domains[0]).toEqual(['2026-08-12T00:00:00.000Z', '2026-08-13T00:00:00.000Z', '2026-08-14T00:00:00.000Z'])
+        expect(domains[1]).toEqual(domains[0])
+        expect(domains[2]).toEqual(domains[0])
+        expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole === 'accountUsage')).toMatchObject([
+            { available: false, value: 0 },
+            { available: false, value: 0 },
+            { available: true, value: 2 },
+        ])
+
+        files['design/usage_metrics.csv'] = metricsHeader
+        service.close()
+        await service.open(cards)
+        expect(service.getSnapshot().controls).toMatchObject({ usageLimitId: null, usageProvider: null, usageWindowId: null })
+    })
+
+    it('keeps unavailable comparison values numeric zero and marks them unavailable', async () => {
+        const service = new ProjectStatsService()
+        await openService(service, storage({'design/activity/card__card-1.json': activityContent({records: [actionRecord('run-1', '2026-08-12T10:00:00.000Z')]})}))
+        service.setControls({ dataset: 'usageComparison' })
+
+        expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole !== 'activity')).toMatchObject([
+            { available: false, chartRole: 'projectTokens', value: 0 },
+            { available: false, chartRole: 'accountUsage', value: 0 },
+        ])
+    })
+
+    it('uses visible card ID while retaining full title and path context', async () => {
+        const service = new ProjectStatsService()
+        await openService(service, storage({'design/activity/card__card-1.json': activityContent({ conversations: [conversation()] })}))
+        service.setControls({ dataset: 'totals', totalsGrouping: 'card', totalsMetric: 'tokens' })
+
+        expect(service.getSnapshot().rows).toMatchObject([{
+            accessibleLabel: expect.stringContaining('F_1: First; design/active/F_1.md'),
+            displayLabel: 'F_1',
+            identity: 'card-1',
+        }])
     })
 })

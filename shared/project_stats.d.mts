@@ -11,12 +11,18 @@ export interface StatsActionFact {
 export interface StatsConversationFact {
     actionId: string | null
     actionLabel: string | null
+    agent: string | null
     cardInternalId: string | null
     cardPath: string | null
     completedAt: string | null
     elapsedMs: number | null
+    hasMixedAttribution: boolean
+    hasNestedAgentConversations: boolean
     identity: string
+    isRootConversation: boolean
+    model: string | null
     status: 'cancelled' | 'completed' | 'failed' | 'running' | 'waitingForInput'
+    toolCallCount: number
     totalTokens: number
 }
 
@@ -40,7 +46,7 @@ export interface ActivityStatsCalculationResult {
     warnings: string[]
 }
 
-export const RELEASE_STATS_VERSION: 1
+export const RELEASE_STATS_VERSION: 2
 export function projectStatsFilePath(projectFolder: string): string
 export function calculateActivityStats(activityFiles: CardActivityFile[]): ReleaseStats
 export function calculateActivityStatsFromSources(sources: ActivityStatsSource[]): ActivityStatsCalculationResult

@@ -2,11 +2,24 @@ import type { ProjectReference, StorageService } from '../../data/data_types'
 import { register } from '../service_injector'
 
 export interface UsageMetricsTokenRow {
+    provider: string
     recordedAt: string
     totalTokens: number
 }
 
+export interface UsageMetricsAccountRow {
+    limitId: string
+    provider: string
+    recordedAt: string
+    resetsAt: string
+    usedPercent: number
+    usedPercentDelta: number | null
+    windowDurationMinutes: number
+    windowId: string
+}
+
 export interface ProjectUsageMetricsSnapshot {
+    accountRows: UsageMetricsAccountRow[]
     available: boolean
     tokenRows: UsageMetricsTokenRow[]
     warnings: string[]
@@ -31,7 +44,7 @@ const METRICS_COLUMNS = [
     'used_percent_delta',
 ]
 const TOKEN_COLUMNS = ['input_tokens', 'cached_input_tokens', 'output_tokens', 'reasoning_tokens', 'total_tokens']
-const EMPTY_SNAPSHOT: ProjectUsageMetricsSnapshot = { available: false, tokenRows: [], warnings: [] }
+const EMPTY_SNAPSHOT: ProjectUsageMetricsSnapshot = { accountRows: [], available: false, tokenRows: [], warnings: [] }
 
 function normalizePath(path: string) {
     return path.replace(/\\/gu, '/').replace(/^\/+|\/+$/gu, '')
@@ -140,6 +153,7 @@ export function parseUsageMetrics(content: string): Omit<ProjectUsageMetricsSnap
     }
 
     const tokenRows: UsageMetricsTokenRow[] = []
+    const accountRows: UsageMetricsAccountRow[] = []
     const warnings: string[] = []
     for (const [index, fields] of records.slice(1).entries()) {
         const rowNumber = index + 2
@@ -148,7 +162,20 @@ export function parseUsageMetrics(content: string): Omit<ProjectUsageMetricsSnap
             const record = fields.length === METRICS_COLUMNS.length
                 ? Object.fromEntries(METRICS_COLUMNS.map((column, columnIndex) => [column, fields[columnIndex]]))
                 : null
-            if (!record || !isValidAccountUsageRecord(record)) warnings.push(`Malformed account_usage row ${rowNumber} was skipped.`)
+            if (!record || !isValidAccountUsageRecord(record)) {
+                warnings.push(`Malformed account_usage row ${rowNumber} was skipped.`)
+                continue
+            }
+            accountRows.push({
+                limitId: record.limit_id,
+                provider: record.provider,
+                recordedAt: record.recorded_at,
+                resetsAt: record.resets_at,
+                usedPercent: Number(record.used_percent),
+                usedPercentDelta: record.used_percent_delta === '' ? null : Number(record.used_percent_delta),
+                windowDurationMinutes: Number(record.window_duration_minutes),
+                windowId: record.window_id,
+            })
             continue
         }
         if (fields.length !== METRICS_COLUMNS.length) throw new Error(`Invalid usage metrics column count at row ${rowNumber}`)
@@ -164,10 +191,10 @@ export function parseUsageMetrics(content: string): Omit<ProjectUsageMetricsSnap
         if (inputTokens + cachedInputTokens + outputTokens + reasoningTokens !== totalTokens) {
             throw new Error(`Inconsistent usage metrics total_tokens at row ${rowNumber}`)
         }
-        tokenRows.push({ recordedAt: record.recorded_at, totalTokens })
+        tokenRows.push({ provider: record.provider, recordedAt: record.recorded_at, totalTokens })
     }
 
-    return { tokenRows, warnings }
+    return { accountRows, tokenRows, warnings }
 }
 
 /** Owns repository usage-metrics discovery, parsing, and warning state. */

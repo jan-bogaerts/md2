@@ -17,7 +17,12 @@ function activity(): CardActivityFile {
             cardInternalId: 'card-1',
             cardPath: 'design/F_1.md',
             completedAt: '2026-08-12T10:00:00.000Z',
-            entries: [{ content: 'large transcript', id: 'message-1', kind: 'message', role: 'assistant', timestamp: '2026-08-12T10:00:00.000Z' }],
+            entries: [
+                { content: 'large transcript', id: 'message-1', kind: 'message', role: 'assistant', timestamp: '2026-08-12T10:00:00.000Z' },
+                { content: 'run', id: 'event-1', kind: 'event', providerItemId: 'tool-1', timestamp: '2026-08-12T09:30:00.000Z', type: 'commandExecution' },
+                { content: 'done', id: 'event-2', kind: 'event', providerItemId: 'tool-1', timestamp: '2026-08-12T09:31:00.000Z', type: 'commandExecution' },
+                { content: 'result', id: 'event-3', kind: 'event', timestamp: '2026-08-12T09:32:00.000Z', type: 'tool.result' },
+            ],
             hasExplicitTitle: true,
             id: 'conversation-1',
             providerSessions: [],
@@ -33,11 +38,12 @@ function activity(): CardActivityFile {
         records: [{
             commits: [],
             completedAt: '2026-08-12T10:00:00.000Z',
-            conversationIds: [],
-            details: { command: 'review', output: '', type: 'command' },
+            conversationIds: ['conversation-1'],
+            details: { agent: 'codex', model: 'gpt-5', type: 'agent' },
             origin,
             rootActionId: 'review',
             rootActionLabel: 'Review',
+            rootConversationId: 'conversation-1',
             runId: 'run-1',
             startedAt: '2026-08-12T09:00:00.000Z',
             status: 'completed',
@@ -52,8 +58,12 @@ describe('project stats schema', () => {
 
         expect(facts.actions).toEqual([expect.objectContaining({ identity: 'card:card-1:run-1' })])
         expect(facts.conversations).toEqual([expect.objectContaining({
+            agent: 'codex',
             elapsedMs: 1_500,
             identity: 'card:card-1:conversation-1',
+            isRootConversation: true,
+            model: 'gpt-5',
+            toolCallCount: 1,
             totalTokens: 10,
         })])
         expect(facts.conversations[0]).not.toHaveProperty('entries')
@@ -66,7 +76,7 @@ describe('project stats schema', () => {
                 broken: { actions: [{ identity: 'missing-fields' }], conversations: [] },
                 v1: valid,
             },
-            version: 1,
+            version: 2,
         })
 
         const parsed = parseProjectStatsFile(content, 'design/project_stats.json')
@@ -85,8 +95,8 @@ describe('project stats schema', () => {
     })
 
     it('rejects malformed root schema', () => {
-        expect(() => parseProjectStatsFile('{"releases":{},"version":2}', 'design/project_stats.json'))
-            .toThrow('unsupported version 2')
+        expect(() => parseProjectStatsFile('{"releases":{},"version":3}', 'design/project_stats.json'))
+            .toThrow('unsupported version 3')
         expect(() => parseProjectStatsFile('{broken', 'design/project_stats.json')).toThrow()
     })
 })

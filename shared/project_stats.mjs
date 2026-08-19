@@ -1,9 +1,18 @@
 import { activityOriginFromPath } from './activity_paths.mjs'
 import { parseActivityFileForMigration } from './card_activity.mjs'
 
-const RELEASE_STATS_VERSION = 1
+const RELEASE_STATS_VERSION = 2
 const CONVERSATION_STATUSES = new Set(['cancelled', 'completed', 'failed', 'running', 'waitingForInput'])
 const COMPLETED_ACTION_STATUSES = new Set(['completed', 'okButNotAfter'])
+const CODEX_TOOL_EVENT_TYPES = new Set([
+    'collabAgentToolCall',
+    'commandExecution',
+    'dynamicToolCall',
+    'fileChange',
+    'imageView',
+    'mcpToolCall',
+    'webSearch',
+])
 
 function requiredObject(value, fieldName) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`Malformed project stats: invalid ${fieldName}`)
@@ -53,6 +62,12 @@ function nonNegativeNumber(value, fieldName) {
     return value
 }
 
+function requiredBoolean(value, fieldName) {
+    if (typeof value !== 'boolean') throw new Error(`Malformed project stats: invalid ${fieldName}`)
+
+    return value
+}
+
 function parseAction(value, fieldName) {
     const action = requiredObject(value, fieldName)
 
@@ -73,12 +88,21 @@ function parseConversation(value, fieldName) {
     return {
         actionId: nullableString(conversation.actionId, `${fieldName}.actionId`),
         actionLabel: nullableString(conversation.actionLabel, `${fieldName}.actionLabel`),
+        agent: nullableString(conversation.agent, `${fieldName}.agent`),
         cardInternalId: nullableString(conversation.cardInternalId, `${fieldName}.cardInternalId`),
         cardPath: nullableString(conversation.cardPath, `${fieldName}.cardPath`),
         completedAt: nullableTimestamp(conversation.completedAt, `${fieldName}.completedAt`),
         elapsedMs: nullableNonNegativeNumber(conversation.elapsedMs, `${fieldName}.elapsedMs`),
+        hasMixedAttribution: requiredBoolean(conversation.hasMixedAttribution, `${fieldName}.hasMixedAttribution`),
+        hasNestedAgentConversations: requiredBoolean(
+            conversation.hasNestedAgentConversations,
+            `${fieldName}.hasNestedAgentConversations`,
+        ),
         identity: requiredString(conversation.identity, `${fieldName}.identity`),
+        isRootConversation: requiredBoolean(conversation.isRootConversation, `${fieldName}.isRootConversation`),
+        model: nullableString(conversation.model, `${fieldName}.model`),
         status,
+        toolCallCount: nonNegativeNumber(conversation.toolCallCount, `${fieldName}.toolCallCount`),
         totalTokens: nonNegativeNumber(conversation.totalTokens, `${fieldName}.totalTokens`),
     }
 }
@@ -101,6 +125,42 @@ function requireUniqueIdentities(entries, fieldName) {
 
 function originIdentity(origin) {
     return origin.kind === 'card' ? `card:${origin.cardInternalId}` : 'project'
+}
+
+function isToolCallEvent(entry) {
+    if (entry.kind !== 'event') return false
+    if (entry.type.startsWith('tool.')) return entry.type !== 'tool.result'
+
+    return CODEX_TOOL_EVENT_TYPES.has(entry.type)
+}
+
+function toolCallCount(entries) {
+    return new Set(entries.filter(isToolCallEvent).map((entry) => entry.providerItemId ?? entry.id)).size
+}
+
+function conversationAttribution(records, conversationId) {
+    const rootRecords = records.filter((record) => (
+        record.type !== 'system'
+        && record.details.type === 'agent'
+        && record.rootConversationId === conversationId
+    ))
+    const pairs = new Set(rootRecords.flatMap(({ details }) => (
+        details.agent && details.model ? [`${details.agent}\u0000${details.model}`] : []
+    )))
+    const hasMissingAttribution = rootRecords.some(({ details }) => !details.agent || !details.model)
+    const hasMixedAttribution = pairs.size > 1
+    const validPair = !hasMissingAttribution && !hasMixedAttribution ? [...pairs][0] : null
+    const [agent, model] = validPair ? validPair.split('\u0000') : [null, null]
+
+    return {
+        agent,
+        hasMixedAttribution,
+        hasNestedAgentConversations: rootRecords.some(({ conversationIds, rootConversationId }) => (
+            conversationIds.some((referencedId) => referencedId !== rootConversationId)
+        )),
+        isRootConversation: rootRecords.length > 0,
+        model,
+    }
 }
 
 export function projectStatsFilePath(projectFolder) {
@@ -133,17 +193,24 @@ export function calculateActivityStats(activityFiles) {
         for (const conversation of activity.conversations) {
             const identity = `${originIdentity(activity.origin)}:${conversation.id}`
             if (conversations.has(identity)) continue
+            const attribution = conversationAttribution(activity.records, conversation.id)
             const cardInternalId = conversation.cardInternalId
                 ?? (activity.origin.kind === 'card' ? activity.origin.cardInternalId : null)
             conversations.set(identity, {
                 actionId: conversation.actionId ?? null,
                 actionLabel: conversation.actionId ? labels.get(conversation.actionId) ?? conversation.title : null,
+                agent: attribution.agent,
                 cardInternalId,
                 cardPath: conversation.cardPath,
                 completedAt: conversation.completedAt,
                 elapsedMs: conversation.timer?.elapsedMs ?? null,
+                hasMixedAttribution: attribution.hasMixedAttribution,
+                hasNestedAgentConversations: attribution.hasNestedAgentConversations,
                 identity,
+                isRootConversation: attribution.isRootConversation,
+                model: attribution.model,
                 status: conversation.status,
+                toolCallCount: toolCallCount(conversation.entries),
                 totalTokens: conversation.usage?.totalTokens ?? 0,
             })
         }

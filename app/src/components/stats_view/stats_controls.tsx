@@ -1,59 +1,129 @@
-import { Box, Button, MenuItem, Select, Stack, TextField, Typography } from '@mui/material'
-import type { ChangeEvent } from 'react'
-import type { SelectChangeEvent } from '@mui/material'
-import { dialogService } from '../../services/dialog_service'
-import { projectStatsService, type ProjectStatsSnapshot } from '../../services/stats/project_stats_service'
-import { downloadStatsCsv } from './stats_csv'
+import { Box, Button, MenuItem, Select, Stack, TextField, Typography } from '@mui/material';
+import type { SelectChangeEvent } from '@mui/material';
+import type { ChangeEvent } from 'react';
+import { dialogService } from '../../services/dialog_service';
+import {
+    projectStatsService,
+    type ProjectStatsSnapshot,
+    type StatsChartRow,
+    type StatsControls as StatsControlValues,
+    type StatsDataset,
+} from '../../services/stats/project_stats_service';
+import { downloadStatsCsv } from './stats_csv';
 
 interface StatsControlsProps {
-    snapshot: ProjectStatsSnapshot
+    snapshot: ProjectStatsSnapshot;
 }
 
 function localDateTimeValue(isoTimestamp: string | null) {
-    if (!isoTimestamp) return ''
-    const date = new Date(isoTimestamp)
-    const localMilliseconds = date.getTime() - date.getTimezoneOffset() * 60_000
+    if (!isoTimestamp) return '';
+    const date = new Date(isoTimestamp);
+    const localMilliseconds = date.getTime() - date.getTimezoneOffset() * 60_000;
 
-    return new Date(localMilliseconds).toISOString().slice(0, 16)
+    return new Date(localMilliseconds).toISOString().slice(0, 16);
 }
 
 function isoTimestampFromInput(value: string) {
-    return value ? new Date(value).toISOString() : null
+    return value ? new Date(value).toISOString() : null;
 }
 
-function setStatsControls(changes: Parameters<typeof projectStatsService.setControls>[0]) {
+function setStatsControls(changes: Partial<StatsControlValues>) {
     try {
-        projectStatsService.setControls(changes)
+        projectStatsService.setControls(changes);
     } catch (error) {
-        dialogService.error(error, { fallbackMessage: 'Stats filters could not be updated' })
+        dialogService.error(error, { fallbackMessage: 'Stats filters could not be updated' });
     }
 }
 
-/** Service-backed chart and range controls. */
+function selectedValues(value: string | string[]) {
+    return typeof value === 'string' ? value.split(',').filter((entry) => entry.length > 0) : value;
+}
+
+function multipleValueLabel(value: string[]) {
+    return value.length === 0 ? 'All' : value.join(', ');
+}
+
+function handleDatasetChange(event: SelectChangeEvent) {
+    setStatsControls({ dataset: event.target.value as StatsControlValues['dataset'] });
+}
+
+function handleActivityMetricChange(event: SelectChangeEvent) {
+    setStatsControls({ activityMetric: event.target.value as StatsControlValues['activityMetric'] });
+}
+
+function handleActivityGranularityChange(event: SelectChangeEvent) {
+    setStatsControls({ activityGranularity: event.target.value as StatsControlValues['activityGranularity'] });
+}
+
+function handlePerformanceMetricChange(event: SelectChangeEvent) {
+    setStatsControls({ performanceMetric: event.target.value as StatsControlValues['performanceMetric'] });
+}
+
+function handlePerformanceGroupingChange(event: SelectChangeEvent) {
+    setStatsControls({ performanceGrouping: event.target.value as StatsControlValues['performanceGrouping'] });
+}
+
+function handlePerformanceGranularityChange(event: SelectChangeEvent) {
+    setStatsControls({ performanceGranularity: event.target.value as StatsControlValues['performanceGranularity'] });
+}
+
+function handleActionFilterChange(event: SelectChangeEvent<string[]>) {
+    setStatsControls({ performanceActionIds: selectedValues(event.target.value) });
+}
+
+function handleAgentFilterChange(event: SelectChangeEvent<string[]>) {
+    setStatsControls({ performanceAgentIds: selectedValues(event.target.value) });
+}
+
+function handleModelFilterChange(event: SelectChangeEvent<string[]>) {
+    setStatsControls({ performanceModelIds: selectedValues(event.target.value) });
+}
+
+function handleUsageGranularityChange(event: SelectChangeEvent) {
+    setStatsControls({ usageGranularity: event.target.value as StatsControlValues['usageGranularity'] });
+}
+
+function handleProviderChange(event: SelectChangeEvent) {
+    setStatsControls({ usageProvider: event.target.value || null });
+}
+
+function handleLimitChange(event: SelectChangeEvent) {
+    setStatsControls({ usageLimitId: event.target.value || null });
+}
+
+function handleWindowChange(event: SelectChangeEvent) {
+    setStatsControls({ usageWindowId: event.target.value || null });
+}
+
+function handleTotalsGroupingChange(event: SelectChangeEvent) {
+    setStatsControls({ totalsGrouping: event.target.value as StatsControlValues['totalsGrouping'] });
+}
+
+function handleTotalsMetricChange(event: SelectChangeEvent) {
+    setStatsControls({ totalsMetric: event.target.value as StatsControlValues['totalsMetric'] });
+}
+
+function handleStartChange(event: ChangeEvent<HTMLInputElement>) {
+    setStatsControls({ startUtc: isoTimestampFromInput(event.target.value) });
+}
+
+function handleEndChange(event: ChangeEvent<HTMLInputElement>) {
+    setStatsControls({ endUtc: isoTimestampFromInput(event.target.value) });
+}
+
+function exportStats(dataset: StatsDataset, rows: StatsChartRow[]) {
+    downloadStatsCsv(dataset, rows);
+}
+
+/** Service-backed dataset, entity, metric, and date controls. */
 export function StatsControls({ snapshot }: StatsControlsProps) {
-    const { controls, rows } = snapshot
-    const handleDatasetChange = (event: SelectChangeEvent) => {
-        setStatsControls({ dataset: event.target.value as typeof controls.dataset })
-    }
-    const handleActivityMetricChange = (event: SelectChangeEvent) => {
-        setStatsControls({ activityMetric: event.target.value as typeof controls.activityMetric })
-    }
-    const handleGranularityChange = (event: SelectChangeEvent) => {
-        setStatsControls({ granularity: event.target.value as typeof controls.granularity })
-    }
-    const handleTotalsGroupingChange = (event: SelectChangeEvent) => {
-        setStatsControls({ totalsGrouping: event.target.value as typeof controls.totalsGrouping })
-    }
-    const handleTotalsMetricChange = (event: SelectChangeEvent) => {
-        setStatsControls({ totalsMetric: event.target.value as typeof controls.totalsMetric })
-    }
-    const handleStartChange = (event: ChangeEvent<HTMLInputElement>) => {
-        setStatsControls({ startUtc: isoTimestampFromInput(event.target.value) })
-    }
-    const handleEndChange = (event: ChangeEvent<HTMLInputElement>) => {
-        setStatsControls({ endUtc: isoTimestampFromInput(event.target.value) })
-    }
-    const handleExport = () => downloadStatsCsv(controls.dataset, rows)
+    const { controls, options, rows } = snapshot;
+    const providerSeries = options.accountSeries.filter(({ provider }) => provider === controls.usageProvider);
+    const limits = [...new Set(providerSeries.map(({ limitId }) => limitId))];
+    const windows = options.accountSeries.filter(({ limitId, provider }) => (
+        provider === controls.usageProvider && limitId === controls.usageLimitId
+    ));
+    const handleExport = exportStats.bind(null, controls.dataset, rows);
 
     return (
         <Box sx={{ alignItems: 'flex-end', display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
@@ -61,6 +131,8 @@ export function StatsControls({ snapshot }: StatsControlsProps) {
                 <Typography color="text.secondary" sx={{ fontWeight: 600 }} variant="caption">Dataset</Typography>
                 <Select aria-label="Dataset" onChange={handleDatasetChange} size="small" value={controls.dataset}>
                     <MenuItem value="activityOverTime">Activity over time</MenuItem>
+                    <MenuItem value="agentPerformance">Agent/model performance</MenuItem>
+                    <MenuItem value="usageComparison">Project usage versus account usage</MenuItem>
                     <MenuItem value="totals">Totals by Card/Action</MenuItem>
                 </Select>
             </Stack>
@@ -76,14 +148,102 @@ export function StatsControls({ snapshot }: StatsControlsProps) {
                     </Stack>
                     <Stack spacing={0.75}>
                         <Typography color="text.secondary" sx={{ fontWeight: 600 }} variant="caption">Granularity</Typography>
-                        <Select aria-label="Granularity" onChange={handleGranularityChange} size="small" value={controls.granularity}>
+                        <Select aria-label="Activity granularity" onChange={handleActivityGranularityChange} size="small" value={controls.activityGranularity}>
                             <MenuItem value="day">Day</MenuItem>
                             <MenuItem value="week">Week</MenuItem>
                             <MenuItem value="month">Month</MenuItem>
                         </Select>
                     </Stack>
                 </>
-            ) : (
+            ) : null}
+            {controls.dataset === 'agentPerformance' ? (
+                <>
+                    <Stack spacing={0.75}>
+                        <Typography color="text.secondary" sx={{ fontWeight: 600 }} variant="caption">Metric</Typography>
+                        <Select aria-label="Performance metric" onChange={handlePerformanceMetricChange} size="small" value={controls.performanceMetric}>
+                            <MenuItem value="duration">Measured duration</MenuItem>
+                            <MenuItem value="tokens">Tokens</MenuItem>
+                            <MenuItem value="toolCalls">Tool calls</MenuItem>
+                        </Select>
+                    </Stack>
+                    <Stack spacing={0.75}>
+                        <Typography color="text.secondary" sx={{ fontWeight: 600 }} variant="caption">Grouping</Typography>
+                        <Select aria-label="Performance grouping" onChange={handlePerformanceGroupingChange} size="small" value={controls.performanceGrouping}>
+                            <MenuItem value="agent">Agent</MenuItem>
+                            <MenuItem value="model">Model</MenuItem>
+                        </Select>
+                    </Stack>
+                    <Stack spacing={0.75}>
+                        <Typography color="text.secondary" sx={{ fontWeight: 600 }} variant="caption">Granularity</Typography>
+                        <Select aria-label="Performance granularity" onChange={handlePerformanceGranularityChange} size="small" value={controls.performanceGranularity}>
+                            <MenuItem value="day">Day</MenuItem>
+                            <MenuItem value="week">Week</MenuItem>
+                        </Select>
+                    </Stack>
+                    <Stack spacing={0.75}>
+                        <Typography color="text.secondary" sx={{ fontWeight: 600 }} variant="caption">Actions</Typography>
+                        <Select<string[]>
+                            aria-label="Action filter"
+                            multiple
+                            onChange={handleActionFilterChange}
+                            renderValue={multipleValueLabel}
+                            size="small"
+                            value={controls.performanceActionIds}
+                        >
+                            {options.actions.map(({ identity, label }) => <MenuItem key={identity} value={identity}>{label}</MenuItem>)}
+                        </Select>
+                    </Stack>
+                    {controls.performanceGrouping === 'agent' ? (
+                        <Stack spacing={0.75}>
+                            <Typography color="text.secondary" sx={{ fontWeight: 600 }} variant="caption">Agents</Typography>
+                            <Select<string[]> aria-label="Agent filter" multiple onChange={handleAgentFilterChange} renderValue={multipleValueLabel} size="small" value={controls.performanceAgentIds}>
+                                {options.agents.map(({ identity, label }) => <MenuItem key={identity} value={identity}>{label}</MenuItem>)}
+                            </Select>
+                        </Stack>
+                    ) : (
+                        <Stack spacing={0.75}>
+                            <Typography color="text.secondary" sx={{ fontWeight: 600 }} variant="caption">Models</Typography>
+                            <Select<string[]> aria-label="Model filter" multiple onChange={handleModelFilterChange} renderValue={multipleValueLabel} size="small" value={controls.performanceModelIds}>
+                                {options.models.map(({ identity, label }) => <MenuItem key={identity} value={identity}>{label}</MenuItem>)}
+                            </Select>
+                        </Stack>
+                    )}
+                </>
+            ) : null}
+            {controls.dataset === 'usageComparison' ? (
+                <>
+                    <Stack spacing={0.75}>
+                        <Typography color="text.secondary" sx={{ fontWeight: 600 }} variant="caption">Granularity</Typography>
+                        <Select aria-label="Usage granularity" onChange={handleUsageGranularityChange} size="small" value={controls.usageGranularity}>
+                            <MenuItem value="day">Day</MenuItem>
+                            <MenuItem value="week">Week</MenuItem>
+                        </Select>
+                    </Stack>
+                    <Stack spacing={0.75}>
+                        <Typography color="text.secondary" sx={{ fontWeight: 600 }} variant="caption">Provider</Typography>
+                        <Select aria-label="Account provider" onChange={handleProviderChange} size="small" value={controls.usageProvider ?? ''}>
+                            {[...new Set(options.accountSeries.map(({ provider }) => provider))].map((provider) => (
+                                <MenuItem key={provider} value={provider}>{provider}</MenuItem>
+                            ))}
+                        </Select>
+                    </Stack>
+                    <Stack spacing={0.75}>
+                        <Typography color="text.secondary" sx={{ fontWeight: 600 }} variant="caption">Limit</Typography>
+                        <Select aria-label="Account limit" onChange={handleLimitChange} size="small" value={controls.usageLimitId ?? ''}>
+                            {limits.map((limit) => <MenuItem key={limit} value={limit}>{limit}</MenuItem>)}
+                        </Select>
+                    </Stack>
+                    <Stack spacing={0.75}>
+                        <Typography color="text.secondary" sx={{ fontWeight: 600 }} variant="caption">Window</Typography>
+                        <Select aria-label="Account window" onChange={handleWindowChange} size="small" value={controls.usageWindowId ?? ''}>
+                            {windows.map(({ windowDurationMinutes, windowId }) => (
+                                <MenuItem key={windowId} value={windowId}>{windowId} ({windowDurationMinutes} min)</MenuItem>
+                            ))}
+                        </Select>
+                    </Stack>
+                </>
+            ) : null}
+            {controls.dataset === 'totals' ? (
                 <>
                     <Stack spacing={0.75}>
                         <Typography color="text.secondary" sx={{ fontWeight: 600 }} variant="caption">Grouping</Typography>
@@ -100,28 +260,16 @@ export function StatsControls({ snapshot }: StatsControlsProps) {
                         </Select>
                     </Stack>
                 </>
-            )}
+            ) : null}
             <Stack spacing={0.75}>
                 <Typography color="text.secondary" sx={{ fontWeight: 600 }} variant="caption">From (local time)</Typography>
-                <TextField
-                    onChange={handleStartChange}
-                    size="small"
-                    slotProps={{ htmlInput: { 'aria-label': 'Range start local time' } }}
-                    type="datetime-local"
-                    value={localDateTimeValue(controls.startUtc)}
-                />
+                <TextField onChange={handleStartChange} size="small" slotProps={{ htmlInput: { 'aria-label': 'Range start local time' } }} type="datetime-local" value={localDateTimeValue(controls.startUtc)} />
             </Stack>
             <Stack spacing={0.75}>
                 <Typography color="text.secondary" sx={{ fontWeight: 600 }} variant="caption">To (local time)</Typography>
-                <TextField
-                    onChange={handleEndChange}
-                    size="small"
-                    slotProps={{ htmlInput: { 'aria-label': 'Range end local time' } }}
-                    type="datetime-local"
-                    value={localDateTimeValue(controls.endUtc)}
-                />
+                <TextField onChange={handleEndChange} size="small" slotProps={{ htmlInput: { 'aria-label': 'Range end local time' } }} type="datetime-local" value={localDateTimeValue(controls.endUtc)} />
             </Stack>
             <Button disabled={rows.length === 0} onClick={handleExport} variant="outlined">Export CSV</Button>
         </Box>
-    )
+    );
 }

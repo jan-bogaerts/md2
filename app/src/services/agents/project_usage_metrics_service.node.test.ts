@@ -13,9 +13,28 @@ describe('project usage metrics parsing', () => {
         const tokenRow = '2026-08-12T10:00:00.000Z,token_usage,codex,,,,,3,2,4,1,10,,'
 
         expect(parseUsageMetrics(`${metricsHeader}\r\n${malformedAccountRow}\r\n${tokenRow}\r\n`)).toEqual({
-            tokenRows: [{ recordedAt: '2026-08-12T10:00:00.000Z', totalTokens: 10 }],
+            accountRows: [],
+            tokenRows: [{ provider: 'codex', recordedAt: '2026-08-12T10:00:00.000Z', totalTokens: 10 }],
             warnings: ['Malformed account_usage row 2 was skipped.'],
         })
+    })
+
+    it('retains separated account observations and negative corrections', () => {
+        const first = '2026-08-12T09:00:00.000Z,account_usage,codex,weekly,window-a,10080,2026-08-17T00:00:00.000Z,,,,,,50,'
+        const correction = '2026-08-12T10:00:00.000Z,account_usage,codex,weekly,window-b,10080,2026-08-24T00:00:00.000Z,,,,,,48,-2.5'
+
+        expect(parseUsageMetrics(`${metricsHeader}\r\n${first}\r\n${correction}\r\n`).accountRows).toEqual([
+            {
+                limitId: 'weekly', provider: 'codex', recordedAt: '2026-08-12T09:00:00.000Z',
+                resetsAt: '2026-08-17T00:00:00.000Z', usedPercent: 50, usedPercentDelta: null,
+                windowDurationMinutes: 10080, windowId: 'window-a',
+            },
+            {
+                limitId: 'weekly', provider: 'codex', recordedAt: '2026-08-12T10:00:00.000Z',
+                resetsAt: '2026-08-24T00:00:00.000Z', usedPercent: 48, usedPercentDelta: -2.5,
+                windowDurationMinutes: 10080, windowId: 'window-b',
+            },
+        ])
     })
 
     it('rejects malformed token totals because chart data would be incorrect', () => {
