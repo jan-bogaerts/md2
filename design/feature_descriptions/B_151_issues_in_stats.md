@@ -26,4 +26,4 @@ policy:
     * has a light blue or gray bar for every day. what is the purpose of that&#x20;
     * we have filters: provider, limit that only appears to be applied to this chart, but they make no sense. the point is to view claude and codex side by side on the same day
     * missing day labels on the x axis like the other charts have
-    * value is not exactly what
+  * we are missing a chart that compares numbers. We want&#x20;
