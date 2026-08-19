@@ -54,6 +54,7 @@ describe('StatsContent', () => {
         expect(screen.getByRole('heading', { name: 'Project stats' })).toBeInTheDocument()
         expect(screen.getByRole('combobox', { name: 'Dataset' })).toHaveTextContent('Activity over time')
         expect(screen.getByRole('listitem')).toHaveAccessibleName(/UTC 2026-08-12T00:00:00.000Z.*10 tokens/u)
+        expect(screen.getByTestId('stats-chart-panel')).toHaveStyle({ flex: '0 0 auto' })
 
         fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Activity granularity' }))
         fireEvent.click(screen.getByRole('option', { name: 'Month' }))

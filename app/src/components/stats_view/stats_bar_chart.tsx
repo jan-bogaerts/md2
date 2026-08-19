@@ -4,9 +4,6 @@ import type { StatsChartRow } from '../../services/stats/project_stats_service';
 const BAR_SLOT_WIDTH = 72;
 const BUCKET_WIDTH = 112;
 const CHART_HEIGHT = 260;
-const BUCKET_LABEL_HEIGHT = 20;
-const CHART_TOP_PADDING = 24;
-const BUCKET_HEIGHT = CHART_TOP_PADDING + CHART_HEIGHT + BUCKET_LABEL_HEIGHT;
 const VALUE_LABEL_HEIGHT = 20;
 
 export type StatsBarMode = 'grouped' | 'groupedStacked' | 'single' | 'stacked';
@@ -133,7 +130,7 @@ export function StatsBarChart({ ariaLabel = 'Stats bar chart', mode = 'single', 
                 sx={{
                     alignItems: 'stretch',
                     display: 'flex',
-                    height: BUCKET_HEIGHT,
+                    minHeight: CHART_HEIGHT + 72,
                     minWidth: buckets.length * BUCKET_WIDTH,
                     p: 2,
                 }}
@@ -145,34 +142,17 @@ export function StatsBarChart({ ariaLabel = 'Stats bar chart', mode = 'single', 
                         <Box
                             data-testid="stats-bucket"
                             key={bucket.identity}
-                            sx={{ display: 'flex', flex: `0 0 ${BUCKET_WIDTH}px`, flexDirection: 'column', height: BUCKET_HEIGHT, width: BUCKET_WIDTH }}
+                            sx={{ display: 'flex', flex: `0 0 ${BUCKET_WIDTH}px`, flexDirection: 'column', width: BUCKET_WIDTH }}
                         >
-                            <Box sx={{ flex: `0 0 ${CHART_TOP_PADDING}px` }} />
-                            <Box
-                                data-testid="stats-chart-canvas"
-                                sx={{
-                                    display: 'flex',
-                                    flex: `0 0 ${CHART_HEIGHT}px`,
-                                    height: CHART_HEIGHT,
-                                    justifyContent: 'center',
-                                    minHeight: CHART_HEIGHT,
-                                    position: 'relative',
-                                }}
-                            >
+                            <Box sx={{ height: 24 }} />
+                            <Box sx={{ display: 'flex', height: CHART_HEIGHT, justifyContent: 'center', position: 'relative' }}>
                                 <Box
                                     aria-label="Zero baseline"
                                     sx={{ bgcolor: 'divider', bottom: baselineOffset, height: 1, left: 0, position: 'absolute', right: 0 }}
                                 />
                                 <Box
                                     data-testid="stats-bar-slot"
-                                    sx={{
-                                        display: 'flex',
-                                        flex: `0 0 ${BAR_SLOT_WIDTH}px`,
-                                        gap: 0.5,
-                                        height: CHART_HEIGHT,
-                                        minHeight: CHART_HEIGHT,
-                                        width: BAR_SLOT_WIDTH,
-                                    }}
+                                    sx={{ display: 'flex', gap: 0.5, height: CHART_HEIGHT, width: BAR_SLOT_WIDTH }}
                                 >
                                     {bars.map((bar) => {
                                         const total = barTotal(bar);
@@ -183,7 +163,7 @@ export function StatsBarChart({ ariaLabel = 'Stats bar chart', mode = 'single', 
                                             <Box
                                                 data-stack-identity={bar.identity}
                                                 key={bar.identity}
-                                                sx={{ flex: 1, height: CHART_HEIGHT, minHeight: CHART_HEIGHT, minWidth: 0, position: 'relative' }}
+                                                sx={{ flex: 1, height: CHART_HEIGHT, minWidth: 0, position: 'relative' }}
                                             >
                                                 {stacked && total > 0 ? (
                                                     <Typography
@@ -226,7 +206,6 @@ export function StatsBarChart({ ariaLabel = 'Stats bar chart', mode = 'single', 
                                                                         data-testid="stats-bar"
                                                                         sx={{
                                                                             bgcolor: color,
-                                                                            borderRadius: 1,
                                                                             bottom,
                                                                             height: magnitude,
                                                                             left: 0,
@@ -275,14 +254,7 @@ export function StatsBarChart({ ariaLabel = 'Stats bar chart', mode = 'single', 
                                     })}
                                 </Box>
                             </Box>
-                            <Typography
-                                align="center"
-                                color="text.secondary"
-                                noWrap
-                                sx={{ flex: `0 0 ${BUCKET_LABEL_HEIGHT}px` }}
-                                title={bucket.label}
-                                variant="caption"
-                            >
+                            <Typography align="center" color="text.secondary" noWrap title={bucket.label} variant="caption">
                                 {bucket.label}
                             </Typography>
                         </Box>

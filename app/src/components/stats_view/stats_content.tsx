@@ -54,6 +54,7 @@ export function StatsContent() {
         ? 'grouped'
         : controls.dataset === 'activityOverTime' && controls.activityMetric === 'actions' ? 'stacked' : 'single';
     const exclusions = Object.entries(snapshot.exclusionCounts) as Array<[StatsExclusionReason, number]>;
+    const fillChartPanel = tokenMetricUnavailable || snapshot.rows.length === 0 || controls.dataset === 'usageComparison';
 
     return (
         <Stack sx={{ flex: 1, minHeight: 0, p: 2.5, width: '100%' }} spacing={2}>
@@ -76,7 +77,19 @@ export function StatsContent() {
                     account-wide consumption; they do not attribute all account usage to this project.
                 </Typography>
             ) : null}
-            <Paper elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 2, display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+            <Paper
+                data-testid="stats-chart-panel"
+                elevation={0}
+                sx={{
+                    border: 1,
+                    borderColor: 'divider',
+                    borderRadius: 2,
+                    display: 'flex',
+                    flex: fillChartPanel ? 1 : '0 0 auto',
+                    minHeight: 0,
+                    overflow: 'hidden',
+                }}
+            >
                 {tokenMetricUnavailable ? (
                     <Box sx={{ alignContent: 'center', flex: 1, p: 3, textAlign: 'center' }}>
                         <Typography color="text.secondary">Token usage over time unavailable: usage_metrics.csv is missing.</Typography>
