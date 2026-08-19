@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__168acbb7-c395-4962-9e69-96ec1fb6a594.json
 policy:
 ---
 codex appears to sometimes run sub tasks which give different json objects which don't appear to be handled correctly yet.
