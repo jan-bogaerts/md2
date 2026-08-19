@@ -3,7 +3,7 @@ author:
 id: B_151
 internalId: 12faf0b2-355c-4860-b04b-6d5523a5c137
 title: issues in stats
-status: new
+status: design
 owner: 
 affects:
 agents:
