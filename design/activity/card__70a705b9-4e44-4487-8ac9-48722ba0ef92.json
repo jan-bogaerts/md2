@@ -30,12 +30,12 @@
         },
         {
           "agent": "codex",
-          "content": "Using `caveman` for terse plan. First inspect feature, architecture, affected code, call sites, tests. No edits. Then propose blocks and create one task per block; implementation waits approval.\n\nBlock 1 staged. No commands or edits. Waiting approval.\n\n",
+          "content": "Using `caveman` for terse plan. First inspect feature, architecture, affected code, call sites, tests. No edits. Then propose blocks and create one task per block; implementation waits approval.\n\nBlock 1 staged. No commands or edits. Waiting approval.\n\nBlock 3 staged. No edits or commands until approval and Blocks 1–2 completion.\n\n",
           "id": "agent-turn-c177a8fb-ac09-40fc-a806-f24db5d20b9f-turn-1-assistant-1",
           "kind": "message",
           "role": "assistant",
           "sequence": 3,
-          "timestamp": "2026-08-19T12:37:19.596Z"
+          "timestamp": "2026-08-19T12:37:27.358Z"
         },
         {
           "content": "---\nauthor: \nid: B_148\ninternalId: 70a705b9-4e44-4487-8ac9-48722ba0ef92\ntitle: Codex file change counts omit added and deleted files\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__70a705b9-4e44-4487-8ac9-48722ba0ef92.json\npolicy:\n---\n\nCodex `fileChange` events sometimes reach conversations without `insertions` or `deletions`. Mixed events can also contain counts that cover updated files but omit added or deleted files. `ActionUsageSummary` then undercounts `changes` or hides the control when no event in scope retains counts.\n\n## Current state\n\n`normalizeCodexEvent` calculates completed file-change usage by passing every `change.diff` to `countUnifiedDiffLines`. That parser accepts only unified diffs containing complete `@@` hunks.\n\nThe current Codex app-server contract uses an object-shaped change kind:\n\n* Updated file: `kind: { type: \"update\" }`; `diff` is a unified diff.\n* Added file: `kind: { type: \"add\" }`; `diff` is the complete new file content.\n* Deleted file: `kind: { type: \"delete\" }`; `diff` is the removed file content.\n\nAdded and deleted file content has no unified-diff hunk header, so `countUnifiedDiffLines` returns `null`. A mixed event counts only updated files. An add-only or delete-only event has no countable diff, so normalization omits both count fields and `conversationFileChangeUsage` skips the completed event.\n\n`fileChangeContent` also expects `change.kind` to be a string. The object-shaped kind makes persisted file-change content blank even when paths and changes are present.\n\nVerified persisted examples:\n\n* One operation added a 126-line file and updated another file by 15 lines. Stored usage was `+15 / -0` instead of `+141 / -0`.\n* One operation added three files totaling 203 lines. Its completed `fileChange` entry stored no insertion or deletion counts.\n\nThe completed Codex thread items retain the full change data. Counts are lost during local event normalization, not during bridge transmission, renderer state updates, conversation persistence, or popup aggregation.\n\n## Implementation details\n\n* Interpret the real Codex `FileUpdateChange.kind` object at the provider-normalization boundary.\n* Count an added file's content lines as insertions and zero deletions.\n* Count a deleted file's content lines as deletions and zero insertions.\n* Continue parsing updated files as unified diffs; replacements count as one deletion plus one insertion.\n* Sum added, deleted, and updated files within the same completed event. Do not discard valid files because another change has a different kind.\n* Render readable file-change content from `change.path` and `change.kind.type`.\n* Normalize supported Codex file-change type spellings to canonical `fileChange` before creating conversation entries. Keep the usage aggregator on the canonical conversation type.\n* Keep incomplete events excluded until completion. Do not count command executions, MCP tools, or dynamic tools.\n* Keep provider-patch `changes` separate from captured Git commit `lines`.\n* Replace synthetic tests that use string-shaped kinds or unified diffs for added files with fixtures matching the generated Codex app-server contract.\n\n## Test plan\n\n* Add focused `agent_codex_event` tests for added, deleted, updated, mixed, empty-file, trailing-newline, and multi-file changes.\n* Add streaming-adapter coverage proving completed real-shape `fileChange` items transmit insertion and deletion counts.\n* Add a regression case matching the verified 126-line addition plus 15-line update; expected result is `+141 / -0`.\n* Keep focused conversation persistence and usage aggregation tests proving count fields survive transport and reload.\n\n## Acceptance criteria\n\n* A completed added-file change stores every added content line as an insertion.\n* A completed deleted-file change stores every removed content line as a deletion.\n* A mixed add/update/delete event stores the sum of all three kinds.\n* The verified 126-line addition plus 15-line update reports `+141 / -0`, not `+15 / -0`.\n* The verified three-file addition reports `+203 / -0` instead of omitting counts.\n* Persisted file-change entries include readable paths and change kinds.\n* Supported Codex file-change type spellings produce canonical `fileChange` conversation entries.\n* Existing updated-file counting, scope aggregation, compact display, Git commit line totals, and provider-independent activity behavior remain unchanged.\n* Focused desktop normalization/adapter tests and app usage-summary tests pass.\n\r\n",
@@ -525,30 +525,122 @@
           "role": "assistant",
           "sequence": 38,
           "timestamp": "2026-08-19T12:37:19.110Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-c177a8fb-ac09-40fc-a806-f24db5d20b9f-event-39",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_044c11e62d529fdc016a85a38112f087d0b79ab3836bc24a74",
+          "sequence": 39,
+          "status": "completed",
+          "timestamp": "2026-08-19T12:37:20.778Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "content": "item/started: subAgentActivity (call_PltGysktGUFbmyNDxqIJdGNX)\nitem/completed: subAgentActivity (call_PltGysktGUFbmyNDxqIJdGNX)\nitem/completed: reasoning (rs_044c11e62d529fdc016a85a38112f087d0b79ab3836bc24a74)\nitem/started: subAgentActivity (call_xDJNcZXTNgLzXr6zORHfjTtv)\nitem/completed: subAgentActivity (call_xDJNcZXTNgLzXr6zORHfjTtv)",
+          "id": "agent-turn-c177a8fb-ac09-40fc-a806-f24db5d20b9f-event-40",
+          "kind": "event",
+          "label": "Codex protocol diagnostic",
+          "providerItemId": "diagnostic:call_PltGysktGUFbmyNDxqIJdGNX:7",
+          "sequence": 40,
+          "status": "completed",
+          "timestamp": "2026-08-19T12:37:20.553Z",
+          "type": "diagnostic"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-c177a8fb-ac09-40fc-a806-f24db5d20b9f-event-41",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_05e3f0e081a52a84016a85a382cdf08191a530fc0f98a7752e",
+          "sequence": 41,
+          "status": "completed",
+          "timestamp": "2026-08-19T12:37:22.904Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "content": "",
+          "id": "agent-turn-c177a8fb-ac09-40fc-a806-f24db5d20b9f-event-42",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_044c11e62d529fdc016a85a38479cc87d087e231b9a9eaf351",
+          "sequence": 42,
+          "status": "completed",
+          "timestamp": "2026-08-19T12:37:23.922Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "content": "",
+          "id": "agent-turn-c177a8fb-ac09-40fc-a806-f24db5d20b9f-event-43",
+          "kind": "event",
+          "label": "Collaboration: wait",
+          "providerItemId": "call_Tx4xwwAwhKAoUZ2FMg0afYg0",
+          "sequence": 43,
+          "status": "inProgress",
+          "timestamp": "2026-08-19T12:37:24.135Z",
+          "type": "collabAgentToolCall",
+          "output": ""
+        },
+        {
+          "content": "",
+          "id": "agent-turn-c177a8fb-ac09-40fc-a806-f24db5d20b9f-event-44",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04c5a95e9c2a6c69016a85a386552087d086ac2576704ceae7",
+          "sequence": 44,
+          "status": "completed",
+          "timestamp": "2026-08-19T12:37:25.984Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "agent": "codex",
+          "content": "",
+          "id": "agent-turn-c177a8fb-ac09-40fc-a806-f24db5d20b9f-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 45,
+          "timestamp": "2026-08-19T12:37:25.985Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-e2bb9b61-ba13-40fc-a958-b2bf79130b64",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a01a05-447f-7553-9641-5d167ab0b813",
+          "createdAt": "2026-08-19T12:37:19.596Z",
+          "lastUsedAt": "2026-08-19T12:37:19.596Z",
+          "synchronizedThroughMessageId": "agent-turn-c177a8fb-ac09-40fc-a806-f24db5d20b9f-turn-1-assistant-1"
+        }
+      ],
       "startedAt": "2026-08-19T12:35:47.381Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-19T12:35:47.381Z"
+        "elapsedMs": 92215,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usageSchemaVersion": 1,
-      "viewed": true,
+      "viewed": false,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 22868
+        "usedTokens": 22829
       },
       "usage": {
-        "cachedInputTokens": 22272,
-        "inputTokens": 579,
-        "outputTokens": 17,
-        "reasoningTokens": 0,
-        "totalTokens": 22868
+        "cachedInputTokens": 44544,
+        "inputTokens": 1081,
+        "outputTokens": 42,
+        "reasoningTokens": 30,
+        "totalTokens": 45697
       }
     }
   ],
