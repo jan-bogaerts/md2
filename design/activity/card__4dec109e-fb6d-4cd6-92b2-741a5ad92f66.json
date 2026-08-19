@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 95036
+        "usedTokens": 95117
       },
       "entries": [
         {
@@ -853,6 +853,23 @@
           "role": "assistant",
           "sequence": 63,
           "timestamp": "2026-08-19T17:14:58.839Z"
+        },
+        {
+          "content": "so what you are saying: claude just uses more tokens?",
+          "id": "agent-turn-f202be7c-ef36-4ccb-998a-36b233c41769-user-63",
+          "kind": "message",
+          "role": "user",
+          "sequence": 64,
+          "timestamp": "2026-08-19T17:16:26.057Z"
+        },
+        {
+          "agent": "codex",
+          "content": "Yes. In recorded workload, Claude processed more tokens per md2 run.\n\nMain cause: Claude repeatedly reread large cached context during tool calls. md2 count appears correct; Claude’s agent loop used more provider tokens. “Cached” lowers cost, but tokens still appear in usage total.\n\n",
+          "id": "agent-turn-f202be7c-ef36-4ccb-998a-36b233c41769-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 65,
+          "timestamp": "2026-08-19T17:16:28.829Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -862,23 +879,23 @@
           "agent": "codex",
           "conversationId": "01a01aff-c1c5-7452-abba-33e5f8be0a49",
           "createdAt": "2026-08-19T17:11:54.726Z",
-          "lastUsedAt": "2026-08-19T17:11:54.726Z",
-          "synchronizedThroughMessageId": "agent-turn-d52fc328-d5e7-4269-b6a0-e76114c99604-turn-1-assistant-6"
+          "lastUsedAt": "2026-08-19T17:14:58.839Z",
+          "synchronizedThroughMessageId": "agent-turn-f202be7c-ef36-4ccb-998a-36b233c41769-turn-1-assistant-1"
         }
       ],
       "startedAt": "2026-08-19T17:09:23.328Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 151398,
-        "runningStartedAt": "2026-08-19T17:14:50.449Z"
+        "elapsedMs": 159788,
+        "runningStartedAt": "2026-08-19T17:16:26.057Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 186880,
-        "inputTokens": 2523,
-        "outputTokens": 267,
+        "cachedInputTokens": 280832,
+        "inputTokens": 3626,
+        "outputTokens": 329,
         "reasoningTokens": 142,
-        "totalTokens": 189812
+        "totalTokens": 284929
       },
       "usageSchemaVersion": 1,
       "viewed": true
