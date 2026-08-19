@@ -1,0 +1,345 @@
+{
+  "actionSettings": {
+    "5b88355d-f964-459a-bc67-6618650866ba": {
+      "agent": "claude",
+      "model": "sonnet",
+      "permissionMode": "ask-for-approval",
+      "thinkingLevel": "medium"
+    }
+  },
+  "conversations": [
+    {
+      "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "cardInternalId": "cc3a9c43-319b-4a60-a202-f728f220e14e",
+      "cardPath": "design/feature_descriptions/F_200_search_results_highlight_text.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/F_200_search_results_highlight_text.md`.&#x20;\nupdate the field `status` in the markdown feature description file to `ready for implementation`.\n\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill.\n\nDo not stage or commit changes. You have no need for get at this time.",
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-08-19T16:07:50.787Z"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-event-2",
+          "kind": "event",
+          "label": "Skill",
+          "output": "Launching skill: caveman",
+          "providerItemId": "toolu_01CXfcwM1VwEkatH9VX23fbb",
+          "sequence": 2,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:07:53.822Z",
+          "type": "tool.Skill"
+        },
+        {
+          "content": "Let me read the feature description file and any referenced files.",
+          "details": [
+            "Let me read the feature description file and any referenced files."
+          ],
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-event-3",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeCPun85ezD8DwghxtXTv:thinking:0",
+          "sequence": 3,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:07:56.371Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Reading feature file and related context now.",
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 4,
+          "timestamp": "2026-08-19T16:07:56.372Z"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-event-5",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\t---\n2\tauthor: \n3\tid: F_200\n4\tinternalId: cc3a9c43-319b-4a60-a202-f728f220e14e\n5\ttitle: Search results highlight text\n6\tstatus: design\n7\towner: \n8\taffects:\n9\tagents:\n10\t  - design/activity/card__cc3a9c43-319b-4a60-a202-f728f220e14e.json\n11\tpolicy:\n12\t---\n13\t\n14\tIn the global search we show the list of search results with for each result, some text where the search term was found. We should highlight this text so its easy to see where the result is.",
+          "providerItemId": "toolu_01Ryy3nBXVMVNiLQqCeLgBZk",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:07:58.011Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-event-6",
+          "kind": "event",
+          "label": "Glob",
+          "output": "design\\releases\\0_0_2\\B_002_github_push_semantics.md\ndesign\\releases\\0_0_2\\B_003_github_401_handling.md\ndesign\\releases\\0_0_2\\B_004_electron_menu_push_dead.md\ndesign\\releases\\0_0_2\\B_005_system_agent_option.md\ndesign\\releases\\0_0_2\\B_006_agent_command_sources.md\ndesign\\releases\\0_0_2\\B_007_bootstrap_error_hidden.md\ndesign\\releases\\0_0_2\\B_008_close_flush_unreliable.md\ndesign\\releases\\0_0_2\\B_009_running_agents_visibility.md\ndesign\\releases\\0_0_2\\B_010_blocking_project_load.md\ndesign\\releases\\0_0_2\\B_011_line_ending_churn.md\ndesign\\releases\\0_0_2\\B_012_left_panel_layout.md\ndesign\\releases\\0_0_2\\B_013_text_view_body_only.md\ndesign\\releases\\0_0_2\\B_015_electron_context_isolation.md\ndesign\\releases\\0_0_2\\B_016_config_init_during_render.md\ndesign\\releases\\0_0_2\\B_018_card_creation_feature_only.md\ndesign\\releases\\0_0_2\\B_019_project_open_form_placement.md\ndesign\\releases\\0_0_2\\B_020_sequential_storage_io.md\ndesign\\releases\\0_0_2\\B_021_commit_noop_failure.md\ndesign\\releases\\0_0_2\\B_022_commit_batcher_message.md\ndesign\\releases\\0_0_2\\B_023_dead_code_cleanup.md\ndesign\\releases\\0_0_2\\B_024_swallowed_errors.md\ndesign\\releases\\0_0_2\\B_025_agent_continue_without_context.md\ndesign\\releases\\0_0_2\\B_026_external_files_not_imported.md\ndesign\\releases\\0_0_2\\B_027_github_manual_push_pending_loss.md\ndesign\\releases\\0_0_2\\B_028_agent_log_write_integrity.md\ndesign\\releases\\0_0_2\\B_029_desktop_bridge_security_hardening.md\ndesign\\releases\\0_0_2\\B_030_remote_bridge_global_spoofing.md\ndesign\\releases\\0_0_2\\B_031_render_time_service_reads.md\ndesign\\releases\\0_0_2\\B_032_github_manual_push_stale_reads.md\ndesign\\releases\\0_0_2\\B_034_left_panel_reactnode_state.md\ndesign\\releases\\0_0_2\\B_035_agent_profiles_raw_json_editor.md\ndesign\\releases\\0_0_2\\B_036_config_values_not_typed_per_key.md\ndesign\\releases\\0_0_2\\B_037_branch_select_out_of_range_warning.md\ndesign\\releases\\0_0_2\\B_038_last_project_parse_guard.md\ndesign\\releases\\0_0_2\\B_039_action_reload_debounce_single_path.md\ndesign\\releases\\0_0_2\\B_040_background_project_load_silent_failure.md\ndesign\\releases\\0_0_2\\B_041_search_regexp_agent_render_recreation.md\ndesign\\releases\\0_0_2\\B_042_storage_factory_side_effect.md\ndesign\\releases\\0_0_2\\B_043_small_cleanups_2026_07.md\ndesign\\releases\\0_0_2\\B_044_typecheck_broken_missing_import.md\ndesign\\releases\\0_0_2\\B_045_flaky_project_workspace_test_timeout.md\ndesign\\releases\\0_0_2\\B_046_remote_control_single_connection.md\ndesign\\releases\\0_0_2\\B_047_remote_control_connection_errors.md\ndesign\\releases\\0_0_2\\B_048_action_capability_provider_apis_missing.md\ndesign\\releases\\0_0_2\\B_049_action_thinking_level_is_not_executed.md\ndesign\\releases\\0_0_2\\B_050_action_execution_still_has_two_orchestrators.md\ndesign\\releases\\0_0_2\\B_051_needs_worktree_does_not_prepare_worktree.md\ndesign\\releases\\0_0_2\\B_052_action_autosave_remount_can_lose_edits.md\ndesign\\releases\\0_0_2\\B_053_action_validation_errors_are_mapped_by_message_text.md\ndesign\\releases\\0_0_2\\B_054_action_required_fields_accept_whitespace.md\ndesign\\releases\\0_0_2\\B_055_action_capability_combinations_are_not_validated.md\ndesign\\releases\\0_0_2\\B_056_action_applicability_filter_editor_is_incomplete.md\ndesign\\releases\\0_0_2\\B_057_action_onstate_selector_hides_stale_value.md\ndesign\\releases\\0_0_2\\B_058_unknown_action_fields_are_silently_discarded.md\ndesign\\releases\\0_0_2\\B_059_action_validation_serializes_invalid_drafts.md\ndesign\\releases\\0_0_2\\B_060_action_editor_violates_component_style_guide.md\ndesign\\releases\\0_0_2\\B_061_action_editor_test_coverage_misses_failure_paths.md\ndesign\\releases\\0_0_2\\B_062_action_architecture_links_broke_after_document_move.md\ndesign\\releases\\0_0_2\\B_064_unified_action_runner_lifecycle_and_isolation_defects.md\ndesign\\releases\\0_0_2\\B_065_tab_open_blocks_on_editor_mount_and_spurious_flush_saves.md\ndesign\\releases\\0_0_2\\B_066_running_actions_contract_gaps_after_f047.md\ndesign\\releases\\0_0_2\\B_067_logs_are_split_across_project_locations.md\ndesign\\releases\\0_0_2\\B_068_action_editor_typing_creates_immediate_commits.md\ndesign\\releases\\0_0_2\\B_069_action_editor_revalidates_and_serializes_drafts_during_typing.md\ndesign\\releases\\0_0_2\\B_070_action_phrase_index_identity_can_mix_editor_history.md\ndesign\\releases\\0_0_2\\B_071_external_action_deletion_crashes_the_editor.md\ndesign\\releases\\0_0_2\\B_072_action_editor_ui_state_mutates_domain_actions.md\ndesign\\releases\\0_0_2\\B_073_action_editor_has_overlapping_state_and_list_implementations.md\ndesign\\releases\\0_0_2\\F_001_github_authentication.md\ndesign\\releases\\0_0_2\\F_002_data_management.md\ndesign\\releases\\0_0_2\\F_004_app_layout.md\ndesign\\releases\\0_0_2\\F_005_card_view.md\ndesign\\releases\\0_0_2\\F_006_text_view.md\ndesign\\releases\\0_0_2\\F_007_markdown_editor.md\ndesign\\releases\\0_0_2\\F_008_templates_and_headers.md\ndesign\\releases\\0_0_2\\F_009_affects_editor.md\ndesign\\releases\\0_0_2\\F_011_batch_commands.md\ndesign\\releases\\0_0_2\\F_012_agents.md\ndesign\\releases\\0_0_2\\F_013_desktop_app.md\ndesign\\releases\\0_0_2\\F_014_diff_view.md\ndesign\\releases\\0_0_2\\F_015_remarkable_integration.md\ndesign\\releases\\0_0_2\\F_016_config.md\ndesign\\releases\\0_0_2\\F_017_search.md\ndesign\\releases\\0_0_2\\F_018_styling_and_theming.md\ndesign\\releases\\0_0_2\\F_019_telemetry.md\ndesign\\releases\\0_0_2\\F_021_parsing_service.md\ndesign\\releases\\0_0_2\\F_022_scheduled_actions.md\ndesign\\releases\\0_0_2\\F_024_history_archiving.md\ndesign\\releases\\0_0_2\\F_025_card_deletion.md\ndesign\\releases\\0_0_2\\F_026_external_change_watching.md\ndesign\\releases\\0_0_2\\F_027_repository_branch_selection.md\ndesign\\releases\\0_0_2\\F_028_markdown_style_rendering.md\ndesign\\releases\\0_0_2\\F_029_search_regexp_agent.md\ndesign\\releases\\0_0_2\\F_030_action_entry_point_display.md\ndesign\\releases\\0_0_2\\F_031_config_persistence.md\ndesign\\releases\\0_0_2\\F_032_remote_control_bridge.md\ndesign\\releases\\0_0_2\\F_033_agent_and_model_selection.md\ndesign\\releases\\0_0_2\\F_034_github_oauth_cors_proxy.md\ndesign\\releases\\0_0_2\\F_035_github_pat_fallback.md\ndesign\\releases\\0_0_2\\F_036_search_in_actions.md\n(Results are truncated. Consider using a more specific path or pattern.)",
+          "providerItemId": "toolu_011TnbNGuRFdUDGV27XaVVEq",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:07:58.651Z",
+          "type": "tool.Glob"
+        },
+        {
+          "content": "Let me read the search feature file (F_017_search.md) to understand the existing search implementation, and also look at the current search implementation files.",
+          "details": [
+            "Let me read the search feature file (F_017_search.md) to understand the existing search implementation, and also look at the current search implementation files."
+          ],
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-event-7",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeCPv8YQaZufMbJ5Zxpno:thinking:0",
+          "sequence": 7,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:08:00.747Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNeed context on current search implementation. Reading related files.",
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 8,
+          "timestamp": "2026-08-19T16:08:01.438Z"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-event-9",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\t---\n2\tid: F-017\n3\ttitle: search\n4\tstatus: ready\n5\towner: JB\n6\taffects:\n7\tpolicy:\n8\t  checkLinting: true\n9\t  requireTests: true\n10\tinternalId: 3cd255e2-2f84-42cc-ab2f-1833531efa73\n11\t---\n12\t\n13\t## Goal\n14\tAdd an easy-to-access text search (with optional RegExp mode and agent-built expressions) over cards, history and other special folders, with grouped results and navigation to the matching card or file, integrated into the borderless window's drag bar area.\n15\t\n16\t## Current state\n17\tThere is no search feature: no search service or module, no search UI, no RegExp handling and no agent-built expression flow. The initial description assumed history is \"not loaded\", but that is no longer true — the data the search needs is already in memory.\n18\t\n19\tThe parsed project data is available through `useProjectState()`, which returns the `DataService` state including a `ProjectSnapshot` with `activeCards`, `backgroundCards` and `workingFolder`. `markdownParsingService.splitCards` already splits files into active vs background using `isRootWorkingFolderFile` (root markdown files under the working folder are active; everything in subfolders is background), and produces `ProjectCard` objects with `content` (body only), a parsed `header` (`CardHeader`: id, title, status, owner, affects, policy, etc.), `isActive` and `path`. A search module can consume this snapshot directly; frontmatter parsing already lives in `markdown_parsing_service.ts` and must not be duplicated. Background results are not currently grouped by their first subfolder anywhere.\n20\t\n21\tThe top shell is `MainToolbar` (MUI `AppBar`/`Toolbar`) rendered by `MainWindow`; it holds the \"MD²\" title, a config `IconButton` and a `toolbarAction` slot (currently `<ThemeControls />` from `app.tsx`). There is no search input in the toolbar. The desktop window is borderless via Electron `titleBarStyle: 'hidden'` with a `titleBarOverlay` in `desktop/main.js`; there is no manual CSS drag region (`-webkit-app-region`) anywhere in the React shell, so a custom drag bar and its non-draggable input/button zones do not yet exist.\n22\t\n23\tNavigation into a card/file is local to `ProjectWorkspace`, which owns `viewMode` (`'cards' | 'text'`). `handleOpenInFileMode(path)` sets a `requestedPath` + `requestedNonce` and switches to text view; `TextView` opens that path as a tab via `useOpenTabs` and can browse background files through its file tree. There is no shared/global \"navigate to card or file, keeping current view\" API — selecting a background result without changing view mode is not currently supported. Routing exists via `app_navigation` (`navigateTo` / `useAppLocation`, with a `/config` route), but nothing search-related uses it.\n24\t\n25\tThere is no agent infrastructure wired up: `App` passes `agents={[]}` to `MainWindow`, so agent-built RegExp has no existing execution path to reuse. No tests cover search.\n26\t\n27\t## implementation details\n28\t- Add a search service or pure search module in `app/src/` that searches the loaded `ProjectSnapshot`; keep storage-specific file loading in the existing GitHub/local storage services.\n29\t- Search active root cards by full body content and header fields by default. Search background cards from subfolders by header fields by default, with an option to include full body content. Use `ProjectCard` data produced by the shared parsing service; the search module must not parse frontmatter itself.\n30\t- Support plain case-insensitive contains search and an explicit RegExp mode. Invalid expressions must show a clear validation error and keep previous results stable.\n31\t- Group results with active cards first, then background results grouped by first folder under the working folder, such as `history` or `architecture`.\n32\t- Each result shows the card/file title, path, match context and whether the match came from header or body.\n33\t- Selecting a result navigates to the matching card or file in the current workspace view. If the file is a background card, make it selectable without changing the user's current view mode.\n34\t- Add the search input and controls to the top shell area while preserving drag behavior in the borderless Electron window; text inputs and buttons must remain non-draggable.\n35\t- Agent-built RegExp generation is a separate action from manual search input and must surface agent failures without changing the current query.\n36\t- Tests should cover search matching/grouping, RegExp validation, full-body background search toggling, result selection and toolbar drag/non-drag behavior.\n37\t\n38\t## acceptance criteria\n39\t- A user can run a plain text search from the top shell area without breaking window dragging in the desktop app.\n40\t- Active cards are searched by full content and appear before background/special-folder results.\n41\t- Background cards from history, architecture and other subfolders are searchable by header fields; enabling full search includes their body content.\n42\t- RegExp mode returns matches for valid expressions and reports invalid expressions without crashing or clearing the current query.\n43\t- Results are grouped by active cards and by special folder name, with enough context to identify the match.\n44\t- Clicking a result opens/selects the matching card or file while keeping the current workspace view.\n45\t- Agent-built RegExp can populate the query when successful and leaves the existing query unchanged on failure.\n46\t- Unit and React tests cover the search module, grouped result rendering, result navigation and shell search controls.\n47\t\n48\t## see also\n49\t- `design\\architecture\\initial description\\search.md`\n50\t- `design\\architecture\\parsing_service.md`\n51\t",
+          "providerItemId": "toolu_011ZPTzbgXhGVVyK9AhAWhgR",
+          "sequence": 9,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:08:02.514Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-event-10",
+          "kind": "event",
+          "label": "Glob",
+          "output": "app\\src\\components\\shell\\search\\search_results.tsx\napp\\src\\services\\search\\search_regexp_agent.ts\napp\\src\\components\\shell\\search\\search_control.tsx\napp\\src\\components\\editor\\markdown_editor_file_search.test.tsx\napp\\src\\components\\editor\\markdown_file_search.ts\napp\\src\\components\\editor\\markdown_file_search_config_cell.ts\napp\\src\\components\\editor\\markdown_file_search_option.ts\napp\\src\\components\\editor\\markdown_file_search_option_item.test.tsx\napp\\src\\components\\editor\\markdown_file_search_option_item.tsx\napp\\src\\components\\editor\\markdown_file_search_realm_plugin.ts\napp\\src\\components\\editor\\markdown_file_search_selection.ts\napp\\src\\components\\editor\\markdown_file_search_typeahead_plugin.node.test.ts\napp\\src\\components\\editor\\markdown_file_search_options.ts\napp\\src\\components\\editor\\markdown_file_search_trigger.ts\napp\\src\\components\\editor\\markdown_file_search.node.test.ts\napp\\src\\components\\shell\\search\\search_panel.tsx\napp\\src\\services\\search\\search_types.ts\napp\\src\\services\\search\\search_project.ts\napp\\src\\services\\search\\search_regexp_agent.node.test.ts\napp\\src\\components\\editor\\markdown_file_search_typeahead_plugin.tsx\napp\\src\\components\\editor\\markdown_file_search_menu.test.tsx\napp\\src\\components\\editor\\markdown_file_search_menu.tsx\napp\\src\\components\\editor\\markdown_local_text_search_command.ts\napp\\src\\components\\editor\\markdown_local_text_search_config_cell.ts\napp\\src\\components\\editor\\markdown_local_text_search_realm_plugin.ts\napp\\src\\components\\editor\\markdown_local_text_search_toolbar_control.tsx\napp\\src\\components\\shell\\search\\search_control.test.tsx\napp\\src\\services\\search\\search_project.node.test.ts\napp\\src\\components\\editor\\markdown_editor_local_text_search.test.tsx\napp\\src\\components\\editor\\markdown_local_text_search.node.test.ts\napp\\src\\components\\editor\\markdown_local_text_search.ts\napp\\src\\components\\editor\\markdown_local_text_search_plugin.tsx",
+          "providerItemId": "toolu_01RQg96fEQvx7xMvcfsSb7rz",
+          "sequence": 10,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:08:02.937Z",
+          "type": "tool.Glob"
+        },
+        {
+          "content": "Let me read the search results component and search types to understand the current state.",
+          "details": [
+            "Let me read the search results component and search types to understand the current state."
+          ],
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-event-11",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeCPvSmHDVzwC8MXFpkrF:thinking:0",
+          "sequence": 11,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:08:04.800Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nReading search UI and types files.",
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 12,
+          "timestamp": "2026-08-19T16:08:04.800Z"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-event-13",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport { Box, Chip, List, ListItemButton, ListItemText, Typography } from '@mui/material'\n2\timport type { ActionDefinition } from '../../../data/action_types'\n3\timport type { ActionSearchMatch, SearchMatch, SearchResults as SearchResultsData } from '../../../services/search/search_types'\n4\t\n5\tinterface SearchResultsProps {\n6\t    onActionSelect: (action: ActionDefinition) => void\n7\t    onSelect: (path: string) => void\n8\t    results: SearchResultsData\n9\t}\n10\t\n11\tfunction renderMatch(match: SearchMatch, onSelect: (path: string) => void) {\n12\t    const handleClick = () => onSelect(match.path)\n13\t    const secondary = `${match.path} — ${match.context}`\n14\t\n15\t    return (\n16\t        <ListItemButton dense key={match.path} onClick={handleClick}>\n17\t            <ListItemText\n18\t                primary={\n19\t                    <Box component=\"span\" sx={{ alignItems: 'center', display: 'flex', gap: 1 }}>\n20\t                        <span>{match.title}</span>\n21\t                        <Chip color={match.source === 'header' ? 'primary' : 'default'} label={match.source} size=\"small\" />\n22\t                    </Box>\n23\t                }\n24\t                secondary={secondary}\n25\t            />\n26\t        </ListItemButton>\n27\t    )\n28\t}\n29\t\n30\tfunction renderActionMatch(match: ActionSearchMatch, onActionSelect: (action: ActionDefinition) => void) {\n31\t    const handleClick = () => onActionSelect(match.action)\n32\t    const secondary = `${match.field} - ${match.context}`\n33\t\n34\t    return (\n35\t        <ListItemButton dense key={match.action.id} onClick={handleClick}>\n36\t            <ListItemText\n37\t                primary={\n38\t                    <Box component=\"span\" sx={{ alignItems: 'center', display: 'flex', gap: 1 }}>\n39\t                        <span>{match.title}</span>\n40\t                        <Chip color=\"secondary\" label=\"action\" size=\"small\" />\n41\t                    </Box>\n42\t                }\n43\t                secondary={secondary}\n44\t            />\n45\t        </ListItemButton>\n46\t    )\n47\t}\n48\t\n49\t/** Renders grouped search results: active cards first, then background cards grouped by folder. */\n50\texport function SearchResults(props: SearchResultsProps) {\n51\t    const { onActionSelect, onSelect, results } = props\n52\t    const hasAny = results.active.length > 0 || results.backgroundGroups.length > 0 || results.actions.length > 0\n53\t\n54\t    if (!hasAny) {\n55\t        return (\n56\t            <Box sx={{ p: 2 }}>\n57\t                <Typography color=\"text.secondary\" variant=\"body2\">\n58\t                    No matches found.\n59\t                </Typography>\n60\t            </Box>\n61\t        )\n62\t    }\n63\t\n64\t    return (\n65\t        <Box>\n66\t            {results.active.length > 0 ? (\n67\t                <Box>\n68\t                    <Typography color=\"text.secondary\" sx={{ px: 2, pt: 1 }} variant=\"overline\">\n69\t                        Active cards\n70\t                    </Typography>\n71\t                    <List dense disablePadding>\n72\t                        {results.active.map((match) => renderMatch(match, onSelect))}\n73\t                    </List>\n74\t                </Box>\n75\t            ) : null}\n76\t            {results.backgroundGroups.map((group) => (\n77\t                <Box key={group.folder}>\n78\t                    <Typography color=\"text.secondary\" sx={{ px: 2, pt: 1 }} variant=\"overline\">\n79\t                        {group.folder}\n80\t                    </Typography>\n81\t                    <List dense disablePadding>\n82\t                        {group.matches.map((match) => renderMatch(match, onSelect))}\n83\t                    </List>\n84\t                </Box>\n85\t            ))}\n86\t            {results.actions.length > 0 ? (\n87\t                <Box>\n88\t                    <Typography color=\"text.secondary\" sx={{ px: 2, pt: 1 }} variant=\"overline\">\n89\t                        Actions\n90\t                    </Typography>\n91\t                    <List dense disablePadding>\n92\t                        {results.actions.map((match) => renderActionMatch(match, onActionSelect))}\n93\t                    </List>\n94\t                </Box>\n95\t            ) : null}\n96\t        </Box>\n97\t    )\n98\t}\n99\t",
+          "providerItemId": "toolu_01PdRrQc38pvBKaPF9hxGAsQ",
+          "sequence": 13,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:08:05.556Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-event-14",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport type { ActionDefinition } from '../../data/action_types'\n2\timport type { Card } from '../../data/data_types'\n3\t\n4\texport type SearchMode = 'text' | 'regexp'\n5\t\n6\t/** Where a single result's match was found within a card. */\n7\texport type SearchMatchSource = 'header' | 'body'\n8\t\n9\texport interface SearchOptions {\n10\t    /** When true, background cards are also searched by full body content. */\n11\t    includeBackgroundBody: boolean\n12\t    /** When true, loaded action definitions are searched. */\n13\t    includeActions: boolean\n14\t    mode: SearchMode\n15\t}\n16\t\n17\texport interface SearchMatch {\n18\t    card: Card\n19\t    /** Snippet of the matched text with surrounding context. */\n20\t    context: string\n21\t    /** Header field the match came from, or `body`. */\n22\t    field: string\n23\t    path: string\n24\t    source: SearchMatchSource\n25\t    title: string\n26\t}\n27\t\n28\texport interface BackgroundGroup {\n29\t    /** Configured special-folder name or first folder segment under the working folder. */\n30\t    folder: string\n31\t    matches: SearchMatch[]\n32\t}\n33\t\n34\texport interface ActionSearchMatch {\n35\t    action: ActionDefinition\n36\t    context: string\n37\t    field: 'label' | 'description' | 'text'\n38\t    title: string\n39\t}\n40\t\n41\texport interface SearchResults {\n42\t    active: SearchMatch[]\n43\t    actions: ActionSearchMatch[]\n44\t    backgroundGroups: BackgroundGroup[]\n45\t}\n46\t\n47\t/** Builds a search expression from a natural-language request, typically via an agent. */\n48\texport type SearchRegexpAgent = (naturalQuery: string) => Promise<string>\n49\t",
+          "providerItemId": "toolu_014FWdmzepvp6oh4y2X3WB3f",
+          "sequence": 14,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:08:06.142Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "Now I have a good picture. Let me look at the search_project.ts for implementation details.",
+          "details": [
+            "Now I have a good picture. Let me look at the search_project.ts for implementation details."
+          ],
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-event-15",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeCPvgWGnWZebptQ2vPq4:thinking:0",
+          "sequence": 15,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:08:08.070Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-event-16",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport type { CardHeader, Card, ProjectSnapshot } from '../../data/data_types'\n2\timport type { ActionDefinition } from '../../data/action_types'\n3\timport type {\n4\t    ActionSearchMatch, BackgroundGroup, SearchMatch, SearchOptions, SearchRegexpAgent, SearchResults,\n5\t} from './search_types'\n6\t\n7\tconst CONTEXT_RADIUS = 40\n8\tconst ELLIPSIS = '…'\n9\tconst ROOT_GROUP = '(root)'\n10\tconst BODY_FIELD = 'body'\n11\t\n12\t/** Thrown when a RegExp-mode query is not a valid regular expression. */\n13\texport class InvalidSearchPatternError extends Error {\n14\t    constructor(message: string) {\n15\t        super(message)\n16\t        this.name = 'InvalidSearchPatternError'\n17\t    }\n18\t}\n19\t\n20\tinterface MatchLocation {\n21\t    index: number\n22\t    length: number\n23\t}\n24\t\n25\tinterface Matcher {\n26\t    find(text: string): MatchLocation | null\n27\t}\n28\t\n29\tinterface HeaderField {\n30\t    field: string\n31\t    value: string\n32\t}\n33\t\n34\tinterface ActionSearchField {\n35\t    field: ActionSearchMatch['field']\n36\t    value: string\n37\t}\n38\t\n39\tfunction createTextMatcher(query: string): Matcher {\n40\t    const needle = query.toLowerCase()\n41\t\n42\t    return {\n43\t        find(text: string) {\n44\t            const index = text.toLowerCase().indexOf(needle)\n45\t\n46\t            return index === -1 ? null : { index, length: query.length }\n47\t        },\n48\t    }\n49\t}\n50\t\n51\tfunction createRegexpMatcher(query: string): Matcher {\n52\t    let expression: RegExp\n53\t\n54\t    try {\n55\t        expression = new RegExp(query)\n56\t    } catch (error) {\n57\t        throw new InvalidSearchPatternError(error instanceof Error ? error.message : 'Invalid regular expression')\n58\t    }\n59\t\n60\t    return {\n61\t        find(text: string) {\n62\t            const found = text.match(expression)\n63\t\n64\t            return found?.index === undefined ? null : { index: found.index, length: found[0].length }\n65\t        },\n66\t    }\n67\t}\n68\t\n69\tfunction createMatcher(query: string, options: SearchOptions): Matcher {\n70\t    return options.mode === 'regexp' ? createRegexpMatcher(query) : createTextMatcher(query)\n71\t}\n72\t\n73\tfunction collectHeaderFields(header: CardHeader): HeaderField[] {\n74\t    const fields: HeaderField[] = []\n75\t    const scalarEntries: [string, string | null][] = [\n76\t        ['id', header.id],\n77\t        ['title', header.title],\n78\t        ['status', header.status],\n79\t        ['owner', header.owner],\n80\t        ['author', header.author],\n81\t        ['after', header.after],\n82\t        ['internalId', header.internalId],\n83\t    ]\n84\t\n85\t    for (const [field, value] of scalarEntries) {\n86\t        if (value) fields.push({ field, value })\n87\t    }\n88\t\n89\t    for (const entry of header.affects) fields.push({ field: 'affects', value: entry })\n90\t    for (const [key, value] of Object.entries(header.policy)) fields.push({ field: `policy.${key}`, value: value ? 'true' : 'false' })\n91\t\n92\t    return fields\n93\t}\n94\t\n95\tfunction buildContext(text: string, location: MatchLocation): string {\n96\t    const start = Math.max(0, location.index - CONTEXT_RADIUS)\n97\t    const end = Math.min(text.length, location.index + location.length + CONTEXT_RADIUS)\n98\t    const slice = text.slice(start, end).replace(/\\s+/gu, ' ').trim()\n99\t    const prefix = start > 0 ? ELLIPSIS : ''\n100\t    const suffix = end < text.length ? ELLIPSIS : ''\n101\t\n102\t    return `${prefix}${slice}${suffix}`\n103\t}\n104\t\n105\tfunction matchCard(card: Card, matcher: Matcher, searchBody: boolean): SearchMatch | null {\n106\t    const headerFields = collectHeaderFields(card.header)\n107\t\n108\t    for (const { field, value } of headerFields) {\n109\t        const location = matcher.find(value)\n110\t        if (location) {\n111\t            return { card, context: buildContext(value, location), field, path: card.path, source: 'header', title: card.header.title }\n112\t        }\n113\t    }\n114\t\n115\t    if (searchBody) {\n116\t        const location = matcher.find(card.content)\n117\t        if (location) {\n118\t            return { card, context: buildContext(card.content, location), field: BODY_FIELD, path: card.path, source: 'body', title: card.hea\n[665 characters omitted]\nollectActionFields(action)) {\n138\t        const location = matcher.find(value)\n139\t        if (location) return { action, context: buildContext(value, location), field, title: action.label }\n140\t    }\n141\t\n142\t    return null\n143\t}\n144\t\n145\tfunction folderName(path: string) {\n146\t    const name = path.split('/').filter((segment) => segment.length > 0).at(-1)\n147\t    if (!name) throw new Error(`Cannot group background folder without a name: ${path}`)\n148\t\n149\t    return name\n150\t}\n151\t\n152\tfunction backgroundGroupKey(path: string, workingFolder: string, specialFolderPaths: string[]): string {\n153\t    const normalized = path.replace(/\\\\/gu, '/')\n154\t    const specialFolder = specialFolderPaths\n155\t        .map((folder) => folder.replace(/\\\\/gu, '/').replace(/^\\/+|\\/+$/gu, ''))\n156\t        .find((folder) => normalized === folder || normalized.startsWith(`${folder}/`))\n157\t    if (specialFolder) return folderName(specialFolder)\n158\t\n159\t    const prefix = `${workingFolder}/`\n160\t    const rest = normalized.startsWith(prefix) ? normalized.slice(prefix.length) : normalized\n161\t    const segments = rest.split('/')\n162\t\n163\t    return segments.length > 1 ? segments[0] : ROOT_GROUP\n164\t}\n165\t\n166\tfunction groupBackgroundMatches(matches: SearchMatch[], workingFolder: string, specialFolderPaths: string[]): BackgroundGroup[] {\n167\t    const groups: BackgroundGroup[] = []\n168\t    const byFolder = new Map<string, BackgroundGroup>()\n169\t\n170\t    for (const match of matches) {\n171\t        const folder = backgroundGroupKey(match.path, workingFolder, specialFolderPaths)\n172\t        const existing = byFolder.get(folder)\n173\t\n174\t        if (existing) {\n175\t            existing.matches.push(match)\n176\t            continue\n177\t        }\n178\t\n179\t        const group: BackgroundGroup = { folder, matches: [match] }\n180\t        byFolder.set(folder, group)\n181\t        groups.push(group)\n182\t    }\n183\t\n184\t    return groups\n185\t}\n186\t\n187\t/**\n188\t * Searches a loaded project snapshot. Active cards are matched by header fields and full body;\n189\t * background cards are matched by header fields, and by body only when `includeBackgroundBody` is set.\n190\t * Throws {@link InvalidSearchPatternError} for an invalid RegExp-mode query.\n191\t */\n192\texport function searchProject(\n193\t    snapshot: ProjectSnapshot,\n194\t    query: string,\n195\t    options: SearchOptions,\n196\t    specialFolderPaths: string[] = [],\n197\t): SearchResults {\n198\t    if (query.trim().length === 0) return { active: [], actions: [], backgroundGroups: [] }\n199\t\n200\t    const matcher = createMatcher(query, options)\n201\t    const active = snapshot.activeCards\n202\t        .map((card) => matchCard(card, matcher, true))\n203\t        .filter((match): match is SearchMatch => match !== null)\n204\t    const backgroundMatches = snapshot.backgroundCards\n205\t        .map((card) => matchCard(card, matcher, options.includeBackgroundBody))\n206\t        .filter((match): match is SearchMatch => match !== null)\n207\t\n208\t    return {\n209\t        active,\n210\t        actions: [],\n211\t        backgroundGroups: groupBackgroundMatches(backgroundMatches, snapshot.workingFolder, specialFolderPaths),\n212\t    }\n213\t}\n214\t\n215\t/**\n216\t * Searches loaded action definitions by label, description and text.\n217\t * Throws {@link InvalidSearchPatternError} for an invalid RegExp-mode query.\n218\t */\n219\texport function searchActions(actions: ActionDefinition[], query: string, options: SearchOptions): ActionSearchMatch[] {\n220\t    if (!options.includeActions || query.trim().length === 0) return []\n221\t\n222\t    const matcher = createMatcher(query, options)\n223\t\n224\t    return actions\n225\t        .filter((action) => !action.builtin)\n226\t        .map((action) => matchAction(action, matcher))\n227\t        .filter((match): match is ActionSearchMatch => match !== null)\n228\t}\n229\t\n230\t/** Placeholder agent used until real agent execution is wired up; always reports unavailable. */\n231\texport const defaultSearchRegexpAgent: SearchRegexpAgent = async () => {\n232\t    throw new Error('RegExp agent is not available')\n233\t}\n234\t",
+          "providerItemId": "toolu_013hXu6dMjrPswyMAAuPrQhW",
+          "sequence": 16,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:08:08.593Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "Now I have a clear picture of the implementation. Let me read the search_control.tsx and search_panel.tsx to understand the complete current state of the UI.\n\nThe feature description F_200 is about highlighting the search term in the results display (the `context` text in search_results.tsx). Currently the `renderMatch` function just shows `match.context` as a plain string — no highlighting.\n\nI need to:\n1. Understand exactly what's implemented vs what F_200 wants\n2. Fill in Current state, Implementation details, Acceptance criteria for F_200\n3. Set status to \"ready for implementation\", then quickly check search_control.tsx as well.",
+          "details": [
+            "Now I have a clear picture of the implementation. Let me read the search_control.tsx and search_panel.tsx to understand the complete current state of the UI.\n\nThe feature description F_200 is about highlighting the search term in the results display (the `context` text in search_results.tsx). Currently the `renderMatch` function just shows `match.context` as a plain string — no highlighting.\n\nI need to:\n1. Understand exactly what's implemented vs what F_200 wants\n2. Fill in Current state, Implementation details, Acceptance criteria for F_200\n3. Set status to \"ready for implementation\", then quickly check search_control.tsx as well."
+          ],
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-event-17",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeCPvro9QZFseD5ewrEaw:thinking:0",
+          "sequence": 17,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:08:15.339Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-event-18",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport { Box, IconButton, InputAdornment, Popover, TextField, Tooltip } from '@mui/material'\n2\timport type { MouseEvent } from 'react'\n3\timport { useState } from 'react'\n4\timport Magnify from 'mdi-material-ui/Magnify'\n5\timport type { SearchRegexpAgent } from '../../../services/search/search_types'\n6\timport { NO_DRAG_REGION } from '../drag_region'\n7\timport { SearchPanel } from './search_panel'\n8\t\n9\tconst RESULTS_WIDTH = 460\n10\t\n11\tinterface SearchControlProps {\n12\t    isMobile?: boolean\n13\t    /** Builds a RegExp from the current query; defaults to the not-yet-available agent. */\n14\t    regexpAgent?: SearchRegexpAgent\n15\t}\n16\t\n17\t/** Lightweight search launcher that mounts data-aware search only while open. */\n18\texport function SearchControl(props: SearchControlProps) {\n19\t    const { isMobile = false, regexpAgent } = props\n20\t    const [query, setQuery] = useState('')\n21\t    const [desktopOpen, setDesktopOpen] = useState(false)\n22\t    const [searchAnchorElement, setSearchAnchorElement] = useState<HTMLElement | null>(null)\n23\t\n24\t    const openDesktop = () => {\n25\t        setDesktopOpen(true)\n26\t    }\n27\t\n28\t    const closeDesktop = () => {\n29\t        setDesktopOpen(false)\n30\t    }\n31\t\n32\t    const openMobile = (event: MouseEvent<HTMLElement>) => {\n33\t        setSearchAnchorElement(event.currentTarget)\n34\t    }\n35\t\n36\t    const closeMobile = () => {\n37\t        setSearchAnchorElement(null)\n38\t    }\n39\t\n40\t    const updateQuery = (nextQuery: string) => {\n41\t        setQuery(nextQuery)\n42\t    }\n43\t\n44\t    if (!isMobile) {\n45\t        if (desktopOpen) {\n46\t            return (\n47\t                <SearchPanel\n48\t                    initialQuery={query}\n49\t                    onClose={closeDesktop}\n50\t                    onQueryChange={updateQuery}\n51\t                    regexpAgent={regexpAgent}\n52\t                />\n53\t            )\n54\t        }\n55\t\n56\t        return (\n57\t            <TextField\n58\t                fullWidth\n59\t                onFocus={openDesktop}\n60\t                placeholder=\"Search cards…\"\n61\t                size=\"small\"\n62\t                slotProps={{\n63\t                    htmlInput: { 'aria-label': 'Search project', readOnly: true },\n64\t                    input: {\n65\t                        endAdornment: (\n66\t                            <InputAdornment position=\"end\">\n67\t                                <Box\n68\t                                    component=\"span\"\n69\t                                    sx={{\n70\t                                        border: 1,\n71\t                                        borderColor: 'divider',\n72\t                                        borderRadius: 0.5,\n73\t                                        color: 'text.disabled',\n74\t                                        fontSize: 10.5,\n75\t                                        lineHeight: 1.4,\n76\t                                        px: 0.75,\n77\t                                    }}\n78\t                                >\n79\t                                    ⌘K\n80\t                                </Box>\n81\t                            </InputAdornment>\n82\t                        ),\n83\t                        startAdornment: (\n84\t                            <InputAdornment position=\"start\">\n85\t                                <Magnify fontSize=\"small\" />\n86\t                            </InputAdornment>\n87\t                        ),\n88\t                        sx: {\n89\t                            bgcolor: 'background.default',\n90\t                            borderRadius: 99,\n91\t                            fontSize: 13,\n92\t                            height: 32,\n93\t                            '& fieldset': { borderColor: 'divider' },\n94\t                        },\n95\t                    },\n96\t                }}\n97\t                style={NO_DRAG_REGION}\n98\t                value={query}\n99\t                variant=\"outlined\"\n100\t            />\n101\t        )\n102\t    }\n103\t\n104\t    return (\n105\t        <>\n106\t            <Tooltip title=\"Search\">\n107\t                <IconButton\n108\t                    aria-label=\"Search\"\n109\t                    onClick={openMobile}\n110\t                    size=\"small\"\n111\t                    sx={{ height: 34, width: 34 }}\n112\t                >\n113\t                    <Magnify />\n114\t                </IconButton>\n115\t            </Tooltip>\n116\t            <Popover\n117\t                anchorEl={searchAnchorElement}\n118\t                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}\n119\t                disableAutoFocus\n120\t                onClose={closeMobile}\n121\t                open={!!searchAnchorElement}\n122\t                slotProps={{paper: { sx: { mt: 0.5, overflow: 'visible', p: 1, width: `min(${RESULTS_WIDTH}px, calc(100vw - 32px))` } }}}\n123\t                transformOrigin={{ horizontal: 'right', vertical: 'top' }}\n124\t            >\n125\t                {searchAnchorElement ? (\n126\t                    <SearchPanel\n127\t                        initialQuery={query}\n128\t                        onClose={closeMobile}\n129\t                        onQueryChange={updateQuery}\n130\t                        regexpAgent={regexpAgent}\n131\t                    />\n132\t                ) : null}\n133\t            </Popover>\n134\t        </>\n135\t    )\n136\t}\n137\t",
+          "providerItemId": "toolu_01BLnravAsSVgnFgwxrzshgK",
+          "sequence": 18,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:08:15.380Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "Now I have a complete picture. Let me understand F_200:\n\n- **Feature**: In global search results, highlight the search term in the context text shown for each result.\n- **Current state**: `search_results.tsx` renders `match.context` as a plain string in `secondary` — no highlighting of the matched text within the context snippet.\n- The `SearchMatch` has `context` (a raw text string with surrounding text) and the `search_project.ts` `buildContext` function returns just text — no position/offset info for the match within the context string.\n- There's no component for rendering highlighted text in search results, so I'll need to either pass the match position down to `SearchResults` for highlighting, or restructure `SearchMatch.context` to carry the matched range explicitly. Looking at `buildContext`, it slices a snippet from `text` using a `MatchLocation`, so I can compute where the match falls within that snippet accounting for the ellipsis prefix, and expose that as a `matchRange` on the result.\n\nAlternatively, the simpler route is to re-find the query string within the context at render time inside `SearchResults`, passing along the query and mode (text/regexp) so it can build a matcher per-result without changing the `SearchMatch` type at all -- that feels cleaner for this codebase. I still need to decide whether to use MUI's `mark` element or a custom styled span, and whether `ActionSearchMatch` needs the same treatment.\n\n`SearchPanel` already has `query` and `mode`, so I just need to thread them down to `SearchResults`. For matching, I'll re-run regex or case-insensitive indexOf against the context string at render time, with no changes needed to `SearchMatch` or `search_project.ts`, and style the highlight with the theme's warning color. If the match can't be relocated due to whitespace normalization or regex flags, I'll just fall back to rendering plain text.\n\nAction search matches should get the same highlighting treatment, again without touching the underlying types or service. I'm noting that `buildContext` normalizes whitespace via a regex replace and trim, which could occasionally cause regexp matches spanning whitespace to not re-find cleanly -- worth flagging as an implementation detail. Now I'll write up the feature document concisely but completely.",
+          "details": [
+            "Now I have a complete picture. Let me understand F_200:\n\n- **Feature**: In global search results, highlight the search term in the context text shown for each result.\n- **Current state**: `search_results.tsx` renders `match.context` as a plain string in `secondary` — no highlighting of the matched text within the context snippet.\n- The `SearchMatch` has `context` (a raw text string with surrounding text) and the `search_project.ts` `buildContext` function returns just text — no position/offset info for the match within the context string.\n- There's no component for rendering highlighted text in search results, so I'll need to either pass the match position down to `SearchResults` for highlighting, or restructure `SearchMatch.context` to carry the matched range explicitly. Looking at `buildContext`, it slices a snippet from `text` using a `MatchLocation`, so I can compute where the match falls within that snippet accounting for the ellipsis prefix, and expose that as a `matchRange` on the result.\n\nAlternatively, the simpler route is to re-find the query string within the context at render time inside `SearchResults`, passing along the query and mode (text/regexp) so it can build a matcher per-result without changing the `SearchMatch` type at all -- that feels cleaner for this codebase. I still need to decide whether to use MUI's `mark` element or a custom styled span, and whether `ActionSearchMatch` needs the same treatment.\n\n`SearchPanel` already has `query` and `mode`, so I just need to thread them down to `SearchResults`. For matching, I'll re-run regex or case-insensitive indexOf against the context string at render time, with no changes needed to `SearchMatch` or `search_project.ts`, and style the highlight with the theme's warning color. If the match can't be relocated due to whitespace normalization or regex flags, I'll just fall back to rendering plain text.\n\nAction search matches should get the same highlighting treatment, again without touching the underlying types or service. I'm noting that `buildContext` normalizes whitespace via a regex replace and trim, which could occasionally cause regexp matches spanning whitespace to not re-find cleanly -- worth flagging as an implementation detail. Now I'll write up the feature document concisely but completely."
+          ],
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-event-19",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeCPwNb2kfTB4y5BATsZa:thinking:0",
+          "sequence": 19,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:08:44.250Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nGot full picture. Writing the update now.",
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-turn-1-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 20,
+          "timestamp": "2026-08-19T16:08:44.251Z"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-event-21",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport { Box, IconButton, InputAdornment, Paper, TextField, ToggleButton, Tooltip } from '@mui/material'\n2\timport type { ChangeEvent, FocusEvent } from 'react'\n3\timport { useEffect, useState } from 'react'\n4\timport AutoFix from 'mdi-material-ui/AutoFix'\n5\timport FileSearchOutline from 'mdi-material-ui/FileSearchOutline'\n6\timport LightningBolt from 'mdi-material-ui/LightningBolt'\n7\timport Magnify from 'mdi-material-ui/Magnify'\n8\timport Regex from 'mdi-material-ui/Regex'\n9\timport type { ActionContext } from '../../../data/action_context'\n10\timport type { ActionDefinition } from '../../../data/action_types'\n11\timport { ActionPopup } from '../../actions/run/popup/action_popup'\n12\timport { useActions } from '../../hooks/use_actions'\n13\timport { useProjectState } from '../../hooks/use_project_state'\n14\timport { dialogService } from '../../../services/dialog_service'\n15\timport { InvalidSearchPatternError, defaultSearchRegexpAgent, searchActions, searchProject } from '../../../services/search/search_project'\n16\timport type { SearchMode, SearchRegexpAgent, SearchResults as SearchResultsData } from '../../../services/search/search_types'\n17\timport { workspaceNavigationService } from '../../../services/project/workspace_navigation_service'\n18\timport { useWorkspaceView } from '../../hooks/use_workspace_view'\n19\timport { NO_DRAG_REGION } from '../drag_region'\n20\timport { SearchResults } from './search_results'\n21\timport { useProjectConfig } from '../../hooks/use_project_config'\n22\t\n23\tconst RESULTS_MAX_HEIGHT = 420\n24\tconst RESULTS_WIDTH = 460\n25\tconst DROPDOWN_TOP_OFFSET = 4\n26\tconst EMPTY_RESULTS: SearchResultsData = { active: [], actions: [], backgroundGroups: [] }\n27\tconst SEARCH_ACTION_CONTEXT: ActionContext = { folder: '', kind: 'folder' }\n28\t\n29\tinterface SearchPanelProps {\n30\t    initialQuery: string\n31\t    onClose: () => void\n32\t    onQueryChange: (query: string) => void\n33\t    /** Builds a RegExp from the current query; defaults to the not-yet-available agent. */\n34\t    regexpAgent?: SearchRegexpAgent\n35\t}\n36\t\n37\t/** Top-shell search: plain/RegExp text search over the loaded project with grouped, navigable results. */\n38\texport function SearchPanel(props: SearchPanelProps) {\n39\t    const { initialQuery, onClose, onQueryChange, regexpAgent = defaultSearchRegexpAgent } = props\n40\t    const { snapshot } = useProjectState()\n41\t    const projectConfig = useProjectConfig()\n42\t    const { actions } = useActions()\n43\t    const { viewMode } = useWorkspaceView()\n44\t    const [query, setQuery] = useState(initialQuery)\n45\t    const [mode, setMode] = useState<SearchMode>('text')\n46\t    const [includeBackgroundBody, setIncludeBackgroundBody] = useState(false)\n47\t    const [includeActions, setIncludeActions] = useState(false)\n48\t    const [results, setResults] = useState<SearchResultsData>(EMPTY_RESULTS)\n49\t    const [isDismissed, setIsDismissed] = useState(false)\n50\t    const [isAgentBusy, setIsAgentBusy] = useState(false)\n51\t    const [actionPopupOpen, setActionPopupOpen] = useState(false)\n52\t    const [controlElement, setControlElement] = useState<HTMLDivElement | null>(null)\n53\t\n54\t    const hasQuery = query.trim().length > 0\n55\t    const isDropdownOpen = !isDismissed\n56\t    const shouldShowResults = hasQuery\n57\t\n58\t    useEffect(() => {\n59\t        controlElement?.querySelector<HTMLInputElement>('input')?.focus()\n60\t    }, [controlElement])\n61\t\n62\t    // Runs the search and, on an invalid expression, keeps the previous results while surfacing the error.\n63\t    const applySearch = (nextQuery: string, nextMode: SearchMode, nextIncludeBackgroundBody: boolean, nextIncludeActions: boolean) => {\n64\t        if (nextQuery.trim().length === 0 || !snapshot) {\n65\t            setResults(EMPTY_RESULTS)\n66\t\n67\t            return\n68\t        }\n69\t\n70\t        try {\n71\t            const options = { includeActions: nextIncludeActions, includeBackgroundBody: nextIncludeBackgroundBody, mode: nextMode }\n72\t            const specialFolderPaths = projectConfig\n73\t                ? [projectConfig.releasesFolder, projectConfig.archivedFolder]\n74\n[6041 characters omitted]\n              }}\n215\t                    value={query}\n216\t                    variant=\"outlined\"\n217\t                />\n218\t            </Box>\n219\t            {isDropdownOpen ? (\n220\t                <Paper\n221\t                    aria-label=\"Search dropdown\"\n222\t                    elevation={4}\n223\t                    role=\"region\"\n224\t                    style={NO_DRAG_REGION}\n225\t                    sx={{\n226\t                        left: 0,\n227\t                        maxHeight: RESULTS_MAX_HEIGHT,\n228\t                        overflow: 'auto',\n229\t                        position: 'absolute',\n230\t                        right: 0,\n231\t                        top: `calc(100% + ${DROPDOWN_TOP_OFFSET}px)`,\n232\t                        zIndex: 'modal',\n233\t                    }}\n234\t                >\n235\t                    <Box aria-label=\"Search options\" role=\"group\" sx={{ alignItems: 'center', display: 'flex', gap: 1, p: 1 }}>\n236\t                        <Tooltip title=\"RegExp mode\">\n237\t                            <ToggleButton\n238\t                                aria-label=\"RegExp mode\"\n239\t                                onChange={handleToggleRegexp}\n240\t                                selected={mode === 'regexp'}\n241\t                                size=\"small\"\n242\t                                value=\"regexp\"\n243\t                            >\n244\t                                <Regex fontSize=\"small\" />\n245\t                            </ToggleButton>\n246\t                        </Tooltip>\n247\t                        <Tooltip title=\"Search background file bodies\">\n248\t                            <ToggleButton\n249\t                                aria-label=\"Search background file bodies\"\n250\t                                onChange={handleToggleBackgroundBody}\n251\t                                selected={includeBackgroundBody}\n252\t                                size=\"small\"\n253\t                                value=\"background-body\"\n254\t                            >\n255\t                                <FileSearchOutline fontSize=\"small\" />\n256\t                            </ToggleButton>\n257\t                        </Tooltip>\n258\t                        <Tooltip title=\"Search actions\">\n259\t                            <ToggleButton\n260\t                                aria-label=\"Search actions\"\n261\t                                onChange={handleToggleActions}\n262\t                                selected={includeActions}\n263\t                                size=\"small\"\n264\t                                value=\"actions\"\n265\t                            >\n266\t                                <LightningBolt fontSize=\"small\" />\n267\t                            </ToggleButton>\n268\t                        </Tooltip>\n269\t                        <Tooltip title=\"Ask agent to build a RegExp\">\n270\t                            <span>\n271\t                                <IconButton\n272\t                                    aria-label=\"Ask agent to build a RegExp\"\n273\t                                    disabled={isAgentBusy || !hasQuery}\n274\t                                    onClick={handleAskAgent}\n275\t                                    size=\"small\"\n276\t                                >\n277\t                                    <AutoFix fontSize=\"small\" />\n278\t                                </IconButton>\n279\t                            </span>\n280\t                        </Tooltip>\n281\t                    </Box>\n282\t                    {shouldShowResults ? (\n283\t                        <SearchResults onActionSelect={handleSelectAction} onSelect={handleSelect} results={results} />\n284\t                    ) : null}\n285\t                </Paper>\n286\t            ) : null}\n287\t            {actionPopupOpen ? (\n288\t                <ActionPopup\n289\t                    anchorElement={controlElement}\n290\t                    context={SEARCH_ACTION_CONTEXT}\n291\t                    draggable\n292\t                    onClose={closeActionPopup}\n293\t                />\n294\t            ) : null}\n295\t        </Box>\n296\t    )\n297\t}\n298\t",
+          "providerItemId": "toolu_01DJLhRKBpPBEJXqeod9qYTB",
+          "sequence": 21,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:08:44.276Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "Now I have the complete picture. Let me write the feature description.\n\n**Current state**:\n- Search is fully implemented (F_017 complete). `search_project.ts` produces `SearchMatch` objects with a `context` string (plain text snippet, ±40 chars around the match, whitespace-normalized). `search_results.tsx` renders `context` as a plain secondary string in `ListItemText.secondary` — no visual distinction of the matched portion. Same for `ActionSearchMatch.context`.\n- `buildContext` does not preserve the match offset within the returned snippet — it returns a raw string only.\n- `SearchPanel` owns `query` and `mode` but doesn't pass them down to `SearchResults`, so I need to thread those through as props and re-locate the match within each context string to highlight it with a `<mark>` element, styled via MUI's sx prop.\n\nI'll apply the same highlighting logic to `renderActionMatch`, and handle the edge case where whitespace normalization in `buildContext` causes the match to not be re-findable — falling back to plain text rather than throwing. No changes needed to the underlying types or search logic files. The acceptance criteria center on visually distinguishing matched text in both search modes while gracefully degrading when a match can't be relocated.\n\nNow I need to actually write the markdown update itself, adding \"Current state,\" \"implementation details,\" and \"acceptance criteria\" sections to a doc that currently only has a one-line description, plus updating its status.",
+          "details": [
+            "Now I have the complete picture. Let me write the feature description.\n\n**Current state**:\n- Search is fully implemented (F_017 complete). `search_project.ts` produces `SearchMatch` objects with a `context` string (plain text snippet, ±40 chars around the match, whitespace-normalized). `search_results.tsx` renders `context` as a plain secondary string in `ListItemText.secondary` — no visual distinction of the matched portion. Same for `ActionSearchMatch.context`.\n- `buildContext` does not preserve the match offset within the returned snippet — it returns a raw string only.\n- `SearchPanel` owns `query` and `mode` but doesn't pass them down to `SearchResults`, so I need to thread those through as props and re-locate the match within each context string to highlight it with a `<mark>` element, styled via MUI's sx prop.\n\nI'll apply the same highlighting logic to `renderActionMatch`, and handle the edge case where whitespace normalization in `buildContext` causes the match to not be re-findable — falling back to plain text rather than throwing. No changes needed to the underlying types or search logic files. The acceptance criteria center on visually distinguishing matched text in both search modes while gracefully degrading when a match can't be relocated.\n\nNow I need to actually write the markdown update itself, adding \"Current state,\" \"implementation details,\" and \"acceptance criteria\" sections to a doc that currently only has a one-line description, plus updating its status."
+          ],
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-event-22",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeCPyV9EkXtD6CQQyeqBE:thinking:0",
+          "sequence": 22,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:09:02.433Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nClear picture. Updating the file now.",
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-turn-1-assistant-5",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 23,
+          "timestamp": "2026-08-19T16:09:02.438Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-event-24",
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_200_search_results_highlight_text.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01K4CB3xiqe45BA5Y45LPR77",
+          "sequence": 24,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:09:15.697Z",
+          "type": "fileChange"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nDone. `F_200` now has all three sections and `status: ready for implementation`.\n\nKey decisions captured:\n- Re-locate match at render time (no type changes needed) — simplest path\n- `SearchPanel` passes `query`/`mode` to `SearchResults`; only two files change\n- Whitespace-normalization edge case documented with plain-text fallback",
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-turn-1-assistant-6",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 25,
+          "timestamp": "2026-08-19T16:09:20.109Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-8a0df4d6-df8f-47ae-9943-5b7c9832ba6a",
+      "providerSessions": [],
+      "startedAt": "2026-08-19T16:07:50.787Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-08-19T16:07:50.787Z"
+      },
+      "title": "complete",
+      "usage": {
+        "cachedInputTokens": 319987,
+        "inputTokens": 13,
+        "outputTokens": 4039,
+        "reasoningTokens": 0,
+        "totalTokens": 324039,
+        "costUsd": 0.4207182
+      },
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "cc3a9c43-319b-4a60-a202-f728f220e14e",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 4
+}
