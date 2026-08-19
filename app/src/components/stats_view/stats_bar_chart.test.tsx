@@ -51,6 +51,9 @@ describe('StatsBarChart', () => {
         expect(screen.getByText('18 Aug')).toBeInTheDocument();
         expect(screen.getByText('5')).toBeInTheDocument();
         expect(screen.getByRole('listitem')).toHaveAccessibleName('18 Aug; codex; 5 tokens; exact context');
+        expect(screen.getByLabelText('Stats bar chart legend')).toHaveStyle({ left: '0', position: 'sticky' });
+        expect(screen.getByTestId('stats-chart-canvas')).toHaveStyle({ flex: '1' });
+        expect(screen.getByTestId('stats-bar')).toHaveStyle({ height: 'calc(100% - 20px)' });
     });
 
     it('positions corrections against a zero baseline', () => {
@@ -58,7 +61,7 @@ describe('StatsBarChart', () => {
 
         expect(screen.getByLabelText('Zero baseline')).toBeInTheDocument();
         expect(screen.getByText('-2 pp')).toBeInTheDocument();
-        expect(screen.getByTestId('stats-bar')).toHaveStyle({ top: '130px' });
+        expect(screen.getByTestId('stats-bar')).toHaveStyle({ top: '50%' });
     });
 
     it('labels unavailable zero values without changing their numeric row value', () => {

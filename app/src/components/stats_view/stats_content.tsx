@@ -54,7 +54,6 @@ export function StatsContent() {
         ? 'grouped'
         : controls.dataset === 'activityOverTime' && controls.activityMetric === 'actions' ? 'stacked' : 'single';
     const exclusions = Object.entries(snapshot.exclusionCounts) as Array<[StatsExclusionReason, number]>;
-    const fillChartPanel = tokenMetricUnavailable || snapshot.rows.length === 0 || controls.dataset === 'usageComparison';
 
     return (
         <Stack sx={{ flex: 1, minHeight: 0, p: 2.5, width: '100%' }} spacing={2}>
@@ -85,7 +84,7 @@ export function StatsContent() {
                     borderColor: 'divider',
                     borderRadius: 2,
                     display: 'flex',
-                    flex: fillChartPanel ? 1 : '0 0 auto',
+                    flex: 1,
                     minHeight: 0,
                     overflow: 'hidden',
                 }}

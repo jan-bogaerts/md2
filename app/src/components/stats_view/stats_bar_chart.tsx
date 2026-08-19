@@ -3,7 +3,7 @@ import type { StatsChartRow } from '../../services/stats/project_stats_service';
 
 const BAR_SLOT_WIDTH = 72;
 const BUCKET_WIDTH = 112;
-const CHART_HEIGHT = 260;
+const MINIMUM_CHART_HEIGHT = 260;
 const VALUE_LABEL_HEIGHT = 20;
 
 export type StatsBarMode = 'grouped' | 'groupedStacked' | 'single' | 'stacked';
@@ -88,6 +88,25 @@ function maximumMagnitude(buckets: BucketRows[], mode: StatsBarMode) {
     return Math.max(...values, 0);
 }
 
+interface ScaledPosition {
+    labelOffset: number;
+    percentage: number;
+}
+
+function scaledPosition(value: number, maximum: number, domainPercentage: number): ScaledPosition {
+    if (maximum === 0) return { labelOffset: 0, percentage: 0 };
+    const ratio = Math.abs(value) / maximum;
+
+    return { labelOffset: ratio * VALUE_LABEL_HEIGHT, percentage: ratio * domainPercentage };
+}
+
+function positionCss({ labelOffset, percentage }: ScaledPosition, baselinePercentage = 0) {
+    const totalPercentage = baselinePercentage + percentage;
+    if (totalPercentage === 0) return 0;
+
+    return `calc(${totalPercentage}% - ${labelOffset}px)`;
+}
+
 /** Theme-backed chart with fixed bucket geometry and accessible grouped stacks. */
 export function StatsBarChart({ ariaLabel = 'Stats bar chart', mode = 'single', rows }: StatsBarChartProps) {
     const theme = useTheme();
@@ -98,15 +117,28 @@ export function StatsBarChart({ ariaLabel = 'Stats bar chart', mode = 'single', 
     const legend = [...new Map(rows.flatMap((row) => (
         row.seriesIdentity && row.seriesLabel ? [[row.seriesIdentity, row.seriesLabel] as [string, string]] : []
     ))).entries()];
-    const baselineOffset = hasNegativeDomain ? CHART_HEIGHT / 2 : 0;
-    const availableHeight = (hasNegativeDomain ? CHART_HEIGHT / 2 : CHART_HEIGHT) - VALUE_LABEL_HEIGHT;
+    const baselinePercentage = hasNegativeDomain ? 50 : 0;
+    const domainPercentage = hasNegativeDomain ? 50 : 100;
 
     return (
-        <Stack sx={{ minHeight: 0 }}>
+        <Stack sx={{ height: '100%', minHeight: MINIMUM_CHART_HEIGHT + 72 }}>
             {legend.length > 0 ? (
                 <Box
                     aria-label={`${ariaLabel} legend`}
-                    sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, justifyContent: 'flex-start', px: 2, pt: 1.5 }}
+                    sx={{
+                        alignSelf: 'flex-start',
+                        bgcolor: 'background.paper',
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: 1.5,
+                        justifyContent: 'flex-start',
+                        left: 0,
+                        maxWidth: '100vw',
+                        position: 'sticky',
+                        px: 2,
+                        pt: 1.5,
+                        zIndex: 1,
+                    }}
                 >
                     {legend.map(([identity, label]) => (
                         <Stack direction="row" key={identity} spacing={0.75} sx={{ alignItems: 'center' }}>
@@ -130,7 +162,8 @@ export function StatsBarChart({ ariaLabel = 'Stats bar chart', mode = 'single', 
                 sx={{
                     alignItems: 'stretch',
                     display: 'flex',
-                    minHeight: CHART_HEIGHT + 72,
+                    flex: 1,
+                    minHeight: MINIMUM_CHART_HEIGHT + 48,
                     minWidth: buckets.length * BUCKET_WIDTH,
                     p: 2,
                 }}
@@ -142,56 +175,63 @@ export function StatsBarChart({ ariaLabel = 'Stats bar chart', mode = 'single', 
                         <Box
                             data-testid="stats-bucket"
                             key={bucket.identity}
-                            sx={{ display: 'flex', flex: `0 0 ${BUCKET_WIDTH}px`, flexDirection: 'column', width: BUCKET_WIDTH }}
+                            sx={{ display: 'flex', flex: `0 0 ${BUCKET_WIDTH}px`, flexDirection: 'column', minHeight: 0, width: BUCKET_WIDTH }}
                         >
                             <Box sx={{ height: 24 }} />
-                            <Box sx={{ display: 'flex', height: CHART_HEIGHT, justifyContent: 'center', position: 'relative' }}>
+                            <Box
+                                data-testid="stats-chart-canvas"
+                                sx={{ display: 'flex', flex: 1, justifyContent: 'center', minHeight: MINIMUM_CHART_HEIGHT, position: 'relative' }}
+                            >
                                 <Box
                                     aria-label="Zero baseline"
-                                    sx={{ bgcolor: 'divider', bottom: baselineOffset, height: 1, left: 0, position: 'absolute', right: 0 }}
+                                    sx={{ bgcolor: 'divider', bottom: `${baselinePercentage}%`, height: 1, left: 0, position: 'absolute', right: 0 }}
                                 />
                                 <Box
                                     data-testid="stats-bar-slot"
-                                    sx={{ display: 'flex', gap: 0.5, height: CHART_HEIGHT, width: BAR_SLOT_WIDTH }}
+                                    sx={{ display: 'flex', gap: 0.5, height: '100%', width: BAR_SLOT_WIDTH }}
                                 >
                                     {bars.map((bar) => {
                                         const total = barTotal(bar);
                                         const stacked = mode === 'stacked' || mode === 'groupedStacked';
-                                        const barMagnitude = maximum === 0 ? 0 : (total / maximum) * availableHeight;
+                                        const barMagnitude = scaledPosition(total, maximum, domainPercentage);
 
                                         return (
                                             <Box
                                                 data-stack-identity={bar.identity}
                                                 key={bar.identity}
-                                                sx={{ flex: 1, height: CHART_HEIGHT, minWidth: 0, position: 'relative' }}
+                                                sx={{ flex: 1, height: '100%', minWidth: 0, position: 'relative' }}
                                             >
                                                 {stacked && total > 0 ? (
                                                     <Typography
                                                         color="text.secondary"
                                                         noWrap
-                                                        sx={{ bottom: baselineOffset + barMagnitude, left: 0, position: 'absolute', right: 0, textAlign: 'center' }}
+                                                        sx={{
+                                                            bottom: positionCss(barMagnitude, baselinePercentage),
+                                                            left: 0,
+                                                            position: 'absolute',
+                                                            right: 0,
+                                                            textAlign: 'center',
+                                                        }}
                                                         variant="caption"
                                                     >
                                                         {new Intl.NumberFormat().format(total)}
                                                     </Typography>
                                                 ) : null}
                                                 {bar.rows.map((row, index) => {
-                                                    const magnitude = maximum === 0
-                                                        ? 0
-                                                        : (Math.abs(row.value) / maximum) * availableHeight;
+                                                    const magnitude = scaledPosition(row.value, maximum, domainPercentage);
                                                     const priorMagnitude = stacked
-                                                        ? bar.rows.slice(0, index).reduce((height, segment) => (
-                                                            height + ((Math.max(segment.value, 0) / maximum) * availableHeight)
-                                                        ), 0)
-                                                        : 0;
+                                                        ? scaledPosition(bar.rows.slice(0, index).reduce((totalValue, segment) => (
+                                                            totalValue + Math.max(segment.value, 0)
+                                                        ), 0), maximum, domainPercentage)
+                                                        : { labelOffset: 0, percentage: 0 };
                                                     const identity = row.seriesIdentity ?? row.identity;
                                                     const color = palette[stableColorIndex(identity, palette.length)];
                                                     const isNegative = row.value < 0;
                                                     const barLabel = formattedValue(row);
                                                     const showBar = row.available && row.value !== 0;
                                                     const bottom = stacked
-                                                        ? baselineOffset + priorMagnitude
-                                                        : isNegative ? undefined : baselineOffset;
+                                                        ? positionCss(priorMagnitude, baselinePercentage)
+                                                        : isNegative ? undefined : `${baselinePercentage}%`;
 
                                                     return (
                                                         <Box
@@ -207,11 +247,11 @@ export function StatsBarChart({ ariaLabel = 'Stats bar chart', mode = 'single', 
                                                                         sx={{
                                                                             bgcolor: color,
                                                                             bottom,
-                                                                            height: magnitude,
+                                                                            height: positionCss(magnitude),
                                                                             left: 0,
                                                                             position: 'absolute',
                                                                             right: 0,
-                                                                            top: !stacked && isNegative ? baselineOffset : undefined,
+                                                                            top: !stacked && isNegative ? `${baselinePercentage}%` : undefined,
                                                                         }}
                                                                     />
                                                                 </Tooltip>
@@ -226,8 +266,8 @@ export function StatsBarChart({ ariaLabel = 'Stats bar chart', mode = 'single', 
                                                                         right: 0,
                                                                         textAlign: 'center',
                                                                         ...(isNegative
-                                                                            ? { top: baselineOffset + magnitude }
-                                                                            : { bottom: baselineOffset + magnitude }),
+                                                                            ? { top: positionCss(magnitude, baselinePercentage) }
+                                                                            : { bottom: positionCss(magnitude, baselinePercentage) }),
                                                                     }}
                                                                     title={barLabel}
                                                                     variant="caption"
