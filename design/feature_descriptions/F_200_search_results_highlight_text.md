@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__cc3a9c43-319b-4a60-a202-f728f220e14e.json
 policy:
-branch: f_200_search_results_highlight_text
-worktree: 1
 ---
 
 In the global search we show the list of search results with for each result, some text where the search term was found. We should highlight this text so its easy to see where the result is.
