@@ -3,7 +3,7 @@ author:
 id: B_153
 internalId: 4dec109e-fb6d-4cd6-92b2-741a5ad92f66
 title: check claude token count
-status: new
+status: design
 owner: 
 affects:
 agents:
