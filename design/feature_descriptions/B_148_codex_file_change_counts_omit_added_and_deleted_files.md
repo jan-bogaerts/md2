@@ -3,7 +3,7 @@ author:
 id: B_148
 internalId: 70a705b9-4e44-4487-8ac9-48722ba0ef92
 title: Codex file change counts omit added and deleted files
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
