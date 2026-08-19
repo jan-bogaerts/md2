@@ -10,8 +10,6 @@ agents:
   - design/activity/card__3ebc6426-47fe-41b8-bb66-da98818be9d9.json
 policy:
 after: b0e7104c-8f81-425e-8473-66b569a63d81
-branch: j_29_investigate_and_improve_stats_load_speed
-worktree: 1
 ---
 
 This file: [Trace-20260818T181428.json](file:///C:/Users/janbo/Documents/dev/Trace-20260818T181428.json) is a trace taken when loading the stats data for the stats view.
