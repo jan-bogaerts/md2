@@ -20,3 +20,4 @@ policy:
   * use 'vs' instead of 'versus' in the label
   * project activity needs to go to the bottom, last chart
   * account usage at top
+  * account usage has a light blue or gray bar for every
