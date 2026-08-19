@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__ad4126b2-1203-4a30-b222-636148bf92b1.json
 policy:
+after: d67b763d-819f-4e7e-aab5-c3c9f28e594d
 ---
 
 [F_208_add_view_stats.md](F_208_add_view_stats.md) added the stats view. Improve its chart layout and extend it to answer:
