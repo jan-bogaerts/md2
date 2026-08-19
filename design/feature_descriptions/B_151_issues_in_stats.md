@@ -13,3 +13,4 @@ policy:
 * stacks are horizontally centered. that looks like shit, impossible to compare values. bars should be aligned at the bottom. this is in
   * activity over time.
   * project activity (which is the same as above
+* bars have different widths on different charts. this is no good. they should all share the same basic styling
