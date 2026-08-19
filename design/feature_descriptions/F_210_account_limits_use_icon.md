@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__8624544e-9fd6-4a27-837c-95e504a2c5d6.json
 policy:
+after: e12bec54-f5a8-41ae-81ff-6da4b3a1982d
 ---
 
 we currently have 2 components on the status bar to display account limits. one is for claude, the other for codex. currently, we use only a label in the form of `Codex 10% used`&#x20;

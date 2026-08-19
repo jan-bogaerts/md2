@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 964ad5f3-3769-462c-a347-1ae01692fb03
 ---
 when an agents asks 1 or more questions, we currently don't appear to allow for any other response. it needs to be a selection between what the agent proposes. this is not ok, we also need to allow for 'other' responses or stop the response completely.
 
