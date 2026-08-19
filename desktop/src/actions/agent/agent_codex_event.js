@@ -102,7 +102,8 @@ function fileChangeContent(changes) {
 
 /** Count lines in complete added or deleted file content without treating a terminal newline as another line. */
 function countFileContentLines(content) {
-    if (typeof content !== 'string' || content.length === 0) return 0;
+    if (typeof content !== 'string') return null;
+    if (content.length === 0) return 0;
 
     const lines = content.replace(/\r\n/gu, '\n').split('\n');
 
@@ -152,8 +153,14 @@ function fileChangeLineUsage(changes) {
     if (!Array.isArray(changes)) return null;
     const countedChanges = changes
         .map(({ diff, kind }) => {
-            if (kind?.type === 'add') return { deletions: 0, insertions: countFileContentLines(diff) };
-            if (kind?.type === 'delete') return { deletions: countFileContentLines(diff), insertions: 0 };
+            if (kind?.type === 'add' || kind?.type === 'delete') {
+                const lineCount = countFileContentLines(diff);
+                if (lineCount === null) return null;
+
+                return kind.type === 'add'
+                    ? { deletions: 0, insertions: lineCount }
+                    : { deletions: lineCount, insertions: 0 };
+            }
             if (kind?.type === 'update') return countUnifiedDiffLines(diff);
 
             return null;

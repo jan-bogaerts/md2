@@ -81,6 +81,18 @@ describe('Codex event normalization', () => {
             .toMatchObject({ deletions: 1, insertions: 4 });
     });
 
+    it('does not count missing added-file content or discard another valid change', () => {
+        const changes = [
+            { kind: { type: 'add' }, path: 'missing-content.txt' },
+            { diff: 'one\ntwo', kind: { type: 'delete' }, path: 'deleted.txt' },
+        ];
+
+        expect(normalizeCodexEvent({ changes, id: 'file-missing-content', type: 'fileChange' }, 'completed'))
+            .toMatchObject({ deletions: 2, insertions: 0 });
+        expect(normalizeCodexEvent({ changes: [changes[0]], id: 'file-only-missing-content', type: 'fileChange' }, 'completed'))
+            .not.toMatchObject({ deletions: expect.anything(), insertions: expect.anything() });
+    });
+
     it('reports 141 insertions for verified 126-line addition plus 15-line update', () => {
         const addedContent = Array.from({ length: 126 }, (_, index) => `added ${index + 1}`).join('\n');
         const updateDiff = `@@ -0,0 +1,15 @@\n${Array.from({ length: 15 }, (_, index) => `+updated ${index + 1}`).join('\n')}`;
