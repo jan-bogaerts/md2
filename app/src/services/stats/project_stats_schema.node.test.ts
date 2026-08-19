@@ -56,7 +56,11 @@ describe('project stats schema', () => {
     it('calculates compact chart facts with stable identities', () => {
         const facts = calculateActivityStats([activity(), activity()])
 
-        expect(facts.actions).toEqual([expect.objectContaining({ identity: 'card:card-1:run-1' })])
+        expect(facts.actions).toEqual([expect.objectContaining({
+            actionType: 'agent',
+            agent: 'codex',
+            identity: 'card:card-1:run-1',
+        })])
         expect(facts.conversations).toEqual([expect.objectContaining({
             agent: 'codex',
             elapsedMs: 1_500,
@@ -76,7 +80,7 @@ describe('project stats schema', () => {
                 broken: { actions: [{ identity: 'missing-fields' }], conversations: [] },
                 v1: valid,
             },
-            version: 2,
+            version: 3,
         })
 
         const parsed = parseProjectStatsFile(content, 'design/project_stats.json')
@@ -95,8 +99,8 @@ describe('project stats schema', () => {
     })
 
     it('rejects malformed root schema', () => {
-        expect(() => parseProjectStatsFile('{"releases":{},"version":3}', 'design/project_stats.json'))
-            .toThrow('unsupported version 3')
+        expect(() => parseProjectStatsFile('{"releases":{},"version":2}', 'design/project_stats.json'))
+            .toThrow('unsupported version 2')
         expect(() => parseProjectStatsFile('{broken', 'design/project_stats.json')).toThrow()
     })
 })

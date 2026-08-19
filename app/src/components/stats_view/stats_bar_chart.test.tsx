@@ -7,23 +7,32 @@ import { StatsUsageComparisonCharts } from './stats_usage_comparison_charts';
 
 function row(overrides: Partial<StatsChartRow> = {}): StatsChartRow {
     return {
+        actionId: null,
+        actionType: null,
         accessibleLabel: '18 Aug; codex; 5 tokens; exact context',
+        agent: null,
         available: true,
         chartRole: 'primary',
         displayLabel: '18 Aug',
         grouping: 'day',
         identity: 'codex',
+        denominator: null,
+        limitId: null,
         metric: 'tokens',
+        numerator: null,
+        provider: null,
         sampleCount: null,
         seriesIdentity: 'codex',
         seriesLabel: 'Codex',
         stackIdentity: null,
+        stackLabel: null,
         statusCounts: null,
         tooltip: 'Local 18 Aug; UTC 2026-08-18T00:00:00.000Z to 2026-08-19T00:00:00.000Z; 5 tokens',
         unit: 'tokens',
         utcBucketEnd: '2026-08-19T00:00:00.000Z',
         utcBucketStart: '2026-08-18T00:00:00.000Z',
         value: 5,
+        windowId: null,
         ...overrides,
     };
 }
@@ -49,7 +58,7 @@ describe('StatsBarChart', () => {
 
         expect(screen.getByLabelText('Zero baseline')).toBeInTheDocument();
         expect(screen.getByText('-2 pp')).toBeInTheDocument();
-        expect(screen.getByRole('listitem').firstElementChild).toHaveStyle({ top: '130px' });
+        expect(screen.getByTestId('stats-bar')).toHaveStyle({ top: '130px' });
     });
 
     it('labels unavailable zero values without changing their numeric row value', () => {
@@ -57,19 +66,52 @@ describe('StatsBarChart', () => {
 
         expect(screen.getByText('Unavailable')).toBeInTheDocument();
         expect(screen.getByRole('listitem')).toHaveAccessibleName('Account usage unavailable');
+        expect(screen.queryByTestId('stats-bar')).toBeNull();
     });
 
-    it('renders three separately named usage comparison charts', () => {
-        renderChart(<StatsUsageComparisonCharts rows={[
-            row({ chartRole: 'activity' }),
-            row({ chartRole: 'projectTokens' }),
-            row({ chartRole: 'accountUsage', unit: 'percentagePoints' }),
+    it('keeps grouped bars inside one fixed bucket slot', () => {
+        renderChart(<StatsBarChart mode="grouped" rows={[
+            row({ identity: 'codex' }),
+            row({ identity: 'claude', seriesIdentity: 'claude', seriesLabel: 'Claude' }),
         ]} />);
 
-        expect(screen.getByRole('heading', { name: 'Project activity' })).toBeInTheDocument();
-        expect(screen.getByRole('heading', { name: 'Project token usage' })).toBeInTheDocument();
-        expect(screen.getByRole('heading', { name: 'Account usage' })).toBeInTheDocument();
+        expect(screen.getAllByTestId('stats-bucket')).toHaveLength(1);
+        expect(screen.getByTestId('stats-bucket')).toHaveStyle({ flex: '0 0 112px', width: '112px' });
+        expect(screen.getByTestId('stats-bar-slot')).toHaveStyle({ width: '72px' });
+        expect(screen.getAllByTestId('stats-bar')).toHaveLength(2);
+    });
+
+    it('renders grouped stacks as one bar per agent with action segments', () => {
+        const { container } = renderChart(<StatsBarChart mode="groupedStacked" rows={[
+            row({ actionId: 'review', agent: 'codex', identity: 'codex-review', stackIdentity: 'agent:codex', stackLabel: 'codex' }),
+            row({ actionId: 'test', agent: 'codex', identity: 'codex-test', seriesIdentity: 'test', seriesLabel: 'Test', stackIdentity: 'agent:codex', stackLabel: 'codex' }),
+            row({ actionId: 'review', agent: 'claude', identity: 'claude-review', stackIdentity: 'agent:claude', stackLabel: 'claude' }),
+        ]} />);
+
+        expect(container.querySelectorAll('[data-stack-identity]')).toHaveLength(2);
+        expect(screen.getAllByRole('listitem')).toHaveLength(3);
+        expect(screen.getByText('codex')).toBeInTheDocument();
+        expect(screen.getByText('claude')).toBeInTheDocument();
+    });
+
+    it('renders five usage comparison charts in required order', () => {
+        renderChart(<StatsUsageComparisonCharts rows={[
+            row({ chartRole: 'accountUsage', unit: 'percentagePoints' }),
+            row({ chartRole: 'projectTokens' }),
+            row({ chartRole: 'tokensPerAccountUsage' }),
+            row({ chartRole: 'actionsPerAccountUsage' }),
+            row({ chartRole: 'activity' }),
+        ]} />);
+
+        expect(screen.getAllByRole('heading').map(({ textContent }) => textContent)).toEqual([
+            'Account usage',
+            'Project token usage',
+            'Tokens per percent account usage',
+            'Actions per percent account usage',
+            'Project activity',
+        ]);
         expect(screen.getByRole('list', { name: 'Project token usage chart' })).toHaveAttribute('data-chart-mode', 'grouped');
+        expect(screen.getByRole('list', { name: 'Project activity chart' })).toHaveAttribute('data-chart-mode', 'groupedStacked');
         expect(screen.queryByTestId('stats-chart-viewport')).toBeNull();
     });
 });

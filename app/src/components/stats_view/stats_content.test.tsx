@@ -105,21 +105,27 @@ describe('StatsContent', () => {
         expect(screen.getByRole('combobox', { name: 'Activity granularity' })).toHaveTextContent('Month')
     })
 
-    it('shows account scope warning, selected account controls, and negative baseline', async () => {
-        const accountRow = '2026-08-12T09:00:00.000Z,account_usage,codex,weekly,window-a,10080,2026-08-17T00:00:00.000Z,,,,,,50,-2'
+    it('shows all account series and scope warning without account selectors', async () => {
+        const accountRows = [
+            '2026-08-12T09:00:00.000Z,account_usage,codex,weekly,window-a,10080,2026-08-17T00:00:00.000Z,,,,,,50,2',
+            '2026-08-12T09:30:00.000Z,account_usage,claude,five-hour,window-b,300,2026-08-12T14:00:00.000Z,,,,,,40,4',
+        ]
         projectStatsService.setControls({ dataset: 'usageComparison' })
         projectStatsService.bindProject({
             config,
             project: { branch: 'main', id: 'account' },
-            storage: metricsStorage(`${metricsHeader}\r\n${accountRow}\r\n`),
+            storage: metricsStorage([metricsHeader, ...accountRows].join('\r\n')),
         })
         await projectStatsService.open([])
         renderContent()
 
-        expect(screen.getByText('Account usage may include work outside this project.')).toBeInTheDocument()
-        expect(screen.getByRole('combobox', { name: 'Account provider' })).toHaveTextContent('codex')
-        expect(screen.getByRole('combobox', { name: 'Account limit' })).toHaveTextContent('weekly')
-        expect(screen.getByLabelText('Zero baseline')).toBeInTheDocument()
+        expect(screen.getByText(/Account usage may include other projects and external CLI sessions/u)).toBeInTheDocument()
+        expect(screen.queryByRole('combobox', { name: 'Account provider' })).toBeNull()
+        expect(screen.queryByRole('combobox', { name: 'Account limit' })).toBeNull()
+        expect(screen.queryByRole('combobox', { name: 'Account window' })).toBeNull()
+        expect(screen.getByLabelText('Account usage chart legend')).toHaveTextContent('codex / weekly / window-a')
+        expect(screen.getByLabelText('Account usage chart legend')).toHaveTextContent('claude / five-hour / window-b')
+        expect(screen.getAllByLabelText('Zero baseline')).toHaveLength(5)
         expect(screen.getAllByTestId('stats-chart-viewport')).toHaveLength(1)
     })
 

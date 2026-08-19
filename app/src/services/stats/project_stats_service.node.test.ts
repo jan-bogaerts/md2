@@ -306,6 +306,23 @@ describe('ProjectStatsService aggregation', () => {
         expect(statsStorage.loadTextFile).not.toHaveBeenCalledWith(project, releasePath)
     })
 
+    it('rebuilds legacy release stats after action attribution schema changes', async () => {
+        const releasePath = 'design/history/v1/card__card-1.json'
+        const files = {
+            'design/project_stats.json': JSON.stringify({ releases: {}, version: 2 }),
+            [releasePath]: activityContent({ records: [actionRecord('released', '2026-08-12T10:00:00.000Z')] }),
+        }
+        const statsStorage = storage(files)
+        const service = new ProjectStatsService()
+
+        await openService(service, statsStorage)
+
+        const migrationCommit = vi.mocked(statsStorage.commit).mock.calls.at(-1)?.[0]
+        if (!migrationCommit) throw new Error('Missing stats migration commit')
+        const parsed = parseProjectStatsFile(migrationCommit.files[0].content, 'design/project_stats.json')
+        expect(parsed.releases.v1.actions).toMatchObject([{ actionType: 'command', agent: null }])
+    })
+
     it('reconciles renamed and removed release folders on next session', async () => {
         const firstPath = 'design/history/v1/card__card-1.json'
         const secondPath = 'design/history/v2/card__card-1.json'
@@ -472,7 +489,7 @@ describe('ProjectStatsService aggregation', () => {
         })
     })
 
-    it('keeps account limits and windows separate and preserves negative corrections', async () => {
+    it('keeps account limits and windows separate while skipping negative corrections', async () => {
         const accountRows = [
             '2026-08-12T09:00:00.000Z,account_usage,codex,weekly,window-a,10080,2026-08-17T00:00:00.000Z,,,,,,50,-2',
             '2026-08-12T10:00:00.000Z,account_usage,codex,weekly,window-b,10080,2026-08-24T00:00:00.000Z,,,,,,60,9',
@@ -483,9 +500,52 @@ describe('ProjectStatsService aggregation', () => {
 
         expect(service.getSnapshot().options.accountSeries).toHaveLength(2)
         expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole === 'accountUsage')).toMatchObject([{
-            seriesLabel: 'codex / weekly / window-a',
-            value: -2,
+            seriesLabel: 'codex / weekly / window-b',
+            value: 9,
         }])
+        expect(service.getSnapshot().rows.some(({ seriesLabel }) => seriesLabel?.includes('window-a'))).toBe(false)
+    })
+
+    it('builds provider ratios and grouped agent activity without counting commands as provider actions', async () => {
+        const codexConversation = conversation({ actionId: 'codex-review', id: 'codex-conversation', title: 'Codex review' })
+        const claudeConversation = conversation({ actionId: 'claude-review', id: 'claude-conversation', title: 'Claude review' })
+        const records = [
+            agentRecord('codex-run', '2026-08-12T10:00:00.000Z', codexConversation.id, {rootActionId: 'codex-review', rootActionLabel: 'Review'}),
+            agentRecord('claude-run', '2026-08-12T11:00:00.000Z', claudeConversation.id, {
+                details: { agent: 'claude', model: 'sonnet', type: 'agent' },
+                rootActionId: 'claude-review', rootActionLabel: 'Review',
+            }),
+            actionRecord('command-run', '2026-08-12T12:00:00.000Z', {rootActionId: 'internal-command', rootActionLabel: 'Build'}),
+        ]
+        const metrics = [
+            metricsHeader,
+            '2026-08-12T09:00:00.000Z,token_usage,codex,,,,,7,1,1,1,10,,',
+            '2026-08-12T09:30:00.000Z,token_usage,claude,,,,,17,1,1,1,20,,',
+            '2026-08-12T13:00:00.000Z,account_usage,codex,weekly,codex-window,10080,2026-08-17T00:00:00.000Z,,,,,,50,2',
+            '2026-08-12T13:30:00.000Z,account_usage,claude,five-hour,claude-window,300,2026-08-12T18:00:00.000Z,,,,,,40,4',
+        ].join('\r\n')
+        const service = new ProjectStatsService()
+        await openService(service, storage({
+            'design/activity/card__card-1.json': activityContent({ conversations: [codexConversation, claudeConversation], records }),
+            'design/usage_metrics.csv': metrics,
+        }))
+        service.setControls({ dataset: 'usageComparison' })
+
+        expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole === 'tokensPerAccountUsage')).toMatchObject([
+            { denominator: 4, numerator: 20, provider: 'claude', value: 5 },
+            { denominator: 2, numerator: 10, provider: 'codex', value: 5 },
+        ])
+        expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole === 'actionsPerAccountUsage')).toMatchObject([
+            { denominator: 4, numerator: 1, provider: 'claude', value: 0.25 },
+            { denominator: 2, numerator: 1, provider: 'codex', value: 0.5 },
+        ])
+        expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole === 'activity')).toMatchObject([
+            { actionId: 'claude-review', agent: 'claude', seriesLabel: 'Review', stackLabel: 'claude', value: 1 },
+            { actionId: 'codex-review', agent: 'codex', seriesLabel: 'Review', stackLabel: 'codex', value: 1 },
+            { actionId: 'internal-command', actionType: 'command', seriesLabel: 'Build', stackLabel: 'Command', value: 1 },
+        ])
+        expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole === 'activity')
+            .every(({ seriesLabel }) => !seriesLabel?.includes('internal'))).toBe(true)
     })
 
     it('aligns usage comparison bucket domains and clears removed account selections after reload', async () => {
@@ -498,12 +558,14 @@ describe('ProjectStatsService aggregation', () => {
         await openService(service, storage(files))
         service.setControls({ dataset: 'usageComparison' })
 
-        const domains = ['activity', 'projectTokens', 'accountUsage'].map((chartRole) => (
+        const domains = ['accountUsage', 'projectTokens', 'tokensPerAccountUsage', 'actionsPerAccountUsage', 'activity'].map((chartRole) => (
             service.getSnapshot().rows.filter((row) => row.chartRole === chartRole).map(({ utcBucketStart }) => utcBucketStart)
         ))
         expect(domains[0]).toEqual(['2026-08-12T00:00:00.000Z', '2026-08-13T00:00:00.000Z', '2026-08-14T00:00:00.000Z'])
         expect(domains[1]).toEqual(domains[0])
         expect(domains[2]).toEqual(domains[0])
+        expect(domains[3]).toEqual(domains[0])
+        expect(domains[4]).toEqual(domains[0])
         expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole === 'accountUsage')).toMatchObject([
             { available: false, value: 0 },
             { available: false, value: 0 },
@@ -513,7 +575,8 @@ describe('ProjectStatsService aggregation', () => {
         files['design/usage_metrics.csv'] = metricsHeader
         service.close()
         await service.open(cards)
-        expect(service.getSnapshot().controls).toMatchObject({ usageLimitId: null, usageProvider: null, usageWindowId: null })
+        expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole === 'accountUsage'))
+            .toEqual([expect.objectContaining({ available: false, seriesIdentity: null, value: 0 })])
     })
 
     it('keeps unavailable comparison values numeric zero and marks them unavailable', async () => {
@@ -522,8 +585,10 @@ describe('ProjectStatsService aggregation', () => {
         service.setControls({ dataset: 'usageComparison' })
 
         expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole !== 'activity')).toMatchObject([
-            { available: false, chartRole: 'projectTokens', value: 0 },
             { available: false, chartRole: 'accountUsage', value: 0 },
+            { available: false, chartRole: 'projectTokens', value: 0 },
+            { available: false, chartRole: 'tokensPerAccountUsage', value: 0 },
+            { available: false, chartRole: 'actionsPerAccountUsage', value: 0 },
         ])
     })
 

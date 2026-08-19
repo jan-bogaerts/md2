@@ -71,7 +71,10 @@ export function StatsContent() {
                 </Typography>
             ) : null}
             {controls.dataset === 'usageComparison' ? (
-                <Typography color="text.secondary" variant="body2">Account usage may include work outside this project.</Typography>
+                <Typography color="text.secondary" variant="body2">
+                    Account usage may include other projects and external CLI sessions. Ratios compare project work with
+                    account-wide consumption; they do not attribute all account usage to this project.
+                </Typography>
             ) : null}
             <Paper elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 2, display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
                 {tokenMetricUnavailable ? (

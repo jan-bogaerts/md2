@@ -6,13 +6,15 @@ interface StatsUsageComparisonChartsProps {
     rows: StatsChartRow[];
 }
 
-const CHARTS: Array<{ label: string; mode: 'grouped' | 'single' | 'stacked'; role: StatsChartRole }> = [
-    { label: 'Project activity', mode: 'stacked', role: 'activity' },
+const CHARTS: Array<{ label: string; mode: 'grouped' | 'groupedStacked'; role: StatsChartRole }> = [
+    { label: 'Account usage', mode: 'grouped', role: 'accountUsage' },
     { label: 'Project token usage', mode: 'grouped', role: 'projectTokens' },
-    { label: 'Account usage', mode: 'single', role: 'accountUsage' },
+    { label: 'Tokens per percent account usage', mode: 'grouped', role: 'tokensPerAccountUsage' },
+    { label: 'Actions per percent account usage', mode: 'grouped', role: 'actionsPerAccountUsage' },
+    { label: 'Project activity', mode: 'groupedStacked', role: 'activity' },
 ];
 
-/** Three separately scaled charts aligned by shared UTC buckets. */
+/** Separately scaled comparison charts aligned by shared UTC buckets. */
 export function StatsUsageComparisonCharts({ rows }: StatsUsageComparisonChartsProps) {
     return (
         <Stack spacing={2} sx={{ minWidth: '100%', p: 2, width: 'max-content' }}>

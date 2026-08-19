@@ -1,7 +1,7 @@
 import { activityOriginFromPath } from './activity_paths.mjs'
 import { parseActivityFileForMigration } from './card_activity.mjs'
 
-const RELEASE_STATS_VERSION = 2
+const RELEASE_STATS_VERSION = 3
 const CONVERSATION_STATUSES = new Set(['cancelled', 'completed', 'failed', 'running', 'waitingForInput'])
 const COMPLETED_ACTION_STATUSES = new Set(['completed', 'okButNotAfter'])
 const CODEX_TOOL_EVENT_TYPES = new Set([
@@ -68,12 +68,21 @@ function requiredBoolean(value, fieldName) {
     return value
 }
 
+function actionType(value, fieldName) {
+    const type = requiredString(value, fieldName)
+    if (type !== 'agent' && type !== 'command') throw new Error(`Malformed project stats: invalid ${fieldName}`)
+
+    return type
+}
+
 function parseAction(value, fieldName) {
     const action = requiredObject(value, fieldName)
 
     return {
         actionId: requiredString(action.actionId, `${fieldName}.actionId`),
         actionLabel: requiredString(action.actionLabel, `${fieldName}.actionLabel`),
+        actionType: actionType(action.actionType, `${fieldName}.actionType`),
+        agent: nullableString(action.agent, `${fieldName}.agent`),
         cardInternalId: nullableString(action.cardInternalId, `${fieldName}.cardInternalId`),
         completedAt: requiredTimestamp(action.completedAt, `${fieldName}.completedAt`),
         identity: requiredString(action.identity, `${fieldName}.identity`),
@@ -185,6 +194,8 @@ export function calculateActivityStats(activityFiles) {
             actions.set(identity, {
                 actionId: record.rootActionId,
                 actionLabel: record.rootActionLabel,
+                actionType: record.details.type,
+                agent: record.details.type === 'agent' ? record.details.agent ?? null : null,
                 cardInternalId: record.origin.kind === 'card' ? record.origin.cardInternalId : null,
                 completedAt: record.completedAt,
                 identity,

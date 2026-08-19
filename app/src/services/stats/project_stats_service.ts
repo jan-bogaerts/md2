@@ -25,8 +25,22 @@ export type StatsPerformanceGrouping = 'agent' | 'model';
 export type StatsTotalsGrouping = 'card' | 'action';
 export type StatsTotalsMetric = 'duration' | 'tokens';
 export type StatsStatus = 'idle' | 'loading' | 'ready' | 'error';
-export type StatsChartRole = 'primary' | 'activity' | 'projectTokens' | 'accountUsage';
-export type StatsUnit = 'actions' | 'cards' | 'milliseconds' | 'percentagePoints' | 'tokens' | 'toolCalls';
+export type StatsChartRole =
+    | 'primary'
+    | 'activity'
+    | 'projectTokens'
+    | 'accountUsage'
+    | 'tokensPerAccountUsage'
+    | 'actionsPerAccountUsage';
+export type StatsUnit =
+    | 'actions'
+    | 'actionsPerPercentagePoint'
+    | 'cards'
+    | 'milliseconds'
+    | 'percentagePoints'
+    | 'tokens'
+    | 'tokensPerPercentagePoint'
+    | 'toolCalls';
 export type StatsExclusionReason =
     | 'missingAttribution'
     | 'missingCompletion'
@@ -50,9 +64,6 @@ export interface StatsControls {
     totalsGrouping: StatsTotalsGrouping;
     totalsMetric: StatsTotalsMetric;
     usageGranularity: StatsShortGranularity;
-    usageLimitId: string | null;
-    usageProvider: string | null;
-    usageWindowId: string | null;
 }
 
 export interface StatsStatusCounts {
@@ -62,23 +73,32 @@ export interface StatsStatusCounts {
 }
 
 export interface StatsChartRow {
+    actionId: string | null;
+    actionType: 'agent' | 'command' | null;
     accessibleLabel: string;
+    agent: string | null;
     available: boolean;
     chartRole: StatsChartRole;
     displayLabel: string;
     grouping: string;
     identity: string;
+    denominator: number | null;
+    limitId: string | null;
     metric: string;
+    numerator: number | null;
+    provider: string | null;
     sampleCount: number | null;
     seriesIdentity: string | null;
     seriesLabel: string | null;
     stackIdentity: string | null;
+    stackLabel: string | null;
     statusCounts: StatsStatusCounts | null;
     tooltip: string;
     unit: StatsUnit;
     utcBucketEnd: string | null;
     utcBucketStart: string | null;
     value: number;
+    windowId: string | null;
 }
 
 export interface StatsCardDescriptor {
@@ -169,9 +189,6 @@ const INITIAL_CONTROLS: StatsControls = {
     totalsGrouping: 'card',
     totalsMetric: 'duration',
     usageGranularity: 'day',
-    usageLimitId: null,
-    usageProvider: null,
-    usageWindowId: null,
 };
 const INITIAL_SNAPSHOT: ProjectStatsSnapshot = {
     controls: INITIAL_CONTROLS,
@@ -308,7 +325,7 @@ function cardDisplay(cardInternalId: string, cardPath: string | null, cardsById:
 }
 
 function actionLabel(actionId: string, storedLabel: string | null) {
-    return storedLabel && storedLabel !== actionId ? `${storedLabel} (${actionId})` : actionId;
+    return storedLabel ?? actionId;
 }
 
 function mergeStats(statsSources: ReleaseStats[]) {
@@ -360,10 +377,6 @@ function retainValidSelections(selected: string[], available: Set<string>) {
 }
 
 function reconcileControls(controls: StatsControls, options: StatsOptions) {
-    const accountMatch = options.accountSeries.some(({ limitId, provider, windowId }) => (
-        provider === controls.usageProvider && limitId === controls.usageLimitId && windowId === controls.usageWindowId
-    ));
-
     return {
         ...controls,
         performanceActionIds: retainValidSelections(
@@ -372,9 +385,6 @@ function reconcileControls(controls: StatsControls, options: StatsOptions) {
         ),
         performanceAgentIds: retainValidSelections(controls.performanceAgentIds, new Set(options.agents.map(({ identity }) => identity))),
         performanceModelIds: retainValidSelections(controls.performanceModelIds, new Set(options.models.map(({ identity }) => identity))),
-        usageLimitId: accountMatch ? controls.usageLimitId : null,
-        usageProvider: accountMatch ? controls.usageProvider : null,
-        usageWindowId: accountMatch ? controls.usageWindowId : null,
     };
 }
 
@@ -389,24 +399,48 @@ function emptyTimeRow(
     const tooltip = `${context.localLabel}; UTC ${context.interval}; 0 ${unit}`;
 
     return {
+        actionId: null,
+        actionType: null,
         accessibleLabel: tooltip,
+        agent: null,
         available: true,
         chartRole,
         displayLabel: context.displayLabel,
         grouping: granularity,
         identity: bucket,
+        denominator: null,
+        limitId: null,
         metric,
+        numerator: null,
+        provider: null,
         sampleCount: null,
         seriesIdentity: null,
         seriesLabel: null,
         stackIdentity: null,
+        stackLabel: null,
         statusCounts: null,
         tooltip,
         unit,
         utcBucketEnd: context.end,
         utcBucketStart: bucket,
         value: 0,
+        windowId: null,
     } satisfies StatsChartRow;
+}
+
+function unavailableTimeRow(
+    bucket: string,
+    granularity: StatsGranularity,
+    chartRole: StatsChartRole,
+    metric: string,
+    unit: StatsUnit,
+    unavailableLabel: string,
+) {
+    const row = emptyTimeRow(bucket, granularity, chartRole, metric, unit);
+    const context = rowContext(bucket, granularity);
+    const tooltip = `${context.localLabel}; UTC ${context.interval}; ${unavailableLabel} unavailable`;
+
+    return { ...row, accessibleLabel: tooltip, available: false, tooltip };
 }
 
 function activityRows(
@@ -438,22 +472,14 @@ function activityRows(
                 const tooltip = `${context.localLabel}; UTC ${context.interval}; total ${total} actions; ${count.label}: ${count.value}`;
 
                 return {
+                    ...emptyTimeRow(bucket, granularity, chartRole, metric, 'actions'),
+                    actionId: identity,
                     accessibleLabel: tooltip,
-                    available: true,
-                    chartRole,
-                    displayLabel: context.displayLabel,
-                    grouping: granularity,
                     identity,
-                    metric,
-                    sampleCount: null,
                     seriesIdentity: identity,
                     seriesLabel: count.label,
                     stackIdentity: identity,
-                    statusCounts: null,
                     tooltip,
-                    unit: 'actions',
-                    utcBucketEnd: context.end,
-                    utcBucketStart: bucket,
                     value: count.value,
                 } satisfies StatsChartRow;
             });
@@ -490,27 +516,32 @@ function projectTokenRows(
     source: LoadedStatsSource,
     controls: StatsControls,
     granularity: StatsShortGranularity,
+    buckets: string[],
 ): StatsChartRow[] {
     const tokenRows = source.tokenRows.filter(({ recordedAt }) => inRange(recordedAt, controls));
-    const buckets = bucketDomain(tokenRows.map(({ recordedAt }) => recordedAt), granularity, controls);
+    const providers = [...new Set(tokenRows.map(({ provider }) => provider))].sort();
 
     return buckets.flatMap<StatsChartRow>((bucket) => {
-        const rows = tokenRows.filter(({ recordedAt }) => utcBucketStart(recordedAt, granularity) === bucket);
-        if (rows.length === 0) return [emptyTimeRow(bucket, granularity, 'projectTokens', 'tokens', 'tokens')];
-        const totals = new Map<string, number>();
-        for (const row of rows) totals.set(row.provider, (totals.get(row.provider) ?? 0) + row.totalTokens);
+        if (providers.length === 0) {
+            return source.tokenTimeAvailable
+                ? [emptyTimeRow(bucket, granularity, 'projectTokens', 'tokens', 'tokens')]
+                : [unavailableTimeRow(bucket, granularity, 'projectTokens', 'tokens', 'tokens', 'project token usage')];
+        }
         const context = rowContext(bucket, granularity);
 
-        return [...totals.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([provider, value]) => {
+        return providers.map((provider) => {
+            const value = tokenRows.filter((row) => (
+                row.provider === provider && utcBucketStart(row.recordedAt, granularity) === bucket
+            )).reduce((total, row) => total + row.totalTokens, 0);
             const tooltip = `${context.localLabel}; UTC ${context.interval}; ${provider}: ${value} tokens`;
 
             return {
                 ...emptyTimeRow(bucket, granularity, 'projectTokens', 'tokens', 'tokens'),
                 accessibleLabel: tooltip,
                 identity: provider,
+                provider,
                 seriesIdentity: provider,
                 seriesLabel: provider,
-                stackIdentity: provider,
                 tooltip,
                 value,
             };
@@ -518,47 +549,112 @@ function projectTokenRows(
     });
 }
 
-function accountRows(
+function accountSeriesLabel(series: StatsAccountSeriesOption) {
+    return `${series.provider} / ${series.limitId} / ${series.windowId}`;
+}
+
+function visibleAccountSeries(source: LoadedStatsSource, controls: StatsControls) {
+    const options = buildOptions(source).accountSeries;
+
+    return options.filter((series) => source.accountRows.filter((row) => (
+        accountSeriesIdentity(row) === series.identity
+        && inRange(row.recordedAt, controls)
+        && row.usedPercentDelta !== null
+        && row.usedPercentDelta >= 0
+    )).reduce((total, row) => total + row.usedPercentDelta!, 0) > 0);
+}
+
+function comparisonAccountRows(
     source: LoadedStatsSource,
     controls: StatsControls,
     granularity: StatsShortGranularity,
+    buckets: string[],
+    seriesOptions: StatsAccountSeriesOption[],
 ): StatsChartRow[] {
-    const selectedRows = source.accountRows.filter((row) => (
-        row.provider === controls.usageProvider
-        && row.limitId === controls.usageLimitId
-        && row.windowId === controls.usageWindowId
-        && inRange(row.recordedAt, controls)
-    ));
-    const buckets = bucketDomain(selectedRows.map(({ recordedAt }) => recordedAt), granularity, controls);
-    const selectedSeries = source.accountRows.find((row) => (
-        row.provider === controls.usageProvider
-        && row.limitId === controls.usageLimitId
-        && row.windowId === controls.usageWindowId
-    ));
-    const identity = selectedSeries ? accountSeriesIdentity(selectedSeries) : null;
-
-    return buckets.map((bucket) => {
-        const rows = selectedRows.filter(({ recordedAt }) => utcBucketStart(recordedAt, granularity) === bucket);
-        const available = rows.some(({ usedPercentDelta }) => usedPercentDelta !== null);
-        const value = rows.reduce((total, row) => total + (row.usedPercentDelta ?? 0), 0);
+    return buckets.flatMap((bucket) => {
+        if (seriesOptions.length === 0) {
+            return [unavailableTimeRow(bucket, granularity, 'accountUsage', 'accountUsage', 'percentagePoints', 'positive account usage')];
+        }
         const context = rowContext(bucket, granularity);
-        const resetTimes = [...new Set(rows.map(({ resetsAt }) => resetsAt))].join(', ') || 'unavailable';
-        const seriesLabel = selectedSeries
-            ? `${selectedSeries.provider} / ${selectedSeries.limitId} / ${selectedSeries.windowId}`
-            : null;
-        const displayedValue = available ? `${value} percentage points` : 'percentage-point delta unavailable';
-        const tooltip = `${context.localLabel}; UTC ${context.interval}; ${seriesLabel ?? 'Account usage'}; ${displayedValue}; window ${selectedSeries?.windowDurationMinutes ?? 'unavailable'} minutes; reset ${resetTimes}`;
 
-        return {
-            ...emptyTimeRow(bucket, granularity, 'accountUsage', 'accountUsage', 'percentagePoints'),
-            accessibleLabel: tooltip,
-            available,
-            identity: identity ?? bucket,
-            seriesIdentity: identity,
-            seriesLabel,
-            tooltip,
-            value,
-        };
+        return seriesOptions.map((series) => {
+            const rows = source.accountRows.filter((row) => (
+                accountSeriesIdentity(row) === series.identity
+                && inRange(row.recordedAt, controls)
+                && utcBucketStart(row.recordedAt, granularity) === bucket
+                && (row.usedPercentDelta === null || row.usedPercentDelta >= 0)
+            ));
+            const available = rows.some(({ usedPercentDelta }) => usedPercentDelta !== null);
+            const value = rows.reduce((total, row) => total + (row.usedPercentDelta ?? 0), 0);
+            const resetTimes = [...new Set(rows.map(({ resetsAt }) => resetsAt))].join(', ') || 'unavailable';
+            const seriesLabel = accountSeriesLabel(series);
+            const displayedValue = available ? `${value} percentage points` : 'percentage-point delta unavailable';
+            const tooltip = `${context.localLabel}; UTC ${context.interval}; ${seriesLabel}; ${displayedValue}; window ${series.windowDurationMinutes} minutes; reset ${resetTimes}`;
+
+            return {
+                ...emptyTimeRow(bucket, granularity, 'accountUsage', 'accountUsage', 'percentagePoints'),
+                accessibleLabel: tooltip,
+                available,
+                identity: series.identity,
+                limitId: series.limitId,
+                provider: series.provider,
+                seriesIdentity: series.identity,
+                seriesLabel,
+                tooltip,
+                value,
+                windowId: series.windowId,
+            };
+        });
+    });
+}
+
+function comparisonActivityRows(
+    source: LoadedStatsSource,
+    controls: StatsControls,
+    granularity: StatsShortGranularity,
+    buckets: string[],
+) {
+    const actionRecords = source.stats.actions.filter(({ completedAt }) => inRange(completedAt, controls));
+
+    return buckets.flatMap<StatsChartRow>((bucket) => {
+        const records = actionRecords.filter(({ completedAt }) => utcBucketStart(completedAt, granularity) === bucket);
+        if (records.length === 0) return [emptyTimeRow(bucket, granularity, 'activity', 'actions', 'actions')];
+        const counts = new Map<string, { actionId: string; actionType: 'agent' | 'command'; agent: string | null; label: string; stackIdentity: string; stackLabel: string; value: number }>();
+        for (const record of records) {
+            const stackIdentity = record.actionType === 'command' ? 'command' : `agent:${record.agent ?? 'unknown'}`;
+            const stackLabel = record.actionType === 'command' ? 'Command' : record.agent ?? 'Unknown agent';
+            const identity = `${stackIdentity}\u0000${record.actionId}`;
+            const current = counts.get(identity);
+            counts.set(identity, {
+                actionId: record.actionId,
+                actionType: record.actionType,
+                agent: record.agent,
+                label: actionLabel(record.actionId, record.actionLabel),
+                stackIdentity,
+                stackLabel,
+                value: (current?.value ?? 0) + 1,
+            });
+        }
+        const context = rowContext(bucket, granularity);
+
+        return [...counts.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([identity, count]) => {
+            const tooltip = `${context.localLabel}; UTC ${context.interval}; ${count.stackLabel}; ${count.label}: ${count.value} completed actions`;
+
+            return {
+                ...emptyTimeRow(bucket, granularity, 'activity', 'actions', 'actions'),
+                actionId: count.actionId,
+                actionType: count.actionType,
+                accessibleLabel: tooltip,
+                agent: count.agent,
+                identity,
+                seriesIdentity: count.actionId,
+                seriesLabel: count.label,
+                stackIdentity: count.stackIdentity,
+                stackLabel: count.stackLabel,
+                tooltip,
+                value: count.value,
+            };
+        });
     });
 }
 
@@ -648,23 +744,32 @@ function performanceRows(controls: StatsControls, samples: EligibleSample[]): St
             const tooltip = `${context.localLabel}; UTC ${context.interval}; ${seriesLabel}: ${value} ${unit}; ${sampleCount} samples; completed ${statusCounts.completed}, failed ${statusCounts.failed}, cancelled ${statusCounts.cancelled}`;
 
             return {
+                actionId: null,
+                actionType: null,
                 accessibleLabel: tooltip,
+                agent: null,
                 available: true,
                 chartRole: 'primary',
                 displayLabel: context.displayLabel,
                 grouping: controls.performanceGrouping,
                 identity,
+                denominator: null,
+                limitId: null,
                 metric: controls.performanceMetric,
+                numerator: null,
+                provider: null,
                 sampleCount,
                 seriesIdentity: identity,
                 seriesLabel,
                 stackIdentity: null,
+                stackLabel: null,
                 statusCounts,
                 tooltip,
                 unit,
                 utcBucketEnd: context.end,
                 utcBucketStart: bucket,
                 value,
+                windowId: null,
             } satisfies StatsChartRow;
         });
     });
@@ -700,55 +805,118 @@ function totalsRows(source: LoadedStatsSource, controls: StatsControls): StatsCh
 
     return [...totals.entries()]
         .map(([identity, { label, tooltip, value }]) => ({
+            actionId: controls.totalsGrouping === 'action' ? identity : null,
+            actionType: null,
             accessibleLabel: `${tooltip}: ${value} ${unit}`,
+            agent: null,
             available: true,
             chartRole: 'primary',
             displayLabel: label,
             grouping: controls.totalsGrouping,
             identity,
+            denominator: null,
+            limitId: null,
             metric: controls.totalsMetric,
+            numerator: null,
+            provider: null,
             sampleCount: null,
             seriesIdentity: null,
             seriesLabel: null,
             stackIdentity: null,
+            stackLabel: null,
             statusCounts: null,
             tooltip: `${tooltip}: ${value} ${unit}`,
             unit,
             utcBucketEnd: null,
             utcBucketStart: null,
             value,
+            windowId: null,
         } satisfies StatsChartRow))
         .sort((left, right) => right.value - left.value || left.displayLabel.localeCompare(right.displayLabel));
 }
 
-function usageComparisonRows(source: LoadedStatsSource, controls: StatsControls) {
-    const chartRows = [
-        ...activityRows(source, { ...controls, activityMetric: 'actions' }, controls.usageGranularity, 'activity'),
-        ...projectTokenRows(source, controls, controls.usageGranularity),
-        ...accountRows(source, controls, controls.usageGranularity),
-    ];
-    const buckets = bucketDomain(
-        chartRows.flatMap(({ utcBucketStart }) => utcBucketStart ? [utcBucketStart] : []),
-        controls.usageGranularity,
-        controls,
-    );
-    const chartDefinitions: Array<{ metric: string; role: StatsChartRole; unit: StatsUnit }> = [
-        { metric: 'actions', role: 'activity', unit: 'actions' },
-        { metric: 'tokens', role: 'projectTokens', unit: 'tokens' },
-        { metric: 'accountUsage', role: 'accountUsage', unit: 'percentagePoints' },
-    ];
+function ratioRows(
+    source: LoadedStatsSource,
+    controls: StatsControls,
+    buckets: string[],
+    seriesOptions: StatsAccountSeriesOption[],
+    role: 'tokensPerAccountUsage' | 'actionsPerAccountUsage',
+) {
+    const isTokenRatio = role === 'tokensPerAccountUsage';
+    const metric = isTokenRatio ? 'tokensPerAccountUsage' : 'actionsPerAccountUsage';
+    const unit: StatsUnit = isTokenRatio ? 'tokensPerPercentagePoint' : 'actionsPerPercentagePoint';
 
-    return chartDefinitions.flatMap(({ metric, role, unit }) => buckets.flatMap((bucket) => {
-        const matchingRows = chartRows.filter((row) => row.chartRole === role && row.utcBucketStart === bucket);
-        if (matchingRows.length > 0) return matchingRows;
-        const row = emptyTimeRow(bucket, controls.usageGranularity, role, metric, unit);
-        const available = role === 'activity' || (role === 'projectTokens' && source.tokenTimeAvailable);
-        if (available) return [row];
+    return buckets.flatMap<StatsChartRow>((bucket) => {
         const context = rowContext(bucket, controls.usageGranularity);
-        const tooltip = `${context.localLabel}; UTC ${context.interval}; ${role === 'projectTokens' ? 'project token usage' : 'account usage'} unavailable`;
+        const rows = seriesOptions.flatMap((series) => {
+            const denominator = source.accountRows.filter((row) => (
+                accountSeriesIdentity(row) === series.identity
+                && inRange(row.recordedAt, controls)
+                && utcBucketStart(row.recordedAt, controls.usageGranularity) === bucket
+                && row.usedPercentDelta !== null
+                && row.usedPercentDelta >= 0
+            )).reduce((total, row) => total + row.usedPercentDelta!, 0);
+            if (denominator <= 0) return [];
+            const numerator = isTokenRatio
+                ? source.tokenRows.filter((row) => (
+                    row.provider === series.provider
+                    && inRange(row.recordedAt, controls)
+                    && utcBucketStart(row.recordedAt, controls.usageGranularity) === bucket
+                )).reduce((total, row) => total + row.totalTokens, 0)
+                : source.stats.actions.filter((action) => (
+                    action.actionType === 'agent'
+                    && action.agent === series.provider
+                    && inRange(action.completedAt, controls)
+                    && utcBucketStart(action.completedAt, controls.usageGranularity) === bucket
+                )).length;
+            const value = numerator / denominator;
+            const seriesLabel = accountSeriesLabel(series);
+            const numeratorLabel = isTokenRatio ? `${numerator} project tokens` : `${numerator} completed ${series.provider} actions`;
+            const tooltip = `${context.localLabel}; UTC ${context.interval}; ${seriesLabel}; ${numeratorLabel}; ${denominator} account percentage points; ratio ${value}`;
 
-        return [{ ...row, accessibleLabel: tooltip, available: false, tooltip }];
-    }));
+            return [{
+                ...emptyTimeRow(bucket, controls.usageGranularity, role, metric, unit),
+                accessibleLabel: tooltip,
+                denominator,
+                identity: series.identity,
+                limitId: series.limitId,
+                numerator,
+                provider: series.provider,
+                seriesIdentity: series.identity,
+                seriesLabel,
+                tooltip,
+                value,
+                windowId: series.windowId,
+            }];
+        });
+
+        return rows.length > 0
+            ? rows
+            : [unavailableTimeRow(bucket, controls.usageGranularity, role, metric, unit, 'positive account usage denominator')];
+    });
+}
+
+function usageComparisonRows(source: LoadedStatsSource, controls: StatsControls) {
+    const seriesOptions = visibleAccountSeries(source, controls);
+    const visibleSeriesIdentities = new Set(seriesOptions.map(({ identity }) => identity));
+    const timestamps = [
+        ...source.stats.actions.map(({ completedAt }) => completedAt),
+        ...source.tokenRows.map(({ recordedAt }) => recordedAt),
+        ...source.accountRows.flatMap((row) => (
+            visibleSeriesIdentities.has(accountSeriesIdentity(row)) && (row.usedPercentDelta === null || row.usedPercentDelta >= 0)
+                ? [row.recordedAt]
+                : []
+        )),
+    ];
+    const buckets = bucketDomain(timestamps, controls.usageGranularity, controls);
+
+    return [
+        ...comparisonAccountRows(source, controls, controls.usageGranularity, buckets, seriesOptions),
+        ...projectTokenRows(source, controls, controls.usageGranularity, buckets),
+        ...ratioRows(source, controls, buckets, seriesOptions, 'tokensPerAccountUsage'),
+        ...ratioRows(source, controls, buckets, seriesOptions, 'actionsPerAccountUsage'),
+        ...comparisonActivityRows(source, controls, controls.usageGranularity, buckets),
+    ];
 }
 
 function buildSnapshot(source: LoadedStatsSource, requestedControls: StatsControls): ProjectStatsSnapshot {
@@ -788,7 +956,6 @@ function validateRangeTimestamp(value: string | null, field: string) {
 
 export class ProjectStatsService extends EventTarget {
     private abortController: AbortController | null = null;
-    private accountControlsInitialized = false;
     private readonly calculateStats: StatsCalculator;
     private loadRevision = 0;
     private binding: StatsProjectBinding | null = null;
@@ -820,7 +987,6 @@ export class ProjectStatsService extends EventTarget {
 
     clear() {
         this.close();
-        this.accountControlsInitialized = false;
         this.binding = null;
         this.projectKey = null;
     }
@@ -846,20 +1012,11 @@ export class ProjectStatsService extends EventTarget {
     }
 
     setControls(changes: Partial<StatsControls>) {
-        let controls = { ...this.snapshot.controls, ...changes };
+        const controls = { ...this.snapshot.controls, ...changes };
         validateRangeTimestamp(controls.startUtc, 'startUtc');
         validateRangeTimestamp(controls.endUtc, 'endUtc');
         if (controls.startUtc && controls.endUtc && Date.parse(controls.startUtc) > Date.parse(controls.endUtc)) {
             throw new Error('Stats start date must not be after end date');
-        }
-        if (this.source && changes.usageProvider !== undefined) {
-            const first = buildOptions(this.source).accountSeries.find(({ provider }) => provider === changes.usageProvider);
-            controls = { ...controls, usageLimitId: first?.limitId ?? null, usageWindowId: first?.windowId ?? null };
-        } else if (this.source && changes.usageLimitId !== undefined) {
-            const first = buildOptions(this.source).accountSeries.find(({ limitId, provider }) => (
-                provider === controls.usageProvider && limitId === changes.usageLimitId
-            ));
-            controls = { ...controls, usageWindowId: first?.windowId ?? null };
         }
         if (!this.source) {
             this.publish({ ...this.snapshot, controls });
@@ -897,18 +1054,7 @@ export class ProjectStatsService extends EventTarget {
                 tokenTimeAvailable: usageMetrics.available,
                 warnings: [...current.warnings, ...released.warnings, ...usageMetrics.warnings],
             };
-            let controls = this.snapshot.controls;
-            const firstAccountSeries = buildOptions(this.source).accountSeries[0];
-            if (!this.accountControlsInitialized && firstAccountSeries && controls.usageProvider === null) {
-                controls = {
-                    ...controls,
-                    usageLimitId: firstAccountSeries.limitId,
-                    usageProvider: firstAccountSeries.provider,
-                    usageWindowId: firstAccountSeries.windowId,
-                };
-            }
-            this.accountControlsInitialized = true;
-            this.publish(buildSnapshot(this.source, controls));
+            this.publish(buildSnapshot(this.source, this.snapshot.controls));
         } catch (error) {
             if (!this.isCurrentLoad(revision, binding, signal)) return;
             const normalizedError = error instanceof Error ? error : new Error(String(error));

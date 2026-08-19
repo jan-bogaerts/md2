@@ -4,23 +4,32 @@ import { serializeStatsCsv } from './stats_csv';
 
 function row(overrides: Partial<StatsChartRow> = {}): StatsChartRow {
     return {
+        actionId: null,
+        actionType: null,
         accessibleLabel: 'accessible',
+        agent: null,
         available: true,
         chartRole: 'primary',
         displayLabel: 'F_1: Review, "carefully"',
         grouping: 'card',
         identity: 'card-1',
+        denominator: null,
+        limitId: null,
         metric: 'tokens',
+        numerator: null,
+        provider: null,
         sampleCount: null,
         seriesIdentity: null,
         seriesLabel: null,
         stackIdentity: null,
+        stackLabel: null,
         statusCounts: null,
         tooltip: 'tooltip',
         unit: 'tokens',
         utcBucketEnd: null,
         utcBucketStart: null,
         value: 42,
+        windowId: null,
         ...overrides,
     };
 }
@@ -28,8 +37,8 @@ function row(overrides: Partial<StatsChartRow> = {}): StatsChartRow {
 describe('serializeStatsCsv', () => {
     it('exports exact filtered totals rows as RFC 4180', () => {
         expect(serializeStatsCsv('totals', [row()])).toBe([
-            'dataset,chart_role,available,grouping,utc_bucket_start,utc_bucket_end,identity,series_identity,series_label,stack_identity,display_label,metric,unit,value,sample_count,completed_count,failed_count,cancelled_count',
-            'totals,primary,true,card,,,card-1,,,,"F_1: Review, ""carefully""",tokens,tokens,42,,,,',
+            'dataset,chart_role,available,grouping,utc_bucket_start,utc_bucket_end,identity,provider,limit_id,window_id,agent,action_type,action_id,series_identity,series_label,stack_identity,display_label,metric,unit,value,numerator,denominator,sample_count,completed_count,failed_count,cancelled_count',
+            'totals,primary,true,card,,,card-1,,,,,,,,,,"F_1: Review, ""carefully""",tokens,tokens,42,,,,,,',
             '',
         ].join('\r\n'));
     });
@@ -52,11 +61,13 @@ describe('serializeStatsCsv', () => {
         })]);
 
         expect(csv).toContain('2026-08-18T00:00:00.000Z,2026-08-19T00:00:00.000Z');
-        expect(csv).toContain('duration,milliseconds,1250.5,4,2,1,1');
+        expect(csv).toContain('duration,milliseconds,1250.5,,,4,2,1,1');
     });
 
     it('exports stacked action identity separately', () => {
         const csv = serializeStatsCsv('activityOverTime', [row({
+            actionId: 'review',
+            actionType: 'command',
             identity: 'review',
             seriesIdentity: 'review',
             seriesLabel: 'Review',
@@ -65,6 +76,25 @@ describe('serializeStatsCsv', () => {
             utcBucketStart: '2026-08-18T00:00:00.000Z',
         })]);
 
-        expect(csv).toContain('review,review,Review,review');
+        expect(csv).toContain('review,,,,,command,review,review,Review,review');
+    });
+
+    it('exports exact account series and ratio operands', () => {
+        const csv = serializeStatsCsv('usageComparison', [row({
+            chartRole: 'tokensPerAccountUsage',
+            denominator: 2.5,
+            identity: 'codex\u0000weekly\u0000window-a',
+            limitId: 'weekly',
+            numerator: 11,
+            provider: 'codex',
+            seriesIdentity: 'codex\u0000weekly\u0000window-a',
+            seriesLabel: 'codex / weekly / window-a',
+            unit: 'tokensPerPercentagePoint',
+            value: 4.4,
+            windowId: 'window-a',
+        })]);
+
+        expect(csv).toContain('codex,weekly,window-a');
+        expect(csv).toContain('tokensPerPercentagePoint,4.4,11,2.5');
     });
 });

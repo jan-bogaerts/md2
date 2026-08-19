@@ -3,6 +3,8 @@ import type { CardActivityFile } from './card_activity.mjs'
 export interface StatsActionFact {
     actionId: string
     actionLabel: string
+    actionType: 'agent' | 'command'
+    agent: string | null
     cardInternalId: string | null
     completedAt: string
     identity: string
@@ -46,7 +48,7 @@ export interface ActivityStatsCalculationResult {
     warnings: string[]
 }
 
-export const RELEASE_STATS_VERSION: 2
+export const RELEASE_STATS_VERSION: 3
 export function projectStatsFilePath(projectFolder: string): string
 export function calculateActivityStats(activityFiles: CardActivityFile[]): ReleaseStats
 export function calculateActivityStatsFromSources(sources: ActivityStatsSource[]): ActivityStatsCalculationResult

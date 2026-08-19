@@ -83,18 +83,6 @@ function handleUsageGranularityChange(event: SelectChangeEvent) {
     setStatsControls({ usageGranularity: event.target.value as StatsControlValues['usageGranularity'] });
 }
 
-function handleProviderChange(event: SelectChangeEvent) {
-    setStatsControls({ usageProvider: event.target.value || null });
-}
-
-function handleLimitChange(event: SelectChangeEvent) {
-    setStatsControls({ usageLimitId: event.target.value || null });
-}
-
-function handleWindowChange(event: SelectChangeEvent) {
-    setStatsControls({ usageWindowId: event.target.value || null });
-}
-
 function handleTotalsGroupingChange(event: SelectChangeEvent) {
     setStatsControls({ totalsGrouping: event.target.value as StatsControlValues['totalsGrouping'] });
 }
@@ -118,11 +106,6 @@ function exportStats(dataset: StatsDataset, rows: StatsChartRow[]) {
 /** Service-backed dataset, entity, metric, and date controls. */
 export function StatsControls({ snapshot }: StatsControlsProps) {
     const { controls, options, rows } = snapshot;
-    const providerSeries = options.accountSeries.filter(({ provider }) => provider === controls.usageProvider);
-    const limits = [...new Set(providerSeries.map(({ limitId }) => limitId))];
-    const windows = options.accountSeries.filter(({ limitId, provider }) => (
-        provider === controls.usageProvider && limitId === controls.usageLimitId
-    ));
     const handleExport = exportStats.bind(null, controls.dataset, rows);
 
     return (
@@ -132,7 +115,7 @@ export function StatsControls({ snapshot }: StatsControlsProps) {
                 <Select aria-label="Dataset" onChange={handleDatasetChange} size="small" value={controls.dataset}>
                     <MenuItem value="activityOverTime">Activity over time</MenuItem>
                     <MenuItem value="agentPerformance">Agent/model performance</MenuItem>
-                    <MenuItem value="usageComparison">Project usage versus account usage</MenuItem>
+                    <MenuItem value="usageComparison">Project usage vs account usage</MenuItem>
                     <MenuItem value="totals">Totals by Card/Action</MenuItem>
                 </Select>
             </Stack>
@@ -217,28 +200,6 @@ export function StatsControls({ snapshot }: StatsControlsProps) {
                         <Select aria-label="Usage granularity" onChange={handleUsageGranularityChange} size="small" value={controls.usageGranularity}>
                             <MenuItem value="day">Day</MenuItem>
                             <MenuItem value="week">Week</MenuItem>
-                        </Select>
-                    </Stack>
-                    <Stack spacing={0.75}>
-                        <Typography color="text.secondary" sx={{ fontWeight: 600 }} variant="caption">Provider</Typography>
-                        <Select aria-label="Account provider" onChange={handleProviderChange} size="small" value={controls.usageProvider ?? ''}>
-                            {[...new Set(options.accountSeries.map(({ provider }) => provider))].map((provider) => (
-                                <MenuItem key={provider} value={provider}>{provider}</MenuItem>
-                            ))}
-                        </Select>
-                    </Stack>
-                    <Stack spacing={0.75}>
-                        <Typography color="text.secondary" sx={{ fontWeight: 600 }} variant="caption">Limit</Typography>
-                        <Select aria-label="Account limit" onChange={handleLimitChange} size="small" value={controls.usageLimitId ?? ''}>
-                            {limits.map((limit) => <MenuItem key={limit} value={limit}>{limit}</MenuItem>)}
-                        </Select>
-                    </Stack>
-                    <Stack spacing={0.75}>
-                        <Typography color="text.secondary" sx={{ fontWeight: 600 }} variant="caption">Window</Typography>
-                        <Select aria-label="Account window" onChange={handleWindowChange} size="small" value={controls.usageWindowId ?? ''}>
-                            {windows.map(({ windowDurationMinutes, windowId }) => (
-                                <MenuItem key={windowId} value={windowId}>{windowId} ({windowDurationMinutes} min)</MenuItem>
-                            ))}
                         </Select>
                     </Stack>
                 </>
