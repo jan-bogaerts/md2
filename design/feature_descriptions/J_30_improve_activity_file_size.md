@@ -3,12 +3,15 @@ author:
 id: J_30
 internalId: d67b763d-819f-4e7e-aab5-c3c9f28e594d
 title: improve activity file size
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
   - design/activity/card__d67b763d-819f-4e7e-aab5-c3c9f28e594d.json
 policy:
+after: 70a705b9-4e44-4487-8ac9-48722ba0ef92
+branch: j_30_improve_activity_file_size
+worktree: 2
 ---
 
 # Problem
@@ -35,7 +38,7 @@ The largest single command entries are 2.5-2.7 MB because a 1.2-1.3 MB result is
 
 ## Proposed change
 
-Limit every persisted command or tool result to 16,384 characters. This matches the limit already present in `agent_codex_event.js` and keeps enough diagnostic context without allowing one tool call to dominate an activity file.
+Limit every persisted command or tool result to 8,192 characters. This is half the current 16,384-character limit in `agent_codex_event.js` and keeps enough diagnostic context without allowing one tool call to dominate an activity file.
 
 - Apply one shared truncation rule at provider normalization, before entries reach the runtime conversation or persistence.
 - For `commandExecution`, keep the exact command in `command`, store its result only in `content`, and never also store it in `output`.
@@ -44,7 +47,7 @@ Limit every persisted command or tool result to 16,384 characters. This matches 
 - Bound command output while deltas arrive, not only on completion. A checkpoint can otherwise persist an oversized in-progress entry, and the runtime still accumulates the complete value in memory.
 - Use the bounded entry for the chat display, persistence, and `normalizeConversationContext()` so reload and cross-provider handoff do not disagree about the transcript. Native provider-session continuation remains authoritative when available.
 
-Applying deduplication plus a 16,384-character result limit to the current sample would reduce the files from about 149 MB to about 32 MB, roughly 79%. For comparison, 4,096 characters produces about 19 MB and 65,536 characters about 43 MB. The existing 16,384-character convention is the least surprising choice.
+Applying deduplication plus an 8,192-character result limit to the current sample would reduce the files from about 149 MB to about 25 MB, roughly 83%. For comparison, 4,096 characters produces about 19 MB, 16,384 characters about 32 MB, and 65,536 characters about 43 MB. The additional saving supports using 8,192 characters instead of retaining the existing limit.
 
 Do not minify activity JSON: the measured saving is about 1%, while readable files and Git diffs become worse. Do not split conversations into separate files as part of this change: that can reduce rewrite scope but does not materially reduce total stored data.
 
@@ -83,7 +86,7 @@ Compaction changes historical transcript text and can create a large one-time Gi
 
 ## Testing implications
 
-- Unit-test the shared boundary at below, exactly at, and above 16,384 characters, including Unicode and the omitted-character marker.
+- Unit-test the shared boundary at below, exactly at, and above 8,192 characters, including Unicode and the omitted-character marker.
 - Test Codex output deltas and authoritative completion with output larger than the limit.
 - Test Claude commands and other tools to prove results are bounded and command output is not duplicated.
 - Test that short entries and all non-result fields remain unchanged.
@@ -93,9 +96,9 @@ Compaction changes historical transcript text and can create a large one-time Gi
 
 ## Acceptance criteria
 
-- No canonical command or tool result exceeds 16,384 characters.
+- No canonical command or tool result exceeds 8,192 characters.
 - A `commandExecution` entry stores its result once in `content` and has no `output` field.
 - Large streaming output remains bounded before the command completes.
 - Truncated results clearly retain useful beginning and ending context.
 - Existing activity can be compacted explicitly without changing references, identities, ordering, records, usage, or unrelated transcript content.
-- The representative sample shrinks to approximately the measured 32 MB range after compaction.
+- The representative sample shrinks to approximately the measured 25 MB range after compaction.
