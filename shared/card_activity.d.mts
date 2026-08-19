@@ -91,4 +91,5 @@ export function parseActivityFile(content: string, expectedOrigin?: ActivityOrig
 export function parseActivityFileForMigration(content: string, expectedOrigin?: ActivityOrigin | null): CardActivityFile
 export function migrateActivityValue(value: unknown, expectedOrigin?: ActivityOrigin | null): CardActivityFile
 export function repairActivityFile(content: string, expectedOrigin?: ActivityOrigin | null): ActivityRepairResult
+export function compactActivityFileContent(content: string, expectedOrigin?: ActivityOrigin | null): ActivityRepairResult
 export function findActivityConversation(activity: CardActivityFile, conversationId: string): Omit<AgentConversation, 'path'>

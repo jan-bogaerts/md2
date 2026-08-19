@@ -3,6 +3,7 @@ import { EventEmitter } from 'node:events';
 import { resolve } from 'node:path';
 import { PassThrough } from 'node:stream';
 import { describe, expect, it, vi } from 'vitest';
+import { AGENT_RESULT_MAX_LENGTH } from '../../../../shared/agent_conversations.mjs';
 
 const require = createRequire(import.meta.url);
 const { AGENT_FINISH_GRACE_MS, AgentRunnerService } = require('./agent_runner_service');
@@ -978,6 +979,34 @@ describe('AgentRunnerService state handling', () => {
             event: expect.objectContaining({ content: 'Completed', id: 'activity-1' }),
             type: 'agentEvent',
         }));
+    });
+
+    it('redacts secrets before bounding provider results in runtime conversation', async () => {
+        const service = new AgentRunnerService();
+        const run = {
+            providerEventEntryIndexes: new Map(),
+            conversation: { entries: [], status: 'running' },
+            id: 'run-1',
+            nextSequence: 1,
+            onEvent: vi.fn(),
+            secretValues: new Set(['top-secret']),
+        };
+        service.processes.set('run-1', run);
+
+        await service.handleStreamingEvent('run-1', {
+            event: {
+                content: `${'head'.repeat(1_500)}top-secret${'tail'.repeat(1_500)}`,
+                label: 'Command',
+                providerItemId: 'command-1',
+                status: 'completed',
+                type: 'commandExecution',
+            },
+            type: 'event',
+        });
+
+        expect(run.conversation.entries[0].content).toHaveLength(AGENT_RESULT_MAX_LENGTH);
+        expect(run.conversation.entries[0].content).not.toContain('top-secret');
+        expect(run.conversation.entries[0].content).toMatch(/tail$/u);
     });
 
     it('groups consecutive diagnostics while preserving first identity and recognized event boundaries', async () => {

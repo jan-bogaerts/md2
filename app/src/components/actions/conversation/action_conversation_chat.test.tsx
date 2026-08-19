@@ -912,7 +912,7 @@ describe('ActionConversationChat', () => {
         const command = 'node -e "console.log(\'héllo\')" \\\n--flag'
         const activity: AgentConversationEvent = {
             command,
-            content: 'line one\nline two',
+            content: 'line one\n[123 characters omitted]\nline two',
             durationMs: 42,
             exitCode: 1,
             id: 'command-completed',
@@ -934,7 +934,8 @@ describe('ActionConversationChat', () => {
 
         expect(button).toHaveAttribute('aria-expanded', 'true')
         expect(screen.getByText('Command').parentElement?.querySelector('pre')?.textContent).toBe(command)
-        expect(screen.getByText('Output').parentElement?.querySelector('pre')?.textContent).toBe('line one\nline two')
+        expect(screen.getByText('Output').parentElement?.querySelector('pre')?.textContent)
+            .toBe('line one\n[123 characters omitted]\nline two')
         expect(screen.getByText('Exit code: 1')).toBeInTheDocument()
         expect(screen.getByText('Duration: 42 ms')).toBeInTheDocument()
     })

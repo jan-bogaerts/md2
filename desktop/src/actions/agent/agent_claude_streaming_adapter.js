@@ -1,4 +1,5 @@
 const { normalizedContent } = require('./agent_event_utils');
+const { boundedAgentResult } = require('../../../../shared/agent_conversations.mjs');
 const { claudeChangedPaths, claudeUsage } = require('./agent_claude_events');
 const { isMissingSession } = require('./agent_provider_protocol');
 
@@ -409,7 +410,9 @@ class ClaudeStreamingAdapter {
             const toolEvent = trackedTool?.block?.type === 'tool_use'
                 ? claudeToolEvent(trackedTool.block, block.is_error ? 'failed' : 'completed')
                 : eventBase(block.tool_use_id, 'tool.result', 'Tool result', block.is_error ? 'failed' : 'completed');
-            toolEvent.output = normalizedContent(block.content) ?? '';
+            const result = boundedAgentResult(normalizedContent(block.content) ?? '');
+            if (toolEvent.type === 'commandExecution') toolEvent.content = result;
+            else toolEvent.output = result;
             await this.onEvent({ event: toolEvent, type: 'event' });
         }
     }

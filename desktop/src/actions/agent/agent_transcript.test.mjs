@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
+import { AGENT_RESULT_MAX_LENGTH } from '../../../../shared/agent_conversations.mjs';
 
 const require = createRequire(import.meta.url);
 const { normalizeConversationContext } = require('./agent_transcript');
@@ -75,5 +76,26 @@ describe('normalizeConversationContext', () => {
 
         expect(result.indexOf('interleaved')).toBeLessThan(result.indexOf('next'));
         expect(result).not.toContain('cursor');
+    });
+
+    it('bounds raw fallback command context while preserving exact command and final error', () => {
+        const command = 'x'.repeat(10_000);
+        const output = `${'start'.repeat(1_000)}${'middle'.repeat(1_000)}final error`;
+        const result = normalizeConversationContext({
+            entries: [{
+                command,
+                content: output,
+                id: 'command-1',
+                kind: 'event',
+                timestamp: '2026-01-01T00:00:00.000Z',
+                type: 'commandExecution',
+            }],
+        });
+        const boundedOutput = result.slice(result.indexOf(output.slice(0, 20)));
+
+        expect(result).toContain(command);
+        expect(result).toContain('characters omitted');
+        expect(result).toMatch(/final error$/u);
+        expect(boundedOutput.length).toBeLessThanOrEqual(AGENT_RESULT_MAX_LENGTH);
     });
 });

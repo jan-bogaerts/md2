@@ -1,9 +1,55 @@
 import { describe, expect, it } from 'vitest'
-import { parseAgentConversation, parseAgentConversationValue } from '../../../../shared/agent_conversations.mjs'
+import {
+    AGENT_RESULT_MAX_LENGTH,
+    appendBoundedAgentResult,
+    boundedAgentResult,
+    parseAgentConversation,
+    parseAgentConversationValue,
+} from '../../../../shared/agent_conversations.mjs'
 import type { StorageService } from '../../data/data_types'
 import { listAgentConversationReferences, parseAgentConversationLog } from './agent_conversation_service'
 
 describe('parseAgentConversationLog', () => {
+    it.each([AGENT_RESULT_MAX_LENGTH - 1, AGENT_RESULT_MAX_LENGTH])(
+        'preserves a command result containing %i characters byte-for-byte',
+        (length) => {
+            const content = 'x'.repeat(length)
+
+            expect(boundedAgentResult(content)).toBe(content)
+        },
+    )
+
+    it('retains head and tail with an omitted-character marker above the result limit', () => {
+        const content = `${'head'.repeat(1_500)}${'middle'.repeat(1_000)}${'tail'.repeat(1_500)}`
+        const bounded = boundedAgentResult(content)
+
+        expect(bounded).toHaveLength(AGENT_RESULT_MAX_LENGTH)
+        expect(bounded).toMatch(/^head/u)
+        expect(bounded).toMatch(/tail$/u)
+        expect(bounded).toMatch(/\n\[\d+ characters omitted\]\n/u)
+    })
+
+    it('does not split a Unicode surrogate pair at either retained boundary', () => {
+        const content = `${'a'.repeat(4_079)}😀${'b'.repeat(4_100)}😀${'c'.repeat(4_079)}`
+        const bounded = boundedAgentResult(content)
+        const codeUnits = [...bounded].flatMap((character) => (
+            character.length === 2 ? [] : [character.charCodeAt(0)]
+        ))
+
+        expect(codeUnits.some((codeUnit) => codeUnit >= 0xD800 && codeUnit <= 0xDFFF)).toBe(false)
+        expect(bounded.length).toBeLessThanOrEqual(AGENT_RESULT_MAX_LENGTH)
+    })
+
+    it('produces the same bounded result from streamed chunks without retaining the middle', () => {
+        const chunks = ['head'.repeat(1_500), 'middle'.repeat(2_000), 'tail'.repeat(1_500)]
+        let accumulated = appendBoundedAgentResult(null, '')
+        for (const chunk of chunks) accumulated = appendBoundedAgentResult(accumulated.state, chunk)
+
+        expect(accumulated.value).toBe(boundedAgentResult(chunks.join('')))
+        expect(accumulated.state.head).toHaveLength(AGENT_RESULT_MAX_LENGTH)
+        expect(accumulated.state.tail).toHaveLength(AGENT_RESULT_MAX_LENGTH)
+    })
+
     it('produces equivalent results from string and value parsers', () => {
         const source = {
             completedAt: null,
@@ -226,6 +272,40 @@ describe('parseAgentConversationLog', () => {
             workingDirectory: 'C:\\repo',
         })
         expect(conversation.entries[0]).not.toHaveProperty('output')
+    })
+
+    it('canonicalizes oversized command and tool results without changing tool input', () => {
+        const oversizedResult = 'result'.repeat(2_000)
+        const conversation = parseAgentConversationLog(JSON.stringify({
+            completedAt: null,
+            entries: [{
+                command: oversizedResult,
+                content: oversizedResult,
+                id: 'command-1',
+                kind: 'event',
+                output: oversizedResult,
+                timestamp: '2026-01-01T00:00:00.000Z',
+                type: 'commandExecution',
+            }, {
+                content: oversizedResult,
+                id: 'tool-1',
+                kind: 'event',
+                output: oversizedResult,
+                timestamp: '2026-01-01T00:00:01.000Z',
+                type: 'mcpToolCall',
+            }],
+            id: 'agent-1',
+            startedAt: '2026-01-01T00:00:00.000Z',
+            status: 'completed',
+        }), 'design/logs/results.json')
+        const [command, tool] = conversation.entries
+        if (command.kind !== 'event' || tool.kind !== 'event') throw new Error('Expected canonical result events')
+
+        expect(command).toMatchObject({ command: oversizedResult, kind: 'event' })
+        expect(command.content).toHaveLength(AGENT_RESULT_MAX_LENGTH)
+        expect(command).not.toHaveProperty('output')
+        expect(tool).toMatchObject({ content: oversizedResult, kind: 'event' })
+        expect(tool.output).toHaveLength(AGENT_RESULT_MAX_LENGTH)
     })
 
     it('preserves completed file-change counts and readable content after reload', () => {

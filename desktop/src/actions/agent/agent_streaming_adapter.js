@@ -1,4 +1,5 @@
 const { validateAgentTokenUsage } = require('../../../../shared/agent_usage_math.mjs');
+const { appendBoundedAgentResult } = require('../../../../shared/agent_conversations.mjs');
 const { ClaudeStreamingAdapter } = require('./agent_claude_streaming_adapter');
 const { codexChangedPaths } = require('./agent_codex_events');
 const { diagnosticEvent, normalizeCodexEvent, systemEvent } = require('./agent_codex_event');
@@ -303,7 +304,9 @@ class CodexStreamingAdapter {
         if (method === 'item/commandExecution/outputDelta') {
             const trackedItem = await this.requireActiveItem(method, params.itemId, 'commandExecution');
             if (!trackedItem) return;
-            trackedItem.event = { ...trackedItem.event, content: `${trackedItem.event.content}${params.delta}` };
+            const bounded = appendBoundedAgentResult(trackedItem.resultState, params.delta);
+            trackedItem.resultState = bounded.state;
+            trackedItem.event = { ...trackedItem.event, content: bounded.value };
             await this.emitEvent(trackedItem.event);
             return;
         }
@@ -407,6 +410,9 @@ class CodexStreamingAdapter {
             return;
         }
         const event = normalizeCodexEvent(item, 'inProgress');
+        const initialResult = item.type === 'commandExecution'
+            ? appendBoundedAgentResult(null, event?.content ?? '')
+            : null;
         const knownNonEvent = CODEX_NON_EVENT_ITEM_TYPES.has(item.type);
         const trackedItem = {
             event,
@@ -415,6 +421,7 @@ class CodexStreamingAdapter {
             bufferedAssistantText: '',
             item,
             itemType: item.type,
+            resultState: initialResult?.state ?? null,
         };
         this.activeItems.set(item.id, trackedItem);
         if (item.type === 'agentMessage') {

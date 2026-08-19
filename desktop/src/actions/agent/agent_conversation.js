@@ -1,5 +1,8 @@
 const { sumAgentTokenUsage } = require('../../../../shared/agent_usage_math.mjs');
-const { AGENT_CONVERSATION_USAGE_SCHEMA_VERSION } = require('../../../../shared/agent_conversations.mjs');
+const {
+    AGENT_CONVERSATION_USAGE_SCHEMA_VERSION,
+    boundedAgentResult,
+} = require('../../../../shared/agent_conversations.mjs');
 
 function createMessageEntry(id, role, content, timestamp, agent, sequence) {
     return {
@@ -25,8 +28,11 @@ function createEventEntry(id, type, content, timestamp, sequence) {
 }
 
 function createProviderEventEntry(providerEvent, id, timestamp, sequence) {
+    const content = providerEvent.type === 'commandExecution' || providerEvent.type === 'tool.result'
+        ? boundedAgentResult(providerEvent.content)
+        : providerEvent.content;
     const event = {
-        content: providerEvent.content,
+        content,
         id,
         kind: 'event',
         label: providerEvent.label,
@@ -42,7 +48,9 @@ function createProviderEventEntry(providerEvent, id, timestamp, sequence) {
     if (Number.isFinite(providerEvent.durationMs)) event.durationMs = providerEvent.durationMs;
     if (Number.isSafeInteger(providerEvent.exitCode)) event.exitCode = providerEvent.exitCode;
     if (Number.isSafeInteger(providerEvent.insertions) && providerEvent.insertions >= 0) event.insertions = providerEvent.insertions;
-    if (typeof providerEvent.output === 'string') event.output = providerEvent.output;
+    if (providerEvent.type !== 'commandExecution' && typeof providerEvent.output === 'string') {
+        event.output = boundedAgentResult(providerEvent.output);
+    }
     if (Array.isArray(providerEvent.summary)) event.summary = [...providerEvent.summary];
     if (typeof providerEvent.workingDirectory === 'string') event.workingDirectory = providerEvent.workingDirectory;
 

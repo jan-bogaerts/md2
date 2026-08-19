@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
+import { AGENT_RESULT_MAX_LENGTH } from '../../../../shared/agent_conversations.mjs';
 
 const require = createRequire(import.meta.url);
 const { countUnifiedDiffLines, normalizeCodexEvent } = require('./agent_codex_event');
@@ -150,4 +151,22 @@ describe('Codex event normalization', () => {
         expect(event.content).not.toContain('{');
         expect(event.output).not.toContain('{');
     });
+
+    it.each(['commandExecution', 'mcpToolCall', 'dynamicToolCall'])(
+        'bounds oversized %s results while retaining their beginning and end',
+        (type) => {
+            const result = `${'beginning'.repeat(700)}${'middle'.repeat(1_000)}${'ending'.repeat(700)}`;
+            const item = type === 'commandExecution'
+                ? { aggregatedOutput: result, command: 'npm test', id: 'command-1', type }
+                : { arguments: { query: 'input stays complete' }, id: 'tool-1', result: { content: result }, type };
+            const event = normalizeCodexEvent(item, 'completed');
+            const output = type === 'commandExecution' ? event.content : event.output;
+
+            expect(output).toHaveLength(AGENT_RESULT_MAX_LENGTH);
+            expect(output).toMatch(/^beginning/u);
+            expect(output).toMatch(/ending$/u);
+            expect(output).toMatch(/\[\d+ characters omitted\]/u);
+            if (type !== 'commandExecution') expect(event.content).toBe('Query: input stays complete');
+        },
+    );
 });

@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
+import { AGENT_RESULT_MAX_LENGTH } from '../../../../shared/agent_conversations.mjs';
 
 const require = createRequire(import.meta.url);
 const { createAgentStreamingAdapter } = require('./agent_streaming_adapter');
@@ -101,6 +102,52 @@ describe('ClaudeStreamingAdapter', () => {
             event: expect.objectContaining({ output: 'written', providerItemId: 'tool-1', status: 'completed' }),
             type: 'event',
         });
+    });
+
+    it('bounds Claude command and tool results without truncating their inputs or duplicating command output', async () => {
+        const { adapter, events } = harness('claude');
+        const command = 'x'.repeat(10_000);
+        const result = `${'start'.repeat(1_000)}${'middle'.repeat(1_000)}${'end'.repeat(1_000)}`;
+
+        await adapter.handleMessage({
+            event: { message: { id: 'message-1' }, type: 'message_start' },
+            type: 'stream_event',
+        });
+        await adapter.handleMessage({
+            event: {
+                content_block: { id: 'command-1', input: { command }, name: 'Bash', type: 'tool_use' },
+                index: 0,
+                type: 'content_block_start',
+            },
+            type: 'stream_event',
+        });
+        await adapter.handleMessage({
+            event: {
+                content_block: { id: 'tool-1', input: { query: command }, name: 'Search', type: 'tool_use' },
+                index: 1,
+                type: 'content_block_start',
+            },
+            type: 'stream_event',
+        });
+        await adapter.handleMessage({
+            message: {
+                content: [
+                    { content: result, tool_use_id: 'command-1', type: 'tool_result' },
+                    { content: result, tool_use_id: 'tool-1', type: 'tool_result' },
+                ],
+            },
+            type: 'user',
+        });
+
+        const commandEvent = events.findLast(({ event }) => event?.providerItemId === 'command-1').event;
+        const toolEvent = events.findLast(({ event }) => event?.providerItemId === 'tool-1').event;
+        expect(commandEvent.command).toBe(command);
+        expect(commandEvent.content).toHaveLength(AGENT_RESULT_MAX_LENGTH);
+        expect(commandEvent).not.toHaveProperty('output');
+        expect(toolEvent.content).toBe(JSON.stringify({ query: command }));
+        expect(toolEvent.output).toHaveLength(AGENT_RESULT_MAX_LENGTH);
+        expect(commandEvent.content).toMatch(/^start/u);
+        expect(commandEvent.content).toMatch(/end$/u);
     });
 
     it('reports only structured pre-turn missing-session results as resumable', async () => {
@@ -807,6 +854,40 @@ describe('CodexStreamingAdapter', () => {
         expect(command.every((event) => !Object.hasOwn(event, 'output'))).toBe(true);
     });
 
+    it('keeps streamed command output bounded before authoritative completion', async () => {
+        const { adapter, events } = harness('codex');
+        const started = {
+            aggregatedOutput: '',
+            command: 'npm test',
+            id: 'command-large',
+            status: 'inProgress',
+            type: 'commandExecution',
+        };
+        const firstDelta = 'head'.repeat(3_000);
+        const secondDelta = 'tail'.repeat(3_000);
+        const completedOutput = `${firstDelta}${secondDelta}final error`;
+
+        await adapter.handleMessage({ method: 'item/started', params: { item: started } });
+        await adapter.handleMessage({
+            method: 'item/commandExecution/outputDelta',
+            params: { delta: firstDelta, itemId: started.id },
+        });
+        await adapter.handleMessage({
+            method: 'item/commandExecution/outputDelta',
+            params: { delta: secondDelta, itemId: started.id },
+        });
+        await adapter.handleMessage({
+            method: 'item/completed',
+            params: { item: { ...started, aggregatedOutput: completedOutput, status: 'failed' } },
+        });
+
+        const commandEvents = events.filter(({ event }) => event?.providerItemId === started.id).map(({ event }) => event);
+        expect(commandEvents.slice(1).every(({ content }) => content.length <= AGENT_RESULT_MAX_LENGTH)).toBe(true);
+        expect(commandEvents[2].content).toMatch(/^head/u);
+        expect(commandEvents[2].content).toMatch(/tail$/u);
+        expect(commandEvents.at(-1).content).toMatch(/final error$/u);
+    });
+
     it('retains declined command state', async () => {
         const { adapter, events } = harness('codex');
         const command = {
@@ -907,7 +988,7 @@ describe('CodexStreamingAdapter', () => {
         expect(diagnostics.join('')).not.toContain('not persisted');
     });
 
-    it('bounds structured tool result text without truncating command output', async () => {
+    it('bounds structured tool result text with shared head-tail marker', async () => {
         const { adapter, events } = harness('codex');
         const longText = 'x'.repeat(20_000);
         const dynamicTool = {
@@ -929,8 +1010,8 @@ describe('CodexStreamingAdapter', () => {
         });
 
         const event = events.at(-1).event;
-        expect(event.output.length).toBeLessThan(longText.length);
-        expect(event.output).toContain('[event content truncated]');
+        expect(event.output).toHaveLength(AGENT_RESULT_MAX_LENGTH);
+        expect(event.output).toContain('characters omitted');
     });
 
     it('resumes a saved thread before sending the first turn', async () => {

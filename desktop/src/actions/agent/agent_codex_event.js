@@ -1,4 +1,5 @@
 const { normalizedContent } = require('./agent_event_utils');
+const { boundedAgentResult } = require('../../../../shared/agent_conversations.mjs');
 
 const MAX_EVENT_CONTENT_LENGTH = 16_384;
 const MAX_EVENT_FIELDS = 12;
@@ -61,22 +62,24 @@ function selectedFieldValue(value) {
     return values.length > 0 ? values.join(', ') : null;
 }
 
-function selectedEventContent(value) {
+function selectedEventContent(value, boundContent = true) {
     if (value === undefined || value === null) return '';
     const structuredValue = typeof value === 'string' ? parseStructuredString(value) : value;
-    if (typeof structuredValue === 'string') return optionalContent(structuredValue);
+    if (typeof structuredValue === 'string') return boundContent ? optionalContent(structuredValue) : structuredValue;
     if (typeof structuredValue === 'number' || typeof structuredValue === 'boolean') return String(structuredValue);
     if (Array.isArray(structuredValue)) {
         const lines = structuredValue
             .map((entry) => (
                 entry && typeof entry === 'object'
-                    ? selectedEventContent(entry)
+                    ? selectedEventContent(entry, boundContent)
                     : selectedFieldValue(entry)
             ))
             .filter((entry) => entry !== null && entry.length > 0)
             .slice(0, MAX_EVENT_FIELDS);
 
-        return optionalContent(lines.join('\n'));
+        const content = lines.join('\n');
+
+        return boundContent ? optionalContent(content) : content;
     }
     if (typeof structuredValue !== 'object') return '';
     const lines = Object.entries(structuredValue)
@@ -88,7 +91,9 @@ function selectedEventContent(value) {
         .filter((entry) => entry !== null)
         .slice(0, MAX_EVENT_FIELDS);
 
-    return optionalContent(lines.join('\n'));
+    const content = lines.join('\n');
+
+    return boundContent ? optionalContent(content) : content;
 }
 
 function fileChangeContent(changes) {
@@ -181,12 +186,12 @@ function canonicalCodexItemType(type) {
 function toolResult(item) {
     if (item.error?.message) return item.error.message;
     if (item.result) {
-        const content = selectedEventContent(item.result.content);
-        const structuredContent = selectedEventContent(item.result.structuredContent);
+        const content = selectedEventContent(item.result.content, false);
+        const structuredContent = selectedEventContent(item.result.structuredContent, false);
 
-        return optionalContent([content, structuredContent].filter((value) => value.length > 0).join('\n'));
+        return [content, structuredContent].filter((value) => value.length > 0).join('\n');
     }
-    if (Array.isArray(item.contentItems)) return selectedEventContent(item.contentItems);
+    if (Array.isArray(item.contentItems)) return selectedEventContent(item.contentItems, false);
     if (typeof item.success === 'boolean') return item.success ? 'Succeeded' : 'Failed';
 
     return '';
@@ -218,7 +223,7 @@ function commandEvent(item, lifecycleStatus) {
     return {
         ...eventBase(item, lifecycleStatus, item.command || 'Command'),
         command: item.command,
-        content: item.aggregatedOutput ?? '',
+        content: boundedAgentResult(normalizedContent(item.aggregatedOutput) ?? ''),
         durationMs: item.durationMs,
         exitCode: item.exitCode,
         workingDirectory: item.cwd,
@@ -243,7 +248,7 @@ function mcpEvent(item, lifecycleStatus) {
         ...eventBase(item, lifecycleStatus, label || 'MCP tool'),
         content: selectedEventContent(item.arguments),
         durationMs: item.durationMs,
-        output: toolResult(item),
+        output: boundedAgentResult(toolResult(item)),
     };
 }
 
@@ -254,7 +259,7 @@ function dynamicToolEvent(item, lifecycleStatus) {
         ...eventBase(item, lifecycleStatus, label || 'Dynamic tool'),
         content: selectedEventContent(item.arguments),
         durationMs: item.durationMs,
-        output: toolResult(item),
+        output: boundedAgentResult(toolResult(item)),
     };
 }
 
@@ -264,10 +269,10 @@ function collaborationEvent(item, lifecycleStatus) {
     return {
         ...eventBase(item, lifecycleStatus, `Collaboration: ${toolLabel}`),
         content: item.prompt ?? '',
-        output: selectedEventContent({
+        output: boundedAgentResult(selectedEventContent({
             agentsStates: item.agentsStates,
             receiverThreadIds: item.receiverThreadIds,
-        }),
+        }, false)),
     };
 }
 
@@ -286,7 +291,7 @@ function normalizeCodexEvent(item, lifecycleStatus) {
         return {
             ...eventBase(normalizedItem, lifecycleStatus, 'Web search'),
             content: normalizedItem.query,
-            output: optionalContent(normalizedItem.action),
+            output: boundedAgentResult(normalizedContent(normalizedItem.action) ?? ''),
         };
     }
     if (type === 'imageView') {

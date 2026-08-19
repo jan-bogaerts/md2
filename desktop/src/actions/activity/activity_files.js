@@ -3,11 +3,14 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const {
+    compactActivityFileContent,
     createActivityFile,
     findActivityConversation,
     parseActivityValue,
 } = require('../../../../shared/card_activity.mjs');
+const { parseAgentConversationValue } = require('../../../../shared/agent_conversations.mjs');
 const {
+    activityOriginFromPath,
     activityFilePath,
     conversationActivityReference,
     parseConversationActivityReference,
@@ -54,6 +57,13 @@ async function readStoredActivity(filePath) {
     const value = JSON.parse(await fs.promises.readFile(filePath, 'utf8'));
 
     return { value };
+}
+
+async function readStoredActivityContent(filePath) {
+    const unwritten = unwrittenActivityValues.get(filePath);
+    if (unwritten) return JSON.stringify(unwritten);
+
+    return fs.promises.readFile(filePath, 'utf8');
 }
 
 function activityValue(stored, origin) {
@@ -160,6 +170,29 @@ async function updateAndCommitActivity(project, projectFolder, origin, update, m
     });
 }
 
+async function compactActivityFiles(project, activityPaths) {
+    if (!Array.isArray(activityPaths)) throw new Error('Missing activity paths for compaction');
+    const rootPath = requireRootPath(project);
+    await assertGitRoot(rootPath);
+
+    return Promise.all(activityPaths.map((activityPath) => {
+        if (typeof activityPath !== 'string' || activityPath.length === 0) {
+            throw new Error('Invalid activity path for compaction');
+        }
+        const origin = activityOriginFromPath(activityPath);
+        if (!origin) throw new Error(`Invalid activity path for compaction: ${activityPath}`);
+        const absolutePath = ensureInsideRoot(rootPath, path.join(rootPath, activityPath));
+
+        return queueActivityUpdate(absolutePath, async () => {
+            const content = await readStoredActivityContent(absolutePath);
+            const result = compactActivityFileContent(content, origin);
+            if (result.status === 'valid' && result.changed) await writeActivityFile(absolutePath, result.activity);
+
+            return { ...result, path: activityPath };
+        });
+    }));
+}
+
 async function appendActionActivity(project, projectFolder, origin, record) {
     return updateActivity(project, projectFolder, origin, (activity) => ({
         ...activity,
@@ -183,7 +216,8 @@ async function appendAndCommitSystemActivity(project, projectFolder, origin, rec
 
 function upsertConversation(activity, conversation) {
     if (typeof conversation.viewed !== 'boolean') throw new Error('Missing agent conversation viewed');
-    const storedConversation = Object.fromEntries(Object.entries(conversation).filter(([fieldName]) => fieldName !== 'path'));
+    const canonicalConversation = parseAgentConversationValue(conversation, conversation.path ?? '');
+    const storedConversation = Object.fromEntries(Object.entries(canonicalConversation).filter(([fieldName]) => fieldName !== 'path'));
 
     return {
         ...activity,
@@ -381,6 +415,7 @@ module.exports = {
     appendAndCommitSystemActivity,
     appendActionActivity,
     closeWaitingActivityConversation,
+    compactActivityFiles,
     ensureActivityFile,
     listAgentConversationReferences,
     loadActivityConversations,

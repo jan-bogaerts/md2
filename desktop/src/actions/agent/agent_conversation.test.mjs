@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
+import { AGENT_RESULT_MAX_LENGTH } from '../../../../shared/agent_conversations.mjs';
 
 const require = createRequire(import.meta.url);
 const {
@@ -69,6 +70,33 @@ describe('agent conversation', () => {
             .not.toMatchObject({ deletions: expect.anything(), insertions: expect.anything() });
     });
 
+    it('bounds redacted provider results and never duplicates command output', () => {
+        const oversizedResult = 'result'.repeat(2_000);
+        const command = createProviderEventEntry({
+            command: oversizedResult,
+            content: oversizedResult,
+            label: 'Command',
+            output: oversizedResult,
+            providerItemId: 'command-1',
+            status: 'completed',
+            type: 'commandExecution',
+        }, 'event-1', 'now', 2);
+        const tool = createProviderEventEntry({
+            content: oversizedResult,
+            label: 'Tool',
+            output: oversizedResult,
+            providerItemId: 'tool-1',
+            status: 'completed',
+            type: 'mcpToolCall',
+        }, 'event-2', 'now', 3);
+
+        expect(command.command).toBe(oversizedResult);
+        expect(command.content).toHaveLength(AGENT_RESULT_MAX_LENGTH);
+        expect(command).not.toHaveProperty('output');
+        expect(tool.content).toBe(oversizedResult);
+        expect(tool.output).toHaveLength(AGENT_RESULT_MAX_LENGTH);
+    });
+
     it('creates a new running conversation', () => {
         expect(createConversation({ actionId: 'review', activityOrigin: { cardInternalId: 'card-1', kind: 'card' }, cardPath: 'design/card.md', title: 'Review' }, 'agent-1', 'now', 'log.json')).toEqual({
             actionId: 'review',
@@ -84,6 +112,7 @@ describe('agent conversation', () => {
             status: 'running',
             timer: { elapsedMs: 0, runningStartedAt: 'now' },
             title: 'Review',
+            usageSchemaVersion: 1,
             viewed: true,
         });
     });
@@ -102,7 +131,7 @@ describe('agent conversation', () => {
 
         expect(resumed).toEqual({
             completedAt: null, entries: [], id: 'agent-1', path: 'log.json', providerSessions: [], status: 'running',
-            timer: { elapsedMs: 10_000, runningStartedAt: '2026-01-01T00:01:00.000Z' }, viewed: false,
+            timer: { elapsedMs: 10_000, runningStartedAt: '2026-01-01T00:01:00.000Z' }, usageSchemaVersion: 1, viewed: false,
         });
         expect(resumed.entries).not.toBe(conversation.entries);
         expect(resumed.providerSessions).not.toBe(conversation.providerSessions);
