@@ -3,7 +3,7 @@ author:
 id: F_200
 internalId: cc3a9c43-319b-4a60-a202-f728f220e14e
 title: Search results highlight text
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

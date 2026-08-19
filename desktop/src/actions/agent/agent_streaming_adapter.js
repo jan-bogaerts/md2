@@ -257,6 +257,8 @@ class CodexStreamingAdapter {
     }
 
     async handleNotification(method, params) {
+        if (this.threadId && params.threadId !== undefined && params.threadId !== this.threadId) return;
+
         if (method === 'turn/started') {
             this.activeItems.clear();
             this.assistantItemOrder = [];

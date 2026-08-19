@@ -3,7 +3,7 @@ author:
 id: B_150
 internalId: 168acbb7-c395-4962-9e69-96ec1fb6a594
 title: codex shows incorrect waiting for input
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

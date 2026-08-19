@@ -56,7 +56,7 @@ export function StatsContent() {
     const exclusions = Object.entries(snapshot.exclusionCounts) as Array<[StatsExclusionReason, number]>;
 
     return (
-        <Stack sx={{ flex: 1, minHeight: 0, p: 2.5 }} spacing={2}>
+        <Stack sx={{ flex: 1, minHeight: 0, p: 2.5, width: '100%' }} spacing={2}>
             <Typography component="h2" variant="h6">Project stats</Typography>
             <StatsControls snapshot={snapshot} />
             {snapshot.warnings.map((warning) => <Typography color="warning.main" key={warning} variant="body2">{warning}</Typography>)}

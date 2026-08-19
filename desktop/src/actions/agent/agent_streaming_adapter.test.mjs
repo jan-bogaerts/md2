@@ -472,7 +472,10 @@ describe('CodexStreamingAdapter', () => {
             method: 'turn/start',
             params: { input: [{ text: 'plan', type: 'text' }], threadId: 'thread-1' },
         });
-        await adapter.handleMessage({ method: 'turn/started', params: { turn: { id: 'turn-1' } } });
+        await adapter.handleMessage({
+            method: 'turn/started',
+            params: { threadId: 'thread-1', turn: { id: 'turn-1' }, turnId: 'turn-1' },
+        });
         await adapter.sendMessage('extra detail');
         expect(writes[5]).toMatchObject({
             method: 'turn/steer',
@@ -522,39 +525,163 @@ describe('CodexStreamingAdapter', () => {
         expect(unavailable.events).toEqual([]);
     });
 
+    it('ignores child-thread notifications while preserving root collaboration and completion', async () => {
+        const { adapter, events, runtimeEvents, writes } = harness('codex');
+        const rootCollaborationItem = {
+            agentsStates: { 'thread-child': { status: 'running' } },
+            id: 'wait-1',
+            prompt: '',
+            receiverThreadIds: ['thread-child'],
+            status: 'inProgress',
+            tool: 'wait',
+            type: 'collabAgentToolCall',
+        };
+
+        await adapter.start('plan');
+        await adapter.handleMessage({ id: 1, result: {} });
+        await adapter.handleMessage({ id: 3, result: { thread: { id: 'thread-root' } } });
+        await adapter.handleMessage({
+            method: 'turn/started',
+            params: { threadId: 'thread-root', turn: { id: 'turn-root' }, turnId: 'turn-root' },
+        });
+        await adapter.handleMessage({
+            method: 'item/started',
+            params: { item: rootCollaborationItem, threadId: 'thread-root', turnId: 'turn-root' },
+        });
+        const eventCountBeforeChildNotifications = events.length;
+        await adapter.handleMessage({
+            method: 'turn/started',
+            params: { threadId: 'thread-child', turn: { id: 'turn-child' }, turnId: 'turn-child' },
+        });
+        await adapter.handleMessage({
+            method: 'item/started',
+            params: {
+                item: { id: 'child-message', phase: null, text: '', type: 'agentMessage' },
+                threadId: 'thread-child',
+                turnId: 'turn-child',
+            },
+        });
+        await adapter.handleMessage({
+            method: 'thread/tokenUsage/updated',
+            params: {
+                threadId: 'thread-child',
+                tokenUsage: {
+                    last: { cachedInputTokens: 0, inputTokens: 10, outputTokens: 2, totalTokens: 12 },
+                    modelContextWindow: 100_000,
+                },
+                turnId: 'turn-child',
+            },
+        });
+        await adapter.handleMessage({
+            method: 'turn/completed',
+            params: {
+                threadId: 'thread-child',
+                turn: { id: 'turn-child', status: 'completed' },
+                turnId: 'turn-child',
+            },
+        });
+
+        expect(events).toHaveLength(eventCountBeforeChildNotifications);
+        await adapter.sendMessage('root still running');
+        expect(writes.at(-1)).toMatchObject({
+            method: 'turn/steer',
+            params: { expectedTurnId: 'turn-root', threadId: 'thread-root' },
+        });
+
+        await adapter.handleMessage({
+            method: 'account/rateLimits/updated',
+            params: { rateLimits: { primary: { usedPercent: 20 } } },
+        });
+        await adapter.handleMessage({
+            method: 'item/completed',
+            params: {
+                item: { ...rootCollaborationItem, agentsStates: { 'thread-child': { status: 'completed' } }, status: 'completed' },
+                threadId: 'thread-root',
+                turnId: 'turn-root',
+            },
+        });
+        await adapter.handleMessage({
+            method: 'turn/completed',
+            params: {
+                threadId: 'thread-root',
+                turn: { id: 'turn-root', status: 'completed' },
+                turnId: 'turn-root',
+            },
+        });
+
+        const collaborationEvents = events
+            .filter(({ event }) => event?.providerItemId === 'wait-1')
+            .map(({ event }) => event);
+        expect(collaborationEvents).toEqual([
+            expect.objectContaining({ label: 'Collaboration: wait', status: 'inProgress' }),
+            expect.objectContaining({ label: 'Collaboration: wait', status: 'completed' }),
+        ]);
+        expect(events.filter(({ type }) => type === 'turnCompleted')).toHaveLength(1);
+        expect(events.filter(({ type }) => type === 'usage')).toHaveLength(0);
+        expect(runtimeEvents).toEqual([expect.objectContaining({ kind: 'update' })]);
+    });
+
     it('maps deltas, usage, file changes, questions, and turn completion', async () => {
         const { adapter, events, writes } = harness('codex');
         await adapter.start('plan');
         await adapter.handleMessage({ id: 1, result: {} });
         await adapter.handleMessage({ id: 3, result: { thread: { id: 'thread-1' } } });
-        await adapter.handleMessage({ method: 'turn/started', params: { turn: { id: 'turn-1' } } });
+        await adapter.handleMessage({
+            method: 'turn/started',
+            params: { threadId: 'thread-1', turn: { id: 'turn-1' }, turnId: 'turn-1' },
+        });
         await adapter.handleMessage({
             method: 'item/started',
-            params: { item: { id: 'message-1', phase: null, text: '', type: 'agentMessage' } },
+            params: {
+                item: { id: 'message-1', phase: null, text: '', type: 'agentMessage' },
+                threadId: 'thread-1',
+                turnId: 'turn-1',
+            },
         });
-        await adapter.handleMessage({ method: 'item/agentMessage/delta', params: { delta: 'hello', itemId: 'message-1' } });
+        await adapter.handleMessage({
+            method: 'item/agentMessage/delta',
+            params: { delta: 'hello', itemId: 'message-1', threadId: 'thread-1', turnId: 'turn-1' },
+        });
         await adapter.handleMessage({
             method: 'item/completed',
-            params: { item: { id: 'message-1', phase: null, text: 'hello', type: 'agentMessage' } },
+            params: {
+                item: { id: 'message-1', phase: null, text: 'hello', type: 'agentMessage' },
+                threadId: 'thread-1',
+                turnId: 'turn-1',
+            },
         });
         const last = { cachedInputTokens: 2, inputTokens: 4, outputTokens: 3, reasoningOutputTokens: 1, totalTokens: 7 };
         await adapter.handleMessage({
             method: 'thread/tokenUsage/updated',
-            params: { tokenUsage: { last, modelContextWindow: 258_400 } },
+            params: { threadId: 'thread-1', tokenUsage: { last, modelContextWindow: 258_400 }, turnId: 'turn-1' },
         });
-        await adapter.handleMessage({ method: 'thread/tokenUsage/updated', params: {} });
+        await adapter.handleMessage({
+            method: 'thread/tokenUsage/updated',
+            params: { threadId: 'thread-1', turnId: 'turn-1' },
+        });
         await adapter.handleMessage({
             method: 'item/started',
-            params: { item: { changes: [{ diff: '', kind: { type: 'update' }, path: 'design\\feature.md' }], id: 'file-1', status: 'inProgress', type: 'fileChange' } },
+            params: {
+                item: { changes: [{ diff: '', kind: { type: 'update' }, path: 'design\\feature.md' }], id: 'file-1', status: 'inProgress', type: 'fileChange' },
+                threadId: 'thread-1',
+                turnId: 'turn-1',
+            },
         });
         await adapter.handleMessage({
             method: 'item/completed',
-            params: { item: { changes: [{ diff: '', kind: { type: 'update' }, path: 'design\\feature.md' }], id: 'file-1', status: 'completed', type: 'fileChange' } },
+            params: {
+                item: { changes: [{ diff: '', kind: { type: 'update' }, path: 'design\\feature.md' }], id: 'file-1', status: 'completed', type: 'fileChange' },
+                threadId: 'thread-1',
+                turnId: 'turn-1',
+            },
         });
         const questions = [{ header: 'Confirm', id: 'confirm', question: 'Proceed?' }];
         await adapter.handleMessage({ id: 99, method: 'item/tool/requestUserInput', params: { questions } });
         await adapter.answerQuestion(99, { confirm: ['Yes'] });
-        await adapter.handleMessage({ method: 'turn/completed', params: { turn: { status: 'completed' } } });
+        await adapter.handleMessage({
+            method: 'turn/completed',
+            params: { threadId: 'thread-1', turn: { id: 'turn-1', status: 'completed' }, turnId: 'turn-1' },
+        });
 
         expect(events).toContainEqual({ content: 'hello', itemId: 'message-1', type: 'assistant' });
         expect(events).toContainEqual({ itemId: 'message-1', type: 'assistantStarted' });
@@ -658,14 +785,25 @@ describe('CodexStreamingAdapter', () => {
         await adapter.start('plan');
         await adapter.handleMessage({ id: 1, result: {} });
         await adapter.handleMessage({ id: 3, result: { thread: { id: 'thread-1' } } });
-        await adapter.handleMessage({ method: 'turn/started', params: { turn: { id: 'turn-1' } } });
         await adapter.handleMessage({
-            method: 'item/started',
-            params: { item: { command: 'npm test', cwd: 'C:\\repo', id: 'command-1', type: 'commandExecution' } },
+            method: 'turn/started',
+            params: { threadId: 'thread-1', turn: { id: 'turn-1' }, turnId: 'turn-1' },
         });
         await adapter.handleMessage({
             method: 'item/started',
-            params: { item: { changes: [{ kind: { type: 'update' }, path: 'app/src/main.ts' }], id: 'file-1', type: 'fileChange' } },
+            params: {
+                item: { command: 'npm test', cwd: 'C:\\repo', id: 'command-1', type: 'commandExecution' },
+                threadId: 'thread-1',
+                turnId: 'turn-1',
+            },
+        });
+        await adapter.handleMessage({
+            method: 'item/started',
+            params: {
+                item: { changes: [{ kind: { type: 'update' }, path: 'app/src/main.ts' }], id: 'file-1', type: 'fileChange' },
+                threadId: 'thread-1',
+                turnId: 'turn-1',
+            },
         });
         await adapter.handleMessage({
             id: 41,
@@ -697,7 +835,10 @@ describe('CodexStreamingAdapter', () => {
             method: 'serverRequest/resolved',
             params: { requestId: 41, threadId: 'thread-1' },
         });
-        await adapter.handleMessage({ method: 'turn/completed', params: { turn: { id: 'turn-1', status: 'completed' } } });
+        await adapter.handleMessage({
+            method: 'turn/completed',
+            params: { threadId: 'thread-1', turn: { id: 'turn-1', status: 'completed' }, turnId: 'turn-1' },
+        });
 
         expect(events).toContainEqual(expect.objectContaining({
             approval: expect.objectContaining({
@@ -720,7 +861,10 @@ describe('CodexStreamingAdapter', () => {
         await adapter.start('plan');
         await adapter.handleMessage({ id: 1, result: {} });
         await adapter.handleMessage({ id: 3, result: { thread: { id: 'thread-1' } } });
-        await adapter.handleMessage({ method: 'turn/started', params: { turn: { id: 'turn-1' } } });
+        await adapter.handleMessage({
+            method: 'turn/started',
+            params: { threadId: 'thread-1', turn: { id: 'turn-1' }, turnId: 'turn-1' },
+        });
 
         await expect(adapter.handleMessage({
             id: 41,
