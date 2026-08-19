@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { StatsChartRow } from '../../services/stats/project_stats_service';
 import { AppThemeProvider } from '../../theme/theme_provider';
@@ -95,6 +95,21 @@ describe('StatsBarChart', () => {
         expect(screen.getAllByRole('listitem')).toHaveLength(3);
         expect(screen.getByText('codex')).toBeInTheDocument();
         expect(screen.getByText('claude')).toBeInTheDocument();
+    });
+
+    it('shows each stacked action tooltip with its action value', async () => {
+        renderChart(<StatsBarChart mode="stacked" rows={[
+            row({ identity: 'implement', tooltip: '1 Aug; Implement: 5', value: 5 }),
+            row({ identity: 'review', seriesIdentity: 'review', seriesLabel: 'Review', tooltip: '1 Aug; Review: 3', value: 3 }),
+        ]} />);
+        const bars = screen.getAllByTestId('stats-bar');
+
+        fireEvent.mouseOver(bars[0]);
+        expect(await screen.findByRole('tooltip')).toHaveTextContent('Implement: 5');
+        fireEvent.mouseLeave(bars[0]);
+        await waitFor(() => expect(screen.queryByRole('tooltip')).toBeNull());
+        fireEvent.mouseOver(bars[1]);
+        expect(await screen.findByRole('tooltip')).toHaveTextContent('Review: 3');
     });
 
     it('renders five usage comparison charts in required order', () => {

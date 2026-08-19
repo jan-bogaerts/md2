@@ -238,7 +238,7 @@ export function StatsBarChart({ ariaLabel = 'Stats bar chart', mode = 'single', 
                                                             aria-label={row.accessibleLabel}
                                                             key={`${row.identity}:${index}`}
                                                             role="listitem"
-                                                            sx={{ inset: 0, position: 'absolute' }}
+                                                            sx={{ inset: 0, pointerEvents: 'none', position: 'absolute' }}
                                                         >
                                                             {showBar ? (
                                                                 <Tooltip title={row.tooltip}>
@@ -249,6 +249,7 @@ export function StatsBarChart({ ariaLabel = 'Stats bar chart', mode = 'single', 
                                                                             bottom,
                                                                             height: positionCss(magnitude),
                                                                             left: 0,
+                                                                            pointerEvents: 'auto',
                                                                             position: 'absolute',
                                                                             right: 0,
                                                                             top: !stacked && isNegative ? `${baselinePercentage}%` : undefined,
