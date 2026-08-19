@@ -14,6 +14,6 @@ policy:
   * activity over time.
   * project activity (which is the same as above
 * bars have different widths on different charts. this is no good. they should all share the same basic styling
-  best styling seems to be on 'agent/model performance'
+  best styling seems to be on 'agent/model performance', except when there are 2 bars on the same x tick (day/week). bars should half and tick width should stay the same, instead of increasing the tick width
 * on 'agent/model performance', bars start at half of the chart, they need to start at the bottom (width padding of course)
 *
