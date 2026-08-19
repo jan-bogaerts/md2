@@ -3,13 +3,14 @@ author:
 id: F_211
 internalId: ad4126b2-1203-4a30-b222-636148bf92b1
 title: stats view improvements
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
   - design/activity/card__ad4126b2-1203-4a30-b222-636148bf92b1.json
 policy:
-after: d67b763d-819f-4e7e-aab5-c3c9f28e594d
+branch: f_211_stats_view_improvements
+worktree: 1
 ---
 
 [F_208_add_view_stats.md](F_208_add_view_stats.md) added the stats view. Improve its chart layout and extend it to answer:
