@@ -786,27 +786,340 @@
           "role": "assistant",
           "sequence": 21,
           "timestamp": "2026-08-18T18:14:22.763Z"
+        },
+        {
+          "content": "go",
+          "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-user-21",
+          "kind": "message",
+          "role": "user",
+          "sequence": 22,
+          "timestamp": "2026-08-18T18:14:33.824Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-23",
+          "kind": "event",
+          "label": "Edit",
+          "providerItemId": "toolu_0188gJxN3tNwcmGg3zyAtB7K",
+          "sequence": 23,
+          "status": "completed",
+          "timestamp": "2026-08-18T18:14:39.205Z",
+          "type": "fileChange",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\services\\data\\data_service.ts has been updated successfully. (file state is current in your context — no need to Read it back)"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-24",
+          "kind": "event",
+          "label": "Edit",
+          "providerItemId": "toolu_01Leth3AS3WZMi1Xvw5hXS1o",
+          "sequence": 24,
+          "status": "completed",
+          "timestamp": "2026-08-18T18:14:39.944Z",
+          "type": "fileChange",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\components\\actions\\conversation\\action_conversation_store.ts has been updated successfully. (file state is current in your context — no need to Read it back)"
+        },
+        {
+          "agent": "claude",
+          "content": "Now tests. Update data_service test:",
+          "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 25,
+          "timestamp": "2026-08-18T18:14:41.676Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-26",
+          "kind": "event",
+          "label": "Edit",
+          "providerItemId": "toolu_01GVGs3EoPQKTDa9ETPPgWBR",
+          "sequence": 26,
+          "status": "completed",
+          "timestamp": "2026-08-18T18:14:47.021Z",
+          "type": "fileChange",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\services\\data\\data_service.test.ts has been updated successfully. (file state is current in your context — no need to Read it back)"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-27",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeAfn5MJeor1Sg69kJeXe:thinking:0",
+          "sequence": 27,
+          "status": "completed",
+          "timestamp": "2026-08-18T18:14:52.007Z",
+          "type": "reasoning",
+          "details": [
+            ""
+          ],
+          "summary": []
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-28",
+          "kind": "event",
+          "label": "Read",
+          "providerItemId": "toolu_017L1FfS1JUkxo7JGavR8r5F",
+          "sequence": 28,
+          "status": "completed",
+          "timestamp": "2026-08-18T18:14:52.535Z",
+          "type": "tool.Read",
+          "output": "60\t\n61\t    it('keeps empty state without unseen results and after explicit reset', async () => {\n62\t        const historicalConversation = conversation('conversation-old.json')\n63\t        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([historicalConversation])\n64\t        const loadConversation = vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(historicalConversation)\n65\t        const store = new ActionConversationStore('implement', context)\n66\t        store.configureInitialSelection(null)\n67\t\n68\t        await store.load()\n69\t        expect(store.getSnapshot().selectedConversation).toBeNull()\n70\t\n71\t        await store.select(historicalConversation.path)\n72\t        await store.select('')\n73\t\n74\t        expect(loadConversation).toHaveBeenCalledOnce()\n75\t        expect(store.getSnapshot().selectedConversation).toBeNull()\n76\t    })\n77\t\n78\t    it('refreshes selected conversation from persistence after a continued turn', async () => {\n79\t        const originalConversation = conversation('conversation.json')\n80\t        const continuedConversation = {\n81\t            ...originalConversation,\n82\t            entries: [{\n83\t                content: 'New answer',\n84\t                id: 'assistant-2',\n85\t                kind: 'message' as const,\n86\t                role: 'assistant' as const,\n87\t                timestamp: '2026-01-01T00:02:00.000Z',\n88\t            }],\n89\t        }\n90\t        vi.spyOn(dataService, 'listAgentConversations')\n91\t            .mockResolvedValueOnce([originalConversation])\n92\t            .mockResolvedValueOnce([continuedConversation])\n93\t        vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(originalConversation)\n94\t        const store = new ActionConversationStore('implement', context)\n95\t        store.configureInitialSelection(originalConversation.path)\n96\t        await store.load()\n97\t\n98\t        await store.load()\n99\t\n100\t        expect(store.getSnapshot().selectedConversation).toBe(continuedConversation)\n101\t    })\n102\t})\n103\t"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-29",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeAfnUpC5mJtRprg97yZZ:thinking:0",
+          "sequence": 29,
+          "status": "completed",
+          "timestamp": "2026-08-18T18:14:57.587Z",
+          "type": "reasoning",
+          "details": [
+            ""
+          ],
+          "summary": []
+        },
+        {
+          "content": "",
+          "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-30",
+          "kind": "event",
+          "label": "Edit",
+          "providerItemId": "toolu_015qJxk8aTspXn5pMLj8KEFY",
+          "sequence": 30,
+          "status": "completed",
+          "timestamp": "2026-08-18T18:15:00.394Z",
+          "type": "fileChange",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\components\\actions\\conversation\\action_conversation_store.node.test.ts has been updated successfully. (file state is current in your context — no need to Read it back)"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-31",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeAfo4p5xnLtccWbwYN4J:thinking:0",
+          "sequence": 31,
+          "status": "completed",
+          "timestamp": "2026-08-18T18:15:03.380Z",
+          "type": "reasoning",
+          "details": [
+            ""
+          ],
+          "summary": []
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-32",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01NUDfnoJGZzQAeFhRUp4ojt",
+          "sequence": 32,
+          "status": "completed",
+          "timestamp": "2026-08-18T18:15:03.573Z",
+          "type": "commandExecution",
+          "output": "165:    cardInternalId: string\n188:    cardPath: string\n332:    cardInternalId?: string | null\n333:    cardPath: string | null"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-33",
+          "kind": "event",
+          "label": "Read",
+          "providerItemId": "toolu_01BeXXn737jSvPf5RDbcjM1t",
+          "sequence": 33,
+          "status": "completed",
+          "timestamp": "2026-08-18T18:15:06.496Z",
+          "type": "tool.Read",
+          "output": "320\texport interface AgentContextWindowUsage {\n321\t    capacityTokens: number\n322\t    usedTokens: number\n323\t}\n324\t\n325\texport interface AgentConversationTimer {\n326\t    elapsedMs: number\n327\t    runningStartedAt: string | null\n328\t}\n329\t\n330\texport interface AgentConversation {\n331\t    actionId?: string | null\n332\t    cardInternalId?: string | null\n333\t    cardPath: string | null\n334\t    completedAt: string | null\n335\t    contextWindowUsage?: AgentContextWindowUsage\n336\t    entries: AgentConversationEntry[]\n337\t    hasExplicitTitle: boolean\n338\t    id: string\n339\t    path: string\n340\t    providerSessions: AgentProviderSession[]\n341\t    startedAt: string\n342\t    status: AgentConversationStatus\n343\t    timer?: AgentConversationTimer\n344\t    title: string"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nGood, nulls allowed. Now add the test case:",
+          "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 34,
+          "timestamp": "2026-08-18T18:15:08.238Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-35",
+          "kind": "event",
+          "label": "Edit",
+          "providerItemId": "toolu_01UoUoJrTFHviuXYzgqCK98H",
+          "sequence": 35,
+          "status": "completed",
+          "timestamp": "2026-08-18T18:15:13.023Z",
+          "type": "fileChange",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\components\\actions\\conversation\\action_conversation_store.node.test.ts has been updated successfully. (file state is current in your context — no need to Read it back)"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNow typecheck + run the two test files.",
+          "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-turn-2-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 36,
+          "timestamp": "2026-08-18T18:15:14.629Z"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-37",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01YbgLWNQARRKj1ttmLEsqtM",
+          "sequence": 37,
+          "status": "completed",
+          "timestamp": "2026-08-18T18:15:24.677Z",
+          "type": "commandExecution",
+          "output": "> app@0.3.3 typecheck\n> tsc --noEmit"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-38",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_017imtTh1eLgYDZDzQWZVVHL",
+          "sequence": 38,
+          "status": "failed",
+          "timestamp": "2026-08-19T08:21:29.664Z",
+          "type": "commandExecution",
+          "output": "Exit code 1\n/usr/bin/bash: line 1: cd: app: No such file or directory"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-39",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeBnLtKenBciPkRyQxASA:thinking:0",
+          "sequence": 39,
+          "status": "completed",
+          "timestamp": "2026-08-19T08:21:32.555Z",
+          "type": "reasoning",
+          "details": [
+            ""
+          ],
+          "summary": []
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-40",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01M9yWnhSpHwTrde72WVdmbB",
+          "sequence": 40,
+          "status": "completed",
+          "timestamp": "2026-08-19T08:21:48.509Z",
+          "type": "commandExecution",
+          "output": " RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2/app\n\n\n Test Files  2 passed (2)\n      Tests  19 passed (19)\n   Start at  10:21:45\n   Duration  2.64s (transform 645ms, setup 139ms, import 1.11s, tests 104ms, environment 1.07s)"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nGreen. Now set status to `ready`:",
+          "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-turn-2-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 41,
+          "timestamp": "2026-08-19T08:21:49.932Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-42",
+          "kind": "event",
+          "label": "Edit",
+          "providerItemId": "toolu_0174p7Xp4G3gcT5Zt27Cbqcc",
+          "sequence": 42,
+          "status": "completed",
+          "timestamp": "2026-08-19T08:21:51.662Z",
+          "type": "fileChange",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_116_merge_agent_missing_card_internal_id.md has been updated successfully. (file state is current in your context — no need to Read it back)"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-43",
+          "kind": "event",
+          "label": "ToolSearch",
+          "providerItemId": "toolu_013MFcunzfDTpvoQnVn2pi56",
+          "sequence": 43,
+          "status": "completed",
+          "timestamp": "2026-08-19T08:21:53.610Z",
+          "type": "tool.ToolSearch",
+          "output": "[{\"type\":\"tool_reference\",\"tool_name\":\"TaskUpdate\"}]"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-44",
+          "kind": "event",
+          "label": "TaskUpdate",
+          "providerItemId": "toolu_018jBsiSpDf9GcnVoj78jyyy",
+          "sequence": 44,
+          "status": "completed",
+          "timestamp": "2026-08-19T08:21:55.974Z",
+          "type": "tool.TaskUpdate",
+          "output": "Updated task #1 status"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-45",
+          "kind": "event",
+          "label": "TaskUpdate",
+          "providerItemId": "toolu_01H5PPjjy9ZLsKjbJTGuhMfj",
+          "sequence": 45,
+          "status": "completed",
+          "timestamp": "2026-08-19T08:21:56.848Z",
+          "type": "tool.TaskUpdate",
+          "output": "Updated task #2 status"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-event-46",
+          "kind": "event",
+          "label": "TaskUpdate",
+          "providerItemId": "toolu_01MhcfuBWx5jeQTNnBHU9cKC",
+          "sequence": 46,
+          "status": "completed",
+          "timestamp": "2026-08-19T08:21:56.862Z",
+          "type": "tool.TaskUpdate",
+          "output": "Updated task #3 status"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nDone. All blocks implemented, tests green, status set.\n\n**Changes:**\n- `data_service.ts` — `listAgentConversations` routes `merge-conflict` to `listProjectAgentConversations()`. No throw; card-owned kinds still require `cardInternalId`.\n- `action_conversation_store.ts` — `belongsToContext` treats `merge-conflict` like `project` (matches `cardInternalId === null`), so listing/selection/`validateSelection` work.\n\n**Tests added:**\n- `data_service.test.ts` — merge-conflict list resolves via project loader, no throw.\n- `action_conversation_store.node.test.ts` — null-owned conversation belongs to merge-conflict context, lists + selects without error.\n\n**Verify:** `npm run typecheck` clean; 2 files / 19 tests passed.\n\nFeature md `status: ready`.\n\nCause chain confirmed: merge-conflict context carries no `cardInternalId` (not a card) → desktop persists its runs as project-origin (`cardInternalId: null`) → two client read-paths wrongly demanded a card id. Both now recognize merge-conflict as project-level. No desktop/persistence/protocol change.",
+          "id": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-turn-2-assistant-5",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 47,
+          "timestamp": "2026-08-19T08:22:03.586Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-12a8114b-9aef-4883-979d-7e9716f39cb8",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "claude",
+          "conversationId": "7bacb527-bff5-465e-9593-74873e724bb6",
+          "createdAt": "2026-08-18T18:14:22.763Z",
+          "lastUsedAt": "2026-08-18T18:14:22.763Z",
+          "synchronizedThroughMessageId": "agent-turn-23023b20-1ff0-4f31-a5f2-77646918db57-turn-1-assistant-3"
+        }
+      ],
       "startedAt": "2026-08-18T18:13:44.379Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-18T18:13:44.379Z"
+        "elapsedMs": 91489,
+        "runningStartedAt": "2026-08-19T08:21:29.411Z"
       },
       "title": "implement",
       "usageSchemaVersion": 1,
       "viewed": true,
       "usage": {
-        "cachedInputTokens": 263756,
-        "inputTokens": 8743,
-        "outputTokens": 2409,
+        "cachedInputTokens": 903920,
+        "inputTokens": 9039,
+        "outputTokens": 6558,
         "reasoningTokens": 0,
-        "totalTokens": 274908,
-        "costUsd": 0.9889210000000002
+        "totalTokens": 919517,
+        "costUsd": 2.921601
       }
     }
   ],
