@@ -166,6 +166,18 @@ export class AgentIntegration {
         return this.getAgentConversations(cardInternalId)
     }
 
+    /** Loads persisted conversations for dashboard cards without blocking project opening. */
+    async hydrateActiveCardConversations() {
+        const snapshot = this.dependencies.snapshot()
+        if (!snapshot) throw new Error('Cannot hydrate active card conversations before a project snapshot exists')
+
+        await Promise.all(snapshot.activeCards.map(({ header }) => {
+            if (!header.internalId) throw new Error('Cannot hydrate conversations for an active card without an internal ID')
+
+            return this.ensureAgentConversationsForCard(header.internalId)
+        }))
+    }
+
     async listProjectAgentConversations() {
         const project = this.dependencies.project()
         if (!project) throw new Error('Cannot list project conversations before a project is open')

@@ -123,6 +123,7 @@ export interface ProjectLoadingDeps {
     ensureCardInternalIds(): Promise<void>
     files(): MarkdownFile[]
     flushPendingChanges(): Promise<void>
+    hydrateActiveCardConversations(): Promise<void>
     matchesCurrentContent(path: string, content: string): boolean
     isCurrentLoad(project: ProjectReference, projectLoadToken: number): boolean
     mergeBackgroundProjectFiles(files: MarkdownFile[], workingFolder: string, repositoryFiles: string[]): void
@@ -241,6 +242,7 @@ export class ProjectLoading {
             initializeMissingProjectStates(projectConfig ?? null, currentSnapshot)
             this.prepareAgentConversationLoading(projectLoadToken)
             this.dependencies.dispatchChanged()
+            void this.hydrateActiveCardConversations()
             reportActionLoadIssues()
 
             void this.loadFullProjectInBackground(project, config.projectFolder, config.workingFolder, projectLoadToken)
@@ -361,6 +363,7 @@ export class ProjectLoading {
         await this.dependencies.migrateAgentLogReferences()
         this.dependencies.markFullProjectLoaded()
         this.dependencies.dispatchChanged()
+        void this.hydrateActiveCardConversations()
         return this.dependencies.snapshot()
     }
 
@@ -591,6 +594,14 @@ export class ProjectLoading {
 
     private shouldApplyProjectLoad(project: ProjectReference, projectLoadToken: number) {
         return this.dependencies.isCurrentLoad(project, projectLoadToken)
+    }
+
+    private async hydrateActiveCardConversations() {
+        try {
+            await this.dependencies.hydrateActiveCardConversations()
+        } catch (error) {
+            telemetryService.captureError(error)
+        }
     }
 
     private startProjectWatch() {

@@ -398,6 +398,7 @@ export class DataService extends EventTarget {
             },
             files: () => this.projectState.files,
             flushPendingChanges: flushAggregatePendingChanges,
+            hydrateActiveCardConversations: () => this.agents.hydrateActiveCardConversations(),
             matchesCurrentContent: (path, content) => this.projectState.matchesCurrentContent(path, content),
             isCurrentLoad: (project, projectLoadToken) => this.projectState.isCurrentLoad(project, projectLoadToken),
             mergeBackgroundProjectFiles: (files, workingFolder, repositoryFiles) => (

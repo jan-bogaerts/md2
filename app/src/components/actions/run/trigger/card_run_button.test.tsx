@@ -167,6 +167,17 @@ describe('CardRunButton', () => {
         expect(within(dialog.getByTestId('action-popup-toolbar')).getByText('F-010')).toBeInTheDocument()
     })
 
+    it('shows persisted waiting state on its action before any live run exists', () => {
+        const waitingCard = cardWith([conversation('waitingForInput', [], 'implement')])
+        renderCardRunButton(waitingCard)
+
+        fireEvent.click(screen.getByRole('button', { name: /Run.*Agent is waiting for input/u }))
+
+        const actionGroup = within(screen.getByRole('group', { name: 'Actions' }))
+        const implementButton = actionGroup.getByRole('button', { name: /Implement.*Agent is waiting for input/u })
+        expect(within(implementButton).getByTestId('HelpCircleOutlineIcon')).toBeInTheDocument()
+    })
+
     it('opens the card action popup while an action is running', () => {
         let listener: ((event: ActionRunEvent) => void) | null = null
         window.md2Actions = {
