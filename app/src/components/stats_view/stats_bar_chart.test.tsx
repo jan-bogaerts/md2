@@ -94,6 +94,17 @@ describe('StatsBarChart', () => {
         expect(screen.getByText('claude')).toBeInTheDocument();
     });
 
+    it('keeps stacked action bars on full-height canvas with bottom baseline', () => {
+        renderChart(<StatsBarChart mode="stacked" rows={[
+            row({ actionId: 'review', identity: 'review', unit: 'actions', value: 2 }),
+            row({ actionId: 'test', identity: 'test', seriesIdentity: 'test', seriesLabel: 'Test', unit: 'actions', value: 1 }),
+        ]} />);
+
+        expect(screen.getByTestId('stats-chart-canvas')).toHaveStyle({ flex: '0 0 260px', height: '260px', minHeight: '260px' });
+        expect(screen.getByLabelText('Zero baseline')).toHaveStyle({ bottom: '0' });
+        expect(screen.getAllByTestId('stats-bar')[0]).toHaveStyle({ bottom: '0' });
+    });
+
     it('renders five usage comparison charts in required order', () => {
         renderChart(<StatsUsageComparisonCharts rows={[
             row({ chartRole: 'accountUsage', unit: 'percentagePoints' }),
