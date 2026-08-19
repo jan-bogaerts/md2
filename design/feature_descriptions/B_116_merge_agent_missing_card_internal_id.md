@@ -3,7 +3,7 @@ author:
 id: B_116
 internalId: b0e7104c-8f81-425e-8473-66b569a63d81
 title: merge agent missing card internal id
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

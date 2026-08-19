@@ -37,6 +37,17 @@ describe('DataService', () => {
         expect(ensureAgentConversationsForCard).toHaveBeenCalledWith('card-1')
     })
 
+    it('lists merge-conflict conversations through the project loader without requiring a card id', async () => {
+        const service = createDataService()
+        const listProjectAgentConversations = vi.spyOn(service.agents, 'listProjectAgentConversations').mockResolvedValue([])
+
+        await expect(
+            service.listAgentConversations({ conflictSessionId: 'session-1', kind: 'merge-conflict' }),
+        ).resolves.toEqual([])
+
+        expect(listProjectAgentConversations).toHaveBeenCalledOnce()
+    })
+
     it('replaces remote storage and project watch without reopening loaded project', async () => {
         configService.init()
         const firstMergeConflictCleanup = vi.fn()

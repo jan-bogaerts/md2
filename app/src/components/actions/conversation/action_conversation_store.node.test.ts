@@ -6,6 +6,11 @@ import { dialogService } from '../../../services/dialog_service'
 import { ActionConversationStore } from './action_conversation_store'
 
 const context: ActionContext = { cardInternalId: 'card-1', file: 'design/F-1.md', kind: 'card' }
+const mergeConflictContext: ActionContext = { conflictSessionId: 'session-1', kind: 'merge-conflict' }
+
+function projectConversation(path: string): AgentConversation {
+    return { ...conversation(path), actionId: 'resolve-conflict', cardInternalId: null, cardPath: null }
+}
 
 function conversation(path: string): AgentConversation {
     return {
@@ -98,5 +103,22 @@ describe('ActionConversationStore', () => {
         await store.load()
 
         expect(store.getSnapshot().selectedConversation).toBe(continuedConversation)
+    })
+
+    it('treats a project-origin conversation as belonging to a merge-conflict context', async () => {
+        const projectOrigin = projectConversation('conversation-conflict.json')
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([projectOrigin])
+        vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(projectOrigin)
+        const reportError = vi.spyOn(dialogService, 'error')
+        const store = new ActionConversationStore('resolve-conflict', mergeConflictContext)
+
+        await store.load()
+
+        expect(store.conversationOptions(null)).toEqual([projectOrigin])
+
+        await store.select(projectOrigin.path)
+
+        expect(store.getSnapshot().selectedConversation).toBe(projectOrigin)
+        expect(reportError).not.toHaveBeenCalled()
     })
 })

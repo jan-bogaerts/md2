@@ -974,15 +974,15 @@
           "agent": "codex",
           "conversationId": "01a015e8-f6eb-7531-8d59-3da524090e13",
           "createdAt": "2026-08-18T17:29:09.775Z",
-          "lastUsedAt": "2026-08-18T18:01:33.900Z",
-          "synchronizedThroughMessageId": "agent-turn-e7cb7e5d-07f4-4d4e-b14d-e11956529465-turn-4-assistant-1"
+          "lastUsedAt": "2026-08-18T18:07:50.481Z",
+          "synchronizedThroughMessageId": "agent-turn-e7cb7e5d-07f4-4d4e-b14d-e11956529465-turn-5-assistant-3"
         }
       ],
       "startedAt": "2026-08-18T17:26:23.526Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
-        "elapsedMs": 260568,
-        "runningStartedAt": "2026-08-18T18:04:31.282Z"
+        "elapsedMs": 459767,
+        "runningStartedAt": null
       },
       "title": "+",
       "usageSchemaVersion": 1,

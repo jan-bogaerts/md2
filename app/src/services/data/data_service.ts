@@ -265,7 +265,7 @@ export class DataService extends EventTarget {
     }
 
     async listAgentConversations(context: ActionContext) {
-        if (context.kind === 'project') return this.agents.listProjectAgentConversations()
+        if (context.kind === 'project' || context.kind === 'merge-conflict') return this.agents.listProjectAgentConversations()
         if (!context.cardInternalId) throw new Error(`Missing cardInternalId for ${context.kind} agent conversation context`)
 
         return this.agents.ensureAgentConversationsForCard(context.cardInternalId)
