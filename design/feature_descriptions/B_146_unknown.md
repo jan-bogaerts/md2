@@ -3,7 +3,7 @@ author:
 id: B_146
 internalId: 964ad5f3-3769-462c-a347-1ae01692fb03
 title: <unknown>
-status: new
+status: design
 owner: 
 affects:
 agents:
@@ -11,7 +11,6 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 141426871
 sentryOrganization: elastetic
-after: e556141d-344f-4a8d-be37-ed35c9c8ed73
 ---
 
 ## Sentry issue
