@@ -12,4 +12,4 @@ policy:
 * in legend: action labels: don't include internal id, just the name of the action
 * stacks are horizontally centered. that looks like shit, impossible to compare values. bars should be aligned at the bottom. this is in
   * activity over time.
-  * project activity (i think&#x20;
+  * project activity (which is the same as above
