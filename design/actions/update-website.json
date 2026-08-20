@@ -1,0 +1,13 @@
+{
+  "id": "0a2fdc15-bb73-491e-97dd-12d71a7f676b",
+  "label": "update website",
+  "description": "update the website with info from the latest release",
+  "type": "agent",
+  "phrases": [],
+  "prompt": "Describe what the agent should do.",
+  "streaming": true,
+  "trackFileChanges": true,
+  "appliesTo": {
+    "kind": "project"
+  }
+}
