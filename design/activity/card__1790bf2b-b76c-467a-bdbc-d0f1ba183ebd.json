@@ -994,7 +994,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 41115
+        "usedTokens": 48859
       },
       "entries": [
         {
@@ -1315,24 +1315,99 @@
           "role": "assistant",
           "sequence": 24,
           "timestamp": "2026-08-20T13:01:02.480Z"
+        },
+        {
+          "content": "`Runner: resolved executable becomes required and authoritative.` be careful here. we don't want a situation where the app wont run cause there is no agent. what we want:\n\n* if no claude, can't start a claude agent\n* if no codex, can't start a codex agent\n* if no agent at all: cant run anything, but can still use the app, so only show an error that there is no agent found.\n\nextra note: this should only occur when the agent is configured to be used. if no agent configured, it is ok",
+          "id": "agent-turn-e8d46cad-d2b0-4b53-a1be-ee4635a24cc1-user-24",
+          "kind": "message",
+          "role": "user",
+          "sequence": 25,
+          "timestamp": "2026-08-20T13:05:01.620Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-e8d46cad-d2b0-4b53-a1be-ee4635a24cc1-event-26",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_07548dc995485a8a016a86fb8132f487d0aee82ea144d273eb",
+          "sequence": 26,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T13:05:07.420Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Constraint accepted. Failure belongs only to attempted run, never app/service construction. Inspecting start boundary and agent configuration flow to sharpen Block 1 before approval. Still no edits.\n\n",
+          "id": "agent-turn-e8d46cad-d2b0-4b53-a1be-ee4635a24cc1-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 27,
+          "timestamp": "2026-08-20T13:05:08.672Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"MD2_AGENT|agentProfiles|agent.*command|command.*agent|AgentRunnerService|new AgentRunnerService\" desktop/src desktop/main.js desktop/src/shell/config.js'",
+          "content": "desktop/src/shell/config.js:41:        agentProfiles: validateAgentProfiles(values.agentProfiles),\ndesktop/src/shell/config.js:75:    // Clone so the MD2_AGENT override below cannot mutate the shared built-in constant.\ndesktop/src/shell/config.js:76:    const agentProfiles = structuredClone(BUILTIN_AGENT_PROFILES);\ndesktop/src/shell/config.js:77:    if (env.MD2_AGENT) {\ndesktop/src/shell/config.js:78:        const defaultProfile = agentProfiles.find((profile) => profile.name === DEFAULT_DESKTOP_AGENT);\ndesktop/src/shell/config.js:79:        defaultProfile.command = [env.MD2_AGENT];\ndesktop/src/shell/config.js:87:        agentProfiles,\ndesktop/src/shell/config.js:109:function applyDefaultAgentProfileModels(agentProfiles) {\ndesktop/src/shell/config.js:110:    if (!Array.isArray(agentProfiles)) return agentProfiles;\ndesktop/src/shell/config.js:112:    return agentProfiles.map((profile) => {\ndesktop/src/shell/config.js:132:    const profilesWithDefaultModels = applyDefaultAgentProfileModels(resolved.agentProfiles);\ndesktop/src/shell/config.js:133:    const agentProfiles = normalizeAgentProfiles(profilesWithDefaultModels);\ndesktop/src/shell/config.js:134:    if (env.MD2_AGENT) {\ndesktop/src/shell/config.js:135:        const defaultProfile = agentProfiles.find((profile) => profile.name === DEFAULT_DESKTOP_AGENT);\ndesktop/src/shell/config.js:136:        if (defaultProfile) defaultProfile.command = [env.MD2_AGENT];\ndesktop/src/shell/config.js:139:    return { ...resolved, agentProfiles };\ndesktop/main.js:14:const { AgentRunnerService } = require('./src/actions/agent/agent_runner_service');\ndesktop/main.js:82:const agentRunnerService = new AgentRunnerService({\ndesktop/src\\shell\\config.test.mjs:47:            agentProfiles: expect.arrayContaining([expect.objectContaining({ command: ['codex'], name: 'codex' })]),\ndesktop/src\\shell\\config.test.mjs:59:        expect(resolveDesktopConfig({MD2_AGENT: 'custom-codex'})).toEqual({\ndesktop/src\\shell\\config.test.mjs:61:            agentProfiles: expect.arrayContaining([expect.objectContaining({ command: ['custom-codex'], name: 'codex' })]),\ndesktop/src\\shell\\config.test.mjs:79:            agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'codex' })]),\ndesktop/src\\shell\\config.test.mjs:95:            agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'claude' })]),\ndesktop/src\\shell\\config.test.mjs:106:    it('keeps MD2_AGENT scoped to the built-in default profile command', () => {\ndesktop/src\\shell\\config.test.mjs:110:                agentProfiles: [\ndesktop/src\\shell\\config.test.mjs:117:        expect(readDesktopConfig(store, { MD2_AGENT: 'env-codex' })).toEqual({\ndesktop/src\\shell\\config.test.mjs:119:            agentProfiles: expect.arrayContaining([\ndesktop/src\\shell\\config.test.mjs:136:                agentProfiles: [\ndesktop/src\\shell\\config.test.mjs:144:            agentProfiles: [\ndesktop/src\\shell\\config.test.mjs:154:                agentProfiles: [\ndesktop/src\\shell\\config.test.mjs:155:                    { command: ['custom-agent'], models: [], name: 'custom' },\ndesktop/src\\shell\\config.test.mjs:156:                    { command: ['other-agent'], models: ['other-model'], name: 'other' },\ndesktop/src\\shell\\config.test.mjs:161:        expect(readDesktopConfig(store, {})).toMatchObject({agentProfiles: [{ command: ['other-agent'], models: ['other-model'], name: 'other' }]});\ndesktop/src\\shell\\config.test.mjs:165:        const store = createFakeStore({[DESKTOP_CONFIG_STORE_KEY]: {agentProfiles: [{ command: 'legacy-string-command', models: ['custom-model'], name: 'custom' }]}});\ndesktop/src\\shell\\config.test.mjs:168:            agentProfiles: [\ndesktop/src\\shell\\config.test.mjs:194:            agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'claude' })]),\ndesktop/src\\shell\\config.test.mjs:213:            agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'claude' })]),\ndesktop/src\\shell\\config.test.mjs:252:        agentProfiles: [{ command: ['custom-agent'], models: ['custom-model'], name:\n[14519 characters omitted]\nRunnerService({ persistConversation, terminateProcessTree });\ndesktop/src\\actions\\agent\\agent_runner_state.test.mjs:533:        const service = new AgentRunnerService({ persistConversation });\ndesktop/src\\actions\\agent\\agent_runner_state.test.mjs:584:        const service = new AgentRunnerService({ persistConversation, usageMetricsService });\ndesktop/src\\actions\\agent\\agent_runner_state.test.mjs:639:        const service = new AgentRunnerService({ persistConversation });\ndesktop/src\\actions\\agent\\agent_runner_state.test.mjs:694:        const service = new AgentRunnerService({ persistConversation });\ndesktop/src\\actions\\agent\\agent_runner_state.test.mjs:756:        const service = new AgentRunnerService({ setTimeout, terminateProcessTree });\ndesktop/src\\actions\\agent\\agent_runner_state.test.mjs:782:        const service = new AgentRunnerService({ setTimeout });\ndesktop/src\\actions\\agent\\agent_runner_state.test.mjs:820:        const service = new AgentRunnerService({\ndesktop/src\\actions\\agent\\agent_runner_state.test.mjs:853:        const service = new AgentRunnerService();\ndesktop/src\\actions\\agent\\agent_runner_state.test.mjs:894:        const service = new AgentRunnerService();\ndesktop/src\\actions\\agent\\agent_runner_state.test.mjs:930:        const service = new AgentRunnerService();\ndesktop/src\\actions\\agent\\agent_runner_state.test.mjs:985:        const service = new AgentRunnerService();\ndesktop/src\\actions\\agent\\agent_runner_state.test.mjs:1013:        const service = new AgentRunnerService();\ndesktop/src\\actions\\agent\\agent_runner_state.test.mjs:1059:        const service = new AgentRunnerService({\ndesktop/src\\actions\\agent\\agent_runner_state.test.mjs:1098:        const service = new AgentRunnerService({ codexRuntimeService, persistConversation, usageMetricsService });\ndesktop/src\\actions\\agent\\agent_runner_state.test.mjs:1119:        const service = new AgentRunnerService({ claudeRuntimeService, claudeUsagePoller, usageMetricsService });\ndesktop/src\\actions\\agent\\agent_runner_state.test.mjs:1149:        const service = new AgentRunnerService({\ndesktop/src\\actions\\agent\\agent_runner_state.test.mjs:1159:        const request = { agent: 'claude', command: ['fake-agent'], projectFolder: 'design', prompt: 'Start work' };\ndesktop/src\\actions\\agent\\agent_runner_state.test.mjs:1189:        const service = new AgentRunnerService({\ndesktop/src\\actions\\agent\\agent_runner_state.test.mjs:1198:        const request = { agent: 'codex', command: ['fake-agent'], projectFolder: 'design', prompt: 'Start work' };\ndesktop/src\\actions\\agent\\agent_runner_state.test.mjs:1209:        const service = new AgentRunnerService({ persistConversationCheckpoint });\ndesktop/src\\actions\\agent\\agent_runner_state.test.mjs:1250:        const service = new AgentRunnerService();\ndesktop/src\\actions\\agent\\agent_executable_availability.js:72:        throw new Error('Invalid agent command');\ndesktop/src\\actions\\agent\\agent_executable_availability.js:78:/** Check configured agent commands without starting provider processes. */\ndesktop/src\\actions\\agent\\agent_profiles.mjs:1:import * as agentProfiles from '../../../../shared/agent_profiles.mjs';\ndesktop/src\\actions\\agent\\agent_profiles.mjs:26:} = agentProfiles;\ndesktop/src\\actions\\agent\\agent_profiles.mjs:29:    const profiles = config.agentProfiles ?? [];\ndesktop/src\\actions\\agent\\agent_profiles.mjs:51:    return { agent, command, model, ...(permissionMode !== undefined ? { permissionMode } : {}), profile, thinkingLevel };\ndesktop/src\\actions\\agent\\agent_run_state.js:31: * The mutable state for one agent turn. `AgentRunnerService` keeps these in `processes` keyed by run id,\ndesktop/src\\actions\\agent\\agent_run_validation.js:14:    if (!Array.isArray(value) || value.length === 0) throw new Error('Missing agent command');\ndesktop/src\\actions\\agent\\agent_run_validation.test.mjs:27:        expect(() => requireCommand([])).toThrow('Missing agent command');\ndesktop/src\\actions\\agent\\agent_run_validation.test.mjs:28:        expect(() => requireCommand(['codex', ''])).toThrow('Missing agent command[1]');\n",
+          "durationMs": 25,
+          "exitCode": 0,
+          "id": "agent-turn-e8d46cad-d2b0-4b53-a1be-ee4635a24cc1-event-28",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"MD2_AGENT|agentProfiles|agent.*command|command.*agent|AgentRunnerService|new AgentRunnerService\" desktop/src desktop/main.js desktop/src/shell/config.js'",
+          "providerItemId": "exec-d1352452-1652-47d7-ac44-2209a8b5c887",
+          "sequence": 28,
+          "status": "completed",
+          "timestamp": "2026-08-20T13:05:11.055Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-e8d46cad-d2b0-4b53-a1be-ee4635a24cc1-event-29",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_07548dc995485a8a016a86fb89a20087d0af0dd686b20aa3b5",
+          "sequence": 29,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T13:05:14.518Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Plan corrected.\n\nResolution occurs only inside `AgentRunnerService.start()` for selected run command:\n\n- Missing Claude blocks only attempted Claude run.\n- Missing Codex blocks only attempted Codex run.\n- No installed agents never blocks app startup.\n- No configured agent remains valid.\n- Error shown only when user/system attempts run using missing configured executable.\n- Service and poller constructors perform no executable lookup.\n\nNo edits yet. Approve corrected plan to begin.\n\n",
+          "id": "agent-turn-e8d46cad-d2b0-4b53-a1be-ee4635a24cc1-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 30,
+          "timestamp": "2026-08-20T13:05:24.580Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-86eeb487-b819-40b1-beef-a753cfc3f69e",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a01f41-cc29-7792-a1b6-53c50e5b6d77",
+          "createdAt": "2026-08-20T13:01:02.480Z",
+          "lastUsedAt": "2026-08-20T13:01:02.480Z",
+          "synchronizedThroughMessageId": "agent-turn-e8d46cad-d2b0-4b53-a1be-ee4635a24cc1-turn-1-assistant-3"
+        }
+      ],
       "startedAt": "2026-08-20T13:00:00.673Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-20T13:00:00.673Z"
+        "elapsedMs": 61807,
+        "runningStartedAt": "2026-08-20T13:05:01.620Z"
       },
       "title": "implement",
       "usage": {
-        "cachedInputTokens": 39680,
-        "inputTokens": 1186,
-        "outputTokens": 175,
+        "cachedInputTokens": 87552,
+        "inputTokens": 2079,
+        "outputTokens": 269,
         "reasoningTokens": 74,
-        "totalTokens": 41115
+        "totalTokens": 89974
       },
       "usageSchemaVersion": 1,
       "viewed": true
