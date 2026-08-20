@@ -5,6 +5,12 @@
       "model": "opus",
       "permissionMode": "ask-for-approval",
       "thinkingLevel": "medium"
+    },
+    "47dafdc7-0be7-4d56-bb5a-07c813906416": {
+      "agent": "claude",
+      "model": "opus",
+      "permissionMode": "ask-for-approval",
+      "thinkingLevel": "medium"
     }
   },
   "conversations": [
@@ -299,6 +305,608 @@
       },
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
+      "cardInternalId": "838f9a02-ee42-498c-b317-2f8a48075207",
+      "cardPath": "design/feature_descriptions/F_215_changes_and_lines_confusing.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "Read and implement the feature/job described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/F_215_changes_and_lines_confusing.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests.\n5. After implementation is done, update the field `status` in the markdown feature description file to \\`ready\\`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/F_215_changes_and_lines_confusing.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria.&#x20;\n\nYou should only run the related tests, do not run the entire test suite, that will be done manually later on.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill",
+          "id": "agent-turn-3d0834e0-1cc6-4c9b-9503-097ac72e1808-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-08-20T10:10:30.955Z"
+        },
+        {
+          "agent": "claude",
+          "content": "I'll read the spec first.",
+          "id": "agent-turn-3d0834e0-1cc6-4c9b-9503-097ac72e1808-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 2,
+          "timestamp": "2026-08-20T10:10:34.975Z"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-3d0834e0-1cc6-4c9b-9503-097ac72e1808-event-3",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\t---\n2\tauthor: \n3\tid: F_215\n4\tinternalId: 838f9a02-ee42-498c-b317-2f8a48075207\n5\ttitle: changes and lines confusing\n6\tstatus: ready for implementation\n7\towner: \n8\taffects:\n9\tagents:\n10\t  - design/activity/card__838f9a02-ee42-498c-b317-2f8a48075207.json\n11\tpolicy:\n12\tbranch: f_215_changes_and_lines_confusing\n13\tworktree: 1\n14\t---\n15\t\n16\ton the action popup, we show the file 'changes' and lines changed.\n17\t\n18\tfile changes is counted based on 'filechange' blocks in the conversation, lines changed comes from a git commit.\n19\t\n20\tif both are shown, it becomes confusing. so:\n21\t\n22\t* always use label 'changes'\n23\t* only show the git commit value if there is no file-change count in the conversation.\n24\t\n25\t## Current state\n26\t\n27\t`ActionUsageSummary` (`app/src/components/actions/run/popup/action_usage_summary.tsx`) renders three usage controls: `tokens`, `changes`, `lines`. All three share one scope toggle (`conversation` or `actionCard`).\n28\t\n29\tTwo of these count edited lines from unrelated sources:\n30\t\n31\t* **changes** — sum of completed `fileChange` events in the conversation transcript, produced by `conversationFileChangeUsage` in `app/src/services/agents/agent_usage.ts`. Provider-reported patch sizes. Rendered `changes: +2 / -1`. Shown when insertions + deletions > 0.\n32\t* **lines** — sum of `insertions`/`deletions`/`filesChanged` over `CommitReference` records captured on action-run history entries, aggregated by `lineUsage` in `action_usage_summary_data.ts`. Git commit diff stats. Rendered `lines: 24 (+14 / -10)` since B_142, with per-commit breakdown in tooltip. Shown when total > 0.\n33\t\n34\tWhen a run has both a transcript with file-change events and a captured commit, both controls appear with different numbers for what a reader takes to be the same quantity. Nothing on screen states the two are measured differently, so the pair reads as a contradiction.\n35\t\n36\t`conversationFileChangeUsage` already returns `null` when the conversation carries no completed `fileChange` event, but `fileChangeUsage` in `action_usage_summary_data.ts` coerces that `null` to `{ insertions: 0, deletions: 0 }`. So \"no data\" and \"data totalling zero\" are currently indistinguishable downstream.\n37\t\n38\t## Implementation details\n39\t\n40\tTerms used below:\n41\t\n42\t* **conversation file-change count** — the provider-reported total from completed `fileChange` transcript events. Absent when the scope contains no such event.\n43\t* **commit line count** — the Git `--numstat`-derived total from `CommitReference` records on history entries.\n44\t\n45\tChanges:\n46\t\n47\t* `action_usage_summary_data.ts`: widen `ActionUsageValues.changes` to `AgentFileChangeUsage | null`. `fileChangeUsage` returns `null` when every conversation in scope yields `null` from `conversationFileChangeUsage`; otherwise it sums the non-`null` results as today. Absence, not a zero total, is what drives the fallback. Keep `lineUsage` and `scopedActionUsage` scoping rules unchanged.\n48\t* `action_usage_summary.tsx`: replace the separate `changes` and `lines` controls with one control, always labelled `changes:`, accessible name `Changes, <scope> scope`.\n49\t* Per scope, pick the source: conversation file-change count when present; otherwise commit line count. Resolve the source independently for the conversation value and the action/card value, so the tooltip can report both scopes even when they differ in source.\n50\t* Visible format is always `+X / -Y`, insertions in `success.main`, deletions in `error.main`, matching today's `changes` control. Drop the `N (+X / -Y)` total from the visible control; the Git total keeps its place in the tooltip.\n51\t* Visibility: hide the control when the active scope has no conversation file-change count **and** no commit line count, or when it has no conversation file-change count and its commit line total is zero. A present conversation file-change count renders even when it totals zero (`changes: +0 / -0`) — the count exists, so the agent genuinely edited nothing.\n52\t* Tooltip: state which source the active scope's value came from, e.g. \"Changes are additions and deletions across completed provider file-change patches.\" versus \"Changes are additions plus deletions in captured Git commit diffs; the conversation reported no file changes.\" Keep the existing scope lines (`Conversation (active): …` / `Action/card: …`) and the switch-target sentence. When the active value comes from commits, keep the existing `files changed: …, insertions: …, deletions: …` line and per-commit `abc1234: +6 / -3` lines; when it comes from the conversation, omit them.\n53\t* Keep the compact-layout `data-usage-prefix` span, the shared scope toggle wiring, `Intl.NumberFormat` grouping, and the `tokens` control untouched.\n54\t* Update `action_usage_summary.test.tsx`: the `Lines, …` accessible name disappears, so every assertion naming it moves to `Changes, …`. Add cases for conversation-present-wins, commit fallback, zero-total conversation count rendering, both-absent hiding, and the two tooltip variants. Adjust the toggle-count test, which currently expects three controls, to two.\n55\t* No desktop-side changes: Git capture, `CommitReference` shape, activity schema, persistence, and history loading stay as-is.\n56\t\n57\t## Acceptance criteria\n58\t\n59\t* A scope with completed `fileChange` events and a captured commit shows exactly one control, labelled `changes:`, carrying the conversation file-change numbers; the commit numbers do not appear in the visible control.\n60\t* A scope with a captured commit and no `fileChange` events shows `changes:` with the commit insertion/deletion totals.\n61\t* A scope with completed `fileChange` events totalling zero shows `changes: +0 / -0` and does not fall back to commit numbers.\n62\t* A scope with neither source renders no changes control; `tokens` still renders.\n63\t* No control with accessible name `Lines, Conversation scope` or `Lines, Action/card scope` exists anywhere in the popup.\n64\t* Tooltip names the active source, lists conversation and action/card values with `Conversation unavailable…` handling intact, and shows per-commit lines only when the active value is commit-derived.\n65\t* Clicking the changes control still invokes the shared scope toggle; token totals, scope persistence, commit capture, and history loading are unchanged.\n66\t* `npm run typecheck` passes and focused `action_usage_summary` unit and component tests pass.",
+          "providerItemId": "toolu_01CFqzdZXWxUb3uWdLKa14kp",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-08-20T10:10:38.213Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-3d0834e0-1cc6-4c9b-9503-097ac72e1808-event-4",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport { Box, ButtonBase, Stack, Tooltip, Typography, type SxProps, type Theme } from '@mui/material'\n2\timport type { ReactNode } from 'react'\n3\timport type { AgentConversation, AgentTokenUsage } from '../../../../data/data_types'\n4\timport type { ActionRunHistoryEntry, CommitReference } from '../../../../data/electron_action_bridge'\n5\timport type { AgentFileChangeUsage } from '../../../../services/agents/agent_usage'\n6\timport type { ActionUsageScope } from './action_usage_scope_store'\n7\timport { scopedActionUsage, type LineUsage } from './action_usage_summary_data'\n8\t\n9\tconst NUMBER_FORMAT = new Intl.NumberFormat('en-US')\n10\tconst USAGE_CONTROL_SX: SxProps<Theme> = {\n11\t    borderBottom: '1px dotted',\n12\t    borderColor: 'custom.borderHover',\n13\t    borderRadius: '4px',\n14\t    color: 'text.secondary',\n15\t    cursor: 'pointer',\n16\t    fontSize: 'caption.fontSize',\n17\t    lineHeight: 'caption.lineHeight',\n18\t    px: 0.25,\n19\t    '&:hover': { bgcolor: 'custom.track', color: 'primary.main' },\n20\t    '&.Mui-focusVisible': {\n21\t        boxShadow: (theme) => `0 0 0 3px ${theme.palette.custom.primaryBg}`,\n22\t        color: 'primary.main',\n23\t        outline: '1px solid',\n24\t        outlineColor: 'primary.main',\n25\t    },\n26\t}\n27\t\n28\tinterface ActionUsageSummaryProps {\n29\t    actionId: string\n30\t    cardInternalId: string\n31\t    conversation: AgentConversation | null\n32\t    conversations: AgentConversation[]\n33\t    history: ActionRunHistoryEntry[]\n34\t    liveConversation: AgentConversation | null\n35\t    onToggleScope: () => void\n36\t    scope: ActionUsageScope\n37\t}\n38\t\n39\tfunction commitLine(commit: CommitReference) {\n40\t    return `${commit.commit.slice(0, 7)}: +${NUMBER_FORMAT.format(commit.insertions)} / -${NUMBER_FORMAT.format(commit.deletions)}`\n41\t}\n42\t\n43\tfunction scopeName(scope: ActionUsageScope) {\n44\t    return scope === 'conversation' ? 'Conversation' : 'Action/card'\n45\t}\n46\t\n47\tfunction scopeTooltip(\n48\t    definition: string,\n49\t    conversationValue: string | null,\n50\t    actionCardValue: string,\n51\t    scope: ActionUsageScope,\n52\t    activeDetails?: ReactNode,\n53\t) {\n54\t    const switchTarget = scope === 'conversation' ? 'Action/card' : 'Conversation'\n55\t    const interactionExplanation = conversationValue === null\n56\t        ? 'Conversation unavailable; clicking keeps Action/card scope.'\n57\t        : `Click to switch to ${switchTarget}.`\n58\t\n59\t    return (\n60\t        <Stack spacing={0.5}>\n61\t            <Typography color=\"inherit\" variant=\"caption\">{definition}</Typography>\n62\t            <Typography color=\"inherit\" variant=\"caption\">\n63\t                Active scope: {scopeName(scope)}. {interactionExplanation}\n64\t            </Typography>\n65\t            <Typography color=\"inherit\" variant=\"caption\">\n66\t                Conversation{scope === 'conversation' ? ' (active)' : ''}: {conversationValue ?? 'unavailable'}\n67\t            </Typography>\n68\t            <Typography color=\"inherit\" variant=\"caption\">\n69\t                Action/card{scope === 'actionCard' ? ' (active)' : ''}: {actionCardValue}\n70\t            </Typography>\n71\t            {activeDetails}\n72\t        </Stack>\n73\t    )\n74\t}\n75\t\n76\tfunction tokenValue(usage: AgentTokenUsage) {\n77\t    return `${NUMBER_FORMAT.format(usage.totalTokens)} tokens`\n78\t}\n79\t\n80\tfunction changeValue(usage: AgentFileChangeUsage) {\n81\t    return `+${NUMBER_FORMAT.format(usage.insertions)} / -${NUMBER_FORMAT.format(usage.deletions)}`\n82\t}\n83\t\n84\tfunction lineValue(usage: LineUsage) {\n85\t    const total = usage.insertions + usage.deletions\n86\t\n87\t    return `${NUMBER_FORMAT.format(total)} lines (+${NUMBER_FORMAT.format(usage.insertions)} / -${NUMBER_FORMAT.format(usage.deletions)})`\n88\t}\n89\t\n90\t/** Three shared-scope usage controls for one agent action on one card. */\n91\texport function ActionUsageSummary(props: ActionUsageSummaryProps) {\n92\t    const { actionId, cardInternalId, conversation, conversations, history, liveConversation, onToggleScope, scope } = props\n93\t    const scopedUsage = scopedActionUsage(\n94\t        conversations,\n95\t        liveConversation,\n96\t \n[1880 characters omitted]\n: null,\n133\t                tokenValue(scopedUsage.actionCard.tokens),\n134\t                activeScope,\n135\t            )}>\n136\t                <ButtonBase\n137\t                    aria-label={`Tokens, ${activeScopeName} scope`}\n138\t                    onClick={onToggleScope}\n139\t                    sx={USAGE_CONTROL_SX}\n140\t                >\n141\t                    <Box\n142\t                        component=\"span\"\n143\t                        data-usage-prefix\n144\t                        sx={{ '@container (max-width: 420px)': { display: 'none' } }}\n145\t                    >\n146\t                        tokens:{' '}\n147\t                    </Box>\n148\t                    {NUMBER_FORMAT.format(activeUsage.tokens.totalTokens)}\n149\t                </ButtonBase>\n150\t            </Tooltip>\n151\t            {hasChanges ? (\n152\t                <Tooltip describeChild title={scopeTooltip(\n153\t                    'Changes are additions and deletions across completed provider file-change patches.',\n154\t                    scopedUsage.conversation ? changeValue(scopedUsage.conversation.changes) : null,\n155\t                    changeValue(scopedUsage.actionCard.changes),\n156\t                    activeScope,\n157\t                )}>\n158\t                    <ButtonBase\n159\t                        aria-label={`Changes, ${activeScopeName} scope`}\n160\t                        onClick={onToggleScope}\n161\t                        sx={USAGE_CONTROL_SX}\n162\t                    >\n163\t                        <Box\n164\t                            component=\"span\"\n165\t                            data-usage-prefix\n166\t                            sx={{ '@container (max-width: 420px)': { display: 'none' } }}\n167\t                        >\n168\t                            changes:&nbsp;\n169\t                        </Box>\n170\t                        <Box component=\"span\" sx={{ color: 'success.main' }}>\n171\t                            +{NUMBER_FORMAT.format(activeUsage.changes.insertions)}\n172\t                        </Box>\n173\t                        &nbsp;/&nbsp;\n174\t                        <Box component=\"span\" sx={{ color: 'error.main' }}>\n175\t                            -{NUMBER_FORMAT.format(activeUsage.changes.deletions)}\n176\t                        </Box>\n177\t                    </ButtonBase>\n178\t                </Tooltip>\n179\t            ) : null}\n180\t            {totalLines > 0 ? (\n181\t                <Tooltip describeChild title={scopeTooltip(\n182\t                    'Lines are additions plus deletions in captured Git commit diffs.',\n183\t                    scopedUsage.conversation ? lineValue(scopedUsage.conversation.lines) : null,\n184\t                    lineValue(scopedUsage.actionCard.lines),\n185\t                    activeScope,\n186\t                    lineDetails,\n187\t                )}>\n188\t                    <ButtonBase\n189\t                        aria-label={`Lines, ${activeScopeName} scope`}\n190\t                        onClick={onToggleScope}\n191\t                        sx={USAGE_CONTROL_SX}\n192\t                    >\n193\t                        <Box\n194\t                            component=\"span\"\n195\t                            data-usage-prefix\n196\t                            sx={{ '@container (max-width: 420px)': { display: 'none' } }}\n197\t                        >\n198\t                            lines:{' '}\n199\t                        </Box>\n200\t                        {NUMBER_FORMAT.format(totalLines)}\n201\t                        &nbsp;(\n202\t                        <Box component=\"span\" sx={{ color: 'success.main' }}>\n203\t                            +{NUMBER_FORMAT.format(activeLines.insertions)}\n204\t                        </Box>\n205\t                        &nbsp;/&nbsp;\n206\t                        <Box component=\"span\" sx={{ color: 'error.main' }}>\n207\t                            -{NUMBER_FORMAT.format(activeLines.deletions)}\n208\t                        </Box>\n209\t                        )\n210\t                    </ButtonBase>\n211\t                </Tooltip>\n212\t            ) : null}\n213\t        </Box>\n214\t    )\n215\t}\n216\t",
+          "providerItemId": "toolu_01GoLyrGXXN7pYMCuVWeeefi",
+          "sequence": 4,
+          "status": "completed",
+          "timestamp": "2026-08-20T10:10:41.589Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-3d0834e0-1cc6-4c9b-9503-097ac72e1808-event-5",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport type { AgentConversation, AgentTokenUsage } from '../../../../data/data_types'\n2\timport type { ActionRunHistoryEntry, CommitReference } from '../../../../data/electron_action_bridge'\n3\timport {\n4\t    conversationFileChangeUsage,\n5\t    sumAgentTokenUsage,\n6\t    type AgentFileChangeUsage,\n7\t} from '../../../../services/agents/agent_usage'\n8\t\n9\texport interface LineUsage {\n10\t    commits: CommitReference[]\n11\t    deletions: number\n12\t    filesChanged: number\n13\t    insertions: number\n14\t}\n15\t\n16\tinterface ActionUsageValues {\n17\t    changes: AgentFileChangeUsage\n18\t    lines: LineUsage\n19\t    tokens: AgentTokenUsage\n20\t}\n21\t\n22\texport interface ScopedActionUsage {\n23\t    actionCard: ActionUsageValues\n24\t    conversation: ActionUsageValues | null\n25\t}\n26\t\n27\tconst ZERO_FILE_CHANGES: AgentFileChangeUsage = { deletions: 0, insertions: 0 }\n28\t\n29\tfunction conversationsForActionCard(\n30\t    conversations: AgentConversation[],\n31\t    liveConversation: AgentConversation | null,\n32\t    actionId: string,\n33\t    cardInternalId: string,\n34\t) {\n35\t    const conversationsById = new Map<string, AgentConversation>()\n36\t    for (const conversation of conversations) {\n37\t        if (conversation.actionId !== actionId || conversation.cardInternalId !== cardInternalId) continue\n38\t\n39\t        conversationsById.set(conversation.id, conversation)\n40\t    }\n41\t    if (liveConversation?.actionId === actionId && liveConversation.cardInternalId === cardInternalId) {\n42\t        conversationsById.set(liveConversation.id, liveConversation)\n43\t    }\n44\t\n45\t    return [...conversationsById.values()]\n46\t}\n47\t\n48\tfunction fileChangeUsage(conversations: AgentConversation[]) {\n49\t    return conversations.reduce<AgentFileChangeUsage>((total, conversation) => {\n50\t        const usage = conversationFileChangeUsage(conversation) ?? ZERO_FILE_CHANGES\n51\t\n52\t        return { deletions: total.deletions + usage.deletions, insertions: total.insertions + usage.insertions }\n53\t    }, { deletions: 0, insertions: 0 })\n54\t}\n55\t\n56\tfunction lineUsage(history: ActionRunHistoryEntry[]): LineUsage {\n57\t    const commits = history.flatMap((entry) => entry.commits ?? [])\n58\t\n59\t    return commits.reduce((totals, commit) => ({\n60\t        commits: totals.commits,\n61\t        deletions: totals.deletions + commit.deletions,\n62\t        filesChanged: totals.filesChanged + commit.filesChanged,\n63\t        insertions: totals.insertions + commit.insertions,\n64\t    }), { commits, deletions: 0, filesChanged: 0, insertions: 0 })\n65\t}\n66\t\n67\tfunction usageValues(conversations: AgentConversation[], history: ActionRunHistoryEntry[]): ActionUsageValues {\n68\t    return {\n69\t        changes: fileChangeUsage(conversations),\n70\t        lines: lineUsage(history),\n71\t        tokens: sumAgentTokenUsage(conversations.map(({ usage }) => usage)),\n72\t    }\n73\t}\n74\t\n75\t/** Aggregates every usage metric for conversation and action/card scopes. */\n76\texport function scopedActionUsage(\n77\t    conversations: AgentConversation[],\n78\t    liveConversation: AgentConversation | null,\n79\t    displayedConversation: AgentConversation | null,\n80\t    history: ActionRunHistoryEntry[],\n81\t    actionId: string,\n82\t    cardInternalId: string,\n83\t): ScopedActionUsage {\n84\t    const actionCardConversations = conversationsForActionCard(\n85\t        conversations,\n86\t        liveConversation,\n87\t        actionId,\n88\t        cardInternalId,\n89\t    )\n90\t    const actionCard = usageValues(actionCardConversations, history)\n91\t    if (!displayedConversation) return { actionCard, conversation: null }\n92\t\n93\t    const conversationHistory = history.filter((entry) => (\n94\t        entry.type === 'agent' && entry.rootConversationId === displayedConversation.id\n95\t    ))\n96\t\n97\t    return {\n98\t        actionCard,\n99\t        conversation: usageValues([displayedConversation], conversationHistory),\n100\t    }\n101\t}\n102\t",
+          "providerItemId": "toolu_01VUySiP6yQ3JiYhQ9KKWcoX",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-08-20T10:10:42.300Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-3d0834e0-1cc6-4c9b-9503-097ac72e1808-event-6",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport { cleanup, fireEvent, render, screen } from '@testing-library/react'\n2\timport { afterEach, describe, expect, it, vi } from 'vitest'\n3\timport type { AgentConversation } from '../../../../data/data_types'\n4\timport type { ActionRunHistoryEntry, CommitReference } from '../../../../data/electron_action_bridge'\n5\timport { createAppTheme } from '../../../../theme/app_theme'\n6\timport { AppThemeProvider } from '../../../../theme/theme_provider'\n7\timport { ActionUsageSummary } from './action_usage_summary'\n8\timport type { ActionUsageScope } from './action_usage_scope_store'\n9\t\n10\tafterEach(cleanup)\n11\t\n12\tfunction conversation(id: string, totalTokens: number, insertions = 0, deletions = 0): AgentConversation {\n13\t    return {\n14\t        actionId: 'implement',\n15\t        cardInternalId: 'card-1',\n16\t        cardPath: 'design/F-1.md',\n17\t        completedAt: 'now',\n18\t        entries: insertions === 0 && deletions === 0 ? [] : [{\n19\t            content: 'edit', deletions, id: `${id}-file`, insertions, kind: 'event',\n20\t            providerItemId: `${id}-file`, status: 'completed', timestamp: 'now', type: 'fileChange',\n21\t        }],\n22\t        hasExplicitTitle: true,\n23\t        id,\n24\t        path: `logs/${id}.json`,\n25\t        providerSessions: [],\n26\t        startedAt: 'now',\n27\t        status: 'completed',\n28\t        title: id,\n29\t        usage: { cachedInputTokens: 0, inputTokens: totalTokens, outputTokens: 0, reasoningTokens: 0, totalTokens },\n30\t        viewed: true,\n31\t    }\n32\t}\n33\t\n34\tfunction commit(commitHash: string, insertions: number, deletions: number): CommitReference {\n35\t    return {\n36\t        actionId: 'implement',\n37\t        actionName: 'Implement',\n38\t        branch: 'main',\n39\t        commit: commitHash.padEnd(40, commitHash[0]),\n40\t        committedAt: 'now',\n41\t        deletions,\n42\t        filePaths: [],\n43\t        filesChanged: 1,\n44\t        insertions,\n45\t        repositoryRoot: 'C:/project',\n46\t    }\n47\t}\n48\t\n49\tfunction historyEntry(rootConversationId: string, commits: CommitReference[]): ActionRunHistoryEntry {\n50\t    return {\n51\t        commits,\n52\t        completedAt: 'now',\n53\t        rootConversationId,\n54\t        startedAt: 'before',\n55\t        status: 'completed',\n56\t        type: 'agent',\n57\t    }\n58\t}\n59\t\n60\tinterface RenderSummaryOptions {\n61\t    conversation?: AgentConversation | null\n62\t    conversations?: AgentConversation[]\n63\t    history?: ActionRunHistoryEntry[]\n64\t    onToggleScope?: () => void\n65\t    scope?: ActionUsageScope\n66\t}\n67\t\n68\tfunction renderSummary(options: RenderSummaryOptions = {}) {\n69\t    const displayedConversation = options.conversation === undefined\n70\t        ? conversation('conversation-1', 12, 2, 1)\n71\t        : options.conversation\n72\t\n73\t    return render(\n74\t        <AppThemeProvider>\n75\t            <ActionUsageSummary\n76\t                actionId=\"implement\"\n77\t                cardInternalId=\"card-1\"\n78\t                conversation={displayedConversation}\n79\t                conversations={options.conversations ?? (displayedConversation ? [displayedConversation] : [])}\n80\t                history={options.history ?? []}\n81\t                liveConversation={null}\n82\t                onToggleScope={options.onToggleScope ?? vi.fn()}\n83\t                scope={options.scope ?? 'actionCard'}\n84\t            />\n85\t        </AppThemeProvider>,\n86\t    )\n87\t}\n88\t\n89\tdescribe('ActionUsageSummary', () => {\n90\t    it('always renders tokens but hides zero changes and lines', () => {\n91\t        renderSummary({ conversation: null })\n92\t\n93\t        const tokens = screen.getByRole('button', { name: 'Tokens, Action/card scope' })\n94\t        expect(tokens).toHaveAttribute('type', 'button')\n95\t        expect(tokens).toHaveAttribute('tabindex', '0')\n96\t        expect(tokens).toHaveTextContent('tokens: 0')\n97\t        expect(screen.queryByRole('button', { name: 'Changes, Action/card scope' })).not.toBeInTheDocument()\n98\t        expect(screen.queryByRole('button', { name: 'Lines, Action/card scope' })).not.toBeInTheDocument()\n99\t        expect(screen.queryByText(/conte\n[3561 characters omitted]\nicit zero side for $name commit history', ({ deletions, expected, insertions }) => {\n167\t        renderSummary({ history: [historyEntry('conversation-1', [commit('abc1234', insertions, deletions)])] })\n168\t\n169\t        expect(screen.getByRole('button', { name: 'Lines, Action/card scope' })).toHaveTextContent(expected)\n170\t    })\n171\t\n172\t    it('keeps compactable prefixes separate while preserving accessible names and change colors', () => {\n173\t        renderSummary({ history: [historyEntry('conversation-1', [commit('abc1234', 3, 2)])] })\n174\t        const tokens = screen.getByRole('button', { name: 'Tokens, Action/card scope' })\n175\t        const changes = screen.getByRole('button', { name: 'Changes, Action/card scope' })\n176\t        const lines = screen.getByRole('button', { name: 'Lines, Action/card scope' })\n177\t        const palette = createAppTheme('light').palette\n178\t\n179\t        expect(tokens.querySelector('[data-usage-prefix]')).toHaveTextContent('tokens:')\n180\t        expect(changes.querySelector('[data-usage-prefix]')).toHaveTextContent('changes:')\n181\t        expect(lines.querySelector('[data-usage-prefix]')).toHaveTextContent('lines:')\n182\t        expect(changes.querySelector('[data-usage-prefix]')?.nextElementSibling).toHaveStyle({ color: palette.success.main })\n183\t        expect(changes.querySelector('[data-usage-prefix]')?.nextElementSibling?.nextElementSibling).toHaveStyle({ color: palette.error.main })\n184\t        expect(lines).toHaveTextContent('lines: 5 (+3 / -2)')\n185\t        expect(lines.querySelector('[data-usage-prefix]')?.nextElementSibling).toHaveStyle({ color: palette.success.main })\n186\t        expect(lines.querySelector('[data-usage-prefix]')?.nextElementSibling?.nextElementSibling).toHaveStyle({ color: palette.error.main })\n187\t    })\n188\t\n189\t    it('explains metric, switching, both values, and active-scope commit details', async () => {\n190\t        const displayedConversation = conversation('conversation-1', 12)\n191\t        const otherConversation = conversation('conversation-2', 20)\n192\t        const matchingCommit = commit('abc1234', 6, 3)\n193\t        const otherCommit = commit('def5678', 8, 7)\n194\t        renderSummary({\n195\t            conversation: displayedConversation,\n196\t            conversations: [displayedConversation, otherConversation],\n197\t            history: [\n198\t                historyEntry(displayedConversation.id, [matchingCommit]),\n199\t                historyEntry(otherConversation.id, [otherCommit]),\n200\t            ],\n201\t            scope: 'conversation',\n202\t        })\n203\t\n204\t        fireEvent.mouseOver(screen.getByRole('button', { name: 'Lines, Conversation scope' }))\n205\t\n206\t        const tooltip = await screen.findByRole('tooltip')\n207\t        expect(tooltip).toHaveTextContent('Lines are additions plus deletions in captured Git commit diffs.')\n208\t        expect(tooltip).toHaveTextContent('Active scope: Conversation. Click to switch to Action/card.')\n209\t        expect(tooltip).toHaveTextContent('Conversation (active): 9 lines (+6 / -3)')\n210\t        expect(tooltip).toHaveTextContent('Action/card: 24 lines (+14 / -10)')\n211\t        expect(tooltip).toHaveTextContent('files changed: 1, insertions: 6, deletions: 3')\n212\t        expect(tooltip).toHaveTextContent('abc1234: +6 / -3')\n213\t        expect(tooltip).not.toHaveTextContent('def5678: +8 / -7')\n214\t    })\n215\t\n216\t    it('shows unavailable conversation values and keeps action/card active without a displayed conversation', async () => {\n217\t        renderSummary({ conversation: null, scope: 'conversation' })\n218\t\n219\t        const tokens = screen.getByRole('button', { name: 'Tokens, Action/card scope' })\n220\t        fireEvent.mouseOver(tokens)\n221\t\n222\t        const tooltip = await screen.findByRole('tooltip')\n223\t        expect(tooltip).toHaveTextContent('Conversation unavailable; clicking keeps Action/card scope.')\n224\t        expect(tooltip).toHaveTextContent('Conversation: unavailable')\n225\t        expect(tooltip).toHaveTextContent('Action/card (active): 0 tokens')\n226\t    })\n227\t})\n228\t",
+          "providerItemId": "toolu_01Ct9Z255Fjxoo96bujX1z2U",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-08-20T10:10:45.793Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-3d0834e0-1cc6-4c9b-9503-097ac72e1808-event-7",
+          "kind": "event",
+          "label": "Grep",
+          "output": "app\\src\\services\\agents\\agent_usage.node.test.ts:6:    conversationFileChangeUsage,\napp\\src\\services\\agents\\agent_usage.node.test.ts:83:        expect(conversationFileChangeUsage(conversation)).toEqual({ deletions: 0, insertions: 344 })\napp\\src\\services\\agents\\agent_usage.node.test.ts:84:        expect(conversationFileChangeUsage({ ...conversation, entries: [] })).toBeNull()\napp\\src\\services\\agents\\agent_usage.node.test.ts:85:        expect(conversationFileChangeUsage(null)).toBeNull()\napp\\src\\services\\agents\\agent_usage.ts:12:export interface AgentFileChangeUsage {\napp\\src\\services\\agents\\agent_usage.ts:40:export function conversationFileChangeUsage(conversation: AgentConversation | null): AgentFileChangeUsage | null {\napp\\src\\components\\actions\\run\\popup\\action_usage_summary.tsx:5:import type { AgentFileChangeUsage } from '../../../../services/agents/agent_usage'\napp\\src\\components\\actions\\run\\popup\\action_usage_summary.tsx:80:function changeValue(usage: AgentFileChangeUsage) {\napp\\src\\components\\actions\\run\\popup\\action_usage_summary_data.ts:4:    conversationFileChangeUsage,\napp\\src\\components\\actions\\run\\popup\\action_usage_summary_data.ts:6:    type AgentFileChangeUsage,\napp\\src\\components\\actions\\run\\popup\\action_usage_summary_data.ts:17:    changes: AgentFileChangeUsage\napp\\src\\components\\actions\\run\\popup\\action_usage_summary_data.ts:27:const ZERO_FILE_CHANGES: AgentFileChangeUsage = { deletions: 0, insertions: 0 }\napp\\src\\components\\actions\\run\\popup\\action_usage_summary_data.ts:49:    return conversations.reduce<AgentFileChangeUsage>((total, conversation) => {\napp\\src\\components\\actions\\run\\popup\\action_usage_summary_data.ts:50:        const usage = conversationFileChangeUsage(conversation) ?? ZERO_FILE_CHANGES",
+          "providerItemId": "toolu_017LBYptxsLGxSuwnAWaXvMe",
+          "sequence": 7,
+          "status": "completed",
+          "timestamp": "2026-08-20T10:10:46.809Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-3d0834e0-1cc6-4c9b-9503-097ac72e1808-event-8",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeDpV8tDb24L7U38RGhHz:thinking:0",
+          "sequence": 8,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T10:10:48.529Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-3d0834e0-1cc6-4c9b-9503-097ac72e1808-event-9",
+          "kind": "event",
+          "label": "Glob",
+          "output": "app\\src\\components\\actions\\run\\popup\\action_usage_summary_data.node.test.ts\napp\\src\\components\\actions\\run\\popup\\action_usage_summary_data.ts",
+          "providerItemId": "toolu_019AyNacjJe8tu2LDrWGpn23",
+          "sequence": 9,
+          "status": "completed",
+          "timestamp": "2026-08-20T10:10:49.850Z",
+          "type": "tool.Glob"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-3d0834e0-1cc6-4c9b-9503-097ac72e1808-event-10",
+          "kind": "event",
+          "label": "Read",
+          "output": "30\t/** Aggregate loaded conversations belonging to one action on one card. */\n31\texport function actionCardAgentTokenUsage(conversations: AgentConversation[], actionId: string, cardInternalId: string): AgentTokenUsage {\n32\t    const matchingUsage = conversations\n33\t        .filter((conversation) => conversation.actionId === actionId && conversation.cardInternalId === cardInternalId)\n34\t        .map(({ usage }) => usage)\n35\t\n36\t    return sumAgentTokenUsage(matchingUsage)\n37\t}\n38\t\n39\t/** Sum completed provider patches in one canonical conversation. */\n40\texport function conversationFileChangeUsage(conversation: AgentConversation | null): AgentFileChangeUsage | null {\n41\t    if (!conversation) return null\n42\t    let countedEvents = 0\n43\t    let deletions = 0\n44\t    let insertions = 0\n45\t    for (const entry of conversation.entries) {\n46\t        if (entry.kind !== 'event' || entry.type !== 'fileChange' || entry.status !== 'completed') continue\n47\t        const { deletions: eventDeletions, insertions: eventInsertions } = entry\n48\t        if (typeof eventDeletions !== 'number' || !Number.isSafeInteger(eventDeletions) || eventDeletions < 0) continue\n49\t        if (typeof eventInsertions !== 'number' || !Number.isSafeInteger(eventInsertions) || eventInsertions < 0) continue\n50\t\n51\t        countedEvents += 1\n52\t        deletions += eventDeletions\n53\t        insertions += eventInsertions\n54\t    }\n55\t\n56\t    return countedEvents > 0 ? { deletions, insertions } : null\n57\t}\n58\t\n59\tfunction isInsideFolder(cardPath: string, folder: string) {",
+          "providerItemId": "toolu_01KxmVmZbbFKxv7g7VFPLwVX",
+          "sequence": 10,
+          "status": "completed",
+          "timestamp": "2026-08-20T10:10:49.953Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-3d0834e0-1cc6-4c9b-9503-097ac72e1808-event-11",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport { describe, expect, it } from 'vitest'\n2\timport type { AgentConversation } from '../../../../data/data_types'\n3\timport type { ActionRunHistoryEntry, CommitReference } from '../../../../data/electron_action_bridge'\n4\timport { scopedActionUsage } from './action_usage_summary_data'\n5\t\n6\tfunction conversation(id: string, totalTokens?: number): AgentConversation {\n7\t    return {\n8\t        actionId: 'implement',\n9\t        cardInternalId: 'card-1',\n10\t        cardPath: 'design/F-1.md',\n11\t        completedAt: 'now',\n12\t        entries: [],\n13\t        hasExplicitTitle: true,\n14\t        id,\n15\t        path: `logs/${id}.json`,\n16\t        providerSessions: [],\n17\t        startedAt: 'now',\n18\t        status: 'completed',\n19\t        title: id,\n20\t        viewed: true,\n21\t        ...(totalTokens === undefined ? {} : {\n22\t            usage: {\n23\t                cachedInputTokens: 0,\n24\t                inputTokens: totalTokens,\n25\t                outputTokens: 0,\n26\t                reasoningTokens: 0,\n27\t                totalTokens,\n28\t            },\n29\t        }),\n30\t    }\n31\t}\n32\t\n33\tfunction commit(commitHash: string, insertions: number, deletions: number): CommitReference {\n34\t    return {\n35\t        actionId: 'implement',\n36\t        actionName: 'Implement',\n37\t        branch: 'main',\n38\t        commit: commitHash.padEnd(40, commitHash[0]),\n39\t        committedAt: 'now',\n40\t        deletions,\n41\t        filePaths: [],\n42\t        filesChanged: 1,\n43\t        insertions,\n44\t        repositoryRoot: 'C:/project',\n45\t    }\n46\t}\n47\t\n48\tfunction historyEntry(rootConversationId: string, commits: CommitReference[]): ActionRunHistoryEntry {\n49\t    return {\n50\t        commits,\n51\t        completedAt: 'now',\n52\t        rootConversationId,\n53\t        startedAt: 'before',\n54\t        status: 'completed',\n55\t        type: 'agent',\n56\t    }\n57\t}\n58\t\n59\tdescribe('scopedActionUsage', () => {\n60\t    it('deduplicates live conversation by id in action/card totals', () => {\n61\t        const persistedConversation = conversation('conversation-1', 10)\n62\t        const liveConversation = conversation('conversation-1', 15)\n63\t\n64\t        const result = scopedActionUsage(\n65\t            [persistedConversation, conversation('conversation-2', 20)],\n66\t            liveConversation,\n67\t            liveConversation,\n68\t            [],\n69\t            'implement',\n70\t            'card-1',\n71\t        )\n72\t\n73\t        expect(result.actionCard.tokens.totalTokens).toBe(35)\n74\t        expect(result.conversation?.tokens.totalTokens).toBe(15)\n75\t    })\n76\t\n77\t    it('sums completed file-change patches and returns zero for missing usage', () => {\n78\t        const displayedConversation = conversation('conversation-1')\n79\t        displayedConversation.entries = [\n80\t            {\n81\t                content: 'completed', deletions: 2, id: 'file-1', insertions: 3, kind: 'event',\n82\t                providerItemId: 'file-1', status: 'completed', timestamp: 'now', type: 'fileChange',\n83\t            },\n84\t            {\n85\t                content: 'pending', deletions: 8, id: 'file-2', insertions: 9, kind: 'event',\n86\t                providerItemId: 'file-2', status: 'inProgress', timestamp: 'later', type: 'fileChange',\n87\t            },\n88\t        ]\n89\t\n90\t        const result = scopedActionUsage(\n91\t            [displayedConversation, conversation('conversation-2')],\n92\t            null,\n93\t            displayedConversation,\n94\t            [],\n95\t            'implement',\n96\t            'card-1',\n97\t        )\n98\t\n99\t        expect(result.actionCard.changes).toEqual({ deletions: 2, insertions: 3 })\n100\t        expect(result.conversation?.changes).toEqual({ deletions: 2, insertions: 3 })\n101\t        expect(result.actionCard.tokens.totalTokens).toBe(0)\n102\t    })\n103\t\n104\t    it('matches conversation commits only through rootConversationId', () => {\n105\t        const displayedConversation = conversation('conversation-1', 10)\n106\t        const matchingCommit = commit('abc1234', 5, 2)\n107\t        const otherCommit = commit('def5678', 9, 4)\n108\t        const history = [\n109\t            historyEntry(displayedConversation.id, [matchingCommit]),\n110\t            historyEntry('conversation-2', [otherCommit]),\n111\t        ]\n112\t\n113\t        const result = scopedActionUsage(\n114\t            [displayedConversation],\n115\t            null,\n116\t            displayedConversation,\n117\t            history,\n118\t            'implement',\n119\t            'card-1',\n120\t        )\n121\t\n122\t        expect(result.conversation?.lines).toMatchObject({ deletions: 2, insertions: 5 })\n123\t        expect(result.conversation?.lines.commits).toEqual([matchingCommit])\n124\t        expect(result.actionCard.lines).toMatchObject({ deletions: 6, insertions: 14 })\n125\t    })\n126\t\n127\t    it('marks conversation values unavailable when no conversation is displayed', () => {\n128\t        const result = scopedActionUsage([], null, null, [], 'implement', 'card-1')\n129\t\n130\t        expect(result.conversation).toBeNull()\n131\t        expect(result.actionCard.changes).toEqual({ deletions: 0, insertions: 0 })\n132\t        expect(result.actionCard.lines).toMatchObject({ commits: [], deletions: 0, filesChanged: 0, insertions: 0 })\n133\t        expect(result.actionCard.tokens.totalTokens).toBe(0)\n134\t    })\n135\t})\n136\t",
+          "providerItemId": "toolu_01W1VnmH41yWZEDKechWpv5n",
+          "sequence": 11,
+          "status": "completed",
+          "timestamp": "2026-08-20T10:10:51.627Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-3d0834e0-1cc6-4c9b-9503-097ac72e1808-event-12",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeDpVVb9x7yU7hPPubqxN:thinking:0",
+          "sequence": 12,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T10:10:56.325Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-3d0834e0-1cc6-4c9b-9503-097ac72e1808-event-13",
+          "kind": "event",
+          "label": "ToolSearch",
+          "output": "[{\"type\":\"tool_reference\",\"tool_name\":\"ExitPlanMode\"}]",
+          "providerItemId": "toolu_01HJ1gmK1oSs9MveXvoLPP5C",
+          "sequence": 13,
+          "status": "completed",
+          "timestamp": "2026-08-20T10:10:56.482Z",
+          "type": "tool.ToolSearch"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-3d0834e0-1cc6-4c9b-9503-097ac72e1808-event-14",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeDpVqwGWQNkFAzrrqkhC:thinking:0",
+          "sequence": 14,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T10:10:59.620Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nPlan ready. Blocks below.\n\n## Change Plan\n\n**Block 1 — data layer (`action_usage_summary_data.ts`)**\n- `ActionUsageValues.changes` → `AgentFileChangeUsage | null`.\n- `fileChangeUsage()` returns `null` when every conversation in scope yields `null`; else sums non-null results. Drop `ZERO_FILE_CHANGES`.\n- `lineUsage`, `scopedActionUsage` scoping untouched.\n\n**Block 2 — single merged control (`action_usage_summary.tsx`)**\n- Delete `lines` control. One control, label always `changes:`, aria `Changes, <scope> scope`.\n- Per-scope source resolution helper: conversation count if present, else commit lines. Resolved independently for conversation value and action/card value (so tooltip can show both even when sources differ).\n- Visible format always `+X / -Y` (`success.main` / `error.main`). No `N (…)` total.\n- Visibility: render if active scope has conversation count (even `+0 / -0`); else render only if commit total > 0.\n- Tooltip: definition sentence varies by active source; commit-details block (`files changed…` + per-commit lines) only when active value is commit-derived. Scope lines, `unavailable` handling, switch sentence kept.\n- `data-usage-prefix`, `Intl.NumberFormat`, tokens control untouched.\n\n**Block 3 — tests**\n- `action_usage_summary_data.node.test.ts`: `changes` null when no fileChange events; sums when present; zero-total-present case.\n- `action_usage_summary.test.tsx`: rename `Lines, …` → `Changes, …`; conversation-wins, commit fallback, `+0 / -0`, both-absent hidden, two tooltip variants, toggle test → 2 controls.\n- Run only these two files + `agent_usage.node.test.ts`; `npm run typecheck`.\n\n**Block 4 — status**\n- Set `status: ready` in `C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_215_changes_and_lines_confusing.md` (only that field).\n\nNo desktop/schema/persistence changes.",
+          "id": "agent-turn-3d0834e0-1cc6-4c9b-9503-097ac72e1808-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 15,
+          "timestamp": "2026-08-20T10:11:08.847Z"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-3d0834e0-1cc6-4c9b-9503-097ac72e1808-event-16",
+          "kind": "event",
+          "label": "AskUserQuestion",
+          "output": "The user answered: \"Approve this 4-block plan for F_215?\"=\"Approve, implement now\". Read the answers carefully — they may request clarification, changes, or that you not proceed — and follow what they actually say.",
+          "providerItemId": "toolu_01LM9zYTSUBqrqvotmhpQBo6",
+          "sequence": 16,
+          "status": "completed",
+          "timestamp": "2026-08-20T10:11:19.795Z",
+          "type": "tool.AskUserQuestion"
+        },
+        {
+          "content": "claude-question-0: Approve, implement now",
+          "id": "agent-turn-3d0834e0-1cc6-4c9b-9503-097ac72e1808-answer-16",
+          "kind": "message",
+          "role": "user",
+          "sequence": 17,
+          "timestamp": "2026-08-20T10:11:19.792Z"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nBlock 1: data layer.",
+          "id": "agent-turn-3d0834e0-1cc6-4c9b-9503-097ac72e1808-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 18,
+          "timestamp": "2026-08-20T10:11:21.297Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-3d0834e0-1cc6-4c9b-9503-097ac72e1808-event-19",
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\actions\\run\\popup\\action_usage_summary_data.ts has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01FoJiZj7dMx6MQ9p1meyhS5",
+          "sequence": 19,
+          "status": "completed",
+          "timestamp": "2026-08-20T10:11:24.869Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-3d0834e0-1cc6-4c9b-9503-097ac72e1808-event-20",
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\actions\\run\\popup\\action_usage_summary_data.ts has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_011CJhPtcNHyLWvLVzA6xWKT",
+          "sequence": 20,
+          "status": "completed",
+          "timestamp": "2026-08-20T10:11:30.217Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-3d0834e0-1cc6-4c9b-9503-097ac72e1808-event-21",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeDpYM6GNhH1EFXLVS3WC:thinking:0",
+          "sequence": 21,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T10:11:38.173Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-3d0834e0-1cc6-4c9b-9503-097ac72e1808-event-22",
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\actions\\run\\popup\\action_usage_summary.tsx has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01VJ1vKimmMDBjksYGDXbzZx",
+          "sequence": 22,
+          "status": "completed",
+          "timestamp": "2026-08-20T10:11:39.838Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-3d0834e0-1cc6-4c9b-9503-097ac72e1808-event-23",
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\actions\\run\\popup\\action_usage_summary.tsx has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01SiyKHzh7yPCuUFFWrQrCVf",
+          "sequence": 23,
+          "status": "completed",
+          "timestamp": "2026-08-20T10:11:47.751Z",
+          "type": "fileChange"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNow the render body.",
+          "id": "agent-turn-3d0834e0-1cc6-4c9b-9503-097ac72e1808-turn-1-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 24,
+          "timestamp": "2026-08-20T10:11:49.405Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-3d0834e0-1cc6-4c9b-9503-097ac72e1808-event-25",
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\actions\\run\\popup\\action_usage_summary.tsx has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01KZrpz2mPh66vXrBXpQBrfs",
+          "sequence": 25,
+          "status": "completed",
+          "timestamp": "2026-08-20T10:11:51.705Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-3d0834e0-1cc6-4c9b-9503-097ac72e1808-event-26",
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\actions\\run\\popup\\action_usage_summary.tsx has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_016vDPbHwxjg4LYFoootAyhP",
+          "sequence": 26,
+          "status": "completed",
+          "timestamp": "2026-08-20T10:11:57.117Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-3d0834e0-1cc6-4c9b-9503-097ac72e1808-event-27",
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\actions\\run\\popup\\action_usage_summary.tsx has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01DJK6cA4u32eGTqTu8wfadB",
+          "sequence": 27,
+          "status": "completed",
+          "timestamp": "2026-08-20T10:12:06.099Z",
+          "type": "fileChange"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nAdd `ZERO_CHANGES` constant.",
+          "id": "agent-turn-3d0834e0-1cc6-4c9b-9503-097ac72e1808-turn-1-assistant-5",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 28,
+          "timestamp": "2026-08-20T10:12:08.401Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-3d0834e0-1cc6-4c9b-9503-097ac72e1808-event-29",
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\actions\\run\\popup\\action_usage_summary.tsx has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01PZYKi9hA9EBi3kaZSwQenV",
+          "sequence": 29,
+          "status": "completed",
+          "timestamp": "2026-08-20T10:12:09.787Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-3d0834e0-1cc6-4c9b-9503-097ac72e1808-event-30",
+          "kind": "event",
+          "label": "Read",
+          "output": "100\t\n101\t/** Two shared-scope usage controls for one agent action on one card. */\n102\texport function ActionUsageSummary(props: ActionUsageSummaryProps) {\n103\t    const { actionId, cardInternalId, conversation, conversations, history, liveConversation, onToggleScope, scope } = props\n104\t    const scopedUsage = scopedActionUsage(\n105\t        conversations,\n106\t        liveConversation,\n107\t        conversation,\n108\t        history,\n109\t        actionId,\n110\t        cardInternalId,\n111\t    )\n112\t    const conversationUsage = scopedUsage.conversation\n113\t    const activeScope: ActionUsageScope = scope === 'conversation' && conversationUsage ? 'conversation' : 'actionCard'\n114\t    const activeUsage = activeScope === 'conversation' && conversationUsage\n115\t        ? conversationUsage\n116\t        : scopedUsage.actionCard\n117\t    const activeLines = activeUsage.lines\n118\t    const activeChanges = resolveChanges(activeUsage)\n119\t    const conversationChanges = scopedUsage.conversation ? resolveChanges(scopedUsage.conversation) : null\n120\t    const actionCardChanges = resolveChanges(scopedUsage.actionCard)\n121\t    const commitDetails = (\n122\t        <>\n123\t            <Typography color=\"inherit\" variant=\"caption\">\n124\t                files changed: {NUMBER_FORMAT.format(activeLines.filesChanged)}, insertions: {NUMBER_FORMAT.format(activeLines.insertions)},\n125\t                {' '}deletions: {NUMBER_FORMAT.format(activeLines.deletions)}\n126\t            </Typography>\n127\t            {activeLines.commits.map((commit, index) => (\n128\t                <Typography color=\"inherit\" key={`${commit.repositoryRoot}\\u0000${commit.commit}\\u0000${index}`} variant=\"caption\">\n129\t                    {commitLine(commit)}\n130\t                </Typography>\n131\t            ))}\n132\t        </>\n133\t    )\n134\t    const activeScopeName = scopeName(activeScope)\n135\t    return (\n136\t        <Box\n137\t            sx={{\n138\t                alignItems: 'center', display: 'flex', flexWrap: 'wrap', gap: 1, minWidth: 0,\n139\t                '@container (max-width: 420px)': { flexWrap: 'nowrap', gap: 0.5 },\n140\t            }}\n141\t        >\n142\t            <Tooltip describeChild title={scopeTooltip(\n143\t                'Tokens are cumulative provider token usage.',\n144\t                scopedUsage.conversation ? tokenValue(scopedUsage.conversation.tokens) : null,\n145\t                tokenValue(scopedUsage.actionCard.tokens),\n146\t                activeScope,\n147\t            )}>\n148\t                <ButtonBase\n149\t                    aria-label={`Tokens, ${activeScopeName} scope`}\n150\t                    onClick={onToggleScope}\n151\t                    sx={USAGE_CONTROL_SX}\n152\t                >\n153\t                    <Box\n154\t                        component=\"span\"\n155\t                        data-usage-prefix\n156\t                        sx={{ '@container (max-width: 420px)': { display: 'none' } }}\n157\t                    >\n158\t                        tokens:{' '}\n159\t                    </Box>\n160\t                    {NUMBER_FORMAT.format(activeUsage.tokens.totalTokens)}\n161\t                </ButtonBase>\n162\t            </Tooltip>\n163\t            {activeChanges ? (\n164\t                <Tooltip describeChild title={scopeTooltip(\n165\t                    activeChanges.fromCommits\n166\t                        ? 'Changes are additions plus deletions in captured Git commit diffs; the conversation reported no file changes.'\n167\t                        : 'Changes are additions and deletions across completed provider file-change patches.',\n168\t                    scopedUsage.conversation ? changeValue(conversationChanges ?? ZERO_CHANGES) : null,\n169\t                    changeValue(actionCardChanges ?? ZERO_CHANGES),\n170\t                    activeScope,\n171\t                    activeChanges.fromCommits ? commitDetails : undefined,\n172\t                )}>\n173\t                    <ButtonBase\n174\t                        aria-label={`Changes, ${activeScopeName} scope`}\n175\t                        onClick={onToggleScope}\n176\t                        sx={USAGE_CONTROL_SX}\n177\t                    >\n178\t                        <Box\n179\t                            component=\"span\"",
+          "providerItemId": "toolu_01SesQyLyyqBbFehZ1WYgobG",
+          "sequence": 30,
+          "status": "completed",
+          "timestamp": "2026-08-20T10:12:12.328Z",
+          "type": "tool.Read"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nBlock 3: tests.",
+          "id": "agent-turn-3d0834e0-1cc6-4c9b-9503-097ac72e1808-turn-1-assistant-6",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 31,
+          "timestamp": "2026-08-20T10:12:14.528Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-3d0834e0-1cc6-4c9b-9503-097ac72e1808-event-32",
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\actions\\run\\popup\\action_usage_summary_data.node.test.ts has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01QdFUcV5rhYgq848KYpcXhV",
+          "sequence": 32,
+          "status": "completed",
+          "timestamp": "2026-08-20T10:12:21.630Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-3d0834e0-1cc6-4c9b-9503-097ac72e1808-event-33",
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\actions\\run\\popup\\action_usage_summary_data.node.test.ts has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01FMPEZmsNN159cnFt46Lw38",
+          "sequence": 33,
+          "status": "completed",
+          "timestamp": "2026-08-20T10:12:24.643Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-3d0834e0-1cc6-4c9b-9503-097ac72e1808-event-34",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeDpcLsyZFz6WCRQ31JHn:thinking:0",
+          "sequence": 34,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T10:12:30.727Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-3d0834e0-1cc6-4c9b-9503-097ac72e1808-event-35",
+          "kind": "event",
+          "label": "Write",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\actions\\run\\popup\\action_usage_summary.test.tsx has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01K6FHshdvN43yHFYWxn8xWy",
+          "sequence": 35,
+          "status": "completed",
+          "timestamp": "2026-08-20T10:13:09.568Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "{\"command\":\"cd app; npx vitest run src/components/actions/run/popup/action_usage_summary.test.tsx src/components/actions/run/popup/action_usage_summary_data.node.test.ts src/services/agents/agent_usage.node.test.ts\",\"description\":\"Run focused usage summary tests\",\"timeout\":300000}",
+          "id": "agent-turn-3d0834e0-1cc6-4c9b-9503-097ac72e1808-event-36",
+          "kind": "event",
+          "label": "PowerShell",
+          "providerItemId": "toolu_01MUnvSYNdmLZsP26Uj8yGv4",
+          "sequence": 36,
+          "status": "inProgress",
+          "timestamp": "2026-08-20T10:13:12.453Z",
+          "type": "tool.PowerShell"
+        },
+        {
+          "content": "go",
+          "id": "agent-turn-d57c2038-a001-4d67-992e-529440458eed-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 37,
+          "timestamp": "2026-08-20T11:09:24.987Z"
+        },
+        {
+          "content": "continue",
+          "id": "agent-turn-5925bf33-b10a-407c-ab3c-9087e0d6d964-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 38,
+          "timestamp": "2026-08-20T11:30:57.726Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-5925bf33-b10a-407c-ab3c-9087e0d6d964-event-39",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeDvbuQVRdDd1BKZHTWhb:thinking:0",
+          "sequence": 39,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T11:31:01.324Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-5925bf33-b10a-407c-ab3c-9087e0d6d964-event-40",
+          "kind": "event",
+          "label": "PowerShell",
+          "output": " RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev1/app\n\n\n Test Files  2 passed (2)\n      Tests  19 passed (19)\n   Start at  13:31:06\n   Duration  4.22s (transform 591ms, setup 151ms, import 1.99s, tests 632ms, environment 1.18s)",
+          "providerItemId": "toolu_01LbQZFKRHBamocznNy97ZqR",
+          "sequence": 40,
+          "status": "completed",
+          "timestamp": "2026-08-20T11:31:11.197Z",
+          "type": "tool.PowerShell"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-5925bf33-b10a-407c-ab3c-9087e0d6d964-event-41",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeDvcmvKUw9DmfkTzLG24:thinking:0",
+          "sequence": 41,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T11:31:13.266Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-5925bf33-b10a-407c-ab3c-9087e0d6d964-event-42",
+          "kind": "event",
+          "label": "PowerShell",
+          "output": "cd : Cannot find path 'C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\app' because it does not exist.\r\nAt line:1 char:302\r\n+ ... $PSStyle.OutputRendering = 'PlainText' } catch {} } }; cd app; npx vi ...\r\n+                                                            ~~~~~~\r\n    + CategoryInfo          : ObjectNotFound: (C:\\Users\\janbo\\...rs\\dev1\\app\\app:String) [Set-Location], ItemNotFoundE \r\n   xception\r\n    + FullyQualifiedErrorId : PathNotFound,Microsoft.PowerShell.Commands.SetLocationCommand\r\n \r\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev1/app\n\n\n Test Files  1 passed (1)\n      Tests  6 passed (6)\n   Start at  13:31:17\n   Duration  199ms (transform 40ms, setup 17ms, import 41ms, tests 7ms, environment 0ms)",
+          "providerItemId": "toolu_01FPfvbtZxuJbLPmPkqWJFEG",
+          "sequence": 42,
+          "status": "completed",
+          "timestamp": "2026-08-20T11:31:17.977Z",
+          "type": "tool.PowerShell"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-5925bf33-b10a-407c-ab3c-9087e0d6d964-event-43",
+          "kind": "event",
+          "label": "PowerShell",
+          "output": "> app@0.3.3 typecheck\n> tsc --noEmit",
+          "providerItemId": "toolu_01NRyhFYTRq41zfH8pNZk6VP",
+          "sequence": 43,
+          "status": "completed",
+          "timestamp": "2026-08-20T11:31:46.523Z",
+          "type": "tool.PowerShell"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-5925bf33-b10a-407c-ab3c-9087e0d6d964-event-44",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeDvfNzWVZujCDv57LKxr:thinking:0",
+          "sequence": 44,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T11:31:49.648Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-5925bf33-b10a-407c-ab3c-9087e0d6d964-event-45",
+          "kind": "event",
+          "label": "Grep",
+          "output": "6:status: ready for implementation",
+          "providerItemId": "toolu_01PQS2ps4JdK3X8rb4qNdSU2",
+          "sequence": 45,
+          "status": "completed",
+          "timestamp": "2026-08-20T11:31:58.196Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-5925bf33-b10a-407c-ab3c-9087e0d6d964-event-46",
+          "kind": "event",
+          "label": "Edit",
+          "output": "<tool_use_error>File has not been read yet. Read it first before writing to it.</tool_use_error>",
+          "providerItemId": "toolu_01HyTrK1aShz3RHmdZFXDgcC",
+          "sequence": 46,
+          "status": "failed",
+          "timestamp": "2026-08-20T11:32:00.731Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-5925bf33-b10a-407c-ab3c-9087e0d6d964-event-47",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\t---\n2\tauthor: \n3\tid: F_215\n4\tinternalId: 838f9a02-ee42-498c-b317-2f8a48075207\n5\ttitle: changes and lines confusing\n6\tstatus: ready for implementation\n7\towner: \n8\taffects:\n9\tagents:\n10\t  - design/activity/card__838f9a02-ee42-498c-b317-2f8a48075207.json\n11\tpolicy:\n12\tbranch: f_215_changes_and_lines_confusing",
+          "providerItemId": "toolu_016jfeLsHH45EveaMYF8TDB3",
+          "sequence": 47,
+          "status": "completed",
+          "timestamp": "2026-08-20T11:32:21.620Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-5925bf33-b10a-407c-ab3c-9087e0d6d964-event-48",
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_215_changes_and_lines_confusing.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01DhnDy61eKwTaQ45iyhiayc",
+          "sequence": 48,
+          "status": "completed",
+          "timestamp": "2026-08-20T11:32:28.355Z",
+          "type": "fileChange"
+        },
+        {
+          "agent": "claude",
+          "content": "Done. All blocks complete.\n\n**Results:**\n- `action_usage_summary.test.tsx` + `action_usage_summary_data.node.test.ts` — 19 passed\n- `agent_usage.node.test.ts` — 6 passed\n- `npm run typecheck` — clean\n\n**Shipped:**\n- Data: `ActionUsageValues.changes` now `AgentFileChangeUsage | null`. Null = no conversation-level fileChange events in scope. Sums non-null. `ZERO_FILE_CHANGES` gone.\n- UI: two controls (`lines` + `changes`) merged into one, always labeled `changes:`, aria `Changes, <scope> scope`. Format always `+X / -Y`, green/red. Source per scope: conversation count wins; commit lines fallback. Renders `+0 / -0` when conversation data exists; hides when neither source present.\n- Tooltip: definition sentence swaps by active source; commit-details block only when value is commit-derived.\n- Spec `status: ready` set in main repo file (only that field touched).",
+          "id": "agent-turn-5925bf33-b10a-407c-ab3c-9087e0d6d964-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 49,
+          "timestamp": "2026-08-20T11:32:34.206Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-ca77be78-3ddb-49a6-a59b-7c4fc66b7284",
+      "providerSessions": [],
+      "startedAt": "2026-08-20T10:10:30.955Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 1485741,
+        "runningStartedAt": "2026-08-20T11:32:28.341Z"
+      },
+      "title": "implement",
+      "usage": {
+        "cachedInputTokens": 239449,
+        "inputTokens": 16,
+        "outputTokens": 1473,
+        "reasoningTokens": 0,
+        "totalTokens": 240938,
+        "costUsd": 0.28246649999999995
+      },
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
@@ -325,11 +933,11 @@
         "agent-883043b5-13a2-40af-9309-557a95471830"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "ask-for-approval",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-f7c1bab3-30d9-4e03-af2d-4167c46668ad",
       "origin": {
@@ -338,9 +946,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-883043b5-13a2-40af-9309-557a95471830",
       "startedAt": "2026-08-20T08:49:21.244Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-883043b5-13a2-40af-9309-557a95471830"
     }
   ],
   "version": 4
