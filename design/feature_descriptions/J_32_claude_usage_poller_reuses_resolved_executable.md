@@ -10,6 +10,8 @@ policy:
 agents:
   - design/activity/card__1790bf2b-b76c-467a-bdbc-d0f1ba183ebd.json
 after: cc4accfc-c35f-4613-8407-108c00d0a0dd
+branch: j_32_reuse_the_runner_s_resolved_executable_in_the_claude_usage_poller
+worktree: 2
 ---
 
 # Problem
