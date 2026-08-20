@@ -3,7 +3,7 @@ author:
 id: B_155
 internalId: cc4accfc-c35f-4613-8407-108c00d0a0dd
 title: claude context window size missing
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

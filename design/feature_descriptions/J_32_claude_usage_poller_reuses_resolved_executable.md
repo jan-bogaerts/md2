@@ -3,7 +3,7 @@ author:
 id: J_32
 internalId: 1790bf2b-b76c-467a-bdbc-d0f1ba183ebd
 title: reuse the runner's resolved executable in the Claude usage poller
-status: ready for implementation
+status: ready
 owner:
 affects:
 policy:
