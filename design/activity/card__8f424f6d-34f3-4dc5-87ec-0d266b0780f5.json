@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 93885
+        "usedTokens": 99758
       },
       "entries": [
         {
@@ -1175,24 +1175,166 @@
           "role": "assistant",
           "sequence": 82,
           "timestamp": "2026-08-20T13:08:50.124Z"
+        },
+        {
+          "content": "* a 'queued' state can only occur when something is running no, so yes treat same\n* respect user's choices, don't overwrite them",
+          "id": "agent-turn-d8753ac6-1bbf-4127-90cc-c8d529d267cd-user-82",
+          "kind": "message",
+          "role": "user",
+          "sequence": 83,
+          "timestamp": "2026-08-20T13:14:53.629Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d8753ac6-1bbf-4127-90cc-c8d529d267cd-event-84",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04f31a57afa80171016a86fdd04d5c8191a3db8b131de83580",
+          "sequence": 84,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T13:14:56.528Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Decision fixed: `queued` shares running priority. Explicit action choice always wins. Using technical-writer skill now for concise feature-document structure; caveman stays active.\n\n",
+          "id": "agent-turn-d8753ac6-1bbf-4127-90cc-c8d529d267cd-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 85,
+          "timestamp": "2026-08-20T13:14:57.362Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw '.agents\\\\skills\\\\technical-writer\\\\SKILL.md'\"",
+          "content": "---\r\nname: technical-writer\r\ndescription: \"Use this agent when you need to create, improve, or maintain technical documentation including API references, user guides, SDK documentation, and getting-started guides.\"\r\ntools: Read, Write, Edit, Glob, Grep, WebFetch, WebSearch\r\nmodel: haiku\r\n---\r\n\r\nYou are a senior technical writer with expertise in creating comprehensive, user-friendly documentation. Your focus spans API references, user guides, tutorials, and technical content with emphasis on clarity, accuracy, and helping users succeed with technical products and services.\r\n\r\n\r\nWhen invoked:\r\n1. Query context manager for documentation needs and audience\r\n2. Review existing documentation, product features, and user feedback\r\n3. Analyze content gaps, clarity issues, and improvement opportunities\r\n4. Create documentation that empowers users and reduces support burden\r\n\r\nTechnical writing checklist:\r\n- Readability score > 60 achieved\r\n- Technical accuracy 100% verified\r\n- Examples provided comprehensively\r\n- Visuals included appropriately\r\n- Version controlled properly\r\n- Peer reviewed thoroughly\r\n- SEO optimized effectively\r\n- User feedback positive consistently\r\n\r\nDocumentation types:\r\n- Developer documentation\r\n- End-user guides\r\n- Administrator manuals\r\n- API references\r\n- SDK documentation\r\n- Integration guides\r\n- Best practices\r\n- Troubleshooting guides\r\n\r\nContent creation:\r\n- Information architecture\r\n- Content planning\r\n- Writing standards\r\n- Style consistency\r\n- Terminology management\r\n- Version control\r\n- Review processes\r\n- Publishing workflows\r\n\r\nAPI documentation:\r\n- Endpoint descriptions\r\n- Parameter documentation\r\n- Request/response examples\r\n- Authentication guides\r\n- Error references\r\n- Code samples\r\n- SDK guides\r\n- Integration tutorials\r\n\r\nUser guides:\r\n- Getting started\r\n- Feature documentation\r\n- Task-based guides\r\n- Troubleshooting\r\n- FAQs\r\n- Video tutorials\r\n- Quick references\r\n- Best practices\r\n\r\nWriting techniques:\r\n- Information architecture\r\n- Progressive disclosure\r\n- Task-based writing\r\n- Minimalist approach\r\n- Visual communication\r\n- Structured authoring\r\n- Single sourcing\r\n- Localization ready\r\n\r\nDocumentation tools:\r\n- Markdown mastery\r\n- Static site generators\r\n- API doc tools\r\n- Diagramming software\r\n- Screenshot tools\r\n- Version control\r\n- CI/CD integration\r\n- Analytics tracking\r\n\r\nContent standards:\r\n- Style guides\r\n- Writing principles\r\n- Formatting rules\r\n- Terminology consistency\r\n- Voice and tone\r\n- Accessibility standards\r\n- SEO guidelines\r\n- Legal compliance\r\n\r\nVisual communication:\r\n- Diagrams\r\n- Screenshots\r\n- Annotations\r\n- Flowcharts\r\n- Architecture diagrams\r\n- Infographics\r\n- Video content\r\n- Interactive elements\r\n\r\nReview processes:\r\n- Technical accuracy\r\n- Clarity checks\r\n- Completeness review\r\n- Consistency validation\r\n- Accessibility testing\r\n- User testing\r\n- Stakeholder approval\r\n- Continuous updates\r\n\r\nDocumentation automation:\r\n- API doc generation\r\n- Code snippet extraction\r\n- Changelog automation\r\n- Link checking\r\n- Build integration\r\n- Version synchronization\r\n- Translation workflows\r\n- Metrics tracking\r\n\r\n## Communication Protocol\r\n\r\n### Documentation Context Assessment\r\n\r\nInitialize technical writing by understanding documentation needs.\r\n\r\nDocumentation context query:\r\n```json\r\n{\r\n  \"requesting_agent\": \"technical-writer\",\r\n  \"request_type\": \"get_documentation_context\",\r\n  \"payload\": {\r\n    \"query\": \"Documentation context needed: product features, target audiences, existing docs, pain points, preferred formats, and success metrics.\"\r\n  }\r\n}\r\n```\r\n\r\n## Development Workflow\r\n\r\nExecute technical writing through systematic phases:\r\n\r\n### 1. Planning Phase\r\n\r\nUnderstand documentation requirements and audience.\r\n\r\nPlanning priorities:\r\n- Audience analysis\r\n- Content audit\r\n- Gap identification\r\n- Structure design\r\n- Tool selection\r\n- Timeline planning\r\n- Review process\r\n- Success metrics\r\n\r\nContent strategy:\r\n- Define objectives\r\n- Identify audiences\r\n- Map user journeys\r\n- Plan content types\r\n- Create outlines\r\n- Set standards\r\n- Establish workflows\r\n- Define metrics\r\n\r\n### 2. Implementation Phase\r\n\r\nCreate clear, comprehensive documentation.\r\n\r\nImplementation approach:\r\n- Research thoroughly\r\n- Write clearly\r\n- Include examples\r\n- Add visuals\r\n- Review accuracy\r\n- Test usability\r\n- Gather feedback\r\n- Iterate continuously\r\n\r\nWriting patterns:\r\n- User-focused approach\r\n- Clear structure\r\n- Consistent style\r\n- Practical examples\r\n- Visual aids\r\n- Progressive complexity\r\n- Searchable content\r\n- Regular updates\r\n\r\nProgress tracking:\r\n```json\r\n{\r\n  \"agent\": \"technical-writer\",\r\n  \"status\": \"documenting\",\r\n  \"progress\": {\r\n    \"pages_written\": 127,\r\n    \"apis_documented\": 45,\r\n    \"readability_score\": 68,\r\n    \"user_satisfaction\": \"92%\"\r\n  }\r\n}\r\n```\r\n\r\n### 3. Documentation Excellence\r\n\r\nDeliver documentation that drives success.\r\n\r\nExcellence checklist:\r\n- Content comprehensive\r\n- Accuracy verified\r\n- Usability tested\r\n- Feedback incorporated\r\n- Search optimized\r\n- Maintenance planned\r\n- Impact measured\r\n- Users empowered\r\n\r\nDelivery notification:\r\n\"Documentation completed. Created 127 pages covering 45 APIs with average readability score of 68. User satisfaction increased to 92% with 73% reduction in support tickets. Documentation-driven adoption increased by 45%.\"\r\n\r\nInformation architecture:\r\n- Logical organization\r\n- Clear navigation\r\n- Consistent structure\r\n- Intuitive categorization\r\n- Effective search\r\n- Cross-references\r\n- Related content\r\n- User pathways\r\n\r\nWriting excellence:\r\n- Clear language\r\n- Active voice\r\n- Concise sentences\r\n- Logical flow\r\n- Consistent terminology\r\n- Helpful examples\r\n- Visual breaks\r\n- Scannable format\r\n\r\nAPI documentation best practices:\r\n- Complete coverage\r\n- Clear descriptions\r\n- Working examples\r\n- Error handling\r\n- Authentication details\r\n- Rate limits\r\n- Versioning info\r\n- Quick start guide\r\n\r\nUser guide strategies:\r\n- Task orientation\r\n- Step-by-step instructions\r\n- Visual aids\r\n- Common scenarios\r\n- Troubleshooting tips\r\n- Best practices\r\n- Advanced features\r\n- Quick references\r\n\r\nContinuous improvement:\r\n- User feedback collection\r\n- Analytics monitoring\r\n- Regular updates\r\n- Content refresh\r\n- Broken link checks\r\n- Accuracy verification\r\n- Performance optimization\r\n- New feature documentation\r\n\r\nIntegration with other agents:\r\n- Collaborate with product-manager on features\r\n- Support developers on API docs\r\n- Work with ux-researcher on user needs\r\n- Guide support teams on FAQs\r\n- Help marketing on content\r\n- Assist sales-engineer on materials\r\n- Partner with customer-success on guides\r\n- Coordinate with legal-advisor on compliance\r\n\r\nAlways prioritize clarity, accuracy, and user success while creating documentation that reduces friction and enables users to achieve their goals efficiently.\r\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-d8753ac6-1bbf-4127-90cc-c8d529d267cd-event-86",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw '.agents\\\\skills\\\\technical-writer\\\\SKILL.md'\"",
+          "providerItemId": "exec-24857fc5-0e35-4c8c-a88d-c44b00072181",
+          "sequence": 86,
+          "status": "completed",
+          "timestamp": "2026-08-20T13:14:58.840Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d8753ac6-1bbf-4127-90cc-c8d529d267cd-event-87",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04f31a57afa80171016a86fdd51af4819185bd46599a98559e",
+          "sequence": 87,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T13:15:14.131Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d8753ac6-1bbf-4127-90cc-c8d529d267cd-event-88",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04f31a57afa80171016a86fde32f1081919ecfd1dd5530297d",
+          "sequence": 88,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T13:15:23.326Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_204_go_to_running_action_on_action_popup.md",
+          "deletions": 2,
+          "id": "agent-turn-d8753ac6-1bbf-4127-90cc-c8d529d267cd-event-89",
+          "insertions": 35,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-76d30cb6-d470-4e96-b49e-029ab53f2b13",
+          "sequence": 89,
+          "status": "completed",
+          "timestamp": "2026-08-20T13:15:44.942Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d8753ac6-1bbf-4127-90cc-c8d529d267cd-event-90",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04f31a57afa80171016a86fe03c75c81919f79d967e171dc60",
+          "sequence": 90,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T13:15:47.521Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\feature_descriptions\\\\F_204_go_to_running_action_on_action_popup.md'\"",
+          "content": "---\nauthor: \nid: F_204\ninternalId: 8f424f6d-34f3-4dc5-87ec-0d266b0780f5\ntitle: go to running action on action popup\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__8f424f6d-34f3-4dc5-87ec-0d266b0780f5.json\npolicy:\n---\nWhen opening an action popup and there is an action running, go to that action. if there are multiple running, go to the first running, if non are running, check if any is waitingForInput or is ready and has an unread conversation, if so, go to first of that, otherwise go to first in list\n\n# Current state\n\n`ActionPopup` filters actions for current card, file, folder, conflict, or project context while preserving configured selector order. It initializes selection from explicit `initialActionId`; without one, it always selects first applicable action. Generic card **Run** button supplies no action ID, so popup can open on an idle action while another action is queued, running, waiting for input, or has unread result.\n\nLive action state already comes from `ActionRunRegistry`. `queued`, `running`, and `waitingForInput` are active run states scoped by action context. Persisted card conversations already expose `running`, `waiting for input`, and `unseen result` through agent acknowledgement hooks. **Unseen result** means completed or failed conversation whose persisted `viewed` field is `false`; this is requested â€œready with unread conversationâ€ state.\n\nAction selector shows these states, and opening conversation marks it viewed. Selection remains local to mounted popup. Explicit action entry points pass `initialActionId` and represent user's direct choice.\n\n# implementation details\n\n- Add one initial-action resolver used by `ActionPopup`. Resolve once when popup mounts; later run or acknowledgement events update indicators but must not move user away from selected action.\n- Always honor explicit `initialActionId`. Automatic priority applies only when popup opens without explicit action choice, such as card **Run** button.\n- For automatic selection, use selector order and these priority groups:\n  1. First action whose live state is `queued` or `running`, or whose persisted card conversation state is `running`. Here, **queued** shares running priority because queued work exists only while action execution is active.\n  2. If none, first action that is `waitingForInput` or has `unseen result`. Waiting and unseen actions share one group; â€œfirstâ€ means earliest action in selector order.\n  3. If none, first action in selector order.\n- Subscribe through existing scoped run and acknowledgement paths. Extend acknowledgement hook only if needed to expose stable per-action states to popup controller; do not republish whole cards or conversations.\n- Keep currently selected running action available when run changes card fields and action no longer matches updated filters, using existing retained-action behavior.\n- Keep action order, state indicators, conversation loading and acknowledgement, prompt drafts, popup stacking, and direct action entry points unchanged. No Electron or persistence change needed.\n- Add focused resolver and popup tests for explicit choice, each priority group, multiple candidates, retained filtered action, and stable selection after popup opens.\n\n# acceptance criteria\n\n- Opening generic action popup with one or more `queued` or `running` actions selects first such action in selector order.\n- Persisted running card conversation receives same running priority when no matching live run exists.\n- When no action is queued or running, popup selects first action in selector order that is either waiting for input or has unseen result.\n- When no action needs attention, popup selects first action in selector order.\n- Clicking explicit action entry point opens that chosen action even when another action has higher automatic priority.\n- Once popup is open, new status or acknowledgement events never change selected action automatically; user selection remains active.\n- Running action remains selected and visible if its run changes card fields so action drops out of current applicability filter.\n- Opening unseen conversation persists `viewed: true` through existing acknowledgement flow; this feature adds no second read-state mechanism.\n- Focused tests cover queued/running equivalence, persisted running, mixed waiting/unseen ordering, fallback, explicit choice, and no automatic switching after open.\n\r\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-d8753ac6-1bbf-4127-90cc-c8d529d267cd-event-91",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\feature_descriptions\\\\F_204_go_to_running_action_on_action_popup.md'\"",
+          "providerItemId": "exec-52084fa9-ab77-444a-a72d-d9969c600a6b",
+          "sequence": 91,
+          "status": "completed",
+          "timestamp": "2026-08-20T13:15:49.220Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d8753ac6-1bbf-4127-90cc-c8d529d267cd-event-92",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04f31a57afa80171016a86fe07d0fc81919a66433067cadcdd",
+          "sequence": 92,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T13:15:52.642Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Updated [F_204_go_to_running_action_on_action_popup.md](C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_204_go_to_running_action_on_action_popup.md).\n\nAdded current state, implementation details, acceptance criteria, defined state priority, preserved explicit user choice, and set status to `ready for implementation`. Technical-writer skill guided concise definitions and testable criteria. No staging, commit, or tests.\n\n",
+          "id": "agent-turn-d8753ac6-1bbf-4127-90cc-c8d529d267cd-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 93,
+          "timestamp": "2026-08-20T13:15:54.425Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-664075b6-b323-471c-8792-208b06d3e7ff",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a01f47-9fc4-7c61-85f5-cea19eb6bddb",
+          "createdAt": "2026-08-20T13:08:50.124Z",
+          "lastUsedAt": "2026-08-20T13:08:50.124Z",
+          "synchronizedThroughMessageId": "agent-turn-d8753ac6-1bbf-4127-90cc-c8d529d267cd-turn-1-assistant-3"
+        }
+      ],
       "startedAt": "2026-08-20T13:06:22.586Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-20T13:06:22.586Z"
+        "elapsedMs": 147538,
+        "runningStartedAt": "2026-08-20T13:14:53.629Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 90880,
-        "inputTokens": 1763,
-        "outputTokens": 59,
-        "reasoningTokens": 1183,
-        "totalTokens": 93885
+        "cachedInputTokens": 188928,
+        "inputTokens": 3294,
+        "outputTokens": 159,
+        "reasoningTokens": 1262,
+        "totalTokens": 193643
       },
       "usageSchemaVersion": 1,
       "viewed": true
