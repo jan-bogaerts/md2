@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 07585a70-9a56-42b6-a98c-a64de9d68995
 ---
 
 we can already poll claude for account usage info. we need to do this when the app starts, so we can give the info from start.

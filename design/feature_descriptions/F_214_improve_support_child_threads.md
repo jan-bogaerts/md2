@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 686225fc-598c-4244-a0f4-2064c36cb254
 ---
 
 codex can use child threads. currently we either ignore them or print them in the main conversation thread.
