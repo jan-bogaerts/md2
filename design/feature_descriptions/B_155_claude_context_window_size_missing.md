@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__cc4accfc-c35f-4613-8407-108c00d0a0dd.json
 policy:
-branch: b_155_claude_context_window_size_missing
-worktree: 1
 ---
 
 we get the context window from codex already, claude should have something similar, but we don't appear to show the used context size. this needs to be fixed.
