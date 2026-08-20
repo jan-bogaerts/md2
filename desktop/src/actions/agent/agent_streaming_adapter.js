@@ -49,6 +49,16 @@ function codexContextWindowUsage(params) {
     return { capacityTokens, usedTokens };
 }
 
+function isCodexContextOnlyTokenUsage(params) {
+    const usage = params.tokenUsage?.last;
+    if (!usage || usage.totalTokens <= 0) return false;
+
+    return usage.cachedInputTokens === 0
+        && usage.inputTokens === 0
+        && usage.outputTokens === 0
+        && (usage.reasoningOutputTokens ?? 0) === 0;
+}
+
 function eventTextParts(event, field, index) {
     const parts = [...event[field]];
     while (parts.length <= index) parts.push('');
@@ -320,6 +330,10 @@ class CodexStreamingAdapter {
             return;
         }
         if (method === 'thread/tokenUsage/updated') {
+            if (isCodexContextOnlyTokenUsage(params)) {
+                this.turnContextWindowUsage = codexContextWindowUsage(params);
+                return;
+            }
             const usage = codexUsage(params);
             if (!usage) return;
             this.turnContextWindowUsage = codexContextWindowUsage(params);

@@ -760,6 +760,36 @@ describe('CodexStreamingAdapter', () => {
         });
     });
 
+    it('accepts context-only token usage emitted after Codex compaction', async () => {
+        const { adapter, events } = harness('codex');
+        const turnUsage = { cachedInputTokens: 2, inputTokens: 4, outputTokens: 3, reasoningOutputTokens: 1, totalTokens: 7 };
+        const compactedUsage = {
+            cachedInputTokens: 0,
+            inputTokens: 0,
+            outputTokens: 0,
+            reasoningOutputTokens: 0,
+            totalTokens: 17_920,
+        };
+
+        await adapter.handleMessage({ method: 'turn/started', params: { turn: { id: 'turn-1' } } });
+        await adapter.handleMessage({
+            method: 'thread/tokenUsage/updated',
+            params: { tokenUsage: { last: turnUsage, modelContextWindow: 258_400 } },
+        });
+        await adapter.handleMessage({
+            method: 'thread/tokenUsage/updated',
+            params: { tokenUsage: { last: compactedUsage, modelContextWindow: 258_400 } },
+        });
+        await adapter.handleMessage({ method: 'turn/completed', params: { turn: { status: 'completed' } } });
+
+        expect(events.filter(({ type }) => type === 'usage')).toHaveLength(1);
+        expect(events.at(-1)).toMatchObject({
+            contextWindowUsage: { capacityTokens: 258_400, usedTokens: 17_920 },
+            type: 'turnCompleted',
+            usage: { cachedInputTokens: 2, inputTokens: 2, outputTokens: 2, reasoningTokens: 1, totalTokens: 7 },
+        });
+    });
+
     it('clears live context-window usage when a token notification has invalid context data', async () => {
         const { adapter, events } = harness('codex');
         const last = { cachedInputTokens: 0, inputTokens: 4, outputTokens: 1, totalTokens: 5 };
