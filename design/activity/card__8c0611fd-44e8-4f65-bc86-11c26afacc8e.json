@@ -3053,11 +3053,11 @@
         "agent-c8f54dfc-bef3-4152-9d9d-2d75f376c35a"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-cdbdc8fe-619d-493c-9f46-4da4d2baa99a",
       "origin": {
@@ -3066,9 +3066,42 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-c8f54dfc-bef3-4152-9d9d-2d75f376c35a",
       "startedAt": "2026-08-20T17:55:05.362Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-c8f54dfc-bef3-4152-9d9d-2d75f376c35a"
+    },
+    {
+      "commits": [
+        {
+          "commit": "8acf6dbc33ca47d4cb950de1b07e4689d06a88e2",
+          "committedAt": "2026-08-20T20:21:18+02:00",
+          "deletions": 35,
+          "filePaths": [
+            "app/src/components/actions/conversation/action_conversation_chat_owner.test.tsx",
+            "app/src/components/actions/conversation/action_conversation_chat_owner.tsx",
+            "app/src/components/actions/conversation/action_conversation_picker_owner.tsx",
+            "app/src/components/actions/conversation/action_conversation_store.node.test.ts",
+            "app/src/components/actions/conversation/action_conversation_store.ts",
+            "app/src/components/actions/run/popup/action_popup.test.tsx",
+            "app/src/components/actions/run/popup/action_popup_bottom_row.test.tsx",
+            "app/src/components/actions/run/popup/action_popup_bottom_row.tsx",
+            "app/src/components/actions/run/popup/action_popup_operations.node.test.ts",
+            "app/src/components/actions/run/popup/action_popup_operations.ts",
+            "app/src/components/actions/run/popup/action_usage_summary_owner.test.tsx",
+            "app/src/components/actions/run/popup/action_usage_summary_owner.tsx"
+          ],
+          "filesChanged": 12,
+          "insertions": 327,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-20T20:21:18+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "8c0611fd-44e8-4f65-bc86-11c26afacc8e",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
