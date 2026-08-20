@@ -3,11 +3,10 @@ author:
 id: J_32
 internalId: 1790bf2b-b76c-467a-bdbc-d0f1ba183ebd
 title: reuse the runner's resolved executable in the Claude usage poller
-status: new
+status: design
 owner:
 affects:
 policy:
-after: 902e08a9-8b29-4037-ab3d-92d53aef4fc8
 ---
 
 # Problem

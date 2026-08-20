@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 9b601eb4-e385-404f-9059-07823b25b6fd
 ---
 
 we get the context window from codex already, claude should have something similar, but we don't appear to show the used context size. this needs to be fixed.
