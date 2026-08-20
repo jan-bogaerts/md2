@@ -169,6 +169,11 @@ describe('ActionConversationChat', () => {
         expect(screen.queryByText('context: 16%')).not.toBeInTheDocument()
         expect(metadata).toHaveStyle({ alignItems: 'baseline' })
 
+        expect(screen.getAllByRole('progressbar')).toHaveLength(1)
+        const track = progress.parentElement?.querySelector('[aria-hidden="true"]')
+        expect(track).toBeInTheDocument()
+        expect(track).toHaveAttribute('aria-valuenow', '100')
+
         fireEvent.mouseOver(progress)
         expect(await screen.findByText('Context usage: 16%', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()
         fireEvent.mouseLeave(progress)

@@ -133,15 +133,25 @@ export function ActionConversationChat({ conversation, status }: ActionConversat
                         ) : null}
                         <Box sx={{ flex: 1 }} />
                         {contextUsedPercent !== null ? (
-                            <Tooltip describeChild title={`Context usage: ${contextUsedPercent}%`}>
+                            <Box sx={{ display: 'inline-flex', height: 16, position: 'relative', width: 16 }}>
                                 <CircularProgress
-                                    aria-label="Context usage"
-                                    color="info"
+                                    aria-hidden="true"
                                     size={16}
-                                    value={contextUsedPercent}
+                                    sx={{ color: 'action.disabledBackground', left: 0, position: 'absolute', top: 0 }}
+                                    value={100}
                                     variant="determinate"
                                 />
-                            </Tooltip>
+                                <Tooltip describeChild title={`Context usage: ${contextUsedPercent}%`}>
+                                    <CircularProgress
+                                        aria-label="Context usage"
+                                        color="info"
+                                        size={16}
+                                        sx={{ left: 0, position: 'absolute', top: 0 }}
+                                        value={contextUsedPercent}
+                                        variant="determinate"
+                                    />
+                                </Tooltip>
+                            </Box>
                         ) : null}
                     </Stack>
                 ) : null}
