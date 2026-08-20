@@ -8,7 +8,7 @@ owner:
 affects:
 agents:
 policy:
-after: 8f424f6d-34f3-4dc5-87ec-0d266b0780f5
+after: 0b4c5ec2-7d04-4fe9-a0c9-824b3038232e
 ---
 
 No way to archive cards, add menu item in context menu
