@@ -1,5 +1,12 @@
 {
-  "actionSettings": {},
+  "actionSettings": {
+    "47dafdc7-0be7-4d56-bb5a-07c813906416": {
+      "agent": "claude",
+      "model": "opus",
+      "permissionMode": "approve-for-me",
+      "thinkingLevel": "medium"
+    }
+  },
   "conversations": [
     {
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
@@ -607,7 +614,183 @@
         "totalTokens": 778149
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
+    },
+    {
+      "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
+      "cardInternalId": "9500eb58-7f00-49e3-8961-0303cda178ab",
+      "cardPath": "design/feature_descriptions/F_219_open_project_folder_first_on_electron.md",
+      "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 1000000,
+        "usedTokens": 48861
+      },
+      "entries": [
+        {
+          "content": "Read and implement the feature/job described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/F_219_open_project_folder_first_on_electron.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests.\n5. After implementation is done, update the field `status` in the markdown feature description file to \\`ready\\`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/F_219_open_project_folder_first_on_electron.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria.&#x20;\n\nYou should only run the related tests, do not run the entire test suite, that will be done manually later on.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill",
+          "id": "agent-turn-152e7711-527f-4dca-88a8-c4b43e2eabc6-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-08-20T17:56:23.488Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-152e7711-527f-4dca-88a8-c4b43e2eabc6-event-2",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeERzhqzLgXh7FAKgbjTM:thinking:0",
+          "sequence": 2,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T17:56:27.910Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "---\nauthor: \nid: F_219\ninternalId: 9500eb58-7f00-49e3-8961-0303cda178ab\ntitle: open project folder first on electron\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__9500eb58-7f00-49e3-8961-0303cda178ab.json\npolicy:\n---\n\nwhen running on electron, select the 'folder' in stead of the the 'repository' by default.\n\n## Current state\n\n`ProjectOpenDialog` initializes its source as `personal`, so Repository is selected when the dialog first opens in both browser and Electron. Selecting Folder maps to `local` in Electron and `remote` in browser. An explicit `initialSource`, used by remote and recovery flows, can override this selection when the dialog opens.\n\nBoth `AppMenu` and `ProjectToolbarMenu` render the same dialog and pass `isDesktopMode` from `useProjectToolbarMenuActions`. No service, Electron bridge, persistence, or project-opening logic chooses the default.\n\n## implementation details\n\n- In `app/src/components/shell/project/project_open_dialog.tsx`, derive the default source from `isDesktopMode`: `local` in Electron and `personal` in browser.\n- Apply that default whenever the ordinary Open Project dialog opens without an explicit `initialSource`. Keep an explicit source authoritative, and do not alter project-folder setup or missing-working-folder recovery screens.\n- Keep existing mappings after user input: Folder means `local` in Electron and `remote` in browser; Repository means `personal` until user chooses Public.\n- Update focused tests in `app/src/components/shell/project/project_dialogs.test.tsx`. No compatibility flag or new service state is needed because both verified call sites require the same mode-based behavior.\n\n## acceptance criteria\n\n- When ordinary Open Project dialog opens in Electron without an explicit source, Folder is selected and local-folder controls are visible.\n- When ordinary Open Project dialog opens in browser without an explicit source, Repository remains selected and personal-repository controls are visible.\n- An explicit initial source still overrides mode-based default, including remote connection flows.\n- Closing and reopening ordinary dialog restores mode-based default after user selected another project kind.\n- Project-folder setup and missing-working-folder recovery continue to hide project-kind selector and show only their existing resolution controls.\n- Existing Repository/Folder switching, GitHub Personal/Public switching, local folder opening, and remote project opening keep current behavior.",
+          "id": "agent-turn-152e7711-527f-4dca-88a8-c4b43e2eabc6-event-3",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01Xu79SMcHZLxiV8yHLcuHh4",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-08-20T17:56:29.489Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "import {\n    Button,\n    Dialog,\n    DialogActions,\n    DialogContent,\n    DialogTitle,\n    Divider,\n    FormControl,\n    IconButton,\n    InputLabel,\n    InputAdornment,\n    List,\n    ListItemButton,\n    ListItemText,\n    MenuItem,\n    Select,\n    Stack,\n    TextField,\n    ToggleButton,\n    ToggleButtonGroup,\n    Tooltip,\n    Typography,\n} from '@mui/material'\nimport { FolderOpen, SourceRepository } from 'mdi-material-ui'\nimport type { SelectChangeEvent } from '@mui/material'\nimport type { ChangeEvent, MouseEvent } from 'react'\nimport { useState } from 'react'\nimport { DEFAULT_PROJECT_FOLDER, type BranchReference, type ProjectReference, type RepositoryReference, type TopLevelFolderReference } from '../../../data/data_types'\nimport { tryReadRemoteControlConnection } from '../../../data/remote_control_connection'\nimport type { ProjectOpenResolution } from '../../../services/project/project_session_service'\nimport { ProjectFolderSetupForm } from './project_folder_setup_form'\nimport { WorkingFolderChooserDialog } from './working_folder_chooser_dialog'\n\ntype ProjectSource = 'local' | 'personal' | 'public' | 'remote'\ntype ProjectKind = 'folder' | 'repository'\n\ninterface GithubBranchesResult {\n    branches: BranchReference[]\n    repository: RepositoryReference\n}\n\ninterface ProjectOpenDialogProps {\n    branches: BranchReference[]\n    initialRemoteProject?: ProjectReference | null\n    initialSource?: ProjectSource | null\n    isDesktopMode: boolean\n    isGithubAuthenticated: boolean\n    isLoading: boolean\n    projectOpenResolution: ProjectOpenResolution | null\n    open: boolean\n    pendingGithubConflictProject: ProjectReference | null\n    recentLocalRepositories: string[]\n    repositories: RepositoryReference[]\n    onBranchChange: (branch: string) => void\n    onClose: () => void\n    onCreateProjectFolders: (projectFolder: string) => void\n    onCreateRemoteProject: (rootPath: string, branch: string) => ProjectReference | null\n    onCreateWorkingFolder: () => void\n    onDiscardGithubPendingCommits: () => void\n    onChooseLocalFolder: () => Promise<void>\n    onLoadManualBranches: (owner: string, repository: string, isPublic: boolean) => Promise<GithubBranchesResult | null>\n    onLoadRemoteBranches: (endpoint: string, rootPath: string, branch: string) => Promise<BranchReference[]>\n    onOpenGithub: (owner: string, repository: string, branch: string, isPublic: boolean) => Promise<void>\n    onOpenLocal: (rootPath: string) => Promise<void>\n    onOpenRemote: (endpoint: string, project: ProjectReference) => Promise<void>\n    onRepositoryChange: (repository: RepositoryReference) => Promise<BranchReference[]>\n    onSourceChange: () => void\n    onUseWorkingFolder: (folder: TopLevelFolderReference) => void\n}\n\nfunction branchExists(branches: BranchReference[], branchName: string) {\n    return branches.some(({ name }) => name === branchName)\n}\n\nfunction branchValue(branches: BranchReference[], preferredBranch: string) {\n    if (branchExists(branches, preferredBranch)) return preferredBranch\n\n    return branches[0]?.name ?? ''\n}\n\nfunction selectValueExists(options: string[], value: string) {\n    return options.some((option) => option === value)\n}\n\nfunction repositoryMatchesFilter(repository: RepositoryReference, filter: string) {\n    const normalizedFilter = filter.trim().toLowerCase()\n    if (normalizedFilter.length === 0) return true\n\n    return repository.id.toLowerCase().includes(normalizedFilter)\n}\n\nfunction projectKind(source: ProjectSource): ProjectKind {\n    return source === 'personal' || source === 'public' ? 'repository' : 'folder'\n}\n\n/** Project open dialog for GitHub, local and remote project sources. */\nexport function ProjectOpenDialog(props: ProjectOpenDialogProps) {\n    const {\n        branches,\n        initialRemoteProject,\n        initialSource,\n        isDesktopMode,\n        isGithubAuthenticated,\n        isLoading,\n        onBranchChange,\n        onClose,\n        onCreateProjectFolders,\n        onCreateRemoteProject,\n        onCreateWorkingFolder,\n        onDiscardGithubPendingCommits,\n        onChooseLocalFolde\n[15433 characters omitted]\n                       <>\n                                    <Typography variant=\"subtitle2\">Recent folders</Typography>\n                                    <List dense disablePadding>\n                                        {recentLocalRepositories.map((rootPath) => (\n                                            <ListItemButton\n                                                data-root-path={rootPath}\n                                                key={rootPath.toLowerCase()}\n                                                onClick={handleRecentLocalRepositoryClick}\n                                            >\n                                                <ListItemText primary={rootPath} />\n                                            </ListItemButton>\n                                        ))}\n                                    </List>\n                                </>\n                            ) : null}\n                        </>\n                    ) : null}\n                    {!projectOpenResolution && (source === 'personal' || source === 'public') ? (\n                        branches.length > 0 ? (\n                            <FormControl size=\"small\">\n                                <InputLabel id=\"open-branch-label\">Branch</InputLabel>\n                                <Select label=\"Branch\" labelId=\"open-branch-label\" onChange={handleBranchChange} value={branchSelectValue}>\n                                    {branches.map(({ name }) => <MenuItem key={name} value={name}>{name}</MenuItem>)}\n                                </Select>\n                            </FormControl>\n                        ) : (\n                            <TextField label=\"Branch\" onChange={handleBranchTextChange} size=\"small\" value={selectedBranch} />\n                        )\n                    ) : null}\n                    {projectFolderSetup ? (\n                        <ProjectFolderSetupForm\n                            folders={projectFolderSetup.folders}\n                            onProjectFolderChange={handleProjectFolderChange}\n                            projectFolder={projectFolder}\n                        />\n                    ) : null}\n                    {missingWorkingFolder ? (\n                        <WorkingFolderChooserDialog\n                            isLoading={isLoading}\n                            onCreateWorkingFolder={onCreateWorkingFolder}\n                            onUseWorkingFolder={onUseWorkingFolder}\n                            resolution={missingWorkingFolder}\n                        />\n                    ) : null}\n                </Stack>\n            </DialogContent>\n            <DialogActions>\n                <Button onClick={handleClose}>Cancel</Button>\n                {projectFolderSetup ? (\n                    <Button disabled={projectFolder.trim().length === 0 || isLoading} onClick={handleCreateProjectFoldersClick} variant=\"contained\">\n                        Create\n                    </Button>\n                ) : !projectOpenResolution && (source === 'personal' || source === 'public') ? (\n                    <Button disabled={!isGithubAuthenticated || githubOwner.length === 0 || githubRepository.length === 0 || isLoading} onClick={handleOpenGithubClick} variant=\"contained\">\n                        {source === 'public' ? 'Open Public' : 'Open Personal'}\n                    </Button>\n                ) : !projectOpenResolution && source === 'remote' ? (\n                    <Button\n                        disabled={!isRemoteComplete || isLoading}\n                        onClick={handleOpenRemoteClick}\n                        variant=\"contained\"\n                    >\n                        Open Remote\n                    </Button>\n                ) : !projectOpenResolution && source === 'local' ? (\n                    <Button disabled={localRootPath.trim().length === 0 || isLoading} onClick={handleOpenLocalClick} variant=\"contained\">\n                        Open Local\n                    </Button>\n                ) : null}\n            </DialogActions>\n        </Dialog>\n    )\n}",
+          "id": "agent-turn-152e7711-527f-4dca-88a8-c4b43e2eabc6-event-4",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01Ko9Jz9TgcMmFsZDdqp1NPC",
+          "sequence": 4,
+          "status": "completed",
+          "timestamp": "2026-08-20T17:56:32.103Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-152e7711-527f-4dca-88a8-c4b43e2eabc6-event-5",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeES1Dj5zw5AHqcrRMk5N:thinking:0",
+          "sequence": 5,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T17:56:34.787Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "910 app/src/components/shell/project/project_dialogs.test.tsx\nimport { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'\nimport { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'\nimport {\n    DEFAULT_CARD_TYPES,\n    DEFAULT_STATES,\n    type BranchReference,\n    type ProjectReference,\n    type RepositoryReference,\n} from '../../../data/data_types'\nimport {\n    configureRemoteControlConnection,\n    REMOTE_CONTROL_ENDPOINT_KEY,\n} from '../../../data/remote_control_connection'\nimport { AppThemeProvider } from '../../../theme/theme_provider'\nimport { BranchSwitchDialog } from './branch_switch_dialog'\nimport { CompleteReleaseDialog } from './complete_release_dialog'\nimport { NewCardDialog } from './new_card_dialog'\nimport { ProjectOpenDialog } from './project_open_dialog'\nimport { WorkingFolderChooserDialog } from './working_folder_chooser_dialog'\n\nconst BRANCHES: BranchReference[] = [{ name: 'main' }]\nconst PROJECT: ProjectReference = { branch: 'main', id: 'local', rootPath: 'C:/repo' }\nconst REPOSITORIES: RepositoryReference[] = [{ branch: 'main', id: 'octo/demo', owner: 'octo', repository: 'demo' }]\n\nfunction mockMatchMedia(matches: boolean) {\n    window.matchMedia = ((query: string) => ({\n        addEventListener: () => {},\n        addListener: () => {},\n        dispatchEvent: () => false,\n        matches,\n        media: query,\n        onchange: null,\n        removeEventListener: () => {},\n        removeListener: () => {},\n    })) as unknown as typeof window.matchMedia\n}\n\nfunction getDescriptionEditor() {\n    return within(screen.getByRole('group', { name: 'Description' })).getByRole('textbox')\n}\n\nfunction insertEditorNewline(event: Event) {\n    const keyboardEvent = event as globalThis.KeyboardEvent\n    if (keyboardEvent.key !== 'Enter') return\n\n    const editor = event.currentTarget as HTMLTextAreaElement\n    fireEvent.change(editor, { target: { value: `${editor.value}\\n` } })\n}\n\ndescribe('project dialog components', () => {\n    beforeEach(() => {\n        mockMatchMedia(false)\n    })\n\n    afterEach(() => {\n        cleanup()\n        vi.restoreAllMocks()\n        window.localStorage.removeItem(REMOTE_CONTROL_ENDPOINT_KEY)\n    })\n\n    it('renders the open project dialog without mounting the menu', () => {\n        render(\n            <ProjectOpenDialog\n                branches={BRANCHES}\n                isDesktopMode={false}\n                isGithubAuthenticated\n                isLoading={false}\n                onChooseLocalFolder={vi.fn(async () => undefined)}\n                projectOpenResolution={null}\n                onBranchChange={vi.fn()}\n                onClose={vi.fn()}\n                onCreateProjectFolders={vi.fn()}\n                onCreateRemoteProject={vi.fn((rootPath, branch) => ({ branch, id: rootPath, rootPath }))}\n                onCreateWorkingFolder={vi.fn()}\n                onDiscardGithubPendingCommits={vi.fn()}\n                onLoadManualBranches={vi.fn(async () => ({ branches: BRANCHES, repository: REPOSITORIES[0] }))}\n                onLoadRemoteBranches={vi.fn(async () => BRANCHES)}\n                onOpenGithub={vi.fn()}\n                onOpenLocal={vi.fn(async () => undefined)}\n                onOpenRemote={vi.fn()}\n                onRepositoryChange={vi.fn(async () => BRANCHES)}\n                onSourceChange={vi.fn()}\n                onUseWorkingFolder={vi.fn()}\n                open\n                pendingGithubConflictProject={null}\n                recentLocalRepositories={[]}\n                repositories={REPOSITORIES}\n            />,\n        )\n\n        expect(screen.getByRole('dialog', { name: 'Open project' })).toBeInTheDocument()\n        expect(screen.getByLabelText('Filter repositories')).toBeInTheDocument()\n    })\n\n    it('offers repository access choices and maps Folder to Remote in browser mode', async () => {\n        render(\n            <ProjectOpenDialog\n                branches={[]}\n                isDesktopMode={false}\n                isGithubAuthenticated\n                isLoading={false}\n                onBranchChange={vi.fn()}\n                onChooseLocalFolder={vi.fn(async () => undefined)}\n                onClose={vi.fn()}\n                onCreateProjectFolders={vi.fn()}\n                onCreateRemoteProject={vi.fn()}\n                onCreateWorkingFolder={vi.fn()}\n                onDiscardGithubPendingCommits={vi.fn()}\n                onLoadManualBranches={vi.fn(async () => null)}\n                onLoadRemoteBranches={vi.fn(async () => [])}\n                onOpenGithub={vi.fn()}\n                onOpenLocal={vi.fn(async () => undefined)}\n                onOpenRemote={vi.fn()}\n                onRepositoryChange={vi.fn(async () => [])}\n                onSourceChange={vi.fn()}\n                onUseWorkingFolder={vi.fn()}\n                open\n                pendingGithubConflictProject={null}\n                projectOpenResolution={null}\n                recentLocalRepositories={[]}",
+          "id": "agent-turn-152e7711-527f-4dca-88a8-c4b43e2eabc6-event-6",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01F6b8kHsBM8urrUf8AwD9aH",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-08-20T17:56:35.827Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "61:    it('renders the open project dialog without mounting the menu', () => {\n65:                isDesktopMode={false}\n95:    it('offers repository access choices and maps Folder to Remote in browser mode', async () => {\n99:                isDesktopMode={false}\n137:    it('clears repository workflow state when access or project kind changes', async () => {\n144:                isDesktopMode={false}\n186:    it('opens typed, picked, and recent local folders only after Folder is selected', () => {\n192:                isDesktopMode\n238:    it('disables local open and folder picker while loading', () => {\n242:                initialSource=\"local\"\n243:                isDesktopMode\n275:    it('marks manual public lookup and open requests as public', async () => {\n281:                isDesktopMode={false}\n317:    it('keeps branch entry editable when no branch options exist', () => {\n323:                isDesktopMode={false}\n357:    it('preselects the remote source and prefills the stored connection settings', () => {\n363:                initialSource=\"remote\"\n364:                isDesktopMode={false}\n396:    it('keeps remote fields empty on first run', () => {\n400:                initialSource=\"remote\"\n401:                isDesktopMode={false}\n431:    it('renders the working folder chooser without mounting the menu', () => {\n450:    it('shows only working-folder recovery when Electron project loading needs a folder choice', () => {\n454:                isDesktopMode\n493:    it('creates a missing-config project from a selected or entered root folder', async () => {\n498:                isDesktopMode\n539:    it('opens the new card dialog with empty focused title-first fields and dynamic type pills', async () => {\n572:    it('shows directly named type and description controls without visible labels or template actions', () => {\n596:    it('selects dynamic types by click and keyboard radiogroup controls', () => {\n628:    it('trims the title and creates the card in the selected target column', async () => {\n659:    it('uses full-height mobile chrome with one header create control and safe footer targets', async () => {\n705:    it('keeps fixed desktop description sizing and vertical resize behavior', () => {\n725:    it('submits with Ctrl+Enter and confirms dirty Escape cancellation', async () => {\n775:    it('confirms cancellation for description-only edits', () => {\n800:    it('resets the draft after successful creation and project closure', async () => {\n843:    it('renders the complete release dialog and submits a release name without mounting the menu', async () => {\n864:    it('restores release branch defaults and supports select-all and clear-all', async () => {\n895:    it('renders the branch switch dialog without mounting the menu', () => {",
+          "id": "agent-turn-152e7711-527f-4dca-88a8-c4b43e2eabc6-event-7",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01BymuSGN34cbyys7dAveTUv",
+          "sequence": 7,
+          "status": "completed",
+          "timestamp": "2026-08-20T17:56:38.886Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "                recentLocalRepositories={[]}\n                repositories={[]}\n            />,\n        )\n\n        const projectKind = screen.getByRole('group', { name: 'Project kind' })\n        expect(within(projectKind).getByRole('button', { name: 'Repository' })).toHaveAttribute('aria-pressed', 'true')\n        expect(within(projectKind).getByRole('button', { name: 'Folder' })).toHaveAttribute('aria-pressed', 'false')\n        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Repository access' }))\n        expect(await screen.findByRole('option', { name: 'Personal' })).toBeInTheDocument()\n        expect(screen.getByRole('option', { name: 'Public' })).toBeInTheDocument()\n        fireEvent.click(screen.getByRole('option', { name: 'Personal' }))\n        await waitFor(() => fireEvent.click(screen.getByRole('button', { name: 'Folder' })))\n        expect(screen.getByLabelText('Endpoint')).toBeInTheDocument()\n        expect(screen.queryByLabelText('Local repository folder')).toBeNull()\n    })\n\n    it('clears repository workflow state when access or project kind changes', async () => {\n        const onSourceChange = vi.fn()\n        const openGithub = vi.fn()\n        const openRemote = vi.fn()\n        render(\n            <ProjectOpenDialog\n                branches={BRANCHES}\n                isDesktopMode={false}\n                isGithubAuthenticated\n                isLoading={false}\n                onBranchChange={vi.fn()}\n                onChooseLocalFolder={vi.fn(async () => undefined)}\n                onClose={vi.fn()}\n                onCreateProjectFolders={vi.fn()}\n                onCreateRemoteProject={vi.fn()}\n                onCreateWorkingFolder={vi.fn()}\n                onDiscardGithubPendingCommits={vi.fn()}\n                onLoadManualBranches={vi.fn(async () => null)}\n                onLoadRemoteBranches={vi.fn(async () => [])}\n                onOpenGithub={openGithub}\n                onOpenLocal={vi.fn(async () => undefined)}\n                onOpenRemote={openRemote}\n                onRepositoryChange={vi.fn(async () => BRANCHES)}\n                onSourceChange={onSourceChange}\n                onUseWorkingFolder={vi.fn()}\n                open\n                pendingGithubConflictProject={null}\n                projectOpenResolution={null}\n                recentLocalRepositories={[]}\n                repositories={REPOSITORIES}\n            />,\n        )\n\n        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Repository' }))\n        fireEvent.click(await screen.findByRole('option', { name: 'octo/demo' }))\n        await waitFor(() => expect(screen.getByRole('combobox', { name: 'Branch' })).toHaveTextContent('main'))\n\n        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Repository access' }))\n        fireEvent.click(await screen.findByRole('option', { name: 'Public' }))\n        expect(screen.getByRole('combobox', { name: 'Branch' })).not.toHaveTextContent('main')\n        expect(onSourceChange).toHaveBeenCalledOnce()\n\n        fireEvent.click(screen.getByRole('button', { name: 'Folder' }))\n        expect(screen.getByLabelText('Endpoint')).toBeInTheDocument()\n        expect(onSourceChange).toHaveBeenCalledTimes(2)\n        expect(openGithub).not.toHaveBeenCalled()\n        expect(openRemote).not.toHaveBeenCalled()\n    })\n\n    it('opens typed, picked, and recent local folders only after Folder is selected', () => {\n        const chooseLocalFolder = vi.fn(async () => undefined)\n        const openLocal = vi.fn(async () => undefined)\n        render(\n            <ProjectOpenDialog\n                branches={[]}\n                isDesktopMode\n                isGithubAuthenticated={false}\n                isLoading={false}\n                onBranchChange={vi.fn()}\n                onChooseLocalFolder={chooseLocalFolder}\n                onClose={vi.fn()}\n                onCreateProjectFolders={vi.fn()}\n                onCreateRemoteProject={vi.fn()}\n                onCreateWorkingFolder={vi.fn()}\n                onDiscardGithubPendingCommits={vi.fn()}\n                onLoadManualBranches={vi.fn(async () => null)}\n                onLoadRemoteBranches={vi.fn(async () => [])}\n                onOpenGithub={vi.fn()}\n                onOpenLocal={openLocal}\n                onOpenRemote={vi.fn()}\n                onRepositoryChange={vi.fn(async () => [])}\n                onSourceChange={vi.fn()}\n                onUseWorkingFolder={vi.fn()}\n                open\n                pendingGithubConflictProject={null}\n                projectOpenResolution={null}\n                recentLocalRepositories={['C:/recent']}\n                repositories={[]}\n            />,\n            { wrapper: AppThemeProvider },\n        )\n\n        expect(screen.queryByLabelText('Local repository folder')).toBeNull()\n        fireEvent.click(screen.getByRole('button', { name: 'Folder' }))\n\n        const localFolderInput = screen.getByLabelText('Local repository folder')\n        expect(localFolderInput).toHaveAttribute('placeholder', 'Choose or enter a local folder')\n        expect(screen.getByText('Local repository folder')).toHaveAttribute('data-shrink', 'true')\n        expect(screen.getByRole('button', { name: 'Open Local' })).toBeDisabled()\n        fireEvent.click(screen.getByRole('button', { name: 'Choose local repository folder' }))\n        expect(chooseLocalFolder).toHaveBeenCalledOnce()\n        expect(localFolderInput).toHaveValue('')\n        expect(screen.getByRole('dialog', { name: 'Open project' })).toBeInTheDocument()\n\n        fireEvent.change(localFolderInput, { target: { value: 'C:/typed' } })\n        fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))\n        expect(openLocal).toHaveBeenCalledWith('C:/typed')\n        fireEvent.click(screen.getByText('C:/recent'))\n        expect(openLocal).toHaveBeenLastCalledWith('C:/recent')\n    })\n\n    it('disables local open and folder picker while loading', () => {\n        render(\n            <ProjectOpenDialog",
+          "id": "agent-turn-152e7711-527f-4dca-88a8-c4b43e2eabc6-event-8",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_0182pKfQjRAigGcuuYDhjovW",
+          "sequence": 8,
+          "status": "completed",
+          "timestamp": "2026-08-20T17:56:41.130Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-152e7711-527f-4dca-88a8-c4b43e2eabc6-event-9",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeES1s6t9wvBCnVNKnwth:thinking:0",
+          "sequence": 9,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T17:56:52.185Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-152e7711-527f-4dca-88a8-c4b43e2eabc6-event-10",
+          "kind": "event",
+          "label": "ToolSearch",
+          "output": "[{\"type\":\"tool_reference\",\"tool_name\":\"CronList\"},{\"type\":\"tool_reference\",\"tool_name\":\"TaskOutput\"},{\"type\":\"tool_reference\",\"tool_name\":\"TaskStop\"},{\"type\":\"tool_reference\",\"tool_name\":\"DesignSync\"},{\"type\":\"tool_reference\",\"tool_name\":\"EnterWorktree\"}]",
+          "providerItemId": "toolu_01KuNXUpMMHMC3KLZib1byH4",
+          "sequence": 10,
+          "status": "completed",
+          "timestamp": "2026-08-20T17:56:52.596Z",
+          "type": "tool.ToolSearch"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-152e7711-527f-4dca-88a8-c4b43e2eabc6-event-11",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeES2hdeHb9uFAhC3MMN2:thinking:0",
+          "sequence": 11,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T17:56:55.984Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Plan. No edits yet. No todo/task tool in this session — blocks listed here as tasks.\n\n**Change Plan — F_219 default project kind = Folder on Electron**\n\n**Block 1 — default source derivation** (`app/src/components/shell/project/project_open_dialog.tsx`)\n- Add `const defaultSource: ProjectSource = isDesktopMode ? 'local' : 'personal'`.\n- Seed `useState<ProjectSource>(defaultSource)` (lazy init) instead of hardcoded `'personal'`.\n- In the open-transition block (`if (open !== wasOpen)`), replace `if (initialSource) setSource(initialSource)` with `setSource(initialSource ?? defaultSource)`.\n  - Timing/causal chain: that block runs during render on the false→true `open` transition, i.e. every time the dialog opens. So reopening after user switched to Repository resets to Folder on Electron (acceptance criterion 4). Explicit `initialSource` still wins (criterion 3, remote + recovery flows).\n- Nothing else touched: `handleProjectKindChange` mapping (Repository→`personal`, Folder→`local`/`remote`) unchanged; resolution screens already gate on `!projectOpenResolution`, so a `local` source never leaks into setup/recovery UI.\n\n**Block 2 — tests** (`app/src/components/shell/project/project_dialogs.test.tsx`)\n- Existing test at line 186 (`opens typed, picked, and recent local folders only after Folder is selected`, `isDesktopMode`, no `initialSource`) asserts local controls are absent initially — that becomes false. Fix: click **Repository** first, then keep the existing Repository→Folder assertions intact. Preserves its intent (switching works), no assertion deleted.\n- New test A: `isDesktopMode`, no `initialSource`, `open` → Folder pressed, `Local repository folder` visible, no `Filter repositories`.\n- New test B: `isDesktopMode={false}` → Repository pressed, `Filter repositories` visible (criterion 2).\n- New test C: desktop, `initialSource=\"personal\"` → Repository stays selected (explicit override, criterion 3).\n- New test D: desktop, no `initialSource`, rerender `open={false}` → click Repository is impossible while closed, so: open → click Repository → close → reopen → Folder pressed again (criterion 4).\n- Recovery/setup coverage already exists (lines 450, 493); leave as is (criterion 5).\n\n**Block 3 — verify + status**\n- `npx vitest run app/src/components/shell/project/project_dialogs.test.tsx` (only this file) + `npm run typecheck`.\n- Set `status: ready` in `design/feature_descriptions/F_219_open_project_folder_first_on_electron.md`.\n\nApprove?",
+          "id": "agent-turn-152e7711-527f-4dca-88a8-c4b43e2eabc6-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 12,
+          "timestamp": "2026-08-20T17:57:08.194Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-023e8bb9-8d51-42ba-badb-9c4b50446e87",
+      "providerSessions": [],
+      "startedAt": "2026-08-20T17:56:23.488Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-08-20T17:56:23.488Z"
+      },
+      "title": "implement",
+      "usage": {
+        "cachedInputTokens": 262112,
+        "inputTokens": 14,
+        "outputTokens": 2608,
+        "reasoningTokens": 0,
+        "totalTokens": 264734,
+        "costUsd": 0.5239335
+      },
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
@@ -634,11 +817,11 @@
         "agent-3f27b128-5b9d-463a-a9f7-d5ab3bd2ec06"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-67b57b50-72f9-4235-87a5-9d51daa39e93",
       "origin": {
@@ -647,9 +830,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-3f27b128-5b9d-463a-a9f7-d5ab3bd2ec06",
       "startedAt": "2026-08-20T15:39:51.935Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-3f27b128-5b9d-463a-a9f7-d5ab3bd2ec06"
     }
   ],
   "version": 4
