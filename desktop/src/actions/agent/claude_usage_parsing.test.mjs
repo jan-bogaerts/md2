@@ -33,6 +33,18 @@ describe('parseClaudeUsageOutput', () => {
         });
     });
 
+    it('parses a whole-hour reset written without minutes', () => {
+        const output = USAGE_OUTPUT.replace('Aug 16, 6:59pm', 'Aug 16, 7pm');
+        const observedAt = Date.parse('2026-08-15T18:00:00.000Z');
+
+        expect(parseClaudeUsageOutput(output, observedAt)).toEqual({
+            windows: [
+                { id: 'five_hour', resetsAt: Date.parse('2026-08-15T19:49:00.000Z'), usedPercent: 17 },
+                { id: 'weekly', resetsAt: Date.parse('2026-08-16T17:00:00.000Z'), usedPercent: 13 },
+            ],
+        });
+    });
+
     it('selects next year for a nearby January reset observed in December', () => {
         const output = USAGE_OUTPUT
             .replace('Aug 15, 9:49pm', 'Jan 1, 1:00am')

@@ -1,4 +1,5 @@
 const crossSpawn = require('cross-spawn');
+const { logAgentEvent } = require('./agent_file_logger');
 const { parseClaudeUsageOutput } = require('./claude_usage_parsing');
 const { createUtilityProcessTerminalPoll } = require('./claude_usage_terminal_host');
 
@@ -17,7 +18,6 @@ function collectProcessOutput(child, dependencies) {
             if (settled) return;
             settled = true;
             clearPollTimeout(timeout);
-            console.log(result);
             if (error) reject(error);
             else resolve(result);
         };
@@ -134,6 +134,8 @@ class ClaudeUsagePoller {
             payload = parseClaudeUsageOutput(stdout, observedAt);
             if (this.stopped) return;
             if (!payload) {
+                // Unparsed output is the one failure that leaves no trace anywhere else, so it is logged verbatim.
+                logAgentEvent('[claude:usage-unparsed]', { observedAt, stdout });
                 const fallback = await this.pollTerminal(executable, observedAt);
                 if (fallback.unavailable) throw new Error('Claude usage terminal failed');
                 payload = fallback.payload;
@@ -143,7 +145,13 @@ class ClaudeUsagePoller {
 
             return;
         }
-        if (payload) await this.onRuntimeEvent({ kind: 'snapshot', observedAt, payload });
+        // An inconclusive terminal fallback says nothing about Claude, so it reports neither usage nor unavailability.
+        if (!payload) {
+            logAgentEvent('[claude:usage-inconclusive]', { observedAt });
+
+            return;
+        }
+        await this.onRuntimeEvent({ kind: 'snapshot', observedAt, payload });
     }
 
     /** Hands the pty attempt to a worker process, which reports usage, unavailability, or neither. */

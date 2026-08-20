@@ -4,8 +4,9 @@ const MONTHS = new Map([
     ['jul', 6], ['aug', 7], ['sep', 8], ['oct', 9], ['nov', 10], ['dec', 11],
 ]);
 const WINDOW_PATTERNS = [
-    { id: 'five_hour', pattern: /^Current session:\s*(\d{1,3})% used\s*·\s*resets\s+([A-Za-z]{3})\s+(\d{1,2}),\s+(\d{1,2}):(\d{2})(am|pm)\s+\(([^)]+)\)\s*$/iu },
-    { id: 'weekly', pattern: /^Current week \(all models\):\s*(\d{1,3})% used\s*·\s*resets\s+([A-Za-z]{3})\s+(\d{1,2}),\s+(\d{1,2}):(\d{2})(am|pm)\s+\(([^)]+)\)\s*$/iu },
+    // Claude omits the minutes on a whole hour ("7pm"), so they are optional here.
+    { id: 'five_hour', pattern: /^Current session:\s*(\d{1,3})% used\s*·\s*resets\s+([A-Za-z]{3})\s+(\d{1,2}),\s+(\d{1,2})(?::(\d{2}))?(am|pm)\s+\(([^)]+)\)\s*$/iu },
+    { id: 'weekly', pattern: /^Current week \(all models\):\s*(\d{1,3})% used\s*·\s*resets\s+([A-Za-z]{3})\s+(\d{1,2}),\s+(\d{1,2})(?::(\d{2}))?(am|pm)\s+\(([^)]+)\)\s*$/iu },
 ];
 const TERMINAL_WINDOW_DEFINITIONS = [
     { heading: 'Current session', id: 'five_hour' },
@@ -65,7 +66,7 @@ function resetTimestamp(match, observedAt) {
     const hourValue = Number(hourText);
     if (hourValue < 1 || hourValue > 12) throw new Error('Invalid Claude reset hour');
     const hour = (hourValue % 12) + (meridiem.toLowerCase() === 'pm' ? 12 : 0);
-    const baseParts = { day: Number(dayText), hour, minute: Number(minuteText), month };
+    const baseParts = { day: Number(dayText), hour, minute: Number(minuteText ?? 0), month };
     const candidates = [observedYear - 1, observedYear, observedYear + 1].map((year) => (
         localDateTimeToUnixMs({ ...baseParts, year }, timeZone)
     ));
