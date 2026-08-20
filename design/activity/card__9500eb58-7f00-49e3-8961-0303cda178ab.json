@@ -5,7 +5,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "9500eb58-7f00-49e3-8961-0303cda178ab",
       "cardPath": "design/feature_descriptions/F_219_open_project_folder_first_on_electron.md",
-      "completedAt": null,
+      "completedAt": "2026-08-20T15:41:36.367Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 65529
@@ -578,17 +578,25 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 42,
-          "timestamp": "2026-08-20T15:41:36.070Z"
+          "timestamp": "2026-08-20T15:41:36.367Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-3f27b128-5b9d-463a-a9f7-d5ab3bd2ec06",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a01fd4-2630-7722-8fe1-7b4097b3c675",
+          "createdAt": "2026-08-20T15:41:36.367Z",
+          "lastUsedAt": "2026-08-20T15:41:36.367Z",
+          "synchronizedThroughMessageId": "agent-turn-bea95eba-5bdb-4cf7-90a6-85e55776cb28-turn-1-assistant-4"
+        }
+      ],
       "startedAt": "2026-08-20T15:39:51.938Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-20T15:39:51.938Z"
+        "elapsedMs": 104429,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
