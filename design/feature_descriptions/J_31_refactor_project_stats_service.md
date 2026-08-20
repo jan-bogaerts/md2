@@ -8,6 +8,8 @@ owner:
 affects:
 policy:
 after: 47a847c9-cf6e-4a8a-823c-6a6b012bb21a
+branch: j_31_refactor_projectstatsservice_into_focused_modules
+worktree: 2
 ---
 
 `app/src/services/stats/project_stats_service.ts` combines source discovery, released-stat caching, session state, control reconciliation, time bucketing, four dataset aggregators, and presentation metadata. Split it without changing behavior.
