@@ -17,6 +17,7 @@ function collectProcessOutput(child, dependencies) {
             if (settled) return;
             settled = true;
             clearPollTimeout(timeout);
+            console.log(result);
             if (error) reject(error);
             else resolve(result);
         };
