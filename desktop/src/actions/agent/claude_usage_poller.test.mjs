@@ -41,24 +41,49 @@ function hangingChild() {
 describe('ClaudeUsagePoller', () => {
     afterEach(() => vi.useRealTimers());
 
+    it('constructs without an executable resolver', () => {
+        expect(() => new ClaudeUsagePoller({
+            onRuntimeEvent: vi.fn(),
+            terminalPoll: vi.fn(),
+        })).not.toThrow();
+    });
+
+    it('rejects a missing or empty executable without scheduling work', () => {
+        const setTimeout = vi.fn();
+        const spawn = vi.fn();
+        const poller = new ClaudeUsagePoller({
+            onRuntimeEvent: vi.fn(),
+            setTimeout,
+            spawn,
+            terminalPoll: vi.fn(),
+        });
+
+        expect(() => poller.requestPoll()).toThrow('Claude usage poll requires an executable');
+        expect(() => poller.requestPoll({ executable: '' })).toThrow('Claude usage poll requires an executable');
+        expect(() => poller.requestPoll({ executable: '   ' })).toThrow('Claude usage poll requires an executable');
+        expect(poller.pendingRequest).toBeNull();
+        expect(poller.activePoll).toBeNull();
+        expect(setTimeout).not.toHaveBeenCalled();
+        expect(spawn).not.toHaveBeenCalled();
+    });
+
     it('polls immediately after output and coalesces requests to one poll per two minutes', async () => {
         vi.useFakeTimers();
         vi.setSystemTime(new Date('2026-08-15T18:00:00.000Z'));
         const runtimeListener = vi.fn();
         const spawn = vi.fn(() => completedChild());
         const poller = new ClaudeUsagePoller({
-            executableResolver: { find: vi.fn(async () => 'claude.cmd') },
             onRuntimeEvent: runtimeListener,
             spawn,
         });
 
-        poller.requestPoll();
+        poller.requestPoll({ executable: 'claude.cmd' });
         await poller.activePoll;
         expect(spawn).toHaveBeenCalledOnce();
         expect(runtimeListener).toHaveBeenCalledWith(expect.objectContaining({ kind: 'snapshot' }));
 
-        poller.requestPoll();
-        poller.requestPoll();
+        poller.requestPoll({ executable: 'claude.cmd' });
+        poller.requestPoll({ executable: 'claude.cmd' });
         await vi.advanceTimersByTimeAsync(119_999);
         expect(spawn).toHaveBeenCalledOnce();
         await vi.advanceTimersByTimeAsync(1);
@@ -71,19 +96,16 @@ describe('ClaudeUsagePoller', () => {
     it('spawns within the requesting project cwd and environment', async () => {
         const runtimeListener = vi.fn();
         const spawn = vi.fn(() => completedChild());
-        const find = vi.fn(async () => 'claude.cmd');
         const env = { PATH: '/project/bin' };
         const poller = new ClaudeUsagePoller({
-            executableResolver: { find },
             onRuntimeEvent: runtimeListener,
             spawn,
         });
 
-        poller.requestPoll({ cwd: '/project', env });
+        poller.requestPoll({ cwd: '/project', env, executable: '/tools/custom-claude' });
         await poller.activePoll;
 
-        expect(find).toHaveBeenCalledWith('claude', { cwd: '/project', env });
-        expect(spawn).toHaveBeenCalledWith('claude.cmd', [], expect.objectContaining({ cwd: '/project', env }));
+        expect(spawn).toHaveBeenCalledWith('/tools/custom-claude', [], expect.objectContaining({ cwd: '/project', env }));
         poller.stop();
     });
 
@@ -91,20 +113,56 @@ describe('ClaudeUsagePoller', () => {
         const runtimeListener = vi.fn();
         const terminalPoll = vi.fn(async () => ({ payload: TERMINAL_PAYLOAD, unavailable: false }));
         const poller = new ClaudeUsagePoller({
-            executableResolver: { find: vi.fn(async () => 'claude.cmd') },
             onRuntimeEvent: runtimeListener,
             spawn: vi.fn(() => completedChild('You are currently using your subscription')),
             terminalPoll,
         });
 
-        poller.requestPoll({ cwd: '/project', env: { PATH: '/project/bin' } });
+        poller.requestPoll({ cwd: '/project', env: { PATH: '/project/bin' }, executable: '/tools/custom-claude' });
         await poller.activePoll;
 
         expect(terminalPoll).toHaveBeenCalledWith(
-            expect.objectContaining({ cwd: '/project', env: { PATH: '/project/bin' }, executable: 'claude.cmd' }),
+            expect.objectContaining({ cwd: '/project', env: { PATH: '/project/bin' }, executable: '/tools/custom-claude' }),
             expect.objectContaining({ registerAbort: expect.any(Function) }),
         );
         expect(runtimeListener).toHaveBeenCalledWith(expect.objectContaining({ kind: 'snapshot', payload: TERMINAL_PAYLOAD }));
+        poller.stop();
+    });
+
+    it('keeps one request snapshot through fallback while a newer request waits', async () => {
+        const child = new EventEmitter();
+        child.stdin = new PassThrough();
+        child.stdout = new PassThrough();
+        child.stderr = new PassThrough();
+        const terminalPoll = vi.fn(async () => ({ payload: TERMINAL_PAYLOAD, unavailable: false }));
+        const spawn = vi.fn(() => child);
+        const poller = new ClaudeUsagePoller({
+            onRuntimeEvent: vi.fn(),
+            spawn,
+            terminalPoll,
+        });
+        const firstEnvironment = { PATH: '/first/bin' };
+        const secondEnvironment = { PATH: '/second/bin' };
+
+        poller.requestPoll({ cwd: '/first', env: firstEnvironment, executable: '/tools/first-claude' });
+        poller.requestPoll({ cwd: '/second', env: secondEnvironment, executable: '/tools/second-claude' });
+        child.stdout.end('partial');
+        child.emit('close', 0);
+        await poller.activePoll;
+
+        expect(spawn).toHaveBeenCalledWith('/tools/first-claude', [], expect.objectContaining({
+            cwd: '/first',
+            env: firstEnvironment,
+        }));
+        expect(terminalPoll).toHaveBeenCalledWith(
+            expect.objectContaining({ cwd: '/first', env: firstEnvironment, executable: '/tools/first-claude' }),
+            expect.objectContaining({ registerAbort: expect.any(Function) }),
+        );
+        expect(poller.pendingRequest).toEqual({
+            cwd: '/second',
+            env: secondEnvironment,
+            executable: '/tools/second-claude',
+        });
         poller.stop();
     });
 
@@ -112,13 +170,12 @@ describe('ClaudeUsagePoller', () => {
         const runtimeListener = vi.fn();
         const terminalPoll = vi.fn(async () => NO_TERMINAL_RESULT);
         const poller = new ClaudeUsagePoller({
-            executableResolver: { find: vi.fn(async () => 'claude') },
             onRuntimeEvent: runtimeListener,
             spawn: vi.fn(() => completedChild(USAGE_OUTPUT, 1)),
             terminalPoll,
         });
 
-        poller.requestPoll();
+        poller.requestPoll({ executable: 'claude' });
         await poller.activePoll;
 
         expect(terminalPoll).not.toHaveBeenCalled();
@@ -129,13 +186,12 @@ describe('ClaudeUsagePoller', () => {
     it('publishes nothing when neither the process nor the worker reports usage', async () => {
         const runtimeListener = vi.fn();
         const poller = new ClaudeUsagePoller({
-            executableResolver: { find: vi.fn(async () => 'claude') },
             onRuntimeEvent: runtimeListener,
             spawn: vi.fn(() => completedChild('partial')),
             terminalPoll: vi.fn(async () => NO_TERMINAL_RESULT),
         });
 
-        poller.requestPoll();
+        poller.requestPoll({ executable: 'claude' });
         await poller.activePoll;
 
         expect(runtimeListener).not.toHaveBeenCalled();
@@ -145,13 +201,12 @@ describe('ClaudeUsagePoller', () => {
     it('reports Claude as unavailable when the worker cannot run it', async () => {
         const runtimeListener = vi.fn();
         const poller = new ClaudeUsagePoller({
-            executableResolver: { find: vi.fn(async () => 'claude') },
             onRuntimeEvent: runtimeListener,
             spawn: vi.fn(() => completedChild('', 1)),
             terminalPoll: vi.fn(async () => ({ payload: null, unavailable: true })),
         });
 
-        poller.requestPoll();
+        poller.requestPoll({ executable: 'claude' });
         await poller.activePoll;
 
         expect(runtimeListener).toHaveBeenCalledWith(expect.objectContaining({ kind: 'unavailable' }));
@@ -162,14 +217,13 @@ describe('ClaudeUsagePoller', () => {
         const runtimeListener = vi.fn();
         const child = hangingChild();
         const poller = new ClaudeUsagePoller({
-            executableResolver: { find: vi.fn(async () => 'claude') },
             onRuntimeEvent: runtimeListener,
             processTimeoutMs: 20,
             spawn: vi.fn(() => child),
             terminalPoll: vi.fn(async () => ({ payload: TERMINAL_PAYLOAD, unavailable: false })),
         });
 
-        poller.requestPoll();
+        poller.requestPoll({ executable: 'claude' });
         await poller.activePoll;
 
         expect(child.stderr.isPaused()).toBe(false);
@@ -188,13 +242,12 @@ describe('ClaudeUsagePoller', () => {
             registered = () => resolve(NO_TERMINAL_RESULT);
         }));
         const poller = new ClaudeUsagePoller({
-            executableResolver: { find: vi.fn(async () => 'claude') },
             onRuntimeEvent: runtimeListener,
             spawn: vi.fn(() => completedChild('partial')),
             terminalPoll,
         });
 
-        poller.requestPoll();
+        poller.requestPoll({ executable: 'claude' });
         await vi.waitFor(() => expect(registered).not.toBeNull());
         poller.stop();
         registered();
@@ -209,12 +262,11 @@ describe('ClaudeUsagePoller', () => {
             throw new Error('listener failed');
         });
         const poller = new ClaudeUsagePoller({
-            executableResolver: { find: vi.fn(async () => 'claude') },
             onRuntimeEvent: runtimeListener,
             spawn: vi.fn(() => completedChild()),
         });
 
-        poller.requestPoll();
+        poller.requestPoll({ executable: 'claude' });
         await expect(poller.activePoll).resolves.toBeUndefined();
         expect(poller.activePoll).toBeNull();
         poller.stop();

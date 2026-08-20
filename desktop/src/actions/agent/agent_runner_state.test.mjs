@@ -28,7 +28,7 @@ describe('AgentRunnerService state handling', () => {
         const spawn = vi.fn(() => child);
         const onEvent = vi.fn();
         const service = new AgentRunnerService({
-            executableResolver: { find: vi.fn(async () => null) },
+            executableResolver: { find: vi.fn(async () => '/tools/fake-agent') },
             persistConversation,
             persistConversationCheckpoint,
             spawn,
@@ -62,6 +62,36 @@ describe('AgentRunnerService state handling', () => {
 
         child.emit('close', 0);
         await vi.waitFor(() => expect(persistConversation).toHaveBeenCalledOnce());
+    });
+
+    it('does not require an installed agent when the service is constructed', () => {
+        const find = vi.fn();
+
+        expect(() => new AgentRunnerService({
+            claudeUsagePoller: { requestPoll: vi.fn(), stop: vi.fn() },
+            executableResolver: { find },
+        })).not.toThrow();
+        expect(find).not.toHaveBeenCalled();
+    });
+
+    it('rejects an unresolved selected executable before persistence, usage polling, or spawn', async () => {
+        const claudeUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };
+        const persistConversationCheckpoint = vi.fn();
+        const spawn = vi.fn();
+        const service = new AgentRunnerService({
+            claudeUsagePoller,
+            executableResolver: { find: vi.fn(async () => null) },
+            persistConversationCheckpoint,
+            spawn,
+        });
+        const project = { rootPath: resolve(import.meta.dirname, '../../../..') };
+        const request = { agent: 'claude', command: ['missing-claude'], projectFolder: 'design', prompt: 'Start work' };
+
+        await expect(service.start(project, request, vi.fn(), vi.fn(), vi.fn()))
+            .rejects.toThrow('Executable not found for claude: missing-claude');
+        expect(persistConversationCheckpoint).not.toHaveBeenCalled();
+        expect(claudeUsagePoller.requestPoll).not.toHaveBeenCalled();
+        expect(spawn).not.toHaveBeenCalled();
     });
 
     it('persists timer transitions before publishing pause and resume states', async () => {
@@ -579,9 +609,10 @@ describe('AgentRunnerService state handling', () => {
     });
 
     it('records one-shot Claude usage only after successful process completion', async () => {
+        const claudeUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };
         const persistConversation = vi.fn(async () => undefined);
         const usageMetricsService = { recordTokenUsage: vi.fn(async () => true) };
-        const service = new AgentRunnerService({ persistConversation, usageMetricsService });
+        const service = new AgentRunnerService({ claudeUsagePoller, persistConversation, usageMetricsService });
         const turnUsage = {
             cachedInputTokens: 2,
             inputTokens: 5,
@@ -602,6 +633,8 @@ describe('AgentRunnerService state handling', () => {
                 status: 'running',
             },
             currentAssistantMessageId: null,
+            environment: { PATH: '/bin' },
+            executable: '/tools/claude',
             finishing: false,
             id: 'run-1',
             missingSession: false,
@@ -610,6 +643,7 @@ describe('AgentRunnerService state handling', () => {
             persistence: Promise.resolve(),
             protocolHandling: Promise.resolve(),
             request: {},
+            rootPath: '/project',
             startedAt: '2026-07-30T10:00:00.000Z',
             stderr: '',
             stderrBuffer: '',
@@ -1126,15 +1160,19 @@ describe('AgentRunnerService state handling', () => {
         });
         await service.handleClaudeRuntimeEvent({ kind: 'unavailable', observedAt: 11 });
         const environment = { PATH: '/bin' };
-        service.requestUsagePoll({ agent: 'claude', environment, rootPath: '/project' });
-        service.requestUsagePoll({ agent: 'codex', environment, rootPath: '/project' });
+        service.requestUsagePoll({ agent: 'claude', environment, executable: '/tools/claude', rootPath: '/project' });
+        service.requestUsagePoll({ agent: 'codex', environment, executable: '/tools/codex', rootPath: '/project' });
 
         expect(claudeRuntimeService.publishRateLimits).toHaveBeenCalledWith(payload, 10);
         expect(claudeRuntimeService.publishUnavailable).toHaveBeenCalledWith(11);
         expect(usageMetricsService.recordAccountUsage).toHaveBeenCalledOnce();
         expect(usageMetricsService.recordAccountUsage).toHaveBeenCalledWith('claude', snapshot);
         expect(claudeUsagePoller.requestPoll).toHaveBeenCalledOnce();
-        expect(claudeUsagePoller.requestPoll).toHaveBeenCalledWith({ cwd: '/project', env: environment });
+        expect(claudeUsagePoller.requestPoll).toHaveBeenCalledWith({
+            cwd: '/project',
+            env: environment,
+            executable: '/tools/claude',
+        });
     });
 
     it('polls Claude usage at run start, on a tick while running, and after the run closes', async () => {
@@ -1146,10 +1184,11 @@ describe('AgentRunnerService state handling', () => {
         const ticks = [];
         const cleared = [];
         const claudeUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };
+        const executable = '/tools/custom-claude';
         const service = new AgentRunnerService({
             claudeUsagePoller,
             clearTimeout: (handle) => cleared.push(handle),
-            executableResolver: { find: vi.fn(async () => null) },
+            executableResolver: { find: vi.fn(async () => executable) },
             persistConversation: vi.fn(async () => undefined),
             persistConversationCheckpoint: vi.fn(async () => undefined),
             setTimeout: (callback) => ticks.push(callback),
@@ -1164,6 +1203,7 @@ describe('AgentRunnerService state handling', () => {
         expect(claudeUsagePoller.requestPoll).toHaveBeenCalledWith({
             cwd: project.rootPath,
             env: expect.objectContaining({}),
+            executable,
         });
 
         ticks[0]();
@@ -1172,6 +1212,16 @@ describe('AgentRunnerService state handling', () => {
 
         child.emit('close', 0);
         await vi.waitFor(() => expect(claudeUsagePoller.requestPoll).toHaveBeenCalledTimes(3));
+        expect(claudeUsagePoller.requestPoll).toHaveBeenNthCalledWith(2, {
+            cwd: project.rootPath,
+            env: expect.objectContaining({}),
+            executable,
+        });
+        expect(claudeUsagePoller.requestPoll).toHaveBeenNthCalledWith(3, {
+            cwd: project.rootPath,
+            env: expect.objectContaining({}),
+            executable,
+        });
         ticks[1]();
 
         expect(cleared).toEqual([2]);
@@ -1188,7 +1238,7 @@ describe('AgentRunnerService state handling', () => {
         const claudeUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };
         const service = new AgentRunnerService({
             claudeUsagePoller,
-            executableResolver: { find: vi.fn(async () => null) },
+            executableResolver: { find: vi.fn(async () => '/tools/codex') },
             persistConversation: vi.fn(async () => undefined),
             persistConversationCheckpoint: vi.fn(async () => undefined),
             setTimeout: (callback) => ticks.push(callback),

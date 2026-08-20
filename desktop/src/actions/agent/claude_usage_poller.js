@@ -56,9 +56,6 @@ class ClaudeUsagePoller {
     constructor(dependencies = {}) {
         this.clearTimeout = dependencies.clearTimeout ?? clearTimeout;
         this.cooldownMs = dependencies.cooldownMs ?? CLAUDE_USAGE_POLL_COOLDOWN_MS;
-        this.cwd = dependencies.cwd ?? process.cwd();
-        this.env = dependencies.env ?? process.env;
-        this.executableResolver = dependencies.executableResolver;
         this.now = dependencies.now ?? Date.now;
         this.onRuntimeEvent = dependencies.onRuntimeEvent;
         this.setTimeout = dependencies.setTimeout ?? setTimeout;
@@ -69,24 +66,24 @@ class ClaudeUsagePoller {
         this.abortTerminalPoll = null;
         this.activePoll = null;
         this.lastPollStartedAt = Number.NEGATIVE_INFINITY;
-        this.pending = false;
+        this.pendingRequest = null;
         this.pendingTimer = null;
         this.stopped = false;
-        if (!this.executableResolver) throw new Error('Claude usage poller requires an executable resolver');
         if (typeof this.onRuntimeEvent !== 'function') throw new Error('Claude usage poller requires a runtime event listener');
     }
 
-    requestPoll({ cwd, env } = {}) {
+    requestPoll({ cwd = process.cwd(), env = process.env, executable } = {}) {
+        if (typeof executable !== 'string' || executable.trim().length === 0) {
+            throw new Error('Claude usage poll requires an executable');
+        }
         if (this.stopped) return;
-        if (cwd) this.cwd = cwd;
-        if (env) this.env = env;
-        this.pending = true;
+        this.pendingRequest = { cwd, env, executable };
         this.schedulePendingPoll();
     }
 
     stop() {
         this.stopped = true;
-        this.pending = false;
+        this.pendingRequest = null;
         if (this.pendingTimer) this.clearTimeout(this.pendingTimer);
         this.pendingTimer = null;
         // A worker left running past shutdown holds a pty open while Electron is already exiting.
@@ -95,11 +92,12 @@ class ClaudeUsagePoller {
     }
 
     schedulePendingPoll() {
-        if (this.stopped || !this.pending || this.activePoll || this.pendingTimer) return;
+        if (this.stopped || !this.pendingRequest || this.activePoll || this.pendingTimer) return;
         const delay = Math.max(0, this.cooldownMs - (this.now() - this.lastPollStartedAt));
         if (delay === 0) {
-            this.pending = false;
-            this.activePoll = this.runPendingPoll();
+            const request = this.pendingRequest;
+            this.pendingRequest = null;
+            this.activePoll = this.runPendingPoll(request);
             return;
         }
         this.pendingTimer = this.setTimeout(() => {
@@ -108,9 +106,9 @@ class ClaudeUsagePoller {
         }, delay);
     }
 
-    async runPendingPoll() {
+    async runPendingPoll(request) {
         try {
-            await this.poll();
+            await this.poll(request);
         } catch {
             // A failing poll must never escape as an unhandled rejection; the next one retries.
         }
@@ -118,13 +116,13 @@ class ClaudeUsagePoller {
         this.schedulePendingPoll();
     }
 
-    async poll() {
+    async poll(request) {
+        const { cwd, env, executable } = request;
         this.lastPollStartedAt = this.now();
         const observedAt = this.now();
         let payload = null;
         try {
-            const executable = await this.executableResolver.find('claude', { cwd: this.cwd, env: this.env }) ?? 'claude';
-            const child = this.spawn(executable, [], { cwd: this.cwd, env: this.env, stdio: ['pipe', 'pipe', 'pipe'] });
+            const child = this.spawn(executable, [], { cwd, env, stdio: ['pipe', 'pipe', 'pipe'] });
             const { stdout } = await collectProcessOutput(child, {
                 clearTimeout: this.clearTimeout,
                 setTimeout: this.setTimeout,
@@ -136,7 +134,7 @@ class ClaudeUsagePoller {
             if (!payload) {
                 // Unparsed output is the one failure that leaves no trace anywhere else, so it is logged verbatim.
                 logAgentEvent('[claude:usage-unparsed]', { observedAt, stdout });
-                const fallback = await this.pollTerminal(executable, observedAt);
+                const fallback = await this.pollTerminal(request, observedAt);
                 if (fallback.unavailable) throw new Error('Claude usage terminal failed');
                 payload = fallback.payload;
             }
@@ -155,11 +153,11 @@ class ClaudeUsagePoller {
     }
 
     /** Hands the pty attempt to a worker process, which reports usage, unavailability, or neither. */
-    pollTerminal(executable, observedAt) {
+    pollTerminal(pollRequest, observedAt) {
         const request = {
-            cwd: this.cwd,
-            env: { ...this.env },
-            executable,
+            cwd: pollRequest.cwd,
+            env: { ...pollRequest.env },
+            executable: pollRequest.executable,
             observedAt,
             timeoutMs: this.terminalTimeoutMs,
         };

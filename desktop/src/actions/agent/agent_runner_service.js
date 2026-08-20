@@ -66,10 +66,8 @@ class AgentRunnerService {
             ?? persistConversation;
         this.spawn = dependencies.spawn ?? crossSpawn;
         this.executableResolver = dependencies.executableResolver ?? new AgentExecutableResolver();
-        this.claudeUsagePoller = dependencies.claudeUsagePoller ?? new ClaudeUsagePoller({
-            executableResolver: this.executableResolver,
-            onRuntimeEvent: (event) => this.handleClaudeRuntimeEvent(event),
-        });
+        this.claudeUsagePoller = dependencies.claudeUsagePoller
+            ?? new ClaudeUsagePoller({onRuntimeEvent: (event) => this.handleClaudeRuntimeEvent(event)});
         this.diagnoseCodexCacheError = dependencies.diagnoseCodexCacheError ?? diagnoseCodexCacheError;
         this.clearTimeout = dependencies.clearTimeout ?? clearTimeout;
         this.setTimeout = dependencies.setTimeout ?? setTimeout;
@@ -128,12 +126,12 @@ class AgentRunnerService {
         }
         const [configuredExecutable, ...configuredArguments] = command;
         const environment = createAgentEnvironment(process.env);
-        const resolvedExecutable = await this.executableResolver.find(configuredExecutable, { cwd: rootPath, env: environment });
-        const executable = resolvedExecutable ?? configuredExecutable;
+        const executable = await this.executableResolver.find(configuredExecutable, { cwd: rootPath, env: environment });
+        if (!executable) throw new Error(`Executable not found for ${agent}: ${configuredExecutable}`);
         const argumentsList = streaming ? configuredArguments : [...configuredArguments, prompt];
         const initialConversation = snapshotConversation(conversation);
         await this.persistConversationCheckpoint({ conversation: initialConversation, request });
-        this.requestUsagePoll({ agent, environment, rootPath });
+        this.requestUsagePoll({ agent, environment, executable, rootPath });
         const child = this.spawn(executable, argumentsList, {
             cwd: rootPath,
             detached: process.platform !== 'win32',
@@ -340,7 +338,7 @@ class AgentRunnerService {
     /** Refreshes account usage for agents that report it out of band; Codex reports it inside its own protocol. */
     requestUsagePoll(run) {
         if (run.agent !== 'claude') return;
-        this.claudeUsagePoller.requestPoll({ cwd: run.rootPath, env: run.environment });
+        this.claudeUsagePoller.requestPoll({ cwd: run.rootPath, env: run.environment, executable: run.executable });
     }
 
     /** Picks any active run whose agent needs polling; the usage snapshot is account-wide, so any one will do. */
