@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import type { ComponentProps } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
     DEFAULT_CARD_TYPES,
@@ -21,6 +22,38 @@ import { WorkingFolderChooserDialog } from './working_folder_chooser_dialog'
 const BRANCHES: BranchReference[] = [{ name: 'main' }]
 const PROJECT: ProjectReference = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
 const REPOSITORIES: RepositoryReference[] = [{ branch: 'main', id: 'octo/demo', owner: 'octo', repository: 'demo' }]
+
+type ProjectOpenDialogProps = ComponentProps<typeof ProjectOpenDialog>
+
+function projectOpenDialogProps(overrides: Partial<ProjectOpenDialogProps>): ProjectOpenDialogProps {
+    return {
+        branches: [],
+        isDesktopMode: false,
+        isGithubAuthenticated: true,
+        isLoading: false,
+        onBranchChange: vi.fn(),
+        onChooseLocalFolder: vi.fn(async () => undefined),
+        onClose: vi.fn(),
+        onCreateProjectFolders: vi.fn(),
+        onCreateRemoteProject: vi.fn(),
+        onCreateWorkingFolder: vi.fn(),
+        onDiscardGithubPendingCommits: vi.fn(),
+        onLoadManualBranches: vi.fn(async () => null),
+        onLoadRemoteBranches: vi.fn(async () => []),
+        onOpenGithub: vi.fn(async () => undefined),
+        onOpenLocal: vi.fn(async () => undefined),
+        onOpenRemote: vi.fn(async () => undefined),
+        onRepositoryChange: vi.fn(async () => []),
+        onSourceChange: vi.fn(),
+        onUseWorkingFolder: vi.fn(),
+        open: true,
+        pendingGithubConflictProject: null,
+        projectOpenResolution: null,
+        recentLocalRepositories: [],
+        repositories: [],
+        ...overrides,
+    }
+}
 
 function mockMatchMedia(matches: boolean) {
     window.matchMedia = ((query: string) => ({
@@ -183,6 +216,53 @@ describe('project dialog components', () => {
         expect(openRemote).not.toHaveBeenCalled()
     })
 
+    it('selects Folder by default in Electron and Repository by default in the browser', () => {
+        const { unmount } = render(<ProjectOpenDialog {...projectOpenDialogProps({ isDesktopMode: true })} />, { wrapper: AppThemeProvider })
+
+        const desktopProjectKind = screen.getByRole('group', { name: 'Project kind' })
+        expect(within(desktopProjectKind).getByRole('button', { name: 'Folder' })).toHaveAttribute('aria-pressed', 'true')
+        expect(within(desktopProjectKind).getByRole('button', { name: 'Repository' })).toHaveAttribute('aria-pressed', 'false')
+        expect(screen.getByLabelText('Local repository folder')).toBeInTheDocument()
+        expect(screen.queryByLabelText('Filter repositories')).toBeNull()
+        unmount()
+
+        render(<ProjectOpenDialog {...projectOpenDialogProps({ isDesktopMode: false, repositories: REPOSITORIES })} />, { wrapper: AppThemeProvider })
+
+        const browserProjectKind = screen.getByRole('group', { name: 'Project kind' })
+        expect(within(browserProjectKind).getByRole('button', { name: 'Repository' })).toHaveAttribute('aria-pressed', 'true')
+        expect(screen.getByLabelText('Filter repositories')).toBeInTheDocument()
+        expect(screen.queryByLabelText('Local repository folder')).toBeNull()
+    })
+
+    it('keeps an explicit initial source authoritative over the mode-based default', () => {
+        render(
+            <ProjectOpenDialog {...projectOpenDialogProps({ initialSource: 'personal', isDesktopMode: true, repositories: REPOSITORIES })} />,
+            { wrapper: AppThemeProvider },
+        )
+
+        const projectKind = screen.getByRole('group', { name: 'Project kind' })
+        expect(within(projectKind).getByRole('button', { name: 'Repository' })).toHaveAttribute('aria-pressed', 'true')
+        expect(screen.getByLabelText('Filter repositories')).toBeInTheDocument()
+        expect(screen.queryByLabelText('Local repository folder')).toBeNull()
+    })
+
+    it('restores the mode-based default when the dialog is reopened after a project kind change', () => {
+        const { rerender } = render(
+            <ProjectOpenDialog {...projectOpenDialogProps({ isDesktopMode: true, repositories: REPOSITORIES })} />,
+            { wrapper: AppThemeProvider },
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: 'Repository' }))
+        expect(screen.getByLabelText('Filter repositories')).toBeInTheDocument()
+
+        rerender(<ProjectOpenDialog {...projectOpenDialogProps({ isDesktopMode: true, open: false, repositories: REPOSITORIES })} />)
+        rerender(<ProjectOpenDialog {...projectOpenDialogProps({ isDesktopMode: true, repositories: REPOSITORIES })} />)
+
+        const projectKind = screen.getByRole('group', { name: 'Project kind' })
+        expect(within(projectKind).getByRole('button', { name: 'Folder' })).toHaveAttribute('aria-pressed', 'true')
+        expect(screen.getByLabelText('Local repository folder')).toBeInTheDocument()
+    })
+
     it('opens typed, picked, and recent local folders only after Folder is selected', () => {
         const chooseLocalFolder = vi.fn(async () => undefined)
         const openLocal = vi.fn(async () => undefined)
@@ -216,6 +296,7 @@ describe('project dialog components', () => {
             { wrapper: AppThemeProvider },
         )
 
+        fireEvent.click(screen.getByRole('button', { name: 'Repository' }))
         expect(screen.queryByLabelText('Local repository folder')).toBeNull()
         fireEvent.click(screen.getByRole('button', { name: 'Folder' }))
 

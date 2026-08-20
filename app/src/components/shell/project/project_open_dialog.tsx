@@ -132,13 +132,14 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
     const [remoteRootPath, setRemoteRootPath] = useState('')
     const [selectedBranch, setSelectedBranch] = useState('')
     const [selectedRepositoryId, setSelectedRepositoryId] = useState('')
-    const [source, setSource] = useState<ProjectSource>('personal')
+    const defaultSource: ProjectSource = isDesktopMode ? 'local' : 'personal'
+    const [source, setSource] = useState<ProjectSource>(defaultSource)
     const [wasOpen, setWasOpen] = useState(false)
 
     if (open !== wasOpen) {
         setWasOpen(open)
         if (open) {
-            if (initialSource) setSource(initialSource)
+            setSource(initialSource ?? defaultSource)
             const stored = tryReadRemoteControlConnection()
             if (stored) {
                 if (remoteEndpoint.length === 0) setRemoteEndpoint(stored.endpoint)

@@ -338,3 +338,11 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-08-20T17:42:02.090Z,token_usage,codex,,,,,115294,1222400,3196,1495,1342385,,
 2026-08-20T17:49:36.684Z,token_usage,codex,,,,,3523,91904,99,474,96000,,
 2026-08-20T17:54:22.220Z,token_usage,codex,,,,,11046,485120,1540,1226,498932,,
+2026-08-20T17:55:06.323Z,account_usage,codex,codex_bengalfox,primary,300,2026-08-20T22:55:08.000Z,,,,,,0,0
+2026-08-20T17:55:06.323Z,account_usage,codex,codex_bengalfox,secondary,10080,2026-08-27T17:55:08.000Z,,,,,,0,0
+2026-08-20T17:56:23.536Z,account_usage,claude,default,weekly,10080,2026-08-23T16:59:00.000Z,,,,,,21,1
+2026-08-20T17:56:53.030Z,token_usage,codex,,,,,63910,515072,1979,1536,582497,,
+2026-08-20T17:57:08.194Z,token_usage,claude,,,,,14,262112,2608,0,264734,,
+2026-08-20T17:58:23.558Z,account_usage,claude,default,weekly,10080,2026-08-23T16:59:00.000Z,,,,,,22,1
+2026-08-20T17:59:02.560Z,token_usage,claude,,,,,14,371037,4609,0,375660,,
+2026-08-20T18:00:23.562Z,account_usage,claude,default,weekly,10080,2026-08-23T17:00:00.000Z,,,,,,22,22
