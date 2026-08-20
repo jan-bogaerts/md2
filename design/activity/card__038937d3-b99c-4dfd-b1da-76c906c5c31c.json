@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 108928
+        "usedTokens": 111654
       },
       "entries": [
         {
@@ -629,24 +629,125 @@
           "role": "assistant",
           "sequence": 46,
           "timestamp": "2026-08-20T17:16:35.820Z"
+        },
+        {
+          "content": "This is part of a´other ticket: we are currently not able to send any other response then proposed, which is no good. So 152 is correct",
+          "id": "agent-turn-d287dd52-aa5a-4c2a-a5d3-205ef09cccca-user-46",
+          "kind": "message",
+          "role": "user",
+          "sequence": 47,
+          "timestamp": "2026-08-20T17:20:59.276Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d287dd52-aa5a-4c2a-a5d3-205ef09cccca-event-48",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04660cdd038b8915016a87377e72c08191bd1b4e29d93f9886",
+          "sequence": 48,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T17:21:01.504Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "B_152 wins: non-empty prompt can enter queue during pending question or approval; dispatch waits until pending interaction resolves. Updating design only.\n\n",
+          "id": "agent-turn-d287dd52-aa5a-4c2a-a5d3-205ef09cccca-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 49,
+          "timestamp": "2026-08-20T17:21:02.204Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_152_disbabled_input_while_running_agent.md",
+          "deletions": 2,
+          "id": "agent-turn-d287dd52-aa5a-4c2a-a5d3-205ef09cccca-event-50",
+          "insertions": 34,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-199a190d-2f21-4737-a4e9-e314ce9608f7",
+          "sequence": 50,
+          "status": "completed",
+          "timestamp": "2026-08-20T17:21:25.381Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d287dd52-aa5a-4c2a-a5d3-205ef09cccca-event-51",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04660cdd038b8915016a8737989b308191bb9c2d2518e6ded1",
+          "sequence": 51,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T17:21:27.775Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff -- 'design/feature_descriptions/B_152_disbabled_input_while_running_agent.md'; git status --short -- 'design/feature_descriptions/B_152_disbabled_input_while_running_agent.md'\"",
+          "content": "",
+          "durationMs": 6,
+          "exitCode": 0,
+          "id": "agent-turn-d287dd52-aa5a-4c2a-a5d3-205ef09cccca-event-52",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff -- 'design/feature_descriptions/B_152_disbabled_input_while_running_agent.md'; git status --short -- 'design/feature_descriptions/B_152_disbabled_input_while_running_agent.md'\"",
+          "providerItemId": "exec-cd14d289-a4fa-4831-b810-da6a17df92c9",
+          "sequence": 52,
+          "status": "completed",
+          "timestamp": "2026-08-20T17:21:29.833Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d287dd52-aa5a-4c2a-a5d3-205ef09cccca-event-53",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04660cdd038b8915016a87379d00388191ab4d89648bb37c86",
+          "sequence": 53,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T17:21:32.857Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Updated [B_152_disbabled_input_while_running_agent.md](C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/B_152_disbabled_input_while_running_agent.md).\n\nAdded requested sections. Status now `ready for implementation`. Pending questions/approvals allow queueing but delay dispatch. No tests needed; documentation-only change. Not staged or committed.\n\n",
+          "id": "agent-turn-d287dd52-aa5a-4c2a-a5d3-205ef09cccca-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 54,
+          "timestamp": "2026-08-20T17:21:34.489Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-4d32bedc-ca11-426e-aa48-b1f52f5b04bc",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a0202a-490d-7800-aa15-e5e5a232a38d",
+          "createdAt": "2026-08-20T17:16:35.820Z",
+          "lastUsedAt": "2026-08-20T17:16:35.820Z",
+          "synchronizedThroughMessageId": "agent-turn-d287dd52-aa5a-4c2a-a5d3-205ef09cccca-turn-1-assistant-3"
+        }
+      ],
       "startedAt": "2026-08-20T17:13:56.513Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-20T17:13:56.513Z"
+        "elapsedMs": 159307,
+        "runningStartedAt": "2026-08-20T17:20:59.276Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 1074176,
-        "inputTokens": 108511,
-        "outputTokens": 2603,
-        "reasoningTokens": 3267,
-        "totalTokens": 1188557
+        "cachedInputTokens": 1399040,
+        "inputTokens": 114174,
+        "outputTokens": 3844,
+        "reasoningTokens": 3424,
+        "totalTokens": 1520482
       },
       "usageSchemaVersion": 1,
       "viewed": true
