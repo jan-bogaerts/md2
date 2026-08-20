@@ -2256,11 +2256,11 @@
         "agent-86eeb487-b819-40b1-beef-a753cfc3f69e"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-dbded2c7-2018-4721-9012-a633d020a1ab",
       "origin": {
@@ -2269,9 +2269,34 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-86eeb487-b819-40b1-beef-a753cfc3f69e",
       "startedAt": "2026-08-20T13:00:00.671Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-86eeb487-b819-40b1-beef-a753cfc3f69e"
+    },
+    {
+      "commits": [
+        {
+          "commit": "987a614c383bd22fd871a4524dcdc522eb6bb90f",
+          "committedAt": "2026-08-20T15:41:38+02:00",
+          "deletions": 62,
+          "filePaths": [
+            "desktop/src/actions/agent/agent_runner_service.js",
+            "desktop/src/actions/agent/agent_runner_state.test.mjs",
+            "desktop/src/actions/agent/claude_usage_poller.js",
+            "desktop/src/actions/agent/claude_usage_poller.test.mjs"
+          ],
+          "filesChanged": 4,
+          "insertions": 160,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-20T15:41:38+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "1790bf2b-b76c-467a-bdbc-d0f1ba183ebd",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
