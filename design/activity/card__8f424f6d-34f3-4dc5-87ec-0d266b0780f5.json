@@ -2838,11 +2838,11 @@
         "agent-f54aee98-bc65-4eee-a50e-72cdb74c516b"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-763717a8-2267-488c-b01a-5aff017edcb5",
       "origin": {
@@ -2851,9 +2851,34 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-f54aee98-bc65-4eee-a50e-72cdb74c516b",
       "startedAt": "2026-08-20T13:19:11.208Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-f54aee98-bc65-4eee-a50e-72cdb74c516b"
+    },
+    {
+      "commits": [
+        {
+          "commit": "b3c89270a1da05a120a4fdbcb4d018dc27c051b9",
+          "committedAt": "2026-08-20T15:41:49+02:00",
+          "deletions": 5,
+          "filePaths": [
+            "app/src/components/actions/run/popup/action_popup.test.tsx",
+            "app/src/components/actions/run/popup/action_popup.tsx",
+            "app/src/components/actions/run/popup/action_popup_initial_action.node.test.ts",
+            "app/src/components/actions/run/popup/action_popup_initial_action.ts"
+          ],
+          "filesChanged": 4,
+          "insertions": 237,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-20T15:41:49+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "8f424f6d-34f3-4dc5-87ec-0d266b0780f5",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
