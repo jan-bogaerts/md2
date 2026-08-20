@@ -588,7 +588,7 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": "902e08a9-8b29-4037-ab3d-92d53aef4fc8",
       "cardPath": "design/feature_descriptions/F_216_improve_agent_selection.md",
-      "completedAt": null,
+      "completedAt": "2026-08-20T17:37:46.655Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 34285
@@ -797,17 +797,25 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 16,
-          "timestamp": "2026-08-20T17:37:43.380Z"
+          "timestamp": "2026-08-20T17:37:46.655Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-16f3e470-83c1-4856-b2ba-b42f88603b49",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a0203f-750b-7962-8df9-4b6d9302863e",
+          "createdAt": "2026-08-20T17:37:43.380Z",
+          "lastUsedAt": "2026-08-20T17:37:46.655Z",
+          "synchronizedThroughMessageId": "agent-turn-d7393f9f-237d-46c4-8b34-3a06b23b7646-turn-1-assistant-3"
+        }
+      ],
       "startedAt": "2026-08-20T17:37:04.100Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-20T17:37:04.100Z"
+        "elapsedMs": 39280,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
@@ -818,7 +826,7 @@
         "totalTokens": 167625
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
