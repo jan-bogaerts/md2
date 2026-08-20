@@ -965,11 +965,11 @@
         "agent-ca77be78-3ddb-49a6-a59b-7c4fc66b7284"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "ask-for-approval",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-25d7962b-fba3-40f8-ac5b-6e17fead3622",
       "origin": {
@@ -978,9 +978,34 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-ca77be78-3ddb-49a6-a59b-7c4fc66b7284",
       "startedAt": "2026-08-20T11:30:57.722Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-ca77be78-3ddb-49a6-a59b-7c4fc66b7284"
+    },
+    {
+      "commits": [
+        {
+          "commit": "d9fc6afe9533cc90489de0dfa4f7d1a7efcae4cd",
+          "committedAt": "2026-08-20T14:04:44+02:00",
+          "deletions": 84,
+          "filePaths": [
+            "app/src/components/actions/run/popup/action_usage_summary.test.tsx",
+            "app/src/components/actions/run/popup/action_usage_summary.tsx",
+            "app/src/components/actions/run/popup/action_usage_summary_data.node.test.ts",
+            "app/src/components/actions/run/popup/action_usage_summary_data.ts"
+          ],
+          "filesChanged": 4,
+          "insertions": 143,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-20T14:04:44+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "838f9a02-ee42-498c-b317-2f8a48075207",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
