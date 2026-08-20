@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 80799
+        "usedTokens": 82270
       },
       "entries": [
         {
@@ -338,24 +338,62 @@
           "role": "assistant",
           "sequence": 25,
           "timestamp": "2026-08-20T17:19:50.505Z"
+        },
+        {
+          "content": "1. Nested menus\n2. Permission mode is shared between the 2. It does not change, also not when switching agent",
+          "id": "agent-turn-0e1b6793-f0e8-45af-9073-f712078f501f-user-25",
+          "kind": "message",
+          "role": "user",
+          "sequence": 26,
+          "timestamp": "2026-08-20T17:23:50.752Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-0e1b6793-f0e8-45af-9073-f712078f501f-event-27",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bbc77797044a90f016a87382a201c87d09bdc82665dc2346c",
+          "sequence": 27,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T17:23:55.097Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "One point remains: should per-agent defaults replace global `desktop.model` and `desktop.thinkingLevel` settings, or coexist with them?\n\n",
+          "id": "agent-turn-0e1b6793-f0e8-45af-9073-f712078f501f-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 28,
+          "timestamp": "2026-08-20T17:23:55.735Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-b53708b0-392b-4238-b90f-97c63428771d",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a0202e-6c14-78f3-9169-a526bee679ed",
+          "createdAt": "2026-08-20T17:19:50.505Z",
+          "lastUsedAt": "2026-08-20T17:19:50.505Z",
+          "synchronizedThroughMessageId": "agent-turn-0e1b6793-f0e8-45af-9073-f712078f501f-turn-1-assistant-3"
+        }
+      ],
       "startedAt": "2026-08-20T17:18:28.154Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-20T17:18:28.154Z"
+        "elapsedMs": 82351,
+        "runningStartedAt": "2026-08-20T17:23:50.752Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 461056,
-        "inputTokens": 74860,
-        "outputTokens": 1772,
-        "reasoningTokens": 1105,
-        "totalTokens": 538793
+        "cachedInputTokens": 540672,
+        "inputTokens": 77346,
+        "outputTokens": 1806,
+        "reasoningTokens": 1239,
+        "totalTokens": 621063
       },
       "usageSchemaVersion": 1,
       "viewed": true
