@@ -607,13 +607,50 @@
         "totalTokens": 778149
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
     "cardInternalId": "9500eb58-7f00-49e3-8961-0303cda178ab",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "6958afd3ced5fba08502f8f0b62d59eac8ed4a5c",
+          "committedAt": "2026-08-20T17:41:36+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/F_219_open_project_folder_first_on_electron.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 24
+        }
+      ],
+      "completedAt": "2026-08-20T15:41:36.991Z",
+      "conversationIds": [
+        "agent-3f27b128-5b9d-463a-a9f7-d5ab3bd2ec06"
+      ],
+      "details": {
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-67b57b50-72f9-4235-87a5-9d51daa39e93",
+      "origin": {
+        "cardInternalId": "9500eb58-7f00-49e3-8961-0303cda178ab",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-3f27b128-5b9d-463a-a9f7-d5ab3bd2ec06",
+      "startedAt": "2026-08-20T15:39:51.935Z",
+      "status": "completed"
+    }
+  ],
   "version": 4
 }
