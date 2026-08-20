@@ -9820,7 +9820,7 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": "8a177e01-b5d4-46aa-b42f-9ba11f561b60",
       "cardPath": "design/feature_descriptions/F_193_report_claude_usage_quotas.md",
-      "completedAt": "2026-08-20T12:40:41.760Z",
+      "completedAt": null,
       "entries": [
         {
           "content": "check design/feature_descriptions/F_193_report_claude_usage_quotas.md and it's activity log if needed. There is still something seriously broken:\n\nwe started a claude agent, which triggered a usage-poll. we got this response in 'collectProcessOutput':\n\n\\`\\`\\`\n{\r\nexitCode: 0,\r\nstdout: 'You are currently using your subscription to power your Claude Code usage\\n' +\r\n'\\n' +\r\n'Current session: 79% used · resets Aug 20, 3:20pm (Europe/Brussels)\\n' +\r\n'Current week (all models): 19% used · resets Aug 23, 7pm (Europe/Brussels)\\n' +\r\n'\\n' +\r\n\"What's contributing to your limits usage?\\n\" +\r\n'Approximate, based on local sessions on this machine — does not include other devices or claude.ai. Behaviors are independent characteristics, not a breakdown.\\n' +\r\n'\\n' +\r\n'Last 24h · 262 requests · 10 sessions\\n' +\r\n'  Top skills: /caveman 1%\\n' +\r\n'\\n' +\r\n'Last 7d · 658 requests · 30 sessions\\n' +\r\n'  Top skills: /caveman 1%\\n'\r\n}\n\\`\\`\\`\nso a proper result, yet nothing was reported in the UI.&#x20;\n\nthen a little later, it did show up, not certain if we did a new poll for that, anyway.\n\na little later , a new poll was done, usage went to 81%, but on the ui it sill remains 80%\n\nso somewhere in the pipeline after receiving the response, we did something wrong or something got incorrectly handled. sometimes it works, sometimes it doesn't. what is going on?",
@@ -10314,6 +10314,338 @@
           "summary": [],
           "timestamp": "2026-08-20T12:40:41.137Z",
           "type": "reasoning"
+        },
+        {
+          "content": "fix all",
+          "id": "agent-turn-57aa49fb-9aa9-426a-8ec0-82c956419d8d-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 42,
+          "timestamp": "2026-08-20T12:41:00.735Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-57aa49fb-9aa9-426a-8ec0-82c956419d8d-event-43",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeE1wm3MAThZGkWcZ2kjY:thinking:0",
+          "sequence": 43,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T12:41:08.095Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "const CLAUDE_USAGE_SERVICE_NAME = 'claude-usage';\nconst CLAUDE_USAGE_WORKER_GRACE_MS = 5_000;\n// A worker that dies, hangs or is aborted says nothing about Claude itself, so it reports neither usage nor unavailability.\nconst INCONCLUSIVE_RESULT = Object.freeze({ payload: null, unavailable: false });\n\n/**\n * Runs one pty-backed `/usage` poll in an Electron utility process and resolves with the worker's\n * `{ payload, unavailable }` result, or an inconclusive one when the worker never reports back.\n *\n * The pty is hosted out of process because node-pty's ConPTY layer faults natively on teardown\n * races: a native fault cannot be caught in JavaScript, so in the main process it would take\n * Electron down. Here the worst case is a lost poll, and the next one starts from a clean process.\n */\nfunction createUtilityProcessTerminalPoll(dependencies = {}) {\n    const clearPollTimeout = dependencies.clearTimeout ?? clearTimeout;\n    const loadUtilityProcess = dependencies.loadUtilityProcess ?? (() => require('electron').utilityProcess);\n    const setPollTimeout = dependencies.setTimeout ?? setTimeout;\n    const workerPath = dependencies.workerPath ?? require.resolve('./claude_usage_terminal_worker');\n\n    return (request, { registerAbort } = {}) => new Promise((resolve) => {\n        let worker = null;\n        let settled = false;\n        let timeout = null;\n        const finish = (result) => {\n            if (settled) return;\n            settled = true;\n            clearPollTimeout(timeout);\n            registerAbort?.(null);\n            try {\n                worker?.kill();\n            } catch {\n                // The worker is already gone.\n            }\n            resolve(result);\n        };\n        try {\n            // Claude's own output travels over the pty, so inherited stdio carries only worker faults worth seeing.\n            worker = loadUtilityProcess().fork(workerPath, [], { serviceName: CLAUDE_USAGE_SERVICE_NAME, stdio: 'inherit' });\n        } catch {\n            finish(INCONCLUSIVE_RESULT);\n\n            return;\n        }\n        registerAbort?.(() => finish(INCONCLUSIVE_RESULT));\n        worker.on('message', (message) => finish(message?.result ?? INCONCLUSIVE_RESULT));\n        // A native ConPTY fault reaches the parent as an exit without a reply, so it costs one poll and nothing more.\n        worker.on('exit', () => finish(INCONCLUSIVE_RESULT));\n        worker.on('spawn', () => worker.postMessage(request));\n        // The worker enforces its own deadline; this one only covers a worker that never reports back.\n        timeout = setPollTimeout(() => finish(INCONCLUSIVE_RESULT), request.timeoutMs + CLAUDE_USAGE_WORKER_GRACE_MS);\n    });\n}\n\nmodule.exports = { CLAUDE_USAGE_WORKER_GRACE_MS, INCONCLUSIVE_RESULT, createUtilityProcessTerminalPoll };",
+          "id": "agent-turn-57aa49fb-9aa9-426a-8ec0-82c956419d8d-event-44",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_018QCdgA6oMWiJsyEYL4v6hf",
+          "sequence": 44,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:41:10.363Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-57aa49fb-9aa9-426a-8ec0-82c956419d8d-event-45",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeE1xLv3sJYERZjpMvu72:thinking:0",
+          "sequence": 45,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T12:41:16.056Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "desktop/src/actions/agent/agent_event_utils.js:3:const { logAgentEvent } = require('./agent_file_logger');\ndesktop/src/actions/agent/agent_event_utils.js:58:        logAgentEvent('[agent:raw]', this.label, line);\ndesktop/src/actions/agent/agent_file_logger.js:32:function logAgentEvent(...values) {\ndesktop/src/actions/agent/agent_file_logger.js:40:module.exports = { formatAgentLogEntry, logAgentEvent };\ndesktop/src/actions/agent/agent_runner_service.js:23:const { logAgentEvent } = require('./agent_file_logger');\ndesktop/src/actions/agent/agent_runner_service.js:144:        logAgentEvent('[agent:start]', {\ndesktop/src/actions/agent/agent_runner_service.js:650:            logAgentEvent('[agent:complete]', {\n---DEF---\ndesktop/src/actions/agent/agent_file_logger.js:32:function logAgentEvent(...values) {\ndesktop/src/actions/agent/agent_file_logger.js-33-    if (!AGENT_LOGGING_ENABLED) return;\ndesktop/src/actions/agent/agent_file_logger.js-34-\ndesktop/src/actions/agent/agent_file_logger.js-35-    console.log(...values);\ndesktop/src/actions/agent/agent_file_logger.js-36-    // disabled for now. can be used again for later testing if needed\ndesktop/src/actions/agent/agent_file_logger.js-37-    // getAgentLogStream().write(`${formatAgentLogEntry(values)}\\n`);\ndesktop/src/actions/agent/agent_file_logger.js-38-}\ndesktop/src/actions/agent/agent_file_logger.js-39-\ndesktop/src/actions/agent/agent_file_logger.js-40-module.exports = { formatAgentLogEntry, logAgentEvent };",
+          "id": "agent-turn-57aa49fb-9aa9-426a-8ec0-82c956419d8d-event-46",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_017iYPSwAF3W6wRdR3AzK63U",
+          "sequence": 46,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:41:16.824Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "Now applying the fixes. First the parser (1 + 2):",
+          "id": "agent-turn-57aa49fb-9aa9-426a-8ec0-82c956419d8d-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 47,
+          "timestamp": "2026-08-20T12:41:19.592Z"
+        },
+        {
+          "content": "ok",
+          "id": "agent-turn-57aa49fb-9aa9-426a-8ec0-82c956419d8d-event-48",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_018ZoEd9LbV69hxhAvJ1Rauu",
+          "sequence": 48,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:41:28.854Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "const RESET_CLOCK_TOLERANCE_MS = 60_000;\nconst MONTHS = new Map([\n    ['jan', 0], ['feb', 1], ['mar', 2], ['apr', 3], ['may', 4], ['jun', 5],\n    ['jul', 6], ['aug', 7], ['sep', 8], ['oct', 9], ['nov', 10], ['dec', 11],\n]);\nconst WINDOW_PATTERNS = [\n    // Claude omits the minutes on a whole hour (\"7pm\"), so they are optional here.\n    { id: 'five_hour', pattern: /^Current session:\\s*(\\d{1,3})% used\\s*·\\s*resets\\s+([A-Za-z]{3})\\s+(\\d{1,2}),\\s+(\\d{1,2})(?::(\\d{2}))?(am|pm)\\s+\\(([^)]+)\\)\\s*$/iu },\n    { id: 'weekly', pattern: /^Current week \\(all models\\):\\s*(\\d{1,3})% used\\s*·\\s*resets\\s+([A-Za-z]{3})\\s+(\\d{1,2}),\\s+(\\d{1,2})(?::(\\d{2}))?(am|pm)\\s+\\(([^)]+)\\)\\s*$/iu },\n];\nconst TERMINAL_WINDOW_DEFINITIONS = [\n    { heading: 'Current session', id: 'five_hour' },\n...\n\nfunction resetTimestamp(match, observedAt) {\n    const [, , monthName, dayText, hourText, minuteText, meridiem, timeZone] = match;\n    const month = MONTHS.get(monthName.toLowerCase());\n    if (month === undefined) throw new Error('Invalid Claude reset month');\n    const observedYear = datePartsInTimeZone(observedAt, timeZone).year;\n    const hourValue = Number(hourText);\n    if (hourValue < 1 || hourValue > 12) throw new Error('Invalid Claude reset hour');\n    const hour = (hourValue % 12) + (meridiem.toLowerCase() === 'pm' ? 12 : 0);\n    const baseParts = { day: Number(dayText), hour, minute: Number(minuteText ?? 0), month };\n    const candidates = [observedYear - 1, observedYear, observedYear + 1].map((year) => (\n=====TEST=====\n{\n  \"windows\": [\n    {\n      \"id\": \"five_hour\",\n      \"resetsAt\": 1787232000000,\n      \"usedPercent\": 79\n    },\n    {\n      \"id\": \"weekly\",\n      \"resetsAt\": 1787504400000,\n      \"usedPercent\": 19\n    }\n  ]\n}",
+          "id": "agent-turn-57aa49fb-9aa9-426a-8ec0-82c956419d8d-event-49",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01V1kFnzcCDAAH5DTGVUwtk3",
+          "sequence": 49,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:41:34.794Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-57aa49fb-9aa9-426a-8ec0-82c956419d8d-event-50",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeE1z8fuN1Tm1ktQTNGXM:thinking:0",
+          "sequence": 50,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T12:41:39.637Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNow the poller's silent-drop path (3):",
+          "id": "agent-turn-57aa49fb-9aa9-426a-8ec0-82c956419d8d-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 51,
+          "timestamp": "2026-08-20T12:41:39.648Z"
+        },
+        {
+          "content": "ok",
+          "id": "agent-turn-57aa49fb-9aa9-426a-8ec0-82c956419d8d-event-52",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01BpjzcPCgRUD1M2CwuM9Z6C",
+          "sequence": 52,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:41:49.921Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "        this.schedulePendingPoll();\n    }\n\n    async poll() {\n        this.lastPollStartedAt = this.now();\n        const observedAt = this.now();\n        let payload = null;\n        try {\n            const executable = await this.executableResolver.find('claude', { cwd: this.cwd, env: this.env }) ?? 'claude';\n            const child = this.spawn(executable, [], { cwd: this.cwd, env: this.env, stdio: ['pipe', 'pipe', 'pipe'] });\n            const { stdout } = await collectProcessOutput(child, {\n                clearTimeout: this.clearTimeout,\n                setTimeout: this.setTimeout,\n                timeoutMs: this.processTimeoutMs,\n            });\n            // A usage report that arrived is worth keeping even when the exit itself failed or timed out.\n            payload = parseClaudeUsageOutput(stdout, observedAt);\n            if (this.stopped) return;\n            if (!payload) {\n                // Unparsed output is the one failure that leaves no trace anywhere else, so it is logged verbatim.\n                logAgentEvent('[claude:usage-unparsed]', { observedAt, stdout });\n                const fallback = await this.pollTerminal(executable, observedAt);\n                if (fallback.unavailable) throw new Error('Claude usage terminal failed');\n                payload = fallback.payload;\n            }\n        } catch {\n            await this.onRuntimeEvent({ kind: 'unavailable', observedAt: this.now() });\n\n            return;\n        }\n        if (this.stopped) return;\n        // An inconclusive terminal fallback says nothing about Claude, so it reports neither usage nor unavailability.\n        if (!payload) {\n            logAgentEvent('[claude:usage-inconclusive]', { observedAt });\n\n            return;\n        }\n        await this.onRuntimeEvent({ kind: 'snapshot', observedAt, payload });\n    }\n\n    /** Hands the pty attempt to a worker process, which reports usage, unavailability, or neither. */\n    pollTerminal(executable, observedAt) {\n        const request = {",
+          "id": "agent-turn-57aa49fb-9aa9-426a-8ec0-82c956419d8d-event-53",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01VtuYhqspPK2ggNRuPyvA5F",
+          "sequence": 53,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:41:52.572Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-57aa49fb-9aa9-426a-8ec0-82c956419d8d-event-54",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeE21SbSkJLk4kcj81Gu7:thinking:0",
+          "sequence": 54,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T12:41:58.289Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "ok",
+          "id": "agent-turn-57aa49fb-9aa9-426a-8ec0-82c956419d8d-event-55",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_019HbcyaZHsbYxvvbjbVGF6k",
+          "sequence": 55,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:42:01.481Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNow adding regression tests for the whole-hour case:",
+          "id": "agent-turn-57aa49fb-9aa9-426a-8ec0-82c956419d8d-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 56,
+          "timestamp": "2026-08-20T12:42:03.373Z"
+        },
+        {
+          "content": "2:import { describe, expect, it } from 'vitest';\n9:Current session: 17% used · resets Aug 15, 9:49pm (Europe/Brussels)\n10:Current week (all models): 13% used · resets Aug 16, 6:59pm (Europe/Brussels)\n24:describe('parseClaudeUsageOutput', () => {\n25:    it('parses both windows and converts localized IANA-zone resets to unix milliseconds', () => {\n36:    it('selects next year for a nearby January reset observed in December', () => {\n45:    it('keeps support for mojibake legacy separators', () => {\n52:    it('parses full-screen session and weekly percentages with both reset formats', () => {\n63:    it('uses the following local day when a time-only reset is after midnight', () => {\n70:    it('takes the first report when a redraw repeats the same window lines', () => {\n77:    it('rejects partial and malformed output', () => {\n80:        expect(parseClaudeUsageOutput(USAGE_OUTPUT.split('Current week')[0], observedAt)).toBeNull();",
+          "id": "agent-turn-57aa49fb-9aa9-426a-8ec0-82c956419d8d-event-57",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01G9KHuSpr2AX3B5CvtS6qaQ",
+          "sequence": 57,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:42:04.110Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "import { createRequire } from 'node:module';\nimport { describe, expect, it } from 'vitest';\n\nconst require = createRequire(import.meta.url);\nconst { parseClaudeUsageOutput } = require('./claude_usage_parsing');\n\nconst USAGE_OUTPUT = `You are currently using your subscription to power your Claude Code usage\n\nCurrent session: 17% used · resets Aug 15, 9:49pm (Europe/Brussels)\nCurrent week (all models): 13% used · resets Aug 16, 6:59pm (Europe/Brussels)\n`;\n\nconst TERMINAL_USAGE_OUTPUT = `Settings  Status  Config  Usage  Stats\n\nCurrent session\n▌                                                  1% used\nResets 3:20pm (Europe/Brussels)\n\nCurrent week (all models)\n██████                                             12% used\nResets Aug 23, 7pm (Europe/Brussels)\n`;\n\ndescribe('parseClaudeUsageOutput', () => {\n    it('parses both windows and converts localized IANA-zone resets to unix milliseconds', () => {\n        const observedAt = Date.parse('2026-08-15T18:00:00.000Z');\n\n        expect(parseClaudeUsageOutput(USAGE_OUTPUT, observedAt)).toEqual({\n            windows: [\n                { id: 'five_hour', resetsAt: Date.parse('2026-08-15T19:49:00.000Z'), usedPercent: 17 },\n                { id: 'weekly', resetsAt: Date.parse('2026-08-16T16:59:00.000Z'), usedPercent: 13 },\n            ],\n        });\n    });\n\n    it('selects next year for a nearby January reset observed in December', () => {\n        const output = USAGE_OUTPUT\n            .replace('Aug 15, 9:49pm', 'Jan 1, 1:00am')\n            .replace('Aug 16, 6:59pm', 'Jan 2, 1:00am');\n        const observedAt = Date.parse('2026-12-31T22:00:00.000Z');\n\n        expect(parseClaudeUsageOutput(output, observedAt)?.windows[0].resetsAt).toBe(Date.parse('2027-01-01T00:00:00.000Z'));\n    });\n\n    it('keeps support for mojibake legacy separators', () => {\n        const output = USAGE_OUTPUT.replaceAll('·', 'Â·');\n        const observedAt = Date.parse('2026-08-15T18:00:00.000Z');\n\n        expect(parseClaudeUsageOutput(output, observedAt)?.windows.map(({ usedPercent }) => usedPercent)).toEqual([17, 13]);\n    });",
+          "id": "agent-turn-57aa49fb-9aa9-426a-8ec0-82c956419d8d-event-58",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01BvbH5H4iJxWvN7iQhYk5TX",
+          "sequence": 58,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:42:06.538Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "ok",
+          "id": "agent-turn-57aa49fb-9aa9-426a-8ec0-82c956419d8d-event-59",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01X7VUpYrQhJ6EMwEnBmkpdA",
+          "sequence": 59,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:42:13.801Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "25:        child.emit('close', exitCode);\n36:    child.kill = vi.fn(() => child.emit('close', 1));\n44:    it('polls immediately after output and coalesces requests to one poll per two minutes', async () => {\n51:            onRuntimeEvent: runtimeListener,\n71:    it('spawns within the requesting project cwd and environment', async () => {\n78:            onRuntimeEvent: runtimeListener,\n90:    it('hands unparsed output to the worker poll and publishes the usage it reports', async () => {\n92:        const terminalPoll = vi.fn(async () => ({ payload: TERMINAL_PAYLOAD, unavailable: false }));\n95:            onRuntimeEvent: runtimeListener,\n97:            terminalPoll,\n103:        expect(terminalPoll).toHaveBeenCalledWith(\n111:    it('publishes usage printed before a failed exit without falling back to the worker', async () => {\n113:        const terminalPoll = vi.fn(async () => NO_TERMINAL_RESULT);\n116:            onRuntimeEvent: runtimeListener,\n118:            terminalPoll,\n124:        expect(terminalPoll).not.toHaveBeenCalled();\n129:    it('publishes nothing when neither the process nor the worker reports usage', async () => {\n133:            onRuntimeEvent: runtimeListener,\n135:            terminalPoll: vi.fn(async () => NO_TERMINAL_RESULT),\n145:    it('reports Claude as unavailable when the worker cannot run it', async () => {\n149:            onRuntimeEvent: runtimeListener,\n151:            terminalPoll: vi.fn(async () => ({ payload: null, unavailable: true })),\n161:    it('drains stderr, gives up on a Claude process that never exits and tolerates stdin pipe errors', async () => {\n166:            onRuntimeEvent: runtimeListener,\n169:            terminalPoll: vi.fn(async () => ({ payload: TERMINAL_PAYLOAD, unavailable: false })),\n177:        expect(() => child.stdin.emit('error', new Error('EPIPE'))).not.toThrow();\n182:    it('aborts an in-flight worker poll when stopped', async () => {\n186:        const terminalPoll = vi.fn((request, { registerAbort }) => new Promise((resolve) => {\n192:            onRuntimeEvent: runtimeListener,\n194:            terminalPoll,\n207:    it('keeps polling after the runtime listener throws', async () => {\n213:            onRuntimeEvent: runtimeListener,",
+          "id": "agent-turn-57aa49fb-9aa9-426a-8ec0-82c956419d8d-event-60",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01MscY722sH6sCDU7mN7hced",
+          "sequence": 60,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:42:16.443Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-57aa49fb-9aa9-426a-8ec0-82c956419d8d-event-61",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeE23DRyqujfNimx9AccC:thinking:0",
+          "sequence": 61,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T12:42:19.721Z",
+          "type": "reasoning"
+        },
+        {
+          "content": " RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev3/desktop\n\n\n Test Files  3 passed (3)\n      Tests  21 passed (21)\n   Start at  14:42:22\n   Duration  446ms (transform 97ms, setup 0ms, import 251ms, tests 188ms, environment 0ms)",
+          "id": "agent-turn-57aa49fb-9aa9-426a-8ec0-82c956419d8d-event-62",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01PHPdM2fwS5t9hJh7V3etFm",
+          "sequence": 62,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:42:23.139Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "(Bash completed with no output)",
+          "id": "agent-turn-57aa49fb-9aa9-426a-8ec0-82c956419d8d-event-63",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01R9rM6zFoaZAfND65AijHNm",
+          "sequence": 63,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:42:29.184Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "    373|         await scheduler.fireSchedule('schedule-1');\n    374|\n    375|         expect(agentRunner.mock.calls.map((call) => call[1].command)).…\n       |                                                                       ^\n    376|             ['codex', '--model', 'gpt-5.5', '-c', 'model_reasoning_eff…\n    377|             ['codex', '--model', 'gpt-5.5', '-c', 'model_reasoning_eff…\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯\n\n\n Test Files  1 failed | 71 passed (72)\n      Tests  3 failed | 825 passed (828)\n   Start at  14:42:33\n   Duration  32.64s (transform 1.28s, setup 0ms, import 6.07s, tests 40.67s, environment 10ms)",
+          "id": "agent-turn-57aa49fb-9aa9-426a-8ec0-82c956419d8d-event-64",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01TiVdPWEYGpQqFAFExwGuG2",
+          "sequence": 64,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:43:05.827Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": " FAIL  src/actions/action/action_scheduler_service.test.mjs > ActionSchedulerService > applies a scheduled action thinking level and records it in history\n FAIL  src/actions/action/action_scheduler_service.test.mjs > ActionSchedulerService > uses none when a scheduled action has no thinking-level override\n FAIL  src/actions/action/action_scheduler_service.test.mjs > ActionSchedulerService > resolves linked scheduled actions from their own thinking levels",
+          "id": "agent-turn-57aa49fb-9aa9-426a-8ec0-82c956419d8d-event-65",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01VPGrhaHmGQ6QGu9g5QdvxU",
+          "sequence": 65,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:43:43.021Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "Saved working directory and index state WIP on f_193_report_claude_usage_quotas: 74837f47 Save project changes before worktree synchronization\n\n Test Files  1 failed (1)\n      Tests  3 failed | 21 passed (24)\n   Start at  14:43:48\n   Duration  438ms (transform 32ms, setup 0ms, import 103ms, tests 169ms, environment 0ms)\n\nOn branch f_193_report_claude_usage_quotas\nChanges not staged for commit:\n  (use \"git add <file>...\" to update what will be committed)\n  (use \"git restore <file>...\" to discard changes in working directory)\n\tmodified:   src/actions/agent/claude_usage_parsing.js\n\tmodified:   src/actions/agent/claude_usage_parsing.test.mjs\n\tmodified:   src/actions/agent/claude_usage_poller.js\n\nno changes added to commit (use \"git add\" and/or \"git commit -a\")\nDropped refs/stash@{0} (d0ab3d36566be0447881aa10317a3b833d7e533b)",
+          "id": "agent-turn-57aa49fb-9aa9-426a-8ec0-82c956419d8d-event-66",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01Ge1bkyGH4AL7C2NunjahP3",
+          "sequence": 66,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:43:49.597Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-57aa49fb-9aa9-426a-8ec0-82c956419d8d-event-67",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeE2A5EZkboSAFq5pWxoL:thinking:0",
+          "sequence": 67,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T12:43:54.381Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "> app@0.3.3 typecheck\n> tsc --noEmit",
+          "id": "agent-turn-57aa49fb-9aa9-426a-8ec0-82c956419d8d-event-68",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01WoiktvJM45ghsanZ12pQMd",
+          "sequence": 68,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:44:20.245Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": " desktop/src/actions/agent/claude_usage_parsing.js       |  7 ++++---\n desktop/src/actions/agent/claude_usage_parsing.test.mjs | 12 ++++++++++++\n desktop/src/actions/agent/claude_usage_poller.js        | 12 ++++++++++--\n 3 files changed, 26 insertions(+), 5 deletions(-)\ndiff --git a/desktop/src/actions/agent/claude_usage_poller.js b/desktop/src/actions/agent/claude_usage_poller.js\nindex 3aa41435..08f127f5 100644\n--- a/desktop/src/actions/agent/claude_usage_poller.js\n+++ b/desktop/src/actions/agent/claude_usage_poller.js\n@@ -1,4 +1,5 @@\n const crossSpawn = require('cross-spawn');\n+const { logAgentEvent } = require('./agent_file_logger');\n const { parseClaudeUsageOutput } = require('./claude_usage_parsing');\n const { createUtilityProcessTerminalPoll } = require('./claude_usage_terminal_host');\n \n@@ -17,7 +18,6 @@ function collectProcessOutput(child, dependencies) {\n             if (settled) return;\n             settled = true;\n             clearPollTimeout(timeout);\n-            console.log(result);\n             if (error) reject(error);\n             else resolve(result);\n         };\n@@ -134,6 +134,8 @@ class ClaudeUsagePoller {\n             payload = parseClaudeUsageOutput(stdout, observedAt);\n             if (this.stopped) return;\n             if (!payload) {\n+                // Unparsed output is the one failure that leaves no trace anywhere else, so it is logged verbatim.\n+                logAgentEvent('[claude:usage-unparsed]', { observedAt, stdout });\n                 const fallback = await this.pollTerminal(executable, observedAt);\n                 if (fallback.unavailable) throw new Error('Claude usage terminal failed');\n                 payload = fallback.payload;\n@@ -143,7 +145,13 @@ class ClaudeUsagePoller {\n \n             return;\n         }\n-        if (payload) await this.onRuntimeEvent({ kind: 'snapshot', observedAt, payload });\n+        // An inconclusive terminal fallback says nothing about Claude, so it reports neither usage nor unavailability.\n+        if (!payload) {\n+            logAgentEvent('[claude:usage-inconclusive]', { observedAt });\n+\n+            return;\n+        }\n+        await this.onRuntimeEvent({ kind: 'snapshot', observedAt, payload });\n     }\n \n     /** Hands the pty attempt to a worker process, which reports usage, unavailability, or neither. */",
+          "id": "agent-turn-57aa49fb-9aa9-426a-8ec0-82c956419d8d-event-69",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01FtqjgFQzpfreZLQu5GFcyG",
+          "sequence": 69,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:44:24.359Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nAll three fixes applied.\n\n## Changes\n\n**`claude_usage_parsing.js`** — minutes now optional in both stdout window patterns: `(\\d{1,2})(?::(\\d{2}))?(am|pm)`. `resetTimestamp` uses `Number(minuteText ?? 0)` so the absent group doesn't produce `NaN` (matching what `terminalResetTimestamp` already did). Group order unchanged, so the destructure still lines up.\n\nYour exact stdout now parses on the fast path: `{ five_hour: 79%, weekly: 19% }`.\n\n**`claude_usage_poller.js`** — removed the leftover `console.log(result)` debug in `collectProcessOutput`, and closed the silent-drop hole:\n- Unparsed stdout is logged verbatim (`[claude:usage-unparsed]`) before the pty fallback runs, so this class of failure is never invisible again.\n- An inconclusive fallback (`{ payload: null, unavailable: false }`) logs `[claude:usage-inconclusive]` and returns. I kept it *not* emitting `unavailable` — the terminal host's own comment reasons that a dead/aborted worker says nothing about Claude, and forcing `unavailable` would blank the indicator on a worker crash.\n\n**`claude_usage_parsing.test.mjs`** — regression test for a whole-hour reset (`Aug 16, 7pm`), asserting both windows including the converted timestamp. The existing poller test for the inconclusive path still covers that branch.\n\n## Verification\n\n- Claude usage suites: 21 passed.\n- Full desktop suite: 825 passed, 3 failed — all 3 in `action_scheduler_service.test.mjs` (scheduled-action thinking levels). Confirmed pre-existing by stashing my changes and re-running: same 3 failures. Unrelated to this fix, and still failing on the branch.\n- `npx eslint` clean on all three files; `npm run typecheck` passes (no TS touched).\n\nOne thing to expect: the 120s `CLAUDE_USAGE_POLL_COOLDOWN_MS` still applies, so the indicator lags a live change by up to two minutes. That's by design, not the bug — the bug was that on-the-hour resets fell into the flaky pty path or vanished entirely.",
+          "id": "agent-turn-57aa49fb-9aa9-426a-8ec0-82c956419d8d-turn-1-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 70,
+          "timestamp": "2026-08-20T12:44:35.820Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -10328,19 +10660,19 @@
         }
       ],
       "startedAt": "2026-08-20T12:32:12.878Z",
-      "status": "cancelled",
+      "status": "running",
       "timer": {
         "elapsedMs": 152317,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-08-20T12:41:00.735Z"
       },
       "title": "+",
       "usage": {
-        "cachedInputTokens": 1183265,
-        "inputTokens": 50,
-        "outputTokens": 8914,
+        "cachedInputTokens": 2515818,
+        "inputTokens": 88,
+        "outputTokens": 15763,
         "reasoningTokens": 0,
-        "totalTokens": 1192229,
-        "costUsd": 1.2514665000000003
+        "totalTokens": 2531669,
+        "costUsd": 2.2369970000000006
       },
       "usageSchemaVersion": 1,
       "viewed": true
@@ -10879,11 +11211,11 @@
         "agent-2ff7d2f6-5920-49bb-9f73-3796ce892702"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-2c8f267e-2183-4d20-8acf-fb2477c1c591",
       "origin": {
@@ -10892,9 +11224,9 @@
       },
       "rootActionId": "md2.custom-prompt",
       "rootActionLabel": "+",
-      "rootConversationId": "agent-2ff7d2f6-5920-49bb-9f73-3796ce892702",
       "startedAt": "2026-08-20T12:32:12.876Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-2ff7d2f6-5920-49bb-9f73-3796ce892702"
     }
   ],
   "version": 4
