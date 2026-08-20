@@ -9378,11 +9378,11 @@
         "agent-fb8e6b5a-5d19-4af4-9167-1163ea85d83a"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-df76371d-197c-4aa8-ba07-b96bb0b62c89",
       "origin": {
@@ -9391,9 +9391,36 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-fb8e6b5a-5d19-4af4-9167-1163ea85d83a",
       "startedAt": "2026-08-20T08:22:35.053Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-fb8e6b5a-5d19-4af4-9167-1163ea85d83a"
+    },
+    {
+      "commits": [
+        {
+          "commit": "e78661cfaa511fcdb5690523a68f33bceada91d6",
+          "committedAt": "2026-08-20T10:45:58+02:00",
+          "deletions": 12,
+          "filePaths": [
+            "desktop/package-lock.json",
+            "desktop/package.json",
+            "desktop/src/actions/agent/claude_usage_poller.js",
+            "desktop/src/actions/agent/claude_usage_poller.test.mjs",
+            "desktop/src/actions/agent/usage_metrics_service.js",
+            "desktop/src/actions/agent/usage_metrics_service.test.mjs"
+          ],
+          "filesChanged": 6,
+          "insertions": 280,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-20T10:45:58+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "8a177e01-b5d4-46aa-b42f-9ba11f561b60",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
