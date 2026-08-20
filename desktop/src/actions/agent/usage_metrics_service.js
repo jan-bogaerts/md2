@@ -24,6 +24,7 @@ const DEFAULT_LIMIT_ID = 'default';
 const SUPPORTED_PROVIDERS = new Set(['claude', 'codex']);
 const UNIX_MILLISECONDS_THRESHOLD = 1_000_000_000_000;
 const USAGE_METRICS_FILE = 'usage_metrics.csv';
+const CLAUDE_CALCULATION_WINDOW_ID = 'weekly';
 const CLAUDE_WINDOW_DURATIONS = new Map([
     ['five_hour', 300],
     ['weekly', 10_080],
@@ -228,7 +229,7 @@ function claudeAccountWindows(snapshot) {
             window,
         );
         if (!normalized) return null;
-        windows.push(normalized);
+        if (window.id === CLAUDE_CALCULATION_WINDOW_ID) windows.push(normalized);
     }
 
     return windows;

@@ -12,6 +12,17 @@ Current session: 17% used · resets Aug 15, 9:49pm (Europe/Brussels)
 Current week (all models): 13% used · resets Aug 16, 6:59pm (Europe/Brussels)
 `;
 
+const TERMINAL_USAGE_OUTPUT = `Settings  Status  Config  Usage  Stats
+
+Current session
+▌                                                  1% used
+Resets 3:20pm (Europe/Brussels)
+
+Current week (all models)
+██████                                             12% used
+Resets Aug 23, 7pm (Europe/Brussels)
+`;
+
 function completedChild(output = USAGE_OUTPUT, exitCode = 0) {
     const child = new EventEmitter();
     child.stdin = new PassThrough();
@@ -24,6 +35,33 @@ function completedChild(output = USAGE_OUTPUT, exitCode = 0) {
     });
 
     return child;
+}
+
+function terminalChild(output = TERMINAL_USAGE_OUTPUT, exitCode = 0) {
+    const dataListeners = new Set();
+    const exitListeners = new Set();
+    const processHandle = {
+        kill: vi.fn(),
+        onData: vi.fn((listener) => {
+            dataListeners.add(listener);
+
+            return { dispose: () => dataListeners.delete(listener) };
+        }),
+        onExit: vi.fn((listener) => {
+            exitListeners.add(listener);
+            queueMicrotask(() => dataListeners.forEach((dataListener) => dataListener('Claude Code v2\r\n? for shortcuts\r\n')));
+
+            return { dispose: () => exitListeners.delete(listener) };
+        }),
+        write: vi.fn(() => {
+            queueMicrotask(() => {
+                dataListeners.forEach((listener) => listener(`\u001B[2J\u001B[H${output.replaceAll('\n', '\r\n')}`));
+                if (exitCode !== null) exitListeners.forEach((listener) => listener({ exitCode }));
+            });
+        }),
+    };
+
+    return processHandle;
 }
 
 describe('parseClaudeUsageOutput', () => {
@@ -45,6 +83,31 @@ describe('parseClaudeUsageOutput', () => {
         const observedAt = Date.parse('2026-12-31T22:00:00.000Z');
 
         expect(parseClaudeUsageOutput(output, observedAt)?.windows[0].resetsAt).toBe(Date.parse('2027-01-01T00:00:00.000Z'));
+    });
+
+    it('keeps support for mojibake legacy separators', () => {
+        const output = USAGE_OUTPUT.replaceAll('Â·', '\u00B7');
+        const observedAt = Date.parse('2026-08-15T18:00:00.000Z');
+
+        expect(parseClaudeUsageOutput(output, observedAt)?.windows.map(({ usedPercent }) => usedPercent)).toEqual([17, 13]);
+    });
+
+    it('parses full-screen session and weekly percentages with both reset formats', () => {
+        const observedAt = Date.parse('2026-08-20T08:00:00.000Z');
+
+        expect(parseClaudeUsageOutput(TERMINAL_USAGE_OUTPUT, observedAt)).toEqual({
+            windows: [
+                { id: 'five_hour', resetsAt: Date.parse('2026-08-20T13:20:00.000Z'), usedPercent: 1 },
+                { id: 'weekly', resetsAt: Date.parse('2026-08-23T17:00:00.000Z'), usedPercent: 12 },
+            ],
+        });
+    });
+
+    it('uses the following local day when a time-only reset is after midnight', () => {
+        const output = TERMINAL_USAGE_OUTPUT.replace('3:20pm', '1am');
+        const observedAt = Date.parse('2026-08-20T21:00:00.000Z');
+
+        expect(parseClaudeUsageOutput(output, observedAt)?.windows[0].resetsAt).toBe(Date.parse('2026-08-20T23:00:00.000Z'));
     });
 
     it('rejects partial and malformed output', () => {
@@ -105,11 +168,36 @@ describe('ClaudeUsagePoller', () => {
         poller.stop();
     });
 
+    it('falls back to a terminal and requests usage after Claude becomes ready', async () => {
+        const runtimeListener = vi.fn();
+        const processHandle = terminalChild(TERMINAL_USAGE_OUTPUT, null);
+        const ptySpawn = vi.fn(() => processHandle);
+        const poller = new ClaudeUsagePoller({
+            executableResolver: { find: vi.fn(async () => 'claude.cmd') },
+            onRuntimeEvent: runtimeListener,
+            ptySpawn,
+            spawn: vi.fn(() => completedChild('You are currently using your subscription')),
+        });
+
+        poller.requestPoll({ cwd: '/project', env: { PATH: '/project/bin' } });
+        await poller.activePoll;
+
+        expect(ptySpawn).toHaveBeenCalledWith('claude.cmd', [], expect.objectContaining({ cwd: '/project' }));
+        expect(processHandle.write).toHaveBeenCalledWith('/usage\r');
+        expect(processHandle.kill).toHaveBeenCalledOnce();
+        expect(runtimeListener).toHaveBeenCalledWith(expect.objectContaining({
+            kind: 'snapshot',
+            payload: expect.objectContaining({ windows: expect.arrayContaining([expect.objectContaining({ id: 'weekly', usedPercent: 12 })]) }),
+        }));
+        poller.stop();
+    });
+
     it('does not publish malformed output and reports process failure as unavailable', async () => {
         const runtimeListener = vi.fn();
         const malformedPoller = new ClaudeUsagePoller({
             executableResolver: { find: vi.fn(async () => 'claude') },
             onRuntimeEvent: runtimeListener,
+            ptySpawn: vi.fn(() => terminalChild('partial', 0)),
             spawn: vi.fn(() => completedChild('partial')),
         });
 
@@ -121,6 +209,7 @@ describe('ClaudeUsagePoller', () => {
         const failingPoller = new ClaudeUsagePoller({
             executableResolver: { find: vi.fn(async () => 'claude') },
             onRuntimeEvent: runtimeListener,
+            ptySpawn: vi.fn(() => terminalChild('partial', 1)),
             spawn: vi.fn(() => completedChild('', 1)),
         });
         failingPoller.requestPoll();

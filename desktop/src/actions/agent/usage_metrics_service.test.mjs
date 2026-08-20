@@ -155,7 +155,6 @@ describe('UsageMetricsService', () => {
             { delta: '5', duration: '300', limitId: 'codex,pro', provider: 'codex', windowId: 'primary' },
             { delta: '-2', duration: '300', limitId: 'codex,pro', provider: 'codex', windowId: 'primary' },
             { delta: '4', duration: '300', limitId: 'codex,pro', provider: 'codex', windowId: 'primary' },
-            { delta: '', duration: '300', limitId: 'default', provider: 'claude', windowId: 'five_hour' },
             { delta: '', duration: '10080', limitId: 'default', provider: 'claude', windowId: 'weekly' },
         ]);
         expect(records[0].resets_at).toBe('2027-01-15T08:00:00.000Z');
@@ -248,6 +247,7 @@ describe('UsageMetricsService', () => {
         const firstRecords = parsedObjects(await readFile(first.filePath, 'utf8'));
         const secondRecords = parsedObjects(await readFile(second.filePath, 'utf8'));
         expect(firstRecords).toEqual(secondRecords);
-        expect(firstRecords).toHaveLength(2);
+        expect(firstRecords).toHaveLength(1);
+        expect(firstRecords[0]).toMatchObject({ used_percent: '34', window_id: 'weekly' });
     });
 });
