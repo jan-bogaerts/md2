@@ -69,4 +69,12 @@ describe('RunningAgentsIndicator', () => {
 
         expect(screen.getByRole('button', { name: 'Running agents: 1' })).toBeInTheDocument()
     })
+
+    it('opens shared details in a mobile dialog', () => {
+        render(<RunningAgentsIndicator mobile />)
+
+        fireEvent.click(screen.getByRole('button', { name: 'Running agents: 0' }))
+
+        expect(screen.getByRole('dialog', { name: 'Running agents' })).toBeInTheDocument()
+    })
 })

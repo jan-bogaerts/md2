@@ -1,0 +1,55 @@
+- generic [ref=f1e1]:
+  - generic [ref=f1e2]:
+    - alert [ref=f1e188]:
+      - generic [ref=f1e192]: Electron local Git bridge cannot subscribe to merge conflicts
+      - button [ref=f1e707] [cursor=pointer]
+    - generic [ref=f1e3]:
+      - banner [ref=f1e4]:
+        - generic [ref=f1e5]:
+          - button [ref=f1e708] [cursor=pointer]
+          - tablist [ref=f1e710]:
+            - tab [selected] [ref=f1e711] [cursor=pointer]: Home
+            - tab [ref=f1e712] [cursor=pointer]: Run
+          - paragraph [ref=f1e255]: mock-project
+          - button [expanded] [ref=f1e713] [cursor=pointer]
+          - button [ref=f1e714] [cursor=pointer]
+        - tabpanel [ref=f1e30]:
+          - generic [ref=f1e31]:
+            - group [ref=f1e715]:
+              - group [ref=f1e681]:
+                - button [pressed] [ref=f1e716] [cursor=pointer]:
+                  - generic [ref=f1e685]: Board
+                - button [ref=f1e717] [cursor=pointer]:
+                  - generic [ref=f1e689]: List
+            - separator [ref=f1e690]
+            - group [ref=f1e718]:
+              - button [ref=f1e720] [cursor=pointer]
+              - generic [ref=f1e38]:
+                - combobox [ref=f1e722] [cursor=pointer]:
+                  - generic [ref=f1e263]:
+                    - paragraph [ref=f1e265]: main
+                    - generic [ref=f1e266]: branch
+                - textbox: main
+                - group
+              - generic [ref=f1e723]:
+                - button [disabled]
+              - generic [ref=f1e724]:
+                - button [disabled]
+              - generic [ref=f1e725]:
+                - button [disabled]
+            - separator [ref=f1e43]
+            - group [ref=f1e726]:
+              - button [ref=f1e728] [cursor=pointer]
+              - button [ref=f1e730] [cursor=pointer]: Connect
+      - region [ref=f1e731]:
+        - generic [ref=f1e732]:
+          - generic [ref=f1e734]:
+            - generic [ref=f1e695]:
+              - heading [level=2] [ref=f1e735]: new
+              - generic [ref=f1e698]: "0"
+              - button [ref=f1e736] [cursor=pointer]
+            - generic [ref=f1e703]: Drop a card here
+          - status [ref=f1e705]
+  - menu [ref=f1e740]:
+    - menuitem "New card" [active] [ref=f1e741] [cursor=pointer]
+    - menuitem "New action" [ref=f1e742] [cursor=pointer]

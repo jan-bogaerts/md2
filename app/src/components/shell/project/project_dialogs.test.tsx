@@ -92,7 +92,7 @@ describe('project dialog components', () => {
         expect(screen.getByLabelText('Filter repositories')).toBeInTheDocument()
     })
 
-    it('offers personal, public, and remote sources in browser mode', async () => {
+    it('offers repository access choices and maps Folder to Remote in browser mode', async () => {
         render(
             <ProjectOpenDialog
                 branches={[]}
@@ -122,14 +122,68 @@ describe('project dialog components', () => {
             />,
         )
 
-        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Source' }))
-        expect(await screen.findByRole('option', { name: 'Personal repository' })).toBeInTheDocument()
-        expect(screen.getByRole('option', { name: 'Public repository' })).toBeInTheDocument()
-        expect(screen.getByRole('option', { name: 'Remote' })).toBeInTheDocument()
-        expect(screen.queryByRole('option', { name: 'Local folder' })).toBeNull()
+        const projectKind = screen.getByRole('group', { name: 'Project kind' })
+        expect(within(projectKind).getByRole('button', { name: 'Repository' })).toHaveAttribute('aria-pressed', 'true')
+        expect(within(projectKind).getByRole('button', { name: 'Folder' })).toHaveAttribute('aria-pressed', 'false')
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Repository access' }))
+        expect(await screen.findByRole('option', { name: 'Personal' })).toBeInTheDocument()
+        expect(screen.getByRole('option', { name: 'Public' })).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('option', { name: 'Personal' }))
+        await waitFor(() => fireEvent.click(screen.getByRole('button', { name: 'Folder' })))
+        expect(screen.getByLabelText('Endpoint')).toBeInTheDocument()
+        expect(screen.queryByLabelText('Local repository folder')).toBeNull()
     })
 
-    it('opens typed, picked, and recent local folders only after Local folder is selected', async () => {
+    it('clears repository workflow state when access or project kind changes', async () => {
+        const onSourceChange = vi.fn()
+        const openGithub = vi.fn()
+        const openRemote = vi.fn()
+        render(
+            <ProjectOpenDialog
+                branches={BRANCHES}
+                isDesktopMode={false}
+                isGithubAuthenticated
+                isLoading={false}
+                onBranchChange={vi.fn()}
+                onChooseLocalFolder={vi.fn(async () => undefined)}
+                onClose={vi.fn()}
+                onCreateProjectFolders={vi.fn()}
+                onCreateRemoteProject={vi.fn()}
+                onCreateWorkingFolder={vi.fn()}
+                onDiscardGithubPendingCommits={vi.fn()}
+                onLoadManualBranches={vi.fn(async () => null)}
+                onLoadRemoteBranches={vi.fn(async () => [])}
+                onOpenGithub={openGithub}
+                onOpenLocal={vi.fn(async () => undefined)}
+                onOpenRemote={openRemote}
+                onRepositoryChange={vi.fn(async () => BRANCHES)}
+                onSourceChange={onSourceChange}
+                onUseWorkingFolder={vi.fn()}
+                open
+                pendingGithubConflictProject={null}
+                projectOpenResolution={null}
+                recentLocalRepositories={[]}
+                repositories={REPOSITORIES}
+            />,
+        )
+
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Repository' }))
+        fireEvent.click(await screen.findByRole('option', { name: 'octo/demo' }))
+        await waitFor(() => expect(screen.getByRole('combobox', { name: 'Branch' })).toHaveTextContent('main'))
+
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Repository access' }))
+        fireEvent.click(await screen.findByRole('option', { name: 'Public' }))
+        expect(screen.getByRole('combobox', { name: 'Branch' })).not.toHaveTextContent('main')
+        expect(onSourceChange).toHaveBeenCalledOnce()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Folder' }))
+        expect(screen.getByLabelText('Endpoint')).toBeInTheDocument()
+        expect(onSourceChange).toHaveBeenCalledTimes(2)
+        expect(openGithub).not.toHaveBeenCalled()
+        expect(openRemote).not.toHaveBeenCalled()
+    })
+
+    it('opens typed, picked, and recent local folders only after Folder is selected', () => {
         const chooseLocalFolder = vi.fn(async () => undefined)
         const openLocal = vi.fn(async () => undefined)
         render(
@@ -159,20 +213,63 @@ describe('project dialog components', () => {
                 recentLocalRepositories={['C:/recent']}
                 repositories={[]}
             />,
+            { wrapper: AppThemeProvider },
         )
 
         expect(screen.queryByLabelText('Local repository folder')).toBeNull()
-        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Source' }))
-        fireEvent.click(await screen.findByRole('option', { name: 'Local folder' }))
-        expect(screen.queryByRole('option', { name: 'Remote' })).toBeNull()
+        fireEvent.click(screen.getByRole('button', { name: 'Folder' }))
 
-        fireEvent.change(screen.getByLabelText('Local repository folder'), { target: { value: 'C:/typed' } })
-        fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))
-        expect(openLocal).toHaveBeenCalledWith('C:/typed')
+        const localFolderInput = screen.getByLabelText('Local repository folder')
+        expect(localFolderInput).toHaveAttribute('placeholder', 'Choose or enter a local folder')
+        expect(screen.getByText('Local repository folder')).toHaveAttribute('data-shrink', 'true')
+        expect(screen.getByRole('button', { name: 'Open Local' })).toBeDisabled()
         fireEvent.click(screen.getByRole('button', { name: 'Choose local repository folder' }))
         expect(chooseLocalFolder).toHaveBeenCalledOnce()
+        expect(localFolderInput).toHaveValue('')
+        expect(screen.getByRole('dialog', { name: 'Open project' })).toBeInTheDocument()
+
+        fireEvent.change(localFolderInput, { target: { value: 'C:/typed' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))
+        expect(openLocal).toHaveBeenCalledWith('C:/typed')
         fireEvent.click(screen.getByText('C:/recent'))
         expect(openLocal).toHaveBeenLastCalledWith('C:/recent')
+    })
+
+    it('disables local open and folder picker while loading', () => {
+        render(
+            <ProjectOpenDialog
+                branches={[]}
+                initialSource="local"
+                isDesktopMode
+                isGithubAuthenticated={false}
+                isLoading
+                onBranchChange={vi.fn()}
+                onChooseLocalFolder={vi.fn(async () => undefined)}
+                onClose={vi.fn()}
+                onCreateProjectFolders={vi.fn()}
+                onCreateRemoteProject={vi.fn()}
+                onCreateWorkingFolder={vi.fn()}
+                onDiscardGithubPendingCommits={vi.fn()}
+                onLoadManualBranches={vi.fn(async () => null)}
+                onLoadRemoteBranches={vi.fn(async () => [])}
+                onOpenGithub={vi.fn()}
+                onOpenLocal={vi.fn(async () => undefined)}
+                onOpenRemote={vi.fn()}
+                onRepositoryChange={vi.fn(async () => [])}
+                onSourceChange={vi.fn()}
+                onUseWorkingFolder={vi.fn()}
+                open
+                pendingGithubConflictProject={null}
+                projectOpenResolution={null}
+                recentLocalRepositories={[]}
+                repositories={[]}
+            />,
+            { wrapper: AppThemeProvider },
+        )
+
+        fireEvent.change(screen.getByLabelText('Local repository folder'), { target: { value: 'C:/typed' } })
+        expect(screen.getByRole('button', { name: 'Choose local repository folder' })).toBeDisabled()
+        expect(screen.getByRole('button', { name: 'Open Local' })).toBeDisabled()
     })
 
     it('marks manual public lookup and open requests as public', async () => {
@@ -207,8 +304,8 @@ describe('project dialog components', () => {
             />,
         )
 
-        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Source' }))
-        fireEvent.click(await screen.findByRole('option', { name: 'Public repository' }))
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Repository access' }))
+        fireEvent.click(await screen.findByRole('option', { name: 'Public' }))
         fireEvent.change(screen.getByLabelText('Owner'), { target: { value: 'octo' } })
         fireEvent.change(screen.getByRole('textbox', { name: 'Repository' }), { target: { value: 'demo' } })
         fireEvent.click(screen.getByRole('button', { name: 'Load branches' }))
@@ -292,6 +389,7 @@ describe('project dialog components', () => {
 
         expect(screen.getByLabelText('Endpoint')).toHaveValue('ws://192.168.0.10:1234')
         expect(screen.queryByLabelText('Token')).not.toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Folder' })).toHaveAttribute('aria-pressed', 'true')
         expect(screen.getByRole('button', { name: 'Open Remote' })).toBeInTheDocument()
     })
 
@@ -387,7 +485,7 @@ describe('project dialog components', () => {
         )
 
         expect(screen.getByText('Working folder is missing: missing')).toBeInTheDocument()
-        expect(screen.queryByRole('combobox', { name: 'Source' })).toBeNull()
+        expect(screen.queryByRole('group', { name: 'Project kind' })).toBeNull()
         expect(screen.queryByRole('button', { name: 'Open GitHub' })).toBeNull()
         expect(screen.queryByRole('button', { name: 'Open Remote' })).toBeNull()
     })
@@ -430,7 +528,7 @@ describe('project dialog components', () => {
 
         expect(screen.getByRole('dialog', { name: 'Create project' })).toBeInTheDocument()
         expect(screen.getByLabelText('Project folder')).toHaveValue('design')
-        expect(screen.queryByRole('combobox', { name: 'Source' })).toBeNull()
+        expect(screen.queryByRole('group', { name: 'Project kind' })).toBeNull()
 
         fireEvent.change(screen.getByLabelText('Project folder'), { target: { value: 'docs' } })
         fireEvent.click(screen.getByRole('button', { name: 'Create' }))
@@ -447,7 +545,6 @@ describe('project dialog components', () => {
 
         render(
             <NewCardDialog
-                cardBodyTemplate="# Goal"
                 cardTypes={cardTypes}
                 initialTargetStatus="new"
                 isLoading={false}
@@ -472,12 +569,9 @@ describe('project dialog components', () => {
         expect(screen.getByRole('radio', { name: 'Architecture' }).querySelector('div')).toHaveStyle({ backgroundColor: '#123456' })
     })
 
-    it('inserts, clears, and safely appends the configured description template', () => {
-        const cardBodyTemplate = '# Goal\n\n# Tasks'
-
+    it('shows directly named type and description controls without visible labels or template actions', () => {
         render(
             <NewCardDialog
-                cardBodyTemplate={cardBodyTemplate}
                 cardTypes={DEFAULT_CARD_TYPES}
                 initialTargetStatus="new"
                 isLoading={false}
@@ -490,16 +584,13 @@ describe('project dialog components', () => {
             { wrapper: AppThemeProvider },
         )
 
-        const description = getDescriptionEditor()
-        fireEvent.click(screen.getByRole('button', { name: 'Template' }))
-        expect(description).toHaveValue(cardBodyTemplate)
-        fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
-        expect(description).toHaveValue('')
-
-        fireEvent.click(screen.getByRole('button', { name: 'Template' }))
-        fireEvent.change(description, { target: { value: `${cardBodyTemplate}\nEdited` } })
-        fireEvent.click(screen.getByRole('button', { name: 'Template' }))
-        expect(description).toHaveValue(`${cardBodyTemplate}\nEdited\n\n${cardBodyTemplate}`)
+        expect(screen.getByRole('radiogroup', { name: 'Type' })).toBeInTheDocument()
+        expect(screen.getByRole('group', { name: 'Description' })).toBeInTheDocument()
+        expect(screen.queryByText('Type')).toBeNull()
+        expect(screen.queryByText('Description')).toBeNull()
+        expect(screen.queryByRole('button', { name: 'Template' })).toBeNull()
+        expect(screen.queryByRole('button', { name: 'Clear' })).toBeNull()
+        expect(getDescriptionEditor()).toHaveValue('')
     })
 
     it('selects dynamic types by click and keyboard radiogroup controls', () => {
@@ -511,7 +602,6 @@ describe('project dialog components', () => {
 
         render(
             <NewCardDialog
-                cardBodyTemplate=""
                 cardTypes={cardTypes}
                 initialTargetStatus="new"
                 isLoading={false}
@@ -540,7 +630,6 @@ describe('project dialog components', () => {
 
         render(
             <NewCardDialog
-                cardBodyTemplate="# Goal"
                 cardTypes={DEFAULT_CARD_TYPES}
                 initialTargetStatus="design"
                 isLoading={false}
@@ -562,19 +651,17 @@ describe('project dialog components', () => {
 
         await waitFor(() => expect(createCard).toHaveBeenCalledWith({
             body: 'Body',
-            bodyIncludesTemplate: true,
             title: 'New Card',
             type: 'feature',
         }, 'to fix'))
     })
 
-    it('uses full-height mobile chrome with synchronized create controls and safe footer targets', async () => {
+    it('uses full-height mobile chrome with one header create control and safe footer targets', async () => {
         mockMatchMedia(true)
         const createCard = vi.fn(async () => undefined)
 
         render(
             <NewCardDialog
-                cardBodyTemplate=""
                 cardTypes={DEFAULT_CARD_TYPES}
                 initialTargetStatus="new"
                 isLoading={false}
@@ -589,29 +676,50 @@ describe('project dialog components', () => {
 
         const dialog = screen.getByRole('dialog', { name: 'New card' })
         const content = screen.getByTestId('new-card-dialog-content')
+        const description = screen.getByRole('group', { name: 'Description' })
+        const descriptionStack = description.parentElement
         const title = dialog.querySelector('.MuiDialogTitle-root')
         const actions = dialog.querySelector('.MuiDialogActions-root')
         const topCreate = screen.getByRole('button', { name: 'Create' })
-        const footerCreate = screen.getByRole('button', { name: 'Create card' })
 
         expect(topCreate).toBeDisabled()
-        expect(footerCreate).toBeDisabled()
+        expect(within(actions as HTMLElement).queryByRole('button', { name: /Create/u })).toBeNull()
+        expect(screen.getAllByRole('button', { name: 'Create' })).toHaveLength(1)
         expect(content).toHaveStyle({ flex: '1', minHeight: '0', overflowY: 'auto' })
         expect(title).toHaveStyle({ flexShrink: '0' })
         expect(actions).toHaveStyle({ flexShrink: '0' })
         expect(screen.getByRole('combobox', { name: 'Target column' }).closest('.MuiInputBase-root')).toHaveStyle({ height: '44px' })
-        expect(screen.getByRole('group', { name: 'Description' })).toHaveStyle({ minHeight: '260px', resize: 'none' })
+        expect(descriptionStack).toHaveStyle({ flexGrow: '1', minHeight: '0' })
+        expect(description).toHaveStyle({ flex: '1', minHeight: '0', resize: 'none' })
 
         fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: 'Mobile card' } })
         expect(topCreate).toBeEnabled()
-        expect(footerCreate).toBeEnabled()
         fireEvent.click(topCreate)
         await waitFor(() => expect(createCard).toHaveBeenCalledWith({
             body: '',
-            bodyIncludesTemplate: true,
             title: 'Mobile card',
             type: 'feature',
         }, 'new'))
+    })
+
+    it('keeps fixed desktop description sizing and vertical resize behavior', () => {
+        render(
+            <NewCardDialog
+                cardTypes={DEFAULT_CARD_TYPES}
+                initialTargetStatus="new"
+                isLoading={false}
+                isProjectOpen
+                onClose={vi.fn()}
+                onCreateCard={vi.fn(async () => undefined)}
+                open
+                states={DEFAULT_STATES}
+            />,
+            { wrapper: AppThemeProvider },
+        )
+
+        const description = screen.getByRole('group', { name: 'Description' })
+
+        expect(description).toHaveStyle({ height: '270px', minHeight: '270px', resize: 'vertical' })
     })
 
     it('submits with Ctrl+Enter and confirms dirty Escape cancellation', async () => {
@@ -621,7 +729,6 @@ describe('project dialog components', () => {
 
         render(
             <NewCardDialog
-                cardBodyTemplate=""
                 cardTypes={DEFAULT_CARD_TYPES}
                 initialTargetStatus="new"
                 isLoading={false}
@@ -660,7 +767,6 @@ describe('project dialog components', () => {
         expect(editorKeyDown).not.toHaveBeenCalled()
         await waitFor(() => expect(createCard).toHaveBeenCalledWith({
             body: 'Shortcut body\n\n',
-            bodyIncludesTemplate: true,
             title: 'Keyboard card',
             type: 'feature',
         }, 'new'))
@@ -672,7 +778,6 @@ describe('project dialog components', () => {
 
         render(
             <NewCardDialog
-                cardBodyTemplate=""
                 cardTypes={DEFAULT_CARD_TYPES}
                 initialTargetStatus="new"
                 isLoading={false}
@@ -696,7 +801,6 @@ describe('project dialog components', () => {
         const createCard = vi.fn(async () => undefined)
         const { rerender } = render(
             <NewCardDialog
-                cardBodyTemplate="# Goal"
                 cardTypes={DEFAULT_CARD_TYPES}
                 initialTargetStatus="new"
                 isLoading={false}
@@ -721,7 +825,6 @@ describe('project dialog components', () => {
         rerender(
             <AppThemeProvider>
                 <NewCardDialog
-                    cardBodyTemplate="# Goal"
                     cardTypes={DEFAULT_CARD_TYPES}
                     initialTargetStatus="new"
                     isLoading={false}

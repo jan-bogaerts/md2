@@ -85,6 +85,7 @@ function conversation(
         }] : [],
         startedAt: '2026-07-27T10:00:00.000Z',
         status: 'completed',
+        timer: { elapsedMs: 60_000, runningStartedAt: null },
         title: path,
         viewed: true,
     }
@@ -152,31 +153,49 @@ describe('ActionConversationChat', () => {
         expect(screen.getByLabelText('Conversation chat').scrollTop).toBe(200)
     })
 
-    it('keeps duration and context in a metadata row outside the scrollable transcript', () => {
+    it('keeps duration and context usage indicator as the final row inside the scrollable transcript', async () => {
         const value = conversation('first.json', [message('message-1', 'First')])
         value.contextWindowUsage = { capacityTokens: 258_400, usedTokens: 42_000 }
         renderChat(value)
 
         const viewport = screen.getByLabelText('Conversation chat')
         const metadata = screen.getByLabelText('Conversation metadata')
-        expect(viewport).not.toContainElement(metadata)
+        const progress = screen.getByRole('progressbar', { name: 'Context usage' })
+        expect(viewport).toContainElement(metadata)
+        expect(viewport.lastElementChild).toBe(metadata)
         expect(metadata).toContainElement(screen.getByLabelText('Elapsed time'))
-        expect(metadata).toContainElement(screen.getByText('context: 16%'))
+        expect(metadata).toContainElement(progress)
+        expect(progress).toHaveAttribute('aria-valuenow', '16')
+        expect(screen.queryByText('context: 16%')).not.toBeInTheDocument()
         expect(metadata).toHaveStyle({ alignItems: 'baseline' })
+
+        expect(screen.getAllByRole('progressbar')).toHaveLength(1)
+        const track = progress.parentElement?.querySelector('[aria-hidden="true"]')
+        expect(track).toBeInTheDocument()
+        expect(track).toHaveAttribute('aria-valuenow', '100')
+
+        fireEvent.mouseOver(progress)
+        expect(await screen.findByText('Context usage: 16%', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()
+        fireEvent.mouseLeave(progress)
+        await waitFor(() => expect(screen.queryByText('Context usage: 16%', {selector: '.MuiTooltip-tooltip'})).not.toBeInTheDocument())
+        fireEvent.touchStart(progress)
+        expect(await screen.findByText('Context usage: 16%', { selector: '.MuiTooltip-tooltip' }, {timeout: 1_500})).toBeInTheDocument()
 
         viewport.scrollTop = 40
         fireEvent.scroll(viewport)
 
-        expect(screen.getByText('context: 16%')).toBeInTheDocument()
-        expect(screen.getByLabelText('Elapsed time')).toBeInTheDocument()
+        expect(viewport.scrollTop).toBe(40)
     })
 
-    it('caps context occupancy and hides unavailable context without hiding duration', () => {
+    it('caps context occupancy and hides unavailable context without hiding duration', async () => {
         const value = conversation('first.json', [])
         value.contextWindowUsage = { capacityTokens: 100, usedTokens: 125 }
         const { rerender } = renderChat(value)
 
-        expect(screen.getByText('context: 100%')).toBeInTheDocument()
+        const progress = screen.getByRole('progressbar', { name: 'Context usage' })
+        expect(progress).toHaveAttribute('aria-valuenow', '100')
+        fireEvent.mouseOver(progress)
+        expect(await screen.findByText('Context usage: 100%', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()
 
         rerender(
             <AppThemeProvider>
@@ -187,7 +206,8 @@ describe('ActionConversationChat', () => {
             </AppThemeProvider>,
         )
 
-        expect(screen.queryByText(/context:/u)).not.toBeInTheDocument()
+        expect(screen.queryByRole('progressbar', { name: 'Context usage' })).not.toBeInTheDocument()
+        await waitFor(() => expect(screen.queryByText(/Context usage:/u, {selector: '.MuiTooltip-tooltip'})).not.toBeInTheDocument())
         expect(screen.getByLabelText('Elapsed time')).toBeInTheDocument()
     })
 
@@ -897,7 +917,7 @@ describe('ActionConversationChat', () => {
         const command = 'node -e "console.log(\'héllo\')" \\\n--flag'
         const activity: AgentConversationEvent = {
             command,
-            content: 'line one\nline two',
+            content: 'line one\n[123 characters omitted]\nline two',
             durationMs: 42,
             exitCode: 1,
             id: 'command-completed',
@@ -919,7 +939,8 @@ describe('ActionConversationChat', () => {
 
         expect(button).toHaveAttribute('aria-expanded', 'true')
         expect(screen.getByText('Command').parentElement?.querySelector('pre')?.textContent).toBe(command)
-        expect(screen.getByText('Output').parentElement?.querySelector('pre')?.textContent).toBe('line one\nline two')
+        expect(screen.getByText('Output').parentElement?.querySelector('pre')?.textContent)
+            .toBe('line one\n[123 characters omitted]\nline two')
         expect(screen.getByText('Exit code: 1')).toBeInTheDocument()
         expect(screen.getByText('Duration: 42 ms')).toBeInTheDocument()
     })

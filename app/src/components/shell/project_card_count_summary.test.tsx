@@ -28,4 +28,18 @@ describe('CardCountSummary', () => {
         expect(screen.getByText('2')).toBeInTheDocument()
         expect(screen.getByText('active')).toBeInTheDocument()
     })
+
+    it('combines both counts in the mobile row', () => {
+        projectState.snapshot = {
+            activeCards: [{}, {}],
+            backgroundCards: [{}],
+            repositoryFiles: [],
+            workingFolder: 'design',
+        } as unknown as ProjectSnapshot
+
+        render(<CardCountSummary mobile />)
+
+        expect(screen.getByText('Cards')).toBeInTheDocument()
+        expect(screen.getByText('3 total · 2 active')).toBeInTheDocument()
+    })
 })

@@ -36,6 +36,7 @@ describe('WorkspaceViewService', () => {
         dataService.publishSnapshotChange()
         expect(service.getSnapshot()).toEqual({ selectedPath: 'design/F-1.md', viewMode: 'text' })
 
+        service.setViewMode('stats')
         dataService.setProject({ branch: 'feature', id: 'project' })
         expect(service.getSnapshot()).toEqual({ selectedPath: null, viewMode: 'cards' })
     })

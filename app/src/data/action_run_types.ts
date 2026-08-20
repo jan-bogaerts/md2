@@ -4,6 +4,7 @@ import type {
     AgentConversation,
     AgentConversationEventEntry,
     AgentConversationMessageEntry,
+    AgentConversationTimer,
     AgentTokenUsage,
 } from './data_types'
 import type { PermissionMode, ThinkingLevel } from './agent_profiles'
@@ -33,6 +34,7 @@ export interface PreparedActionPrompt {
 }
 
 export interface AgentConversationReservation {
+    activityPath: string
     conversationId: string
     reference: string
 }
@@ -191,6 +193,7 @@ export type ActionRunEvent =
     }
     | ActionRunEventBase & {
         status: 'running' | 'waitingForInput'
+        timer?: AgentConversationTimer
         type: 'agentState'
     }
     | ActionRunEventBase & {

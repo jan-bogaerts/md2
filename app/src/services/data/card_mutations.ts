@@ -44,6 +44,10 @@ export function setCardAgentLogReferences(card: Card, references: string[]) {
     card.header.agentLogReferences = [...references]
 }
 
+export function setCardReferences(card: Card, references: string[]) {
+    card.header.references = [...new Set(references)]
+}
+
 export function toggleCardPolicy(card: Card, policyKey: string) {
     const enabled = !(card.header.policy[policyKey] ?? false)
     card.header.policy = { ...card.header.policy, [policyKey]: enabled }

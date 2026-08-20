@@ -140,6 +140,7 @@ describe('MainWindow', () => {
         expect(screen.getByRole('heading', { name: 'No project open' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Running agents: 0' })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: 'Open menu' })).toBeNull()
+        expect(screen.queryByRole('region', { name: 'Project status' })).toBeNull()
     })
 
     it('shows card columns without a left navigation panel in card view', async () => {
@@ -207,6 +208,7 @@ describe('MainWindow', () => {
         expect(screen.queryByRole('button', { name: /Switch to (dark|light) theme/ })).toBeNull()
         fireEvent.click(screen.getByRole('button', { name: 'Open menu' }))
         expect(screen.getByText('No project navigation available.')).toBeInTheDocument()
+        expect(screen.getByRole('region', { name: 'Project status' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: /Switch to (dark|light) theme/ })).toBeInTheDocument()
         expect(screen.queryByLabelText('Personal access token')).toBeNull()
     })

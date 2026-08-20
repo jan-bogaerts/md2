@@ -2,6 +2,7 @@ import type { ActionFile } from './action_types'
 import type { ActionSchedule } from './action_schedule_types'
 import { DEFAULT_COLOR_SCHEME } from '../theme/theme_config'
 import type { ProjectBackgroundShade } from '../theme/project_background_shade'
+import type { ActivityStatsCalculationResult } from '../../../shared/project_stats.mjs'
 import { DEFAULT_CARD_SEPARATOR, type CardSeparator } from './card_identifiers'
 import type {
     MergeConflictPathRequest,
@@ -39,7 +40,6 @@ export interface ProjectConfig {
     actionsFolder: string
     archivedFolder: string
     backgroundShade: ProjectBackgroundShade
-    cardBodyTemplate: string
     cardSeparator: CardSeparator
     cardTypes: CardTypeConfig[]
     diffCommand: string
@@ -78,6 +78,10 @@ export interface CardHeader {
     internalId: string | null
     owner: string | null
     policy: Record<string, boolean>
+    references: string[]
+    sentryBaseUrl?: string
+    sentryIssueId?: string
+    sentryOrganization?: string
     status: string | null
     title: string
     worktree?: number | null
@@ -105,7 +109,6 @@ export interface ProjectSnapshot {
 
 export interface CardDraft {
     body: string
-    bodyIncludesTemplate?: boolean
     title: string
     type: CardType
 }
@@ -309,6 +312,7 @@ export interface AgentTokenUsage {
     cachedInputTokens: number
     costUsd?: number
     inputTokens: number
+    legacyTotalTokens?: number
     outputTokens: number
     reasoningTokens: number
     totalTokens: number
@@ -317,6 +321,11 @@ export interface AgentTokenUsage {
 export interface AgentContextWindowUsage {
     capacityTokens: number
     usedTokens: number
+}
+
+export interface AgentConversationTimer {
+    elapsedMs: number
+    runningStartedAt: string | null
 }
 
 export interface AgentConversation {
@@ -332,13 +341,18 @@ export interface AgentConversation {
     providerSessions: AgentProviderSession[]
     startedAt: string
     status: AgentConversationStatus
+    timer?: AgentConversationTimer
     title: string
     usage?: AgentTokenUsage
+    usageSchemaVersion?: number
     viewed: boolean
 }
 
 export interface AgentConversationError {
+    /** Set when the failure came from an onState action instead of an activity file load. */
+    kind?: 'onStateAction'
     message: string
+    /** Activity file that failed to load, or the action id for an onState action failure. */
     path: string
 }
 
@@ -370,7 +384,7 @@ export interface StorageProjectFiles {
 }
 
 export interface StorageService {
-    addWorktree?(project: ProjectReference): Promise<boolean>
+    addWorktree?(project: ProjectReference, folderPath: string): Promise<void>
     checkoutBranch(project: ProjectReference, branch: string): Promise<ProjectReference>
     commit(request: CommitRequest): Promise<CommitResult>
     commitWorktree?(request: CommitWorktreeRequest): Promise<void>
@@ -387,7 +401,10 @@ export interface StorageService {
     loadActionFiles(project: ProjectReference, actionsFolder: string): Promise<ActionFile[]>
     loadActionSchedules?(project: ProjectReference, actionsFolder: string): Promise<ActionSchedule[]>
     cancelActionSchedule?(project: ProjectReference, actionsFolder: string, scheduleId: string): Promise<ActionSchedule[]>
+    calculateActivityStats?(project: ProjectReference, paths: string[], calculationId: string): Promise<ActivityStatsCalculationResult>
+    cancelActivityStatsCalculation?(calculationId: string): Promise<void>
     loadAgentConversation?(project: ProjectReference, path: string): Promise<AgentConversation>
+    loadActivityConversations?(project: ProjectReference, path: string): Promise<AgentConversation[]>
     loadProjectAsset?(project: ProjectReference, path: string): Promise<ProjectAsset>
     loadTextFile?(project: ProjectReference, path: string): Promise<MarkdownFile>
     loadProject(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>
@@ -419,6 +436,7 @@ export interface StorageService {
     refreshWorktrees?(project: ProjectReference): Promise<void>
     saveActionSchedules?(project: ProjectReference, actionsFolder: string, schedules: ActionSchedule[]): Promise<ActionSchedule[]>
     saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>
+    selectWorktreeFolder?(): Promise<string | null>
     removeWorktree?(project: ProjectReference, folderPath: string): Promise<void>
     stopAgent?(project: ProjectReference, runId: string): Promise<void>
     watchProject?(
@@ -454,8 +472,6 @@ export const DEFAULT_STATES: StateConfig[] = [
     { alwaysVisible: true, color: defaultColumnAccent(4), state: 'ready' },
 ]
 
-export const DEFAULT_CARD_BODY_TEMPLATE = '# Goal\n\n# Current status\n\n# Details\n\n# Tasks'
-
 function normalizeFolderPath(folderPath: string) {
     return folderPath.replace(/\\/gu, '/').replace(/^\/+|\/+$/gu, '')
 }
@@ -481,7 +497,6 @@ export const DEFAULT_PROJECT_CONFIG: ProjectConfig = {
     actionsFolder: DEFAULT_ACTIONS_FOLDER,
     archivedFolder: DEFAULT_ARCHIVED_FOLDER,
     backgroundShade: 'neutral',
-    cardBodyTemplate: DEFAULT_CARD_BODY_TEMPLATE,
     cardSeparator: DEFAULT_CARD_SEPARATOR,
     cardTypes: DEFAULT_CARD_TYPES,
     diffCommand: DEFAULT_DIFF_COMMAND,

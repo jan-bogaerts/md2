@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 const CONFIG_SET_DESKTOP_CHANNEL = 'md2-config:set-desktop';
 const LIFECYCLE_FLUSH_RESULT_CHANNEL = 'md2-lifecycle:flush-pending-commits-result';
@@ -14,6 +14,7 @@ const REMOTE_CONTROL_GET_STATUS_CHANNEL = 'md2-remote-control:get-status';
 const REMOTE_CONTROL_START_CHANNEL = 'md2-remote-control:start';
 const REMOTE_CONTROL_STATUS_CHANNEL = 'md2-remote-control:status';
 const REMOTE_CONTROL_STOP_CHANNEL = 'md2-remote-control:stop';
+const SENTRY_REQUEST_CHANNEL = 'md2-sentry:request';
 const THEME_SET_MODE_CHANNEL = 'md2-theme:set-mode';
 const UPDATE_AVAILABLE_CHANNEL = 'md2-update:available';
 const UPDATE_DOWNLOAD_CHANNEL = 'md2-update:download';
@@ -22,7 +23,9 @@ const UPDATE_PROGRESS_CHANNEL = 'md2-update:progress';
 const DATA_METHODS = [
     'abortMergeConflict',
     'addWorktree',
+    'calculateActivityStats',
     'cancelActionSchedule',
+    'cancelActivityStatsCalculation',
     'checkoutBranch',
     'commit',
     'commitWorktree',
@@ -44,6 +47,7 @@ const DATA_METHODS = [
     'loadActionSchedules',
     'loadAgentAvailability',
     'loadAgentConversation',
+    'loadActivityConversations',
     'loadFile',
     'loadProject',
     'loadProjectAsset',
@@ -66,9 +70,11 @@ const DATA_METHODS = [
     'resolveProject',
     'saveActionSchedules',
     'saveProjectConfig',
+    'selectWorktreeFolder',
     'stopAgent',
 ];
 const ACTION_METHODS = [
+    'acquireReleaseCardLocks',
     'answerActionApproval',
     'answerActionQuestion',
     'beginActionPromptDraft',
@@ -78,13 +84,14 @@ const ACTION_METHODS = [
     'generateDiff',
     'generateWorktreeDiff',
     'loadActionRunHistory',
-    'loadActiveActionRunEvents',
+    'loadActionRunRecoverySnapshot',
     'notifyActionCardStateChange',
     'loadCardActivity',
     'loadAgentAvailability',
     'openInEditor',
     'prepareActionPrompt',
     'readFileAtCommit',
+    'releaseReleaseCardLocks',
     'registerActionSchedule',
     'reserveActionConversation',
     'restartActionRun',
@@ -99,6 +106,7 @@ const ACTION_METHODS = [
 ];
 const EVENT_METHODS = new Set(['runSearchRegexpAgent']);
 const CODEX_RUNTIME_METHODS = ['getCodexRateLimits'];
+const CLAUDE_RUNTIME_METHODS = ['getClaudeRateLimits'];
 
 let nextEventId = 1;
 let desktopConfig = readArgumentJson('md2-desktop-config', {});
@@ -238,6 +246,8 @@ if (!isAllowedOrigin()) {
         listImageFiles: (settings) => ipcRenderer.invoke(REMARKABLE_LIST_IMAGE_FILES_CHANNEL, settings),
         testConnection: (settings) => ipcRenderer.invoke(REMARKABLE_TEST_CONNECTION_CHANNEL, settings),
     };
+    const sentryBridge = { request: (request) => ipcRenderer.invoke(SENTRY_REQUEST_CHANNEL, request) };
+    const fileBridge = { getPathForFile: (file) => webUtils.getPathForFile(file) };
     const dataBridge = {
         ...createBridge(DATA_METHODS),
         onMergeConflictSessionChanged: (callback) => subscribeBridge('onMergeConflictSessionChanged', [], callback),
@@ -253,6 +263,10 @@ if (!isAllowedOrigin()) {
         onCodexRateLimits: (callback) => subscribeBridge('onCodexRateLimits', [], callback),
         onCodexUpdateRequired: (callback) => subscribeBridge('onCodexUpdateRequired', [], callback),
         updateCodexCli: () => invokeBridge('updateCodexCli', [], null),
+    };
+    const claudeRuntimeBridge = {
+        ...createBridge(CLAUDE_RUNTIME_METHODS),
+        onClaudeRateLimits: (callback) => subscribeBridge('onClaudeRateLimits', [], callback),
     };
     const updatesBridge = {
         downloadUpdate: (downloadUrl) => ipcRenderer.invoke(UPDATE_DOWNLOAD_CHANNEL, { downloadUrl }),
@@ -275,8 +289,11 @@ if (!isAllowedOrigin()) {
     contextBridge.exposeInMainWorld('md2Config', configBridge);
     contextBridge.exposeInMainWorld('md2RemoteControl', remoteControlBridge);
     contextBridge.exposeInMainWorld('md2Remarkable', remarkableBridge);
+    contextBridge.exposeInMainWorld('md2Sentry', sentryBridge);
+    contextBridge.exposeInMainWorld('md2Files', fileBridge);
     contextBridge.exposeInMainWorld('md2Data', dataBridge);
     contextBridge.exposeInMainWorld('md2Actions', actionBridge);
+    contextBridge.exposeInMainWorld('md2ClaudeRuntime', claudeRuntimeBridge);
     contextBridge.exposeInMainWorld('md2CodexRuntime', codexRuntimeBridge);
     contextBridge.exposeInMainWorld('md2Updates', updatesBridge);
 }

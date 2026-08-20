@@ -12,7 +12,7 @@ const SETTINGS: RemarkableConnectionSettings = {
     username: 'root',
 }
 
-const CONFIG = { cardBodyTemplate: '# Goal', cardSeparator: '_' as const, cardTypes: DEFAULT_CARD_TYPES, states: DEFAULT_STATES, workingFolder: 'design' }
+const CONFIG = { cardSeparator: '_' as const, cardTypes: DEFAULT_CARD_TYPES, states: DEFAULT_STATES, workingFolder: 'design' }
 
 function asset(name: string, overrides: Partial<RemarkableImportedAsset> = {}): RemarkableImportedAsset {
     return { content: btoa(name), modifiedTime: '2026-07-01T10:00:00.000Z', name, sourcePath: `/img/${name}`, ...overrides }
@@ -81,13 +81,15 @@ describe('buildRemarkableImport into a new feature card', () => {
     it('creates a new card with the imported images linked', () => {
         const plan = buildRemarkableImport(baseInput({
             files: [existingCard()],
-            target: { draft: { body: '', title: 'Scanned notes', type: 'feature' }, kind: 'new' },
+            target: { draft: { body: 'Imported notes', title: 'Scanned notes', type: 'feature' }, kind: 'new' },
         }))
 
         const cardFile = plan.commitFiles.find((file) => file.path === plan.cardPath)
 
         expect(plan.cardPath).toBe('design/F_2_scanned_notes.md')
         expect(plan.message).toContain('Create design/F_2_scanned_notes.md')
+        expect(cardFile?.content).toContain('Imported notes\n\n![note](note.png)')
+        expect(cardFile?.content).not.toContain('# Goal')
         expect(cardFile?.content).toContain('![note](note.png)')
     })
 })

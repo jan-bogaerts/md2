@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-    DEFAULT_CARD_BODY_TEMPLATE,
     DEFAULT_CARD_TYPES,
     DEFAULT_STATES,
     type BranchReference,
@@ -72,7 +71,6 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
     const [switchBranch, setSwitchBranch] = useState(project?.branch ?? '')
     const activeCards = snapshot?.activeCards ?? []
     const cardTypes = projectConfig?.cardTypes ?? DEFAULT_CARD_TYPES
-    const cardBodyTemplate = projectConfig?.cardBodyTemplate ?? DEFAULT_CARD_BODY_TEMPLATE
     const states = projectConfig?.states ?? DEFAULT_STATES
     const pushMode = (projectConfig?.pushMode ?? 'auto') as PushMode
     const releaseSelectAllDefault = useConfigValueOrFallback('react.deleteBranchesAfterRelease', false)
@@ -373,7 +371,6 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
     return {
         activeCards,
         branches,
-        cardBodyTemplate,
         cardTypes,
         chooseLocalProjectFolder,
         clearOpenDialogState,

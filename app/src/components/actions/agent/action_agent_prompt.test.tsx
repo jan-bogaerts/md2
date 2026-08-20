@@ -3,27 +3,34 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ActionAgentPrompt } from './action_agent_prompt'
 import { ACTION_PROMPT_PLACEHOLDERS } from '../../../data/action_placeholders'
 import { ActionPromptDraft } from '../../../services/actions/action_prompt_draft_service'
-
-const setMarkdown = vi.hoisted(() => vi.fn())
+import type { MarkdownDraft } from '../../../services/markdown/markdown_draft'
 
 vi.mock('../../editor/markdown_editor', async () => {
-    const { forwardRef, useImperativeHandle, useRef, useState } = await import('react')
+    const { forwardRef, useEffect, useImperativeHandle, useRef, useState } = await import('react')
 
     return {
         MarkdownEditor: forwardRef(function MarkdownEditorMock(props: {
+            attachmentHandler?: (files: File[], insertMarkdown: (markdown: string) => void) => Promise<void>
+            draft: MarkdownDraft
             flushOnBlur?: boolean
+            hideAttachmentControl?: boolean
+            imagePasteHandler?: (file: File, insertMarkdown: (markdown: string) => void) => Promise<void>
             localTextSearch?: boolean
-            markdown: string
-            onChange: (markdown: string) => void
+            onChange?: (markdown: string) => void
             onLiveChange?: (markdown: string) => void
             placeholders?: readonly { name: string }[]
             readOnly?: boolean
         }, ref) {
-            const valueRef = useRef(props.markdown)
-            const [value, setValue] = useState(props.markdown)
+            const valueRef = useRef(props.draft.getSnapshot())
+            const [value, setValue] = useState(props.draft.getSnapshot())
+            useEffect(() => props.draft.subscribeEditor(() => {
+                const replacement = props.draft.getSnapshot()
+                valueRef.current = replacement
+                setValue(replacement)
+            }), [props.draft])
             useImperativeHandle(ref, () => ({
                 flush: () => {
-                    props.onChange(valueRef.current)
+                    props.onChange?.(valueRef.current)
 
                     return true
                 },
@@ -31,7 +38,6 @@ vi.mock('../../editor/markdown_editor', async () => {
                 setMarkdown: (markdown: string) => {
                     valueRef.current = markdown
                     setValue(markdown)
-                    setMarkdown(markdown)
                 },
             }))
 
@@ -39,13 +45,17 @@ vi.mock('../../editor/markdown_editor', async () => {
                 <textarea
                     aria-label="Markdown prompt"
                     data-flush-on-blur={props.flushOnBlur ? 'true' : 'false'}
+                    data-has-attachment-handler={props.attachmentHandler ? 'true' : 'false'}
+                    data-hide-attachment-control={props.hideAttachmentControl ? 'true' : 'false'}
+                    data-image-paste={props.imagePasteHandler ? 'true' : 'false'}
                     data-local-text-search={props.localTextSearch === false ? 'false' : 'true'}
                     data-placeholders={props.placeholders?.map(({ name }) => name).join(',')}
                     value={value}
-                    onBlur={(event) => props.onChange(event.currentTarget.value)}
+                    onBlur={(event) => props.onChange?.(event.currentTarget.value)}
                     onChange={(event) => {
                         valueRef.current = event.currentTarget.value
                         setValue(event.currentTarget.value)
+                        props.draft.edit(event.currentTarget.value)
                         props.onLiveChange?.(event.currentTarget.value)
                     }}
                     onKeyDown={(event) => {
@@ -54,6 +64,7 @@ vi.mock('../../editor/markdown_editor', async () => {
                         const nextValue = `${valueRef.current}\n`
                         valueRef.current = nextValue
                         setValue(nextValue)
+                        props.draft.edit(nextValue)
                         props.onLiveChange?.(nextValue)
                     }}
                     readOnly={props.readOnly}
@@ -85,12 +96,38 @@ afterEach(() => {
 })
 
 describe('ActionAgentPrompt', () => {
+    it('stays read-only during prompt preparation and becomes editable when ready', async () => {
+        const promptDraft = new ActionPromptDraft('', true, null)
+        render(<ActionAgentPrompt convertMessage={null} promptDraft={promptDraft} />)
+        const prompt = screen.getByLabelText('Markdown prompt')
+
+        expect(prompt).toHaveAttribute('readonly')
+
+        await act(async () => promptDraft.prepare(async () => 'Prepared prompt'))
+
+        expect(prompt).not.toHaveAttribute('readonly')
+        expect(prompt).toHaveValue('Prepared prompt')
+    })
+
+    it('passes card attachment handler to hidden-toolbar prompt editor', () => {
+        const promptDraft = new ActionPromptDraft('', false, null)
+        render(
+            <ActionAgentPrompt
+                attachmentHandler={vi.fn(async () => undefined)}
+                convertMessage={null}
+                promptDraft={promptDraft}
+            />,
+        )
+
+        expect(screen.getByLabelText('Markdown prompt')).toHaveAttribute('data-has-attachment-handler', 'true')
+        expect(screen.getByLabelText('Markdown prompt')).toHaveAttribute('data-hide-attachment-control', 'true')
+    })
+
     it('configures action placeholders on its hidden-toolbar editor', () => {
         const promptDraft = new ActionPromptDraft('', false, null)
         render(
             <ActionAgentPrompt
                 convertMessage={null}
-                disabled={false}
                 promptDraft={promptDraft}
             />,
         )
@@ -102,6 +139,7 @@ describe('ActionAgentPrompt', () => {
         expect(screen.getByLabelText('Markdown prompt').getAttribute('data-placeholders')).toContain('this-card')
         expect(screen.getByLabelText('Markdown prompt').getAttribute('data-placeholders')).toContain('active-cards-folder')
         expect(screen.getByLabelText('Markdown prompt')).toHaveAttribute('data-local-text-search', 'false')
+        expect(screen.getByLabelText('Markdown prompt')).toHaveAttribute('data-image-paste', 'false')
     })
 
     it('keeps typing local and synchronizes the prompt on blur', () => {
@@ -110,7 +148,6 @@ describe('ActionAgentPrompt', () => {
         render(
             <ActionAgentPrompt
                 convertMessage={null}
-                disabled={false}
                 promptDraft={promptDraft}
             />,
         )
@@ -137,7 +174,6 @@ describe('ActionAgentPrompt', () => {
         render(
             <ActionAgentPrompt
                 convertMessage={null}
-                disabled={false}
                 onRunShortcut={handleRunShortcut}
                 promptDraft={promptDraft}
             />,
@@ -159,7 +195,6 @@ describe('ActionAgentPrompt', () => {
         render(
             <ActionAgentPrompt
                 convertMessage={null}
-                disabled={false}
                 onRunShortcut={vi.fn()}
                 promptDraft={promptDraft}
             />,
@@ -178,7 +213,6 @@ describe('ActionAgentPrompt', () => {
         render(
             <ActionAgentPrompt
                 convertMessage={null}
-                disabled={false}
                 promptDraft={promptDraft}
             />,
         )
@@ -195,16 +229,11 @@ describe('ActionAgentPrompt', () => {
         render(
             <ActionAgentPrompt
                 convertMessage={null}
-                disabled={false}
                 promptDraft={promptDraft}
             />,
         )
-        setMarkdown.mockClear()
-
         act(() => promptDraft.replace('Prepared'))
 
-        expect(setMarkdown).toHaveBeenCalledOnce()
-        expect(setMarkdown).toHaveBeenCalledWith('Prepared')
         expect(screen.getByLabelText('Markdown prompt')).toHaveValue('Prepared')
     })
 
@@ -214,14 +243,13 @@ describe('ActionAgentPrompt', () => {
             <ActionAgentPrompt
                 bottomRow={<div>Controls</div>}
                 convertMessage={null}
-                disabled={false}
                 promptDraft={promptDraft}
                 responsePrompts={<div>Predefined phrases</div>}
             />,
         )
 
         expect(screen.getByLabelText('Prompt')).toHaveStyle({ height: 'auto' })
-        expect(screen.getByTestId('action-prompt-editor-region')).toHaveStyle({ height: '42px', overflowY: 'auto' })
+        expect(screen.getByTestId('action-prompt-editor-region')).toHaveStyle({ height: '56px', overflowY: 'auto' })
         expect(screen.getByText('Predefined phrases')).toBeInTheDocument()
         expect(screen.getByText('Controls')).toBeInTheDocument()
     })
@@ -229,7 +257,7 @@ describe('ActionAgentPrompt', () => {
     it('disables pointer and keyboard resize while the prompt is empty', () => {
         window.localStorage.setItem('md2.actionPromptHeight', '160')
         const promptDraft = new ActionPromptDraft('', false, null)
-        render(<ActionAgentPrompt convertMessage={null} disabled={false} promptDraft={promptDraft} />)
+        render(<ActionAgentPrompt convertMessage={null} promptDraft={promptDraft} />)
         const separator = screen.getByRole('separator', { name: 'Resize prompt' })
 
         expect(separator).toHaveAttribute('aria-disabled', 'true')
@@ -247,7 +275,7 @@ describe('ActionAgentPrompt', () => {
         window.localStorage.setItem('md2.actionPromptHeight', '188')
         mockAvailablePromptHeight(400)
         const promptDraft = new ActionPromptDraft('', false, null)
-        render(<ActionAgentPrompt convertMessage={null} disabled={false} promptDraft={promptDraft} />)
+        render(<ActionAgentPrompt convertMessage={null} promptDraft={promptDraft} />)
         const prompt = screen.getByLabelText('Markdown prompt')
         const separator = screen.getByRole('separator', { name: 'Resize prompt' })
 
@@ -268,7 +296,7 @@ describe('ActionAgentPrompt', () => {
         window.localStorage.setItem('md2.actionPromptHeight', '220')
         mockAvailablePromptHeight(250)
         const promptDraft = new ActionPromptDraft('', false, null)
-        render(<ActionAgentPrompt convertMessage={null} disabled={false} promptDraft={promptDraft} />)
+        render(<ActionAgentPrompt convertMessage={null} promptDraft={promptDraft} />)
 
         fireEvent.change(screen.getByLabelText('Markdown prompt'), { target: { value: 'Plan' } })
 
@@ -280,7 +308,7 @@ describe('ActionAgentPrompt', () => {
         window.localStorage.setItem('md2.actionPromptHeight', '160')
         mockAvailablePromptHeight(400)
         const promptDraft = new ActionPromptDraft('Plan', false, null)
-        render(<ActionAgentPrompt convertMessage={null} disabled={false} promptDraft={promptDraft} />)
+        render(<ActionAgentPrompt convertMessage={null} promptDraft={promptDraft} />)
         const separator = screen.getByRole('separator', { name: 'Resize prompt' })
 
         fireEvent.pointerDown(separator, { clientY: 200, pointerId: 2 })

@@ -1,4 +1,5 @@
 const { normalizedContent } = require('./agent_event_utils');
+const { boundedAgentResult } = require('../../../../shared/agent_conversations.mjs');
 
 const MAX_EVENT_CONTENT_LENGTH = 16_384;
 const MAX_EVENT_FIELDS = 12;
@@ -61,22 +62,24 @@ function selectedFieldValue(value) {
     return values.length > 0 ? values.join(', ') : null;
 }
 
-function selectedEventContent(value) {
+function selectedEventContent(value, boundContent = true) {
     if (value === undefined || value === null) return '';
     const structuredValue = typeof value === 'string' ? parseStructuredString(value) : value;
-    if (typeof structuredValue === 'string') return optionalContent(structuredValue);
+    if (typeof structuredValue === 'string') return boundContent ? optionalContent(structuredValue) : structuredValue;
     if (typeof structuredValue === 'number' || typeof structuredValue === 'boolean') return String(structuredValue);
     if (Array.isArray(structuredValue)) {
         const lines = structuredValue
             .map((entry) => (
                 entry && typeof entry === 'object'
-                    ? selectedEventContent(entry)
+                    ? selectedEventContent(entry, boundContent)
                     : selectedFieldValue(entry)
             ))
             .filter((entry) => entry !== null && entry.length > 0)
             .slice(0, MAX_EVENT_FIELDS);
 
-        return optionalContent(lines.join('\n'));
+        const content = lines.join('\n');
+
+        return boundContent ? optionalContent(content) : content;
     }
     if (typeof structuredValue !== 'object') return '';
     const lines = Object.entries(structuredValue)
@@ -88,16 +91,28 @@ function selectedEventContent(value) {
         .filter((entry) => entry !== null)
         .slice(0, MAX_EVENT_FIELDS);
 
-    return optionalContent(lines.join('\n'));
+    const content = lines.join('\n');
+
+    return boundContent ? optionalContent(content) : content;
 }
 
 function fileChangeContent(changes) {
     if (!Array.isArray(changes)) return '';
 
     return changes
-        .filter((change) => typeof change?.path === 'string' && typeof change?.kind === 'string')
-        .map(({ kind, path }) => `${kind}: ${path}`)
+        .filter((change) => typeof change?.path === 'string' && typeof change?.kind?.type === 'string')
+        .map(({ kind, path }) => `${kind.type}: ${path}`)
         .join('\n');
+}
+
+/** Count lines in complete added or deleted file content without treating a terminal newline as another line. */
+function countFileContentLines(content) {
+    if (typeof content !== 'string') return null;
+    if (content.length === 0) return 0;
+
+    const lines = content.replace(/\r\n/gu, '\n').split('\n');
+
+    return lines.at(-1) === '' ? lines.length - 1 : lines.length;
 }
 
 /** Count content-line additions and removals in one structurally valid unified diff. */
@@ -141,26 +156,42 @@ function countUnifiedDiffLines(diff) {
 
 function fileChangeLineUsage(changes) {
     if (!Array.isArray(changes)) return null;
-    const countedDiffs = changes
-        .map(({ diff }) => countUnifiedDiffLines(diff))
-        .filter((usage) => usage !== null);
-    if (countedDiffs.length === 0) return null;
+    const countedChanges = changes
+        .map(({ diff, kind }) => {
+            if (kind?.type === 'add' || kind?.type === 'delete') {
+                const lineCount = countFileContentLines(diff);
+                if (lineCount === null) return null;
 
-    return countedDiffs.reduce((total, usage) => ({
+                return kind.type === 'add'
+                    ? { deletions: 0, insertions: lineCount }
+                    : { deletions: lineCount, insertions: 0 };
+            }
+            if (kind?.type === 'update') return countUnifiedDiffLines(diff);
+
+            return null;
+        })
+        .filter((usage) => usage !== null);
+    if (countedChanges.length === 0) return null;
+
+    return countedChanges.reduce((total, usage) => ({
         deletions: total.deletions + usage.deletions,
         insertions: total.insertions + usage.insertions,
     }), { deletions: 0, insertions: 0 });
 }
 
+function canonicalCodexItemType(type) {
+    return type.replace(/[^a-z]/giu, '').toLowerCase() === 'filechange' ? 'fileChange' : type;
+}
+
 function toolResult(item) {
     if (item.error?.message) return item.error.message;
     if (item.result) {
-        const content = selectedEventContent(item.result.content);
-        const structuredContent = selectedEventContent(item.result.structuredContent);
+        const content = selectedEventContent(item.result.content, false);
+        const structuredContent = selectedEventContent(item.result.structuredContent, false);
 
-        return optionalContent([content, structuredContent].filter((value) => value.length > 0).join('\n'));
+        return [content, structuredContent].filter((value) => value.length > 0).join('\n');
     }
-    if (Array.isArray(item.contentItems)) return selectedEventContent(item.contentItems);
+    if (Array.isArray(item.contentItems)) return selectedEventContent(item.contentItems, false);
     if (typeof item.success === 'boolean') return item.success ? 'Succeeded' : 'Failed';
 
     return '';
@@ -192,7 +223,7 @@ function commandEvent(item, lifecycleStatus) {
     return {
         ...eventBase(item, lifecycleStatus, item.command || 'Command'),
         command: item.command,
-        content: item.aggregatedOutput ?? '',
+        content: boundedAgentResult(normalizedContent(item.aggregatedOutput) ?? ''),
         durationMs: item.durationMs,
         exitCode: item.exitCode,
         workingDirectory: item.cwd,
@@ -217,7 +248,7 @@ function mcpEvent(item, lifecycleStatus) {
         ...eventBase(item, lifecycleStatus, label || 'MCP tool'),
         content: selectedEventContent(item.arguments),
         durationMs: item.durationMs,
-        output: toolResult(item),
+        output: boundedAgentResult(toolResult(item)),
     };
 }
 
@@ -228,7 +259,7 @@ function dynamicToolEvent(item, lifecycleStatus) {
         ...eventBase(item, lifecycleStatus, label || 'Dynamic tool'),
         content: selectedEventContent(item.arguments),
         durationMs: item.durationMs,
-        output: toolResult(item),
+        output: boundedAgentResult(toolResult(item)),
     };
 }
 
@@ -238,42 +269,44 @@ function collaborationEvent(item, lifecycleStatus) {
     return {
         ...eventBase(item, lifecycleStatus, `Collaboration: ${toolLabel}`),
         content: item.prompt ?? '',
-        output: selectedEventContent({
+        output: boundedAgentResult(selectedEventContent({
             agentsStates: item.agentsStates,
             receiverThreadIds: item.receiverThreadIds,
-        }),
+        }, false)),
     };
 }
 
 function normalizeCodexEvent(item, lifecycleStatus) {
     if (!item || typeof item.id !== 'string' || typeof item.type !== 'string') return null;
-    if (!SUPPORTED_CODEX_ITEM_TYPES.has(item.type)) return null;
-    if (item.type === 'reasoning') return reasoningEvent(item, lifecycleStatus);
-    if (item.type === 'commandExecution') return commandEvent(item, lifecycleStatus);
-    if (item.type === 'fileChange') return fileEvent(item, lifecycleStatus);
-    if (item.type === 'mcpToolCall') return mcpEvent(item, lifecycleStatus);
-    if (item.type === 'dynamicToolCall') return dynamicToolEvent(item, lifecycleStatus);
-    if (item.type === 'collabAgentToolCall') return collaborationEvent(item, lifecycleStatus);
-    if (item.type === 'webSearch') {
+    const type = canonicalCodexItemType(item.type);
+    if (!SUPPORTED_CODEX_ITEM_TYPES.has(type)) return null;
+    const normalizedItem = type === item.type ? item : { ...item, type };
+    if (type === 'reasoning') return reasoningEvent(normalizedItem, lifecycleStatus);
+    if (type === 'commandExecution') return commandEvent(normalizedItem, lifecycleStatus);
+    if (type === 'fileChange') return fileEvent(normalizedItem, lifecycleStatus);
+    if (type === 'mcpToolCall') return mcpEvent(normalizedItem, lifecycleStatus);
+    if (type === 'dynamicToolCall') return dynamicToolEvent(normalizedItem, lifecycleStatus);
+    if (type === 'collabAgentToolCall') return collaborationEvent(normalizedItem, lifecycleStatus);
+    if (type === 'webSearch') {
         return {
-            ...eventBase(item, lifecycleStatus, 'Web search'),
-            content: item.query,
-            output: optionalContent(item.action),
+            ...eventBase(normalizedItem, lifecycleStatus, 'Web search'),
+            content: normalizedItem.query,
+            output: boundedAgentResult(normalizedContent(normalizedItem.action) ?? ''),
         };
     }
-    if (item.type === 'imageView') {
-        return { ...eventBase(item, lifecycleStatus, 'Image view'), content: item.path };
+    if (type === 'imageView') {
+        return { ...eventBase(normalizedItem, lifecycleStatus, 'Image view'), content: normalizedItem.path };
     }
-    if (item.type === 'plan') {
-        return { ...eventBase(item, lifecycleStatus, 'Plan'), content: item.text };
+    if (type === 'plan') {
+        return { ...eventBase(normalizedItem, lifecycleStatus, 'Plan'), content: normalizedItem.text };
     }
-    if (item.type === 'contextCompaction') {
-        return { ...eventBase(item, lifecycleStatus, 'Context compacted') };
+    if (type === 'contextCompaction') {
+        return { ...eventBase(normalizedItem, lifecycleStatus, 'Context compacted') };
     }
-    if (item.type === 'enteredReviewMode' || item.type === 'exitedReviewMode') {
-        const label = item.type === 'enteredReviewMode' ? 'Entered review mode' : 'Exited review mode';
+    if (type === 'enteredReviewMode' || type === 'exitedReviewMode') {
+        const label = type === 'enteredReviewMode' ? 'Entered review mode' : 'Exited review mode';
 
-        return { ...eventBase(item, lifecycleStatus, label), content: item.review };
+        return { ...eventBase(normalizedItem, lifecycleStatus, label), content: normalizedItem.review };
     }
 
     return null;

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, renderHook } from '@testing-library/react'
-import { DEFAULT_STATES, defaultColumnAccent, type AgentConversation, type CommitRequest, type MarkdownFile, type StorageProjectFiles, type StorageService } from '../../data/data_types'
+import { DEFAULT_STATES, defaultColumnAccent, type AgentConversation, type CommitRequest, type MarkdownFile, type ProjectWatchEvent, type StorageProjectFiles, type StorageService } from '../../data/data_types'
 import type { RawActionDefinition } from '../../data/action_types'
 import { actionService } from '../actions/action_service'
 import { configService } from '../config/config_service'
@@ -16,6 +16,16 @@ import { openFilesService } from '../open_files_service'
 import { useCardColumnCards } from '../../components/card_view/use_card_column_cards'
 import { useCardBody, useCardMetadata, useCardTitle } from '../../components/card_view/use_project_card'
 import { mergeConflictService } from './merge_conflict_service'
+import { createAgentTokenUsageSummary, serializeAgentTokenUsageSummary } from '../../../../shared/agent_token_usage_summary.mjs'
+import type { ElectronDataBridge } from '../../data/electron_data_bridge'
+import { LocalGitStorageService } from '../data/local_git_storage_service'
+import { projectAgentTokenUsageService } from '../agents/project_agent_token_usage_service'
+
+function loadedTextPaths(mock: unknown) {
+    const calls = (mock as { mock: { calls: unknown[][] } }).mock.calls
+
+    return calls.map((call) => call[1])
+}
 
 class ProjectLoadingMockWebSocket extends EventTarget {
     static instances: ProjectLoadingMockWebSocket[] = []
@@ -124,6 +134,82 @@ describe('ProjectLoading', () => {
         }
     })
 
+    it('creates a missing summary through the local bridge without reading the absent path', async () => {
+        configService.init()
+        const project = { branch: 'main', id: 'C:/repo', rootPath: 'C:/repo' }
+        const commit = vi.fn(async () => [])
+        const loadTextFile = vi.fn(async () => {
+            throw new Error('ENOENT: agent_token_usage.json')
+        })
+        const bridge = {
+            commit,
+            hasPendingPush: vi.fn(async () => false),
+            listRepositoryFiles: vi.fn(async () => ['design/F-1-root.md']),
+            loadActionFiles: vi.fn(async () => []),
+            loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
+            loadProjectConfig: vi.fn(async () => ({ projectFolder: 'design', pushMode: 'manual', workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
+            loadTextFile,
+            getMergeConflictSession: vi.fn(async () => null),
+            onMergeConflictSessionChanged: vi.fn(() => vi.fn()),
+            onWorktreesChanged: vi.fn(() => vi.fn()),
+            watchProject: vi.fn(() => vi.fn()),
+        } as unknown as ElectronDataBridge
+        const storage = new LocalGitStorageService()
+        storage.init({ bridge })
+        const service = createDataService()
+        const warnings = recordDialogMessages('warning')
+        const captureError = vi.spyOn(telemetryService, 'captureError').mockImplementation(() => undefined)
+
+        try {
+            service.init({ storage })
+            await service.projectLoading.openProject(project)
+
+            expect(loadTextFile).not.toHaveBeenCalled()
+            expect(commit).toHaveBeenCalledWith(expect.objectContaining({files: [expect.objectContaining({ path: 'design/agent_token_usage.json' })]}))
+            expect(warnings.messages).toEqual([])
+            expect(captureError).not.toHaveBeenCalled()
+        } finally {
+            warnings.stop()
+            captureError.mockRestore()
+        }
+    })
+
+    it('reports one handled warning when a watched summary becomes malformed', async () => {
+        configService.init()
+        let summaryContent = serializeAgentTokenUsageSummary(createAgentTokenUsageSummary())
+        let watchChange: (event: ProjectWatchEvent) => void = () => undefined
+        const storage = createStorage({
+            loadTextFile: vi.fn(async (_project, path) => ({ content: summaryContent, path })),
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        const warnings = recordDialogMessages('warning')
+        const captureError = vi.spyOn(telemetryService, 'captureError').mockImplementation(() => undefined)
+
+        try {
+            service.init({ storage })
+            await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+            const previousSummary = projectAgentTokenUsageService.getSnapshot()
+            summaryContent = '{broken'
+
+            watchChange({ changeKind: 'changed', path: 'agent_token_usage.json' })
+            watchChange({ changeKind: 'changed', path: 'agent_token_usage.json' })
+
+            await vi.waitFor(() => expect(warnings.messages).toHaveLength(1))
+            expect(warnings.messages[0]).toContain('Agent token usage could not be loaded and was skipped.')
+            expect(captureError).toHaveBeenCalledOnce()
+            expect(projectAgentTokenUsageService.getSnapshot()).toBe(previousSummary)
+        } finally {
+            warnings.stop()
+            captureError.mockRestore()
+        }
+    })
+
     it('reports a primary project-load failure once with the original error', async () => {
         configService.init()
         const error = new Error('Project root unavailable')
@@ -154,13 +240,12 @@ describe('ProjectLoading', () => {
         configService.init()
         const activityPath = 'design/activity/card__root-card.json'
         const validReference = `${activityPath}#conversation=agent-1`
-        const missingReference = `${activityPath}#conversation=missing`
         const rootFile: MarkdownFile = {
-            content: `---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - ${validReference}\n  - ${missingReference}\n---\n`,
+            content: `---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - ${activityPath}\n---\n`,
             path: 'design/F-1-root.md',
         }
         const otherFile: MarkdownFile = {
-            content: `---\nid: F-2\ninternalId: other-card\ntitle: Other\nstatus: active\nagents:\n  - ${validReference}\n---\n`,
+            content: `---\nid: F-2\ninternalId: other-card\ntitle: Other\nstatus: active\nagents:\n  - ${activityPath}\n---\n`,
             path: 'design/F-2-other.md',
         }
         const repairedConversation = { ...conversation(validReference), actionId: 'implement' }
@@ -168,9 +253,11 @@ describe('ProjectLoading', () => {
             ...JSON.parse(activityContent({ cardInternalId: 'root-card', kind: 'card' }, [repairedConversation])),
             actionSettings: { broken: { agent: 'codex' } },
         })
-        const loadTextFile = vi.fn(async () => ({ content: malformedActivity, path: activityPath }))
+        const loadTextFile = vi.fn(async (_project, path) => path === 'agent_token_usage.json'
+            ? { content: serializeAgentTokenUsageSummary(createAgentTokenUsageSummary()), path }
+            : { content: malformedActivity, path: activityPath })
         const storage = createStorage({
-            listRepositoryFiles: vi.fn(async () => [rootFile.path, otherFile.path, activityPath]),
+            listRepositoryFiles: vi.fn(async () => ['agent_token_usage.json', rootFile.path, otherFile.path, activityPath]),
             loadProject: vi.fn(async () => ({ files: [rootFile, otherFile], workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: [rootFile, otherFile], workingFolder: 'design' })),
             loadTextFile,
@@ -180,12 +267,93 @@ describe('ProjectLoading', () => {
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         expect(storage.commit).not.toHaveBeenCalled()
-        expect(loadTextFile).not.toHaveBeenCalled()
+        expect(loadedTextPaths(loadTextFile)).toEqual(['agent_token_usage.json'])
         expect(storage.loadAgentConversation).not.toHaveBeenCalled()
-        expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual([validReference, missingReference])
+        expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual([activityPath])
         expect(service.getState().snapshot?.activeCards[0].agentConversations).toEqual([])
-        expect(service.getState().snapshot?.activeCards[1].header.agentLogReferences).toEqual([validReference])
+        expect(service.getState().snapshot?.activeCards[1].header.agentLogReferences).toEqual([activityPath])
         expect(repairedConversation.actionId).toBe('implement')
+    })
+
+    it('migrates card conversation references in one batched save', async () => {
+        configService.init()
+        const activityPath = 'design/activity/card__shared.json'
+        const firstFile: MarkdownFile = {
+            content: `---\nid: F-1\ninternalId: card-1\ntitle: First\nstatus: active\nagents:\n  - ${activityPath}#conversation=agent-1\n  - ${activityPath}#conversation=agent-2\n---\n`,
+            path: 'design/F-1-first.md',
+        }
+        const secondFile: MarkdownFile = {
+            content: `---\nid: F-2\ninternalId: card-2\ntitle: Second\nstatus: active\nagents:\n  - ${activityPath}#conversation=agent-3\n---\n`,
+            path: 'design/F-2-second.md',
+        }
+        const commit = vi.fn(async (request: CommitRequest) => request.files.filter(() => false))
+        const storage = createStorage({
+            commit,
+            loadProject: vi.fn(async () => ({ files: [firstFile, secondFile], workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [firstFile, secondFile], workingFolder: 'design' })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        expect(commit).toHaveBeenCalledOnce()
+        const migrationCommit = commit.mock.calls[0]?.[0]
+        expect(migrationCommit?.files).toHaveLength(2)
+        expect(migrationCommit?.files.every(({ content }) => !content.includes('#conversation='))).toBe(true)
+        expect(service.getState().snapshot?.activeCards.map(({ header }) => header.agentLogReferences))
+            .toEqual([[activityPath], [activityPath]])
+    })
+
+    it('keeps a failed reference migration pending for retry', async () => {
+        configService.init()
+        const activityPath = 'design/activity/card__card-1.json'
+        const cardFile: MarkdownFile = {
+            content: `---\nid: F-1\ninternalId: card-1\ntitle: Card\nstatus: active\nagents:\n  - ${activityPath}#conversation=agent-1\n---\n`,
+            path: 'design/F-1-card.md',
+        }
+        const failure = new Error('Migration commit failed')
+        const storage = createStorage({
+            commit: vi.fn(async () => {
+                throw failure
+            }),
+            loadProject: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+
+        await expect(service.projectLoading.openProject({ branch: 'main', id: 'project' })).rejects.toBe(failure)
+
+        expect(service.getPersistenceSnapshot().hasPendingFileCommit).toBe(true)
+    })
+
+    it('reports conflicting activity paths without changing or saving the card', async () => {
+        configService.init()
+        const firstReference = 'design/activity/card__first.json#conversation=agent-1'
+        const secondReference = 'design/activity/card__second.json#conversation=agent-2'
+        const cardFile: MarkdownFile = {
+            content: `---\nid: F-1\ninternalId: card-1\ntitle: Card\nstatus: active\nagents:\n  - ${firstReference}\n  - ${secondReference}\n---\n`,
+            path: 'design/F-1-card.md',
+        }
+        const warnings = recordDialogMessages('warning')
+        const storage = createStorage({
+            loadProject: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
+        })
+        const service = createDataService()
+        try {
+            service.init({ storage })
+
+            await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+            expect(storage.commit).not.toHaveBeenCalled()
+            expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences)
+                .toEqual([firstReference, secondReference])
+            expect(warnings.messages.some((message) => message.includes('multiple activity files'))).toBe(true)
+        } finally {
+            warnings.stop()
+        }
     })
 
     it('does not inspect clean activity during project load', async () => {
@@ -193,25 +361,27 @@ describe('ProjectLoading', () => {
         const activityPath = 'design/activity/card__root-card.json'
         const reference = `${activityPath}#conversation=agent-1`
         const rootFile: MarkdownFile = {
-            content: `---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - ${reference}\n---\n`,
+            content: `---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - ${activityPath}\n---\n`,
             path: 'design/F-1-root.md',
         }
         const sourceConversation = conversation(reference)
         const storage = createStorage({
-            listRepositoryFiles: vi.fn(async () => [rootFile.path, activityPath]),
+            listRepositoryFiles: vi.fn(async () => ['agent_token_usage.json', rootFile.path, activityPath]),
             loadProject: vi.fn(async () => ({ files: [rootFile], workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: [rootFile], workingFolder: 'design' })),
-            loadTextFile: vi.fn(async () => ({
-                content: activityContent({ cardInternalId: 'root-card', kind: 'card' }, [sourceConversation]),
-                path: activityPath,
-            })),
+            loadTextFile: vi.fn(async (_project, path) => path === 'agent_token_usage.json'
+                ? { content: serializeAgentTokenUsageSummary(createAgentTokenUsageSummary()), path }
+                : {
+                    content: activityContent({ cardInternalId: 'root-card', kind: 'card' }, [sourceConversation]),
+                    path: activityPath,
+                }),
         })
         const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
-        expect(storage.loadTextFile).not.toHaveBeenCalled()
+        expect(loadedTextPaths(storage.loadTextFile)).toEqual(['agent_token_usage.json'])
         expect(service.getState().snapshot?.activeCards[0].agentConversations).toEqual([])
         expect(storage.commit).not.toHaveBeenCalled()
     })
@@ -228,19 +398,25 @@ describe('ProjectLoading', () => {
             id: 'project-agent',
         }
         const storage = createStorage({
-            listRepositoryFiles: vi.fn(async () => [...storageFiles.map(({ path }) => path), projectActivityPath]),
+            listRepositoryFiles: vi.fn(async () => [
+                'agent_token_usage.json',
+                ...storageFiles.map(({ path }) => path),
+                projectActivityPath,
+            ]),
             listAgentConversationReferences: vi.fn(async () => [reference]),
             loadAgentConversation: vi.fn(async () => projectConversation),
-            loadTextFile: vi.fn(async () => ({
-                content: activityContent({ kind: 'project' }, [projectConversation]),
-                path: projectActivityPath,
-            })),
+            loadTextFile: vi.fn(async (_project, path) => path === 'agent_token_usage.json'
+                ? { content: serializeAgentTokenUsageSummary(createAgentTokenUsageSummary()), path }
+                : {
+                    content: activityContent({ kind: 'project' }, [projectConversation]),
+                    path: projectActivityPath,
+                }),
         })
         const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
-        expect(storage.loadTextFile).not.toHaveBeenCalled()
+        expect(loadedTextPaths(storage.loadTextFile)).toEqual(['agent_token_usage.json'])
         expect(storage.listAgentConversationReferences).not.toHaveBeenCalled()
         expect(storage.loadAgentConversation).not.toHaveBeenCalled()
         await expect(service.listAgentConversations({ kind: 'project' })).resolves.toEqual([projectConversation])
@@ -253,9 +429,8 @@ describe('ProjectLoading', () => {
     it('does not parse or repair malformed history when reopening a project', async () => {
         configService.init()
         const activityPath = 'design/activity/card__root-card.json'
-        const reference = `${activityPath}#conversation=missing`
         let storedCard: MarkdownFile = {
-            content: `---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - ${reference}\n---\n`,
+            content: `---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - ${activityPath}\n---\n`,
             path: 'design/F-1-root.md',
         }
         let storedActivity: MarkdownFile = { content: '{broken', path: activityPath }
@@ -267,10 +442,12 @@ describe('ProjectLoading', () => {
 
             return []
         })
-        const loadTextFile = vi.fn(async () => storedActivity)
+        const loadTextFile = vi.fn(async (_project, path) => path === 'agent_token_usage.json'
+            ? { content: serializeAgentTokenUsageSummary(createAgentTokenUsageSummary()), path }
+            : storedActivity)
         const storage = createStorage({
             commit,
-            listRepositoryFiles: vi.fn(async () => [storedCard.path, activityPath]),
+            listRepositoryFiles: vi.fn(async () => ['agent_token_usage.json', storedCard.path, activityPath]),
             loadProject: vi.fn(async () => ({ files: [storedCard], workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: [storedCard], workingFolder: 'design' })),
             loadTextFile,
@@ -282,7 +459,7 @@ describe('ProjectLoading', () => {
         await service.projectLoading.openProject(project)
         await service.projectLoading.openProject(project)
         expect(storedActivity.content).toBe('{broken')
-        expect(loadTextFile).not.toHaveBeenCalled()
+        expect(loadedTextPaths(loadTextFile)).toEqual(['agent_token_usage.json', 'agent_token_usage.json'])
         expect(commit).not.toHaveBeenCalled()
     })
 
@@ -296,9 +473,11 @@ describe('ProjectLoading', () => {
             content: `---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - ${futureReference}\n  - ${missingReference}\n---\n`,
             path: 'design/F-1-root.md',
         }
-        const loadTextFile = vi.fn(async () => ({ content: JSON.stringify({ version: 5 }), path: futurePath }))
+        const loadTextFile = vi.fn(async (_project, path) => path === 'agent_token_usage.json'
+            ? { content: serializeAgentTokenUsageSummary(createAgentTokenUsageSummary()), path }
+            : { content: JSON.stringify({ version: 5 }), path: futurePath })
         const storage = createStorage({
-            listRepositoryFiles: vi.fn(async () => [rootFile.path, futurePath]),
+            listRepositoryFiles: vi.fn(async () => ['agent_token_usage.json', rootFile.path, futurePath]),
             loadProject: vi.fn(async () => ({ files: [rootFile], workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: [rootFile], workingFolder: 'design' })),
             loadTextFile,
@@ -308,7 +487,7 @@ describe('ProjectLoading', () => {
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         expect(storage.commit).not.toHaveBeenCalled()
-        expect(loadTextFile).not.toHaveBeenCalled()
+        expect(loadedTextPaths(loadTextFile)).toEqual(['agent_token_usage.json'])
         expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual([futureReference, missingReference])
     })
 
@@ -316,9 +495,8 @@ describe('ProjectLoading', () => {
         configService.init()
         const activityPath = 'design/activity/card__root-card.json'
         const validReference = `${activityPath}#conversation=agent-1`
-        const missingReference = `${activityPath}#conversation=missing`
         const rootFile: MarkdownFile = {
-            content: `---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - ${validReference}\n  - ${missingReference}\n---\n`,
+            content: `---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - ${activityPath}\n---\n`,
             path: 'design/F-1-root.md',
         }
         const sourceConversation = { ...conversation(validReference), actionId: null }
@@ -335,10 +513,12 @@ describe('ProjectLoading', () => {
         })
         const storage = createStorage({
             commit,
-            listRepositoryFiles: vi.fn(async () => [rootFile.path, activityPath]),
+            listRepositoryFiles: vi.fn(async () => ['agent_token_usage.json', rootFile.path, activityPath]),
             loadProject: vi.fn(async () => ({ files: [rootFile], workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: [rootFile], workingFolder: 'design' })),
-            loadTextFile: vi.fn(async () => ({ content: malformedActivity, path: activityPath })),
+            loadTextFile: vi.fn(async (_project, path) => path === 'agent_token_usage.json'
+                ? { content: serializeAgentTokenUsageSummary(createAgentTokenUsageSummary()), path }
+                : { content: malformedActivity, path: activityPath }),
         })
         const dialogs = recordDialogMessages('error')
         const captureError = vi.spyOn(telemetryService, 'captureError').mockImplementation(() => undefined)
@@ -349,11 +529,11 @@ describe('ProjectLoading', () => {
 
             await service.projectLoading.openProject({ branch: 'main', id: 'project' })
             expect(dialogs.messages).toEqual([])
-            expect(storage.loadTextFile).not.toHaveBeenCalled()
+            expect(loadedTextPaths(storage.loadTextFile)).toEqual(['agent_token_usage.json'])
             expect(commit).not.toHaveBeenCalled()
             expect(captureError).not.toHaveBeenCalled()
             expect(service.getPersistenceSnapshot().hasPendingFileCommit).toBe(false)
-            expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual([validReference, missingReference])
+            expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual([activityPath])
             expect(sourceConversation.actionId).toBeNull()
             expect(repairError.message).toBe('Git commit failed')
             expect(commitShouldFail).toBe(true)
@@ -689,12 +869,13 @@ describe('ProjectLoading', () => {
         const mergedCard = service.getState().snapshot?.activeCards[0]
         expect(mergedCard).toBe(ownedCard)
         expect(mergedCard?.header.status).toBe('ready')
-        expect(mergedCard?.header.agentLogReferences).toEqual([reference])
+        expect(mergedCard?.header.agentLogReferences).toEqual(['design/activity/card__root-card.json'])
 
         await service.cards.flushPendingCommits()
         const persisted = commit.mock.calls.at(-1)?.[0].files.find(({ path }) => path === ownedCard.path)
         expect(persisted?.content).toContain('status: ready')
-        expect(persisted?.content).toContain(`  - ${reference}`)
+        expect(persisted?.content).toContain('  - design/activity/card__root-card.json')
+        expect(persisted?.content).not.toContain('#conversation=')
     })
 
     it('reports background project load failures while keeping the root snapshot available', async () => {
@@ -1604,6 +1785,49 @@ describe('ProjectLoading', () => {
 
         const card = service.getState().snapshot?.activeCards.find((candidate) => candidate.path === 'design/F-1-root.md')
         expect(card?.content).toContain('# Root')
+    })
+
+    it('ignores the watcher echo of a committed card rename while the card is still being edited', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        let watchChange: (event: { changeKind: 'added' | 'changed' | 'removed' | 'unknown'; path: string }) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        let movedContent = ''
+        const storage = createStorage({
+            commit: vi.fn(async (request: CommitRequest) => {
+                const move = request.moves?.[0]
+                if (move) movedContent = move.content
+
+                return []
+            }),
+            loadFile: vi.fn(async (_project, path) => ({ content: movedContent, path })),
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        const conflicts = recordDialogMessages('error')
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        openFilesService.init({ actionService, dataService: service })
+        const projectCard = service.getState().snapshot?.activeCards.find(({ path }) => path === 'design/F-1-root.md')
+        if (!projectCard) throw new Error('Expected loaded card')
+        const document = openFilesService.openDocument(projectCard)
+        if (document.kind !== 'card') throw new Error('Expected card document')
+
+        try {
+            await service.cards.updateCardTitle('design/F-1-root.md', 'Renamed Root')
+            document.updateDraft({ content: '# Renamed Root\n\nStill typing' }, 'list-card')
+            watchChange({ changeKind: 'added', path: 'design/F-1-renamed-root.md' })
+            await vi.advanceTimersByTimeAsync(150)
+
+            expect(conflicts.messages).toEqual([])
+        } finally {
+            conflicts.stop()
+        }
     })
 
     it('reports a conflict and keeps local markdown content when unsaved edits exist', async () => {

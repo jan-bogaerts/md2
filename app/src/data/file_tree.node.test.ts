@@ -17,6 +17,7 @@ function card(path: string, overrides: Partial<Card['header']> = {}): Card {
             internalId: null,
             owner: null,
             policy: {},
+            references: [],
             status: null,
             title: 'Untitled',
             ...overrides,

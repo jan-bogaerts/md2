@@ -63,7 +63,7 @@ const card: Card = {
     content: '',
     header: {
         affects: [], after: null, agentLogReferences: [], author: null, id: 'F-010', internalId: 'f-010', owner: null,
-        policy: {}, status: 'design', title: 'Feature',
+        policy: {}, references: [], status: 'design', title: 'Feature',
     },
     hasFrontmatter:true,
     isActive: true,
@@ -165,6 +165,17 @@ describe('CardRunButton', () => {
 
         const dialog = within(screen.getByRole('dialog', { name: 'Run actions for F-010' }))
         expect(within(dialog.getByTestId('action-popup-toolbar')).getByText('F-010')).toBeInTheDocument()
+    })
+
+    it('shows persisted waiting state on its action before any live run exists', () => {
+        const waitingCard = cardWith([conversation('waitingForInput', [], 'implement')])
+        renderCardRunButton(waitingCard)
+
+        fireEvent.click(screen.getByRole('button', { name: /Run.*Agent is waiting for input/u }))
+
+        const actionGroup = within(screen.getByRole('group', { name: 'Actions' }))
+        const implementButton = actionGroup.getByRole('button', { name: /Implement.*Agent is waiting for input/u })
+        expect(within(implementButton).getByTestId('HelpCircleOutlineIcon')).toBeInTheDocument()
     })
 
     it('opens the card action popup while an action is running', () => {

@@ -1,4 +1,4 @@
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ActionRunEvent } from '../../../data/action_run_types'
 import type { AgentConversation } from '../../../data/data_types'
@@ -35,6 +35,10 @@ function conversation(
         providerSessions: [],
         startedAt: '2026-08-04T10:00:00.000Z',
         status: 'completed',
+        timer: {
+            elapsedMs: Date.parse(completedAt) - Date.parse('2026-08-04T10:00:00.000Z'),
+            runningStartedAt: null,
+        },
         title: id,
         viewed: true,
     }
@@ -68,7 +72,7 @@ describe('ActionConversationChatOwner', () => {
         setActionBridgeOverride(null)
     })
 
-    it('renders streamed output from its conversation selector', () => {
+    it('renders streamed output and live context usage from its conversation selector', async () => {
         let listener: ((event: ActionRunEvent) => void) | null = null
         const bridge = {
             onActionRun: vi.fn((nextListener) => {
@@ -99,7 +103,6 @@ describe('ActionConversationChatOwner', () => {
                         cardInternalId: null,
                         cardPath: context.file,
                         completedAt: null,
-                        contextWindowUsage: { capacityTokens: 200, usedTokens: 50 },
                         entries: [],
                         hasExplicitTitle: false,
                         id: 'conversation-1',
@@ -122,10 +125,25 @@ describe('ActionConversationChatOwner', () => {
         }))
 
         expect(screen.getByText('streamed')).toBeInTheDocument()
-        expect(screen.getByText('context: 25%')).toBeInTheDocument()
+        expect(screen.queryByRole('progressbar', { name: 'Context usage' })).not.toBeInTheDocument()
+
+        act(() => emit({
+            ...event,
+            type: 'update',
+            update: {
+                contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 },
+                kind: 'agentUsage',
+                usage: { cachedInputTokens: 0, inputTokens: 41_000, outputTokens: 1_000, reasoningTokens: 0, totalTokens: 42_000 },
+            },
+        }))
+
+        const progress = screen.getByRole('progressbar', { name: 'Context usage' })
+        expect(progress).toHaveAttribute('aria-valuenow', '16')
+        fireEvent.mouseOver(progress)
+        expect(await screen.findByText('Context usage: 16%', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()
     })
 
-    it('updates duration and context together when selected conversation changes', () => {
+    it('updates duration and context usage together when selected conversation changes', async () => {
         const firstConversation = conversation(
             'conversation-1',
             '2026-08-04T10:01:00.000Z',
@@ -144,12 +162,16 @@ describe('ActionConversationChatOwner', () => {
             </AppThemeProvider>,
         )
         expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('1:00')
-        expect(screen.getByText('context: 16%')).toBeInTheDocument()
+        const firstProgress = screen.getByRole('progressbar', { name: 'Context usage' })
+        expect(firstProgress).toHaveAttribute('aria-valuenow', '16')
+        fireEvent.mouseOver(firstProgress)
+        expect(await screen.findByText('Context usage: 16%', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()
 
         act(() => selectConversation(secondConversation))
 
         expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('2:30')
-        expect(screen.getByText('context: 50%')).toBeInTheDocument()
+        expect(screen.getByRole('progressbar', { name: 'Context usage' })).toHaveAttribute('aria-valuenow', '50')
+        expect(await screen.findByText('Context usage: 50%', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()
     })
 
     it.each(['activated', 'newly exposed'])('acknowledges unseen chat when popup becomes topmost: %s', async (scenario) => {

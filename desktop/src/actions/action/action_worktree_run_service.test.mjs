@@ -256,4 +256,32 @@ describe('ActionWorktreeRunService', () => {
         await runWithCardLock(runService, cardContext, laterRunner);
         expect(laterRunner).toHaveBeenCalledTimes(1);
     });
+
+    it('rejects release locking while a target card action is running', async () => {
+        const runService = service();
+        const completion = Promise.withResolvers();
+        const running = runWithCardLock(runService, { cardInternalId: 'card-1', kind: 'card' }, async () => {
+            await completion.promise;
+            return result();
+        });
+        await vi.waitFor(() => {
+            expect(() => runService.acquireReleaseCardLocks(primaryProject, ['card-1']))
+                .toThrow('Cannot complete release while a target card has a running action');
+        });
+
+        completion.resolve();
+        await running;
+    });
+
+    it('rejects new target-card actions until release locks are released', async () => {
+        const runService = service();
+        const leaseId = runService.acquireReleaseCardLocks(primaryProject, ['card-1', 'card-2']);
+
+        await expect(runWithCardLock(runService, { cardInternalId: 'card-1', kind: 'card' }, async () => result()))
+            .rejects.toThrow('Cannot start action while card release is in progress');
+
+        runService.releaseReleaseCardLocks(leaseId);
+        await expect(runWithCardLock(runService, { cardInternalId: 'card-1', kind: 'card' }, async () => result()))
+            .resolves.toEqual(result());
+    });
 });

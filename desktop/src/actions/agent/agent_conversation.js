@@ -1,4 +1,8 @@
 const { sumAgentTokenUsage } = require('../../../../shared/agent_usage_math.mjs');
+const {
+    AGENT_CONVERSATION_USAGE_SCHEMA_VERSION,
+    boundedAgentResult,
+} = require('../../../../shared/agent_conversations.mjs');
 
 function createMessageEntry(id, role, content, timestamp, agent, sequence) {
     return {
@@ -24,8 +28,11 @@ function createEventEntry(id, type, content, timestamp, sequence) {
 }
 
 function createProviderEventEntry(providerEvent, id, timestamp, sequence) {
+    const content = providerEvent.type === 'commandExecution' || providerEvent.type === 'tool.result'
+        ? boundedAgentResult(providerEvent.content)
+        : providerEvent.content;
     const event = {
-        content: providerEvent.content,
+        content,
         id,
         kind: 'event',
         label: providerEvent.label,
@@ -41,7 +48,9 @@ function createProviderEventEntry(providerEvent, id, timestamp, sequence) {
     if (Number.isFinite(providerEvent.durationMs)) event.durationMs = providerEvent.durationMs;
     if (Number.isSafeInteger(providerEvent.exitCode)) event.exitCode = providerEvent.exitCode;
     if (Number.isSafeInteger(providerEvent.insertions) && providerEvent.insertions >= 0) event.insertions = providerEvent.insertions;
-    if (typeof providerEvent.output === 'string') event.output = providerEvent.output;
+    if (providerEvent.type !== 'commandExecution' && typeof providerEvent.output === 'string') {
+        event.output = boundedAgentResult(providerEvent.output);
+    }
     if (Array.isArray(providerEvent.summary)) event.summary = [...providerEvent.summary];
     if (typeof providerEvent.workingDirectory === 'string') event.workingDirectory = providerEvent.workingDirectory;
 
@@ -52,16 +61,61 @@ function accumulateUsage(current, turn) {
     return sumAgentTokenUsage([current, turn]);
 }
 
+/** Updates conversation status and accumulates only completed running periods. */
+function transitionConversationStatus(conversation, status, transitionedAt) {
+    if (!conversation.timer) {
+        conversation.status = status;
+        return;
+    }
+
+    const wasRunning = conversation.status === 'running';
+    const isRunning = status === 'running';
+    if (wasRunning === isRunning) {
+        conversation.status = status;
+        return;
+    }
+    const transitionedAtMs = Date.parse(transitionedAt);
+    if (Number.isNaN(transitionedAtMs)) throw new Error('Invalid agent conversation timer transition timestamp');
+
+    if (isRunning) {
+        conversation.timer = { ...conversation.timer, runningStartedAt: transitionedAt };
+    } else {
+        const runningStartedAtMs = Date.parse(conversation.timer.runningStartedAt);
+        if (Number.isNaN(runningStartedAtMs)) throw new Error('Missing agent conversation running start timestamp');
+        if (transitionedAtMs < runningStartedAtMs) throw new Error('Agent conversation timer transition precedes running start');
+        conversation.timer = {
+            elapsedMs: conversation.timer.elapsedMs + transitionedAtMs - runningStartedAtMs,
+            runningStartedAt: null,
+        };
+    }
+    conversation.status = status;
+}
+
 function createConversation(request, id, startedAt, reference) {
     if (request.conversation) {
-        return {
+        const legacyUsage = request.conversation.usage && request.conversation.usageSchemaVersion === undefined
+            ? {
+                cachedInputTokens: 0,
+                inputTokens: 0,
+                legacyTotalTokens: request.conversation.usage.totalTokens,
+                outputTokens: 0,
+                reasoningTokens: 0,
+                totalTokens: request.conversation.usage.totalTokens,
+                ...(request.conversation.usage.costUsd !== undefined ? { costUsd: request.conversation.usage.costUsd } : {}),
+            }
+            : request.conversation.usage;
+        const conversation = {
             ...request.conversation,
             completedAt: null,
             entries: [...request.conversation.entries],
             path: reference,
             providerSessions: [...request.conversation.providerSessions],
-            status: 'running',
+            ...(legacyUsage ? { usage: legacyUsage } : {}),
+            usageSchemaVersion: AGENT_CONVERSATION_USAGE_SCHEMA_VERSION,
         };
+        transitionConversationStatus(conversation, 'running', startedAt);
+
+        return conversation;
     }
 
     return {
@@ -76,7 +130,9 @@ function createConversation(request, id, startedAt, reference) {
         providerSessions: [],
         startedAt,
         status: 'running',
+        timer: { elapsedMs: 0, runningStartedAt: startedAt },
         title: typeof request.title === 'string' && request.title.length > 0 ? request.title : 'Agent run',
+        usageSchemaVersion: AGENT_CONVERSATION_USAGE_SCHEMA_VERSION,
         viewed: true,
     };
 }
@@ -115,5 +171,6 @@ module.exports = {
     createEventEntry,
     createMessageEntry,
     snapshotConversation,
+    transitionConversationStatus,
     updateProviderSession,
 };

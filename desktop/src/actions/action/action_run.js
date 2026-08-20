@@ -2,6 +2,7 @@ const { ActionCancellationError } = require('./action_cancellation_error');
 const { executeCommandAction } = require('./action_command_executor');
 const { ActionPhaseError } = require('./action_phase_error');
 const { runWithGitOperationContext } = require('../../git/git_operation_context');
+const { resolvePopupPrompt } = require('./action_text');
 const {
     captureCommitReferences,
     combineOutput,
@@ -34,6 +35,7 @@ class ActionRun {
         this.localGitService = dependencies.localGitService;
         this.publisher = dependencies.publisher;
         this.activeAction = null;
+        this.activeAgentProject = null;
         this.activeAgentRunId = null;
         this.activeAgentQuestion = false;
         this.activeAgentApprovals = new Map();
@@ -67,7 +69,9 @@ class ActionRun {
         if (!this.activeAgentRunId) throw new Error(`Action run has no active streaming agent: ${this.runId}`);
         if (this.activeAgentQuestion) throw new Error('Answer pending structured question before sending queued prompt');
         if (this.activeAgentApprovals.size > 0) throw new Error('Answer pending approval before sending queued prompt');
-        return this.agentRunnerService.sendMessage(this.activeAgentRunId, content);
+        const prompt = this.resolveActiveAgentPrompt(content);
+
+        return this.agentRunnerService.sendMessage(this.activeAgentRunId, prompt);
     }
 
     beginAgentPromptDraft() {
@@ -78,8 +82,9 @@ class ActionRun {
 
     setAgentQueuedMessage(sessionId, content, revision) {
         if (!this.activeAgentRunId) throw new Error(`Action run has no active agent: ${this.runId}`);
+        const prompt = this.resolveActiveAgentPrompt(content);
 
-        return this.agentRunnerService.setQueuedMessage(this.activeAgentRunId, sessionId, content, revision);
+        return this.agentRunnerService.setQueuedMessage(this.activeAgentRunId, sessionId, prompt, revision);
     }
 
     sendQueuedAgentMessage(sessionId, revision) {
@@ -237,6 +242,7 @@ class ActionRun {
     clearActiveAction(action) {
         if (this.activeAction !== action) return;
         this.activeAction = null;
+        this.activeAgentProject = null;
         this.autoFinishPending = false;
     }
 
@@ -374,6 +380,7 @@ class ActionRun {
     }
 
     async executeAgentAction(action, phase, isRoot, project) {
+        this.activeAgentProject = project;
         const onActiveRunChange = (runId) => {
             this.activeAgentRunId = runId;
             if (runId) {
@@ -402,7 +409,11 @@ class ActionRun {
                 return;
             }
             if (agentEvent.type === 'state') {
-                this.publish(action, phase, agentEvent.state, { interactionReady: true, type: 'agentState' });
+                this.publish(action, phase, agentEvent.state, {
+                    interactionReady: true,
+                    ...(agentEvent.timer ? { timer: agentEvent.timer } : {}),
+                    type: 'agentState',
+                });
                 return;
             }
             if (agentEvent.type === 'question') {
@@ -512,6 +523,20 @@ class ActionRun {
         }
 
         return { ...result, changedPaths: [...changedPaths], stderr, stdout };
+    }
+
+    resolveActiveAgentPrompt(content) {
+        if (!this.activeAgentProject) throw new Error(`Action run has no active agent project: ${this.runId}`);
+
+        return resolvePopupPrompt(
+            content,
+            this.context,
+            this.activeAgentProject,
+            this.project,
+            this.projectFolder,
+            this.releasesFolder,
+            this.activeCardsFolder,
+        );
     }
 
     publish(action, phase, status, details) {

@@ -8,6 +8,7 @@ import { actionService } from './actions/action_service'
 import { agentCapabilitiesService } from './agents/agent_capabilities_service'
 import { codexCliUpdateService } from './agents/codex_cli_update_service'
 import { codexRateLimitService } from './agents/codex_rate_limit_service'
+import { claudeRateLimitService } from './agents/claude_rate_limit_service'
 import { dataService } from './data/data_service'
 import { githubAuthService, initDefaultGithubAuthService } from './github/github_auth_service'
 import { openFilesService } from './open_files_service'
@@ -15,6 +16,8 @@ import { isProjectLoadErrorReported } from './project/project_loading'
 import { projectPersistenceService } from './project/project_persistence_service'
 import { projectSessionService } from './project/project_session_service'
 import { register } from './service_injector'
+import { initDefaultSentryConnectionService, sentryConnectionService } from './sentry/sentry_connection_service'
+import { sentryImportService } from './sentry/sentry_import_service'
 
 export type ApplicationStartupPhase = 'ready' | 'starting'
 
@@ -37,6 +40,7 @@ function initializeServices() {
     const desktopConfig = readDesktopConfigFromBridge()
     configService.init({ desktopConfig })
     initDefaultGithubAuthService(githubAuthService)
+    initDefaultSentryConnectionService(sentryConnectionService)
     openFilesService.init({ actionService, dataService })
     projectPersistenceService.init({ actionService, dataService, openFilesService })
     cardMarkdownDataSource.init(dataService)
@@ -44,7 +48,9 @@ function initializeServices() {
     actionRunRegistry.start()
     actionRunSettingsService.init(dataService)
     codexCliUpdateService.start()
+    claudeRateLimitService.start()
     codexRateLimitService.start()
+    sentryImportService.start()
 }
 
 const DEFAULT_DEPENDENCIES: ApplicationStartupDependencies = {

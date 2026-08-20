@@ -16,9 +16,12 @@ import {
     Select,
     Stack,
     TextField,
+    ToggleButton,
+    ToggleButtonGroup,
+    Tooltip,
     Typography,
 } from '@mui/material'
-import { FolderOpen } from 'mdi-material-ui'
+import { FolderOpen, SourceRepository } from 'mdi-material-ui'
 import type { SelectChangeEvent } from '@mui/material'
 import type { ChangeEvent, MouseEvent } from 'react'
 import { useState } from 'react'
@@ -29,6 +32,7 @@ import { ProjectFolderSetupForm } from './project_folder_setup_form'
 import { WorkingFolderChooserDialog } from './working_folder_chooser_dialog'
 
 type ProjectSource = 'local' | 'personal' | 'public' | 'remote'
+type ProjectKind = 'folder' | 'repository'
 
 interface GithubBranchesResult {
     branches: BranchReference[]
@@ -83,6 +87,10 @@ function repositoryMatchesFilter(repository: RepositoryReference, filter: string
     if (normalizedFilter.length === 0) return true
 
     return repository.id.toLowerCase().includes(normalizedFilter)
+}
+
+function projectKind(source: ProjectSource): ProjectKind {
+    return source === 'personal' || source === 'public' ? 'repository' : 'folder'
 }
 
 /** Project open dialog for GitHub, local and remote project sources. */
@@ -150,8 +158,19 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
     const branchNames = branches.map(({ name }) => name)
     const branchSelectValue = selectValueExists(branchNames, selectedBranch) ? selectedBranch : ''
     const repositorySelectValue = selectValueExists(filteredRepositoryIds, selectedRepositoryId) ? selectedRepositoryId : ''
+    const selectedProjectKind = projectKind(source)
+    const isLocalRootPathEmpty = localRootPath.trim().length === 0
 
-    const handleSourceChange = (event: SelectChangeEvent) => {
+    const handleProjectKindChange = (_event: MouseEvent<HTMLElement>, nextProjectKind: ProjectKind | null) => {
+        if (!nextProjectKind) return
+
+        setSource(nextProjectKind === 'repository' ? 'personal' : isDesktopMode ? 'local' : 'remote')
+        setSelectedBranch('')
+        setSelectedRepositoryId('')
+        onSourceChange()
+    }
+
+    const handleRepositoryAccessChange = (event: SelectChangeEvent) => {
         setSource(event.target.value as ProjectSource)
         setSelectedBranch('')
         setSelectedRepositoryId('')
@@ -279,16 +298,51 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
                             </Button>
                         </Stack>
                     ) : null}
-                    {!projectOpenResolution ? <FormControl size="small">
-                        <InputLabel id="project-source-label">Source</InputLabel>
-                        <Select label="Source" labelId="project-source-label" onChange={handleSourceChange} value={source}>
-                            <MenuItem value="personal">Personal repository</MenuItem>
-                            <MenuItem value="public">Public repository</MenuItem>
-                            {isDesktopMode ? <MenuItem value="local">Local folder</MenuItem> : <MenuItem value="remote">Remote</MenuItem>}
-                        </Select>
-                    </FormControl> : null}
+                    {!projectOpenResolution ? (
+                        <ToggleButtonGroup
+                            aria-label="Project kind"
+                            exclusive
+                            fullWidth
+                            onChange={handleProjectKindChange}
+                            size="small"
+                            sx={{
+                                bgcolor: 'custom.track',
+                                gap: 0.5,
+                                p: 0.5,
+                                '& .MuiToggleButtonGroup-grouped': {
+                                    border: 0,
+                                    borderRadius: '6px !important',
+                                    color: 'text.secondary',
+                                    gap: 1,
+                                    '&.Mui-selected': {
+                                        bgcolor: 'background.paper',
+                                        color: 'primary.main',
+                                        boxShadow: 1,
+                                        '&:hover': { bgcolor: 'background.paper' },
+                                    },
+                                },
+                            }}
+                            value={selectedProjectKind}
+                        >
+                            <ToggleButton value="repository">
+                                <SourceRepository aria-hidden />
+                                Repository
+                            </ToggleButton>
+                            <ToggleButton value="folder">
+                                <FolderOpen aria-hidden />
+                                Folder
+                            </ToggleButton>
+                        </ToggleButtonGroup>
+                    ) : null}
                     {!projectOpenResolution && (source === 'personal' || source === 'public') ? (
                         <>
+                            <FormControl size="small">
+                                <InputLabel id="repository-access-label">Repository access</InputLabel>
+                                <Select label="Repository access" labelId="repository-access-label" onChange={handleRepositoryAccessChange} value={source}>
+                                    <MenuItem value="personal">Personal</MenuItem>
+                                    <MenuItem value="public">Public</MenuItem>
+                                </Select>
+                            </FormControl>
                             {source === 'personal' ? (
                                 <>
                                     <TextField disabled={!isGithubAuthenticated} label="Filter repositories" onChange={handleRepositoryFilterChange} size="small" value={repositoryFilter} />
@@ -330,18 +384,31 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
                             <TextField
                                 label="Local repository folder"
                                 onChange={handleLocalRootPathChange}
+                                placeholder="Choose or enter a local folder"
                                 size="small"
                                 slotProps={{
                                     input: {
                                         endAdornment: (
                                             <InputAdornment position="end">
-                                                <IconButton aria-label="Choose local repository folder" disabled={isLoading} edge="end" onClick={handleChooseLocalFolderClick}>
-                                                    <FolderOpen />
-                                                </IconButton>
+                                                <Tooltip title="Choose local repository folder">
+                                                    <span>
+                                                        <IconButton aria-label="Choose local repository folder" disabled={isLoading} edge="end" onClick={handleChooseLocalFolderClick}>
+                                                            <FolderOpen />
+                                                        </IconButton>
+                                                    </span>
+                                                </Tooltip>
                                             </InputAdornment>
                                         ),
                                     },
+                                    inputLabel: { shrink: true },
                                 }}
+                                sx={isLocalRootPathEmpty ? {
+                                    '& .MuiOutlinedInput-root': {
+                                        boxShadow: (theme) => `0 0 0 3px ${theme.palette.custom.primaryBg}`,
+                                        '& .MuiOutlinedInput-notchedOutline': { borderColor: 'primary.main' },
+                                        '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'primary.main' },
+                                    },
+                                } : undefined}
                                 value={localRootPath}
                             />
                             {recentLocalRepositories.length > 0 ? (

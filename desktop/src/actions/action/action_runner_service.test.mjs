@@ -55,10 +55,12 @@ function createRunner(actionFiles = [actionFile('main')], overrides = {}) {
         }),
         loadActionFiles: vi.fn(async () => actionFiles),
         loadAgentConversation: vi.fn(),
+        loadFile: vi.fn(async () => ({ content: '---\ntitle: Card\n---\n# Card', path: context.file })),
         loadProjectConfig: vi.fn(async () => ({ states: [{ state: 'design' }, { state: 'ready' }] })),
     };
     const commandRunner = vi.fn(async (_project, command) => ({ command, exitCode: 0, stderr: '', stdout: command }));
     const agentRunnerService = { start: vi.fn(), stop: vi.fn() };
+    const usageMetricsService = overrides.usageMetricsService ?? { startProject: vi.fn() };
     const actionWorktreeRunService = {
         execute: vi.fn(async (primaryProject, _action, _context, execute) => ({
             ...await execute(primaryProject),
@@ -75,11 +77,12 @@ function createRunner(actionFiles = [actionFile('main')], overrides = {}) {
         agentRunnerService,
         commandRunner,
         localGitService,
+        usageMetricsService,
         ...overrides,
     });
     runner.startProject(project, 'actions', 'design', 'design/releases', 'design/feature_descriptions');
 
-    return { actionWorktreeRunService, agentRunnerService, commandRunner, localGitService, runner };
+    return { actionWorktreeRunService, agentRunnerService, commandRunner, localGitService, runner, usageMetricsService };
 }
 
 async function runToCompletion(runner, request = { actionId: 'main', context, runInput: {} }) {
@@ -89,6 +92,12 @@ async function runToCompletion(runner, request = { actionId: 'main', context, ru
 }
 
 describe('ActionRunnerService', () => {
+    it('binds usage metrics to primary project before any worktree run starts', () => {
+        const { usageMetricsService } = createRunner();
+
+        expect(usageMetricsService.startProject).toHaveBeenCalledWith(project, 'design');
+    });
+
     it('reserves a root agent conversation before the action starts', async () => {
         const files = [actionFile('main', { agent: 'codex', command: undefined, prompt: 'Run', type: 'agent' })];
         const { localGitService, runner } = createRunner(files);
@@ -100,6 +109,7 @@ describe('ActionRunnerService', () => {
             'design',
             { cardInternalId: context.cardInternalId, kind: 'card' },
         );
+        expect(reservation.activityPath).toBe('design/activity/card__card-010.json');
         expect(reservation.reference).toBe(`design/activity/card__card-010.json#conversation=${reservation.conversationId}`);
     });
 
@@ -189,11 +199,11 @@ describe('ActionRunnerService', () => {
 
         runner.publish(firstEvent);
         runner.publish(secondEvent);
-        const events = runner.loadActiveRunEvents();
+        const { activeRunEvents: events } = runner.loadRunRecoverySnapshot([]);
         events[0].sequence = 99;
 
         expect(events).toEqual([{ ...firstEvent, sequence: 99 }, secondEvent]);
-        expect(runner.loadActiveRunEvents()).toEqual([firstEvent, secondEvent]);
+        expect(runner.loadRunRecoverySnapshot([]).activeRunEvents).toEqual([firstEvent, secondEvent]);
     });
 
     it('forwards card-state changes to every live run', () => {
@@ -275,6 +285,49 @@ describe('ActionRunnerService', () => {
         expect(actionWorktreeRunService.execute).not.toHaveBeenCalled();
         expect(agentRunnerService.start).not.toHaveBeenCalled();
         expect(localGitService.appendAndCommitActionActivity).not.toHaveBeenCalled();
+    });
+
+    it('prepares card prompt with references read from current persisted card', async () => {
+        const files = [actionFile('main', { command: undefined, prompt: 'Review card', type: 'agent' })];
+        const { localGitService, runner } = createRunner(files);
+        localGitService.loadFile.mockResolvedValueOnce({
+            content: '---\nreferences:\n  - assets/current.pdf\n  - C:\\outside\\current.txt\n---\nnot prompt content',
+            path: context.file,
+        });
+
+        await expect(runner.prepareActionPrompt({ actionId: 'main', context })).resolves.toEqual({ prompt: 'Review card\n\nCard references:\n- assets/current.pdf\n- C:\\outside\\current.txt' });
+        expect(localGitService.loadFile).toHaveBeenCalledWith(project, context.file);
+    });
+
+    it('adds current card references to linked agent phases but not command phases', async () => {
+        const files = [
+            actionFile('main', { onAfter: ['after-agent'], onBefore: ['before-agent'] }),
+            actionFile('before-agent', { command: undefined, prompt: 'Before', type: 'agent' }),
+            actionFile('after-agent', { command: undefined, prompt: 'After', type: 'agent' }),
+        ];
+        const { agentRunnerService, commandRunner, localGitService, runner } = createRunner(files);
+        agentRunnerService.start.mockImplementation(async (_project, request, _onEvent, onComplete) => {
+            onComplete(0, {
+                changedPaths: [], conversation: { id: request.actionId }, missingSession: false,
+                reference: `${request.actionId}.json`, stderr: '', stdout: request.actionId, turnStarted: true,
+            });
+
+            return { runId: request.actionId };
+        });
+        localGitService.loadFile.mockResolvedValue({
+            content: '---\nreferences:\n  - assets/reference.bin\n---\ncontents omitted',
+            path: context.file,
+        });
+
+        await expect(runToCompletion(runner)).resolves.toMatchObject({ status: 'completed' });
+
+        expect(agentRunnerService.start.mock.calls.map((call) => call[1].prompt)).toEqual([
+            'Before\n\nCard references:\n- assets/reference.bin',
+            'After\n\nCard references:\n- assets/reference.bin',
+        ]);
+        expect(localGitService.loadFile).toHaveBeenCalledTimes(2);
+        expect(commandRunner).toHaveBeenCalledOnce();
+        expect(commandRunner.mock.calls[0][1]).toBe('main');
     });
 
     it('prepares the current prompt after the persisted action file is renamed', async () => {
@@ -384,6 +437,36 @@ describe('ActionRunnerService', () => {
 
         await expect(runner.wait(runIds[0])).resolves.toMatchObject({ status: 'completed' });
         await expect(runner.wait(runIds[100])).resolves.toMatchObject({ status: 'completed' });
+    });
+
+    it('returns terminal recovery results to multiple clients without consuming them', async () => {
+        const { runner } = createRunner();
+        const runId = await runner.start({ actionId: 'main', context, runInput: {} });
+        await expect(runner.wait(runId)).resolves.toMatchObject({ status: 'completed' });
+
+        const firstSnapshot = runner.loadRunRecoverySnapshot([runId]);
+        const secondSnapshot = runner.loadRunRecoverySnapshot([runId]);
+
+        expect(firstSnapshot).toMatchObject({
+            activeRunEvents: [],
+            terminalResults: [{ failure: null, runId, status: 'completed' }],
+        });
+        expect(secondSnapshot).toEqual(firstSnapshot);
+    });
+
+    it('expires terminal recovery results after bounded retention lifetime', async () => {
+        vi.useFakeTimers();
+        try {
+            const { runner } = createRunner();
+            const runId = await runner.start({ actionId: 'main', context, runInput: {} });
+            await vi.runAllTimersAsync();
+
+            expect(runner.loadRunRecoverySnapshot([runId]).terminalResults).toHaveLength(1);
+            vi.advanceTimersByTime(5 * 60 * 1000);
+            expect(runner.loadRunRecoverySnapshot([runId]).terminalResults).toEqual([]);
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it('cancels an active run when the project switches', async () => {

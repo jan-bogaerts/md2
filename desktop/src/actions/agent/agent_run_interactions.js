@@ -1,4 +1,4 @@
-const { createMessageEntry } = require('./agent_conversation');
+const { createMessageEntry, transitionConversationStatus } = require('./agent_conversation');
 const { emitRunEvent, hasPendingInteraction } = require('./agent_run_state');
 const { lastMessageEntry, nextRunSequence } = require('./agent_run_transcript');
 const { requireQueuedMessageSession, requireString } = require('./agent_run_validation');
@@ -19,7 +19,6 @@ async function sendStreamingMessage(service, run, content) {
         await run.streamingAdapter.sendMessage(message);
     } catch (error) {
         service.failStreamingRun(run, error);
-        run.conversation.status = 'failed';
         throw error;
     }
     const timestamp = new Date().toISOString();
@@ -27,7 +26,7 @@ async function sendStreamingMessage(service, run, content) {
     const messageId = `${run.id}-user-${run.conversation.entries.length}`;
     run.conversation.entries.push(createMessageEntry(messageId, 'user', message, timestamp, undefined, nextRunSequence(run)));
     const userMessage = lastMessageEntry(run.conversation);
-    run.conversation.status = 'running';
+    transitionConversationStatus(run.conversation, 'running', timestamp);
     run.turnActive = true;
     await service.persistCheckpoint(run);
     emitRunEvent(run, { type: 'userMessage', userMessage });
@@ -105,7 +104,6 @@ function answerQuestion(service, run, requestId, answers) {
             await run.streamingAdapter.answerQuestion(requestId, answers);
         } catch (error) {
             service.failStreamingRun(run, error);
-            run.conversation.status = 'failed';
             throw error;
         }
         const timestamp = new Date().toISOString();
@@ -121,7 +119,7 @@ function answerQuestion(service, run, requestId, answers) {
         run.waitingForQuestion = false;
         run.pendingQuestions = [];
         const state = hasPendingInteraction(run) ? 'waitingForInput' : 'running';
-        run.conversation.status = state;
+        transitionConversationStatus(run.conversation, state, timestamp);
         await service.persistCheckpoint(run);
         emitRunEvent(run, { state, type: 'questionAnswered', userMessage });
         emitRunEvent(run, { state, type: 'state' });

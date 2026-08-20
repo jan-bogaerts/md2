@@ -24,24 +24,55 @@ function renderCreateMenu(overrides?: Partial<Parameters<typeof MobileCreateMenu
 describe('MobileCreateMenu', () => {
     afterEach(cleanup)
 
-    it('exposes both creation actions and invokes their handlers', () => {
+    it('renders card before action and invokes both handlers', () => {
         const props = renderCreateMenu()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Create' }))
+        expect(screen.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['New card', 'New action'])
+        fireEvent.click(screen.getByRole('menuitem', { name: 'New card' }))
+        expect(props.onCreateCard).toHaveBeenCalledOnce()
 
         fireEvent.click(screen.getByRole('button', { name: 'Create' }))
         fireEvent.click(screen.getByRole('menuitem', { name: 'New action' }))
         expect(props.onCreateAction).toHaveBeenCalledOnce()
-
-        fireEvent.click(screen.getByRole('button', { name: 'Create' }))
-        fireEvent.click(screen.getByRole('menuitem', { name: 'New card' }))
-        expect(props.onCreateCard).toHaveBeenCalledOnce()
     })
 
-    it('keeps each action disabled independently', () => {
-        renderCreateMenu({ isNewActionDisabled: true })
+    it('inherits dense menu items from the app theme', () => {
+        renderCreateMenu()
 
         fireEvent.click(screen.getByRole('button', { name: 'Create' }))
 
-        expect(screen.getByRole('menuitem', { name: 'New action' })).toHaveAttribute('aria-disabled', 'true')
-        expect(screen.getByRole('menuitem', { name: 'New card' })).not.toHaveAttribute('aria-disabled', 'true')
+        screen.getAllByRole('menuitem').forEach((menuItem) => {
+            expect(menuItem).toHaveClass('MuiMenuItem-dense')
+        })
+    })
+
+    it.each([
+        {
+            disabledStates: [false, true],
+            name: 'only New action',
+            overrides: { isNewActionDisabled: true },
+        },
+        {
+            disabledStates: [true, false],
+            name: 'only New card',
+            overrides: { isNewCardDisabled: true },
+        },
+        {
+            disabledStates: [true, true],
+            name: 'both items',
+            overrides: { isNewActionDisabled: true, isNewCardDisabled: true },
+        },
+    ])('keeps menu order when $name disabled', ({ disabledStates, overrides }) => {
+        renderCreateMenu(overrides)
+
+        fireEvent.click(screen.getByRole('button', { name: 'Create' }))
+
+        const menuItems = screen.getAllByRole('menuitem')
+        expect(menuItems.map((item) => item.textContent)).toEqual(['New card', 'New action'])
+        disabledStates.forEach((isDisabled, index) => {
+            if (isDisabled) expect(menuItems[index]).toHaveAttribute('aria-disabled', 'true')
+            else expect(menuItems[index]).not.toHaveAttribute('aria-disabled', 'true')
+        })
     })
 })

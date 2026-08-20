@@ -6,7 +6,7 @@ status: ready
 owner: 
 affects:
 agents:
-  - design/releases/0_1_0/card__f9a450d8-0f93-4487-99f3-23dcc07b42b2.json#conversation=agent-0b2e6bc1-6d29-4234-82e8-9570c342bd93
+  - design/releases/0_1_0/card__f9a450d8-0f93-4487-99f3-23dcc07b42b2.json
 policy:
 internalId: f9a450d8-0f93-4487-99f3-23dcc07b42b2
 after: cf144ebc-ebd3-4148-8ad8-99bac886dd3f

@@ -210,7 +210,6 @@ function readProjectConfig(values: ConfigValues): ProjectConfig {
         actionsFolder: values['project.actionsFolder'],
         archivedFolder: values['project.archivedFolder'],
         backgroundShade: values['project.backgroundShade'],
-        cardBodyTemplate: values['project.cardBodyTemplate'],
         cardSeparator: values['project.cardSeparator'],
         cardTypes: values['project.cardTypes'],
         diffCommand: values['project.diffCommand'],
@@ -380,9 +379,6 @@ export class ConfigService extends EventTarget {
         if (projectConfig?.pushMode !== undefined) nextValues = mergeValue(nextValues, 'project.pushMode', projectConfig.pushMode)
         if (projectConfig?.releasesFolder !== undefined) {
             nextValues = mergeValue(nextValues, 'project.releasesFolder', projectConfig.releasesFolder)
-        }
-        if (projectConfig?.cardBodyTemplate !== undefined) {
-            nextValues = mergeValue(nextValues, 'project.cardBodyTemplate', projectConfig.cardBodyTemplate)
         }
         if (projectConfig?.cardSeparator !== undefined) {
             nextValues = mergeValue(nextValues, 'project.cardSeparator', projectConfig.cardSeparator)

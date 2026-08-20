@@ -280,7 +280,13 @@ export function SearchPanel(props: SearchPanelProps) {
                         </Tooltip>
                     </Box>
                     {shouldShowResults ? (
-                        <SearchResults onActionSelect={handleSelectAction} onSelect={handleSelect} results={results} />
+                        <SearchResults
+                            mode={mode}
+                            onActionSelect={handleSelectAction}
+                            onSelect={handleSelect}
+                            query={query}
+                            results={results}
+                        />
                     ) : null}
                 </Paper>
             ) : null}

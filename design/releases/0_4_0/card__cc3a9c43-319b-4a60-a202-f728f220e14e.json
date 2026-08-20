@@ -1,0 +1,1397 @@
+{
+  "actionSettings": {
+    "5b88355d-f964-459a-bc67-6618650866ba": {
+      "agent": "claude",
+      "model": "sonnet",
+      "permissionMode": "ask-for-approval",
+      "thinkingLevel": "medium"
+    }
+  },
+  "conversations": [
+    {
+      "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "cardInternalId": "cc3a9c43-319b-4a60-a202-f728f220e14e",
+      "cardPath": "design/feature_descriptions/F_200_search_results_highlight_text.md",
+      "completedAt": "2026-08-19T16:09:20.614Z",
+      "entries": [
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/F_200_search_results_highlight_text.md`.&#x20;\nupdate the field `status` in the markdown feature description file to `ready for implementation`.\n\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill.\n\nDo not stage or commit changes. You have no need for get at this time.",
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-08-19T16:07:50.787Z"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-event-2",
+          "kind": "event",
+          "label": "Skill",
+          "output": "Launching skill: caveman",
+          "providerItemId": "toolu_01CXfcwM1VwEkatH9VX23fbb",
+          "sequence": 2,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:07:53.822Z",
+          "type": "tool.Skill"
+        },
+        {
+          "content": "Let me read the feature description file and any referenced files.",
+          "details": [
+            "Let me read the feature description file and any referenced files."
+          ],
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-event-3",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeCPun85ezD8DwghxtXTv:thinking:0",
+          "sequence": 3,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:07:56.371Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Reading feature file and related context now.",
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 4,
+          "timestamp": "2026-08-19T16:07:56.372Z"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-event-5",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\t---\n2\tauthor: \n3\tid: F_200\n4\tinternalId: cc3a9c43-319b-4a60-a202-f728f220e14e\n5\ttitle: Search results highlight text\n6\tstatus: design\n7\towner: \n8\taffects:\n9\tagents:\n10\t  - design/activity/card__cc3a9c43-319b-4a60-a202-f728f220e14e.json\n11\tpolicy:\n12\t---\n13\t\n14\tIn the global search we show the list of search results with for each result, some text where the search term was found. We should highlight this text so its easy to see where the result is.",
+          "providerItemId": "toolu_01Ryy3nBXVMVNiLQqCeLgBZk",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:07:58.011Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-event-6",
+          "kind": "event",
+          "label": "Glob",
+          "output": "design\\releases\\0_0_2\\B_002_github_push_semantics.md\ndesign\\releases\\0_0_2\\B_003_github_401_handling.md\ndesign\\releases\\0_0_2\\B_004_electron_menu_push_dead.md\ndesign\\releases\\0_0_2\\B_005_system_agent_option.md\ndesign\\releases\\0_0_2\\B_006_agent_command_sources.md\ndesign\\releases\\0_0_2\\B_007_bootstrap_error_hidden.md\ndesign\\releases\\0_0_2\\B_008_close_flush_unreliable.md\ndesign\\releases\\0_0_2\\B_009_running_agents_visibility.md\ndesign\\releases\\0_0_2\\B_010_blocking_project_load.md\ndesign\\releases\\0_0_2\\B_011_line_ending_churn.md\ndesign\\releases\\0_0_2\\B_012_left_panel_layout.md\ndesign\\releases\\0_0_2\\B_013_text_view_body_only.md\ndesign\\releases\\0_0_2\\B_015_electron_context_isolation.md\ndesign\\releases\\0_0_2\\B_016_config_init_during_render.md\ndesign\\releases\\0_0_2\\B_018_card_creation_feature_only.md\ndesign\\releases\\0_0_2\\B_019_project_open_form_placement.md\ndesign\\releases\\0_0_2\\B_020_sequential_storage_io.md\ndesign\\releases\\0_0_2\\B_021_commit_noop_failure.md\ndesign\\releases\\0_0_2\\B_022_commit_batcher_message.md\ndesign\\releases\\0_0_2\\B_023_dead_code_cleanup.md\ndesign\\releases\\0_0_2\\B_024_swallowed_errors.md\ndesign\\releases\\0_0_2\\B_025_agent_continue_without_context.md\ndesign\\releases\\0_0_2\\B_026_external_files_not_imported.md\ndesign\\releases\\0_0_2\\B_027_github_manual_push_pending_loss.md\ndesign\\releases\\0_0_2\\B_028_agent_log_write_integrity.md\ndesign\\releases\\0_0_2\\B_029_desktop_bridge_security_hardening.md\ndesign\\releases\\0_0_2\\B_030_remote_bridge_global_spoofing.md\ndesign\\releases\\0_0_2\\B_031_render_time_service_reads.md\ndesign\\releases\\0_0_2\\B_032_github_manual_push_stale_reads.md\ndesign\\releases\\0_0_2\\B_034_left_panel_reactnode_state.md\ndesign\\releases\\0_0_2\\B_035_agent_profiles_raw_json_editor.md\ndesign\\releases\\0_0_2\\B_036_config_values_not_typed_per_key.md\ndesign\\releases\\0_0_2\\B_037_branch_select_out_of_range_warning.md\ndesign\\releases\\0_0_2\\B_038_last_project_parse_guard.md\ndesign\\releases\\0_0_2\\B_039_action_reload_debounce_single_path.md\ndesign\\releases\\0_0_2\\B_040_background_project_load_silent_failure.md\ndesign\\releases\\0_0_2\\B_041_search_regexp_agent_render_recreation.md\ndesign\\releases\\0_0_2\\B_042_storage_factory_side_effect.md\ndesign\\releases\\0_0_2\\B_043_small_cleanups_2026_07.md\ndesign\\releases\\0_0_2\\B_044_typecheck_broken_missing_import.md\ndesign\\releases\\0_0_2\\B_045_flaky_project_workspace_test_timeout.md\ndesign\\releases\\0_0_2\\B_046_remote_control_single_connection.md\ndesign\\releases\\0_0_2\\B_047_remote_control_connection_errors.md\ndesign\\releases\\0_0_2\\B_048_action_capability_provider_apis_missing.md\ndesign\\releases\\0_0_2\\B_049_action_thinking_level_is_not_executed.md\ndesign\\releases\\0_0_2\\B_050_action_execution_still_has_two_orchestrators.md\ndesign\\releases\\0_0_2\\B_051_needs_worktree_does_not_prepare_worktree.md\ndesign\\releases\\0_0_2\\B_052_action_autosave_remount_can_lose_edits.md\ndesign\\releases\\0_0_2\\B_053_action_validation_errors_are_mapped_by_message_text.md\ndesign\\releases\\0_0_2\\B_054_action_required_fields_accept_whitespace.md\ndesign\\releases\\0_0_2\\B_055_action_capability_combinations_are_not_validated.md\ndesign\\releases\\0_0_2\\B_056_action_applicability_filter_editor_is_incomplete.md\ndesign\\releases\\0_0_2\\B_057_action_onstate_selector_hides_stale_value.md\ndesign\\releases\\0_0_2\\B_058_unknown_action_fields_are_silently_discarded.md\ndesign\\releases\\0_0_2\\B_059_action_validation_serializes_invalid_drafts.md\ndesign\\releases\\0_0_2\\B_060_action_editor_violates_component_style_guide.md\ndesign\\releases\\0_0_2\\B_061_action_editor_test_coverage_misses_failure_paths.md\ndesign\\releases\\0_0_2\\B_062_action_architecture_links_broke_after_document_move.md\ndesign\\releases\\0_0_2\\B_064_unified_action_runner_lifecycle_and_isolation_defects.md\ndesign\\releases\\0_0_2\\B_065_tab_open_blocks_on_editor_mount_and_spurious_flush_saves.md\ndesign\\releases\\0_0_2\\B_066_running_actions_contract_gaps_after_f047.md\ndesign\\releases\\0_0_2\\B_067_logs_are_split_across_project_locations.md\ndesign\\releases\\0_0_2\\B_068_action_editor_typing_creates_immediate_commits.md\ndesign\\releases\\0_0_2\\B_069_action_editor_revalidates_and_serializes_drafts_during_typing.md\ndesign\\releases\\0_0_2\\B_070_action_phrase_index_identity_can_mix_editor_history.md\ndesign\\releases\\0_0_2\\B_071_external_action_deletion_crashes_the_editor.md\ndesign\\releases\\0_0_2\\B_072_action_editor_ui_state_mutates_domain_actions.md\ndesign\\releases\\0_0_2\\B_073_action_editor_has_overlapping_state_and_list_implementations.md\ndesign\\releases\\0_0_2\\F_001_github_authentication.md\ndesign\\releases\\0_0_2\\F_002_data_management.md\ndesign\\releases\\0_0_2\\F_004_app_layout.md\ndesign\\releases\\0_0_2\\F_005_card_view.md\ndesign\\releases\\0_0_2\\F_006_text_view.md\ndesign\\releases\\0_0_2\\F_007_markdown_editor.md\ndesign\\releases\\0_0_2\\F_008_templates_and_headers.md\ndesign\\releases\\0_0_2\\F_009_affects_editor.md\ndesign\\releases\\0_0_2\\F_011_batch_commands.md\ndesign\\releases\\0_0_2\\F_012_agents.md\ndesign\\releases\\0_0_2\\F_013_desktop_app.md\ndesign\\releases\\0_0_2\\F_014_diff_view.md\ndesign\\releases\\0_0_2\\F_015_remarkable_integration.md\ndesign\\releases\\0_0_2\\F_016_config.md\ndesign\\releases\\0_0_2\\F_017_search.md\ndesign\\releases\\0_0_2\\F_018_styling_and_theming.md\ndesign\\releases\\0_0_2\\F_019_telemetry.md\ndesign\\releases\\0_0_2\\F_021_parsing_service.md\ndesign\\releases\\0_0_2\\F_022_scheduled_actions.md\ndesign\\releases\\0_0_2\\F_024_history_archiving.md\ndesign\\releases\\0_0_2\\F_025_card_deletion.md\ndesign\\releases\\0_0_2\\F_026_external_change_watching.md\ndesign\\releases\\0_0_2\\F_027_repository_branch_selection.md\ndesign\\releases\\0_0_2\\F_028_markdown_style_rendering.md\ndesign\\releases\\0_0_2\\F_029_search_regexp_agent.md\ndesign\\releases\\0_0_2\\F_030_action_entry_point_display.md\ndesign\\releases\\0_0_2\\F_031_config_persistence.md\ndesign\\releases\\0_0_2\\F_032_remote_control_bridge.md\ndesign\\releases\\0_0_2\\F_033_agent_and_model_selection.md\ndesign\\releases\\0_0_2\\F_034_github_oauth_cors_proxy.md\ndesign\\releases\\0_0_2\\F_035_github_pat_fallback.md\ndesign\\releases\\0_0_2\\F_036_search_in_actions.md\n(Results are truncated. Consider using a more specific path or pattern.)",
+          "providerItemId": "toolu_011TnbNGuRFdUDGV27XaVVEq",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:07:58.651Z",
+          "type": "tool.Glob"
+        },
+        {
+          "content": "Let me read the search feature file (F_017_search.md) to understand the existing search implementation, and also look at the current search implementation files.",
+          "details": [
+            "Let me read the search feature file (F_017_search.md) to understand the existing search implementation, and also look at the current search implementation files."
+          ],
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-event-7",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeCPv8YQaZufMbJ5Zxpno:thinking:0",
+          "sequence": 7,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:08:00.747Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNeed context on current search implementation. Reading related files.",
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 8,
+          "timestamp": "2026-08-19T16:08:01.438Z"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-event-9",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\t---\n2\tid: F-017\n3\ttitle: search\n4\tstatus: ready\n5\towner: JB\n6\taffects:\n7\tpolicy:\n8\t  checkLinting: true\n9\t  requireTests: true\n10\tinternalId: 3cd255e2-2f84-42cc-ab2f-1833531efa73\n11\t---\n12\t\n13\t## Goal\n14\tAdd an easy-to-access text search (with optional RegExp mode and agent-built expressions) over cards, history and other special folders, with grouped results and navigation to the matching card or file, integrated into the borderless window's drag bar area.\n15\t\n16\t## Current state\n17\tThere is no search feature: no search service or module, no search UI, no RegExp handling and no agent-built expression flow. The initial description assumed history is \"not loaded\", but that is no longer true — the data the search needs is already in memory.\n18\t\n19\tThe parsed project data is available through `useProjectState()`, which returns the `DataService` state including a `ProjectSnapshot` with `activeCards`, `backgroundCards` and `workingFolder`. `markdownParsingService.splitCards` already splits files into active vs background using `isRootWorkingFolderFile` (root markdown files under the working folder are active; everything in subfolders is background), and produces `ProjectCard` objects with `content` (body only), a parsed `header` (`CardHeader`: id, title, status, owner, affects, policy, etc.), `isActive` and `path`. A search module can consume this snapshot directly; frontmatter parsing already lives in `markdown_parsing_service.ts` and must not be duplicated. Background results are not currently grouped by their first subfolder anywhere.\n20\t\n21\tThe top shell is `MainToolbar` (MUI `AppBar`/`Toolbar`) rendered by `MainWindow`; it holds the \"MD²\" title, a config `IconButton` and a `toolbarAction` slot (currently `<ThemeControls />` from `app.tsx`). There is no search input in the toolbar. The desktop window is borderless via Electron `titleBarStyle: 'hidden'` with a `titleBarOverlay` in `desktop/main.js`; there is no manual CSS drag region (`-webkit-app-region`) anywhere in the React shell, so a custom drag bar and its non-draggable input/button zones do not yet exist.\n22\t\n23\tNavigation into a card/file is local to `ProjectWorkspace`, which owns `viewMode` (`'cards' | 'text'`). `handleOpenInFileMode(path)` sets a `requestedPath` + `requestedNonce` and switches to text view; `TextView` opens that path as a tab via `useOpenTabs` and can browse background files through its file tree. There is no shared/global \"navigate to card or file, keeping current view\" API — selecting a background result without changing view mode is not currently supported. Routing exists via `app_navigation` (`navigateTo` / `useAppLocation`, with a `/config` route), but nothing search-related uses it.\n24\t\n25\tThere is no agent infrastructure wired up: `App` passes `agents={[]}` to `MainWindow`, so agent-built RegExp has no existing execution path to reuse. No tests cover search.\n26\t\n27\t## implementation details\n28\t- Add a search service or pure search module in `app/src/` that searches the loaded `ProjectSnapshot`; keep storage-specific file loading in the existing GitHub/local storage services.\n29\t- Search active root cards by full body content and header fields by default. Search background cards from subfolders by header fields by default, with an option to include full body content. Use `ProjectCard` data produced by the shared parsing service; the search module must not parse frontmatter itself.\n30\t- Support plain case-insensitive contains search and an explicit RegExp mode. Invalid expressions must show a clear validation error and keep previous results stable.\n31\t- Group results with active cards first, then background results grouped by first folder under the working folder, such as `history` or `architecture`.\n32\t- Each result shows the card/file title, path, match context and whether the match came from header or body.\n33\t- Selecting a result navigates to the matching card or file in the current workspace view. If the file is a background card, make it selectable without changing the user's current view mode.\n34\t- Add the search input and controls to the top shell area while preserving drag behavior in the borderless Electron window; text inputs and buttons must remain non-draggable.\n35\t- Agent-built RegExp generation is a separate action from manual search input and must surface agent failures without changing the current query.\n36\t- Tests should cover search matching/grouping, RegExp validation, full-body background search toggling, result selection and toolbar drag/non-drag behavior.\n37\t\n38\t## acceptance criteria\n39\t- A user can run a plain text search from the top shell area without breaking window dragging in the desktop app.\n40\t- Active cards are searched by full content and appear before background/special-folder results.\n41\t- Background cards from history, architecture and other subfolders are searchable by header fields; enabling full search includes their body content.\n42\t- RegExp mode returns matches for valid expressions and reports invalid expressions without crashing or clearing the current query.\n43\t- Results are grouped by active cards and by special folder name, with enough context to identify the match.\n44\t- Clicking a result opens/selects the matching card or file while keeping the current workspace view.\n45\t- Agent-built RegExp can populate the query when successful and leaves the existing query unchanged on failure.\n46\t- Unit and React tests cover the search module, grouped result rendering, result navigation and shell search controls.\n47\t\n48\t## see also\n49\t- `design\\architecture\\initial description\\search.md`\n50\t- `design\\architecture\\parsing_service.md`\n51\t",
+          "providerItemId": "toolu_011ZPTzbgXhGVVyK9AhAWhgR",
+          "sequence": 9,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:08:02.514Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-event-10",
+          "kind": "event",
+          "label": "Glob",
+          "output": "app\\src\\components\\shell\\search\\search_results.tsx\napp\\src\\services\\search\\search_regexp_agent.ts\napp\\src\\components\\shell\\search\\search_control.tsx\napp\\src\\components\\editor\\markdown_editor_file_search.test.tsx\napp\\src\\components\\editor\\markdown_file_search.ts\napp\\src\\components\\editor\\markdown_file_search_config_cell.ts\napp\\src\\components\\editor\\markdown_file_search_option.ts\napp\\src\\components\\editor\\markdown_file_search_option_item.test.tsx\napp\\src\\components\\editor\\markdown_file_search_option_item.tsx\napp\\src\\components\\editor\\markdown_file_search_realm_plugin.ts\napp\\src\\components\\editor\\markdown_file_search_selection.ts\napp\\src\\components\\editor\\markdown_file_search_typeahead_plugin.node.test.ts\napp\\src\\components\\editor\\markdown_file_search_options.ts\napp\\src\\components\\editor\\markdown_file_search_trigger.ts\napp\\src\\components\\editor\\markdown_file_search.node.test.ts\napp\\src\\components\\shell\\search\\search_panel.tsx\napp\\src\\services\\search\\search_types.ts\napp\\src\\services\\search\\search_project.ts\napp\\src\\services\\search\\search_regexp_agent.node.test.ts\napp\\src\\components\\editor\\markdown_file_search_typeahead_plugin.tsx\napp\\src\\components\\editor\\markdown_file_search_menu.test.tsx\napp\\src\\components\\editor\\markdown_file_search_menu.tsx\napp\\src\\components\\editor\\markdown_local_text_search_command.ts\napp\\src\\components\\editor\\markdown_local_text_search_config_cell.ts\napp\\src\\components\\editor\\markdown_local_text_search_realm_plugin.ts\napp\\src\\components\\editor\\markdown_local_text_search_toolbar_control.tsx\napp\\src\\components\\shell\\search\\search_control.test.tsx\napp\\src\\services\\search\\search_project.node.test.ts\napp\\src\\components\\editor\\markdown_editor_local_text_search.test.tsx\napp\\src\\components\\editor\\markdown_local_text_search.node.test.ts\napp\\src\\components\\editor\\markdown_local_text_search.ts\napp\\src\\components\\editor\\markdown_local_text_search_plugin.tsx",
+          "providerItemId": "toolu_01RQg96fEQvx7xMvcfsSb7rz",
+          "sequence": 10,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:08:02.937Z",
+          "type": "tool.Glob"
+        },
+        {
+          "content": "Let me read the search results component and search types to understand the current state.",
+          "details": [
+            "Let me read the search results component and search types to understand the current state."
+          ],
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-event-11",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeCPvSmHDVzwC8MXFpkrF:thinking:0",
+          "sequence": 11,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:08:04.800Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nReading search UI and types files.",
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 12,
+          "timestamp": "2026-08-19T16:08:04.800Z"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-event-13",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport { Box, Chip, List, ListItemButton, ListItemText, Typography } from '@mui/material'\n2\timport type { ActionDefinition } from '../../../data/action_types'\n3\timport type { ActionSearchMatch, SearchMatch, SearchResults as SearchResultsData } from '../../../services/search/search_types'\n4\t\n5\tinterface SearchResultsProps {\n6\t    onActionSelect: (action: ActionDefinition) => void\n7\t    onSelect: (path: string) => void\n8\t    results: SearchResultsData\n9\t}\n10\t\n11\tfunction renderMatch(match: SearchMatch, onSelect: (path: string) => void) {\n12\t    const handleClick = () => onSelect(match.path)\n13\t    const secondary = `${match.path} — ${match.context}`\n14\t\n15\t    return (\n16\t        <ListItemButton dense key={match.path} onClick={handleClick}>\n17\t            <ListItemText\n18\t                primary={\n19\t                    <Box component=\"span\" sx={{ alignItems: 'center', display: 'flex', gap: 1 }}>\n20\t                        <span>{match.title}</span>\n21\t                        <Chip color={match.source === 'header' ? 'primary' : 'default'} label={match.source} size=\"small\" />\n22\t                    </Box>\n23\t                }\n24\t                secondary={secondary}\n25\t            />\n26\t        </ListItemButton>\n27\t    )\n28\t}\n29\t\n30\tfunction renderActionMatch(match: ActionSearchMatch, onActionSelect: (action: ActionDefinition) => void) {\n31\t    const handleClick = () => onActionSelect(match.action)\n32\t    const secondary = `${match.field} - ${match.context}`\n33\t\n34\t    return (\n35\t        <ListItemButton dense key={match.action.id} onClick={handleClick}>\n36\t            <ListItemText\n37\t                primary={\n38\t                    <Box component=\"span\" sx={{ alignItems: 'center', display: 'flex', gap: 1 }}>\n39\t                        <span>{match.title}</span>\n40\t                        <Chip color=\"secondary\" label=\"action\" size=\"small\" />\n41\t                    </Box>\n42\t                }\n43\t                secondary={secondary}\n44\t            />\n45\t        </ListItemButton>\n46\t    )\n47\t}\n48\t\n49\t/** Renders grouped search results: active cards first, then background cards grouped by folder. */\n50\texport function SearchResults(props: SearchResultsProps) {\n51\t    const { onActionSelect, onSelect, results } = props\n52\t    const hasAny = results.active.length > 0 || results.backgroundGroups.length > 0 || results.actions.length > 0\n53\t\n54\t    if (!hasAny) {\n55\t        return (\n56\t            <Box sx={{ p: 2 }}>\n57\t                <Typography color=\"text.secondary\" variant=\"body2\">\n58\t                    No matches found.\n59\t                </Typography>\n60\t            </Box>\n61\t        )\n62\t    }\n63\t\n64\t    return (\n65\t        <Box>\n66\t            {results.active.length > 0 ? (\n67\t                <Box>\n68\t                    <Typography color=\"text.secondary\" sx={{ px: 2, pt: 1 }} variant=\"overline\">\n69\t                        Active cards\n70\t                    </Typography>\n71\t                    <List dense disablePadding>\n72\t                        {results.active.map((match) => renderMatch(match, onSelect))}\n73\t                    </List>\n74\t                </Box>\n75\t            ) : null}\n76\t            {results.backgroundGroups.map((group) => (\n77\t                <Box key={group.folder}>\n78\t                    <Typography color=\"text.secondary\" sx={{ px: 2, pt: 1 }} variant=\"overline\">\n79\t                        {group.folder}\n80\t                    </Typography>\n81\t                    <List dense disablePadding>\n82\t                        {group.matches.map((match) => renderMatch(match, onSelect))}\n83\t                    </List>\n84\t                </Box>\n85\t            ))}\n86\t            {results.actions.length > 0 ? (\n87\t                <Box>\n88\t                    <Typography color=\"text.secondary\" sx={{ px: 2, pt: 1 }} variant=\"overline\">\n89\t                        Actions\n90\t                    </Typography>\n91\t                    <List dense disablePadding>\n92\t                        {results.actions.map((match) => renderActionMatch(match, onActionSelect))}\n93\t                    </List>\n94\t                </Box>\n95\t            ) : null}\n96\t        </Box>\n97\t    )\n98\t}\n99\t",
+          "providerItemId": "toolu_01PdRrQc38pvBKaPF9hxGAsQ",
+          "sequence": 13,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:08:05.556Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-event-14",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport type { ActionDefinition } from '../../data/action_types'\n2\timport type { Card } from '../../data/data_types'\n3\t\n4\texport type SearchMode = 'text' | 'regexp'\n5\t\n6\t/** Where a single result's match was found within a card. */\n7\texport type SearchMatchSource = 'header' | 'body'\n8\t\n9\texport interface SearchOptions {\n10\t    /** When true, background cards are also searched by full body content. */\n11\t    includeBackgroundBody: boolean\n12\t    /** When true, loaded action definitions are searched. */\n13\t    includeActions: boolean\n14\t    mode: SearchMode\n15\t}\n16\t\n17\texport interface SearchMatch {\n18\t    card: Card\n19\t    /** Snippet of the matched text with surrounding context. */\n20\t    context: string\n21\t    /** Header field the match came from, or `body`. */\n22\t    field: string\n23\t    path: string\n24\t    source: SearchMatchSource\n25\t    title: string\n26\t}\n27\t\n28\texport interface BackgroundGroup {\n29\t    /** Configured special-folder name or first folder segment under the working folder. */\n30\t    folder: string\n31\t    matches: SearchMatch[]\n32\t}\n33\t\n34\texport interface ActionSearchMatch {\n35\t    action: ActionDefinition\n36\t    context: string\n37\t    field: 'label' | 'description' | 'text'\n38\t    title: string\n39\t}\n40\t\n41\texport interface SearchResults {\n42\t    active: SearchMatch[]\n43\t    actions: ActionSearchMatch[]\n44\t    backgroundGroups: BackgroundGroup[]\n45\t}\n46\t\n47\t/** Builds a search expression from a natural-language request, typically via an agent. */\n48\texport type SearchRegexpAgent = (naturalQuery: string) => Promise<string>\n49\t",
+          "providerItemId": "toolu_014FWdmzepvp6oh4y2X3WB3f",
+          "sequence": 14,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:08:06.142Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "Now I have a good picture. Let me look at the search_project.ts for implementation details.",
+          "details": [
+            "Now I have a good picture. Let me look at the search_project.ts for implementation details."
+          ],
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-event-15",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeCPvgWGnWZebptQ2vPq4:thinking:0",
+          "sequence": 15,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:08:08.070Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-event-16",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport type { CardHeader, Card, ProjectSnapshot } from '../../data/data_types'\n2\timport type { ActionDefinition } from '../../data/action_types'\n3\timport type {\n4\t    ActionSearchMatch, BackgroundGroup, SearchMatch, SearchOptions, SearchRegexpAgent, SearchResults,\n5\t} from './search_types'\n6\t\n7\tconst CONTEXT_RADIUS = 40\n8\tconst ELLIPSIS = '…'\n9\tconst ROOT_GROUP = '(root)'\n10\tconst BODY_FIELD = 'body'\n11\t\n12\t/** Thrown when a RegExp-mode query is not a valid regular expression. */\n13\texport class InvalidSearchPatternError extends Error {\n14\t    constructor(message: string) {\n15\t        super(message)\n16\t        this.name = 'InvalidSearchPatternError'\n17\t    }\n18\t}\n19\t\n20\tinterface MatchLocation {\n21\t    index: number\n22\t    length: number\n23\t}\n24\t\n25\tinterface Matcher {\n26\t    find(text: string): MatchLocation | null\n27\t}\n28\t\n29\tinterface HeaderField {\n30\t    field: string\n31\t    value: string\n32\t}\n33\t\n34\tinterface ActionSearchField {\n35\t    field: ActionSearchMatch['field']\n36\t    value: string\n37\t}\n38\t\n39\tfunction createTextMatcher(query: string): Matcher {\n40\t    const needle = query.toLowerCase()\n41\t\n42\t    return {\n43\t        find(text: string) {\n44\t            const index = text.toLowerCase().indexOf(needle)\n45\t\n46\t            return index === -1 ? null : { index, length: query.length }\n47\t        },\n48\t    }\n49\t}\n50\t\n51\tfunction createRegexpMatcher(query: string): Matcher {\n52\t    let expression: RegExp\n53\t\n54\t    try {\n55\t        expression = new RegExp(query)\n56\t    } catch (error) {\n57\t        throw new InvalidSearchPatternError(error instanceof Error ? error.message : 'Invalid regular expression')\n58\t    }\n59\t\n60\t    return {\n61\t        find(text: string) {\n62\t            const found = text.match(expression)\n63\t\n64\t            return found?.index === undefined ? null : { index: found.index, length: found[0].length }\n65\t        },\n66\t    }\n67\t}\n68\t\n69\tfunction createMatcher(query: string, options: SearchOptions): Matcher {\n70\t    return options.mode === 'regexp' ? createRegexpMatcher(query) : createTextMatcher(query)\n71\t}\n72\t\n73\tfunction collectHeaderFields(header: CardHeader): HeaderField[] {\n74\t    const fields: HeaderField[] = []\n75\t    const scalarEntries: [string, string | null][] = [\n76\t        ['id', header.id],\n77\t        ['title', header.title],\n78\t        ['status', header.status],\n79\t        ['owner', header.owner],\n80\t        ['author', header.author],\n81\t        ['after', header.after],\n82\t        ['internalId', header.internalId],\n83\t    ]\n84\t\n85\t    for (const [field, value] of scalarEntries) {\n86\t        if (value) fields.push({ field, value })\n87\t    }\n88\t\n89\t    for (const entry of header.affects) fields.push({ field: 'affects', value: entry })\n90\t    for (const [key, value] of Object.entries(header.policy)) fields.push({ field: `policy.${key}`, value: value ? 'true' : 'false' })\n91\t\n92\t    return fields\n93\t}\n94\t\n95\tfunction buildContext(text: string, location: MatchLocation): string {\n96\t    const start = Math.max(0, location.index - CONTEXT_RADIUS)\n97\t    const end = Math.min(text.length, location.index + location.length + CONTEXT_RADIUS)\n98\t    const slice = text.slice(start, end).replace(/\\s+/gu, ' ').trim()\n99\t    const prefix = start > 0 ? ELLIPSIS : ''\n100\t    const suffix = end < text.length ? ELLIPSIS : ''\n101\t\n102\t    return `${prefix}${slice}${suffix}`\n103\t}\n104\t\n105\tfunction matchCard(card: Card, matcher: Matcher, searchBody: boolean): SearchMatch | null {\n106\t    const headerFields = collectHeaderFields(card.header)\n107\t\n108\t    for (const { field, value } of headerFields) {\n109\t        const location = matcher.find(value)\n110\t        if (location) {\n111\t            return { card, context: buildContext(value, location), field, path: card.path, source: 'header', title: card.header.title }\n112\t        }\n113\t    }\n114\t\n115\t    if (searchBody) {\n116\t        const location = matcher.find(card.content)\n117\t        if (location) {\n118\t            return { card, context: buildContext(card.content, location), field: BODY_FIELD, path: card.path, source: 'body', title: card.hea\n[665 characters omitted]\nollectActionFields(action)) {\n138\t        const location = matcher.find(value)\n139\t        if (location) return { action, context: buildContext(value, location), field, title: action.label }\n140\t    }\n141\t\n142\t    return null\n143\t}\n144\t\n145\tfunction folderName(path: string) {\n146\t    const name = path.split('/').filter((segment) => segment.length > 0).at(-1)\n147\t    if (!name) throw new Error(`Cannot group background folder without a name: ${path}`)\n148\t\n149\t    return name\n150\t}\n151\t\n152\tfunction backgroundGroupKey(path: string, workingFolder: string, specialFolderPaths: string[]): string {\n153\t    const normalized = path.replace(/\\\\/gu, '/')\n154\t    const specialFolder = specialFolderPaths\n155\t        .map((folder) => folder.replace(/\\\\/gu, '/').replace(/^\\/+|\\/+$/gu, ''))\n156\t        .find((folder) => normalized === folder || normalized.startsWith(`${folder}/`))\n157\t    if (specialFolder) return folderName(specialFolder)\n158\t\n159\t    const prefix = `${workingFolder}/`\n160\t    const rest = normalized.startsWith(prefix) ? normalized.slice(prefix.length) : normalized\n161\t    const segments = rest.split('/')\n162\t\n163\t    return segments.length > 1 ? segments[0] : ROOT_GROUP\n164\t}\n165\t\n166\tfunction groupBackgroundMatches(matches: SearchMatch[], workingFolder: string, specialFolderPaths: string[]): BackgroundGroup[] {\n167\t    const groups: BackgroundGroup[] = []\n168\t    const byFolder = new Map<string, BackgroundGroup>()\n169\t\n170\t    for (const match of matches) {\n171\t        const folder = backgroundGroupKey(match.path, workingFolder, specialFolderPaths)\n172\t        const existing = byFolder.get(folder)\n173\t\n174\t        if (existing) {\n175\t            existing.matches.push(match)\n176\t            continue\n177\t        }\n178\t\n179\t        const group: BackgroundGroup = { folder, matches: [match] }\n180\t        byFolder.set(folder, group)\n181\t        groups.push(group)\n182\t    }\n183\t\n184\t    return groups\n185\t}\n186\t\n187\t/**\n188\t * Searches a loaded project snapshot. Active cards are matched by header fields and full body;\n189\t * background cards are matched by header fields, and by body only when `includeBackgroundBody` is set.\n190\t * Throws {@link InvalidSearchPatternError} for an invalid RegExp-mode query.\n191\t */\n192\texport function searchProject(\n193\t    snapshot: ProjectSnapshot,\n194\t    query: string,\n195\t    options: SearchOptions,\n196\t    specialFolderPaths: string[] = [],\n197\t): SearchResults {\n198\t    if (query.trim().length === 0) return { active: [], actions: [], backgroundGroups: [] }\n199\t\n200\t    const matcher = createMatcher(query, options)\n201\t    const active = snapshot.activeCards\n202\t        .map((card) => matchCard(card, matcher, true))\n203\t        .filter((match): match is SearchMatch => match !== null)\n204\t    const backgroundMatches = snapshot.backgroundCards\n205\t        .map((card) => matchCard(card, matcher, options.includeBackgroundBody))\n206\t        .filter((match): match is SearchMatch => match !== null)\n207\t\n208\t    return {\n209\t        active,\n210\t        actions: [],\n211\t        backgroundGroups: groupBackgroundMatches(backgroundMatches, snapshot.workingFolder, specialFolderPaths),\n212\t    }\n213\t}\n214\t\n215\t/**\n216\t * Searches loaded action definitions by label, description and text.\n217\t * Throws {@link InvalidSearchPatternError} for an invalid RegExp-mode query.\n218\t */\n219\texport function searchActions(actions: ActionDefinition[], query: string, options: SearchOptions): ActionSearchMatch[] {\n220\t    if (!options.includeActions || query.trim().length === 0) return []\n221\t\n222\t    const matcher = createMatcher(query, options)\n223\t\n224\t    return actions\n225\t        .filter((action) => !action.builtin)\n226\t        .map((action) => matchAction(action, matcher))\n227\t        .filter((match): match is ActionSearchMatch => match !== null)\n228\t}\n229\t\n230\t/** Placeholder agent used until real agent execution is wired up; always reports unavailable. */\n231\texport const defaultSearchRegexpAgent: SearchRegexpAgent = async () => {\n232\t    throw new Error('RegExp agent is not available')\n233\t}\n234\t",
+          "providerItemId": "toolu_013hXu6dMjrPswyMAAuPrQhW",
+          "sequence": 16,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:08:08.593Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "Now I have a clear picture of the implementation. Let me read the search_control.tsx and search_panel.tsx to understand the complete current state of the UI.\n\nThe feature description F_200 is about highlighting the search term in the results display (the `context` text in search_results.tsx). Currently the `renderMatch` function just shows `match.context` as a plain string — no highlighting.\n\nI need to:\n1. Understand exactly what's implemented vs what F_200 wants\n2. Fill in Current state, Implementation details, Acceptance criteria for F_200\n3. Set status to \"ready for implementation\", then quickly check search_control.tsx as well.",
+          "details": [
+            "Now I have a clear picture of the implementation. Let me read the search_control.tsx and search_panel.tsx to understand the complete current state of the UI.\n\nThe feature description F_200 is about highlighting the search term in the results display (the `context` text in search_results.tsx). Currently the `renderMatch` function just shows `match.context` as a plain string — no highlighting.\n\nI need to:\n1. Understand exactly what's implemented vs what F_200 wants\n2. Fill in Current state, Implementation details, Acceptance criteria for F_200\n3. Set status to \"ready for implementation\", then quickly check search_control.tsx as well."
+          ],
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-event-17",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeCPvro9QZFseD5ewrEaw:thinking:0",
+          "sequence": 17,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:08:15.339Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-event-18",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport { Box, IconButton, InputAdornment, Popover, TextField, Tooltip } from '@mui/material'\n2\timport type { MouseEvent } from 'react'\n3\timport { useState } from 'react'\n4\timport Magnify from 'mdi-material-ui/Magnify'\n5\timport type { SearchRegexpAgent } from '../../../services/search/search_types'\n6\timport { NO_DRAG_REGION } from '../drag_region'\n7\timport { SearchPanel } from './search_panel'\n8\t\n9\tconst RESULTS_WIDTH = 460\n10\t\n11\tinterface SearchControlProps {\n12\t    isMobile?: boolean\n13\t    /** Builds a RegExp from the current query; defaults to the not-yet-available agent. */\n14\t    regexpAgent?: SearchRegexpAgent\n15\t}\n16\t\n17\t/** Lightweight search launcher that mounts data-aware search only while open. */\n18\texport function SearchControl(props: SearchControlProps) {\n19\t    const { isMobile = false, regexpAgent } = props\n20\t    const [query, setQuery] = useState('')\n21\t    const [desktopOpen, setDesktopOpen] = useState(false)\n22\t    const [searchAnchorElement, setSearchAnchorElement] = useState<HTMLElement | null>(null)\n23\t\n24\t    const openDesktop = () => {\n25\t        setDesktopOpen(true)\n26\t    }\n27\t\n28\t    const closeDesktop = () => {\n29\t        setDesktopOpen(false)\n30\t    }\n31\t\n32\t    const openMobile = (event: MouseEvent<HTMLElement>) => {\n33\t        setSearchAnchorElement(event.currentTarget)\n34\t    }\n35\t\n36\t    const closeMobile = () => {\n37\t        setSearchAnchorElement(null)\n38\t    }\n39\t\n40\t    const updateQuery = (nextQuery: string) => {\n41\t        setQuery(nextQuery)\n42\t    }\n43\t\n44\t    if (!isMobile) {\n45\t        if (desktopOpen) {\n46\t            return (\n47\t                <SearchPanel\n48\t                    initialQuery={query}\n49\t                    onClose={closeDesktop}\n50\t                    onQueryChange={updateQuery}\n51\t                    regexpAgent={regexpAgent}\n52\t                />\n53\t            )\n54\t        }\n55\t\n56\t        return (\n57\t            <TextField\n58\t                fullWidth\n59\t                onFocus={openDesktop}\n60\t                placeholder=\"Search cards…\"\n61\t                size=\"small\"\n62\t                slotProps={{\n63\t                    htmlInput: { 'aria-label': 'Search project', readOnly: true },\n64\t                    input: {\n65\t                        endAdornment: (\n66\t                            <InputAdornment position=\"end\">\n67\t                                <Box\n68\t                                    component=\"span\"\n69\t                                    sx={{\n70\t                                        border: 1,\n71\t                                        borderColor: 'divider',\n72\t                                        borderRadius: 0.5,\n73\t                                        color: 'text.disabled',\n74\t                                        fontSize: 10.5,\n75\t                                        lineHeight: 1.4,\n76\t                                        px: 0.75,\n77\t                                    }}\n78\t                                >\n79\t                                    ⌘K\n80\t                                </Box>\n81\t                            </InputAdornment>\n82\t                        ),\n83\t                        startAdornment: (\n84\t                            <InputAdornment position=\"start\">\n85\t                                <Magnify fontSize=\"small\" />\n86\t                            </InputAdornment>\n87\t                        ),\n88\t                        sx: {\n89\t                            bgcolor: 'background.default',\n90\t                            borderRadius: 99,\n91\t                            fontSize: 13,\n92\t                            height: 32,\n93\t                            '& fieldset': { borderColor: 'divider' },\n94\t                        },\n95\t                    },\n96\t                }}\n97\t                style={NO_DRAG_REGION}\n98\t                value={query}\n99\t                variant=\"outlined\"\n100\t            />\n101\t        )\n102\t    }\n103\t\n104\t    return (\n105\t        <>\n106\t            <Tooltip title=\"Search\">\n107\t                <IconButton\n108\t                    aria-label=\"Search\"\n109\t                    onClick={openMobile}\n110\t                    size=\"small\"\n111\t                    sx={{ height: 34, width: 34 }}\n112\t                >\n113\t                    <Magnify />\n114\t                </IconButton>\n115\t            </Tooltip>\n116\t            <Popover\n117\t                anchorEl={searchAnchorElement}\n118\t                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}\n119\t                disableAutoFocus\n120\t                onClose={closeMobile}\n121\t                open={!!searchAnchorElement}\n122\t                slotProps={{paper: { sx: { mt: 0.5, overflow: 'visible', p: 1, width: `min(${RESULTS_WIDTH}px, calc(100vw - 32px))` } }}}\n123\t                transformOrigin={{ horizontal: 'right', vertical: 'top' }}\n124\t            >\n125\t                {searchAnchorElement ? (\n126\t                    <SearchPanel\n127\t                        initialQuery={query}\n128\t                        onClose={closeMobile}\n129\t                        onQueryChange={updateQuery}\n130\t                        regexpAgent={regexpAgent}\n131\t                    />\n132\t                ) : null}\n133\t            </Popover>\n134\t        </>\n135\t    )\n136\t}\n137\t",
+          "providerItemId": "toolu_01BLnravAsSVgnFgwxrzshgK",
+          "sequence": 18,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:08:15.380Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "Now I have a complete picture. Let me understand F_200:\n\n- **Feature**: In global search results, highlight the search term in the context text shown for each result.\n- **Current state**: `search_results.tsx` renders `match.context` as a plain string in `secondary` — no highlighting of the matched text within the context snippet.\n- The `SearchMatch` has `context` (a raw text string with surrounding text) and the `search_project.ts` `buildContext` function returns just text — no position/offset info for the match within the context string.\n- There's no component for rendering highlighted text in search results, so I'll need to either pass the match position down to `SearchResults` for highlighting, or restructure `SearchMatch.context` to carry the matched range explicitly. Looking at `buildContext`, it slices a snippet from `text` using a `MatchLocation`, so I can compute where the match falls within that snippet accounting for the ellipsis prefix, and expose that as a `matchRange` on the result.\n\nAlternatively, the simpler route is to re-find the query string within the context at render time inside `SearchResults`, passing along the query and mode (text/regexp) so it can build a matcher per-result without changing the `SearchMatch` type at all -- that feels cleaner for this codebase. I still need to decide whether to use MUI's `mark` element or a custom styled span, and whether `ActionSearchMatch` needs the same treatment.\n\n`SearchPanel` already has `query` and `mode`, so I just need to thread them down to `SearchResults`. For matching, I'll re-run regex or case-insensitive indexOf against the context string at render time, with no changes needed to `SearchMatch` or `search_project.ts`, and style the highlight with the theme's warning color. If the match can't be relocated due to whitespace normalization or regex flags, I'll just fall back to rendering plain text.\n\nAction search matches should get the same highlighting treatment, again without touching the underlying types or service. I'm noting that `buildContext` normalizes whitespace via a regex replace and trim, which could occasionally cause regexp matches spanning whitespace to not re-find cleanly -- worth flagging as an implementation detail. Now I'll write up the feature document concisely but completely.",
+          "details": [
+            "Now I have a complete picture. Let me understand F_200:\n\n- **Feature**: In global search results, highlight the search term in the context text shown for each result.\n- **Current state**: `search_results.tsx` renders `match.context` as a plain string in `secondary` — no highlighting of the matched text within the context snippet.\n- The `SearchMatch` has `context` (a raw text string with surrounding text) and the `search_project.ts` `buildContext` function returns just text — no position/offset info for the match within the context string.\n- There's no component for rendering highlighted text in search results, so I'll need to either pass the match position down to `SearchResults` for highlighting, or restructure `SearchMatch.context` to carry the matched range explicitly. Looking at `buildContext`, it slices a snippet from `text` using a `MatchLocation`, so I can compute where the match falls within that snippet accounting for the ellipsis prefix, and expose that as a `matchRange` on the result.\n\nAlternatively, the simpler route is to re-find the query string within the context at render time inside `SearchResults`, passing along the query and mode (text/regexp) so it can build a matcher per-result without changing the `SearchMatch` type at all -- that feels cleaner for this codebase. I still need to decide whether to use MUI's `mark` element or a custom styled span, and whether `ActionSearchMatch` needs the same treatment.\n\n`SearchPanel` already has `query` and `mode`, so I just need to thread them down to `SearchResults`. For matching, I'll re-run regex or case-insensitive indexOf against the context string at render time, with no changes needed to `SearchMatch` or `search_project.ts`, and style the highlight with the theme's warning color. If the match can't be relocated due to whitespace normalization or regex flags, I'll just fall back to rendering plain text.\n\nAction search matches should get the same highlighting treatment, again without touching the underlying types or service. I'm noting that `buildContext` normalizes whitespace via a regex replace and trim, which could occasionally cause regexp matches spanning whitespace to not re-find cleanly -- worth flagging as an implementation detail. Now I'll write up the feature document concisely but completely."
+          ],
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-event-19",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeCPwNb2kfTB4y5BATsZa:thinking:0",
+          "sequence": 19,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:08:44.250Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nGot full picture. Writing the update now.",
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-turn-1-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 20,
+          "timestamp": "2026-08-19T16:08:44.251Z"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-event-21",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport { Box, IconButton, InputAdornment, Paper, TextField, ToggleButton, Tooltip } from '@mui/material'\n2\timport type { ChangeEvent, FocusEvent } from 'react'\n3\timport { useEffect, useState } from 'react'\n4\timport AutoFix from 'mdi-material-ui/AutoFix'\n5\timport FileSearchOutline from 'mdi-material-ui/FileSearchOutline'\n6\timport LightningBolt from 'mdi-material-ui/LightningBolt'\n7\timport Magnify from 'mdi-material-ui/Magnify'\n8\timport Regex from 'mdi-material-ui/Regex'\n9\timport type { ActionContext } from '../../../data/action_context'\n10\timport type { ActionDefinition } from '../../../data/action_types'\n11\timport { ActionPopup } from '../../actions/run/popup/action_popup'\n12\timport { useActions } from '../../hooks/use_actions'\n13\timport { useProjectState } from '../../hooks/use_project_state'\n14\timport { dialogService } from '../../../services/dialog_service'\n15\timport { InvalidSearchPatternError, defaultSearchRegexpAgent, searchActions, searchProject } from '../../../services/search/search_project'\n16\timport type { SearchMode, SearchRegexpAgent, SearchResults as SearchResultsData } from '../../../services/search/search_types'\n17\timport { workspaceNavigationService } from '../../../services/project/workspace_navigation_service'\n18\timport { useWorkspaceView } from '../../hooks/use_workspace_view'\n19\timport { NO_DRAG_REGION } from '../drag_region'\n20\timport { SearchResults } from './search_results'\n21\timport { useProjectConfig } from '../../hooks/use_project_config'\n22\t\n23\tconst RESULTS_MAX_HEIGHT = 420\n24\tconst RESULTS_WIDTH = 460\n25\tconst DROPDOWN_TOP_OFFSET = 4\n26\tconst EMPTY_RESULTS: SearchResultsData = { active: [], actions: [], backgroundGroups: [] }\n27\tconst SEARCH_ACTION_CONTEXT: ActionContext = { folder: '', kind: 'folder' }\n28\t\n29\tinterface SearchPanelProps {\n30\t    initialQuery: string\n31\t    onClose: () => void\n32\t    onQueryChange: (query: string) => void\n33\t    /** Builds a RegExp from the current query; defaults to the not-yet-available agent. */\n34\t    regexpAgent?: SearchRegexpAgent\n35\t}\n36\t\n37\t/** Top-shell search: plain/RegExp text search over the loaded project with grouped, navigable results. */\n38\texport function SearchPanel(props: SearchPanelProps) {\n39\t    const { initialQuery, onClose, onQueryChange, regexpAgent = defaultSearchRegexpAgent } = props\n40\t    const { snapshot } = useProjectState()\n41\t    const projectConfig = useProjectConfig()\n42\t    const { actions } = useActions()\n43\t    const { viewMode } = useWorkspaceView()\n44\t    const [query, setQuery] = useState(initialQuery)\n45\t    const [mode, setMode] = useState<SearchMode>('text')\n46\t    const [includeBackgroundBody, setIncludeBackgroundBody] = useState(false)\n47\t    const [includeActions, setIncludeActions] = useState(false)\n48\t    const [results, setResults] = useState<SearchResultsData>(EMPTY_RESULTS)\n49\t    const [isDismissed, setIsDismissed] = useState(false)\n50\t    const [isAgentBusy, setIsAgentBusy] = useState(false)\n51\t    const [actionPopupOpen, setActionPopupOpen] = useState(false)\n52\t    const [controlElement, setControlElement] = useState<HTMLDivElement | null>(null)\n53\t\n54\t    const hasQuery = query.trim().length > 0\n55\t    const isDropdownOpen = !isDismissed\n56\t    const shouldShowResults = hasQuery\n57\t\n58\t    useEffect(() => {\n59\t        controlElement?.querySelector<HTMLInputElement>('input')?.focus()\n60\t    }, [controlElement])\n61\t\n62\t    // Runs the search and, on an invalid expression, keeps the previous results while surfacing the error.\n63\t    const applySearch = (nextQuery: string, nextMode: SearchMode, nextIncludeBackgroundBody: boolean, nextIncludeActions: boolean) => {\n64\t        if (nextQuery.trim().length === 0 || !snapshot) {\n65\t            setResults(EMPTY_RESULTS)\n66\t\n67\t            return\n68\t        }\n69\t\n70\t        try {\n71\t            const options = { includeActions: nextIncludeActions, includeBackgroundBody: nextIncludeBackgroundBody, mode: nextMode }\n72\t            const specialFolderPaths = projectConfig\n73\t                ? [projectConfig.releasesFolder, projectConfig.archivedFolder]\n74\n[6041 characters omitted]\n              }}\n215\t                    value={query}\n216\t                    variant=\"outlined\"\n217\t                />\n218\t            </Box>\n219\t            {isDropdownOpen ? (\n220\t                <Paper\n221\t                    aria-label=\"Search dropdown\"\n222\t                    elevation={4}\n223\t                    role=\"region\"\n224\t                    style={NO_DRAG_REGION}\n225\t                    sx={{\n226\t                        left: 0,\n227\t                        maxHeight: RESULTS_MAX_HEIGHT,\n228\t                        overflow: 'auto',\n229\t                        position: 'absolute',\n230\t                        right: 0,\n231\t                        top: `calc(100% + ${DROPDOWN_TOP_OFFSET}px)`,\n232\t                        zIndex: 'modal',\n233\t                    }}\n234\t                >\n235\t                    <Box aria-label=\"Search options\" role=\"group\" sx={{ alignItems: 'center', display: 'flex', gap: 1, p: 1 }}>\n236\t                        <Tooltip title=\"RegExp mode\">\n237\t                            <ToggleButton\n238\t                                aria-label=\"RegExp mode\"\n239\t                                onChange={handleToggleRegexp}\n240\t                                selected={mode === 'regexp'}\n241\t                                size=\"small\"\n242\t                                value=\"regexp\"\n243\t                            >\n244\t                                <Regex fontSize=\"small\" />\n245\t                            </ToggleButton>\n246\t                        </Tooltip>\n247\t                        <Tooltip title=\"Search background file bodies\">\n248\t                            <ToggleButton\n249\t                                aria-label=\"Search background file bodies\"\n250\t                                onChange={handleToggleBackgroundBody}\n251\t                                selected={includeBackgroundBody}\n252\t                                size=\"small\"\n253\t                                value=\"background-body\"\n254\t                            >\n255\t                                <FileSearchOutline fontSize=\"small\" />\n256\t                            </ToggleButton>\n257\t                        </Tooltip>\n258\t                        <Tooltip title=\"Search actions\">\n259\t                            <ToggleButton\n260\t                                aria-label=\"Search actions\"\n261\t                                onChange={handleToggleActions}\n262\t                                selected={includeActions}\n263\t                                size=\"small\"\n264\t                                value=\"actions\"\n265\t                            >\n266\t                                <LightningBolt fontSize=\"small\" />\n267\t                            </ToggleButton>\n268\t                        </Tooltip>\n269\t                        <Tooltip title=\"Ask agent to build a RegExp\">\n270\t                            <span>\n271\t                                <IconButton\n272\t                                    aria-label=\"Ask agent to build a RegExp\"\n273\t                                    disabled={isAgentBusy || !hasQuery}\n274\t                                    onClick={handleAskAgent}\n275\t                                    size=\"small\"\n276\t                                >\n277\t                                    <AutoFix fontSize=\"small\" />\n278\t                                </IconButton>\n279\t                            </span>\n280\t                        </Tooltip>\n281\t                    </Box>\n282\t                    {shouldShowResults ? (\n283\t                        <SearchResults onActionSelect={handleSelectAction} onSelect={handleSelect} results={results} />\n284\t                    ) : null}\n285\t                </Paper>\n286\t            ) : null}\n287\t            {actionPopupOpen ? (\n288\t                <ActionPopup\n289\t                    anchorElement={controlElement}\n290\t                    context={SEARCH_ACTION_CONTEXT}\n291\t                    draggable\n292\t                    onClose={closeActionPopup}\n293\t                />\n294\t            ) : null}\n295\t        </Box>\n296\t    )\n297\t}\n298\t",
+          "providerItemId": "toolu_01DJLhRKBpPBEJXqeod9qYTB",
+          "sequence": 21,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:08:44.276Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "Now I have the complete picture. Let me write the feature description.\n\n**Current state**:\n- Search is fully implemented (F_017 complete). `search_project.ts` produces `SearchMatch` objects with a `context` string (plain text snippet, ±40 chars around the match, whitespace-normalized). `search_results.tsx` renders `context` as a plain secondary string in `ListItemText.secondary` — no visual distinction of the matched portion. Same for `ActionSearchMatch.context`.\n- `buildContext` does not preserve the match offset within the returned snippet — it returns a raw string only.\n- `SearchPanel` owns `query` and `mode` but doesn't pass them down to `SearchResults`, so I need to thread those through as props and re-locate the match within each context string to highlight it with a `<mark>` element, styled via MUI's sx prop.\n\nI'll apply the same highlighting logic to `renderActionMatch`, and handle the edge case where whitespace normalization in `buildContext` causes the match to not be re-findable — falling back to plain text rather than throwing. No changes needed to the underlying types or search logic files. The acceptance criteria center on visually distinguishing matched text in both search modes while gracefully degrading when a match can't be relocated.\n\nNow I need to actually write the markdown update itself, adding \"Current state,\" \"implementation details,\" and \"acceptance criteria\" sections to a doc that currently only has a one-line description, plus updating its status.",
+          "details": [
+            "Now I have the complete picture. Let me write the feature description.\n\n**Current state**:\n- Search is fully implemented (F_017 complete). `search_project.ts` produces `SearchMatch` objects with a `context` string (plain text snippet, ±40 chars around the match, whitespace-normalized). `search_results.tsx` renders `context` as a plain secondary string in `ListItemText.secondary` — no visual distinction of the matched portion. Same for `ActionSearchMatch.context`.\n- `buildContext` does not preserve the match offset within the returned snippet — it returns a raw string only.\n- `SearchPanel` owns `query` and `mode` but doesn't pass them down to `SearchResults`, so I need to thread those through as props and re-locate the match within each context string to highlight it with a `<mark>` element, styled via MUI's sx prop.\n\nI'll apply the same highlighting logic to `renderActionMatch`, and handle the edge case where whitespace normalization in `buildContext` causes the match to not be re-findable — falling back to plain text rather than throwing. No changes needed to the underlying types or search logic files. The acceptance criteria center on visually distinguishing matched text in both search modes while gracefully degrading when a match can't be relocated.\n\nNow I need to actually write the markdown update itself, adding \"Current state,\" \"implementation details,\" and \"acceptance criteria\" sections to a doc that currently only has a one-line description, plus updating its status."
+          ],
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-event-22",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeCPyV9EkXtD6CQQyeqBE:thinking:0",
+          "sequence": 22,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:09:02.433Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nClear picture. Updating the file now.",
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-turn-1-assistant-5",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 23,
+          "timestamp": "2026-08-19T16:09:02.438Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-event-24",
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_200_search_results_highlight_text.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01K4CB3xiqe45BA5Y45LPR77",
+          "sequence": 24,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:09:15.697Z",
+          "type": "fileChange"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nDone. `F_200` now has all three sections and `status: ready for implementation`.\n\nKey decisions captured:\n- Re-locate match at render time (no type changes needed) — simplest path\n- `SearchPanel` passes `query`/`mode` to `SearchResults`; only two files change\n- Whitespace-normalization edge case documented with plain-text fallback",
+          "id": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-turn-1-assistant-6",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 25,
+          "timestamp": "2026-08-19T16:09:20.614Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-8a0df4d6-df8f-47ae-9943-5b7c9832ba6a",
+      "providerSessions": [
+        {
+          "agent": "claude",
+          "conversationId": "85ee4075-1041-4049-8b92-f6015c58a937",
+          "createdAt": "2026-08-19T16:09:20.614Z",
+          "lastUsedAt": "2026-08-19T16:09:20.614Z",
+          "synchronizedThroughMessageId": "agent-turn-649fe60f-142c-4002-ae42-6fa391b78638-turn-1-assistant-6"
+        }
+      ],
+      "startedAt": "2026-08-19T16:07:50.787Z",
+      "status": "completed",
+      "timer": {
+        "elapsedMs": 89827,
+        "runningStartedAt": null
+      },
+      "title": "complete",
+      "usage": {
+        "cachedInputTokens": 319987,
+        "inputTokens": 13,
+        "outputTokens": 4039,
+        "reasoningTokens": 0,
+        "totalTokens": 324039,
+        "costUsd": 0.4207182
+      },
+      "usageSchemaVersion": 1,
+      "viewed": true
+    },
+    {
+      "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
+      "cardInternalId": "cc3a9c43-319b-4a60-a202-f728f220e14e",
+      "cardPath": "design/feature_descriptions/F_200_search_results_highlight_text.md",
+      "completedAt": "2026-08-19T16:20:48.670Z",
+      "contextWindowUsage": {
+        "capacityTokens": 258400,
+        "usedTokens": 57084
+      },
+      "entries": [
+        {
+          "content": "Read and implement the feature/job described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/F_200_search_results_highlight_text.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests.\n5. After implementation is done, update the field `status` in the markdown feature description file to \\`ready\\`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/F_200_search_results_highlight_text.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria.&#x20;\n\nYou should only run the related tests, do not run the entire test suite, that will be done manually later on.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill",
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-08-19T16:13:51.204Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-2",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0946b9a7cbe97ff7016a85d644cf20819191ca730b2d31463e",
+          "sequence": 2,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:13:57.192Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Using `caveman` skill for terse plan. First inspect feature spec, architecture, related code, tests. No edits. Then propose blocks, create task per block, wait approval.\n\n",
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 3,
+          "timestamp": "2026-08-19T16:13:58.064Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\F_200_search_results_highlight_text.md'\"",
+          "content": "---\nauthor: \nid: F_200\ninternalId: cc3a9c43-319b-4a60-a202-f728f220e14e\ntitle: Search results highlight text\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__cc3a9c43-319b-4a60-a202-f728f220e14e.json\npolicy:\nbranch: f_200_search_results_highlight_text\nworktree: 1\n---\n\nIn the global search we show the list of search results with for each result, some text where the search term was found. We should highlight this text so its easy to see where the result is.\n\n## Current state\n\nSearch (F_017) is complete. `search_project.ts` produces `SearchMatch` objects where `context` is a plain-text snippet (Â±40 characters around the match, whitespace-normalized via `.replace(/\\s+/gu, ' ').trim()`). `buildContext` returns only the string â€” the match offset within the snippet is not preserved. `search_results.tsx` renders `match.context` as the `secondary` string of `ListItemText` with no visual distinction of the matched portion. The same applies to `ActionSearchMatch.context`. `SearchPanel` already owns `query` and `mode` state but does not pass them to `SearchResults`.\n\n## Implementation details\n\n- Add `query: string` and `mode: SearchMode` props to `SearchResults` (`app/src/components/shell/search/search_results.tsx`).\n- In `renderMatch`, re-locate the match within `match.context` at render time: use case-insensitive `String.indexOf` for text mode, `RegExp.exec` for regexp mode. Split the context into three segments â€” before, matched, after â€” and render as `<span>before<mark>matched</mark>after</span>`. Style the `<mark>` element with a MUI `sx` prop (e.g. `bgcolor: 'warning.light'`, `color: 'warning.contrastText'`, `borderRadius: 0.25`).\n- Apply the same highlighting in `renderActionMatch` for `match.context`.\n- In `SearchPanel` (`app/src/components/shell/search/search_panel.tsx`), pass `query={query}` and `mode={mode}` to `<SearchResults />` at the call site on line 283.\n- If the match cannot be re-located in the context (regexp matched across whitespace that `buildContext` normalized away), fall back to rendering plain text without throwing.\n- No changes to `SearchMatch`, `ActionSearchMatch`, `search_types.ts`, or `search_project.ts`.\n- No new files: all changes are in `search_results.tsx` and `search_panel.tsx`.\n\n## Acceptance criteria\n\n- The matched substring inside each card result's context snippet is visually highlighted (distinct background color, same font size) for both text and regexp modes.\n- Non-matched text before and after the highlight renders as plain text.\n- When the match cannot be re-located in the context string (whitespace normalization edge case), the context renders as plain text without error.\n- Action results (`ActionSearchMatch.context`) also highlight the matched text.\n- `SearchResults` accepts `query` and `mode` props; `SearchPanel` passes them.\n- No changes to `SearchMatch` or `ActionSearchMatch` types.\r\n",
+          "durationMs": 294,
+          "exitCode": 0,
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-4",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\F_200_search_results_highlight_text.md'\"",
+          "providerItemId": "exec-dacb7978-b9b7-4c3d-91f4-0812125053c3",
+          "sequence": 4,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:14:00.368Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-5",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0946b9a7cbe97ff7016a85d64b39a08191a29b52ad83f6dd01",
+          "sequence": 5,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:14:02.406Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Spec scope fixed: two source files, no type/search-engine changes. Now verify render flow, all `SearchResults` call sites, existing test patterns, lint/test commands.\n\n",
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 6,
+          "timestamp": "2026-08-19T16:14:03.139Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\architecture\\\\architectural_decisions.md'\"",
+          "content": "---\ninternalId: 583d9c88-b71c-4560-92ad-3e23d33bf1d0\n---\n\n# Architectural decisions\n\nProject-wide decisions for MDÂ². The app is a Vite React web app in `app/`; `desktop/` is a separate Electron host that can load the website and expose local capabilities through preload bridges.\n\n## File naming\n\n| Decision | Rule | Rationale |\n| --- | --- | --- |\n| Code files use lowercase snake_case names. | All code files in `app/src/` and `desktop/` use lowercase words separated by underscores, for example `github_auth_service.ts`, `project_workspace.tsx`, and `local_git_service.js`. Test files keep the same base name with `.test` before the extension, for example `github_auth_service.test.ts`. Exported symbols keep normal TypeScript/JavaScript casing such as `GithubAuthService`, `ProjectWorkspace`, and `useGithubAuth`. | A single file naming convention avoids mixed PascalCase, camelCase, and hyphenated filenames, and keeps imports predictable across Windows and case-sensitive environments. |\n\n## Services and state\n\n| Decision | Rule | Rationale |\n| --- | --- | --- |\n| Global singleton services own domain state and logic. | Each domain is a class in `src/services/**`, instantiated once at module level and exported, for example `export const indexesService = new IndexesService()`. React components do not own domain state. | Keeps business logic out of components, testable without a DOM, and shared across windows/views without Redux, Zustand, or Context stores. |\n| Service location follows usage scope. | If a service is specific to one UI element and used only there, place it beside that component. Generic or shared services, such as logging, database access, config, storage, or cross-screen domain logic, belong in `src/services/`. | Keeps component-owned behavior local while preserving `src/services/` for reusable application services. |\n| Consumers use direct imports or the service injector. | Direct import when no import cycle exists; use `src/services/service_injector.js` when a cycle would occur. Every global singleton service registers itself in its constructor with `inj.register('myService', this)`. | The service graph is dense; the injector is a bare global registry that defers resolution to call time. |\n| Services have a two-phase lifecycle. | Constructors only register and set unloaded state such as `null`. Config-dependent or service-dependent work runs in `init()`, `start()`, app bootstrap (`App.jsx`), or a `loaded` lifecycle event. `configService.config` is private; callers use `get`, `set`, and `clear`. | Module evaluation order is not guaranteed, so `configService` is not usable at import time. Reading config in a constructor is a bug. |\n\n## Card state\n\n| Decision | Rule | Rationale |\n| --- | --- | --- |\n| The application has one `Card` domain type. | Do not create separate canonical, project, snapshot, or editor card types. The card-owning service holds the loaded cards and exposes focused operations that change only the requested field. React snapshots and editor drafts are read values; they must never replace or merge a complete card. Parser bookkeeping may remain private persistence metadata, but it is not another card model. | One card concept gives state a clear owner and prevents stale copies from overwriting newer worktree, activity, ordering, policy, or body values. |\n| Card UI subscribes at field level. | A component subscribes only to the primitive or stable reference it renders, using granular `EventTarget` events and `useSyncExternalStore`. Do not clone or stringify a complete card to detect a field change. Group fields only in a deliberately small, stable projection when they are always rendered together. | A one-field change allocates and rerenders only what consumes that field, keeping memory use bounded and the UI responsive. |\n| Cards are serialized only at persistence boundaries. | Mutate the owned `Card` through a focused operation, then serialize its current state when the persistence batch flushes. Editor changes update only the edited field. Activity linking updates only activity references. External file changes are parsed and applied deliberately without replacing dirty local state. | Persistence remains deterministic while concurrent saves and external updates cannot discard unrelated newer values. |\n\n\n## Events and React integration\n\n| Decision | Rule | Rationale |\n| --- | --- | --- |\n| Services notify observers through their own `EventTarget`. | Services expose an `EventTarget` and dispatch named `CustomEvent` domain events such as `activeIndex`, `added`, `deleted`, or `changedBox`. Observers subscribe with `addEventListener` and unsubscribe with `removeEventListener` on the owning service. | Decouples producers from consumers without depending on Node `EventEmitter`, which is not available in the browser-first React app. |\n| Custom hooks bridge service events to functional components. | Hooks in `src/components/hooks/`, such as `useActiveIndex` and `useProjectConfig`, seed `useState` from a service property, subscribe in `useEffect`, unsubscribe in cleanup, and return the value. Prefer hook + service over prop chains. | Components stay declarative and avoid direct event plumbing. |\n| Components subscribe at the smallest rendering boundary. | Root and layout components compose UI regions and pass structural inputs. Components that render changing application data subscribe through hooks themselves. Do not hoist changing data into ancestors only to pass it downward. | Limits rerenders to affected UI, protects transient state such as open popups, and avoids broad prop chains. |\n| Components use the app theme service path. | `App` owns theme mode through `useThemeMode()`, builds the MUI theme with `createAppTheme(mode)`, and provides it through `ThemeProvider`. Components read theme values with MUI APIs such as `useTheme`, `useMediaQuery`, and `sx`; only controls that change the palette mode receive `mode` and `onToggleTheme`. | Theme state, persistence, and palette construction stay centralized while components remain presentation-focused. |\n\r\n",
+          "durationMs": 543,
+          "exitCode": 0,
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-7",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\architecture\\\\architectural_decisions.md'\"",
+          "providerItemId": "exec-162990ee-51c4-4212-a053-2fe85fd214dd",
+          "sequence": 7,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:14:12.050Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\shell\\\\search\\\\search_results.tsx'\"",
+          "content": "import { Box, Chip, List, ListItemButton, ListItemText, Typography } from '@mui/material'\nimport type { ActionDefinition } from '../../../data/action_types'\nimport type { ActionSearchMatch, SearchMatch, SearchResults as SearchResultsData } from '../../../services/search/search_types'\n\ninterface SearchResultsProps {\n    onActionSelect: (action: ActionDefinition) => void\n    onSelect: (path: string) => void\n    results: SearchResultsData\n}\n\nfunction renderMatch(match: SearchMatch, onSelect: (path: string) => void) {\n    const handleClick = () => onSelect(match.path)\n    const secondary = `${match.path} â€” ${match.context}`\n\n    return (\n        <ListItemButton dense key={match.path} onClick={handleClick}>\n            <ListItemText\n                primary={\n                    <Box component=\"span\" sx={{ alignItems: 'center', display: 'flex', gap: 1 }}>\n                        <span>{match.title}</span>\n                        <Chip color={match.source === 'header' ? 'primary' : 'default'} label={match.source} size=\"small\" />\n                    </Box>\n                }\n                secondary={secondary}\n            />\n        </ListItemButton>\n    )\n}\n\nfunction renderActionMatch(match: ActionSearchMatch, onActionSelect: (action: ActionDefinition) => void) {\n    const handleClick = () => onActionSelect(match.action)\n    const secondary = `${match.field} - ${match.context}`\n\n    return (\n        <ListItemButton dense key={match.action.id} onClick={handleClick}>\n            <ListItemText\n                primary={\n                    <Box component=\"span\" sx={{ alignItems: 'center', display: 'flex', gap: 1 }}>\n                        <span>{match.title}</span>\n                        <Chip color=\"secondary\" label=\"action\" size=\"small\" />\n                    </Box>\n                }\n                secondary={secondary}\n            />\n        </ListItemButton>\n    )\n}\n\n/** Renders grouped search results: active cards first, then background cards grouped by folder. */\nexport function SearchResults(props: SearchResultsProps) {\n    const { onActionSelect, onSelect, results } = props\n    const hasAny = results.active.length > 0 || results.backgroundGroups.length > 0 || results.actions.length > 0\n\n    if (!hasAny) {\n        return (\n            <Box sx={{ p: 2 }}>\n                <Typography color=\"text.secondary\" variant=\"body2\">\n                    No matches found.\n                </Typography>\n            </Box>\n        )\n    }\n\n    return (\n        <Box>\n            {results.active.length > 0 ? (\n                <Box>\n                    <Typography color=\"text.secondary\" sx={{ px: 2, pt: 1 }} variant=\"overline\">\n                        Active cards\n                    </Typography>\n                    <List dense disablePadding>\n                        {results.active.map((match) => renderMatch(match, onSelect))}\n                    </List>\n                </Box>\n            ) : null}\n            {results.backgroundGroups.map((group) => (\n                <Box key={group.folder}>\n                    <Typography color=\"text.secondary\" sx={{ px: 2, pt: 1 }} variant=\"overline\">\n                        {group.folder}\n                    </Typography>\n                    <List dense disablePadding>\n                        {group.matches.map((match) => renderMatch(match, onSelect))}\n                    </List>\n                </Box>\n            ))}\n            {results.actions.length > 0 ? (\n                <Box>\n                    <Typography color=\"text.secondary\" sx={{ px: 2, pt: 1 }} variant=\"overline\">\n                        Actions\n                    </Typography>\n                    <List dense disablePadding>\n                        {results.actions.map((match) => renderActionMatch(match, onActionSelect))}\n                    </List>\n                </Box>\n            ) : null}\n        </Box>\n    )\n}\n\r\n",
+          "durationMs": 610,
+          "exitCode": 0,
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-8",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\shell\\\\search\\\\search_results.tsx'\"",
+          "providerItemId": "exec-f3e2ccb7-4fcc-4646-bb9a-5c97b3647ae6",
+          "sequence": 8,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:14:12.120Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\STYLE_GUIDE.md'\"",
+          "content": "---\ninternalId: f2ec9e28-8064-4707-bce9-b62f24d57524\n---\n\n# App Style Guide â€” Kanban / MDÂ² (React + MUI)\n\nHow to build **any new component** so it matches the app. This is written for **Material UI v5+** components.\n\n**The theme is the source of truth.** All color, radius, base typography, and spacing units live in the single `createTheme` (defined in `GUIDANCE.md` Â§1/Â§9). This guide does **not** define colors â€” it tells you **which theme value to use for which role**, and covers the things the theme can't encode: layout, spacing/margins, borders, elevation, and component conventions.\n\n**The one rule that matters:** never write a raw hex, px radius, or magic color into a component. Read it from the theme (`theme.palette.*`, `theme.shape`, `theme.typography`, `theme.spacing`). If a component has a hardcoded hex in its `sx`/styled, it's wrong â€” that's exactly where the look drifts and where dark mode breaks.\n\n---\n\n## 1. How to consume the theme\n\n- **Colors:** `sx={{ color: 'text.secondary', bgcolor: 'background.paper', borderColor: 'divider' }}` â€” MUI resolves dotted palette paths automatically in `sx`. In `styled`/JS use the callback form: `styled(Box)(({ theme }) => ({ color: theme.palette.text.secondary }))`.\n- **Spacing:** use the 8px unit via the spacing scale â€” `sx={{ p: 2, gap: 1, mt: 1.5 }}` (`2` = 16px, `1` = 8px). Don't write `padding: '16px'`.\n- **Radius:** `borderRadius: 1` (= `theme.shape.borderRadius` = 8) and multiples; for the fixed non-8 radii see Â§4.\n- **Typography:** prefer `Typography variant=...` and `theme.typography.*` over ad-hoc `fontSize`.\n- **Custom tokens:** roles the default MUI palette doesn't cover (column/track surfaces, the strong/hover border steps, `text-3/4`, section-header color, `primary-bg` tint, status colors) must exist in the theme under a namespace (e.g. `theme.palette.custom.*`) with light + dark values. Consume them the same way â€” `bgcolor: 'custom.column'`. **Never inline their hex.** If a needed token doesn't exist yet, add it to the theme, don't hardcode it in the component.\n\n---\n\n## 2. Role â†’ theme slot\n\nPick the slot by the element's **role**, not by how it looks in one mode:\n\n| Role | Theme slot |\n|---|---|\n| App background; tinted footer/action bars | `background.default` |\n| Column & sidebar surface | `custom.column` |\n| Segmented-control / toolbar track, hover fill | `custom.track` |\n| Card, dialog, popup, input surface | `background.paper` |\n| Hairlines, resting borders | `divider` |\n| Input borders, vertical separators | `custom.borderStrong` |\n| Border on hover | `custom.borderHover` |\n| Titles, values, headings | `text.primary` |\n| Body copy, field labels | `text.secondary` |\n| Meta, captions, resting icons | `custom.text3` |\n| Muted / placeholder / disabled | `custom.text4` |\n| Uppercase section/column headers | `custom.colHead` |\n| The one CTA, selection, focus, links, icon-hover | `primary.main` |\n| Contained-button hover | `primary.dark` |\n| Selected/tinted bg, focus ring, ID-chip bg | `custom.primaryBg` |\n| Text/icon on a primary fill | `primary.contrastText` |\n| Active / saved / online dot | `success.main` |\n| Destructive action | `error.main` |\n| Status swatch dots & ID-chip tints (decorative only) | `custom.status.*` |\n\nRules: **one** `primary` per surface (the CTA/selection accent) â€” everything else is `text-*`/`divider`. Status colors are **decoration only** (dots, chip tints), never interactive color. Dark-mode brightness/tinting is handled inside the theme's two palettes, so a correctly-sloted component needs zero per-mode code.\n\n---\n\n## 3. Layout\n\n- **Full-height app:** column flex â€” menu row / ribbon / content (`flex: 1; minHeight: 0`) / status bar. Fixed bands `flexShrink: 0`.\n- **Board:** horizontal-scroll flex row, `gap: 2` (16px), page padding `p: 2.5` (20px); columns `width: 296, flexShrink: 0`, internal column flex `gap: 1`.\n- **List view:** two-pane flex row filling the space between ribbon and status bar â€” sidebar `width: 280, flexShrink: 0`, editor pane `flex: 1, minWidth: 0` (the `minWidth: 0` is required \n[3414 characters omitted]\n components; all colors from the theme:\n\n- **Ghost icon button** (`IconButton`): transparent â†’ hover `bgcolor: track` (or `background.paper` on a colored panel) + `color: primary.main`. Override MUI's default circular hover tint via `sx`.\n- **Outlined button:** `divider` border, `text.secondary` â†’ hover `borderColor/color: primary.main`. Destructive: hover `borderColor: error.main` + `bgcolor: custom.dangerBg`.\n- **Contained (primary) CTA:** `primary.main` + small shadow â†’ hover `primary.dark`.\n- **Input/field focus:** `borderColor: primary.main` + `boxShadow: 0 0 0 3px` in `custom.primaryBg` (the soft halo). Unfocused hover: `borderColor: custom.borderHover`.\n- **List/tree row:** hover `bgcolor: track`; selected `bgcolor: custom.primaryBg` + title `text.primary`.\n- **Row-level actions** (delete, â‹®): hidden at rest, shown on `:hover`/`:focus-within` via **opacity** (keep in DOM so width doesn't jump).\n- **Active tab/menu item:** 2px `primary.main` bottom border + `primary.main` text.\n- Every icon-only control gets a `Tooltip` (theme sets `arrow: true`) **and** an `aria-label`.\n\n---\n\n## 8. Component conventions (MUI primitives)\n\n- **Buttons:** `Button variant=\"contained\"` = the single CTA per surface; `variant=\"outlined\"` = secondary; `variant=\"text\"` = tertiary. Icon-only â†’ `IconButton` in a `Tooltip`. Don't use `Link` or text `Button` where an action button belongs (that reproduces the old text-link look).\n- **Icons:** `@mui/icons-material` **Outlined** variants; `fontSize: 18` in 34px buttons, `16` in dense, `13â€“15` inline. Don't hand-draw SVG.\n- **ID chip:** monospace, accent text on `custom.primaryBg`/status tint, `radius 5, flexShrink: 0`.\n- **Count chip:** `background.paper` bg, 1px `divider`, radius 9â€“10, `custom.text3`.\n- **State dot:** 7â€“8px circle + `text-3` label; green (`success.main`) = active/saved/online.\n- **Search:** pill `TextField` (`borderRadius: 99`, `bgcolor: background.default`), search start-adornment, `âŒ˜K` keycap end-adornment.\n- **Select:** `size=\"small\"`, optional dot+name via `renderValue`; 42px / radius-9 frame. When a select has a tooltip, keep the tooltip available while the select is closed and explicitly hide it for the entire time the select menu is open so it cannot cover the first option.\n- **Menu / context menu:** all `Menu` / `MenuItem` dropdowns and right-click context menus are dense by default through the theme. Call sites must not set density; `Select` option lists inherit the same density.\n- **Segmented control** (view switch, formatting toolbar): `ToggleButtonGroup` on a `custom.track` background; selected segment `background.paper` + `0 1px 2px` shadow + `primary` text.\n- **Dialog / popup:** `Dialog`/`Popover` with `PaperProps` â†’ `background.paper`, 1px `divider`, radius 14, big shadow; scrim via `slotProps.backdrop` (blur + tint). Bands separated by hairlines; footer on a `background.default` bar with top hairline; actions right-aligned (outlined Cancel + contained CTA). `autoFocus` first field; submit on `Enter` (`âŒ˜/Ctrl+Enter` in a textarea); close on `Esc`/backdrop.\n- **Empty state:** dashed target â€” `1.5px dashed custom.borderStrong`, radius 10, centered icon + `custom.text4` label. No \"click to add\" placeholder blocks.\n\n---\n\n## 9. Definition of done for a new component\n\n1. Zero hardcoded hex / raw px colors â€” every value comes from `theme.palette` / `theme.shape` / `theme.spacing` / `theme.typography`.\n2. Correct roleâ†’slot mapping (Â§2); at most one `primary` CTA on the surface.\n3. Borders at rest, shadow only when floating (Â§5); bands split by a single hairline.\n4. Hover **and** focus states on every interactive element (Â§7); icon buttons have tooltip + `aria-label`.\n5. Body scrolls, header/footer pinned; `minWidth: 0` on flex children that hold long text.\n6. Toggle to dark mode and confirm nothing breaks â€” if it does, you hardcoded a color somewhere (Â§1).\n\nComponent-specific detail lives in `GUIDANCE.md` (theme definition + board/list/dialog), `CARD_POPUP_GUIDE.md`, `RUN_DIALOG_GUIDE.md`, and `SIDEBAR_ACTIONS_GUIDE.md`.\n\r\n",
+          "durationMs": 591,
+          "exitCode": 0,
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-9",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\STYLE_GUIDE.md'\"",
+          "providerItemId": "exec-32cebf5c-657b-43a6-bf44-c501a8885d94",
+          "sequence": 9,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:14:12.103Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\shell\\\\search\\\\search_panel.tsx'\"",
+          "content": "import { Box, IconButton, InputAdornment, Paper, TextField, ToggleButton, Tooltip } from '@mui/material'\nimport type { ChangeEvent, FocusEvent } from 'react'\nimport { useEffect, useState } from 'react'\nimport AutoFix from 'mdi-material-ui/AutoFix'\nimport FileSearchOutline from 'mdi-material-ui/FileSearchOutline'\nimport LightningBolt from 'mdi-material-ui/LightningBolt'\nimport Magnify from 'mdi-material-ui/Magnify'\nimport Regex from 'mdi-material-ui/Regex'\nimport type { ActionContext } from '../../../data/action_context'\nimport type { ActionDefinition } from '../../../data/action_types'\nimport { ActionPopup } from '../../actions/run/popup/action_popup'\nimport { useActions } from '../../hooks/use_actions'\nimport { useProjectState } from '../../hooks/use_project_state'\nimport { dialogService } from '../../../services/dialog_service'\nimport { InvalidSearchPatternError, defaultSearchRegexpAgent, searchActions, searchProject } from '../../../services/search/search_project'\nimport type { SearchMode, SearchRegexpAgent, SearchResults as SearchResultsData } from '../../../services/search/search_types'\nimport { workspaceNavigationService } from '../../../services/project/workspace_navigation_service'\nimport { useWorkspaceView } from '../../hooks/use_workspace_view'\nimport { NO_DRAG_REGION } from '../drag_region'\nimport { SearchResults } from './search_results'\nimport { useProjectConfig } from '../../hooks/use_project_config'\n\nconst RESULTS_MAX_HEIGHT = 420\nconst RESULTS_WIDTH = 460\nconst DROPDOWN_TOP_OFFSET = 4\nconst EMPTY_RESULTS: SearchResultsData = { active: [], actions: [], backgroundGroups: [] }\nconst SEARCH_ACTION_CONTEXT: ActionContext = { folder: '', kind: 'folder' }\n\ninterface SearchPanelProps {\n    initialQuery: string\n    onClose: () => void\n    onQueryChange: (query: string) => void\n    /** Builds a RegExp from the current query; defaults to the not-yet-available agent. */\n    regexpAgent?: SearchRegexpAgent\n}\n\n/** Top-shell search: plain/RegExp text search over the loaded project with grouped, navigable results. */\nexport function SearchPanel(props: SearchPanelProps) {\n    const { initialQuery, onClose, onQueryChange, regexpAgent = defaultSearchRegexpAgent } = props\n    const { snapshot } = useProjectState()\n    const projectConfig = useProjectConfig()\n    const { actions } = useActions()\n    const { viewMode } = useWorkspaceView()\n    const [query, setQuery] = useState(initialQuery)\n    const [mode, setMode] = useState<SearchMode>('text')\n    const [includeBackgroundBody, setIncludeBackgroundBody] = useState(false)\n    const [includeActions, setIncludeActions] = useState(false)\n    const [results, setResults] = useState<SearchResultsData>(EMPTY_RESULTS)\n    const [isDismissed, setIsDismissed] = useState(false)\n    const [isAgentBusy, setIsAgentBusy] = useState(false)\n    const [actionPopupOpen, setActionPopupOpen] = useState(false)\n    const [controlElement, setControlElement] = useState<HTMLDivElement | null>(null)\n\n    const hasQuery = query.trim().length > 0\n    const isDropdownOpen = !isDismissed\n    const shouldShowResults = hasQuery\n\n    useEffect(() => {\n        controlElement?.querySelector<HTMLInputElement>('input')?.focus()\n    }, [controlElement])\n\n    // Runs the search and, on an invalid expression, keeps the previous results while surfacing the error.\n    const applySearch = (nextQuery: string, nextMode: SearchMode, nextIncludeBackgroundBody: boolean, nextIncludeActions: boolean) => {\n        if (nextQuery.trim().length === 0 || !snapshot) {\n            setResults(EMPTY_RESULTS)\n\n            return\n        }\n\n        try {\n            const options = { includeActions: nextIncludeActions, includeBackgroundBody: nextIncludeBackgroundBody, mode: nextMode }\n            const specialFolderPaths = projectConfig\n                ? [projectConfig.releasesFolder, projectConfig.archivedFolder]\n                : []\n            const cardResults = searchProject(snapshot, nextQuery, options, specialFolderPaths)\n            const actionResults = searchActions(actions, nextQuery, options)\n            setRes\n[4963 characters omitted]\n                         bgcolor: 'background.default',\n                                borderRadius: 99,\n                                fontSize: 13,\n                                height: 32,\n                                '& fieldset': { borderColor: 'divider' },\n                            },\n                        },\n                    }}\n                    value={query}\n                    variant=\"outlined\"\n                />\n            </Box>\n            {isDropdownOpen ? (\n                <Paper\n                    aria-label=\"Search dropdown\"\n                    elevation={4}\n                    role=\"region\"\n                    style={NO_DRAG_REGION}\n                    sx={{\n                        left: 0,\n                        maxHeight: RESULTS_MAX_HEIGHT,\n                        overflow: 'auto',\n                        position: 'absolute',\n                        right: 0,\n                        top: `calc(100% + ${DROPDOWN_TOP_OFFSET}px)`,\n                        zIndex: 'modal',\n                    }}\n                >\n                    <Box aria-label=\"Search options\" role=\"group\" sx={{ alignItems: 'center', display: 'flex', gap: 1, p: 1 }}>\n                        <Tooltip title=\"RegExp mode\">\n                            <ToggleButton\n                                aria-label=\"RegExp mode\"\n                                onChange={handleToggleRegexp}\n                                selected={mode === 'regexp'}\n                                size=\"small\"\n                                value=\"regexp\"\n                            >\n                                <Regex fontSize=\"small\" />\n                            </ToggleButton>\n                        </Tooltip>\n                        <Tooltip title=\"Search background file bodies\">\n                            <ToggleButton\n                                aria-label=\"Search background file bodies\"\n                                onChange={handleToggleBackgroundBody}\n                                selected={includeBackgroundBody}\n                                size=\"small\"\n                                value=\"background-body\"\n                            >\n                                <FileSearchOutline fontSize=\"small\" />\n                            </ToggleButton>\n                        </Tooltip>\n                        <Tooltip title=\"Search actions\">\n                            <ToggleButton\n                                aria-label=\"Search actions\"\n                                onChange={handleToggleActions}\n                                selected={includeActions}\n                                size=\"small\"\n                                value=\"actions\"\n                            >\n                                <LightningBolt fontSize=\"small\" />\n                            </ToggleButton>\n                        </Tooltip>\n                        <Tooltip title=\"Ask agent to build a RegExp\">\n                            <span>\n                                <IconButton\n                                    aria-label=\"Ask agent to build a RegExp\"\n                                    disabled={isAgentBusy || !hasQuery}\n                                    onClick={handleAskAgent}\n                                    size=\"small\"\n                                >\n                                    <AutoFix fontSize=\"small\" />\n                                </IconButton>\n                            </span>\n                        </Tooltip>\n                    </Box>\n                    {shouldShowResults ? (\n                        <SearchResults onActionSelect={handleSelectAction} onSelect={handleSelect} results={results} />\n                    ) : null}\n                </Paper>\n            ) : null}\n            {actionPopupOpen ? (\n                <ActionPopup\n                    anchorElement={controlElement}\n                    context={SEARCH_ACTION_CONTEXT}\n                    draggable\n                    onClose={closeActionPopup}\n                />\n            ) : null}\n        </Box>\n    )\n}\n\r\n",
+          "durationMs": 537,
+          "exitCode": 0,
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-10",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\shell\\\\search\\\\search_panel.tsx'\"",
+          "providerItemId": "exec-e97779ee-b1dc-4f0b-b1c5-702274a1caf2",
+          "sequence": 10,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:14:12.050Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n --glob '\"'!node_modules'\"' \\\"<SearchResults|SearchResults\\\\(\\\" app\"",
+          "content": "app\\src\\components\\shell\\search\\search_results.tsx:50:export function SearchResults(props: SearchResultsProps) {\napp\\src\\components\\shell\\search\\search_panel.tsx:48:    const [results, setResults] = useState<SearchResultsData>(EMPTY_RESULTS)\napp\\src\\components\\shell\\search\\search_panel.tsx:283:                        <SearchResults onActionSelect={handleSelectAction} onSelect={handleSelect} results={results} />\n",
+          "durationMs": 636,
+          "exitCode": 0,
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-11",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n --glob '\"'!node_modules'\"' \\\"<SearchResults|SearchResults\\\\(\\\" app\"",
+          "providerItemId": "exec-0b8090d2-927f-4197-8a2e-6cee4fc10654",
+          "sequence": 11,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:14:12.151Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\package.json'\"",
+          "content": "{\n  \"name\": \"app\",\n  \"private\": true,\n  \"version\": \"0.3.3\",\n  \"type\": \"module\",\n  \"scripts\": {\n    \"dev\": \"vite\",\n    \"build\": \"tsc && vite build\",\n    \"lint\": \"eslint .\",\n    \"lint-fix\": \"eslint . --fix\",\n    \"preview\": \"vite preview\",\n    \"typecheck\": \"tsc --noEmit\",\n    \"test\": \"vitest run\",\n    \"test:full\": \"vitest run\",\n    \"test:related\": \"vitest related --run\",\n    \"test:ui\": \"vitest run --project ui\",\n    \"test:unit\": \"vitest run --project unit\",\n    \"test:watch\": \"vitest\"\n  },\n  \"devDependencies\": {\n    \"@eslint/js\": \"^9.39.4\",\n    \"@testing-library/jest-dom\": \"^6.9.1\",\n    \"@testing-library/react\": \"^16.3.2\",\n    \"@testing-library/user-event\": \"^14.6.4\",\n    \"@types/prismjs\": \"^1.26.6\",\n    \"@types/qrcode\": \"^1.5.6\",\n    \"@types/react\": \"^19.2.17\",\n    \"@types/react-dom\": \"^19.2.3\",\n    \"@vitejs/plugin-react\": \"^6.0.3\",\n    \"eslint\": \"^9.39.4\",\n    \"eslint-plugin-import\": \"^2.32.0\",\n    \"eslint-plugin-react\": \"^7.37.5\",\n    \"eslint-plugin-react-hooks\": \"^7.1.1\",\n    \"eslint-plugin-react-refresh\": \"^0.5.3\",\n    \"globals\": \"^17.7.0\",\n    \"jsdom\": \"^29.1.1\",\n    \"typescript\": \"~6.0.2\",\n    \"typescript-eslint\": \"^8.62.1\",\n    \"vite\": \"^8.1.1\",\n    \"vitest\": \"^4.1.9\"\n  },\n  \"dependencies\": {\n    \"@aptabase/web\": \"^0.5.0\",\n    \"@dnd-kit/core\": \"^6.3.1\",\n    \"@dnd-kit/sortable\": \"^10.0.0\",\n    \"@emotion/react\": \"^11.14.0\",\n    \"@emotion/styled\": \"^11.14.1\",\n    \"@lexical/history\": \"^0.35.0\",\n    \"@lexical/link\": \"^0.35.0\",\n    \"@lexical/react\": \"^0.35.0\",\n    \"@mdxeditor/editor\": \"^4.0.4\",\n    \"@mui/icons-material\": \"^9.2.0\",\n    \"@mui/material\": \"^9.2.0\",\n    \"@sentry/react\": \"^10.63.0\",\n    \"lexical\": \"^0.35.0\",\n    \"mdi-material-ui\": \"^8.0.0\",\n    \"prismjs\": \"^1.30.0\",\n    \"qrcode\": \"^1.5.4\",\n    \"react\": \"^19.2.7\",\n    \"react-arborist\": \"^3.13.2\",\n    \"react-diff-viewer-continued\": \"^4.2.2\",\n    \"react-dom\": \"^19.2.7\",\n    \"react-markdown\": \"^10.1.0\",\n    \"react-virtuoso\": \"^4.18.11\",\n    \"remark-gfm\": \"^4.0.1\",\n    \"uuid\": \"^14.0.1\"\n  }\n}\n\r\n",
+          "durationMs": 575,
+          "exitCode": 0,
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-12",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\package.json'\"",
+          "providerItemId": "exec-5e3785b6-1466-41cc-a18f-c30819811aca",
+          "sequence": 12,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:14:12.091Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg --files app\\\\src\\\\components\\\\shell\\\\search | rg \\\"test|spec|search_results|search_panel\\\"\"",
+          "content": "app\\src\\components\\shell\\search\\search_results.tsx\r\napp\\src\\components\\shell\\search\\search_panel.tsx\r\napp\\src\\components\\shell\\search\\search_control.test.tsx\r\n",
+          "durationMs": 634,
+          "exitCode": 0,
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-13",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg --files app\\\\src\\\\components\\\\shell\\\\search | rg \\\"test|spec|search_results|search_panel\\\"\"",
+          "providerItemId": "exec-2b2b9f39-a413-49f9-8f09-3ef03b6444b8",
+          "sequence": 13,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:14:12.151Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-14",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0946b9a7cbe97ff7016a85d65736a481918289562d36d23970",
+          "sequence": 14,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:14:14.305Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\services\\\\search\\\\search_types.ts'\"",
+          "content": "import type { ActionDefinition } from '../../data/action_types'\nimport type { Card } from '../../data/data_types'\n\nexport type SearchMode = 'text' | 'regexp'\n\n/** Where a single result's match was found within a card. */\nexport type SearchMatchSource = 'header' | 'body'\n\nexport interface SearchOptions {\n    /** When true, background cards are also searched by full body content. */\n    includeBackgroundBody: boolean\n    /** When true, loaded action definitions are searched. */\n    includeActions: boolean\n    mode: SearchMode\n}\n\nexport interface SearchMatch {\n    card: Card\n    /** Snippet of the matched text with surrounding context. */\n    context: string\n    /** Header field the match came from, or `body`. */\n    field: string\n    path: string\n    source: SearchMatchSource\n    title: string\n}\n\nexport interface BackgroundGroup {\n    /** Configured special-folder name or first folder segment under the working folder. */\n    folder: string\n    matches: SearchMatch[]\n}\n\nexport interface ActionSearchMatch {\n    action: ActionDefinition\n    context: string\n    field: 'label' | 'description' | 'text'\n    title: string\n}\n\nexport interface SearchResults {\n    active: SearchMatch[]\n    actions: ActionSearchMatch[]\n    backgroundGroups: BackgroundGroup[]\n}\n\n/** Builds a search expression from a natural-language request, typically via an agent. */\nexport type SearchRegexpAgent = (naturalQuery: string) => Promise<string>\n\r\n",
+          "durationMs": 448,
+          "exitCode": 0,
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-15",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\services\\\\search\\\\search_types.ts'\"",
+          "providerItemId": "exec-f842c9d4-7813-49df-b74d-5c4ebad7943c",
+          "sequence": 15,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:14:21.264Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\shell\\\\search\\\\search_control.test.tsx'\"",
+          "content": "",
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-16",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\shell\\\\search\\\\search_control.test.tsx'\"",
+          "providerItemId": "exec-d11ff285-60e5-4339-b62b-9207a698e6cf",
+          "sequence": 16,
+          "status": "inProgress",
+          "timestamp": "2026-08-19T16:14:20.813Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"buildContext|new RegExp|InvalidSearchPatternError|regexp\\\" 'app\\\\src\\\\services\\\\search\\\\search_project.ts'\"",
+          "content": "",
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-17",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"buildContext|new RegExp|InvalidSearchPatternError|regexp\\\" 'app\\\\src\\\\services\\\\search\\\\search_project.ts'\"",
+          "providerItemId": "exec-cb1c3fd3-890c-499f-a783-bbc1ade09306",
+          "sequence": 17,
+          "status": "inProgress",
+          "timestamp": "2026-08-19T16:14:20.813Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\eslint.config.js'\"",
+          "content": "import js from '@eslint/js'\nimport importPlugin from 'eslint-plugin-import'\nimport react from 'eslint-plugin-react'\nimport reactHooks from 'eslint-plugin-react-hooks'\nimport reactRefresh from 'eslint-plugin-react-refresh'\nimport globals from 'globals'\nimport tseslint from 'typescript-eslint'\n\nconst projectRules = {\n  ...react.configs.recommended.rules,\n  ...reactHooks.configs.recommended.rules,\n  eqeqeq: 'off',\n  'no-underscore-dangle': 'off',\n  'no-param-reassign': 'off',\n  'consistent-return': 'off',\n  'comma-dangle': ['error', 'always-multiline'],\n  'no-restricted-syntax': ['error', 'LabeledStatement', 'WithStatement'],\n  'no-use-before-define': ['error', { variables: true, functions: false, classes: true }],\n  'no-await-in-loop': 'off',\n  'guard-for-in': 'off',\n  'no-const-assign': 'error',\n  'no-continue': 'off',\n  'import/prefer-default-export': 'off',\n  indent: ['error', 4, { SwitchCase: 1 }],\n  'max-len': ['error', { code: 140, ignoreComments: true, ignoreStrings: true, ignoreTemplateLiterals: true }],\n  'no-trailing-spaces': ['warn', { skipBlankLines: true }],\n  'import/no-extraneous-dependencies': 'off',\n  'no-plusplus': 'off',\n  'no-multi-spaces': ['error', { ignoreEOLComments: true }],\n  quotes: 'off',\n  'object-curly-newline': ['error', {\n    ObjectExpression: { multiline: true },\n    ObjectPattern: { multiline: true },\n  }],\n  'no-console': 'off',\n  'class-methods-use-this': ['error', { exceptMethods: ['render', 'componentDidMount'] }],\n  'prefer-destructuring': 'off',\n  'react/react-in-jsx-scope': 'off',\n  'react/prop-types': 'off',\n  'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],\n}\n\nexport default tseslint.config(\n  { ignores: ['dist'] },\n  {\n    extends: [js.configs.recommended, ...tseslint.configs.recommended],\n    files: ['**/*.{ts,tsx}'],\n    languageOptions: {\n      ecmaVersion: 2023,\n      globals: {\n        ...globals.browser,\n        ...globals.node,\n        ...globals.jest,\n      },\n      parserOptions: {\n        ecmaFeatures: {\n          jsx: true,\n        },\n      },\n    },\n    plugins: {\n      import: importPlugin,\n      react,\n      'react-hooks': reactHooks,\n      'react-refresh': reactRefresh,\n    },\n    settings: {\n      react: {\n        createClass: 'createReactClass',\n        pragma: 'React',\n        fragment: 'Fragment',\n        version: 'detect',\n        flowVersion: '0.53',\n      },\n      'import/resolver': {\n        node: {\n          extensions: ['.js', '.jsx', '.ts', '.tsx'],\n        },\n      },\n    },\n    rules: projectRules,\n  },\n)\n\r\n",
+          "durationMs": 446,
+          "exitCode": 0,
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-18",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\eslint.config.js'\"",
+          "providerItemId": "exec-49d26169-3bfb-43f4-a6f2-3a41ba47d2fb",
+          "sequence": 18,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:14:21.264Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n --glob '*.test.tsx' \\\"<mark|querySelector\\\\('mark'\\\\)|SearchResults\\\" app\\\\src\"",
+          "content": "",
+          "durationMs": 462,
+          "exitCode": 1,
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-19",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n --glob '*.test.tsx' \\\"<mark|querySelector\\\\('mark'\\\\)|SearchResults\\\" app\\\\src\"",
+          "providerItemId": "exec-6d713311-ddbc-4713-890e-3f773ed171f9",
+          "sequence": 19,
+          "status": "failed",
+          "timestamp": "2026-08-19T16:14:21.282Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-20",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0946b9a7cbe97ff7016a85d65fe9f48191a63785d43265f236",
+          "sequence": 20,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:14:22.917Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "One combined read stopped because search found no existing highlight tests. Retry decisive files separately. Still no edits.\n\n",
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 21,
+          "timestamp": "2026-08-19T16:14:23.558Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\services\\\\search\\\\search_types.ts'\"",
+          "content": "import type { ActionDefinition } from '../../data/action_types'\nimport type { Card } from '../../data/data_types'\n\nexport type SearchMode = 'text' | 'regexp'\n\n/** Where a single result's match was found within a card. */\nexport type SearchMatchSource = 'header' | 'body'\n\nexport interface SearchOptions {\n    /** When true, background cards are also searched by full body content. */\n    includeBackgroundBody: boolean\n    /** When true, loaded action definitions are searched. */\n    includeActions: boolean\n    mode: SearchMode\n}\n\nexport interface SearchMatch {\n    card: Card\n    /** Snippet of the matched text with surrounding context. */\n    context: string\n    /** Header field the match came from, or `body`. */\n    field: string\n    path: string\n    source: SearchMatchSource\n    title: string\n}\n\nexport interface BackgroundGroup {\n    /** Configured special-folder name or first folder segment under the working folder. */\n    folder: string\n    matches: SearchMatch[]\n}\n\nexport interface ActionSearchMatch {\n    action: ActionDefinition\n    context: string\n    field: 'label' | 'description' | 'text'\n    title: string\n}\n\nexport interface SearchResults {\n    active: SearchMatch[]\n    actions: ActionSearchMatch[]\n    backgroundGroups: BackgroundGroup[]\n}\n\n/** Builds a search expression from a natural-language request, typically via an agent. */\nexport type SearchRegexpAgent = (naturalQuery: string) => Promise<string>\n\r\n",
+          "durationMs": 413,
+          "exitCode": 0,
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-22",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\services\\\\search\\\\search_types.ts'\"",
+          "providerItemId": "exec-57d5cf56-a96f-4b8f-8a01-cf188b77e16a",
+          "sequence": 22,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:14:29.059Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\eslint.config.js'\"",
+          "content": "import js from '@eslint/js'\nimport importPlugin from 'eslint-plugin-import'\nimport react from 'eslint-plugin-react'\nimport reactHooks from 'eslint-plugin-react-hooks'\nimport reactRefresh from 'eslint-plugin-react-refresh'\nimport globals from 'globals'\nimport tseslint from 'typescript-eslint'\n\nconst projectRules = {\n  ...react.configs.recommended.rules,\n  ...reactHooks.configs.recommended.rules,\n  eqeqeq: 'off',\n  'no-underscore-dangle': 'off',\n  'no-param-reassign': 'off',\n  'consistent-return': 'off',\n  'comma-dangle': ['error', 'always-multiline'],\n  'no-restricted-syntax': ['error', 'LabeledStatement', 'WithStatement'],\n  'no-use-before-define': ['error', { variables: true, functions: false, classes: true }],\n  'no-await-in-loop': 'off',\n  'guard-for-in': 'off',\n  'no-const-assign': 'error',\n  'no-continue': 'off',\n  'import/prefer-default-export': 'off',\n  indent: ['error', 4, { SwitchCase: 1 }],\n  'max-len': ['error', { code: 140, ignoreComments: true, ignoreStrings: true, ignoreTemplateLiterals: true }],\n  'no-trailing-spaces': ['warn', { skipBlankLines: true }],\n  'import/no-extraneous-dependencies': 'off',\n  'no-plusplus': 'off',\n  'no-multi-spaces': ['error', { ignoreEOLComments: true }],\n  quotes: 'off',\n  'object-curly-newline': ['error', {\n    ObjectExpression: { multiline: true },\n    ObjectPattern: { multiline: true },\n  }],\n  'no-console': 'off',\n  'class-methods-use-this': ['error', { exceptMethods: ['render', 'componentDidMount'] }],\n  'prefer-destructuring': 'off',\n  'react/react-in-jsx-scope': 'off',\n  'react/prop-types': 'off',\n  'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],\n}\n\nexport default tseslint.config(\n  { ignores: ['dist'] },\n  {\n    extends: [js.configs.recommended, ...tseslint.configs.recommended],\n    files: ['**/*.{ts,tsx}'],\n    languageOptions: {\n      ecmaVersion: 2023,\n      globals: {\n        ...globals.browser,\n        ...globals.node,\n        ...globals.jest,\n      },\n      parserOptions: {\n        ecmaFeatures: {\n          jsx: true,\n        },\n      },\n    },\n    plugins: {\n      import: importPlugin,\n      react,\n      'react-hooks': reactHooks,\n      'react-refresh': reactRefresh,\n    },\n    settings: {\n      react: {\n        createClass: 'createReactClass',\n        pragma: 'React',\n        fragment: 'Fragment',\n        version: 'detect',\n        flowVersion: '0.53',\n      },\n      'import/resolver': {\n        node: {\n          extensions: ['.js', '.jsx', '.ts', '.tsx'],\n        },\n      },\n    },\n    rules: projectRules,\n  },\n)\n\r\n",
+          "durationMs": 383,
+          "exitCode": 0,
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-23",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\eslint.config.js'\"",
+          "providerItemId": "exec-97543a09-edef-4b61-bd5e-847a37a8031b",
+          "sequence": 23,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:14:29.030Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\shell\\\\search\\\\search_control.test.tsx'\"",
+          "content": "import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'\nimport { afterEach, describe, expect, it, vi } from 'vitest'\nimport type { CardHeader, Card, ProjectSnapshot } from '../../../data/data_types'\nimport { actionService } from '../../../services/actions/action_service'\nimport { ACTIONS_CHANGED_EVENT } from '../../../services/actions/action_service_events'\nimport { workspaceNavigationService } from '../../../services/project/workspace_navigation_service'\nimport { workspaceViewService } from '../../../services/project/workspace_view_service'\nimport { DialogDisplay } from '../../dialog_display'\nimport { AppThemeProvider } from '../../../theme/theme_provider'\nimport { SearchControl } from './search_control'\n\nfunction makeHeader(overrides: Partial<CardHeader> = {}): CardHeader {\n    return {\n        affects: [],\n        after: null,\n        agentLogReferences: [],\n        author: null,\n        id: 'F-1',\n        internalId: null,\n        owner: null,\n        policy: {},\n        references: [],\n        status: null,\n        title: 'Untitled',\n        ...overrides,\n    }\n}\n\nfunction makeCard(path: string, content: string, header: Partial<CardHeader>, isActive: boolean): Card {\n    return {\n        agentConversationErrors: [], agentConversations: [], content, hasFrontmatter: true,\n        header: makeHeader(header), isActive, path,\n    }\n}\n\nconst snapshot: ProjectSnapshot = {\n    activeCards: [\n        makeCard('design/F-1-alpha.md', '# Alpha\\n\\nBody of alpha.', { id: 'F-1', title: 'Alpha feature' }, true),\n        makeCard('design/F-2-beta.md', '# Beta\\n\\nBody with secret keyword.', { id: 'F-2', title: 'Beta feature' }, true),\n    ],\n    backgroundCards: [\n        makeCard('design/history/note.md', '# Note\\n\\nHidden secret text.', { id: 'H-1', title: 'History note', status: 'archived' }, false),\n    ],\n    repositoryFiles: [],\n    workingFolder: 'design',\n}\n\nvi.mock('../../hooks/use_project_state', () => ({ useProjectState: () => ({ project: null, runningAgents: [], snapshot }) }))\n\nfunction focusSearch() {\n    fireEvent.focus(screen.getByRole('textbox', { name: 'Search project' }))\n}\n\nfunction typeQuery(value: string) {\n    focusSearch()\n    fireEvent.change(screen.getByRole('textbox', { name: 'Search project' }), { target: { value } })\n}\n\ndescribe('SearchControl', () => {\n    afterEach(cleanup)\n    afterEach(() => {\n        actionService.clear()\n        workspaceViewService.setViewMode('cards')\n    })\n\n    it('subscribes to project data only while search is open', () => {\n        const addEventListener = vi.spyOn(actionService, 'addEventListener')\n        render(<SearchControl />)\n\n        expect(addEventListener).not.toHaveBeenCalledWith(ACTIONS_CHANGED_EVENT, expect.any(Function))\n\n        focusSearch()\n\n        expect(addEventListener).toHaveBeenCalledWith(ACTIONS_CHANGED_EVENT, expect.any(Function))\n    })\n\n    it('shows the search controls in a dropdown only while search is focused', () => {\n        render(<SearchControl />)\n\n        expect(screen.queryByRole('button', { name: 'RegExp mode' })).not.toBeInTheDocument()\n\n        focusSearch()\n\n        expect(screen.getByRole('region', { name: 'Search dropdown' })).toBeInTheDocument()\n        expect(screen.getByRole('button', { name: 'RegExp mode' })).toBeInTheDocument()\n        expect(screen.getByRole('button', { name: 'Search background file bodies' })).toBeInTheDocument()\n        expect(screen.getByRole('button', { name: 'Search actions' })).toBeInTheDocument()\n        expect(screen.getByRole('button', { name: 'Ask agent to build a RegExp' })).toBeInTheDocument()\n    })\n\n    it('shows a focused search popover from the mobile search icon', () => {\n        render(<SearchControl isMobile />)\n\n        expect(screen.queryByRole('textbox', { name: 'Search project' })).toBeNull()\n\n        fireEvent.click(screen.getByRole('button', { name: 'Search' }))\n\n        expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveFocus()\n        expect(screen.getByRole('region', { name: 'Search dropdown' })).toBeInTheDocument()\n[1423 characters omitted]\nn search job', type: 'command',\n            }),\n            path: 'actions/search-job.json',\n        }])\n        render(<AppThemeProvider><SearchControl /></AppThemeProvider>)\n\n        typeQuery('Searchable action')\n        expect(screen.queryByText('Actions')).not.toBeInTheDocument()\n\n        fireEvent.click(screen.getByRole('button', { name: 'Search actions' }))\n        fireEvent.click(screen.getByRole('button', { name: /Run search job/ }))\n\n        const dialog = within(screen.getByRole('dialog', { name: 'Run actions' }))\n        expect(dialog.getByRole('button', { name: 'Run search job' })).toHaveAttribute('aria-pressed', 'true')\n    })\n\n    it('opens action search results in an editor tab from text view', () => {\n        const listener = vi.fn()\n        workspaceNavigationService.addEventListener('open', listener)\n        workspaceViewService.setViewMode('text')\n        actionService.loadFromFiles([{\n            content: JSON.stringify({\n                command: 'execute', description: 'Searchable action', id: 'action-search-job',\n                label: 'Run search job', type: 'command',\n            }),\n            path: 'actions/search-job.json',\n        }])\n        render(<SearchControl />)\n\n        typeQuery('Searchable action')\n        fireEvent.click(screen.getByRole('button', { name: 'Search actions' }))\n        fireEvent.click(screen.getByRole('button', { name: /Run search job/ }))\n\n        const event = listener.mock.calls[0][0] as CustomEvent<{ path: string }>\n        expect(event.detail.path).toBe('actions/search-job.json')\n        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()\n        workspaceNavigationService.removeEventListener('open', listener)\n    })\n\n    it('reports an invalid RegExp without clearing the previous results', () => {\n        render(\n            <>\n                <DialogDisplay />\n                <SearchControl />\n            </>,\n        )\n\n        focusSearch()\n        fireEvent.click(screen.getByRole('button', { name: 'RegExp mode' }))\n        typeQuery('feature')\n        expect(screen.getByRole('button', { name: /Alpha feature/ })).toBeInTheDocument()\n\n        typeQuery('(feature')\n\n        expect(screen.getByRole('alert')).toBeInTheDocument()\n        expect(screen.getByRole('button', { name: /Alpha feature/ })).toBeInTheDocument()\n    })\n\n    it('navigates to the selected result through the navigation service', () => {\n        const listener = vi.fn()\n        workspaceNavigationService.addEventListener('open', listener)\n        render(<SearchControl />)\n\n        typeQuery('Alpha')\n        fireEvent.click(screen.getByRole('button', { name: /Alpha feature/ }))\n\n        const event = listener.mock.calls[0][0] as CustomEvent<{ path: string }>\n        expect(event.detail.path).toBe('design/F-1-alpha.md')\n        workspaceNavigationService.removeEventListener('open', listener)\n    })\n\n    it('populates the query from a successful agent request', async () => {\n        const regexpAgent = vi.fn().mockResolvedValue('Beta')\n        render(<SearchControl regexpAgent={regexpAgent} />)\n\n        typeQuery('find the beta card')\n        fireEvent.click(screen.getByRole('button', { name: 'Ask agent to build a RegExp' }))\n\n        await waitFor(() => expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveValue('Beta'))\n        expect(await screen.findByRole('button', { name: /Beta feature/ })).toBeInTheDocument()\n    })\n\n    it('surfaces an agent failure without changing the current query', async () => {\n        const regexpAgent = vi.fn().mockRejectedValue(new Error('agent offline'))\n        render(\n            <>\n                <DialogDisplay />\n                <SearchControl regexpAgent={regexpAgent} />\n            </>,\n        )\n\n        typeQuery('alpha only')\n        fireEvent.click(screen.getByRole('button', { name: 'Ask agent to build a RegExp' }))\n\n        await waitFor(() => expect(screen.getByText('agent offline')).toBeInTheDocument())\n        expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveValue('alpha only')\n    })\n})\n\r\n",
+          "durationMs": 429,
+          "exitCode": 0,
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-24",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\shell\\\\search\\\\search_control.test.tsx'\"",
+          "providerItemId": "exec-ac129cb5-b322-4b6c-bd73-1f63e1581d33",
+          "sequence": 24,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:14:29.076Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app\\\\src\\\\services\\\\search\\\\search_project.ts' | Select-Object -First 180\"",
+          "content": "import type { CardHeader, Card, ProjectSnapshot } from '../../data/data_types'\r\nimport type { ActionDefinition } from '../../data/action_types'\r\nimport type {\r\n    ActionSearchMatch, BackgroundGroup, SearchMatch, SearchOptions, SearchRegexpAgent, SearchResults,\r\n} from './search_types'\r\n\r\nconst CONTEXT_RADIUS = 40\r\nconst ELLIPSIS = 'â€¦'\r\nconst ROOT_GROUP = '(root)'\r\nconst BODY_FIELD = 'body'\r\n\r\n/** Thrown when a RegExp-mode query is not a valid regular expression. */\r\nexport class InvalidSearchPatternError extends Error {\r\n    constructor(message: string) {\r\n        super(message)\r\n        this.name = 'InvalidSearchPatternError'\r\n    }\r\n}\r\n\r\ninterface MatchLocation {\r\n    index: number\r\n    length: number\r\n}\r\n\r\ninterface Matcher {\r\n    find(text: string): MatchLocation | null\r\n}\r\n\r\ninterface HeaderField {\r\n    field: string\r\n    value: string\r\n}\r\n\r\ninterface ActionSearchField {\r\n    field: ActionSearchMatch['field']\r\n    value: string\r\n}\r\n\r\nfunction createTextMatcher(query: string): Matcher {\r\n    const needle = query.toLowerCase()\r\n\r\n    return {\r\n        find(text: string) {\r\n            const index = text.toLowerCase().indexOf(needle)\r\n\r\n            return index === -1 ? null : { index, length: query.length }\r\n        },\r\n    }\r\n}\r\n\r\nfunction createRegexpMatcher(query: string): Matcher {\r\n    let expression: RegExp\r\n\r\n    try {\r\n        expression = new RegExp(query)\r\n    } catch (error) {\r\n        throw new InvalidSearchPatternError(error instanceof Error ? error.message : 'Invalid regular expression')\r\n    }\r\n\r\n    return {\r\n        find(text: string) {\r\n            const found = text.match(expression)\r\n\r\n            return found?.index === undefined ? null : { index: found.index, length: found[0].length }\r\n        },\r\n    }\r\n}\r\n\r\nfunction createMatcher(query: string, options: SearchOptions): Matcher {\r\n    return options.mode === 'regexp' ? createRegexpMatcher(query) : createTextMatcher(query)\r\n}\r\n\r\nfunction collectHeaderFields(header: CardHeader): HeaderField[] {\r\n    const fields: HeaderField[] = []\r\n    const scalarEntries: [string, string | null][] = [\r\n        ['id', header.id],\r\n        ['title', header.title],\r\n        ['status', header.status],\r\n        ['owner', header.owner],\r\n        ['author', header.author],\r\n        ['after', header.after],\r\n        ['internalId', header.internalId],\r\n    ]\r\n\r\n    for (const [field, value] of scalarEntries) {\r\n        if (value) fields.push({ field, value })\r\n    }\r\n\r\n    for (const entry of header.affects) fields.push({ field: 'affects', value: entry })\r\n    for (const [key, value] of Object.entries(header.policy)) fields.push({ field: `policy.${key}`, value: value ? 'true' : 'false' })\r\n\r\n    return fields\r\n}\r\n\r\nfunction buildContext(text: string, location: MatchLocation): string {\r\n    const start = Math.max(0, location.index - CONTEXT_RADIUS)\r\n    const end = Math.min(text.length, location.index + location.length + CONTEXT_RADIUS)\r\n    const slice = text.slice(start, end).replace(/\\s+/gu, ' ').trim()\r\n    const prefix = start > 0 ? ELLIPSIS : ''\r\n    const suffix = end < text.length ? ELLIPSIS : ''\r\n\r\n    return `${prefix}${slice}${suffix}`\r\n}\r\n\r\nfunction matchCard(card: Card, matcher: Matcher, searchBody: boolean): SearchMatch | null {\r\n    const headerFields = collectHeaderFields(card.header)\r\n\r\n    for (const { field, value } of headerFields) {\r\n        const location = matcher.find(value)\r\n        if (location) {\r\n            return { card, context: buildContext(value, location), field, path: card.path, source: 'header', title: card.header.title }\r\n        }\r\n    }\r\n\r\n    if (searchBody) {\r\n        const location = matcher.find(card.content)\r\n        if (location) {\r\n            return { card, context: buildContext(card.content, location), field: BODY_FIELD, path: card.path, source: 'body', title: card.header.title }\r\n        }\r\n    }\r\n\r\n    return null\r\n}\r\n\r\nfunction collectActionFields(action: ActionDefinition): ActionSearchField[] {\r\n    const fields: ActionSearchField[] = [\r\n        { field: 'label', value: action.label },\r\n        { field: 'description', value: action.description },\r\n    ]\r\n    if (action.prompt) fields.push({ field: 'text', value: action.prompt })\r\n    if (action.command) fields.push({ field: 'text', value: action.command })\r\n\r\n    return fields\r\n}\r\n\r\nfunction matchAction(action: ActionDefinition, matcher: Matcher): ActionSearchMatch | null {\r\n    for (const { field, value } of collectActionFields(action)) {\r\n        const location = matcher.find(value)\r\n        if (location) return { action, context: buildContext(value, location), field, title: action.label }\r\n    }\r\n\r\n    return null\r\n}\r\n\r\nfunction folderName(path: string) {\r\n    const name = path.split('/').filter((segment) => segment.length > 0).at(-1)\r\n    if (!name) throw new Error(`Cannot group background folder without a name: ${path}`)\r\n\r\n    return name\r\n}\r\n\r\nfunction backgroundGroupKey(path: string, workingFolder: string, specialFolderPaths: string[]): string {\r\n    const normalized = path.replace(/\\\\/gu, '/')\r\n    const specialFolder = specialFolderPaths\r\n        .map((folder) => folder.replace(/\\\\/gu, '/').replace(/^\\/+|\\/+$/gu, ''))\r\n        .find((folder) => normalized === folder || normalized.startsWith(`${folder}/`))\r\n    if (specialFolder) return folderName(specialFolder)\r\n\r\n    const prefix = `${workingFolder}/`\r\n    const rest = normalized.startsWith(prefix) ? normalized.slice(prefix.length) : normalized\r\n    const segments = rest.split('/')\r\n\r\n    return segments.length > 1 ? segments[0] : ROOT_GROUP\r\n}\r\n\r\nfunction groupBackgroundMatches(matches: SearchMatch[], workingFolder: string, specialFolderPaths: string[]): BackgroundGroup[] {\r\n    const groups: BackgroundGroup[] = []\r\n    const byFolder = new Map<string, BackgroundGroup>()\r\n\r\n    for (const match of matches) {\r\n        const folder = backgroundGroupKey(match.path, workingFolder, specialFolderPaths)\r\n        const existing = byFolder.get(folder)\r\n\r\n        if (existing) {\r\n            existing.matches.push(match)\r\n            continue\r\n        }\r\n\r\n        const group: BackgroundGroup = { folder, matches: [match] }\r\n        byFolder.set(folder, group)\r\n",
+          "durationMs": 450,
+          "exitCode": 0,
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-25",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app\\\\src\\\\services\\\\search\\\\search_project.ts' | Select-Object -First 180\"",
+          "providerItemId": "exec-525b22cc-67b3-4323-9eaa-364871f42850",
+          "sequence": 25,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:14:29.102Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-26",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0946b9a7cbe97ff7016a85d6686df4819192e65e309421294d",
+          "sequence": 26,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:14:40.248Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-27",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0946b9a7cbe97ff7016a85d671c060819181af99cceb4ec59d",
+          "sequence": 27,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:14:51.124Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-28",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0946b9a7cbe97ff7016a85d67ca1f88191a755096e2e082f5d",
+          "sequence": 28,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:14:59.773Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Analysis done. One `SearchResults` call site; it receives new props. Existing invalid-RegExp flow keeps old results while query becomes invalid, so renderer must catch RegExp construction and show plain context. Prevents render-time crash; matches fallback rule. Tests fit existing `search_control.test.tsx`; no new file.\n\n",
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-turn-1-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 29,
+          "timestamp": "2026-08-19T16:15:01.154Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-30",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0946b9a7cbe97ff7016a85d68c1e3c8191858ef725c7a883f8",
+          "sequence": 30,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:15:07.113Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Change Plan created; no edits made.\n\n1. Add safe text/RegExp highlighting for card and action contexts.\n2. Pass `query` and `mode` from `SearchPanel`.\n3. Extend existing search tests for highlighting and fallback.\n4. Run only related test file and scoped lint.\n5. After success, set external feature status to `ready`.\n\nApprove plan to begin implementation.\n\n",
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-turn-1-assistant-5",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 31,
+          "timestamp": "2026-08-19T16:15:08.584Z"
+        },
+        {
+          "content": "go",
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-user-31",
+          "kind": "message",
+          "role": "user",
+          "sequence": 32,
+          "timestamp": "2026-08-19T16:17:22.213Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-33",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0946b9a7cbe97ff7016a85d71757548191a0f0dea77e1a7732",
+          "sequence": 33,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:17:35.155Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Approved. Starting Block 1. `caveman` skill keeps updates terse; invalid RegExp gets plain-text fallback because `SearchPanel` intentionally retains prior results.\n\n",
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 34,
+          "timestamp": "2026-08-19T16:17:35.984Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\shell\\search\\search_panel.tsx\nupdate: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\shell\\search\\search_results.tsx",
+          "deletions": 12,
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-35",
+          "insertions": 62,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-16ced75b-ea29-4561-95d4-dcaa87cc5f8d",
+          "sequence": 35,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:18:03.823Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-36",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0946b9a7cbe97ff7016a85d73e6e088191a9ba2aa215ae2aa6",
+          "sequence": 36,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:18:05.364Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\shell\\\\search\\\\search_results.tsx'\"",
+          "content": "import { Box, Chip, List, ListItemButton, ListItemText, Typography } from '@mui/material'\nimport type { ActionDefinition } from '../../../data/action_types'\nimport type {\n    ActionSearchMatch, SearchMatch, SearchMode, SearchResults as SearchResultsData,\n} from '../../../services/search/search_types'\n\ninterface SearchResultsProps {\n    mode: SearchMode\n    onActionSelect: (action: ActionDefinition) => void\n    onSelect: (path: string) => void\n    query: string\n    results: SearchResultsData\n}\n\nfunction renderHighlightedContext(context: string, query: string, mode: SearchMode) {\n    let index: number\n    let matchedText: string\n\n    if (mode === 'text') {\n        index = context.toLowerCase().indexOf(query.toLowerCase())\n        if (index === -1) return context\n\n        matchedText = context.slice(index, index + query.length)\n    } else {\n        try {\n            const match = new RegExp(query).exec(context)\n            if (!match) return context\n\n            index = match.index\n            matchedText = match[0]\n        } catch {\n            return context\n        }\n    }\n\n    const before = context.slice(0, index)\n    const after = context.slice(index + matchedText.length)\n\n    return (\n        <span>\n            {before}\n            <Box component=\"mark\" sx={{ bgcolor: 'warning.light', borderRadius: 0.25, color: 'warning.contrastText' }}>\n                {matchedText}\n            </Box>\n            {after}\n        </span>\n    )\n}\n\nfunction renderMatch(match: SearchMatch, onSelect: (path: string) => void, query: string, mode: SearchMode) {\n    const handleClick = () => onSelect(match.path)\n    const context = renderHighlightedContext(match.context, query, mode)\n\n    return (\n        <ListItemButton dense key={match.path} onClick={handleClick}>\n            <ListItemText\n                primary={\n                    <Box component=\"span\" sx={{ alignItems: 'center', display: 'flex', gap: 1 }}>\n                        <span>{match.title}</span>\n                        <Chip color={match.source === 'header' ? 'primary' : 'default'} label={match.source} size=\"small\" />\n                    </Box>\n                }\n                secondary={<span>{match.path} â€” {context}</span>}\n            />\n        </ListItemButton>\n    )\n}\n\nfunction renderActionMatch(\n    match: ActionSearchMatch,\n    onActionSelect: (action: ActionDefinition) => void,\n    query: string,\n    mode: SearchMode,\n) {\n    const handleClick = () => onActionSelect(match.action)\n    const context = renderHighlightedContext(match.context, query, mode)\n\n    return (\n        <ListItemButton dense key={match.action.id} onClick={handleClick}>\n            <ListItemText\n                primary={\n                    <Box component=\"span\" sx={{ alignItems: 'center', display: 'flex', gap: 1 }}>\n                        <span>{match.title}</span>\n                        <Chip color=\"secondary\" label=\"action\" size=\"small\" />\n                    </Box>\n                }\n                secondary={<span>{match.field} - {context}</span>}\n            />\n        </ListItemButton>\n    )\n}\n\n/** Renders grouped search results: active cards first, then background cards grouped by folder. */\nexport function SearchResults(props: SearchResultsProps) {\n    const { mode, onActionSelect, onSelect, query, results } = props\n    const hasAny = results.active.length > 0 || results.backgroundGroups.length > 0 || results.actions.length > 0\n\n    if (!hasAny) {\n        return (\n            <Box sx={{ p: 2 }}>\n                <Typography color=\"text.secondary\" variant=\"body2\">\n                    No matches found.\n                </Typography>\n            </Box>\n        )\n    }\n\n    return (\n        <Box>\n            {results.active.length > 0 ? (\n                <Box>\n                    <Typography color=\"text.secondary\" sx={{ px: 2, pt: 1 }} variant=\"overline\">\n                        Active cards\n                    </Typography>\n                    <List dense disablePadding>\n                        {results.active.map((match) => renderMatch(match, onSelect, query, mode))}\n                    </List>\n                </Box>\n            ) : null}\n            {results.backgroundGroups.map((group) => (\n                <Box key={group.folder}>\n                    <Typography color=\"text.secondary\" sx={{ px: 2, pt: 1 }} variant=\"overline\">\n                        {group.folder}\n                    </Typography>\n                    <List dense disablePadding>\n                        {group.matches.map((match) => renderMatch(match, onSelect, query, mode))}\n                    </List>\n                </Box>\n            ))}\n            {results.actions.length > 0 ? (\n                <Box>\n                    <Typography color=\"text.secondary\" sx={{ px: 2, pt: 1 }} variant=\"overline\">\n                        Actions\n                    </Typography>\n                    <List dense disablePadding>\n                        {results.actions.map((match) => renderActionMatch(match, onActionSelect, query, mode))}\n                    </List>\n                </Box>\n            ) : null}\n        </Box>\n    )\n}\n\r\n",
+          "durationMs": 402,
+          "exitCode": 0,
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-37",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\shell\\\\search\\\\search_results.tsx'\"",
+          "providerItemId": "exec-db7fd762-6b3f-4714-b5f9-4d3eb2bb38e6",
+          "sequence": 37,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:18:07.226Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-38",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0946b9a7cbe97ff7016a85d741c79481919995ad56f451513e",
+          "sequence": 38,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:18:17.694Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-39",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0946b9a7cbe97ff7016a85d74b366881919f0f63248facb4ab",
+          "sequence": 39,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:18:18.142Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Blocks 1–2 source changes done. Starting Block 3 in existing test file: text, RegExp, surrounding text, whitespace-normalization fallback, action context. No new files.\n\n",
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 40,
+          "timestamp": "2026-08-19T16:18:19.041Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\shell\\search\\search_control.test.tsx",
+          "deletions": 4,
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-41",
+          "insertions": 34,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-c2762726-2eb3-44e1-be63-375143b588c9",
+          "sequence": 41,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:18:41.126Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-42",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0946b9a7cbe97ff7016a85d763a2e88191bf625298ea42f0b0",
+          "sequence": 42,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:18:43.226Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Block 3 done. Block 4 now: run only `search_control.test.tsx`; then scoped ESLint on three touched files.\n\n",
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-turn-2-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 43,
+          "timestamp": "2026-08-19T16:18:43.931Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/components/shell/search/search_control.test.tsx'",
+          "content": "\n> app@0.3.3 test\n> vitest run src/components/shell/search/search_control.test.tsx\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev1/app\n\n ❯ |ui| src/components/shell/search/search_control.test.tsx (14 tests | 1 failed) 1746ms\n     × renders normalized context as plain text when the RegExp cannot be relocated 112ms\n\n Test Files  1 failed (1)\n      Tests  1 failed | 13 passed (14)\n   Start at  18:18:53\n   Duration  5.55s (transform 1.02s, setup 98ms, import 2.71s, tests 1.75s, environment 866ms)\n\n\n⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯\n\n FAIL  |ui| src/components/shell/search/search_control.test.tsx > SearchControl > renders normalized context as plain text when the RegExp cannot be relocated\nTestingLibraryElementError: Unable to find an accessible element with the role \"button\" and name `/Alpha feature/`\n\nHere are the accessible roles:\n\n  textbox:\n\n  Name \"Search project\":\n  \u001b[36m<input\u001b[39m\n    \u001b[33maria-invalid\u001b[39m=\u001b[32m\"false\"\u001b[39m\n    \u001b[33maria-label\u001b[39m=\u001b[32m\"Search project\"\u001b[39m\n    \u001b[33mclass\u001b[39m=\u001b[32m\"MuiInputBase-input MuiOutlinedInput-input css-12tjcea-MuiInputBase-input-MuiOutlinedInput-input\"\u001b[39m\n    \u001b[33mid\u001b[39m=\u001b[32m\"_r_15_\"\u001b[39m\n    \u001b[33mplaceholder\u001b[39m=\u001b[32m\"Search cards…\"\u001b[39m\n    \u001b[33mtype\u001b[39m=\u001b[32m\"text\"\u001b[39m\n    \u001b[33mvalue\u001b[39m=\u001b[32m\"# AlphaBody\"\u001b[39m\n  \u001b[36m/>\u001b[39m\n\n  --------------------------------------------------\n  region:\n\n  Name \"Search dropdown\":\n  \u001b[36m<div\u001b[39m\n    \u001b[33maria-label\u001b[39m=\u001b[32m\"Search dropdown\"\u001b[39m\n    \u001b[33mclass\u001b[39m=\u001b[32m\"MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation4 css-f30atd-MuiPaper-root\"\u001b[39m\n    \u001b[33mrole\u001b[39m=\u001b[32m\"region\"\u001b[39m\n    \u001b[33mstyle\u001b[39m=\u001b[32m\"--Paper-shadow: 0px 2px 4px -1px rgba(0,0,0,0.2),0px 4px 5px 0px rgba(0,0,0,0.14),0px 1px 10px 0px rgba(0,0,0,0.12);\"\u001b[39m\n  \u001b[36m/>\u001b[39m\n\n  --------------------------------------------------\n  group:\n\n  Name \"Search options\":\n  \u001b[36m<div\u001b[39m\n    \u001b[33maria-label\u001b[39m=\u001b[32m\"Search options\"\u001b[39m\n    \u001b[33mclass\u001b[39m=\u001b[32m\"MuiBox-root css-1lymh0g\"\u001b[39m\n    \u001b[33mrole\u001b[39m=\u001b[32m\"group\"\u001b[39m\n  \u001b[36m/>\u001b[39m\n\n  --------------------------------------------------\n  button:\n\n  Name \"RegExp mode\":\n  \u001b[36m<button\u001b[39m\n    \u001b[33maria-label\u001b[39m=\u001b[32m\"RegExp mode\"\u001b[39m\n    \u001b[33maria-pressed\u001b[39m=\u001b[32m\"true\"\u001b[39m\n    \u001b[33mclass\u001b[39m=\u001b[32m\"MuiButtonBase-root MuiToggleButton-root Mui-selected MuiToggleButton-sizeSmall MuiToggleButton-standard css-qofxz1-MuiButtonBase-root-MuiToggleButton-root\"\u001b[39m\n    \u001b[33mdata-mui-internal-clone-element\u001b[39m=\u001b[32m\"true\"\u001b[39m\n    \u001b[33mtabindex\u001b[39m=\u001b[32m\"0\"\u001b[39m\n    \u001b[33mtype\u001b[39m=\u001b[32m\"button\"\u001b[39m\n    \u001b[33mvalue\u001b[39m=\u001b[32m\"regexp\"\u001b[39m\n  \u001b[36m/>\u001b[39m\n\n  Name \"Search background file bodies\":\n  \u001b[36m<button\u001b[39m\n    \u001b[33maria-label\u001b[39m=\u001b[32m\"Search background file bodies\"\u001b[39m\n    \u001b[33maria-pressed\u001b[39m=\u001b[32m\"false\"\u001b[39m\n    \u001b[33mclass\u001b[39m=\u001b[32m\"MuiButtonBase-root MuiToggleButton-root MuiToggleButton-sizeSmall MuiToggleButton-standard css-qofxz1-MuiButtonBase-root-MuiToggleButton-root\"\u001b[39m\n    \u001b[33mdata-mui-internal-clone-element\u001b[39m=\u001b[32m\"true\"\u001b[39m\n    \u001b[33mtabindex\u001b[39m=\u001b[32m\"0\"\u001b[39m\n    \u001b[33mtype\u001b[39m=\u001b[32m\"button\"\u001b[39m\n    \u001b[33mvalue\u001b[39m=\u001b[32m\"background-body\"\u001b[39m\n  \u001b[36m/>\u001b[39m\n\n  Name \"Search actions\":\n  \u001b[36m<button\u001b[39m\n    \u001b[33maria-label\u001b[39m=\u001b[32m\"Search actions\"\u001b[39m\n    \u001b[33maria-pressed\u001b[39m=\u001b[32m\"false\"\u001b[39m\n    \u001b[33mclass\u001b[39m=\u001b[32m\"MuiButtonBase-root MuiToggleButton-root MuiToggleButton-sizeSmall MuiToggleButton-standard css-qofxz1-MuiButtonBase-root-MuiToggleButton-root\"\u001b[39m\n    \u001b[33mdata-mui-internal-clone-element\u001b[39m=\u001b[32m\"true\"\u001b[39m\n    \u001b[33mtabindex\u001b[39m=\u001b[32m\"0\"\u001b[39m\n    \u001b[33mtype\u001b[39m=\u001b[32m\"button\"\u001b[39m\n    \u001b[33mvalue\u001b[39m=\u001b[32m\"actions\"\u001b[39m\n  \u001b[36m/>\u001b[39m\n\n  Name \"Ask agent to build a RegExp\":\n  \u001b[36m<button\u001b[39m\n    \u001b[33maria-label\u001b[39m=\u001b[32m\"Ask agent to build a RegExp\"\u001b[39m\n    \u001b[33mclass\u001b[39m=\u001b[32m\"MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeSmall css-155wbr6-MuiButtonBase-root-MuiIconButton-root\"\u001b[39m\n    \u001b[33mtabindex\u001b[39m=\u001b[32m\"0\"\u001b[39m\n    \u001b[33mtype\u001b[39m=\u001b[32m\"button\"\u001b[39m\n  \u001b[36m/>\u001b[39m\n\n  -------------\n[7798 characters omitted]\n 0 0,1 14,16.5A2.5,2.5 0 0,1 16.5,14A2.5,2.5 0 0,1 19,16.5A2.5,2.5 0 0,1 16.5,19Z\"\u001b[39m\n              \u001b[36m/>\u001b[39m\n            \u001b[36m</svg>\u001b[39m\n          \u001b[36m</button>\u001b[39m\n          \u001b[36m<button\u001b[39m\n            \u001b[33maria-label\u001b[39m=\u001b[32m\"Search actions\"\u001b[39m\n            \u001b[33maria-pressed\u001b[39m=\u001b[32m\"false\"\u001b[39m\n            \u001b[33mclass\u001b[39m=\u001b[32m\"MuiButtonBase-root MuiToggleButton-root MuiToggleButton-sizeSmall MuiToggleButton-standard css-qofxz1-MuiButtonBase-root-MuiToggleButton-root\"\u001b[39m\n            \u001b[33mdata-mui-internal-clone-element\u001b[39m=\u001b[32m\"true\"\u001b[39m\n            \u001b[33mtabindex\u001b[39m=\u001b[32m\"0\"\u001b[39m\n            \u001b[33mtype\u001b[39m=\u001b[32m\"button\"\u001b[39m\n            \u001b[33mvalue\u001b[39m=\u001b[32m\"actions\"\u001b[39m\n          \u001b[36m>\u001b[39m\n            \u001b[36m<svg\u001b[39m\n              \u001b[33maria-hidden\u001b[39m=\u001b[32m\"true\"\u001b[39m\n              \u001b[33mclass\u001b[39m=\u001b[32m\"MuiSvgIcon-root MuiSvgIcon-fontSizeSmall css-120dh41-MuiSvgIcon-root\"\u001b[39m\n              \u001b[33mdata-testid\u001b[39m=\u001b[32m\"LightningBoltIcon\"\u001b[39m\n              \u001b[33mfocusable\u001b[39m=\u001b[32m\"false\"\u001b[39m\n              \u001b[33mviewBox\u001b[39m=\u001b[32m\"0 0 24 24\"\u001b[39m\n            \u001b[36m>\u001b[39m\n              \u001b[36m<path\u001b[39m\n                \u001b[33md\u001b[39m=\u001b[32m\"M11 15H6L13 1V9H18L11 23V15Z\"\u001b[39m\n              \u001b[36m/>\u001b[39m\n            \u001b[36m</svg>\u001b[39m\n          \u001b[36m</button>\u001b[39m\n          \u001b[36m<span\u001b[39m\n            \u001b[33maria-label\u001b[39m=\u001b[32m\"Ask agent to build a RegExp\"\u001b[39m\n            \u001b[33mclass\u001b[39m=\u001b[32m\"\"\u001b[39m\n            \u001b[33mdata-mui-internal-clone-element\u001b[39m=\u001b[32m\"true\"\u001b[39m\n          \u001b[36m>\u001b[39m\n            \u001b[36m<button\u001b[39m\n              \u001b[33maria-label\u001b[39m=\u001b[32m\"Ask agent to build a RegExp\"\u001b[39m\n              \u001b[33mclass\u001b[39m=\u001b[32m\"MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeSmall css-155wbr6-MuiButtonBase-root-MuiIconButton-root\"\u001b[39m\n              \u001b[33mtabindex\u001b[39m=\u001b[32m\"0\"\u001b[39m\n              \u001b[33mtype\u001b[39m=\u001b[32m\"button\"\u001b[39m\n            \u001b[36m>\u001b[39m\n              \u001b[36m<svg\u001b[39m\n                \u001b[33maria-hidden\u001b[39m=\u001b[32m\"true\"\u001b[39m\n                \u001b[33mclass\u001b[39m=\u001b[32m\"MuiSvgIcon-root MuiSvgIcon-fontSizeSmall css-120dh41-MuiSvgIcon-root\"\u001b[39m\n                \u001b[33mdata-testid\u001b[39m=\u001b[32m\"AutoFixIcon\"\u001b[39m\n                \u001b[33mfocusable\u001b[39m=\u001b[32m\"false\"\u001b[39m\n                \u001b[33mviewBox\u001b[39m=\u001b[32m\"0 0 24 24\"\u001b[39m\n              \u001b[36m>\u001b[39m\n                \u001b[36m<path\u001b[39m\n                  \u001b[33md\u001b[39m=\u001b[32m\"M7.5,5.6L5,7L6.4,4.5L5,2L7.5,3.4L10,2L8.6,4.5L10,7L7.5,5.6M19.5,15.4L22,14L20.6,16.5L22,19L19.5,17.6L17,19L18.4,16.5L17,14L19.5,15.4M22,2L20.6,4.5L22,7L19.5,5.6L17,7L18.4,4.5L17,2L19.5,3.4L22,2M13.34,12.78L15.78,10.34L13.66,8.22L11.22,10.66L13.34,12.78M14.37,7.29L16.71,9.63C17.1,10 17.1,10.65 16.71,11.04L5.04,22.71C4.65,23.1 4,23.1 3.63,22.71L1.29,20.37C0.9,20 0.9,19.35 1.29,18.96L12.96,7.29C13.35,6.9 14,6.9 14.37,7.29Z\"\u001b[39m\n                \u001b[36m/>\u001b[39m\n              \u001b[36m</svg>\u001b[39m\n            \u001b[36m</button>\u001b[39m\n          \u001b[36m</span>\u001b[39m\n        \u001b[36m</div>\u001b[39m\n        \u001b[36m<div\u001b[39m\n          \u001b[33mclass\u001b[39m=\u001b[32m\"MuiBox-root css-19midj6\"\u001b[39m\n        \u001b[36m>\u001b[39m\n          \u001b[36m<p\u001b[39m\n            \u001b[33mclass\u001b[39m=\u001b[32m\"MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root\"\u001b[39m\n          \u001b[36m>\u001b[39m\n            \u001b[0mNo matches found.\u001b[0m\n          \u001b[36m</p>\u001b[39m\n        \u001b[36m</div>\u001b[39m\n      \u001b[36m</div>\u001b[39m\n    \u001b[36m</div>\u001b[39m\n  \u001b[36m</div>\u001b[39m\n\u001b[36m</body>\u001b[39m\n ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19\n ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38\n ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17\n ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19\n ❯ src/components/shell/search/search_control.test.tsx:135:36\n    133|         typeQuery('# Alpha\\n\\nBody')\n    134|\n    135|         const alphaResult = screen.getByRole('button', { name: /Alpha …\n       |                                    ^\n    136|         expect(alphaResult.querySelector('mark')).toBeNull()\n    137|         expect(alphaResult).toHaveTextContent('design/F-1-alpha.md — #…\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯\n\n",
+          "durationMs": 6894,
+          "exitCode": 1,
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-44",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/components/shell/search/search_control.test.tsx'",
+          "providerItemId": "exec-c851e9e3-622a-47ea-9b3d-edc0cde3791d",
+          "sequence": 44,
+          "status": "failed",
+          "timestamp": "2026-08-19T16:18:59.347Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-45",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0946b9a7cbe97ff7016a85d77654d4819181ecee0215be4563",
+          "sequence": 45,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:19:03.032Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Related test exposed HTML text input strips literal newlines before search. Test defect, not product defect. Replace query with `# Alpha\\\\s{2}Body`: matches two original newlines, fails after normalization to one space.\n\n",
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-turn-2-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 46,
+          "timestamp": "2026-08-19T16:19:03.850Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\shell\\search\\search_control.test.tsx",
+          "deletions": 1,
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-47",
+          "insertions": 1,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-9f0fef73-6e7c-419f-848e-dde404288972",
+          "sequence": 47,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:19:06.348Z",
+          "type": "fileChange"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/components/shell/search/search_control.test.tsx'",
+          "content": "\n> app@0.3.3 test\n> vitest run src/components/shell/search/search_control.test.tsx\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev1/app\n\n\n Test Files  1 passed (1)\n      Tests  14 passed (14)\n   Start at  18:19:09\n   Duration  5.08s (transform 900ms, setup 99ms, import 2.29s, tests 1.76s, environment 800ms)\n\n",
+          "durationMs": 6239,
+          "exitCode": 0,
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-48",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/components/shell/search/search_control.test.tsx'",
+          "providerItemId": "exec-c1a99f22-9659-4ade-8e50-3d2065b30557",
+          "sequence": 48,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:19:15.181Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-49",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0946b9a7cbe97ff7016a85d7868d088191a7aa69857002567a",
+          "sequence": 49,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:19:19.853Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Related tests pass: 14/14. Run scoped auto-fix and lint now; then rerun same test only if formatting changes source.\n\n",
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-turn-2-assistant-5",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 50,
+          "timestamp": "2026-08-19T16:19:20.565Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint-fix -- src/components/shell/search/search_results.tsx src/components/shell/search/search_panel.tsx src/components/shell/search/search_control.test.tsx'",
+          "content": "\n> app@0.3.3 lint-fix\n> eslint . --fix src/components/shell/search/search_results.tsx src/components/shell/search/search_panel.tsx src/components/shell/search/search_control.test.tsx\n\n",
+          "durationMs": 16685,
+          "exitCode": 0,
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-51",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint-fix -- src/components/shell/search/search_results.tsx src/components/shell/search/search_panel.tsx src/components/shell/search/search_control.test.tsx'",
+          "providerItemId": "exec-93b7604a-5de1-4774-8ccb-5cd5c2f0bc08",
+          "sequence": 51,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:19:38.892Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-52",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0946b9a7cbe97ff7016a85d797b39c81918641457f51f2c885",
+          "sequence": 52,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:19:34.570Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-53",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0946b9a7cbe97ff7016a85d79d8fc881919246339e1cabbe51",
+          "sequence": 53,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:19:44.704Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-54",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0946b9a7cbe97ff7016a85d7a2387881919bf3cb8e405f8bca",
+          "sequence": 54,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:19:45.859Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-ChildItem -Path 'src' -Recurse -File | Where-Object { \"'$_.LastWriteTime -gt (Get-Date).AddMinutes(-3) } | Select-Object -ExpandProperty FullName'",
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\shell\\search\\search_control.test.tsx\r\nC:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\shell\\search\\search_panel.tsx\r\nC:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\shell\\search\\search_results.tsx\r\n",
+          "durationMs": 422,
+          "exitCode": 0,
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-55",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-ChildItem -Path 'src' -Recurse -File | Where-Object { \"'$_.LastWriteTime -gt (Get-Date).AddMinutes(-3) } | Select-Object -ExpandProperty FullName'",
+          "providerItemId": "exec-69807282-f8df-4b8c-bc7a-79d731369995",
+          "sequence": 55,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:19:48.208Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-56",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0946b9a7cbe97ff7016a85d7a6b20c81918e0a6583d08a42dd",
+          "sequence": 56,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:19:51.613Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Auto-fix touched only three scoped files; lint passed. Rerun same related test after formatting.\n\n",
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-turn-2-assistant-6",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 57,
+          "timestamp": "2026-08-19T16:19:51.730Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/components/shell/search/search_control.test.tsx'",
+          "content": "\n> app@0.3.3 test\n> vitest run src/components/shell/search/search_control.test.tsx\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev1/app\n\n\n Test Files  1 passed (1)\n      Tests  14 passed (14)\n   Start at  18:19:53\n   Duration  4.81s (transform 841ms, setup 93ms, import 2.17s, tests 1.73s, environment 705ms)\n\n",
+          "durationMs": 5714,
+          "exitCode": 0,
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-58",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/components/shell/search/search_control.test.tsx'",
+          "providerItemId": "exec-8c66535e-db2f-4621-afaf-479327e716a5",
+          "sequence": 58,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:19:58.673Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-59",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0946b9a7cbe97ff7016a85d7b156f88191aea1136e2c645809",
+          "sequence": 59,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:20:05.345Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Block 4 complete: related test 14/14 twice; lint/auto-fix clean. Starting Block 5: change only external feature frontmatter `status` to `ready`, as requested.\n\n",
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-turn-2-assistant-7",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 60,
+          "timestamp": "2026-08-19T16:20:06.310Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_200_search_results_highlight_text.md",
+          "deletions": 2,
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-61",
+          "insertions": 2,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-7a4be203-782e-4391-8154-6f1905d7e3ec",
+          "sequence": 61,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:20:19.610Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-62",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0946b9a7cbe97ff7016a85d7c630dc8191b60ce364bbb40aba",
+          "sequence": 62,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:20:21.770Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"highlights a case-insensitive|highlights a RegExp|cannot be relocated|Searchable action.*tagName\\\" app\\\\src\\\\components\\\\shell\\\\search\\\\search_control.test.tsx\"",
+          "content": "",
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-63",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"highlights a case-insensitive|highlights a RegExp|cannot be relocated|Searchable action.*tagName\\\" app\\\\src\\\\components\\\\shell\\\\search\\\\search_control.test.tsx\"",
+          "providerItemId": "exec-44af8455-28bd-4013-a894-9aeac0754597",
+          "sequence": 63,
+          "status": "inProgress",
+          "timestamp": "2026-08-19T16:20:27.384Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"renderHighlightedContext|component=\\\\\\\"mark\\\\\\\"|mode=\\\\{mode\\\\}|query=\\\\{query\\\\}\\\" app\\\\src\\\\components\\\\shell\\\\search\\\\search_results.tsx app\\\\src\\\\components\\\\shell\\\\search\\\\search_panel.tsx\"",
+          "content": "rg: regex parse error:\n    (?:renderHighlightedContext|component=\\)\n    ^\nerror: unclosed group\n",
+          "durationMs": 350,
+          "exitCode": 1,
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-64",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"renderHighlightedContext|component=\\\\\\\"mark\\\\\\\"|mode=\\\\{mode\\\\}|query=\\\\{query\\\\}\\\" app\\\\src\\\\components\\\\shell\\\\search\\\\search_results.tsx app\\\\src\\\\components\\\\shell\\\\search\\\\search_panel.tsx\"",
+          "providerItemId": "exec-39c80552-319b-4215-a0ee-61f2113ab2dd",
+          "sequence": 64,
+          "status": "failed",
+          "timestamp": "2026-08-19T16:20:27.737Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Select-String -Path 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\F_200_search_results_highlight_text.md' -Pattern '\"'^status:'\"'\"",
+          "content": "",
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-65",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Select-String -Path 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\F_200_search_results_highlight_text.md' -Pattern '\"'^status:'\"'\"",
+          "providerItemId": "exec-7353f090-7ab8-4e7a-a399-1c3c9cb534cb",
+          "sequence": 65,
+          "status": "inProgress",
+          "timestamp": "2026-08-19T16:20:27.384Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-66",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0946b9a7cbe97ff7016a85d7cfd5bc8191aae4b3caacec92f8",
+          "sequence": 66,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:20:30.769Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Final verification command had quoting error only; no file impact. Retry simple literal checks.\n\n",
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-turn-2-assistant-8",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 67,
+          "timestamp": "2026-08-19T16:20:31.315Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Select-String -Path 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\F_200_search_results_highlight_text.md' -Pattern '\"'^status:'\"'\"",
+          "content": "\r\nC:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_200_search_results_highlight_text.md:6:status: ready\r\n\r\n\r\n",
+          "durationMs": 428,
+          "exitCode": 0,
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-68",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Select-String -Path 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\F_200_search_results_highlight_text.md' -Pattern '\"'^status:'\"'\"",
+          "providerItemId": "exec-125222b4-60bb-4950-82f2-aa92590b6dd0",
+          "sequence": 68,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:20:36.769Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Select-String -Path 'app\\\\src\\\\components\\\\shell\\\\search\\\\search_panel.tsx' -Pattern 'mode={mode}','query={query}' -SimpleMatch\"",
+          "content": "\r\napp\\src\\components\\shell\\search\\search_panel.tsx:284:                            mode={mode}\r\napp\\src\\components\\shell\\search\\search_panel.tsx:287:                            query={query}\r\n\r\n\r\n",
+          "durationMs": 414,
+          "exitCode": 0,
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-69",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Select-String -Path 'app\\\\src\\\\components\\\\shell\\\\search\\\\search_panel.tsx' -Pattern 'mode={mode}','query={query}' -SimpleMatch\"",
+          "providerItemId": "exec-50cc857c-ee60-43e2-8947-4aa4426409ad",
+          "sequence": 69,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:20:36.758Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Select-String -Path 'app\\\\src\\\\components\\\\shell\\\\search\\\\search_results.tsx' -Pattern 'renderHighlightedContext','component=\\\"mark\\\"'\"",
+          "content": "\r\napp\\src\\components\\shell\\search\\search_results.tsx:15:function renderHighlightedContext(context: string, query: \r\nstring, mode: SearchMode) {\r\napp\\src\\components\\shell\\search\\search_results.tsx:42:            <Box component=\"mark\" sx={{ bgcolor: \r\n'warning.light', borderRadius: 0.25, color: 'warning.contrastText' }}>\r\napp\\src\\components\\shell\\search\\search_results.tsx:52:    const context = renderHighlightedContext(match.context, \r\nquery, mode)\r\napp\\src\\components\\shell\\search\\search_results.tsx:76:    const context = renderHighlightedContext(match.context, \r\nquery, mode)\r\n\r\n\r\n",
+          "durationMs": 425,
+          "exitCode": 0,
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-70",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Select-String -Path 'app\\\\src\\\\components\\\\shell\\\\search\\\\search_results.tsx' -Pattern 'renderHighlightedContext','component=\\\"mark\\\"'\"",
+          "providerItemId": "exec-5dba5cc7-4d11-48f8-a692-ea428cc80903",
+          "sequence": 70,
+          "status": "completed",
+          "timestamp": "2026-08-19T16:20:36.769Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-event-71",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0946b9a7cbe97ff7016a85d7d8250081918c289cd7488f7681",
+          "sequence": 71,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-19T16:20:39.629Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Implemented F_200.\n\n- Text and RegExp matches highlighted with `<mark>`.\n- Card and action contexts supported.\n- Missing/invalid matches fall back to plain text.\n- `SearchPanel` passes `query` and `mode`.\n- Added regression coverage in [search_control.test.tsx](C:/Users/janbo/Documents/dev/md2_workers/dev1/app/src/components/shell/search/search_control.test.tsx).\n- Related tests: 14/14 passed.\n- Lint passed.\n- Feature status set to `ready`.\n\n",
+          "id": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-turn-2-assistant-9",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 72,
+          "timestamp": "2026-08-19T16:20:48.670Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-a5ade76a-c75a-4a28-a5b7-a0d3fd1a4551",
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a01acc-e966-7e62-a692-0f4629eeed92",
+          "createdAt": "2026-08-19T16:15:08.584Z",
+          "lastUsedAt": "2026-08-19T16:20:48.670Z",
+          "synchronizedThroughMessageId": "agent-turn-ad8f0153-1cdc-4c53-b652-153d49123423-turn-2-assistant-9"
+        }
+      ],
+      "startedAt": "2026-08-19T16:13:51.204Z",
+      "status": "completed",
+      "timer": {
+        "elapsedMs": 283837,
+        "runningStartedAt": null
+      },
+      "title": "implement",
+      "usage": {
+        "cachedInputTokens": 93696,
+        "inputTokens": 3044,
+        "outputTokens": 197,
+        "reasoningTokens": 24,
+        "totalTokens": 96961
+      },
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "cc3a9c43-319b-4a60-a202-f728f220e14e",
+    "kind": "card"
+  },
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "a26209421d62886cd01dae5f777374c38482405d",
+          "committedAt": "2026-08-19T18:09:21+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/F_200_search_results_highlight_text.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 25
+        }
+      ],
+      "completedAt": "2026-08-19T16:09:21.289Z",
+      "conversationIds": [
+        "agent-8a0df4d6-df8f-47ae-9943-5b7c9832ba6a"
+      ],
+      "details": {
+        "type": "agent",
+        "agent": "claude",
+        "model": "sonnet",
+        "permissionMode": "ask-for-approval",
+        "thinkingLevel": "medium"
+      },
+      "runId": "action-1e661c0b-1917-4f10-8068-83f80a7b3ad4",
+      "origin": {
+        "cardInternalId": "cc3a9c43-319b-4a60-a202-f728f220e14e",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "startedAt": "2026-08-19T16:07:50.786Z",
+      "status": "completed",
+      "rootConversationId": "agent-8a0df4d6-df8f-47ae-9943-5b7c9832ba6a"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-08-19T16:20:48.907Z",
+      "conversationIds": [
+        "agent-a5ade76a-c75a-4a28-a5b7-a0d3fd1a4551"
+      ],
+      "details": {
+        "type": "agent",
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium"
+      },
+      "runId": "action-d8413210-6a3e-4512-8a85-3aa6f50ffee2",
+      "origin": {
+        "cardInternalId": "cc3a9c43-319b-4a60-a202-f728f220e14e",
+        "kind": "card"
+      },
+      "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
+      "rootActionLabel": "implement",
+      "startedAt": "2026-08-19T16:13:51.202Z",
+      "status": "completed",
+      "rootConversationId": "agent-a5ade76a-c75a-4a28-a5b7-a0d3fd1a4551"
+    },
+    {
+      "commits": [
+        {
+          "commit": "91ac154b28fed70116592a58ce36ccf4fdc09bc1",
+          "committedAt": "2026-08-19T18:34:30+02:00",
+          "deletions": 16,
+          "filePaths": [
+            "app/src/components/shell/search/search_control.test.tsx",
+            "app/src/components/shell/search/search_panel.tsx",
+            "app/src/components/shell/search/search_results.tsx"
+          ],
+          "filesChanged": 3,
+          "insertions": 96,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-19T18:34:30+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "cc3a9c43-319b-4a60-a202-f728f220e14e",
+        "kind": "card"
+      },
+      "type": "system"
+    }
+  ],
+  "version": 4
+}

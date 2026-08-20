@@ -32,6 +32,10 @@ export interface NewCardHeader {
     internalId: string
     owner?: string | null
     policy?: Record<string, boolean>
+    references?: string[]
+    sentryBaseUrl?: string
+    sentryIssueId?: string
+    sentryOrganization?: string
     status?: string | null
     title: string
 }
@@ -57,6 +61,7 @@ function cloneCardHeader(header: CardHeader): CardHeader {
         affects: [...header.affects],
         agentLogReferences: [...header.agentLogReferences],
         policy: { ...header.policy },
+        references: [...header.references],
     }
 }
 
@@ -101,6 +106,19 @@ function currentHeaderFields(card: Card, source: CardSourceState): MarkdownHeade
     if (header.internalId !== sourceHeader.internalId) setNullableHeaderField(fields, 'internalId', header.internalId)
     if (header.owner !== sourceHeader.owner) setNullableHeaderField(fields, 'owner', header.owner)
     if (!sameBooleanMap(header.policy, sourceHeader.policy)) fields.policy = serializePolicy(header.policy)
+    if (!sameStringArray(header.references, sourceHeader.references)) {
+        if (header.references.length === 0) delete fields.references
+        else fields.references = [...header.references]
+    }
+    if (header.sentryBaseUrl !== sourceHeader.sentryBaseUrl) {
+        setNullableHeaderField(fields, 'sentryBaseUrl', header.sentryBaseUrl ?? null)
+    }
+    if (header.sentryIssueId !== sourceHeader.sentryIssueId) {
+        setNullableHeaderField(fields, 'sentryIssueId', header.sentryIssueId ?? null)
+    }
+    if (header.sentryOrganization !== sourceHeader.sentryOrganization) {
+        setNullableHeaderField(fields, 'sentryOrganization', header.sentryOrganization ?? null)
+    }
     if (header.status !== sourceHeader.status) setNullableHeaderField(fields, 'status', header.status)
     if (header.title !== sourceHeader.title) fields.title = header.title
     if (header.worktree !== sourceHeader.worktree || header.worktreeError !== sourceHeader.worktreeError) {
@@ -247,6 +265,10 @@ function getListField(fields: MarkdownHeaderFields, fieldName: string) {
     return Array.isArray(value) ? value : []
 }
 
+function getUniqueListField(fields: MarkdownHeaderFields, fieldName: string) {
+    return [...new Set(getListField(fields, fieldName))]
+}
+
 function getMapField(fields: MarkdownHeaderFields, fieldName: string): Record<string, string> {
     const value = fields[fieldName]
 
@@ -323,6 +345,10 @@ function parseCardHeader(fields: MarkdownHeaderFields, file: MarkdownFile, body:
         internalId: getStringField(fields, 'internalId'),
         owner: getStringField(fields, 'owner'),
         policy: parsePolicyMap(fields),
+        references: getUniqueListField(fields, 'references'),
+        sentryBaseUrl: getStringField(fields, 'sentryBaseUrl') ?? undefined,
+        sentryIssueId: getStringField(fields, 'sentryIssueId') ?? undefined,
+        sentryOrganization: getStringField(fields, 'sentryOrganization') ?? undefined,
         status,
         title,
         ...worktree,
@@ -450,6 +476,7 @@ function serializeNewHeader(header: NewCardHeader) {
     const affects = header.affects ?? []
     const agentLogReferences = header.agentLogReferences ?? []
     const policy = header.policy ?? {}
+    const references = [...new Set(header.references ?? [])]
 
     const lines: string[] = []
     lines.push(`author: ${header.author ?? ''}`)
@@ -461,6 +488,10 @@ function serializeNewHeader(header: NewCardHeader) {
     lines.push('affects:', ...affects.map((entry) => `${LIST_ITEM_PREFIX}${entry}`))
     lines.push('agents:', ...agentLogReferences.map((entry) => `${LIST_ITEM_PREFIX}${entry}`))
     lines.push('policy:', ...Object.entries(policy).map(([key, value]) => `${CHILD_INDENT}${key}: ${value ? 'true' : 'false'}`))
+    if (references.length > 0) lines.push('references:', ...references.map((entry) => `${LIST_ITEM_PREFIX}${entry}`))
+    if (header.sentryIssueId) lines.push(`sentryIssueId: ${header.sentryIssueId}`)
+    if (header.sentryOrganization) lines.push(`sentryOrganization: ${header.sentryOrganization}`)
+    if (header.sentryBaseUrl) lines.push(`sentryBaseUrl: ${header.sentryBaseUrl}`)
 
     return lines.join('\n')
 }
@@ -601,6 +632,20 @@ export const markdownParsingService = {
         const lineEnding = detectLineEnding(content)
         const startingLines = hasHeader ? rawHeader.split('\n') : []
         const nextLines = rewriteListLines(startingLines, 'agents', references)
+
+        if (hasHeader) return frameDocument(nextLines, body, lineEnding)
+
+        return frameDocument(nextLines, `${lineEnding}${content}`, lineEnding)
+    },
+
+    setReferences(content: string, references: string[]) {
+        const { body, hasHeader, rawHeader } = splitHeader(content)
+        const lineEnding = detectLineEnding(content)
+        const startingLines = hasHeader ? rawHeader.split('\n') : []
+        const uniqueReferences = [...new Set(references)]
+        const nextLines = uniqueReferences.length === 0
+            ? removeHeaderField(startingLines, 'references')
+            : rewriteListLines(startingLines, 'references', uniqueReferences)
 
         if (hasHeader) return frameDocument(nextLines, body, lineEnding)
 

@@ -1,4 +1,4 @@
-import { useEffect, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useSyncExternalStore } from 'react'
 import type { ActionContext } from '../../../data/action_context'
 import type { ActionDefinition } from '../../../data/action_types'
 import type { ActionRun } from '../../../services/actions/action_run_registry'
@@ -66,6 +66,16 @@ export function ActionAgentPromptOwner(props: ActionAgentPromptOwnerProps) {
         && runStatus !== 'completed'
         && conversationSnapshot.selectedConversation === null
     const promptDraft = currentActionPromptDraft(action, context, prepare)
+    const handleAttachments = useCallback(async (files: File[], insertMarkdown: (markdown: string) => void) => {
+        const attachmentWorkflow = await import('../../../services/attachments/attachment_workflow')
+        if (context.file) {
+            await attachmentWorkflow.attachFilesToCardMarkdown(context.file, files, insertMarkdown)
+            return
+        }
+
+        await attachmentWorkflow.attachFilesToOriginalMarkdown(files, insertMarkdown)
+    }, [context])
+    const attachmentHandler = action.type === 'agent' ? handleAttachments : undefined
 
     useEffect(() => {
         if (!prepare || remoteConnection.status === 'connecting' || remoteConnection.status === 'reconnecting') return
@@ -108,6 +118,7 @@ export function ActionAgentPromptOwner(props: ActionAgentPromptOwnerProps) {
 
     return (
         <ActionAgentPrompt
+            attachmentHandler={attachmentHandler}
             bottomRow={action.type === 'agent' || activeActionType === 'agent' ? (
                 <ActionPopupBottomRow
                     action={action}
@@ -124,7 +135,6 @@ export function ActionAgentPromptOwner(props: ActionAgentPromptOwnerProps) {
                 />
             ) : undefined}
             convertMessage={inputSnapshot.convertMessage}
-            disabled={false}
             onRunShortcut={handleRunShortcut}
             promptDraft={promptDraft}
             responsePrompts={(

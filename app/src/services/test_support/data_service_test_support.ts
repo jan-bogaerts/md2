@@ -9,6 +9,7 @@ import { actionService } from '../actions/action_service'
 import { DataService } from '../data/data_service'
 import { projectPersistenceService } from '../project/project_persistence_service'
 import { openFilesService } from '../open_files_service'
+import { createAgentTokenUsageSummary, serializeAgentTokenUsageSummary } from '../../../../shared/agent_token_usage_summary.mjs'
 
 export function createDataService() {
     const service = new DataService()
@@ -111,13 +112,15 @@ export function createStorage(overrides: Partial<StorageService> = {}): StorageS
         listAgentConversationReferences: vi.fn(async () => []),
         listBranches: vi.fn(async () => [{ name: 'main' }]),
         listRepositories: vi.fn(async () => []),
-        listRepositoryFiles: vi.fn(async () => ['app/src/app.tsx', 'app/src/card.tsx', 'design/F-1-root.md']),
+        listRepositoryFiles: vi.fn(async () => ['agent_token_usage.json', 'app/src/app.tsx', 'app/src/card.tsx', 'design/F-1-root.md']),
         listTopLevelFolders: vi.fn(async () => [{ name: 'design', path: 'design' }]),
         loadActionFiles: vi.fn(async () => []),
         loadAgentConversation: vi.fn(async (_project, path) => conversation(path)),
+        loadActivityConversations: vi.fn(async (_project, path) => [conversation(`${path}#conversation=agent-1`)]),
         loadProject: vi.fn(async () => ({ files: storageFiles, workingFolder: 'design' })),
         loadProjectRoot: vi.fn(async () => ({ files: storageFiles, workingFolder: 'design' })),
         loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, projectFolder: '', pushMode: 'auto' as const, workingFolder: 'design' })),
+        loadTextFile: vi.fn(async (_project, path) => ({ content: serializeAgentTokenUsageSummary(createAgentTokenUsageSummary()), path })),
         moveFiles: vi.fn(),
         push: vi.fn(),
         saveProjectConfig: vi.fn(),

@@ -13,6 +13,7 @@ import { openFilesService } from '../../../services/open_files_service'
 import { AppThemeProvider } from '../../../theme/theme_provider'
 import { DialogDisplay } from '../../dialog_display'
 import { AppMenu } from './app_menu'
+import { createAgentTokenUsageSummary, serializeAgentTokenUsageSummary } from '../../../../../shared/agent_token_usage_summary.mjs'
 
 const auth: UseGithubAuthResult = {
     accessToken: null,
@@ -26,6 +27,11 @@ const auth: UseGithubAuthResult = {
 }
 
 function createBridge(): ElectronDataBridge {
+    const usageSummary = {
+        content: serializeAgentTokenUsageSummary(createAgentTokenUsageSummary()),
+        path: 'agent_token_usage.json',
+    }
+
     return {
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
         commit: vi.fn(async () => []),
@@ -35,13 +41,18 @@ function createBridge(): ElectronDataBridge {
         getMergeConflictSession: vi.fn(async () => null),
         hasPendingPush: vi.fn(async () => false),
         listBranches: vi.fn(async () => [{ name: 'main' }]),
-        listRepositoryFiles: vi.fn(async () => []),
+        listRepositoryFiles: vi.fn(async () => [usageSummary.path]),
         listTopLevelFolders: vi.fn(async () => [{ name: 'design', path: 'design' }]),
         loadActionFiles: vi.fn(async () => []),
         loadFile: vi.fn(async () => ({ content: '', path: 'design/empty.md' })),
         loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, projectFolder: '', workingFolder: 'design' })),
+        loadTextFile: vi.fn(async (_project, path) => {
+            if (path !== usageSummary.path) throw new Error(`Missing file: ${path}`)
+
+            return usageSummary
+        }),
         onMergeConflictSessionChanged: vi.fn(() => vi.fn()),
         onWorktreesChanged: vi.fn(() => vi.fn()),
         moveFiles: vi.fn(),
@@ -50,7 +61,7 @@ function createBridge(): ElectronDataBridge {
         push: vi.fn(),
         resolveProject: vi.fn(async (project) => project),
         saveProjectConfig: vi.fn(),
-        addWorktree: vi.fn(async () => false),
+        addWorktree: vi.fn(async () => undefined),
         removeWorktree: vi.fn(async () => undefined),
         watchProject: vi.fn(() => vi.fn()),
     }
@@ -97,6 +108,8 @@ function renderMenu(isMobile = false) {
 
 async function openLocalProject() {
     fireEvent.click(screen.getByRole('button', { name: 'Open project' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Folder' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Choose local repository folder' }))
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Open project' })).toBeNull())
 }
 
@@ -135,6 +148,7 @@ describe('AppMenu', () => {
         expect(screen.getByRole('button', { name: 'Config' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Cards view' })).toHaveTextContent('Board')
         expect(screen.getByRole('button', { name: 'Text view' })).toHaveTextContent('List')
+        expect(screen.getByRole('button', { name: 'Stats view' })).toHaveTextContent('Stats')
         expect(screen.getByRole('button', { name: 'New action' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'New card' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'GitHub account' })).toBeInTheDocument()
@@ -199,6 +213,9 @@ describe('AppMenu', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Text view' }))
 
         expect(workspaceViewService.getSnapshot().viewMode).toBe('text')
+
+        fireEvent.click(screen.getByRole('button', { name: 'Stats view' }))
+        expect(workspaceViewService.getSnapshot().viewMode).toBe('stats')
     })
 
     it('creates a valid action and opens its text-view tab from the Home tab', async () => {

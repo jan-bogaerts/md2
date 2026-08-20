@@ -1,0 +1,200 @@
+const fs = require('node:fs');
+const path = require('node:path');
+
+const { parseActivityFileForMigration } = require('../../../../shared/card_activity.mjs');
+const {
+    addSummaryUsage,
+    agentTokenUsageFilePath,
+    createAgentTokenUsageSummary,
+    emptySummaryUsage,
+    legacySummaryUsage,
+    parseAgentTokenUsageSummary,
+    parseSummaryUsage,
+} = require('../../../../shared/agent_token_usage_summary.mjs');
+const {
+    loadActivityValue,
+    queueActivityUpdate,
+    resolveActivityPath,
+    upsertConversation,
+    writeActivityFile,
+} = require('../activity/activity_files');
+const { commitTrackedPaths, ensureInsideRoot, pathExists, requireRootPath } = require('../../git/git_commands');
+const { captureError } = require('../../integrations/telemetry');
+
+const projectUsageWriteQueues = new Map();
+
+function queueProjectUsageUpdate(filePath, update) {
+    const previousWrite = projectUsageWriteQueues.get(filePath) ?? Promise.resolve();
+    const write = previousWrite.then(update);
+    const queueTail = write.catch(() => undefined);
+    projectUsageWriteQueues.set(filePath, queueTail);
+    void queueTail.finally(() => {
+        if (projectUsageWriteQueues.get(filePath) === queueTail) projectUsageWriteQueues.delete(filePath);
+    });
+
+    return write;
+}
+
+function conversationSummaryUsage(conversation) {
+    const usage = conversation?.usage;
+    if (!usage) return emptySummaryUsage();
+    if (conversation.usageSchemaVersion === undefined) return legacySummaryUsage(usage.totalTokens, usage.costUsd);
+
+    return parseSummaryUsage({
+        cachedInputTokens: usage.cachedInputTokens,
+        ...(usage.costUsd !== undefined ? { costUsd: usage.costUsd } : {}),
+        inputTokens: usage.inputTokens,
+        legacyTotalTokens: usage.legacyTotalTokens ?? 0,
+        outputTokens: usage.outputTokens,
+        reasoningTokens: usage.reasoningTokens,
+        totalTokens: usage.totalTokens,
+    }, 'conversation usage');
+}
+
+function usageDelta(previous, next) {
+    const delta = {
+        cachedInputTokens: next.cachedInputTokens - previous.cachedInputTokens,
+        inputTokens: next.inputTokens - previous.inputTokens,
+        legacyTotalTokens: next.legacyTotalTokens - previous.legacyTotalTokens,
+        outputTokens: next.outputTokens - previous.outputTokens,
+        reasoningTokens: next.reasoningTokens - previous.reasoningTokens,
+        totalTokens: next.totalTokens - previous.totalTokens,
+    };
+    const invalidField = Object.entries(delta).find(([, value]) => !Number.isFinite(value) || value < 0);
+    if (invalidField) throw new Error(`Agent conversation usage decreased: ${invalidField[0]}`);
+    if (next.costUsd !== undefined || previous.costUsd !== undefined) {
+        delta.costUsd = (next.costUsd ?? 0) - (previous.costUsd ?? 0);
+        if (!Number.isFinite(delta.costUsd) || delta.costUsd < 0) throw new Error('Agent conversation cost decreased');
+    }
+
+    return delta;
+}
+
+function normalizedPath(value) {
+    return value.replace(/\\/gu, '/');
+}
+
+function releaseNameForActivity(relativePath, releasesFolder) {
+    const normalizedReleasesFolder = normalizedPath(releasesFolder).replace(/^\/+|\/+$/gu, '');
+    const normalizedActivityPath = normalizedPath(relativePath);
+    const prefix = `${normalizedReleasesFolder}/`;
+    if (!normalizedActivityPath.startsWith(prefix)) return null;
+    const releaseName = normalizedActivityPath.slice(prefix.length).split('/')[0];
+
+    return releaseName.length > 0 ? releaseName : null;
+}
+
+async function cardActivityPaths(folderPath) {
+    if (!await pathExists(folderPath)) return [];
+    const paths = [];
+    const entries = await fs.promises.readdir(folderPath, { withFileTypes: true });
+    for (const entry of entries) {
+        const entryPath = path.join(folderPath, entry.name);
+        if (entry.isDirectory()) paths.push(...await cardActivityPaths(entryPath));
+        else if (/^card__.+\.json$/u.test(entry.name)) paths.push(entryPath);
+    }
+
+    return paths;
+}
+
+// TEMPORARY: Internal migration only. Remove after existing internal projects have generated their summary file.
+async function migrateSummary(rootPath, projectFolder, releasesFolder) {
+    const absoluteProjectFolder = ensureInsideRoot(rootPath, path.join(rootPath, projectFolder));
+    const activityPaths = await cardActivityPaths(absoluteProjectFolder);
+    const projectUsages = [];
+    const releaseUsages = new Map();
+    for (const activityPath of activityPaths) {
+        let usage;
+        try {
+            const activity = parseActivityFileForMigration(await fs.promises.readFile(activityPath, 'utf8'));
+            const costUsd = activity.conversations.reduce((total, conversation) => total + (conversation.usage?.costUsd ?? 0), 0);
+            const hasCost = activity.conversations.some((conversation) => conversation.usage?.costUsd !== undefined);
+            const totalTokens = activity.conversations.reduce((total, conversation) => total + (conversation.usage?.totalTokens ?? 0), 0);
+            usage = legacySummaryUsage(totalTokens, hasCost ? costUsd : undefined);
+        } catch {
+            continue;
+        }
+        projectUsages.push(usage);
+        const relativePath = normalizedPath(path.relative(rootPath, activityPath));
+        const releaseName = releaseNameForActivity(relativePath, releasesFolder);
+        if (!releaseName) continue;
+        releaseUsages.set(releaseName, [...(releaseUsages.get(releaseName) ?? []), usage]);
+    }
+    const releases = Object.fromEntries([...releaseUsages.entries()].map(([name, usages]) => [name, addSummaryUsage(usages)]));
+
+    return createAgentTokenUsageSummary(addSummaryUsage(projectUsages), releases);
+}
+
+async function loadOrMigrateSummary(summaryPath, rootPath, projectFolder, releasesFolder) {
+    if (await pathExists(summaryPath)) {
+        return parseAgentTokenUsageSummary(await fs.promises.readFile(summaryPath, 'utf8'));
+    }
+
+    return migrateSummary(rootPath, projectFolder, releasesFolder);
+}
+
+async function reportTokenUsageFailure(error, dependencies) {
+    const reportError = dependencies.reportError ?? captureError;
+    try {
+        await reportError(error);
+    } catch {
+        // Token usage and its error reporting must not affect conversation persistence.
+    }
+}
+
+async function persistConversationAndProjectUsage(run, dependencies = {}) {
+    const { activityOrigin, activityProject, projectFolder, releasesFolder } = run.request;
+    if (!activityProject) throw new Error('Missing agent activityProject');
+    if (!activityOrigin) throw new Error('Missing agent activityOrigin');
+    if (typeof projectFolder !== 'string') throw new Error('Missing agent projectFolder');
+    if (typeof releasesFolder !== 'string') throw new Error('Missing agent releasesFolder');
+    const rootPath = requireRootPath(activityProject);
+    const summaryRelativePath = agentTokenUsageFilePath(projectFolder);
+    const summaryPath = ensureInsideRoot(rootPath, path.join(rootPath, summaryRelativePath));
+    const { absolutePath: activityPath, relativePath: activityRelativePath } = resolveActivityPath(
+        rootPath,
+        projectFolder,
+        activityOrigin,
+    );
+
+    return queueProjectUsageUpdate(summaryPath, () => queueActivityUpdate(activityPath, async () => {
+        const currentActivity = await loadActivityValue(activityPath, activityOrigin);
+        const storedConversation = currentActivity.conversations.find(({ id }) => id === run.conversation.id) ?? null;
+        const nextActivity = upsertConversation(currentActivity, run.conversation);
+        let nextSummary;
+        let tokenUsageError;
+        try {
+            const previousUsage = conversationSummaryUsage(storedConversation);
+            const nextUsage = conversationSummaryUsage(run.conversation);
+            const delta = usageDelta(previousUsage, nextUsage);
+            const summary = await loadOrMigrateSummary(summaryPath, rootPath, projectFolder, releasesFolder);
+            nextSummary = {
+                ...summary,
+                projectUsage: addSummaryUsage([summary.projectUsage, delta]),
+            };
+        } catch (error) {
+            tokenUsageError = error;
+        }
+        await writeActivityFile(activityPath, nextActivity);
+        const commitPaths = dependencies.commitTrackedPaths ?? commitTrackedPaths;
+        if (tokenUsageError) {
+            await commitPaths(rootPath, [activityRelativePath], `Update ${activityOrigin.kind} activity`);
+            await reportTokenUsageFailure(tokenUsageError, dependencies);
+
+            return { activity: nextActivity, relativePath: activityRelativePath, summary: null };
+        }
+        try {
+            await writeActivityFile(summaryPath, nextSummary);
+        } catch (error) {
+            await commitPaths(rootPath, [activityRelativePath], `Update ${activityOrigin.kind} activity`);
+            await reportTokenUsageFailure(error, dependencies);
+
+            return { activity: nextActivity, relativePath: activityRelativePath, summary: null };
+        }
+        await commitPaths(rootPath, [activityRelativePath, summaryRelativePath], `Update ${activityOrigin.kind} activity`);
+
+        return { activity: nextActivity, relativePath: activityRelativePath, summary: nextSummary };
+    }));
+}
+
+module.exports = { conversationSummaryUsage, migrateSummary, persistConversationAndProjectUsage, usageDelta };

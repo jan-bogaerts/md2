@@ -3,17 +3,35 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AgentConversation, Card, ProjectSnapshot } from '../../data/data_types'
 import { ProjectAgentUsageSummary } from './project_agent_usage_summary'
 
-const { projectConfig, projectState } = vi.hoisted(() => ({
-    projectConfig: {
-        archivedFolder: 'design/records/archived',
-        projectFolder: 'design',
-        releasesFolder: 'design/records/releases',
-    },
-    projectState: { snapshot: null as ProjectSnapshot | null },
-}))
+const { projectConfig, projectState, summaryService } = vi.hoisted(() => {
+    const summary = {
+        projectUsage: {
+            cachedInputTokens: 0, inputTokens: 0, legacyTotalTokens: 56,
+            outputTokens: 0, reasoningTokens: 0, totalTokens: 56,
+        },
+        releases: {
+            v1: {
+                cachedInputTokens: 0, inputTokens: 0, legacyTotalTokens: 32,
+                outputTokens: 0, reasoningTokens: 0, totalTokens: 32,
+            },
+        },
+        schemaVersion: 1,
+    }
+
+    return {
+        projectConfig: {
+            archivedFolder: 'design/records/archived',
+            projectFolder: 'design',
+            releasesFolder: 'design/records/releases',
+        },
+        projectState: { snapshot: null as ProjectSnapshot | null },
+        summaryService: { getSnapshot: () => summary, subscribe: () => () => undefined },
+    }
+})
 
 vi.mock('../hooks/use_project_config', () => ({ useProjectConfig: () => projectConfig }))
 vi.mock('../hooks/use_project_state', () => ({ useProjectState: () => projectState }))
+vi.mock('../../services/agents/project_agent_token_usage_service', () => ({ projectAgentTokenUsageService: summaryService }))
 
 function conversation(id: string, totalTokens: number): AgentConversation {
     return {
@@ -41,7 +59,7 @@ function card(path: string, totalTokens: number): Card {
         content: '',
         header: {
             affects: [], after: null, agentLogReferences: [], author: null, id: path, internalId: path,
-            owner: null, policy: {}, status: 'done', title: path,
+            owner: null, policy: {}, references: [], status: 'done', title: path,
         },
         hasFrontmatter:true,
         isActive: !path.includes('/history/'),
@@ -75,5 +93,16 @@ describe('ProjectAgentUsageSummary', () => {
         expect(screen.getByText('Archived')).toBeInTheDocument()
         expect(screen.getByText('v1')).toBeInTheDocument()
         expect(screen.getByText('tokens: 56')).toBeInTheDocument()
+    })
+
+    it('opens shared details in a mobile dialog', () => {
+        render(<ProjectAgentUsageSummary mobile />)
+
+        const button = screen.getByRole('button', { name: 'Agent token usage summary' })
+        button.focus()
+        expect(button).toHaveFocus()
+        fireEvent.click(button)
+
+        expect(screen.getByRole('dialog', { name: 'Project agent usage' })).toHaveFocus()
     })
 })

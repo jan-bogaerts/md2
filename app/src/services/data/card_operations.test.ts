@@ -12,11 +12,35 @@ import {
     CARD_ADDED_EVENT,
     CARD_CHANGED_EVENT,
     CARD_REMOVED_EVENT,
+    cardCollectionFieldChangedEvent,
+    cardFieldChangedEvent,
     type CardAddedEventDetail,
     type CardChangedEventDetail,
     type CardRemovedEventDetail,
 } from './data_service'
 import { markdownParsingService } from './markdown_parsing_service'
+import type { SentryIssueImport } from '../sentry/sentry_types'
+
+function sentryIssue(id: string, title = `Issue ${id}`): SentryIssueImport {
+    return {
+        event: {
+            environment: 'production',
+            eventId: `event-${id}`,
+            message: `Message ${id}`,
+            release: '1.0.0',
+            stackFrames: [{ columnNumber: 4, fileName: 'app.ts', functionName: 'run', lineNumber: 12 }],
+        },
+        issue: {
+            count: '3',
+            culprit: 'run',
+            firstSeen: '2026-01-01T00:00:00Z',
+            id,
+            lastSeen: '2026-01-02T00:00:00Z',
+            link: `https://sentry.example.com/issues/${id}`,
+            title,
+        },
+    }
+}
 
 function recordDialogMessages(severity: DialogSeverity) {
     const messages: string[] = []
@@ -153,6 +177,132 @@ describe('CardOperations', () => {
 
         expect(storage.commit).toHaveBeenCalledWith(expect.objectContaining({ message: 'Create design/F-4-new-card.md' }) as CommitRequest)
         expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' })
+    })
+
+    it('imports unseen Sentry issues with sequential IDs in one commit and one local batch', async () => {
+        configService.init()
+        const storage = createStorage()
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const added = vi.fn()
+        service.addEventListener(CARD_ADDED_EVENT, added)
+        vi.mocked(storage.commit).mockClear()
+
+        const importedFiles = await service.cards.importSentryIssues({
+            apiBaseUrl: 'https://sentry.example.com/',
+            cardState: 'to fix',
+            cardType: 'bug',
+            issues: [sentryIssue('100'), sentryIssue('101'), sentryIssue('100')],
+            organization: 'acme',
+            projectId: 'project',
+        })
+
+        expect(importedFiles.map(({ path }) => path)).toEqual([
+            'design/B-1-issue-100.md',
+            'design/B-2-issue-101.md',
+        ])
+        expect(storage.commit).toHaveBeenCalledOnce()
+        expect(storage.commit).toHaveBeenCalledWith(expect.objectContaining({
+            branch: 'main',
+            files: importedFiles,
+            message: 'Import 2 Sentry issues',
+        }))
+        expect(added).toHaveBeenCalledTimes(2)
+        const importedCards = service.getState().snapshot?.activeCards.filter(({ header }) => !!header.sentryIssueId) ?? []
+        expect(new Set(importedCards.map(({ header }) => header.internalId)).size).toBe(2)
+        expect(importedCards.map(({ header }) => header.status)).toEqual(['to fix', 'to fix'])
+        expect(importedCards[0].header).toMatchObject({
+            sentryBaseUrl: 'https://sentry.example.com',
+            sentryIssueId: '100',
+            sentryOrganization: 'acme',
+        })
+        expect(importedFiles[0].content).toContain('**Event ID:** event-100')
+        expect(importedFiles[0].content).not.toContain('# Goal')
+        expect(importedFiles[0].content).toContain('`app.ts:12:4` — run')
+        await vi.waitFor(() => expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' }))
+    })
+
+    it('deduplicates repeated imports from current loaded card identities', async () => {
+        configService.init()
+        const storage = createStorage()
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const request = {
+            apiBaseUrl: 'https://sentry.example.com',
+            cardState: 'to fix',
+            cardType: 'bug',
+            issues: [sentryIssue('100')],
+            organization: 'acme',
+            projectId: 'project',
+        }
+        vi.mocked(storage.commit).mockClear()
+
+        await service.cards.importSentryIssues(request)
+        const secondImport = await service.cards.importSentryIssues(request)
+
+        expect(secondImport).toEqual([])
+        expect(storage.commit).toHaveBeenCalledOnce()
+    })
+
+    it('uses normalized base URL and organization as part of Sentry identity scope', async () => {
+        configService.init()
+        const storage = createStorage()
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        vi.mocked(storage.commit).mockClear()
+
+        await service.cards.importSentryIssues({ apiBaseUrl: 'https://one.example.com', cardState: 'to fix', cardType: 'bug', issues: [sentryIssue('100')], organization: 'acme', projectId: 'project' })
+        await service.cards.importSentryIssues({ apiBaseUrl: 'https://two.example.com', cardState: 'to fix', cardType: 'bug', issues: [sentryIssue('100')], organization: 'acme', projectId: 'project' })
+
+        expect(storage.commit).toHaveBeenCalledTimes(2)
+        expect(service.getState().snapshot?.activeCards.filter(({ header }) => header.sentryIssueId === '100')).toHaveLength(2)
+    })
+
+    it('fails missing Sentry card configuration before changing local state', async () => {
+        configService.init()
+        const storage = createStorage()
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const originalCount = service.getState().snapshot?.activeCards.length
+        vi.mocked(storage.commit).mockClear()
+
+        await expect(service.cards.importSentryIssues({
+            apiBaseUrl: 'https://sentry.example.com',
+            cardState: 'missing',
+            cardType: 'bug',
+            issues: [sentryIssue('100')],
+            organization: 'acme',
+            projectId: 'project',
+        })).rejects.toThrow('Configured Sentry card state no longer exists: missing')
+
+        expect(service.getState().snapshot?.activeCards).toHaveLength(originalCount ?? 0)
+        expect(storage.commit).not.toHaveBeenCalled()
+    })
+
+    it('leaves no partial in-memory cards when preparation fails', async () => {
+        configService.init()
+        const storage = createStorage()
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const originalCount = service.getState().snapshot?.activeCards.length
+        vi.mocked(storage.commit).mockClear()
+
+        await expect(service.cards.importSentryIssues({
+            apiBaseUrl: 'https://sentry.example.com',
+            cardState: 'to fix',
+            cardType: 'bug',
+            issues: [sentryIssue('100'), sentryIssue('101', '')],
+            organization: 'acme',
+            projectId: 'project',
+        })).rejects.toThrow('Cannot generate a card without a title')
+
+        expect(service.getState().snapshot?.activeCards).toHaveLength(originalCount ?? 0)
+        expect(storage.commit).not.toHaveBeenCalled()
     })
 
     it('adds one card incrementally without waiting for automatic push', async () => {
@@ -556,7 +706,8 @@ describe('CardOperations', () => {
         expect(commit).toHaveBeenCalledOnce()
         const persisted = commit.mock.calls[0][0].files[0].content
         expect(persisted).toContain('status: doing')
-        expect(persisted).toContain(`  - ${reference}`)
+        expect(persisted).toContain('  - design/activity/card__a.json')
+        expect(persisted).not.toContain('#conversation=')
     })
 
     it('serializes combined latest card state after a change during an in-flight commit', async () => {
@@ -665,33 +816,25 @@ describe('CardOperations', () => {
         const activeFiles: MarkdownFile[] = [
             { content: '---\nid: A\ninternalId: a\ntitle: A\nstatus: todo\n---\n\n# A', path: 'design/active/A-1-a.md' },
             {
-                content: '---\nid: B\ninternalId: b\ntitle: B\nstatus: todo\nafter: a\n---\n\n# B\n\n![note](note.png)',
+                content: '---\nid: B\ninternalId: b\ntitle: B\nstatus: todo\nafter: a\nreferences:\n  - design/active/manual.pdf\n---\n\n# B\n\n![note](note.png)',
                 path: 'design/active/B-1-b.md',
                 sha: 'sha-b',
             },
             { content: '---\nid: C\ninternalId: c\ntitle: C\nstatus: todo\nafter: b\n---\n\n# C', path: 'design/active/C-1-c.md' },
         ]
-        const refreshedFiles: MarkdownFile[] = [
-            activeFiles[0],
-            { ...activeFiles[2], content: activeFiles[2].content.replace('after: b', 'after: a') },
-            {
-                ...activeFiles[1],
-                content: activeFiles[1].content.replace('status: todo', 'status: archived').replace('after: a\n', ''),
-                path: 'design/vault/archived/B-1-b.md',
-            },
-        ]
         const storage = createStorage({
-            listRepositoryFiles: vi.fn()
-                .mockResolvedValueOnce([...activeFiles.map(({ path }) => path), 'design/active/note.png'])
-                .mockResolvedValueOnce(refreshedFiles.map(({ path }) => path)),
-            loadProject: vi.fn()
-                .mockResolvedValueOnce({ files: activeFiles, workingFolder: 'design' })
-                .mockResolvedValueOnce({ files: refreshedFiles, workingFolder: 'design' }),
-            loadProjectAsset: vi.fn(async () => ({
-                content: 'aW1hZ2U=',
-                contentType: 'image/png',
+            listRepositoryFiles: vi.fn(async () => [
+                'design/agent_token_usage.json',
+                ...activeFiles.map(({ path }) => path),
+                'design/active/manual.pdf',
+                'design/active/note.png',
+            ]),
+            loadProject: vi.fn(async () => ({ files: activeFiles, workingFolder: 'design' })),
+            loadProjectAsset: vi.fn(async (_project, path) => ({
+                content: path.endsWith('.pdf') ? 'AAECAw==' : 'aW1hZ2U=',
+                contentType: path.endsWith('.pdf') ? 'application/pdf' : 'image/png',
                 encoding: 'base64' as const,
-                path: 'design/active/note.png',
+                path,
             })),
             loadProjectConfig: vi.fn(async () => ({
                 archivedFolder: 'vault/archived',
@@ -718,7 +861,7 @@ describe('CardOperations', () => {
             message: 'Archive design/active/B-1-b.md',
             moves: [
                 expect.objectContaining({
-                    content: expect.stringContaining('status: archived'),
+                    content: expect.stringContaining('  - design/vault/archived/manual.pdf'),
                     fromPath: 'design/active/B-1-b.md',
                     toPath: 'design/vault/archived/B-1-b.md',
                 }),
@@ -729,6 +872,13 @@ describe('CardOperations', () => {
                     sha: undefined,
                     toPath: 'design/vault/archived/note.png',
                 },
+                {
+                    content: 'AAECAw==',
+                    encoding: 'base64',
+                    fromPath: 'design/active/manual.pdf',
+                    sha: undefined,
+                    toPath: 'design/vault/archived/manual.pdf',
+                },
             ],
         })
         expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' })
@@ -738,14 +888,14 @@ describe('CardOperations', () => {
         ])
         expect(service.getState().snapshot?.backgroundCards.map(({ path }) => path)).toContain('design/vault/archived/B-1-b.md')
         expect(storage.loadProject).toHaveBeenCalledOnce()
-        expect(storage.listRepositoryFiles).toHaveBeenCalledOnce()
+        expect(storage.listRepositoryFiles).toHaveBeenCalledTimes(2)
     })
 
     it('rejects an existing archived-card target before committing', async () => {
         configService.init()
         const activeFile = activeCardFile('a')
         const storage = createStorage({
-            listRepositoryFiles: vi.fn(async () => [activeFile.path, 'archived/A-1-a.md']),
+            listRepositoryFiles: vi.fn(async () => ['agent_token_usage.json', activeFile.path, 'archived/A-1-a.md']),
             loadProject: vi.fn(async () => ({ files: [activeFile], workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: [activeFile], workingFolder: 'design' })),
         })
@@ -770,7 +920,7 @@ describe('CardOperations', () => {
         ))
         const storage = createStorage({
             commit,
-            listRepositoryFiles: vi.fn(async () => deletionFiles.map(({ path }) => path)),
+            listRepositoryFiles: vi.fn(async () => ['agent_token_usage.json', ...deletionFiles.map(({ path }) => path)]),
             loadProject: vi.fn(async () => ({ files: deletionFiles, workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: deletionFiles, workingFolder: 'design' })),
         })
@@ -801,7 +951,7 @@ describe('CardOperations', () => {
             header: expect.objectContaining({ after: 'a' }),
             sha: 'sha-c-next',
         })
-        expect(snapshot?.repositoryFiles).toEqual(['design/A-1-a.md', 'design/C-1-c.md'])
+        expect(snapshot?.repositoryFiles).toEqual(['agent_token_usage.json', 'design/A-1-a.md', 'design/C-1-c.md'])
         expect(reloadCurrentProjectSnapshot).not.toHaveBeenCalled()
         expect(storage.loadProject).toHaveBeenCalledTimes(loadProjectCalls)
         expect(storage.listRepositoryFiles).toHaveBeenCalledTimes(listRepositoryFilesCalls)
@@ -1228,6 +1378,34 @@ describe('CardOperations', () => {
         serializeCard.mockRestore()
     })
 
+    it('deduplicates card references and dispatches only reference field events', async () => {
+        configService.init()
+        const storage = createStorage()
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const referenceChanged = vi.fn()
+        const referenceCollectionChanged = vi.fn()
+        const titleChanged = vi.fn()
+        service.addEventListener(cardFieldChangedEvent('design/F-1-root.md', 'references'), referenceChanged)
+        service.addEventListener(cardCollectionFieldChangedEvent('references'), referenceCollectionChanged)
+        service.addEventListener(cardFieldChangedEvent('design/F-1-root.md', 'title'), titleChanged)
+
+        service.cards.addCardReferences('design/F-1-root.md', ['design/one.pdf', 'design/one.pdf', 'C:\\source\\two.zip'])
+        await service.cards.flushPendingCommits()
+
+        expect(service.getState().snapshot?.activeCards[0].header.references).toEqual([
+            'design/one.pdf',
+            'C:\\source\\two.zip',
+        ])
+        expect(referenceChanged).toHaveBeenCalledOnce()
+        expect(referenceCollectionChanged).toHaveBeenCalledOnce()
+        expect(titleChanged).not.toHaveBeenCalled()
+        expect(vi.mocked(storage.commit).mock.calls.at(-1)?.[0].files[0].content).toContain(
+            'references:\n  - design/one.pdf\n  - C:\\source\\two.zip',
+        )
+    })
+
     it('does not rebuild, dispatch, or commit when saved content is unchanged', async () => {
         configService.init()
         const stableFile: MarkdownFile = {
@@ -1241,7 +1419,7 @@ describe('CardOperations', () => {
         const service = createDataService()
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
-        await vi.waitFor(() => expect(service.getState().snapshot?.repositoryFiles).toHaveLength(3))
+        await vi.waitFor(() => expect(service.getState().snapshot?.repositoryFiles).toHaveLength(4))
         const snapshot = service.getState().snapshot
         const handleChanged = vi.fn()
         service.addEventListener('changed', handleChanged)

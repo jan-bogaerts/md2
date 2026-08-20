@@ -20,6 +20,9 @@ export function usePrimaryWorktreeStatus() {
 }
 
 export function useWorktreeAdding() {
-    return useSyncExternalStore(subscribe, () => worktreeService.isAdding())
+    return useSyncExternalStore(subscribe, () => worktreeService.getDraft()?.selecting ?? false)
 }
 
+export function useWorktreeDraft() {
+    return useSyncExternalStore(subscribe, () => worktreeService.getDraft())
+}

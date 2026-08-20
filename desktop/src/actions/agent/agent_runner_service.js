@@ -8,6 +8,7 @@ const {
     createEventEntry,
     createMessageEntry,
     snapshotConversation,
+    transitionConversationStatus,
     updateProviderSession,
 } = require('./agent_conversation');
 const {
@@ -17,6 +18,7 @@ const {
 } = require('./agent_conversation_persistence');
 const { AgentExecutableResolver } = require('./agent_executable_availability');
 const { createAgentEnvironment } = require('./agent_environment');
+const { ClaudeUsagePoller } = require('./claude_usage_poller');
 const { diagnoseCodexCacheError, isCodexCacheError } = require('./agent_codex_cache_diagnostic');
 const { logAgentEvent } = require('./agent_file_logger');
 const agentInteractions = require('./agent_run_interactions');
@@ -46,16 +48,26 @@ const { terminateProcessTree } = require('../process_tree');
 const { assertGitRoot, ensureInsideRoot, requireRootPath } = require('../../git/git_commands');
 
 const AGENT_FINISH_GRACE_MS = 5_000;
+const AGENT_USAGE_POLL_TICK_MS = 120_000;
 
 class AgentRunnerService {
     constructor(dependencies = {}) {
+        this.claudeRuntimeService = dependencies.claudeRuntimeService ?? null;
         this.codexRuntimeService = dependencies.codexRuntimeService ?? null;
+        this.usageMetricsService = dependencies.usageMetricsService ?? null;
         this.persistConversation = dependencies.persistConversation
             ?? dependencies.persistTerminalConversation
             ?? persistConversation;
         this.persistConversationCheckpoint = dependencies.persistConversationCheckpoint
             ?? persistConversationCheckpoint;
+        this.persistSuccessfulConversationTurn = dependencies.persistSuccessfulConversationTurn
+            ?? dependencies.persistConversation
+            ?? dependencies.persistConversationCheckpoint
+            ?? persistConversation;
+        this.spawn = dependencies.spawn ?? crossSpawn;
         this.executableResolver = dependencies.executableResolver ?? new AgentExecutableResolver();
+        this.claudeUsagePoller = dependencies.claudeUsagePoller
+            ?? new ClaudeUsagePoller({onRuntimeEvent: (event) => this.handleClaudeRuntimeEvent(event)});
         this.diagnoseCodexCacheError = dependencies.diagnoseCodexCacheError ?? diagnoseCodexCacheError;
         this.clearTimeout = dependencies.clearTimeout ?? clearTimeout;
         this.setTimeout = dependencies.setTimeout ?? setTimeout;
@@ -63,6 +75,7 @@ class AgentRunnerService {
         this.handleFinishTimeout = this.handleFinishTimeout.bind(this);
         this.processes = new Map();
         this.runningConversationIds = new Set();
+        this.usagePollTimer = null;
     }
 
     async run(project, request, onEvent) {
@@ -113,10 +126,13 @@ class AgentRunnerService {
         }
         const [configuredExecutable, ...configuredArguments] = command;
         const environment = createAgentEnvironment(process.env);
-        const resolvedExecutable = await this.executableResolver.find(configuredExecutable, { cwd: rootPath, env: environment });
-        const executable = resolvedExecutable ?? configuredExecutable;
+        const executable = await this.executableResolver.find(configuredExecutable, { cwd: rootPath, env: environment });
+        if (!executable) throw new Error(`Executable not found for ${agent}: ${configuredExecutable}`);
         const argumentsList = streaming ? configuredArguments : [...configuredArguments, prompt];
-        const child = crossSpawn(executable, argumentsList, {
+        const initialConversation = snapshotConversation(conversation);
+        await this.persistConversationCheckpoint({ conversation: initialConversation, request });
+        this.requestUsagePoll({ agent, environment, executable, rootPath });
+        const child = this.spawn(executable, argumentsList, {
             cwd: rootPath,
             detached: process.platform !== 'win32',
             env: environment,
@@ -145,6 +161,7 @@ class AgentRunnerService {
             onEvent,
             reference,
             request,
+            rootPath,
             startedAt,
             streaming,
         });
@@ -159,6 +176,7 @@ class AgentRunnerService {
         });
         this.processes.set(id, run);
         this.runningConversationIds.add(conversation.id);
+        this.syncUsagePollTicks();
 
         child.stdout.on('data', (chunk) => this.handleOutput(id, 'stdout', chunk));
         child.stderr.on('data', (chunk) => this.handleOutput(id, 'stderr', chunk));
@@ -182,20 +200,20 @@ class AgentRunnerService {
         }
         const userMessage = lastMessageEntry(conversation);
         if (!userMessage || userMessage.role !== 'user') throw new Error('Missing current agent user message');
-        const conversationSnapshot = snapshotConversation(conversation);
         emitRunEvent(run, {
             continued: !!request.conversation,
-            conversation: conversationSnapshot,
+            conversation: initialConversation,
             type: 'started',
         });
 
-        return { conversation: conversationSnapshot, reference, runId: id };
+        return { conversation: initialConversation, reference, runId: id };
     }
 
     stop(runId) {
         const run = this.requireRun(runId);
         run.cancelled = true;
         run.queuedMessage = null;
+        transitionConversationStatus(run.conversation, 'cancelled', new Date().toISOString());
         this.clearFinishTimeout(run);
 
         return this.ensureTermination(run);
@@ -275,9 +293,12 @@ class AgentRunnerService {
     }
 
     stopAll() {
+        this.stopUsagePollTicks();
+        this.claudeUsagePoller.stop();
         const completions = [];
         for (const run of this.processes.values()) {
             run.cancelled = true;
+            transitionConversationStatus(run.conversation, 'cancelled', new Date().toISOString());
             this.clearFinishTimeout(run);
             completions.push(Promise.all([this.ensureTermination(run), run.closed]));
         }
@@ -291,13 +312,75 @@ class AgentRunnerService {
         return run.termination;
     }
 
-    handleCodexRuntimeEvent(event) {
+    async handleCodexRuntimeEvent(event) {
         if (!this.codexRuntimeService) return;
         if (event.kind === 'unavailable') {
             this.codexRuntimeService.publishUnavailable(event.observedAt);
             return;
         }
-        this.codexRuntimeService.publishRateLimits(event.payload, event.observedAt, event.kind === 'update');
+        const accepted = this.codexRuntimeService.publishRateLimits(event.payload, event.observedAt, event.kind === 'update');
+        if (!accepted || !this.usageMetricsService) return;
+        await this.usageMetricsService.recordAccountUsage('codex', this.codexRuntimeService.getSnapshot());
+    }
+
+    async handleClaudeRuntimeEvent(event) {
+        if (!this.claudeRuntimeService) return;
+        if (event.kind === 'unavailable') {
+            this.claudeRuntimeService.publishUnavailable(event.observedAt);
+            return;
+        }
+        const accepted = this.claudeRuntimeService.publishRateLimits(event.payload, event.observedAt);
+        if (!accepted || !this.usageMetricsService) return;
+        const snapshot = this.claudeRuntimeService.getSnapshot();
+        await this.usageMetricsService.recordAccountUsage('claude', snapshot);
+    }
+
+    /** Refreshes account usage for agents that report it out of band; Codex reports it inside its own protocol. */
+    requestUsagePoll(run) {
+        if (run.agent !== 'claude') return;
+        this.claudeUsagePoller.requestPoll({ cwd: run.rootPath, env: run.environment, executable: run.executable });
+    }
+
+    /** Picks any active run whose agent needs polling; the usage snapshot is account-wide, so any one will do. */
+    pollableRun() {
+        for (const run of this.processes.values()) {
+            if (run.agent === 'claude') return run;
+        }
+
+        return null;
+    }
+
+    /** Keeps a repeating poll running while a pollable run is active; long runs would otherwise show a frozen figure. */
+    syncUsagePollTicks() {
+        const run = this.pollableRun();
+        if (!run) {
+            this.stopUsagePollTicks();
+            return;
+        }
+        if (this.usagePollTimer) return;
+        this.usagePollTimer = this.setTimeout(() => {
+            this.usagePollTimer = null;
+            const activeRun = this.pollableRun();
+            if (!activeRun) return;
+            this.requestUsagePoll(activeRun);
+            this.syncUsagePollTicks();
+        }, AGENT_USAGE_POLL_TICK_MS);
+    }
+
+    stopUsagePollTicks() {
+        if (!this.usagePollTimer) return;
+        this.clearTimeout(this.usagePollTimer);
+        this.usagePollTimer = null;
+    }
+
+    recordTokenUsage(run, usage, recordedAt) {
+        if (!this.usageMetricsService) return false;
+
+        return this.usageMetricsService.recordTokenUsage(
+            run.agent,
+            usage,
+            Date.parse(recordedAt),
+        );
     }
 
     handleOutput(runId, channel, chunk) {
@@ -497,7 +580,7 @@ class AgentRunnerService {
         const message = redactSecrets(error.message, run.secretValues);
         const timestamp = new Date().toISOString();
         run.streamingFailure = new Error(message);
-        run.conversation.status = 'failed';
+        transitionConversationStatus(run.conversation, 'failed', timestamp);
         run.queuedMessage = null;
         run.waitingForQuestion = false;
         run.pendingQuestions = [];
@@ -549,12 +632,14 @@ class AgentRunnerService {
                 const synchronizedMessage = lastMessageEntry(run.conversation);
                 updateProviderSession(run, synchronizedMessage.id, completedAt);
                 if (run.turnUsage) run.conversation.usage = accumulateUsage(run.conversation.usage, run.turnUsage);
+                if (!run.streaming && run.turnUsage) await this.recordTokenUsage(run, run.turnUsage, completedAt);
             }
             const preserveWaitingState = run.suspended && run.conversation.status === 'waitingForInput';
             run.conversation.completedAt = preserveWaitingState ? null : completedAt;
-            run.conversation.status = preserveWaitingState
+            const status = preserveWaitingState
                 ? 'waitingForInput'
                 : run.cancelled ? 'cancelled' : succeeded ? 'completed' : 'failed';
+            transitionConversationStatus(run.conversation, status, completedAt);
             const continuedTurnFailedBeforeStart = !!run.request.conversation
                 && !run.turnStarted
                 && !succeeded
@@ -569,16 +654,29 @@ class AgentRunnerService {
                 runId,
             });
             await run.persistence;
-            if (!continuedTurnFailedBeforeStart) await this.persistConversation(run);
+            let persistenceError = null;
+            if (!continuedTurnFailedBeforeStart) {
+                try {
+                    await this.persistConversation(run);
+                } catch (error) {
+                    persistenceError = error;
+                }
+            }
             this.processes.delete(runId);
             this.runningConversationIds.delete(run.conversation.id);
             emitRunEvent(run, { conversation: run.conversation, type: 'closed' });
+            this.requestUsagePoll(run);
+            if (persistenceError) {
+                if (run.onCompletionError) run.onCompletionError(persistenceError);
+                return;
+            }
             if (run.onComplete) run.onComplete(succeeded ? 0 : exitCode || 1, run);
         } catch (error) {
             if (run.onCompletionError) run.onCompletionError(error);
         } finally {
             this.processes.delete(runId);
             this.runningConversationIds.delete(run.conversation.id);
+            this.syncUsagePollTicks();
         }
     }
 
@@ -592,6 +690,14 @@ class AgentRunnerService {
     persistCheckpoint(run) {
         const snapshot = { ...run, conversation: snapshotConversation(run.conversation) };
         const write = run.persistence.then(() => this.persistConversationCheckpoint(snapshot));
+        run.persistence = write.catch(() => undefined);
+
+        return write;
+    }
+
+    persistSuccessfulTurn(run) {
+        const snapshot = { ...run, conversation: snapshotConversation(run.conversation) };
+        const write = run.persistence.then(() => this.persistSuccessfulConversationTurn(snapshot));
         run.persistence = write.catch(() => undefined);
 
         return write;

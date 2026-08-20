@@ -46,8 +46,10 @@ export function NewCardColumnPicker(props: NewCardColumnPickerProps) {
             sx={{
                 bgcolor: isMobile ? 'background.paper' : 'transparent',
                 borderRadius: isMobile ? '11px' : '9px',
+                flex: isMobile ? 1 : undefined,
                 height: isMobile ? 44 : 36,
-                minWidth: isMobile ? '100%' : 180,
+                minWidth: isMobile ? 0 : 180,
+                width: isMobile ? '100%' : undefined,
                 '&.Mui-focused': { boxShadow: (theme) => `0 0 0 3px ${theme.palette.custom.primaryBg}` },
                 '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'primary.main', borderWidth: 1 },
                 '& .MuiOutlinedInput-notchedOutline': { borderColor: 'divider' },

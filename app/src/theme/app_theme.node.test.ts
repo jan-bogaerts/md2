@@ -29,4 +29,13 @@ describe('createAppTheme', () => {
         expect(theme.palette.custom.borderStrong).toBe(theme.palette.divider)
     })
 
+    it('provides reusable light and dark chart palettes', () => {
+        const light = createAppTheme('light').palette.custom.chartPalette
+        const dark = createAppTheme('dark').palette.custom.chartPalette
+
+        expect(light).toHaveLength(8)
+        expect(dark).toHaveLength(8)
+        expect(light).not.toEqual(dark)
+    })
+
 })

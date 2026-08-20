@@ -6,6 +6,7 @@ import {
     conversationFileChangeUsage,
     projectAgentTokenUsage,
 } from './agent_usage'
+import { createAgentTokenUsageSummary, legacySummaryUsage } from '../../../../shared/agent_token_usage_summary.mjs'
 
 function usage(
     inputTokens: number,
@@ -48,7 +49,7 @@ function card(path: string, usages: Array<AgentTokenUsage | undefined>): Card {
         content: '',
         header: {
             affects: [], after: null, agentLogReferences: [], author: null, id: path, internalId: path,
-            owner: null, policy: {}, status: 'done', title: path,
+            owner: null, policy: {}, references: [], status: 'done', title: path,
         },
         hasFrontmatter:true,
         isActive: !path.includes('/history/'),
@@ -57,16 +58,16 @@ function card(path: string, usages: Array<AgentTokenUsage | undefined>): Card {
 }
 
 describe('agent usage aggregation', () => {
-    it('sums every completed countable patch in one conversation', () => {
+    it('sums completed normalized add and mixed patches in one conversation', () => {
         const conversation = card('design/F-1.md', [undefined]).agentConversations[0]
         conversation.status = 'failed'
         conversation.entries = [
             {
-                content: 'first edit', deletions: 1, id: 'file-1', insertions: 2, kind: 'event',
+                content: 'add: generated/new-file.txt\nupdate: app/existing.txt', deletions: 0, id: 'file-1', insertions: 141, kind: 'event',
                 providerItemId: 'file-1', status: 'completed', timestamp: 'first', type: 'fileChange',
             },
             {
-                content: 'same line edited again', deletions: 1, id: 'file-2', insertions: 1, kind: 'event',
+                content: 'add: first.txt\nadd: second.txt\nadd: third.txt', deletions: 0, id: 'file-2', insertions: 203, kind: 'event',
                 providerItemId: 'file-2', status: 'completed', timestamp: 'second', type: 'fileChange',
             },
             {
@@ -79,7 +80,7 @@ describe('agent usage aggregation', () => {
             },
         ]
 
-        expect(conversationFileChangeUsage(conversation)).toEqual({ deletions: 2, insertions: 3 })
+        expect(conversationFileChangeUsage(conversation)).toEqual({ deletions: 0, insertions: 344 })
         expect(conversationFileChangeUsage({ ...conversation, entries: [] })).toBeNull()
         expect(conversationFileChangeUsage(null)).toBeNull()
     })
@@ -126,7 +127,7 @@ describe('agent usage aggregation', () => {
         expect(cardAgentTokenUsage(card('design/F-2.md', [undefined])).totalTokens).toBe(0)
     })
 
-    it('aggregates configured archived and release folders without unrelated background cards', () => {
+    it('uses persisted project and release totals while deriving current and archived detail', () => {
         const snapshot: ProjectSnapshot = {
             activeCards: [card('design/active/F-1.md', [usage(10, 2, 3, 1)])],
             backgroundCards: [
@@ -140,25 +141,34 @@ describe('agent usage aggregation', () => {
             workingFolder: 'design/active',
         }
 
-        const totals = projectAgentTokenUsage(
-            snapshot,
-            'design/records/releases',
-            'design/records/archived',
-        )
+        const summary = createAgentTokenUsageSummary(legacySummaryUsage(500), {
+            v1: legacySummaryUsage(100),
+            v2: legacySummaryUsage(200),
+        })
+        const totals = projectAgentTokenUsage(snapshot, 'design/records/archived', summary)
 
         expect(totals.current.usage.totalTokens).toBe(16)
         expect(totals.archived.usage.totalTokens).toBe(10)
         expect(totals.releases.map(({ name, usage: releaseUsage }) => [name, releaseUsage.totalTokens])).toEqual([
-            ['v1', 40],
-            ['v2', 48],
+            ['v1', 100],
+            ['v2', 200],
         ])
-        expect(totals.project).toEqual({
-            cachedInputTokens: 14,
-            costUsd: 0.02,
-            inputTokens: 72,
-            outputTokens: 22,
-            reasoningTokens: 6,
-            totalTokens: 114,
-        })
+        expect(totals.project).toEqual(legacySummaryUsage(500))
+    })
+
+    it('keeps project and release totals stable when released conversation detail loads', () => {
+        const releasedCard = card('design/records/releases/v1/F-2.md', [usage(100, 20, 30, 10)])
+        const summary = createAgentTokenUsageSummary(legacySummaryUsage(500), { v1: legacySummaryUsage(200) })
+        const unloadedSnapshot: ProjectSnapshot = {
+            activeCards: [],
+            backgroundCards: [{ ...releasedCard, agentConversations: [] }],
+            repositoryFiles: [],
+            workingFolder: 'design/active',
+        }
+        const loadedSnapshot = { ...unloadedSnapshot, backgroundCards: [releasedCard] }
+
+        expect(projectAgentTokenUsage(unloadedSnapshot, 'design/archived', summary).project.totalTokens).toBe(500)
+        expect(projectAgentTokenUsage(loadedSnapshot, 'design/archived', summary).project.totalTokens).toBe(500)
+        expect(projectAgentTokenUsage(loadedSnapshot, 'design/archived', summary).releases[0].usage.totalTokens).toBe(200)
     })
 })

@@ -1,6 +1,7 @@
 const { buildResumeAgentCommand, resolveAgentCommand } = require('../agent/agent_profiles.mjs');
 const { normalizeConversationContext } = require('../agent/agent_transcript');
-const { resolveAgentPrompt, resolvePlaceholders } = require('./action_text');
+const { appendCurrentCardReferences } = require('./action_card_references');
+const { resolveAgentPrompt, resolvePopupPrompt } = require('./action_text');
 
 const CONTINUE_INPUT = 'continue';
 function continuationReferencePath(reference) {
@@ -56,8 +57,8 @@ class ActionAgentExecutor {
         const providerSession = sourceConversation?.providerSessions
             ?.find(({ agent }) => agent === resolvedAgent.agent) ?? null;
         const hasPromptOverride = Object.hasOwn(input.runInput, 'prompt');
-        const prompt = hasPromptOverride
-            ? resolvePlaceholders(
+        const basePrompt = hasPromptOverride
+            ? resolvePopupPrompt(
                 input.runInput.prompt,
                 input.context,
                 input.project,
@@ -65,7 +66,6 @@ class ActionAgentExecutor {
                 input.projectFolder,
                 input.releasesFolder,
                 input.activeCardsFolder,
-                input.runInput.extraPrompt,
             )
             : sourceConversation
                 ? input.runInput.extraPrompt.trim().length > 0 ? input.runInput.extraPrompt : CONTINUE_INPUT
@@ -79,6 +79,12 @@ class ActionAgentExecutor {
                     input.activeCardsFolder,
                     input.runInput.extraPrompt,
                 );
+        const prompt = await appendCurrentCardReferences(
+            basePrompt,
+            input.context,
+            input.primaryProject,
+            this.localGitService,
+        );
         const command = executionCommand(resolvedAgent, providerSession, streaming);
         const contextInput = sourceConversation
             ? normalizeConversationContext(sourceConversation, providerSession?.synchronizedThroughMessageId ?? null)
@@ -101,6 +107,7 @@ class ActionAgentExecutor {
             actionRunId: input.runId,
             prompt,
             projectFolder: input.projectFolder,
+            releasesFolder: input.releasesFolder,
             streaming,
             ...(providerSession ? { providerConversationId: providerSession.conversationId } : {}),
             title: input.action.label,

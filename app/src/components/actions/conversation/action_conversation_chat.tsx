@@ -1,4 +1,4 @@
-import { Box, Stack, Typography } from '@mui/material'
+import { Box, CircularProgress, Stack, Tooltip, Typography } from '@mui/material'
 import { useLayoutEffect, useRef, useState, type UIEvent } from 'react'
 import type { AgentConversation } from '../../../data/data_types'
 import type { PopupRunStatus } from '../run/popup/action_popup_defaults'
@@ -116,30 +116,46 @@ export function ActionConversationChat({ conversation, status }: ActionConversat
                 {Array.from({ length: reservedBlockCount }, (_, index) => (
                     <ActionConversationReservedBlock key={`reserved-block-${index}`} />
                 ))}
+                {conversation || status !== 'idle' ? (
+                    <Stack
+                        aria-label="Conversation metadata"
+                        direction="row"
+                        spacing={1}
+                        sx={{ alignItems: 'baseline', flexShrink: 0 }}
+                    >
+                        {status !== 'idle' ? (
+                            <Typography color={status === 'failed' ? 'error.main' : 'text.secondary'} role="status" variant="caption">
+                                {actionStatusLabel(status)}
+                            </Typography>
+                        ) : null}
+                        {conversation ? (
+                            <ConversationTimer status={status} timer={conversation.timer} />
+                        ) : null}
+                        <Box sx={{ flex: 1 }} />
+                        {contextUsedPercent !== null ? (
+                            <Box sx={{ display: 'inline-flex', height: 16, position: 'relative', width: 16 }}>
+                                <CircularProgress
+                                    aria-hidden="true"
+                                    size={16}
+                                    sx={{ color: 'action.disabledBackground', left: 0, position: 'absolute', top: 0 }}
+                                    value={100}
+                                    variant="determinate"
+                                />
+                                <Tooltip describeChild title={`Context usage: ${contextUsedPercent}%`}>
+                                    <CircularProgress
+                                        aria-label="Context usage"
+                                        color="info"
+                                        size={16}
+                                        sx={{ left: 0, position: 'absolute', top: 0 }}
+                                        value={contextUsedPercent}
+                                        variant="determinate"
+                                    />
+                                </Tooltip>
+                            </Box>
+                        ) : null}
+                    </Stack>
+                ) : null}
             </Stack>
-            {conversation || status !== 'idle' ? (
-                <Stack
-                    aria-label="Conversation metadata"
-                    direction="row"
-                    spacing={1}
-                    sx={{ alignItems: 'baseline', flexShrink: 0 }}
-                >
-                    {status !== 'idle' ? (
-                        <Typography color={status === 'failed' ? 'error.main' : 'text.secondary'} role="status" variant="caption">
-                            {actionStatusLabel(status)}
-                        </Typography>
-                    ) : null}
-                    {conversation ? (
-                        <ConversationTimer completedAt={conversation.completedAt} startedAt={conversation.startedAt} status={status} />
-                    ) : null}
-                    <Box sx={{ flex: 1 }} />
-                    {contextUsedPercent !== null ? (
-                        <Typography color="text.secondary" component="span" variant="caption">
-                            context: {contextUsedPercent}%
-                        </Typography>
-                    ) : null}
-                </Stack>
-            ) : null}
         </Stack>
     )
 }

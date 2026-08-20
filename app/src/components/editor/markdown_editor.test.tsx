@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createRef, type ReactNode } from 'react'
 import { AppThemeContext } from '../../theme/theme_context'
@@ -19,6 +19,9 @@ import {
     type MarkdownDocumentTarget,
 } from './markdown_data_source'
 import type { CardOpenDocument } from '../../services/open_files_service'
+import { MarkdownDraft } from '../../services/markdown/markdown_draft'
+
+const originalMatchMedia = window.matchMedia
 
 class TestMarkdownDataSource extends MarkdownDataSourceBase {
     readonly commit = vi.fn<MarkdownDataSource['commit']>(() => true)
@@ -62,6 +65,19 @@ function renderEditor(markdown = '') {
     )
 }
 
+function setSmallScreen(isSmallScreen: boolean) {
+    window.matchMedia = ((query: string) => ({
+        addEventListener: () => {},
+        addListener: () => {},
+        dispatchEvent: () => false,
+        matches: isSmallScreen,
+        media: query,
+        onchange: null,
+        removeEventListener: () => {},
+        removeListener: () => {},
+    })) as unknown as typeof window.matchMedia
+}
+
 function selectText(textbox: HTMLTextAreaElement, start: number, end: number) {
     textbox.setSelectionRange(start, end)
     fireEvent.select(textbox)
@@ -73,6 +89,13 @@ function clipboardData(initialData: Record<string, string> = {}) {
         getData: (type: string) => data.get(type) ?? '',
         setData: (type: string, value: string) => data.set(type, value),
         value: (type: string) => data.get(type) ?? '',
+    }
+}
+
+function imageClipboardData(file: File, plainText = '') {
+    return {
+        getData: (type: string) => type === 'text/plain' ? plainText : '',
+        items: [{ getAsFile: () => file, kind: 'file', type: file.type }],
     }
 }
 
@@ -101,6 +124,7 @@ describe('MarkdownEditor', () => {
     afterEach(() => {
         cleanup()
         window.localStorage.clear()
+        window.matchMedia = originalMatchMedia
     })
 
     it('renders the editing surface seeded with the markdown value', () => {
@@ -152,6 +176,78 @@ describe('MarkdownEditor', () => {
         const pasteHandled = fireEvent.paste(screen.getByRole('textbox'), {clipboardData: { getData: () => '' }})
 
         expect(pasteHandled).toBe(true)
+        expect(screen.getByRole('textbox')).toHaveValue('')
+    })
+
+    it('routes a binary image before clipboard text and inserts after the handler completes', async () => {
+        const file = new File(['image'], 'clipboard.png', { type: 'image/png' })
+        const imagePasteHandler = vi.fn(async (_file: File, insertMarkdown: (markdown: string) => void) => {
+            insertMarkdown('![pasted image](<saved.png>)')
+        })
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor imagePasteHandler={imagePasteHandler} markdown="before " onChange={vi.fn()} />
+            </AppThemeProvider>,
+        )
+
+        const pasteHandled = fireEvent.paste(
+            screen.getByRole('textbox'),
+            { clipboardData: imageClipboardData(file, 'fallback text') },
+        )
+
+        expect(pasteHandled).toBe(false)
+        expect(imagePasteHandler).toHaveBeenCalledWith(file, expect.any(Function))
+        await waitFor(() => expect(screen.getByRole('textbox')).toHaveValue('![pasted image](<saved.png>)before'))
+    })
+
+    it('leaves image clipboard items unchanged when no image handler is supplied', () => {
+        const file = new File(['image'], 'clipboard.png', { type: 'image/png' })
+        renderEditor()
+
+        const pasteHandled = fireEvent.paste(
+            screen.getByRole('textbox'),
+            { clipboardData: imageClipboardData(file) },
+        )
+
+        expect(pasteHandled).toBe(true)
+        expect(screen.getByRole('textbox')).toHaveValue('')
+    })
+
+    it('does not invoke an image handler in a read-only editor', () => {
+        const file = new File(['image'], 'clipboard.png', { type: 'image/png' })
+        const imagePasteHandler = vi.fn()
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor imagePasteHandler={imagePasteHandler} markdown="locked" onChange={vi.fn()} readOnly />
+            </AppThemeProvider>,
+        )
+
+        fireEvent.paste(screen.getByRole('textbox'), { clipboardData: imageClipboardData(file) })
+
+        expect(imagePasteHandler).not.toHaveBeenCalled()
+        expect(screen.getByRole('textbox')).toHaveValue('locked')
+    })
+
+    it('reports failed image persistence without inserting Markdown', async () => {
+        const file = new File(['image'], 'clipboard.png', { type: 'image/png' })
+        const persistenceError = new Error('save failed')
+        const reportError = vi.spyOn(dialogService, 'error')
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor
+                    imagePasteHandler={vi.fn(async () => { throw persistenceError })}
+                    markdown=""
+                    onChange={vi.fn()}
+                />
+            </AppThemeProvider>,
+        )
+
+        fireEvent.paste(screen.getByRole('textbox'), { clipboardData: imageClipboardData(file) })
+
+        await waitFor(() => expect(reportError).toHaveBeenCalledWith(
+            persistenceError,
+            { fallbackMessage: 'Clipboard image could not be pasted' },
+        ))
         expect(screen.getByRole('textbox')).toHaveValue('')
     })
 
@@ -595,6 +691,40 @@ describe('MarkdownEditor', () => {
         expect(screen.getByTestId('mdx-editor')).toContainElement(screen.getByTestId('mdx-editor-toolbar'))
     })
 
+    it('shows list indent controls after list type controls on small editable toolbars', () => {
+        setSmallScreen(true)
+        renderEditor()
+
+        const listsToggle = screen.getByTestId('lists-toggle')
+        const increaseButton = screen.getByRole('button', { name: 'Increase indent' })
+        const decreaseButton = screen.getByRole('button', { name: 'Decrease indent' })
+        const blockTypeSelect = screen.getByTestId('block-type-select')
+
+        expect(listsToggle.compareDocumentPosition(increaseButton)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+        expect(increaseButton.compareDocumentPosition(decreaseButton)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+        expect(decreaseButton.compareDocumentPosition(blockTypeSelect)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+    })
+
+    it('omits list indent controls from large-screen toolbars', () => {
+        setSmallScreen(false)
+        renderEditor()
+
+        expect(screen.queryByRole('button', { name: 'Increase indent' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Decrease indent' })).not.toBeInTheDocument()
+    })
+
+    it('omits list indent controls from small read-only toolbars', () => {
+        setSmallScreen(true)
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor markdown="locked" onChange={vi.fn()} readOnly />
+            </AppThemeProvider>,
+        )
+
+        expect(screen.queryByRole('button', { name: 'Increase indent' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Decrease indent' })).not.toBeInTheDocument()
+    })
+
     it('omits the toolbar when hideToolbar is set', () => {
         render(
             <AppThemeProvider>
@@ -603,6 +733,133 @@ describe('MarkdownEditor', () => {
         )
 
         expect(screen.queryByTestId('mdx-editor-toolbar')).not.toBeInTheDocument()
+    })
+
+    it('keeps attachment control visible when formatting toolbar is hidden and handles file drops', async () => {
+        const attachmentHandler = vi.fn(async (_files: File[], insertMarkdown: (markdown: string) => void) => {
+            insertMarkdown('[report](<report.pdf>)')
+        })
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor attachmentHandler={attachmentHandler} hideToolbar markdown="start " onChange={vi.fn()} />
+            </AppThemeProvider>,
+        )
+        const file = new File(['report'], 'report.pdf', { type: 'application/pdf' })
+        const textbox = screen.getByRole('textbox')
+        const textArea = textbox as HTMLTextAreaElement
+        textbox.focus()
+        textArea.setSelectionRange(6, 6)
+
+        fireEvent.drop(textbox, { dataTransfer: { files: [file], types: ['Files'] } })
+
+        await waitFor(() => expect(attachmentHandler).toHaveBeenCalledWith([file], expect.any(Function)))
+        expect(screen.getByRole('button', { name: 'Attach files' })).toBeInTheDocument()
+        expect(screen.getByRole('textbox')).toHaveValue('start[report](<report.pdf>)')
+    })
+
+    it('suppresses attachment toolbar control without disabling file drops', async () => {
+        const attachmentHandler = vi.fn(async (_files: File[], insertMarkdown: (markdown: string) => void) => {
+            insertMarkdown('[report](<report.pdf>)')
+        })
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor
+                    attachmentHandler={attachmentHandler}
+                    hideAttachmentControl
+                    hideToolbar
+                    markdown="start"
+                    onChange={vi.fn()}
+                />
+            </AppThemeProvider>,
+        )
+        const file = new File(['report'], 'report.pdf', { type: 'application/pdf' })
+
+        expect(screen.queryByRole('button', { name: 'Attach files' })).not.toBeInTheDocument()
+        expect(screen.queryByTestId('mdx-editor-toolbar')).not.toBeInTheDocument()
+        fireEvent.drop(screen.getByRole('textbox'), { dataTransfer: { files: [file], types: ['Files'] } })
+
+        await waitFor(() => expect(attachmentHandler).toHaveBeenCalledWith([file], expect.any(Function)))
+    })
+
+    it('applies acknowledged draft insertion at current selection and external replacement', async () => {
+        const draft = new MarkdownDraft('start end')
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor draft={draft} hideToolbar />
+            </AppThemeProvider>,
+        )
+        const textbox = screen.getByRole('textbox') as HTMLTextAreaElement
+        textbox.focus()
+        selectText(textbox, 6, 6)
+
+        await act(() => draft.requestInsertion('[file] '))
+        expect(textbox).toHaveValue('start [file] end')
+
+        act(() => draft.replace('Replacement'))
+        expect(textbox).toHaveValue('Replacement')
+    })
+
+    it('focuses an untouched draft editor and appends insertion at document end', async () => {
+        const draft = new MarkdownDraft('Existing body')
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor draft={draft} hideToolbar />
+            </AppThemeProvider>,
+        )
+
+        await act(() => draft.requestInsertion('[report](<report.pdf>)'))
+
+        expect(screen.getByRole('textbox')).toHaveValue('Existing body[report](<report.pdf>)')
+        expect(draft.getSnapshot()).toBe('Existing body[report](<report.pdf>)')
+    })
+
+    it('preserves an existing text selection when inserting external Markdown', async () => {
+        const draft = new MarkdownDraft('start end')
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor draft={draft} hideToolbar />
+            </AppThemeProvider>,
+        )
+        const textbox = screen.getByRole('textbox') as HTMLTextAreaElement
+        textbox.focus()
+        selectText(textbox, 6, 9)
+
+        await act(() => draft.requestInsertion('[file]'))
+
+        expect(textbox).toHaveValue('start [file]')
+    })
+
+    it('loads current value when mounted editor switches drafts', async () => {
+        const firstDraft = new MarkdownDraft('First')
+        const secondDraft = new MarkdownDraft('Second')
+        const view = render(
+            <AppThemeProvider>
+                <MarkdownEditor draft={firstDraft} hideToolbar />
+            </AppThemeProvider>,
+        )
+
+        view.rerender(
+            <AppThemeProvider>
+                <MarkdownEditor draft={secondDraft} hideToolbar />
+            </AppThemeProvider>,
+        )
+
+        await waitFor(() => expect(screen.getByRole('textbox')).toHaveValue('Second'))
+    })
+
+    it('rejects attachment controls and drops while read-only', () => {
+        const attachmentHandler = vi.fn(async () => undefined)
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor attachmentHandler={attachmentHandler} hideToolbar markdown="locked" onChange={vi.fn()} readOnly />
+            </AppThemeProvider>,
+        )
+        const file = new File(['report'], 'report.pdf', { type: 'application/pdf' })
+
+        expect(screen.getByRole('button', { name: 'Attach files' })).toBeDisabled()
+        fireEvent.drop(screen.getByRole('textbox'), { dataTransfer: { files: [file], types: ['Files'] } })
+
+        expect(attachmentHandler).not.toHaveBeenCalled()
     })
 
     it('reports live edits through onLiveChange while buffering onChange', () => {

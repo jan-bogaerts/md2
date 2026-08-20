@@ -1,3 +1,5 @@
+const { boundedAgentResult } = require('../../../../shared/agent_conversations.mjs');
+
 const ESCAPE_CHARACTER = String.fromCharCode(27);
 const ANSI_ESCAPE_PATTERN = new RegExp(`${ESCAPE_CHARACTER}\\[[0-?]*[ -/]*[@-~]`, 'gu');
 const HANDOFF_EVENT_TYPES = new Set([
@@ -36,7 +38,8 @@ function normalizeEvent(event) {
             : null;
     }
     if (event.type.startsWith('tool.')) {
-        const content = cleanContent(event.content);
+        const resultContent = event.type === 'tool.result' ? boundedAgentResult(event.content) : event.content;
+        const content = cleanContent(resultContent);
         if (content.length === 0) return null;
         const toolType = event.type.slice('tool.'.length);
 
@@ -48,9 +51,13 @@ function normalizeEvent(event) {
         };
     }
     if (!HANDOFF_EVENT_TYPES.has(event.type)) return null;
+    const resultContent = event.type === 'commandExecution'
+        ? boundedAgentResult(event.content)
+        : event.content;
+    const output = typeof event.output === 'string' ? boundedAgentResult(event.output) : event.output;
     const eventValues = event.type === 'commandExecution'
-        ? [event.command, event.content]
-        : [event.command, event.content, event.output];
+        ? [event.command, resultContent]
+        : [event.command, resultContent, output];
     const content = eventValues
         .filter((value, index, values) => typeof value === 'string' && value.length > 0 && values.indexOf(value) === index)
         .map(cleanContent)

@@ -19,6 +19,7 @@ function makeHeader(overrides: Partial<CardHeader> = {}): CardHeader {
         internalId: null,
         owner: null,
         policy: {},
+        references: [],
         status: null,
         title: 'Untitled',
         ...overrides,
@@ -98,14 +99,42 @@ describe('SearchControl', () => {
         expect(screen.getByRole('region', { name: 'Search dropdown' })).toBeInTheDocument()
     })
 
-    it('shows grouped results for a plain text search', () => {
+    it('highlights a case-insensitive plain text match while preserving its context', () => {
         render(<SearchControl />)
 
-        typeQuery('feature')
+        typeQuery('FEATURE')
 
         expect(screen.getByText('Active cards')).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: /Alpha feature/ })).toBeInTheDocument()
+        const alphaResult = screen.getByRole('button', { name: /Alpha feature/ })
+        const highlight = within(alphaResult).getByText('feature')
+        expect(highlight.tagName).toBe('MARK')
+        expect(alphaResult).toHaveTextContent('design/F-1-alpha.md — Alpha feature')
         expect(screen.getByRole('button', { name: /Beta feature/ })).toBeInTheDocument()
+    })
+
+    it('highlights a RegExp match while preserving its context', () => {
+        render(<SearchControl />)
+
+        focusSearch()
+        fireEvent.click(screen.getByRole('button', { name: 'RegExp mode' }))
+        typeQuery('f[a-z]+')
+
+        const alphaResult = screen.getByRole('button', { name: /Alpha feature/ })
+        const highlight = within(alphaResult).getByText('feature')
+        expect(highlight.tagName).toBe('MARK')
+        expect(alphaResult).toHaveTextContent('design/F-1-alpha.md — Alpha feature')
+    })
+
+    it('renders normalized context as plain text when the RegExp cannot be relocated', () => {
+        render(<SearchControl />)
+
+        focusSearch()
+        fireEvent.click(screen.getByRole('button', { name: 'RegExp mode' }))
+        typeQuery('# Alpha\\s{2}Body')
+
+        const alphaResult = screen.getByRole('button', { name: /Alpha feature/ })
+        expect(alphaResult.querySelector('mark')).toBeNull()
+        expect(alphaResult).toHaveTextContent('design/F-1-alpha.md — # Alpha Body of alpha.')
     })
 
     it('searches background cards by header and groups them by folder', () => {
@@ -142,7 +171,9 @@ describe('SearchControl', () => {
         expect(screen.queryByText('Actions')).not.toBeInTheDocument()
 
         fireEvent.click(screen.getByRole('button', { name: 'Search actions' }))
-        fireEvent.click(screen.getByRole('button', { name: /Run search job/ }))
+        const actionResult = screen.getByRole('button', { name: /Run search job/ })
+        expect(within(actionResult).getByText('Searchable action').tagName).toBe('MARK')
+        fireEvent.click(actionResult)
 
         const dialog = within(screen.getByRole('dialog', { name: 'Run actions' }))
         expect(dialog.getByRole('button', { name: 'Run search job' })).toHaveAttribute('aria-pressed', 'true')

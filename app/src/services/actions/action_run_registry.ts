@@ -17,7 +17,11 @@ import type {
     ActionRunResult,
 } from '../../data/action_run_types'
 import { getElectronActionBridge } from '../../data/electron_action_bridge'
-import type { ElectronActionBridge } from '../../data/electron_action_bridge'
+import type {
+    ActionRunRecoverySnapshot,
+    ActionRunRecoveryTerminalResult,
+    ElectronActionBridge,
+} from '../../data/electron_action_bridge'
 import { actionService } from './action_service'
 import { actionPromptDraftService } from './action_prompt_draft_service'
 import { register } from '../service_injector'
@@ -26,6 +30,7 @@ import { projectAccessService } from '../project/project_access_service'
 const TERMINAL_STATUSES = new Set<ActionRunTerminalStatus>(['cancelled', 'completed', 'failed', 'okButNotAfter'])
 const ACTIVE_STATUSES = new Set<ActionRunStatus>(['queued', 'running', 'waitingForInput'])
 const EMPTY_ACTIVE_RUNS: ActiveActionRun[] = []
+const LOST_DURING_RECONNECTION_FAILURE = 'Action run state was lost during reconnection'
 
 export interface ActionRun {
     activeActionAutoFinish: ActionDefinition['autoFinish']
@@ -322,6 +327,19 @@ function publishListeners(map: Map<string, Set<StoreListener>>) {
     }
 }
 
+function byRunSequence(events: ActionRunEvent[]) {
+    const eventsByRun = new Map<string, ActionRunEvent[]>()
+    for (const event of events) {
+        const runEvents = eventsByRun.get(event.runId) ?? []
+        runEvents.push(event)
+        eventsByRun.set(event.runId, runEvents)
+    }
+
+    return [...eventsByRun.values()].flatMap((runEvents) => runEvents.sort((first, second) => (
+        (first.sequence ?? Number.MAX_SAFE_INTEGER) - (second.sequence ?? Number.MAX_SAFE_INTEGER)
+    )))
+}
+
 /** Owns one renderer-wide bridge subscription and routes events to scoped run stores. */
 export class ActionRunRegistry extends EventTarget {
     private readonly actionContextListeners = new Map<string, Set<StoreListener>>()
@@ -351,11 +369,15 @@ export class ActionRunRegistry extends EventTarget {
         if (!bridge) return
         if (this.unsubscribeBridge && bridge === this.subscribedBridge) return
 
+        const rendererRunIds = new Set(this.waiters.keys())
+        for (const [runId, store] of this.runs) {
+            if (ACTIVE_STATUSES.has(store.getSnapshot().status)) rendererRunIds.add(runId)
+        }
         this.unsubscribeBridge?.()
         this.subscribedBridge = bridge
-        this.recoveryEvents = bridge.loadActiveActionRunEvents ? [] : null
+        this.recoveryEvents = bridge.loadActionRunRecoverySnapshot ? [] : null
         this.unsubscribeBridge = bridge.onActionRun((event) => this.handleIncomingEvent(event))
-        if (bridge.loadActiveActionRunEvents) void this.recoverActiveRuns(bridge)
+        if (bridge.loadActionRunRecoverySnapshot) void this.recoverActiveRuns(bridge, [...rendererRunIds])
     }
 
     stop() {
@@ -507,21 +529,104 @@ export class ActionRunRegistry extends EventTarget {
         })
     }
 
-    private async recoverActiveRuns(bridge: ElectronActionBridge) {
+    private async recoverActiveRuns(bridge: ElectronActionBridge, rendererRunIds: string[]) {
         try {
-            const events = await bridge.loadActiveActionRunEvents?.() ?? []
+            const snapshot = await bridge.loadActionRunRecoverySnapshot?.(rendererRunIds)
+                ?? { activeRunEvents: [], terminalResults: [] }
             if (this.subscribedBridge !== bridge || !this.recoveryEvents) return
             const recoveryEvents = this.recoveryEvents
             this.recoveryEvents = null
-            for (const event of events) this.handleEvent(event)
-            for (const event of recoveryEvents) this.handleEvent(event)
+            this.applyRecoverySnapshot(rendererRunIds, snapshot, recoveryEvents)
         } catch (error) {
             if (this.subscribedBridge !== bridge) return
             const recoveryEvents = this.recoveryEvents ?? []
             this.recoveryEvents = null
-            for (const event of recoveryEvents) this.handleEvent(event)
+            for (const event of byRunSequence(recoveryEvents)) this.handleEvent(event)
             this.dispatchEvent(new CustomEvent('recoveryFailed', { detail: error }))
         }
+    }
+
+    private applyRecoverySnapshot(
+        rendererRunIds: string[],
+        snapshot: ActionRunRecoverySnapshot,
+        recoveryEvents: ActionRunEvent[],
+    ) {
+        const activeSnapshotRunIds = new Set(snapshot.activeRunEvents.map(({ runId }) => runId))
+        const activeRecoveryRunIds = new Set(recoveryEvents
+            .filter(({ status }) => ACTIVE_STATUSES.has(status))
+            .map(({ runId }) => runId))
+        const terminalResults = new Map(snapshot.terminalResults.map((result) => [result.runId, result]))
+
+        for (const event of byRunSequence(snapshot.activeRunEvents)) this.handleEvent(event)
+        for (const event of byRunSequence(recoveryEvents)) this.handleEvent(event)
+
+        for (const runId of rendererRunIds) {
+            const currentStatus = this.runs.get(runId)?.getSnapshot().status
+            if (currentStatus && TERMINAL_STATUSES.has(currentStatus as ActionRunTerminalStatus)) continue
+            const terminalResult = terminalResults.get(runId)
+            if (terminalResult) {
+                this.completeRecoveredRun(terminalResult)
+                continue
+            }
+            if (activeSnapshotRunIds.has(runId) || activeRecoveryRunIds.has(runId)) continue
+
+            this.completeRecoveredRun({ failure: LOST_DURING_RECONNECTION_FAILURE, runId, status: 'failed' })
+        }
+    }
+
+    private completeRecoveredRun(result: ActionRunRecoveryTerminalResult) {
+        const store = this.runs.get(result.runId)
+        let logs: ActionRunLogEntry[] = []
+        if (store) {
+            const current = store.getSnapshot()
+            const activeLogIndex = current.logs.findLastIndex(({ status }) => status === 'queued' || status === 'running')
+            if (activeLogIndex >= 0) {
+                const activeLog = current.logs[activeLogIndex]
+                logs = [...current.logs]
+                logs[activeLogIndex] = {
+                    ...activeLog,
+                    message: result.failure ?? `${activeLog.actionName} ${result.status}`,
+                    status: result.status,
+                    stderr: result.failure ? `${activeLog.stderr}${result.failure}` : activeLog.stderr,
+                }
+            } else if (result.failure) {
+                logs = [...current.logs, {
+                    actionId: current.activeActionId ?? current.rootActionId,
+                    actionName: actionName(current.activeActionId ?? current.rootActionId),
+                    command: null,
+                    message: result.failure,
+                    phase: 'main',
+                    status: result.status,
+                    stderr: result.failure,
+                    stdout: '',
+                }]
+            } else logs = current.logs
+            const conversation = current.conversation
+                ? { ...current.conversation, status: conversationStatus(result.status) }
+                : null
+            const next = {
+                ...current,
+                activeActionAutoFinish: null,
+                activeActionId: null,
+                activeActionStreaming: false,
+                activeActionType: null,
+                approvals: [],
+                conversation,
+                interactionReady: false,
+                logs,
+                question: null,
+                status: result.status,
+            }
+            store.update(next)
+            actionPromptDraftService.clearRunDrafts(result.runId)
+            this.publishActiveIndexes(contextKey(current.context), contextKey(next.context))
+        }
+
+        const waiters = this.waiters.get(result.runId)
+        this.waiters.delete(result.runId)
+        const actionResult = { logs, status: result.status }
+        for (const resolve of waiters ?? []) resolve(actionResult)
+        this.releaseTerminalRun(result.runId)
     }
 
     private handleIncomingEvent(event: ActionRunEvent) {
@@ -534,6 +639,12 @@ export class ActionRunRegistry extends EventTarget {
     }
 
     private handleEvent(event: ActionRunEvent) {
+        const currentStatus = this.runs.get(event.runId)?.getSnapshot().status
+        if (
+            currentStatus
+            && TERMINAL_STATUSES.has(currentStatus as ActionRunTerminalStatus)
+            && !TERMINAL_STATUSES.has(event.status as ActionRunTerminalStatus)
+        ) return
         if (event.sequence !== undefined) {
             const currentSequence = this.eventSequences.get(event.runId) ?? 0
             if (event.sequence <= currentSequence) return
@@ -587,7 +698,12 @@ export class ActionRunRegistry extends EventTarget {
                 activeActionStreaming: event.streaming ?? actionStreaming(event.actionId),
                 activeActionType: event.actionType ?? actionType(event.actionId),
                 conversation: next.conversation
-                    ? { ...next.conversation, completedAt: null, status: event.status }
+                    ? {
+                        ...next.conversation,
+                        completedAt: null,
+                        status: event.status,
+                        ...(event.timer ? { timer: event.timer } : {}),
+                    }
                     : null,
                 interactionReady: event.interactionReady ?? true,
             }

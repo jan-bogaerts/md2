@@ -36,6 +36,20 @@ export function useCardAgentState(cardInternalId: string | null | undefined) {
     return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
 }
 
+/** Agent state of one card action, refreshed only by that action's scoped conversation event. */
+export function useActionAgentState(cardInternalId: string | null | undefined, actionId: string) {
+    const subscribe = useCallback((onStoreChange: () => void) => (
+        cardInternalId
+            ? subscribeToAcknowledgements([actionAcknowledgementEvent(cardInternalId, actionId)], onStoreChange)
+            : () => undefined
+    ), [actionId, cardInternalId])
+    const getSnapshot = useCallback(() => cardAgentState(
+        cardConversations(cardInternalId).filter((conversation) => conversation.actionId === actionId),
+    ), [actionId, cardInternalId])
+
+    return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
+}
+
 /** Identifies the unseen conversations of the given card actions, refreshed on their scoped events. */
 export function useActionsUnseenKey(cardInternalId: string | null | undefined, actionIds: string[]) {
     const actionIdsKey = [...new Set(actionIds)].sort().join(',')

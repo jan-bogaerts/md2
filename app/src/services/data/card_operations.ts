@@ -4,7 +4,9 @@ import type { CardDraft, CardType, MarkdownFile, Card } from '../../data/data_ty
 import type { OpenDocumentSaveReference } from '../open_files_service'
 import { telemetryService } from '../telemetry/telemetry_service'
 import { CardArchiveOperations } from './card_archive_operations'
+import { CardAttachmentOperations } from './card_attachment_operations'
 import { CardInternalIdOperations } from './card_internal_id_operations'
+import { CardImageOperations } from './card_image_operations'
 import {
     CardOperationContext,
     type CardOperationsDeps,
@@ -12,24 +14,49 @@ import {
 } from './card_operation_context'
 import { CardRenameOperations } from './card_rename_operations'
 import { ProjectFileOperations } from './project_file_operations'
+import { markdownParsingService } from './markdown_parsing_service'
 import {
     clearCardBranch,
     setCardAffects,
     setCardAgentLogReferences,
     setCardBody,
     setCardHeaderFields,
+    setCardReferences,
     setCardWorktree,
     setCardWorktreeAssignment,
     toggleCardPolicy,
 } from './card_mutations'
+import { buildSentryIssueMarkdown } from '../sentry/sentry_issue_markdown'
+import { normalizeSentryBaseUrl, sentryIdentityKey, type SentryIssueImport } from '../sentry/sentry_types'
+import { activityPathForCardReference } from '../agents/agent_reference_migration'
 
 export type { CardOperationsDeps }
+
+export interface SentryIssueImportRequest {
+    apiBaseUrl: string
+    cardState: string
+    cardType: CardType
+    issues: SentryIssueImport[]
+    organization: string
+    projectId: string
+}
+
+function importedSentryIdentities(cards: Card[]) {
+    return new Set(cards.flatMap(({ header }) => {
+        const { sentryBaseUrl, sentryIssueId, sentryOrganization } = header
+        if (!sentryBaseUrl || !sentryIssueId || !sentryOrganization) return []
+
+        return [sentryIdentityKey(sentryBaseUrl, sentryOrganization, sentryIssueId)]
+    }))
+}
 
 /** The card-facing surface of the data service, delegating to focused operation modules. */
 export class CardOperations {
     private readonly context: CardOperationContext
     private readonly archives: CardArchiveOperations
+    private readonly attachments: CardAttachmentOperations
     private readonly internalIds: CardInternalIdOperations
+    private readonly images: CardImageOperations
     private readonly projectFiles: ProjectFileOperations
     private readonly renames: CardRenameOperations
     private readonly triggerStateActions: (cardPath: string, state: string) => void
@@ -41,8 +68,10 @@ export class CardOperations {
         this.context = new CardOperationContext(dependencies)
         this.triggerStateActions = triggerStateActions
         this.archives = new CardArchiveOperations(this.context, triggerStateActions)
+        this.attachments = new CardAttachmentOperations(this.context)
         this.renames = new CardRenameOperations(this.context)
         this.internalIds = new CardInternalIdOperations(this.context, () => this.renames.reset())
+        this.images = new CardImageOperations(this.context)
         this.projectFiles = new ProjectFileOperations(this.context)
     }
 
@@ -55,7 +84,6 @@ export class CardOperations {
             config.workingFolder,
             config.cardSeparator,
             config.cardTypes,
-            config.cardBodyTemplate,
             initialState,
             draft,
         )
@@ -72,6 +100,89 @@ export class CardOperations {
         return file
     }
 
+    /** Creates unseen Sentry issues through one local-state update and one storage commit. */
+    async importSentryIssues(request: SentryIssueImportRequest) {
+        const { config, project } = this.context.requireProject('import Sentry issues')
+        if (project.id !== request.projectId) throw new Error('Opened project changed before Sentry import persistence')
+        if (!config.cardTypes.some(({ type }) => type === request.cardType)) {
+            throw new Error(`Configured Sentry card type no longer exists: ${request.cardType}`)
+        }
+        if (!config.states.some(({ state }) => state === request.cardState)) {
+            throw new Error(`Configured Sentry card state no longer exists: ${request.cardState}`)
+        }
+
+        const snapshot = this.context.dependencies.snapshot()
+        if (!snapshot) throw new Error('Cannot import Sentry issues before project cards are loaded')
+        const identities = importedSentryIdentities([...snapshot.activeCards, ...snapshot.backgroundCards])
+        const normalizedBaseUrl = normalizeSentryBaseUrl(request.apiBaseUrl)
+        const preparedFiles: MarkdownFile[] = []
+
+        for (const importedIssue of request.issues) {
+            const identity = sentryIdentityKey(normalizedBaseUrl, request.organization, importedIssue.issue.id)
+            if (identities.has(identity)) continue
+
+            const draft = {
+                body: buildSentryIssueMarkdown(importedIssue),
+                title: importedIssue.issue.title,
+                type: request.cardType,
+            }
+            const file = createCardFile(
+                [...this.context.dependencies.files(), ...preparedFiles],
+                config.workingFolder,
+                config.cardSeparator,
+                config.cardTypes,
+                request.cardState,
+                draft,
+            )
+            const content = markdownParsingService.rewriteHeader(file.content, {
+                sentryBaseUrl: normalizedBaseUrl,
+                sentryIssueId: importedIssue.issue.id,
+                sentryOrganization: request.organization.trim(),
+            })
+            preparedFiles.push({ ...file, content })
+            identities.add(identity)
+        }
+
+        if (preparedFiles.length === 0) return []
+        if (this.context.dependencies.project()?.id !== request.projectId) {
+            throw new Error('Opened project changed before Sentry import persistence')
+        }
+
+        this.context.dependencies.updateFiles(preparedFiles, [], config.workingFolder)
+        await this.context.commitCreatedFiles({
+            branch: project.branch,
+            files: preparedFiles,
+            message: `Import ${preparedFiles.length} Sentry issue${preparedFiles.length === 1 ? '' : 's'}`,
+        })
+        void this.context.pushCreatedItem('Sentry issues')
+
+        return preparedFiles
+    }
+
+    savePastedImageForCard(cardPath: string, file: File) {
+        return this.images.saveForCard(cardPath, file)
+    }
+
+    savePastedImageForNewCard(file: File) {
+        return this.images.saveForNewCard(file)
+    }
+
+    deletePastedImage(path: string) {
+        return this.images.delete(path)
+    }
+
+    copyAttachmentsForCard(cardPath: string, files: File[]) {
+        return this.attachments.copyForCard(cardPath, files)
+    }
+
+    copyAttachmentsForNewCard(files: File[]) {
+        return this.attachments.copyForNewCard(files)
+    }
+
+    deleteCopiedAttachments(paths: string[]) {
+        return this.attachments.delete(paths)
+    }
+
     createFolder(parentDirectory: string, name: string) {
         return this.projectFiles.createFolder(parentDirectory, name)
     }
@@ -86,6 +197,24 @@ export class CardOperations {
 
     updateCardAffects(path: string, affects: string[]): Card {
         return this.context.saveCardChange(path, (card) => setCardAffects(card, affects))
+    }
+
+    addCardReferences(path: string, references: string[]) {
+        const card = this.context.dependencies.requireCard(path)
+        const nextReferences = [...new Set([...card.header.references, ...references])]
+        if (nextReferences.length === card.header.references.length) return card
+
+        return this.context.saveCardChange(path, (currentCard) => setCardReferences(currentCard, nextReferences))
+    }
+
+    setCardReferences(path: string, references: string[]) {
+        const card = this.context.dependencies.requireCard(path)
+        const nextReferences = [...new Set(references)]
+        const unchanged = card.header.references.length === nextReferences.length
+            && card.header.references.every((reference, index) => reference === nextReferences[index])
+        if (unchanged) return card
+
+        return this.context.saveCardChange(path, (currentCard) => setCardReferences(currentCard, nextReferences))
     }
 
     updateCardHeaderFields(path: string, updates: Record<string, string>, saveReference?: OpenDocumentSaveReference) {
@@ -109,10 +238,11 @@ export class CardOperations {
     }
 
     addAgentLogReference(path: string, reference: string) {
+        const activityPath = activityPathForCardReference(reference)
         const card = this.context.dependencies.requireCard(path)
-        if (card.header.agentLogReferences.includes(reference)) return card.header.internalId
+        if (card.header.agentLogReferences.includes(activityPath)) return card.header.internalId
 
-        const references = [...new Set([...card.header.agentLogReferences, reference])]
+        const references = [...new Set([...card.header.agentLogReferences, activityPath])]
         this.context.saveCardChange(path, (currentCard) => setCardAgentLogReferences(currentCard, references))
 
         return card.header.internalId

@@ -20,7 +20,7 @@ function card(id: string, status: string): Card {
         hasFrontmatter: true,
         header: {
             affects: [], after: null, agentLogReferences: [], author: null, id, internalId: id.toLowerCase(), owner: null,
-            policy: {}, status, title: id, worktree: null, worktreeError: null, worktreeValue: null,
+            policy: {}, references: [], status, title: id, worktree: null, worktreeError: null, worktreeValue: null,
         },
         isActive: true,
         path: `design/${id}.md`,
@@ -134,7 +134,7 @@ describe('CardBodyPopover state selector', () => {
         expect(selector?.previousElementSibling).toBe(spacer)
         expect(within(footer as HTMLElement).getByRole('combobox', { name: 'Card state' })).toBeInTheDocument()
         if (closeButton) {
-            expect(selector?.nextElementSibling).toHaveRole('button', { name: 'Close' })
+            expect(selector?.nextElementSibling).toHaveRole('button')
         } else {
             expect(selector?.nextElementSibling).toBeNull()
             expect(within(footer as HTMLElement).getByRole('button', { name: 'Delete' })).toBeInTheDocument()

@@ -13,7 +13,10 @@ function createDispatch(options = {}) {
         cancel: vi.fn(),
         finishAgentRun: vi.fn(),
         handleCardStateChange: vi.fn(),
-        loadActiveRunEvents: vi.fn(() => [{ runId: 'run-1', sequence: 1 }]),
+        loadRunRecoverySnapshot: vi.fn((rendererRunIds) => ({
+            activeRunEvents: [{ runId: 'run-1', sequence: 1 }],
+            terminalResults: rendererRunIds.map((runId) => ({ failure: null, runId, status: 'completed' })),
+        })),
         prepareActionPrompt: vi.fn(async () => ({ prompt: 'Prepared prompt' })),
         requireActionsFolder: vi.fn(() => 'actions'),
         requireProjectFolder: vi.fn(() => 'design'),
@@ -39,6 +42,10 @@ function createDispatch(options = {}) {
         subscribe: vi.fn(() => vi.fn()),
         subscribeUpdateRequired: vi.fn(() => vi.fn()),
     };
+    const claudeRuntimeService = {
+        getSnapshot: vi.fn(() => ({ available: true, observedAt: 11, windows: [] })),
+        subscribe: vi.fn(() => vi.fn()),
+    };
     const updateCodexCli = vi.fn(async () => undefined);
     const localGitService = {
         appendAndCommitSystemActivity: vi.fn(async () => undefined),
@@ -51,6 +58,7 @@ function createDispatch(options = {}) {
         createProject: vi.fn(async (project) => project),
         hasPendingPush: vi.fn(async () => false),
         listAgentConversationReferences: vi.fn(async () => ['design/activity/project.json#conversation=conversation-1']),
+        loadActivityConversations: vi.fn(async () => []),
         loadFile: vi.fn(async () => ({ content: '# Root', path: 'design/F-1.md' })),
         loadActionFiles: vi.fn(async () => options.actionFiles ?? [{
             content: JSON.stringify({
@@ -132,12 +140,17 @@ function createDispatch(options = {}) {
     const desktopConfig = options.desktopConfig ?? {agent: 'codex', agentProfiles: [{ command: ['codex'], models: ['gpt-5'], name: 'codex' }], editorCommand: 'code -g "{{file}}:{{line}}"', model: 'gpt-5'};
     const saveDesktopConfig = vi.fn((_store, values) => values);
     const diffService = { generateDiff: vi.fn(), generateWorktreeDiff: vi.fn(), openInEditor: vi.fn() };
+    const projectStatsWorkerService = {
+        calculate: vi.fn(async () => ({ stats: { actions: [], conversations: [] }, warnings: [] })),
+        cancel: vi.fn(async () => undefined),
+    };
     const dispatch = createLocalBridgeDispatch({
         actionRunnerService,
         actionSchedulerService,
         actionWorktreeRunService,
         agentExecutableAvailability,
         agentRunnerService,
+        claudeRuntimeService,
         codexRuntimeService,
         desktopConfigStore: {},
         diffService,
@@ -145,6 +158,7 @@ function createDispatch(options = {}) {
         mergeConflictService,
         openProjectFolder: options.openProjectFolder,
         openWorktreeFolder: options.openWorktreeFolder,
+        projectStatsWorkerService,
         readDesktopConfig: () => desktopConfig,
         saveDesktopConfig,
         updateCodexCli,
@@ -156,11 +170,13 @@ function createDispatch(options = {}) {
         actionSchedulerService,
         agentExecutableAvailability,
         agentRunnerService,
+        claudeRuntimeService,
         codexRuntimeService,
         dispatch,
         diffService,
         localGitService,
         mergeConflictService,
+        projectStatsWorkerService,
         saveDesktopConfig,
         updateCodexCli,
         worktreeService,
@@ -249,6 +265,16 @@ describe('createLocalBridgeDispatch', () => {
         expect(updateCodexCli).toHaveBeenCalledOnce();
     });
 
+    it('exposes account-wide Claude runtime state without execution context', () => {
+        const { claudeRuntimeService, dispatch } = createDispatch();
+        const callback = vi.fn();
+
+        expect(dispatch.claudeRuntimeBridge.getClaudeRateLimits()).toEqual({ available: true, observedAt: 11, windows: [] });
+        dispatch.claudeRuntimeBridge.onClaudeRateLimits(callback);
+
+        expect(claudeRuntimeService.subscribe).toHaveBeenCalledWith(callback);
+    });
+
     it('loads executable availability from configured profiles', async () => {
         const { agentExecutableAvailability, dispatch } = createDispatch();
 
@@ -328,12 +354,27 @@ describe('createLocalBridgeDispatch', () => {
         expect(worktreeService.startProject).toHaveBeenCalledOnce();
     });
 
-    it('adds a worktree at the selected folder and returns the picker status', async () => {
+    it('selects a worktree folder without mutating Git', async () => {
         const openWorktreeFolder = vi.fn(async () => 'C:/feature');
         const { dispatch, worktreeService } = createDispatch({ openWorktreeFolder });
+
+        await expect(dispatch.dataBridge.selectWorktreeFolder()).resolves.toBe('C:/feature');
+        expect(worktreeService.add).not.toHaveBeenCalled();
+    });
+
+    it('returns null when worktree folder selection is cancelled', async () => {
+        const openWorktreeFolder = vi.fn(async () => null);
+        const { dispatch, worktreeService } = createDispatch({ openWorktreeFolder });
+
+        await expect(dispatch.dataBridge.selectWorktreeFolder()).resolves.toBeNull();
+        expect(worktreeService.add).not.toHaveBeenCalled();
+    });
+
+    it('adds a worktree at the supplied folder', async () => {
+        const { dispatch, worktreeService } = createDispatch();
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
 
-        await expect(dispatch.dataBridge.addWorktree(project)).resolves.toBe(true);
+        await expect(dispatch.dataBridge.addWorktree(project, 'C:/feature')).resolves.toBeUndefined();
         expect(worktreeService.add).toHaveBeenCalledWith(project, 'C:/feature');
     });
 
@@ -698,6 +739,22 @@ describe('createLocalBridgeDispatch', () => {
         expect(localGitService.loadTextFile).toHaveBeenCalledWith(project, 'design/activity/card__card-1.json');
     });
 
+    it('runs and cancels stats calculations through worker service for active project', async () => {
+        const { dispatch, projectStatsWorkerService } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        await dispatch.dataBridge.loadProjectRoot(project, 'design');
+
+        await dispatch.dataBridge.calculateActivityStats(project, ['design/activity/project.json'], 'stats-1');
+        await dispatch.dataBridge.cancelActivityStatsCalculation('stats-1');
+
+        expect(projectStatsWorkerService.calculate).toHaveBeenCalledWith(
+            project.rootPath,
+            ['design/activity/project.json'],
+            'stats-1',
+        );
+        expect(projectStatsWorkerService.cancel).toHaveBeenCalledWith('stats-1');
+    });
+
     it('forwards agent conversation reference listing through the data bridge', async () => {
         const { dispatch, localGitService } = createDispatch();
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
@@ -706,6 +763,14 @@ describe('createLocalBridgeDispatch', () => {
             'design/activity/project.json#conversation=conversation-1',
         ]);
         expect(localGitService.listAgentConversationReferences).toHaveBeenCalledWith(project, 'design');
+    });
+
+    it('forwards activity-file conversation loading through the data bridge', async () => {
+        const { dispatch, localGitService } = createDispatch();
+        const path = 'design/activity/card__card-1.json';
+
+        await expect(dispatch.dataBridge.loadActivityConversations(path)).resolves.toEqual([]);
+        expect(localGitService.loadActivityConversations).toHaveBeenCalledWith(null, path);
     });
 
     it('forwards project asset reads through the data bridge', async () => {
@@ -726,13 +791,16 @@ describe('createLocalBridgeDispatch', () => {
         expect(actionRunnerService.subscribe).toHaveBeenCalledWith(callback);
     });
 
-    it('loads active action run events through the action bridge', () => {
+    it('loads authoritative action run recovery through the action bridge', () => {
         const { actionRunnerService, dispatch } = createDispatch();
 
-        const events = dispatch.actionBridge.loadActiveActionRunEvents();
+        const snapshot = dispatch.actionBridge.loadActionRunRecoverySnapshot(['run-ended']);
 
-        expect(events).toEqual([{ runId: 'run-1', sequence: 1 }]);
-        expect(actionRunnerService.loadActiveRunEvents).toHaveBeenCalledOnce();
+        expect(snapshot).toEqual({
+            activeRunEvents: [{ runId: 'run-1', sequence: 1 }],
+            terminalResults: [{ failure: null, runId: 'run-ended', status: 'completed' }],
+        });
+        expect(actionRunnerService.loadRunRecoverySnapshot).toHaveBeenCalledWith(['run-ended']);
     });
 
     it('exposes worktree state subscriptions through the data bridge', () => {

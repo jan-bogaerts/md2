@@ -1,8 +1,10 @@
 const { normalizedContent } = require('./agent_event_utils');
+const { boundedAgentResult } = require('../../../../shared/agent_conversations.mjs');
 const { claudeChangedPaths, claudeUsage } = require('./agent_claude_events');
 const { isMissingSession } = require('./agent_provider_protocol');
 
 const CLAUDE_APPROVAL_DECISIONS = ['accept', 'acceptForSession', 'decline', 'cancel'];
+const CLAUDE_CONTEXT_USAGE_TIMEOUT_MS = 1_000;
 const CLAUDE_FILE_TOOLS = new Set(['Edit', 'MultiEdit', 'NotebookEdit', 'Write']);
 const CLAUDE_QUESTION_TOOL = 'AskUserQuestion';
 
@@ -21,6 +23,26 @@ function claudeControlResponse(requestId, response) {
         response: { request_id: requestId, response, subtype: 'success' },
         type: 'control_response',
     };
+}
+
+function claudeContextUsageRequest(requestId) {
+    return {
+        request: { subtype: 'get_context_usage' },
+        request_id: requestId,
+        type: 'control_request',
+    };
+}
+
+function claudeContextWindowUsage(event) {
+    const response = event.response;
+    if (!response || typeof response !== 'object' || Array.isArray(response) || response.subtype !== 'success') return null;
+    const contextUsage = response.response;
+    if (!contextUsage || typeof contextUsage !== 'object' || Array.isArray(contextUsage)) return null;
+    const { maxTokens, totalTokens } = contextUsage;
+    if (!Number.isSafeInteger(totalTokens) || totalTokens < 0) return null;
+    if (!Number.isSafeInteger(maxTokens) || maxTokens <= 0) return null;
+
+    return { capacityTokens: maxTokens, usedTokens: totalTokens };
 }
 
 function claudeQuestionRequest(event) {
@@ -116,6 +138,13 @@ function toolInputContent(input) {
     return JSON.stringify(input ?? {});
 }
 
+// Text blocks carry no provider id, so they are keyed by a per-message text ordinal instead of the raw
+// content-block index. The ordinal is index-independent, so a leading thinking/tool block shifting the
+// aggregated array does not break the streamed↔aggregated reconciliation across an `AskUserQuestion` pause.
+function claudeTextItemId(messageId, textOrdinal) {
+    return `${messageId}:text:${textOrdinal}`;
+}
+
 function claudeToolEvent(block, status = 'inProgress', providerItemId = block.id) {
     const base = eventBase(providerItemId, `tool.${block.name}`, block.name, status);
     if (block.name === 'Bash') {
@@ -149,7 +178,10 @@ class ClaudeStreamingAdapter {
         this.activeBlocks = new Map();
         this.streamedTextItems = new Map();
         this.activeMessageId = null;
+        this.activeTextOrdinal = 0;
         this.protocolErrorSequence = 1;
+        this.contextUsageRequestSequence = 1;
+        this.pendingContextUsage = null;
         this.turnStarted = false;
         this.turnHasAssistantText = false;
     }
@@ -197,6 +229,10 @@ class ClaudeStreamingAdapter {
     }
 
     async handleMessage(event) {
+        if (event.type === 'control_response') {
+            await this.handleContextUsageResponse(event);
+            return;
+        }
         const questionRequest = claudeQuestionRequest(event);
         if (questionRequest) {
             this.pendingQuestions.set(questionRequest.requestId, questionRequest);
@@ -261,6 +297,7 @@ class ClaudeStreamingAdapter {
             await this.ensureTurnStarted();
             this.activeMessageId = streamEvent.message?.id;
             this.activeBlocks.clear();
+            this.activeTextOrdinal = 0;
             if (typeof this.activeMessageId !== 'string' || this.activeMessageId.length === 0) {
                 await this.emitProtocolError('message_start missing message id');
             }
@@ -287,7 +324,9 @@ class ClaudeStreamingAdapter {
             return;
         }
         const block = structuredClone(streamEvent.content_block);
-        const providerItemId = block.id ?? `${this.activeMessageId}:${block.type}:${streamEvent.index}`;
+        const providerItemId = block.type === 'text'
+            ? claudeTextItemId(this.activeMessageId, this.activeTextOrdinal++)
+            : block.id ?? `${this.activeMessageId}:${block.type}:${streamEvent.index}`;
         const separator = block.type === 'text' && this.turnHasAssistantText ? '\n\n' : '';
         const trackedBlock = { block, inputJson: '', providerItemId, separator, text: block.text ?? block.thinking ?? '' };
         this.activeBlocks.set(streamEvent.index, trackedBlock);
@@ -353,18 +392,26 @@ class ClaudeStreamingAdapter {
         }
         const messageId = event.message.id ?? this.activeMessageId;
         if (typeof messageId !== 'string' || messageId.length === 0) throw new Error('Missing Claude assistant message id');
+        let textOrdinal = 0;
         for (const [index, block] of event.message.content.entries()) {
-            const providerItemId = block.id ?? `${messageId}:${block.type}:${index}`;
             if (block.type === 'text' && typeof block.text === 'string') {
+                // Same ordinal scheme as streaming so the aggregated copy reconciles regardless of where
+                // thinking/tool blocks sit in the aggregated array.
+                const providerItemId = claudeTextItemId(messageId, textOrdinal);
+                textOrdinal += 1;
                 const streamedItem = this.streamedTextItems.get(providerItemId);
                 const separator = streamedItem?.separator ?? (this.turnHasAssistantText ? '\n\n' : '');
                 if (!streamedItem) {
                     await this.onEvent({ itemId: providerItemId, type: 'assistantStarted' });
+                    // Record the freshly created item so a repeat aggregated delivery of the same step
+                    // (the `AskUserQuestion` pause re-emits it) reconciles in place instead of duplicating.
+                    this.streamedTextItems.set(providerItemId, { separator });
                 }
                 this.turnHasAssistantText = this.turnHasAssistantText || block.text.length > 0;
                 await this.onEvent({ content: `${separator}${block.text}`, itemId: providerItemId, type: 'assistantCompleted' });
                 continue;
             }
+            const providerItemId = block.id ?? `${messageId}:${block.type}:${index}`;
             if (block.type === 'thinking') {
                 const content = typeof block.thinking === 'string' ? block.thinking : '';
                 const reasoningEvent = {
@@ -390,7 +437,9 @@ class ClaudeStreamingAdapter {
             const toolEvent = trackedTool?.block?.type === 'tool_use'
                 ? claudeToolEvent(trackedTool.block, block.is_error ? 'failed' : 'completed')
                 : eventBase(block.tool_use_id, 'tool.result', 'Tool result', block.is_error ? 'failed' : 'completed');
-            toolEvent.output = normalizedContent(block.content) ?? '';
+            const result = boundedAgentResult(normalizedContent(block.content) ?? '');
+            if (toolEvent.type === 'commandExecution') toolEvent.content = result;
+            else toolEvent.output = result;
             await this.onEvent({ event: toolEvent, type: 'event' });
         }
     }
@@ -410,10 +459,45 @@ class ClaudeStreamingAdapter {
         this.activeBlocks.clear();
         this.streamedTextItems.clear();
         this.activeMessageId = null;
+        this.activeTextOrdinal = 0;
         this.pendingQuestions.clear();
         this.turnStarted = false;
         this.turnHasAssistantText = false;
-        await this.onEvent({ error, missingSession, type: 'turnCompleted', usage: claudeUsage(event) });
+        const turnCompletedEvent = { error, missingSession, type: 'turnCompleted', usage: claudeUsage(event) };
+        if (error) {
+            await this.onEvent(turnCompletedEvent);
+            return;
+        }
+        await this.requestContextWindowUsage(turnCompletedEvent);
+    }
+
+    async requestContextWindowUsage(turnCompletedEvent) {
+        const requestId = `claude-context-usage-${this.contextUsageRequestSequence}`;
+        this.contextUsageRequestSequence += 1;
+        const timeout = setTimeout(async () => {
+            await this.completeContextUsageRequest(requestId, null);
+        }, CLAUDE_CONTEXT_USAGE_TIMEOUT_MS);
+        this.pendingContextUsage = { requestId, timeout, turnCompletedEvent };
+        try {
+            await this.writeLine(claudeContextUsageRequest(requestId));
+        } catch {
+            await this.completeContextUsageRequest(requestId, null);
+        }
+    }
+
+    async handleContextUsageResponse(event) {
+        const requestId = event.response?.request_id;
+        if (requestId !== this.pendingContextUsage?.requestId) return;
+
+        await this.completeContextUsageRequest(requestId, claudeContextWindowUsage(event));
+    }
+
+    async completeContextUsageRequest(requestId, contextWindowUsage) {
+        const pendingContextUsage = this.pendingContextUsage;
+        if (!pendingContextUsage || pendingContextUsage.requestId !== requestId) return;
+        clearTimeout(pendingContextUsage.timeout);
+        this.pendingContextUsage = null;
+        await this.onEvent({ ...pendingContextUsage.turnCompletedEvent, contextWindowUsage });
     }
 
     static ignoreProtocolNoise() {

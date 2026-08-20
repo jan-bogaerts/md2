@@ -124,6 +124,7 @@ describe('electron action runner client', () => {
     it('links a reserved card conversation before flushing and starting the agent', async () => {
         const bridge = createBridge()
         const reservation = {
+            activityPath: 'design/activity/card__card-1.json',
             conversationId: 'agent-1',
             reference: 'design/activity/card__card-1.json#conversation=agent-1',
         }
@@ -140,7 +141,7 @@ describe('electron action runner client', () => {
         await runElectronAction(agentAction, cardContext)
 
         expect(bridge.reserveActionConversation).toHaveBeenCalledWith({ actionId: agentAction.id, context: cardContext, runInput: {} })
-        expect(addReference).toHaveBeenCalledWith(cardContext.file, reservation.reference)
+        expect(addReference).toHaveBeenCalledWith(cardContext.file, reservation.activityPath)
         expect(bridge.startAction).toHaveBeenCalledWith({
             actionId: agentAction.id,
             context: cardContext,

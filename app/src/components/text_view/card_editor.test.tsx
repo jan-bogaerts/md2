@@ -34,10 +34,18 @@ const commit: CardCommit = {
 vi.mock('../hooks/use_card_commits', () => ({ useCardCommits: () => ({ commits: [commit], error: null }) }))
 
 vi.mock('../editor/markdown_editor', () => ({
-    MarkdownEditor: ({ toolbarContents }: { toolbarContents: () => ReactNode }) => {
+    MarkdownEditor: ({ attachmentHandler, toolbarContents }: {
+        attachmentHandler?: (files: File[], insertMarkdown: (markdown: string) => void) => Promise<void>
+        toolbarContents: () => ReactNode
+    }) => {
         markdownEditorRender()
 
-        return <div aria-label="Live file editor">{toolbarContents()}</div>
+        return (
+            <div aria-label="Live file editor">
+                {toolbarContents()}
+                {attachmentHandler ? <button type="button">Attach files</button> : null}
+            </div>
+        )
     },
 }))
 
@@ -55,7 +63,7 @@ const card: Card = {
     content: '# Card\n\nBody',
     header: {
         affects: [], after: null, agentLogReferences: [], author: null, id: 'F-060', internalId: 'card-060',
-        owner: null, policy: {}, status: 'ready', title: 'Card', worktree: null, worktreeError: null, worktreeValue: null,
+        owner: null, policy: {}, references: [], status: 'ready', title: 'Card', worktree: null, worktreeError: null, worktreeValue: null,
     },
     hasFrontmatter:true,
     isActive: true,
@@ -83,6 +91,8 @@ describe('CardEditor commit diff', () => {
     it('keeps its lifetime editor mounted when the list binding clears', () => {
         openFilesService.openDocument(card)
         render(<CardEditor {...editorProps} />)
+
+        expect(screen.getByRole('button', { name: 'Attach files' })).toBeInTheDocument()
 
         act(() => openFilesService.clear())
 

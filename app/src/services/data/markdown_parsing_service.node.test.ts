@@ -99,12 +99,55 @@ describe('markdownParsingService.parseCard', () => {
         expect(card.header.agentLogReferences).toEqual(['.md2-agent-logs/one.json', '.md2-agent-logs/two.json'])
     })
 
+    it('parses ordered card references, removes exact duplicates, and defaults missing references', () => {
+        const content = '---\nid: F-2\ntitle: Second\nreferences:\n  - design/spec.pdf\n  - C:\\notes\\input.txt\n  - design/spec.pdf\n---\n\n# Second'
+        const card = markdownParsingService.parseCard({ content, path: 'design/F-2-second.md' }, 'design')
+        const cardWithoutReferences = markdownParsingService.parseCard(ROOT_FILE, 'design')
+
+        expect(card.header.references).toEqual(['design/spec.pdf', 'C:\\notes\\input.txt'])
+        expect(cardWithoutReferences.header.references).toEqual([])
+    })
+
+    it('serializes changed references without disturbing unknown fields', () => {
+        const content = '---\nid: F-2\ntitle: Second\ncustomField: keep me\n---\n\n# Second'
+        const card = markdownParsingService.parseCard({ content, path: 'design/F-2-second.md' }, 'design')
+
+        card.header.references = ['design/one.bin', 'D:\\source\\two.zip']
+        const serialized = markdownParsingService.serializeCard(card)
+
+        expect(serialized.content).toContain('references:\n  - design/one.bin\n  - D:\\source\\two.zip')
+        expect(serialized.content).toContain('customField: keep me')
+    })
+
     it('keeps raw header fields private while preserving unknown keys', () => {
         const content = '---\nid: F-2\ntitle: Second\ncustomField: keep me\nextras:\n  - one\n---\n\n# Second'
         const card = markdownParsingService.parseCard({ content, path: 'design/F-2-second.md' }, 'design')
 
         expect(card).not.toHaveProperty('headerFields')
         expect(markdownParsingService.serializeCard(card).content).toBe(content)
+    })
+
+    it('parses and preserves Sentry identity through edits and reloads', () => {
+        const content = '---\nid: B-2\ninternalId: card-2\ntitle: Sentry bug\ncustomField: keep me\nsentryIssueId: 12345\nsentryOrganization: acme\nsentryBaseUrl: https://sentry.example.com\n---\n\n# Sentry bug'
+        const card = markdownParsingService.parseCard({ content, path: 'design/B-2-sentry-bug.md' }, 'design')
+
+        expect(card.header).toMatchObject({
+            sentryBaseUrl: 'https://sentry.example.com',
+            sentryIssueId: '12345',
+            sentryOrganization: 'acme',
+        })
+
+        card.content = '# Edited Sentry bug'
+        const serialized = markdownParsingService.serializeCard(card)
+        const reloaded = markdownParsingService.parseCard(serialized, 'design')
+
+        expect(serialized.content).toContain('customField: keep me')
+        expect(reloaded.header).toMatchObject({
+            sentryBaseUrl: 'https://sentry.example.com',
+            sentryIssueId: '12345',
+            sentryOrganization: 'acme',
+        })
+        expect(reloaded.content).toBe('# Edited Sentry bug')
     })
 
     it('defaults after to null and policy to an empty map when absent', () => {
@@ -256,6 +299,17 @@ describe('markdownParsingService.setAgentLogReferences', () => {
         expect(next).not.toContain('old.json')
         expect(next).toContain('policy:\n  checkLinting: true')
         expect(next.endsWith('\n\n# Root')).toBe(true)
+    })
+})
+
+describe('markdownParsingService.setReferences', () => {
+    it('rewrites unique references and removes optional empty field', () => {
+        const content = '---\nid: F-1\ntitle: Root\nreferences:\n  - old.pdf\n---\n\n# Root'
+        const next = markdownParsingService.setReferences(content, ['design/new.pdf', 'design/new.pdf'])
+
+        expect(next).toContain('references:\n  - design/new.pdf')
+        expect(next).not.toContain('old.pdf')
+        expect(markdownParsingService.setReferences(next, [])).not.toContain('references:')
     })
 })
 

@@ -20,7 +20,6 @@ describe('ConfigService', () => {
             actionsFolder: 'ops',
             archivedFolder: 'archived',
             backgroundShade: 'green',
-            cardBodyTemplate: '# Goal\n\n# Current status\n\n# Details\n\n# Tasks',
             cardSeparator: '-',
             projectFolder: 'design',
             pushMode: 'manual',
@@ -29,6 +28,16 @@ describe('ConfigService', () => {
         })
         expect(service.getProjectConfig().cardTypes).toEqual(DEFAULT_CARD_TYPES)
         expect(service.getProjectConfig().states).toEqual(DEFAULT_STATES)
+    })
+
+    it('ignores obsolete card body templates and omits them from saved project config', () => {
+        service.init()
+        const existingConfig = { cardBodyTemplate: '# Legacy template', workingFolder: 'docs' }
+
+        service.loadProjectConfig(existingConfig)
+
+        expect(service.getEntries().some(({ key }) => String(key) === 'project.cardBodyTemplate')).toBe(false)
+        expect(service.getProjectConfig()).not.toHaveProperty('cardBodyTemplate')
     })
 
     it('narrows config values by key at compile time', () => {

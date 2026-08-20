@@ -3,6 +3,7 @@ import '@mui/material/styles'
 interface CustomPalette {
     borderHover: string
     borderStrong: string
+    chartPalette: string[]
     colHead: string
     primaryBg: string
     text3: string

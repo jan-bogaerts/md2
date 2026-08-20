@@ -4,8 +4,6 @@ import { markdownParsingService } from '../services/data/markdown_parsing_servic
 import {
     activityFilePath,
     cardActivityFileName,
-    conversationActivityReference,
-    parseConversationActivityReference,
 } from '../../../shared/activity_paths.mjs'
 import { normalizePath } from '../../../shared/path_utils.mjs'
 
@@ -39,6 +37,30 @@ function referencedCardAssets(file: MarkdownFile) {
     return assets
 }
 
+function isAbsoluteAssetReference(reference: string) {
+    const normalizedReference = normalizePath(reference)
+
+    return normalizedReference.startsWith('/')
+        || /^[a-z]:\//iu.test(normalizedReference)
+        || /^[a-z][a-z0-9+.-]*:/iu.test(normalizedReference)
+}
+
+function referencedCopiedAssets(references: string[]) {
+    return references
+        .filter((reference) => reference.length > 0 && !isAbsoluteAssetReference(reference))
+        .map(normalizePath)
+}
+
+function parsedCardReferences(file: MarkdownFile) {
+    const references = markdownParsingService.parse(file.content).header.references
+
+    return Array.isArray(references) ? referencedCopiedAssets(references) : []
+}
+
+function allReferencedCardAssets(file: MarkdownFile, references = parsedCardReferences(file)) {
+    return [...referencedCardAssets(file), ...references]
+}
+
 function targetPathForSource(targetFolder: string, sourcePath: string) {
     const fileName = sourcePath.split('/').at(-1)
     if (!fileName) throw new Error(`Cannot archive file without a file name: ${sourcePath}`)
@@ -61,18 +83,14 @@ function createMove(file: MarkdownFile, fromPath: string, toPath: string, encodi
 function releaseActivitySource(card: Card, projectFolder: string) {
     const cardInternalId = card.header.internalId
     if (!cardInternalId) throw new Error(`Cannot release a card without an internal ID: ${card.path}`)
+    if (card.header.agentLogReferences.length > 1) {
+        throw new Error(`Cannot release card with multiple activity files: ${card.path}`)
+    }
 
-    const sourcePath = activityFilePath(projectFolder, { cardInternalId, kind: 'card' })
-    const conversationIds = card.header.agentLogReferences.map((reference) => {
-        const parsed = parseConversationActivityReference(reference)
-        if (normalizePath(parsed.activityPath) !== normalizePath(sourcePath)) {
-            throw new Error(`Unexpected activity path for released card ${card.path}: ${parsed.activityPath}`)
-        }
+    const referencedPath = card.header.agentLogReferences[0] ?? null
+    const sourcePath = referencedPath ?? activityFilePath(projectFolder, { cardInternalId, kind: 'card' })
 
-        return parsed.conversationId
-    })
-
-    return { cardInternalId, conversationIds, sourcePath }
+    return { cardInternalId, referenced: referencedPath !== null, sourcePath }
 }
 
 export function findReleaseActivityPaths(
@@ -84,10 +102,10 @@ export function findReleaseActivityPaths(
     const activityPaths = new Set<string>()
 
     for (const card of releaseCards) {
-        const { conversationIds, sourcePath } = releaseActivitySource(card, projectFolder)
+        const { referenced, sourcePath } = releaseActivitySource(card, projectFolder)
         const normalizedSourcePath = normalizePath(sourcePath)
         const exists = repositoryPaths.has(normalizedSourcePath)
-        if (conversationIds.length > 0 && !exists) throw new Error(`Missing referenced activity log: ${sourcePath}`)
+        if (referenced && !exists) throw new Error(`Missing referenced activity log: ${sourcePath}`)
         if (exists) activityPaths.add(sourcePath)
     }
 
@@ -111,7 +129,7 @@ export function findArchiveAssetPaths(files: MarkdownFile[], archivedCards: Card
     const nonArchivedAssetPaths = new Set(
         files
             .filter((file) => isMarkdownFile(file.path) && !archivedSourcePaths.has(normalizePath(file.path)))
-            .flatMap(referencedCardAssets)
+            .flatMap((file) => allReferencedCardAssets(file))
             .map(normalizePath),
     )
     const assetPaths: string[] = []
@@ -121,7 +139,8 @@ export function findArchiveAssetPaths(files: MarkdownFile[], archivedCards: Card
         const file = files.find((candidate) => normalizePath(candidate.path) === normalizePath(card.path))
         if (!file) continue
 
-        for (const assetPath of referencedCardAssets(file).map(normalizePath)) {
+        const cardAssetPaths = allReferencedCardAssets(file, referencedCopiedAssets(card.header.references))
+        for (const assetPath of cardAssetPaths.map(normalizePath)) {
             if (nonArchivedAssetPaths.has(assetPath) || plannedAssetPaths.has(assetPath)) continue
 
             plannedAssetPaths.add(assetPath)
@@ -169,10 +188,10 @@ export function buildReleaseMoves(
     const rewrittenCardContentByPath = new Map<string, string>()
 
     for (const card of activeCards) {
-        const { cardInternalId, conversationIds, sourcePath } = releaseActivitySource(card, projectFolder)
+        const { cardInternalId, referenced, sourcePath } = releaseActivitySource(card, projectFolder)
         const normalizedSourcePath = normalizePath(sourcePath)
         const activityExists = repositoryPaths.has(normalizedSourcePath)
-        if (conversationIds.length > 0 && !activityExists) throw new Error(`Missing referenced activity log: ${sourcePath}`)
+        if (referenced && !activityExists) throw new Error(`Missing referenced activity log: ${sourcePath}`)
         if (!activityExists) continue
 
         const activityFile = activityFilesByPath.get(normalizedSourcePath)
@@ -186,15 +205,12 @@ export function buildReleaseMoves(
         targetPaths.add(normalizedActivityTargetPath)
         cardActivityMoves.set(normalizePath(card.path), createMove(activityFile, sourcePath, activityTargetPath))
 
-        if (conversationIds.length === 0) continue
-        const references = conversationIds.map((conversationId) => (
-            conversationActivityReference(activityTargetPath, conversationId)
-        ))
+        if (!referenced) continue
         const cardMove = moves.find((move) => normalizePath(move.fromPath) === normalizePath(card.path))
         if (!cardMove) throw new Error(`Cannot find release move for card: ${card.path}`)
         rewrittenCardContentByPath.set(
             normalizePath(card.path),
-            markdownParsingService.setAgentLogReferences(cardMove.content, references),
+            markdownParsingService.setAgentLogReferences(cardMove.content, [activityTargetPath]),
         )
     }
 
@@ -219,6 +235,7 @@ export function buildCardArchiveMoves(
     ])
     const filesByPath = new Map(files.map((file) => [normalizePath(file.path), file]))
     const archiveAssetPaths = new Set(findArchiveAssetPaths(files, archivedCards))
+    const archivedAssetTargets = new Map<string, string>()
     const moveTargetPaths = new Set<string>()
     const moves: MoveFile[] = []
 
@@ -233,7 +250,8 @@ export function buildCardArchiveMoves(
         moveTargetPaths.add(toPath)
         moves.push(createMove(file, card.path, toPath))
 
-        for (const assetPath of referencedCardAssets(file).map(normalizePath)) {
+        const cardAssetPaths = allReferencedCardAssets(file, referencedCopiedAssets(card.header.references))
+        for (const assetPath of cardAssetPaths.map(normalizePath)) {
             if (!archiveAssetPaths.has(assetPath)) continue
 
             const assetTargetPath = targetPathForSource(targetFolder, assetPath)
@@ -246,8 +264,22 @@ export function buildCardArchiveMoves(
 
             moveTargetPaths.add(assetTargetPath)
             moves.push(createMove(assetFile, assetPath, assetTargetPath, 'base64'))
+            archivedAssetTargets.set(assetPath, assetTargetPath)
             archiveAssetPaths.delete(assetPath)
         }
+    }
+
+    for (const card of archivedCards) {
+        const cardMove = moves.find((move) => normalizePath(move.fromPath) === normalizePath(card.path))
+        if (!cardMove) continue
+
+        const rewrittenReferences = card.header.references.map((reference) => (
+            isAbsoluteAssetReference(reference)
+                ? reference
+                : archivedAssetTargets.get(normalizePath(reference)) ?? reference
+        ))
+        const hasRewrittenReference = rewrittenReferences.some((reference, index) => reference !== card.header.references[index])
+        if (hasRewrittenReference) cardMove.content = markdownParsingService.setReferences(cardMove.content, rewrittenReferences)
     }
 
     return moves

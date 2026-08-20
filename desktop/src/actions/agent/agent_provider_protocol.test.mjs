@@ -87,9 +87,9 @@ describe('agent provider protocol', () => {
         expect(events[0].usage).toEqual({
             cachedInputTokens: 40,
             inputTokens: 80,
-            outputTokens: 15,
+            outputTokens: 10,
             reasoningTokens: 5,
-            totalTokens: 140,
+            totalTokens: 135,
         });
     });
 
@@ -111,19 +111,12 @@ describe('agent provider protocol', () => {
         });
     });
 
-    it('normalizes missing and malformed terminal usage fields to zero', () => {
+    it('rejects malformed terminal usage fields', () => {
         const { events, instance } = parser('codex');
 
-        instance.push('{"type":"turn.completed","usage":{"input_tokens":"bad","output_tokens":null}}\n');
-        instance.finish();
-
-        expect(events[0].usage).toEqual({
-            cachedInputTokens: 0,
-            inputTokens: 0,
-            outputTokens: 0,
-            reasoningTokens: 0,
-            totalTokens: 0,
-        });
+        expect(() => instance.push('{"type":"turn.completed","usage":{"input_tokens":"bad","output_tokens":null}}\n'))
+            .toThrow('Invalid provider token usage inputTokens');
+        expect(events).toEqual([]);
     });
 
     it('reports no usage when the terminal event carries no usage object', () => {
@@ -133,6 +126,18 @@ describe('agent provider protocol', () => {
         instance.finish();
 
         expect(events[0].usage).toBeNull();
+    });
+
+    it('rejects overlapping or inconsistent Codex totals', () => {
+        const overlapping = parser('codex');
+        const inconsistent = parser('codex');
+
+        expect(() => overlapping.instance.push(
+            '{"type":"turn.completed","usage":{"input_tokens":4,"cached_input_tokens":5,"output_tokens":3,"reasoning_output_tokens":1}}\n',
+        )).toThrow('Invalid provider token usage inputTokens');
+        expect(() => inconsistent.instance.push(
+            '{"type":"turn.completed","usage":{"input_tokens":4,"cached_input_tokens":1,"output_tokens":3,"reasoning_output_tokens":1,"total_tokens":99}}\n',
+        )).toThrow('Inconsistent provider token usage total');
     });
 
     it('extracts normalized root-confined Claude file tool paths', () => {

@@ -1,53 +1,42 @@
 import { Typography } from '@mui/material'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
+import type { AgentConversationTimer } from '../../../data/data_types'
 import type { PopupRunStatus } from '../run/popup/action_popup_defaults'
 import { formatDuration } from './conversation_duration'
 
 interface ConversationTimerProps {
-    completedAt: string | null
-    startedAt: string
     status: PopupRunStatus
+    timer: AgentConversationTimer | undefined
 }
 
-function elapsedMs(startedAt: string, completedAt: string | null) {
-    const end = completedAt ? Date.parse(completedAt) : Date.now()
+function displayedElapsedMs(timer: AgentConversationTimer, status: PopupRunStatus) {
+    if (status !== 'running' || timer.runningStartedAt === null) return timer.elapsedMs
 
-    return end - Date.parse(startedAt)
+    return timer.elapsedMs + Date.now() - Date.parse(timer.runningStartedAt)
 }
 
 /**
  * Isolated run timer. While the run is active it ticks once a second; keeping it
  * in its own component means only this node re-renders, not the whole chat log.
  */
-export function ConversationTimer({ completedAt, startedAt, status }: ConversationTimerProps) {
-    const [timerState, setTimerState] = useState(() => ({ elapsed: elapsedMs(startedAt, null), startedAt }))
-    const lastTickAtRef = useRef(0)
-    if (timerState.startedAt !== startedAt) {
-        setTimerState({ elapsed: elapsedMs(startedAt, null), startedAt })
-    }
+export function ConversationTimer({ status, timer }: ConversationTimerProps) {
+    const [, setTick] = useState(0)
 
     useEffect(() => {
-        if (completedAt || status !== 'running') return
+        if (status !== 'running' || !timer?.runningStartedAt) return
 
-        lastTickAtRef.current = Date.now()
         const interval = setInterval(() => {
-            const now = Date.now()
-            const elapsedSinceLastTick = now - lastTickAtRef.current
-            lastTickAtRef.current = now
-            setTimerState((currentState) => ({
-                ...currentState,
-                elapsed: currentState.elapsed + elapsedSinceLastTick,
-            }))
+            setTick((currentTick) => currentTick + 1)
         }, 1000)
 
         return () => clearInterval(interval)
-    }, [completedAt, status])
+    }, [status, timer?.runningStartedAt])
 
-    const displayedElapsed = completedAt ? elapsedMs(startedAt, completedAt) : timerState.elapsed
+    if (!timer) return null
 
     return (
         <Typography aria-label="Elapsed time" color="text.secondary" variant="caption">
-            {`⏱ ${formatDuration(displayedElapsed)}`}
+            {`⏱ ${formatDuration(displayedElapsedMs(timer, status))}`}
         </Typography>
     )
 }

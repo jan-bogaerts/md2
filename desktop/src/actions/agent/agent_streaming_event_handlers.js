@@ -2,6 +2,7 @@ const {
     accumulateUsage,
     createProviderEventEntry,
     createEventEntry,
+    transitionConversationStatus,
     updateProviderSession,
 } = require('./agent_conversation');
 const { emitRunEvent, hasPendingInteraction } = require('./agent_run_state');
@@ -32,7 +33,11 @@ function handleTurnStarted(service, run) {
 function handleUsage(service, run, event) {
     run.liveTurnUsage = event.usage;
     const usage = accumulateUsage(run.conversation.usage, event.usage);
-    emitRunEvent(run, { type: 'usage', usage });
+    emitRunEvent(run, {
+        ...(event.contextWindowUsage !== undefined ? { contextWindowUsage: event.contextWindowUsage } : {}),
+        type: 'usage',
+        usage,
+    });
 }
 
 function handleAssistantStarted(service, run, event, timestamp) {
@@ -125,20 +130,22 @@ function handleSessionFailed(service, run, event) {
     service.failStreamingRun(run, new Error(event.content));
 }
 
-async function handleQuestion(service, run, event) {
-    run.conversation.status = 'waitingForInput';
+async function handleQuestion(service, run, event, timestamp) {
+    transitionConversationStatus(run.conversation, 'waitingForInput', timestamp);
     run.waitingForQuestion = true;
     run.pendingQuestions = event.questions;
     await service.persistCheckpoint(run);
+    emitRunEvent(run, { state: 'waitingForInput', type: 'state' });
     emitRunEvent(run, { questions: event.questions, requestId: event.requestId, state: 'waitingForInput', type: 'question' });
 }
 
-async function handleApproval(service, run, event) {
+async function handleApproval(service, run, event, timestamp) {
     const requestId = event.approval.requestId;
     if (run.pendingApprovals.has(requestId)) throw new Error(`Duplicate agent approval request id: ${requestId}`);
     run.pendingApprovals.set(requestId, { ...event.approval, submitted: false });
-    run.conversation.status = 'waitingForInput';
+    transitionConversationStatus(run.conversation, 'waitingForInput', timestamp);
     await service.persistCheckpoint(run);
+    emitRunEvent(run, { state: 'waitingForInput', type: 'state' });
     emitRunEvent(run, { approval: event.approval, state: 'waitingForInput', type: 'approval' });
 }
 
@@ -149,10 +156,11 @@ function handleApprovalSubmitted(service, run, event) {
     emitRunEvent(run, { requestId: event.requestId, type: 'approvalSubmitted' });
 }
 
-function handleApprovalResolved(service, run, event) {
+async function handleApprovalResolved(service, run, event, timestamp) {
     if (!run.pendingApprovals.delete(event.requestId)) return;
     const state = hasPendingInteraction(run) ? 'waitingForInput' : 'running';
-    run.conversation.status = state;
+    transitionConversationStatus(run.conversation, state, timestamp);
+    await service.persistCheckpoint(run);
     emitRunEvent(run, { requestId: event.requestId, state, type: 'approvalResolved' });
     emitRunEvent(run, { state, type: 'state' });
 }
@@ -168,18 +176,13 @@ async function handleTurnCompleted(service, run, event, timestamp) {
     run.pendingApprovals.clear();
     run.missingSession = run.missingSession || event.missingSession;
     if (event.missingSession) run.finishing = true;
-    if (event.usage) {
-        run.liveTurnUsage = event.usage;
-        run.conversation.usage = accumulateUsage(run.conversation.usage, run.liveTurnUsage);
-        run.liveTurnUsage = null;
-    }
     if (event.contextWindowUsage !== undefined) {
         if (event.contextWindowUsage) run.conversation.contextWindowUsage = event.contextWindowUsage;
         else delete run.conversation.contextWindowUsage;
     }
-    if (event.usage || event.contextWindowUsage !== undefined) {
+    if (!event.usage && event.contextWindowUsage !== undefined) {
         emitRunEvent(run, {
-            ...(event.contextWindowUsage !== undefined ? { contextWindowUsage: event.contextWindowUsage } : {}),
+            contextWindowUsage: event.contextWindowUsage,
             type: 'usage',
             usage: run.conversation.usage,
         });
@@ -188,13 +191,25 @@ async function handleTurnCompleted(service, run, event, timestamp) {
         service.failStreamingRun(run, new Error(event.error));
         return;
     }
+    if (!event.missingSession && event.usage) {
+        run.liveTurnUsage = event.usage;
+        run.conversation.usage = accumulateUsage(run.conversation.usage, run.liveTurnUsage);
+        run.liveTurnUsage = null;
+        await service.persistSuccessfulTurn(run);
+        await service.recordTokenUsage(run, event.usage, timestamp);
+        emitRunEvent(run, {
+            ...(event.contextWindowUsage !== undefined ? { contextWindowUsage: event.contextWindowUsage } : {}),
+            type: 'usage',
+            usage: run.conversation.usage,
+        });
+    }
     if (run.finishing) {
         service.beginFinishShutdown(run);
         return;
     }
     if (run.queuedMessage) {
         const { content, revision } = run.queuedMessage;
-        run.conversation.status = 'waitingForInput';
+        transitionConversationStatus(run.conversation, 'waitingForInput', timestamp);
         await service.sendStreamingMessage(run, content);
         run.queuedMessage = null;
         run.sentQueuedMessageRevision = revision;
@@ -202,7 +217,7 @@ async function handleTurnCompleted(service, run, event, timestamp) {
     }
     const synchronizedMessage = lastMessageEntry(run.conversation);
     if (synchronizedMessage) updateProviderSession(run, synchronizedMessage.id, timestamp);
-    run.conversation.status = 'waitingForInput';
+    transitionConversationStatus(run.conversation, 'waitingForInput', timestamp);
     run.conversation.completedAt = null;
     await service.persistCheckpoint(run);
     emitRunEvent(run, { state: 'waitingForInput', type: 'state' });

@@ -1,5 +1,9 @@
 import { createRequire } from 'node:module';
+import { EventEmitter } from 'node:events';
+import { resolve } from 'node:path';
+import { PassThrough } from 'node:stream';
 import { describe, expect, it, vi } from 'vitest';
+import { AGENT_RESULT_MAX_LENGTH } from '../../../../shared/agent_conversations.mjs';
 
 const require = createRequire(import.meta.url);
 const { AGENT_FINISH_GRACE_MS, AgentRunnerService } = require('./agent_runner_service');
@@ -12,6 +16,133 @@ function diagnosticStreamingEvent(content, providerItemId) {
 }
 
 describe('AgentRunnerService state handling', () => {
+    it('persists a new conversation before spawning its process and publishing started', async () => {
+        const initialCheckpoint = Promise.withResolvers();
+        const child = new EventEmitter();
+        child.pid = 42;
+        child.stdin = new PassThrough();
+        child.stdout = new PassThrough();
+        child.stderr = new PassThrough();
+        const persistConversationCheckpoint = vi.fn(async () => initialCheckpoint.promise);
+        const persistConversation = vi.fn(async () => undefined);
+        const spawn = vi.fn(() => child);
+        const onEvent = vi.fn();
+        const service = new AgentRunnerService({
+            executableResolver: { find: vi.fn(async () => '/tools/fake-agent') },
+            persistConversation,
+            persistConversationCheckpoint,
+            spawn,
+        });
+        const project = { rootPath: resolve(import.meta.dirname, '../../../..') };
+        const request = { command: ['fake-agent'], projectFolder: 'design', prompt: 'Start work' };
+
+        const start = service.start(project, request, onEvent, vi.fn(), vi.fn());
+        await vi.waitFor(() => expect(persistConversationCheckpoint).toHaveBeenCalledOnce());
+
+        expect(spawn).not.toHaveBeenCalled();
+        expect(onEvent).not.toHaveBeenCalled();
+
+        initialCheckpoint.resolve();
+        const result = await start;
+
+        expect(persistConversationCheckpoint.mock.invocationCallOrder[0]).toBeLessThan(spawn.mock.invocationCallOrder[0]);
+        expect(spawn.mock.invocationCallOrder[0]).toBeLessThan(onEvent.mock.invocationCallOrder[0]);
+        expect(persistConversationCheckpoint).toHaveBeenCalledWith(expect.objectContaining({
+            conversation: expect.objectContaining({
+                entries: [expect.objectContaining({ content: 'Start work', role: 'user' })],
+                id: result.conversation.id,
+                status: 'running',
+            }),
+            request: expect.objectContaining({ activityProject: project, projectFolder: 'design' }),
+        }));
+        expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({
+            conversation: result.conversation,
+            type: 'started',
+        }));
+
+        child.emit('close', 0);
+        await vi.waitFor(() => expect(persistConversation).toHaveBeenCalledOnce());
+    });
+
+    it('does not require an installed agent when the service is constructed', () => {
+        const find = vi.fn();
+
+        expect(() => new AgentRunnerService({
+            claudeUsagePoller: { requestPoll: vi.fn(), stop: vi.fn() },
+            executableResolver: { find },
+        })).not.toThrow();
+        expect(find).not.toHaveBeenCalled();
+    });
+
+    it('rejects an unresolved selected executable before persistence, usage polling, or spawn', async () => {
+        const claudeUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };
+        const persistConversationCheckpoint = vi.fn();
+        const spawn = vi.fn();
+        const service = new AgentRunnerService({
+            claudeUsagePoller,
+            executableResolver: { find: vi.fn(async () => null) },
+            persistConversationCheckpoint,
+            spawn,
+        });
+        const project = { rootPath: resolve(import.meta.dirname, '../../../..') };
+        const request = { agent: 'claude', command: ['missing-claude'], projectFolder: 'design', prompt: 'Start work' };
+
+        await expect(service.start(project, request, vi.fn(), vi.fn(), vi.fn()))
+            .rejects.toThrow('Executable not found for claude: missing-claude');
+        expect(persistConversationCheckpoint).not.toHaveBeenCalled();
+        expect(claudeUsagePoller.requestPoll).not.toHaveBeenCalled();
+        expect(spawn).not.toHaveBeenCalled();
+    });
+
+    it('persists timer transitions before publishing pause and resume states', async () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-01-01T00:00:10.000Z'));
+        try {
+            const persistConversationCheckpoint = vi.fn(async () => undefined);
+            const service = new AgentRunnerService({ persistConversationCheckpoint });
+            const run = {
+                conversation: {
+                    entries: [],
+                    providerSessions: [],
+                    status: 'running',
+                    timer: { elapsedMs: 0, runningStartedAt: '2026-01-01T00:00:00.000Z' },
+                },
+                id: 'run-1',
+                interactionWrites: Promise.resolve(),
+                nextSequence: 1,
+                onEvent: vi.fn(),
+                pendingApprovals: new Map(),
+                pendingQuestions: [],
+                persistence: Promise.resolve(),
+                secretValues: new Set(),
+                streaming: true,
+                streamingAdapter: { answerQuestion: vi.fn(async () => undefined) },
+                waitingForQuestion: false,
+            };
+            service.processes.set('run-1', run);
+            const pausedTimer = { elapsedMs: 10_000, runningStartedAt: null };
+            const pausedCheckpoint = expect.objectContaining({ conversation: expect.objectContaining({ timer: pausedTimer }) });
+
+            await service.handleStreamingEvent('run-1', {questions: [{ id: 'choice', isSecret: false }], requestId: 7, type: 'question'});
+            expect(run.conversation.timer).toEqual(pausedTimer);
+            expect(persistConversationCheckpoint).toHaveBeenLastCalledWith(pausedCheckpoint);
+            const pauseStateCallIndex = run.onEvent.mock.calls.findIndex(([event]) => event.type === 'state');
+            expect(persistConversationCheckpoint.mock.invocationCallOrder[0])
+                .toBeLessThan(run.onEvent.mock.invocationCallOrder[pauseStateCallIndex]);
+
+            vi.setSystemTime(new Date('2026-01-01T00:00:20.000Z'));
+            await service.answerQuestion('run-1', 7, { choice: 'continue' });
+
+            expect(run.conversation.timer).toEqual({
+                elapsedMs: 10_000,
+                runningStartedAt: '2026-01-01T00:00:20.000Z',
+            });
+            expect(persistConversationCheckpoint).toHaveBeenLastCalledWith(expect.objectContaining({conversation: expect.objectContaining({timer: { elapsedMs: 10_000, runningStartedAt: '2026-01-01T00:00:20.000Z' }})}));
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
     it('reports one diagnosed Codex cache error and suppresses repeats', async () => {
         const diagnoseCodexCacheError = vi.fn(async () => ({
             cacheVersion: '0.146.0',
@@ -182,7 +313,8 @@ describe('AgentRunnerService state handling', () => {
 
     it('replaces live turn usage and commits the latest snapshot once at turn completion', async () => {
         const persistConversationCheckpoint = vi.fn(async () => undefined);
-        const service = new AgentRunnerService({ persistConversationCheckpoint });
+        const usageMetricsService = { recordTokenUsage: vi.fn(async () => true) };
+        const service = new AgentRunnerService({ persistConversationCheckpoint, usageMetricsService });
         const onEvent = vi.fn();
         const persistedUsage = {
             cachedInputTokens: 1,
@@ -226,28 +358,55 @@ describe('AgentRunnerService state handling', () => {
         };
         service.processes.set('run-1', run);
 
-        await service.handleStreamingEvent('run-1', { type: 'usage', usage: firstSnapshot });
-        await service.handleStreamingEvent('run-1', { type: 'usage', usage: latestSnapshot });
+        const firstContextWindowUsage = { capacityTokens: 100_000, usedTokens: 5_000 };
+        const latestContextWindowUsage = { capacityTokens: 258_400, usedTokens: 42_000 };
+        await service.handleStreamingEvent('run-1', {
+            contextWindowUsage: firstContextWindowUsage,
+            type: 'usage',
+            usage: firstSnapshot,
+        });
+        await service.handleStreamingEvent('run-1', {
+            contextWindowUsage: latestContextWindowUsage,
+            type: 'usage',
+            usage: latestSnapshot,
+        });
 
         expect(run.conversation.usage).toEqual(persistedUsage);
-        expect(onEvent).toHaveBeenNthCalledWith(1, expect.objectContaining({ type: 'usage', usage: expect.objectContaining({ totalTokens: 15 }) }));
-        expect(onEvent).toHaveBeenNthCalledWith(2, expect.objectContaining({ type: 'usage', usage: expect.objectContaining({ totalTokens: 17 }) }));
+        expect(run.conversation).not.toHaveProperty('contextWindowUsage');
+        expect(onEvent).toHaveBeenNthCalledWith(1, expect.objectContaining({
+            contextWindowUsage: firstContextWindowUsage,
+            type: 'usage',
+            usage: expect.objectContaining({ totalTokens: 15 }),
+        }));
+        expect(onEvent).toHaveBeenNthCalledWith(2, expect.objectContaining({
+            contextWindowUsage: latestContextWindowUsage,
+            type: 'usage',
+            usage: expect.objectContaining({ totalTokens: 17 }),
+        }));
 
-        const contextWindowUsage = { capacityTokens: 258_400, usedTokens: 42_000 };
-        await service.handleStreamingEvent('run-1', { contextWindowUsage, type: 'turnCompleted', usage: latestSnapshot });
+        await service.handleStreamingEvent('run-1', {
+            contextWindowUsage: latestContextWindowUsage,
+            type: 'turnCompleted',
+            usage: latestSnapshot,
+        });
 
         expect(run.conversation.usage).toEqual(expect.objectContaining({ totalTokens: 17 }));
-        expect(run.conversation.contextWindowUsage).toEqual(contextWindowUsage);
+        expect(run.conversation.contextWindowUsage).toEqual(latestContextWindowUsage);
         expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({
-            contextWindowUsage,
+            contextWindowUsage: latestContextWindowUsage,
             type: 'usage',
             usage: expect.objectContaining({ totalTokens: 17 }),
         }));
         const expectedConversation = expect.objectContaining({
-            contextWindowUsage,
+            contextWindowUsage: latestContextWindowUsage,
             usage: expect.objectContaining({ totalTokens: 17 }),
         });
         expect(persistConversationCheckpoint).toHaveBeenCalledWith(expect.objectContaining({ conversation: expectedConversation }));
+        expect(usageMetricsService.recordTokenUsage).toHaveBeenCalledWith(
+            'codex',
+            latestSnapshot,
+            expect.any(Number),
+        );
     });
 
     it('does not persist an unconfirmed live snapshot when the streaming turn fails', async () => {
@@ -276,12 +435,14 @@ describe('AgentRunnerService state handling', () => {
         service.processes.set('run-1', run);
 
         await service.handleStreamingEvent('run-1', {
+            contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 },
             type: 'usage',
             usage: { cachedInputTokens: 0, inputTokens: 5, outputTokens: 0, reasoningTokens: 0, totalTokens: 5 },
         });
         service.failStreamingRun(run, new Error('Turn failed'));
 
         expect(run.conversation.usage).toBe(persistedUsage);
+        expect(run.conversation).not.toHaveProperty('contextWindowUsage');
         expect(run.liveTurnUsage).toEqual(expect.objectContaining({ totalTokens: 5 }));
     });
 
@@ -311,6 +472,7 @@ describe('AgentRunnerService state handling', () => {
             cancelled: false,
             child: {},
             closed,
+            conversation: { status: 'running' },
             termination: null,
         });
         let completed = false;
@@ -332,6 +494,7 @@ describe('AgentRunnerService state handling', () => {
         service.processes.set('run-1', {
             cancelled: false,
             child,
+            conversation: { status: 'running' },
             queuedMessage: null,
             termination: null,
         });
@@ -390,6 +553,119 @@ describe('AgentRunnerService state handling', () => {
             stderr: '',
         }));
         expect(terminateProcessTree).not.toHaveBeenCalled();
+    });
+
+    it('publishes the terminal conversation when terminal persistence fails', async () => {
+        const persistenceError = new Error('Token summary could not be written');
+        const persistConversation = vi.fn(async () => {
+            throw persistenceError;
+        });
+        const service = new AgentRunnerService({ persistConversation });
+        const run = {
+            agent: 'codex',
+            cancelled: true,
+            changedPaths: new Set(),
+            child: { pid: 10 },
+            conversation: {
+                completedAt: null,
+                entries: [{ content: 'Stopped', id: 'assistant-1', kind: 'message', role: 'assistant', timestamp: 'now' }],
+                id: 'conversation-1',
+                providerSessions: [],
+                status: 'running',
+            },
+            currentAssistantMessageId: null,
+            finishing: false,
+            id: 'run-1',
+            missingSession: false,
+            onComplete: vi.fn(),
+            onCompletionError: vi.fn(),
+            onEvent: vi.fn(),
+            persistence: Promise.resolve(),
+            protocolHandling: Promise.resolve(),
+            request: {},
+            startedAt: '2026-07-30T10:00:00.000Z',
+            stderr: '',
+            stderrBuffer: '',
+            stderrHandling: Promise.resolve(),
+            stdout: '',
+            streaming: false,
+            streamingFailure: null,
+            suspended: false,
+            termination: Promise.resolve(),
+            turnUsage: null,
+        };
+        service.processes.set('run-1', run);
+        service.runningConversationIds.add('conversation-1');
+
+        await service.handleClose('run-1', 1);
+
+        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({
+            conversation: expect.objectContaining({ completedAt: expect.any(String), status: 'cancelled' }),
+            type: 'closed',
+        }));
+        expect(run.onCompletionError).toHaveBeenCalledWith(persistenceError);
+        expect(run.onComplete).not.toHaveBeenCalled();
+        expect(service.processes.has('run-1')).toBe(false);
+    });
+
+    it('records one-shot Claude usage only after successful process completion', async () => {
+        const claudeUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };
+        const persistConversation = vi.fn(async () => undefined);
+        const usageMetricsService = { recordTokenUsage: vi.fn(async () => true) };
+        const service = new AgentRunnerService({ claudeUsagePoller, persistConversation, usageMetricsService });
+        const turnUsage = {
+            cachedInputTokens: 2,
+            inputTokens: 5,
+            outputTokens: 3,
+            reasoningTokens: 0,
+            totalTokens: 10,
+        };
+        const run = {
+            agent: 'claude',
+            cancelled: false,
+            changedPaths: new Set(),
+            child: { pid: 10 },
+            conversation: {
+                completedAt: null,
+                entries: [{ content: 'Done', id: 'assistant-1', kind: 'message', role: 'assistant', timestamp: 'now' }],
+                id: 'conversation-1',
+                providerSessions: [],
+                status: 'running',
+            },
+            currentAssistantMessageId: null,
+            environment: { PATH: '/bin' },
+            executable: '/tools/claude',
+            finishing: false,
+            id: 'run-1',
+            missingSession: false,
+            onComplete: vi.fn(),
+            onEvent: vi.fn(),
+            persistence: Promise.resolve(),
+            protocolHandling: Promise.resolve(),
+            request: {},
+            rootPath: '/project',
+            startedAt: '2026-07-30T10:00:00.000Z',
+            stderr: '',
+            stderrBuffer: '',
+            stderrHandling: Promise.resolve(),
+            stdout: '',
+            streaming: false,
+            streamingFailure: null,
+            suspended: false,
+            termination: null,
+            turnUsage,
+        };
+        service.processes.set('run-1', run);
+        service.runningConversationIds.add('conversation-1');
+
+        await service.handleClose('run-1', 0);
+
+        expect(usageMetricsService.recordTokenUsage).toHaveBeenCalledWith(
+            'claude',
+            turnUsage,
+            expect.any(Number),
+        );
+        expect(run.onComplete).toHaveBeenCalledWith(0, run);
     });
 
     it('leaves persisted continuation unchanged when provider turn never starts', async () => {
@@ -739,6 +1015,34 @@ describe('AgentRunnerService state handling', () => {
         }));
     });
 
+    it('redacts secrets before bounding provider results in runtime conversation', async () => {
+        const service = new AgentRunnerService();
+        const run = {
+            providerEventEntryIndexes: new Map(),
+            conversation: { entries: [], status: 'running' },
+            id: 'run-1',
+            nextSequence: 1,
+            onEvent: vi.fn(),
+            secretValues: new Set(['top-secret']),
+        };
+        service.processes.set('run-1', run);
+
+        await service.handleStreamingEvent('run-1', {
+            event: {
+                content: `${'head'.repeat(1_500)}top-secret${'tail'.repeat(1_500)}`,
+                label: 'Command',
+                providerItemId: 'command-1',
+                status: 'completed',
+                type: 'commandExecution',
+            },
+            type: 'event',
+        });
+
+        expect(run.conversation.entries[0].content).toHaveLength(AGENT_RESULT_MAX_LENGTH);
+        expect(run.conversation.entries[0].content).not.toContain('top-secret');
+        expect(run.conversation.entries[0].content).toMatch(/tail$/u);
+    });
+
     it('groups consecutive diagnostics while preserving first identity and recognized event boundaries', async () => {
         const service = new AgentRunnerService();
         const run = {
@@ -816,21 +1120,137 @@ describe('AgentRunnerService state handling', () => {
         expect(run.conversation.status).toBe('failed');
     });
 
-    it('routes account runtime updates without conversation persistence', () => {
+    it('routes Codex account updates to runtime state and originating project metrics', async () => {
         const persistConversation = vi.fn();
+        const snapshot = { available: true, buckets: [], observedAt: 10 };
         const codexRuntimeService = {
-            publishRateLimits: vi.fn(),
+            getSnapshot: vi.fn(() => snapshot),
+            publishRateLimits: vi.fn(() => true),
             publishUnavailable: vi.fn(),
         };
-        const service = new AgentRunnerService({ codexRuntimeService, persistConversation });
+        const usageMetricsService = { recordAccountUsage: vi.fn(async () => true) };
+        const service = new AgentRunnerService({ codexRuntimeService, persistConversation, usageMetricsService });
         const payload = { rateLimits: { limitId: 'codex' } };
 
-        service.handleCodexRuntimeEvent({ kind: 'update', observedAt: 10, payload });
-        service.handleCodexRuntimeEvent({ kind: 'unavailable', observedAt: 11 });
+        await service.handleCodexRuntimeEvent({ kind: 'update', observedAt: 10, payload });
+        await service.handleCodexRuntimeEvent({ kind: 'unavailable', observedAt: 11 });
 
         expect(codexRuntimeService.publishRateLimits).toHaveBeenCalledWith(payload, 10, true);
         expect(codexRuntimeService.publishUnavailable).toHaveBeenCalledWith(11);
+        expect(usageMetricsService.recordAccountUsage).toHaveBeenCalledWith('codex', snapshot);
         expect(persistConversation).not.toHaveBeenCalled();
+    });
+
+    it('routes Claude account updates to active project metrics and polls for Claude runs only', async () => {
+        const snapshot = { available: true, observedAt: 10, windows: [] };
+        const claudeRuntimeService = {
+            getSnapshot: vi.fn(() => snapshot),
+            publishRateLimits: vi.fn(() => true),
+            publishUnavailable: vi.fn(),
+        };
+        const claudeUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };
+        const usageMetricsService = { recordAccountUsage: vi.fn(async () => true) };
+        const service = new AgentRunnerService({ claudeRuntimeService, claudeUsagePoller, usageMetricsService });
+        const payload = { windows: [{ id: 'five_hour' }] };
+
+        await service.handleClaudeRuntimeEvent({
+            kind: 'snapshot',
+            observedAt: 10,
+            payload,
+        });
+        await service.handleClaudeRuntimeEvent({ kind: 'unavailable', observedAt: 11 });
+        const environment = { PATH: '/bin' };
+        service.requestUsagePoll({ agent: 'claude', environment, executable: '/tools/claude', rootPath: '/project' });
+        service.requestUsagePoll({ agent: 'codex', environment, executable: '/tools/codex', rootPath: '/project' });
+
+        expect(claudeRuntimeService.publishRateLimits).toHaveBeenCalledWith(payload, 10);
+        expect(claudeRuntimeService.publishUnavailable).toHaveBeenCalledWith(11);
+        expect(usageMetricsService.recordAccountUsage).toHaveBeenCalledOnce();
+        expect(usageMetricsService.recordAccountUsage).toHaveBeenCalledWith('claude', snapshot);
+        expect(claudeUsagePoller.requestPoll).toHaveBeenCalledOnce();
+        expect(claudeUsagePoller.requestPoll).toHaveBeenCalledWith({
+            cwd: '/project',
+            env: environment,
+            executable: '/tools/claude',
+        });
+    });
+
+    it('polls Claude usage at run start, on a tick while running, and after the run closes', async () => {
+        const child = new EventEmitter();
+        child.pid = 43;
+        child.stdin = new PassThrough();
+        child.stdout = new PassThrough();
+        child.stderr = new PassThrough();
+        const ticks = [];
+        const cleared = [];
+        const claudeUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };
+        const executable = '/tools/custom-claude';
+        const service = new AgentRunnerService({
+            claudeUsagePoller,
+            clearTimeout: (handle) => cleared.push(handle),
+            executableResolver: { find: vi.fn(async () => executable) },
+            persistConversation: vi.fn(async () => undefined),
+            persistConversationCheckpoint: vi.fn(async () => undefined),
+            setTimeout: (callback) => ticks.push(callback),
+            spawn: vi.fn(() => child),
+        });
+        const project = { rootPath: resolve(import.meta.dirname, '../../../..') };
+        const request = { agent: 'claude', command: ['fake-agent'], projectFolder: 'design', prompt: 'Start work' };
+
+        await service.start(project, request, vi.fn(), vi.fn(), vi.fn());
+
+        expect(claudeUsagePoller.requestPoll).toHaveBeenCalledOnce();
+        expect(claudeUsagePoller.requestPoll).toHaveBeenCalledWith({
+            cwd: project.rootPath,
+            env: expect.objectContaining({}),
+            executable,
+        });
+
+        ticks[0]();
+
+        expect(claudeUsagePoller.requestPoll).toHaveBeenCalledTimes(2);
+
+        child.emit('close', 0);
+        await vi.waitFor(() => expect(claudeUsagePoller.requestPoll).toHaveBeenCalledTimes(3));
+        expect(claudeUsagePoller.requestPoll).toHaveBeenNthCalledWith(2, {
+            cwd: project.rootPath,
+            env: expect.objectContaining({}),
+            executable,
+        });
+        expect(claudeUsagePoller.requestPoll).toHaveBeenNthCalledWith(3, {
+            cwd: project.rootPath,
+            env: expect.objectContaining({}),
+            executable,
+        });
+        ticks[1]();
+
+        expect(cleared).toEqual([2]);
+        expect(claudeUsagePoller.requestPoll).toHaveBeenCalledTimes(3);
+    });
+
+    it('leaves usage polling alone for agents that report usage inside their protocol', async () => {
+        const child = new EventEmitter();
+        child.pid = 44;
+        child.stdin = new PassThrough();
+        child.stdout = new PassThrough();
+        child.stderr = new PassThrough();
+        const ticks = [];
+        const claudeUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };
+        const service = new AgentRunnerService({
+            claudeUsagePoller,
+            executableResolver: { find: vi.fn(async () => '/tools/codex') },
+            persistConversation: vi.fn(async () => undefined),
+            persistConversationCheckpoint: vi.fn(async () => undefined),
+            setTimeout: (callback) => ticks.push(callback),
+            spawn: vi.fn(() => child),
+        });
+        const project = { rootPath: resolve(import.meta.dirname, '../../../..') };
+        const request = { agent: 'codex', command: ['fake-agent'], projectFolder: 'design', prompt: 'Start work' };
+
+        await service.start(project, request, vi.fn(), vi.fn(), vi.fn());
+
+        expect(claudeUsagePoller.requestPoll).not.toHaveBeenCalled();
+        expect(ticks).toHaveLength(0);
     });
 
     it('keeps approval state separate from conversation persistence and other pending input', async () => {
@@ -868,7 +1288,7 @@ describe('AgentRunnerService state handling', () => {
         expect(answerApproval).toHaveBeenCalledWith(41, 'accept');
         expect(run.conversation.entries).toEqual([]);
         expect(run.conversation.status).toBe('waitingForInput');
-        expect(persistConversationCheckpoint).toHaveBeenCalledOnce();
+        expect(persistConversationCheckpoint).toHaveBeenCalledTimes(2);
         expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'approval' }));
         const approvalCallIndex = run.onEvent.mock.calls.findIndex(([event]) => event.type === 'approval');
         expect(persistConversationCheckpoint.mock.invocationCallOrder[0])

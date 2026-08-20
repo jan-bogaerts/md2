@@ -8,10 +8,11 @@ import { resolveProjectConfigPaths, type MarkdownFile, type ProjectConfig, type 
 import type { RemarkableBridge } from '../../data/remarkable_bridge'
 import { agentAcknowledgementService } from '../agents/agent_acknowledgement_service'
 import { agentConversationService, loadAgentConversation } from '../agents/agent_conversation_service'
+import { planAgentReferenceMigration } from '../agents/agent_reference_migration'
 import { CardOperations, type CardOperationsDeps } from './card_operations'
 import { configService } from '../config/config_service'
 import { type DataServiceDependencies, getProjectConfigOrNull, reportCommitFlushFailure } from './data_service_context'
-import { notifyActionCardStateChange } from '../actions/action_run_registry'
+import { actionRunRegistry, notifyActionCardStateChange } from '../actions/action_run_registry'
 import { AgentIntegration, type AgentIntegrationDeps } from '../agents/agent_integration'
 import { ProjectLoading, type ProjectLoadingDeps } from '../project/project_loading'
 import { ProjectState } from '../project/project_state'
@@ -27,6 +28,7 @@ import { dialogService } from '../dialog_service'
 import type { CardParseError } from './markdown_parsing_service'
 import type { OpenDocumentSaveReference } from '../open_files_service'
 import { CARD_CHANGED_EVENT, CARD_FIELDS, cardCollectionFieldChangedEvent, cardFieldChangedEvent, type CardField } from './card_events'
+import { projectAgentTokenUsageService } from '../agents/project_agent_token_usage_service'
 
 export { CARD_CHANGED_EVENT, cardCollectionFieldChangedEvent, cardFieldChangedEvent } from './card_events'
 export type { CardField } from './card_events'
@@ -79,6 +81,7 @@ function eventCard(card: ProjectSnapshot['activeCards'][number]) {
             affects: [...card.header.affects],
             agentLogReferences: [...card.header.agentLogReferences],
             policy: { ...card.header.policy },
+            references: [...card.header.references],
         },
     }
 }
@@ -112,6 +115,7 @@ function cardFieldChanged(field: CardField, previousCard: CardAddedEventDetail['
     }
     if (field === 'ordering') return previousHeader.after !== header.after || previousHeader.status !== header.status
     if (field === 'policy') return !isSamePolicy(previousHeader.policy, header.policy)
+    if (field === 'references') return !isSameArray(previousHeader.references, header.references)
     if (field === 'status') return previousHeader.status !== header.status
     if (field === 'title') return previousHeader.title !== header.title
 
@@ -134,6 +138,8 @@ export class DataService extends EventTarget {
     private commitBatcher: CommitBatcher | null = null
     private remarkableBridge: RemarkableBridge | null = null
     private storage: StorageService | null = null
+    private fullProjectLoaded = false
+    private readonly reportedAgentReferenceMigrationConflicts: Set<string> = new Set()
     private readonly projectState: ProjectState
     private readonly saveStateService: SaveStateService
     private persistenceSnapshot: DataPersistenceSnapshot = { hasPendingFileCommit: false, hasPendingPush: false, isSaving: false }
@@ -169,7 +175,18 @@ export class DataService extends EventTarget {
             (projectLoadToken) => this.agents.prepareProjectConversationLoad(projectLoadToken),
         )
         this.releases = new ReleaseOperations(this.createReleaseOperationsDependencies(), () => this.cards.flushPendingCommits())
-        agentConversationService.subscribe(() => this.dispatchChanged())
+        agentConversationService.subscribe(() => {
+            this.dispatchChanged()
+            void projectAgentTokenUsageService.refresh().catch((error: unknown) => {
+                dialogService.error(error, { fallbackMessage: 'Could not refresh project agent token usage' })
+            })
+        })
+        actionRunRegistry.subscribeActiveRunEvents((event) => {
+            if (event.type !== 'update' || event.update.kind !== 'agentUsage') return
+            void projectAgentTokenUsageService.refresh().catch((error: unknown) => {
+                dialogService.error(error, { fallbackMessage: 'Could not refresh project agent token usage' })
+            })
+        })
         register('dataService', this)
     }
 
@@ -177,6 +194,7 @@ export class DataService extends EventTarget {
         this.projectLoading.reset()
         this.agents.reset()
         this.projectState.resetLoadedProject()
+        this.fullProjectLoaded = false
         this.remarkableBridge = dependencies.remarkableBridge ?? null
         this.storage = withSaveStateTracking(dependencies.storage, this.saveStateService)
         this.initializeStorageServices()
@@ -223,6 +241,10 @@ export class DataService extends EventTarget {
         }
     }
 
+    isFullProjectLoaded() {
+        return this.fullProjectLoaded
+    }
+
     getPersistenceSnapshot(): DataPersistenceSnapshot {
         const currentProject = this.projectState.project
 
@@ -240,8 +262,9 @@ export class DataService extends EventTarget {
     getConfig(): ProjectConfig | null {
         return getProjectConfigOrNull(this.storage)
     }
+
     async listAgentConversations(context: ActionContext) {
-        if (context.kind === 'project') return this.agents.listProjectAgentConversations()
+        if (context.kind === 'project' || context.kind === 'merge-conflict') return this.agents.listProjectAgentConversations()
         if (!context.cardInternalId) throw new Error(`Missing cardInternalId for ${context.kind} agent conversation context`)
 
         return this.agents.ensureAgentConversationsForCard(context.cardInternalId)
@@ -347,36 +370,44 @@ export class DataService extends EventTarget {
 
     private createAgentIntegrationDependencies(): AgentIntegrationDeps {
         return {
-            beginAgentConversationLoad: () => this.projectState.beginAgentConversationLoad(),
-            isCurrentAgentConversationLoad: (agentConversationLoadToken) => (
-                this.projectState.isCurrentAgentConversationLoad(agentConversationLoadToken)
-            ),
+            conversationsChanged: (cardPath) => {
+                this.projectState.refreshCardConversations(cardPath, this.requireDependencies().config.workingFolder)
+                this.dispatchEvent(new Event(cardFieldChangedEvent(cardPath, 'conversation')))
+            },
+            findCardByInternalId: (cardInternalId) => this.projectState.findCardByInternalId(cardInternalId),
             isCurrentLoad: (project, projectLoadToken) => this.projectState.isCurrentLoad(project, projectLoadToken),
             project: () => this.projectState.project,
-            refreshCardConversations: (path, workingFolder) => (
-                this.projectState.refreshCardConversations(path, workingFolder)
-            ),
             requireDependencies: () => this.requireDependencies(),
             snapshot: () => this.projectState.snapshot,
-            conversationChanged: (cardPath) => this.dispatchEvent(new Event(cardFieldChangedEvent(cardPath, 'conversation'))),
         }
     }
 
     private createProjectLoadingDependencies(): ProjectLoadingDeps {
         return {
-            beginProjectLoad: () => this.projectState.beginProjectLoad(),
+            beginProjectLoad: () => {
+                this.fullProjectLoaded = false
+                return this.projectState.beginProjectLoad()
+            },
             clearLoadedProject: () => this.projectState.resetLoadedProject(),
             commitPathsInFlight: () => this.projectState.commitPathsInFlight,
             dispatchChanged: () => this.dispatchChanged(),
             dispatchPersistenceChanged: () => this.dispatchPersistenceChanged(),
-            dispatchRepositoryChanged: (event) => this.dispatchEvent(new CustomEvent('repositoryChanged', { detail: event })),
+            dispatchRepositoryChanged: (event) => {
+                projectAgentTokenUsageService.handleRepositoryChange(event)
+                this.dispatchEvent(new CustomEvent('repositoryChanged', { detail: event }))
+            },
             files: () => this.projectState.files,
             flushPendingChanges: flushAggregatePendingChanges,
+            hydrateActiveCardConversations: () => this.agents.hydrateActiveCardConversations(),
             matchesCurrentContent: (path, content) => this.projectState.matchesCurrentContent(path, content),
             isCurrentLoad: (project, projectLoadToken) => this.projectState.isCurrentLoad(project, projectLoadToken),
             mergeBackgroundProjectFiles: (files, workingFolder, repositoryFiles) => (
                 this.projectState.mergeBackgroundProjectFiles(files, workingFolder, repositoryFiles)
             ),
+            markFullProjectLoaded: () => {
+                this.fullProjectLoaded = true
+            },
+            migrateAgentLogReferences: () => this.migrateAgentLogReferences(),
             project: () => this.projectState.project,
             replaceFiles: (files, workingFolder) => this.projectState.replaceFiles(files, workingFolder),
             replaceProject: (project) => this.projectState.replaceProject(project),
@@ -411,6 +442,37 @@ export class DataService extends EventTarget {
     private refreshSnapshot(workingFolder: string) {
         this.projectState.refreshSnapshot(workingFolder)
         this.dispatchChanged()
+    }
+    private async migrateAgentLogReferences() {
+        const snapshot = this.projectState.snapshot
+        if (!snapshot) return
+
+        const cards = [...snapshot.activeCards, ...snapshot.backgroundCards]
+        const { conflicts, plans } = planAgentReferenceMigration(cards)
+        const project = this.projectState.project
+        const newConflicts = conflicts.filter(({ cardPath, message }) => {
+            const key = `${project?.id}:${project?.branch}:${cardPath}:${message}`
+            if (this.reportedAgentReferenceMigrationConflicts.has(key)) return false
+
+            this.reportedAgentReferenceMigrationConflicts.add(key)
+
+            return true
+        })
+        if (newConflicts.length > 0) {
+            const details = newConflicts.map(({ cardPath, message }) => `${cardPath}: ${message}`).join('\n')
+            dialogService.warning(details, { title: 'Some card activity references were not migrated' })
+        }
+        if (plans.length === 0) return
+
+        const resumeAutomaticCommit = this.cards.deferAutomaticCommit()
+        try {
+            for (const { cardPath, references } of plans) {
+                this.cards.setAgentLogReferences(cardPath, references, 'Migrate card activity references')
+            }
+        } finally {
+            resumeAutomaticCommit()
+        }
+        await this.cards.flushPendingCommits()
     }
     private initializeStorageServices() {
         if (!this.storage) throw new Error('Data service storage is not initialized')

@@ -49,6 +49,9 @@ function paletteForMode(mode: PaletteMode, colorScheme: ColorSchemeConfig, backg
         custom: {
             borderHover: modePalette.text.disabled,
             borderStrong: modePalette.divider,
+            chartPalette: isDark
+                ? ['#7aa2f7', '#9ece6a', '#e0af68', '#bb9af7', '#7dcfff', '#f7768e', '#73daca', '#c0caf5']
+                : ['#3366cc', '#2e8b57', '#d97706', '#7c3aed', '#0284c7', '#dc2626', '#0f766e', '#64748b'],
             colHead: modePalette.text.secondary,
             primaryBg: primaryBackground,
             text3: modePalette.text.secondary,
@@ -105,6 +108,7 @@ export function createAppTheme(
                 },
             },
             MuiIconButton: { styleOverrides: { root: { borderRadius: APP_BORDER_RADIUS } } },
+            MuiMenuItem: { defaultProps: { dense: true } },
             MuiInput: {
                 styleOverrides: {
                     root: {

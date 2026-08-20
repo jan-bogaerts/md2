@@ -16,6 +16,7 @@ import { projectPersistenceService } from '../services/project/project_persisten
 import { projectAccessService } from '../services/project/project_access_service'
 import { cardMarkdownDataSource } from './editor/card_markdown_data_source'
 import { AppThemeProvider } from '../theme/theme_provider'
+import { createAgentTokenUsageSummary, serializeAgentTokenUsageSummary } from '../../../shared/agent_token_usage_summary.mjs'
 import { DialogDisplay } from './dialog_display'
 import { ProjectWorkspace } from './project_workspace'
 import { ProjectToolbarMenu } from './shell/project_toolbar_menu'
@@ -36,6 +37,10 @@ const auth: UseGithubAuthResult = {
 
 function createBridge(actionFiles: ActionFile[] = []): ElectronDataBridge {
     const files = [
+        {
+            content: serializeAgentTokenUsageSummary(createAgentTokenUsageSummary()),
+            path: 'agent_token_usage.json',
+        },
         {
             content: '---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\naffects:\n---\n\n# Root',
             path: 'design/F-1-root.md',
@@ -65,7 +70,7 @@ function createBridge(actionFiles: ActionFile[] = []): ElectronDataBridge {
         }),
         hasPendingPush: vi.fn(async () => false),
         listBranches: vi.fn(async () => [{ name: 'main' }, { name: 'feature' }]),
-        listRepositoryFiles: vi.fn(async () => ['app/src/app.tsx', 'design/F-1-root.md', ...actionFiles.map(({ path }) => path)]),
+        listRepositoryFiles: vi.fn(async () => ['app/src/app.tsx', ...files.map(({ path }) => path), ...actionFiles.map(({ path }) => path)]),
         listTopLevelFolders: vi.fn(async () => [{ name: 'design', path: 'design' }]),
         loadActionFiles: vi.fn(async () => actionFiles),
         loadFile: vi.fn(async (_project, path) => {
@@ -80,6 +85,12 @@ function createBridge(actionFiles: ActionFile[] = []): ElectronDataBridge {
             workingFolder: 'design',
         })),
         loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, projectFolder: '', workingFolder: 'design' })),
+        loadTextFile: vi.fn(async (_project, path) => {
+            const file = files.find((candidate) => candidate.path === path)
+            if (!file) throw new Error(`Missing file: ${path}`)
+
+            return file
+        }),
         getMergeConflictSession: vi.fn(async () => null),
         onMergeConflictSessionChanged: vi.fn(() => vi.fn()),
         onWorktreesChanged: vi.fn(() => vi.fn()),
@@ -94,7 +105,7 @@ function createBridge(actionFiles: ActionFile[] = []): ElectronDataBridge {
         push: vi.fn(),
         resolveProject: vi.fn(async (project) => project),
         saveProjectConfig: vi.fn(),
-        addWorktree: vi.fn(async () => false),
+        addWorktree: vi.fn(async () => undefined),
         removeWorktree: vi.fn(async () => undefined),
         watchProject: vi.fn(() => vi.fn()),
     }
@@ -123,6 +134,7 @@ function createResetStorage(): StorageService {
         loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         loadProjectConfig: vi.fn(async () => null),
+        loadTextFile: vi.fn(async (_project, path) => ({ content: '', path })),
         moveFiles: vi.fn(),
         push: vi.fn(),
         saveProjectConfig: vi.fn(),
@@ -174,8 +186,7 @@ async function chooseBranch(branch: string) {
 async function requestLocalProject() {
     fireEvent.click(screen.getByRole('button', { name: 'Project' }))
     fireEvent.click(screen.getByRole('menuitem', { name: 'Open project...' }))
-    fireEvent.mouseDown(await screen.findByRole('combobox', { name: 'Source' }))
-    fireEvent.click(await screen.findByRole('option', { name: 'Local folder' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Folder' }))
     fireEvent.click(screen.getByRole('button', { name: 'Choose local repository folder' }))
 }
 
@@ -249,7 +260,7 @@ describe('ProjectWorkspace', () => {
         })
     })
 
-    it('does not launch the Electron folder picker before Local folder is chosen', async () => {
+    it('does not launch the Electron folder picker before Folder is chosen', async () => {
         const bridge = createBridge()
         window.md2Data = bridge
         renderProjectSurface(false)
@@ -259,8 +270,7 @@ describe('ProjectWorkspace', () => {
 
         expect(await screen.findByRole('dialog', { name: 'Open project' })).toBeInTheDocument()
         expect(bridge.openProjectFolder).not.toHaveBeenCalled()
-        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Source' }))
-        fireEvent.click(await screen.findByRole('option', { name: 'Local folder' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Folder' }))
         expect(bridge.openProjectFolder).not.toHaveBeenCalled()
         fireEvent.click(screen.getByRole('button', { name: 'Choose local repository folder' }))
 
@@ -277,7 +287,6 @@ describe('ProjectWorkspace', () => {
 
         expect(bridge.openProjectFolder).toHaveBeenCalledOnce()
         expect(bridge.listBranches).not.toHaveBeenCalled()
-        expect(screen.queryByRole('combobox', { name: 'Source' })).toBeNull()
         expect(await within(screen.getByLabelText('Card columns')).findByText('Root')).toBeInTheDocument()
         expect(within(screen.getByLabelText('Card columns')).getByText('F-1')).toBeInTheDocument()
         expect(screen.getAllByText('active').length).toBeGreaterThan(0)
@@ -695,7 +704,8 @@ describe('ProjectWorkspace', () => {
         fireEvent.change(await screen.findByLabelText('Release name'), { target: { value: 'v1' } })
         fireEvent.click(screen.getByRole('button', { name: 'Complete release' }))
 
-        await waitFor(() => expect(bridge.moveFiles).toHaveBeenCalled())
+        const releaseCommit = expect.objectContaining({ moves: expect.arrayContaining([expect.objectContaining({ fromPath: 'design/F-1-root.md' })]) })
+        await waitFor(() => expect(bridge.commit).toHaveBeenCalledWith(releaseCommit))
         expect(screen.queryByText('Background cards loaded: 2')).toBeNull()
     })
 
@@ -733,6 +743,22 @@ describe('ProjectWorkspace', () => {
 
         expect(screen.getByLabelText('File tree')).toBeInTheDocument()
         expect(screen.queryByRole('heading', { name: 'Files' })).toBeNull()
+    })
+
+    it('shows stats without board or file navigation and restores board afterward', async () => {
+        await dataService.projectLoading.openProject({ branch: 'main', id: 'project' })
+        renderProjectSurface()
+
+        act(() => workspaceViewService.setViewMode('stats'))
+
+        await waitFor(() => expect(screen.getByRole('heading', { name: 'Project stats' })).toBeVisible())
+        expect(screen.getByLabelText('Stats view')).toBeVisible()
+        expect(screen.getByLabelText('Card columns')).not.toBeVisible()
+        expect(screen.getByLabelText('File tree')).not.toBeVisible()
+
+        act(() => workspaceViewService.setViewMode('cards'))
+        expect(screen.getByLabelText('Card columns')).toBeVisible()
+        expect(screen.getByLabelText('Stats view')).not.toBeVisible()
     })
 
     it('restores open files after switching from text view to cards and back', async () => {

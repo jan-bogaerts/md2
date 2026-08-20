@@ -13,6 +13,8 @@ const windowStateKeeper = require('electron-window-state');
 const { readDesktopConfig, resolveBridgeAllowedOrigins, saveDesktopConfig } = require('./src/shell/config');
 const { AgentRunnerService } = require('./src/actions/agent/agent_runner_service');
 const { CodexRuntimeService } = require('./src/actions/agent/codex_runtime_service');
+const { ClaudeRuntimeService } = require('./src/actions/agent/claude_runtime_service');
+const { UsageMetricsService } = require('./src/actions/agent/usage_metrics_service');
 const { updateCodexCli } = require('./src/actions/agent/codex_cli_update');
 const { AgentExecutableResolver, loadAgentExecutableAvailability } = require('./src/actions/agent/agent_executable_availability');
 const { ActionSchedulerService } = require('./src/actions/action/action_scheduler_service');
@@ -22,6 +24,7 @@ const { createLocalBridgeDispatch } = require('./src/shell/local_bridge_dispatch
 const localGitService = require('./src/git/local_git_service');
 const { RemoteControlService } = require('./src/integrations/remote_control_service');
 const remarkableService = require('./src/integrations/remarkable_service');
+const { sendSentryRequest } = require('./src/integrations/sentry_service');
 const { WorktreeService } = require('./src/git/worktree_service');
 const { MergeConflictService } = require('./src/git/merge_conflict_service');
 const { ActionWorktreeRunService } = require('./src/actions/action/action_worktree_run_service');
@@ -50,21 +53,38 @@ const {
     REMOTE_CONTROL_START_CHANNEL,
     REMOTE_CONTROL_STATUS_CHANNEL,
     REMOTE_CONTROL_STOP_CHANNEL,
+    SENTRY_REQUEST_CHANNEL,
     THEME_SET_MODE_CHANNEL,
 } = require('./src/shell/ipc_channels');
 const { checkForUpdate, registerUpdateDownload } = require('./src/shell/update_service');
 const { CloseCoordinator } = require('./src/shell/close_coordinator');
 const { createManagedWindow } = require('./src/shell/window_state');
+const { ProjectStatsWorkerService } = require('./src/stats/project_stats_worker_service');
 
 const QUIT_WATCHDOG_TIMEOUT_MS = 10000;
 const EVENT_METHODS = new Set(['runSearchRegexpAgent', 'startAgentConversation']);
-const SUBSCRIPTION_METHODS = new Set(['onActionRun', 'onCodexRateLimits', 'onCodexUpdateRequired', 'onMergeConflictSessionChanged', 'onWorktreesChanged', 'watchProject']);
+const SUBSCRIPTION_METHODS = new Set([
+    'onActionRun',
+    'onClaudeRateLimits',
+    'onCodexRateLimits',
+    'onCodexUpdateRequired',
+    'onMergeConflictSessionChanged',
+    'onWorktreesChanged',
+    'watchProject',
+]);
 
 const store = new Store();
 Store.initRenderer();
 const agentExecutableResolver = new AgentExecutableResolver();
+const claudeRuntimeService = new ClaudeRuntimeService();
 const codexRuntimeService = new CodexRuntimeService();
-const agentRunnerService = new AgentRunnerService({ codexRuntimeService, executableResolver: agentExecutableResolver });
+const usageMetricsService = new UsageMetricsService({ errorReporter: captureError });
+const agentRunnerService = new AgentRunnerService({
+    claudeRuntimeService,
+    codexRuntimeService,
+    executableResolver: agentExecutableResolver,
+    usageMetricsService,
+});
 const mergeConflictService = new MergeConflictService({
     configProvider: () => readDesktopConfig(store),
     runGit: localGitService.runGit,
@@ -84,17 +104,20 @@ const actionRunnerService = new ActionRunnerService({
     errorReporter: captureError,
     localGitService,
     mergeConflictService,
+    usageMetricsService,
 });
 const actionSchedulerService = new ActionSchedulerService({
     actionRunnerService,
     localGitService,
 });
+const projectStatsWorkerService = new ProjectStatsWorkerService();
 const localBridgeDispatch = createLocalBridgeDispatch({
     actionRunnerService,
     actionSchedulerService,
     actionWorktreeRunService,
     agentExecutableAvailability: (profiles) => loadAgentExecutableAvailability(profiles, { resolver: agentExecutableResolver }),
     agentRunnerService,
+    claudeRuntimeService,
     codexRuntimeService,
     desktopConfigStore: store,
     diffService,
@@ -102,6 +125,7 @@ const localBridgeDispatch = createLocalBridgeDispatch({
     mergeConflictService,
     openProjectFolder: () => openProjectFolder(BrowserWindow.getFocusedWindow()),
     openWorktreeFolder: () => openWorktreeFolder(BrowserWindow.getFocusedWindow()),
+    projectStatsWorkerService,
     readDesktopConfig,
     saveDesktopConfig,
     updateCodexCli,
@@ -199,6 +223,10 @@ function registerRemarkableBridge() {
     ipcMain.handle(REMARKABLE_TEST_CONNECTION_CHANNEL, (_event, settings) => remarkableService.testConnection(settings));
     ipcMain.handle(REMARKABLE_LIST_IMAGE_FILES_CHANNEL, (_event, settings) => remarkableService.listImageFiles(settings));
     ipcMain.handle(REMARKABLE_IMPORT_FILES_CHANNEL, (_event, request) => remarkableService.importFiles(request));
+}
+
+function registerSentryBridge() {
+    ipcMain.handle(SENTRY_REQUEST_CHANNEL, (_event, request) => sendSentryRequest(request));
 }
 
 function registerRemoteControlBridge() {
@@ -318,6 +346,7 @@ app.whenReady().then(async () => {
     registerConfigBridge();
     registerLocalBridge();
     registerRemarkableBridge();
+    registerSentryBridge();
     registerRemoteControlBridge();
     registerThemeBridge();
     const getPrimaryWindow = () => BrowserWindow.getAllWindows()[0] ?? null;

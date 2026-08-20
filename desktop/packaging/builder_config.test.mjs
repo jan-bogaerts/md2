@@ -23,6 +23,7 @@ describe('electron-builder configuration', () => {
         expect(config).toMatchObject({
             appId: APP_ID,
             asar: true,
+            beforeBuild: expect.any(Function),
             extraMetadata: { main: 'desktop/main.js' },
             forceCodeSigning: true,
             productName: PRODUCT_NAME,

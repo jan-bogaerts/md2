@@ -1,4 +1,4 @@
-const { normalizeAgentTokenUsage } = require('../../../../shared/agent_usage_math.mjs');
+const { validateAgentTokenUsage } = require('../../../../shared/agent_usage_math.mjs');
 const { claudeAssistantText, claudeChangedPaths, claudeTranscriptEvents, claudeUsage } = require('./agent_claude_events');
 const { codexChangedPaths, codexTranscriptEvents } = require('./agent_codex_events');
 const { JsonLineBuffer } = require('./agent_event_utils');
@@ -11,19 +11,26 @@ const MISSING_SESSION_CODES = new Set([
     'thread_not_found',
 ]);
 
-// Codex exec reports cached tokens as a subset of input_tokens; subtracting here makes inputTokens
-// fresh-only, matching how claude reports them.
+// Codex exec reports one `turn.completed` per turn whose counters already cover every model request
+// in that turn, so this needs no accumulation of its own (the streaming app-server protocol does;
+// see `codexTurnCounters`). Cached tokens are a subset of input_tokens and reasoning a subset of
+// output_tokens; subtracting here makes the buckets disjoint and inputTokens fresh-only, matching
+// how claude reports them.
 function codexUsage(event) {
     const usage = event.usage;
     if (event.type !== 'turn.completed' || !usage || typeof usage !== 'object' || Array.isArray(usage)) return null;
     const cachedInputTokens = usage.cached_input_tokens;
 
-    return normalizeAgentTokenUsage({
-        cachedInputTokens,
-        inputTokens: (usage.input_tokens ?? 0) - (cachedInputTokens ?? 0),
-        outputTokens: usage.output_tokens,
-        reasoningTokens: usage.reasoning_output_tokens,
-    });
+    const inputTokens = usage.input_tokens;
+    const outputTokens = usage.output_tokens;
+    const reasoningTokens = usage.reasoning_output_tokens ?? 0;
+
+    return validateAgentTokenUsage({
+        cachedInputTokens: cachedInputTokens ?? 0,
+        inputTokens: inputTokens - (cachedInputTokens ?? 0),
+        outputTokens: outputTokens - reasoningTokens,
+        reasoningTokens,
+    }, usage.total_tokens);
 }
 
 function providerUsage(agent, event) {

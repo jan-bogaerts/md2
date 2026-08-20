@@ -6467,7 +6467,6 @@
       "details": {
         "type": "agent",
         "agent": "claude",
-        "approvalPolicy": "default",
         "model": "default",
         "thinkingLevel": "none"
       },

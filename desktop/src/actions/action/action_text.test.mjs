@@ -3,7 +3,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const require = createRequire(import.meta.url);
-const { resolveAgentPrompt, resolvePlaceholders } = require('./action_text');
+const { resolveAgentPrompt, resolvePlaceholders, resolvePopupPrompt } = require('./action_text');
 
 const project = { rootPath: 'C:/repo' };
 const worktreeProject = { rootPath: 'C:/worktrees/2' };
@@ -94,5 +94,33 @@ describe('resolveAgentPrompt', () => {
 
     it('resolves an empty custom prompt', () => {
         expect(resolveAgentPrompt({ prompt: '{{card-prompt}}' }, {}, project, project, projectFolder, releasesFolder, activeCardsFolder, '')).toBe('');
+    });
+});
+
+describe('resolvePopupPrompt', () => {
+    it('resolves popup context against linked worktree without rescanning resolved values', () => {
+        const context = { file: 'design/card.md', title: '{{card-file}}' };
+
+        expect(resolvePopupPrompt(
+            '{{worktree-folder}} {{repository-folder}} {{card-file}} {{card-title}} {{card-prompt}} {{unknown}}',
+            context,
+            worktreeProject,
+            project,
+            projectFolder,
+            releasesFolder,
+            activeCardsFolder,
+        )).toBe('C:/worktrees/2 C:/repo design/card.md {{card-file}}  {{unknown}}');
+    });
+
+    it('rejects missing popup context values', () => {
+        expect(() => resolvePopupPrompt(
+            '{{card-file}}',
+            { kind: 'project' },
+            project,
+            project,
+            projectFolder,
+            releasesFolder,
+            activeCardsFolder,
+        )).toThrow('Cannot resolve card-file placeholder without a file context');
     });
 });

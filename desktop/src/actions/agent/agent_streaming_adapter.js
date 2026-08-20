@@ -1,4 +1,5 @@
-const { normalizeAgentTokenUsage } = require('../../../../shared/agent_usage_math.mjs');
+const { validateAgentTokenUsage } = require('../../../../shared/agent_usage_math.mjs');
+const { appendBoundedAgentResult } = require('../../../../shared/agent_conversations.mjs');
 const { ClaudeStreamingAdapter } = require('./agent_claude_streaming_adapter');
 const { codexChangedPaths } = require('./agent_codex_events');
 const { diagnosticEvent, normalizeCodexEvent, systemEvent } = require('./agent_codex_event');
@@ -25,16 +26,58 @@ function codexInput(content) {
     return [{ text: requireMessage(content), type: 'text' }];
 }
 
-// The app-server already reports cache-free input tokens, unlike `codex exec`, so no subtraction here.
-function codexUsage(params) {
-    const usage = params.tokenUsage?.last;
-    if (!usage) return null;
+/** Reads one Codex breakdown, rejecting malformed counters and totals before they feed turn arithmetic. */
+function codexUsageCounters(breakdown) {
+    if (!breakdown || typeof breakdown !== 'object' || Array.isArray(breakdown)) return null;
+    const cachedInputTokens = breakdown.cachedInputTokens ?? 0;
+    const reasoningTokens = breakdown.reasoningOutputTokens ?? 0;
+    validateAgentTokenUsage({
+        cachedInputTokens,
+        inputTokens: breakdown.inputTokens - cachedInputTokens,
+        outputTokens: breakdown.outputTokens - reasoningTokens,
+        reasoningTokens,
+    }, breakdown.totalTokens);
 
-    return normalizeAgentTokenUsage({
-        cachedInputTokens: usage.cachedInputTokens,
-        inputTokens: usage.inputTokens,
-        outputTokens: usage.outputTokens,
-        reasoningTokens: usage.reasoningOutputTokens,
+    return {
+        cachedInputTokens,
+        inputTokens: breakdown.inputTokens,
+        outputTokens: breakdown.outputTokens,
+        reasoningTokens,
+    };
+}
+
+/** Growth of cumulative counters; clamped so an out-of-order or reset reading cannot report negative usage. */
+function codexUsageGrowth(counters, baseline) {
+    return {
+        cachedInputTokens: Math.max(counters.cachedInputTokens - baseline.cachedInputTokens, 0),
+        inputTokens: Math.max(counters.inputTokens - baseline.inputTokens, 0),
+        outputTokens: Math.max(counters.outputTokens - baseline.outputTokens, 0),
+        reasoningTokens: Math.max(counters.reasoningTokens - baseline.reasoningTokens, 0),
+    };
+}
+
+/**
+ * Codex counts tokens per model request, but one turn spans many of them: `tokenUsage.last` holds
+ * only the newest request while `tokenUsage.total` accumulates the whole thread. Turn usage is the
+ * growth of `total` since the turn began, which matches the whole-turn totals Claude reports and
+ * makes both providers comparable. `total - last` reconstructs that baseline from the turn's first
+ * reading. Codex builds without `total` fall back to the newest request alone.
+ */
+function codexTurnCounters(params) {
+    const last = codexUsageCounters(params.tokenUsage?.last);
+    const totals = codexUsageCounters(params.tokenUsage?.total) ?? last;
+    if (!last || !totals) return null;
+
+    return { baseline: codexUsageGrowth(totals, last), totals };
+}
+
+/** Splits Codex counters into disjoint buckets: cached input sits inside input, reasoning inside output. */
+function codexUsage(counters) {
+    return validateAgentTokenUsage({
+        cachedInputTokens: counters.cachedInputTokens,
+        inputTokens: counters.inputTokens - counters.cachedInputTokens,
+        outputTokens: counters.outputTokens - counters.reasoningTokens,
+        reasoningTokens: counters.reasoningTokens,
     });
 }
 
@@ -45,6 +88,16 @@ function codexContextWindowUsage(params) {
     if (!Number.isSafeInteger(capacityTokens) || capacityTokens <= 0) return null;
 
     return { capacityTokens, usedTokens };
+}
+
+function isCodexContextOnlyTokenUsage(params) {
+    const usage = params.tokenUsage?.last;
+    if (!usage || usage.totalTokens <= 0) return false;
+
+    return usage.cachedInputTokens === 0
+        && usage.inputTokens === 0
+        && usage.outputTokens === 0
+        && (usage.reasoningOutputTokens ?? 0) === 0;
 }
 
 function eventTextParts(event, field, index) {
@@ -97,6 +150,7 @@ class CodexStreamingAdapter {
         this.threadId = null;
         this.turnContextWindowUsage = undefined;
         this.turnUsage = null;
+        this.turnUsageBaseline = null;
     }
 
     async start(prompt) {
@@ -255,12 +309,16 @@ class CodexStreamingAdapter {
     }
 
     async handleNotification(method, params) {
+        if (this.threadId && params.threadId !== undefined && params.threadId !== this.threadId) return;
+
         if (method === 'turn/started') {
             this.activeItems.clear();
             this.assistantItemOrder = [];
             this.assistantStreams.clear();
             this.completedItemIds.clear();
             this.turnContextWindowUsage = undefined;
+            this.turnUsage = null;
+            this.turnUsageBaseline = null;
             this.activeTurnId = params.turn?.id ?? params.turnId;
             await this.onEvent({ turnId: this.activeTurnId, type: 'turnStarted' });
             return;
@@ -302,7 +360,9 @@ class CodexStreamingAdapter {
         if (method === 'item/commandExecution/outputDelta') {
             const trackedItem = await this.requireActiveItem(method, params.itemId, 'commandExecution');
             if (!trackedItem) return;
-            trackedItem.event = { ...trackedItem.event, content: `${trackedItem.event.content}${params.delta}` };
+            const bounded = appendBoundedAgentResult(trackedItem.resultState, params.delta);
+            trackedItem.resultState = bounded.state;
+            trackedItem.event = { ...trackedItem.event, content: bounded.value };
             await this.emitEvent(trackedItem.event);
             return;
         }
@@ -314,11 +374,17 @@ class CodexStreamingAdapter {
             return;
         }
         if (method === 'thread/tokenUsage/updated') {
-            const usage = codexUsage(params);
-            if (!usage) return;
+            if (isCodexContextOnlyTokenUsage(params)) {
+                this.turnContextWindowUsage = codexContextWindowUsage(params);
+                return;
+            }
+            const counters = codexTurnCounters(params);
+            if (!counters) return;
+            this.turnUsageBaseline ??= counters.baseline;
+            const usage = codexUsage(codexUsageGrowth(counters.totals, this.turnUsageBaseline));
             this.turnContextWindowUsage = codexContextWindowUsage(params);
             this.turnUsage = usage;
-            await this.onEvent({ type: 'usage', usage });
+            await this.onEvent({ contextWindowUsage: this.turnContextWindowUsage, type: 'usage', usage });
             return;
         }
         if (method === 'account/rateLimits/updated') {
@@ -371,6 +437,7 @@ class CodexStreamingAdapter {
             });
             this.turnContextWindowUsage = undefined;
             this.turnUsage = null;
+            this.turnUsageBaseline = null;
             return;
         }
         if (method?.startsWith('item/') && typeof params.itemId === 'string') {
@@ -406,6 +473,9 @@ class CodexStreamingAdapter {
             return;
         }
         const event = normalizeCodexEvent(item, 'inProgress');
+        const initialResult = item.type === 'commandExecution'
+            ? appendBoundedAgentResult(null, event?.content ?? '')
+            : null;
         const knownNonEvent = CODEX_NON_EVENT_ITEM_TYPES.has(item.type);
         const trackedItem = {
             event,
@@ -414,6 +484,7 @@ class CodexStreamingAdapter {
             bufferedAssistantText: '',
             item,
             itemType: item.type,
+            resultState: initialResult?.state ?? null,
         };
         this.activeItems.set(item.id, trackedItem);
         if (item.type === 'agentMessage') {

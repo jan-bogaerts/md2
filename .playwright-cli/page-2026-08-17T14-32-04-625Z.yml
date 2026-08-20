@@ -1,0 +1,96 @@
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - generic [ref=e5]:
+        - tablist [ref=e98]:
+          - tab [selected] [ref=e99] [cursor=pointer]: Home
+          - tab [ref=e100] [cursor=pointer]: Run
+        - button [ref=e101] [cursor=pointer]
+        - generic [ref=e21]:
+          - textbox [ref=e102]:
+            - /placeholder: Search cards…
+          - generic [ref=e26]: ⌘K
+          - group
+      - tabpanel [ref=e30]:
+        - generic [ref=e31]:
+          - group [ref=e103]:
+            - button [ref=e105] [cursor=pointer]
+            - generic [ref=e38]:
+              - combobox [disabled] [ref=e107]
+              - textbox [disabled]
+              - group
+            - generic [ref=e108]:
+              - button [disabled]
+            - generic [ref=e109]:
+              - button [disabled]
+            - generic [ref=e110]:
+              - button [disabled]
+          - separator [ref=e43]
+          - group [ref=e111]:
+            - button [ref=e113] [cursor=pointer]
+            - generic [ref=e114]:
+              - button [disabled]: Connecting
+          - separator [ref=e50]
+          - group [ref=e115]:
+            - group [ref=e52]:
+              - button [pressed] [ref=e116] [cursor=pointer]:
+                - generic [ref=e56]: Board
+              - button [ref=e117] [cursor=pointer]:
+                - generic [ref=e60]: List
+          - separator [ref=e61]
+          - button [disabled]: New action
+          - button [disabled]: New card
+          - group [ref=e118]:
+            - button [ref=e119] [cursor=pointer]
+    - region [ref=e120]:
+      - generic [ref=e67]:
+        - heading [level=2] [ref=e121]: No project open
+        - paragraph [ref=e69]: Open a GitHub repository or local folder to work with project cards.
+        - button [ref=e122] [cursor=pointer]: Open project...
+    - contentinfo [ref=e71]:
+      - generic [ref=e72]:
+        - generic [ref=e75]: "0"
+        - generic [ref=e76]: cards
+      - generic [ref=e77]:
+        - generic [ref=e79]: "0"
+        - generic [ref=e80]: active
+      - generic [ref=e81]: Saved locally
+      - generic [ref=e85]: Synced
+      - button [ref=e123] [cursor=pointer]: 0 tokens
+      - button [ref=e124] [cursor=pointer]: 0 agents
+  - dialog [active] [ref=e127]:
+    - heading "Open project" [level=2] [ref=e128]
+    - generic [ref=e130]:
+      - generic [ref=e131]:
+        - generic [ref=e132]: Source
+        - generic [ref=e133]:
+          - combobox "Source" [ref=e134] [cursor=pointer]: Personal repository
+          - textbox: personal
+          - group:
+            - generic: Source
+      - generic [ref=e135]:
+        - generic [ref=e136]: Filter repositories
+        - textbox "Filter repositories" [disabled] [ref=e138]
+      - generic [ref=e139]:
+        - generic: Repository
+        - generic [ref=e140]:
+          - combobox "Repository" [disabled] [ref=e141]
+          - textbox [disabled]
+          - group:
+            - generic: Repository
+      - separator [ref=e142]
+      - heading "Personal repository lookup" [level=6] [ref=e143]
+      - generic [ref=e144]:
+        - generic [ref=e145]:
+          - generic [ref=e146]: Owner
+          - textbox "Owner" [disabled] [ref=e148]
+        - generic [ref=e149]:
+          - generic [ref=e150]: Repository
+          - textbox "Repository" [disabled] [ref=e152]
+      - button "Load branches" [disabled]
+      - generic [ref=e153]:
+        - generic [ref=e154]: Branch
+        - textbox "Branch" [ref=e156]
+    - generic [ref=e157]:
+      - button "Cancel" [ref=e158] [cursor=pointer]
+      - button "Open Personal" [disabled]

@@ -5,6 +5,7 @@ import type { UseGithubAuthResult } from '../../auth/use_github_auth'
 import { workspaceViewService } from '../../services/project/workspace_view_service'
 import { GithubAuthToolbarButton } from './github_auth_toolbar_button'
 import { ThemeModeToggle } from './menu/theme_mode_toggle'
+import { MobileProjectStatus } from './mobile_project_status'
 
 const MOBILE_DRAWER_WIDTH = 300
 
@@ -26,12 +27,14 @@ export function MobileMainWindow(props: MobileMainWindowProps) {
     const cardNavigationElementRef = useRef<HTMLDivElement>(null)
     const navigationElementRef = useRef<HTMLDivElement>(null)
     const updateDrawerVisibility = useCallback(() => {
-        const isTextView = workspaceViewService.getSnapshot().viewMode === 'text'
+        const viewMode = workspaceViewService.getSnapshot().viewMode
+        const isTextView = viewMode === 'text'
+        const isStatsView = viewMode === 'stats'
         if (navigationElementRef.current) {
-            navigationElementRef.current.style.display = isTextView || showNavigationInCards ? 'flex' : 'none'
+            navigationElementRef.current.style.display = !isStatsView && (isTextView || showNavigationInCards) ? 'flex' : 'none'
         }
         if (cardNavigationElementRef.current) {
-            cardNavigationElementRef.current.style.display = !isTextView && !showNavigationInCards ? 'block' : 'none'
+            cardNavigationElementRef.current.style.display = !isStatsView && !isTextView && !showNavigationInCards ? 'block' : 'none'
         }
     }, [showNavigationInCards])
     const handleNavigationElement = useCallback((element: HTMLDivElement | null) => {
@@ -58,13 +61,21 @@ export function MobileMainWindow(props: MobileMainWindowProps) {
                         <Typography sx={{ fontWeight: 600 }} variant="body2">Theme</Typography>
                         <ThemeModeToggle />
                     </Box>
-                    <Box sx={{ flex: 1, minHeight: 0 }}>
-                        <Box ref={handleCardNavigationElement}>{cardNavigation}</Box>
+                    <Box data-testid="mobile-navigation-region" sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+                        <Box
+                            data-testid="mobile-card-navigation-scroll-region"
+                            ref={handleCardNavigationElement}
+                            sx={{ height: '100%', overflowX: 'hidden', overflowY: 'auto' }}
+                        >
+                            {cardNavigation}
+                        </Box>
                         <Box ref={handleNavigationElement} sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                             <Divider />
-                            <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto' }}>{leftPanel}</Box>
+                            <Box data-testid="mobile-navigation-scroll-region" sx={{ flex: 1, minHeight: 0, overflow: 'auto' }}>{leftPanel}</Box>
                         </Box>
                     </Box>
+                    <Divider />
+                    <MobileProjectStatus />
                     <Divider />
                     <Box component="footer" sx={{ display: 'flex', justifyContent: 'flex-end', p: 1.5 }}>
                         <GithubAuthToolbarButton auth={auth} />

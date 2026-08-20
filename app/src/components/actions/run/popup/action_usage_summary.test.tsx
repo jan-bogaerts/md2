@@ -31,6 +31,17 @@ function conversation(id: string, totalTokens: number, insertions = 0, deletions
     }
 }
 
+/** Conversation carrying a completed file-change event whose patch totals zero on both sides. */
+function zeroChangeConversation(id: string, totalTokens: number): AgentConversation {
+    const built = conversation(id, totalTokens)
+    built.entries = [{
+        content: 'edit', deletions: 0, id: `${id}-file`, insertions: 0, kind: 'event',
+        providerItemId: `${id}-file`, status: 'completed', timestamp: 'now', type: 'fileChange',
+    }]
+
+    return built
+}
+
 function commit(commitHash: string, insertions: number, deletions: number): CommitReference {
     return {
         actionId: 'implement',
@@ -87,7 +98,7 @@ function renderSummary(options: RenderSummaryOptions = {}) {
 }
 
 describe('ActionUsageSummary', () => {
-    it('always renders tokens but hides zero changes and lines', () => {
+    it('always renders tokens but hides changes when neither source has data', () => {
         renderSummary({ conversation: null })
 
         const tokens = screen.getByRole('button', { name: 'Tokens, Action/card scope' })
@@ -97,6 +108,16 @@ describe('ActionUsageSummary', () => {
         expect(screen.queryByRole('button', { name: 'Changes, Action/card scope' })).not.toBeInTheDocument()
         expect(screen.queryByRole('button', { name: 'Lines, Action/card scope' })).not.toBeInTheDocument()
         expect(screen.queryByText(/context:/u)).not.toBeInTheDocument()
+    })
+
+    it('hides changes when the conversation reports nothing and commit totals are zero', () => {
+        renderSummary({
+            conversation: conversation('conversation-1', 12),
+            history: [historyEntry('conversation-1', [commit('abc1234', 0, 0)])],
+        })
+
+        expect(screen.queryByRole('button', { name: 'Changes, Action/card scope' })).not.toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Tokens, Action/card scope' })).toBeInTheDocument()
     })
 
     it('does not render displayed conversation context occupancy', () => {
@@ -117,49 +138,84 @@ describe('ActionUsageSummary', () => {
         })
 
         fireEvent.click(screen.getByRole('button', { name: 'Tokens, Action/card scope' }), { detail: 1 })
-        fireEvent.click(screen.getByRole('button', { name: 'Changes, Action/card scope' }))
-        const lines = screen.getByRole('button', { name: 'Lines, Action/card scope' })
-        lines.focus()
-        fireEvent.click(lines, { detail: 0 })
+        const changes = screen.getByRole('button', { name: 'Changes, Action/card scope' })
+        changes.focus()
+        fireEvent.click(changes, { detail: 0 })
 
-        expect(onToggleScope).toHaveBeenCalledTimes(3)
+        expect(screen.queryByRole('button', { name: 'Lines, Action/card scope' })).not.toBeInTheDocument()
+        expect(onToggleScope).toHaveBeenCalledTimes(2)
     })
 
-    it('renders conversation values for every metric under conversation scope', () => {
+    it('prefers the conversation file-change count over commit totals in both scopes', () => {
         const displayedConversation = conversation('conversation-1', 12, 2, 1)
         const otherConversation = conversation('conversation-2', 20, 5, 4)
-        const matchingCommit = commit('abc1234', 6, 3)
-        const otherCommit = commit('def5678', 8, 7)
         renderSummary({
             conversation: displayedConversation,
             conversations: [displayedConversation, otherConversation],
             history: [
-                historyEntry(displayedConversation.id, [matchingCommit]),
-                historyEntry(otherConversation.id, [otherCommit]),
+                historyEntry(displayedConversation.id, [commit('abc1234', 6, 3)]),
+                historyEntry(otherConversation.id, [commit('def5678', 8, 7)]),
             ],
             scope: 'conversation',
         })
 
         expect(screen.getByRole('button', { name: 'Tokens, Conversation scope' })).toHaveTextContent('tokens: 12')
-        expect(screen.getByRole('button', { name: 'Changes, Conversation scope' })).toHaveTextContent('changes: +2 / -1')
-        expect(screen.getByRole('button', { name: 'Lines, Conversation scope' })).toHaveTextContent('lines: 9')
+        const changes = screen.getByRole('button', { name: 'Changes, Conversation scope' })
+        expect(changes).toHaveTextContent('changes: +2 / -1')
+        expect(changes).not.toHaveTextContent('6')
+    })
+
+    it('falls back to commit totals when the conversation reports no file changes', () => {
+        const displayedConversation = conversation('conversation-1', 12)
+        const otherConversation = conversation('conversation-2', 20)
+        renderSummary({
+            conversation: displayedConversation,
+            conversations: [displayedConversation, otherConversation],
+            history: [
+                historyEntry(displayedConversation.id, [commit('abc1234', 6, 3)]),
+                historyEntry(otherConversation.id, [commit('def5678', 8, 7)]),
+            ],
+        })
+
+        expect(screen.getByRole('button', { name: 'Changes, Action/card scope' })).toHaveTextContent('changes: +14 / -10')
+    })
+
+    it('renders a zero-total conversation count instead of falling back to commits', () => {
+        const displayedConversation = zeroChangeConversation('conversation-1', 12)
+        renderSummary({
+            conversation: displayedConversation,
+            history: [historyEntry(displayedConversation.id, [commit('abc1234', 6, 3)])],
+        })
+
+        expect(screen.getByRole('button', { name: 'Changes, Action/card scope' })).toHaveTextContent('changes: +0 / -0')
+    })
+
+    it.each([
+        { deletions: 0, expected: 'changes: +6 / -0', insertions: 6, name: 'additions-only' },
+        { deletions: 3, expected: 'changes: +0 / -3', insertions: 0, name: 'deletions-only' },
+    ])('renders explicit zero side for $name commit history', ({ deletions, expected, insertions }) => {
+        renderSummary({
+            conversation: conversation('conversation-1', 12),
+            history: [historyEntry('conversation-1', [commit('abc1234', insertions, deletions)])],
+        })
+
+        expect(screen.getByRole('button', { name: 'Changes, Action/card scope' })).toHaveTextContent(expected)
     })
 
     it('keeps compactable prefixes separate while preserving accessible names and change colors', () => {
         renderSummary({ history: [historyEntry('conversation-1', [commit('abc1234', 3, 2)])] })
         const tokens = screen.getByRole('button', { name: 'Tokens, Action/card scope' })
         const changes = screen.getByRole('button', { name: 'Changes, Action/card scope' })
-        const lines = screen.getByRole('button', { name: 'Lines, Action/card scope' })
         const palette = createAppTheme('light').palette
 
         expect(tokens.querySelector('[data-usage-prefix]')).toHaveTextContent('tokens:')
         expect(changes.querySelector('[data-usage-prefix]')).toHaveTextContent('changes:')
-        expect(lines.querySelector('[data-usage-prefix]')).toHaveTextContent('lines:')
+        expect(changes).toHaveTextContent('changes: +2 / -1')
         expect(changes.querySelector('[data-usage-prefix]')?.nextElementSibling).toHaveStyle({ color: palette.success.main })
         expect(changes.querySelector('[data-usage-prefix]')?.nextElementSibling?.nextElementSibling).toHaveStyle({ color: palette.error.main })
     })
 
-    it('explains metric, switching, both values, and active-scope commit details', async () => {
+    it('explains the commit source, switching, both values, and active-scope commit details', async () => {
         const displayedConversation = conversation('conversation-1', 12)
         const otherConversation = conversation('conversation-2', 20)
         const matchingCommit = commit('abc1234', 6, 3)
@@ -174,16 +230,34 @@ describe('ActionUsageSummary', () => {
             scope: 'conversation',
         })
 
-        fireEvent.mouseOver(screen.getByRole('button', { name: 'Lines, Conversation scope' }))
+        fireEvent.mouseOver(screen.getByRole('button', { name: 'Changes, Conversation scope' }))
 
         const tooltip = await screen.findByRole('tooltip')
-        expect(tooltip).toHaveTextContent('Lines are additions plus deletions in captured Git commit diffs.')
+        expect(tooltip).toHaveTextContent('Changes are additions plus deletions in captured Git commit diffs; the conversation reported no file changes.')
         expect(tooltip).toHaveTextContent('Active scope: Conversation. Click to switch to Action/card.')
-        expect(tooltip).toHaveTextContent('Conversation (active): 9 lines')
-        expect(tooltip).toHaveTextContent('Action/card: 24 lines')
+        expect(tooltip).toHaveTextContent('Conversation (active): +6 / -3')
+        expect(tooltip).toHaveTextContent('Action/card: +14 / -10')
         expect(tooltip).toHaveTextContent('files changed: 1, insertions: 6, deletions: 3')
         expect(tooltip).toHaveTextContent('abc1234: +6 / -3')
         expect(tooltip).not.toHaveTextContent('def5678: +8 / -7')
+    })
+
+    it('explains the conversation source and omits commit details', async () => {
+        const displayedConversation = conversation('conversation-1', 12, 2, 1)
+        renderSummary({
+            conversation: displayedConversation,
+            history: [historyEntry(displayedConversation.id, [commit('abc1234', 6, 3)])],
+            scope: 'conversation',
+        })
+
+        fireEvent.mouseOver(screen.getByRole('button', { name: 'Changes, Conversation scope' }))
+
+        const tooltip = await screen.findByRole('tooltip')
+        expect(tooltip).toHaveTextContent('Changes are additions and deletions across completed provider file-change patches.')
+        expect(tooltip).toHaveTextContent('Conversation (active): +2 / -1')
+        expect(tooltip).toHaveTextContent('Action/card: +2 / -1')
+        expect(tooltip).not.toHaveTextContent('files changed:')
+        expect(tooltip).not.toHaveTextContent('abc1234:')
     })
 
     it('shows unavailable conversation values and keeps action/card active without a displayed conversation', async () => {

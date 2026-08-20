@@ -4,6 +4,7 @@ const { runCommand } = require('./action_command_executor');
 const { ActionDefinitionCache } = require('./action_definition_cache');
 const { resolveActionDefinition } = require('./action_definition_resolver');
 const { ActionRun } = require('./action_run');
+const { appendCurrentCardReferences } = require('./action_card_references');
 const { resolveAgentPrompt } = require('./action_text');
 const { validatePreparePromptRequest, validateStartRequest } = require('./action_run_request');
 const { assertReleasedCardActionAllowed } = require('../../../../shared/released_card_actions.mjs');
@@ -11,6 +12,8 @@ const { assertReleasedCardActionAllowed } = require('../../../../shared/released
 function createRunId() {
     return `action-${crypto.randomUUID()}`;
 }
+
+const TERMINAL_RECOVERY_RETENTION_MS = 5 * 60 * 1000;
 
 function activityOrigin(context) {
     if (context.kind === 'card' || context.kind === 'file') {
@@ -41,6 +44,7 @@ class ActionRunnerService {
         this.commandRunner = dependencies?.commandRunner ?? runCommand;
         this.errorReporter = dependencies?.errorReporter ?? (() => undefined);
         this.localGitService = dependencies?.localGitService;
+        this.usageMetricsService = dependencies?.usageMetricsService ?? null;
         this.actionDefinitionCache = dependencies?.actionDefinitionCache
             ?? (this.localGitService ? new ActionDefinitionCache({ localGitService: this.localGitService }) : null);
         this.agentExecutor = new ActionAgentExecutor({
@@ -52,6 +56,7 @@ class ActionRunnerService {
         this.activeCardsFolder = null;
         this.actionCacheReady = null;
         this.completedRunResults = new Map();
+        this.recoveryRunResults = new Map();
         this.conversationReservations = new Map();
         this.configuredStates = [];
         this.runEvents = new Map();
@@ -68,6 +73,7 @@ class ActionRunnerService {
         if (typeof releasesFolder !== 'string' || releasesFolder.length === 0) throw new Error('Missing action runner releasesFolder');
         if (typeof activeCardsFolder !== 'string' || activeCardsFolder.length === 0) throw new Error('Missing action runner activeCardsFolder');
         if (this.project) await this.stop();
+        this.usageMetricsService?.startProject(project, projectFolder);
         this.project = project;
         this.actionsFolder = actionsFolder;
         this.activeCardsFolder = activeCardsFolder;
@@ -184,9 +190,9 @@ class ActionRunnerService {
         const origin = activityOrigin(startRequest.context);
         const project = { ...this.project };
         const conversationId = `agent-${crypto.randomUUID()}`;
+        const activityPath = await this.localGitService.ensureActivityFile(project, this.projectFolder, origin);
         const reference = this.localGitService.activityConversationReference(this.projectFolder, origin, conversationId);
-        await this.localGitService.ensureActivityFile(project, this.projectFolder, origin);
-        const reservation = { conversationId, reference };
+        const reservation = { activityPath, conversationId, reference };
         this.conversationReservations.set(reference, reservation);
 
         return reservation;
@@ -197,7 +203,11 @@ class ActionRunnerService {
         if (!reservation) return null;
         if (rootAction.type !== 'agent') throw new Error('Command action cannot use an agent conversation reservation');
         const stored = this.conversationReservations.get(reservation.reference);
-        if (!stored || stored.conversationId !== reservation.conversationId) {
+        if (
+            !stored
+            || stored.activityPath !== reservation.activityPath
+            || stored.conversationId !== reservation.conversationId
+        ) {
             throw new Error('Unknown agent conversation reservation');
         }
         this.conversationReservations.delete(reservation.reference);
@@ -214,18 +224,18 @@ class ActionRunnerService {
         if (action.type !== 'agent') throw new Error('Cannot prepare a prompt for a command action');
         const resolution = await this.actionWorktreeRunService.resolve(project, action, promptRequest.context);
 
-        return {
-            prompt: resolveAgentPrompt(
-                action,
-                promptRequest.context,
-                resolution.runProject,
-                project,
-                this.projectFolder,
-                this.releasesFolder,
-                this.activeCardsFolder,
-                '',
-            ),
-        };
+        const prompt = resolveAgentPrompt(
+            action,
+            promptRequest.context,
+            resolution.runProject,
+            project,
+            this.projectFolder,
+            this.releasesFolder,
+            this.activeCardsFolder,
+            '',
+        );
+
+        return { prompt: await appendCurrentCardReferences(prompt, promptRequest.context, project, this.localGitService) };
     }
 
     async wait(runId) {
@@ -259,8 +269,22 @@ class ActionRunnerService {
         }
     }
 
-    loadActiveRunEvents() {
-        return [...this.runEvents.values()].flat();
+    loadRunRecoverySnapshot(rendererRunIds) {
+        if (!Array.isArray(rendererRunIds) || rendererRunIds.some((runId) => typeof runId !== 'string')) {
+            throw new Error('Invalid action run recovery IDs');
+        }
+
+        const now = Date.now();
+        for (const [runId, { expiresAt }] of this.recoveryRunResults) {
+            if (expiresAt <= now) this.recoveryRunResults.delete(runId);
+        }
+        const terminalResults = rendererRunIds.flatMap((runId) => {
+            const entry = this.recoveryRunResults.get(runId);
+
+            return entry ? [entry.result] : [];
+        });
+
+        return { activeRunEvents: [...this.runEvents.values()].flat(), terminalResults };
     }
 
     cancel(runId) {
@@ -325,6 +349,10 @@ class ActionRunnerService {
         this.runs.delete(run.runId);
         this.runEvents.delete(run.runId);
         this.completedRunResults.set(run.runId, result);
+        this.recoveryRunResults.set(run.runId, {
+            expiresAt: Date.now() + TERMINAL_RECOVERY_RETENTION_MS,
+            result,
+        });
         return result;
     }
 

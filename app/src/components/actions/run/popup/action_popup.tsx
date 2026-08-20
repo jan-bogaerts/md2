@@ -1,11 +1,14 @@
 import { useId, useMemo, useState } from 'react'
 import { displayActionsForContext, projectContextWithWorktree, type ActionContext } from '../../../../data/action_context'
 import { dataService } from '../../../../services/data/data_service'
+import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
+import { cardAgentState } from '../../../../services/agents/card_agent_state'
 import { isReleasedCardActionContext, RELEASED_CARD_RUN_MESSAGE } from '../../../../../../shared/released_card_actions.mjs'
 import { useActions } from '../../../hooks/use_actions'
 import { useProjectState } from '../../../hooks/use_project_state'
 import { useProjectActionWorktree } from '../../../hooks/use_worktrees'
 import { ActionPopupContent } from './action_popup_content'
+import { resolveInitialActionId, type PersistedActionStates } from './action_popup_initial_action'
 
 export { CARD_RUN_POPUP_SIZE_STORAGE_KEY, PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY } from './action_popup_content'
 
@@ -16,6 +19,31 @@ function resolvePopupTarget(context: ActionContext, snapshot: ReturnType<typeof 
     const cards = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]
 
     return cards.find(({ header }) => header.internalId === context.cardInternalId)?.header.id ?? null
+}
+
+function resolveCardInternalId(context: ActionContext, snapshot: ReturnType<typeof useProjectState>['snapshot']) {
+    const cards = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]
+    const card = context.cardInternalId
+        ? cards.find(({ header }) => header.internalId === context.cardInternalId)
+        : cards.find(({ path }) => path === context.file)
+
+    return card?.header.internalId ?? context.cardInternalId ?? null
+}
+
+function persistedActionStates(
+    actions: ReturnType<typeof displayActionsForContext>,
+    context: ActionContext,
+    snapshot: ReturnType<typeof useProjectState>['snapshot'],
+) {
+    const cardInternalId = resolveCardInternalId(context, snapshot)
+    if (!cardInternalId) return {}
+
+    const conversations = dataService.agents.getAgentConversations(cardInternalId)
+
+    return Object.fromEntries(actions.map(({ id }) => [
+        id,
+        cardAgentState(conversations.filter((conversation) => conversation.actionId === id)),
+    ])) as PersistedActionStates
 }
 
 interface ActionPopupProps {
@@ -41,7 +69,12 @@ export function ActionPopup(props: ActionPopupProps) {
         [context, projectActionWorktree],
     )
     const actions = useMemo(() => displayActionsForContext(loadedActions, effectiveContext), [effectiveContext, loadedActions])
-    const [selectedActionId, setSelectedActionId] = useState<string | null>(initialActionId ?? actions[0]?.id ?? null)
+    const [selectedActionId, setSelectedActionId] = useState<string | null>(() => resolveInitialActionId(
+        actions,
+        initialActionId,
+        actionRunRegistry.getContextActiveSnapshot(effectiveContext),
+        persistedActionStates(actions, effectiveContext, snapshot),
+    ))
     const [fullHeight, setFullHeight] = useState(false)
     const titleId = useId()
     // A run that edits its own card changes the context (state, title, worktree), so the

@@ -56,4 +56,15 @@ describe('RemoteControlStatusIndicator', () => {
         expect(screen.queryByText('accepting')).not.toBeInTheDocument()
         expect(screen.queryByText('connected')).not.toBeInTheDocument()
     })
+
+    it('shows active state in a mobile row', async () => {
+        const { emit } = installBridge()
+        render(<RemoteControlStatusIndicator mobile />)
+
+        await act(async () => undefined)
+        emit(acceptingStatus)
+
+        expect(screen.getByText('Remote control')).toBeInTheDocument()
+        expect(screen.getByText('Accepting')).toBeInTheDocument()
+    })
 })

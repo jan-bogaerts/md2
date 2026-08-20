@@ -16,7 +16,7 @@ function card(): Card {
         agentConversationErrors: [],
         agentConversations: [],
         content: '# Goal',
-        header: { affects: [], after: null, agentLogReferences: [], author: null, id: 'F-1', internalId: null, owner: null, policy: {}, status: 'new', title: 'Card' },
+        header: { affects: [], after: null, agentLogReferences: [], author: null, id: 'F-1', internalId: null, owner: null, policy: {}, references: [], status: 'new', title: 'Card' },
         hasFrontmatter:true,
         isActive: true,
         path: 'design/F-1-card.md',

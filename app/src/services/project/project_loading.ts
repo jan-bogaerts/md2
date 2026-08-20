@@ -24,6 +24,8 @@ import { createDefaultActionFiles } from '../../project_template/project_templat
 import { openFilesService } from '../open_files_service'
 import { mergeConflictService } from './merge_conflict_service'
 import { projectAccessService } from './project_access_service'
+import { createProjectAgentTokenUsageFile, projectAgentTokenUsageService } from '../agents/project_agent_token_usage_service'
+import { projectStatsService } from '../stats/project_stats_service'
 
 const ACTION_RELOAD_DEBOUNCE_MS = 150
 const JSON_EXTENSION = '.json'
@@ -100,6 +102,10 @@ function reportOptionalProjectLoadFailure(area: string, error: unknown) {
     telemetryService.captureError(error)
 }
 
+function reportAgentTokenUsageFailure(error: unknown) {
+    reportOptionalProjectLoadFailure('Agent token usage', error)
+}
+
 function initializeMissingProjectStates(projectConfig: Partial<ProjectConfig> | null, snapshot: ProjectSnapshot) {
     if (projectConfig?.states !== undefined) return
 
@@ -117,9 +123,12 @@ export interface ProjectLoadingDeps {
     ensureCardInternalIds(): Promise<void>
     files(): MarkdownFile[]
     flushPendingChanges(): Promise<void>
+    hydrateActiveCardConversations(): Promise<void>
     matchesCurrentContent(path: string, content: string): boolean
     isCurrentLoad(project: ProjectReference, projectLoadToken: number): boolean
     mergeBackgroundProjectFiles(files: MarkdownFile[], workingFolder: string, repositoryFiles: string[]): void
+    migrateAgentLogReferences(): Promise<void>
+    markFullProjectLoaded(): void
     project(): ProjectReference | null
     replaceFiles(files: MarkdownFile[], workingFolder: string): void
     replaceProject(project: ProjectReference | null): void
@@ -161,6 +170,8 @@ export class ProjectLoading {
         this.actionReloadChangesByPath.clear()
         this.markdownReloadEventsByPath = new Map()
         this.dependencies.beginProjectLoad()
+        projectAgentTokenUsageService.clear()
+        projectStatsService.clear()
     }
 
     /** Rebind repository watching after storage transport replacement without reloading project data. */
@@ -178,7 +189,10 @@ export class ProjectLoading {
 
         await storage.commit({
             branch: currentProject.branch,
-            files: createDefaultActionFiles(config.actionsFolder),
+            files: [
+                ...createDefaultActionFiles(config.actionsFolder),
+                createProjectAgentTokenUsageFile(config.projectFolder),
+            ],
             message: 'Add default MD² actions',
         })
         await storage.saveProjectConfig(currentProject, rawConfig)
@@ -204,9 +218,16 @@ export class ProjectLoading {
             if (projectConfig === null) await this.saveMissingProjectConfig(project)
 
             const config = resolveProjectConfigPaths(configService.getProjectConfig())
+            projectStatsService.bindProject({ config, project, storage })
             if (config.pushMode === 'manual') {
                 await storage.restorePendingCommits?.(project)
                 await this.loadPendingPush(project)
+            }
+
+            try {
+                await projectAgentTokenUsageService.load(project, config, storage, reportAgentTokenUsageFailure)
+            } catch (error) {
+                reportAgentTokenUsageFailure(error)
             }
 
             await this.loadActions(project, config.actionsFolder)
@@ -214,12 +235,14 @@ export class ProjectLoading {
             const repositoryFiles: string[] = []
             this.dependencies.replaceProjectFiles(projectFiles.files, config.workingFolder, repositoryFiles)
             await this.ensureCardInternalIds()
+            await this.dependencies.migrateAgentLogReferences()
             this.tryStartProjectWatch()
             const currentSnapshot = this.dependencies.snapshot()
             if (!currentSnapshot) throw new Error('Project snapshot was not created')
             initializeMissingProjectStates(projectConfig ?? null, currentSnapshot)
             this.prepareAgentConversationLoading(projectLoadToken)
             this.dependencies.dispatchChanged()
+            void this.hydrateActiveCardConversations()
             reportActionLoadIssues()
 
             void this.loadFullProjectInBackground(project, config.projectFolder, config.workingFolder, projectLoadToken)
@@ -337,7 +360,10 @@ export class ProjectLoading {
         const repositoryFiles = await storage.listRepositoryFiles(currentProject)
         this.dependencies.replaceProjectFiles(projectFiles.files, config.workingFolder, repositoryFiles)
         await this.ensureCardInternalIds()
+        await this.dependencies.migrateAgentLogReferences()
+        this.dependencies.markFullProjectLoaded()
         this.dependencies.dispatchChanged()
+        void this.hydrateActiveCardConversations()
         return this.dependencies.snapshot()
     }
 
@@ -367,6 +393,8 @@ export class ProjectLoading {
         this.clearMergeConflictVerifyTimeout()
         this.dependencies.beginProjectLoad()
         this.dependencies.resetAgentConversations()
+        projectAgentTokenUsageService.clear()
+        projectStatsService.clear()
         this.dependencies.clearLoadedProject()
         this.actionReloadChangesByPath.clear()
         this.markdownReloadEventsByPath.clear()
@@ -559,11 +587,21 @@ export class ProjectLoading {
 
         this.dependencies.mergeBackgroundProjectFiles(nextFiles, workingFolder, repositoryFiles)
         await this.ensureCardInternalIds()
+        await this.dependencies.migrateAgentLogReferences()
+        if (projectFilesLoaded) this.dependencies.markFullProjectLoaded()
         this.dependencies.dispatchChanged()
     }
 
     private shouldApplyProjectLoad(project: ProjectReference, projectLoadToken: number) {
         return this.dependencies.isCurrentLoad(project, projectLoadToken)
+    }
+
+    private async hydrateActiveCardConversations() {
+        try {
+            await this.dependencies.hydrateActiveCardConversations()
+        } catch (error) {
+            telemetryService.captureError(error)
+        }
     }
 
     private startProjectWatch() {
@@ -786,6 +824,7 @@ export class ProjectLoading {
         const deletedPaths = currentFiles.filter((file) => !importedPaths.has(file.path)).map((file) => file.path)
         this.dependencies.updateFiles(changedFiles, deletedPaths, config.workingFolder)
         await this.ensureCardInternalIds()
+        await this.dependencies.migrateAgentLogReferences()
         this.dependencies.dispatchChanged()
     }
 

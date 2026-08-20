@@ -49,8 +49,10 @@ function createLocalBridgeDispatch(dependencies) {
     const {
         actionRunnerService,
         actionSchedulerService,
+        actionWorktreeRunService,
         agentExecutableAvailability,
         agentRunnerService,
+        claudeRuntimeService,
         codexRuntimeService,
         desktopConfigStore,
         diffService,
@@ -58,6 +60,7 @@ function createLocalBridgeDispatch(dependencies) {
         mergeConflictService,
         openProjectFolder,
         openWorktreeFolder,
+        projectStatsWorkerService,
         readDesktopConfig,
         saveDesktopConfig,
         updateCodexCli,
@@ -97,6 +100,17 @@ function createLocalBridgeDispatch(dependencies) {
     }
 
     const dataBridge = {
+        calculateActivityStats: (project, paths, calculationId) => {
+            if (!isCurrentProject(project)) throw new Error('Stats calculation project is not active');
+            if (!projectStatsWorkerService) throw new Error('Stats worker is not available');
+
+            return projectStatsWorkerService.calculate(project.rootPath, paths, calculationId);
+        },
+        cancelActivityStatsCalculation: (calculationId) => {
+            if (!projectStatsWorkerService) return undefined;
+
+            return projectStatsWorkerService.cancel(calculationId);
+        },
         checkoutBranch: async (project, branch) => {
             const checkedOutProject = await localGitService.checkoutBranch(project, branch);
             await activateProject(checkedOutProject);
@@ -134,6 +148,9 @@ function createLocalBridgeDispatch(dependencies) {
         loadAgentConversation: async (reference) => {
             return localGitService.loadAgentConversation(currentLocalProject, reference);
         },
+        loadActivityConversations: async (activityPath) => {
+            return localGitService.loadActivityConversations(currentLocalProject, activityPath);
+        },
         loadAgentAvailability: () => {
             const { agentProfiles } = readDesktopConfig(desktopConfigStore);
 
@@ -166,16 +183,7 @@ function createLocalBridgeDispatch(dependencies) {
 
             return project;
         },
-        addWorktree: async (project) => {
-            if (!openWorktreeFolder) throw new Error('Worktree folder picker is not available');
-
-            const folderPath = await openWorktreeFolder();
-            if (!folderPath) return false;
-
-            await worktreeService.add(project, folderPath);
-
-            return true;
-        },
+        addWorktree: (project, folderPath) => worktreeService.add(project, folderPath),
         prepareWorktree: (request) => {
             if (!request || typeof request !== 'object') throw new Error('Missing worktree preparation request');
 
@@ -270,6 +278,11 @@ function createLocalBridgeDispatch(dependencies) {
         saveActionSchedules: (project, actionsFolder, schedules) => localGitService.saveActionSchedules(project, actionsFolder, schedules),
         saveProjectConfig: (project, config) => localGitService.saveProjectConfig(project, config),
         saveDesktopConfig: (values) => saveDesktopConfig(desktopConfigStore, values),
+        selectWorktreeFolder: () => {
+            if (!openWorktreeFolder) throw new Error('Worktree folder picker is not available');
+
+            return openWorktreeFolder();
+        },
         removeWorktree: (project, folderPath) => worktreeService.remove(project, folderPath),
         stopAgent: (runId) => agentRunnerService.stop(runId),
         watchProject: (project, callback) => localGitService.watchProject(
@@ -341,6 +354,9 @@ function createLocalBridgeDispatch(dependencies) {
     }
 
     const actionBridge = {
+        acquireReleaseCardLocks: (cardInternalIds) => (
+            actionWorktreeRunService.acquireReleaseCardLocks(currentLocalProject, cardInternalIds)
+        ),
         answerActionApproval: (runId, requestId, decision) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
@@ -374,10 +390,10 @@ function createLocalBridgeDispatch(dependencies) {
 
             return localGitService.loadActionRunHistory(currentLocalProject, historyRequest);
         },
-        loadActiveActionRunEvents: () => {
+        loadActionRunRecoverySnapshot: (rendererRunIds) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
-            return actionRunnerService.loadActiveRunEvents();
+            return actionRunnerService.loadRunRecoverySnapshot(rendererRunIds);
         },
         notifyActionCardStateChange: (cardInternalId, state) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
@@ -446,6 +462,7 @@ function createLocalBridgeDispatch(dependencies) {
             return actionRunnerService.prepareActionPrompt(request);
         },
         readFileAtCommit: (request) => localGitService.readFileAtCommit(currentLocalProject, request),
+        releaseReleaseCardLocks: (leaseId) => actionWorktreeRunService.releaseReleaseCardLocks(leaseId),
         registerActionSchedule: (request) => {
             if (!actionSchedulerService) throw new Error('Action scheduler is not available');
 
@@ -467,6 +484,10 @@ function createLocalBridgeDispatch(dependencies) {
             const resolved = resolveSearchAgent(readDesktopConfig(desktopConfigStore));
             const projectConfig = await localGitService.loadProjectConfig(currentLocalProject);
             const projectFolder = typeof projectConfig?.projectFolder === 'string' ? projectConfig.projectFolder : '';
+            const configuredReleasesFolder = typeof projectConfig?.releasesFolder === 'string' ? projectConfig.releasesFolder : 'history';
+            const releasesFolder = projectFolder.length > 0
+                ? `${projectFolder.replace(/[\\/]$/u, '')}/${configuredReleasesFolder.replace(/^[\\/]/u, '')}`
+                : configuredReleasesFolder;
             const request = {
                 agent: resolved.agent,
                 activityOrigin: { kind: 'project' },
@@ -474,6 +495,7 @@ function createLocalBridgeDispatch(dependencies) {
                 command: resolved.command,
                 prompt: `${SEARCH_AGENT_PROMPT_PREFIX}${input}`,
                 projectFolder,
+                releasesFolder,
                 title: 'Search RegExp',
             };
             const result = await agentRunnerService.run(currentLocalProject, request, callback);
@@ -526,10 +548,20 @@ function createLocalBridgeDispatch(dependencies) {
         },
     };
 
-    const methods = { ...dataBridge, ...actionBridge, ...codexRuntimeBridge };
+    const claudeRuntimeBridge = {
+        getClaudeRateLimits: () => claudeRuntimeService?.getSnapshot() ?? null,
+        onClaudeRateLimits: (callback) => {
+            if (!claudeRuntimeService) throw new Error('Claude runtime service is not available');
+
+            return claudeRuntimeService.subscribe(callback);
+        },
+    };
+
+    const methods = { ...dataBridge, ...actionBridge, ...claudeRuntimeBridge, ...codexRuntimeBridge };
 
     return {
         actionBridge,
+        claudeRuntimeBridge,
         codexRuntimeBridge,
         dataBridge,
         invoke: (method, params = []) => {

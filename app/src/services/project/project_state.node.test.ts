@@ -120,19 +120,15 @@ describe('ProjectState', () => {
         expect(activeCardsChanged.mock.calls[2][1]).toEqual([])
     })
 
-    it('detects stale project and agent-conversation loads', () => {
+    it('detects stale project loads', () => {
         const state = createState()
         state.replaceProject(project)
         const firstProjectToken = state.beginProjectLoad()
-        const firstAgentToken = state.beginAgentConversationLoad()
 
         expect(state.isCurrentLoad(project, firstProjectToken)).toBe(true)
-        expect(state.isCurrentAgentConversationLoad(firstAgentToken)).toBe(true)
 
         state.beginProjectLoad()
-        state.beginAgentConversationLoad()
 
         expect(state.isCurrentLoad(project, firstProjectToken)).toBe(false)
-        expect(state.isCurrentAgentConversationLoad(firstAgentToken)).toBe(false)
     })
 })

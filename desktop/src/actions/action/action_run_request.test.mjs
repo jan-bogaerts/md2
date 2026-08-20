@@ -34,7 +34,11 @@ describe('validateStartRequest', () => {
     });
 
     it('accepts a validated conversation reservation', () => {
-        const conversationReservation = { conversationId: 'agent-1', reference: 'activity.json#conversation=agent-1' };
+        const conversationReservation = {
+            activityPath: 'activity.json',
+            conversationId: 'agent-1',
+            reference: 'activity.json#conversation=agent-1',
+        };
 
         expect(validateStartRequest({ actionId: 'main', context: { kind: 'project' }, conversationReservation }))
             .toMatchObject({ conversationReservation });

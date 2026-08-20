@@ -13,8 +13,8 @@ export interface LineUsage {
     insertions: number
 }
 
-interface ActionUsageValues {
-    changes: AgentFileChangeUsage
+export interface ActionUsageValues {
+    changes: AgentFileChangeUsage | null
     lines: LineUsage
     tokens: AgentTokenUsage
 }
@@ -23,8 +23,6 @@ export interface ScopedActionUsage {
     actionCard: ActionUsageValues
     conversation: ActionUsageValues | null
 }
-
-const ZERO_FILE_CHANGES: AgentFileChangeUsage = { deletions: 0, insertions: 0 }
 
 function conversationsForActionCard(
     conversations: AgentConversation[],
@@ -45,12 +43,15 @@ function conversationsForActionCard(
     return [...conversationsById.values()]
 }
 
+/** Sums reported patches; `null` when no conversation in scope reported any file change. */
 function fileChangeUsage(conversations: AgentConversation[]) {
-    return conversations.reduce<AgentFileChangeUsage>((total, conversation) => {
-        const usage = conversationFileChangeUsage(conversation) ?? ZERO_FILE_CHANGES
+    return conversations.reduce<AgentFileChangeUsage | null>((total, conversation) => {
+        const usage = conversationFileChangeUsage(conversation)
+        if (!usage) return total
+        if (!total) return { deletions: usage.deletions, insertions: usage.insertions }
 
         return { deletions: total.deletions + usage.deletions, insertions: total.insertions + usage.insertions }
-    }, { deletions: 0, insertions: 0 })
+    }, null)
 }
 
 function lineUsage(history: ActionRunHistoryEntry[]): LineUsage {

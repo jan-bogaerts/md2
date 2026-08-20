@@ -49,17 +49,20 @@ function validateConversationReservation(reservation) {
     if (!reservation || typeof reservation !== 'object' || Array.isArray(reservation)) {
         throw new Error('Invalid agent conversation reservation');
     }
-    const allowedFields = new Set(['conversationId', 'reference']);
+    const allowedFields = new Set(['activityPath', 'conversationId', 'reference']);
     const unsupportedField = Object.keys(reservation).find((fieldName) => !allowedFields.has(fieldName));
     if (unsupportedField) throw new Error(`Unsupported agent conversation reservation field: ${unsupportedField}`);
     if (typeof reservation.conversationId !== 'string' || reservation.conversationId.length === 0) {
         throw new Error('Missing reserved agent conversationId');
     }
+    if (typeof reservation.activityPath !== 'string' || reservation.activityPath.length === 0) {
+        throw new Error('Missing reserved agent activity path');
+    }
     if (typeof reservation.reference !== 'string' || reservation.reference.length === 0) {
         throw new Error('Missing reserved agent conversation reference');
     }
 
-    return { conversationId: reservation.conversationId, reference: reservation.reference };
+    return { activityPath: reservation.activityPath, conversationId: reservation.conversationId, reference: reservation.reference };
 }
 
 function validateStartRequest(request) {

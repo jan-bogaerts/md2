@@ -85,36 +85,156 @@ describe('MarkdownEditor local text search', () => {
         expect(screen.getByRole('textbox', { name: 'Find text' })).toHaveFocus()
     })
 
-    it('defaults to case-insensitive search and reevaluates when match-case changes', async () => {
+    it('keeps typed search text as a focused draft until Enter submits it', async () => {
+        renderSearchEditor('Alpha beta ALPHA')
+        const editor = screen.getAllByRole('textbox')[0] as HTMLTextAreaElement
+        selectText(editor, 6)
+        fireEvent.keyDown(editor, { ctrlKey: true, key: 'f' })
+        const searchField = screen.getByRole('textbox', { name: 'Find text' })
+
+        fireEvent.change(searchField, { target: { value: 'Alpha' } })
+
+        expect(searchField).toHaveValue('Alpha')
+        expect(searchField).toHaveFocus()
+        expect(editor.selectionStart).toBe(6)
+        expect(editor.selectionEnd).toBe(6)
+        expect(screen.queryByText(/results?$/)).not.toBeInTheDocument()
+
+        fireEvent.keyDown(searchField, { key: 'Enter' })
+
+        await waitFor(() => expect(editor.selectionStart).toBe(11))
+        expect(editor.selectionEnd).toBe(16)
+        expect(screen.getByText('2 results')).toBeInTheDocument()
+    })
+
+    it('submits search from the accessible popup button', async () => {
+        renderSearchEditor('before target')
+        const editor = screen.getAllByRole('textbox')[0] as HTMLTextAreaElement
+        fireEvent.keyDown(editor, { ctrlKey: true, key: 'f' })
+        const searchField = screen.getByRole('textbox', { name: 'Find text' })
+        fireEvent.change(searchField, { target: { value: 'target' } })
+        const searchButton = screen.getByRole('button', { name: 'Search' })
+
+        fireEvent.mouseOver(searchButton)
+        expect(await screen.findByRole('tooltip')).toHaveTextContent('Search')
+        fireEvent.click(searchButton)
+
+        await waitFor(() => expect(editor.selectionStart).toBe(7))
+        expect(editor.selectionEnd).toBe(13)
+    })
+
+    it('does not search on match-case changes and submits the selected case mode', async () => {
         renderSearchEditor('Alpha ALPHA')
         const editor = screen.getAllByRole('textbox')[0] as HTMLTextAreaElement
         selectText(editor, 0)
         fireEvent.keyDown(editor, { ctrlKey: true, key: 'f' })
-
-        fireEvent.change(screen.getByRole('textbox', { name: 'Find text' }), { target: { value: 'ALPHA' } })
-        await waitFor(() => expect(editor.selectionStart).toBe(0))
-
+        const searchField = screen.getByRole('textbox', { name: 'Find text' })
+        fireEvent.change(searchField, { target: { value: 'ALPHA' } })
         const matchCase = screen.getByRole('button', { name: 'Match case' })
+
         expect(matchCase).toHaveAttribute('aria-pressed', 'false')
         fireEvent.click(matchCase)
 
-        await waitFor(() => expect(editor.selectionStart).toBe(6))
+        expect(editor.selectionStart).toBe(0)
+        expect(editor.selectionEnd).toBe(0)
         expect(matchCase).toHaveAttribute('aria-pressed', 'true')
+
+        fireEvent.keyDown(searchField, { key: 'Enter' })
+
+        await waitFor(() => expect(editor.selectionStart).toBe(6))
+        expect(editor.selectionEnd).toBe(11)
     })
 
-    it('uses F3 for next match and wraps after the final match', async () => {
+    it('leaves editor selection unchanged when an empty term is submitted', () => {
+        renderSearchEditor('unchanged')
+        const editor = screen.getAllByRole('textbox')[0] as HTMLTextAreaElement
+        selectText(editor, 3)
+        fireEvent.keyDown(editor, { ctrlKey: true, key: 'f' })
+        const searchField = screen.getByRole('textbox', { name: 'Find text' })
+
+        fireEvent.keyDown(searchField, { key: 'Enter' })
+        fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+
+        expect(editor.selectionStart).toBe(3)
+        expect(editor.selectionEnd).toBe(3)
+    })
+
+    it('uses submitted term and case mode for F3 despite later draft changes', async () => {
+        renderSearchEditor('Alpha alpha Alpha')
+        const editor = screen.getAllByRole('textbox')[0] as HTMLTextAreaElement
+        fireEvent.keyDown(editor, { ctrlKey: true, key: 'f' })
+        const searchField = screen.getByRole('textbox', { name: 'Find text' })
+        fireEvent.change(searchField, { target: { value: 'Alpha' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Match case' }))
+        fireEvent.keyDown(searchField, { key: 'Enter' })
+        await waitFor(() => expect(editor.selectionEnd).toBe(5))
+
+        fireEvent.change(searchField, { target: { value: 'alpha' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Match case' }))
+        expect(screen.getByText('2 results')).toBeInTheDocument()
+        fireEvent.keyDown(searchField, { key: 'F3' })
+
+        await waitFor(() => expect(editor.selectionStart).toBe(12))
+        expect(editor.selectionEnd).toBe(17)
+
+        fireEvent.keyDown(searchField, { key: 'F3' })
+
+        await waitFor(() => expect(editor.selectionStart).toBe(0))
+    })
+
+    it('navigates both directions with accessible arrow buttons and wraps', async () => {
         renderSearchEditor('one two one')
         const editor = screen.getAllByRole('textbox')[0] as HTMLTextAreaElement
         fireEvent.keyDown(editor, { ctrlKey: true, key: 'f' })
         const searchField = screen.getByRole('textbox', { name: 'Find text' })
         fireEvent.change(searchField, { target: { value: 'one' } })
-        await waitFor(() => expect(editor.selectionStart).toBe(0))
+        fireEvent.keyDown(searchField, { key: 'Enter' })
+        await waitFor(() => expect(editor.selectionEnd).toBe(3))
 
-        fireEvent.keyDown(searchField, { key: 'F3' })
+        const previousButton = screen.getByRole('button', { name: 'Previous result' })
+        const nextButton = screen.getByRole('button', { name: 'Next result' })
+        fireEvent.mouseOver(previousButton)
+        expect(await screen.findByRole('tooltip')).toHaveTextContent('Previous result')
+
+        fireEvent.click(nextButton)
         await waitFor(() => expect(editor.selectionStart).toBe(8))
+        fireEvent.click(nextButton)
+        await waitFor(() => expect(editor.selectionStart).toBe(0))
+        fireEvent.click(previousButton)
+        await waitFor(() => expect(editor.selectionStart).toBe(8))
+    })
+
+    it('shows zero results without moving selection and singular count for one match', async () => {
+        renderSearchEditor('one two')
+        const editor = screen.getAllByRole('textbox')[0] as HTMLTextAreaElement
+        selectText(editor, 4)
+        fireEvent.keyDown(editor, { ctrlKey: true, key: 'f' })
+        const searchField = screen.getByRole('textbox', { name: 'Find text' })
+        fireEvent.change(searchField, { target: { value: 'missing' } })
+        fireEvent.keyDown(searchField, { key: 'Enter' })
+
+        expect(await screen.findByText('0 results')).toBeInTheDocument()
+        expect(editor.selectionStart).toBe(4)
+        expect(editor.selectionEnd).toBe(4)
+
+        fireEvent.change(searchField, { target: { value: 'two' } })
+        fireEvent.keyDown(searchField, { key: 'Enter' })
+
+        expect(await screen.findByText('1 result')).toBeInTheDocument()
+    })
+
+    it('leaves editor selection unchanged when F3 has no valid submission', () => {
+        renderSearchEditor('one two one')
+        const editor = screen.getAllByRole('textbox')[0] as HTMLTextAreaElement
+        selectText(editor, 4)
+        fireEvent.keyDown(editor, { ctrlKey: true, key: 'f' })
+        const searchField = screen.getByRole('textbox', { name: 'Find text' })
+        fireEvent.change(searchField, { target: { value: 'one' } })
+
         fireEvent.keyDown(searchField, { key: 'F3' })
 
-        await waitFor(() => expect(editor.selectionStart).toBe(0))
+        expect(editor.selectionStart).toBe(4)
+        expect(editor.selectionEnd).toBe(4)
     })
 
     it('leaves selection and editor state unchanged for a missing term', async () => {
@@ -123,7 +243,9 @@ describe('MarkdownEditor local text search', () => {
         selectText(editor, 3)
         fireEvent.keyDown(editor, { ctrlKey: true, key: 'f' })
 
-        fireEvent.change(screen.getByRole('textbox', { name: 'Find text' }), { target: { value: 'missing' } })
+        const searchField = screen.getByRole('textbox', { name: 'Find text' })
+        fireEvent.change(searchField, { target: { value: 'missing' } })
+        fireEvent.keyDown(searchField, { key: 'Enter' })
 
         await waitFor(() => expect(editor.selectionStart).toBe(3))
         expect(editor).toHaveValue('unchanged')
@@ -146,7 +268,9 @@ describe('MarkdownEditor local text search', () => {
         const editor = screen.getAllByRole('textbox')[0] as HTMLTextAreaElement
         fireEvent.keyDown(editor, { ctrlKey: true, key: 'f' })
 
-        fireEvent.change(screen.getByRole('textbox', { name: 'Find text' }), { target: { value: 'one' } })
+        const searchField = screen.getByRole('textbox', { name: 'Find text' })
+        fireEvent.change(searchField, { target: { value: 'one' } })
+        fireEvent.keyDown(searchField, { key: 'Enter' })
         await waitFor(() => expect(editor.selectionEnd).toBe(3))
 
         expect(dataSource.edit).not.toHaveBeenCalled()
@@ -165,6 +289,38 @@ describe('MarkdownEditor local text search', () => {
 
         expect(screen.queryByRole('textbox', { name: 'Find text' })).not.toBeInTheDocument()
         expect(editor).toHaveValue('locked text')
+    })
+
+    it('stays open without blocking background focus, input, or scrolling and closes from outside Escape', async () => {
+        const onChange = vi.fn()
+        render(
+            <AppThemeProvider>
+                <input aria-label="Background input" />
+                <div data-testid="background-scroll">
+                    <MarkdownEditor markdown="searchable" onChange={onChange} />
+                </div>
+            </AppThemeProvider>,
+        )
+        const editor = screen.getAllByRole('textbox')[1]
+        fireEvent.keyDown(editor, { ctrlKey: true, key: 'f' })
+
+        expect(document.querySelector('.MuiBackdrop-root')).not.toBeInTheDocument()
+        expect(document.body.style.overflow).not.toBe('hidden')
+        const backgroundInput = screen.getByRole('textbox', { name: 'Background input' })
+        fireEvent.click(backgroundInput)
+        backgroundInput.focus()
+        fireEvent.change(backgroundInput, { target: { value: 'still interactive' } })
+        await waitFor(() => expect(backgroundInput).toHaveFocus())
+        expect(backgroundInput).toHaveValue('still interactive')
+        expect(screen.getByRole('textbox', { name: 'Find text' })).toBeInTheDocument()
+
+        const renderedScrollContainer = screen.getByTestId('background-scroll')
+        renderedScrollContainer.scrollTop = 20
+        fireEvent.scroll(renderedScrollContainer)
+        expect(renderedScrollContainer.scrollTop).toBe(20)
+
+        fireEvent.keyDown(backgroundInput, { key: 'Escape' })
+        expect(screen.queryByRole('textbox', { name: 'Find text' })).not.toBeInTheDocument()
     })
 
     it('renders popup inside the supplied overlay container', () => {

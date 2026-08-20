@@ -1,5 +1,5 @@
 ﻿import { describe, expect, it } from 'vitest'
-import { DEFAULT_CARD_BODY_TEMPLATE, DEFAULT_CARD_TYPES } from './data_types'
+import { DEFAULT_CARD_TYPES } from './data_types'
 import { createCardFile, desiredCardPath, getNextCardNumber, slugifyTitle } from './card_naming'
 import { markdownParsingService } from '../services/data/markdown_parsing_service'
 import { files } from '../services/test_support/data_service_test_support'
@@ -21,7 +21,7 @@ describe('cardNaming', () => {
     })
 
     it('creates cards with configured id and filename convention', () => {
-        const file = createCardFile(files, 'design', '_', DEFAULT_CARD_TYPES, DEFAULT_CARD_BODY_TEMPLATE, 'new', {
+        const file = createCardFile(files, 'design', '_', DEFAULT_CARD_TYPES, 'new', {
             body: 'Body',
             title: 'New Card',
             type: 'feature',
@@ -29,19 +29,19 @@ describe('cardNaming', () => {
 
         expect(file.path).toBe('design/F_4_new_card.md')
         expect(file.content).toContain('id: F_4')
-        expect(file.content).toContain(DEFAULT_CARD_BODY_TEMPLATE)
-        expect(file.content).toContain('Body')
+        expect(file.content).toMatch(/\n\nBody$/u)
+        expect(file.content).not.toContain('# Goal')
         expect(file.content).toContain('policy:')
         expect(file.content).toContain('author:')
     })
 
     it('generates the id prefix and number per card type', () => {
-        const job = createCardFile(files, 'design', '_', DEFAULT_CARD_TYPES, DEFAULT_CARD_BODY_TEMPLATE, 'new', {
+        const job = createCardFile(files, 'design', '_', DEFAULT_CARD_TYPES, 'new', {
             body: '',
             title: 'Job Card',
             type: 'job',
         })
-        const bug = createCardFile(files, 'design', '_', DEFAULT_CARD_TYPES, DEFAULT_CARD_BODY_TEMPLATE, 'new', {
+        const bug = createCardFile(files, 'design', '_', DEFAULT_CARD_TYPES, 'new', {
             body: '',
             title: 'Bug Card',
             type: 'bug',
@@ -54,7 +54,7 @@ describe('cardNaming', () => {
     })
 
     it('uses the configured hyphen separator when selected', () => {
-        const file = createCardFile(files, 'design', '-', DEFAULT_CARD_TYPES, DEFAULT_CARD_BODY_TEMPLATE, 'new', {
+        const file = createCardFile(files, 'design', '-', DEFAULT_CARD_TYPES, 'new', {
             body: '',
             title: 'New Card',
             type: 'feature',
@@ -73,7 +73,7 @@ describe('cardNaming', () => {
 
     it('creates cards for custom configured types', () => {
         const customTypes = [{ color: '#123456', idPrefix: 'T', label: 'Task', type: 'task' }]
-        const file = createCardFile(files, 'design', '_', customTypes, DEFAULT_CARD_BODY_TEMPLATE, 'backlog', {
+        const file = createCardFile(files, 'design', '_', customTypes, 'backlog', {
             body: '',
             title: 'Custom Card',
             type: 'task',
@@ -108,7 +108,7 @@ describe('cardNaming', () => {
     })
 
     it('creates cards with a generated internal id that is separate from filename id', () => {
-        const file = createCardFile(files, 'design', '_', DEFAULT_CARD_TYPES, DEFAULT_CARD_BODY_TEMPLATE, 'new', {
+        const file = createCardFile(files, 'design', '_', DEFAULT_CARD_TYPES, 'new', {
             body: '',
             title: 'New Card',
             type: 'feature',

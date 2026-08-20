@@ -6,6 +6,7 @@ import type { CardMarkdownDataSource } from '../editor/card_markdown_data_source
 import type { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
 import { CardPopupToolbarControls } from './card_popup_toolbar_controls'
 import { useProjectReadOnly } from '../hooks/use_project_read_only'
+import { attachFilesToCardMarkdown } from '../../services/attachments/attachment_workflow'
 
 interface CardBodyEditorProps {
     cardTypes: CardTypeConfig[]
@@ -24,6 +25,16 @@ interface CardBodyEditorProps {
 export const CardBodyEditor = memo(function CardBodyEditor(props: CardBodyEditorProps) {
     const {cardTypes, dataSource, historyStore, isFullscreen, isMobile = false, onToggleFullscreen, overlayContainer, statusColors} = props
     const readOnly = useProjectReadOnly()
+    const handleImagePaste = useCallback(
+        (file: File, insertMarkdown: (markdown: string) => void) => dataSource.pasteImage('board-card', file, insertMarkdown),
+        [dataSource],
+    )
+    const handleAttachments = useCallback((files: File[], insertMarkdown: (markdown: string) => void) => {
+        const card = dataSource.getActiveCard('board-card')
+        if (!card) throw new Error('Cannot attach files without an active board card')
+
+        return attachFilesToCardMarkdown(card.path, files, insertMarkdown)
+    }, [dataSource])
     const ToolbarContents = useCallback(
         () => (
             <CardPopupToolbarControls
@@ -81,9 +92,11 @@ export const CardBodyEditor = memo(function CardBodyEditor(props: CardBodyEditor
             }}
         >
             <MarkdownEditor
+                attachmentHandler={handleAttachments}
                 binding="board-card"
                 dataSource={dataSource}
                 historyStore={historyStore}
+                imagePasteHandler={handleImagePaste}
                 overlayContainer={overlayContainer}
                 readOnly={readOnly}
                 toolbarContents={ToolbarContents}

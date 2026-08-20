@@ -15,7 +15,7 @@ interface ActionConversationSnapshot {
 type Listener = () => void
 
 function belongsToContext(conversation: ConversationPickerConversation, context: ActionContext) {
-    return context.kind === 'project'
+    return context.kind === 'project' || context.kind === 'merge-conflict'
         ? conversation.cardInternalId === null
         : conversation.cardInternalId === context.cardInternalId
 }

@@ -18,8 +18,10 @@ import { ActionRunResultStore } from '../state/action_run_result_store'
 import { ActionScheduleStore } from '../schedule/action_schedule_store'
 import { configService } from '../../../../services/config/config_service'
 import { BUILTIN_AGENT_PROFILES } from '../../../../data/agent_profiles'
+import type { ActionContext } from '../../../../data/action_context'
 
 const context = { kind: 'project' as const }
+const cardContext = { cardInternalId: 'card-1', file: 'design/F-1.md', kind: 'card' as const }
 const action = {
     description: 'Custom prompt',
     id: CUSTOM_PROMPT_ACTION_ID,
@@ -28,6 +30,20 @@ const action = {
     prompt: '',
     type: 'agent',
 } as unknown as ActionDefinition
+const originalMatchMedia = window.matchMedia
+
+function setMobileBreakpoint(matches: boolean) {
+    window.matchMedia = ((query: string) => ({
+        addEventListener: vi.fn(),
+        addListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+        matches: matches && query.includes('max-width'),
+        media: query,
+        onchange: null,
+        removeEventListener: vi.fn(),
+        removeListener: vi.fn(),
+    })) as unknown as typeof window.matchMedia
+}
 
 function waitingConversation(actionId: string): AgentConversation {
     return {
@@ -49,10 +65,12 @@ function waitingConversation(actionId: string): AgentConversation {
 
 function renderBottomRow(
     actionOverride = action,
-    conversationStore = new ActionConversationStore(actionOverride.id, context),
+    conversationStore?: ActionConversationStore,
     embedded = false,
+    contextOverride: ActionContext = context,
 ) {
-    const historyStore = new ActionHistoryStore(actionOverride, context)
+    const activeConversationStore = conversationStore ?? new ActionConversationStore(actionOverride.id, contextOverride)
+    const historyStore = new ActionHistoryStore(actionOverride, contextOverride)
     const inputStore = new ActionRunInputStore()
     const resultStore = new ActionRunResultStore()
     const scheduleStore = new ActionScheduleStore()
@@ -71,8 +89,8 @@ function renderBottomRow(
             <UnrelatedContent />
             <ActionPopupBottomRow
                 action={actionOverride}
-                assignmentContext={context}
-                conversationStore={conversationStore}
+                assignmentContext={contextOverride}
+                conversationStore={activeConversationStore}
                 embedded={embedded}
                 historyStore={historyStore}
                 inputStore={inputStore}
@@ -85,11 +103,12 @@ function renderBottomRow(
         </AppThemeProvider>,
     )
 
-    return { conversationStore, unrelatedRender }
+    return { conversationStore: activeConversationStore, unrelatedRender }
 }
 
 describe('ActionPopupBottomRow', () => {
     beforeEach(() => {
+        setMobileBreakpoint(false)
         configService.init({ desktopConfig: { agent: 'codex', agentProfiles: BUILTIN_AGENT_PROFILES, model: '' } })
         window.md2Actions = { onActionRun: vi.fn(() => vi.fn()) } as unknown as typeof window.md2Actions
         vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({
@@ -106,6 +125,7 @@ describe('ActionPopupBottomRow', () => {
         delete window.md2Actions
         configService.clear()
         cleanup()
+        window.matchMedia = originalMatchMedia
         vi.restoreAllMocks()
     })
 
@@ -113,11 +133,15 @@ describe('ActionPopupBottomRow', () => {
         renderBottomRow()
         const bottomRow = screen.getByTestId('action-popup-bottom-row')
         const layout = bottomRow.firstElementChild as HTMLElement
-        const [selectors, usage, controls] = Array.from(layout.children)
+        const selectors = layout.querySelector('[data-footer-selectors]') as HTMLElement
+        const usage = layout.querySelector('[data-footer-usage]') as HTMLElement
+        const controls = layout.querySelector('[data-footer-controls]') as HTMLElement
 
         expect(bottomRow).toHaveStyle({containerType: 'inline-size'})
         expect(layout).toHaveAttribute('data-footer-layout')
         expect(layout).toHaveStyle({display: 'flex', minWidth: '0', width: '100%'})
+        expect(within(layout).getByRole('button', { name: 'Attach files' })
+            .compareDocumentPosition(selectors) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
         expect(selectors).toHaveAttribute('data-footer-selectors')
         expect(selectors).toHaveStyle({ flexShrink: '1', minWidth: '158px', overflow: 'hidden' })
         expect(within(selectors as HTMLElement).getByRole('group', { name: 'Agent settings' })).toBeInTheDocument()
@@ -126,6 +150,35 @@ describe('ActionPopupBottomRow', () => {
         expect(controls).toHaveAttribute('data-footer-controls')
         expect(controls).toHaveStyle({ flexShrink: '0', justifyContent: 'flex-end' })
         expect(within(controls as HTMLElement).getByRole('button', { name: 'Send' })).toBeInTheDocument()
+    })
+
+    it('renders attachment control first for card and project agent prompts above the mobile breakpoint', () => {
+        renderBottomRow(action, undefined, false, cardContext)
+        const layout = screen.getByTestId('action-popup-bottom-row').firstElementChild as HTMLElement
+        const attachment = within(layout).getByRole('button', { name: 'Attach files' })
+        const selectors = layout.querySelector('[data-footer-selectors]') as HTMLElement
+
+        expect(attachment.compareDocumentPosition(selectors) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
+
+        cleanup()
+        renderBottomRow()
+        expect(screen.getByRole('button', { name: 'Attach files' })).toBeInTheDocument()
+    })
+
+    it.each([
+        { contextOverride: cardContext, embedded: true, scope: 'card embedded' },
+        { contextOverride: context, embedded: false, scope: 'project non-embedded' },
+    ])('hides attachment control while keeping agent controls on mobile $scope rows', ({ contextOverride, embedded }) => {
+        setMobileBreakpoint(true)
+        renderBottomRow(action, undefined, embedded, contextOverride)
+        const bottomRow = screen.getByTestId('action-popup-bottom-row')
+
+        expect(within(bottomRow).queryByRole('button', { name: 'Attach files' })).not.toBeInTheDocument()
+        expect(within(bottomRow).getByRole('group', { name: 'Agent settings' })).toBeInTheDocument()
+        expect(within(bottomRow).getByRole('button', { name: 'Schedule' })).toBeInTheDocument()
+        expect(within(bottomRow).getByRole('button', { name: 'Send' })).toBeInTheDocument()
+        if (embedded) expect(bottomRow).toHaveAttribute('data-embedded', 'true')
+        else expect(bottomRow).not.toHaveAttribute('data-embedded')
     })
 
     it('marks the row as embedded without changing agent control behavior', () => {
@@ -206,12 +259,14 @@ describe('ActionPopupBottomRow', () => {
         expect(await screen.findByText('Send', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()
     })
 
-    it('provides a tooltip for command Run', async () => {
+    it.each([false, true])('keeps command attachment absent and provides Run tooltip when mobile is %s', async (mobile) => {
+        setMobileBreakpoint(mobile)
         const commandAction = { ...action, id: 'command', label: 'Command', type: 'command' as const }
         renderBottomRow(commandAction)
         const run = screen.getByRole('button', { name: 'Run' })
 
         expect(screen.getByTestId('action-popup-bottom-row')).not.toHaveAttribute('data-embedded')
+        expect(screen.queryByRole('button', { name: 'Attach files' })).not.toBeInTheDocument()
 
         fireEvent.mouseOver(run)
         expect(await screen.findByText('Run', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()

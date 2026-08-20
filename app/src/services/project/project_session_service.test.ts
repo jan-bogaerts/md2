@@ -71,7 +71,8 @@ describe('ProjectSessionService storage activation', () => {
         configService.init()
         vi.spyOn(RemoteControlStorageService.prototype, 'connect').mockResolvedValue()
         vi.spyOn(RemoteControlStorageService.prototype, 'getCodexRateLimits').mockResolvedValue(null)
-        vi.spyOn(RemoteControlStorageService.prototype, 'loadActiveActionRunEvents').mockResolvedValue([])
+        vi.spyOn(RemoteControlStorageService.prototype, 'loadActionRunRecoverySnapshot')
+            .mockResolvedValue({ activeRunEvents: [], terminalResults: [] })
         vi.spyOn(RemoteControlStorageService.prototype, 'onActionRun').mockReturnValue(() => undefined)
         vi.spyOn(RemoteControlStorageService.prototype, 'onCodexRateLimits').mockReturnValue(() => undefined)
         vi.spyOn(RemoteControlStorageService.prototype, 'loadDesktopConfig').mockResolvedValue({
@@ -435,10 +436,10 @@ describe('ProjectSessionService storage activation', () => {
         expect(bridge.commit).toHaveBeenCalledWith({
             branch: 'main',
             files: expect.arrayContaining([
-                expect.objectContaining({ path: 'design/actions/complete-card.json' }),
+                expect.objectContaining({ path: 'design/actions/complete.json' }),
                 expect.objectContaining({ path: 'design/actions/fix-bug.json' }),
                 expect.objectContaining({ path: 'design/actions/implement.json' }),
-                expect.objectContaining({ path: 'design/actions/prep-to-implement.json' }),
+                expect.objectContaining({ path: 'design/actions/plan.json' }),
             ]),
             message: 'Add default MD² actions',
         })
@@ -449,5 +450,93 @@ describe('ProjectSessionService storage activation', () => {
             workingFolder: 'active',
         }))
         expect(dataService.projectLoading.openProject).toHaveBeenCalledWith(project)
+    })
+
+    it('waits for an in-flight draft image save before cancellation deletes the asset', async () => {
+        const savedImage = createDeferred<{ fileName: string; path: string }>()
+        vi.spyOn(dataService.cards, 'savePastedImageForNewCard').mockReturnValue(savedImage.promise)
+        const deleteImage = vi.spyOn(dataService.cards, 'deletePastedImage').mockResolvedValue()
+        const service = new ProjectSessionService()
+        const insertMarkdown = vi.fn()
+
+        const paste = service.pasteNewCardImage({ type: 'image/png' } as File, insertMarkdown)
+        const discard = service.discardNewCardDraftImages()
+        expect(service.hasNewCardDraftImages()).toBe(true)
+        expect(deleteImage).not.toHaveBeenCalled()
+
+        savedImage.resolve({ fileName: 'saved.png', path: 'design/saved.png' })
+        await paste
+        await discard
+
+        expect(insertMarkdown).toHaveBeenCalledWith('![pasted image](<saved.png>)')
+        expect(deleteImage).toHaveBeenCalledWith('design/saved.png')
+        expect(service.hasNewCardDraftImages()).toBe(false)
+    })
+
+    it('transfers draft image ownership only after successful card creation', async () => {
+        vi.spyOn(dataService.cards, 'savePastedImageForNewCard').mockResolvedValue({
+            fileName: 'saved.png',
+            path: 'design/saved.png',
+        })
+        vi.spyOn(dataService.cards, 'createCard').mockResolvedValue({ content: '', path: 'design/F-1-card.md' })
+        const deleteImage = vi.spyOn(dataService.cards, 'deletePastedImage').mockResolvedValue()
+        const service = new ProjectSessionService()
+        await service.pasteNewCardImage({ type: 'image/png' } as File, vi.fn())
+
+        await service.createCard({ body: '![pasted image](<saved.png>)', title: 'Card', type: 'feature' }, 'new')
+        await service.discardNewCardDraftImages()
+
+        expect(deleteImage).not.toHaveBeenCalled()
+        expect(service.hasNewCardDraftImages()).toBe(false)
+    })
+
+    it('keeps failed draft image deletions owned so cancellation can retry', async () => {
+        vi.spyOn(dataService.cards, 'savePastedImageForNewCard').mockResolvedValue({
+            fileName: 'saved.png',
+            path: 'design/saved.png',
+        })
+        const deletionError = new Error('delete failed')
+        vi.spyOn(dataService.cards, 'deletePastedImage').mockRejectedValue(deletionError)
+        const service = new ProjectSessionService()
+        await service.pasteNewCardImage({ type: 'image/png' } as File, vi.fn())
+
+        await expect(service.discardNewCardDraftImages()).rejects.toBe(deletionError)
+
+        expect(service.hasNewCardDraftImages()).toBe(true)
+    })
+
+    it('waits for copied draft attachments and removes them during cancellation', async () => {
+        const savedAttachments = createDeferred<Array<{ fileName: string; path: string }>>()
+        vi.spyOn(dataService.cards, 'copyAttachmentsForNewCard').mockReturnValue(savedAttachments.promise)
+        const deleteAttachments = vi.spyOn(dataService.cards, 'deleteCopiedAttachments').mockResolvedValue()
+        const service = new ProjectSessionService()
+
+        const copy = service.copyNewCardAttachments([{ name: 'report.pdf' } as File])
+        const discard = service.discardNewCardDraftAssets()
+        expect(service.hasNewCardDraftAssets()).toBe(true)
+        expect(deleteAttachments).not.toHaveBeenCalled()
+
+        savedAttachments.resolve([{ fileName: 'report.pdf', path: 'design/report.pdf' }])
+        await copy
+        await discard
+
+        expect(deleteAttachments).toHaveBeenCalledWith(['design/report.pdf'])
+        expect(service.hasNewCardDraftAssets()).toBe(false)
+    })
+
+    it('transfers copied draft attachment ownership only after card creation succeeds', async () => {
+        vi.spyOn(dataService.cards, 'copyAttachmentsForNewCard').mockResolvedValue([
+            { fileName: 'report.pdf', path: 'design/report.pdf' },
+        ])
+        vi.spyOn(dataService.cards, 'createCard').mockResolvedValue({ content: '', path: 'design/F-1-card.md' })
+        const deleteAttachments = vi.spyOn(dataService.cards, 'deleteCopiedAttachments').mockResolvedValue()
+        const service = new ProjectSessionService()
+        await service.copyNewCardAttachments([{ name: 'report.pdf' } as File])
+
+        await service.createCard({ body: '[report](<report.pdf>)', title: 'Card', type: 'feature' }, 'new')
+        await service.discardNewCardDraftAssets()
+
+        expect(deleteAttachments).not.toHaveBeenCalled()
+        expect(service.hasNewCardDraftAssets()).toBe(false)
     })
 })

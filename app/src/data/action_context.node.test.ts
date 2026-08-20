@@ -49,7 +49,7 @@ function card(id: string, status: string | null): Card {
         content: '',
         header: {
             affects: [], after: null, agentLogReferences: [], author: null, id, internalId: id.toLowerCase(), owner: null,
-            policy: {}, status, title: id,
+            policy: {}, references: [], status, title: id,
         },
         hasFrontmatter:true,
         isActive: true,

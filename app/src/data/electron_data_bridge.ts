@@ -1,5 +1,6 @@
 import type { ActionFile } from './action_types'
 import type { ActionSchedule } from './action_schedule_types'
+import type { ActivityStatsCalculationResult } from '../../../shared/project_stats.mjs'
 import type {
     AgentConversation,
     BranchReference,
@@ -35,7 +36,7 @@ export interface AgentAvailability {
 
 export interface ElectronDataBridge {
     abortMergeConflict?(request: MergeConflictSessionRequest): Promise<void>
-    addWorktree?(project: ProjectReference): Promise<boolean>
+    addWorktree?(project: ProjectReference, folderPath: string): Promise<void>
     checkoutBranch(project: ProjectReference, branch: string): Promise<ProjectReference>
     commit(request: CommitRequest): Promise<CommitResult>
     commitWorktree?(request: CommitWorktreeRequest): Promise<void>
@@ -51,9 +52,12 @@ export interface ElectronDataBridge {
     launchMergeConflictResolver?(request: MergeConflictPathRequest): Promise<void>
     loadAgentAvailability?(): Promise<Record<string, AgentAvailability>>
     loadAgentConversation?(path: string): Promise<AgentConversation>
+    loadActivityConversations?(path: string): Promise<AgentConversation[]>
     loadActionFiles(project: ProjectReference, actionsFolder: string): Promise<ActionFile[]>
     loadActionSchedules?(project: ProjectReference, actionsFolder: string): Promise<ActionSchedule[]>
     cancelActionSchedule?(project: ProjectReference, actionsFolder: string, scheduleId: string): Promise<ActionSchedule[]>
+    calculateActivityStats?(project: ProjectReference, paths: string[], calculationId: string): Promise<ActivityStatsCalculationResult>
+    cancelActivityStatsCalculation?(calculationId: string): Promise<void>
     loadProjectAsset?(project: ProjectReference, path: string): Promise<ProjectAsset>
     loadTextFile?(project: ProjectReference, path: string): Promise<MarkdownFile>
     loadProject(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>
@@ -80,6 +84,7 @@ export interface ElectronDataBridge {
     resolveProject(project: ProjectReference): Promise<ProjectReference>
     saveActionSchedules?(project: ProjectReference, actionsFolder: string, schedules: ActionSchedule[]): Promise<ActionSchedule[]>
     saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>
+    selectWorktreeFolder?(): Promise<string | null>
     removeWorktree?(project: ProjectReference, folderPath: string): Promise<void>
     stopAgent?(runId: string): Promise<void>
     watchProject(project: ProjectReference, callback: (notification: ProjectWatchNotification) => void): () => void

@@ -12,7 +12,7 @@ const card: Card = {
     content: '# First',
     header: {
         affects: [], after: null, agentLogReferences: [], author: null, id: 'F-1', internalId: 'one', owner: 'JB',
-        policy: {}, status: 'todo', title: 'First card',
+        policy: {}, references: [], status: 'todo', title: 'First card',
     },
     hasFrontmatter:true,
     isActive: true,

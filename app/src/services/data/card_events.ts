@@ -7,6 +7,7 @@ export const CARD_FIELDS = [
     'identity',
     'ordering',
     'policy',
+    'references',
     'status',
     'title',
     'worktree',

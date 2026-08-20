@@ -18,6 +18,7 @@ import { openFilesService } from '../../services/open_files_service'
 import { workspaceViewService } from '../../services/project/workspace_view_service'
 import { cardDragDropService } from './card_drag_drop_service'
 import { CardDragOverlay } from './card_drag_overlay'
+import { attachmentChoiceService } from '../../services/attachments/attachment_choice_service'
 
 const dragContextHandlers = vi.hoisted(() => ({
     onDragCancel: null as DndContextProps['onDragCancel'] | null,
@@ -50,7 +51,7 @@ function card(id: string, title: string, status: string, policy: Record<string, 
         content: `# ${title}\n\nBody of ${id}`,
         header: {
             affects: [], after: null, agentLogReferences: [], author: null, id, internalId: id.toLowerCase(), owner: null,
-            policy, status, title,
+            policy, references: [], status, title,
             worktree: null, worktreeError: null, worktreeValue: null,
         },
         hasFrontmatter:true,
@@ -132,6 +133,7 @@ describe('CardView', () => {
 
     afterEach(() => {
         cleanup()
+        attachmentChoiceService.cancel()
         cardDragDropService.endDrag()
         const { selectedPath } = workspaceViewService.getSnapshot()
         if (selectedPath) workspaceViewService.clearSelectedPath(selectedPath)
@@ -170,6 +172,27 @@ describe('CardView', () => {
         expect(screen.getByText('done')).toBeInTheDocument()
         expect(screen.getByText('F-1')).toBeInTheDocument()
         expect(screen.getByText('First')).toBeInTheDocument()
+    })
+
+    it('shows accessible attachment state and opens one choice for external file drop', () => {
+        const referencedCard = { ...cards[0], header: { ...cards[0].header, references: ['design/report.pdf'] } }
+        const copyAttachments = vi.spyOn(dataService.cards, 'copyAttachmentsForCard')
+        const addReferences = vi.spyOn(dataService.cards, 'addCardReferences')
+        renderCardView({}, [referencedCard, cards[1]])
+
+        expect(screen.getByRole('button', { name: 'Attach files to F-1; 1 attached' })).toBeInTheDocument()
+        fireEvent.contextMenu(screen.getByText('First'))
+        expect(screen.getByRole('menuitem', { name: 'Attach files (1)' })).toBeInTheDocument()
+        fireEvent.keyDown(document, { key: 'Escape' })
+
+        const cardSurface = screen.getByText('First').closest('[data-card-path]')
+        if (!cardSurface) throw new Error('Missing card drop surface')
+        const file = new File(['report'], 'report.pdf', { type: 'application/pdf' })
+        fireEvent.drop(cardSurface, { dataTransfer: { files: [file], types: ['Files'] } })
+
+        expect(attachmentChoiceService.getSnapshot()).toMatchObject({ fileCount: 1, fileNames: ['report.pdf'] })
+        expect(copyAttachments).not.toHaveBeenCalled()
+        expect(addReferences).not.toHaveBeenCalled()
     })
 
     it('lets desktop columns flex between their minimum and maximum widths', () => {

@@ -1,6 +1,6 @@
 import ArrowUpwardOutlined from '@mui/icons-material/ArrowUpwardOutlined'
 import StopOutlined from '@mui/icons-material/StopOutlined'
-import { Box, Button, IconButton, Tooltip } from '@mui/material'
+import { Box, Button, IconButton, Tooltip, useMediaQuery, useTheme } from '@mui/material'
 import CalendarOutline from 'mdi-material-ui/CalendarOutline'
 import Play from 'mdi-material-ui/Play'
 import { useSyncExternalStore } from 'react'
@@ -25,6 +25,12 @@ import { useActionRunSettings } from '../../shared/use_action_run_settings'
 import { ActionPopupFinishButton } from './action_popup_finish_button'
 import type { ActionUsageScopeStore } from './action_usage_scope_store'
 import { ActionAgentSelectors } from '../../agent/action_agent_selectors'
+import { MarkdownAttachmentControl } from '../../../editor/markdown_attachment_control'
+import {
+    attachFilesToCardMarkdown,
+    attachFilesToOriginalMarkdown,
+} from '../../../../services/attachments/attachment_workflow'
+import { dialogService } from '../../../../services/dialog_service'
 
 interface ActionPopupBottomRowProps {
     action: ActionDefinition
@@ -47,6 +53,8 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
         action, assignmentContext, conversationStore, embedded = false, historyStore, inputStore, resultStore,
         runValidationError, scheduleStore, settingsStore, usageScopeStore,
     } = props
+    const theme = useTheme()
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'))
     const settings = useActionRunSettings(action, settingsStore)
     const runStatus = useActionRunSelector(action.id, assignmentContext, (run) => run?.status ?? 'idle')
     const agentActive = useActionRunSelector(action.id, assignmentContext, (run) => {
@@ -105,7 +113,16 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
         settings,
         settingsStore,
     }
+    const attachmentCopyTarget = assignmentContext.file
 
+    const handleAttachmentFiles = (files: File[]) => {
+        const operation = attachmentCopyTarget
+            ? attachFilesToCardMarkdown(attachmentCopyTarget, files, promptDraft.requestInsertion)
+            : attachFilesToOriginalMarkdown(files, promptDraft.requestInsertion)
+        void operation.catch((error: unknown) => {
+            dialogService.error(error, { fallbackMessage: 'Files could not be attached' })
+        })
+    }
     const handlePrimaryRun = async () => {
         await runPopupAction(operationInput)
     }
@@ -133,6 +150,12 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
                     },
                 }}
             >
+                {action.type === 'agent' && !isMobile ? (
+                    <MarkdownAttachmentControl
+                        disabled={editorSnapshot.preparationStatus !== 'ready'}
+                        onFiles={handleAttachmentFiles}
+                    />
+                ) : null}
                 <Box data-footer-selectors sx={{ flexShrink: 1, minWidth: 158, overflow: 'hidden' }}>
                     {action.type === 'agent' ? (
                         <ActionAgentSelectors action={action} context={assignmentContext} settingsStore={settingsStore} />

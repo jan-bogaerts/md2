@@ -9,6 +9,7 @@ import {
     project,
     queueProjectTree,
 } from '../test_support/github_storage_test_support'
+import { conversation } from '../test_support/data_service_test_support'
 
 describe('GithubStorageService', () => {
     beforeEach(() => {
@@ -68,6 +69,37 @@ describe('GithubStorageService', () => {
             path,
             sha: 'activity-sha',
         })
+    })
+
+    it('loads every conversation from one activity file in stored order', async () => {
+        const path = 'design/activity/card__card-1.json'
+        const first = { ...conversation(`${path}#conversation=conversation-1`), cardInternalId: 'different-card' }
+        const second = { ...conversation(`${path}#conversation=conversation-2`), cardInternalId: 'different-card', id: 'conversation-2' }
+        const storedFirst = Object.fromEntries(Object.entries(first).filter(([fieldName]) => fieldName !== 'path'))
+        const storedSecond = Object.fromEntries(Object.entries(second).filter(([fieldName]) => fieldName !== 'path'))
+        const activity = {
+            actionSettings: {},
+            conversations: [storedFirst, storedSecond],
+            origin: { cardInternalId: 'different-card', kind: 'card' },
+            records: [],
+            version: 4,
+        }
+        const fetchImplementation = vi.fn().mockResolvedValue(createResponse({
+            content: btoa(JSON.stringify(activity)),
+            encoding: 'base64',
+            path,
+            sha: 'activity-sha',
+        }))
+        const service = new GithubStorageService()
+        service.init({ accessToken: 'token', fetchImplementation })
+
+        const loaded = await service.loadActivityConversations(project, path)
+
+        expect(loaded.map(({ id }) => id)).toEqual(['agent-1', 'conversation-2'])
+        expect(loaded.map((item) => item.path)).toEqual([
+            `${path}#conversation=agent-1`,
+            `${path}#conversation=conversation-2`,
+        ])
     })
 
     it('bounds parallel markdown content requests when loading a project', async () => {

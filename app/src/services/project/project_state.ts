@@ -46,7 +46,6 @@ function cloneCard(card: Card): Card {
 }
 
 export class ProjectState {
-    private agentConversationLoadToken = 0
     private currentFiles: MarkdownFile[] = []
     private currentCardsByPath = new Map<string, Card>()
     private currentProject: ProjectReference | null = null
@@ -73,7 +72,6 @@ export class ProjectState {
     get project() { return this.currentProject }
     get snapshot() { return this.currentSnapshot }
     get commitPathsInFlight() { return this.inFlightCommitPaths }
-    get agentConversationToken() { return this.agentConversationLoadToken }
     get projectToken() { return this.projectLoadToken }
 
     resetLoadedProject() {
@@ -255,7 +253,10 @@ export class ProjectState {
 
         const movedHash = this.currentContentHashByPath.get(fromPath)
         this.currentContentHashByPath.delete(fromPath)
-        if (movedHash !== undefined) this.currentContentHashByPath.set(toPath, movedHash)
+        // A commit that moved the file already recorded what it wrote, so only fill an unknown target.
+        if (movedHash !== undefined && !this.currentContentHashByPath.has(toPath)) {
+            this.currentContentHashByPath.set(toPath, movedHash)
+        }
 
         const sourceFile = this.currentFiles.find((file) => file.path === fromPath)
         const targetFile = this.currentFiles.find((file) => file.path === toPath)
@@ -295,15 +296,6 @@ export class ProjectState {
         return this.projectLoadToken === projectLoadToken && isSameProjectReference(this.currentProject, project)
     }
 
-    beginAgentConversationLoad() {
-        this.agentConversationLoadToken += 1
-        return this.agentConversationLoadToken
-    }
-
-    isCurrentAgentConversationLoad(agentConversationLoadToken: number) {
-        return this.agentConversationLoadToken === agentConversationLoadToken
-    }
-
     requireFile(path: string): MarkdownFile {
         const existingFile = this.currentFiles.find((currentFile) => currentFile.path === path)
         if (!existingFile) throw new Error(`Cannot update a card that is not loaded: ${path}`)
@@ -318,8 +310,12 @@ export class ProjectState {
         return card
     }
 
+    findCardByInternalId(internalId: string): Card | null {
+        return [...this.currentCardsByPath.values()].find(({ header }) => header.internalId === internalId) ?? null
+    }
+
     requireCardByInternalId(internalId: string): Card {
-        const card = [...this.currentCardsByPath.values()].find(({ header }) => header.internalId === internalId)
+        const card = this.findCardByInternalId(internalId)
         if (!card) throw new Error(`Cannot update a card that is not loaded: ${internalId}`)
 
         return card

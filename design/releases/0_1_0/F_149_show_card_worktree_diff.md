@@ -16,7 +16,7 @@ affects:
   - app/src/components/card_view/card_commit_diff_panel.tsx
   - app/src/components/card_view/card_body_popover.tsx
 agents:
-  - design/releases/0_1_0/card__290f3413-3d14-4ec2-b97d-e2522c3c1057.json#conversation=agent-14d9ac4c-511b-4a31-9aa5-5426d3082bc2
+  - design/releases/0_1_0/card__290f3413-3d14-4ec2-b97d-e2522c3c1057.json
 policy:
 after: 81dcbcc1-3401-4927-a76e-2f3ef4874190
 ---

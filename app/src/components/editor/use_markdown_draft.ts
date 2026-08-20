@@ -1,0 +1,38 @@
+import { useEffect } from 'react'
+import {
+    MARKDOWN_INSERTION_REQUESTED_EVENT,
+    type MarkdownDraft,
+    type MarkdownInsertionRequest,
+} from '../../services/markdown/markdown_draft'
+
+/** Applies external replacements and insertion requests from one Markdown draft to its mounted editor. */
+export function useMarkdownDraft(
+    draft: MarkdownDraft | undefined,
+    insertMarkdown: (markdown: string) => void,
+    replaceMarkdown: (markdown: string) => void,
+) {
+    useEffect(() => {
+        if (!draft) return undefined
+
+        replaceMarkdown(draft.getSnapshot())
+
+        return draft.subscribeEditor(() => replaceMarkdown(draft.getSnapshot()))
+    }, [draft, replaceMarkdown])
+
+    useEffect(() => {
+        if (!draft) return undefined
+
+        const handleInsertionRequest = (event: Event) => {
+            const request = (event as CustomEvent<MarkdownInsertionRequest>).detail
+            try {
+                insertMarkdown(request.markdown)
+                request.acknowledge()
+            } catch (error) {
+                request.reject(error)
+            }
+        }
+        draft.addEventListener(MARKDOWN_INSERTION_REQUESTED_EVENT, handleInsertionRequest)
+
+        return () => draft.removeEventListener(MARKDOWN_INSERTION_REQUESTED_EVENT, handleInsertionRequest)
+    }, [draft, insertMarkdown])
+}

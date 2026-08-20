@@ -5,9 +5,9 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App } from './app'
 import { applicationStartupService } from './services/application_startup_service'
-import { startReactTelemetry } from './services/telemetry/telemetry_bootstrap'
+import { telemetryService } from './services/telemetry/telemetry_service'
 
-startReactTelemetry()
+telemetryService.start()
 void applicationStartupService.start()
 
 createRoot(document.getElementById('root')!).render(

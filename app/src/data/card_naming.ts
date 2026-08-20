@@ -82,20 +82,11 @@ export function getNextCardNumber(files: MarkdownFile[], idPrefix: string) {
     return numbers.length > 0 ? Math.max(...numbers) + 1 : 1
 }
 
-function buildCardBody(template: string, draft: CardDraft) {
-    if (draft.bodyIncludesTemplate) return draft.body
-
-    const hasDraftBody = draft.body.trim().length > 0
-
-    return hasDraftBody ? `${template}\n\n${draft.body}` : template
-}
-
 export function createCardFile(
     files: MarkdownFile[],
     workingFolder: string,
     cardSeparator: CardSeparator,
     cardTypes: CardTypeConfig[],
-    cardBodyTemplate: string,
     initialState: string,
     draft: CardDraft,
 ): MarkdownFile {
@@ -106,7 +97,7 @@ export function createCardFile(
     const internalId = markdownParsingService.generateInternalId()
     const content = markdownParsingService.buildCardMarkdown(
         { affects: [], id, internalId, policy: {}, status: initialState, title: draft.title },
-        buildCardBody(cardBodyTemplate, draft),
+        draft.body,
     )
 
     return {

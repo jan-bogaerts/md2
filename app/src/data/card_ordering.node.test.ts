@@ -16,6 +16,7 @@ function card(internalId: string, options: { after?: string | null; status?: str
             internalId,
             owner: null,
             policy: {},
+            references: [],
             status: options.status ?? 'active',
             title: internalId,
         },

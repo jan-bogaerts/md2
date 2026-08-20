@@ -35,6 +35,8 @@ interface LocalGitStorageDependencies {
 }
 
 export class LocalGitStorageService implements StorageService {
+    calculateActivityStats?: StorageService['calculateActivityStats']
+    cancelActivityStatsCalculation?: StorageService['cancelActivityStatsCalculation']
     private bridge: ElectronDataBridge | null
     private readonly pendingPushBranches: Set<string>
 
@@ -43,11 +45,11 @@ export class LocalGitStorageService implements StorageService {
         this.pendingPushBranches = new Set()
     }
 
-    async addWorktree(project: ProjectReference): Promise<boolean> {
+    async addWorktree(project: ProjectReference, folderPath: string): Promise<void> {
         const bridge = this.requireBridge()
         if (!bridge.addWorktree) throw new Error('Electron local Git bridge cannot add worktrees')
 
-        return bridge.addWorktree(project)
+        await bridge.addWorktree(project, folderPath)
     }
 
     init(dependencies: LocalGitStorageDependencies = {}) {
@@ -56,6 +58,12 @@ export class LocalGitStorageService implements StorageService {
         if (!bridge) throw new Error('Electron local Git bridge is not available')
 
         this.bridge = bridge
+        this.calculateActivityStats = bridge.calculateActivityStats
+            ? (project, paths, calculationId) => bridge.calculateActivityStats!(project, paths, calculationId)
+            : undefined
+        this.cancelActivityStatsCalculation = bridge.cancelActivityStatsCalculation
+            ? (calculationId) => bridge.cancelActivityStatsCalculation!(calculationId)
+            : undefined
     }
 
     async openProjectFolder() {
@@ -126,6 +134,13 @@ export class LocalGitStorageService implements StorageService {
         if (!bridge.loadAgentConversation) throw new Error('Electron local Git bridge cannot load agent conversations')
 
         return bridge.loadAgentConversation(path)
+    }
+
+    async loadActivityConversations(_project: ProjectReference, path: string): Promise<AgentConversation[]> {
+        const bridge = this.requireBridge()
+        if (!bridge.loadActivityConversations) throw new Error('Electron local Git bridge cannot load activity conversations')
+
+        return bridge.loadActivityConversations(path)
     }
 
     async stopAgent(_project: ProjectReference, runId: string): Promise<void> {
@@ -340,6 +355,13 @@ export class LocalGitStorageService implements StorageService {
     async saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void> {
         await this.requireBridge().saveProjectConfig(project, config)
         this.pendingPushBranches.add(project.branch)
+    }
+
+    async selectWorktreeFolder(): Promise<string | null> {
+        const bridge = this.requireBridge()
+        if (!bridge.selectWorktreeFolder) throw new Error('Electron local Git bridge cannot select worktree folders')
+
+        return bridge.selectWorktreeFolder()
     }
 
     async removeWorktree(project: ProjectReference, folderPath: string): Promise<void> {

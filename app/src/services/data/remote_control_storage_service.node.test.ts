@@ -58,6 +58,33 @@ function actionStartRequest() {
     return { actionId: 'action-test', context: { file: 'design/F-1.md', kind: 'card' as const }, runInput: {} }
 }
 
+interface PersistentSubscriptionCase {
+    method: string
+    name: string
+    subscribe(service: RemoteControlStorageService): () => void
+}
+
+const persistentSubscriptionCases: PersistentSubscriptionCase[] = [
+    {
+        method: 'onMergeConflictSessionChanged',
+        name: 'merge-conflict',
+        subscribe: (service) => service.onMergeConflictSessionChanged(() => undefined),
+    },
+    { method: 'onActionRun', name: 'action-run', subscribe: (service) => service.onActionRun(() => undefined) },
+    { method: 'onCodexRateLimits', name: 'Codex-rate-limit', subscribe: (service) => service.onCodexRateLimits(() => undefined) },
+    {
+        method: 'watchProject',
+        name: 'project-watch',
+        subscribe: (service) => service.watchProject(
+            { branch: 'main', id: 'local', rootPath: 'C:/repo' },
+            () => undefined,
+            () => undefined,
+            () => undefined,
+        ),
+    },
+    { method: 'onWorktreesChanged', name: 'worktree', subscribe: (service) => service.onWorktreesChanged(() => undefined) },
+]
+
 async function flushPromises() {
     await Promise.resolve()
     await Promise.resolve()
@@ -85,6 +112,89 @@ describe('RemoteControlStorageService', () => {
 
         await expect(first).resolves.toEqual({ files: [], workingFolder: 'design' })
         await expect(second).resolves.toEqual([{ name: 'main' }])
+    })
+
+    it.each(persistentSubscriptionCases)('cleans retired $name subscriptions locally without reconnecting', async ({ method, subscribe }) => {
+        installWebSocket()
+        const service = createService()
+        const cleanup = subscribe(service)
+        const socket = lastSocket()
+        const unhandledRejections: unknown[] = []
+        const handleUnhandledRejection = (reason: unknown) => unhandledRejections.push(reason)
+
+        process.on('unhandledRejection', handleUnhandledRejection)
+        try {
+            socket.open()
+            await flushPromises()
+            const subscriptionRequest = JSON.parse(socket.sent[0]) as { id: string, method: string }
+            expect(subscriptionRequest.method).toBe(method)
+            socket.receive({ id: subscriptionRequest.id, result: { subscriptionId: `${method}-1` } })
+            await flushPromises()
+            service.retire()
+
+            cleanup()
+            cleanup()
+            await new Promise((resolve) => setTimeout(resolve, 0))
+
+            expect(socket.sent).toHaveLength(1)
+            expect(MockWebSocket.instances).toHaveLength(1)
+            expect(unhandledRejections).toEqual([])
+        } finally {
+            process.off('unhandledRejection', handleUnhandledRejection)
+        }
+    })
+
+    it.each(persistentSubscriptionCases)('sends one unsubscribe for repeated active $name cleanup', async ({ method, subscribe }) => {
+        installWebSocket()
+        const service = createService()
+        const cleanup = subscribe(service)
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const subscriptionRequest = JSON.parse(socket.sent[0]) as { id: string, method: string }
+        expect(subscriptionRequest.method).toBe(method)
+        socket.receive({ id: subscriptionRequest.id, result: { subscriptionId: `${method}-1` } })
+        await flushPromises()
+
+        cleanup()
+        cleanup()
+
+        expect(socket.sent).toHaveLength(2)
+        expect(JSON.parse(socket.sent[1])).toEqual(expect.objectContaining({
+            method: 'unsubscribe',
+            params: [`${method}-1`],
+        }))
+    })
+
+    it.each(persistentSubscriptionCases)('unsubscribes one active $name response received after cancellation', async ({ method, subscribe }) => {
+        installWebSocket()
+        const service = createService()
+        const cleanup = subscribe(service)
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const subscriptionRequest = JSON.parse(socket.sent[0]) as { id: string, method: string }
+        expect(subscriptionRequest.method).toBe(method)
+        cleanup()
+        cleanup()
+        socket.receive({ id: subscriptionRequest.id, result: { subscriptionId: `${method}-1` } })
+        await vi.waitFor(() => expect(socket.sent).toHaveLength(2))
+
+        expect(JSON.parse(socket.sent[1])).toEqual(expect.objectContaining({
+            method: 'unsubscribe',
+            params: [`${method}-1`],
+        }))
+    })
+
+    it('keeps normal requests through retired storage rejected without creating a socket', async () => {
+        installWebSocket()
+        const service = createService()
+        service.retire()
+
+        await expect(service.getActiveProject()).rejects.toThrow('Remote-control connection was replaced')
+        expect(MockWebSocket.instances).toEqual([])
     })
 
     it('loads and saves complete host desktop config through remote control', async () => {
@@ -199,7 +309,8 @@ describe('RemoteControlStorageService', () => {
         installWebSocket()
         const service = createService()
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
-        const addition = service.addWorktree(project)
+        const selection = service.selectWorktreeFolder()
+        const addition = service.addWorktree(project, 'C:/feature')
         const preparationRequest = { branchName: 'card-title', project, worktree: 1 }
         const operationRequest = { project, worktree: 1 }
         const integrationRequest = { ...operationRequest, cardInternalId: 'stable-card-id', projectFolder: 'design' }
@@ -218,18 +329,20 @@ describe('RemoteControlStorageService', () => {
 
         socket.open()
         await flushPromises()
-        const addRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
-        const commitSentRequest = JSON.parse(socket.sent[1]) as { id: string, method: string, params: unknown[] }
-        const discardRequest = JSON.parse(socket.sent[2]) as { id: string, method: string, params: unknown[] }
-        const integrateRequest = JSON.parse(socket.sent[3]) as { id: string, method: string, params: unknown[] }
-        const parkRequest = JSON.parse(socket.sent[4]) as { id: string, method: string, params: unknown[] }
-        const prepareRequest = JSON.parse(socket.sent[5]) as { id: string, method: string, params: unknown[] }
-        const pullRequest = JSON.parse(socket.sent[6]) as { id: string, method: string, params: unknown[] }
-        const pushRequest = JSON.parse(socket.sent[7]) as { id: string, method: string, params: unknown[] }
-        const refreshRequest = JSON.parse(socket.sent[8]) as { id: string, method: string, params: unknown[] }
-        const removeRequest = JSON.parse(socket.sent[9]) as { id: string, method: string, params: unknown[] }
-        const deleteRequest = JSON.parse(socket.sent[10]) as { id: string, method: string, params: unknown[] }
-        expect(addRequest).toMatchObject({ method: 'addWorktree', params: [project] })
+        const selectionRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
+        const addRequest = JSON.parse(socket.sent[1]) as { id: string, method: string, params: unknown[] }
+        const commitSentRequest = JSON.parse(socket.sent[2]) as { id: string, method: string, params: unknown[] }
+        const discardRequest = JSON.parse(socket.sent[3]) as { id: string, method: string, params: unknown[] }
+        const integrateRequest = JSON.parse(socket.sent[4]) as { id: string, method: string, params: unknown[] }
+        const parkRequest = JSON.parse(socket.sent[5]) as { id: string, method: string, params: unknown[] }
+        const prepareRequest = JSON.parse(socket.sent[6]) as { id: string, method: string, params: unknown[] }
+        const pullRequest = JSON.parse(socket.sent[7]) as { id: string, method: string, params: unknown[] }
+        const pushRequest = JSON.parse(socket.sent[8]) as { id: string, method: string, params: unknown[] }
+        const refreshRequest = JSON.parse(socket.sent[9]) as { id: string, method: string, params: unknown[] }
+        const removeRequest = JSON.parse(socket.sent[10]) as { id: string, method: string, params: unknown[] }
+        const deleteRequest = JSON.parse(socket.sent[11]) as { id: string, method: string, params: unknown[] }
+        expect(selectionRequest).toMatchObject({ method: 'selectWorktreeFolder', params: [] })
+        expect(addRequest).toMatchObject({ method: 'addWorktree', params: [project, 'C:/feature'] })
         expect(commitSentRequest).toMatchObject({ method: 'commitWorktree', params: [commitRequest] })
         expect(discardRequest).toMatchObject({ method: 'discardWorktreeChanges', params: [operationRequest] })
         expect(integrateRequest).toMatchObject({ method: 'integrateWorktree', params: [integrationRequest] })
@@ -241,14 +354,17 @@ describe('RemoteControlStorageService', () => {
         expect(removeRequest).toMatchObject({ method: 'removeWorktree', params: [project, 'C:/feature'] })
         expect(deleteRequest).toMatchObject({ method: 'deleteLocalBranch', params: [project, 'feature'] })
         for (const request of [
-            addRequest, commitSentRequest, discardRequest, integrateRequest, parkRequest, prepareRequest,
+            selectionRequest, addRequest, commitSentRequest, discardRequest, integrateRequest, parkRequest, prepareRequest,
             pullRequest, pushRequest, refreshRequest, removeRequest, deleteRequest,
         ]) {
-            const result = request === addRequest ? true : request === integrateRequest ? { status: 'completed' } : undefined
+            const result = request === selectionRequest
+                ? 'C:/feature'
+                : request === integrateRequest ? { status: 'completed' } : undefined
             socket.receive({ id: request.id, result })
         }
+        await expect(selection).resolves.toBe('C:/feature')
 
-        await expect(addition).resolves.toBe(true)
+        await expect(addition).resolves.toBeUndefined()
         await expect(commit).resolves.toBeUndefined()
         await expect(discard).resolves.toBeUndefined()
         await expect(integration).resolves.toEqual({ status: 'completed' })
@@ -535,18 +651,40 @@ describe('RemoteControlStorageService', () => {
         await expect(references).resolves.toEqual(['design/activity/project.json#conversation=conversation-1'])
     })
 
-    it('rejects error responses', async () => {
+    it('loads one activity file through remote control', async () => {
         installWebSocket()
         const service = createService()
-        const request = service.startAction(actionStartRequest())
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+        const path = 'design/activity/card__card-1.json'
+        const conversations = service.loadActivityConversations(project, path)
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const sentRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
+        expect(sentRequest).toMatchObject({ method: 'loadActivityConversations', params: [path] })
+        socket.receive({ id: sentRequest.id, result: [] })
+
+        await expect(conversations).resolves.toEqual([])
+    })
+
+    it('adds remote method context while preserving response error as cause', async () => {
+        installWebSocket()
+        const service = createService()
+        const request = service.sendActionMessage('unknown-run', 'continue')
         const socket = lastSocket()
 
         socket.open()
         await flushPromises()
         const sentRequest = JSON.parse(socket.sent[0]) as { id: string }
-        socket.receive({ error: { message: 'command failed' }, id: sentRequest.id })
+        socket.receive({ error: { message: 'Unknown action run: unknown-run' }, id: sentRequest.id })
 
-        await expect(request).rejects.toThrow('command failed')
+        const error = await request.catch((caughtError: unknown) => caughtError)
+
+        expect(error).toMatchObject({
+            cause: expect.objectContaining({ message: 'Unknown action run: unknown-run' }),
+            message: 'Remote method sendActionMessage failed: Unknown action run: unknown-run',
+        })
     })
 
     it('preserves permission-mode overrides in remote action requests', async () => {
@@ -580,6 +718,7 @@ describe('RemoteControlStorageService', () => {
         const sentRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
         expect(sentRequest).toMatchObject({ method: 'reserveActionConversation', params: [actionRequest] })
         const reservation = {
+            activityPath: 'design/activity/card.json',
             conversationId: 'conversation-1',
             reference: 'design/activity/card.json#conversation=conversation-1',
         }
@@ -639,7 +778,29 @@ describe('RemoteControlStorageService', () => {
         await Promise.all(operations)
     })
 
-    it('reattaches action run events and reloads active state after reconnect', async () => {
+    it('loads authoritative action recovery for renderer run IDs', async () => {
+        installWebSocket()
+        const service = createService()
+        const recovery = service.loadActionRunRecoverySnapshot(['run-active', 'run-ended'])
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const sentRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
+        expect(sentRequest).toMatchObject({
+            method: 'loadActionRunRecoverySnapshot',
+            params: [['run-active', 'run-ended']],
+        })
+        const snapshot = {
+            activeRunEvents: [],
+            terminalResults: [{ failure: null, runId: 'run-ended', status: 'completed' }],
+        }
+        socket.receive({ id: sentRequest.id, result: snapshot })
+
+        await expect(recovery).resolves.toEqual(snapshot)
+    })
+
+    it('reattaches action run subscription after reconnect', async () => {
         installWebSocket()
         const service = createService()
         const callback = vi.fn()
@@ -660,9 +821,6 @@ describe('RemoteControlStorageService', () => {
         const secondSubscription = JSON.parse(secondSocket.sent[0]) as { id: string, method: string }
         expect(secondSubscription.method).toBe('onActionRun')
         secondSocket.receive({ id: secondSubscription.id, result: { subscriptionId: 'action-events-2' } })
-        await vi.waitFor(() => expect(secondSocket.sent).toHaveLength(2))
-        const snapshotRequest = JSON.parse(secondSocket.sent[1]) as { id: string, method: string }
-        expect(snapshotRequest.method).toBe('loadActiveActionRunEvents')
         const event = {
             actionId: 'review',
             context: { file: 'design/F-1.md', kind: 'card' },
@@ -673,7 +831,10 @@ describe('RemoteControlStorageService', () => {
             status: 'running',
             type: 'run',
         }
-        secondSocket.receive({ id: snapshotRequest.id, result: [event] })
+        secondSocket.receive({
+            event: 'actionRun',
+            payload: { event, requestId: secondSubscription.id, subscriptionId: 'action-events-2' },
+        })
 
         await vi.waitFor(() => expect(callback).toHaveBeenCalledWith(event))
     })

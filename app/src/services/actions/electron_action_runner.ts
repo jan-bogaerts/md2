@@ -39,7 +39,7 @@ export async function runElectronAction(
             throw new Error('Starting a card agent requires conversation reservation support')
         }
         if (conversationReservation && context.file) {
-            dataService.cards.addAgentLogReference(context.file, conversationReservation.reference)
+            dataService.cards.addAgentLogReference(context.file, conversationReservation.activityPath)
         }
     } finally {
         resumeAutomaticCommit?.()

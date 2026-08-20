@@ -11,6 +11,7 @@ import ContentSaveOutline from 'mdi-material-ui/ContentSaveOutline'
 import FileDocumentPlusOutline from 'mdi-material-ui/FileDocumentPlusOutline'
 import FolderOpen from 'mdi-material-ui/FolderOpen'
 import TextBoxOutline from 'mdi-material-ui/TextBoxOutline'
+import BarChartOutlined from '@mui/icons-material/BarChartOutlined'
 import {
     defaultModelForProfile,
     findAgentProfile,
@@ -280,6 +281,12 @@ export function AppMenu(props: AppMenuProps) {
                         <Box component="span" sx={{ ml: 0.75 }}>List</Box>
                     </ToggleButton>
                 </Tooltip>
+                <Tooltip title="Stats view">
+                    <ToggleButton aria-label="Stats view" value="stats">
+                        <BarChartOutlined fontSize="small" />
+                        <Box component="span" sx={{ ml: 0.75 }}>Stats</Box>
+                    </ToggleButton>
+                </Tooltip>
             </ToggleButtonGroup>
         </Section>
     )
@@ -497,7 +504,6 @@ export function AppMenu(props: AppMenuProps) {
                 open={dialogMode === 'release'}
             />
             <NewCardDialog
-                cardBodyTemplate={actions.cardBodyTemplate}
                 cardTypes={actions.cardTypes}
                 initialTargetStatus={actions.newCardInitialStatus}
                 isLoading={actions.isLoading}

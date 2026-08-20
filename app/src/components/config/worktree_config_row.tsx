@@ -3,16 +3,19 @@ import TrashCanOutline from 'mdi-material-ui/TrashCanOutline'
 import type { WorktreeRecord } from '../../data/data_types'
 
 interface WorktreeConfigRowProps {
+    disabled: boolean
     index: number
-    onRemove: (index: number) => void
-    record: WorktreeRecord
+    onRemove: (path: string, pendingAddition: boolean) => void
+    pendingAddition?: boolean
+    pendingRemoval?: boolean
+    record: Pick<WorktreeRecord, 'error' | 'path' | 'valid'>
 }
 
 export function WorktreeConfigRow(props: WorktreeConfigRowProps) {
-    const { index, onRemove, record } = props
+    const { disabled, index, onRemove, pendingAddition = false, pendingRemoval = false, record } = props
 
     const handleRemove = () => {
-        onRemove(index)
+        onRemove(record.path, pendingAddition)
     }
 
     return (
@@ -36,10 +39,13 @@ export function WorktreeConfigRow(props: WorktreeConfigRowProps) {
                     {record.path}
                 </Typography>
             </Tooltip>
+            {pendingAddition ? <Typography color="text.secondary" variant="caption">Pending addition</Typography> : null}
+            {pendingRemoval ? <Typography color="text.secondary" variant="caption">Pending removal</Typography> : null}
             <Tooltip title={`Remove worktree ${index + 1}`}>
                 <IconButton
                     aria-label={`Remove worktree ${index + 1}`}
                     className="worktree-delete"
+                    disabled={disabled || pendingRemoval}
                     onClick={handleRemove}
                     size="small"
                 >

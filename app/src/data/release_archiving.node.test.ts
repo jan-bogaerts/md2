@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { MarkdownFile, Card } from './data_types'
 import { buildReleaseMoves } from './release_archiving'
 
-function card(path: string, agentLogReferences: string[] = []): Card {
+function card(path: string, agentLogReferences: string[] = [], references: string[] = []): Card {
     return {
         agentConversationErrors: [],
         agentConversations: [],
@@ -16,6 +16,7 @@ function card(path: string, agentLogReferences: string[] = []): Card {
             internalId: 'card-1',
             owner: null,
             policy: {},
+            references,
             status: 'active',
             title: path,
         },
@@ -84,6 +85,88 @@ describe('buildReleaseMoves', () => {
         ])
     })
 
+    it('moves arbitrary copied references and rewrites only their frontmatter paths', () => {
+        const content = [
+            '---',
+            'references:',
+            '  - design/files/manual.pdf',
+            '  - C:\\notes\\local.txt',
+            '  - /home/user/local.txt',
+            '---',
+            '# Card',
+        ].join('\n')
+        const source = card('design/F-1-card.md', [], [
+            'design/files/manual.pdf',
+            'C:\\notes\\local.txt',
+            '/home/user/local.txt',
+        ])
+        const files: MarkdownFile[] = [
+            { content, path: source.path },
+            { content: 'AAECAw==', encoding: 'base64', path: 'design/files/manual.pdf' },
+        ]
+
+        const moves = buildReleaseMoves(files, [source], 'design', 'design/releases', 'v1')
+
+        expect(moves).toEqual([
+            {
+                content: content.replace('design/files/manual.pdf', 'design/releases/v1/manual.pdf'),
+                fromPath: source.path,
+                sha: undefined,
+                toPath: 'design/releases/v1/F-1-card.md',
+            },
+            {
+                content: 'AAECAw==',
+                encoding: 'base64',
+                fromPath: 'design/files/manual.pdf',
+                sha: undefined,
+                toPath: 'design/releases/v1/manual.pdf',
+            },
+        ])
+    })
+
+    it('keeps copied references in place when a non-moved card still references the asset', () => {
+        const archivedContent = [
+            '---',
+            'references:',
+            '  - design/shared/data.bin',
+            '---',
+            '# Archived',
+        ].join('\n')
+        const remainingContent = [
+            '---',
+            'references:',
+            '  - design/shared/data.bin',
+            '---',
+            '# Remaining',
+        ].join('\n')
+        const source = card('design/F-1-card.md', [], ['design/shared/data.bin'])
+        const files: MarkdownFile[] = [
+            { content: archivedContent, path: source.path },
+            { content: remainingContent, path: 'design/F-2-card.md' },
+            { content: 'AAECAw==', encoding: 'base64', path: 'design/shared/data.bin' },
+        ]
+
+        const moves = buildReleaseMoves(files, [source], 'design', 'design/releases', 'v1')
+
+        expect(moves).toEqual([{
+            content: archivedContent,
+            fromPath: source.path,
+            sha: undefined,
+            toPath: 'design/releases/v1/F-1-card.md',
+        }])
+    })
+
+    it('does not treat a non-image Markdown image link as an archive asset', () => {
+        const files: MarkdownFile[] = [
+            { content: '# Card\n\n![document](manual.pdf)', path: 'design/F-1-card.md' },
+            { content: 'AAECAw==', encoding: 'base64', path: 'design/manual.pdf' },
+        ]
+
+        const moves = buildReleaseMoves(files, [card('design/F-1-card.md')], 'design', 'design/releases', 'v1')
+
+        expect(moves.map(({ fromPath }) => fromPath)).toEqual(['design/F-1-card.md'])
+    })
+
     it('rejects release folders that already contain an asset target', () => {
         const files: MarkdownFile[] = [
             { content: '# Card\n\n![note](note.png)', path: 'design/F-1-card.md' },
@@ -104,20 +187,16 @@ describe('buildReleaseMoves', () => {
         expect(() => buildReleaseMoves([], [], 'design', 'outside', 'v1')).toThrow('must stay inside the project folder')
     })
 
-    it('moves one activity log and rewrites every conversation reference in order', () => {
+    it('moves one referenced activity log and rewrites its file reference', () => {
         const activityContent = createActivityContent(['conversation-1', 'conversation-2'])
-        const source = card('design/F-1-card.md', [
-            `${activityPath}#conversation=conversation-1`,
-            `${activityPath}#conversation=conversation-2`,
-        ])
+        const source = card('design/F-1-card.md', [activityPath])
         const files: MarkdownFile[] = [{
             content: [
                 '---',
                 'id: F-1',
                 'internalId: card-1',
                 'agents:',
-                `  - ${activityPath}#conversation=conversation-1`,
-                `  - ${activityPath}#conversation=conversation-2`,
+                `  - ${activityPath}`,
                 '---',
                 '# Card',
             ].join('\n'),
@@ -135,8 +214,8 @@ describe('buildReleaseMoves', () => {
         )
 
         expect(moves).toHaveLength(2)
-        expect(moves[0].content).toContain('  - design/releases/v1/card__card-1.json#conversation=conversation-1')
-        expect(moves[0].content).toContain('  - design/releases/v1/card__card-1.json#conversation=conversation-2')
+        expect(moves[0].content).toContain('  - design/releases/v1/card__card-1.json')
+        expect(moves[0].content).not.toContain('#conversation=')
         expect(moves[1]).toEqual({
             content: activityContent,
             fromPath: activityPath,
@@ -145,24 +224,27 @@ describe('buildReleaseMoves', () => {
         })
     })
 
-    it('rejects a referenced activity path outside the canonical card log', () => {
+    it('moves a manually referenced activity path without enforcing stored ownership', () => {
         const activityContent = createActivityContent(['conversation-1'])
-        const source = card('design/F-1-card.md', ['design/activity/project.json#conversation=conversation-1'])
+        const manualPath = 'design/activity/project.json'
+        const source = card('design/F-1-card.md', [manualPath])
         const files: MarkdownFile[] = [{ content: '# Card', path: source.path }]
 
-        expect(() => buildReleaseMoves(
+        const moves = buildReleaseMoves(
             files,
             [source],
             'design',
             'design/releases',
             'v1',
-            [source.path, activityPath],
-            [{ content: activityContent, path: activityPath }],
-        )).toThrow('Unexpected activity path')
+            [source.path, manualPath],
+            [{ content: activityContent, path: manualPath }],
+        )
+
+        expect(moves[1].fromPath).toBe(manualPath)
     })
 
     it('rejects a missing referenced activity log', () => {
-        const source = card('design/F-1-card.md', [`${activityPath}#conversation=conversation-1`])
+        const source = card('design/F-1-card.md', [activityPath])
 
         expect(() => buildReleaseMoves(
             [{ content: '# Card', path: source.path }],
@@ -214,13 +296,13 @@ describe('buildReleaseMoves', () => {
     })
 
     it('rewrites references without validating conversations in the activity log', () => {
-        const source = card('design/F-1-card.md', [`${activityPath}#conversation=conversation-1`])
+        const source = card('design/F-1-card.md', [activityPath])
         const cardContent = [
             '---',
             'id: F-1',
             'internalId: card-1',
             'agents:',
-            `  - ${activityPath}#conversation=conversation-1`,
+            `  - ${activityPath}`,
             '---',
             '# Card',
         ].join('\n')
@@ -235,6 +317,7 @@ describe('buildReleaseMoves', () => {
             [{ content: createActivityContent(), path: activityPath }],
         )
 
-        expect(moves[0].content).toContain('design/releases/v1/card__card-1.json#conversation=conversation-1')
+        expect(moves[0].content).toContain('design/releases/v1/card__card-1.json')
+        expect(moves[0].content).not.toContain('#conversation=')
     })
 })

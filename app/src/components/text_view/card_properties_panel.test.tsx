@@ -9,7 +9,7 @@ const card: Card = {
     agentConversationErrors: [], agentConversations: [], content: '', hasFrontmatter: true, isActive: true,
     header: {
         affects: [], after: null, agentLogReferences: [], author: 'JB', id: 'F-1', internalId: 'card-1',
-        owner: null, policy: {}, status: 'design', title: 'Alpha', worktree: null, worktreeError: null, worktreeValue: null,
+        owner: null, policy: {}, references: [], status: 'design', title: 'Alpha', worktree: null, worktreeError: null, worktreeValue: null,
     },
     path: 'design/F-1.md',
 }

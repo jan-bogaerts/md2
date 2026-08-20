@@ -37,11 +37,31 @@ describe('DataService', () => {
         expect(ensureAgentConversationsForCard).toHaveBeenCalledWith('card-1')
     })
 
+    it('lists merge-conflict conversations through the project loader without requiring a card id', async () => {
+        const service = createDataService()
+        const listProjectAgentConversations = vi.spyOn(service.agents, 'listProjectAgentConversations').mockResolvedValue([])
+
+        await expect(
+            service.listAgentConversations({ conflictSessionId: 'session-1', kind: 'merge-conflict' }),
+        ).resolves.toEqual([])
+
+        expect(listProjectAgentConversations).toHaveBeenCalledOnce()
+    })
+
     it('replaces remote storage and project watch without reopening loaded project', async () => {
         configService.init()
+        const firstMergeConflictCleanup = vi.fn()
         const firstWatchCleanup = vi.fn()
-        const firstStorage = createStorage({ watchProject: vi.fn(() => firstWatchCleanup) })
-        const secondStorage = createStorage({ watchProject: vi.fn(() => vi.fn()) })
+        const firstStorage = createStorage({
+            getMergeConflictSession: vi.fn(async () => null),
+            onMergeConflictSessionChanged: vi.fn(() => firstMergeConflictCleanup),
+            watchProject: vi.fn(() => firstWatchCleanup),
+        })
+        const secondStorage = createStorage({
+            getMergeConflictSession: vi.fn(async () => null),
+            onMergeConflictSessionChanged: vi.fn(() => vi.fn()),
+            watchProject: vi.fn(() => vi.fn()),
+        })
         const service = createDataService()
         service.init({ storage: firstStorage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -51,7 +71,9 @@ describe('DataService', () => {
         service.replaceRemoteStorage(secondStorage)
 
         expect(service.getState().snapshot).toBe(loadedSnapshot)
+        expect(firstMergeConflictCleanup).toHaveBeenCalledOnce()
         expect(firstWatchCleanup).toHaveBeenCalledOnce()
+        expect(secondStorage.onMergeConflictSessionChanged).toHaveBeenCalledOnce()
         expect(secondStorage.watchProject).toHaveBeenCalledOnce()
         expect(openProject).not.toHaveBeenCalled()
     })
@@ -316,9 +338,19 @@ describe('DataService', () => {
             }
             if (url.includes('/git/trees/base-tree')) {
                 return createGithubResponse({
-                    tree: [{ path: 'design/F-1-root.md', sha: 'sha-1', type: 'blob' }],
+                    tree: [
+                        { path: 'agent_token_usage.json', sha: 'usage-sha', type: 'blob' },
+                        { path: 'design/F-1-root.md', sha: 'sha-1', type: 'blob' },
+                    ],
                     truncated: false,
                 })
+            }
+            if (url.includes('/git/blobs/usage-sha') && init.method !== 'POST') {
+                return createGithubRawResponse(JSON.stringify({
+                    projectUsage: { inputTokens: 0, cacheReadTokens: 0, outputTokens: 0, reasoningTokens: 0, totalTokens: 0 },
+                    releases: {},
+                    schemaVersion: 1,
+                }))
             }
             if (url.includes('/git/blobs/sha-1') && init.method !== 'POST') return createGithubRawResponse(files[0].content)
             if (url.includes('/git/blobs') && init.method === 'POST') return createGithubStatusResponse(401)
