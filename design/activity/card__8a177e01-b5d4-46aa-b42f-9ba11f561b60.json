@@ -9,7 +9,7 @@
     "md2.custom-prompt": {
       "agent": "claude",
       "model": "opus",
-      "permissionMode": "ask-for-approval",
+      "permissionMode": "approve-for-me",
       "thinkingLevel": "medium"
     },
     "47dafdc7-0be7-4d56-bb5a-07c813906416": {
@@ -9815,6 +9815,504 @@
       },
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "8a177e01-b5d4-46aa-b42f-9ba11f561b60",
+      "cardPath": "design/feature_descriptions/F_193_report_claude_usage_quotas.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "check design/feature_descriptions/F_193_report_claude_usage_quotas.md and it's activity log if needed. There is still something seriously broken:\n\nwe started a claude agent, which triggered a usage-poll. we got this response in 'collectProcessOutput':\n\n\\`\\`\\`\n{\r\nexitCode: 0,\r\nstdout: 'You are currently using your subscription to power your Claude Code usage\\n' +\r\n'\\n' +\r\n'Current session: 79% used · resets Aug 20, 3:20pm (Europe/Brussels)\\n' +\r\n'Current week (all models): 19% used · resets Aug 23, 7pm (Europe/Brussels)\\n' +\r\n'\\n' +\r\n\"What's contributing to your limits usage?\\n\" +\r\n'Approximate, based on local sessions on this machine — does not include other devices or claude.ai. Behaviors are independent characteristics, not a breakdown.\\n' +\r\n'\\n' +\r\n'Last 24h · 262 requests · 10 sessions\\n' +\r\n'  Top skills: /caveman 1%\\n' +\r\n'\\n' +\r\n'Last 7d · 658 requests · 30 sessions\\n' +\r\n'  Top skills: /caveman 1%\\n'\r\n}\n\\`\\`\\`\nso a proper result, yet nothing was reported in the UI.&#x20;\n\nthen a little later, it did show up, not certain if we did a new poll for that, anyway.\n\na little later , a new poll was done, usage went to 81%, but on the ui it sill remains 80%\n\nso somewhere in the pipeline after receiving the response, we did something wrong or something got incorrectly handled. sometimes it works, sometimes it doesn't. what is going on?",
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-08-20T12:32:12.878Z"
+        },
+        {
+          "agent": "claude",
+          "content": "I'll dig into the usage-poll pipeline. Starting with the feature doc.",
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 2,
+          "timestamp": "2026-08-20T12:32:16.423Z"
+        },
+        {
+          "content": "F_193_report_claude_usage_quotas.md\n---\n---\r\nauthor: \r\nid: F_193\r\ninternalId: 8a177e01-b5d4-46aa-b42f-9ba11f561b60\r\ntitle: report claude usage quotas\r\nstatus: ready\r\nowner: \r\naffects:\r\nagents:\r\n  - design/activity/card__8a177e01-b5d4-46aa-b42f-9ba11f561b60.json\r\npolicy:\r\nafter: 8690b93e-98c4-486f-95b6-aacc10931a56\r\nbranch: f_193_report_claude_usage_quotas\r\nworktree: 3\r\n---\r\n\r\nwe are already reporting usage limits for codex in the apps status bar. we need to provide similar information from the claude cli.\r\n\r\n**Decision (2026-08-15, claude CLI v2.1.177): capture `/usage` output.** Two approaches were spiked; see [Why not the streaming event](#why-not-the-streaming-event) for the rejected one. `/usage` won because it carries the used-percent the codex UI centers on, plus a weekly window.\r\n\r\n`/usage` works **headless (no TTY)** by piping into the interactive REPL via stdin; EOF makes it process and exit clean (exit 0), emitting **plain text** (no TUI escape codes). Note it is **not** available in `-p`/print mode — there `/usage` is interpreted as an LLM prompt (runs a model turn, costs quota). There is no CLI subcommand/flag for usage either.\r\n\r\n\\`\\`\\`\r\necho /usage | claude\r\n\\`\\`\\`\r\n\r\nOutput shape:\r\n\r\n\\`\\`\\`\r\nYou are currently using your subscription to power your Claude Code usage\r\n\r\nCurrent session: 17% used · resets Aug 15, 9:49pm (Europe/Brussels)\r\nCurrent week (all models): 13% used · resets Aug 16, 6:59pm (Europe/Brussels)\r\n\\`\\`\\`\r\n\r\n**Field map (parse target):**\r\n\r\n* Two windows, one line each:\r\n  * `Current session:` → window id `five_hour`.\r\n  * `Current week (all models):` → window id `weekly`.\r\n* Per line: `N% used` → `usedPercent` (integer). `resets <localized datetime> (<IANA tz>)` → the reset is given in **local time + timezone**, not unix seconds. Capture the tz string; convert to unix ms for the snapshot.\r\n* Leading `You are currently using your subscription…` line is a header — ignore.\r\n\r\n## Current state\r\n\r\nCodex quota path fully built. Claude path absent.\r\n\r\n**Codex path (reference, reuse the shape):**\r\n\r\n* `CodexStreamingAdapter` (`desktop/src/actions/agent/agent_streaming_adapter.js`) reads rate limits from the codex app-server: `account/rateLimits/read` reply plus `account/rateLimits/updated` notifications. It calls `onRuntimeEvent({ kind, observedAt, payload })`.\r\n* `agent_runner_service.js` `handleCodexRuntimeEvent` forwards those to `CodexRuntimeService` (`desktop/src/actions/agent/codex_runtime_service.js`), which normalizes/validates and holds one account-wide snapshot in the desktop (main) process. \"Snapshot\" = last known limit state for the whole account, not per card.\r\n* Snapshot crosses to the renderer over the electron bridge `window.md2CodexRuntime` (`app/src/data/electron_codex_runtime_bridge.ts`).\r\n* Renderer `CodexRateLimitService` (`app/src/services/agents/codex_rate_limit_service.ts`) holds `{ receivedAt, snapshot, stale }`, schedules a \"stale\" flip at the earliest `resetsAt`. \"Stale\" = reset time passed, old numbers no longer trusted.\r\n* UI: `CodexRateLimitStatus` (status-bar button) + `CodexRateLimitDetails` (popover), driven by `codexRateLimitPresentation`. Mounted in `status_bar.tsx` (desktop) and `mobile_project_status.tsx` (mobile). Shows \"Codex N% used\", warns at 80%, error at 100%/reached.\r\n\r\n**Claude path today:** No claude quota reaches the renderer. No claude status-bar indicator exists. Claude runs streaming, but nothing reads usage from it.\r\n\r\n## implementation details\r\n\r\nShip a **separate claude indicator** (not merged into codex). \"Separate indicator\" = its own status-bar control + service, sitting next to `CodexRateLimitStatus`, claude-specific wording and fields.\r\n\r\n**Capture mechanism:** spawn a fresh `claude` REPL per poll (`echo /usage | claude`, no `-p`), out-of-band, owned by desktop. Each spawn pays session startup (hooks fire, a few seconds) — fine for a periodic poll, not high-frequency. Poll on a timer / on demand, **not** per streaming turn. This is independent of the claude streaming adapter, which stays untouched.\r\n\r\n### Phase 1 — desktop captur\n[809 characters omitted]\n datetime + tz), `usedPercent` (integer). Snapshot carries `observedAt`, `available`.\r\n* `agent_runner_service.js`: add `handleClaudeRuntimeEvent`, symmetric to `handleCodexRuntimeEvent`, forwarding to `ClaudeRuntimeService`. Inject the service like `codexRuntimeService`.\r\n\r\n### Phase 2 — bridge to renderer\r\n\r\n* New preload bridge `window.md2ClaudeRuntime` (`desktop/src/shell/preload.js` + `local_bridge_dispatch.js` + `main.js`), mirroring the codex runtime bridge: `getClaudeRateLimits()`, `onClaudeRateLimits(cb)`, `onConnectionChanged?`. New typed interface `app/src/data/electron_claude_runtime_bridge.ts` with a `ClaudeRateLimitSnapshot` type matching the Phase 1 shape.\r\n\r\n### Phase 3 — renderer service + UI (separate indicator)\r\n\r\n* `ClaudeRateLimitService` (`app/src/services/agents/claude_rate_limit_service.ts`), mirror of `CodexRateLimitService`: `{ receivedAt, snapshot, stale }`, subscribe to bridge, schedule stale flip at earliest `resetsAt`, `EventTarget` `changed` event, `register('claudeRateLimitService', this)`.\r\n* Hook `use_claude_rate_limits.ts` via `useSyncExternalStore`, mirror of `use_codex_rate_limits.ts`.\r\n* New `ClaudeRateLimitStatus` + `ClaudeRateLimitDetails` components (do **not** overload the codex ones). Label shows \"Claude N% used\" like codex; popover lists session + weekly rows with reset times.\r\n* Mount the new component next to `CodexRateLimitStatus` in `status_bar.tsx` and `mobile_project_status.tsx`. Render nothing when no claude snapshot / stale (same null-render discipline as codex).\r\n\r\n### Notes / constraints\r\n\r\n* Keep claude and codex snapshots independent; both indicators can show at once when both agents have run.\r\n* No backend service, no paid infra — parse what the local claude CLI already gives (md2 is free/OSS).\r\n* Reset-time math and stale handling reuse the codex approach (`receivedAt + resetsAt - observedAt`, clamp ≥ 0).\r\n\r\n## acceptance criteria\r\n\r\n**Capture + transport**\r\n\r\n1. A periodic out-of-band `echo /usage | claude` spawn parses both windows (`Current session:` → `five_hour`, `Current week (all models):` → `weekly`) into a normalized snapshot with `usedPercent` (integer) and `resetsAt` (unix ms, converted from the localized datetime + tz).\r\n2. The snapshot reaches the renderer via `window.md2ClaudeRuntime` with `observedAt`, `resetsAt`, window identifier, and `usedPercent`.\r\n3. An older observation (`observedAt` earlier than the current snapshot) is ignored; the newest wins.\r\n4. Malformed/partial `/usage` output is rejected by normalization and never crashes the poll or the renderer.\r\n\r\n**UI**\r\n\r\n5. A **separate** claude usage indicator renders in the desktop status bar and the mobile project-status drawer, distinct from the codex indicator; both can show simultaneously when both agents have run.\r\n6. Clicking/tapping the indicator opens a claude-specific details popover listing each reported window with its reset time and percent.\r\n7. Indicator shows \"Claude N% used\", warns as a limit is approached and shows error styling when a limit is reached.\r\n8. When no claude snapshot exists, or the snapshot is stale (its earliest `resetsAt` has passed), the claude indicator renders nothing — no stale numbers shown.\r\n\r\n**Regression**\r\n\r\n9. The existing codex indicator, its service, and its bridge are unchanged in behavior.\r\n10. Claude streaming turns behave exactly as before; the streaming adapter is untouched.\r\n11. `npm run typecheck` passes; new services/components have unit tests mirroring the codex equivalents.\r\n\r\n## Why not the streaming event\r\n\r\nRejected approach: reading `rate_limit_event` off the live `claude -p --output-format stream-json --verbose` stream.\r\n\r\n* Emits reliably, once per streaming turn. Full field set: `{ status, resetsAt, rateLimitType: \"five_hour\", overageStatus, overageDisabledReason, isUsingOverage }`. `resetsAt` is unix **seconds**.\r\n* Rejected because it carries **no used-percent** and only the `five_hour` window ever appeared (no weekly). The indicator could show reset-time + status color only — losing the percent the codex UI centers on.",
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-event-3",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01NTEWEyZiiTS4Up8ExGWYUC",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:32:18.380Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-event-4",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeE1H79yrNqESFdNTJChV:thinking:0",
+          "sequence": 4,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T12:32:20.226Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "./app/src/components/hooks/use_claude_rate_limits.ts\n./app/src/components/shell/claude_rate_limit_details.tsx\n./app/src/components/shell/claude_rate_limit_status.test.tsx\n./app/src/components/shell/claude_rate_limit_status.tsx\n./app/src/components/shell/claude_rate_limit_status_data.ts\n./app/src/data/electron_claude_runtime_bridge.ts\n./app/src/services/agents/claude_rate_limit_service.test.ts\n./app/src/services/agents/claude_rate_limit_service.ts\n./design/feature_descriptions/F_193_report_claude_usage_quotas.md\n./design/feature_descriptions/J_32_claude_usage_poller_reuses_resolved_executable.md\n./desktop/src/actions/agent/claude_runtime_service.js\n./desktop/src/actions/agent/claude_runtime_service.test.mjs\n./desktop/src/actions/agent/claude_usage_parsing.js\n./desktop/src/actions/agent/claude_usage_parsing.test.mjs\n./desktop/src/actions/agent/claude_usage_poller.js\n./desktop/src/actions/agent/claude_usage_poller.test.mjs\n./desktop/src/actions/agent/claude_usage_terminal.js\n./desktop/src/actions/agent/claude_usage_terminal.test.mjs\n./desktop/src/actions/agent/claude_usage_terminal_host.js\n./desktop/src/actions/agent/claude_usage_terminal_host.test.mjs\n./desktop/src/actions/agent/claude_usage_terminal_worker.js",
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-event-5",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01CLgpbKmKM648uwVtMyRJon",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:32:23.757Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "const crossSpawn = require('cross-spawn');\nconst { parseClaudeUsageOutput } = require('./claude_usage_parsing');\nconst { createUtilityProcessTerminalPoll } = require('./claude_usage_terminal_host');\n\nconst CLAUDE_USAGE_POLL_COOLDOWN_MS = 120_000;\nconst CLAUDE_USAGE_MAX_OUTPUT_CHARS = 1_000_000;\nconst CLAUDE_USAGE_TERMINAL_TIMEOUT_MS = 20_000;\n\nfunction collectProcessOutput(child, dependencies) {\n    const { clearTimeout: clearPollTimeout, setTimeout: setPollTimeout, timeoutMs } = dependencies;\n\n    return new Promise((resolve, reject) => {\n        let stdout = '';\n        let settled = false;\n        let timeout;\n        const finish = (result, error = null) => {\n            if (settled) return;\n            settled = true;\n            clearPollTimeout(timeout);\n            console.log(result);\n            if (error) reject(error);\n            else resolve(result);\n        };\n        // Pipe errors (EPIPE when Claude exits before reading stdin) reach no listener otherwise,\n        // and an unhandled stream error takes the Electron main process down.\n        const ignoreStreamError = () => {};\n        child.stdin?.on('error', ignoreStreamError);\n        child.stdout?.on('error', ignoreStreamError);\n        child.stderr?.on('error', ignoreStreamError);\n        child.stdout?.on('data', (chunk) => {\n            if (stdout.length >= CLAUDE_USAGE_MAX_OUTPUT_CHARS) return;\n            stdout += chunk.toString();\n        });\n        child.stderr?.resume(); // Unread stderr fills its pipe buffer and blocks Claude forever.\n        child.on('error', (error) => finish(null, error));\n        child.on('close', (exitCode) => finish({ exitCode: exitCode ?? 1, stdout }));\n        timeout = setPollTimeout(() => {\n            try {\n                child.kill();\n            } catch {\n                // The child is already gone.\n            }\n            finish({ exitCode: 1, stdout });\n        }, timeoutMs);\n        child.stdin?.end('/usage\\n');\n    });\n}\n\n/**\n * Runs Claude `/usage` after Claude output, with a two-minute maximum frequency.\n *\n * The plain-stdout attempt runs here; the pty fallback runs in a worker process, because node-pty\n * cannot be hosted in the main process without risking a native crash that ends the application.\n */\nclass ClaudeUsagePoller {\n    constructor(dependencies = {}) {\n        this.clearTimeout = dependencies.clearTimeout ?? clearTimeout;\n        this.cooldownMs = dependencies.cooldownMs ?? CLAUDE_USAGE_POLL_COOLDOWN_MS;\n        this.cwd = dependencies.cwd ?? process.cwd();\n        this.env = dependencies.env ?? process.env;\n        this.executableResolver = dependencies.executableResolver;\n        this.now = dependencies.now ?? Date.now;\n        this.onRuntimeEvent = dependencies.onRuntimeEvent;\n        this.setTimeout = dependencies.setTimeout ?? setTimeout;\n        this.spawn = dependencies.spawn ?? crossSpawn;\n        this.terminalPoll = dependencies.terminalPoll ?? createUtilityProcessTerminalPoll();\n        this.terminalTimeoutMs = dependencies.terminalTimeoutMs ?? CLAUDE_USAGE_TERMINAL_TIMEOUT_MS;\n        this.processTimeoutMs = dependencies.processTimeoutMs ?? this.terminalTimeoutMs;\n        this.abortTerminalPoll = null;\n        this.activePoll = null;\n        this.lastPollStartedAt = Number.NEGATIVE_INFINITY;\n        this.pending = false;\n        this.pendingTimer = null;\n        this.stopped = false;\n        if (!this.executableResolver) throw new Error('Claude usage poller requires an executable resolver');\n        if (typeof this.onRuntimeEvent !== 'function') throw new Error('Claude usage poller requires a runtime event listener');\n    }\n\n    requestPoll({ cwd, env } = {}) {\n        if (this.stopped) return;\n        if (cwd) this.cwd = cwd;\n        if (env) this.env = env;\n        this.pending = true;\n        this.schedulePendingPoll();\n    }\n\n    stop() {\n        this.stopped = true;\n        this.pending = false;\n        if (this.pendingTimer) this.clearTimeout(this.pendingTimer);\n        this.pendingTimer = null;\n        // A worker left running past shutdown holds a pty open while Electron is already exiting.\n        this.abortTerminalPoll?.();\n        this.abortTerminalPoll = null;\n    }\n\n    schedulePendingPoll() {\n        if (this.stopped || !this.pending || this.activePoll || this.pendingTimer) return;\n        const delay = Math.max(0, this.cooldownMs - (this.now() - this.lastPollStartedAt));\n        if (delay === 0) {\n            this.pending = false;\n            this.activePoll = this.runPendingPoll();\n            return;\n        }\n        this.pendingTimer = this.setTimeout(() => {\n            this.pendingTimer = null;\n            this.schedulePendingPoll();\n        }, delay);\n    }\n\n    async runPendingPoll() {\n        try {\n            await this.poll();\n        } catch {\n            // A failing poll must never escape as an unhandled rejection; the next one retries.\n        }\n        this.activePoll = null;\n        this.schedulePendingPoll();\n    }\n\n    async poll() {\n        this.lastPollStartedAt = this.now();\n        const observedAt = this.now();\n        let payload = null;\n        try {\n            const executable = await this.executableResolver.find('claude', { cwd: this.cwd, env: this.env }) ?? 'claude';\n            const child = this.spawn(executable, [], { cwd: this.cwd, env: this.env, stdio: ['pipe', 'pipe', 'pipe'] });\n            const { stdout } = await collectProcessOutput(child, {\n                clearTimeout: this.clearTimeout,\n                setTimeout: this.setTimeout,\n                timeoutMs: this.processTimeoutMs,\n            });\n            // A usage report that arrived is worth keeping even when the exit itself failed or timed out.\n            payload = parseClaudeUsageOutput(stdout, observedAt);\n            if (this.stopped) return;\n            if (!payload) {\n                const fallback = await this.pollTerminal(executable, observedAt);\n                if (fallback.unavailable) throw new Error('Claude usage terminal failed');\n                payload = fallback.payload;\n            }\n        } catch {\n            await this.onRuntimeEvent({ kind: 'unavailable', observedAt: this.now() });\n\n            return;\n        }\n        if (payload) await this.onRuntimeEvent({ kind: 'snapshot', observedAt, payload });\n    }\n\n    /** Hands the pty attempt to a worker process, which reports usage, unavailability, or neither. */\n    pollTerminal(executable, observedAt) {\n        const request = {\n            cwd: this.cwd,\n            env: { ...this.env },\n            executable,\n            observedAt,\n            timeoutMs: this.terminalTimeoutMs,\n        };\n\n        return this.terminalPoll(request, {\n            registerAbort: (abort) => {\n                this.abortTerminalPoll = abort;\n            },\n        });\n    }\n}\n\nmodule.exports = { CLAUDE_USAGE_POLL_COOLDOWN_MS, ClaudeUsagePoller };",
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-event-6",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01Q2HQ41PrQ7vhZbmUzVU56e",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:32:26.860Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "const RESET_CLOCK_TOLERANCE_MS = 60_000;\nconst MONTHS = new Map([\n    ['jan', 0], ['feb', 1], ['mar', 2], ['apr', 3], ['may', 4], ['jun', 5],\n    ['jul', 6], ['aug', 7], ['sep', 8], ['oct', 9], ['nov', 10], ['dec', 11],\n]);\nconst WINDOW_PATTERNS = [\n    { id: 'five_hour', pattern: /^Current session:\\s*(\\d{1,3})% used\\s*·\\s*resets\\s+([A-Za-z]{3})\\s+(\\d{1,2}),\\s+(\\d{1,2}):(\\d{2})(am|pm)\\s+\\(([^)]+)\\)\\s*$/iu },\n    { id: 'weekly', pattern: /^Current week \\(all models\\):\\s*(\\d{1,3})% used\\s*·\\s*resets\\s+([A-Za-z]{3})\\s+(\\d{1,2}),\\s+(\\d{1,2}):(\\d{2})(am|pm)\\s+\\(([^)]+)\\)\\s*$/iu },\n];\nconst TERMINAL_WINDOW_DEFINITIONS = [\n    { heading: 'Current session', id: 'five_hour' },\n    { heading: 'Current week (all models)', id: 'weekly' },\n];\nconst TERMINAL_RESET_PATTERN = /^(?:([A-Za-z]{3})\\s+(\\d{1,2}),\\s+)?(\\d{1,2})(?::(\\d{2}))?(am|pm)\\s+\\(([^)]+)\\)$/iu;\n\nfunction datePartsInTimeZone(timestamp, timeZone) {\n    const formatter = new Intl.DateTimeFormat('en-US', {\n        day: '2-digit',\n        hour: '2-digit',\n        hourCycle: 'h23',\n        minute: '2-digit',\n        month: '2-digit',\n        second: '2-digit',\n        timeZone,\n        year: 'numeric',\n    });\n    const parts = Object.fromEntries(formatter.formatToParts(new Date(timestamp)).map(({ type, value }) => [type, value]));\n\n    return {\n        day: Number(parts.day),\n        hour: Number(parts.hour),\n        minute: Number(parts.minute),\n        month: Number(parts.month) - 1,\n        second: Number(parts.second),\n        year: Number(parts.year),\n    };\n}\n\nfunction matchingDateParts(left, right) {\n    return left.day === right.day\n        && left.hour === right.hour\n        && left.minute === right.minute\n        && left.month === right.month\n        && left.year === right.year;\n}\n\nfunction localDateTimeToUnixMs(parts, timeZone) {\n    const targetAsUtc = Date.UTC(parts.year, parts.month, parts.day, parts.hour, parts.minute);\n    let timestamp = targetAsUtc;\n    for (let index = 0; index < 3; index += 1) {\n        const zoned = datePartsInTimeZone(timestamp, timeZone);\n        const representedAsUtc = Date.UTC(zoned.year, zoned.month, zoned.day, zoned.hour, zoned.minute, zoned.second);\n        timestamp = targetAsUtc - (representedAsUtc - timestamp);\n    }\n    if (!matchingDateParts(datePartsInTimeZone(timestamp, timeZone), parts)) throw new Error('Invalid Claude reset time');\n\n    return timestamp;\n}\n\nfunction resetTimestamp(match, observedAt) {\n    const [, , monthName, dayText, hourText, minuteText, meridiem, timeZone] = match;\n    const month = MONTHS.get(monthName.toLowerCase());\n    if (month === undefined) throw new Error('Invalid Claude reset month');\n    const observedYear = datePartsInTimeZone(observedAt, timeZone).year;\n    const hourValue = Number(hourText);\n    if (hourValue < 1 || hourValue > 12) throw new Error('Invalid Claude reset hour');\n    const hour = (hourValue % 12) + (meridiem.toLowerCase() === 'pm' ? 12 : 0);\n    const baseParts = { day: Number(dayText), hour, minute: Number(minuteText), month };\n    const candidates = [observedYear - 1, observedYear, observedYear + 1].map((year) => (\n        localDateTimeToUnixMs({ ...baseParts, year }, timeZone)\n    ));\n\n    return candidates.reduce((nearest, candidate) => (\n        Math.abs(candidate - observedAt) < Math.abs(nearest - observedAt) ? candidate : nearest\n    ));\n}\n\nfunction terminalResetTimestamp(resetText, observedAt) {\n    const match = TERMINAL_RESET_PATTERN.exec(resetText);\n    if (!match) throw new Error('Invalid Claude reset time');\n    const [, monthName, dayText, hourText, minuteText, meridiem, timeZone] = match;\n    const observedParts = datePartsInTimeZone(observedAt, timeZone);\n    const hourValue = Number(hourText);\n    if (hourValue < 1 || hourValue > 12) throw new Error('Invalid Claude reset hour');\n    const hour = (hourValue % 12) + (meridiem.toLowerCase() === 'pm' ? 12 : 0);\n    const minute = Number(minuteText ?? 0);\n    if (!monthName) {\n        const baseParts = { day: observedParts.day, hour, minute, month: observedParts.month, year: observedParts.year };\n    \n[2336 characters omitted]\n> line.length > 0);\n    const legacyLines = lines.map((line) => line.replace(/\\u00C2\\u00B7/gu, '\\u00B7'));\n    try {\n        const windows = WINDOW_PATTERNS.map(({ id, pattern }) => {\n            // A redrawn or repeated report restates the same window; the first line reported wins.\n            const match = legacyLines.map((line) => pattern.exec(line)).find((candidate) => candidate !== null);\n            if (!match) throw new Error('Missing Claude usage window');\n            const usedPercent = Number(match[1]);\n            if (!Number.isInteger(usedPercent) || usedPercent < 0 || usedPercent > 100) throw new Error('Invalid Claude usage percent');\n\n            return { id, resetsAt: resetTimestamp(match, observedAt), usedPercent };\n        });\n\n        return { windows };\n    } catch {\n        try {\n            return parseTerminalUsageOutput(lines, observedAt);\n        } catch {\n            return null;\n        }\n    }\n}\n\nmodule.exports = { parseClaudeUsageOutput };\n=====SERVICE=====\nconst RATE_LIMIT_EVENT = 'rateLimits';\nconst WINDOW_IDS = new Set(['five_hour', 'weekly']);\n\nfunction normalizeWindow(window) {\n    if (!window || typeof window !== 'object' || Array.isArray(window)) return null;\n    if (!WINDOW_IDS.has(window.id)) return null;\n    if (!Number.isInteger(window.usedPercent) || window.usedPercent < 0 || window.usedPercent > 100) return null;\n    if (!Number.isFinite(window.resetsAt)) return null;\n\n    return { id: window.id, resetsAt: window.resetsAt, usedPercent: window.usedPercent };\n}\n\nfunction normalizeWindows(payload) {\n    if (!payload || typeof payload !== 'object' || Array.isArray(payload) || !Array.isArray(payload.windows)) return null;\n    const windows = payload.windows.map(normalizeWindow);\n    if (windows.some((window) => window === null) || windows.length !== WINDOW_IDS.size) return null;\n    if (new Set(windows.map(({ id }) => id)).size !== WINDOW_IDS.size) return null;\n    if (!windows.every(({ id }) => WINDOW_IDS.has(id))) return null;\n\n    return windows;\n}\n\nfunction sameWindows(left, right) {\n    return left.length === right.length && left.every((window, index) => (\n        window.id === right[index].id\n        && window.resetsAt === right[index].resetsAt\n        && window.usedPercent === right[index].usedPercent\n    ));\n}\n\n/** Owns latest account-wide Claude rate-limit snapshot in desktop process. */\nclass ClaudeRuntimeService {\n    constructor() {\n        this.events = new EventTarget();\n        this.snapshot = null;\n    }\n\n    getSnapshot() {\n        return this.snapshot ? structuredClone(this.snapshot) : null;\n    }\n\n    subscribe(listener) {\n        const handleRateLimits = (event) => listener(event.detail);\n        this.events.addEventListener(RATE_LIMIT_EVENT, handleRateLimits);\n        if (this.snapshot) listener(this.getSnapshot());\n\n        return () => this.events.removeEventListener(RATE_LIMIT_EVENT, handleRateLimits);\n    }\n\n    publishRateLimits(payload, observedAt) {\n        if (!Number.isFinite(observedAt)) throw new Error('Invalid Claude rate-limit observation time');\n        if (this.snapshot && observedAt < this.snapshot.observedAt) return false;\n        const windows = normalizeWindows(payload);\n        if (!windows) return false;\n        const changed = !this.snapshot || !this.snapshot.available || !sameWindows(this.snapshot.windows, windows);\n        this.snapshot = { available: true, observedAt, windows };\n        if (changed) this.notify();\n\n        return true;\n    }\n\n    publishUnavailable(observedAt) {\n        if (!Number.isFinite(observedAt)) throw new Error('Invalid Claude rate-limit observation time');\n        if (this.snapshot && observedAt < this.snapshot.observedAt) return false;\n        const changed = !this.snapshot || this.snapshot.available;\n        this.snapshot = { available: false, observedAt, windows: [] };\n        if (changed) this.notify();\n\n        return true;\n    }\n\n    notify() {\n        this.events.dispatchEvent(new CustomEvent(RATE_LIMIT_EVENT, { detail: this.getSnapshot() }));\n    }\n}\n\nmodule.exports = { ClaudeRuntimeService };",
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-event-7",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01G667TSaR68PfoJq8kXqZAx",
+          "sequence": 7,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:32:29.530Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-event-8",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeE1Hvix8ERV4rAojjTCB:thinking:0",
+          "sequence": 8,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T12:32:34.548Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "desktop/src/actions/agent/agent_runner_service.js\ndesktop/src/shell/local_bridge_dispatch.js\ndesktop/src/shell/preload.js\napp/src/components/hooks/use_claude_rate_limits.ts\napp/src/components/shell/claude_rate_limit_status.test.tsx\napp/src/components/shell/claude_rate_limit_status.tsx\napp/src/data/electron_claude_runtime_bridge.ts\napp/src/services/agents/claude_rate_limit_service.test.ts\napp/src/services/agents/claude_rate_limit_service.ts",
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-event-9",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01WZhhH47g4DWW2csmG879Mu",
+          "sequence": 9,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:32:35.766Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "Exit code 2\n55:        claudeRuntimeService,\n551:    const claudeRuntimeBridge = {\n552:        getClaudeRateLimits: () => claudeRuntimeService?.getSnapshot() ?? null,\n553:        onClaudeRateLimits: (callback) => {\n554:            if (!claudeRuntimeService) throw new Error('Claude runtime service is not available');\n556:            return claudeRuntimeService.subscribe(callback);\n560:    const methods = { ...dataBridge, ...actionBridge, ...claudeRuntimeBridge, ...codexRuntimeBridge };\n564:        claudeRuntimeBridge,\n=====PRELOAD=====\n109:const CLAUDE_RUNTIME_METHODS = ['getClaudeRateLimits'];\n267:    const claudeRuntimeBridge = {\n268:        ...createBridge(CLAUDE_RUNTIME_METHODS),\n269:        onClaudeRateLimits: (callback) => subscribeBridge('onClaudeRateLimits', [], callback),\n296:    contextBridge.exposeInMainWorld('md2ClaudeRuntime', claudeRuntimeBridge);\n=====MAIN=====\ngrep: desktop/src/shell/main.js: No such file or directory\ndesktop/src/actions/agent/agent_runner_service.js:55:        this.claudeRuntimeService = dependencies.claudeRuntimeService ?? null;\ndesktop/src/actions/agent/agent_runner_service.js:71:            onRuntimeEvent: (event) => this.handleClaudeRuntimeEvent(event),\ndesktop/src/actions/agent/agent_runner_service.js:328:    async handleClaudeRuntimeEvent(event) {\ndesktop/src/actions/agent/agent_runner_service.js:329:        if (!this.claudeRuntimeService) return;\ndesktop/src/actions/agent/agent_runner_service.js:331:            this.claudeRuntimeService.publishUnavailable(event.observedAt);\ndesktop/src/actions/agent/agent_runner_service.js:334:        const accepted = this.claudeRuntimeService.publishRateLimits(event.payload, event.observedAt);\ndesktop/src/actions/agent/agent_runner_service.js:336:        const snapshot = this.claudeRuntimeService.getSnapshot();",
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-event-10",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_012RBLyJKrrT2yAa2WTyvMoe",
+          "sequence": 10,
+          "status": "failed",
+          "timestamp": "2026-08-20T12:32:38.714Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "        const completions = [];\n        for (const run of this.processes.values()) {\n            run.cancelled = true;\n            transitionConversationStatus(run.conversation, 'cancelled', new Date().toISOString());\n            this.clearFinishTimeout(run);\n            completions.push(Promise.all([this.ensureTermination(run), run.closed]));\n        }\n\n        return Promise.all(completions);\n    }\n\n    ensureTermination(run) {\n        run.termination ??= this.terminateProcessTree(run.child);\n\n        return run.termination;\n    }\n\n    async handleCodexRuntimeEvent(event) {\n        if (!this.codexRuntimeService) return;\n        if (event.kind === 'unavailable') {\n            this.codexRuntimeService.publishUnavailable(event.observedAt);\n            return;\n        }\n        const accepted = this.codexRuntimeService.publishRateLimits(event.payload, event.observedAt, event.kind === 'update');\n        if (!accepted || !this.usageMetricsService) return;\n        await this.usageMetricsService.recordAccountUsage('codex', this.codexRuntimeService.getSnapshot());\n    }\n\n    async handleClaudeRuntimeEvent(event) {\n        if (!this.claudeRuntimeService) return;\n        if (event.kind === 'unavailable') {\n            this.claudeRuntimeService.publishUnavailable(event.observedAt);\n            return;\n        }\n        const accepted = this.claudeRuntimeService.publishRateLimits(event.payload, event.observedAt);\n        if (!accepted || !this.usageMetricsService) return;\n        const snapshot = this.claudeRuntimeService.getSnapshot();\n        await this.usageMetricsService.recordAccountUsage('claude', snapshot);\n    }\n\n    /** Refreshes account usage for agents that report it out of band; Codex reports it inside its own protocol. */\n    requestUsagePoll(run) {\n        if (run.agent !== 'claude') return;\n        this.claudeUsagePoller.requestPoll({ cwd: run.rootPath, env: run.environment });\n    }\n\n    /** Picks any active run whose agent needs polling; the usage snapshot is account-wide, so any one will do. */\n    pollableRun() {\n        for (const run of this.processes.values()) {\n            if (run.agent === 'claude') return run;\n        }\n\n        return null;\n    }\n\n    /** Keeps a repeating poll running while a pollable run is active; long runs would otherwise show a frozen figure. */\n    syncUsagePollTicks() {\n        const run = this.pollableRun();\n        if (!run) {\n            this.stopUsagePollTicks();\n            return;",
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-event-11",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01G5HdcnNsmCnoTGLyYosPH2",
+          "sequence": 11,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:32:41.391Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-event-12",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeE1JpK1qLFKRR1Juad3P:thinking:0",
+          "sequence": 12,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T12:32:43.161Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "export type ClaudeRateLimitWindowId = 'five_hour' | 'weekly'\n\nexport interface ClaudeRateLimitWindow {\n    id: ClaudeRateLimitWindowId\n    resetsAt: number\n    usedPercent: number\n}\n\nexport interface ClaudeRateLimitSnapshot {\n    available: boolean\n    observedAt: number\n    windows: ClaudeRateLimitWindow[]\n}\n\nexport interface ElectronClaudeRuntimeBridge {\n    getClaudeRateLimits(): Promise<ClaudeRateLimitSnapshot | null>\n    onClaudeRateLimits(callback: (snapshot: ClaudeRateLimitSnapshot) => void): () => void\n    onConnectionChanged?(callback: (connected: boolean) => void): () => void\n}\n\ndeclare global {\n    interface Window {\n        md2ClaudeRuntime?: ElectronClaudeRuntimeBridge\n    }\n}\n\nlet claudeRuntimeBridgeOverride: ElectronClaudeRuntimeBridge | null = null\n\nexport function setClaudeRuntimeBridgeOverride(bridge: ElectronClaudeRuntimeBridge | null) {\n    claudeRuntimeBridgeOverride = bridge\n}\n\nexport function getElectronClaudeRuntimeBridge() {\n    if (claudeRuntimeBridgeOverride) return claudeRuntimeBridgeOverride\n\n    return window.md2ClaudeRuntime ?? null\n}\n=====SVC=====\nimport {\n    getElectronClaudeRuntimeBridge,\n    type ClaudeRateLimitSnapshot,\n    type ElectronClaudeRuntimeBridge,\n} from '../../data/electron_claude_runtime_bridge'\nimport { register } from '../service_injector'\n\nexport interface ClaudeRateLimitState {\n    receivedAt: number | null\n    snapshot: ClaudeRateLimitSnapshot | null\n    stale: boolean\n}\n\nconst INITIAL_STATE: ClaudeRateLimitState = { receivedAt: null, snapshot: null, stale: false }\nconst WINDOW_IDS = new Set(['five_hour', 'weekly'])\n\nfunction firstResetTime(snapshot: ClaudeRateLimitSnapshot) {\n    return snapshot.windows.length > 0 ? Math.min(...snapshot.windows.map(({ resetsAt }) => resetsAt)) : null\n}\n\nfunction validSnapshot(snapshot: ClaudeRateLimitSnapshot) {\n    if (!Number.isFinite(snapshot.observedAt)) return false\n    if (!snapshot.available) return snapshot.windows.length === 0\n    if (snapshot.windows.length !== WINDOW_IDS.size) return false\n    if (new Set(snapshot.windows.map(({ id }) => id)).size !== WINDOW_IDS.size) return false\n\n    return snapshot.windows.every(({ id, resetsAt, usedPercent }) => (\n        WINDOW_IDS.has(id)\n            && Number.isFinite(resetsAt)\n            && Number.isInteger(usedPercent)\n            && usedPercent >= 0\n            && usedPercent <= 100\n    ))\n}\n\n/** Owns current account-wide Claude rate limits for this renderer process only. */\nexport class ClaudeRateLimitService extends EventTarget {\n    private bridge: ElectronClaudeRuntimeBridge | null = null\n    private expirationTimer: ReturnType<typeof setTimeout> | null = null\n    private state: ClaudeRateLimitState = INITIAL_STATE\n    private unsubscribeConnection: (() => void) | null = null\n    private unsubscribeRateLimits: (() => void) | null = null\n\n    constructor() {\n        super()\n        register('claudeRateLimitService', this)\n    }\n\n    getState() {\n        return this.state\n    }\n\n    start() {\n        const bridge = getElectronClaudeRuntimeBridge()\n        if (bridge === this.bridge && this.unsubscribeRateLimits) return\n\n        this.unsubscribe()\n        this.bridge = bridge\n        this.setState(INITIAL_STATE)\n        if (!bridge) return\n\n        this.unsubscribeRateLimits = bridge.onClaudeRateLimits((snapshot) => this.acceptSnapshot(bridge, snapshot))\n        this.unsubscribeConnection = bridge.onConnectionChanged?.((connected) => this.handleConnectionChange(bridge, connected)) ?? null\n        void this.refresh(bridge)\n    }\n\n    stop() {\n        this.unsubscribe()\n        this.bridge = null\n        this.setState(INITIAL_STATE)\n    }\n\n    private acceptSnapshot(bridge: ElectronClaudeRuntimeBridge, snapshot: ClaudeRateLimitSnapshot) {\n        if (bridge !== this.bridge || !validSnapshot(snapshot)) return\n        const currentObservedAt = this.state.snapshot?.observedAt\n        if (currentObservedAt !== undefined && snapshot.observedAt < currentObservedAt) return\n\n        const receivedAt = Date.now()\n        this.setState({ receivedAt, snapshot, stale: false })\n        this.scheduleExpiration(snapshot, receivedAt)\n    }\n\n    private async refresh(bridge: ElectronClaudeRuntimeBridge) {\n        try {\n            const snapshot = await bridge.getClaudeRateLimits()\n            if (snapshot) this.acceptSnapshot(bridge, snapshot)\n        } catch {\n            if (bridge === this.bridge) this.markStale()\n        }\n    }\n\n    private handleConnectionChange(bridge: ElectronClaudeRuntimeBridge, connected: boolean) {\n        if (bridge !== this.bridge) return\n        if (!connected) {\n            this.markStale()\n            return\n        }\n\n        void this.refresh(bridge)\n    }\n\n    private scheduleExpiration(snapshot: ClaudeRateLimitSnapshot, receivedAt: number) {\n        if (this.expirationTimer) clearTimeout(this.expirationTimer)\n        this.expirationTimer = null\n        if (!snapshot.available) return\n        const resetTime = firstResetTime(snapshot)\n        if (resetTime === null) return\n        const localResetTime = receivedAt + resetTime - snapshot.observedAt\n        const delay = Math.max(0, localResetTime - Date.now())\n        if (delay === 0) {\n            this.markStale()\n            return\n        }\n        this.expirationTimer = setTimeout(() => this.markStale(), delay)\n    }\n\n    private markStale() {\n        if (!this.state.snapshot || this.state.stale) return\n\n        this.setState({ ...this.state, stale: true })\n    }\n\n    private unsubscribe() {\n        this.unsubscribeRateLimits?.()\n        this.unsubscribeConnection?.()\n        this.unsubscribeRateLimits = null\n        this.unsubscribeConnection = null\n        if (this.expirationTimer) clearTimeout(this.expirationTimer)\n        this.expirationTimer = null\n    }\n\n    private setState(state: ClaudeRateLimitState) {\n        if (\n            state.receivedAt === this.state.receivedAt\n            && state.snapshot === this.state.snapshot\n            && state.stale === this.state.stale\n        ) return\n\n        this.state = state\n        this.dispatchEvent(new CustomEvent('changed'))\n    }\n}\n\nexport const claudeRateLimitService = new ClaudeRateLimitService()",
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-event-13",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01DAufFtqY2XiWeQ1KETqLHe",
+          "sequence": 13,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:32:44.095Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-event-14",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeE1K2RXmgGrfY228dssA:thinking:0",
+          "sequence": 14,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T12:32:46.659Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "        startAction: (request) => {\n            if (!actionRunnerService) throw new Error('Action runner is not available');\n\n            return actionRunnerService.start(request);\n        },\n        startUnattendedAction: (request) => {\n            if (!actionRunnerService) throw new Error('Action runner is not available');\n\n            return actionRunnerService.start(request, { interactive: false });\n        },\n    };\n\n    const codexRuntimeBridge = {\n        getCodexRateLimits: () => codexRuntimeService?.getSnapshot() ?? null,\n        onCodexRateLimits: (callback) => {\n            if (!codexRuntimeService) throw new Error('Codex runtime service is not available');\n\n            return codexRuntimeService.subscribe(callback);\n        },\n        onCodexUpdateRequired: (callback) => {\n            if (!codexRuntimeService) throw new Error('Codex runtime service is not available');\n\n            return codexRuntimeService.subscribeUpdateRequired(callback);\n        },\n        updateCodexCli: async () => {\n            if (!updateCodexCli) throw new Error('Codex CLI update is not available');\n\n            await updateCodexCli();\n        },\n    };\n\n    const claudeRuntimeBridge = {\n        getClaudeRateLimits: () => claudeRuntimeService?.getSnapshot() ?? null,\n        onClaudeRateLimits: (callback) => {\n            if (!claudeRuntimeService) throw new Error('Claude runtime service is not available');\n\n            return claudeRuntimeService.subscribe(callback);\n        },\n    };\n\n    const methods = { ...dataBridge, ...actionBridge, ...claudeRuntimeBridge, ...codexRuntimeBridge };\n\n    return {\n        actionBridge,\n        claudeRuntimeBridge,\n        codexRuntimeBridge,\n        dataBridge,\n        invoke: (method, params = []) => {\n            const handler = methods[method];\n            if (!handler) throw new Error(`Unknown remote-control method: ${method}`);\n            if (!Array.isArray(params)) throw new Error('Remote-control params must be an array');\n\n            return handler(...params);\n        },\n    };\n}\n\nmodule.exports = { createLocalBridgeDispatch };",
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-event-15",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_014zHCi776cJuPN16UJCzKu1",
+          "sequence": 15,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:32:47.113Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "151:function subscribeBridge(method, params, callback) {\n152:    const subscriptionId = createEventId(method);\n154:        if (message.eventId === subscriptionId) callback(message.payload);\n158:    ipcRenderer.send(LOCAL_BRIDGE_SUBSCRIBE_CHANNEL, { method, params, subscriptionId });\n162:        ipcRenderer.send(LOCAL_BRIDGE_UNSUBSCRIBE_CHANNEL, subscriptionId);\n253:        onMergeConflictSessionChanged: (callback) => subscribeBridge('onMergeConflictSessionChanged', [], callback),\n254:        onWorktreesChanged: (callback) => subscribeBridge('onWorktreesChanged', [], callback),\n255:        watchProject: (project, callback) => subscribeBridge('watchProject', [project], callback),\n259:        onActionRun: (callback) => subscribeBridge('onActionRun', [], callback),\n263:        onCodexRateLimits: (callback) => subscribeBridge('onCodexRateLimits', [], callback),\n264:        onCodexUpdateRequired: (callback) => subscribeBridge('onCodexUpdateRequired', [], callback),\n269:        onClaudeRateLimits: (callback) => subscribeBridge('onClaudeRateLimits', [], callback),",
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-event-16",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_011QjSWticJ2yvCSPYTMPTq4",
+          "sequence": 16,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:32:49.281Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-event-17",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeE1KPTotpGhictMzyKkk:thinking:0",
+          "sequence": 17,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T12:32:54.635Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "import { useSyncExternalStore } from 'react'\nimport { claudeRateLimitService } from '../../services/agents/claude_rate_limit_service'\n\nexport function useClaudeRateLimits() {\n    return useSyncExternalStore(\n        (listener) => {\n            claudeRateLimitService.addEventListener('changed', listener)\n\n            return () => claudeRateLimitService.removeEventListener('changed', listener)\n        },\n        () => claudeRateLimitService.getState(),\n        () => claudeRateLimitService.getState(),\n    )\n}\n=====DATA=====\nimport type { ClaudeRateLimitState } from '../../services/agents/claude_rate_limit_service'\n\nconst CLAUDE_RATE_LIMIT_WARNING_PERCENT = 80\n\n/** Derives Claude usage visibility and attention state for both status surfaces. */\nexport function claudeRateLimitPresentation(state: ClaudeRateLimitState) {\n    const { receivedAt, snapshot, stale } = state\n    if (!snapshot?.available || receivedAt === null || stale || snapshot.windows.length === 0) return null\n    const highestUsedPercent = Math.max(...snapshot.windows.map(({ usedPercent }) => usedPercent))\n    const reached = highestUsedPercent >= 100\n    const nearLimit = !reached && highestUsedPercent >= CLAUDE_RATE_LIMIT_WARNING_PERCENT\n\n    return {\n        accessibleState: reached ? ', limit reached' : nearLimit ? ', near limit' : '',\n        highestUsedPercent,\n        nearLimit,\n        reached,\n        receivedAt,\n        snapshot,\n    }\n}\n=====STATUS=====\nimport SpeedOutlined from '@mui/icons-material/SpeedOutlined'\nimport { Button } from '@mui/material'\nimport { useEffect, useState, type MouseEvent } from 'react'\nimport { useClaudeRateLimits } from '../hooks/use_claude_rate_limits'\nimport { ClaudeRateLimitDetails } from './claude_rate_limit_details'\nimport { claudeRateLimitPresentation } from './claude_rate_limit_status_data'\nimport { MobileStatusRow } from './mobile_status_row'\nimport { StatusDetailsSurface } from './status_details_surface'\n\nconst RESET_CLOCK_UPDATE_INTERVAL_MS = 30_000\n\ninterface ClaudeRateLimitStatusProps {\n    mobile?: boolean\n}\n\n/** Account-wide Claude rate-limit status. Own subscription stays at this leaf boundary. */\nexport function ClaudeRateLimitStatus({ mobile = false }: ClaudeRateLimitStatusProps) {\n    const rateLimitState = useClaudeRateLimits()\n    const [anchorElement, setAnchorElement] = useState<HTMLElement | null>(null)\n    const [currentTime, setCurrentTime] = useState(Date.now)\n\n    useEffect(() => {\n        const interval = setInterval(() => setCurrentTime(Date.now()), RESET_CLOCK_UPDATE_INTERVAL_MS)\n\n        return () => clearInterval(interval)\n    }, [])\n\n    const presentation = claudeRateLimitPresentation(rateLimitState)\n    if (!presentation) return null\n    const { accessibleState, highestUsedPercent, nearLimit, reached, receivedAt, snapshot } = presentation\n    const statusColor = reached ? 'error.main' : nearLimit ? 'warning.main' : 'text.secondary'\n    const roundedHighestPercent = Math.round(highestUsedPercent)\n    const openDetails = (event: MouseEvent<HTMLElement>) => {\n        setAnchorElement(event.currentTarget)\n    }\n    const closeDetails = () => {\n        setAnchorElement(null)\n    }\n    const accessibleName = `Claude usage ${roundedHighestPercent}% used${accessibleState}`\n\n    return (\n        <>\n            {mobile ? (\n                <MobileStatusRow\n                    accessibleName={accessibleName}\n                    icon={<SpeedOutlined sx={{ fontSize: 18 }} />}\n                    label=\"Claude usage\"\n                    onClick={openDetails}\n                    tone={statusColor}\n                    value={`${roundedHighestPercent}% used`}\n                />\n            ) : (\n                <Button\n                    aria-label={accessibleName}\n                    onClick={openDetails}\n                    size=\"small\"\n                    startIcon={<SpeedOutlined sx={{ fontSize: 14 }} />}\n                    sx={{ color: statusColor, fontSize: 'inherit', minWidth: 0, p: 0.5, whiteSpace: 'nowrap' }}\n                >\n                    Claude {roundedHighestPercent}% used\n                </Button>\n            )}\n            <StatusDetailsSurface anchorElement={anchorElement} labelId=\"claude-rate-limit-title\" mobile={mobile} onClose={closeDetails}>\n                <ClaudeRateLimitDetails\n                    currentTime={currentTime}\n                    reached={reached}\n                    receivedAt={receivedAt}\n                    snapshot={snapshot}\n                />\n            </StatusDetailsSurface>\n        </>\n    )\n}",
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-event-18",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_015qJLBoFcdsguYJAHEP1tsS",
+          "sequence": 18,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:32:55.673Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-event-19",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeE1KsFQJa1bCUsLCponM:thinking:0",
+          "sequence": 19,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T12:33:11.805Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "desktop/src/shell/ipc_channels.js:5:const LOCAL_BRIDGE_EVENT_CHANNEL = 'md2-local-bridge:event';\ndesktop/src/shell/ipc_channels.js:7:const LOCAL_BRIDGE_SUBSCRIBE_CHANNEL = 'md2-local-bridge:subscribe';\ndesktop/src/shell/ipc_channels.js:27:    LOCAL_BRIDGE_EVENT_CHANNEL,\ndesktop/src/shell/ipc_channels.js:29:    LOCAL_BRIDGE_SUBSCRIBE_CHANNEL,",
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-event-20",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_011BZT8VNbAFf248cHCEp5je",
+          "sequence": 20,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:33:13.091Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "desktop/src/shell/ipc_channels.js\ndesktop/src/shell/preload.js",
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-event-21",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01NadGf98LgM41UNTXckW7rP",
+          "sequence": 21,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:33:15.409Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-event-22",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeE1MKXEf2A91qYNbiuiH:thinking:0",
+          "sequence": 22,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T12:33:17.271Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "desktop/main.js:58:} = require('./src/shell/ipc_channels');\ndesktop/src/shell/update_service.js:10:} = require('./ipc_channels');\n---\nbuild\nelectron-builder.config.cjs\neslint.config.js\nmain.js\nnode_modules\npackage-lock.json\npackage.json\npackaging\nsrc\nstart_electron.js\ntest_agent_spawn.mjs\nvitest.config.mjs\n{\n  \"name\": \"desktop\",\n  \"version\": \"0.3.3\",\n  \"private\": true,\n  \"description\": \"MD² Electron host shell\",\n  \"main\": \"main.js\",\n  \"scripts\": {\n    \"lint\": \"eslint .\",\n    \"lint-fix\": \"eslint . --fix\",\n    \"package:windows\": \"electron-builder --config electron-builder.config.cjs --win nsis --x64\",\n    \"postpackage:windows\": \"node packaging/verify_windows_package.mjs\",\n    \"start\": \"node start_electron.js\",\n    \"test\": \"vitest run\",\n    \"test:full\": \"vitest run\",\n    \"test:watch\": \"vitest\"\n  },\n  \"keywords\": [],\n  \"author\": \"Elastetic\",\n  \"license\": \"AGPL-3.0-only\",\n  \"devDependencies\": {",
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-event-23",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01UP9Xc6rJLCosQ6eVJPVpA9",
+          "sequence": 23,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:33:23.902Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "45:    LOCAL_BRIDGE_EVENT_CHANNEL,\n47:    LOCAL_BRIDGE_SUBSCRIBE_CHANNEL,\n48:    LOCAL_BRIDGE_UNSUBSCRIBE_CHANNEL,\n189:            (payload) => event.sender.send(LOCAL_BRIDGE_EVENT_CHANNEL, { eventId, payload }),\n193:    ipcMain.on(LOCAL_BRIDGE_SUBSCRIBE_CHANNEL, (event, request) => {\n200:            (payload) => event.sender.send(LOCAL_BRIDGE_EVENT_CHANNEL, { eventId: subscriptionId, payload }),\n206:    ipcMain.on(LOCAL_BRIDGE_UNSUBSCRIBE_CHANNEL, (event, subscriptionId) => {",
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-event-24",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01WVFKBMrT7WH4BzvaEcoN3G",
+          "sequence": 24,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:33:26.171Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "    return `${webContents.id}:${subscriptionId}`;\n}\n\nfunction removeSubscription(webContents, subscriptionId) {\n    const key = subscriptionKey(webContents, subscriptionId);\n    const cleanup = subscriptionCleanups.get(key);\n    if (!cleanup) return;\n\n    cleanup();\n    subscriptionCleanups.delete(key);\n}\n\nfunction registerLocalBridge() {\n    ipcMain.handle(LOCAL_BRIDGE_INVOKE_CHANNEL, (event, request) => {\n        const { eventId, method, params } = request;\n        if (!EVENT_METHODS.has(method)) return localBridgeDispatch.invoke(method, params);\n\n        return localBridgeDispatch.invoke(method, [\n            ...params,\n            (payload) => event.sender.send(LOCAL_BRIDGE_EVENT_CHANNEL, { eventId, payload }),\n        ]);\n    });\n\n    ipcMain.on(LOCAL_BRIDGE_SUBSCRIBE_CHANNEL, (event, request) => {\n        const { method, params, subscriptionId } = request;\n        if (!SUBSCRIPTION_METHODS.has(method)) throw new Error(`Unsupported bridge subscription: ${method}`);\n\n        removeSubscription(event.sender, subscriptionId);\n        const cleanup = localBridgeDispatch.invoke(method, [\n            ...params,\n            (payload) => event.sender.send(LOCAL_BRIDGE_EVENT_CHANNEL, { eventId: subscriptionId, payload }),\n        ]);\n        subscriptionCleanups.set(subscriptionKey(event.sender, subscriptionId), cleanup);\n        event.sender.once('destroyed', () => removeSubscription(event.sender, subscriptionId));\n    });\n\n    ipcMain.on(LOCAL_BRIDGE_UNSUBSCRIBE_CHANNEL, (event, subscriptionId) => {\n        removeSubscription(event.sender, subscriptionId);\n    });\n}\n\nfunction registerConfigBridge() {\n    ipcMain.handle(CONFIG_GET_DESKTOP_CHANNEL, () => readDesktopConfig(store));\n    ipcMain.handle(CONFIG_SET_DESKTOP_CHANNEL, (_event, values) => localBridgeDispatch.invoke('saveDesktopConfig', [values]));\n}",
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-event-25",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01HTiFgNbBKidHMx4pH6funR",
+          "sequence": 25,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:33:28.045Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "65:const EVENT_METHODS = new Set(['runSearchRegexpAgent', 'startAgentConversation']);\n66:const SUBSCRIPTION_METHODS = new Set([\n67-    'onActionRun',\n68-    'onClaudeRateLimits',\n69-    'onCodexRateLimits',\n70-    'onCodexUpdateRequired',\n71-    'onMergeConflictSessionChanged',\n72-    'onWorktreesChanged',\n73-    'watchProject',\n74-]);\n--\n185:        if (!EVENT_METHODS.has(method)) return localBridgeDispatch.invoke(method, params);\n186-\n187-        return localBridgeDispatch.invoke(method, [\n188-            ...params,\n189-            (payload) => event.sender.send(LOCAL_BRIDGE_EVENT_CHANNEL, { eventId, payload }),\n190-        ]);\n191-    });\n192-\n193-    ipcMain.on(LOCAL_BRIDGE_SUBSCRIBE_CHANNEL, (event, request) => {\n--\n195:        if (!SUBSCRIPTION_METHODS.has(method)) throw new Error(`Unsupported bridge subscription: ${method}`);\n196-\n197-        removeSubscription(event.sender, subscriptionId);\n198-        const cleanup = localBridgeDispatch.invoke(method, [\n199-            ...params,\n200-            (payload) => event.sender.send(LOCAL_BRIDGE_EVENT_CHANNEL, { eventId: subscriptionId, payload }),\n201-        ]);\n202-        subscriptionCleanups.set(subscriptionKey(event.sender, subscriptionId), cleanup);\n203-        event.sender.once('destroyed', () => removeSubscription(event.sender, subscriptionId));",
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-event-26",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01QwDUwjF2sRiQPPw4TsBSAQ",
+          "sequence": 26,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:33:30.792Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-event-27",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeE1NSzEK6CntHwKPgrSC:thinking:0",
+          "sequence": 27,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T12:33:33.780Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "desktop/main.js:16:const { ClaudeRuntimeService } = require('./src/actions/agent/claude_runtime_service');\ndesktop/main.js:79:const claudeRuntimeService = new ClaudeRuntimeService();\ndesktop/main.js:83:    claudeRuntimeService,\ndesktop/main.js:120:    claudeRuntimeService,\ndesktop/src/actions/agent/agent_runner_service.js:55:        this.claudeRuntimeService = dependencies.claudeRuntimeService ?? null;\ndesktop/src/actions/agent/agent_runner_service.js:329:        if (!this.claudeRuntimeService) return;\ndesktop/src/actions/agent/agent_runner_service.js:331:            this.claudeRuntimeService.publishUnavailable(event.observedAt);\ndesktop/src/actions/agent/agent_runner_service.js:334:        const accepted = this.claudeRuntimeService.publishRateLimits(event.payload, event.observedAt);\ndesktop/src/actions/agent/agent_runner_service.js:336:        const snapshot = this.claudeRuntimeService.getSnapshot();\ndesktop/src/actions/agent/claude_runtime_service.js:32:class ClaudeRuntimeService {\ndesktop/src/actions/agent/claude_runtime_service.js:77:module.exports = { ClaudeRuntimeService };\ndesktop/src/shell/local_bridge_dispatch.js:55:        claudeRuntimeService,\ndesktop/src/shell/local_bridge_dispatch.js:552:        getClaudeRateLimits: () => claudeRuntimeService?.getSnapshot() ?? null,\ndesktop/src/shell/local_bridge_dispatch.js:554:            if (!claudeRuntimeService) throw new Error('Claude runtime service is not available');\ndesktop/src/shell/local_bridge_dispatch.js:556:            return claudeRuntimeService.subscribe(callback);",
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-event-28",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01MnXwZFdqkmFEufKw1dVNDe",
+          "sequence": 28,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:33:34.580Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-event-29",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeE1NjdLnduGaHgt8ECSV:thinking:0",
+          "sequence": 29,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T12:33:39.238Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "69:        this.claudeUsagePoller = dependencies.claudeUsagePoller ?? new ClaudeUsagePoller({\n136:        this.requestUsagePoll({ agent, environment, rootPath });\n181:        this.syncUsagePollTicks();\n298:        this.stopUsagePollTicks();\n299:        this.claudeUsagePoller.stop();\n341:    requestUsagePoll(run) {\n343:        this.claudeUsagePoller.requestPoll({ cwd: run.rootPath, env: run.environment });\n356:    syncUsagePollTicks() {\n359:            this.stopUsagePollTicks();\n367:            this.requestUsagePoll(activeRun);\n368:            this.syncUsagePollTicks();\n372:    stopUsagePollTicks() {\n670:            this.requestUsagePoll(run);\n681:            this.syncUsagePollTicks();",
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-event-30",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01ME83yppouGmxJsgzwDfj1H",
+          "sequence": 30,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:33:39.988Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "            graceMs: AGENT_FINISH_GRACE_MS,\n            pid: run.child.pid,\n            runId,\n            timestamp: new Date().toISOString(),\n        });\n        try {\n            run.finishForced = await this.ensureTermination(run);\n        } catch (error) {\n            this.handleError(runId, error);\n        }\n    }\n\n    stopAll() {\n        this.stopUsagePollTicks();\n        this.claudeUsagePoller.stop();\n        const completions = [];\n---356-385---\n        }\n\n        return null;\n    }\n\n    /** Keeps a repeating poll running while a pollable run is active; long runs would otherwise show a frozen figure. */\n    syncUsagePollTicks() {\n        const run = this.pollableRun();\n        if (!run) {\n            this.stopUsagePollTicks();\n            return;\n        }\n        if (this.usagePollTimer) return;\n        this.usagePollTimer = this.setTimeout(() => {\n            this.usagePollTimer = null;\n            const activeRun = this.pollableRun();\n            if (!activeRun) return;\n            this.requestUsagePoll(activeRun);\n            this.syncUsagePollTicks();\n        }, AGENT_USAGE_POLL_TICK_MS);\n    }\n\n    stopUsagePollTicks() {\n        if (!this.usagePollTimer) return;\n        this.clearTimeout(this.usagePollTimer);\n        this.usagePollTimer = null;\n    }\n\n    recordTokenUsage(run, usage, recordedAt) {\n        if (!this.usageMetricsService) return false;\n\n        return this.usageMetricsService.recordTokenUsage(\n            run.agent,\n            usage,\n            Date.parse(recordedAt),\n        );\n---655-690---\n                pid: run.child.pid,\n                runId,\n            });\n            await run.persistence;\n            let persistenceError = null;\n            if (!continuedTurnFailedBeforeStart) {\n                try {\n                    await this.persistConversation(run);\n                } catch (error) {\n                    persistenceError = error;\n                }\n            }\n            this.processes.delete(runId);\n            this.runningConversationIds.delete(run.conversation.id);\n            emitRunEvent(run, { conversation: run.conversation, type: 'closed' });\n            this.requestUsagePoll(run);\n            if (persistenceError) {\n                if (run.onCompletionError) run.onCompletionError(persistenceError);\n                return;\n            }\n            if (run.onComplete) run.onComplete(succeeded ? 0 : exitCode || 1, run);\n        } catch (error) {\n            if (run.onCompletionError) run.onCompletionError(error);\n        } finally {\n            this.processes.delete(runId);\n            this.runningConversationIds.delete(run.conversation.id);\n            this.syncUsagePollTicks();\n        }\n    }\n\n    requireRun(runId) {\n        const run = this.processes.get(runId);\n        if (!run) throw new Error(`Agent run is not active: ${runId}`);\n\n        return run;\n    }\n---130-190---\n        }\n        const [configuredExecutable, ...configuredArguments] = command;\n        const environment = createAgentEnvironment(process.env);\n        const resolvedExecutable = await this.executableResolver.find(configuredExecutable, { cwd: rootPath, env: environment });\n        const executable = resolvedExecutable ?? configuredExecutable;\n        const argumentsList = streaming ? configuredArguments : [...configuredArguments, prompt];\n        const initialConversation = snapshotConversation(conversation);\n        await this.persistConversationCheckpoint({ conversation: initialConversation, request });\n        this.requestUsagePoll({ agent, environment, rootPath });\n        const child = this.spawn(executable, argumentsList, {\n            cwd: rootPath,\n            detached: process.platform !== 'win32',\n            env: environment,\n            stdio: ['pipe', 'pipe', 'pipe'],\n            // windowsHide: true,\n        });\n        logAgentEvent('[agent:start]', {\n            arguments: configuredArguments,\n            cwd: rootPath,\n            actionRunId: request.actionRunId ?? null,\n            executable,\n            pid: child.pid,\n            runId: id,\n            startedAt,\n        });\n        const run = createRun({\n            agent,\n            child,\n            conversation,\n            environment,\n            executable,\n            id,\n            nextSequence,\n            onComplete,\n            onCompletionError,\n            onEvent,\n            reference,\n            request,\n            rootPath,\n            startedAt,\n            streaming,\n        });\n        attachRunProtocol(run, {\n            onCodexRuntimeEvent: (event) => this.handleCodexRuntimeEvent(event),\n            onMalformedOutput: (line) => this.handleMalformedOutput(id, line),\n            onProviderEvent: (event) => this.handleProviderEvent(id, event),\n            onStreamingEvent: (event) => this.handleStreamingEvent(id, event),\n            onStreamingLine: (line) => this.handleStreamingLine(id, line),\n            providerConversationId: request.providerConversationId,\n            rootPath,\n        });\n        this.processes.set(id, run);\n        this.runningConversationIds.add(conversation.id);\n        this.syncUsagePollTicks();\n\n        child.stdout.on('data', (chunk) => this.handleOutput(id, 'stdout', chunk));\n        child.stderr.on('data', (chunk) => this.handleOutput(id, 'stderr', chunk));\n        child.on('error', (error) => this.handleError(id, error));\n        child.stdin.on('error', (error) => this.handleError(id, error));\n        child.on('close', (exitCode) => {\n            void this.handleClose(id, exitCode ?? 1).finally(run.resolveClosed);\n        });\n        if (streaming) {",
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-event-31",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01NbCoyx1B42m4hTDiWWHxsM",
+          "sequence": 31,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:33:43.041Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-event-32",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeE1PMf2hdWWq5PFYw9kV:thinking:0",
+          "sequence": 32,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T12:33:54.872Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "Exit code 1\n[eval]:3\r\nconst stdout='You are currently using your subscription to power your Claude Code usage\\n\\nCurrent session: 79% used · resets Aug 20, 3:20pm (Europe/Brussels)\\nCurrent week (all models): 19% used · resets Aug 23, 7pm (Europe/Brussels)\\n\\nWhat's contributing to your limits usage?\\nApproximate, based on local sessions on this machine.\\n\\nLast 24h · 262 requests · 10 sessions\\n  Top skills: /caveman 1%\\n\\nLast 7d · 658 requests · 30 sessions\\n  Top skills: /caveman 1%\\n';\r\n                                                                                                                                                                                                                                                   ^\r\n\r\nSyntaxError: Unexpected identifier 's'\r\n    at makeContextifyScript (node:internal/vm:185:14)\r\n    at compileScript (node:internal/process/execution:386:10)\r\n    at node:internal/process/execution:450:25\r\n    at [eval]-wrapper:6:24\r\n    at runScriptInContext (node:internal/process/execution:447:60)\r\n    at evalFunction (node:internal/process/execution:87:30)\r\n    at evalScript (node:internal/process/execution:99:3)\r\n    at node:internal/main/eval_string:74:3\r\n\r\nNode.js v22.16.0",
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-event-33",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01A8h8z18vm22FUxRgpMzMKN",
+          "sequence": 33,
+          "status": "failed",
+          "timestamp": "2026-08-20T12:34:01.052Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "Exit code 1\nnode:internal/modules/cjs/loader:1404\r\n  throw err;\r\n  ^\r\n\r\nError: Cannot find module './src/actions/agent/claude_usage_parsing'\r\nRequire stack:\r\n- C:\\Users\\janbo\\AppData\\Local\\Temp\\t.js\r\n    at Function._resolveFilename (node:internal/modules/cjs/loader:1401:15)\r\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1057:19)\r\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1062:22)\r\n    at Function._load (node:internal/modules/cjs/loader:1211:37)\r\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\r\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\r\n    at Module.require (node:internal/modules/cjs/loader:1487:12)\r\n    at require (node:internal/modules/helpers:135:16)\r\n    at Object.<anonymous> (C:\\Users\\janbo\\AppData\\Local\\Temp\\t.js:1:32)\r\n    at Module._compile (node:internal/modules/cjs/loader:1730:14) {\r\n  code: 'MODULE_NOT_FOUND',\r\n  requireStack: [ 'C:\\\\Users\\\\janbo\\\\AppData\\\\Local\\\\Temp\\\\t.js' ]\r\n}\r\n\r\nNode.js v22.16.0",
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-event-34",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01HJ6aUVfTmhj36Mg9juV6JA",
+          "sequence": 34,
+          "status": "failed",
+          "timestamp": "2026-08-20T12:34:07.709Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "null",
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-event-35",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01XrY9PZRJsos6net4Ux7zjT",
+          "sequence": 35,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:34:12.339Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-event-36",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeE1RWjY9dqLhyZFSEuxq:thinking:0",
+          "sequence": 36,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T12:34:16.896Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\n  \"windows\": [\n    {\n      \"id\": \"five_hour\",\n      \"resetsAt\": 1787232000000,\n      \"usedPercent\": 79\n    },\n    {\n      \"id\": \"weekly\",\n      \"resetsAt\": 1787504400000,\n      \"usedPercent\": 19\n    }\n  ]\n}",
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-event-37",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01SfeDYkXuZ9ALXZEVzAqZVx",
+          "sequence": 37,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:34:19.675Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-event-38",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeE1S4LKQRunoVBgiUyGC:thinking:0",
+          "sequence": 38,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T12:34:29.376Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nFound it. Root cause confirmed by running the real parser on your exact stdout.\n\n## The bug\n\n`desktop/src/actions/agent/claude_usage_parsing.js:7-8` — the plain-stdout regexes require **minutes** in the reset time:\n\n```js\nresets\\s+([A-Za-z]{3})\\s+(\\d{1,2}),\\s+(\\d{1,2}):(\\d{2})(am|pm)\n```\n\nYour weekly line is:\n\n```\nCurrent week (all models): 19% used · resets Aug 23, 7pm (Europe/Brussels)\n```\n\n`7pm` — no `:MM`. Claude omits minutes on the hour. Regex misses → `WINDOW_PATTERNS.map` throws `Missing Claude usage window` → returns null.\n\nVerified: your stdout → `parseClaudeUsageOutput` returns `null`. Change `7pm` → `7:00pm` → parses fine (79 / 19).\n\nNote the pty branch already handles it: `TERMINAL_RESET_PATTERN` (line 15) has `(?::(\\d{2}))?`. Only the stdout path is missing it.\n\n## Why symptoms look random\n\n`claude_usage_poller.js:135-140`: parse null → falls back to `pollTerminal` (pty worker).\n\n- Fallback succeeds → number shows up \"a little later\" (extra ~20s worker spawn + TUI render).\n- Fallback returns neither payload nor `unavailable` → `payload` stays null → `poll()` returns with **no runtime event at all**. Silent drop, nothing in UI, no error.\n- So: any hour with `:MM` parses instantly on the fast path; any hour on the dot (`7pm`, `3pm`) falls into the flaky pty path. Session resets at `3:20pm` (has minutes) but weekly at `7pm` (doesn't) — and *all* windows must parse or the whole snapshot is rejected. That's the \"sometimes works\" pattern.\n- The 80→81 lag: the value you see is from whichever fallback poll last succeeded, plus the 120s cooldown (`CLAUDE_USAGE_POLL_COOLDOWN_MS`) — not the poll that just returned 81.\n\n## Fix (not applied — your call)\n\n1. Make minutes optional in both `WINDOW_PATTERNS`: `(\\d{1,2})(?::(\\d{2}))?(am|pm)`.\n2. `resetTimestamp` (line 63) does `minute: Number(minuteText)` → would be `NaN` with the group absent. Needs `Number(minuteText ?? 0)`, same as `terminalResetTimestamp` line 92.\n3. Separately worth fixing: the silent-drop path in `claude_usage_poller.js` — a fallback returning `{ payload: null, unavailable: false }` produces no event and no log. Should at least emit `unavailable` or log the raw stdout that failed to parse.\n\nWant me to apply 1+2, or 1+2+3?",
+          "id": "agent-turn-98d310c2-6f99-4eac-9174-6a860364bc67-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 39,
+          "timestamp": "2026-08-20T12:34:41.189Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-2ff7d2f6-5920-49bb-9f73-3796ce892702",
+      "providerSessions": [],
+      "startedAt": "2026-08-20T12:32:12.878Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-08-20T12:32:12.878Z"
+      },
+      "title": "+",
+      "usage": {
+        "cachedInputTokens": 1183265,
+        "inputTokens": 50,
+        "outputTokens": 8914,
+        "reasoningTokens": 0,
+        "totalTokens": 1192229,
+        "costUsd": 1.2514665000000003
+      },
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
@@ -10319,6 +10817,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "f20f557c7c0f81251520a214ed73a5c994418416",
           "committedAt": "2026-08-20T14:04:19+02:00",
           "deletions": 12,
@@ -10331,8 +10830,7 @@
             "desktop/src/actions/agent/claude_usage_terminal.test.mjs"
           ],
           "filesChanged": 6,
-          "insertions": 57,
-          "branch": "dev_main"
+          "insertions": 57
         }
       ],
       "completedAt": "2026-08-20T14:04:19+02:00",
