@@ -4,7 +4,7 @@
   "description": "update the website with info from the latest release",
   "type": "agent",
   "phrases": [],
-  "prompt": "Describe what the agent should do.",
+  "prompt": "We recently did a release.\r\ncheck the design specs in `design\\feature descriptions\\XXXX\\` and see which parts of the website at `./website` should be updated for these changes.\r\nrelease notes don't need updating, it is already available at `website\\docs\\release notes\\XXXX.md`",
   "streaming": true,
   "trackFileChanges": true,
   "appliesTo": {
