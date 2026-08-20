@@ -30,7 +30,7 @@ Desktop config and card activity both store one flat active tuple: agent, model,
 
 `AgentProfile` already supports `defaultModel`, but has no default thinking level. Config dialog edits profile default model, while separate global `desktop.model` and `desktop.thinkingLevel` fields apply only to currently selected desktop agent. Permission mode is one shared choice, not an agent-specific choice.
 
-Model button currently opens one menu containing labelled sections. Requirement instead needs nested menus: top-level Agent, Model, and Thinking level items each open their own submenu. Here, **active agent** means agent currently used by surface; **thinking level** means reasoning-effort value passed to agent process.
+The action-popup model button currently opens one context menu containing labelled sections. That context menu needs nested menus: top-level Agent, Model, and Thinking level items each open their own submenu. The global app bar keeps its separate agent, model, and thinking-level controls. Here, **active agent** means agent currently used by surface; **thinking level** means reasoning-effort value passed to agent process.
 
 ## implementation details
 
@@ -40,16 +40,16 @@ Model button currently opens one menu containing labelled sections. Requirement 
 - Replace flat desktop agent/model/thinking storage with shared selection shape. Global desktop controls and action popup use same commands and resolution rules. Migrate existing desktop config by placing stored model and thinking level under stored active agent; retain stored permission mode unchanged.
 - Change card activity `actionSettings[actionId]` to same selection shape. Bump activity schema version and migrate version 4 by placing flat model and thinking level under flat active agent. Keep targeted queued read-modify-write, optimistic updates, scoped events, waiting-input dirty state, and `dialogService` error reporting.
 - For card-backed actions, card/action memory wins. Missing agent entry resolves from action-definition override when applicable, then desktop memory for that agent, then profile defaults. Project, folder, and regular-file contexts keep session-only memory but use same model and commands.
-- Use shared nested-menu component for runtime agent selection surfaces. Top menu contains Agent, Model, and Thinking level entries; each opens submenu. Model submenu reflects active agent. Preserve unavailable-agent disabling, run-state disabling, compact labels, keyboard navigation, focus return, and popup-width behavior. Security menu remains separate and writes shared permission mode.
+- Change only the action-popup context menu to use nested menus. Its top menu contains Agent, Model, and Thinking level entries; each opens a submenu. The Model submenu reflects the active agent. Preserve unavailable-agent disabling, run-state disabling, compact labels, keyboard navigation, focus return, and popup-width behavior. Security menu remains separate and writes shared permission mode. Keep the global app bar's agent, model, and thinking-level controls as separate controls; do not replace them with submenus.
 - Keep action-definition file format declarative and flat. While editor is open, its draft keeps session-local per-agent pairs and uses shared commands, so switching away and back restores draft values and never changes permission mode. Save only active agent's flat override. Execution boundary likewise receives only active agent's flat model/thinking pair.
 - Implement after B_154. Conversation switching may change visible conversation while run exists, but must not change agent-selection state or its persistence scope.
-- Update shared schema/migration tests, desktop config tests, command-resolution tests, selection-domain tests, config editor tests, global menu tests, action-definition tests, action-popup selector tests, settings-service tests, bridge tests, and queued activity-write race tests.
+- Update shared schema/migration tests, desktop config tests, command-resolution tests, selection-domain tests, config editor tests, global app-bar behavior tests, action-definition tests, action-popup selector and submenu tests, settings-service tests, bridge tests, and queued activity-write race tests.
 
 ## acceptance criteria
 
 - Config dialog allows default model and default thinking level for every built-in or custom agent profile and rejects defaults unavailable in that profile.
 - Global desktop controls, action-definition controls, and action popup use same agent/model/thinking transition rules.
-- Opening runtime model menu shows Agent, Model, and Thinking level as nested menus, not labelled sections in one menu. Model choices match active agent.
+- Opening the action-popup model context menu shows Agent, Model, and Thinking level as nested menus, not labelled sections in one menu. Model choices match the active agent. The global app bar continues to show separate agent, model, and thinking-level controls without submenus.
 - Switching agent restores model and thinking level last selected for that agent in current scope. Without remembered pair, target agent's resolved defaults appear. Neither value resets to `none` merely because agent or model changed.
 - Switching agent never changes permission mode. One permission choice remains shared across agents, including after switching away, switching back, closing popup, or restarting app.
 - Global per-agent choices persist in desktop config. Card-backed per-agent choices persist independently per card and action in card activity. Non-card action choices persist for session only.
