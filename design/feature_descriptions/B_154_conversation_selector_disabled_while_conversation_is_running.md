@@ -3,7 +3,7 @@ author:
 id: B_154
 internalId: 8c0611fd-44e8-4f65-bc86-11c26afacc8e
 title: conversation selector disabled while conversation is running
-status: new
+status: ready
 owner: 
 affects:
 agents:
