@@ -136,9 +136,9 @@ function parseClaudeUsageOutput(output, observedAt) {
     const legacyLines = lines.map((line) => line.replace(/\u00C2\u00B7/gu, '\u00B7'));
     try {
         const windows = WINDOW_PATTERNS.map(({ id, pattern }) => {
-            const matchingLines = legacyLines.map((line) => pattern.exec(line)).filter((match) => match !== null);
-            if (matchingLines.length !== 1) throw new Error('Missing Claude usage window');
-            const match = matchingLines[0];
+            // A redrawn or repeated report restates the same window; the first line reported wins.
+            const match = legacyLines.map((line) => pattern.exec(line)).find((candidate) => candidate !== null);
+            if (!match) throw new Error('Missing Claude usage window');
             const usedPercent = Number(match[1]);
             if (!Number.isInteger(usedPercent) || usedPercent < 0 || usedPercent > 100) throw new Error('Invalid Claude usage percent');
 

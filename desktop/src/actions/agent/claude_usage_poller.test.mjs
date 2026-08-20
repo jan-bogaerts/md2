@@ -108,6 +108,24 @@ describe('ClaudeUsagePoller', () => {
         poller.stop();
     });
 
+    it('publishes usage printed before a failed exit without falling back to the worker', async () => {
+        const runtimeListener = vi.fn();
+        const terminalPoll = vi.fn(async () => NO_TERMINAL_RESULT);
+        const poller = new ClaudeUsagePoller({
+            executableResolver: { find: vi.fn(async () => 'claude') },
+            onRuntimeEvent: runtimeListener,
+            spawn: vi.fn(() => completedChild(USAGE_OUTPUT, 1)),
+            terminalPoll,
+        });
+
+        poller.requestPoll();
+        await poller.activePoll;
+
+        expect(terminalPoll).not.toHaveBeenCalled();
+        expect(runtimeListener).toHaveBeenCalledWith(expect.objectContaining({ kind: 'snapshot' }));
+        poller.stop();
+    });
+
     it('publishes nothing when neither the process nor the worker reports usage', async () => {
         const runtimeListener = vi.fn();
         const poller = new ClaudeUsagePoller({

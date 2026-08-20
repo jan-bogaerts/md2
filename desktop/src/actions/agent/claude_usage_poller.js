@@ -124,12 +124,13 @@ class ClaudeUsagePoller {
         try {
             const executable = await this.executableResolver.find('claude', { cwd: this.cwd, env: this.env }) ?? 'claude';
             const child = this.spawn(executable, [], { cwd: this.cwd, env: this.env, stdio: ['pipe', 'pipe', 'pipe'] });
-            const { exitCode, stdout } = await collectProcessOutput(child, {
+            const { stdout } = await collectProcessOutput(child, {
                 clearTimeout: this.clearTimeout,
                 setTimeout: this.setTimeout,
                 timeoutMs: this.processTimeoutMs,
             });
-            payload = exitCode === 0 ? parseClaudeUsageOutput(stdout, observedAt) : null;
+            // A usage report that arrived is worth keeping even when the exit itself failed or timed out.
+            payload = parseClaudeUsageOutput(stdout, observedAt);
             if (this.stopped) return;
             if (!payload) {
                 const fallback = await this.pollTerminal(executable, observedAt);

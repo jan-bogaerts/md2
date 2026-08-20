@@ -82,6 +82,12 @@ describe('runTerminalUsagePoll', () => {
         await expect(runTerminalUsagePoll(REQUEST, { ptySpawn: () => terminalChild('partial', 0) })).resolves.toBeNull();
     });
 
+    it('keeps the usage left on screen when Claude exits in failure', async () => {
+        const payload = await runTerminalUsagePoll(REQUEST, { ptySpawn: () => terminalChild(TERMINAL_USAGE_OUTPUT, 1) });
+
+        expect(payload.windows).toContainEqual(expect.objectContaining({ id: 'weekly', usedPercent: 12 }));
+    });
+
     it('rejects when Claude exits in failure so the caller can mark it unavailable', async () => {
         await expect(runTerminalUsagePoll(REQUEST, { ptySpawn: () => terminalChild('partial', 1) })).rejects.toThrow('Claude usage terminal failed');
     });

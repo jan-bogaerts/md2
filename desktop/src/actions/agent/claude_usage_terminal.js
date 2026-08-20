@@ -29,6 +29,7 @@ function collectTerminalUsage(processHandle, terminal, observedAt, dependencies)
     return new Promise((resolve, reject) => {
         let commandSent = false;
         let exited = false;
+        let pendingExitCode = null;
         let pendingWrites = 0;
         let settled = false;
         let terminalDisposed = false;
@@ -86,6 +87,21 @@ function collectTerminalUsage(processHandle, terminal, observedAt, dependencies)
             killProcess();
             finish(payload);
         };
+        // The exit can arrive while xterm still has queued chunks, so the screen is only judged once they land.
+        const settleExit = (exitCode) => {
+            if (settled) return;
+            if (pendingWrites > 0) {
+                pendingExitCode = exitCode;
+                return;
+            }
+            // A failed exit still counts when the screen holds a complete report; only a screen without one is a failure.
+            const payload = parseClaudeUsageOutput(terminalScreenText(terminal), observedAt);
+            if (!payload && exitCode !== 0) {
+                finish(null, new Error('Claude usage terminal failed'));
+                return;
+            }
+            finish(payload);
+        };
         registerAbort?.(() => {
             killProcess();
             finish(null);
@@ -96,21 +112,18 @@ function collectTerminalUsage(processHandle, terminal, observedAt, dependencies)
             terminal.write(data, () => {
                 pendingWrites -= 1;
                 inspectScreen();
+                if (pendingExitCode !== null) settleExit(pendingExitCode);
                 if (settled) disposeTerminal();
             });
         });
         exitSubscription = processHandle.onExit(({ exitCode }) => {
             exited = true;
-            if (settled) return;
-            if (exitCode !== 0) {
-                finish(null, new Error('Claude usage terminal failed'));
-                return;
-            }
-            finish(parseClaudeUsageOutput(terminalScreenText(terminal), observedAt));
+            settleExit(exitCode);
         });
         timeout = setPollTimeout(() => {
+            const payload = parseClaudeUsageOutput(terminalScreenText(terminal), observedAt);
             killProcess();
-            finish(null);
+            finish(payload);
         }, timeoutMs);
     });
 }

@@ -67,6 +67,13 @@ describe('parseClaudeUsageOutput', () => {
         expect(parseClaudeUsageOutput(output, observedAt)?.windows[0].resetsAt).toBe(Date.parse('2026-08-20T23:00:00.000Z'));
     });
 
+    it('takes the first report when a redraw repeats the same window lines', () => {
+        const observedAt = Date.parse('2026-08-15T18:00:00.000Z');
+        const output = `${USAGE_OUTPUT}${USAGE_OUTPUT.replace('17% used', '19% used')}`;
+
+        expect(parseClaudeUsageOutput(output, observedAt)?.windows.map(({ usedPercent }) => usedPercent)).toEqual([17, 13]);
+    });
+
     it('rejects partial and malformed output', () => {
         const observedAt = Date.parse('2026-08-15T18:00:00.000Z');
 
