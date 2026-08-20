@@ -6173,6 +6173,29 @@
       "startedAt": "2026-08-20T14:28:08.724Z",
       "status": "cancelled",
       "rootConversationId": "agent-46d420cc-f4cc-498b-a684-237b4fd4c2c2"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-08-20T14:33:05.535Z",
+      "conversationIds": [
+        "agent-74758ba7-96b9-4737-a758-27128d76e9ce"
+      ],
+      "details": {
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-b455119a-d293-4a0b-9271-36dece7c01bd",
+      "origin": {
+        "kind": "project"
+      },
+      "rootActionId": "65ad68d5-4ad3-4afe-b861-0bbb00d2505e",
+      "rootActionLabel": "write release note",
+      "rootConversationId": "agent-74758ba7-96b9-4737-a758-27128d76e9ce",
+      "startedAt": "2026-08-20T14:30:37.070Z",
+      "status": "completed"
     }
   ],
   "version": 4
