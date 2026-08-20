@@ -101,6 +101,35 @@ describe('scopedActionUsage', () => {
         expect(result.actionCard.tokens.totalTokens).toBe(0)
     })
 
+    it('reports a present zero-total file-change count instead of absence', () => {
+        const displayedConversation = conversation('conversation-1')
+        displayedConversation.entries = [{
+            content: 'no-op edit', deletions: 0, id: 'file-1', insertions: 0, kind: 'event',
+            providerItemId: 'file-1', status: 'completed', timestamp: 'now', type: 'fileChange',
+        }]
+
+        const result = scopedActionUsage([displayedConversation], null, displayedConversation, [], 'implement', 'card-1')
+
+        expect(result.conversation?.changes).toEqual({ deletions: 0, insertions: 0 })
+        expect(result.actionCard.changes).toEqual({ deletions: 0, insertions: 0 })
+    })
+
+    it('returns null changes when no conversation in scope reported a file change', () => {
+        const displayedConversation = conversation('conversation-1')
+
+        const result = scopedActionUsage(
+            [displayedConversation, conversation('conversation-2')],
+            null,
+            displayedConversation,
+            [],
+            'implement',
+            'card-1',
+        )
+
+        expect(result.actionCard.changes).toBeNull()
+        expect(result.conversation?.changes).toBeNull()
+    })
+
     it('matches conversation commits only through rootConversationId', () => {
         const displayedConversation = conversation('conversation-1', 10)
         const matchingCommit = commit('abc1234', 5, 2)
@@ -128,7 +157,7 @@ describe('scopedActionUsage', () => {
         const result = scopedActionUsage([], null, null, [], 'implement', 'card-1')
 
         expect(result.conversation).toBeNull()
-        expect(result.actionCard.changes).toEqual({ deletions: 0, insertions: 0 })
+        expect(result.actionCard.changes).toBeNull()
         expect(result.actionCard.lines).toMatchObject({ commits: [], deletions: 0, filesChanged: 0, insertions: 0 })
         expect(result.actionCard.tokens.totalTokens).toBe(0)
     })

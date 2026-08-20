@@ -4,9 +4,10 @@ import type { AgentConversation, AgentTokenUsage } from '../../../../data/data_t
 import type { ActionRunHistoryEntry, CommitReference } from '../../../../data/electron_action_bridge'
 import type { AgentFileChangeUsage } from '../../../../services/agents/agent_usage'
 import type { ActionUsageScope } from './action_usage_scope_store'
-import { scopedActionUsage, type LineUsage } from './action_usage_summary_data'
+import { scopedActionUsage, type ActionUsageValues } from './action_usage_summary_data'
 
 const NUMBER_FORMAT = new Intl.NumberFormat('en-US')
+const ZERO_CHANGES: AgentFileChangeUsage = { deletions: 0, insertions: 0 }
 const USAGE_CONTROL_SX: SxProps<Theme> = {
     borderBottom: '1px dotted',
     borderColor: 'custom.borderHover',
@@ -81,13 +82,23 @@ function changeValue(usage: AgentFileChangeUsage) {
     return `+${NUMBER_FORMAT.format(usage.insertions)} / -${NUMBER_FORMAT.format(usage.deletions)}`
 }
 
-function lineValue(usage: LineUsage) {
-    const total = usage.insertions + usage.deletions
-
-    return `${NUMBER_FORMAT.format(total)} lines (+${NUMBER_FORMAT.format(usage.insertions)} / -${NUMBER_FORMAT.format(usage.deletions)})`
+interface ResolvedChanges extends AgentFileChangeUsage {
+    fromCommits: boolean
 }
 
-/** Three shared-scope usage controls for one agent action on one card. */
+/**
+ * Picks the change source for one scope: the conversation file-change count when the transcript
+ * reported one, otherwise the captured Git commit totals. `null` means neither source has data.
+ */
+function resolveChanges(usage: ActionUsageValues): ResolvedChanges | null {
+    if (usage.changes) return { ...usage.changes, fromCommits: false }
+    const { deletions, insertions } = usage.lines
+    if (insertions + deletions === 0) return null
+
+    return { deletions, fromCommits: true, insertions }
+}
+
+/** Two shared-scope usage controls for one agent action on one card. */
 export function ActionUsageSummary(props: ActionUsageSummaryProps) {
     const { actionId, cardInternalId, conversation, conversations, history, liveConversation, onToggleScope, scope } = props
     const scopedUsage = scopedActionUsage(
@@ -104,9 +115,10 @@ export function ActionUsageSummary(props: ActionUsageSummaryProps) {
         ? conversationUsage
         : scopedUsage.actionCard
     const activeLines = activeUsage.lines
-    const hasChanges = activeUsage.changes.insertions + activeUsage.changes.deletions > 0
-    const totalLines = activeLines.insertions + activeLines.deletions
-    const lineDetails = (
+    const activeChanges = resolveChanges(activeUsage)
+    const conversationChanges = scopedUsage.conversation ? resolveChanges(scopedUsage.conversation) : null
+    const actionCardChanges = resolveChanges(scopedUsage.actionCard)
+    const commitDetails = (
         <>
             <Typography color="inherit" variant="caption">
                 files changed: {NUMBER_FORMAT.format(activeLines.filesChanged)}, insertions: {NUMBER_FORMAT.format(activeLines.insertions)},
@@ -148,12 +160,15 @@ export function ActionUsageSummary(props: ActionUsageSummaryProps) {
                     {NUMBER_FORMAT.format(activeUsage.tokens.totalTokens)}
                 </ButtonBase>
             </Tooltip>
-            {hasChanges ? (
+            {activeChanges ? (
                 <Tooltip describeChild title={scopeTooltip(
-                    'Changes are additions and deletions across completed provider file-change patches.',
-                    scopedUsage.conversation ? changeValue(scopedUsage.conversation.changes) : null,
-                    changeValue(scopedUsage.actionCard.changes),
+                    activeChanges.fromCommits
+                        ? 'Changes are additions plus deletions in captured Git commit diffs; the conversation reported no file changes.'
+                        : 'Changes are additions and deletions across completed provider file-change patches.',
+                    scopedUsage.conversation ? changeValue(conversationChanges ?? ZERO_CHANGES) : null,
+                    changeValue(actionCardChanges ?? ZERO_CHANGES),
                     activeScope,
+                    activeChanges.fromCommits ? commitDetails : undefined,
                 )}>
                     <ButtonBase
                         aria-label={`Changes, ${activeScopeName} scope`}
@@ -168,45 +183,12 @@ export function ActionUsageSummary(props: ActionUsageSummaryProps) {
                             changes:&nbsp;
                         </Box>
                         <Box component="span" sx={{ color: 'success.main' }}>
-                            +{NUMBER_FORMAT.format(activeUsage.changes.insertions)}
+                            +{NUMBER_FORMAT.format(activeChanges.insertions)}
                         </Box>
                         &nbsp;/&nbsp;
                         <Box component="span" sx={{ color: 'error.main' }}>
-                            -{NUMBER_FORMAT.format(activeUsage.changes.deletions)}
+                            -{NUMBER_FORMAT.format(activeChanges.deletions)}
                         </Box>
-                    </ButtonBase>
-                </Tooltip>
-            ) : null}
-            {totalLines > 0 ? (
-                <Tooltip describeChild title={scopeTooltip(
-                    'Lines are additions plus deletions in captured Git commit diffs.',
-                    scopedUsage.conversation ? lineValue(scopedUsage.conversation.lines) : null,
-                    lineValue(scopedUsage.actionCard.lines),
-                    activeScope,
-                    lineDetails,
-                )}>
-                    <ButtonBase
-                        aria-label={`Lines, ${activeScopeName} scope`}
-                        onClick={onToggleScope}
-                        sx={USAGE_CONTROL_SX}
-                    >
-                        <Box
-                            component="span"
-                            data-usage-prefix
-                            sx={{ '@container (max-width: 420px)': { display: 'none' } }}
-                        >
-                            lines:{' '}
-                        </Box>
-                        {NUMBER_FORMAT.format(totalLines)}
-                        &nbsp;(
-                        <Box component="span" sx={{ color: 'success.main' }}>
-                            +{NUMBER_FORMAT.format(activeLines.insertions)}
-                        </Box>
-                        &nbsp;/&nbsp;
-                        <Box component="span" sx={{ color: 'error.main' }}>
-                            -{NUMBER_FORMAT.format(activeLines.deletions)}
-                        </Box>
-                        )
                     </ButtonBase>
                 </Tooltip>
             ) : null}
