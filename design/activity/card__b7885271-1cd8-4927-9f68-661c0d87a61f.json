@@ -1,0 +1,398 @@
+{
+  "actionSettings": {
+    "5b88355d-f964-459a-bc67-6618650866ba": {
+      "agent": "claude",
+      "model": "opus",
+      "permissionMode": "approve-for-me",
+      "thinkingLevel": "medium"
+    }
+  },
+  "conversations": [
+    {
+      "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "cardInternalId": "b7885271-1cd8-4927-9f68-661c0d87a61f",
+      "cardPath": "design/feature_descriptions/J_31_refactor_project_stats_service.md",
+      "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 1000000,
+        "usedTokens": 70149
+      },
+      "entries": [
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/J_31_refactor_project_stats_service.md`.&#x20;\nupdate the field `status` in the markdown feature description file to `ready for implementation`.\n\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill.\n\nDo not stage or commit changes. You have no need for get at this time.",
+          "id": "agent-turn-4cbcd37f-17a6-416d-bc18-8322a45e4c33-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-08-20T18:01:12.784Z"
+        },
+        {
+          "agent": "claude",
+          "content": "I'll read the feature description file first.",
+          "id": "agent-turn-4cbcd37f-17a6-416d-bc18-8322a45e4c33-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 2,
+          "timestamp": "2026-08-20T18:01:15.848Z"
+        },
+        {
+          "content": "---\nauthor:\nid: J_31\ninternalId: b7885271-1cd8-4927-9f68-661c0d87a61f\ntitle: refactor ProjectStatsService into focused modules\nstatus: new\nowner:\naffects:\npolicy:\nafter: 47a847c9-cf6e-4a8a-823c-6a6b012bb21a\nbranch: j_31_refactor_projectstatsservice_into_focused_modules\nworktree: 2\n---\n\n`app/src/services/stats/project_stats_service.ts` combines source discovery, released-stat caching, session state, control reconciliation, time bucketing, four dataset aggregators, and presentation metadata. Split it without changing behavior.\n\n## Current call sites\n\n* `project_loading.ts`: bind and clear project state; keep current behavior.\n* `stats_view.tsx`: open and close one viewing session; keep current behavior.\n* `stats_content.tsx`: subscribe to snapshots; keep current behavior.\n* `stats_controls.tsx`: update controls; keep current behavior.\n* Chart and CSV components: import snapshot/row types; move imports to a dedicated types module.\n* Service and component tests: preserve public behavior and coverage.\n\nNo verified call site needs different service behavior. Do not add modes or compatibility flags.\n\n## Refactor\n\n* Keep `ProjectStatsService` responsible only for lifecycle, binding, loading coordination, control updates, snapshot publication, and `EventTarget` notifications.\n* Move public stats types and constants to `project_stats_types.ts`.\n* Move UTC range/bucket logic to pure `stats_time_buckets.ts` functions.\n* Move activity, performance, usage-comparison, and totals aggregation into separate pure dataset modules.\n* Move source discovery, released-stat cache loading, and cache persistence into a focused loader owning those dependencies.\n* Build indexes by bucket and identity once per snapshot. Remove repeated full-array filtering per bucket.\n* Generate tooltip and accessibility metadata with each dataset row, not in React.\n* Update call sites directly. Do not create re-export shims or forwarding methods.\n\n## Edge cases\n\nPreserve UTC boundaries, zero-filled buckets, numeric-zero unavailable rows, stable identities/colors, canonical conversation deduplication, exclusion reasons, partial-source warnings, load cancellation, and released-stat cache writes.\n\n## Acceptance criteria\n\n* `project_stats_service.ts` contains orchestration only and has one reason to change.\n* Each extracted module owns one cohesive responsibility and is directly imported by consumers.\n* Dataset aggregation avoids bucket-count × record-count scans.\n* No behavior, CSV schema, persistence schema, or public service lifecycle changes.\n* Existing focused tests, `npm run test:unit`, `npm run typecheck`, and `npm run lint` pass.\n\n## See also\n\n* `design/feature_descriptions/F_211_stats_view_improvements.md`\n* `design/feature_descriptions/J_29_investigate_and_improve_stats_load_speed.md`\n* `design/architecture/architectural_decisions.md`",
+          "id": "agent-turn-4cbcd37f-17a6-416d-bc18-8322a45e4c33-event-3",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01BFJXGAM6JaTaspNs5WiJAf",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-08-20T18:01:17.526Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-4cbcd37f-17a6-416d-bc18-8322a45e4c33-event-4",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeESNFcmtSQQVw5711qn9:thinking:0",
+          "sequence": 4,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T18:01:19.466Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nReading referenced docs + source.",
+          "id": "agent-turn-4cbcd37f-17a6-416d-bc18-8322a45e4c33-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 5,
+          "timestamp": "2026-08-20T18:01:19.467Z"
+        },
+        {
+          "content": "ls: cannot access 'design/feature_descriptions/F_211_stats_view_improvements.md': No such file or directory\nls: cannot access 'design/feature_descriptions/J_29_investigate_and_improve_stats_load_speed.md': No such file or directory\ndesign/architecture/architectural_decisions.md\n---\n  106 app/src/services/stats/project_stats_schema.node.test.ts\n  606 app/src/services/stats/project_stats_service.node.test.ts\n 1133 app/src/services/stats/project_stats_service.ts\n   17 app/src/services/stats/project_stats_worker.ts\n   42 app/src/services/stats/project_stats_worker_client.node.test.ts\n  106 app/src/services/stats/project_stats_worker_client.ts\n 2010 total\n---\nproject_stats_schema.node.test.ts\nproject_stats_service.node.test.ts\nproject_stats_service.ts\nproject_stats_worker.ts\nproject_stats_worker_client.node.test.ts\nproject_stats_worker_client.ts",
+          "id": "agent-turn-4cbcd37f-17a6-416d-bc18-8322a45e4c33-event-6",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_015ZNnr3RNg8uaJuZ8v8Pz87",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-08-20T18:01:21.481Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-4cbcd37f-17a6-416d-bc18-8322a45e4c33-event-7",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeESNXhQjpkKqKg3QZgx2:thinking:0",
+          "sequence": 7,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T18:01:23.518Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "<persisted-output>\nOutput too large (54.8KB). Full output saved to: C:\\Users\\janbo\\.claude\\projects\\C--Users-janbo-Documents-dev-md2-workers-dev2\\f48df0cb-6d34-4264-b072-e339c57c651d\\tool-results\\ba5mkbkk7.txt\n\nPreview (first 2KB):\n     1\timport { activityOriginFromPath, projectActivityFolder } from '../../../../shared/activity_paths.mjs';\n     2\timport {\n     3\t    parseProjectStatsFile,\n     4\t    projectStatsFilePath,\n     5\t    serializeProjectStats,\n     6\t    type ActivityStatsCalculationResult,\n     7\t    type ReleaseStats,\n     8\t    type StatsConversationFact,\n     9\t} from '../../../../shared/project_stats.mjs';\n    10\timport type { ProjectConfig, ProjectReference, StorageService } from '../../data/data_types';\n    11\timport {\n    12\t    projectUsageMetricsService,\n    13\t    type UsageMetricsAccountRow,\n    14\t    type UsageMetricsTokenRow,\n    15\t} from '../agents/project_usage_metrics_service';\n    16\timport { register } from '../service_injector';\n    17\timport { calculateActivityStatsOutsideMainThread } from './project_stats_worker_client';\n    18\t\n    19\texport type StatsDataset = 'activityOverTime' | 'agentPerformance' | 'usageComparison' | 'totals';\n    20\texport type StatsGranularity = 'day' | 'week' | 'month';\n    21\texport type StatsShortGranularity = Exclude<StatsGranularity, 'month'>;\n    22\texport type StatsActivityMetric = 'cards' | 'actions' | 'tokens';\n    23\texport type StatsPerformanceMetric = 'duration' | 'tokens' | 'toolCalls';\n    24\texport type StatsPerformanceGrouping = 'agent' | 'model';\n    25\texport type StatsTotalsGrouping = 'card' | 'action';\n    26\texport type StatsTotalsMetric = 'duration' | 'tokens';\n    27\texport type StatsStatus = 'idle' | 'loading' | 'ready' | 'error';\n    28\texport type StatsChartRole =\n    29\t    | 'primary'\n    30\t    | 'activity'\n    31\t    | 'projectTokens'\n    32\t    | 'accountUsage'\n    33\t    | 'tokensPerAccountUsage'\n    34\t    | 'actionsPerAccountUsage';\n    35\texport type StatsUnit =\n    36\t    | 'actions'\n    37\t    | 'actionsPerPercentagePoint'\n    38\t    | 'cards'\n    39\t    | 'milliseconds'\n    40\t    | 'percentagePoints'\n    41\t    | 'tokens'\n    42\t    | 'tokensPerPercentagePoint'\n    43\t    | 'toolCalls';\n...\n</persisted-output>",
+          "id": "agent-turn-4cbcd37f-17a6-416d-bc18-8322a45e4c33-event-8",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01PGUvAwAPELfCPKCkgtQr3R",
+          "sequence": 8,
+          "status": "completed",
+          "timestamp": "2026-08-20T18:01:24.218Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "export type StatsDataset = 'activityOverTime' | 'agentPerformance' | 'usageComparison' | 'totals';\nexport type StatsGranularity = 'day' | 'week' | 'month';\nexport type StatsShortGranularity = Exclude<StatsGranularity, 'month'>;\nexport type StatsActivityMetric = 'cards' | 'actions' | 'tokens';\nexport type StatsPerformanceMetric = 'duration' | 'tokens' | 'toolCalls';\nexport type StatsPerformanceGrouping = 'agent' | 'model';\nexport type StatsTotalsGrouping = 'card' | 'action';\nexport type StatsTotalsMetric = 'duration' | 'tokens';\nexport type StatsStatus = 'idle' | 'loading' | 'ready' | 'error';\nexport type StatsChartRole =\n    | 'primary'\n    | 'activity'\n    | 'projectTokens'\n    | 'accountUsage'\n    | 'tokensPerAccountUsage'\n    | 'actionsPerAccountUsage';\nexport type StatsUnit =\n    | 'actions'\n    | 'actionsPerPercentagePoint'\n    | 'cards'\n    | 'milliseconds'\n    | 'percentagePoints'\n    | 'tokens'\n    | 'tokensPerPercentagePoint'\n    | 'toolCalls';\nexport type StatsExclusionReason =\n    | 'missingAttribution'\n    | 'missingCompletion'\n    | 'missingDuration'\n    | 'mixedAttribution'\n    | 'nestedConversations'\n    | 'notTerminal';\n\nexport interface StatsControls {\n    activityGranularity: StatsGranularity;\n    activityMetric: StatsActivityMetric;\n    dataset: StatsDataset;\n    endUtc: string | null;\n    performanceActionIds: string[];\n    performanceAgentIds: string[];\n    performanceGranularity: StatsShortGranularity;\n    performanceGrouping: StatsPerformanceGrouping;\n    performanceMetric: StatsPerformanceMetric;\n    performanceModelIds: string[];\n    startUtc: string | null;\n    totalsGrouping: StatsTotalsGrouping;\n    totalsMetric: StatsTotalsMetric;\n    usageGranularity: StatsShortGranularity;\n}\n\nexport interface StatsStatusCounts {\n    cancelled: number;\n    completed: number;\n    failed: number;\n}\n\nexport interface StatsChartRow {\n    actionId: string | null;\n    actionType: 'agent' | 'command' | null;\n    accessibleLabel: string;\n    agent: string | null;\n    available: boolean;\n    chartRole: StatsChartRole;\n    displayLabel: string;\n    grouping: string;\n    identity: string;\n    denominator: number | null;\n    limitId: string | null;\n    metric: string;\n    numerator: number | null;\n    provider: string | null;\n    sampleCount: number | null;\n    seriesIdentity: string | null;\n    seriesLabel: string | null;\n    stackIdentity: string | null;\n    stackLabel: string | null;\n    statusCounts: StatsStatusCounts | null;\n    tooltip: string;\n    unit: StatsUnit;\n    utcBucketEnd: string | null;\n    utcBucketStart: string | null;\n    value: number;\n    windowId: string | null;\n}\n\nexport interface StatsCardDescriptor {\n    internalId: string;\n    path: string;\n    title: string;\n    visibleId: string;\n}\n\nexport interface StatsOption {\n    identity: string;\n    label: string;\n}\n\nexport interface StatsAccountSeriesOption {\n    identity: string;\n    limitId: string;\n    provider: string;\n    windowDurationMinutes: number;\n    windowId: string;\n}\n\nexport interface StatsOptions {\n    accountSeries: StatsAccountSeriesOption[];\n    actions: StatsOption[];\n    agents: StatsOption[];\n    models: StatsOption[];\n}\n\nexport interface ProjectStatsSnapshot {\n    controls: StatsControls;\n    error: Error | null;\n    excludedSampleCount: number;\n    exclusionCounts: Partial<Record<StatsExclusionReason, number>>;\n    omittedTimerCount: number;\n    options: StatsOptions;\n    rows: StatsChartRow[];\n    status: StatsStatus;\n    tokenTimeAvailable: boolean;\n    warnings: string[];\n}\n\ninterface LoadedStatsSource {\n    accountRows: UsageMetricsAccountRow[];\n    cards: StatsCardDescriptor[];\n    stats: ReleaseStats;\n    tokenRows: UsageMetricsTokenRow[];\n    tokenTimeAvailable: boolean;\n    warnings: string[];\n}\n\ninterface StatsProjectBinding {\n    config: ProjectConfig;\n    project: ProjectReference;\n    storage: StorageService;\n}\n\ninterface EligibleSample {\n    actionId: string;\n    agent: string;\n    completedAt: string;\n    metricValue: number;\n    model: string;\n    status: 'cancelled' | 'completed' | 'failed';\n}\n\ntype \n[2332 characters omitted]\n  const releasePrefix = `${releasesFolder}/`;\n    for (const path of repositoryFiles.map(normalizePath)) {\n        if (!path.startsWith(releasePrefix)) continue;\n        const releaseParts = path.slice(releasePrefix.length).split('/');\n        if (releaseParts.length < 2 || releaseParts[0].length === 0) continue;\n        const releaseName = releaseParts[0];\n        releaseActivityPaths[releaseName] ??= [];\n        if (releaseParts.length !== 2 || !/^card__[^/]+\\.json$/u.test(releaseParts[1]) || !activityOriginFromPath(path)) continue;\n        releaseActivityPaths[releaseName] = [...(releaseActivityPaths[releaseName] ?? []), path];\n    }\n    for (const paths of Object.values(releaseActivityPaths)) paths.sort((left, right) => left.localeCompare(right));\n\n    return { currentActivityPaths, releaseActivityPaths };\n}\n\nfunction utcBucketStart(timestamp: string, granularity: StatsGranularity) {\n    const date = new Date(timestamp);\n    date.setUTCHours(0, 0, 0, 0);\n    if (granularity === 'week') date.setUTCDate(date.getUTCDate() - ((date.getUTCDay() + 6) % 7));\n    if (granularity === 'month') date.setUTCDate(1);\n\n    return date.toISOString();\n}\n\nfunction nextUtcBucket(timestamp: string, granularity: StatsGranularity) {\n    const date = new Date(timestamp);\n    if (granularity === 'day') date.setUTCDate(date.getUTCDate() + 1);\n    if (granularity === 'week') date.setUTCDate(date.getUTCDate() + 7);\n    if (granularity === 'month') date.setUTCMonth(date.getUTCMonth() + 1);\n\n    return date.toISOString();\n}\n\nfunction isoWeekNumber(timestamp: string) {\n    const date = new Date(timestamp);\n    date.setUTCDate(date.getUTCDate() + 3 - ((date.getUTCDay() + 6) % 7));\n    const firstThursday = new Date(Date.UTC(date.getUTCFullYear(), 0, 4));\n\n    return 1 + Math.round((date.getTime() - firstThursday.getTime()) / 604_800_000);\n}\n\nfunction shortBucketLabel(timestamp: string, granularity: StatsGranularity) {\n    const date = new Date(timestamp);\n    const dayMonth = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(date);\n    if (granularity === 'day') return dayMonth;\n    if (granularity === 'week') return `W${isoWeekNumber(timestamp)} - ${dayMonth}`;\n\n    return new Intl.DateTimeFormat(undefined, { month: 'short', timeZone: 'UTC', year: 'numeric' }).format(date);\n}\n\nfunction localBucketLabel(start: string, end: string) {\n    const formatter = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' });\n\n    return `${formatter.format(new Date(start))} – ${formatter.format(new Date(end))}`;\n}\n\nfunction inRange(timestamp: string, controls: StatsControls) {\n    const milliseconds = Date.parse(timestamp);\n    if (controls.startUtc && milliseconds < Date.parse(controls.startUtc)) return false;\n    if (controls.endUtc && milliseconds > Date.parse(controls.endUtc)) return false;\n\n    return true;\n}\n\nfunction bucketDomain(timestamps: string[], granularity: StatsGranularity, controls: StatsControls) {\n    const matchingTimestamps = timestamps.filter((timestamp) => inRange(timestamp, controls)).sort();\n    const startSource = controls.startUtc ?? matchingTimestamps[0];\n    const endSource = controls.endUtc ?? matchingTimestamps.at(-1);\n    if (!startSource || !endSource) return [];\n    const start = utcBucketStart(startSource, granularity);\n    const end = utcBucketStart(endSource, granularity);\n    if (start > end) return [];\n    const buckets: string[] = [];\n    for (let bucket = start; bucket <= end; bucket = nextUtcBucket(bucket, granularity)) buckets.push(bucket);\n\n    return buckets;\n}\n\nfunction rowContext(bucket: string, granularity: StatsGranularity) {\n    const end = nextUtcBucket(bucket, granularity);\n    const displayLabel = shortBucketLabel(bucket, granularity);\n    const interval = `${bucket} to ${end}`;\n\n    return { displayLabel, end, interval, localLabel: localBucketLabel(bucket, end) };\n}\n\nfunction cardDisplay(cardInternalId: string, cardPath: string | null, cardsById: Map<string, StatsCardDescriptor>) {\n    const card = cardsById.get(cardInternalId);",
+          "id": "agent-turn-4cbcd37f-17a6-416d-bc18-8322a45e4c33-event-9",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_013N9p2MPjVXDVcAourXCDCc",
+          "sequence": 9,
+          "status": "completed",
+          "timestamp": "2026-08-20T18:01:26.825Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "    const card = cardsById.get(cardInternalId);\n    if (card) return { label: card.visibleId, tooltip: `${card.visibleId}: ${card.title}; ${card.path}` };\n    const fallback = cardPath ?? cardInternalId;\n\n    return { label: fallback, tooltip: fallback };\n}\n\nfunction actionLabel(actionId: string, storedLabel: string | null) {\n    return storedLabel ?? actionId;\n}\n\nfunction mergeStats(statsSources: ReleaseStats[]) {\n    const actions = new Map(statsSources.flatMap(({ actions }) => actions.map((action) => [action.identity, action])));\n    const conversations = new Map(statsSources.flatMap(({ conversations }) => (\n        conversations.map((conversation) => [conversation.identity, conversation])\n    )));\n\n    return { actions: [...actions.values()], conversations: [...conversations.values()] };\n}\n\nfunction optionList(entries: Array<[string, string]>) {\n    return [...new Map(entries).entries()]\n        .map(([identity, label]) => ({ identity, label }))\n        .sort((left, right) => left.label.localeCompare(right.label) || left.identity.localeCompare(right.identity));\n}\n\nfunction modelIdentity(agent: string, model: string) {\n    return `${agent}\\u0000${model}`;\n}\n\nfunction accountSeriesIdentity(row: UsageMetricsAccountRow) {\n    return `${row.provider}\\u0000${row.limitId}\\u0000${row.windowId}`;\n}\n\nfunction buildOptions(source: LoadedStatsSource): StatsOptions {\n    const attributed = source.stats.conversations.filter(({ agent, isRootConversation, model }) => isRootConversation && agent && model);\n    const actions = optionList([\n        ...source.stats.actions.map(({ actionId, actionLabel }) => [actionId, actionLabel] as [string, string]),\n        ...source.stats.conversations.flatMap(({ actionId, actionLabel }) => (\n            actionId ? [[actionId, actionLabel ?? actionId] as [string, string]] : []\n        )),\n    ]);\n    const agents = optionList(attributed.map(({ agent }) => [agent!, agent!]));\n    const models = optionList(attributed.map(({ agent, model }) => [modelIdentity(agent!, model!), `${agent} - ${model}`]));\n    const accountSeries = [...new Map(source.accountRows.map((row) => [accountSeriesIdentity(row), {\n        identity: accountSeriesIdentity(row),\n        limitId: row.limitId,\n        provider: row.provider,\n        windowDurationMinutes: row.windowDurationMinutes,\n        windowId: row.windowId,\n    }])).values()].sort((left, right) => left.identity.localeCompare(right.identity));\n\n    return { accountSeries, actions, agents, models };\n}\n\nfunction retainValidSelections(selected: string[], available: Set<string>) {\n    return selected.filter((identity) => available.has(identity));\n}\n\nfunction reconcileControls(controls: StatsControls, options: StatsOptions) {\n    return {\n        ...controls,\n        performanceActionIds: retainValidSelections(\n            controls.performanceActionIds,\n            new Set(options.actions.map(({ identity }) => identity)),\n        ),\n        performanceAgentIds: retainValidSelections(controls.performanceAgentIds, new Set(options.agents.map(({ identity }) => identity))),\n        performanceModelIds: retainValidSelections(controls.performanceModelIds, new Set(options.models.map(({ identity }) => identity))),\n    };\n}\n\nfunction emptyTimeRow(\n    bucket: string,\n    granularity: StatsGranularity,\n    chartRole: StatsChartRole,\n    metric: string,\n    unit: StatsUnit,\n): StatsChartRow {\n    const context = rowContext(bucket, granularity);\n    const tooltip = `${context.localLabel}; UTC ${context.interval}; 0 ${unit}`;\n\n    return {\n        actionId: null,\n        actionType: null,\n        accessibleLabel: tooltip,\n        agent: null,\n        available: true,\n        chartRole,\n        displayLabel: context.displayLabel,\n        grouping: granularity,\n        identity: bucket,\n        denominator: null,\n        limitId: null,\n        metric,\n        numerator: null,\n        provider: null,\n        sampleCount: null,\n        seriesIdentity: null,\n        seriesLabel: null,\n        stackIdentity: null,\n        stackLabel: null,\n        statusCounts: null,\n        too\n[8537 characters omitted]\n= source.stats.actions.filter(({ completedAt }) => inRange(completedAt, controls));\n\n    return buckets.flatMap<StatsChartRow>((bucket) => {\n        const records = actionRecords.filter(({ completedAt }) => utcBucketStart(completedAt, granularity) === bucket);\n        if (records.length === 0) return [emptyTimeRow(bucket, granularity, 'activity', 'actions', 'actions')];\n        const counts = new Map<string, { actionId: string; actionType: 'agent' | 'command'; agent: string | null; label: string; stackIdentity: string; stackLabel: string; value: number }>();\n        for (const record of records) {\n            const stackIdentity = record.actionType === 'command' ? 'command' : `agent:${record.agent ?? 'unknown'}`;\n            const stackLabel = record.actionType === 'command' ? 'Command' : record.agent ?? 'Unknown agent';\n            const identity = `${stackIdentity}\\u0000${record.actionId}`;\n            const current = counts.get(identity);\n            counts.set(identity, {\n                actionId: record.actionId,\n                actionType: record.actionType,\n                agent: record.agent,\n                label: actionLabel(record.actionId, record.actionLabel),\n                stackIdentity,\n                stackLabel,\n                value: (current?.value ?? 0) + 1,\n            });\n        }\n        const context = rowContext(bucket, granularity);\n\n        return [...counts.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([identity, count]) => {\n            const tooltip = `${context.localLabel}; UTC ${context.interval}; ${count.stackLabel}; ${count.label}: ${count.value} completed actions`;\n\n            return {\n                ...emptyTimeRow(bucket, granularity, 'activity', 'actions', 'actions'),\n                actionId: count.actionId,\n                actionType: count.actionType,\n                accessibleLabel: tooltip,\n                agent: count.agent,\n                identity,\n                seriesIdentity: count.actionId,\n                seriesLabel: count.label,\n                stackIdentity: count.stackIdentity,\n                stackLabel: count.stackLabel,\n                tooltip,\n                value: count.value,\n            };\n        });\n    });\n}\n\nfunction sampleExclusion(conversation: StatsConversationFact, metric: StatsPerformanceMetric): StatsExclusionReason | null {\n    if (!TERMINAL_CONVERSATION_STATUSES.has(conversation.status)) return 'notTerminal';\n    if (!conversation.completedAt) return 'missingCompletion';\n    if (conversation.hasNestedAgentConversations) return 'nestedConversations';\n    if (conversation.hasMixedAttribution) return 'mixedAttribution';\n    if (!conversation.agent || !conversation.model) return 'missingAttribution';\n    if (metric === 'duration' && conversation.elapsedMs === null) return 'missingDuration';\n\n    return null;\n}\n\nfunction performanceMetricValue(conversation: StatsConversationFact, metric: StatsPerformanceMetric) {\n    if (metric === 'duration') return conversation.elapsedMs!;\n    if (metric === 'toolCalls') return conversation.toolCallCount;\n\n    return conversation.totalTokens;\n}\n\nfunction eligibleSamples(source: LoadedStatsSource, controls: StatsControls) {\n    const exclusionCounts: Partial<Record<StatsExclusionReason, number>> = {};\n    const samples: EligibleSample[] = [];\n    for (const conversation of source.stats.conversations.filter(({ isRootConversation }) => isRootConversation)) {\n        const reason = sampleExclusion(conversation, controls.performanceMetric);\n        if (reason) {\n            exclusionCounts[reason] = (exclusionCounts[reason] ?? 0) + 1;\n            continue;\n        }\n        samples.push({\n            actionId: conversation.actionId!,\n            agent: conversation.agent!,\n            completedAt: conversation.completedAt!,\n            metricValue: performanceMetricValue(conversation, controls.performanceMetric),\n            model: conversation.model!,\n            status: conversation.status as EligibleSample['status'],\n        });\n    }\n\n    return { exclusionCounts, samples };\n}",
+          "id": "agent-turn-4cbcd37f-17a6-416d-bc18-8322a45e4c33-event-10",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_019P79CnTjhQRaMenNiJyGcS",
+          "sequence": 10,
+          "status": "completed",
+          "timestamp": "2026-08-20T18:01:29.914Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "function performanceRows(controls: StatsControls, samples: EligibleSample[]): StatsChartRow[] {\n    const entityFiltered = samples.filter((sample) => {\n        if (controls.performanceActionIds.length > 0 && !controls.performanceActionIds.includes(sample.actionId)) return false;\n        if (controls.performanceGrouping === 'agent'\n            && controls.performanceAgentIds.length > 0\n            && !controls.performanceAgentIds.includes(sample.agent)) return false;\n        const identity = modelIdentity(sample.agent, sample.model);\n        if (controls.performanceGrouping === 'model'\n            && controls.performanceModelIds.length > 0\n            && !controls.performanceModelIds.includes(identity)) return false;\n\n        return inRange(sample.completedAt, controls);\n    });\n    const buckets = bucketDomain(entityFiltered.map(({ completedAt }) => completedAt), controls.performanceGranularity, controls);\n    const unit = controls.performanceMetric === 'duration'\n        ? 'milliseconds'\n        : controls.performanceMetric === 'toolCalls' ? 'toolCalls' : 'tokens';\n    const rows = buckets.flatMap<StatsChartRow>((bucket) => {\n        const bucketSamples = entityFiltered.filter(({ completedAt }) => (\n            utcBucketStart(completedAt, controls.performanceGranularity) === bucket\n        ));\n        if (bucketSamples.length === 0) {\n            return [emptyTimeRow(bucket, controls.performanceGranularity, 'primary', controls.performanceMetric, unit)];\n        }\n        const groups = new Map<string, EligibleSample[]>();\n        for (const sample of bucketSamples) {\n            const identity = controls.performanceGrouping === 'agent'\n                ? sample.agent\n                : modelIdentity(sample.agent, sample.model);\n            groups.set(identity, [...(groups.get(identity) ?? []), sample]);\n        }\n        const context = rowContext(bucket, controls.performanceGranularity);\n\n        return [...groups.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([identity, groupSamples]) => {\n            const seriesLabel = controls.performanceGrouping === 'agent'\n                ? identity\n                : `${groupSamples[0].agent} - ${groupSamples[0].model}`;\n            const sampleCount = groupSamples.length;\n            const value = groupSamples.reduce((total, sample) => total + sample.metricValue, 0) / sampleCount;\n            const statusCounts = groupSamples.reduce<StatsStatusCounts>((counts, sample) => ({\n                ...counts,\n                [sample.status]: counts[sample.status] + 1,\n            }), { cancelled: 0, completed: 0, failed: 0 });\n            const tooltip = `${context.localLabel}; UTC ${context.interval}; ${seriesLabel}: ${value} ${unit}; ${sampleCount} samples; completed ${statusCounts.completed}, failed ${statusCounts.failed}, cancelled ${statusCounts.cancelled}`;\n\n            return {\n                actionId: null,\n                actionType: null,\n                accessibleLabel: tooltip,\n                agent: null,\n                available: true,\n                chartRole: 'primary',\n                displayLabel: context.displayLabel,\n                grouping: controls.performanceGrouping,\n                identity,\n                denominator: null,\n                limitId: null,\n                metric: controls.performanceMetric,\n                numerator: null,\n                provider: null,\n                sampleCount,\n                seriesIdentity: identity,\n                seriesLabel,\n                stackIdentity: null,\n                stackLabel: null,\n                statusCounts,\n                tooltip,\n                unit,\n                utcBucketEnd: context.end,\n                utcBucketStart: bucket,\n                value,\n                windowId: null,\n            } satisfies StatsChartRow;\n        });\n    });\n\n    return rows;\n}\n\nfunction totalsRows(source: LoadedStatsSource, controls: StatsControls): StatsChartRow[] {\n    const cardsById = new Map(source.cards.map((card) => [card.internalId, card]));\n    const totals = new Map\n[12093 characters omitted]\n             accountRows: usageMetrics.accountRows,\n                cards: this.cards,\n                stats: mergeStats([current.stats, released.stats]),\n                tokenRows: usageMetrics.tokenRows,\n                tokenTimeAvailable: usageMetrics.available,\n                warnings: [...current.warnings, ...released.warnings, ...usageMetrics.warnings],\n            };\n            this.publish(buildSnapshot(this.source, this.snapshot.controls));\n        } catch (error) {\n            if (!this.isCurrentLoad(revision, binding, signal)) return;\n            const normalizedError = error instanceof Error ? error : new Error(String(error));\n            this.source = null;\n            this.publish({ ...this.snapshot, error: normalizedError, rows: [], status: 'error' });\n        }\n    }\n\n    private async loadReleasedStats(\n        binding: StatsProjectBinding,\n        repositoryFiles: string[],\n        releaseActivityPaths: Record<string, string[]>,\n        signal: AbortSignal,\n    ): Promise<ActivityStatsCalculationResult> {\n        const statsPath = projectStatsFilePath(binding.config.projectFolder);\n        const normalizedRepositoryFiles = new Set(repositoryFiles.map(normalizePath));\n        let cachedReleases: Record<string, ReleaseStats> = {};\n        let statsFile: Awaited<ReturnType<NonNullable<StorageService['loadTextFile']>>> | null = null;\n        const warnings: string[] = [];\n        if (normalizedRepositoryFiles.has(normalizePath(statsPath))) {\n            if (!binding.storage.loadTextFile) throw new Error('Repository text file loading is not available');\n            try {\n                statsFile = await binding.storage.loadTextFile(binding.project, statsPath);\n                const parsed = parseProjectStatsFile(statsFile.content, statsPath);\n                cachedReleases = parsed.releases;\n                warnings.push(...parsed.warnings);\n            } catch (error) {\n                const detail = error instanceof Error ? error.message : String(error);\n                warnings.push(`${statsPath}: ${detail}`);\n            }\n        }\n\n        const releaseNames = Object.keys(releaseActivityPaths).sort((left, right) => left.localeCompare(right));\n        const releases: Record<string, ReleaseStats> = {};\n        let changed = Object.keys(cachedReleases).some((releaseName) => !releaseActivityPaths[releaseName]);\n        for (const releaseName of releaseNames) {\n            const cached = cachedReleases[releaseName];\n            if (cached) {\n                releases[releaseName] = cached;\n                continue;\n            }\n            const calculated = await this.calculateStats(binding.storage, binding.project, releaseActivityPaths[releaseName], signal);\n            releases[releaseName] = calculated.stats;\n            warnings.push(...calculated.warnings);\n            changed = true;\n        }\n\n        if (changed && !signal.aborted) {\n            const content = serializeProjectStats(releases);\n            const file = statsFile ? { ...statsFile, content } : { content, path: statsPath };\n            try {\n                await binding.storage.commit({\n                    branch: binding.project.branch,\n                    files: [file],\n                    message: 'Update calculated release stats',\n                });\n            } catch (error) {\n                const detail = error instanceof Error ? error.message : String(error);\n                warnings.push(`${statsPath}: could not persist calculated release stats: ${detail}`);\n            }\n        }\n\n        return { stats: mergeStats(Object.values(releases)), warnings };\n    }\n\n    private isCurrentLoad(revision: number, binding: StatsProjectBinding, signal: AbortSignal) {\n        return !signal.aborted && this.isOpen && revision === this.loadRevision && binding === this.binding;\n    }\n\n    private publish(snapshot: ProjectStatsSnapshot) {\n        this.snapshot = snapshot;\n        this.dispatchEvent(new Event('changed'));\n    }\n}\n\nexport const projectStatsService = register('projectStatsService', new ProjectStatsService());",
+          "id": "agent-turn-4cbcd37f-17a6-416d-bc18-8322a45e4c33-event-11",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01Argqsca4GE9fRVX7fcKEBh",
+          "sequence": 11,
+          "status": "completed",
+          "timestamp": "2026-08-20T18:01:32.580Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-4cbcd37f-17a6-416d-bc18-8322a45e4c33-event-12",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeESPPEwKwCgLnm7Q2ubp:thinking:0",
+          "sequence": 12,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T18:01:35.439Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "app/src/components/stats_view/stats_bar_chart.test.tsx:3:import type { StatsChartRow } from '../../services/stats/project_stats_service';\napp/src/components/stats_view/stats_bar_chart.tsx:2:import type { StatsChartRow } from '../../services/stats/project_stats_service';\napp/src/components/stats_view/stats_content.test.tsx:4:import { projectStatsService } from '../../services/stats/project_stats_service'\napp/src/components/stats_view/stats_content.tsx:4:import { projectStatsService, type StatsExclusionReason } from '../../services/stats/project_stats_service';\napp/src/components/stats_view/stats_controls.tsx:11:} from '../../services/stats/project_stats_service';\napp/src/components/stats_view/stats_csv.node.test.ts:2:import type { StatsChartRow } from '../../services/stats/project_stats_service';\napp/src/components/stats_view/stats_csv.ts:1:import type { StatsChartRow, StatsDataset } from '../../services/stats/project_stats_service';\napp/src/components/stats_view/stats_usage_comparison_charts.tsx:2:import type { StatsChartRole, StatsChartRow } from '../../services/stats/project_stats_service';\napp/src/components/stats_view/stats_view.test.tsx:3:import { projectStatsService } from '../../services/stats/project_stats_service'\napp/src/components/stats_view/stats_view.tsx:3:import { projectStatsService, type StatsCardDescriptor } from '../../services/stats/project_stats_service'\napp/src/services/project/project_loading.ts:28:import { projectStatsService } from '../stats/project_stats_service'",
+          "id": "agent-turn-4cbcd37f-17a6-416d-bc18-8322a45e4c33-event-13",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01Vfp1LZahSNPZBJKFYsZPM8",
+          "sequence": 13,
+          "status": "completed",
+          "timestamp": "2026-08-20T18:01:36.732Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "import { Box, Button, MenuItem, Select, Stack, TextField, Typography } from '@mui/material';\nimport type { SelectChangeEvent } from '@mui/material';\nimport type { ChangeEvent } from 'react';\nimport { dialogService } from '../../services/dialog_service';\nimport {\n    projectStatsService,\n    type ProjectStatsSnapshot,\n    type StatsChartRow,\n    type StatsControls as StatsControlValues,\n    type StatsDataset,\n} from '../../services/stats/project_stats_service';\nimport { downloadStatsCsv } from './stats_csv';\n\ninterface StatsControlsProps {\n    snapshot: ProjectStatsSnapshot;\n}\n\nfunction localDateTimeValue(isoTimestamp: string | null) {\n    if (!isoTimestamp) return '';\n    const date = new Date(isoTimestamp);\n=== ARCH ===\n---\ninternalId: 583d9c88-b71c-4560-92ad-3e23d33bf1d0\n---\n\n# Architectural decisions\n\nProject-wide decisions for MD². The app is a Vite React web app in `app/`; `desktop/` is a separate Electron host that can load the website and expose local capabilities through preload bridges.\n\n## File naming\n\n| Decision | Rule | Rationale |\n| --- | --- | --- |\n| Code files use lowercase snake_case names. | All code files in `app/src/` and `desktop/` use lowercase words separated by underscores, for example `github_auth_service.ts`, `project_workspace.tsx`, and `local_git_service.js`. Test files keep the same base name with `.test` before the extension, for example `github_auth_service.test.ts`. Exported symbols keep normal TypeScript/JavaScript casing such as `GithubAuthService`, `ProjectWorkspace`, and `useGithubAuth`. | A single file naming convention avoids mixed PascalCase, camelCase, and hyphenated filenames, and keeps imports predictable across Windows and case-sensitive environments. |\n\n## Services and state\n\n| Decision | Rule | Rationale |\n| --- | --- | --- |\n| Global singleton services own domain state and logic. | Each domain is a class in `src/services/**`, instantiated once at module level and exported, for example `export const indexesService = new IndexesService()`. React components do not own domain state. | Keeps business logic out of components, testable without a DOM, and shared across windows/views without Redux, Zustand, or Context stores. |\n| Service location follows usage scope. | If a service is specific to one UI element and used only there, place it beside that component. Generic or shared services, such as logging, database access, config, storage, or cross-screen domain logic, belong in `src/services/`. | Keeps component-owned behavior local while preserving `src/services/` for reusable application services. |\n| Consumers use direct imports or the service injector. | Direct import when no import cycle exists; use `src/services/service_injector.js` when a cycle would occur. Every global singleton service registers itself in its constructor with `inj.register('myService', this)`. | The service graph is dense; the injector is a bare global registry that defers resolution to call time. |\n| Services have a two-phase lifecycle. | Constructors only register and set unloaded state such as `null`. Config-dependent or service-dependent work runs in `init()`, `start()`, app bootstrap (`App.jsx`), or a `loaded` lifecycle event. `configService.config` is private; callers use `get`, `set`, and `clear`. | Module evaluation order is not guaranteed, so `configService` is not usable at import time. Reading config in a constructor is a bug. |\n\n## Card state\n\n| Decision | Rule | Rationale |\n| --- | --- | --- |\n| The application has one `Card` domain type. | Do not create separate canonical, project, snapshot, or editor card types. The card-owning service holds the loaded cards and exposes focused operations that change only the requested field. React snapshots and editor drafts are read values; they must never replace or merge a complete card. Parser bookkeeping may remain private persistence metadata, but it is not another card model. | One card concept gives state a clear owner and prevents stale copies from overwriting newer worktree, activity, ordering, policy, or body values. |\n| Card UI subscribes at field level. | A component subscribes only to the primitive or stable reference it renders, using granular `EventTarget` events and `useSyncExternalStore`. Do not clone or stringify a complete card to detect a field change. Group fields only in a deliberately small, stable projection when they are always rendered together. | A one-field change allocates and rerenders only what consumes that field, keeping memory use bounded and the UI responsive. |\n| Cards are serialized only at persistence boundaries. | Mutate the owned `Card` through a focused operation, then serialize its current state when the persistence batch flushes. Editor changes update only the edited field. Activity linking updates only activity references. External file changes are parsed and applied deliberately without replacing dirty local state. | Persistence remains deterministic while concurrent saves and external updates cannot discard unrelated newer values. |\n\n\n## Events and React integration\n\n| Decision | Rule | Rationale |\n| --- | --- | --- |\n| Services notify observers through their own `EventTarget`. | Services expose an `EventTarget` and dispatch named `CustomEvent` domain events such as `activeIndex`, `added`, `deleted`, or `changedBox`. Observers subscribe with `addEventListener` and unsubscribe with `removeEventListener` on the owning service. | Decouples producers from consumers without depending on Node `EventEmitter`, which is not available in the browser-first React app. |\n| Custom hooks bridge service events to functional components. | Hooks in `src/components/hooks/`, such as `useActiveIndex` and `useProjectConfig`, seed `useState` from a service property, subscribe in `useEffect`, unsubscribe in cleanup, and return the value. Prefer hook + service over prop chains. | Components stay declarative and avoid direct event plumbing. |\n| Components subscribe at the smallest rendering boundary. | Root and layout components compose UI regions and pass structural inputs. Components that render changing application data subscribe through hooks themselves. Do not hoist changing data into ancestors only to pass it downward. | Limits rerenders to affected UI, protects transient state such as open popups, and avoids broad prop chains. |\n| Components use the app theme service path. | `App` owns theme mode through `useThemeMode()`, builds the MUI theme with `createAppTheme(mode)`, and provides it through `ThemeProvider`. Components read theme values with MUI APIs such as `useTheme`, `useMediaQuery`, and `sx`; only controls that change the palette mode receive `mode` and `onToggleTheme`. | Theme state, persistence, and palette construction stay centralized while components remain presentation-focused. |",
+          "id": "agent-turn-4cbcd37f-17a6-416d-bc18-8322a45e4c33-event-14",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01WMqP1UouWm4tTrap3c39gf",
+          "sequence": 14,
+          "status": "completed",
+          "timestamp": "2026-08-20T18:01:40.974Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-4cbcd37f-17a6-416d-bc18-8322a45e4c33-event-15",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeESPyBNFebQnCE1XTJSb:thinking:0",
+          "sequence": 15,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T18:01:43.351Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "(Bash completed with no output)",
+          "id": "agent-turn-4cbcd37f-17a6-416d-bc18-8322a45e4c33-event-16",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01DyoC5K4JRYxzh4NZWLQnzU",
+          "sequence": 16,
+          "status": "completed",
+          "timestamp": "2026-08-20T18:01:44.472Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "| Components use the app theme service path. | `App` owns theme mode through `useThemeMode()`, builds the MUI theme with `createAppTheme(mode)`, and provides it through `ThemeProvider`. Components read theme values with MUI APIs such as `useTheme`, `useMediaQuery`, and `sx`; only controls that change the palette mode receive `mode` and `onToggleTheme`. | Theme state, persistence, and palette construction stay centralized while components remain presentation-focused. |\n=== worker client ===\nimport type { ProjectReference, StorageService } from '../../data/data_types'\nimport {\n    calculateActivityStatsFromSources,\n    type ActivityStatsCalculationResult,\n    type ActivityStatsSource,\n} from '../../../../shared/project_stats.mjs'\n\ninterface WorkerResponse {\n    error?: string\n    result?: ActivityStatsCalculationResult\n}\n\ntype WorkerFactory = () => Worker\n\nfunction defaultWorkerFactory() {\n    return new Worker(new URL('./project_stats_worker.ts', import.meta.url), { type: 'module' })\n}\n\nfunction abortError() {\n    return new DOMException('Stats calculation cancelled', 'AbortError')\n}\n\nexport function calculateActivityStatsInBrowser(\n    sources: ActivityStatsSource[],\n    signal: AbortSignal,\n    workerFactory: WorkerFactory = defaultWorkerFactory,\n) {\n    if (signal.aborted) return Promise.reject(abortError())\n    const worker = workerFactory()\n\n    return new Promise<ActivityStatsCalculationResult>((resolve, reject) => {\n        function finish() {\n            signal.removeEventListener('abort', handleAbort)\n            worker.terminate()\n        }\n        function handleAbort() {\n            finish()\n            reject(abortError())\n        }\n        worker.onerror = (event) => {\n=== tests head ===\nimport { describe, expect, it, vi } from 'vitest'\nimport type { AgentConversation, ProjectConfig, ProjectReference, StorageService } from '../../data/data_types'\nimport { DEFAULT_PROJECT_CONFIG } from '../../data/data_types'\nimport {\n    findStatsSourcePaths,\n    ProjectStatsService,\n    type StatsCardDescriptor,\n} from './project_stats_service'\nimport { parseProjectStatsFile } from '../../../../shared/project_stats.mjs'\n\nconst project: ProjectReference = { branch: 'main', id: 'project' }\nconst config: ProjectConfig = {\n    ...DEFAULT_PROJECT_CONFIG,\n    actionsFolder: 'design/actions',\n    archivedFolder: 'design/archived',\n    projectFolder: 'design',\n    releasesFolder: 'design/history',\n    workingFolder: 'design/active',\n}\nconst cards: StatsCardDescriptor[] = [{ internalId: 'card-1', path: 'design/active/F_1.md', title: 'First', visibleId: 'F_1' }]\nconst metricsHeader = [\n    'recorded_at', 'record_type', 'provider', 'limit_id', 'window_id', 'window_duration_minutes',\n    'resets_at', 'input_tokens', 'cached_input_tokens', 'output_tokens', 'reasoning_tokens',\n    'total_tokens', 'used_percent', 'used_percent_delta',\n].join(',')\n\nfunction conversation(overrides: Partial<AgentConversation> = {}): AgentConversation {\n    return {\n        actionId: 'review',\n        cardInternalId: 'card-1',\n        cardPath: 'design/active/F_1.md',\n        completedAt: '2026-08-12T10:00:00.000Z',\n        entries: [],\n        hasExplicitTitle: false,\n        id: 'conversation-1',\n        path: 'unused',\n        providerSessions: [],\n        startedAt: '2026-08-12T09:00:00.000Z',\n        status: 'completed',\n        timer: { elapsedMs: 1_500, runningStartedAt: null },\n        title: 'Review',\n        usage: { cachedInputTokens: 2, inputTokens: 3, outputTokens: 4, reasoningTokens: 1, totalTokens: 10 },\n        usageSchemaVersion: 1,\n        viewed: true,\n        ...overrides,\n    }\n}\n\nfunction actionRecord(runId: string, completedAt: string, overrides: Record<string, unknown> = {}) {\n    return {\n        commits: [],\n        completedAt,\n        conversationIds: [],\n        details: { command: 'review', output: '', type: 'command' },\n        origin: { cardInternalId: 'card-1', kind: 'card' },\n        rootActionId: 'review',\n        rootActionLabel: 'Review',\n        runId,\n        startedAt: completedAt,\n        status: 'completed',",
+          "id": "agent-turn-4cbcd37f-17a6-416d-bc18-8322a45e4c33-event-17",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_013ZAueEHrYMM3kLjENJTKCb",
+          "sequence": 17,
+          "status": "completed",
+          "timestamp": "2026-08-20T18:01:47.717Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-4cbcd37f-17a6-416d-bc18-8322a45e4c33-event-18",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeESQTUTuLz1139zpwfbh:thinking:0",
+          "sequence": 18,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T18:02:06.401Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nRead service (1133 lines), call sites, arch decisions. `F_211` + `J_29` referenced docs do not exist yet — noted, not blocking.",
+          "id": "agent-turn-4cbcd37f-17a6-416d-bc18-8322a45e4c33-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 19,
+          "timestamp": "2026-08-20T18:02:07.614Z"
+        },
+        {
+          "content": "ok",
+          "id": "agent-turn-4cbcd37f-17a6-416d-bc18-8322a45e4c33-event-20",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01EjHxVNRDJNYd9mho9WUfaR",
+          "sequence": 20,
+          "status": "completed",
+          "timestamp": "2026-08-20T18:02:29.667Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-4cbcd37f-17a6-416d-bc18-8322a45e4c33-event-21",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeESTZDKyEANVDcPvfwFM:thinking:0",
+          "sequence": 21,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T18:02:34.525Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "ok",
+          "id": "agent-turn-4cbcd37f-17a6-416d-bc18-8322a45e4c33-event-22",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01H1d6GABEGW1PAJz9pXbfBx",
+          "sequence": 22,
+          "status": "completed",
+          "timestamp": "2026-08-20T18:02:41.476Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNow the implementation details + expanded acceptance criteria.",
+          "id": "agent-turn-4cbcd37f-17a6-416d-bc18-8322a45e4c33-turn-1-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 23,
+          "timestamp": "2026-08-20T18:02:43.517Z"
+        },
+        {
+          "content": "Exit code 2\n/usr/bin/bash: -c: line 74: unexpected EOF while looking for matching `''",
+          "id": "agent-turn-4cbcd37f-17a6-416d-bc18-8322a45e4c33-event-24",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_014GazYiw299wMDDQrpNfSXf",
+          "sequence": 24,
+          "status": "failed",
+          "timestamp": "2026-08-20T18:03:32.461Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-4cbcd37f-17a6-416d-bc18-8322a45e4c33-event-25",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeESYCLc7z9KMTXboCYD1:thinking:0",
+          "sequence": 25,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T18:03:39.055Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-4cbcd37f-17a6-416d-bc18-8322a45e4c33-event-26",
+          "kind": "event",
+          "label": "Write",
+          "output": "File created successfully at: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2\\.tmp_impl.md (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01U1LnbW2EFff2HD7iNKtCNg",
+          "sequence": 26,
+          "status": "completed",
+          "timestamp": "2026-08-20T18:04:04.956Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-4cbcd37f-17a6-416d-bc18-8322a45e4c33-event-27",
+          "kind": "event",
+          "label": "Write",
+          "output": "File created successfully at: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2\\.tmp_ac.md (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01Xp4Vx4ijPajgxd7Fmwr3CZ",
+          "sequence": 27,
+          "status": "completed",
+          "timestamp": "2026-08-20T18:04:13.747Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-4cbcd37f-17a6-416d-bc18-8322a45e4c33-event-28",
+          "kind": "event",
+          "label": "Write",
+          "output": "File created successfully at: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2\\.tmp_patch.py (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_017WdsqrFkbUdLovzmvrmPu8",
+          "sequence": 28,
+          "status": "completed",
+          "timestamp": "2026-08-20T18:04:20.439Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "ok\r\n6:status: ready for implementation\n17:## Current state\n32:### Known hot spots\n46:### Verified import surface\n55:## Current call sites\n66:## Refactor\n77:## Edge cases\n81:## Implementation details\n85:### Target modules\n103:### Indexing (the performance change)\n122:### Behavior that must not change\n131:### Call-site updates\n141:### Tests\n145:## Acceptance criteria\n147:### Structure\n154:### Performance\n160:### Behavior parity\n167:### Verification\n172:## See also\n M design/feature_descriptions/J_31_refactor_project_stats_service.md",
+          "id": "agent-turn-4cbcd37f-17a6-416d-bc18-8322a45e4c33-event-29",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01CtcJCDV3mMT8GYsAkd5Cbm",
+          "sequence": 29,
+          "status": "completed",
+          "timestamp": "2026-08-20T18:04:25.394Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nDoc updated. Only that file modified, nothing staged.\n\n**Added:**\n- `## Current state` — what the 1133-line file holds today (11 concern groups, named functions per group), `### Known hot spots` (every aggregator re-scans full record array per bucket; `visibleAccountSeries` rebuilds options a second time; `performanceRows` copies group array per sample), `### Verified import surface` (11 call sites with file:line and which symbols each takes).\n- `## Implementation details` — 11-module target table (module → responsibility → what moves into it), import direction that keeps the graph acyclic, the `groupByBucket` helper + per-dataset index plan, ordering-preservation rule, behavior-must-not-change list (event name, `close()` semantics, `setControls` error strings, load guard, `StatsCalculator` injection), call-site import updates, test-split rule.\n- `## Acceptance criteria` — expanded old 5 bullets into Structure / Performance / Behavior parity / Verification. Kept original intent, dropped nothing.\n- `status: new` → `status: ready for implementation`.\n\n**Notes:**\n- Defined \"one reason to change\" in the doc, since original criterion used it undefined.\n- `See also` points at `F_211_stats_view_improvements.md` and `J_29_investigate_and_improve_stats_load_speed.md` — neither exists on disk. Left the links alone; the implementation plan does not depend on them.\n- Left the original `## Current call sites` section intact; my verified list sits under `## Current state` as a subsection rather than replacing it. Say the word if you want them merged.\n\nStatusline badge for caveman mode is not configured — want me to add it to `~/.claude/settings.json`?",
+          "id": "agent-turn-4cbcd37f-17a6-416d-bc18-8322a45e4c33-turn-1-assistant-5",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 30,
+          "timestamp": "2026-08-20T18:04:35.890Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-d340f4da-47ca-4b06-adde-75de79323c33",
+      "providerSessions": [],
+      "startedAt": "2026-08-20T18:01:12.784Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-08-20T18:01:12.784Z"
+      },
+      "title": "complete",
+      "usage": {
+        "cachedInputTokens": 905978,
+        "inputTokens": 36,
+        "outputTokens": 15496,
+        "reasoningTokens": 0,
+        "totalTokens": 921510,
+        "costUsd": 1.3704124999999998
+      },
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "b7885271-1cd8-4927-9f68-661c0d87a61f",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 4
+}
