@@ -5,6 +5,7 @@ import { assertAppContentIsReleaseSafe, assertPackageEntries, resolveArtifactPat
 const validEntries = [
     'package.json',
     'desktop/main.js',
+    'desktop/src/actions/agent/claude_usage_terminal_worker.js',
     'desktop/src/shell/preload.js',
     'desktop/renderer/index.html',
     'desktop/renderer/assets/index.js',

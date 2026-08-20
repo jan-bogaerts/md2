@@ -3,7 +3,7 @@ author:
 id: F_215
 internalId: 838f9a02-ee42-498c-b317-2f8a48075207
 title: changes and lines confusing
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

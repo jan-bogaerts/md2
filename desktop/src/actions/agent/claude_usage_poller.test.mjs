@@ -4,24 +4,15 @@ import { PassThrough } from 'node:stream';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
-const { ClaudeUsagePoller, parseClaudeUsageOutput } = require('./claude_usage_poller');
+const { ClaudeUsagePoller } = require('./claude_usage_poller');
 
 const USAGE_OUTPUT = `You are currently using your subscription to power your Claude Code usage
 
 Current session: 17% used · resets Aug 15, 9:49pm (Europe/Brussels)
 Current week (all models): 13% used · resets Aug 16, 6:59pm (Europe/Brussels)
 `;
-
-const TERMINAL_USAGE_OUTPUT = `Settings  Status  Config  Usage  Stats
-
-Current session
-▌                                                  1% used
-Resets 3:20pm (Europe/Brussels)
-
-Current week (all models)
-██████                                             12% used
-Resets Aug 23, 7pm (Europe/Brussels)
-`;
+const TERMINAL_PAYLOAD = { windows: [{ id: 'weekly', resetsAt: 1, usedPercent: 12 }] };
+const NO_TERMINAL_RESULT = { payload: null, unavailable: false };
 
 function completedChild(output = USAGE_OUTPUT, exitCode = 0) {
     const child = new EventEmitter();
@@ -46,88 +37,6 @@ function hangingChild() {
 
     return child;
 }
-
-function terminalChild(output = TERMINAL_USAGE_OUTPUT, exitCode = 0) {
-    const dataListeners = new Set();
-    const exitListeners = new Set();
-    const processHandle = {
-        kill: vi.fn(),
-        onData: vi.fn((listener) => {
-            dataListeners.add(listener);
-
-            return { dispose: () => dataListeners.delete(listener) };
-        }),
-        onExit: vi.fn((listener) => {
-            exitListeners.add(listener);
-            queueMicrotask(() => dataListeners.forEach((dataListener) => dataListener('Claude Code v2\r\n? for shortcuts\r\n')));
-
-            return { dispose: () => exitListeners.delete(listener) };
-        }),
-        write: vi.fn(() => {
-            queueMicrotask(() => {
-                dataListeners.forEach((listener) => listener(`\u001B[2J\u001B[H${output.replaceAll('\n', '\r\n')}`));
-                if (exitCode !== null) exitListeners.forEach((listener) => listener({ exitCode }));
-            });
-        }),
-    };
-
-    return processHandle;
-}
-
-describe('parseClaudeUsageOutput', () => {
-    it('parses both windows and converts localized IANA-zone resets to unix milliseconds', () => {
-        const observedAt = Date.parse('2026-08-15T18:00:00.000Z');
-
-        expect(parseClaudeUsageOutput(USAGE_OUTPUT, observedAt)).toEqual({
-            windows: [
-                { id: 'five_hour', resetsAt: Date.parse('2026-08-15T19:49:00.000Z'), usedPercent: 17 },
-                { id: 'weekly', resetsAt: Date.parse('2026-08-16T16:59:00.000Z'), usedPercent: 13 },
-            ],
-        });
-    });
-
-    it('selects next year for a nearby January reset observed in December', () => {
-        const output = USAGE_OUTPUT
-            .replace('Aug 15, 9:49pm', 'Jan 1, 1:00am')
-            .replace('Aug 16, 6:59pm', 'Jan 2, 1:00am');
-        const observedAt = Date.parse('2026-12-31T22:00:00.000Z');
-
-        expect(parseClaudeUsageOutput(output, observedAt)?.windows[0].resetsAt).toBe(Date.parse('2027-01-01T00:00:00.000Z'));
-    });
-
-    it('keeps support for mojibake legacy separators', () => {
-        const output = USAGE_OUTPUT.replaceAll('Â·', '\u00B7');
-        const observedAt = Date.parse('2026-08-15T18:00:00.000Z');
-
-        expect(parseClaudeUsageOutput(output, observedAt)?.windows.map(({ usedPercent }) => usedPercent)).toEqual([17, 13]);
-    });
-
-    it('parses full-screen session and weekly percentages with both reset formats', () => {
-        const observedAt = Date.parse('2026-08-20T08:00:00.000Z');
-
-        expect(parseClaudeUsageOutput(TERMINAL_USAGE_OUTPUT, observedAt)).toEqual({
-            windows: [
-                { id: 'five_hour', resetsAt: Date.parse('2026-08-20T13:20:00.000Z'), usedPercent: 1 },
-                { id: 'weekly', resetsAt: Date.parse('2026-08-23T17:00:00.000Z'), usedPercent: 12 },
-            ],
-        });
-    });
-
-    it('uses the following local day when a time-only reset is after midnight', () => {
-        const output = TERMINAL_USAGE_OUTPUT.replace('3:20pm', '1am');
-        const observedAt = Date.parse('2026-08-20T21:00:00.000Z');
-
-        expect(parseClaudeUsageOutput(output, observedAt)?.windows[0].resetsAt).toBe(Date.parse('2026-08-20T23:00:00.000Z'));
-    });
-
-    it('rejects partial and malformed output', () => {
-        const observedAt = Date.parse('2026-08-15T18:00:00.000Z');
-
-        expect(parseClaudeUsageOutput(USAGE_OUTPUT.split('Current week')[0], observedAt)).toBeNull();
-        expect(parseClaudeUsageOutput(USAGE_OUTPUT.replace('17% used', '101% used'), observedAt)).toBeNull();
-        expect(parseClaudeUsageOutput(USAGE_OUTPUT.replace('Europe/Brussels', 'Invalid/Zone'), observedAt)).toBeNull();
-    });
-});
 
 describe('ClaudeUsagePoller', () => {
     afterEach(() => vi.useRealTimers());
@@ -178,54 +87,57 @@ describe('ClaudeUsagePoller', () => {
         poller.stop();
     });
 
-    it('falls back to a terminal and requests usage after Claude becomes ready', async () => {
+    it('hands unparsed output to the worker poll and publishes the usage it reports', async () => {
         const runtimeListener = vi.fn();
-        const processHandle = terminalChild(TERMINAL_USAGE_OUTPUT, null);
-        const ptySpawn = vi.fn(() => processHandle);
+        const terminalPoll = vi.fn(async () => ({ payload: TERMINAL_PAYLOAD, unavailable: false }));
         const poller = new ClaudeUsagePoller({
             executableResolver: { find: vi.fn(async () => 'claude.cmd') },
             onRuntimeEvent: runtimeListener,
-            ptySpawn,
             spawn: vi.fn(() => completedChild('You are currently using your subscription')),
+            terminalPoll,
         });
 
         poller.requestPoll({ cwd: '/project', env: { PATH: '/project/bin' } });
         await poller.activePoll;
 
-        expect(ptySpawn).toHaveBeenCalledWith('claude.cmd', [], expect.objectContaining({ cwd: '/project' }));
-        expect(processHandle.write).toHaveBeenCalledWith('/usage\r');
-        expect(processHandle.kill).toHaveBeenCalledOnce();
-        expect(runtimeListener).toHaveBeenCalledWith(expect.objectContaining({
-            kind: 'snapshot',
-            payload: expect.objectContaining({ windows: expect.arrayContaining([expect.objectContaining({ id: 'weekly', usedPercent: 12 })]) }),
-        }));
+        expect(terminalPoll).toHaveBeenCalledWith(
+            expect.objectContaining({ cwd: '/project', env: { PATH: '/project/bin' }, executable: 'claude.cmd' }),
+            expect.objectContaining({ registerAbort: expect.any(Function) }),
+        );
+        expect(runtimeListener).toHaveBeenCalledWith(expect.objectContaining({ kind: 'snapshot', payload: TERMINAL_PAYLOAD }));
         poller.stop();
     });
 
-    it('does not publish malformed output and reports process failure as unavailable', async () => {
+    it('publishes nothing when neither the process nor the worker reports usage', async () => {
         const runtimeListener = vi.fn();
-        const malformedPoller = new ClaudeUsagePoller({
+        const poller = new ClaudeUsagePoller({
             executableResolver: { find: vi.fn(async () => 'claude') },
             onRuntimeEvent: runtimeListener,
-            ptySpawn: vi.fn(() => terminalChild('partial', 0)),
             spawn: vi.fn(() => completedChild('partial')),
+            terminalPoll: vi.fn(async () => NO_TERMINAL_RESULT),
         });
 
-        malformedPoller.requestPoll();
-        await malformedPoller.activePoll;
-        expect(runtimeListener).not.toHaveBeenCalled();
-        malformedPoller.stop();
+        poller.requestPoll();
+        await poller.activePoll;
 
-        const failingPoller = new ClaudeUsagePoller({
+        expect(runtimeListener).not.toHaveBeenCalled();
+        poller.stop();
+    });
+
+    it('reports Claude as unavailable when the worker cannot run it', async () => {
+        const runtimeListener = vi.fn();
+        const poller = new ClaudeUsagePoller({
             executableResolver: { find: vi.fn(async () => 'claude') },
             onRuntimeEvent: runtimeListener,
-            ptySpawn: vi.fn(() => terminalChild('partial', 1)),
             spawn: vi.fn(() => completedChild('', 1)),
+            terminalPoll: vi.fn(async () => ({ payload: null, unavailable: true })),
         });
-        failingPoller.requestPoll();
-        await failingPoller.activePoll;
+
+        poller.requestPoll();
+        await poller.activePoll;
+
         expect(runtimeListener).toHaveBeenCalledWith(expect.objectContaining({ kind: 'unavailable' }));
-        failingPoller.stop();
+        poller.stop();
     });
 
     it('drains stderr, gives up on a Claude process that never exits and tolerates stdin pipe errors', async () => {
@@ -235,8 +147,8 @@ describe('ClaudeUsagePoller', () => {
             executableResolver: { find: vi.fn(async () => 'claude') },
             onRuntimeEvent: runtimeListener,
             processTimeoutMs: 20,
-            ptySpawn: vi.fn(() => terminalChild(TERMINAL_USAGE_OUTPUT, null)),
             spawn: vi.fn(() => child),
+            terminalPoll: vi.fn(async () => ({ payload: TERMINAL_PAYLOAD, unavailable: false })),
         });
 
         poller.requestPoll();
@@ -249,42 +161,28 @@ describe('ClaudeUsagePoller', () => {
         poller.stop();
     });
 
-    it('publishes usage even when killing the exited pty fails', async () => {
+    it('aborts an in-flight worker poll when stopped', async () => {
         const runtimeListener = vi.fn();
-        const processHandle = terminalChild(TERMINAL_USAGE_OUTPUT, null);
-        processHandle.kill = vi.fn(() => {
-            throw new Error('Cannot kill a pty that has already exited');
-        });
+        const abort = vi.fn();
+        let registered = null;
+        const terminalPoll = vi.fn((request, { registerAbort }) => new Promise((resolve) => {
+            registerAbort(abort);
+            registered = () => resolve(NO_TERMINAL_RESULT);
+        }));
         const poller = new ClaudeUsagePoller({
             executableResolver: { find: vi.fn(async () => 'claude') },
             onRuntimeEvent: runtimeListener,
-            ptySpawn: vi.fn(() => processHandle),
             spawn: vi.fn(() => completedChild('partial')),
+            terminalPoll,
         });
 
         poller.requestPoll();
-        await expect(poller.activePoll).resolves.toBeUndefined();
-        expect(runtimeListener).toHaveBeenCalledWith(expect.objectContaining({ kind: 'snapshot' }));
+        await vi.waitFor(() => expect(registered).not.toBeNull());
         poller.stop();
-    });
-
-    it('kills an in-flight terminal poll when stopped', async () => {
-        const runtimeListener = vi.fn();
-        const processHandle = terminalChild(TERMINAL_USAGE_OUTPUT, null);
-        processHandle.write = vi.fn();
-        const poller = new ClaudeUsagePoller({
-            executableResolver: { find: vi.fn(async () => 'claude') },
-            onRuntimeEvent: runtimeListener,
-            ptySpawn: vi.fn(() => processHandle),
-            spawn: vi.fn(() => completedChild('partial')),
-        });
-
-        poller.requestPoll();
-        await vi.waitFor(() => expect(processHandle.write).toHaveBeenCalledWith('/usage\r'));
-        poller.stop();
+        registered();
         await poller.activePoll;
 
-        expect(processHandle.kill).toHaveBeenCalledOnce();
+        expect(abort).toHaveBeenCalledOnce();
         expect(runtimeListener).not.toHaveBeenCalled();
     });
 
