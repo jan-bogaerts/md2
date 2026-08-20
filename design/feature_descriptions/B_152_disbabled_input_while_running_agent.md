@@ -17,3 +17,5 @@ we also got this error after trying to send it with ctrl+enter: `Queued agent pr
 then after closing the action popup and re opening it, the input box was just disabled. perhaps because the system thought there was still something in a queue? anyway, this is wrong behaviour.
 
 I think the primary problem was that there was something in the queue and we were not giving any visual queue that something was in a queue (so no way to remove from queue either) and we incorrectly prevented multiple items to be queued
+
+So, if items in queue, show those messages at bottom of chatlog, marked as queued with option to delete or edit
