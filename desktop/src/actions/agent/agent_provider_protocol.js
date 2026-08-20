@@ -11,8 +11,11 @@ const MISSING_SESSION_CODES = new Set([
     'thread_not_found',
 ]);
 
-// Codex exec reports cached tokens as a subset of input_tokens; subtracting here makes inputTokens
-// fresh-only, matching how claude reports them.
+// Codex exec reports one `turn.completed` per turn whose counters already cover every model request
+// in that turn, so this needs no accumulation of its own (the streaming app-server protocol does;
+// see `codexTurnCounters`). Cached tokens are a subset of input_tokens and reasoning a subset of
+// output_tokens; subtracting here makes the buckets disjoint and inputTokens fresh-only, matching
+// how claude reports them.
 function codexUsage(event) {
     const usage = event.usage;
     if (event.type !== 'turn.completed' || !usage || typeof usage !== 'object' || Array.isArray(usage)) return null;

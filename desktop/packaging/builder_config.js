@@ -1,5 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
+const { rebuildNativeDependencies } = require('./rebuild_native_dependencies');
 
 const APP_ID = 'io.md2.desktop';
 const PRODUCT_NAME = 'MD²';
@@ -42,6 +43,7 @@ function createBuilderConfig(secrets = loadSigningSecrets()) {
     return {
         appId: APP_ID,
         asar: true,
+        beforeBuild: rebuildNativeDependencies,
         copyright: COPYRIGHT,
         directories: {
             buildResources: 'build',

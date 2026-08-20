@@ -21,6 +21,23 @@ function harness(agent, providerConversationId = null) {
     return { adapter, events, runtimeEvents, writes };
 }
 
+function codexBreakdown(cachedInputTokens, inputTokens, outputTokens, reasoningOutputTokens) {
+    return {
+        cachedInputTokens,
+        inputTokens,
+        outputTokens,
+        reasoningOutputTokens,
+        totalTokens: inputTokens + outputTokens,
+    };
+}
+
+function codexTokenUsage(last, total) {
+    return {
+        method: 'thread/tokenUsage/updated',
+        params: { tokenUsage: { last, modelContextWindow: 258_400, total } },
+    };
+}
+
 function claudeContextUsageResponse(requestId, response, subtype = 'success') {
     return {
         response: { request_id: requestId, response, subtype },
@@ -899,6 +916,61 @@ describe('CodexStreamingAdapter', () => {
             contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 },
             type: 'turnCompleted',
         });
+    });
+
+    it('reports Codex turn usage as every model request in the turn, not only the newest', async () => {
+        const { adapter, events } = harness('codex');
+        const firstRequest = codexBreakdown(0, 1_000, 100, 40);
+
+        await adapter.handleMessage({ method: 'turn/started', params: { turn: { id: 'turn-1' } } });
+        await adapter.handleMessage(codexTokenUsage(firstRequest, firstRequest));
+        await adapter.handleMessage(codexTokenUsage(codexBreakdown(900, 2_000, 60, 10), codexBreakdown(900, 3_000, 160, 50)));
+        await adapter.handleMessage({ method: 'turn/completed', params: { turn: { id: 'turn-1', status: 'completed' } } });
+
+        expect(events.at(-1)).toMatchObject({
+            type: 'turnCompleted',
+            usage: { cachedInputTokens: 900, inputTokens: 2_100, outputTokens: 110, reasoningTokens: 50, totalTokens: 3_160 },
+        });
+    });
+
+    it('excludes earlier Codex turns from the current turn by baselining cumulative usage', async () => {
+        const { adapter, events } = harness('codex');
+        const firstTurn = codexBreakdown(900, 3_000, 160, 50);
+
+        await adapter.handleMessage({ method: 'turn/started', params: { turn: { id: 'turn-1' } } });
+        await adapter.handleMessage(codexTokenUsage(firstTurn, firstTurn));
+        await adapter.handleMessage({ method: 'turn/completed', params: { turn: { id: 'turn-1', status: 'completed' } } });
+        await adapter.handleMessage({ method: 'turn/started', params: { turn: { id: 'turn-2' } } });
+        await adapter.handleMessage(codexTokenUsage(codexBreakdown(2_000, 4_000, 40, 0), codexBreakdown(2_900, 7_000, 200, 50)));
+        await adapter.handleMessage({ method: 'turn/completed', params: { turn: { id: 'turn-2', status: 'completed' } } });
+
+        const secondTurn = events.filter(({ type }) => type === 'turnCompleted').at(-1);
+
+        expect(secondTurn.usage)
+            .toEqual({ cachedInputTokens: 2_000, inputTokens: 2_000, outputTokens: 40, reasoningTokens: 0, totalTokens: 4_040 });
+    });
+
+    it('reconstructs the turn baseline when a resumed Codex thread already carries cumulative usage', async () => {
+        const { adapter, events } = harness('codex');
+
+        await adapter.handleMessage({ method: 'turn/started', params: { turn: { id: 'turn-9' } } });
+        await adapter.handleMessage(codexTokenUsage(codexBreakdown(500, 1_500, 80, 20), codexBreakdown(40_500, 90_000, 5_080, 1_020)));
+        await adapter.handleMessage({ method: 'turn/completed', params: { turn: { id: 'turn-9', status: 'completed' } } });
+
+        expect(events.at(-1)).toMatchObject({
+            type: 'turnCompleted',
+            usage: { cachedInputTokens: 500, inputTokens: 1_000, outputTokens: 60, reasoningTokens: 20, totalTokens: 1_580 },
+        });
+    });
+
+    it('rejects Codex cumulative usage whose provider total contradicts its buckets', async () => {
+        const { adapter } = harness('codex');
+        const request = codexBreakdown(0, 10, 2, 0);
+
+        await adapter.handleMessage({ method: 'turn/started', params: { turn: { id: 'turn-1' } } });
+
+        await expect(adapter.handleMessage(codexTokenUsage(request, { ...request, totalTokens: 99 })))
+            .rejects.toThrow('Inconsistent provider token usage total');
     });
 
     it('accepts context-only token usage emitted after Codex compaction', async () => {

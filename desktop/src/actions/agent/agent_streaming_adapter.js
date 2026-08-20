@@ -26,18 +26,59 @@ function codexInput(content) {
     return [{ text: requireMessage(content), type: 'text' }];
 }
 
-function codexUsage(params) {
-    const usage = params.tokenUsage?.last;
-    if (!usage) return null;
-    const cachedInputTokens = usage.cachedInputTokens ?? 0;
-    const reasoningTokens = usage.reasoningOutputTokens ?? 0;
-
-    return validateAgentTokenUsage({
+/** Reads one Codex breakdown, rejecting malformed counters and totals before they feed turn arithmetic. */
+function codexUsageCounters(breakdown) {
+    if (!breakdown || typeof breakdown !== 'object' || Array.isArray(breakdown)) return null;
+    const cachedInputTokens = breakdown.cachedInputTokens ?? 0;
+    const reasoningTokens = breakdown.reasoningOutputTokens ?? 0;
+    validateAgentTokenUsage({
         cachedInputTokens,
-        inputTokens: usage.inputTokens - cachedInputTokens,
-        outputTokens: usage.outputTokens - reasoningTokens,
+        inputTokens: breakdown.inputTokens - cachedInputTokens,
+        outputTokens: breakdown.outputTokens - reasoningTokens,
         reasoningTokens,
-    }, usage.totalTokens);
+    }, breakdown.totalTokens);
+
+    return {
+        cachedInputTokens,
+        inputTokens: breakdown.inputTokens,
+        outputTokens: breakdown.outputTokens,
+        reasoningTokens,
+    };
+}
+
+/** Growth of cumulative counters; clamped so an out-of-order or reset reading cannot report negative usage. */
+function codexUsageGrowth(counters, baseline) {
+    return {
+        cachedInputTokens: Math.max(counters.cachedInputTokens - baseline.cachedInputTokens, 0),
+        inputTokens: Math.max(counters.inputTokens - baseline.inputTokens, 0),
+        outputTokens: Math.max(counters.outputTokens - baseline.outputTokens, 0),
+        reasoningTokens: Math.max(counters.reasoningTokens - baseline.reasoningTokens, 0),
+    };
+}
+
+/**
+ * Codex counts tokens per model request, but one turn spans many of them: `tokenUsage.last` holds
+ * only the newest request while `tokenUsage.total` accumulates the whole thread. Turn usage is the
+ * growth of `total` since the turn began, which matches the whole-turn totals Claude reports and
+ * makes both providers comparable. `total - last` reconstructs that baseline from the turn's first
+ * reading. Codex builds without `total` fall back to the newest request alone.
+ */
+function codexTurnCounters(params) {
+    const last = codexUsageCounters(params.tokenUsage?.last);
+    const totals = codexUsageCounters(params.tokenUsage?.total) ?? last;
+    if (!last || !totals) return null;
+
+    return { baseline: codexUsageGrowth(totals, last), totals };
+}
+
+/** Splits Codex counters into disjoint buckets: cached input sits inside input, reasoning inside output. */
+function codexUsage(counters) {
+    return validateAgentTokenUsage({
+        cachedInputTokens: counters.cachedInputTokens,
+        inputTokens: counters.inputTokens - counters.cachedInputTokens,
+        outputTokens: counters.outputTokens - counters.reasoningTokens,
+        reasoningTokens: counters.reasoningTokens,
+    });
 }
 
 function codexContextWindowUsage(params) {
@@ -109,6 +150,7 @@ class CodexStreamingAdapter {
         this.threadId = null;
         this.turnContextWindowUsage = undefined;
         this.turnUsage = null;
+        this.turnUsageBaseline = null;
     }
 
     async start(prompt) {
@@ -275,6 +317,8 @@ class CodexStreamingAdapter {
             this.assistantStreams.clear();
             this.completedItemIds.clear();
             this.turnContextWindowUsage = undefined;
+            this.turnUsage = null;
+            this.turnUsageBaseline = null;
             this.activeTurnId = params.turn?.id ?? params.turnId;
             await this.onEvent({ turnId: this.activeTurnId, type: 'turnStarted' });
             return;
@@ -334,8 +378,10 @@ class CodexStreamingAdapter {
                 this.turnContextWindowUsage = codexContextWindowUsage(params);
                 return;
             }
-            const usage = codexUsage(params);
-            if (!usage) return;
+            const counters = codexTurnCounters(params);
+            if (!counters) return;
+            this.turnUsageBaseline ??= counters.baseline;
+            const usage = codexUsage(codexUsageGrowth(counters.totals, this.turnUsageBaseline));
             this.turnContextWindowUsage = codexContextWindowUsage(params);
             this.turnUsage = usage;
             await this.onEvent({ contextWindowUsage: this.turnContextWindowUsage, type: 'usage', usage });
@@ -391,6 +437,7 @@ class CodexStreamingAdapter {
             });
             this.turnContextWindowUsage = undefined;
             this.turnUsage = null;
+            this.turnUsageBaseline = null;
             return;
         }
         if (method?.startsWith('item/') && typeof params.itemId === 'string') {
