@@ -829,6 +829,153 @@
           "role": "assistant",
           "sequence": 13,
           "timestamp": "2026-08-20T12:23:56.735Z"
+        },
+        {
+          "content": "go",
+          "id": "agent-turn-39c56b8c-5c63-45e5-8264-03624a5582fb-user-13",
+          "kind": "message",
+          "role": "user",
+          "sequence": 14,
+          "timestamp": "2026-08-20T12:28:05.350Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-39c56b8c-5c63-45e5-8264-03624a5582fb-event-15",
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\components\\actions\\conversation\\action_conversation_chat.tsx has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01YFKnDQzXqF98QKgG42iRe4",
+          "sequence": 15,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:28:10.691Z",
+          "type": "fileChange"
+        },
+        {
+          "agent": "claude",
+          "content": "Now tests.",
+          "id": "agent-turn-39c56b8c-5c63-45e5-8264-03624a5582fb-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 16,
+          "timestamp": "2026-08-20T12:28:12.373Z"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-39c56b8c-5c63-45e5-8264-03624a5582fb-event-17",
+          "kind": "event",
+          "label": "Read",
+          "output": "150\t    it('starts at the end when a conversation loads', () => {\n151\t        renderChat(conversation('first.json', [message('message-1', 'First')]))\n152\t\n153\t        expect(screen.getByLabelText('Conversation chat').scrollTop).toBe(200)\n154\t    })\n155\t\n156\t    it('keeps duration and context usage indicator as the final row inside the scrollable transcript', async () => {\n157\t        const value = conversation('first.json', [message('message-1', 'First')])\n158\t        value.contextWindowUsage = { capacityTokens: 258_400, usedTokens: 42_000 }\n159\t        renderChat(value)\n160\t\n161\t        const viewport = screen.getByLabelText('Conversation chat')\n162\t        const metadata = screen.getByLabelText('Conversation metadata')\n163\t        const progress = screen.getByRole('progressbar', { name: 'Context usage' })\n164\t        expect(viewport).toContainElement(metadata)\n165\t        expect(viewport.lastElementChild).toBe(metadata)\n166\t        expect(metadata).toContainElement(screen.getByLabelText('Elapsed time'))\n167\t        expect(metadata).toContainElement(progress)\n168\t        expect(progress).toHaveAttribute('aria-valuenow', '16')\n169\t        expect(screen.queryByText('context: 16%')).not.toBeInTheDocument()\n170\t        expect(metadata).toHaveStyle({ alignItems: 'baseline' })\n171\t\n172\t        fireEvent.mouseOver(progress)\n173\t        expect(await screen.findByText('Context usage: 16%', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()\n174\t        fireEvent.mouseLeave(progress)\n175\t        await waitFor(() => expect(screen.queryByText('Context usage: 16%', {selector: '.MuiTooltip-tooltip'})).not.toBeInTheDocument())\n176\t        fireEvent.touchStart(progress)\n177\t        expect(await screen.findByText('Context usage: 16%', { selector: '.MuiTooltip-tooltip' }, {timeout: 1_500})).toBeInTheDocument()\n178\t\n179\t        viewport.scrollTop = 40\n180\t        fireEvent.scroll(viewport)\n181\t\n182\t        expect(viewport.scrollTop).toBe(40)\n183\t    })\n184\t\n185\t    it('caps context occupancy and hides unavailable context without hiding duration', async () => {\n186\t        const value = conversation('first.json', [])\n187\t        value.contextWindowUsage = { capacityTokens: 100, usedTokens: 125 }\n188\t        const { rerender } = renderChat(value)\n189\t",
+          "providerItemId": "toolu_014KF4wKXuwLUQMnEgRqgpES",
+          "sequence": 17,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:28:12.831Z",
+          "type": "tool.Read"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nAdd track coverage assertion into the first indicator test.",
+          "id": "agent-turn-39c56b8c-5c63-45e5-8264-03624a5582fb-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 18,
+          "timestamp": "2026-08-20T12:28:14.636Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-39c56b8c-5c63-45e5-8264-03624a5582fb-event-19",
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\components\\actions\\conversation\\action_conversation_chat.test.tsx has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_016gqvgacqzAM3PUdr4TKvK7",
+          "sequence": 19,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:28:18.919Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-39c56b8c-5c63-45e5-8264-03624a5582fb-event-20",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeDzyUB2MuJPfKVFtL2m6:thinking:0",
+          "sequence": 20,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T12:28:21.833Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nRun the relevant tests.",
+          "id": "agent-turn-39c56b8c-5c63-45e5-8264-03624a5582fb-turn-2-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 21,
+          "timestamp": "2026-08-20T12:28:21.836Z"
+        },
+        {
+          "content": "> app@0.3.3 test\n> vitest run action_conversation_chat.test.tsx conversation_context_window.node.test.ts\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2/app\n\n\n Test Files  2 passed (2)\n      Tests  52 passed (52)\n   Start at  14:28:26\n   Duration  5.36s (transform 478ms, setup 110ms, import 1.81s, tests 2.42s, environment 786ms)",
+          "id": "agent-turn-39c56b8c-5c63-45e5-8264-03624a5582fb-event-22",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_012Q2UhiWvrbZfPUF5FWBVJ2",
+          "sequence": 22,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:28:31.749Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nAll pass. Typecheck too.",
+          "id": "agent-turn-39c56b8c-5c63-45e5-8264-03624a5582fb-turn-2-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 23,
+          "timestamp": "2026-08-20T12:28:33.202Z"
+        },
+        {
+          "content": "> app@0.3.3 typecheck\n> tsc --noEmit",
+          "id": "agent-turn-39c56b8c-5c63-45e5-8264-03624a5582fb-event-24",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01WbChF41wdWn1V9SDJ87Eot",
+          "sequence": 24,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:28:47.500Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nClean. Now flip status to `ready`.",
+          "id": "agent-turn-39c56b8c-5c63-45e5-8264-03624a5582fb-turn-2-assistant-5",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 25,
+          "timestamp": "2026-08-20T12:28:49.065Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-39c56b8c-5c63-45e5-8264-03624a5582fb-event-26",
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_205_context_usage_indicator.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01EfmhXeREViaEa8CSNtDUnZ",
+          "sequence": 26,
+          "status": "completed",
+          "timestamp": "2026-08-20T12:28:49.848Z",
+          "type": "fileChange"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nDone. Both blocks in: stacked track+arc circles in `action_conversation_chat.tsx`, test coverage for track presence, typecheck clean, related tests pass (52/52). Status flipped to `ready`.",
+          "id": "agent-turn-39c56b8c-5c63-45e5-8264-03624a5582fb-turn-2-assistant-6",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 27,
+          "timestamp": "2026-08-20T12:28:51.690Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -843,19 +990,19 @@
         }
       ],
       "startedAt": "2026-08-20T12:23:34.101Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "elapsedMs": 22634,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-08-20T12:28:05.350Z"
       },
       "title": "implement",
       "usage": {
-        "cachedInputTokens": 267466,
-        "inputTokens": 12,
-        "outputTokens": 1211,
+        "cachedInputTokens": 622294,
+        "inputTokens": 26,
+        "outputTokens": 3276,
         "reasoningTokens": 0,
-        "totalTokens": 268689,
-        "costUsd": 0.24058170000000004
+        "totalTokens": 625596,
+        "costUsd": 0.6418962000000001
       },
       "usageSchemaVersion": 1,
       "viewed": true
