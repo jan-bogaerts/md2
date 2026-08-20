@@ -623,7 +623,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 48861
+        "usedTokens": 55491
       },
       "entries": [
         {
@@ -769,28 +769,179 @@
           "role": "assistant",
           "sequence": 12,
           "timestamp": "2026-08-20T17:57:08.194Z"
+        },
+        {
+          "content": "go",
+          "id": "agent-turn-152e7711-527f-4dca-88a8-c4b43e2eabc6-user-12",
+          "kind": "message",
+          "role": "user",
+          "sequence": 13,
+          "timestamp": "2026-08-20T17:57:48.444Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-152e7711-527f-4dca-88a8-c4b43e2eabc6-event-14",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeES6qz3fEbQ67yPU7GUC:thinking:0",
+          "sequence": 14,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T17:57:50.910Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "(Bash completed with no output)",
+          "id": "agent-turn-152e7711-527f-4dca-88a8-c4b43e2eabc6-event-15",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01DpQQWngD4vCCB3fTkEHgPi",
+          "sequence": 15,
+          "status": "completed",
+          "timestamp": "2026-08-20T17:57:54.411Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-152e7711-527f-4dca-88a8-c4b43e2eabc6-event-16",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeES7GecoagQxUiVszaQM:thinking:0",
+          "sequence": 16,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T17:57:57.848Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "    it('disables local open and folder picker while loading', () => {\n        render(\n            <ProjectOpenDialog\n                branches={[]}\n                initialSource=\"local\"\n                isDesktopMode\n                isGithubAuthenticated={false}\n                isLoading\n                onBranchChange={vi.fn()}\n                onChooseLocalFolder={vi.fn(async () => undefined)}\n                onClose={vi.fn()}\n                onCreateProjectFolders={vi.fn()}\n                onCreateRemoteProject={vi.fn()}\n                onCreateWorkingFolder={vi.fn()}\n                onDiscardGithubPendingCommits={vi.fn()}\n                onLoadManualBranches={vi.fn(async () => null)}\n                onLoadRemoteBranches={vi.fn(async () => [])}\n                onOpenGithub={vi.fn()}\n                onOpenLocal={vi.fn(async () => undefined)}\n                onOpenRemote={vi.fn()}\n                onRepositoryChange={vi.fn(async () => [])}\n                onSourceChange={vi.fn()}\n                onUseWorkingFolder={vi.fn()}\n                open\n                pendingGithubConflictProject={null}\n                projectOpenResolution={null}\n                recentLocalRepositories={[]}\n                repositories={[]}\n            />,\n            { wrapper: AppThemeProvider },\n        )\n\n        fireEvent.change(screen.getByLabelText('Local repository folder'), { target: { value: 'C:/typed' } })\n        expect(screen.getByRole('button', { name: 'Choose local repository folder' })).toBeDisabled()\n        expect(screen.getByRole('button', { name: 'Open Local' })).toBeDisabled()\n    })\n\n    it('marks manual public lookup and open requests as public', async () => {\n        const loadManualBranches = vi.fn(async () => ({ branches: BRANCHES, repository: REPOSITORIES[0] }))\n        const openGithub = vi.fn(async () => undefined)\n        render(\n            <ProjectOpenDialog\n                branches={BRANCHES}",
+          "id": "agent-turn-152e7711-527f-4dca-88a8-c4b43e2eabc6-event-17",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01Eh4dCv8KaBGW8fimuZRZtT",
+          "sequence": 17,
+          "status": "completed",
+          "timestamp": "2026-08-20T17:57:58.732Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-152e7711-527f-4dca-88a8-c4b43e2eabc6-event-18",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeES7aeb3P7pWAtHrzRRz:thinking:0",
+          "sequence": 18,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T17:58:07.447Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "(Bash completed with no output)",
+          "id": "agent-turn-152e7711-527f-4dca-88a8-c4b43e2eabc6-event-19",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01VbpBs9F11RJqpoYcqLeAfD",
+          "sequence": 19,
+          "status": "completed",
+          "timestamp": "2026-08-20T17:58:25.666Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-152e7711-527f-4dca-88a8-c4b43e2eabc6-event-20",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeES9ZpHn9HYeCvpMDps4:thinking:0",
+          "sequence": 20,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T17:58:28.685Z",
+          "type": "reasoning"
+        },
+        {
+          "content": " RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2/app\n\n\n Test Files  1 passed (1)\n      Tests  27 passed (27)\n   Start at  19:58:30\n   Duration  7.16s (transform 564ms, setup 97ms, import 3.63s, tests 2.62s, environment 700ms)",
+          "id": "agent-turn-152e7711-527f-4dca-88a8-c4b43e2eabc6-event-21",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01DVpnRpipbubASSVHmV81Jg",
+          "sequence": 21,
+          "status": "completed",
+          "timestamp": "2026-08-20T17:58:38.001Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "> app@0.4.0 typecheck\n> tsc --noEmit",
+          "id": "agent-turn-152e7711-527f-4dca-88a8-c4b43e2eabc6-event-22",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_019iaAcNkNgHVWbDuDTDVrde",
+          "sequence": 22,
+          "status": "completed",
+          "timestamp": "2026-08-20T17:58:52.249Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "6:status: ready",
+          "id": "agent-turn-152e7711-527f-4dca-88a8-c4b43e2eabc6-event-23",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01ArLKF61pwuPaoTuEpd7ksV",
+          "sequence": 23,
+          "status": "completed",
+          "timestamp": "2026-08-20T17:58:55.624Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "Done. All 3 blocks.\n\n**Block 1** — `app/src/components/shell/project/project_open_dialog.tsx:126`\n- `defaultSource = isDesktopMode ? 'local' : 'personal'`; seeds `useState`, and open-transition now does `setSource(initialSource ?? defaultSource)`.\n- Causal chain: transition block fires on every false→true `open`, so reopen re-applies default; explicit `initialSource` still wins (remote/recovery untouched).\n\n**Block 2** — `project_dialogs.test.tsx`\n- Added `projectOpenDialogProps()` factory (full-props boilerplate ×4 was too noisy).\n- 3 new tests: mode-based default (Electron=Folder, browser=Repository), explicit `initialSource` override, reopen-restores-default.\n- Existing \"opens typed, picked, recent local folders\" test: now clicks Repository first, since Folder is the desktop default — its Repository→Folder assertions kept intact.\n\n**Block 3** — 27/27 tests pass in that file; `npm run typecheck` clean; spec `status: ready`.",
+          "id": "agent-turn-152e7711-527f-4dca-88a8-c4b43e2eabc6-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 24,
+          "timestamp": "2026-08-20T17:59:02.560Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-023e8bb9-8d51-42ba-badb-9c4b50446e87",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "claude",
+          "conversationId": "f2d957a2-6d71-4a1a-a52e-52adcf6bbf68",
+          "createdAt": "2026-08-20T17:57:08.194Z",
+          "lastUsedAt": "2026-08-20T17:57:08.194Z",
+          "synchronizedThroughMessageId": "agent-turn-152e7711-527f-4dca-88a8-c4b43e2eabc6-turn-1-assistant-1"
+        }
+      ],
       "startedAt": "2026-08-20T17:56:23.488Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-20T17:56:23.488Z"
+        "elapsedMs": 44706,
+        "runningStartedAt": "2026-08-20T17:57:48.444Z"
       },
       "title": "implement",
       "usage": {
-        "cachedInputTokens": 262112,
-        "inputTokens": 14,
-        "outputTokens": 2608,
+        "cachedInputTokens": 633149,
+        "inputTokens": 28,
+        "outputTokens": 7217,
         "reasoningTokens": 0,
-        "totalTokens": 264734,
-        "costUsd": 0.5239335
+        "totalTokens": 640394,
+        "costUsd": 1.4116655000000002
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
