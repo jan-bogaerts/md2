@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 94085
+        "usedTokens": 96000
       },
       "entries": [
         {
@@ -922,27 +922,65 @@
           "role": "assistant",
           "sequence": 65,
           "timestamp": "2026-08-20T17:42:02.090Z"
+        },
+        {
+          "content": "* When viiewing historical chat while conversation is running, just stop, send, finish buttons. Stop should not be possible while viewing other conversation\n* Be careful about the prompt. I believe it is already handled mostly ok: the prompt is remembered. Input should remain editable while lokking at history, and not change.",
+          "id": "agent-turn-6b2ebca3-8a10-4081-bfa8-b13236bdc44b-user-65",
+          "kind": "message",
+          "role": "user",
+          "sequence": 66,
+          "timestamp": "2026-08-20T17:49:23.642Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-6b2ebca3-8a10-4081-bfa8-b13236bdc44b-event-67",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0c0ebb2785227c13016a873e27206087d080a26abb944fc6e7",
+          "sequence": 67,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T17:49:34.157Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Agreed on the prompt: the active-run draft is already independent of the displayed chat, so it can remain editable and unchanged. The required fix is to prevent historical selection from calling `clearPromptDraft()` during an active run.\n\nOne detail needs clarification: while viewing a historical conversation, should **Send** and **Finish** still control the running conversation, with only **Stop** unavailable? Or should all three be unavailable until the user returns to the active conversation?\n\n",
+          "id": "agent-turn-6b2ebca3-8a10-4081-bfa8-b13236bdc44b-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 68,
+          "timestamp": "2026-08-20T17:49:36.684Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-f46c89de-30d1-499c-8b46-642eb5217ccd",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a02041-eca4-7902-bb06-64ffa03f24cf",
+          "createdAt": "2026-08-20T17:42:02.090Z",
+          "lastUsedAt": "2026-08-20T17:42:02.090Z",
+          "synchronizedThroughMessageId": "agent-turn-6b2ebca3-8a10-4081-bfa8-b13236bdc44b-turn-1-assistant-3"
+        }
+      ],
       "startedAt": "2026-08-20T17:39:46.281Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-20T17:39:46.281Z"
+        "elapsedMs": 135809,
+        "runningStartedAt": "2026-08-20T17:49:23.642Z"
       },
       "title": "+",
       "usage": {
-        "cachedInputTokens": 1222400,
-        "inputTokens": 115294,
-        "outputTokens": 3196,
-        "reasoningTokens": 1495,
-        "totalTokens": 1342385
+        "cachedInputTokens": 1314304,
+        "inputTokens": 118817,
+        "outputTokens": 3295,
+        "reasoningTokens": 1969,
+        "totalTokens": 1438385
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
