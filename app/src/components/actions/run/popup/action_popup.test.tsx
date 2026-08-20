@@ -9,6 +9,7 @@ import { actionRunRegistry } from '../../../../services/actions/action_run_regis
 import { actionRunSettingsService } from '../../../../services/actions/action_run_settings_service'
 import { actionPromptDraftService } from '../../../../services/actions/action_prompt_draft_service'
 import { agentCapabilitiesService } from '../../../../services/agents/agent_capabilities_service'
+import { agentAcknowledgementService } from '../../../../services/agents/agent_acknowledgement_service'
 import { dialogService } from '../../../../services/dialog_service'
 import { dataService } from '../../../../services/data/data_service'
 import { remoteConnectionService } from '../../../../services/data/remote_connection_service'
@@ -243,6 +244,12 @@ function renderPopup(contextOverride: ActionContext = context, onClose = vi.fn()
     return { onClose }
 }
 
+function emitActionRunEvent(listener: ((event: ActionRunEvent) => void) | null, event: ActionRunEvent) {
+    if (!listener) throw new Error('Action run listener is not registered')
+
+    listener(event)
+}
+
 describe('ActionPopup', () => {
     beforeEach(async () => {
         projectPersistenceService.init({ actionService, dataService, openFilesService })
@@ -298,6 +305,62 @@ describe('ActionPopup', () => {
         expect(dialog.getByRole('button', { name: 'Run' })).toBeInTheDocument()
         expect(bottomRow).not.toHaveAttribute('data-embedded')
         expect(scrollBody.nextElementSibling).toBe(bottomRow)
+    })
+
+    it.each(['queued', 'running'] as const)('opens on first %s action in selector order', (status) => {
+        actionRunRegistry.stop()
+        let runListener: ((event: ActionRunEvent) => void) | null = null
+        window.md2Actions = {
+            onActionRun: vi.fn((listener) => {
+                runListener = listener
+
+                return vi.fn()
+            }),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
+        } as unknown as typeof window.md2Actions
+        actionRunRegistry.start()
+        emitActionRunEvent(runListener, {actionId: 'second', context, phase: 'main', rootActionId: 'second', runId: 'run-2', status, type: 'run'})
+
+        renderPopup()
+
+        const actionGroup = within(screen.getByRole('group', { name: 'Actions' }))
+        expect(actionGroup.getByRole('button', { name: status === 'queued' ? /Second action.*queued/u : /Second action.*running/u }))
+            .toHaveAttribute('aria-pressed', 'true')
+    })
+
+    it('opens on persisted running action without matching live run', () => {
+        const cardContext = { ...context, cardInternalId: 'card-1' }
+        const runningConversation = agentConversation({ actionId: 'second', status: 'running' })
+        vi.spyOn(dataService.agents, 'getAgentConversations').mockReturnValue([runningConversation])
+
+        renderPopup(cardContext)
+
+        expect(screen.getByRole('button', { name: /Second action.*Agent is running/u })).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    it('honors explicit action choice over running action', () => {
+        actionRunRegistry.stop()
+        let runListener: ((event: ActionRunEvent) => void) | null = null
+        window.md2Actions = {
+            onActionRun: vi.fn((listener) => {
+                runListener = listener
+
+                return vi.fn()
+            }),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
+        } as unknown as typeof window.md2Actions
+        actionRunRegistry.start()
+        emitActionRunEvent(runListener, {actionId: 'second', context, phase: 'main', rootActionId: 'second', runId: 'run-2', status: 'running', type: 'run'})
+
+        render(
+            <AppThemeProvider>
+                <ActionPopup anchorElement={document.body} context={context} initialActionId="first" onClose={vi.fn()} />
+            </AppThemeProvider>,
+        )
+
+        const actionGroup = within(screen.getByRole('group', { name: 'Actions' }))
+        expect(actionGroup.getByRole('button', { name: 'First action' })).toHaveAttribute('aria-pressed', 'true')
+        expect(actionGroup.getByRole('button', { name: /Second action.*Agent is running/u })).toHaveAttribute('aria-pressed', 'false')
     })
 
     it('keeps released-card conversation history available without run controls', () => {
@@ -404,7 +467,7 @@ describe('ActionPopup', () => {
         Object.values(renderProbes).forEach((probe) => expect(probe).not.toHaveBeenCalled())
     })
 
-    it('renders only selector boundary when another action status changes', async () => {
+    it('keeps selection and renders only selector boundary when another action status changes', async () => {
         actionRunRegistry.stop()
         let runListener: ((event: ActionRunEvent) => void) | null = null
         window.md2Actions = {
@@ -420,10 +483,34 @@ describe('ActionPopup', () => {
 
         act(() => runListener?.({actionId: 'second', context, phase: 'main', rootActionId: 'second', runId: 'run-2', status: 'running', type: 'run'}))
 
+        const actionGroup = within(screen.getByRole('group', { name: 'Actions' }))
+        expect(actionGroup.getByRole('button', { name: 'First action' })).toHaveAttribute('aria-pressed', 'true')
+        expect(actionGroup.getByRole('button', { name: /Second action.*Agent is running/u })).toHaveAttribute('aria-pressed', 'false')
         expect(renderProbes.selector).toHaveBeenCalled()
         expect(renderProbes.popup).not.toHaveBeenCalled()
         expect(renderProbes.content).not.toHaveBeenCalled()
         expect(renderProbes.chat).not.toHaveBeenCalled()
+    })
+
+    it('keeps selection when acknowledgement state changes after open', () => {
+        const cardContext = { ...context, cardInternalId: 'card-1' }
+        const unseenConversation = agentConversation({
+            actionId: 'second',
+            completedAt: '2026-08-01T12:01:00.000Z',
+            status: 'completed',
+            viewed: false,
+        })
+        let conversations = [] as AgentConversation[]
+        vi.spyOn(dataService.agents, 'getAgentConversations').mockImplementation(() => conversations)
+
+        renderPopup(cardContext)
+        conversations = [unseenConversation]
+        act(() => agentAcknowledgementService.announceConversationsChanged('card-1', ['second']))
+
+        const actionGroup = within(screen.getByRole('group', { name: 'Actions' }))
+        expect(actionGroup.getByRole('button', { name: 'First action' })).toHaveAttribute('aria-pressed', 'true')
+        expect(actionGroup.getByRole('button', { name: /Second action.*New agent result available/u }))
+            .toHaveAttribute('aria-pressed', 'false')
     })
 
     it('does not rerender unrelated popup controls while conversation streams', async () => {
@@ -601,17 +688,28 @@ describe('ActionPopup', () => {
         expect(actionGroup.queryByRole('button', { name: 'Project action' })).not.toBeInTheDocument()
     })
 
-    it('keeps the selected action when a run changes the card context', () => {
+    it('keeps the selected running action when its run changes the card context', () => {
         actionService.loadFromFiles([
             file(commandDefinition('design', { appliesTo: { state: 'design' }, label: 'Design action' })),
         ])
         const running: ActionContext = { ...context, state: 'design' }
+        actionRunRegistry.stop()
+        let runListener: ((event: ActionRunEvent) => void) | null = null
+        window.md2Actions = {
+            onActionRun: vi.fn((listener) => {
+                runListener = listener
+
+                return vi.fn()
+            }),
+        } as unknown as typeof window.md2Actions
+        actionRunRegistry.start()
+        emitActionRunEvent(runListener, {actionId: 'design', context: running, phase: 'main', rootActionId: 'design', runId: 'run-1', status: 'running', type: 'run'})
         const { rerender } = render(
             <AppThemeProvider>
                 <ActionPopup anchorElement={document.body} context={running} onClose={vi.fn()} />
             </AppThemeProvider>,
         )
-        expect(within(screen.getByRole('group', { name: 'Actions' })).getByRole('button', { name: 'Design action' }))
+        expect(within(screen.getByRole('group', { name: 'Actions' })).getByRole('button', { name: /Design action/u }))
             .toHaveAttribute('aria-pressed', 'true')
 
         rerender(
@@ -621,7 +719,7 @@ describe('ActionPopup', () => {
         )
 
         expect(screen.getByRole('dialog', { name: 'Run actions' })).toBeInTheDocument()
-        expect(within(screen.getByRole('group', { name: 'Actions' })).getByRole('button', { name: 'Design action' }))
+        expect(within(screen.getByRole('group', { name: 'Actions' })).getByRole('button', { name: /Design action/u }))
             .toHaveAttribute('aria-pressed', 'true')
     })
 
