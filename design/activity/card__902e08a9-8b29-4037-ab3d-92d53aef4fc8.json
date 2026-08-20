@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 82270
+        "usedTokens": 96978
       },
       "entries": [
         {
@@ -368,6 +368,192 @@
           "role": "assistant",
           "sequence": 28,
           "timestamp": "2026-08-20T17:23:55.735Z"
+        },
+        {
+          "content": "So global desktop model and thinking level ´eed to behave the same. I think you are at the wrong level. It should behave the same everywhere. Should be shared code as much as possible. Thin broad, not small.",
+          "id": "agent-turn-0e1b6793-f0e8-45af-9073-f712078f501f-user-28",
+          "kind": "message",
+          "role": "user",
+          "sequence": 29,
+          "timestamp": "2026-08-20T17:26:54.458Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-0e1b6793-f0e8-45af-9073-f712078f501f-event-30",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bbc77797044a90f016a8738e5305c87d0b3f3c4a65852d3bb",
+          "sequence": 30,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T17:27:11.477Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-0e1b6793-f0e8-45af-9073-f712078f501f-event-31",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bbc77797044a90f016a8738f1319887d0bd6361d78725b3e6",
+          "sequence": 31,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T17:27:21.566Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Scope corrected: one shared agent-selection model, used by global desktop controls and action popup. Nested menus become UI detail over same state transitions. Permission stays one shared value and never changes during agent switch.\n\n",
+          "id": "agent-turn-0e1b6793-f0e8-45af-9073-f712078f501f-turn-3-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 32,
+          "timestamp": "2026-08-20T17:27:23.014Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'desktop\\\\src\\\\actions\\\\activity\\\\activity_files.js'\nGet-Content -Raw 'desktop\\\\src\\\\actions\\\\agent\\\\agent_profiles.mjs'\nGet-Content -Raw 'desktop\\\\src\\\\actions\\\\agent\\\\agent_profiles_parity.test.mjs'\nGet-Content -Raw 'app\\\\src\\\\components\\\\config\\\\config_page.tsx'\nGet-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\run\\\\popup\\\\action_popup_bottom_row.tsx'\nGet-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\agent\\\\action_agent_capability_fields.tsx'\"",
+          "content": "const crypto = require('node:crypto');\nconst fs = require('node:fs');\nconst path = require('node:path');\n\nconst {\n    compactActivityFileContent,\n    createActivityFile,\n    findActivityConversation,\n    parseActivityValue,\n} = require('../../../../shared/card_activity.mjs');\nconst { parseAgentConversationValue } = require('../../../../shared/agent_conversations.mjs');\nconst {\n    activityOriginFromPath,\n    activityFilePath,\n    conversationActivityReference,\n    parseConversationActivityReference,\n} = require('../../../../shared/activity_paths.mjs');\nconst {\n    assertGitRoot,\n    commitExists,\n    commitTrackedPaths,\n    ensureInsideRoot,\n    isCommitAncestor,\n    pathExists,\n    requireRootPath,\n} = require('../../git/git_commands');\n\nconst activityWriteQueues = new Map();\nconst unwrittenActivityValues = new Map();\nconst ACTIVITY_RENAME_RETRY_DELAYS_MS = [25, 50, 100, 200];\nconst RETRYABLE_RENAME_ERROR_CODES = new Set(['EACCES', 'EBUSY', 'EPERM']);\nconst VISIBILITY_CHECK_CONCURRENCY = 8;\n\nfunction requireProjectFolder(value) {\n    if (typeof value !== 'string') throw new Error('Missing activity projectFolder');\n\n    return value;\n}\n\nfunction requireOrigin(value) {\n    return createActivityFile(value).origin;\n}\n\nfunction resolveActivityPath(rootPath, projectFolder, origin) {\n    const relativePath = activityFilePath(requireProjectFolder(projectFolder), requireOrigin(origin));\n\n    return {\n        absolutePath: ensureInsideRoot(rootPath, path.join(rootPath, relativePath)),\n        relativePath,\n    };\n}\n\nasync function readStoredActivity(filePath) {\n    const unwritten = unwrittenActivityValues.get(filePath);\n    if (unwritten) return { value: unwritten };\n    if (!await pathExists(filePath)) return { value: null };\n    const value = JSON.parse(await fs.promises.readFile(filePath, 'utf8'));\n\n    return { value };\n}\n\nasync function readStoredActivityContent(filePath) {\n    const unwritten = unwrittenActivityValues.get(filePath);\n    if (unwritten) return JSON.stringify(unwritten);\n\n    return fs.promises.readFile(filePath, 'utf8');\n}\n\nfunction activityValue(stored, origin) {\n    return stored.value === null ? createActivityFile(origin) : parseActivityValue(stored.value, origin);\n}\n\nasync function loadActivityValue(filePath, origin) {\n    return activityValue(await readStoredActivity(filePath, origin), origin);\n}\n\nasync function readActivityFile(filePath, origin) {\n    return activityValue(await readStoredActivity(filePath, origin), origin);\n}\n\nfunction delay(milliseconds) {\n    return new Promise((resolve) => {\n        setTimeout(resolve, milliseconds);\n    });\n}\n\nasync function renameActivityFile(temporaryPath, filePath) {\n    for (const retryDelay of ACTIVITY_RENAME_RETRY_DELAYS_MS) {\n        try {\n            await fs.promises.rename(temporaryPath, filePath);\n\n            return;\n        } catch (error) {\n            if (!RETRYABLE_RENAME_ERROR_CODES.has(error?.code)) throw error;\n            await delay(retryDelay);\n        }\n    }\n\n    await fs.promises.rename(temporaryPath, filePath);\n}\n\nasync function writeActivityFile(filePath, activity) {\n    const temporaryPath = `${filePath}.${crypto.randomUUID()}.tmp`;\n    await fs.promises.mkdir(path.dirname(filePath), { recursive: true });\n    try {\n        await fs.promises.writeFile(temporaryPath, `${JSON.stringify(activity, null, 2)}\\n`);\n        await renameActivityFile(temporaryPath, filePath);\n        unwrittenActivityValues.delete(filePath);\n    } catch (error) {\n        unwrittenActivityValues.set(filePath, activity);\n\n        throw error;\n    } finally {\n        await fs.promises.rm(temporaryPath, { force: true });\n    }\n}\n\nfunction queueActivityUpdate(filePath, update) {\n    const previousWrite = activityWriteQueues.get(filePath) ?? Promise.resolve();\n    const write = previousWrite.then(update);\n    const queueTail = write.catch(() => undefined);\n    activityWriteQueues.set(filePath, queueTail);\n    void queueTail.finally(() => {\n        if (activityWriteQueues.get(filePath) === queueTail) activityWriteQueues.delete(filePath);\n    });\n\n    return \n[47430 characters omitted]\n value=\"\">Application default</MenuItem>\n                    {profiles.map((profile) => {\n                        const profileAvailability = availability.values[profile.name]\n                        const disabled = availability.loading || !!availability.error || !profileAvailability?.available\n                        const label = profileAvailability?.error ? `${profile.name} â€” ${profileAvailability.error}` : profile.name\n\n                        return <MenuItem disabled={disabled} key={profile.name} value={profile.name}>{label}</MenuItem>\n                    })}\n                </ActionEditorField>\n                <ActionEditorField\n                    disabled={!definition.agent || models.loading || !!models.error}\n                    error={!!errors.model || !!models.error}\n                    fieldId=\"action-model\"\n                    fullWidth\n                    helperText={errors.model ?? models.error ?? (models.loading ? 'Loading modelsâ€¦' : undefined)}\n                    label=\"Model\"\n                    onChange={handleModelChange}\n                    select\n                    size=\"small\"\n                    value={definition.model ?? ''}\n                >\n                    <MenuItem value=\"\">Select model</MenuItem>\n                    {modelValues.map((model) => (\n                        <MenuItem key={model} value={model}>\n                            {model === definition.model && !models.loading && !models.values.includes(model) ? `${model} â€” unavailable` : model}\n                        </MenuItem>\n                    ))}\n                </ActionEditorField>\n                <ActionEditorField\n                    disabled={!definition.agent || !definition.model || thinkingLevels.loading || !!thinkingLevels.error}\n                    error={!!errors.thinkingLevel || !!thinkingLevels.error}\n                    fieldId=\"action-thinking-level\"\n                    fullWidth\n                    helperText={errors.thinkingLevel ?? thinkingLevels.error ?? (thinkingLevels.loading ? 'Loading thinking levelsâ€¦' : undefined)}\n                    label=\"Thinking level\"\n                    onChange={handleThinkingLevelChange}\n                    select\n                    size=\"small\"\n                    value={definition.thinkingLevel ?? 'none'}\n                >\n                    <MenuItem value=\"none\">none</MenuItem>\n                    {thinkingLevelValues.map((level) => (\n                        <MenuItem key={level} value={level}>\n                            {level === definition.thinkingLevel && !thinkingLevels.loading && !configuredThinkingLevels.includes(level)\n                                ? `${level} â€” unavailable`\n                                : level}\n                        </MenuItem>\n                    ))}\n                </ActionEditorField>\n                <ActionEditorField\n                    disabled={!definition.agent || !selectedProfile || !supportsPermissionMode(selectedProfile)}\n                    error={!!errors.permissionMode}\n                    fieldId=\"action-permission-mode\"\n                    fullWidth\n                    helperText={errors.permissionMode ?? (\n                        definition.agent && selectedProfile && !supportsPermissionMode(selectedProfile)\n                            ? `${definition.agent} does not support permission modes.`\n                            : PERMISSION_MODE_OPTIONS.find(({ value }) => value === definition.permissionMode)?.description\n                    )}\n                    label=\"Permission mode\"\n                    onChange={handlePermissionModeChange}\n                    select\n                    size=\"small\"\n                    value={definition.permissionMode ?? ''}\n                >\n                    <MenuItem value=\"\">Application default</MenuItem>\n                    {PERMISSION_MODE_OPTIONS.map(({ label, value }) => (\n                        <MenuItem key={value} value={value}>{label}</MenuItem>\n                    ))}\n                </ActionEditorField>\n            </Stack>\n        </Stack>\n    )\n}\n\r\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-0e1b6793-f0e8-45af-9073-f712078f501f-event-33",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'desktop\\\\src\\\\actions\\\\activity\\\\activity_files.js'\nGet-Content -Raw 'desktop\\\\src\\\\actions\\\\agent\\\\agent_profiles.mjs'\nGet-Content -Raw 'desktop\\\\src\\\\actions\\\\agent\\\\agent_profiles_parity.test.mjs'\nGet-Content -Raw 'app\\\\src\\\\components\\\\config\\\\config_page.tsx'\nGet-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\run\\\\popup\\\\action_popup_bottom_row.tsx'\nGet-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\agent\\\\action_agent_capability_fields.tsx'\"",
+          "providerItemId": "exec-e623c603-7d18-4596-ab45-73c5d5c502cb",
+          "sequence": 33,
+          "status": "completed",
+          "timestamp": "2026-08-20T17:27:25.287Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-0e1b6793-f0e8-45af-9073-f712078f501f-event-34",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bbc77797044a90f016a873900440087d0a0edb9a7a09b5741",
+          "sequence": 34,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T17:27:38.300Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-0e1b6793-f0e8-45af-9073-f712078f501f-event-35",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bbc77797044a90f016a87390c06b887d0bce14f7a07341d80",
+          "sequence": 35,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T17:27:49.841Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-0e1b6793-f0e8-45af-9073-f712078f501f-event-36",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bbc77797044a90f016a873917902c87d090008849efd4f945",
+          "sequence": 36,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T17:28:03.821Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_216_improve_agent_selection.md",
+          "deletions": 2,
+          "id": "agent-turn-0e1b6793-f0e8-45af-9073-f712078f501f-event-37",
+          "insertions": 36,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-bc477663-5d4b-4cf1-8c4e-515bca54ff20",
+          "sequence": 37,
+          "status": "completed",
+          "timestamp": "2026-08-20T17:28:32.193Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-0e1b6793-f0e8-45af-9073-f712078f501f-event-38",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bbc77797044a90f016a873943434087d0b0f260e9f9a7fec9",
+          "sequence": 38,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T17:28:46.870Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\feature_descriptions\\\\F_216_improve_agent_selection.md'\"",
+          "content": "---\nauthor: \nid: F_216\ninternalId: 902e08a9-8b29-4037-ab3d-92d53aef4fc8\ntitle: improve agent selection\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__902e08a9-8b29-4037-ab3d-92d53aef4fc8.json\npolicy:\nafter: 8c0611fd-44e8-4f65-bc86-11c26afacc8e\n---\nright now, on the action popup, when changing the agent in the agent-selector component, it is a bit annoying:&#x20;\n\n* The menu doesnÂ´t look very good. Lets use sub menus for agent, model and thinking\n* when agent changes, model and thinking level switch to 'none' which means the user always has to enter a model and thinking level as well, which means re-opening the context menu and such. this is annoying.\n\nwhat we want:\n\n* for each agent, set the default model and thinking level in the config dialog\n* when switching agent, if the action-card combo (so in the activity file of the card) had already stored a model and thinking level for that agent from a previous selection, use that value, otherwise use the default values.\n* if the user switching agent or model or thinking level, save cofig in card activity, already partly done I think, but we need to save model and thinking level per agent and then separately the currently active agent.\n\n## Current state\n\nAgent selection has three separate implementations. `AppMenu` owns global desktop agent, model, and thinking-level controls. `ActionAgentSelectors` owns action-popup controls. `ActionAgentCapabilityFields` owns action-definition overrides. Each surface implements dependent changes itself, so behavior can diverge.\n\nDesktop config and card activity both store one flat active tuple: agent, model, thinking level, and permission mode. `ActionRunSettingsStore` persists that tuple per card and action. Changing agent in action popup therefore discards previous model and thinking level, selects profile default model, and resets thinking level to `none`. Changing model also resets thinking level to `none`.\n\n`AgentProfile` already supports `defaultModel`, but has no default thinking level. Config dialog edits profile default model, while separate global `desktop.model` and `desktop.thinkingLevel` fields apply only to currently selected desktop agent. Permission mode is one shared choice, not an agent-specific choice.\n\nModel button currently opens one menu containing labelled sections. Requirement instead needs nested menus: top-level Agent, Model, and Thinking level items each open their own submenu. Here, **active agent** means agent currently used by surface; **thinking level** means reasoning-effort value passed to agent process.\n\n## implementation details\n\n- Add shared agent-selection domain model used by renderer and Electron. It stores active agent, one shared permission mode, and model/thinking pair keyed by agent. Add shared commands for selecting agent, selecting model, selecting thinking level, selecting permission mode, resolving defaults, and projecting active state into flat execution settings.\n- Agent switch must keep permission mode unchanged. It activates remembered model/thinking pair for target agent; when none exists in current scope, it copies target profile defaults. Model change must not reset thinking level.\n- Extend `AgentProfile` with required default thinking level alongside existing default model. Give built-in profiles explicit defaults. Update shared validation, TypeScript declarations, profile normalization, parity exports, config dialog profile editor, and related tests. Invalid or unavailable remembered values remain visible and produce existing validation/availability errors; do not silently replace stored values.\n- Replace flat desktop agent/model/thinking storage with shared selection shape. Global desktop controls and action popup use same commands and resolution rules. Migrate existing desktop config by placing stored model and thinking level under stored active agent; retain stored permission mode unchanged.\n- Change card activity `actionSettings[actionId]` to same selection shape. Bump activity schema version and migrate version 4 by placing flat model and thinking level under flat active agent. Keep targeted queued read-modify-write, optimistic updates, scoped events, waiting-input dirty state, and `dialogService` error reporting.\n- For card-backed actions, card/action memory wins. Missing agent entry resolves from action-definition override when applicable, then desktop memory for that agent, then profile defaults. Project, folder, and regular-file contexts keep session-only memory but use same model and commands.\n- Use shared nested-menu component for runtime agent selection surfaces. Top menu contains Agent, Model, and Thinking level entries; each opens submenu. Model submenu reflects active agent. Preserve unavailable-agent disabling, run-state disabling, compact labels, keyboard navigation, focus return, and popup-width behavior. Security menu remains separate and writes shared permission mode.\n- Keep action-definition overrides declarative, but route their agent/model/thinking transitions through shared commands so agent changes follow same defaults and never change permission mode. Execution boundary receives only active agent's flat model/thinking pair.\n- Update shared schema/migration tests, desktop config tests, command-resolution tests, selection-domain tests, config editor tests, global menu tests, action-definition tests, action-popup selector tests, settings-service tests, bridge tests, and queued activity-write race tests.\n\n## acceptance criteria\n\n- Config dialog allows default model and default thinking level for every built-in or custom agent profile and rejects defaults unavailable in that profile.\n- Global desktop controls, action-definition controls, and action popup use same agent/model/thinking transition rules.\n- Opening runtime model menu shows Agent, Model, and Thinking level as nested menus, not labelled sections in one menu. Model choices match active agent.\n- Switching agent restores model and thinking level last selected for that agent in current scope. Without remembered pair, target agent's resolved defaults appear. Neither value resets to `none` merely because agent or model changed.\n- Switching agent never changes permission mode. One permission choice remains shared across agents, including after switching away, switching back, closing popup, or restarting app.\n- Global per-agent choices persist in desktop config. Card-backed per-agent choices persist independently per card and action in card activity. Non-card action choices persist for session only.\n- Existing desktop config and version-4 activity files migrate without losing active agent, model, thinking level, permission mode, conversations, or records.\n- Starting or restarting action passes active agent's model and thinking level plus shared permission mode. Waiting-input changes still force restart before new settings apply.\n- Loading, availability, validation, persistence failure, and concurrent activity writes retain existing safe behavior and user-visible error reporting.\n\r\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-0e1b6793-f0e8-45af-9073-f712078f501f-event-39",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\feature_descriptions\\\\F_216_improve_agent_selection.md'\"",
+          "providerItemId": "exec-898eb103-94c1-4e4c-b882-4c12a224f05b",
+          "sequence": 39,
+          "status": "completed",
+          "timestamp": "2026-08-20T17:28:48.831Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-0e1b6793-f0e8-45af-9073-f712078f501f-event-40",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bbc77797044a90f016a8739561b5087d0a937bc582aed5b8e",
+          "sequence": 40,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T17:28:59.534Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_216_improve_agent_selection.md",
+          "deletions": 2,
+          "id": "agent-turn-0e1b6793-f0e8-45af-9073-f712078f501f-event-41",
+          "insertions": 4,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-0258ccd3-0ae0-4fba-98c3-fdb042516341",
+          "sequence": 41,
+          "status": "completed",
+          "timestamp": "2026-08-20T17:29:06.226Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-0e1b6793-f0e8-45af-9073-f712078f501f-event-42",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bbc77797044a90f016a873965026c87d0852d85721481a9b2",
+          "sequence": 42,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-20T17:29:09.381Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Updated [F_216_improve_agent_selection.md](C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_216_improve_agent_selection.md).\n\nAdded requested sections. Status now `ready for implementation`. Scope covers shared behavior across desktop, popup, and action editor. Permission remains shared and unchanged on agent switch. No staging, commit, or tests.\n\n",
+          "id": "agent-turn-0e1b6793-f0e8-45af-9073-f712078f501f-turn-3-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 43,
+          "timestamp": "2026-08-20T17:29:10.705Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -377,23 +563,23 @@
           "agent": "codex",
           "conversationId": "01a0202e-6c14-78f3-9169-a526bee679ed",
           "createdAt": "2026-08-20T17:19:50.505Z",
-          "lastUsedAt": "2026-08-20T17:19:50.505Z",
-          "synchronizedThroughMessageId": "agent-turn-0e1b6793-f0e8-45af-9073-f712078f501f-turn-1-assistant-3"
+          "lastUsedAt": "2026-08-20T17:23:55.735Z",
+          "synchronizedThroughMessageId": "agent-turn-0e1b6793-f0e8-45af-9073-f712078f501f-turn-2-assistant-1"
         }
       ],
       "startedAt": "2026-08-20T17:18:28.154Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 82351,
-        "runningStartedAt": "2026-08-20T17:23:50.752Z"
+        "elapsedMs": 87334,
+        "runningStartedAt": "2026-08-20T17:26:54.458Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 540672,
-        "inputTokens": 77346,
-        "outputTokens": 1806,
-        "reasoningTokens": 1239,
-        "totalTokens": 621063
+        "cachedInputTokens": 983808,
+        "inputTokens": 94854,
+        "outputTokens": 3908,
+        "reasoningTokens": 4504,
+        "totalTokens": 1087074
       },
       "usageSchemaVersion": 1,
       "viewed": true
