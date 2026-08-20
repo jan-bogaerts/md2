@@ -10,8 +10,6 @@ agents:
   - design/activity/card__8c0611fd-44e8-4f65-bc86-11c26afacc8e.json
 policy:
 after: b7885271-1cd8-4927-9f68-661c0d87a61f
-branch: b_154_conversation_selector_disabled_while_conversation_is_running
-worktree: 1
 ---
 
 I don't understand why we are doing this. so first we need to investigate if there is a `functional` reason for this. if not, we should allow changing conversations on an action while the action is running. the other conversations are simply not in progress.
