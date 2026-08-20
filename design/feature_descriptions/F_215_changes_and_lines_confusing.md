@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__838f9a02-ee42-498c-b317-2f8a48075207.json
 policy:
-branch: f_215_changes_and_lines_confusing
-worktree: 1
 ---
 
 on the action popup, we show the file 'changes' and lines changed.
