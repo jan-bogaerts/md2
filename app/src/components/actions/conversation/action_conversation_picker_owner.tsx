@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useSyncExternalStore, type ChangeEvent } from 'react'
 import type { ActionContext } from '../../../data/action_context'
-import type { ActionRun } from '../../../services/actions/action_run_registry'
 import { useActionRunSelector } from '../../hooks/use_action_runs'
 import { useCardActionUnseenResults } from '../../hooks/use_card_action_unseen_results'
 import { ActionConversationPicker } from './action_conversation_picker'
 import type { ConversationPickerConversation } from './action_conversation_picker_data'
-import type { ActionConversationStore } from './action_conversation_store'
+import { resolveDisplayedConversation, type ActionConversationStore } from './action_conversation_store'
 
 interface ActionConversationPickerOwnerProps {
     actionId: string
@@ -13,14 +12,9 @@ interface ActionConversationPickerOwnerProps {
     store: ActionConversationStore
 }
 
-function selectSessionActive(run: ActionRun | null) {
-    return run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'
-}
-
 /** Loads and selects conversation history at picker boundary. */
 export function ActionConversationPickerOwner(props: ActionConversationPickerOwnerProps) {
     const { actionId, context, store } = props
-    const sessionActive = useActionRunSelector(actionId, context, selectSessionActive)
     const liveActionId = useActionRunSelector(actionId, context, (run) => run?.conversation?.actionId)
     const liveCardInternalId = useActionRunSelector(actionId, context, (run) => run?.conversation?.cardInternalId)
     const liveHasExplicitTitle = useActionRunSelector(actionId, context, (run) => run?.conversation?.hasExplicitTitle)
@@ -55,14 +49,18 @@ export function ActionConversationPickerOwner(props: ActionConversationPickerOwn
     const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
         void store.select(event.target.value)
     }
+    const displayedConversation = resolveDisplayedConversation<ConversationPickerConversation>(
+        liveConversation,
+        snapshot.selectedConversation,
+    )
 
     return (
         <ActionConversationPicker
             conversations={store.conversationOptions(liveConversation)}
-            disabled={sessionActive}
+            disabled={false}
             loading={snapshot.loading}
             onChange={handleChange}
-            selectedPath={liveConversation?.path ?? snapshot.selectedConversation?.path ?? ''}
+            selectedPath={displayedConversation?.path ?? ''}
         />
     )
 }

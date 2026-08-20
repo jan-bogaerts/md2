@@ -8,7 +8,10 @@ import type { ActionContext } from '../../../../data/action_context'
 import type { ActionDefinition } from '../../../../data/action_types'
 import type { ActionRunSettingsStore } from '../../../../services/actions/action_run_settings_service'
 import { useActionRunSelector } from '../../../hooks/use_action_runs'
-import type { ActionConversationStore } from '../../conversation/action_conversation_store'
+import {
+    isBrowsingHistoricalConversation,
+    type ActionConversationStore,
+} from '../../conversation/action_conversation_store'
 import type { ActionHistoryStore } from '../state/action_history_store'
 import {
     cancelPopupAction,
@@ -63,6 +66,7 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
         return !!active && run?.activeActionType === 'agent'
     })
     const interactionReady = useActionRunSelector(action.id, assignmentContext, (run) => !!run?.interactionReady)
+    const liveConversationPath = useActionRunSelector(action.id, assignmentContext, (run) => run?.conversation?.path ?? null)
     const hasApprovals = useActionRunSelector(action.id, assignmentContext, (run) => !!run?.approvals.length)
     const hasQuestion = useActionRunSelector(action.id, assignmentContext, (run) => !!run?.question)
     const promptDraft = currentActionPromptDraft(action, assignmentContext, action.type === 'agent')
@@ -78,6 +82,11 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
         conversationStore.getSnapshot,
     )
     const sessionActive = runStatus === 'queued' || runStatus === 'running' || runStatus === 'waitingForInput'
+    const browsingHistory = isBrowsingHistoricalConversation(
+        liveConversationPath ? { path: liveConversationPath } : null,
+        conversationSnapshot.selectedConversation,
+        sessionActive,
+    )
     const orphanWaiting = !sessionActive && conversationSnapshot.selectedConversation?.status === 'waitingForInput'
     const running = runStatus === 'queued' || runStatus === 'running'
     const waitingForAgentInput = (runStatus === 'waitingForInput' && agentActive) || orphanWaiting
@@ -96,7 +105,7 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
         runDisabledMessage: settings.runDisabledMessage,
         runStatus,
     }
-    const runDisabled = actionPopupRunDisabled(
+    const runDisabled = browsingHistory || actionPopupRunDisabled(
         action,
         runState,
         prompt,
@@ -124,10 +133,20 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
         })
     }
     const handlePrimaryRun = async () => {
+        if (browsingHistory) return
+
         await runPopupAction(operationInput)
     }
-    const handleCancel = () => void cancelPopupAction(action, assignmentContext, conversationStore)
-    const handleFinish = () => void finishPopupAction(action, assignmentContext, conversationStore)
+    const handleCancel = () => {
+        if (browsingHistory) return
+
+        void cancelPopupAction(action, assignmentContext, conversationStore)
+    }
+    const handleFinish = () => {
+        if (browsingHistory) return
+
+        void finishPopupAction(action, assignmentContext, conversationStore)
+    }
     const handleToggleSchedule = () => scheduleStore.toggle()
 
     return (
@@ -176,7 +195,7 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
                 >
                     {showFinish ? (
                         <ActionPopupFinishButton
-                            disabled={!settings.backendAvailable || (sessionActive && !interactionReady)}
+                            disabled={browsingHistory || !settings.backendAvailable || (sessionActive && !interactionReady)}
                             onFinish={handleFinish}
                             onStop={handleCancel}
                         />
@@ -219,7 +238,12 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
                     ) : showStop ? (
                         <Tooltip title="Stop">
                             <span>
-                                <IconButton aria-label="Stop" disabled={!settings.backendAvailable} onClick={handleCancel} size="small">
+                                <IconButton
+                                    aria-label="Stop"
+                                    disabled={browsingHistory || !settings.backendAvailable}
+                                    onClick={handleCancel}
+                                    size="small"
+                                >
                                     <StopOutlined sx={{ fontSize: 18 }} />
                                 </IconButton>
                             </span>

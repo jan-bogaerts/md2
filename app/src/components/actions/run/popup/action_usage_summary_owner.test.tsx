@@ -120,7 +120,7 @@ describe('ActionUsageSummaryOwner', () => {
         expect(screen.getByRole('button', { name: 'Changes, Conversation scope' })).toHaveTextContent('changes: +5 / -4')
     })
 
-    it('includes live updates in action/card totals once and uses live conversation when selected', () => {
+    it('includes live totals once while conversation scope follows history then matching live selection', () => {
         let listener: ((event: ActionRunEvent) => void) | null = null
         setActionBridgeOverride({
             onActionRun: vi.fn((nextListener) => {
@@ -131,7 +131,7 @@ describe('ActionUsageSummaryOwner', () => {
         } as unknown as ElectronActionBridge)
         actionRunRegistry.start()
         const selectedConversation = conversation('selected', 2, 1)
-        const { store } = createConversationStore(selectedConversation)
+        const { selectConversation, store } = createConversationStore(selectedConversation)
         const scopeStore = new ActionUsageScopeStore()
         renderOwner(store, scopeStore)
         if (!listener) throw new Error('Missing run listener')
@@ -153,10 +153,14 @@ describe('ActionUsageSummaryOwner', () => {
         expect(screen.getByRole('button', { name: 'Changes, Action/card scope' })).toHaveTextContent('changes: +9 / -5')
 
         fireEvent.click(screen.getByRole('button', { name: 'Changes, Action/card scope' }))
+        expect(screen.getByRole('button', { name: 'Changes, Conversation scope' })).toHaveTextContent('changes: +2 / -1')
+
+        act(() => selectConversation(conversation('live', 0, 0)))
+
         expect(screen.getByRole('button', { name: 'Changes, Conversation scope' })).toHaveTextContent('changes: +7 / -4')
     })
 
-    it('replaces live token snapshots in both scopes while keeping other conversation totals', () => {
+    it('replaces live token snapshots in action totals while historical conversation scope remains selected', () => {
         let listener: ((event: ActionRunEvent) => void) | null = null
         setActionBridgeOverride({
             onActionRun: vi.fn((nextListener) => {
@@ -205,7 +209,7 @@ describe('ActionUsageSummaryOwner', () => {
 
         expect(screen.getByRole('button', { name: 'Tokens, Action/card scope' })).toHaveTextContent('tokens: 37')
         fireEvent.click(screen.getByRole('button', { name: 'Tokens, Action/card scope' }))
-        expect(screen.getByRole('button', { name: 'Tokens, Conversation scope' })).toHaveTextContent('tokens: 17')
+        expect(screen.getByRole('button', { name: 'Tokens, Conversation scope' })).toHaveTextContent('tokens: 20')
     })
 
     it('forces action/card scope when no conversation is displayed', () => {

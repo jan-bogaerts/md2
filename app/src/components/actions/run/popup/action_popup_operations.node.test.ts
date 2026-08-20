@@ -8,7 +8,13 @@ import { actionPromptDraftService } from '../../../../services/actions/action_pr
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
 import { ActionRunSettingsStore, type ResolvedActionRunSettings } from '../../../../services/actions/action_run_settings_service'
 import { dialogService } from '../../../../services/dialog_service'
-import { currentActionPromptDraft, runPopupAction, type ActionPopupOperationInput } from './action_popup_operations'
+import {
+    cancelPopupAction,
+    currentActionPromptDraft,
+    finishPopupAction,
+    runPopupAction,
+    type ActionPopupOperationInput,
+} from './action_popup_operations'
 import { ActionRunInputStore } from '../state/action_run_input_store'
 
 const action = { id: 'stream', label: 'Stream', streaming: true, type: 'agent' } as ActionDefinition
@@ -80,6 +86,12 @@ function emitWaitingRun(listener: (event: ActionRunEvent) => void) {
         streaming: true,
     }
     listener({ ...eventBase, status: 'running', type: 'run' })
+    listener({
+        ...eventBase,
+        status: 'running',
+        type: 'update',
+        update: { conversation: storedConversation([]), kind: 'agentStarted' },
+    })
     listener({ ...eventBase, status: 'waitingForInput', type: 'agentState' })
 }
 
@@ -90,6 +102,8 @@ describe('runPopupAction waiting follow-up', () => {
         let listener: ((event: ActionRunEvent) => void) | null = null
         bridge = {
             beginActionPromptDraft: vi.fn(async () => 4),
+            cancelActionRun: vi.fn(async () => undefined),
+            finishActionRun: vi.fn(async () => undefined),
             onActionRun: vi.fn((nextListener) => {
                 listener = nextListener
                 return vi.fn()
@@ -121,6 +135,24 @@ describe('runPopupAction waiting follow-up', () => {
         expect(bridge.sendActionQueuedMessage).toHaveBeenCalledWith('run-1', 4, 1)
         expect(actionRunRegistry.getActionRunStore(action.id, context)?.getSnapshot()?.context.worktree).toBe('3')
         expect(restartAction).not.toHaveBeenCalled()
+    })
+
+    it('guards Send, Stop, and Finish while active run has historical display', async () => {
+        const historicalConversation = { ...storedConversation([]), path: 'history.json' }
+        const conversationStore = {
+            continuationPath: () => historicalConversation.path,
+            getSnapshot: () => ({ conversations: [historicalConversation], loading: false, selectedConversation: historicalConversation }),
+            load: vi.fn(async () => undefined),
+        } as unknown as ActionPopupOperationInput['conversationStore']
+        const input = operationInput(new ActionRunInputStore(), undefined, conversationStore)
+
+        await runPopupAction(input)
+        await cancelPopupAction(action, context, conversationStore)
+        await finishPopupAction(action, context, conversationStore)
+
+        expect(bridge.sendActionQueuedMessage).not.toHaveBeenCalled()
+        expect(bridge.cancelActionRun).not.toHaveBeenCalled()
+        expect(bridge.finishActionRun).not.toHaveBeenCalled()
     })
 
     it('restarts from persisted conversation with changed settings', async () => {

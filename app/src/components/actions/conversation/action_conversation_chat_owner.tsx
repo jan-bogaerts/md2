@@ -4,7 +4,7 @@ import { cardPopupService, subscribeCardPopups } from '../../../services/card_po
 import { agentAcknowledgementService } from '../../../services/agents/agent_acknowledgement_service'
 import { useActionRunSelector } from '../../hooks/use_action_runs'
 import { ActionConversationChat } from './action_conversation_chat'
-import type { ActionConversationStore } from './action_conversation_store'
+import { resolveDisplayedConversation, type ActionConversationStore } from './action_conversation_store'
 
 interface ActionConversationChatOwnerProps {
     actionId: string
@@ -25,8 +25,11 @@ export function ActionConversationChatOwner(props: ActionConversationChatOwnerPr
         () => cardPopupService.getSnapshot(),
     )
     const cardInternalId = context.cardInternalId
-    const conversation = liveConversation ?? selectedConversation
-    const status = runStatus === 'idle' && conversation?.status === 'waitingForInput' ? 'waitingForInput' : runStatus
+    const conversation = resolveDisplayedConversation(liveConversation, selectedConversation)
+    const displayingLiveConversation = !selectedConversation || selectedConversation.path === liveConversation?.path
+    const status = displayingLiveConversation
+        ? runStatus
+        : conversation?.status === 'waitingForInput' ? 'waitingForInput' : 'idle'
     const visible = !!popupEntryId && popupEntries.at(-1)?.id === popupEntryId && !!cardInternalId && !!conversation
 
     useEffect(() => {

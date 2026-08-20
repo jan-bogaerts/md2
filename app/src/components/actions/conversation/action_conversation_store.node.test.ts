@@ -1,9 +1,17 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ActionContext } from '../../../data/action_context'
+import type { ActionRunEvent } from '../../../data/action_run_types'
 import type { AgentConversation } from '../../../data/data_types'
+import { setActionBridgeOverride, type ElectronActionBridge } from '../../../data/electron_action_bridge'
+import { actionPromptDraftService } from '../../../services/actions/action_prompt_draft_service'
+import { actionRunRegistry } from '../../../services/actions/action_run_registry'
 import { dataService } from '../../../services/data/data_service'
 import { dialogService } from '../../../services/dialog_service'
-import { ActionConversationStore } from './action_conversation_store'
+import {
+    ActionConversationStore,
+    isBrowsingHistoricalConversation,
+    resolveDisplayedConversation,
+} from './action_conversation_store'
 
 const context: ActionContext = { cardInternalId: 'card-1', file: 'design/F-1.md', kind: 'card' }
 const mergeConflictContext: ActionContext = { conflictSessionId: 'session-1', kind: 'merge-conflict' }
@@ -32,8 +40,60 @@ function conversation(path: string): AgentConversation {
 
 describe('ActionConversationStore', () => {
     afterEach(() => {
+        actionRunRegistry.stop()
+        actionPromptDraftService.clearAll()
+        setActionBridgeOverride(null)
         vi.restoreAllMocks()
     })
+
+    it('resolves explicit history while retaining matching live snapshots', () => {
+        const liveConversation = conversation('conversation-live.json')
+        const persistedLiveConversation = { ...liveConversation, title: 'Persisted live' }
+        const historicalConversation = conversation('conversation-history.json')
+
+        expect(resolveDisplayedConversation(liveConversation, null)).toBe(liveConversation)
+        expect(resolveDisplayedConversation(liveConversation, persistedLiveConversation)).toBe(liveConversation)
+        expect(resolveDisplayedConversation(liveConversation, historicalConversation)).toBe(historicalConversation)
+        expect(isBrowsingHistoricalConversation(liveConversation, historicalConversation, true)).toBe(true)
+        expect(isBrowsingHistoricalConversation(liveConversation, persistedLiveConversation, true)).toBe(false)
+        expect(isBrowsingHistoricalConversation(null, historicalConversation, true)).toBe(true)
+        expect(isBrowsingHistoricalConversation(liveConversation, historicalConversation, false)).toBe(false)
+    })
+
+    it.each(['queued', 'running', 'waitingForInput'] as const)(
+        'preserves active prompt draft when selecting and clearing history during %s run',
+        async (status) => {
+            let listener: ((event: ActionRunEvent) => void) | null = null
+            setActionBridgeOverride({
+                onActionRun: vi.fn((nextListener) => {
+                    listener = nextListener
+
+                    return vi.fn()
+                }),
+            } as unknown as ElectronActionBridge)
+            actionRunRegistry.start()
+            if (!listener) throw new Error('Missing action run listener')
+            const emit = listener as (event: ActionRunEvent) => void
+            const eventBase = {
+                actionId: 'implement', actionType: 'agent' as const, autoFinish: null, context,
+                interactionReady: true, phase: 'main' as const, rootActionId: 'implement', runId: 'run-1', streaming: true,
+            }
+            emit({ ...eventBase, status: status === 'waitingForInput' ? 'running' : status, type: 'run' })
+            if (status === 'waitingForInput') emit({ ...eventBase, status, type: 'agentState' })
+            const run = actionRunRegistry.getActionRunStore('implement', context)?.getSnapshot() ?? null
+            const draft = actionPromptDraftService.getDraft('implement', context, run, { prepare: false })
+            draft.edit('Keep active prompt')
+            const historicalConversation = conversation('conversation-history.json')
+            vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(historicalConversation)
+            const store = new ActionConversationStore('implement', context)
+
+            await store.select(historicalConversation.path)
+            draft.edit('Edited while browsing')
+            await store.select('')
+
+            expect(draft.getSnapshot()).toBe('Edited while browsing')
+        },
+    )
 
     it('loads configured unseen conversation during initial history load', async () => {
         const unseenConversation = conversation('conversation-newest.json')

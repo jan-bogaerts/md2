@@ -19,6 +19,7 @@ import { ActionScheduleStore } from '../schedule/action_schedule_store'
 import { configService } from '../../../../services/config/config_service'
 import { BUILTIN_AGENT_PROFILES } from '../../../../data/agent_profiles'
 import type { ActionContext } from '../../../../data/action_context'
+import type { ActionRunEvent } from '../../../../data/action_run_types'
 
 const context = { kind: 'project' as const }
 const cardContext = { cardInternalId: 'card-1', file: 'design/F-1.md', kind: 'card' as const }
@@ -242,6 +243,40 @@ describe('ActionPopupBottomRow', () => {
         act(() => promptDraft.edit(''))
         expect(screen.queryByRole('button', { name: 'Schedule' })).not.toBeInTheDocument()
         expect(screen.queryByRole('button', { name: 'Send' })).not.toBeInTheDocument()
+    })
+
+    it.each([
+        { controls: ['Stop'], status: 'queued' as const },
+        { controls: ['Stop'], status: 'running' as const },
+        { controls: ['Finish', 'Send'], status: 'waitingForInput' as const },
+    ])('disables $controls while historical conversation is displayed during $status', async ({ controls, status }) => {
+        let listener: ((event: ActionRunEvent) => void) | null = null
+        window.md2Actions = {
+            onActionRun: vi.fn((nextListener) => {
+                listener = nextListener
+
+                return vi.fn()
+            }),
+        } as unknown as typeof window.md2Actions
+        actionRunRegistry.start()
+        if (!listener) throw new Error('Missing action run listener')
+        const emit = listener as (event: ActionRunEvent) => void
+        const eventBase = {
+            actionId: action.id, actionType: 'agent' as const, autoFinish: null, context, interactionReady: true,
+            phase: 'main' as const, rootActionId: action.id, runId: 'run-1', streaming: true,
+        }
+        emit({ ...eventBase, status: status === 'waitingForInput' ? 'running' : status, type: 'run' })
+        if (status === 'waitingForInput') emit({ ...eventBase, status, type: 'agentState' })
+        const run = actionRunRegistry.getActionRunStore(action.id, context)?.getSnapshot() ?? null
+        actionPromptDraftService.getDraft(action.id, context, run, { prepare: false }).edit('Keep draft')
+        const historicalConversation = { ...waitingConversation(action.id), path: 'history.json', status: 'completed' as const }
+        vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(historicalConversation)
+        const conversationStore = new ActionConversationStore(action.id, context)
+        await conversationStore.select(historicalConversation.path)
+
+        renderBottomRow(action, conversationStore)
+
+        for (const control of controls) expect(screen.getByRole('button', { name: control })).toBeDisabled()
     })
 
     it('renders icon-only Schedule and exposes descriptive tooltips for idle controls', async () => {

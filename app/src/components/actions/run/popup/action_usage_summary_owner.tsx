@@ -1,7 +1,7 @@
 import { useEffect, useSyncExternalStore } from 'react'
 import type { ActionContext } from '../../../../data/action_context'
 import type { ActionDefinition } from '../../../../data/action_types'
-import type { ActionConversationStore } from '../../conversation/action_conversation_store'
+import { resolveDisplayedConversation, type ActionConversationStore } from '../../conversation/action_conversation_store'
 import type { ActionHistoryStore } from '../state/action_history_store'
 import { useActionRunSelector } from '../../../hooks/use_action_runs'
 import { ActionUsageSummary } from './action_usage_summary'
@@ -26,7 +26,7 @@ export function ActionUsageSummaryOwner(props: ActionUsageSummaryOwnerProps) {
     )
     const historySnapshot = useSyncExternalStore(historyStore.subscribe, historyStore.getSnapshot, historyStore.getSnapshot)
     const scopeSnapshot = useSyncExternalStore(scopeStore.subscribe, scopeStore.getSnapshot, scopeStore.getSnapshot)
-    const displayedConversation = liveConversation ?? conversationSnapshot.selectedConversation
+    const displayedConversation = resolveDisplayedConversation(liveConversation, conversationSnapshot.selectedConversation)
     const scope = displayedConversation ? scopeSnapshot : 'actionCard'
 
     useEffect(() => {

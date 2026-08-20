@@ -16,7 +16,10 @@ import {
     defaultRestartAction,
     defaultRunAction,
 } from './action_popup_defaults'
-import type { ActionConversationStore } from '../../conversation/action_conversation_store'
+import {
+    isBrowsingHistoricalConversation,
+    type ActionConversationStore,
+} from '../../conversation/action_conversation_store'
 import type { ActionHistoryStore } from '../state/action_history_store'
 import type { ActionRunInputStore } from '../state/action_run_input_store'
 import type { ActionRunResultStore } from '../state/action_run_result_store'
@@ -63,6 +66,19 @@ export function currentActionPromptDraft(action: ActionDefinition, context: Acti
     const run = currentActionRun(action, context)
 
     return actionPromptDraftService.getDraft(action.id, context, run, { prepare })
+}
+
+function activeRunHasHistoricalDisplay(
+    run: ReturnType<typeof currentActionRun>,
+    conversationStore: ActionConversationStore,
+) {
+    const sessionActive = run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'
+
+    return isBrowsingHistoricalConversation(
+        run?.conversation ?? null,
+        conversationStore.getSnapshot().selectedConversation,
+        sessionActive,
+    )
 }
 
 async function runWithPrompt(input: ActionPopupOperationInput, prompt: string, previousRunId: string | null = null) {
@@ -131,8 +147,10 @@ async function runWithPrompt(input: ActionPopupOperationInput, prompt: string, p
 }
 
 export async function runPopupAction(input: ActionPopupOperationInput) {
-    const { action, context, settingsStore } = input
+    const { action, context, conversationStore, settingsStore } = input
     const run = currentActionRun(action, context)
+    if (activeRunHasHistoricalDisplay(run, conversationStore)) return
+
     const promptDraft = actionPromptDraftService.getDraft(action.id, context, run, { prepare: false })
     const prompt = promptDraft.getSnapshot()
     const sessionActive = run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'
@@ -213,6 +231,8 @@ export async function cancelPopupAction(
     conversationStore: ActionConversationStore,
 ) {
     const run = currentActionRun(action, context)
+    if (activeRunHasHistoricalDisplay(run, conversationStore)) return
+
     const sessionActive = run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'
     if (!run || !sessionActive) {
         try {
@@ -233,6 +253,8 @@ export async function finishPopupAction(
     conversationStore: ActionConversationStore,
 ) {
     const run = currentActionRun(action, context)
+    if (activeRunHasHistoricalDisplay(run, conversationStore)) return
+
     const sessionActive = run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'
     if (!run || !sessionActive) {
         try {

@@ -12,6 +12,10 @@ interface ActionConversationSnapshot {
     selectedConversation: AgentConversation | null
 }
 
+interface ConversationIdentity {
+    path: string
+}
+
 type Listener = () => void
 
 function belongsToContext(conversation: ConversationPickerConversation, context: ActionContext) {
@@ -24,6 +28,22 @@ function conversationTimestamp(conversation: ConversationPickerConversation) {
     const timestamp = Date.parse(conversation.startedAt)
 
     return Number.isNaN(timestamp) ? 0 : timestamp
+}
+
+/** Resolves explicit history selection without replacing matching live data with persisted data. */
+export function resolveDisplayedConversation<T extends ConversationIdentity>(liveConversation: T | null, selectedConversation: T | null) {
+    if (!selectedConversation || selectedConversation.path === liveConversation?.path) return liveConversation ?? selectedConversation
+
+    return selectedConversation
+}
+
+/** Identifies history display that must not route controls to an active run. */
+export function isBrowsingHistoricalConversation(
+    liveConversation: ConversationIdentity | null,
+    selectedConversation: ConversationIdentity | null,
+    sessionActive: boolean,
+) {
+    return sessionActive && !!selectedConversation && selectedConversation.path !== liveConversation?.path
 }
 
 export function conversationOptions<T extends ConversationPickerConversation>(
@@ -117,7 +137,7 @@ export class ActionConversationStore {
                 }
             }
             this.setSnapshot({ conversations, loading: false, selectedConversation })
-            if (selectedConversation) actionPromptDraftService.clearDraft(this.actionId, this.context, null)
+            if (selectedConversation && !runActive) actionPromptDraftService.clearDraft(this.actionId, this.context, run)
         } catch (error) {
             if (request !== this.loadRequest) return
 
@@ -131,7 +151,7 @@ export class ActionConversationStore {
         this.loadRequest = request
         if (!path) {
             this.setSnapshot({ ...this.snapshot, selectedConversation: null })
-            this.clearPromptDraft()
+            this.clearPromptDraftWhenIdle()
             return
         }
 
@@ -141,7 +161,7 @@ export class ActionConversationStore {
             this.validateSelection(conversation)
 
             this.setSnapshot({ ...this.snapshot, selectedConversation: conversation })
-            this.clearPromptDraft()
+            this.clearPromptDraftWhenIdle()
         } catch (error) {
             if (request === this.loadRequest) {
                 dialogService.error(error, { fallbackMessage: 'Could not load agent conversation' })
@@ -174,8 +194,11 @@ export class ActionConversationStore {
         this.setSnapshot({ ...this.snapshot, conversations, selectedConversation })
     }
 
-    private clearPromptDraft() {
+    private clearPromptDraftWhenIdle() {
         const run = actionRunRegistry.getActionRunStore(this.actionId, this.context)?.getSnapshot() ?? null
+        const runActive = run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'
+        if (runActive) return
+
         actionPromptDraftService.clearDraft(this.actionId, this.context, run)
     }
 

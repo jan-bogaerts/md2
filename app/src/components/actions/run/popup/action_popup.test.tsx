@@ -2037,8 +2037,17 @@ describe('ActionPopup', () => {
 
     it('shows queued state and allows cancelling before the agent starts', async () => {
         actionRunRegistry.stop()
+        const queuedContext = { ...context, cardInternalId: 'card-1' }
         let runListener: ((event: ActionRunEvent) => void) | null = null
         const cancelActionRun = vi.fn(async () => undefined)
+        const historicalConversation = agentConversation({
+            actionId: 'queued-agent', completedAt: '2026-08-01T12:05:00.000Z', id: 'history',
+            entries: [{
+                content: 'Historical answer', id: 'history-message', kind: 'message', role: 'assistant',
+                timestamp: '2026-08-01T12:04:00.000Z',
+            }],
+            path: 'history.json', status: 'completed', title: 'Historical run',
+        })
         window.md2Actions = {
             cancelActionRun,
             loadActionRunHistory: vi.fn(async () => []),
@@ -2050,17 +2059,19 @@ describe('ActionPopup', () => {
             prepareActionPrompt: vi.fn(async () => ({ prompt: 'Plan' })),
         } as unknown as typeof window.md2Actions
         actionRunRegistry.start()
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([historicalConversation])
+        vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(historicalConversation)
         actionService.loadFromFiles([file(agentDefinition('queued-agent', { label: 'Queued agent' }))])
-        renderPopup()
+        renderPopup(queuedContext)
         await waitFor(() => expect(runListener).not.toBeNull())
 
         act(() => {
             runListener?.({
-                actionId: 'queued-agent', context, runId: 'run-1', phase: 'main',
+                actionId: 'queued-agent', context: queuedContext, runId: 'run-1', phase: 'main',
                 rootActionId: 'queued-agent', status: 'running', type: 'run',
             })
             runListener?.({
-                actionId: 'queued-agent', actionType: 'agent', context, runId: 'run-1',
+                actionId: 'queued-agent', actionType: 'agent', context: queuedContext, runId: 'run-1',
                 interactionReady: false, phase: 'main', rootActionId: 'queued-agent', status: 'queued',
                 streaming: false, type: 'action',
             })
@@ -2068,7 +2079,22 @@ describe('ActionPopup', () => {
 
         expect(screen.getByRole('status')).toHaveTextContent('queued')
         expect(screen.getByRole('button', { name: /Queued agent.*Action is queued/u })).toBeInTheDocument()
+        const conversationPicker = screen.getByRole('combobox', { name: 'Conversation history' })
+        await waitFor(() => expect(conversationPicker).toBeEnabled())
+        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
+        fireEvent.change(prompt, { target: { value: 'Queued draft' } })
+        fireEvent.mouseDown(conversationPicker)
+        fireEvent.click(await screen.findByRole('option', { name: /Historical run/u }))
+
+        await screen.findByText('Historical answer')
+        expect(prompt).toHaveValue('Queued draft')
         const stopButton = screen.getByRole('button', { name: 'Stop' })
+        expect(stopButton).toBeDisabled()
+        fireEvent.mouseDown(conversationPicker)
+        fireEvent.click(screen.getByRole('option', { name: 'Conversations' }))
+
+        await waitFor(() => expect(stopButton).toBeEnabled())
+        expect(prompt).toHaveValue('Queued draft')
         expect(stopButton).toBeEnabled()
         fireEvent.mouseOver(stopButton)
         expect(await screen.findByText('Stop', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()

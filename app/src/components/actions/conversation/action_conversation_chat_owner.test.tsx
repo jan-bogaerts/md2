@@ -174,6 +174,71 @@ describe('ActionConversationChatOwner', () => {
         expect(await screen.findByText('Context usage: 50%', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()
     })
 
+    it('shows and acknowledges selected history while hidden live updates accumulate', async () => {
+        let listener: ((event: ActionRunEvent) => void) | null = null
+        const updateActionConversationViewed = vi.fn(async (_reference: string, viewed: boolean) => ({ viewed }))
+        setActionBridgeOverride({
+            onActionRun: vi.fn((nextListener) => {
+                listener = nextListener
+
+                return vi.fn()
+            }),
+            updateActionConversationViewed,
+        } as unknown as ElectronActionBridge)
+        actionRunRegistry.start()
+        const historicalConversation = {
+            ...conversation('history', '2026-08-04T10:01:00.000Z', { capacityTokens: 100, usedTokens: 25 }),
+            entries: [{
+                content: 'Historical answer', id: 'history-message', kind: 'message' as const,
+                role: 'assistant' as const, timestamp: '2026-08-04T10:01:00.000Z',
+            }],
+            viewed: false,
+        }
+        const liveConversation = {
+            ...conversation('live', '2026-08-04T10:01:00.000Z', { capacityTokens: 100, usedTokens: 50 }),
+            completedAt: null,
+            status: 'running' as const,
+        }
+        const { selectConversation, store: selectableStore } = createConversationStore(historicalConversation)
+        cardPopupService.toggleAction(context, document.createElement('button'))
+        const popupEntry = cardPopupService.getSnapshot()[0]
+        if (!popupEntry || !listener) throw new Error('Missing popup or run listener')
+        const eventBase = {
+            actionId: 'review', actionType: 'agent' as const, autoFinish: null, context, interactionReady: true,
+            phase: 'main' as const, rootActionId: 'review', runId: 'run-1', status: 'running' as const, streaming: true,
+        }
+        const emit = listener as (event: ActionRunEvent) => void
+        act(() => {
+            emit({ ...eventBase, type: 'run' })
+            emit({ ...eventBase, type: 'update', update: { conversation: liveConversation, kind: 'agentStarted' } })
+        })
+
+        render(
+            <AppThemeProvider>
+                <ActionConversationChatOwner
+                    actionId="review"
+                    context={context}
+                    popupEntryId={popupEntry.id}
+                    store={selectableStore}
+                />
+            </AppThemeProvider>,
+        )
+        expect(screen.getByText('Historical answer')).toBeInTheDocument()
+        await waitFor(() => expect(updateActionConversationViewed).toHaveBeenCalledWith(historicalConversation.path, true))
+
+        act(() => emit({
+            ...eventBase,
+            type: 'update',
+            update: { content: 'Hidden live answer', kind: 'output', messageId: 'live-message', sequence: 1 },
+        }))
+        expect(screen.queryByText('Hidden live answer')).not.toBeInTheDocument()
+
+        act(() => selectConversation(liveConversation))
+
+        expect(screen.getByText('Hidden live answer')).toBeInTheDocument()
+        expect(updateActionConversationViewed).not.toHaveBeenCalledWith(liveConversation.path, true)
+    })
+
     it.each(['activated', 'newly exposed'])('acknowledges unseen chat when popup becomes topmost: %s', async (scenario) => {
         const unseen = {
             actionId: 'review',
