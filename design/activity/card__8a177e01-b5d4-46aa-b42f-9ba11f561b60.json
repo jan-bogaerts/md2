@@ -11235,11 +11235,11 @@
         "agent-2ff7d2f6-5920-49bb-9f73-3796ce892702"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-783935f6-03ff-4d35-8b3f-8d8acaf22876",
       "origin": {
@@ -11248,9 +11248,33 @@
       },
       "rootActionId": "md2.custom-prompt",
       "rootActionLabel": "+",
-      "rootConversationId": "agent-2ff7d2f6-5920-49bb-9f73-3796ce892702",
       "startedAt": "2026-08-20T12:41:00.719Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-2ff7d2f6-5920-49bb-9f73-3796ce892702"
+    },
+    {
+      "commits": [
+        {
+          "commit": "144fa96cd5f2e70a06b3042702dde199fc184ba0",
+          "committedAt": "2026-08-20T14:48:12+02:00",
+          "deletions": 5,
+          "filePaths": [
+            "desktop/src/actions/agent/claude_usage_parsing.js",
+            "desktop/src/actions/agent/claude_usage_parsing.test.mjs",
+            "desktop/src/actions/agent/claude_usage_poller.js"
+          ],
+          "filesChanged": 3,
+          "insertions": 26,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-20T14:48:12+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "8a177e01-b5d4-46aa-b42f-9ba11f561b60",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
