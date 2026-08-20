@@ -10871,6 +10871,30 @@
         "kind": "card"
       },
       "type": "system"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-08-20T12:40:42.317Z",
+      "conversationIds": [
+        "agent-2ff7d2f6-5920-49bb-9f73-3796ce892702"
+      ],
+      "details": {
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-2c8f267e-2183-4d20-8acf-fb2477c1c591",
+      "origin": {
+        "cardInternalId": "8a177e01-b5d4-46aa-b42f-9ba11f561b60",
+        "kind": "card"
+      },
+      "rootActionId": "md2.custom-prompt",
+      "rootActionLabel": "+",
+      "rootConversationId": "agent-2ff7d2f6-5920-49bb-9f73-3796ce892702",
+      "startedAt": "2026-08-20T12:32:12.876Z",
+      "status": "cancelled"
     }
   ],
   "version": 4
