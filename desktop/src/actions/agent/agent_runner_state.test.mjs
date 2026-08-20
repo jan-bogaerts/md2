@@ -1107,7 +1107,7 @@ describe('AgentRunnerService state handling', () => {
         expect(persistConversation).not.toHaveBeenCalled();
     });
 
-    it('routes Claude account updates to active project metrics and polls only after output', async () => {
+    it('routes Claude account updates to active project metrics and polls for Claude runs only', async () => {
         const snapshot = { available: true, observedAt: 10, windows: [] };
         const claudeRuntimeService = {
             getSnapshot: vi.fn(() => snapshot),
@@ -1126,9 +1126,8 @@ describe('AgentRunnerService state handling', () => {
         });
         await service.handleClaudeRuntimeEvent({ kind: 'unavailable', observedAt: 11 });
         const environment = { PATH: '/bin' };
-        service.requestClaudeUsagePoll({ agent: 'claude', environment, rootPath: '/project', stdout: 'Claude answer' });
-        service.requestClaudeUsagePoll({ agent: 'claude', environment, rootPath: '/project', stdout: '  ' });
-        service.requestClaudeUsagePoll({ agent: 'codex', environment, rootPath: '/project', stdout: 'Codex answer' });
+        service.requestUsagePoll({ agent: 'claude', environment, rootPath: '/project' });
+        service.requestUsagePoll({ agent: 'codex', environment, rootPath: '/project' });
 
         expect(claudeRuntimeService.publishRateLimits).toHaveBeenCalledWith(payload, 10);
         expect(claudeRuntimeService.publishUnavailable).toHaveBeenCalledWith(11);
@@ -1136,6 +1135,72 @@ describe('AgentRunnerService state handling', () => {
         expect(usageMetricsService.recordAccountUsage).toHaveBeenCalledWith('claude', snapshot);
         expect(claudeUsagePoller.requestPoll).toHaveBeenCalledOnce();
         expect(claudeUsagePoller.requestPoll).toHaveBeenCalledWith({ cwd: '/project', env: environment });
+    });
+
+    it('polls Claude usage at run start, on a tick while running, and after the run closes', async () => {
+        const child = new EventEmitter();
+        child.pid = 43;
+        child.stdin = new PassThrough();
+        child.stdout = new PassThrough();
+        child.stderr = new PassThrough();
+        const ticks = [];
+        const cleared = [];
+        const claudeUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };
+        const service = new AgentRunnerService({
+            claudeUsagePoller,
+            clearTimeout: (handle) => cleared.push(handle),
+            executableResolver: { find: vi.fn(async () => null) },
+            persistConversation: vi.fn(async () => undefined),
+            persistConversationCheckpoint: vi.fn(async () => undefined),
+            setTimeout: (callback) => ticks.push(callback),
+            spawn: vi.fn(() => child),
+        });
+        const project = { rootPath: resolve(import.meta.dirname, '../../../..') };
+        const request = { agent: 'claude', command: ['fake-agent'], projectFolder: 'design', prompt: 'Start work' };
+
+        await service.start(project, request, vi.fn(), vi.fn(), vi.fn());
+
+        expect(claudeUsagePoller.requestPoll).toHaveBeenCalledOnce();
+        expect(claudeUsagePoller.requestPoll).toHaveBeenCalledWith({
+            cwd: project.rootPath,
+            env: expect.objectContaining({}),
+        });
+
+        ticks[0]();
+
+        expect(claudeUsagePoller.requestPoll).toHaveBeenCalledTimes(2);
+
+        child.emit('close', 0);
+        await vi.waitFor(() => expect(claudeUsagePoller.requestPoll).toHaveBeenCalledTimes(3));
+        ticks[1]();
+
+        expect(cleared).toEqual([2]);
+        expect(claudeUsagePoller.requestPoll).toHaveBeenCalledTimes(3);
+    });
+
+    it('leaves usage polling alone for agents that report usage inside their protocol', async () => {
+        const child = new EventEmitter();
+        child.pid = 44;
+        child.stdin = new PassThrough();
+        child.stdout = new PassThrough();
+        child.stderr = new PassThrough();
+        const ticks = [];
+        const claudeUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };
+        const service = new AgentRunnerService({
+            claudeUsagePoller,
+            executableResolver: { find: vi.fn(async () => null) },
+            persistConversation: vi.fn(async () => undefined),
+            persistConversationCheckpoint: vi.fn(async () => undefined),
+            setTimeout: (callback) => ticks.push(callback),
+            spawn: vi.fn(() => child),
+        });
+        const project = { rootPath: resolve(import.meta.dirname, '../../../..') };
+        const request = { agent: 'codex', command: ['fake-agent'], projectFolder: 'design', prompt: 'Start work' };
+
+        await service.start(project, request, vi.fn(), vi.fn(), vi.fn());
+
+        expect(claudeUsagePoller.requestPoll).not.toHaveBeenCalled();
+        expect(ticks).toHaveLength(0);
     });
 
     it('keeps approval state separate from conversation persistence and other pending input', async () => {

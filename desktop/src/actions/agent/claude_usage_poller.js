@@ -3,6 +3,7 @@ const nodePty = require('node-pty');
 const { Terminal } = require('@xterm/headless');
 
 const CLAUDE_USAGE_POLL_COOLDOWN_MS = 120_000;
+const CLAUDE_USAGE_MAX_OUTPUT_CHARS = 1_000_000;
 const CLAUDE_USAGE_TERMINAL_COLUMNS = 140;
 const CLAUDE_USAGE_TERMINAL_ROWS = 45;
 const CLAUDE_USAGE_TERMINAL_TIMEOUT_MS = 20_000;
@@ -163,31 +164,52 @@ function parseClaudeUsageOutput(output, observedAt) {
     }
 }
 
-function collectProcessOutput(child) {
+function collectProcessOutput(child, dependencies) {
+    const { clearTimeout: clearPollTimeout, setTimeout: setPollTimeout, timeoutMs } = dependencies;
+
     return new Promise((resolve, reject) => {
         let stdout = '';
         let settled = false;
-        child.stdout.on('data', (chunk) => {
+        let timeout;
+        const finish = (result, error = null) => {
+            if (settled) return;
+            settled = true;
+            clearPollTimeout(timeout);
+            if (error) reject(error);
+            else resolve(result);
+        };
+        // Pipe errors (EPIPE when Claude exits before reading stdin) reach no listener otherwise,
+        // and an unhandled stream error takes the Electron main process down.
+        const ignoreStreamError = () => {};
+        child.stdin?.on('error', ignoreStreamError);
+        child.stdout?.on('error', ignoreStreamError);
+        child.stderr?.on('error', ignoreStreamError);
+        child.stdout?.on('data', (chunk) => {
+            if (stdout.length >= CLAUDE_USAGE_MAX_OUTPUT_CHARS) return;
             stdout += chunk.toString();
         });
-        child.on('error', (error) => {
-            if (settled) return;
-            settled = true;
-            reject(error);
-        });
-        child.on('close', (exitCode) => {
-            if (settled) return;
-            settled = true;
-            resolve({ exitCode: exitCode ?? 1, stdout });
-        });
-        child.stdin.end('/usage\n');
+        child.stderr?.resume(); // Unread stderr fills its pipe buffer and blocks Claude forever.
+        child.on('error', (error) => finish(null, error));
+        child.on('close', (exitCode) => finish({ exitCode: exitCode ?? 1, stdout }));
+        timeout = setPollTimeout(() => {
+            try {
+                child.kill();
+            } catch {
+                // The child is already gone.
+            }
+            finish({ exitCode: 1, stdout });
+        }, timeoutMs);
+        child.stdin?.end('/usage\n');
     });
 }
 
+/** Reads the visible screen only; scanning the whole scrollback on every redraw stalls the main process. */
 function terminalScreenText(terminal) {
     const lines = [];
     const { active } = terminal.buffer;
-    for (let index = 0; index < active.length; index += 1) {
+    const start = Math.max(0, active.baseY);
+    const end = Math.min(active.length, start + (terminal.rows ?? CLAUDE_USAGE_TERMINAL_ROWS));
+    for (let index = start; index < end; index += 1) {
         const line = active.getLine(index)?.translateToString(true);
         if (line) lines.push(line);
     }
@@ -200,40 +222,83 @@ function terminalReady(output) {
 }
 
 function collectTerminalUsage(processHandle, terminal, observedAt, dependencies) {
-    const { clearTimeout: clearPollTimeout, setTimeout: setPollTimeout, timeoutMs } = dependencies;
+    const { clearTimeout: clearPollTimeout, registerAbort, setTimeout: setPollTimeout, timeoutMs } = dependencies;
 
     return new Promise((resolve, reject) => {
         let commandSent = false;
+        let exited = false;
+        let pendingWrites = 0;
         let settled = false;
+        let terminalDisposed = false;
         let dataSubscription;
         let exitSubscription;
         let timeout;
+        // node-pty exposes no liveness check and its Windows agent faults natively when a pty is
+        // killed or written after its process ended, so both go through this guard. `onExit` can
+        // still be in flight, hence the try/catch on top of the flag.
+        const withLiveProcess = (action) => {
+            if (exited) return false;
+            try {
+                action();
+
+                return true;
+            } catch {
+                exited = true;
+
+                return false;
+            }
+        };
+        const killProcess = () => {
+            withLiveProcess(() => processHandle.kill());
+            exited = true;
+        };
+        // xterm flushes writes in chunks; disposing while chunks are queued runs the rest of the
+        // flush against a disposed terminal, so disposal waits for the write buffer to drain.
+        const disposeTerminal = () => {
+            if (terminalDisposed || pendingWrites > 0) return;
+            terminalDisposed = true;
+            terminal.dispose();
+        };
         const finish = (result, error = null) => {
             if (settled) return;
             settled = true;
             clearPollTimeout(timeout);
+            registerAbort?.(null);
             dataSubscription?.dispose();
             exitSubscription?.dispose();
-            terminal.dispose();
+            disposeTerminal();
             if (error) reject(error);
             else resolve(result);
         };
         const inspectScreen = () => {
-            if (settled) return;
+            if (settled || exited) return;
             const output = terminalScreenText(terminal);
             if (!commandSent && terminalReady(output)) {
                 commandSent = true;
-                processHandle.write('/usage\r');
+                if (!withLiveProcess(() => processHandle.write('/usage\r'))) finish(null);
                 return;
             }
             if (!commandSent) return;
             const payload = parseClaudeUsageOutput(output, observedAt);
             if (!payload) return;
-            processHandle.kill();
+            killProcess();
             finish(payload);
         };
-        dataSubscription = processHandle.onData((data) => terminal.write(data, inspectScreen));
+        registerAbort?.(() => {
+            killProcess();
+            finish(null);
+        });
+        dataSubscription = processHandle.onData((data) => {
+            if (settled) return;
+            pendingWrites += 1;
+            terminal.write(data, () => {
+                pendingWrites -= 1;
+                inspectScreen();
+                if (settled) disposeTerminal();
+            });
+        });
         exitSubscription = processHandle.onExit(({ exitCode }) => {
+            exited = true;
             if (settled) return;
             if (exitCode !== 0) {
                 finish(null, new Error('Claude usage terminal failed'));
@@ -242,7 +307,7 @@ function collectTerminalUsage(processHandle, terminal, observedAt, dependencies)
             finish(parseClaudeUsageOutput(terminalScreenText(terminal), observedAt));
         });
         timeout = setPollTimeout(() => {
-            processHandle.kill();
+            killProcess();
             finish(null);
         }, timeoutMs);
     });
@@ -267,6 +332,8 @@ class ClaudeUsagePoller {
             rows: CLAUDE_USAGE_TERMINAL_ROWS,
         }));
         this.terminalTimeoutMs = dependencies.terminalTimeoutMs ?? CLAUDE_USAGE_TERMINAL_TIMEOUT_MS;
+        this.processTimeoutMs = dependencies.processTimeoutMs ?? this.terminalTimeoutMs;
+        this.abortTerminalPoll = null;
         this.activePoll = null;
         this.lastPollStartedAt = Number.NEGATIVE_INFINITY;
         this.pending = false;
@@ -289,6 +356,9 @@ class ClaudeUsagePoller {
         this.pending = false;
         if (this.pendingTimer) this.clearTimeout(this.pendingTimer);
         this.pendingTimer = null;
+        // A pty left running past shutdown tears down natively while Electron is already exiting.
+        this.abortTerminalPoll?.();
+        this.abortTerminalPoll = null;
     }
 
     schedulePendingPoll() {
@@ -306,7 +376,11 @@ class ClaudeUsagePoller {
     }
 
     async runPendingPoll() {
-        await this.poll();
+        try {
+            await this.poll();
+        } catch {
+            // A failing poll must never escape as an unhandled rejection; the next one retries.
+        }
         this.activePoll = null;
         this.schedulePendingPoll();
     }
@@ -314,16 +388,24 @@ class ClaudeUsagePoller {
     async poll() {
         this.lastPollStartedAt = this.now();
         const observedAt = this.now();
+        let payload = null;
         try {
             const executable = await this.executableResolver.find('claude', { cwd: this.cwd, env: this.env }) ?? 'claude';
             const child = this.spawn(executable, [], { cwd: this.cwd, env: this.env, stdio: ['pipe', 'pipe', 'pipe'] });
-            const { exitCode, stdout } = await collectProcessOutput(child);
-            let payload = exitCode === 0 ? parseClaudeUsageOutput(stdout, observedAt) : null;
+            const { exitCode, stdout } = await collectProcessOutput(child, {
+                clearTimeout: this.clearTimeout,
+                setTimeout: this.setTimeout,
+                timeoutMs: this.processTimeoutMs,
+            });
+            payload = exitCode === 0 ? parseClaudeUsageOutput(stdout, observedAt) : null;
+            if (this.stopped) return;
             if (!payload) payload = await this.pollTerminal(executable, observedAt);
-            if (payload) await this.onRuntimeEvent({ kind: 'snapshot', observedAt, payload });
         } catch {
             await this.onRuntimeEvent({ kind: 'unavailable', observedAt: this.now() });
+
+            return;
         }
+        if (payload) await this.onRuntimeEvent({ kind: 'snapshot', observedAt, payload });
     }
 
     async pollTerminal(executable, observedAt) {
@@ -337,6 +419,9 @@ class ClaudeUsagePoller {
 
         return collectTerminalUsage(processHandle, terminal, observedAt, {
             clearTimeout: this.clearTimeout,
+            registerAbort: (abort) => {
+                this.abortTerminalPoll = abort;
+            },
             setTimeout: this.setTimeout,
             timeoutMs: this.terminalTimeoutMs,
         });

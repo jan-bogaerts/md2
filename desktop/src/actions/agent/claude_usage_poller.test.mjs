@@ -37,6 +37,16 @@ function completedChild(output = USAGE_OUTPUT, exitCode = 0) {
     return child;
 }
 
+function hangingChild() {
+    const child = new EventEmitter();
+    child.stdin = new PassThrough();
+    child.stdout = new PassThrough();
+    child.stderr = new PassThrough();
+    child.kill = vi.fn(() => child.emit('close', 1));
+
+    return child;
+}
+
 function terminalChild(output = TERMINAL_USAGE_OUTPUT, exitCode = 0) {
     const dataListeners = new Set();
     const exitListeners = new Set();
@@ -216,5 +226,81 @@ describe('ClaudeUsagePoller', () => {
         await failingPoller.activePoll;
         expect(runtimeListener).toHaveBeenCalledWith(expect.objectContaining({ kind: 'unavailable' }));
         failingPoller.stop();
+    });
+
+    it('drains stderr, gives up on a Claude process that never exits and tolerates stdin pipe errors', async () => {
+        const runtimeListener = vi.fn();
+        const child = hangingChild();
+        const poller = new ClaudeUsagePoller({
+            executableResolver: { find: vi.fn(async () => 'claude') },
+            onRuntimeEvent: runtimeListener,
+            processTimeoutMs: 20,
+            ptySpawn: vi.fn(() => terminalChild(TERMINAL_USAGE_OUTPUT, null)),
+            spawn: vi.fn(() => child),
+        });
+
+        poller.requestPoll();
+        await poller.activePoll;
+
+        expect(child.stderr.isPaused()).toBe(false);
+        expect(child.kill).toHaveBeenCalledOnce();
+        expect(() => child.stdin.emit('error', new Error('EPIPE'))).not.toThrow();
+        expect(runtimeListener).toHaveBeenCalledWith(expect.objectContaining({ kind: 'snapshot' }));
+        poller.stop();
+    });
+
+    it('publishes usage even when killing the exited pty fails', async () => {
+        const runtimeListener = vi.fn();
+        const processHandle = terminalChild(TERMINAL_USAGE_OUTPUT, null);
+        processHandle.kill = vi.fn(() => {
+            throw new Error('Cannot kill a pty that has already exited');
+        });
+        const poller = new ClaudeUsagePoller({
+            executableResolver: { find: vi.fn(async () => 'claude') },
+            onRuntimeEvent: runtimeListener,
+            ptySpawn: vi.fn(() => processHandle),
+            spawn: vi.fn(() => completedChild('partial')),
+        });
+
+        poller.requestPoll();
+        await expect(poller.activePoll).resolves.toBeUndefined();
+        expect(runtimeListener).toHaveBeenCalledWith(expect.objectContaining({ kind: 'snapshot' }));
+        poller.stop();
+    });
+
+    it('kills an in-flight terminal poll when stopped', async () => {
+        const runtimeListener = vi.fn();
+        const processHandle = terminalChild(TERMINAL_USAGE_OUTPUT, null);
+        processHandle.write = vi.fn();
+        const poller = new ClaudeUsagePoller({
+            executableResolver: { find: vi.fn(async () => 'claude') },
+            onRuntimeEvent: runtimeListener,
+            ptySpawn: vi.fn(() => processHandle),
+            spawn: vi.fn(() => completedChild('partial')),
+        });
+
+        poller.requestPoll();
+        await vi.waitFor(() => expect(processHandle.write).toHaveBeenCalledWith('/usage\r'));
+        poller.stop();
+        await poller.activePoll;
+
+        expect(processHandle.kill).toHaveBeenCalledOnce();
+        expect(runtimeListener).not.toHaveBeenCalled();
+    });
+
+    it('keeps polling after the runtime listener throws', async () => {
+        const runtimeListener = vi.fn(() => {
+            throw new Error('listener failed');
+        });
+        const poller = new ClaudeUsagePoller({
+            executableResolver: { find: vi.fn(async () => 'claude') },
+            onRuntimeEvent: runtimeListener,
+            spawn: vi.fn(() => completedChild()),
+        });
+
+        poller.requestPoll();
+        await expect(poller.activePoll).resolves.toBeUndefined();
+        expect(poller.activePoll).toBeNull();
+        poller.stop();
     });
 });

@@ -48,6 +48,7 @@ const { terminateProcessTree } = require('../process_tree');
 const { assertGitRoot, ensureInsideRoot, requireRootPath } = require('../../git/git_commands');
 
 const AGENT_FINISH_GRACE_MS = 5_000;
+const AGENT_USAGE_POLL_TICK_MS = 120_000;
 
 class AgentRunnerService {
     constructor(dependencies = {}) {
@@ -76,6 +77,7 @@ class AgentRunnerService {
         this.handleFinishTimeout = this.handleFinishTimeout.bind(this);
         this.processes = new Map();
         this.runningConversationIds = new Set();
+        this.usagePollTimer = null;
     }
 
     async run(project, request, onEvent) {
@@ -131,6 +133,7 @@ class AgentRunnerService {
         const argumentsList = streaming ? configuredArguments : [...configuredArguments, prompt];
         const initialConversation = snapshotConversation(conversation);
         await this.persistConversationCheckpoint({ conversation: initialConversation, request });
+        this.requestUsagePoll({ agent, environment, rootPath });
         const child = this.spawn(executable, argumentsList, {
             cwd: rootPath,
             detached: process.platform !== 'win32',
@@ -175,6 +178,7 @@ class AgentRunnerService {
         });
         this.processes.set(id, run);
         this.runningConversationIds.add(conversation.id);
+        this.syncUsagePollTicks();
 
         child.stdout.on('data', (chunk) => this.handleOutput(id, 'stdout', chunk));
         child.stderr.on('data', (chunk) => this.handleOutput(id, 'stderr', chunk));
@@ -291,6 +295,7 @@ class AgentRunnerService {
     }
 
     stopAll() {
+        this.stopUsagePollTicks();
         this.claudeUsagePoller.stop();
         const completions = [];
         for (const run of this.processes.values()) {
@@ -332,10 +337,42 @@ class AgentRunnerService {
         await this.usageMetricsService.recordAccountUsage('claude', snapshot);
     }
 
-    requestClaudeUsagePoll(run) {
-        if (run.agent === 'claude' && run.stdout.trim().length > 0) {
-            this.claudeUsagePoller.requestPoll({ cwd: run.rootPath, env: run.environment });
+    /** Refreshes account usage for agents that report it out of band; Codex reports it inside its own protocol. */
+    requestUsagePoll(run) {
+        if (run.agent !== 'claude') return;
+        this.claudeUsagePoller.requestPoll({ cwd: run.rootPath, env: run.environment });
+    }
+
+    /** Picks any active run whose agent needs polling; the usage snapshot is account-wide, so any one will do. */
+    pollableRun() {
+        for (const run of this.processes.values()) {
+            if (run.agent === 'claude') return run;
         }
+
+        return null;
+    }
+
+    /** Keeps a repeating poll running while a pollable run is active; long runs would otherwise show a frozen figure. */
+    syncUsagePollTicks() {
+        const run = this.pollableRun();
+        if (!run) {
+            this.stopUsagePollTicks();
+            return;
+        }
+        if (this.usagePollTimer) return;
+        this.usagePollTimer = this.setTimeout(() => {
+            this.usagePollTimer = null;
+            const activeRun = this.pollableRun();
+            if (!activeRun) return;
+            this.requestUsagePoll(activeRun);
+            this.syncUsagePollTicks();
+        }, AGENT_USAGE_POLL_TICK_MS);
+    }
+
+    stopUsagePollTicks() {
+        if (!this.usagePollTimer) return;
+        this.clearTimeout(this.usagePollTimer);
+        this.usagePollTimer = null;
     }
 
     recordTokenUsage(run, usage, recordedAt) {
@@ -630,7 +667,7 @@ class AgentRunnerService {
             this.processes.delete(runId);
             this.runningConversationIds.delete(run.conversation.id);
             emitRunEvent(run, { conversation: run.conversation, type: 'closed' });
-            this.requestClaudeUsagePoll(run);
+            this.requestUsagePoll(run);
             if (persistenceError) {
                 if (run.onCompletionError) run.onCompletionError(persistenceError);
                 return;
@@ -641,6 +678,7 @@ class AgentRunnerService {
         } finally {
             this.processes.delete(runId);
             this.runningConversationIds.delete(run.conversation.id);
+            this.syncUsagePollTicks();
         }
     }
 
