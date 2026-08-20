@@ -4,6 +4,7 @@ const { claudeChangedPaths, claudeUsage } = require('./agent_claude_events');
 const { isMissingSession } = require('./agent_provider_protocol');
 
 const CLAUDE_APPROVAL_DECISIONS = ['accept', 'acceptForSession', 'decline', 'cancel'];
+const CLAUDE_CONTEXT_USAGE_TIMEOUT_MS = 1_000;
 const CLAUDE_FILE_TOOLS = new Set(['Edit', 'MultiEdit', 'NotebookEdit', 'Write']);
 const CLAUDE_QUESTION_TOOL = 'AskUserQuestion';
 
@@ -22,6 +23,26 @@ function claudeControlResponse(requestId, response) {
         response: { request_id: requestId, response, subtype: 'success' },
         type: 'control_response',
     };
+}
+
+function claudeContextUsageRequest(requestId) {
+    return {
+        request: { subtype: 'get_context_usage' },
+        request_id: requestId,
+        type: 'control_request',
+    };
+}
+
+function claudeContextWindowUsage(event) {
+    const response = event.response;
+    if (!response || typeof response !== 'object' || Array.isArray(response) || response.subtype !== 'success') return null;
+    const contextUsage = response.response;
+    if (!contextUsage || typeof contextUsage !== 'object' || Array.isArray(contextUsage)) return null;
+    const { maxTokens, totalTokens } = contextUsage;
+    if (!Number.isSafeInteger(totalTokens) || totalTokens < 0) return null;
+    if (!Number.isSafeInteger(maxTokens) || maxTokens <= 0) return null;
+
+    return { capacityTokens: maxTokens, usedTokens: totalTokens };
 }
 
 function claudeQuestionRequest(event) {
@@ -159,6 +180,8 @@ class ClaudeStreamingAdapter {
         this.activeMessageId = null;
         this.activeTextOrdinal = 0;
         this.protocolErrorSequence = 1;
+        this.contextUsageRequestSequence = 1;
+        this.pendingContextUsage = null;
         this.turnStarted = false;
         this.turnHasAssistantText = false;
     }
@@ -206,6 +229,10 @@ class ClaudeStreamingAdapter {
     }
 
     async handleMessage(event) {
+        if (event.type === 'control_response') {
+            await this.handleContextUsageResponse(event);
+            return;
+        }
         const questionRequest = claudeQuestionRequest(event);
         if (questionRequest) {
             this.pendingQuestions.set(questionRequest.requestId, questionRequest);
@@ -436,7 +463,41 @@ class ClaudeStreamingAdapter {
         this.pendingQuestions.clear();
         this.turnStarted = false;
         this.turnHasAssistantText = false;
-        await this.onEvent({ error, missingSession, type: 'turnCompleted', usage: claudeUsage(event) });
+        const turnCompletedEvent = { error, missingSession, type: 'turnCompleted', usage: claudeUsage(event) };
+        if (error) {
+            await this.onEvent(turnCompletedEvent);
+            return;
+        }
+        await this.requestContextWindowUsage(turnCompletedEvent);
+    }
+
+    async requestContextWindowUsage(turnCompletedEvent) {
+        const requestId = `claude-context-usage-${this.contextUsageRequestSequence}`;
+        this.contextUsageRequestSequence += 1;
+        const timeout = setTimeout(async () => {
+            await this.completeContextUsageRequest(requestId, null);
+        }, CLAUDE_CONTEXT_USAGE_TIMEOUT_MS);
+        this.pendingContextUsage = { requestId, timeout, turnCompletedEvent };
+        try {
+            await this.writeLine(claudeContextUsageRequest(requestId));
+        } catch {
+            await this.completeContextUsageRequest(requestId, null);
+        }
+    }
+
+    async handleContextUsageResponse(event) {
+        const requestId = event.response?.request_id;
+        if (requestId !== this.pendingContextUsage?.requestId) return;
+
+        await this.completeContextUsageRequest(requestId, claudeContextWindowUsage(event));
+    }
+
+    async completeContextUsageRequest(requestId, contextWindowUsage) {
+        const pendingContextUsage = this.pendingContextUsage;
+        if (!pendingContextUsage || pendingContextUsage.requestId !== requestId) return;
+        clearTimeout(pendingContextUsage.timeout);
+        this.pendingContextUsage = null;
+        await this.onEvent({ ...pendingContextUsage.turnCompletedEvent, contextWindowUsage });
     }
 
     static ignoreProtocolNoise() {

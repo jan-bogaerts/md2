@@ -1,5 +1,5 @@
 import { createRequire } from 'node:module';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { AGENT_RESULT_MAX_LENGTH } from '../../../../shared/agent_conversations.mjs';
 
 const require = createRequire(import.meta.url);
@@ -21,6 +21,22 @@ function harness(agent, providerConversationId = null) {
     return { adapter, events, runtimeEvents, writes };
 }
 
+function claudeContextUsageResponse(requestId, response, subtype = 'success') {
+    return {
+        response: { request_id: requestId, response, subtype },
+        type: 'control_response',
+    };
+}
+
+function latestClaudeContextUsageRequest(writes) {
+    return writes.findLast(({ request, type }) => type === 'control_request' && request?.subtype === 'get_context_usage');
+}
+
+async function answerClaudeContextUsage(adapter, writes, response = { maxTokens: 258_400, totalTokens: 42_000 }) {
+    const request = latestClaudeContextUsageRequest(writes);
+    await adapter.handleMessage(claudeContextUsageResponse(request.request_id, response));
+}
+
 describe('ClaudeStreamingAdapter', () => {
     it('writes multiple user turns and treats each result as a turn boundary', async () => {
         const { adapter, events, writes } = harness('claude');
@@ -29,15 +45,137 @@ describe('ClaudeStreamingAdapter', () => {
         await adapter.handleMessage({ session_id: 'session-1', subtype: 'init', type: 'system' });
         await adapter.handleMessage({ message: { content: [{ text: 'proposal', type: 'text' }], id: 'message-1' }, type: 'assistant' });
         await adapter.handleMessage({ total_cost_usd: 0.01, type: 'result', usage: { input_tokens: 4, output_tokens: 2 } });
+        await answerClaudeContextUsage(adapter, writes);
         await adapter.sendMessage('approved');
 
         expect(writes).toEqual([
             { message: { content: 'plan', role: 'user' }, type: 'user' },
+            {
+                request: { subtype: 'get_context_usage' },
+                request_id: 'claude-context-usage-1',
+                type: 'control_request',
+            },
             { message: { content: 'approved', role: 'user' }, type: 'user' },
         ]);
         expect(events).toContainEqual({ conversationId: 'session-1', type: 'sessionStarted' });
         expect(events).toContainEqual({ content: 'proposal', itemId: 'message-1:text:0', type: 'assistantCompleted' });
         expect(events.at(-1)).toMatchObject({ error: null, type: 'turnCompleted' });
+    });
+
+    it('delays completion and maps only the matching context usage response without changing turn usage', async () => {
+        const { adapter, events, writes } = harness('claude');
+        const result = {
+            total_cost_usd: 0.25,
+            type: 'result',
+            usage: { cache_creation_input_tokens: 3, cache_read_input_tokens: 10, input_tokens: 5, output_tokens: 7 },
+        };
+
+        await adapter.handleMessage(result);
+
+        expect(writes).toEqual([{
+            request: { subtype: 'get_context_usage' },
+            request_id: 'claude-context-usage-1',
+            type: 'control_request',
+        }]);
+        expect(events).toEqual([]);
+
+        await adapter.handleMessage(claudeContextUsageResponse('unrelated-request', { maxTokens: 1, totalTokens: 1 }));
+        expect(events).toEqual([]);
+
+        await adapter.handleMessage(claudeContextUsageResponse('claude-context-usage-1', {
+            maxTokens: 258_400,
+            rawMaxTokens: 300_000,
+            totalTokens: 42_000,
+        }));
+
+        expect(events).toEqual([{
+            contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 },
+            error: null,
+            missingSession: false,
+            type: 'turnCompleted',
+            usage: {
+                cachedInputTokens: 13,
+                costUsd: 0.25,
+                inputTokens: 5,
+                outputTokens: 7,
+                reasoningTokens: 0,
+                totalTokens: 25,
+            },
+        }]);
+    });
+
+    it('reports the latest context snapshot independently for each successful turn', async () => {
+        const { adapter, events, writes } = harness('claude');
+
+        await adapter.handleMessage({ type: 'result' });
+        await answerClaudeContextUsage(adapter, writes, { maxTokens: 100_000, totalTokens: 5 });
+        await adapter.handleMessage({ type: 'result' });
+        await answerClaudeContextUsage(adapter, writes, { maxTokens: 258_400, totalTokens: 42_000 });
+
+        expect(writes.filter(({ type }) => type === 'control_request').map(({ request_id: requestId }) => requestId)).toEqual([
+            'claude-context-usage-1',
+            'claude-context-usage-2',
+        ]);
+        expect(events.filter(({ type }) => type === 'turnCompleted')).toEqual([
+            expect.objectContaining({ contextWindowUsage: { capacityTokens: 100_000, usedTokens: 5 } }),
+            expect.objectContaining({ contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 } }),
+        ]);
+    });
+
+    it.each([
+        ['missing totalTokens', { maxTokens: 258_400 }],
+        ['zero maxTokens', { maxTokens: 0, totalTokens: 42_000 }],
+        ['negative totalTokens', { maxTokens: 258_400, totalTokens: -1 }],
+        ['non-integer maxTokens', { maxTokens: 258_400.5, totalTokens: 42_000 }],
+        ['unsafe totalTokens', { maxTokens: 258_400, totalTokens: Number.MAX_SAFE_INTEGER + 1 }],
+        ['rawMaxTokens without maxTokens', { rawMaxTokens: 300_000, totalTokens: 42_000 }],
+    ])('clears context snapshot for %s', async (description, response) => {
+        const { adapter, events, writes } = harness('claude');
+
+        await adapter.handleMessage({ type: 'result' });
+        await answerClaudeContextUsage(adapter, writes, response);
+
+        expect(events.at(-1)).toMatchObject({ contextWindowUsage: null, error: null, type: 'turnCompleted' });
+    });
+
+    it.each(['error', 'unsupported'])('clears context snapshot for a matching %s response', async (subtype) => {
+        const { adapter, events, writes } = harness('claude');
+
+        await adapter.handleMessage({ type: 'result' });
+        const request = latestClaudeContextUsageRequest(writes);
+        await adapter.handleMessage(claudeContextUsageResponse(request.request_id, { message: 'Unavailable' }, subtype));
+
+        expect(events.at(-1)).toMatchObject({ contextWindowUsage: null, error: null, type: 'turnCompleted' });
+    });
+
+    it('times out successfully and ignores the late response while a newer request is pending', async () => {
+        vi.useFakeTimers();
+        try {
+            const { adapter, events, writes } = harness('claude');
+
+            await adapter.handleMessage({ type: 'result' });
+            await vi.advanceTimersByTimeAsync(1_000);
+
+            expect(events).toEqual([expect.objectContaining({ contextWindowUsage: null, error: null, type: 'turnCompleted' })]);
+
+            await adapter.handleMessage({ type: 'result' });
+            await adapter.handleMessage(claudeContextUsageResponse('claude-context-usage-1', {
+                maxTokens: 100_000,
+                totalTokens: 90_000,
+            }));
+            expect(events).toHaveLength(1);
+
+            await answerClaudeContextUsage(adapter, writes, { maxTokens: 258_400, totalTokens: 42_000 });
+            expect(events).toEqual([
+                expect.objectContaining({ contextWindowUsage: null, type: 'turnCompleted' }),
+                expect.objectContaining({
+                    contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 },
+                    type: 'turnCompleted',
+                }),
+            ]);
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it('correlates structured question answers through the Claude control protocol', async () => {
@@ -175,7 +313,7 @@ describe('ClaudeStreamingAdapter', () => {
     });
 
     it('separates assistant messages within a turn and restarts the separator each turn', async () => {
-        const { adapter, events } = harness('claude');
+        const { adapter, events, writes } = harness('claude');
         let messageIndex = 0;
         const assistantMessage = (text) => {
             messageIndex += 1;
@@ -186,6 +324,7 @@ describe('ClaudeStreamingAdapter', () => {
         await adapter.handleMessage(assistantMessage('first'));
         await adapter.handleMessage(assistantMessage('second'));
         await adapter.handleMessage({ type: 'result' });
+        await answerClaudeContextUsage(adapter, writes);
         await adapter.handleMessage(assistantMessage('next turn'));
 
         const assistantEvents = events.filter(({ type }) => type === 'assistantCompleted');
@@ -251,7 +390,7 @@ describe('ClaudeStreamingAdapter', () => {
     });
 
     it('reconciles an aggregated assistant message that arrives after the next step cleared active blocks', async () => {
-        const { adapter, events } = harness('claude');
+        const { adapter, events, writes } = harness('claude');
         const messageStart = (id) => ({ event: { message: { id }, type: 'message_start' }, type: 'stream_event' });
         const textStart = (index) => ({
             event: { content_block: { text: '', type: 'text' }, index, type: 'content_block_start' },
@@ -273,6 +412,7 @@ describe('ClaudeStreamingAdapter', () => {
         await adapter.handleMessage(aggregated('message-1', 'first step'));
         await adapter.handleMessage(aggregated('message-2', 'second step'));
         await adapter.handleMessage({ type: 'result' });
+        await answerClaudeContextUsage(adapter, writes);
 
         expect(events.filter(({ type }) => type === 'assistantStarted')).toEqual([
             { itemId: 'message-1:text:0', type: 'assistantStarted' },
@@ -285,7 +425,7 @@ describe('ClaudeStreamingAdapter', () => {
     });
 
     it('keeps one assistant item per step across an AskUserQuestion pause with re-delivered aggregates', async () => {
-        const { adapter, events } = harness('claude');
+        const { adapter, events, writes } = harness('claude');
         const messageStart = (id) => ({ event: { message: { id }, type: 'message_start' }, type: 'stream_event' });
         const textStart = (index) => ({
             event: { content_block: { text: '', type: 'text' }, index, type: 'content_block_start' },
@@ -324,6 +464,7 @@ describe('ClaudeStreamingAdapter', () => {
         await adapter.handleMessage(aggregated('msg-B', 'step B text'));
         await adapter.handleMessage(aggregated('msg-B', 'step B text'));
         await adapter.handleMessage({ type: 'result' });
+        await answerClaudeContextUsage(adapter, writes);
 
         expect(events.filter(({ type }) => type === 'assistantStarted')).toEqual([
             { itemId: 'msg-A:text:0', type: 'assistantStarted' },
