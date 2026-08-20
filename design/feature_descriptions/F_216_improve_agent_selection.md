@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 8c0611fd-44e8-4f65-bc86-11c26afacc8e
 ---
 
 right now, on the action popup, when changing the agent in the agent-selector component, it is a bit annoying: when agent changes, model and thinking level switch to 'none' which means the user always has to enter a model and thinking level as well, which means re-opening the context menu and such. this is annoying.
