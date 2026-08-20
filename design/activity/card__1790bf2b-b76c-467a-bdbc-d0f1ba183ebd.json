@@ -33,7 +33,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "1790bf2b-b76c-467a-bdbc-d0f1ba183ebd",
       "cardPath": "design/feature_descriptions/J_32_claude_usage_poller_reuses_resolved_executable.md",
-      "completedAt": null,
+      "completedAt": "2026-08-20T12:57:46.698Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 75956
@@ -956,7 +956,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 69,
-          "timestamp": "2026-08-20T12:57:46.328Z"
+          "timestamp": "2026-08-20T12:57:46.698Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -966,15 +966,15 @@
           "agent": "codex",
           "conversationId": "01a01f38-8df2-7281-a8ef-e1e630991152",
           "createdAt": "2026-08-20T12:51:55.483Z",
-          "lastUsedAt": "2026-08-20T12:51:55.483Z",
-          "synchronizedThroughMessageId": "agent-turn-0063f942-b5dd-40be-b863-56e4137c9ad9-turn-1-assistant-4"
+          "lastUsedAt": "2026-08-20T12:57:46.698Z",
+          "synchronizedThroughMessageId": "agent-turn-0063f942-b5dd-40be-b863-56e4137c9ad9-turn-2-assistant-4"
         }
       ],
       "startedAt": "2026-08-20T12:49:53.886Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 121597,
-        "runningStartedAt": "2026-08-20T12:55:32.153Z"
+        "elapsedMs": 256142,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
