@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 10a50270-fcab-4661-9d29-d966aa99eb1e
 ---
 an agent was running, we sent a steering prompt while the agent was still running. first one went ok. but then, the 'send' button remained disabled after typing in some text in the input button (a recurring issue, clearly the state of the send button is still calculated incorrectly. it should be super simple: text in the input box, then enable the send button).
 
