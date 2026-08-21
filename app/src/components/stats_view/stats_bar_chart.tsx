@@ -38,8 +38,8 @@ function formattedValue(row: StatsChartRow) {
     if (row.unit === 'milliseconds') {
         return `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(row.value / 1_000)} seconds`;
     }
-    if (row.unit === 'percentagePoints') {
-        return `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(row.value)} pp`;
+    if (row.unit === 'percent') {
+        return `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(row.value)}%`;
     }
 
     return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(row.value);

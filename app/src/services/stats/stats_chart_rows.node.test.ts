@@ -29,7 +29,7 @@ describe('emptyTimeRow', () => {
 
 describe('unavailableTimeRow', () => {
     it('marks the bucket unavailable while keeping the value numerically zero', () => {
-        const row = unavailableTimeRow(context, 'day', 'accountUsage', 'accountUsage', 'percentagePoints', 'positive account usage')
+        const row = unavailableTimeRow(context, 'day', 'accountUsage', 'accountUsage', 'percent', 'positive account usage')
 
         expect(row).toMatchObject({ available: false, chartRole: 'accountUsage', value: 0 })
         expect(row.tooltip).toContain('Unavailable: positive account usage')

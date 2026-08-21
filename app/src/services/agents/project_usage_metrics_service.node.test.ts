@@ -37,6 +37,16 @@ describe('project usage metrics parsing', () => {
         ])
     })
 
+    it('repairs historical deltas caused by one-minute reset timestamp drift', () => {
+        const baseline = '2026-08-12T09:00:00.000Z,account_usage,codex,weekly,window-a,10080,2026-08-17T17:00:00.000Z,,,,,,20,'
+        const drifted = '2026-08-12T10:00:00.000Z,account_usage,codex,weekly,window-a,10080,2026-08-17T16:59:00.000Z,,,,,,27.88,27.88'
+
+        const accountRows = parseUsageMetrics(`${metricsHeader}\r\n${baseline}\r\n${drifted}\r\n`).accountRows
+
+        expect(accountRows.at(-1)?.resetsAt).toBe('2026-08-17T16:59:00.000Z')
+        expect(accountRows.at(-1)?.usedPercentDelta).toBeCloseTo(7.88)
+    })
+
     it('rejects malformed token totals because chart data would be incorrect', () => {
         const tokenRow = '2026-08-12T10:00:00.000Z,token_usage,codex,,,,,3,2,4,1,99,,'
 

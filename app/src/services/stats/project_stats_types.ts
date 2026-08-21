@@ -25,7 +25,7 @@ export type StatsUnit =
     | 'actionsPerPercentagePoint'
     | 'cards'
     | 'milliseconds'
-    | 'percentagePoints'
+    | 'percent'
     | 'tokens'
     | 'tokensPerPercentagePoint'
     | 'toolCalls';

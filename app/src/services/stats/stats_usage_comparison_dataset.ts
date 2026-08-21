@@ -96,7 +96,7 @@ function accountSeriesRow(
         { label: 'Provider', value: accountSeriesWindowDescription(series) },
         {
             label: 'Used this period',
-            value: available ? `${formatCount(value)}% of ${series.windowId} limit` : 'percentage-point delta unavailable',
+            value: available ? `${formatCount(value)}% of ${series.windowId} limit` : 'account usage unavailable',
         },
     ];
     if (resetTimes.length > 0) {
@@ -107,7 +107,7 @@ function accountSeriesRow(
     const tooltip = statsTooltip(tooltipLines);
 
     return {
-        ...emptyTimeRow(context, granularity, 'accountUsage', 'accountUsage', 'percentagePoints'),
+        ...emptyTimeRow(context, granularity, 'accountUsage', 'accountUsage', 'percent'),
         accessibleLabel: accessibleStatsTooltip(tooltip),
         available,
         identity: series.identity,
@@ -129,7 +129,7 @@ function comparisonAccountRows(
 ): StatsChartRow[] {
     return contexts.flatMap((context) => {
         if (seriesOptions.length === 0) {
-            return [unavailableTimeRow(context, granularity, 'accountUsage', 'accountUsage', 'percentagePoints', 'positive account usage')];
+            return [unavailableTimeRow(context, granularity, 'accountUsage', 'accountUsage', 'percent', 'positive account usage')];
         }
 
         return seriesOptions.map((series) => accountSeriesRow(

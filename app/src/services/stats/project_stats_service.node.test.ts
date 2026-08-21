@@ -546,6 +546,24 @@ describe('ProjectStatsService aggregation', () => {
         expect(service.getSnapshot().rows.some(({ seriesLabel }) => seriesLabel?.includes('window-a'))).toBe(false)
     })
 
+    it('does not double-count account usage when reset timestamps drift by one minute', async () => {
+        const accountRows = [
+            '2026-08-12T09:00:00.000Z,account_usage,codex,weekly,window-a,10080,2026-08-17T17:00:00.000Z,,,,,,0,',
+            '2026-08-12T10:00:00.000Z,account_usage,codex,weekly,window-a,10080,2026-08-17T16:59:00.000Z,,,,,,27.88,27.88',
+            '2026-08-12T11:00:00.000Z,account_usage,codex,weekly,window-a,10080,2026-08-17T17:00:00.000Z,,,,,,28,28',
+        ]
+        const service = new ProjectStatsService()
+        await openService(service, storage({ 'design/usage_metrics.csv': [metricsHeader, ...accountRows].join('\r\n') }))
+        service.setControls({ dataset: 'usageComparison' })
+
+        expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole === 'accountUsage')).toMatchObject([{
+            unit: 'percent',
+            value: 28,
+        }])
+        expect(service.getSnapshot().rows.find(({ chartRole }) => chartRole === 'accountUsage')?.tooltip)
+            .toContain('Used this period: 28% of window-a limit')
+    })
+
     it('builds provider ratios and grouped agent activity without counting commands as provider actions', async () => {
         const codexConversation = conversation({ actionId: 'codex-review', id: 'codex-conversation', title: 'Codex review' })
         const claudeConversation = conversation({ actionId: 'claude-review', id: 'claude-conversation', title: 'Claude review' })

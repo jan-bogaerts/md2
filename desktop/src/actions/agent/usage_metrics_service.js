@@ -25,6 +25,7 @@ const SUPPORTED_PROVIDERS = new Set(['claude', 'codex']);
 const UNIX_MILLISECONDS_THRESHOLD = 1_000_000_000_000;
 const USAGE_METRICS_FILE = 'usage_metrics.csv';
 const CLAUDE_CALCULATION_WINDOW_ID = 'weekly';
+const RESET_TIMESTAMP_TOLERANCE_MS = 60_000;
 const CLAUDE_WINDOW_DURATIONS = new Map([
     ['five_hour', 300],
     ['weekly', 10_080],
@@ -170,6 +171,10 @@ function normalizeTokenUsage(usage) {
 
 function accountKey(provider, limitId, windowId) {
     return `${provider}\u0000${limitId}\u0000${windowId}`;
+}
+
+function sameAccountWindow(leftResetTimestamp, rightResetTimestamp) {
+    return Math.abs(Date.parse(leftResetTimestamp) - Date.parse(rightResetTimestamp)) <= RESET_TIMESTAMP_TOLERANCE_MS;
 }
 
 function normalizeAccountWindow(provider, limitId, windowId, windowDurationMinutes, window) {
@@ -370,7 +375,7 @@ class UsageMetricsService {
             if (changed.length === 0) return false;
             const records = changed.map((window) => {
                 const baseline = state.baselines.get(accountKey(provider, window.limitId, window.windowId));
-                const delta = !baseline ? '' : baseline.resetsAt === window.resetsAt
+                const delta = !baseline ? '' : sameAccountWindow(baseline.resetsAt, window.resetsAt)
                     ? window.usedPercent - baseline.usedPercent
                     : window.usedPercent;
 

@@ -59,11 +59,18 @@ describe('StatsBarChart', () => {
     });
 
     it('positions corrections against a zero baseline', () => {
-        renderChart(<StatsBarChart rows={[row({ unit: 'percentagePoints', value: -2 })]} />);
+        renderChart(<StatsBarChart rows={[row({ unit: 'percent', value: -2 })]} />);
 
         expect(screen.getByLabelText('Zero baseline')).toBeInTheDocument();
-        expect(screen.getByText('-2 pp')).toBeInTheDocument();
+        expect(screen.getByText('-2%')).toBeInTheDocument();
         expect(screen.getByTestId('stats-bar')).toHaveStyle({ top: '50%' });
+    });
+
+    it('labels account usage as percent instead of percentage points', () => {
+        renderChart(<StatsBarChart rows={[row({ unit: 'percent', value: 27.88 })]} />);
+
+        expect(screen.getByText(/27[,.]88%/u)).toBeInTheDocument();
+        expect(screen.queryByText(/pp/u)).toBeNull();
     });
 
     it('labels unavailable zero values without changing their numeric row value', () => {
@@ -143,7 +150,7 @@ describe('StatsBarChart', () => {
 
     it('renders five usage comparison charts in required order', () => {
         renderChart(<StatsUsageComparisonCharts tokenAggregation="total" rows={[
-            row({ chartRole: 'accountUsage', unit: 'percentagePoints' }),
+            row({ chartRole: 'accountUsage', unit: 'percent' }),
             row({ chartRole: 'projectTokens' }),
             row({ chartRole: 'tokensPerAccountUsage' }),
             row({ chartRole: 'actionsPerAccountUsage' }),
