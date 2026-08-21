@@ -16,4 +16,12 @@ Allow the user to enter agent subscription costs so we can calculate things like
 * cost per action
 * tokens per dollar (derived from tokens per % account usage).&#x20;
 
-this allows the user to compare different configurations
+this allows the user to compare different configurations.
+
+account cost should be configured from where the rest is configured for the agents: in the desktop config section.
+
+prices are expressed per month
+
+if we need to to keep things simple, we presume 4 weeks per month (28 days), that makes it easier.&#x20;
+
+so if 100$ \= 100% account usage, 1% \= 1$
