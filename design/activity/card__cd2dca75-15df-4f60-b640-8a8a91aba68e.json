@@ -4604,6 +4604,40 @@
       "startedAt": "2026-08-21T15:38:02.063Z",
       "status": "cancelled",
       "rootConversationId": "agent-4f5c0a92-5e60-4290-a93c-cf2c11d825b3"
+    },
+    {
+      "commits": [
+        {
+          "commit": "a38008f1e8063b6ceaa8653fd95a1151946ce251",
+          "committedAt": "2026-08-21T18:44:33+02:00",
+          "deletions": 76,
+          "filePaths": [
+            "app/src/components/card_view/card_body_popover.tsx",
+            "app/src/components/card_view/card_body_popover_commit.test.tsx",
+            "app/src/components/card_view/card_body_popover_state.test.tsx",
+            "app/src/components/card_view/card_view.tsx",
+            "app/src/components/card_view/mobile_card_view.tsx",
+            "app/src/components/card_view/project_card_view.tsx",
+            "app/src/components/card_view/use_project_card.ts",
+            "app/src/components/worktree_selector.test.tsx",
+            "app/src/components/worktree_selector.tsx",
+            "app/src/services/card_popup_service.test.ts",
+            "app/src/services/card_popup_service.ts",
+            "app/src/services/project/project_state.node.test.ts",
+            "app/src/services/project/project_state.ts"
+          ],
+          "filesChanged": 13,
+          "insertions": 199,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-21T18:44:33+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "cd2dca75-15df-4f60-b640-8a8a91aba68e",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
