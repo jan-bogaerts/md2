@@ -13,12 +13,11 @@ sentryIssueId: 141899071
 sentryOrganization: elastetic
 after: 97733177-b4c8-47c3-af3d-64c31d4eca93
 ---
-
 ## Sentry issue
 
-**Title:** <unknown>
+**Title:** \<unknown>
 
-**Message:** External change ignored for design/feature_descriptions/F_216_improve_agent_selection.md because the file has unsaved local edits.
+**Message:** External change ignored for design/feature\_descriptions/F\_216\_improve\_agent\_selection.md because the file has unsaved local edits.
 
 **Link:** [Open issue in Sentry](https://elastetic.sentry.io/issues/141899071/)
 
@@ -38,4 +37,7 @@ after: 97733177-b4c8-47c3-af3d-64c31d4eca93
 
 ### Application stack frames
 
-- No application stack frames provided.
+* No application stack frames provided.
+
+We have had several of these errors lately. basically, it happens every time that the electron application is serving to external apps with websocket server. User creates card on remote, electron gets instruction through websocket, creates the file. then somehow, the react app running in electron does something or thinks it did something to the file causing it to be marked dirty and stored (I think) in the batch commiter. Meanwhile, the card gets updated on the external app, which syncs again through websockets, file change is noticed in electron and notifies the react app again running in electron, which still has it marked as dirty and then triggers this error. it is not an exception, so no stack frames, the error is manually entered I believe.
+This is what I think is happening. There is something going wrong in the operation.
