@@ -3938,11 +3938,11 @@
         "agent-a87ad754-3176-44aa-80c3-d933ee2d73c4"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-bab8cafc-71a2-4865-9a51-bd1e3253696e",
       "origin": {
@@ -3951,9 +3951,70 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-a87ad754-3176-44aa-80c3-d933ee2d73c4",
       "startedAt": "2026-08-21T12:16:22.063Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-a87ad754-3176-44aa-80c3-d933ee2d73c4"
+    },
+    {
+      "commits": [
+        {
+          "commit": "d1ebd2f2a3edfaa6deca6345551f286068da52b5",
+          "committedAt": "2026-08-21T14:41:40+02:00",
+          "deletions": 124,
+          "filePaths": [
+            "app/src/components/actions/agent/action_agent_capability_fields.tsx",
+            "app/src/components/actions/agent/action_agent_selectors.tsx",
+            "app/src/components/actions/run/popup/action_popup.test.tsx",
+            "app/src/components/actions/run/popup/action_popup_content.tsx",
+            "app/src/components/actions/shared/use_action_run_settings.ts",
+            "app/src/components/config/agent_profiles_editor.tsx",
+            "app/src/components/config/config_page.test.tsx",
+            "app/src/components/config/config_value_editor.test.tsx",
+            "app/src/components/config/config_value_editor.tsx",
+            "app/src/components/shell/menu/app_menu.test.tsx",
+            "app/src/components/shell/menu/app_menu.tsx",
+            "app/src/components/shell/menu/menu_select.tsx",
+            "app/src/components/shell/project/project_dialogs.test.tsx",
+            "app/src/data/agent_profiles.node.test.ts",
+            "app/src/data/agent_profiles.ts",
+            "app/src/data/agent_selection.node.test.ts",
+            "app/src/data/agent_selection.ts",
+            "app/src/services/actions/action_agent_selection_draft_service.node.test.ts",
+            "app/src/services/actions/action_agent_selection_draft_service.ts",
+            "app/src/services/actions/action_run_settings_service.node.test.ts",
+            "app/src/services/actions/action_run_settings_service.ts",
+            "app/src/services/actions/card_commit_history.node.test.ts",
+            "app/src/services/actions/card_commit_history.ts",
+            "app/src/services/agents/project_agent_token_usage_service.node.test.ts",
+            "app/src/services/config/config_entries.ts",
+            "app/src/services/config/config_service.test.ts",
+            "app/src/services/config/config_service.ts",
+            "app/src/services/github/github_storage_loader.ts",
+            "app/src/services/release_operations.ts",
+            "desktop/src/actions/activity/activity_files.js",
+            "desktop/src/actions/activity/activity_files.test.mjs",
+            "desktop/src/actions/agent/agent_profiles.mjs",
+            "desktop/src/shell/config.js",
+            "desktop/src/shell/config.test.mjs",
+            "shared/agent_profiles.d.mts",
+            "shared/agent_profiles.mjs",
+            "shared/agent_selection.d.mts",
+            "shared/agent_selection.mjs",
+            "shared/card_activity.d.mts",
+            "shared/card_activity.mjs"
+          ],
+          "filesChanged": 40,
+          "insertions": 588,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-21T14:41:40+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "d3078abd-23e1-4c90-8b8e-6ee6459b005f",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
