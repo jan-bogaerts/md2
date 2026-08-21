@@ -3989,11 +3989,11 @@
         "agent-154ba410-ff14-4f19-b8fb-2c2e84118259"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-77a43d2e-8676-453a-9cf0-7d5bec88e6c5",
       "origin": {
@@ -4002,9 +4002,48 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-154ba410-ff14-4f19-b8fb-2c2e84118259",
       "startedAt": "2026-08-21T18:18:33.880Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-154ba410-ff14-4f19-b8fb-2c2e84118259"
+    },
+    {
+      "commits": [
+        {
+          "commit": "886a2b76cfd74709203f5af3bd20554df0bbd2da",
+          "committedAt": "2026-08-21T21:19:47+02:00",
+          "deletions": 74,
+          "filePaths": [
+            "app/src/components/config/agent_profiles_editor.tsx",
+            "app/src/components/config/config_page.test.tsx",
+            "app/src/components/stats_view/stats_bar_chart.test.tsx",
+            "app/src/components/stats_view/stats_bar_chart.tsx",
+            "app/src/components/stats_view/stats_content.test.tsx",
+            "app/src/components/stats_view/stats_controls.tsx",
+            "app/src/components/stats_view/stats_usage_comparison_charts.tsx",
+            "app/src/data/agent_profiles.node.test.ts",
+            "app/src/services/stats/project_stats_loader.ts",
+            "app/src/services/stats/project_stats_service.node.test.ts",
+            "app/src/services/stats/project_stats_service.ts",
+            "app/src/services/stats/project_stats_types.ts",
+            "app/src/services/stats/stats_options.node.test.ts",
+            "app/src/services/stats/stats_totals_dataset.ts",
+            "app/src/services/stats/stats_usage_comparison_dataset.ts",
+            "desktop/src/shell/config.test.mjs",
+            "shared/agent_profiles.d.mts",
+            "shared/agent_profiles.mjs"
+          ],
+          "filesChanged": 18,
+          "insertions": 488,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-21T21:19:47+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "93f10274-10fd-48a2-9c07-bf50b9f970c8",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
