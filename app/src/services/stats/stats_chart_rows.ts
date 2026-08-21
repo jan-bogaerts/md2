@@ -1,5 +1,6 @@
 import type { StatsChartRole, StatsChartRow, StatsGranularity, StatsUnit } from './project_stats_types';
 import type { StatsBucketContext } from './stats_time_buckets';
+import { accessibleStatsTooltip, formatBucketRange, statsTooltip } from './stats_tooltip';
 
 /**
  * Zero-filled row for one UTC bucket, carrying the tooltip and accessible label so charts never
@@ -12,12 +13,16 @@ export function emptyTimeRow(
     metric: string,
     unit: StatsUnit,
 ): StatsChartRow {
-    const tooltip = `${context.localLabel}; UTC ${context.interval}; 0 ${unit}`;
+    const tooltip = statsTooltip([
+        { label: null, value: formatBucketRange(context) },
+        { label: 'Value', value: `0 ${unit}` },
+    ]);
 
     return {
         actionId: null,
         actionType: null,
-        accessibleLabel: tooltip,
+        accessibleLabel: accessibleStatsTooltip(tooltip),
+        aggregation: null,
         agent: null,
         available: true,
         chartRole,
@@ -25,6 +30,7 @@ export function emptyTimeRow(
         grouping: granularity,
         identity: context.start,
         denominator: null,
+        deviation: null,
         limitId: null,
         metric,
         numerator: null,
@@ -54,7 +60,10 @@ export function unavailableTimeRow(
     unavailableLabel: string,
 ): StatsChartRow {
     const row = emptyTimeRow(context, granularity, chartRole, metric, unit);
-    const tooltip = `${context.localLabel}; UTC ${context.interval}; ${unavailableLabel} unavailable`;
+    const tooltip = statsTooltip([
+        { label: null, value: formatBucketRange(context) },
+        { label: 'Unavailable', value: unavailableLabel },
+    ]);
 
-    return { ...row, accessibleLabel: tooltip, available: false, tooltip };
+    return { ...row, accessibleLabel: accessibleStatsTooltip(tooltip), available: false, tooltip };
 }

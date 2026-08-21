@@ -7,7 +7,9 @@ export type StatsGranularity = 'day' | 'week' | 'month';
 export type StatsShortGranularity = Exclude<StatsGranularity, 'month'>;
 export type StatsActivityMetric = 'cards' | 'actions' | 'tokens';
 export type StatsPerformanceMetric = 'duration' | 'tokens' | 'toolCalls';
+export type StatsPerformanceAggregation = 'average' | 'averageWithDeviation' | 'median' | 'sum';
 export type StatsPerformanceGrouping = 'agent' | 'model';
+export type StatsUsageTokenAggregation = 'average' | 'total';
 export type StatsTotalsGrouping = 'card' | 'action';
 export type StatsTotalsMetric = 'duration' | 'tokens';
 export type StatsStatus = 'idle' | 'loading' | 'ready' | 'error';
@@ -41,6 +43,7 @@ export interface StatsControls {
     dataset: StatsDataset;
     endUtc: string | null;
     performanceActionIds: string[];
+    performanceAggregation: StatsPerformanceAggregation;
     performanceAgentIds: string[];
     performanceGranularity: StatsShortGranularity;
     performanceGrouping: StatsPerformanceGrouping;
@@ -50,6 +53,7 @@ export interface StatsControls {
     totalsGrouping: StatsTotalsGrouping;
     totalsMetric: StatsTotalsMetric;
     usageGranularity: StatsShortGranularity;
+    usageTokenAggregation: StatsUsageTokenAggregation;
 }
 
 export interface StatsStatusCounts {
@@ -61,6 +65,7 @@ export interface StatsStatusCounts {
 export interface StatsChartRow {
     actionId: string | null;
     actionType: 'agent' | 'command' | null;
+    aggregation: string | null;
     accessibleLabel: string;
     agent: string | null;
     available: boolean;
@@ -69,6 +74,7 @@ export interface StatsChartRow {
     grouping: string;
     identity: string;
     denominator: number | null;
+    deviation: number | null;
     limitId: string | null;
     metric: string;
     numerator: number | null;
@@ -151,6 +157,7 @@ export const INITIAL_CONTROLS: StatsControls = {
     dataset: 'activityOverTime',
     endUtc: null,
     performanceActionIds: [],
+    performanceAggregation: 'average',
     performanceAgentIds: [],
     performanceGranularity: 'day',
     performanceGrouping: 'agent',
@@ -160,6 +167,7 @@ export const INITIAL_CONTROLS: StatsControls = {
     totalsGrouping: 'card',
     totalsMetric: 'duration',
     usageGranularity: 'day',
+    usageTokenAggregation: 'total',
 };
 export const INITIAL_SNAPSHOT: ProjectStatsSnapshot = {
     controls: INITIAL_CONTROLS,

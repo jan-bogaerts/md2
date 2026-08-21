@@ -44,7 +44,7 @@ describe('StatsContent', () => {
         projectStatsService.clear()
     })
 
-    it('shows controls, local bucket label, UTC accessibility text, and current chart values', async () => {
+    it('shows controls, local accessibility text, and current chart values', async () => {
         const metrics = `${metricsHeader}\r\n2026-08-12T10:00:00.000Z,token_usage,codex,,,,,3,2,4,1,10,,\r\n`
         projectStatsService.setControls({activityGranularity: 'day', activityMetric: 'tokens', dataset: 'activityOverTime', endUtc: null, startUtc: null})
         projectStatsService.bindProject({ config, project: { branch: 'main', id: 'project' }, storage: metricsStorage(metrics) })
@@ -53,7 +53,8 @@ describe('StatsContent', () => {
 
         expect(screen.getByRole('heading', { name: 'Project stats' })).toBeInTheDocument()
         expect(screen.getByRole('combobox', { name: 'Dataset' })).toHaveTextContent('Activity over time')
-        expect(screen.getByRole('listitem')).toHaveAccessibleName(/UTC 2026-08-12T00:00:00.000Z.*10 tokens/u)
+        expect(screen.getByRole('listitem')).toHaveAccessibleName(/Project tokens: 10/u)
+        expect(screen.getByRole('listitem')).not.toHaveAccessibleName(/2026-08-12T00:00:00.000Z/u)
         expect(screen.getByTestId('stats-chart-panel')).toHaveStyle({ flex: '1' })
 
         fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Activity granularity' }))
@@ -83,7 +84,7 @@ describe('StatsContent', () => {
         await projectStatsService.open([])
         renderContent()
 
-        expect(screen.getByRole('listitem')).toHaveAccessibleName(/10 tokens/u)
+        expect(screen.getByRole('listitem')).toHaveAccessibleName(/Project tokens: 10/u)
         expect(screen.getAllByText('Malformed account_usage row 2 was skipped.').length).toBeGreaterThan(0)
         await waitFor(() => expect(screen.getByLabelText('Error message')).toHaveTextContent('Malformed account_usage row 2 was skipped.'))
     })
@@ -98,12 +99,25 @@ describe('StatsContent', () => {
         fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Dataset' }))
         fireEvent.click(screen.getByRole('option', { name: 'Agent/model performance' }))
         expect(screen.getByRole('combobox', { name: 'Performance metric' })).toBeInTheDocument()
+        expect(screen.getByRole('combobox', { name: 'Performance aggregation' })).toHaveTextContent('Average')
         expect(screen.getByRole('combobox', { name: 'Action filter' })).toBeInTheDocument()
         expect(screen.queryByRole('combobox', { name: 'Activity metric' })).toBeNull()
+
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Performance aggregation' }))
+        fireEvent.click(screen.getByRole('option', { name: 'Median' }))
+        expect(projectStatsService.getSnapshot().controls.performanceAggregation).toBe('median')
 
         fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Dataset' }))
         fireEvent.click(screen.getByRole('option', { name: 'Activity over time' }))
         expect(screen.getByRole('combobox', { name: 'Activity granularity' })).toHaveTextContent('Month')
+
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Dataset' }))
+        fireEvent.click(screen.getByRole('option', { name: 'Project usage vs account usage' }))
+        expect(screen.getByRole('combobox', { name: 'Token values' })).toHaveTextContent('Totals')
+
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Token values' }))
+        fireEvent.click(screen.getByRole('option', { name: 'Average per action' }))
+        expect(screen.getByRole('heading', { name: 'Project token usage (average per action)' })).toBeInTheDocument()
     })
 
     it('shows all account series and scope warning without account selectors', async () => {

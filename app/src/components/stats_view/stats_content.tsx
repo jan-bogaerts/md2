@@ -101,7 +101,7 @@ export function StatsContent() {
                 ) : (
                     <Box data-testid="stats-chart-viewport" sx={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
                         {controls.dataset === 'usageComparison'
-                            ? <StatsUsageComparisonCharts rows={snapshot.rows} />
+                            ? <StatsUsageComparisonCharts rows={snapshot.rows} tokenAggregation={controls.usageTokenAggregation} />
                             : <StatsBarChart mode={chartMode} rows={snapshot.rows} />}
                     </Box>
                 )}

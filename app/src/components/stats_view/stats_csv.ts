@@ -27,6 +27,8 @@ const CSV_COLUMNS = [
     'completed_count',
     'failed_count',
     'cancelled_count',
+    'aggregation',
+    'deviation',
 ];
 
 function csvValue(value: boolean | number | string) {
@@ -63,6 +65,8 @@ export function serializeStatsCsv(dataset: StatsDataset, rows: StatsChartRow[]) 
         row.statusCounts?.completed ?? '',
         row.statusCounts?.failed ?? '',
         row.statusCounts?.cancelled ?? '',
+        row.aggregation ?? '',
+        row.deviation ?? '',
     ]);
 
     return `${[CSV_COLUMNS, ...records].map((record) => record.map(csvValue).join(',')).join('\r\n')}\r\n`;

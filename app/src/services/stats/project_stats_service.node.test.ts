@@ -449,6 +449,42 @@ describe('ProjectStatsService aggregation', () => {
         }])
     })
 
+    it('aggregates performance runs and filters selected actions', async () => {
+        const elapsedValues = [100, 200, 300, 500]
+        const conversations = elapsedValues.map((elapsedMs, index) => conversation({
+            actionId: index < 2 ? 'review' : 'test',
+            id: `conversation-${index}`,
+            timer: { elapsedMs, runningStartedAt: null },
+            title: index < 2 ? 'Review' : 'Test',
+        }))
+        const records = conversations.map(({ id }, index) => agentRecord(`run-${index}`, '2026-08-12T10:00:00.000Z', id, {
+            rootActionId: index < 2 ? 'review' : 'test',
+            rootActionLabel: index < 2 ? 'Review' : 'Test',
+        }))
+        const service = new ProjectStatsService()
+        await openService(service, storage({'design/activity/card__card-1.json': activityContent({ conversations, records })}))
+        service.setControls({ dataset: 'agentPerformance' })
+
+        expect(service.getSnapshot().rows).toMatchObject([{aggregation: 'average', deviation: null, sampleCount: 4, value: 275}])
+
+        service.setControls({ performanceAggregation: 'averageWithDeviation' })
+        expect(service.getSnapshot().rows[0].value).toBe(275)
+        expect(service.getSnapshot().rows[0].deviation).toBeCloseTo(Math.sqrt(21_875))
+        expect(service.getSnapshot().rows[0].tooltip).toMatch(/Average duration per run: 0[,.]28 seconds\nStd dev: 0[,.]15 seconds/u)
+
+        service.setControls({ performanceAggregation: 'sum' })
+        expect(service.getSnapshot().rows).toMatchObject([{ aggregation: 'sum', deviation: null, value: 1_100 }])
+
+        service.setControls({ performanceAggregation: 'median' })
+        expect(service.getSnapshot().rows).toMatchObject([{ aggregation: 'median', deviation: null, value: 250 }])
+
+        service.setControls({ performanceActionIds: ['review'], performanceAggregation: 'average' })
+        expect(service.getSnapshot().rows).toMatchObject([{ sampleCount: 2, value: 150 }])
+
+        service.setControls({ performanceActionIds: [] })
+        expect(service.getSnapshot().rows).toMatchObject([{ sampleCount: 4, value: 275 }])
+    })
+
     it('reports running, waiting, missing timer, attribution, mixed, and nested exclusions', async () => {
         const conversations = [
             conversation({ completedAt: null, id: 'running', status: 'running' }),
@@ -491,6 +527,7 @@ describe('ProjectStatsService aggregation', () => {
         const accountRows = [
             '2026-08-12T09:00:00.000Z,account_usage,codex,weekly,window-a,10080,2026-08-17T00:00:00.000Z,,,,,,50,-2',
             '2026-08-12T10:00:00.000Z,account_usage,codex,weekly,window-b,10080,2026-08-24T00:00:00.000Z,,,,,,60,9',
+            '2026-08-12T11:00:00.000Z,account_usage,codex,weekly,window-b,10080,2026-08-25T00:00:00.000Z,,,,,,61,',
         ]
         const service = new ProjectStatsService()
         await openService(service, storage({ 'design/usage_metrics.csv': [metricsHeader, ...accountRows].join('\r\n') }))
@@ -501,6 +538,11 @@ describe('ProjectStatsService aggregation', () => {
             seriesLabel: 'codex / weekly / window-b',
             value: 9,
         }])
+        const accountTooltip = service.getSnapshot().rows.find(({ chartRole }) => chartRole === 'accountUsage')?.tooltip ?? ''
+        expect(accountTooltip).toContain('\nProvider: codex · Limit: weekly · Window: window-b (7 days)')
+        expect(accountTooltip).toContain('\nUsed this period: 9% of window-b limit')
+        expect(accountTooltip).toContain('(+1 more)')
+        expect(accountTooltip).not.toMatch(/T\d{2}:\d{2}:\d{2}/u)
         expect(service.getSnapshot().rows.some(({ seriesLabel }) => seriesLabel?.includes('window-a'))).toBe(false)
     })
 
@@ -544,6 +586,37 @@ describe('ProjectStatsService aggregation', () => {
         ])
         expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole === 'activity')
             .every(({ seriesLabel }) => !seriesLabel?.includes('internal'))).toBe(true)
+    })
+
+    it('switches project token usage from totals to average per completed provider action', async () => {
+        const conversations = [conversation({ id: 'first' }), conversation({ id: 'second' })]
+        const records = conversations.map(({ id }, index) => agentRecord(`run-${index}`, '2026-08-12T10:00:00.000Z', id))
+        const metrics = [
+            metricsHeader,
+            '2026-08-12T09:00:00.000Z,token_usage,codex,,,,,97,1,1,1,100,,',
+            '2026-08-12T09:30:00.000Z,token_usage,claude,,,,,37,1,1,1,40,,',
+        ].join('\r\n')
+        const service = new ProjectStatsService()
+        await openService(service, storage({
+            'design/activity/card__card-1.json': activityContent({ conversations, records }),
+            'design/usage_metrics.csv': metrics,
+        }))
+        service.setControls({ dataset: 'usageComparison' })
+
+        expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole === 'projectTokens')).toMatchObject([
+            { aggregation: 'total', provider: 'claude', value: 40 },
+            { aggregation: 'total', provider: 'codex', value: 100 },
+        ])
+        expect(service.getSnapshot().rows.find(({ chartRole, provider }) => chartRole === 'projectTokens' && provider === 'codex')?.tooltip)
+            .toContain('Total project tokens: 100')
+
+        service.setControls({ usageTokenAggregation: 'average' })
+        expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole === 'projectTokens')).toMatchObject([
+            { aggregation: 'average', provider: 'claude', value: 0 },
+            { aggregation: 'average', provider: 'codex', value: 50 },
+        ])
+        expect(service.getSnapshot().rows.find(({ chartRole, provider }) => chartRole === 'projectTokens' && provider === 'codex')?.tooltip)
+            .toContain('Average project tokens per action: 50')
     })
 
     it('aligns usage comparison bucket domains and clears removed account selections after reload', async () => {

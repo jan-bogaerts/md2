@@ -10,6 +10,7 @@ function row(overrides: Partial<StatsChartRow> = {}): StatsChartRow {
         actionId: null,
         actionType: null,
         accessibleLabel: '18 Aug; codex; 5 tokens; exact context',
+        aggregation: null,
         agent: null,
         available: true,
         chartRole: 'primary',
@@ -17,6 +18,7 @@ function row(overrides: Partial<StatsChartRow> = {}): StatsChartRow {
         grouping: 'day',
         identity: 'codex',
         denominator: null,
+        deviation: null,
         limitId: null,
         metric: 'tokens',
         numerator: null,
@@ -84,6 +86,26 @@ describe('StatsBarChart', () => {
         expect(screen.getAllByTestId('stats-bar')).toHaveLength(2);
     });
 
+    it('centres value labels beyond bar width without intercepting pointer events', () => {
+        renderChart(<StatsBarChart mode="grouped" rows={[row({ value: 123_456 })]} />);
+        const formattedNumber = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(123_456);
+
+        expect(screen.getByText(formattedNumber)).toHaveStyle({
+            left: '50%',
+            maxWidth: '112px',
+            pointerEvents: 'none',
+            transform: 'translateX(-50%)',
+            width: 'max-content',
+        });
+    });
+
+    it('renders a deviation whisker and scales its upper cap into the chart domain', () => {
+        renderChart(<StatsBarChart rows={[row({ deviation: 5, value: 10 })]} />);
+
+        expect(screen.getByTestId('stats-deviation-whisker')).toHaveStyle({ pointerEvents: 'none', top: 'calc(0% + 20px)' });
+        expect(screen.getByTestId('stats-bar')).toHaveStyle({ height: 'calc(66.66666666666666% - 13.333333333333332px)' });
+    });
+
     it('renders grouped stacks as one bar per agent with action segments', () => {
         const { container } = renderChart(<StatsBarChart mode="groupedStacked" rows={[
             row({ actionId: 'review', agent: 'codex', identity: 'codex-review', stackIdentity: 'agent:codex', stackLabel: 'codex' }),
@@ -95,17 +117,24 @@ describe('StatsBarChart', () => {
         expect(screen.getAllByRole('listitem')).toHaveLength(3);
         expect(screen.getByText('codex')).toBeInTheDocument();
         expect(screen.getByText('claude')).toBeInTheDocument();
+        expect(screen.getByText('10')).toHaveStyle({
+            left: '50%',
+            maxWidth: '112px',
+            pointerEvents: 'none',
+            transform: 'translateX(-50%)',
+            width: 'max-content',
+        });
     });
 
     it('shows each stacked action tooltip with its action value', async () => {
         renderChart(<StatsBarChart mode="stacked" rows={[
-            row({ identity: 'implement', tooltip: '1 Aug; Implement: 5', value: 5 }),
+            row({ identity: 'implement', tooltip: '1 Aug\nAction: Implement\nValue: 5', value: 5 }),
             row({ identity: 'review', seriesIdentity: 'review', seriesLabel: 'Review', tooltip: '1 Aug; Review: 3', value: 3 }),
         ]} />);
         const bars = screen.getAllByTestId('stats-bar');
 
         fireEvent.mouseOver(bars[0]);
-        expect(await screen.findByRole('tooltip')).toHaveTextContent('Implement: 5');
+        expect(await screen.findByRole('tooltip')).toHaveTextContent('Action: Implement');
         fireEvent.mouseLeave(bars[0]);
         await waitFor(() => expect(screen.queryByRole('tooltip')).toBeNull());
         fireEvent.mouseOver(bars[1]);
@@ -113,7 +142,7 @@ describe('StatsBarChart', () => {
     });
 
     it('renders five usage comparison charts in required order', () => {
-        renderChart(<StatsUsageComparisonCharts rows={[
+        renderChart(<StatsUsageComparisonCharts tokenAggregation="total" rows={[
             row({ chartRole: 'accountUsage', unit: 'percentagePoints' }),
             row({ chartRole: 'projectTokens' }),
             row({ chartRole: 'tokensPerAccountUsage' }),
@@ -123,13 +152,14 @@ describe('StatsBarChart', () => {
 
         expect(screen.getAllByRole('heading').map(({ textContent }) => textContent)).toEqual([
             'Account usage',
-            'Project token usage',
+            'Project token usage (totals)',
             'Tokens per percent account usage',
             'Actions per percent account usage',
             'Project activity',
         ]);
-        expect(screen.getByRole('list', { name: 'Project token usage chart' })).toHaveAttribute('data-chart-mode', 'grouped');
+        expect(screen.getByRole('list', { name: 'Project token usage (totals) chart' })).toHaveAttribute('data-chart-mode', 'grouped');
         expect(screen.getByRole('list', { name: 'Project activity chart' })).toHaveAttribute('data-chart-mode', 'groupedStacked');
+        expect(screen.getByRole('heading', { name: 'Account usage' })).toHaveStyle({ left: '0', position: 'sticky' });
         expect(screen.queryByTestId('stats-chart-viewport')).toBeNull();
     });
 });

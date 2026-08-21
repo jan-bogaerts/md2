@@ -21,6 +21,15 @@ import {
     indexByBucketAndIdentity,
     type StatsBucketContext,
 } from './stats_time_buckets';
+import {
+    accessibleStatsTooltip,
+    formatBucketRange,
+    formatCount,
+    formatTimestamp,
+    formatWindow,
+    statsTooltip,
+    type StatsTooltipLine,
+} from './stats_tooltip';
 
 type RatioRole = 'tokensPerAccountUsage' | 'actionsPerAccountUsage';
 
@@ -53,6 +62,14 @@ function hasPositiveDelta(row: UsageMetricsAccountRow) {
     return row.usedPercentDelta !== null && row.usedPercentDelta >= 0;
 }
 
+function accountSeriesDescription(series: StatsAccountSeriesOption) {
+    return `${series.provider} · Limit: ${series.limitId} · Window: ${series.windowId}`;
+}
+
+function accountSeriesWindowDescription(series: StatsAccountSeriesOption) {
+    return `${accountSeriesDescription(series)} (${formatWindow(series.windowDurationMinutes)})`;
+}
+
 /** Series whose in-range non-negative deltas sum above zero; summed once instead of per series. */
 function visibleAccountSeries(accountRows: UsageMetricsAccountRow[], options: StatsOptions) {
     const totalsByIdentity = new Map<string, number>();
@@ -72,14 +89,26 @@ function accountSeriesRow(
 ): StatsChartRow {
     const available = rows.some(({ usedPercentDelta }) => usedPercentDelta !== null);
     const value = rows.reduce((total, row) => total + (row.usedPercentDelta ?? 0), 0);
-    const resetTimes = [...new Set(rows.map(({ resetsAt }) => resetsAt))].join(', ') || 'unavailable';
+    const resetTimes = [...new Set(rows.map(({ resetsAt }) => resetsAt))].sort();
     const seriesLabel = accountSeriesLabel(series);
-    const displayedValue = available ? `${value} percentage points` : 'percentage-point delta unavailable';
-    const tooltip = `${context.localLabel}; UTC ${context.interval}; ${seriesLabel}; ${displayedValue}; window ${series.windowDurationMinutes} minutes; reset ${resetTimes}`;
+    const tooltipLines: StatsTooltipLine[] = [
+        { label: null, value: formatBucketRange(context) },
+        { label: 'Provider', value: accountSeriesWindowDescription(series) },
+        {
+            label: 'Used this period',
+            value: available ? `${formatCount(value)}% of ${series.windowId} limit` : 'percentage-point delta unavailable',
+        },
+    ];
+    if (resetTimes.length > 0) {
+        const additionalResetCount = resetTimes.length - 1;
+        const additionalResets = additionalResetCount > 0 ? ` (+${additionalResetCount} more)` : '';
+        tooltipLines.push({ label: 'Limit resets', value: `${formatTimestamp(resetTimes[0])}${additionalResets}` });
+    }
+    const tooltip = statsTooltip(tooltipLines);
 
     return {
         ...emptyTimeRow(context, granularity, 'accountUsage', 'accountUsage', 'percentagePoints'),
-        accessibleLabel: tooltip,
+        accessibleLabel: accessibleStatsTooltip(tooltip),
         available,
         identity: series.identity,
         limitId: series.limitId,
@@ -114,6 +143,7 @@ function comparisonAccountRows(
 
 function projectTokenRows(
     contexts: StatsBucketContext[],
+    controls: StatsControls,
     granularity: StatsShortGranularity,
     tokenTimeAvailable: boolean,
     indexes: ComparisonIndexes,
@@ -126,13 +156,23 @@ function projectTokenRows(
         }
 
         return indexes.providers.map((provider) => {
-            const rows = indexes.tokensByBucketProvider.get(bucketIdentityKey(context.start, provider)) ?? [];
-            const value = rows.reduce((total, row) => total + row.totalTokens, 0);
-            const tooltip = `${context.localLabel}; UTC ${context.interval}; ${provider}: ${value} tokens`;
+            const providerKey = bucketIdentityKey(context.start, provider);
+            const rows = indexes.tokensByBucketProvider.get(providerKey) ?? [];
+            const tokenTotal = rows.reduce((total, row) => total + row.totalTokens, 0);
+            const actionCount = (indexes.agentActionsByBucketProvider.get(providerKey) ?? []).length;
+            const average = actionCount === 0 ? 0 : tokenTotal / actionCount;
+            const value = controls.usageTokenAggregation === 'average' ? average : tokenTotal;
+            const valueLabel = controls.usageTokenAggregation === 'average' ? 'Average project tokens per action' : 'Total project tokens';
+            const tooltip = statsTooltip([
+                { label: null, value: formatBucketRange(context) },
+                { label: 'Provider', value: provider },
+                { label: valueLabel, value: formatCount(value) },
+            ]);
 
             return {
                 ...emptyTimeRow(context, granularity, 'projectTokens', 'tokens', 'tokens'),
-                accessibleLabel: tooltip,
+                accessibleLabel: accessibleStatsTooltip(tooltip),
+                aggregation: controls.usageTokenAggregation,
                 identity: provider,
                 provider,
                 seriesIdentity: provider,
@@ -163,12 +203,20 @@ function ratioSeriesRow(
         : (indexes.agentActionsByBucketProvider.get(providerKey) ?? []).length;
     const value = numerator / denominator;
     const seriesLabel = accountSeriesLabel(series);
-    const numeratorLabel = isTokenRatio ? `${numerator} project tokens` : `${numerator} completed ${series.provider} actions`;
-    const tooltip = `${context.localLabel}; UTC ${context.interval}; ${seriesLabel}; ${numeratorLabel}; ${denominator} account percentage points; ratio ${value}`;
+    const ratioLabel = isTokenRatio ? 'project tokens' : 'completed actions';
+    const tooltip = statsTooltip([
+        { label: null, value: formatBucketRange(context) },
+        { label: 'Provider', value: accountSeriesDescription(series) },
+        { label: null, value: `${formatCount(value)} ${ratioLabel} per 1% of account limit used` },
+        {
+            label: isTokenRatio ? 'Project tokens' : 'Completed actions',
+            value: `${formatCount(numerator)} · Account limit used: ${formatCount(denominator)}%`,
+        },
+    ]);
 
     return [{
         ...emptyTimeRow(context, granularity, role, role, unit),
-        accessibleLabel: tooltip,
+        accessibleLabel: accessibleStatsTooltip(tooltip),
         denominator,
         identity: series.identity,
         limitId: series.limitId,
@@ -225,13 +273,18 @@ function activityCountRows(
     }
 
     return [...counts.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([identity, count]) => {
-        const tooltip = `${context.localLabel}; UTC ${context.interval}; ${count.stackLabel}; ${count.label}: ${count.value} completed actions`;
+        const tooltip = statsTooltip([
+            { label: null, value: formatBucketRange(context) },
+            { label: 'Group', value: count.stackLabel },
+            { label: 'Action', value: count.label },
+            { label: 'Completed actions', value: formatCount(count.value) },
+        ]);
 
         return {
             ...emptyTimeRow(context, granularity, chartRole, 'actions', 'actions'),
             actionId: count.actionId,
             actionType: count.actionType,
-            accessibleLabel: tooltip,
+            accessibleLabel: accessibleStatsTooltip(tooltip),
             agent: count.agent,
             identity,
             seriesIdentity: count.actionId,
@@ -293,7 +346,7 @@ export function usageComparisonRows(source: LoadedStatsSource, controls: StatsCo
 
     return [
         ...comparisonAccountRows(contexts, granularity, seriesOptions, indexes),
-        ...projectTokenRows(contexts, granularity, source.tokenTimeAvailable, indexes),
+        ...projectTokenRows(contexts, controls, granularity, source.tokenTimeAvailable, indexes),
         ...ratioRows(contexts, granularity, 'tokensPerAccountUsage', seriesOptions, indexes),
         ...ratioRows(contexts, granularity, 'actionsPerAccountUsage', seriesOptions, indexes),
         ...contexts.flatMap((context) => activityCountRows(context, granularity, indexes.actionsByBucket.get(context.start) ?? [])),

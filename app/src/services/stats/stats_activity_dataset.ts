@@ -4,6 +4,7 @@ import type { LoadedStatsSource, StatsChartRow, StatsControls, StatsGranularity 
 import { emptyTimeRow } from './stats_chart_rows';
 import { actionLabel } from './stats_identities';
 import { bucketContexts, bucketDomain, inRange, indexByBucket, type StatsBucketContext } from './stats_time_buckets';
+import { accessibleStatsTooltip, formatBucketRange, formatCount, statsTooltip } from './stats_tooltip';
 
 interface ActionCount {
     label: string;
@@ -24,12 +25,16 @@ function actionCountRows(
     const total = records.length;
 
     return [...counts.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([identity, count]) => {
-        const tooltip = `${context.localLabel}; UTC ${context.interval}; total ${total} actions; ${count.label}: ${count.value}`;
+        const tooltip = statsTooltip([
+            { label: null, value: formatBucketRange(context) },
+            { label: 'Completed actions', value: formatCount(total) },
+            { label: count.label, value: formatCount(count.value) },
+        ]);
 
         return {
             ...emptyTimeRow(context, granularity, 'primary', 'actions', 'actions'),
             actionId: identity,
-            accessibleLabel: tooltip,
+            accessibleLabel: accessibleStatsTooltip(tooltip),
             identity,
             seriesIdentity: identity,
             seriesLabel: count.label,
@@ -42,11 +47,14 @@ function actionCountRows(
 
 function distinctCardRow(context: StatsBucketContext, granularity: StatsGranularity, records: StatsActionFact[]): StatsChartRow {
     const count = new Set(records.flatMap(({ cardInternalId }) => cardInternalId ? [cardInternalId] : [])).size;
-    const tooltip = `${context.localLabel}; UTC ${context.interval}; ${count} cards`;
+    const tooltip = statsTooltip([
+        { label: null, value: formatBucketRange(context) },
+        { label: 'Distinct cards', value: formatCount(count) },
+    ]);
 
     return {
         ...emptyTimeRow(context, granularity, 'primary', 'cards', 'cards'),
-        accessibleLabel: tooltip,
+        accessibleLabel: accessibleStatsTooltip(tooltip),
         tooltip,
         value: count,
     };
@@ -54,9 +62,17 @@ function distinctCardRow(context: StatsBucketContext, granularity: StatsGranular
 
 function tokenTotalRow(context: StatsBucketContext, granularity: StatsGranularity, rows: UsageMetricsTokenRow[]): StatsChartRow {
     const value = rows.reduce((total, row) => total + row.totalTokens, 0);
-    const tooltip = `${context.localLabel}; UTC ${context.interval}; ${value} tokens`;
+    const tooltip = statsTooltip([
+        { label: null, value: formatBucketRange(context) },
+        { label: 'Project tokens', value: formatCount(value) },
+    ]);
 
-    return { ...emptyTimeRow(context, granularity, 'primary', 'tokens', 'tokens'), accessibleLabel: tooltip, tooltip, value };
+    return {
+        ...emptyTimeRow(context, granularity, 'primary', 'tokens', 'tokens'),
+        accessibleLabel: accessibleStatsTooltip(tooltip),
+        tooltip,
+        value,
+    };
 }
 
 /** Zero-filled activity per UTC bucket, counted from a single bucket index instead of a scan per bucket. */

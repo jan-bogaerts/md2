@@ -18,11 +18,12 @@ describe('emptyTimeRow', () => {
         })
     })
 
-    it('carries the UTC interval and unit in the tooltip and the accessible label', () => {
+    it('carries one local range and unit in multiline and flat accessible forms', () => {
         const row = emptyTimeRow(context, 'day', 'projectTokens', 'tokens', 'tokens')
 
-        expect(row.tooltip).toContain('UTC 2026-08-12T00:00:00.000Z to 2026-08-13T00:00:00.000Z; 0 tokens')
-        expect(row.accessibleLabel).toBe(row.tooltip)
+        expect(row.tooltip).toContain('\nValue: 0 tokens')
+        expect(row.tooltip).not.toContain('2026-08-12T00:00:00.000Z')
+        expect(row.accessibleLabel).toBe(row.tooltip.replaceAll('\n', '; '))
     })
 })
 
@@ -31,7 +32,7 @@ describe('unavailableTimeRow', () => {
         const row = unavailableTimeRow(context, 'day', 'accountUsage', 'accountUsage', 'percentagePoints', 'positive account usage')
 
         expect(row).toMatchObject({ available: false, chartRole: 'accountUsage', value: 0 })
-        expect(row.tooltip).toContain('positive account usage unavailable')
-        expect(row.accessibleLabel).toBe(row.tooltip)
+        expect(row.tooltip).toContain('Unavailable: positive account usage')
+        expect(row.accessibleLabel).toBe(row.tooltip.replaceAll('\n', '; '))
     })
 })

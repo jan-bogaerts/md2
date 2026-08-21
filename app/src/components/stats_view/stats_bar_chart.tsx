@@ -82,7 +82,13 @@ function barTotal(bar: BarRows) {
 
 function maximumMagnitude(buckets: BucketRows[], mode: StatsBarMode) {
     const values = buckets.flatMap((bucket) => barsForBucket(bucket, mode).map((bar) => (
-        mode === 'stacked' || mode === 'groupedStacked' ? barTotal(bar) : Math.abs(bar.rows[0].value)
+        mode === 'stacked' || mode === 'groupedStacked'
+            ? barTotal(bar)
+            : Math.max(
+                Math.abs(bar.rows[0].value),
+                Math.abs(bar.rows[0].value + (bar.rows[0].deviation ?? 0)),
+                Math.abs(bar.rows[0].value - (bar.rows[0].deviation ?? 0)),
+            )
     )));
 
     return Math.max(...values, 0);
@@ -165,7 +171,8 @@ export function StatsBarChart({ ariaLabel = 'Stats bar chart', mode = 'single', 
                     flex: 1,
                     minHeight: MINIMUM_CHART_HEIGHT + 48,
                     minWidth: buckets.length * BUCKET_WIDTH,
-                    p: 2,
+                    py: 2,
+                    px: `${BUCKET_WIDTH / 2}px`,
                 }}
             >
                 {buckets.map((bucket) => {
@@ -204,13 +211,15 @@ export function StatsBarChart({ ariaLabel = 'Stats bar chart', mode = 'single', 
                                                 {stacked && total > 0 ? (
                                                     <Typography
                                                         color="text.secondary"
-                                                        noWrap
                                                         sx={{
                                                             bottom: positionCss(barMagnitude, baselinePercentage),
-                                                            left: 0,
+                                                            left: '50%',
+                                                            maxWidth: BUCKET_WIDTH,
+                                                            pointerEvents: 'none',
                                                             position: 'absolute',
-                                                            right: 0,
                                                             textAlign: 'center',
+                                                            transform: 'translateX(-50%)',
+                                                            width: 'max-content',
                                                         }}
                                                         variant="caption"
                                                     >
@@ -229,6 +238,13 @@ export function StatsBarChart({ ariaLabel = 'Stats bar chart', mode = 'single', 
                                                     const isNegative = row.value < 0;
                                                     const barLabel = formattedValue(row);
                                                     const showBar = row.available && row.value !== 0;
+                                                    const showDeviation = row.available && row.deviation !== null;
+                                                    const deviationLowerPosition = showDeviation
+                                                        ? scaledPosition(Math.max(row.value - row.deviation!, 0), maximum, domainPercentage)
+                                                        : null;
+                                                    const deviationUpperPosition = showDeviation
+                                                        ? scaledPosition(row.value + row.deviation!, maximum, domainPercentage)
+                                                        : null;
                                                     const bottom = stacked
                                                         ? positionCss(priorMagnitude, baselinePercentage)
                                                         : isNegative ? undefined : `${baselinePercentage}%`;
@@ -241,7 +257,7 @@ export function StatsBarChart({ ariaLabel = 'Stats bar chart', mode = 'single', 
                                                             sx={{ inset: 0, pointerEvents: 'none', position: 'absolute' }}
                                                         >
                                                             {showBar ? (
-                                                                <Tooltip title={row.tooltip}>
+                                                                <Tooltip slotProps={{ tooltip: { sx: { whiteSpace: 'pre-line' } } }} title={row.tooltip}>
                                                                     <Box
                                                                         data-testid="stats-bar"
                                                                         sx={{
@@ -257,15 +273,43 @@ export function StatsBarChart({ ariaLabel = 'Stats bar chart', mode = 'single', 
                                                                     />
                                                                 </Tooltip>
                                                             ) : null}
+                                                            {showDeviation ? (
+                                                                <Box
+                                                                    data-testid="stats-deviation-whisker"
+                                                                    sx={{
+                                                                        borderColor: 'text.secondary',
+                                                                        borderLeft: 1,
+                                                                        bottom: positionCss(deviationLowerPosition!, baselinePercentage),
+                                                                        left: '50%',
+                                                                        pointerEvents: 'none',
+                                                                        position: 'absolute',
+                                                                        top: `calc(${100 - baselinePercentage - deviationUpperPosition!.percentage}% + ${deviationUpperPosition!.labelOffset}px)`,
+                                                                        transform: 'translateX(-50%)',
+                                                                        width: 0,
+                                                                        '&::after, &::before': {
+                                                                            borderColor: 'text.secondary',
+                                                                            borderTop: 1,
+                                                                            content: '""',
+                                                                            left: -5,
+                                                                            position: 'absolute',
+                                                                            width: 10,
+                                                                        },
+                                                                        '&::after': { bottom: 0 },
+                                                                        '&::before': { top: 0 },
+                                                                    }}
+                                                                />
+                                                            ) : null}
                                                             {!stacked ? (
                                                                 <Typography
                                                                     color="text.secondary"
-                                                                    noWrap
                                                                     sx={{
-                                                                        left: 0,
+                                                                        left: '50%',
+                                                                        maxWidth: BUCKET_WIDTH,
+                                                                        pointerEvents: 'none',
                                                                         position: 'absolute',
-                                                                        right: 0,
                                                                         textAlign: 'center',
+                                                                        transform: 'translateX(-50%)',
+                                                                        width: 'max-content',
                                                                         ...(isNegative
                                                                             ? { top: positionCss(magnitude, baselinePercentage) }
                                                                             : { bottom: positionCss(magnitude, baselinePercentage) }),

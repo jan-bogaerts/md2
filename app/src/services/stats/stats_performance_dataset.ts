@@ -5,6 +5,7 @@ import {
     type StatsChartRow,
     type StatsControls,
     type StatsExclusionReason,
+    type StatsPerformanceAggregation,
     type StatsPerformanceMetric,
     type StatsStatusCounts,
     type StatsUnit,
@@ -12,6 +13,7 @@ import {
 import { emptyTimeRow } from './stats_chart_rows';
 import { modelIdentity } from './stats_identities';
 import { bucketContexts, bucketDomain, inRange, indexByBucket, type StatsBucketContext } from './stats_time_buckets';
+import { accessibleStatsTooltip, formatBucketRange, formatCount, statsTooltip, type StatsTooltipLine } from './stats_tooltip';
 
 export interface EligibleSample {
     actionId: string;
@@ -87,6 +89,28 @@ function performanceUnit(metric: StatsPerformanceMetric): StatsUnit {
     return metric === 'toolCalls' ? 'toolCalls' : 'tokens';
 }
 
+function median(values: number[]) {
+    const sortedValues = [...values].sort((left, right) => left - right);
+    const middleIndex = Math.floor(sortedValues.length / 2);
+    if (sortedValues.length % 2 === 1) return sortedValues[middleIndex];
+
+    return (sortedValues[middleIndex - 1] + sortedValues[middleIndex]) / 2;
+}
+
+function aggregationLabel(aggregation: StatsPerformanceAggregation, metric: StatsPerformanceMetric) {
+    const metricLabel = metric === 'toolCalls' ? 'tool calls' : metric;
+    if (aggregation === 'sum') return `Total ${metricLabel}`;
+    if (aggregation === 'median') return `Median ${metricLabel} per run`;
+
+    return `Average ${metricLabel} per run`;
+}
+
+function formattedMetricValue(value: number, unit: StatsUnit) {
+    if (unit === 'milliseconds') return `${formatCount(value / 1_000)} seconds`;
+
+    return `${formatCount(value)} ${unit === 'toolCalls' ? 'tool calls' : unit}`;
+}
+
 function groupRow(
     context: StatsBucketContext,
     controls: StatsControls,
@@ -95,18 +119,40 @@ function groupRow(
     groupSamples: EligibleSample[],
 ): StatsChartRow {
     const seriesLabel = controls.performanceGrouping === 'agent' ? identity : `${groupSamples[0].agent} - ${groupSamples[0].model}`;
+    const metricValues: number[] = [];
+    const statusCounts: StatsStatusCounts = { cancelled: 0, completed: 0, failed: 0 };
+    let sum = 0;
+    let sumOfSquares = 0;
+    for (const sample of groupSamples) {
+        metricValues.push(sample.metricValue);
+        sum += sample.metricValue;
+        sumOfSquares += sample.metricValue ** 2;
+        statusCounts[sample.status] += 1;
+    }
     const sampleCount = groupSamples.length;
-    const value = groupSamples.reduce((total, sample) => total + sample.metricValue, 0) / sampleCount;
-    const statusCounts = groupSamples.reduce<StatsStatusCounts>((counts, sample) => ({
-        ...counts,
-        [sample.status]: counts[sample.status] + 1,
-    }), { cancelled: 0, completed: 0, failed: 0 });
-    const tooltip = `${context.localLabel}; UTC ${context.interval}; ${seriesLabel}: ${value} ${unit}; ${sampleCount} samples; completed ${statusCounts.completed}, failed ${statusCounts.failed}, cancelled ${statusCounts.cancelled}`;
+    const average = sum / sampleCount;
+    const populationVariance = Math.max(0, (sumOfSquares / sampleCount) - (average ** 2));
+    const deviation = controls.performanceAggregation === 'averageWithDeviation' ? Math.sqrt(populationVariance) : null;
+    const value = controls.performanceAggregation === 'sum'
+        ? sum
+        : controls.performanceAggregation === 'median' ? median(metricValues) : average;
+    const tooltipLines: StatsTooltipLine[] = [
+        { label: null, value: formatBucketRange(context) },
+        { label: 'Series', value: seriesLabel },
+        { label: aggregationLabel(controls.performanceAggregation, controls.performanceMetric), value: formattedMetricValue(value, unit) },
+    ];
+    if (deviation !== null) tooltipLines.push({ label: 'Std dev', value: formattedMetricValue(deviation, unit) });
+    tooltipLines.push(
+        { label: 'Runs', value: formatCount(sampleCount) },
+        { label: 'Statuses', value: `${statusCounts.completed} completed · ${statusCounts.failed} failed · ${statusCounts.cancelled} cancelled` },
+    );
+    const tooltip = statsTooltip(tooltipLines);
 
     return {
         actionId: null,
         actionType: null,
-        accessibleLabel: tooltip,
+        accessibleLabel: accessibleStatsTooltip(tooltip),
+        aggregation: controls.performanceAggregation,
         agent: null,
         available: true,
         chartRole: 'primary',
@@ -114,6 +160,7 @@ function groupRow(
         grouping: controls.performanceGrouping,
         identity,
         denominator: null,
+        deviation,
         limitId: null,
         metric: controls.performanceMetric,
         numerator: null,
@@ -155,7 +202,7 @@ function bucketRows(
         .map(([identity, groupSamples]) => groupRow(context, controls, unit, identity, groupSamples));
 }
 
-/** Averaged agent or model performance per UTC bucket, grouped from one bucket index. */
+/** Aggregated agent or model performance per UTC bucket, grouped from one bucket index. */
 export function performanceRows(controls: StatsControls, samples: EligibleSample[]): StatsChartRow[] {
     const entityFiltered = samples.filter((sample) => matchesEntityFilters(sample, controls));
     const buckets = bucketDomain(entityFiltered.map(({ completedAt }) => completedAt), controls.performanceGranularity, controls);
