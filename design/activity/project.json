@@ -6308,6 +6308,29 @@
       "startedAt": "2026-08-20T14:30:37.070Z",
       "status": "completed",
       "rootConversationId": "agent-74758ba7-96b9-4737-a758-27128d76e9ce"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-08-21T10:05:07.473Z",
+      "conversationIds": [
+        "agent-1a921b7c-1d71-4064-b82d-313f957b789c"
+      ],
+      "details": {
+        "agent": "claude",
+        "model": "sonnet",
+        "permissionMode": "ask-for-approval",
+        "thinkingLevel": "low",
+        "type": "agent"
+      },
+      "runId": "action-a51b8c66-b6c2-4fa3-a3a8-ff469a807027",
+      "origin": {
+        "kind": "project"
+      },
+      "rootActionId": "md2.custom-prompt",
+      "rootActionLabel": "+",
+      "rootConversationId": "agent-1a921b7c-1d71-4064-b82d-313f957b789c",
+      "startedAt": "2026-08-21T09:43:44.278Z",
+      "status": "completed"
     }
   ],
   "version": 4
