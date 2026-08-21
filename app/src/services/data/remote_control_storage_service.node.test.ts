@@ -115,6 +115,22 @@ describe('RemoteControlStorageService', () => {
         await expect(second).resolves.toEqual([{ name: 'main' }])
     })
 
+    it('forwards project root exclusion to the remote host', async () => {
+        installWebSocket()
+        const service = createService()
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+        const result = service.loadProject(project, 'design', 'design/active')
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const request = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
+
+        expect(request).toMatchObject({ method: 'loadProject', params: [project, 'design', 'design/active'] })
+        socket.receive({ id: request.id, result: { files: [], workingFolder: 'design' } })
+        await expect(result).resolves.toEqual({ files: [], workingFolder: 'design' })
+    })
+
     it.each(persistentSubscriptionCases)('cleans retired $name subscriptions locally without reconnecting', async ({ method, subscribe }) => {
         installWebSocket()
         const service = createService()

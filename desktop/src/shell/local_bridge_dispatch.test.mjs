@@ -736,6 +736,15 @@ describe('createLocalBridgeDispatch', () => {
         expect(localGitService.loadProjectRoot).toHaveBeenCalledWith(project, 'design');
     });
 
+    it('forwards project root exclusion through the shared method table', async () => {
+        const { dispatch, localGitService } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+
+        await dispatch.invoke('loadProject', [project, 'design', 'design/active']);
+
+        expect(localGitService.loadProject).toHaveBeenCalledWith(project, 'design', 'design/active');
+    });
+
     it('forwards single file reads through the data bridge', async () => {
         const { dispatch, localGitService } = createDispatch();
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };

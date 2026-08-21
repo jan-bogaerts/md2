@@ -38,19 +38,21 @@ const PROJECT_ASSET_CONTENT_TYPES = {
 
 if (!WATCHER_BACKEND) throw new Error(`Unsupported watcher platform: ${process.platform}`);
 
-async function readMarkdownFiles(rootPath, folderPath) {
+async function readMarkdownFiles(rootPath, folderPath, excludedRootFolderPath = null) {
     const entries = await fs.promises.readdir(folderPath, { withFileTypes: true });
     const files = [];
+    const excludeRootFiles = excludedRootFolderPath !== null
+        && path.relative(folderPath, excludedRootFolderPath).length === 0;
 
     for (const entry of entries) {
         const entryPath = path.join(folderPath, entry.name);
 
         if (entry.isDirectory()) {
-            files.push(...await readMarkdownFiles(rootPath, entryPath));
+            files.push(...await readMarkdownFiles(rootPath, entryPath, excludedRootFolderPath));
             continue;
         }
 
-        if (entry.isFile() && entry.name.toLowerCase().endsWith(MARKDOWN_EXTENSION)) {
+        if (!excludeRootFiles && entry.isFile() && entry.name.toLowerCase().endsWith(MARKDOWN_EXTENSION)) {
             const content = await fs.promises.readFile(entryPath, 'utf8');
             files.push({ content, path: normalizePath(path.relative(rootPath, entryPath)) });
         }
@@ -124,17 +126,20 @@ function createProject(project, workingFolder) {
     return withGitIndexMutation(rootPath, () => createProjectNow(project, workingFolder));
 }
 
-async function loadProject(project, workingFolder) {
+async function loadProject(project, workingFolder, excludedRootFolder) {
     const rootPath = requireRootPath(project);
     await assertGitRoot(rootPath);
     const workingFolderPath = ensureInsideRoot(rootPath, path.join(rootPath, workingFolder));
+    const excludedRootFolderPath = excludedRootFolder === undefined
+        ? null
+        : ensureInsideRoot(rootPath, path.join(rootPath, excludedRootFolder));
 
     if (!await pathExists(workingFolderPath)) {
         throw createMissingWorkingFolderError(workingFolder);
     }
 
     return {
-        files: await readMarkdownFiles(rootPath, workingFolderPath),
+        files: await readMarkdownFiles(rootPath, workingFolderPath, excludedRootFolderPath),
         workingFolder,
     };
 }

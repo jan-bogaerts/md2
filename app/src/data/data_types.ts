@@ -407,7 +407,7 @@ export interface StorageService {
     loadActivityConversations?(project: ProjectReference, path: string): Promise<AgentConversation[]>
     loadProjectAsset?(project: ProjectReference, path: string): Promise<ProjectAsset>
     loadTextFile?(project: ProjectReference, path: string): Promise<MarkdownFile>
-    loadProject(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>
+    loadProject(project: ProjectReference, workingFolder: string, excludedRootFolder?: string): Promise<StorageProjectFiles>
     loadFile?(project: ProjectReference, path: string): Promise<MarkdownFile>
     loadProjectRoot(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>
     loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null>

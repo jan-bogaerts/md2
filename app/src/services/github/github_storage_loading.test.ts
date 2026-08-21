@@ -53,6 +53,28 @@ describe('GithubStorageService', () => {
         expect(fetchImplementation.mock.calls.some(([url]) => url.includes('/git/blobs/sha-2'))).toBe(false)
     })
 
+    it('excludes working-folder root blobs while retaining nested project files', async () => {
+        const fetchImplementation = vi.fn()
+        queueProjectTree(fetchImplementation, [
+            { path: 'design/active/F-1-root.md', sha: 'sha-root', type: 'blob' },
+            { path: 'design/active/nested/F-2-nested.md', sha: 'sha-nested', type: 'blob' },
+            { path: 'design/history/F-3-old.md', sha: 'sha-old', type: 'blob' },
+        ])
+        fetchImplementation
+            .mockResolvedValueOnce(createRawResponse('# Nested'))
+            .mockResolvedValueOnce(createRawResponse('# Old'))
+        const service = new GithubStorageService()
+        service.init({ accessToken: 'token', fetchImplementation })
+
+        const projectFiles = await service.loadProject(project, 'design', 'design/active')
+
+        expect(projectFiles.files.map((file) => file.path)).toEqual([
+            'design/active/nested/F-2-nested.md',
+            'design/history/F-3-old.md',
+        ])
+        expect(fetchImplementation.mock.calls.some(([url]) => url.includes('/git/blobs/sha-root'))).toBe(false)
+    })
+
     it('loads a UTF-8 repository text file by path', async () => {
         const path = 'design/activity/card__card-1.json'
         const fetchImplementation = vi.fn().mockResolvedValue(createResponse({

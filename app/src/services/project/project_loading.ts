@@ -547,7 +547,7 @@ export class ProjectLoading {
     ) {
         const { storage } = this.dependencies.requireDependencies()
         const [projectFilesResult, repositoryFilesResult] = await Promise.allSettled([
-            storage.loadProject(project, projectFolder),
+            storage.loadProject(project, projectFolder, workingFolder),
             storage.listRepositoryFiles(project),
         ])
         if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
@@ -556,11 +556,12 @@ export class ProjectLoading {
         let projectFilesLoaded = false
         if (projectFilesResult.status === 'fulfilled') {
             try {
-                const importedFiles = await this.importExternalCardFiles(projectFilesResult.value.files, workingFolder)
+                const loadedFiles = mergeFiles(projectFilesResult.value.files, this.dependencies.files())
+                const importedFiles = await this.importExternalCardFiles(loadedFiles, workingFolder)
                 if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
 
                 const importedPaths = new Set(importedFiles.map((file) => file.path))
-                const removedImportedPaths = projectFilesResult.value.files
+                const removedImportedPaths = loadedFiles
                     .filter((file) => !importedPaths.has(file.path))
                     .map((file) => file.path)
                 const remainingFiles = removeFilesByPath(this.dependencies.files(), removedImportedPaths)

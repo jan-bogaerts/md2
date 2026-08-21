@@ -63,9 +63,9 @@ export class GithubStorageLoader {
         this.gitData = gitData
     }
 
-    async loadProject(project: ProjectReference, workingFolder: string) {
+    async loadProject(project: ProjectReference, workingFolder: string, excludedRootFolder?: string) {
         this.context.requireGithubProject(project)
-        const files = await this.readDirectory(project, workingFolder, true)
+        const files = await this.readDirectory(project, workingFolder, true, excludedRootFolder)
 
         return { files, workingFolder }
     }
@@ -175,13 +175,21 @@ export class GithubStorageLoader {
         return { ...project, branch: project.branch }
     }
 
-    private async readDirectory(project: ProjectReference, path: string, isWorkingFolder = false): Promise<MarkdownFile[]> {
+    private async readDirectory(
+        project: ProjectReference,
+        path: string,
+        isWorkingFolder = false,
+        excludedRootFolder?: string,
+    ): Promise<MarkdownFile[]> {
         const folderPath = normalizeFolderPath(path)
+        const excludedRootFolderPath = excludedRootFolder === undefined ? null : normalizeFolderPath(excludedRootFolder)
         const entries = await this.gitData.getProjectRecursiveTreeEntries(project)
         const folderExists = folderPath.length === 0 || entries.some((entry) => isEntryInFolder(entry.path, folderPath))
         if (!folderExists && isWorkingFolder) throw new MissingWorkingFolderError(path)
 
-        const markdownEntries = entries.filter((entry) => isMarkdownBlob(entry) && isEntryInFolder(entry.path, folderPath))
+        const markdownEntries = entries.filter((entry) => isMarkdownBlob(entry)
+            && isEntryInFolder(entry.path, folderPath)
+            && (excludedRootFolderPath === null || !isDirectFileInFolder(entry.path, excludedRootFolderPath)))
 
         return this.gitData.readBlobFiles(project, markdownEntries)
     }

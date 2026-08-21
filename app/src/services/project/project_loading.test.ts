@@ -799,7 +799,11 @@ describe('ProjectLoading', () => {
 
         expect(storage.loadActionFiles).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, 'projects/demo/actions')
         expect(storage.loadProjectRoot).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, 'projects/demo/design')
-        expect(storage.loadProject).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, 'projects/demo')
+        expect(storage.loadProject).toHaveBeenCalledWith(
+            { branch: 'main', id: 'project' },
+            'projects/demo',
+            'projects/demo/design',
+        )
         expect(service.getState().snapshot?.workingFolder).toBe('projects/demo/design')
         expect(service.getState().snapshot?.activeCards.map((card) => card.path)).toEqual(['projects/demo/design/F-1-root.md'])
         await vi.waitFor(() => {
@@ -813,10 +817,19 @@ describe('ProjectLoading', () => {
         configService.init()
         const rootFiles = [files[0]]
         const backgroundFile = files[1]
+        const archivedFile = {
+            content: files[1].content.replace('old-card', 'archived-card'),
+            path: 'design/archived/F-4-archived.md',
+        }
+        const otherFile = {
+            content: files[1].content.replace('old-card', 'note-card'),
+            path: 'design/notes/F-5-note.md',
+        }
+        const backgroundFiles = [backgroundFile, archivedFile, otherFile]
         const fullProject = createDeferred<StorageProjectFiles>()
         const snapshots: Array<ReturnType<DataService['getState']>['snapshot']> = []
         const storage = createStorage({
-            listRepositoryFiles: vi.fn(async () => ['design/F-1-root.md', 'design/history/F-3-old.md']),
+            listRepositoryFiles: vi.fn(async () => [rootFiles[0].path, ...backgroundFiles.map((file) => file.path)]),
             loadProject: vi.fn(async () => fullProject.promise),
             loadProjectRoot: vi.fn(async () => ({ files: rootFiles, workingFolder: 'design' })),
         })
@@ -832,13 +845,18 @@ describe('ProjectLoading', () => {
         expect(openedSnapshot.backgroundCards).toHaveLength(0)
         expect(snapshots.filter((snapshot) => snapshot !== null)[0]?.backgroundCards).toHaveLength(0)
         expect(storage.loadProjectRoot).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, 'design')
-        expect(storage.loadProject).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, '')
+        expect(storage.loadProjectRoot).toHaveBeenCalledOnce()
+        expect(storage.loadProject).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, '', 'design')
+        expect(storage.loadProject).toHaveBeenCalledOnce()
 
-        fullProject.resolve({ files: [files[0], backgroundFile], workingFolder: 'design' })
+        fullProject.resolve({ files: backgroundFiles, workingFolder: '' })
 
         await vi.waitFor(() => {
-            expect(service.getState().snapshot?.backgroundCards.map((card) => card.path)).toEqual(['design/history/F-3-old.md'])
+            expect(service.getState().snapshot?.backgroundCards.map((card) => card.path)).toEqual(backgroundFiles.map((file) => file.path))
         })
+        expect(service.getState().snapshot?.activeCards.map((card) => card.path)).toEqual(rootFiles.map((file) => file.path))
+        const rootPaths = new Set(rootFiles.map((file) => file.path))
+        expect(backgroundFiles.some((file) => rootPaths.has(file.path))).toBe(false)
     })
 
     it('merges a stale background load without replacing newer owned card state', async () => {

@@ -9,6 +9,7 @@ const { GitProcess } = require('../git/git_process');
 const {
     listRepositoryFiles,
     loadProject,
+    loadProjectRoot,
     loadTextFile,
 } = require('./project_files');
 
@@ -25,6 +26,33 @@ describe('project-files', () => {
             const projectFiles = await loadProject({ branch: 'main', id: 'local', rootPath }, 'design');
 
             expect(projectFiles.files.map((file) => file.path).sort()).toEqual(['design/F-1-root.md', 'design/history/F-2-old.md']);
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('excludes working-folder root files while retaining nested project files', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-project-files-'));
+
+        try {
+            await mkdir(join(rootPath, '.git'));
+            await mkdir(join(rootPath, 'design', 'active', 'nested'), { recursive: true });
+            await mkdir(join(rootPath, 'design', 'history'), { recursive: true });
+            await writeFile(join(rootPath, 'design', 'active', 'F-1-root.md'), '# Root');
+            await writeFile(join(rootPath, 'design', 'active', 'nested', 'F-2-nested.md'), '# Nested');
+            await writeFile(join(rootPath, 'design', 'history', 'F-3-old.md'), '# Old');
+
+            const project = { branch: 'main', id: 'local', rootPath };
+            const rootFiles = await loadProjectRoot(project, 'design/active');
+            const backgroundFiles = await loadProject(project, 'design', 'design/active');
+            const rootPaths = new Set(rootFiles.files.map((file) => file.path));
+
+            expect(rootFiles.files.map((file) => file.path)).toEqual(['design/active/F-1-root.md']);
+            expect(backgroundFiles.files.map((file) => file.path).sort()).toEqual([
+                'design/active/nested/F-2-nested.md',
+                'design/history/F-3-old.md',
+            ]);
+            expect(backgroundFiles.files.some((file) => rootPaths.has(file.path))).toBe(false);
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }

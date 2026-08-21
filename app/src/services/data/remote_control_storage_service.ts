@@ -347,8 +347,16 @@ export class RemoteControlStorageService implements
         return this.request<MarkdownFile>('loadTextFile', [project, path])
     }
 
-    async loadProject(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles> {
-        return this.request<StorageProjectFiles>('loadProject', [project, workingFolder])
+    async loadProject(
+        project: ProjectReference,
+        workingFolder: string,
+        excludedRootFolder?: string,
+    ): Promise<StorageProjectFiles> {
+        const params = excludedRootFolder === undefined
+            ? [project, workingFolder]
+            : [project, workingFolder, excludedRootFolder]
+
+        return this.request<StorageProjectFiles>('loadProject', params)
     }
 
     async loadFile(project: ProjectReference, path: string): Promise<MarkdownFile> {

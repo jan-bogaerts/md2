@@ -60,7 +60,7 @@ export interface ElectronDataBridge {
     cancelActivityStatsCalculation?(calculationId: string): Promise<void>
     loadProjectAsset?(project: ProjectReference, path: string): Promise<ProjectAsset>
     loadTextFile?(project: ProjectReference, path: string): Promise<MarkdownFile>
-    loadProject(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>
+    loadProject(project: ProjectReference, workingFolder: string, excludedRootFolder?: string): Promise<StorageProjectFiles>
     loadProjectRoot(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>
     loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null>
     onWorktreesChanged?(callback: (state: WorktreeState) => void): () => void

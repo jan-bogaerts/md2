@@ -1008,7 +1008,11 @@ describe('ProjectWorkspace', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Switch' }))
 
         await waitFor(() => expect(bridge.checkoutBranch).toHaveBeenCalledWith(expect.objectContaining({ branch: 'main' }), 'feature'))
-        await waitFor(() => expect(bridge.loadProject).toHaveBeenLastCalledWith(expect.objectContaining({ branch: 'feature' }), ''))
+        await waitFor(() => expect(bridge.loadProject).toHaveBeenLastCalledWith(
+            expect.objectContaining({ branch: 'feature' }),
+            '',
+            'design',
+        ))
     })
 
     it('shows branch switch failures in the switch dialog', async () => {

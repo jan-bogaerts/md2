@@ -47,9 +47,9 @@ export class GithubStorageService implements StorageService {
         return this.writer.createProject(project, workingFolder)
     }
 
-    async loadProject(project: ProjectReference, workingFolder: string) {
+    async loadProject(project: ProjectReference, workingFolder: string, excludedRootFolder?: string) {
         try {
-            return await this.loader.loadProject(project, workingFolder)
+            return await this.loader.loadProject(project, workingFolder, excludedRootFolder)
         } catch (error) {
             if (this.isReadOnly && error instanceof MissingWorkingFolderError) return { files: [], workingFolder }
 

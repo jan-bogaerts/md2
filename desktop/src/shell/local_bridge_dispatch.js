@@ -160,10 +160,11 @@ function createLocalBridgeDispatch(dependencies) {
         loadFile: (project, path) => localGitService.loadFile(project, path),
         loadTextFile: (project, path) => localGitService.loadTextFile(project, path),
         loadProjectAsset: (project, path) => localGitService.loadProjectAsset(project, path),
-        loadProject: async (project, workingFolder) => {
+        loadProject: async (project, workingFolder, excludedRootFolder) => {
             await activateProject(project);
+            if (excludedRootFolder === undefined) return localGitService.loadProject(project, workingFolder);
 
-            return localGitService.loadProject(project, workingFolder);
+            return localGitService.loadProject(project, workingFolder, excludedRootFolder);
         },
         loadProjectConfig: (project) => localGitService.loadProjectConfig(project),
         loadProjectRoot: async (project, workingFolder) => {
