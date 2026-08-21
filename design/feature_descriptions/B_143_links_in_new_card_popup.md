@@ -2,7 +2,7 @@
 author: 
 id: B_143
 internalId: 389dd95e-e4b1-460c-8171-db15ce961115
-title: links in card popups
+title: links in new card popup
 status: new
 owner: 
 affects:
