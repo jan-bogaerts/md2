@@ -12,7 +12,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "97733177-b4c8-47c3-af3d-64c31d4eca93",
       "cardPath": "design/feature_descriptions/B_160_unknown.md",
-      "completedAt": "2026-08-21T08:44:40.865Z",
+      "completedAt": "2026-08-21T08:56:25.808Z",
       "entries": [
         {
           "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/B_160_unknown.md`.&#x20;\nupdate the field `status` in the markdown feature description file to `ready for implementation`.\n\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill.\n\nDo not stage or commit changes. You have no need for get at this time.",
@@ -551,6 +551,250 @@
           "status": "failed",
           "timestamp": "2026-08-21T08:44:40.755Z",
           "type": "tool.AskUserQuestion"
+        },
+        {
+          "content": "> Which fix direction should B_160 specify\n>\n\nyour options don't deal with real problem: why is the renderer doing this? shouldn't this be done by the backend when the file gets flushed. same for migrations, this shouldn't be running in the renderer, now does it?\nalso, why are we trying a migation on a NEW card? makes no sense.\nso lets do this again. no batch work, we need to address the actual problem.",
+          "id": "agent-turn-cbed4972-62ce-485b-88e8-60eea5dd0551-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 45,
+          "timestamp": "2026-08-21T08:44:54.164Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-cbed4972-62ce-485b-88e8-60eea5dd0551-event-46",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeFbkJ62BV3KqwLZ5vcVV:thinking:0",
+          "sequence": 46,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-21T08:45:03.797Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "=== planAgentReferenceMigration ===\napp/src/services/agents/agent_reference_migration.node.test.ts:3:import { planAgentReferenceMigration } from './agent_reference_migration'\napp/src/services/agents/agent_reference_migration.node.test.ts:29:describe('planAgentReferenceMigration', () => {\napp/src/services/agents/agent_reference_migration.node.test.ts:32:        const result = planAgentReferenceMigration([card([\napp/src/services/agents/agent_reference_migration.node.test.ts:45:        const result = planAgentReferenceMigration([card([\napp/src/services/agents/agent_reference_migration.node.test.ts:58:        const result = planAgentReferenceMigration([card(['design/activity/card.json#conversation='])])\napp/src/services/agents/agent_reference_migration.ts:22:export function planAgentReferenceMigration(cards: Card[]) {\napp/src/services/data/data_service.ts:11:import { planAgentReferenceMigration } from '../agents/agent_reference_migration'\napp/src/services/data/data_service.ts:451:        const { conflicts, plans } = planAgentReferenceMigration(cards)\n=== file ===\napp/src/services/agents/agent_reference_migration.node.test.ts\napp/src/services/agents/agent_reference_migration.ts",
+          "id": "agent-turn-cbed4972-62ce-485b-88e8-60eea5dd0551-event-47",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_018DrpECwgkg3Afs8gzasLid",
+          "sequence": 47,
+          "status": "completed",
+          "timestamp": "2026-08-21T08:45:06.763Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "=== createCard / generateInternalId callers ===\napp/src/data/card_naming.ts:97:    const internalId = markdownParsingService.generateInternalId()\napp/src/services/data/card_internal_id_operations.ts:59:            const internalId = generatedInternalId ?? markdownParsingService.generateInternalId()\napp/src/services/data/external_card_import_service.ts:64:    const internalId = stringField(parsed.header, 'internalId') ?? markdownParsingService.generateInternalId()\napp/src/services/data/markdown_parsing_service.node.test.ts:490:describe('markdownParsingService.generateInternalId', () => {\napp/src/services/data/markdown_parsing_service.node.test.ts:492:        const first = markdownParsingService.generateInternalId()\napp/src/services/data/markdown_parsing_service.node.test.ts:493:        const second = markdownParsingService.generateInternalId()\napp/src/services/data/markdown_parsing_service.ts:702:    generateInternalId() {",
+          "id": "agent-turn-cbed4972-62ce-485b-88e8-60eea5dd0551-event-48",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01N9f2vuPNm8mKU9gw5FWcAv",
+          "sequence": 48,
+          "status": "completed",
+          "timestamp": "2026-08-21T08:45:06.933Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-cbed4972-62ce-485b-88e8-60eea5dd0551-event-49",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeFbm9VsHCuVhiQukLpEH:thinking:0",
+          "sequence": 49,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-21T08:45:11.160Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "import type { Card } from '../../data/data_types'\nimport { normalizePath } from '../../../../shared/path_utils.mjs'\nimport { parseConversationActivityReference } from '../../../../shared/activity_paths.mjs'\n\nexport interface AgentReferenceMigrationConflict {\n    cardPath: string\n    message: string\n}\n\nexport interface AgentReferenceMigrationPlan {\n    cardPath: string\n    references: string[]\n}\n\nexport function activityPathForCardReference(reference: string) {\n    return reference.includes('#conversation=')\n        ? parseConversationActivityReference(reference).activityPath\n        : reference\n}\n\n/** Plans compound-reference removal without selecting between conflicting activity files. */\nexport function planAgentReferenceMigration(cards: Card[]) {\n    const conflicts: AgentReferenceMigrationConflict[] = []\n    const plans: AgentReferenceMigrationPlan[] = []\n\n    for (const card of cards) {\n        try {\n            const referencesByPath = new Map<string, string>()\n            for (const reference of card.header.agentLogReferences) {\n                const path = activityPathForCardReference(reference)\n                const normalizedPath = normalizePath(path)\n                if (!referencesByPath.has(normalizedPath)) referencesByPath.set(normalizedPath, path)\n            }\n            if (referencesByPath.size > 1) {\n                conflicts.push({\n                    cardPath: card.path,\n                    message: `Card references multiple activity files: ${[...referencesByPath.values()].join(', ')}`,\n                })\n                continue\n            }\n\n            const references = [...referencesByPath.values()]\n            const unchanged = references.length === card.header.agentLogReferences.length\n                && references.every((reference, index) => reference === card.header.agentLogReferences[index])\n            if (!unchanged) plans.push({ cardPath: card.path, references })\n        } catch (error) {\n            conflicts.push({\n                cardPath: card.path,\n                message: error instanceof Error ? error.message : 'Agent references could not be migrated',\n            })\n        }\n    }\n\n    return { conflicts, plans }\n}",
+          "id": "agent-turn-cbed4972-62ce-485b-88e8-60eea5dd0551-event-50",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01TVJfbiAq6uCUmyhZPbLnqP",
+          "sequence": 50,
+          "status": "completed",
+          "timestamp": "2026-08-21T08:45:11.926Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "        .map((number) => Number.parseInt(number, 10))\n\n    return numbers.length > 0 ? Math.max(...numbers) + 1 : 1\n}\n\nexport function createCardFile(\n    files: MarkdownFile[],\n    workingFolder: string,\n    cardSeparator: CardSeparator,\n    cardTypes: CardTypeConfig[],\n    initialState: string,\n    draft: CardDraft,\n): MarkdownFile {\n    const cardTypeConfig = getCardTypeConfig(cardTypes, draft)\n    const number = getNextCardNumber(files, cardTypeConfig.idPrefix)\n    const id = buildCardId(cardTypeConfig.idPrefix, number, cardSeparator)\n    const titleSlug = slugifyTitle(draft.title, cardSeparator)\n    const internalId = markdownParsingService.generateInternalId()\n    const content = markdownParsingService.buildCardMarkdown(\n        { affects: [], id, internalId, policy: {}, status: initialState, title: draft.title },\n        draft.body,\n    )\n\n    return {\n        content,\n        path: `${workingFolder}/${id}${cardSeparator}${titleSlug}${MARKDOWN_EXTENSION}`,\n    }\n}",
+          "id": "agent-turn-cbed4972-62ce-485b-88e8-60eea5dd0551-event-51",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_012psNTSxGhhbbzc4mjacaWW",
+          "sequence": 51,
+          "status": "completed",
+          "timestamp": "2026-08-21T08:45:11.927Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-cbed4972-62ce-485b-88e8-60eea5dd0551-event-52",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeFbmWkYaAdbd1YTNAawu:thinking:0",
+          "sequence": 52,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-21T08:45:35.604Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "=== managed_open_document ===\nimport type {\n    CardBodyDraft,\n    OpenDocument,\n    OpenDocumentChangedDetail,\n    OpenDocumentDraft,\n    OpenDocumentObject,\n    OpenDocumentOrigin,\n    OpenDocumentSaveReference,\n} from './open_document'\n\nfunction isCardDraft(draft: OpenDocumentDraft): draft is CardBodyDraft {\n    return 'content' in draft\n}\n\nfunction isCardObject(object: OpenDocumentObject) {\n    return 'header' in object\n}\n\nfunction objectPath(object: OpenDocumentObject) {\n    if (isCardObject(object)) return object.path\n    if (!object.sourcePath) throw new Error(`Action document requires a source path: ${object.id}`)\n\n    return object.sourcePath\n}\n\n/** Stable document identity with revision-based draft persistence state. */\nexport class ManagedOpenDocument extends EventTarget {\n    readonly identity: string\n    readonly kind: 'action' | 'card'\n    private acknowledgedRevision = 0\n    private draft: OpenDocumentDraft\n    private editRevision = 0\n    private object: OpenDocumentObject\n\n    constructor(\n        kind: 'action' | 'card',\n        identity: string,\n        object: OpenDocumentObject,\n        draft: OpenDocumentDraft,\n    ) {\n        super()\n        this.kind = kind\n        this.identity = identity\n        this.object = object\n        this.draft = draft\n    }\n\n    get dirty() { return this.editRevision !== this.acknowledgedRevision }\n    get path() { return objectPath(this.object) }\n\n    getDraft() {\n        return this.draft\n    }\n\n    getObject() {\n        return this.object\n    }\n\n    updateDraft(draft: OpenDocumentDraft, origin: OpenDocumentOrigin = null) {\n        if (this.draft === draft) return\n\n        const wasDirty = this.dirty\n        this.applyDraft(draft)\n        this.editRevision += 1\n        this.dispatchChanged('draft', origin)\n        if (!wasDirty) this.dispatchChanged('dirty', origin)\n    }\n\n    replaceDraft(draft: OpenDocumentDraft) {\n        const wasDirty = this.dirty\n        this.applyDraft(draft)\n        this.editRevision += 1\n        this.acknowledgedRevision = this.editRevision\n        this.dispatchChanged('draft', null)\n        if (wasDirty) this.dispatchChanged('dirty', null)\n    }\n\n    createSaveReference(): OpenDocumentSaveReference {\n        const revision = this.editRevision\n\n        return { document: this as unknown as OpenDocument, acknowledge: () => this.acknowledge(revision) }\n    }\n\n    renew(identity: string, object: OpenDocumentObject, draft: OpenDocumentDraft) {\n        if (this.identity !== identity) throw new Error(`Cannot renew open ${this.kind} document with a different object`)\n        const sameDraft = this.kind === 'card'\n            ? isCardDraft(this.draft) && isCardDraft(draft) && this.draft.content === draft.content\n            : this.draft === draft\n        if (this.object === object && sameDraft) return\n\n        const previousObject = this.object\n        const draftChanged = !this.dirty && !sameDraft\n        this.object = object\n        if (draftChanged) this.draft = draft\n        const detail = { document: this, object, origin: null, previousObject, type: 'renewed' }\n        this.dispatchEvent(new CustomEvent('changed', { detail }))\n        if (draftChanged) this.dispatchChanged('draft', null)\n    }\n\n    private acknowledge(revision: number) {\n        if (revision <= this.acknowledgedRevision) return\n\n        const wasDirty = this.dirty\n        this.acknowledgedRevision = revision\n        this.dispatchChanged('saved', null)\n        if (wasDirty && !this.dirty) this.dispatchChanged('dirty', null)\n    }\n\n    private applyDraft(draft: OpenDocumentDraft) {\n        if (this.kind === 'card') {\n            if (!isCardObject(this.object) || !('content' in draft)) throw new Error('Cannot update card document with a different draft kind')\n            this.draft = draft\n            return\n        }\n\n        this.draft = draft\n    }\n\n    private dispatchChanged(type: OpenDocumentChangedDetail['type'], origin: OpenDocumentOrigin) {\n        const detail: OpenDocumentChangedDetail = { document: this as unknown as OpenDocument, origin, type }\n        this.dispatchEvent(new CustomEvent<OpenDocumentChangedDetail>('changed', { detail }))\n    }\n}",
+          "id": "agent-turn-cbed4972-62ce-485b-88e8-60eea5dd0551-event-53",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01LLRXuGXMK4mbXTuR8RvTZS",
+          "sequence": 53,
+          "status": "completed",
+          "timestamp": "2026-08-21T08:45:37.183Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "=== external import ===\nimport { getNextCardNumber, slugifyTitle } from '../../data/card_naming'\nimport { buildCardId, type CardSeparator } from '../../data/card_identifiers'\nimport type { CardTypeConfig, MarkdownFile, MoveFile } from '../../data/data_types'\nimport { markdownParsingService, type HeaderValue, type MarkdownHeaderFields } from './markdown_parsing_service'\n\nconst DEFAULT_CARD_TYPE = 'feature'\nconst MARKDOWN_EXTENSION = '.md'\nconst TITLE_HEADING_PATTERN = /^#\\s+(.+)$/mu\n\nexport interface ExternalCardImportPlan {\n    importedFiles: MarkdownFile[]\n    moves: MoveFile[]\n}\n\nfunction getFeatureCardType(cardTypes: CardTypeConfig[]) {\n    const cardType = cardTypes.find((candidate) => candidate.type === DEFAULT_CARD_TYPE)\n    if (!cardType) throw new Error(`Missing card type config: ${DEFAULT_CARD_TYPE}`)\n\n    return cardType\n}\n\nfunction getFileName(path: string) {\n    return path.split('/').at(-1) ?? path\n}\n\nfunction titleFromFileName(path: string) {\n    const fileName = getFileName(path)\n    const withoutExtension = fileName.toLowerCase().endsWith(MARKDOWN_EXTENSION) ? fileName.slice(0, -MARKDOWN_EXTENSION.length) : fileName\n    const normalizedTitle = withoutExtension.replace(/[-_]+/gu, ' ').replace(/\\s+/gu, ' ').trim()\n\n    return normalizedTitle.length > 0 ? normalizedTitle : 'Untitled'\n}\n\nfunction titleFromBody(body: string) {\n    const match = body.match(TITLE_HEADING_PATTERN)\n\n    return match?.[1].trim() ?? null\n}\n\nfunction stringField(fields: MarkdownHeaderFields, key: string) {\n    const value: HeaderValue | undefined = fields[key]\n\n    return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null\n}\n\nfunction importTitle(file: MarkdownFile, fields: MarkdownHeaderFields, body: string) {\n    return stringField(fields, 'title') ?? titleFromBody(body) ?? titleFromFileName(file.path)\n}\n\nfunction isExternalImportCandidate(file: MarkdownFile, workingFolder: string) {\n    if (!markdownParsingService.isRootWorkingFolderFile(file.path, workingFolder)) return false\n    if (!markdownParsingService.isMarkdownFile(file.path)) return false\n\n    return !markdownParsingService.followsCardNamingConvention(file.path)\n}\n\nfunction buildImportedContent(\n    file: MarkdownFile,\n    id: string,\n    initialState: string,\n    title: string,\n    parsed: ReturnType<typeof markdownParsingService.parse>,\n) {\n    const internalId = stringField(parsed.header, 'internalId') ?? markdownParsingService.generateInternalId()\n    const status = stringField(parsed.header, 'status') ?? initialState\n\n    return markdownParsingService.rewriteHeader(file.content, { id, internalId, status, title })\n}\n\nfunction importedPath(workingFolder: string, id: string, title: string, cardSeparator: CardSeparator) {\n    return `${workingFolder}/${id}${cardSeparator}${slugifyTitle(title, cardSeparator)}${MARKDOWN_EXTENSION}`\n}\n\nexport function planExternalCardImports(\n    files: MarkdownFile[],\n    workingFolder: string,\n    cardSeparator: CardSeparator,\n    cardTypes: CardTypeConfig[],\n    initialState: string,\n): ExternalCardImportPlan {\n    const cardType = getFeatureCardType(cardTypes)\n    const candidates = files.filter((file) => isExternalImportCandidate(file, workingFolder))\n    let nextNumber = getNextCardNumber(files, cardType.idPrefix)\n    const moves: MoveFile[] = []\n    const importedFiles: MarkdownFile[] = []\n\n    for (const file of candidates) {\n        const parsed = markdownParsingService.parse(file.content)\n        const title = importTitle(file, parsed.header, parsed.body)\n        const id = buildCardId(cardType.idPrefix, nextNumber, cardSeparator)\n        const path = importedPath(workingFolder, id, title, cardSeparator)\n        const content = buildImportedContent(file, id, initialState, title, parsed)\n        const importedFile = { content, path }\n        moves.push({ content, fromPath: file.path, sha: file.sha, toPath: path })\n        importedFiles.push(importedFile)\n        nextNumber += 1\n    }\n\n    return { importedFiles, moves }\n}\n=== importExternalCardFiles in loading ===\n        this.markdownReloadEvent\n[4504 characters omitted]\nach((path) => inFlightCommitPaths.add(path))\n\n        try {\n            await storage.moveFiles({\n                branch: currentProject.branch,\n                message: `Import ${plan.moves.length} external ${plan.moves.length === 1 ? 'file' : 'files'}`,\n                moves: plan.moves,\n            })\n        } catch (error) {\n            reportWorkspaceError(errorMessage(error, 'External file import failed'))\n            telemetryService.captureError(error)\n\n            return { files, importedFiles: [], sourcePaths: [], succeeded: false }\n        } finally {\n            importPaths.forEach((path) => inFlightCommitPaths.delete(path))\n        }\n\n        if (config.pushMode === 'auto') await storage.push(currentProject)\n        if (config.pushMode === 'manual') this.dependencies.dispatchPersistenceChanged()\n\n        reportWorkspaceNotice(importedNoticeMessage(plan.moves.length))\n        telemetryService.trackEvent('external_file_import')\n\n        const importedFiles = mergeFiles(removeFilesByPath(files, sourcePaths), plan.importedFiles)\n\n        return { files: importedFiles, importedFiles: plan.importedFiles, sourcePaths, succeeded: true }\n    }\n\n    private async loadFullProjectInBackground(\n        project: ProjectReference,\n        projectFolder: string,\n        workingFolder: string,\n        projectLoadToken: number,\n    ) {\n        const { storage } = this.dependencies.requireDependencies()\n        const [projectFilesResult, repositoryFilesResult] = await Promise.allSettled([\n            storage.loadProject(project, projectFolder),\n            storage.listRepositoryFiles(project),\n        ])\n        if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return\n\n        let nextFiles = this.dependencies.files()\n        let projectFilesLoaded = false\n        if (projectFilesResult.status === 'fulfilled') {\n            try {\n                const importedFiles = await this.importExternalCardFiles(projectFilesResult.value.files, workingFolder)\n                if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return\n\n                const importedPaths = new Set(importedFiles.map((file) => file.path))\n                const removedImportedPaths = projectFilesResult.value.files\n                    .filter((file) => !importedPaths.has(file.path))\n                    .map((file) => file.path)\n                const remainingFiles = removeFilesByPath(this.dependencies.files(), removedImportedPaths)\n                nextFiles = mergeFiles(importedFiles, remainingFiles)\n                projectFilesLoaded = true\n            } catch (error) {\n                reportWorkspaceError(backgroundProjectLoadFailureMessage(error))\n                telemetryService.captureError(error)\n            }\n        } else {\n            reportWorkspaceError(backgroundProjectLoadFailureMessage(projectFilesResult.reason))\n            telemetryService.captureError(projectFilesResult.reason)\n        }\n\n        const currentRepositoryFiles = this.dependencies.snapshot()?.repositoryFiles ?? []\n        const repositoryFiles = repositoryFilesResult.status === 'fulfilled'\n            ? repositoryFilesResult.value\n            : currentRepositoryFiles\n        if (repositoryFilesResult.status === 'rejected') {\n            reportOptionalProjectLoadFailure('Repository file index', repositoryFilesResult.reason)\n        }\n        if (!projectFilesLoaded && repositoryFilesResult.status === 'rejected') return\n        if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return\n\n        this.dependencies.mergeBackgroundProjectFiles(nextFiles, workingFolder, repositoryFiles)\n        await this.ensureCardInternalIds()\n        await this.dependencies.migrateAgentLogReferences()\n        if (projectFilesLoaded) this.dependencies.markFullProjectLoaded()\n        this.dependencies.dispatchChanged()\n    }\n\n    private shouldApplyProjectLoad(project: ProjectReference, projectLoadToken: number) {\n        return this.dependencies.isCurrentLoad(project, projectLoadToken)\n    }\n\n    private async hydrateActiveCardConversations() {\n        try {",
+          "id": "agent-turn-cbed4972-62ce-485b-88e8-60eea5dd0551-event-54",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_017eb1LaYppZHdHS7EJhmk3Q",
+          "sequence": 54,
+          "status": "completed",
+          "timestamp": "2026-08-21T08:45:37.860Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-cbed4972-62ce-485b-88e8-60eea5dd0551-event-55",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeFboRohErcPGfQFHJ7u6:thinking:0",
+          "sequence": 55,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-21T08:45:51.802Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "app/src/components/actions/editor/use_action_editor_controller.ts:101:        actionService.draftStore.updateDraft(sourcePath, nextDefinition)\napp/src/components/actions/editor/use_action_editor_controller.ts:147:        actionService.draftStore.updateDraft(sourcePath, nextDefinition)\napp/src/components/editor/action_markdown_data_source.ts:82:            target.document.updateDraft(definition, binding)\napp/src/components/editor/action_markdown_data_source.ts:94:            target.document.updateDraft(definition, binding)\napp/src/components/editor/card_markdown_data_source.ts:42:    target.document.updateDraft({ content: markdown }, binding)\napp/src/components/editor/card_markdown_data_source.ts:137:            if (draft.content !== markdown) target.document.updateDraft({ content: markdown }, binding)\napp/src/services/actions/action_draft_store.ts:77:    updateDraft(path: string, definition: RawActionDefinition) {\napp/src/services/actions/action_draft_store.ts:416:        this.findOpenDocument(path)?.updateDraft(definition, this.host)\napp/src/services/managed_open_document.ts:59:    updateDraft(draft: OpenDocumentDraft, origin: OpenDocumentOrigin = null) {\napp/src/services/open_document.ts:30:    updateDraft(draft: TDraft, origin?: OpenDocumentOrigin): void",
+          "id": "agent-turn-cbed4972-62ce-485b-88e8-60eea5dd0551-event-56",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01V12FfUp19qXN4EwCeTyQuV",
+          "sequence": 56,
+          "status": "completed",
+          "timestamp": "2026-08-21T08:45:52.654Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "        this.loadedProjectKey = projectKey(this.dataService.getState().project)\n        this.actionService.addEventListener(ACTIONS_CHANGED_EVENT, this.handleActionChanged)\n        this.actionService.addEventListener(ACTION_DRAFT_CHANGED_EVENT, this.handleActionChanged)\n        this.dataService.addEventListener('changed', this.handleDataChanged)\n        this.dataService.addEventListener(CARD_CHANGED_EVENT, this.handleCardChanged)\n        this.reconcile()\n    }\n\n    getSnapshot(): OpenFilesSnapshot {\n        return this.snapshot\n    }\n\n    getRegisteredDocuments(): readonly OpenDocument[] {\n        return [...this.registeredDocuments.values()]\n    }\n\n    findDocument(object: OpenDocumentObject): OpenDocument | null {\n        return this.registeredDocuments.get(this.scopedObjectKey(object)) ?? null\n    }\n\n    openDocument(object: OpenDocumentObject): OpenDocument {\n        const document = this.getOrCreateDocument(object)\n        if (!this.snapshot.documents.includes(document)) {\n            this.update({ activeDocument: document, documents: [...this.snapshot.documents, document] })\n        } else {\n            this.activateDocument(document)\n        }\n\n        return document\n    }\n\n    openBoardDocument(object: Card): CardOpenDocument {\n        // Board cards live in the working folder root, so they always carry a stable identity.\n        if (!object.header.internalId) throw new Error(`Card identity was not added before opening: ${object.path}`)\n        const document = this.getOrCreateDocument(object)\n        if (document.kind !== 'card') throw new Error('Board view can only open card documents')\n\n        this.boardDocuments.add(document)\n\n        return document\n    }\n\n    openPath(path: string): OpenDocument {\n        const object = this.currentObjects().find((candidate) => objectPath(candidate) === path)\n        if (!object) throw new Error(`Cannot open unknown document: ${path}`)\n\n        return this.openDocument(object)\n    }\n\n    activateDocument(document: OpenDocument) {\n        if (!this.snapshot.documents.includes(document) || this.snapshot.activeDocument === document) return\n\n        this.update({ ...this.snapshot, activeDocument: document })\n    }\n\n    closeDocument(document: OpenDocument) {\n        const index = this.snapshot.documents.indexOf(document)\n        if (index === -1) return\n\n        const documents = this.snapshot.documents.filter((candidate) => candidate !== document)\n        const activeDocument = this.snapshot.activeDocument === document\n            ? documents[index] ?? documents[index - 1] ?? null\n            : this.snapshot.activeDocument\n        this.update({ activeDocument, documents })\n        this.releaseDocument(document as ManagedDocument)\n    }\n\n    closeBoardDocument(document: CardOpenDocument) {\n        this.boardDocuments.delete(document as ManagedDocument)\n        this.releaseDocument(document as ManagedDocument)\n    }\n\n    discardDocument(document: OpenDocument) {\n        const managedDocument = document as ManagedDocument\n        this.boardDocuments.delete(managedDocument)\n        const documents = this.snapshot.documents.filter((candidate) => candidate !== document)\n        const activeDocument = this.snapshot.activeDocument === document ? documents[0] ?? null : this.snapshot.activeDocument\n        if (documents.length !== this.snapshot.documents.length) this.update({ activeDocument, documents })\n        this.removeDocument(managedDocument)\n    }\n\n    clear() {\n        const cleanDocuments = [...this.registeredDocuments.values()].filter((document) => !document.dirty)\n        this.boardDocuments.clear()\n        if (this.snapshot.documents.length > 0) this.update(EMPTY_SNAPSHOT)\n        for (const document of cleanDocuments) this.removeDocument(document)\n    }\n\n    private readonly handleActionChanged = () => this.reconcile()\n    private readonly handleCardChanged = (event: Event) => {\n        const { card } = (event as CustomEvent<CardChangedEventDetail>).detail\n        const document = this.registeredDocuments.get(this.scopedObjectKey(card))\n        if (!document) return\n        if (!this.dataService) throw new Error('Open files service is not initialized')\n\n        const { snapshot } = this.dataService.getState()\n        const currentCard = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]\n            .find((candidate) => documentIdentity(candidate) === documentIdentity(card))\n        if (!currentCard) throw new Error(`Cannot renew missing card document: ${card.path}`)\n\n        renewManagedDocument(document, currentCard, { content: currentCard.content })\n    }\n    private readonly handleDataChanged = () => this.reconcile()\n\n    private reconcile() {\n        if (!this.actionService || !this.dataService) throw new Error('Open files service is not initialized')\n        const { project } = this.dataService.getState()\n        const nextProjectKey = projectKey(project)\n        if (nextProjectKey !== this.loadedProjectKey) {\n            this.loadedProjectKey = nextProjectKey\n            this.registryScopeRevision += 1\n            this.clear()\n        }\n        const objects = this.currentObjects()\n        const objectsByKey = new Map(objects.map((object) => [this.scopedObjectKey(object), object]))\n        for (const [key, document] of this.registeredDocuments) {\n            const object = objectsByKey.get(key)\n            if (!object) {\n                if (!document.dirty) this.removeDocument(document)\n                continue\n            }\n            renewManagedDocument(document, object, this.draftForObject(object))\n        }\n    }\n\n    private currentObjects() {",
+          "id": "agent-turn-cbed4972-62ce-485b-88e8-60eea5dd0551-event-57",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01TwRS2UX1g2Zm3JTKX7cGZ1",
+          "sequence": 57,
+          "status": "completed",
+          "timestamp": "2026-08-21T08:45:53.402Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-cbed4972-62ce-485b-88e8-60eea5dd0551-event-58",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeFbpbAnfSBL6tD8KfZRU:thinking:0",
+          "sequence": 58,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-21T08:45:56.952Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "import type { DataService } from '../../services/data/data_service'\nimport type { CardType } from '../../data/data_types'\nimport { dialogService } from '../../services/dialog_service'\nimport {\n    openFilesService,\n    type CardOpenDocument,\n    type OpenDocumentChangedDetail,\n    type OpenFilesService,\n} from '../../services/open_files_service'\nimport {\n    MarkdownDataSourceBase,\n    type MarkdownBindingKind,\n    type MarkdownDocumentTarget,\n} from './markdown_data_source'\nimport { saveAndInsertPastedImage } from '../../services/data/card_image_operations'\n\nexport type CardBinding = Exclude<MarkdownBindingKind, 'list-action'>\ntype CardMarkdownOwner = EventTarget & Pick<DataService, 'getState'> & {\n    cards: Pick<DataService['cards'],\n        'deletePastedImage' | 'savePastedImageForCard' | 'toggleCardPolicy' | 'updateCardBody'\n        | 'updateCardHeaderFields' | 'updateCardTitle' | 'updateCardType'>\n}\ntype ListCardOwner = EventTarget & Pick<OpenFilesService, 'getSnapshot'>\n\nexport interface CardDocumentClosedDetail {\n    binding: 'list-card'\n    document: CardOpenDocument\n}\n\nfunction cardTarget(target: MarkdownDocumentTarget): asserts target is { document: CardOpenDocument } {\n    if (target.document.kind !== 'card') throw new Error('Card Markdown source requires a card document')\n}\n\nfunction readCardMarkdown(target: MarkdownDocumentTarget) {\n    cardTarget(target)\n    return target.document.getDraft().content\n}\n\nfunction editCardMarkdown(binding: MarkdownBindingKind, target: MarkdownDocumentTarget, markdown: string) {\n    if (binding === 'list-action') throw new Error('Card Markdown source cannot use list-action binding')\n    cardTarget(target)\n    target.document.updateDraft({ content: markdown }, binding)\n}\n\n/** Reads and writes card body Markdown through focused card operations. */\nexport class CardMarkdownDataSource extends MarkdownDataSourceBase {\n    private listCardOwner: ListCardOwner | null = null\n    private service: CardMarkdownOwner | null = null\n\n    init(service: CardMarkdownOwner) {\n        if (this.service) return\n\n        this.service = service\n        openFilesService.addEventListener('documentChanged', this.handleDocumentChanged)\n    }\n\n    dispose() {\n        openFilesService.removeEventListener('documentChanged', this.handleDocumentChanged)\n        this.setBoardDocument(null)\n    }\n\n    bindListCards(owner: ListCardOwner) {\n        if (this.listCardOwner === owner) return\n        if (this.listCardOwner) throw new Error('Card Markdown data source already has a list-card owner')\n\n        this.listCardOwner = owner\n        owner.addEventListener('changed', this.handleListCardsChanged)\n        owner.addEventListener('removed', this.handleListCardRemoved)\n        this.syncListCardBinding()\n    }\n\n    getActiveDocument(binding: CardBinding) {\n        const target = this.getActiveTarget(binding)\n        return target?.document.kind === 'card' ? target.document : null\n    }\n\n    getActiveCard(binding: CardBinding) {\n        return this.getActiveDocument(binding)?.getObject() ?? null\n    }\n\n    getProjectKey() {\n        const { project } = this.requireService().getState()\n        if (!project) throw new Error('Cannot resolve a card project before a project is open')\n\n        return `${project.id}:${project.branch}`\n    }\n\n    updateActiveCardTitle(binding: CardBinding, title: string) {\n        const document = this.requireActiveDocument(binding)\n        this.requireService().cards.updateCardTitle(document.path, title)\n            .catch((error: unknown) => {\n                dialogService.error(error, { fallbackMessage: `Title update failed: ${document.path}` })\n            })\n    }\n\n    updateActiveCardType(binding: CardBinding, type: CardType) {\n        const document = this.requireActiveDocument(binding)\n\n        return this.requireService().cards.updateCardType(document.path, type)\n            .catch((error: unknown) => {\n                dialogService.error(error, { fallbackMessage: `Card type update failed: ${document.path}` })\n            })\n    }\n\n    updateActiveCardHeaderField(binding: CardBinding, key: string, value: string) {\n        const document = this.requireActiveDocument(binding)\n        if (key !== 'author') throw new Error(`Unsupported editable card header field: ${key}`)\n\n        this.requireService().cards.updateCardHeaderFields(document.path, { [key]: value })\n    }\n\n    toggleActiveCardPolicy(binding: CardBinding, policyKey: string) {\n        const document = this.requireActiveDocument(binding)\n        this.requireService().cards.toggleCardPolicy(document.path, policyKey)\n    }\n\n    async pasteImage(binding: CardBinding, file: File, insertMarkdown: (markdown: string) => void) {\n        const document = this.requireActiveDocument(binding)\n        const { cards } = this.requireService()\n\n        await saveAndInsertPastedImage(\n            file,\n            insertMarkdown,\n            (clipboardFile) => cards.savePastedImageForCard(document.path, clipboardFile),\n            (path) => cards.deletePastedImage(path),\n        )\n    }\n\n    readonly getMarkdown = readCardMarkdown\n    readonly edit = editCardMarkdown\n\n    commit(binding: MarkdownBindingKind, target: MarkdownDocumentTarget, markdown: string) {\n        CardMarkdownDataSource.requireCardBinding(binding)\n        cardTarget(target)\n        try {\n            const draft = target.document.getDraft()\n            if (draft.content !== markdown) target.document.updateDraft({ content: markdown }, binding)\n            this.requireService().cards.updateCardBody(\n                target.document.path,\n                markdown,\n                target.document.createSaveReference(),\n            )\n            return true\n        } catch (error) {\n            dialogService.error(error, { fallbackMessage: `Body update failed: ${target.document.path}` })\n            return false\n        }\n    }\n\n    setBoardDocument(document: CardOpenDocument | null, discard = false) {\n        this.setActiveTarget('board-card', document ? { document } : null, discard)\n    }\n\n    private readonly handleDocumentChanged = (event: Event) => {\n        const { document, origin, type } = (event as CustomEvent<OpenDocumentChangedDetail>).detail\n        if (document.kind !== 'card') return\n\n        if (type === 'renewed') {\n            this.dispatchEvent(new Event('cardsChanged'))\n            return",
+          "id": "agent-turn-cbed4972-62ce-485b-88e8-60eea5dd0551-event-59",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_0196CJEmzd27ihHqUtnxVRXy",
+          "sequence": 59,
+          "status": "completed",
+          "timestamp": "2026-08-21T08:45:57.722Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-cbed4972-62ce-485b-88e8-60eea5dd0551-event-60",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeFbptx7nk6c6ztV7fyQe:thinking:0",
+          "sequence": 60,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-21T08:46:20.053Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "app/src/components/shell/project/project_open_dialog.tsx:29:import { tryReadRemoteControlConnection } from '../../../data/remote_control_connection'\napp/src/components/shell/project/project_open_dialog.tsx:143:            const stored = tryReadRemoteControlConnection()\napp/src/components/shell/remote_connect_button.tsx:6:import type { RemoteControlStorageService } from '../../services/data/remote_control_storage_service'\napp/src/components/shell/remote_connect_button.tsx:11:async function openRemoteProject(storage: RemoteControlStorageService) {\napp/src/components/shell/remote_connect_dialog.tsx:5:import { tryReadRemoteControlConnection, type RemoteControlConnectionSettings } from '../../data/remote_control_connection'\napp/src/components/shell/remote_connect_dialog.tsx:26:            const stored = tryReadRemoteControlConnection()\napp/src/data/project_session.ts:4:import { RemoteControlStorageService } from '../services/data/remote_control_storage_service'\napp/src/data/project_session.ts:45:        const storage = new RemoteControlStorageService()\napp/src/data/project_storage_activation.ts:5:import { RemoteControlStorageService } from '../services/data/remote_control_storage_service'\napp/src/data/project_storage_activation.ts:29:    if (!(storage instanceof RemoteControlStorageService)) throw new Error('Remote storage must provide the action bridge')\napp/src/data/remote_control_connection.ts:11:export function tryReadRemoteControlConnection(): RemoteControlConnectionSettings | null {\napp/src/services/data/remote_connection_service.ts:15:    RemoteControlStorageService,\napp/src/services/data/remote_connection_service.ts:27:    activate(storage: RemoteControlStorageService): Promise<void>\napp/src/services/data/remote_connection_service.ts:29:    createStorage(): RemoteControlStorageService\napp/src/services/data/remote_connection_service.ts:30:    replaceProjectStorage(storage: RemoteControlStorageService): void\napp/src/services/data/remote_connection_service.ts:37:async function activateRemoteStorage(storage: RemoteControlStorageService) {\napp/src/services/data/remote_connection_service.ts:72:    createStorage: () => new RemoteControlStorageService(),\napp/src/services/data/remote_connection_service.ts:73:    replaceProjectStorage: (storage) => getService<{ replaceRemoteStorage(storage: RemoteControlStorageService): void }>('dataService')\napp/src/services/data/remote_connection_service.ts:83:    private activeStorage: RemoteControlStorageService | null = null\napp/src/services/data/remote_connection_service.ts:84:    private connectingStorage: RemoteControlStorageService | null = null",
+          "id": "agent-turn-cbed4972-62ce-485b-88e8-60eea5dd0551-event-61",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_0138sK4dCoBoyesN7jEF6hWu",
+          "sequence": 61,
+          "status": "completed",
+          "timestamp": "2026-08-21T08:46:20.968Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-cbed4972-62ce-485b-88e8-60eea5dd0551-event-62",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeFbrc9P2jXutQ2cAsPdY:thinking:0",
+          "sequence": 62,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-21T08:46:45.679Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Re-dug. Real problem not \"which conflict policy\". It structural. Findings:\n\n**1. Migrations run per watch event, whole corpus, in renderer**\n`reloadMarkdownFilesFromWatchEvents` ends with `ensureCardInternalIds()` + `migrateAgentLogReferences()` (`app/src/services/project/project_loading.ts:826-827`). Same pair at load paths (`:237`, `:362`, `:589`). So *inbound file change from someone else* triggers full normalization sweep over all active+background cards. No \"already normalized\" gate, no scoping to legacy files. New card scanned every time — your point stands: nonsense. Only reason new card escapes a write is luck: `createCardFile` (`app/src/data/card_naming.ts:97`) already sets `internalId`, and `agentLogReferences` empty. Nothing structural prevents it.\n\n`importExternalCardFiles` also runs in same batch (`:819`) and **does** write — `storage.moveFiles` renames files another writer just created.\n\n**2. Renderer is a writer. N renderers, 1 folder, no owner**\nRemote browser loads same bundle, storage = `RemoteControlStorageService` over WS. Full `dataService`: own commitBatcher, own migrations, own external-import. Host electron renderer does the same on same folder. Nobody elected owner. That's the actual defect.\n\n**3. 30s deferred write turns it into data loss**\n`AUTO_COMMIT_DELAY_MS = 30000` (`app/src/data/data_types.ts:20`). Path stays pending 30s. Remote writes again inside window → `hasPendingFile` true → conflict reported → **event dropped permanently** (`markdownReloadEventsByPath.clear()` at `:776`, no requeue) → batcher later flushes host's stale in-memory card over remote's newer file. Silent overwrite, not just ignored notice.\n\n**4. Phantom dirty — likely the actual B_154 trigger**\n`ManagedOpenDocument.updateDraft` (`app/src/services/managed_open_document.ts:59`) compares draft by **reference only**. `editCardMarkdown` (`app/src/components/editor/card_markdown_data_source.ts:38-42`) passes fresh `{ content }` with no content compare — unlike `commit()` at `:137` which does compare. Editor onChange echoing unchanged markdown (remount, programmatic setContent) → `editRevision++` → dirty forever. Then `renew()` (`:85`) refuses external content while dirty → every future external change to that card reported + dropped. This is \"react app thinks it did something\". Fits B_154 (existing card, was open) better than migration.\n\n**Constraint on your \"backend does it\" instinct:** correct, but there is no backend in browser+GitHub mode (`GithubUnauthorizedError`, `pushMode`, github_api_client). Desktop main is only the convergence point when electron is the storage. So rule must be *ownership*, not *process*: writes-that-nobody-asked-for belong to the single owner of the working copy. Remote clients never normalize. Renderer keeps the job only when it is the owner.\n\nOne fork I can't decide for you:",
+          "id": "agent-turn-cbed4972-62ce-485b-88e8-60eea5dd0551-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 63,
+          "timestamp": "2026-08-21T08:56:25.808Z"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-cbed4972-62ce-485b-88e8-60eea5dd0551-event-64",
+          "kind": "event",
+          "label": "AskUserQuestion",
+          "output": "The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). STOP what you are doing and wait for the user to tell you how to proceed.",
+          "providerItemId": "toolu_01Xir4FRYcR6RwP5RoRaDaze",
+          "sequence": 64,
+          "status": "failed",
+          "timestamp": "2026-08-21T08:56:25.613Z",
+          "type": "tool.AskUserQuestion"
         }
       ],
       "hasExplicitTitle": true,
@@ -559,7 +803,7 @@
       "startedAt": "2026-08-21T08:34:45.306Z",
       "status": "failed",
       "timer": {
-        "elapsedMs": 157704,
+        "elapsedMs": 286475,
         "runningStartedAt": null
       },
       "title": "complete",
@@ -579,11 +823,11 @@
         "agent-7363ec82-5791-4320-bb18-ae6f83d63a21"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-92e0010f-1bda-4977-a02e-55c3dbf35cd0",
       "origin": {
@@ -592,9 +836,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-7363ec82-5791-4320-bb18-ae6f83d63a21",
       "startedAt": "2026-08-21T08:34:45.304Z",
-      "status": "failed"
+      "status": "failed",
+      "rootConversationId": "agent-7363ec82-5791-4320-bb18-ae6f83d63a21"
     }
   ],
   "version": 4
