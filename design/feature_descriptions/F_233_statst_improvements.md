@@ -17,3 +17,5 @@ policy:
   * needs option to select which actions to include or all.&#x20;
 * project usage vs account usage:
   * make the titles and legends sticky like in the other charts
+  * currently all numbers are displayed above the bars, but the are truncated, the text can only be as wide as the bar. can we allow them to go wider and keep the text centered with the bar.
+  * dates in the tooltips are just utc text i think, format them nicely to local time
