@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 7f35084a-0348-4869-a764-e0ff2ff2843d
 ---
 
 The bottom row of the action popup is too full. We need to move tokes used and line change counts to the bottom of the chatlog, between timer and context window usage
