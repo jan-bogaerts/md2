@@ -3,7 +3,7 @@ author:
 id: B_165
 internalId: cd2dca75-15df-4f60-b640-8a8a91aba68e
 title: card file change drops body
-status: new
+status: design
 owner: 
 affects:
 agents:
