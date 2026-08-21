@@ -12,7 +12,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "97733177-b4c8-47c3-af3d-64c31d4eca93",
       "cardPath": "design/feature_descriptions/B_160_unknown.md",
-      "completedAt": null,
+      "completedAt": "2026-08-21T09:02:41.592Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 70905
@@ -856,17 +856,25 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 69,
-          "timestamp": "2026-08-21T08:59:40.886Z"
+          "timestamp": "2026-08-21T09:02:41.592Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-7363ec82-5791-4320-bb18-ae6f83d63a21",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "claude",
+          "conversationId": "de3bf9b3-58f5-4316-b9ab-542a1b8db2d5",
+          "createdAt": "2026-08-21T08:59:40.886Z",
+          "lastUsedAt": "2026-08-21T09:02:41.592Z",
+          "synchronizedThroughMessageId": "agent-turn-cde3f053-16cd-4886-9a5a-4186ad333092-turn-1-assistant-1"
+        }
+      ],
       "startedAt": "2026-08-21T08:34:45.306Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 286475,
-        "runningStartedAt": "2026-08-21T08:58:32.593Z"
+        "elapsedMs": 354768,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
