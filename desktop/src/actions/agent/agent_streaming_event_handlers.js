@@ -207,14 +207,6 @@ async function handleTurnCompleted(service, run, event, timestamp) {
         service.beginFinishShutdown(run);
         return;
     }
-    if (run.queuedMessage) {
-        const { content, revision } = run.queuedMessage;
-        transitionConversationStatus(run.conversation, 'waitingForInput', timestamp);
-        await service.sendStreamingMessage(run, content);
-        run.queuedMessage = null;
-        run.sentQueuedMessageRevision = revision;
-        return;
-    }
     const synchronizedMessage = lastMessageEntry(run.conversation);
     if (synchronizedMessage) updateProviderSession(run, synchronizedMessage.id, timestamp);
     transitionConversationStatus(run.conversation, 'waitingForInput', timestamp);

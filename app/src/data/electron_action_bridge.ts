@@ -7,6 +7,7 @@ import type { PermissionMode, ThinkingLevel } from './agent_profiles'
 import type {
     ActionRunEvent,
     ActionRunTerminalStatus,
+    ActionQueuedPrompt,
     ActionPromptRequest,
     ActionStartRequest,
     AgentConversationReservation,
@@ -147,9 +148,11 @@ export interface ElectronActionBridge {
     acquireReleaseCardLocks?(cardInternalIds: string[]): Promise<string>
     answerActionApproval?(runId: string, requestId: AgentApprovalRequestId, decision: AgentApprovalDecision): Promise<void>
     answerActionQuestion?(runId: string, requestId: number | string | null, answers: Record<string, string[]>): Promise<void>
-    beginActionPromptDraft?(runId: string): Promise<number>
     cancelActionRun(runId: string): Promise<void>
     closeWaitingActionConversation?(reference: string, status: 'cancelled' | 'completed'): Promise<AgentConversation>
+    deleteActionQueuedPrompt?(runId: string, promptId: string, revision: number): Promise<{ deleted: true }>
+    editActionQueuedPrompt?(runId: string, promptId: string, revision: number, content: string): Promise<ActionQueuedPrompt>
+    enqueueActionPrompt?(runId: string, content: string): Promise<ActionQueuedPrompt>
     finishActionRun?(runId: string): Promise<void>
     generateDiff(request: DiffRequest): Promise<DiffResult>
     generateWorktreeDiff(request: WorktreeDiffRequest): Promise<WorktreeDiffResult>
@@ -168,8 +171,6 @@ export interface ElectronActionBridge {
     restartActionRun?(runId: string, request: ActionStartRequest): Promise<string>
     runSearchRegexpAgent(input: string, callback?: (event: AgentRunEvent) => void): Promise<string>
     sendActionMessage?(runId: string, content: string): Promise<void>
-    sendActionQueuedMessage?(runId: string, sessionId: number, revision: number): Promise<{ sent: true }>
-    setActionQueuedMessage?(runId: string, sessionId: number, content: string, revision: number): Promise<{ accepted: boolean }>
     startAction(request: ActionStartRequest): Promise<string>
     startUnattendedAction?(request: ActionStartRequest): Promise<string>
     updateActionConversationViewed?(reference: string, viewed: boolean): Promise<AgentConversation>

@@ -105,15 +105,13 @@ describe('runPopupAction waiting follow-up', () => {
     beforeEach(() => {
         let listener: ((event: ActionRunEvent) => void) | null = null
         bridge = {
-            beginActionPromptDraft: vi.fn(async () => 4),
             cancelActionRun: vi.fn(async () => undefined),
+            enqueueActionPrompt: vi.fn(async (_runId, content) => ({content, dispatchState: 'queued', id: 'prompt-1', revision: 0})),
             finishActionRun: vi.fn(async () => undefined),
             onActionRun: vi.fn((nextListener) => {
                 listener = nextListener
                 return vi.fn()
             }),
-            sendActionQueuedMessage: vi.fn(async () => ({ sent: true })),
-            setActionQueuedMessage: vi.fn(async () => ({ accepted: true })),
         } as unknown as ElectronActionBridge
         setActionBridgeOverride(bridge)
         actionRunRegistry.start()
@@ -136,7 +134,7 @@ describe('runPopupAction waiting follow-up', () => {
 
         await runPopupAction(operationInput(inputStore))
 
-        expect(bridge.sendActionQueuedMessage).toHaveBeenCalledWith('run-1', 4, 1)
+        expect(bridge.enqueueActionPrompt).toHaveBeenCalledWith('run-1', 'Next request')
         expect(actionRunRegistry.getActionRunStore(action.id, context)?.getSnapshot()?.context.worktree).toBe('3')
         expect(restartAction).not.toHaveBeenCalled()
     })
@@ -154,7 +152,7 @@ describe('runPopupAction waiting follow-up', () => {
         await cancelPopupAction(action, context, conversationStore)
         await finishPopupAction(action, context, conversationStore)
 
-        expect(bridge.sendActionQueuedMessage).not.toHaveBeenCalled()
+        expect(bridge.enqueueActionPrompt).not.toHaveBeenCalled()
         expect(bridge.cancelActionRun).not.toHaveBeenCalled()
         expect(bridge.finishActionRun).not.toHaveBeenCalled()
     })
@@ -177,7 +175,7 @@ describe('runPopupAction waiting follow-up', () => {
             expect.objectContaining({ continueFrom: 'conversation.json', model: 'gpt-5.6', prompt: 'Next request' }),
             expect.any(Function),
         )
-        expect(bridge.sendActionQueuedMessage).not.toHaveBeenCalled()
+        expect(bridge.enqueueActionPrompt).not.toHaveBeenCalled()
         expect(settingsStore.getSnapshot().settingsChangedWhileWaiting).toBe(false)
     })
 

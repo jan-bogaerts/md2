@@ -769,15 +769,29 @@ describe('ActionPopup', () => {
         act(() => {
             runListener?.({ ...eventBase, status: 'running', type: 'run' })
             runListener?.({ ...eventBase, status: 'waitingForInput', type: 'agentState' })
+            runListener?.({
+                ...eventBase,
+                status: 'running',
+                type: 'update',
+                update: {
+                    entry: { content: 'Accepted queue entry', dispatchState: 'queued', id: 'prompt-1', revision: 0 },
+                    kind: 'agentPromptQueued',
+                },
+            })
         })
         const waitingButton = screen.getByRole('button', { name: /Stream.*Agent is waiting for input/u })
         expect(waitingButton).toBeInTheDocument()
+        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
+        fireEvent.change(prompt, { target: { value: 'Editable draft' } })
+        expect(screen.getByText('Accepted queue entry')).toBeInTheDocument()
         fireEvent.mouseOver(waitingButton)
         expect(await screen.findByRole('tooltip', { name: 'Agent is waiting for input' })).toBeInTheDocument()
 
         cleanup()
         renderPopup()
         expect(screen.getByRole('button', { name: /Stream.*Agent is waiting for input/u })).toBeInTheDocument()
+        expect(within(screen.getByLabelText('Prompt')).getByRole('textbox')).toHaveValue('Editable draft')
+        expect(screen.getByText('Accepted queue entry')).toBeInTheDocument()
 
         act(() => runListener?.({ ...eventBase, status: 'running', type: 'agentState' }))
         expect(screen.getByRole('button', { name: /Stream.*Agent is running/u })).toBeInTheDocument()
@@ -1178,23 +1192,19 @@ describe('ActionPopup', () => {
         await waitFor(() => expect(finishActionRun).toHaveBeenCalledWith('run-1'))
     })
 
-    it('accepts manual input after running changes to waiting and sends through the same live run', async () => {
+    it('accepts Send while running and Ctrl+Enter while waiting through the same live run', async () => {
         actionRunRegistry.stop()
         const waitingContext: ActionContext = { kind: 'project' }
         let runListener: ((event: ActionRunEvent) => void) | null = null
-        const beginActionPromptDraft = vi.fn(async () => 1)
-        const sendActionQueuedMessage = vi.fn(async () => ({ sent: true as const }))
-        const setActionQueuedMessage = vi.fn(async () => ({ accepted: true }))
+        const enqueueActionPrompt = vi.fn(async (_runId, content) => ({content, dispatchState: 'queued' as const, id: 'prompt-1', revision: 0}))
         window.md2Actions = {
-            beginActionPromptDraft,
+            enqueueActionPrompt,
             loadActionRunHistory: vi.fn(async () => []),
             onActionRun: vi.fn((listener) => {
                 runListener = listener
                 return vi.fn()
             }),
             prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
-            sendActionQueuedMessage,
-            setActionQueuedMessage,
         } as unknown as typeof window.md2Actions
         mockCodexAvailable()
         actionRunRegistry.start()
@@ -1209,21 +1219,24 @@ describe('ActionPopup', () => {
         act(() => {
             runListener?.({ ...eventBase, status: 'running', type: 'run' })
             runListener?.({ ...eventBase, status: 'running', type: 'agentState' })
-            runListener?.({ ...eventBase, status: 'waitingForInput', type: 'agentState' })
         })
         const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
         expect(prompt).not.toHaveAttribute('readonly')
         expect(screen.queryByRole('button', { name: 'Send' })).not.toBeInTheDocument()
 
-        fireEvent.change(prompt, { target: { value: 'Continue manually' } })
+        fireEvent.change(prompt, { target: { value: 'Steer while running' } })
         const sendButton = screen.getByRole('button', { name: 'Send' })
         expect(sendButton).toBeEnabled()
         fireEvent.click(sendButton)
-
-        await waitFor(() => expect(sendActionQueuedMessage).toHaveBeenCalledWith('run-1', 1, expect.any(Number)))
+        await waitFor(() => expect(enqueueActionPrompt).toHaveBeenCalledWith('run-1', 'Steer while running'))
         await waitFor(() => expect(prompt).toHaveValue(''))
-        expect(beginActionPromptDraft).toHaveBeenCalledWith('run-1')
-        expect(setActionQueuedMessage).toHaveBeenCalledWith('run-1', 1, 'Continue manually', expect.any(Number))
+
+        act(() => runListener?.({ ...eventBase, status: 'waitingForInput', type: 'agentState' }))
+        fireEvent.change(prompt, { target: { value: 'Continue manually' } })
+        fireEvent.keyDown(prompt, { ctrlKey: true, key: 'Enter' })
+
+        await waitFor(() => expect(enqueueActionPrompt).toHaveBeenCalledWith('run-1', 'Continue manually'))
+        await waitFor(() => expect(prompt).toHaveValue(''))
     })
 
     it('retains manually typed waiting input and reports a failed live send', async () => {
@@ -1232,17 +1245,15 @@ describe('ActionPopup', () => {
         let runListener: ((event: ActionRunEvent) => void) | null = null
         const sendError = new Error('live send failed')
         window.md2Actions = {
-            beginActionPromptDraft: vi.fn(async () => 1),
+            enqueueActionPrompt: vi.fn(async () => {
+                throw sendError
+            }),
             loadActionRunHistory: vi.fn(async () => []),
             onActionRun: vi.fn((listener) => {
                 runListener = listener
                 return vi.fn()
             }),
             prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
-            sendActionQueuedMessage: vi.fn(async () => {
-                throw sendError
-            }),
-            setActionQueuedMessage: vi.fn(async () => ({ accepted: true })),
         } as unknown as typeof window.md2Actions
         const reportError = vi.spyOn(dialogService, 'error')
         mockCodexAvailable()
@@ -1308,11 +1319,13 @@ describe('ActionPopup', () => {
         expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled()
     })
 
-    it('retains waiting draft until both question and approval resolve', async () => {
+    it('allows queue submission while question and approval remain pending', async () => {
         actionRunRegistry.stop()
         const waitingContext: ActionContext = { kind: 'project' }
         let runListener: ((event: ActionRunEvent) => void) | null = null
+        const enqueueActionPrompt = vi.fn(async (_runId, content) => ({content, dispatchState: 'queued' as const, id: 'prompt-1', revision: 0}))
         window.md2Actions = {
+            enqueueActionPrompt,
             loadActionRunHistory: vi.fn(async () => []),
             onActionRun: vi.fn((listener) => {
                 runListener = listener
@@ -1360,7 +1373,10 @@ describe('ActionPopup', () => {
         })
         expect(prompt).not.toHaveAttribute('readonly')
         expect(prompt).toHaveValue('Draft before decisions')
-        expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled()
+        expect(screen.getByRole('button', { name: 'Send' })).toBeEnabled()
+        fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+        await waitFor(() => expect(enqueueActionPrompt).toHaveBeenCalledWith('run-1', 'Draft before decisions'))
+        await waitFor(() => expect(prompt).toHaveValue(''))
 
         act(() => runListener?.({
             ...eventBase, status: 'waitingForInput', type: 'update',
@@ -1369,32 +1385,27 @@ describe('ActionPopup', () => {
                 userMessage: { content: 'Yes', id: 'answer-1', kind: 'message', role: 'user', timestamp: 'now' },
             },
         }))
-        expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled()
-        expect(prompt).toHaveValue('Draft before decisions')
+        expect(screen.queryByRole('button', { name: 'Send' })).not.toBeInTheDocument()
 
         act(() => runListener?.({
             ...eventBase, status: 'waitingForInput', type: 'update',
             update: { kind: 'agentApprovalResolved', requestId: 41 },
         }))
-        expect(screen.getByRole('button', { name: 'Send' })).toBeEnabled()
-        expect(prompt).toHaveValue('Draft before decisions')
+        expect(screen.queryByRole('button', { name: 'Send' })).not.toBeInTheDocument()
     })
 
     it('shows response prompts only while scoped run waits and keeps them inside prompt surface', async () => {
         actionRunRegistry.stop()
         let runListener: ((event: ActionRunEvent) => void) | null = null
-        const sendActionQueuedMessage = vi.fn(async () => ({ sent: true }))
-        const setActionQueuedMessage = vi.fn(async () => ({ accepted: true }))
+        const enqueueActionPrompt = vi.fn(async (_runId, content) => ({content, dispatchState: 'queued' as const, id: 'prompt-1', revision: 0}))
         window.md2Actions = {
-            beginActionPromptDraft: vi.fn(async () => 1),
+            enqueueActionPrompt,
             loadActionRunHistory: vi.fn(async () => []),
             onActionRun: vi.fn((listener) => {
                 runListener = listener
                 return vi.fn()
             }),
             prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
-            sendActionQueuedMessage,
-            setActionQueuedMessage,
         } as unknown as typeof window.md2Actions
         actionRunRegistry.start()
         actionService.loadFromFiles([
@@ -1426,11 +1437,10 @@ describe('ActionPopup', () => {
 
         fireEvent.click(phraseButton)
         await waitFor(() => expect(within(promptSurface).getByRole('textbox')).toHaveValue('Continue with tests'))
-        await waitFor(() => expect(setActionQueuedMessage).toHaveBeenCalled())
-        expect(sendActionQueuedMessage).not.toHaveBeenCalled()
+        expect(enqueueActionPrompt).not.toHaveBeenCalled()
 
         fireEvent.doubleClick(phraseButton)
-        await waitFor(() => expect(sendActionQueuedMessage).toHaveBeenCalled())
+        await waitFor(() => expect(enqueueActionPrompt).toHaveBeenCalledWith('run-1', 'Continue with tests'))
 
         act(() => runListener?.({ ...eventBase, status: 'completed', type: 'run' }))
         expect(screen.getByRole('group', { name: 'Predefined phrases' })).toBeInTheDocument()

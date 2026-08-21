@@ -295,16 +295,16 @@ class ActionRunnerService {
         return this.requireRun(runId).sendAgentMessage(content);
     }
 
-    beginAgentPromptDraft(runId) {
-        return this.requireRun(runId).beginAgentPromptDraft();
+    enqueueAgentPrompt(runId, content) {
+        return this.requireRun(runId).enqueueAgentPrompt(content);
     }
 
-    setAgentQueuedMessage(runId, sessionId, content, revision) {
-        return this.requireRun(runId).setAgentQueuedMessage(sessionId, content, revision);
+    editQueuedAgentPrompt(runId, promptId, revision, content) {
+        return this.requireRun(runId).editQueuedAgentPrompt(promptId, revision, content);
     }
 
-    sendQueuedAgentMessage(runId, sessionId, revision) {
-        return this.requireRun(runId).sendQueuedAgentMessage(sessionId, revision);
+    deleteQueuedAgentPrompt(runId, promptId, revision) {
+        return this.requireRun(runId).deleteQueuedAgentPrompt(promptId, revision);
     }
 
     answerAgentQuestion(runId, requestId, answers) {

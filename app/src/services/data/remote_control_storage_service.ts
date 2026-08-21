@@ -1,5 +1,6 @@
 import type { ActionFile } from '../../data/action_types'
 import type {
+    ActionQueuedPrompt,
     ActionRunEvent,
     ActionPromptRequest,
     ActionStartRequest,
@@ -556,21 +557,21 @@ export class RemoteControlStorageService implements
         await this.request('sendActionMessage', [runId, content])
     }
 
-    async beginActionPromptDraft(runId: string): Promise<number> {
-        return this.request('beginActionPromptDraft', [runId])
+    async deleteActionQueuedPrompt(runId: string, promptId: string, revision: number): Promise<{ deleted: true }> {
+        return this.request('deleteActionQueuedPrompt', [runId, promptId, revision])
     }
 
-    async sendActionQueuedMessage(runId: string, sessionId: number, revision: number): Promise<{ sent: true }> {
-        return this.request('sendActionQueuedMessage', [runId, sessionId, revision])
-    }
-
-    async setActionQueuedMessage(
+    async editActionQueuedPrompt(
         runId: string,
-        sessionId: number,
-        content: string,
+        promptId: string,
         revision: number,
-    ): Promise<{ accepted: boolean }> {
-        return this.request('setActionQueuedMessage', [runId, sessionId, content, revision])
+        content: string,
+    ): Promise<ActionQueuedPrompt> {
+        return this.request('editActionQueuedPrompt', [runId, promptId, revision, content])
+    }
+
+    async enqueueActionPrompt(runId: string, content: string): Promise<ActionQueuedPrompt> {
+        return this.request('enqueueActionPrompt', [runId, content])
     }
 
     async answerActionQuestion(

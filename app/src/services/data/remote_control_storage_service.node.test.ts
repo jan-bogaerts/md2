@@ -735,9 +735,9 @@ describe('RemoteControlStorageService', () => {
         await flushPromises()
         const operations = [
             firstOperation,
-            service.beginActionPromptDraft('action-1'),
-            service.setActionQueuedMessage('action-1', 2, 'next', 3),
-            service.sendActionQueuedMessage('action-1', 2, 3),
+            service.enqueueActionPrompt('action-1', 'next'),
+            service.editActionQueuedPrompt('action-1', 'prompt-1', 0, 'edited'),
+            service.deleteActionQueuedPrompt('action-1', 'prompt-1', 1),
             service.answerActionApproval('action-1', 41, 'accept'),
             service.answerActionQuestion('action-1', 7, { confirm: ['Yes'] }),
             service.closeWaitingActionConversation('activity.json#conversation=one', 'completed'),
@@ -750,9 +750,9 @@ describe('RemoteControlStorageService', () => {
         const requests = socket.sent.map((entry) => JSON.parse(entry) as { id: string, method: string, params: unknown[] })
         expect(requests.map(({ method, params }) => ({ method, params }))).toEqual([
             { method: 'sendActionMessage', params: ['action-1', 'approved'] },
-            { method: 'beginActionPromptDraft', params: ['action-1'] },
-            { method: 'setActionQueuedMessage', params: ['action-1', 2, 'next', 3] },
-            { method: 'sendActionQueuedMessage', params: ['action-1', 2, 3] },
+            { method: 'enqueueActionPrompt', params: ['action-1', 'next'] },
+            { method: 'editActionQueuedPrompt', params: ['action-1', 'prompt-1', 0, 'edited'] },
+            { method: 'deleteActionQueuedPrompt', params: ['action-1', 'prompt-1', 1] },
             { method: 'answerActionApproval', params: ['action-1', 41, 'accept'] },
             { method: 'answerActionQuestion', params: ['action-1', 7, { confirm: ['Yes'] }] },
             { method: 'closeWaitingActionConversation', params: ['activity.json#conversation=one', 'completed'] },
@@ -762,13 +762,9 @@ describe('RemoteControlStorageService', () => {
             { method: 'notifyActionCardStateChange', params: ['card-1', 'ready'] },
         ])
         requests.forEach(({ id, method }) => {
-            const result = method === 'beginActionPromptDraft'
-                ? 2
-                : method === 'setActionQueuedMessage'
-                    ? { accepted: true }
-                    : method === 'sendActionQueuedMessage'
-                        ? { sent: true }
-                        : null
+            const result = method === 'enqueueActionPrompt' || method === 'editActionQueuedPrompt'
+                ? { content: 'next', dispatchState: 'queued', id: 'prompt-1', revision: 0 }
+                : method === 'deleteActionQueuedPrompt' ? { deleted: true } : null
             socket.receive({ id, result })
         })
 

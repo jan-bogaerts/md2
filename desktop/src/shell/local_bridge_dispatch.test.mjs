@@ -9,8 +9,10 @@ function createDispatch(options = {}) {
     const actionRunnerService = {
         answerAgentApproval: vi.fn(),
         answerAgentQuestion: vi.fn(),
-        beginAgentPromptDraft: vi.fn(() => 2),
         cancel: vi.fn(),
+        deleteQueuedAgentPrompt: vi.fn(async () => ({ deleted: true })),
+        editQueuedAgentPrompt: vi.fn(async (_runId, _promptId, _revision, content) => ({ content })),
+        enqueueAgentPrompt: vi.fn(async (_runId, content) => ({ content })),
         finishAgentRun: vi.fn(),
         handleCardStateChange: vi.fn(),
         loadRunRecoverySnapshot: vi.fn((rendererRunIds) => ({
@@ -24,8 +26,6 @@ function createDispatch(options = {}) {
         start: vi.fn(async () => 'action-1'),
         subscribe: vi.fn(() => vi.fn()),
         sendAgentMessage: vi.fn(),
-        sendQueuedAgentMessage: vi.fn(),
-        setAgentQueuedMessage: vi.fn(),
     };
     const actionSchedulerService = {
         registerActionSchedule: vi.fn(async () => ({ id: 'schedule-1' })),
@@ -649,18 +649,18 @@ describe('createLocalBridgeDispatch', () => {
 
         await dispatch.actionBridge.cancelActionRun('action-1');
         await dispatch.actionBridge.sendActionMessage('action-1', 'approved');
-        expect(dispatch.actionBridge.beginActionPromptDraft('action-1')).toBe(2);
-        await dispatch.actionBridge.setActionQueuedMessage('action-1', 2, 'next', 3);
-        await dispatch.actionBridge.sendActionQueuedMessage('action-1', 2, 3);
+        await dispatch.actionBridge.enqueueActionPrompt('action-1', 'next');
+        await dispatch.actionBridge.editActionQueuedPrompt('action-1', 'prompt-1', 0, 'edited');
+        await dispatch.actionBridge.deleteActionQueuedPrompt('action-1', 'prompt-1', 1);
         await dispatch.actionBridge.answerActionApproval('action-1', 41, 'accept');
         await dispatch.actionBridge.answerActionQuestion('action-1', 7, { confirm: ['Yes'] });
         await dispatch.actionBridge.finishActionRun('action-1');
 
         expect(actionRunnerService.cancel).toHaveBeenCalledWith('action-1');
         expect(actionRunnerService.sendAgentMessage).toHaveBeenCalledWith('action-1', 'approved');
-        expect(actionRunnerService.beginAgentPromptDraft).toHaveBeenCalledWith('action-1');
-        expect(actionRunnerService.setAgentQueuedMessage).toHaveBeenCalledWith('action-1', 2, 'next', 3);
-        expect(actionRunnerService.sendQueuedAgentMessage).toHaveBeenCalledWith('action-1', 2, 3);
+        expect(actionRunnerService.enqueueAgentPrompt).toHaveBeenCalledWith('action-1', 'next');
+        expect(actionRunnerService.editQueuedAgentPrompt).toHaveBeenCalledWith('action-1', 'prompt-1', 0, 'edited');
+        expect(actionRunnerService.deleteQueuedAgentPrompt).toHaveBeenCalledWith('action-1', 'prompt-1', 1);
         expect(actionRunnerService.answerAgentApproval).toHaveBeenCalledWith('action-1', 41, 'accept');
         expect(actionRunnerService.answerAgentQuestion).toHaveBeenCalledWith('action-1', 7, { confirm: ['Yes'] });
         expect(actionRunnerService.finishAgentRun).toHaveBeenCalledWith('action-1');

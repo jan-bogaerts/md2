@@ -685,4 +685,43 @@ describe('ActionRunRegistry', () => {
         expect(notifyBridge).toHaveBeenCalledWith('card-1', 'ready')
     })
 
+    it('keeps a stable FIFO queue snapshot from granular events without changing waiting status', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        service.start()
+        const event = {
+            actionId: 'build', context, runId: 'run-1', phase: 'main' as const, rootActionId: 'build',
+            status: 'running' as const, type: 'update' as const,
+        }
+        const first = { content: 'First', dispatchState: 'queued' as const, id: 'prompt-1', revision: 0 }
+        const second = { content: 'Second', dispatchState: 'queued' as const, id: 'prompt-2', revision: 0 }
+
+        emit(runEvent('running'))
+        emit({ ...event, update: { entry: first, kind: 'agentPromptQueued' } })
+        emit({ ...event, update: { entry: second, kind: 'agentPromptQueued' } })
+        emit({
+            ...event,
+            update: { entry: { ...second, content: 'Edited second', revision: 1 }, kind: 'agentPromptEdited' },
+        })
+        emit({
+            actionId: 'build', context, runId: 'run-1', phase: 'main', rootActionId: 'build',
+            status: 'waitingForInput', type: 'agentState',
+        })
+        emit({ ...event, update: { kind: 'agentPromptRemoved', promptId: first.id, revision: first.revision } })
+
+        expect(getRun(service)).toMatchObject({
+            queuedPrompts: [{ content: 'Edited second', id: 'prompt-2', revision: 1 }],
+            status: 'waitingForInput',
+        })
+
+        const store = service.getRunStore('run-1')
+        if (!store) throw new Error('Missing retained queue store')
+        const release = store.subscribe(vi.fn())
+        emit(runEvent('cancelled'))
+        expect(store.getSnapshot().queuedPrompts).toEqual([])
+        release()
+        service.stop()
+    })
+
 })

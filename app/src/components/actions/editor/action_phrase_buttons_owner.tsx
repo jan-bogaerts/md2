@@ -4,7 +4,6 @@ import type { ActionContext } from '../../../data/action_context'
 import type { ActionDefinition } from '../../../data/action_types'
 import type { ActionRun } from '../../../services/actions/action_run_registry'
 import type { ActionRunSettingsStore } from '../../../services/actions/action_run_settings_service'
-import { dialogService } from '../../../services/dialog_service'
 import { useActionRunSelector } from '../../hooks/use_action_runs'
 import type { ActionConversationStore } from '../conversation/action_conversation_store'
 import type { ActionHistoryStore } from '../run/state/action_history_store'
@@ -52,9 +51,6 @@ export function ActionPhraseButtonsOwner(props: ActionPhraseButtonsOwnerProps) {
     const handleSelect = (text: string) => {
         const promptDraft = currentActionPromptDraft(action, context, false)
         promptDraft.replace(text)
-        void promptDraft.synchronize().catch((error: unknown) => {
-            dialogService.error(error, { fallbackMessage: 'Could not queue agent prompt' })
-        })
         inputStore.setConvertMessage(null)
     }
     const handleDoubleClick = (text: string) => {

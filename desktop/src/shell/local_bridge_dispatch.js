@@ -367,10 +367,20 @@ function createLocalBridgeDispatch(dependencies) {
 
             return actionRunnerService.answerAgentQuestion(runId, requestId, answers);
         },
-        beginActionPromptDraft: (runId) => {
+        deleteActionQueuedPrompt: (runId, promptId, revision) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
-            return actionRunnerService.beginAgentPromptDraft(runId);
+            return actionRunnerService.deleteQueuedAgentPrompt(runId, promptId, revision);
+        },
+        editActionQueuedPrompt: (runId, promptId, revision, content) => {
+            if (!actionRunnerService) throw new Error('Action runner is not available');
+
+            return actionRunnerService.editQueuedAgentPrompt(runId, promptId, revision, content);
+        },
+        enqueueActionPrompt: (runId, content) => {
+            if (!actionRunnerService) throw new Error('Action runner is not available');
+
+            return actionRunnerService.enqueueAgentPrompt(runId, content);
         },
         generateDiff: async (request) => {
             const result = await diffService.generateDiff(currentLocalProject, request);
@@ -506,16 +516,6 @@ function createLocalBridgeDispatch(dependencies) {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
             return actionRunnerService.sendAgentMessage(runId, content);
-        },
-        sendActionQueuedMessage: (runId, sessionId, revision) => {
-            if (!actionRunnerService) throw new Error('Action runner is not available');
-
-            return actionRunnerService.sendQueuedAgentMessage(runId, sessionId, revision);
-        },
-        setActionQueuedMessage: (runId, sessionId, content, revision) => {
-            if (!actionRunnerService) throw new Error('Action runner is not available');
-
-            return actionRunnerService.setAgentQueuedMessage(runId, sessionId, content, revision);
         },
         startAction: (request) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');

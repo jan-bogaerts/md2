@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge'
+import type { ActionQueuedPrompt } from '../../data/action_run_types'
 import { RemoteControlConnectionError } from '../data/remote_control_storage_service'
 import { ActionPromptDraftService, type ActionPromptRunBinding } from './action_prompt_draft_service'
 
@@ -14,11 +15,16 @@ const run: ActionPromptRunBinding = {
 
 function createRemoteBridge(overrides: Partial<ElectronActionBridge> = {}) {
     return {
-        beginActionPromptDraft: vi.fn(async () => 2),
-        sendActionQueuedMessage: vi.fn(async () => ({ sent: true })),
-        setActionQueuedMessage: vi.fn(async () => ({ accepted: true })),
+        enqueueActionPrompt: vi.fn(async (_runId, content) => ({content, dispatchState: 'queued' as const, id: 'prompt-1', revision: 0})),
         ...overrides,
     } as unknown as ElectronActionBridge
+}
+
+function deferred<T>() {
+    let resolvePromise: (value: T) => void = () => undefined
+    const promise = new Promise<T>((resolve) => { resolvePromise = resolve })
+
+    return { promise, resolve: resolvePromise }
 }
 
 afterEach(() => setActionBridgeOverride(null))
@@ -112,39 +118,36 @@ describe('ActionPromptDraftService', () => {
         expect(draft.getSnapshot()).toBe('User draft')
     })
 
-    it('serializes remote writes with increasing revisions', async () => {
-        const setActionQueuedMessage = vi.fn(async () => ({ accepted: true }))
-        setActionBridgeOverride(createRemoteBridge({ setActionQueuedMessage }))
+    it('keeps editor changes local until explicit send', () => {
+        const enqueueActionPrompt = vi.fn()
+        setActionBridgeOverride(createRemoteBridge({ enqueueActionPrompt }))
         const service = new ActionPromptDraftService()
         const draft = service.getDraft('review', context, run, { prepare: false })
 
         draft.edit('First')
-        const firstWrite = draft.synchronize()
         draft.edit('Second')
-        const secondWrite = draft.synchronize()
-        await Promise.all([firstWrite, secondWrite])
 
-        expect(setActionQueuedMessage).toHaveBeenNthCalledWith(1, 'run-1', 2, 'First', 1)
-        expect(setActionQueuedMessage).toHaveBeenNthCalledWith(2, 'run-1', 2, 'Second', 2)
+        expect(enqueueActionPrompt).not.toHaveBeenCalled()
+        expect(draft.getSnapshot()).toBe('Second')
     })
 
-    it('retains draft when remote send acknowledgement fails', async () => {
+    it('retains draft when enqueue fails', async () => {
         setActionBridgeOverride(createRemoteBridge({
-            sendActionQueuedMessage: vi.fn(async () => {
-                throw new Error('Queued agent message session expired')
+            enqueueActionPrompt: vi.fn(async () => {
+                throw new Error('Queue unavailable')
             }),
         }))
         const service = new ActionPromptDraftService()
         const draft = service.getDraft('review', context, run, { prepare: false })
         draft.edit('Do not lose this')
-        await draft.synchronize()
 
-        await expect(draft.send()).rejects.toThrow('session expired')
+        await expect(draft.send()).rejects.toThrow('Queue unavailable')
         expect(draft.getSnapshot()).toBe('Do not lose this')
     })
 
     it('clears every subscriber after successful send', async () => {
-        setActionBridgeOverride(createRemoteBridge())
+        const enqueueActionPrompt = vi.fn(async (_runId, content) => ({content, dispatchState: 'queued' as const, id: 'prompt-1', revision: 0}))
+        setActionBridgeOverride(createRemoteBridge({ enqueueActionPrompt }))
         const service = new ActionPromptDraftService()
         const draft = service.getDraft('review', context, run, { prepare: false })
         const listener = vi.fn()
@@ -153,8 +156,24 @@ describe('ActionPromptDraftService', () => {
 
         await draft.send()
 
+        expect(enqueueActionPrompt).toHaveBeenCalledWith('run-1', 'Send this')
         expect(draft.getSnapshot()).toBe('')
         expect(listener).toHaveBeenCalledTimes(2)
+    })
+
+    it('does not clear text edited while enqueue acknowledgement is pending', async () => {
+        const acceptance = deferred<ActionQueuedPrompt>()
+        setActionBridgeOverride(createRemoteBridge({enqueueActionPrompt: vi.fn(() => acceptance.promise)}))
+        const service = new ActionPromptDraftService()
+        const draft = service.getDraft('review', context, run, { prepare: false })
+        draft.edit('Accepted text')
+
+        const send = draft.send()
+        draft.edit('New editor text')
+        acceptance.resolve({ content: 'Accepted text', dispatchState: 'queued', id: 'prompt-1', revision: 0 })
+        await send
+
+        expect(draft.getSnapshot()).toBe('New editor text')
     })
 
     it('cleans drafts only through explicit lifecycle operations', () => {

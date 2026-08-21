@@ -4,7 +4,6 @@ import {
     type KeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode,
 } from 'react'
 import { ACTION_PROMPT_PLACEHOLDERS } from '../../../data/action_placeholders'
-import { dialogService } from '../../../services/dialog_service'
 import type { ActionPromptDraft } from '../../../services/actions/action_prompt_draft_service'
 import { MarkdownEditor, type MarkdownEditorHandle } from '../../editor/markdown_editor'
 
@@ -76,12 +75,6 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
             return clamped
         })
     }, [clampPromptHeight, promptEmpty])
-
-    const handlePromptChange = () => {
-        void promptDraft.synchronize().catch((error: unknown) => {
-            dialogService.error(error, { fallbackMessage: 'Could not queue agent prompt' })
-        })
-    }
 
     const handleSplitPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
         if (promptEmpty) return
@@ -202,7 +195,6 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
                         hideAttachmentControl
                         hideToolbar
                         localTextSearch={false}
-                        onChange={handlePromptChange}
                         onLiveChange={handleLivePromptChange}
                         placeholders={ACTION_PROMPT_PLACEHOLDERS}
                         readOnly={editorSnapshot.preparationStatus !== 'ready'}

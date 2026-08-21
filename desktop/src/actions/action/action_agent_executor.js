@@ -157,7 +157,6 @@ class ActionAgentExecutor {
             reference: run.reference,
             stderr: run.stderr,
             stdout: run.stdout,
-            queuedMessage: run.queuedMessage?.content ?? null,
             turnStarted: run.turnStarted,
         });
         const onEvent = (agentEvent) => input.onEvent(agentEvent);

@@ -1,6 +1,7 @@
 import { Box, CircularProgress, Stack, Tooltip, Typography } from '@mui/material'
 import { useLayoutEffect, useRef, useState, type UIEvent } from 'react'
 import type { AgentConversation } from '../../../data/data_types'
+import type { ActionQueuedPrompt } from '../../../data/action_run_types'
 import type { PopupRunStatus } from '../run/popup/action_popup_defaults'
 import { ActionConversationEventRow } from './action_conversation_event_row'
 import { ActionConversationMessage } from './action_conversation_message'
@@ -16,12 +17,15 @@ import {
 import { ActionConversationReservedBlock } from './action_conversation_reserved_block'
 import { contextWindowUsedPercent } from './conversation_context_window'
 import { reasoningDisplay } from './reasoning_display'
+import { ActionQueuedPromptRow } from './action_queued_prompt'
 
 const CHAT_END_TOLERANCE = 4
 const MIN_CHAT_HEIGHT = 96
 
 interface ActionConversationChatProps {
     conversation: AgentConversation | null
+    queuedPrompts?: ActionQueuedPrompt[]
+    runId?: string | null
     status: PopupRunStatus
 }
 
@@ -52,7 +56,7 @@ function visibleConversationGroups(conversation: AgentConversation | null) {
 }
 
 /** Ordered user/assistant transcript shown above the popup prompt. */
-export function ActionConversationChat({ conversation, status }: ActionConversationChatProps) {
+export function ActionConversationChat({ conversation, queuedPrompts = [], runId = null, status }: ActionConversationChatProps) {
     const groups = visibleConversationGroups(conversation)
     const viewportRef = useRef<HTMLDivElement>(null)
     const conversationPathRef = useRef<string | null | undefined>(undefined)
@@ -116,6 +120,9 @@ export function ActionConversationChat({ conversation, status }: ActionConversat
                 {Array.from({ length: reservedBlockCount }, (_, index) => (
                     <ActionConversationReservedBlock key={`reserved-block-${index}`} />
                 ))}
+                {runId ? queuedPrompts.map((entry) => (
+                    <ActionQueuedPromptRow entry={entry} key={entry.id} runId={runId} />
+                )) : null}
                 {conversation || status !== 'idle' ? (
                     <Stack
                         aria-label="Conversation metadata"

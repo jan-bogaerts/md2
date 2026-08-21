@@ -33,6 +33,13 @@ export interface PreparedActionPrompt {
     prompt: string
 }
 
+export interface ActionQueuedPrompt {
+    content: string
+    dispatchState: 'dispatching' | 'queued'
+    id: string
+    revision: number
+}
+
 export interface AgentConversationReservation {
     activityPath: string
     conversationId: string
@@ -164,6 +171,15 @@ export type ActionRunUpdate =
         contextWindowUsage?: AgentContextWindowUsage | null
         kind: 'agentUsage'
         usage: AgentTokenUsage
+    }
+    | {
+        entry: ActionQueuedPrompt
+        kind: 'agentPromptQueued' | 'agentPromptEdited'
+    }
+    | {
+        kind: 'agentPromptRemoved'
+        promptId: string
+        revision: number
     }
     | {
         command?: string

@@ -217,56 +217,6 @@ describe('AgentRunnerService state handling', () => {
         expect(codexRuntimeService.publishUpdateRequired).not.toHaveBeenCalled();
     });
 
-    it('consumes one queued revision exactly once', async () => {
-        const sendMessage = vi.fn();
-        const service = new AgentRunnerService({
-            persistConversation: vi.fn(async () => undefined),
-            persistConversationCheckpoint: vi.fn(async () => undefined),
-        });
-        service.processes.set('run-1', {
-            conversation: { entries: [], providerSessions: [], status: 'running' },
-            id: 'run-1',
-            onEvent: vi.fn(),
-            pendingApprovals: new Map(),
-            persistence: Promise.resolve(),
-            queuedMessage: null,
-            queuedMessageRevision: -1,
-            queuedMessageSessionId: 0,
-            sentQueuedMessageRevision: -1,
-            streaming: true,
-            streamingAdapter: { sendMessage },
-            turnActive: true,
-            turnIndex: 1,
-        });
-
-        const sessionId = service.beginQueuedMessageDraft('run-1');
-        service.setQueuedMessage('run-1', sessionId, 'approved', 0);
-        await expect(service.sendQueuedMessage('run-1', sessionId, 0)).resolves.toEqual({ sent: true });
-        await expect(service.sendQueuedMessage('run-1', sessionId, 0)).rejects.toThrow('already sent');
-
-        expect(sendMessage).toHaveBeenCalledOnce();
-        expect(sendMessage).toHaveBeenCalledWith('approved');
-    });
-
-    it('accepts revision zero from a new prompt session after renderer restart', () => {
-        const service = new AgentRunnerService();
-        const run = {
-            id: 'run-1',
-            queuedMessage: { content: 'old', revision: 4 },
-            queuedMessageRevision: 4,
-            queuedMessageSessionId: 1,
-            sentQueuedMessageRevision: 3,
-        };
-        service.processes.set('run-1', run);
-
-        const sessionId = service.beginQueuedMessageDraft('run-1');
-        const result = service.setQueuedMessage('run-1', sessionId, 'new', 0);
-
-        expect(result).toEqual({ accepted: true });
-        expect(run.queuedMessage).toEqual({ content: 'new', revision: 0 });
-        expect(() => service.setQueuedMessage('run-1', 1, 'stale', 5)).toThrow('session expired');
-    });
-
     it('checkpoints the complete transcript when a turn starts waiting for input', async () => {
         const persistConversationCheckpoint = vi.fn(async () => undefined);
         const service = new AgentRunnerService({ persistConversationCheckpoint });
@@ -287,7 +237,6 @@ describe('AgentRunnerService state handling', () => {
             pendingApprovals: new Map(),
             persistence: Promise.resolve(),
             providerConversationId: 'provider-1',
-            queuedMessage: null,
             request: {},
             streaming: true,
             turnActive: true,
@@ -349,7 +298,6 @@ describe('AgentRunnerService state handling', () => {
             pendingApprovals: new Map(),
             persistence: Promise.resolve(),
             providerConversationId: 'provider-1',
-            queuedMessage: null,
             request: {},
             streaming: true,
             turnActive: true,
@@ -425,7 +373,6 @@ describe('AgentRunnerService state handling', () => {
             liveTurnUsage: null,
             nextSequence: 1,
             onEvent: vi.fn(),
-            queuedMessage: null,
             secretValues: new Set(),
             stderr: '',
             streamingFailure: null,
@@ -495,7 +442,6 @@ describe('AgentRunnerService state handling', () => {
             cancelled: false,
             child,
             conversation: { status: 'running' },
-            queuedMessage: null,
             termination: null,
         });
 
@@ -794,7 +740,6 @@ describe('AgentRunnerService state handling', () => {
             finishTimeout: null,
             finishing: false,
             id: 'run-1',
-            queuedMessage: null,
             streaming: true,
             termination: null,
             turnActive: false,
@@ -832,7 +777,6 @@ describe('AgentRunnerService state handling', () => {
             pendingApprovals: new Map(),
             persistence: Promise.resolve(),
             providerConversationId: 'provider-1',
-            queuedMessage: null,
             request: {},
             streaming: true,
             turnActive: true,
@@ -1105,7 +1049,6 @@ describe('AgentRunnerService state handling', () => {
             onEvent: vi.fn(),
             pendingQuestions: [],
             persistence: Promise.resolve(),
-            queuedMessage: null,
             secretValues: new Set(),
             stderr: '',
             streaming: true,

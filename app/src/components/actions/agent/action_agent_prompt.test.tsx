@@ -142,9 +142,8 @@ describe('ActionAgentPrompt', () => {
         expect(screen.getByLabelText('Markdown prompt')).toHaveAttribute('data-image-paste', 'false')
     })
 
-    it('keeps typing local and synchronizes the prompt on blur', () => {
+    it('keeps typing local when prompt loses focus', () => {
         const promptDraft = new ActionPromptDraft('', false, null)
-        const synchronize = vi.spyOn(promptDraft, 'synchronize')
         render(
             <ActionAgentPrompt
                 convertMessage={null}
@@ -155,13 +154,12 @@ describe('ActionAgentPrompt', () => {
 
         fireEvent.change(prompt, { target: { value: 'Draft' } })
 
-        expect(synchronize).not.toHaveBeenCalled()
         expect(promptDraft.getSnapshot()).toBe('Draft')
         expect(prompt).toHaveAttribute('data-flush-on-blur', 'true')
 
         fireEvent.blur(prompt)
 
-        expect(synchronize).toHaveBeenCalledOnce()
+        expect(promptDraft.getSnapshot()).toBe('Draft')
     })
 
     it.each([
@@ -170,7 +168,6 @@ describe('ActionAgentPrompt', () => {
     ])('flushes the latest prompt before running $shortcut without passing it to the editor', ({ keyModifier }) => {
         const handleRunShortcut = vi.fn()
         const promptDraft = new ActionPromptDraft('', false, null)
-        const synchronize = vi.spyOn(promptDraft, 'synchronize')
         render(
             <ActionAgentPrompt
                 convertMessage={null}
@@ -183,8 +180,6 @@ describe('ActionAgentPrompt', () => {
         fireEvent.change(prompt, { target: { value: 'Run this' } })
         fireEvent.keyDown(prompt, { ...keyModifier, key: 'Enter' })
 
-        expect(synchronize).toHaveBeenCalledOnce()
-        expect(synchronize.mock.invocationCallOrder[0]).toBeLessThan(handleRunShortcut.mock.invocationCallOrder[0])
         expect(handleRunShortcut).toHaveBeenCalledOnce()
         expect(promptDraft.getSnapshot()).toBe('Run this')
         expect(prompt).toHaveValue('Run this')

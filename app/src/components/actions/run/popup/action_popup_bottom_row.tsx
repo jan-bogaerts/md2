@@ -67,8 +67,6 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
     })
     const interactionReady = useActionRunSelector(action.id, assignmentContext, (run) => !!run?.interactionReady)
     const liveConversationPath = useActionRunSelector(action.id, assignmentContext, (run) => run?.conversation?.path ?? null)
-    const hasApprovals = useActionRunSelector(action.id, assignmentContext, (run) => !!run?.approvals.length)
-    const hasQuestion = useActionRunSelector(action.id, assignmentContext, (run) => !!run?.question)
     const promptDraft = currentActionPromptDraft(action, assignmentContext, action.type === 'agent')
     const prompt = useSyncExternalStore(promptDraft.subscribe, promptDraft.getSnapshot, promptDraft.getSnapshot)
     const editorSnapshot = useSyncExternalStore(
@@ -96,11 +94,10 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
     const showSchedule = (!sessionActive && !orphanWaiting) || (waitingForAgentInput && promptHasText)
     const showAgentSend = (!sessionActive && !orphanWaiting && action.type === 'agent')
         || (waitingForAgentInput && promptHasText)
+        || (agentActive && interactionReady && promptHasText)
     const showCommandRun = !sessionActive && !orphanWaiting && action.type === 'command'
     const runState = {
         agentActive,
-        hasApprovals,
-        hasQuestion,
         interactionReady,
         runDisabledMessage: settings.runDisabledMessage,
         runStatus,

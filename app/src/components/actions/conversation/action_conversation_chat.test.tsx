@@ -1146,4 +1146,76 @@ describe('ActionConversationChat', () => {
 
         expect(viewport.scrollTop).toBe(300)
     })
+
+    it('renders queued prompts after delivered messages in FIFO order with edit and delete controls', async () => {
+        const editActionQueuedPrompt = vi.fn(async (_runId, _promptId, _revision, content) => ({content, dispatchState: 'queued' as const, id: 'prompt-1', revision: 1}))
+        const deleteActionQueuedPrompt = vi.fn(async () => ({ deleted: true as const }))
+        setActionBridgeOverride({ editActionQueuedPrompt, deleteActionQueuedPrompt } as unknown as ElectronActionBridge)
+        const value = conversation('first.json', [message('message-1', 'Delivered')])
+        render(
+            <AppThemeProvider>
+                <ActionConversationChat
+                    conversation={value}
+                    queuedPrompts={[
+                        { content: 'First queued', dispatchState: 'queued', id: 'prompt-1', revision: 0 },
+                        { content: 'Second queued', dispatchState: 'queued', id: 'prompt-2', revision: 0 },
+                    ]}
+                    runId="run-1"
+                    status="running"
+                />
+            </AppThemeProvider>,
+        )
+        const rows = screen.getAllByLabelText('Queued prompt')
+
+        expect(rows).toHaveLength(2)
+        expect(within(rows[0]).getByText('First queued')).toBeInTheDocument()
+        expect(within(rows[1]).getByText('Second queued')).toBeInTheDocument()
+        fireEvent.click(within(rows[0]).getByRole('button', { name: 'Edit queued prompt' }))
+        fireEvent.change(within(rows[0]).getByRole('textbox', { name: 'Queued prompt content' }), {target: { value: 'Edited first' }})
+        fireEvent.click(within(rows[0]).getByRole('button', { name: 'Save' }))
+        await waitFor(() => expect(editActionQueuedPrompt).toHaveBeenCalledWith('run-1', 'prompt-1', 0, 'Edited first'))
+
+        fireEvent.click(within(rows[1]).getByRole('button', { name: 'Delete queued prompt' }))
+        await waitFor(() => expect(deleteActionQueuedPrompt).toHaveBeenCalledWith('run-1', 'prompt-2', 0))
+    })
+
+    it('rejects an empty edit and retains accepted queue state after operation failure', async () => {
+        const failure = new Error('Queue operation raced dispatch')
+        const editActionQueuedPrompt = vi.fn(async () => {
+            throw failure
+        })
+        const deleteActionQueuedPrompt = vi.fn(async () => {
+            throw failure
+        })
+        setActionBridgeOverride({ editActionQueuedPrompt, deleteActionQueuedPrompt } as unknown as ElectronActionBridge)
+        const warning = vi.spyOn(dialogService, 'warning')
+        const reportError = vi.spyOn(dialogService, 'error')
+        render(
+            <AppThemeProvider>
+                <ActionConversationChat
+                    conversation={null}
+                    queuedPrompts={[{ content: 'Keep queued', dispatchState: 'queued', id: 'prompt-1', revision: 2 }]}
+                    runId="run-1"
+                    status="running"
+                />
+            </AppThemeProvider>,
+        )
+        const row = screen.getByLabelText('Queued prompt')
+        fireEvent.click(within(row).getByRole('button', { name: 'Edit queued prompt' }))
+        const editor = within(row).getByRole('textbox', { name: 'Queued prompt content' })
+        fireEvent.change(editor, { target: { value: '   ' } })
+        fireEvent.click(within(row).getByRole('button', { name: 'Save' }))
+        expect(warning).toHaveBeenCalledWith('Queued agent prompt cannot be empty')
+        expect(editActionQueuedPrompt).not.toHaveBeenCalled()
+
+        fireEvent.change(editor, { target: { value: 'Failed edit' } })
+        fireEvent.click(within(row).getByRole('button', { name: 'Save' }))
+        await waitFor(() => expect(reportError).toHaveBeenCalledWith(failure, {fallbackMessage: 'Could not edit queued agent prompt'}))
+        expect(editor).toHaveValue('Failed edit')
+        fireEvent.click(within(row).getByRole('button', { name: 'Cancel' }))
+        expect(within(row).getByText('Keep queued')).toBeInTheDocument()
+        fireEvent.click(within(row).getByRole('button', { name: 'Delete queued prompt' }))
+        await waitFor(() => expect(reportError).toHaveBeenCalledWith(failure, {fallbackMessage: 'Could not delete queued agent prompt'}))
+        expect(within(row).getByText('Keep queued')).toBeInTheDocument()
+    })
 })

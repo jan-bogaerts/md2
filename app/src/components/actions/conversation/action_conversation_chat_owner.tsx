@@ -6,6 +6,8 @@ import { useActionRunSelector } from '../../hooks/use_action_runs'
 import { ActionConversationChat } from './action_conversation_chat'
 import { resolveDisplayedConversation, type ActionConversationStore } from './action_conversation_store'
 
+const EMPTY_QUEUED_PROMPTS: never[] = []
+
 interface ActionConversationChatOwnerProps {
     actionId: string
     context: ActionContext
@@ -18,6 +20,8 @@ export function ActionConversationChatOwner(props: ActionConversationChatOwnerPr
     const { actionId, context, popupEntryId, store } = props
     const liveConversation = useActionRunSelector(actionId, context, (run) => run?.conversation ?? null)
     const runStatus = useActionRunSelector(actionId, context, (run) => run?.status ?? 'idle')
+    const runId = useActionRunSelector(actionId, context, (run) => run?.runId ?? null)
+    const queuedPrompts = useActionRunSelector(actionId, context, (run) => run?.queuedPrompts ?? EMPTY_QUEUED_PROMPTS)
     const { selectedConversation } = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot)
     const popupEntries = useSyncExternalStore(
         subscribeCardPopups,
@@ -46,5 +50,12 @@ export function ActionConversationChatOwner(props: ActionConversationChatOwnerPr
         )
     }, [actionId, cardInternalId, conversation, popupEntryId, visible])
 
-    return <ActionConversationChat conversation={conversation} status={status} />
+    return (
+        <ActionConversationChat
+            conversation={conversation}
+            queuedPrompts={displayingLiveConversation ? queuedPrompts : EMPTY_QUEUED_PROMPTS}
+            runId={displayingLiveConversation ? runId : null}
+            status={status}
+        />
+    )
 }

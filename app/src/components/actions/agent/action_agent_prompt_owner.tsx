@@ -45,8 +45,6 @@ export function ActionAgentPromptOwner(props: ActionAgentPromptOwnerProps) {
     } = props
     const sessionActive = useActionRunSelector(action.id, context, selectSessionActive)
     const activeActionType = useActionRunSelector(action.id, context, (run) => run?.activeActionType ?? null)
-    const hasApprovals = useActionRunSelector(action.id, context, (run) => !!run?.approvals.length)
-    const hasQuestion = useActionRunSelector(action.id, context, (run) => !!run?.question)
     const interactionReady = useActionRunSelector(action.id, context, (run) => !!run?.interactionReady)
     const runStatus = useActionRunSelector(action.id, context, (run) => run?.status ?? 'idle')
     const conversationSnapshot = useSyncExternalStore(
@@ -89,8 +87,6 @@ export function ActionAgentPromptOwner(props: ActionAgentPromptOwnerProps) {
         const prompt = promptDraft.getSnapshot()
         const runState = {
             agentActive: sessionActive && activeActionType === 'agent',
-            hasApprovals,
-            hasQuestion,
             interactionReady,
             runDisabledMessage: settings.runDisabledMessage,
             runStatus,

@@ -1,7 +1,7 @@
 const { createMessageEntry, transitionConversationStatus } = require('./agent_conversation');
 const { emitRunEvent, hasPendingInteraction } = require('./agent_run_state');
 const { lastMessageEntry, nextRunSequence } = require('./agent_run_transcript');
-const { requireQueuedMessageSession, requireString } = require('./agent_run_validation');
+const { requireString } = require('./agent_run_validation');
 const { secretAnswerValues } = require('./agent_secret_redaction');
 
 /** Serializes writes to the agent's stdin so a message and an answer can never interleave on the wire. */
@@ -38,51 +38,6 @@ function sendMessage(service, run, content) {
 
     return queueInteractionWrite(run, async () => {
         await sendStreamingMessage(service, run, content);
-        run.queuedMessage = null;
-    });
-}
-
-/**
- * Opens a queued-message session. The id invalidates drafts from an earlier session, so a stale
- * editor cannot send a message the user has since replaced.
- */
-function beginQueuedMessageDraft(run) {
-    run.queuedMessageSessionId += 1;
-    run.queuedMessage = null;
-    run.queuedMessageRevision = -1;
-    run.sentQueuedMessageRevision = -1;
-
-    return run.queuedMessageSessionId;
-}
-
-function setQueuedMessage(run, sessionId, content, revision) {
-    requireQueuedMessageSession(run, sessionId);
-    if (!Number.isSafeInteger(revision) || revision < 0) throw new Error('Invalid queued agent message revision');
-    if (revision < run.queuedMessageRevision) return { accepted: false };
-    if (typeof content !== 'string') throw new Error('Invalid queued agent message');
-    run.queuedMessageRevision = revision;
-    run.queuedMessage = content.trim().length > 0 ? { content, revision } : null;
-
-    return { accepted: true };
-}
-
-function sendQueuedMessage(service, run, sessionId, revision) {
-    requireQueuedMessageSession(run, sessionId);
-    if (!Number.isSafeInteger(revision) || revision < 0) throw new Error('Invalid queued agent message revision');
-
-    return queueInteractionWrite(run, async () => {
-        requireQueuedMessageSession(run, sessionId);
-        if (revision <= run.sentQueuedMessageRevision) throw new Error('Queued agent message was already sent');
-        if (!run.queuedMessage) throw new Error('Queued agent message is empty');
-        if (run.queuedMessage.revision !== revision) throw new Error('Queued agent message changed before it was sent');
-        if (!run.streaming) throw new Error('Queued agent messaging requires a streaming agent');
-
-        const { content, revision: queuedRevision } = run.queuedMessage;
-        await sendStreamingMessage(service, run, content);
-        run.queuedMessage = null;
-        run.sentQueuedMessageRevision = queuedRevision;
-
-        return { sent: true };
     });
 }
 
@@ -137,10 +92,7 @@ function answerApproval(service, run, requestId, decision) {
 module.exports = {
     answerApproval,
     answerQuestion,
-    beginQueuedMessageDraft,
     queueInteractionWrite,
     sendMessage,
-    sendQueuedMessage,
     sendStreamingMessage,
-    setQueuedMessage,
 };

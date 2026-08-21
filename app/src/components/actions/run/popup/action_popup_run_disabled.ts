@@ -3,8 +3,6 @@ import type { ActionPromptPreparationStatus } from '../../../../services/actions
 
 interface ActionPopupRunState {
     agentActive: boolean
-    hasApprovals: boolean
-    hasQuestion: boolean
     interactionReady: boolean
     runDisabledMessage: string | null
     runStatus: string
@@ -27,8 +25,6 @@ export function actionPopupRunDisabled(
         || (runState.agentActive && (
             !runState.interactionReady
             || prompt.trim().length === 0
-            || runState.hasApprovals
-            || runState.hasQuestion
         ))
         || (sessionActive && !runState.agentActive)
 }

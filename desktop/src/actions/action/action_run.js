@@ -1,3 +1,4 @@
+const crypto = require('node:crypto');
 const { ActionCancellationError } = require('./action_cancellation_error');
 const { executeCommandAction } = require('./action_command_executor');
 const { ActionPhaseError } = require('./action_phase_error');
@@ -35,8 +36,10 @@ class ActionRun {
         this.localGitService = dependencies.localGitService;
         this.publisher = dependencies.publisher;
         this.activeAction = null;
+        this.activeActionPhase = null;
         this.activeAgentProject = null;
         this.activeAgentRunId = null;
+        this.activeAgentDispatchAvailable = false;
         this.activeAgentQuestion = false;
         this.activeAgentApprovals = new Map();
         this.autoFinishPending = false;
@@ -48,6 +51,9 @@ class ActionRun {
         this.rootDetails = null;
         this.rootConversationId = null;
         this.nextEventSequence = 1;
+        this.promptQueue = [];
+        this.promptQueueClosed = false;
+        this.promptQueueOperations = Promise.resolve();
     }
 
     start(finalize) {
@@ -56,11 +62,13 @@ class ActionRun {
     }
 
     cancel() {
+        this.discardQueuedPrompts();
         this.controller.abort();
         if (this.activeAgentRunId) this.agentRunnerService.stop(this.activeAgentRunId);
     }
 
     suspend() {
+        this.discardQueuedPrompts();
         this.controller.abort();
         if (this.activeAgentRunId) this.agentRunnerService.suspend(this.activeAgentRunId);
     }
@@ -70,34 +78,64 @@ class ActionRun {
         if (this.activeAgentQuestion) throw new Error('Answer pending structured question before sending queued prompt');
         if (this.activeAgentApprovals.size > 0) throw new Error('Answer pending approval before sending queued prompt');
         const prompt = this.resolveActiveAgentPrompt(content);
+        this.activeAgentDispatchAvailable = false;
 
         return this.agentRunnerService.sendMessage(this.activeAgentRunId, prompt);
     }
 
-    beginAgentPromptDraft() {
-        if (!this.activeAgentRunId) throw new Error(`Action run has no active agent: ${this.runId}`);
+    enqueueAgentPrompt(content) {
+        if (typeof content !== 'string' || content.trim().length === 0) throw new Error('Queued agent prompt is empty');
 
-        return this.agentRunnerService.beginQueuedMessageDraft(this.activeAgentRunId);
+        const operation = this.queuePromptOperation(() => {
+            this.requirePromptQueueOpen();
+            this.resolveActiveAgentPrompt(content);
+            const entry = {
+                content,
+                dispatchState: 'queued',
+                id: `prompt-${crypto.randomUUID()}`,
+                revision: 0,
+            };
+            this.promptQueue.push(entry);
+            this.publishPromptQueueUpdate('agentPromptQueued', { entry: { ...entry } });
+
+            return { ...entry };
+        });
+        void operation.then(() => this.dispatchStreamingPrompt()).catch(() => undefined);
+
+        return operation;
     }
 
-    setAgentQueuedMessage(sessionId, content, revision) {
-        if (!this.activeAgentRunId) throw new Error(`Action run has no active agent: ${this.runId}`);
-        const prompt = this.resolveActiveAgentPrompt(content);
+    editQueuedAgentPrompt(id, revision, content) {
+        if (typeof content !== 'string' || content.trim().length === 0) throw new Error('Queued agent prompt cannot be empty');
 
-        return this.agentRunnerService.setQueuedMessage(this.activeAgentRunId, sessionId, prompt, revision);
+        return this.queuePromptOperation(() => {
+            this.requirePromptQueueOpen();
+            const entry = this.requireQueuedPrompt(id, revision);
+            this.resolveActiveAgentPrompt(content);
+            entry.content = content;
+            entry.revision += 1;
+            this.publishPromptQueueUpdate('agentPromptEdited', { entry: { ...entry } });
+
+            return { ...entry };
+        });
     }
 
-    sendQueuedAgentMessage(sessionId, revision) {
-        if (!this.activeAgentRunId) throw new Error(`Action run has no active agent: ${this.runId}`);
-        if (this.activeAgentQuestion) throw new Error('Answer pending structured question before sending queued prompt');
-        if (this.activeAgentApprovals.size > 0) throw new Error('Answer pending approval before sending queued prompt');
-        return this.agentRunnerService.sendQueuedMessage(this.activeAgentRunId, sessionId, revision);
+    deleteQueuedAgentPrompt(id, revision) {
+        return this.queuePromptOperation(() => {
+            this.requirePromptQueueOpen();
+            const entry = this.requireQueuedPrompt(id, revision);
+            this.promptQueue = this.promptQueue.filter(({ id: entryId }) => entryId !== id);
+            this.publishPromptQueueUpdate('agentPromptRemoved', { promptId: entry.id, revision: entry.revision });
+
+            return { deleted: true };
+        });
     }
 
     async answerAgentQuestion(requestId, answers) {
         if (!this.activeAgentRunId) throw new Error(`Action run has no active streaming agent: ${this.runId}`);
         await this.agentRunnerService.answerQuestion(this.activeAgentRunId, requestId, answers);
         this.activeAgentQuestion = false;
+        this.activeAgentDispatchAvailable = false;
     }
 
     answerAgentApproval(requestId, decision) {
@@ -109,7 +147,83 @@ class ActionRun {
 
     finishAgent() {
         if (!this.activeAgentRunId) throw new Error(`Action run has no active streaming agent: ${this.runId}`);
+        this.discardQueuedPrompts();
         this.agentRunnerService.finish(this.activeAgentRunId);
+    }
+
+    queuePromptOperation(operation) {
+        const queuedOperation = this.promptQueueOperations.then(operation);
+        this.promptQueueOperations = queuedOperation.catch(() => undefined);
+
+        return queuedOperation;
+    }
+
+    requirePromptQueueOpen() {
+        if (this.promptQueueClosed || this.controller.signal.aborted) {
+            throw new Error(`Action run no longer accepts queued prompts: ${this.runId}`);
+        }
+        if (this.activeAction?.type !== 'agent') throw new Error(`Action run has no active agent: ${this.runId}`);
+    }
+
+    requireQueuedPrompt(id, revision) {
+        if (typeof id !== 'string' || id.length === 0) throw new Error('Missing queued agent prompt id');
+        if (!Number.isSafeInteger(revision) || revision < 0) throw new Error('Invalid queued agent prompt revision');
+        const entry = this.promptQueue.find(({ id: entryId }) => entryId === id);
+        if (!entry || entry.dispatchState !== 'queued') throw new Error(`Queued agent prompt was already sent or removed: ${id}`);
+        if (entry.revision !== revision) throw new Error(`Queued agent prompt changed before operation: ${id}`);
+
+        return entry;
+    }
+
+    publishPromptQueueUpdate(kind, details) {
+        if (!this.activeAction || !this.activeActionPhase) return;
+        this.publish(this.activeAction, this.activeActionPhase, 'running', {
+            type: 'update',
+            update: { kind, ...details },
+        });
+    }
+
+    discardQueuedPrompts() {
+        this.promptQueueClosed = true;
+        const entries = this.promptQueue.filter(({ dispatchState }) => dispatchState === 'queued');
+        this.promptQueue = [];
+        for (const entry of entries) {
+            this.publishPromptQueueUpdate('agentPromptRemoved', { promptId: entry.id, revision: entry.revision });
+        }
+    }
+
+    dispatchStreamingPrompt() {
+        return this.queuePromptOperation(async () => {
+            if (
+                !this.activeAgentRunId
+                || !this.activeAction?.streaming
+                || !this.activeAgentDispatchAvailable
+                || this.activeAgentQuestion
+                || this.activeAgentApprovals.size > 0
+            ) return;
+            const entry = this.promptQueue.find(({ dispatchState }) => dispatchState === 'queued');
+            if (!entry) return;
+
+            entry.dispatchState = 'dispatching';
+            this.promptQueue = this.promptQueue.filter(({ id }) => id !== entry.id);
+            this.activeAgentDispatchAvailable = false;
+            this.publishPromptQueueUpdate('agentPromptRemoved', { promptId: entry.id, revision: entry.revision });
+            const prompt = this.resolveActiveAgentPrompt(entry.content);
+            await this.agentRunnerService.sendMessage(this.activeAgentRunId, prompt);
+        });
+    }
+
+    takeNextOneShotPrompt() {
+        return this.queuePromptOperation(() => {
+            const entry = this.promptQueue.find(({ dispatchState }) => dispatchState === 'queued');
+            if (!entry) return null;
+
+            entry.dispatchState = 'dispatching';
+            this.promptQueue = this.promptQueue.filter(({ id }) => id !== entry.id);
+            this.publishPromptQueueUpdate('agentPromptRemoved', { promptId: entry.id, revision: entry.revision });
+
+            return entry.content;
+        });
     }
 
     handleCardStateChange(cardInternalId, state) {
@@ -120,6 +234,7 @@ class ActionRun {
             || this.activeAction.autoFinish?.state !== state
         ) return;
         if (this.activeAgentRunId) {
+            this.discardQueuedPrompts();
             this.agentRunnerService.finish(this.activeAgentRunId);
             return;
         }
@@ -149,6 +264,8 @@ class ActionRun {
             if (error instanceof ActionCancellationError || this.controller.signal.aborted) status = 'cancelled';
             else status = error instanceof ActionPhaseError && error.rootPhase === 'after' ? 'okButNotAfter' : 'failed';
         }
+
+        this.discardQueuedPrompts();
 
         try {
             await this.persistRootActivity(status, failure);
@@ -189,6 +306,7 @@ class ActionRun {
     async runMain(action, phase, isRoot, rootPhase) {
         this.throwIfCancelled();
         this.activeAction = action;
+        this.activeActionPhase = phase;
         this.autoFinishPending = false;
 
         try {
@@ -241,8 +359,11 @@ class ActionRun {
 
     clearActiveAction(action) {
         if (this.activeAction !== action) return;
+        if (action.type === 'agent') this.discardQueuedPrompts();
         this.activeAction = null;
+        this.activeActionPhase = null;
         this.activeAgentProject = null;
+        this.activeAgentDispatchAvailable = false;
         this.autoFinishPending = false;
     }
 
@@ -381,16 +502,21 @@ class ActionRun {
 
     async executeAgentAction(action, phase, isRoot, project) {
         this.activeAgentProject = project;
+        this.promptQueueClosed = false;
         const onActiveRunChange = (runId) => {
             this.activeAgentRunId = runId;
             if (runId) {
+                this.activeAgentDispatchAvailable = !!action.streaming;
                 this.publish(action, phase, 'running', { interactionReady: true, type: 'agentState' });
+                void this.dispatchStreamingPrompt().catch(() => undefined);
                 if (this.autoFinishPending) {
                     this.autoFinishPending = false;
+                    this.discardQueuedPrompts();
                     this.agentRunnerService.finish(runId);
                 }
             }
             else {
+                this.activeAgentDispatchAvailable = false;
                 this.activeAgentQuestion = false;
                 this.activeAgentApprovals.clear();
                 this.publish(action, phase, 'running', { interactionReady: false, type: 'agentState' });
@@ -409,11 +535,13 @@ class ActionRun {
                 return;
             }
             if (agentEvent.type === 'state') {
+                if (agentEvent.state === 'waitingForInput') this.activeAgentDispatchAvailable = true;
                 this.publish(action, phase, agentEvent.state, {
                     interactionReady: true,
                     ...(agentEvent.timer ? { timer: agentEvent.timer } : {}),
                     type: 'agentState',
                 });
+                if (agentEvent.state === 'waitingForInput') void this.dispatchStreamingPrompt().catch(() => undefined);
                 return;
             }
             if (agentEvent.type === 'question') {
@@ -456,6 +584,7 @@ class ActionRun {
                 if (!this.activeAgentApprovals.delete(agentEvent.requestId)) return;
                 const update = { kind: 'agentApprovalResolved', requestId: agentEvent.requestId };
                 this.publish(action, phase, agentEvent.state, { type: 'update', update });
+                void this.dispatchStreamingPrompt().catch(() => undefined);
                 return;
             }
             if (agentEvent.type === 'agentEvent') {
@@ -507,19 +636,22 @@ class ActionRun {
         const changedPaths = new Set(result.changedPaths ?? []);
         let stderr = result.stderr ?? '';
         let stdout = result.stdout ?? '';
-        while (result.exitCode === 0 && result.queuedMessage) {
-            const queuedMessage = result.queuedMessage;
+        let queuedPrompt = result.exitCode === 0 && !action.streaming
+            ? await this.takeNextOneShotPrompt()
+            : null;
+        while (result.exitCode === 0 && queuedPrompt) {
             result = await this.agentExecutor.execute({
                 ...input,
                 runInput: {
                     ...runInput,
                     continueFrom: result.reference,
-                    prompt: queuedMessage,
+                    prompt: queuedPrompt,
                 },
             });
             for (const changedPath of result.changedPaths ?? []) changedPaths.add(changedPath);
             stderr += result.stderr ?? '';
             stdout += result.stdout ?? '';
+            queuedPrompt = result.exitCode === 0 ? await this.takeNextOneShotPrompt() : null;
         }
 
         return { ...result, changedPaths: [...changedPaths], stderr, stdout };

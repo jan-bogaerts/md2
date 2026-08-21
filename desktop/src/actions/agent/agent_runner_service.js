@@ -212,7 +212,6 @@ class AgentRunnerService {
     stop(runId) {
         const run = this.requireRun(runId);
         run.cancelled = true;
-        run.queuedMessage = null;
         transitionConversationStatus(run.conversation, 'cancelled', new Date().toISOString());
         this.clearFinishTimeout(run);
 
@@ -222,22 +221,9 @@ class AgentRunnerService {
     suspend(runId) {
         const run = this.requireRun(runId);
         run.suspended = true;
-        run.queuedMessage = null;
         this.clearFinishTimeout(run);
 
         return this.ensureTermination(run);
-    }
-
-    beginQueuedMessageDraft(runId) {
-        return agentInteractions.beginQueuedMessageDraft(this.requireRun(runId));
-    }
-
-    setQueuedMessage(runId, sessionId, content, revision) {
-        return agentInteractions.setQueuedMessage(this.requireRun(runId), sessionId, content, revision);
-    }
-
-    sendQueuedMessage(runId, sessionId, revision) {
-        return agentInteractions.sendQueuedMessage(this, this.requireRun(runId), sessionId, revision);
     }
 
     sendMessage(runId, content) {
@@ -259,7 +245,6 @@ class AgentRunnerService {
     finish(runId) {
         const run = this.requireStreamingRun(runId);
         run.finishing = true;
-        run.queuedMessage = null;
         if (!run.turnActive || run.waitingForQuestion) this.beginFinishShutdown(run);
     }
 
@@ -581,7 +566,6 @@ class AgentRunnerService {
         const timestamp = new Date().toISOString();
         run.streamingFailure = new Error(message);
         transitionConversationStatus(run.conversation, 'failed', timestamp);
-        run.queuedMessage = null;
         run.waitingForQuestion = false;
         run.pendingQuestions = [];
         const separator = run.stderr.length > 0 && !run.stderr.endsWith('\n') ? '\n' : '';

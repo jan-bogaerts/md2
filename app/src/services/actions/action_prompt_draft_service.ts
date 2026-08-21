@@ -33,27 +33,11 @@ function runPromptDraftKey(runId: string, actionId: string) {
     return `run\u0000${runId}\u0000${actionId}`
 }
 
-async function beginActionPromptDraft(runId: string) {
+async function enqueueActionPrompt(runId: string, content: string) {
     const bridge = getElectronActionBridge()
-    if (!bridge?.beginActionPromptDraft) throw new Error('Agent prompt queue requires Electron')
+    if (!bridge?.enqueueActionPrompt) throw new Error('Agent prompt queue requires Electron')
 
-    return bridge.beginActionPromptDraft(runId)
-}
-
-async function setActionQueuedMessage(runId: string, sessionId: number, content: string, revision: number) {
-    const bridge = getElectronActionBridge()
-    if (!bridge?.setActionQueuedMessage) throw new Error('Agent prompt queue requires Electron')
-
-    const result = await bridge.setActionQueuedMessage(runId, sessionId, content, revision)
-    if (!result.accepted) throw new Error('Queued agent prompt was superseded')
-}
-
-async function sendActionQueuedMessage(runId: string, sessionId: number, revision: number) {
-    const bridge = getElectronActionBridge()
-    if (!bridge?.sendActionQueuedMessage) throw new Error('Sending queued agent prompt requires Electron')
-
-    const result = await bridge.sendActionQueuedMessage(runId, sessionId, revision)
-    if (!result.sent) throw new Error('Queued agent prompt was not sent')
+    return bridge.enqueueActionPrompt(runId, content)
 }
 
 /** Stable prompt state shared by editor and prompt-dependent leaf controls. */
@@ -62,10 +46,8 @@ export class ActionPromptDraft {
     private locallyEdited = false
     readonly markdownDraft: MarkdownDraft
     private run: ActionPromptRunBinding | null
-    private pendingWrite: Promise<void> = Promise.resolve()
     private preparationRequired: boolean
     private preparationStarted = false
-    private promptSession: Promise<number> | null = null
     private revision = 0
 
     constructor(
@@ -158,55 +140,15 @@ export class ActionPromptDraft {
         return this.locallyEdited
     }
 
-    async synchronize() {
-        const run = this.run
-        if (!run?.interactionReady || run.activeActionType !== 'agent' || !run.activeActionId) return
-
-        const value = this.getSnapshot()
-        const revision = this.revision
-        const pendingWrite = this.pendingWrite.catch(() => undefined).then(async () => {
-            const sessionId = await this.getPromptSession(run.runId)
-            await setActionQueuedMessage(run.runId, sessionId, value, revision)
-        })
-        this.pendingWrite = pendingWrite
-
-        try {
-            await pendingWrite
-        } catch (error) {
-            this.promptSession = null
-            throw error
-        }
-    }
-
     async send() {
         const run = this.run
         if (!run?.activeActionId) throw new Error('Action run has no active agent')
         if (this.getSnapshot().trim().length === 0) throw new Error('Queued agent prompt is empty')
 
-        await this.pendingWrite
         const value = this.getSnapshot()
         const revision = this.revision
-        const sessionId = await this.getPromptSession(run.runId)
-        try {
-            await setActionQueuedMessage(run.runId, sessionId, value, revision)
-            await sendActionQueuedMessage(run.runId, sessionId, revision)
-            this.clear()
-        } catch (error) {
-            this.promptSession = null
-            throw error
-        }
-    }
-
-    private getPromptSession(runId: string) {
-        if (this.promptSession) return this.promptSession
-
-        const promptSession = beginActionPromptDraft(runId).catch((error: unknown) => {
-            this.promptSession = null
-            throw error
-        })
-        this.promptSession = promptSession
-
-        return promptSession
+        await enqueueActionPrompt(run.runId, value)
+        if (this.revision === revision) this.clear()
     }
 
     private setPreparationStatus(preparationStatus: ActionPromptPreparationStatus) {

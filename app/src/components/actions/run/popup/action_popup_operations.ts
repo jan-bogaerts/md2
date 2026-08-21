@@ -157,17 +157,17 @@ export async function runPopupAction(input: ActionPopupOperationInput) {
     const agentActive = sessionActive && run?.activeActionType === 'agent'
 
     if (agentActive && run) {
-        if (run.question || run.approvals.length) return
-        if (run.status === 'waitingForInput' && settingsStore.getSnapshot().settingsChangedWhileWaiting) {
+        if (
+            run.status === 'waitingForInput'
+            && !run.question
+            && run.approvals.length === 0
+            && settingsStore.getSnapshot().settingsChangedWhileWaiting
+        ) {
             await runWithPrompt(input, prompt, run.runId)
             return
         }
         try {
-            if (run.activeActionStreaming) await promptDraft.send()
-            else {
-                await promptDraft.synchronize()
-                actionPromptDraftService.clearDraft(action.id, context, run)
-            }
+            await promptDraft.send()
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Could not send agent message' })
         }

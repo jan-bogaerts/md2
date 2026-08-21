@@ -3,6 +3,7 @@ import type { ActionContext } from '../../data/action_context'
 import type { ActionDefinition } from '../../data/action_types'
 import type { AgentConversation, AgentConversationEntry, AgentConversationEventEntry } from '../../data/data_types'
 import type {
+    ActionQueuedPrompt,
     AgentApproval,
     AgentApprovalDecision,
     AgentApprovalRequestId,
@@ -44,6 +45,7 @@ export interface ActionRun {
     approvals: LiveAgentApproval[]
     interactionReady: boolean
     question: LiveAgentQuestion | null
+    queuedPrompts: ActionQueuedPrompt[]
     reference: string | null
     rootActionId: string
     status: ActionRunStatus
@@ -231,6 +233,20 @@ export async function sendActionMessage(runId: string, content: string) {
     if (!bridge?.sendActionMessage) throw new Error('Streaming agent messaging requires Electron')
 
     await bridge.sendActionMessage(runId, content)
+}
+
+export async function deleteActionQueuedPrompt(runId: string, promptId: string, revision: number) {
+    const bridge = getElectronActionBridge()
+    if (!bridge?.deleteActionQueuedPrompt) throw new Error('Deleting queued agent prompts requires Electron')
+
+    await bridge.deleteActionQueuedPrompt(runId, promptId, revision)
+}
+
+export async function editActionQueuedPrompt(runId: string, promptId: string, revision: number, content: string) {
+    const bridge = getElectronActionBridge()
+    if (!bridge?.editActionQueuedPrompt) throw new Error('Editing queued agent prompts requires Electron')
+
+    await bridge.editActionQueuedPrompt(runId, promptId, revision, content)
 }
 
 export async function answerActionQuestion(
@@ -615,6 +631,7 @@ export class ActionRunRegistry extends EventTarget {
                 interactionReady: false,
                 logs,
                 question: null,
+                queuedPrompts: [],
                 status: result.status,
             }
             store.update(next)
@@ -663,6 +680,7 @@ export class ActionRunRegistry extends EventTarget {
             logs: [],
             interactionReady: false,
             question: null,
+            queuedPrompts: [],
             reference: null,
             rootActionId: event.rootActionId,
             status: 'running' as const,
@@ -670,7 +688,7 @@ export class ActionRunRegistry extends EventTarget {
         let next = { ...current, context: event.context, rootActionId: event.rootActionId }
         if (event.type === 'run') next = { ...next, status: event.status }
         if (event.type === 'run' && TERMINAL_STATUSES.has(event.status as ActionRunTerminalStatus)) {
-            next = { ...next, approvals: [], question: null }
+            next = { ...next, approvals: [], question: null, queuedPrompts: [] }
             actionPromptDraftService.clearRunDrafts(event.runId)
         }
         if (event.type === 'agentState') next = { ...next, status: event.status }
@@ -733,6 +751,29 @@ export class ActionRunRegistry extends EventTarget {
             }
             next = { ...next, conversation }
         }
+        if (event.type === 'update' && event.update.kind === 'agentPromptQueued') {
+            const { entry } = event.update
+            const queuedPrompts = next.queuedPrompts.some(({ id }) => id === entry.id)
+                ? next.queuedPrompts
+                : [...next.queuedPrompts, entry]
+            next = { ...next, queuedPrompts }
+        }
+        if (event.type === 'update' && event.update.kind === 'agentPromptEdited') {
+            const { entry: editedEntry } = event.update
+            next = {
+                ...next,
+                queuedPrompts: next.queuedPrompts.map((entry) => entry.id === editedEntry.id
+                    ? editedEntry
+                    : entry),
+            }
+        }
+        if (event.type === 'update' && event.update.kind === 'agentPromptRemoved') {
+            const { promptId } = event.update
+            next = {
+                ...next,
+                queuedPrompts: next.queuedPrompts.filter(({ id }) => id !== promptId),
+            }
+        }
         if (event.type === 'update' && event.update.kind === 'agentQuestion') {
             next = {
                 ...next,
@@ -781,9 +822,6 @@ export class ActionRunRegistry extends EventTarget {
                 question: null,
                 status: next.approvals.length > 0 ? 'waitingForInput' : event.status,
             }
-            if (event.update.kind === 'agentUserMessage') {
-                actionPromptDraftService.clearRunDraft(event.runId, event.actionId)
-            }
         }
         if (event.type === 'update' && (event.update.kind === 'output' || event.update.kind === 'error')) {
             const conversation = event.update.kind === 'output' && next.conversation
@@ -794,6 +832,9 @@ export class ActionRunRegistry extends EventTarget {
         if (
             event.type === 'update'
             && event.update.kind !== 'agentClosed'
+            && event.update.kind !== 'agentPromptEdited'
+            && event.update.kind !== 'agentPromptQueued'
+            && event.update.kind !== 'agentPromptRemoved'
             && event.update.kind !== 'agentUsage'
             && next.conversation
         ) {
