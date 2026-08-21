@@ -364,7 +364,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 30,
-          "timestamp": "2026-08-20T18:04:35.890Z"
+          "timestamp": "2026-08-21T08:27:05.633Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -394,7 +394,7 @@
         "costUsd": 1.3704124999999998
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
