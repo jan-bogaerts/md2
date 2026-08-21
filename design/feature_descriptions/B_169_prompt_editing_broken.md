@@ -26,22 +26,20 @@ The installed editor stack is `@mdxeditor/editor` 4.2.1 with Lexical 0.48.0, upg
 
 Existing action-editor tests pass, including a prompt-load assertion, but the shared test setup replaces `@mdxeditor/editor` with `mdx_editor_stub.tsx`. Those tests verify application wiring against the stub, not startup timing against the installed editor.
 
-The failure boundary is therefore between action-target selection, Markdown history binding, and real MDXEditor initialization. Most likely cause is a lost `activeDocumentChanged` event: the action target can change after the history store attaches to the initial empty target but before `MarkdownDocumentHistoryMonitor` subscribes. The monitor handles later events but does not reconcile the data source's current active target when its subscription starts. If that timing occurs, the editor keeps its empty initial document although the action draft still contains the prompt. This cause must be reproduced and confirmed before changing production behavior.
+The failure boundary is between action-target selection, Markdown history binding, and real MDXEditor initialization. After installing the lockfile versions, the failure is reproducible with `@mdxeditor/editor` 4.2.1: `MarkdownEditor` captures an initial empty target and Markdown value, then the action selects Prompt before MDXEditor's history `postInit` and `MarkdownDocumentHistoryMonitor` subscription. `postInit` re-reads the current Prompt target and attaches history to it, but MDXEditor still renders the captured empty Markdown. The target event is already over when the monitor subscribes. Because history already considers Prompt active, a normal switch to Prompt short-circuits and the editor remains empty.
 
 Here, **target reconciliation** means comparing the editor's bound target with the data source's current active target when monitoring starts, then loading the current target when they differ.
 
 ## Implementation details
 
 1. Add a regression test using the installed MDXEditor rather than `mdx_editor_stub.tsx`. Reproduce opening an agent action and selecting Prompt both immediately and after editor initialization. Also cover opening an action whose persisted editor state already selects Prompt.
-2. Confirm whether `activeDocumentChanged` occurs before `MarkdownDocumentHistoryMonitor` subscribes. The test must prove the causal order; do not treat the component upgrade as the cause based only on timing correlation.
-3. If the event is lost as expected, reconcile the active target when `MarkdownDocumentHistoryMonitor` subscribes. Use the same document-switch path as a normal `activeDocumentChanged` event so outgoing content is flushed, incoming Markdown is read from the owning data source, and section-specific undo history is restored. Do not remount MDXEditor or add polling, delays, revision counters, or a second prompt state.
+2. Prove the confirmed order: MarkdownEditor captures its empty initial snapshot, Prompt becomes active, history `postInit` runs, then `MarkdownDocumentHistoryMonitor` subscribes.
+3. Attach history to the same captured initial target and Markdown that MDXEditor received. When monitoring starts, reconcile the data source's current target through the normal document-switch path so outgoing content is flushed, incoming Markdown is read from the owning data source, and section-specific undo history is restored. Do not remount MDXEditor or add polling, delays, revision counters, or a second prompt state.
 4. Keep `ActionService` and `ActionMarkdownDataSource` as prompt owners. Do not copy prompt text into React state and do not parse action JSON in the component.
 5. `MarkdownDocumentHistoryMonitor` is shared by `list-action`, `list-card`, and `board-card` bindings. If it changes, all three call sites keep their existing behavior and gain only startup reconciliation. Verify card editors do not reload, lose dirty text, or reset undo history when their current target already matches. If investigation instead proves an action-only cause, keep the fix inside the action-editor binding.
 6. Preserve one mounted list-action editor and independent prompt/phrase histories. Switching Definition, Prompt, predefined phrases, actions, or list tabs must flush the outgoing target before loading the incoming target. Prompt text must never be written to a phrase or another action.
 7. Keep current persistence flow: live edits stage the action draft; blur, document switch, or explicit project flush commits the valid draft through `ActionService` and the existing commit batcher. Invalid prompts remain unsaved and use current dialog/error presentation.
 8. Extend focused tests for prompt loading, prompt editing and saving, prompt/phrase switching, action switching, persisted Prompt selection, and the missed-event timing. Run the action-editor test, Markdown history tests, relevant real-editor integration test, app unit tests, and app lint.
-
-If investigation disproves the lost-event cause, update this card with the confirmed causal chain before implementing a different fix.
 
 ## Acceptance criteria
 
