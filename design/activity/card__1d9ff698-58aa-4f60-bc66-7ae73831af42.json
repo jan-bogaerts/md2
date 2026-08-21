@@ -1928,11 +1928,11 @@
         "agent-1db6750f-a7a3-43a4-8346-de3f94bf5a96"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-d5a12c3b-db77-4a13-a46c-a6c7a92402ff",
       "origin": {
@@ -1941,9 +1941,46 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-1db6750f-a7a3-43a4-8346-de3f94bf5a96",
       "startedAt": "2026-08-21T12:17:40.316Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-1db6750f-a7a3-43a4-8346-de3f94bf5a96"
+    },
+    {
+      "commits": [
+        {
+          "commit": "465a91e8629bcec9b5365a86ecee72e1e7eeed14",
+          "committedAt": "2026-08-21T14:39:50+02:00",
+          "deletions": 28,
+          "filePaths": [
+            "app/src/components/project_workspace.test.tsx",
+            "app/src/data/data_types.ts",
+            "app/src/data/electron_data_bridge.ts",
+            "app/src/services/data/local_git_storage_service.node.test.ts",
+            "app/src/services/data/local_git_storage_service.ts",
+            "app/src/services/data/remote_control_storage_service.node.test.ts",
+            "app/src/services/data/remote_control_storage_service.ts",
+            "app/src/services/github/github_storage_loader.ts",
+            "app/src/services/github/github_storage_loading.test.ts",
+            "app/src/services/github/github_storage_service.ts",
+            "app/src/services/project/project_loading.test.ts",
+            "app/src/services/project/project_loading.ts",
+            "desktop/src/project/project_files.js",
+            "desktop/src/project/project_files.test.mjs",
+            "desktop/src/shell/local_bridge_dispatch.js",
+            "desktop/src/shell/local_bridge_dispatch.test.mjs"
+          ],
+          "filesChanged": 16,
+          "insertions": 166,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-21T14:39:50+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "1d9ff698-58aa-4f60-bc66-7ae73831af42",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
