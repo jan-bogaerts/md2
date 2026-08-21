@@ -9,11 +9,10 @@ affects:
 agents:
 policy:
 ---
-
 Allow the user to enter agent subscription costs so we can calculate things like:
 
 * cost per card
 * cost per action
-* ....
+*
 
 this allows the user to compare different configurations
