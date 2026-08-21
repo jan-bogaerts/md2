@@ -2817,6 +2817,34 @@
       "startedAt": "2026-08-21T16:06:36.002Z",
       "status": "completed",
       "rootConversationId": "agent-83ee7989-70ab-4513-81c6-b7223059ebf0"
+    },
+    {
+      "commits": [
+        {
+          "commit": "edaa98a8db6043bf5ce6d2e7860cf34c8cbde12e",
+          "committedAt": "2026-08-21T18:45:02+02:00",
+          "deletions": 8,
+          "filePaths": [
+            "app/src/components/actions/editor/action_editor.real.test.tsx",
+            "app/src/components/actions/editor/action_editor.test.tsx",
+            "app/src/components/editor/markdown_document_history_monitor.tsx",
+            "app/src/components/editor/markdown_document_history_store.node.test.ts",
+            "app/src/components/editor/markdown_editor.test.tsx",
+            "app/src/test/real_editor_setup.ts",
+            "app/vite.config.ts"
+          ],
+          "filesChanged": 7,
+          "insertions": 316,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-21T18:45:02+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "dbb1430f-c4ad-46ec-a77e-8de4f98322cd",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
