@@ -1,6 +1,6 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createRef, type ReactNode } from 'react'
+import { createRef, useLayoutEffect, type ReactNode } from 'react'
 import { AppThemeContext } from '../../theme/theme_context'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { ACTION_PROMPT_PLACEHOLDERS } from '../../data/action_placeholders'
@@ -118,6 +118,20 @@ function MarkdownContentSxOverride({ children }: { children: ReactNode }) {
     const value = { ...theme, markdownContentSx: { paddingTop: '37px' } }
 
     return <AppThemeContext.Provider value={value}>{children}</AppThemeContext.Provider>
+}
+
+function SelectMarkdownTarget(props: {
+    binding: MarkdownBindingKind
+    dataSource: TestMarkdownDataSource
+    identity: string
+    markdown: string
+}) {
+    const { binding, dataSource, identity, markdown } = props
+    useLayoutEffect(() => {
+        dataSource.select(binding, identity, markdown)
+    }, [binding, dataSource, identity, markdown])
+
+    return null
 }
 
 describe('MarkdownEditor', () => {
@@ -390,6 +404,45 @@ describe('MarkdownEditor', () => {
         stageMarkdownEditors()
         expect(dataSource.commit).toHaveBeenCalledExactlyOnceWith('list-action', target, 'edited')
     })
+
+    it('reconciles a target selected after history attachment but before monitor subscription', () => {
+        const dataSource = new TestMarkdownDataSource()
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor
+                    binding="list-action"
+                    dataSource={dataSource}
+                    historyStore={new MarkdownDocumentHistoryStore()}
+                />
+                <SelectMarkdownTarget
+                    binding="list-action"
+                    dataSource={dataSource}
+                    identity="prompt"
+                    markdown="Stored prompt"
+                />
+            </AppThemeProvider>,
+        )
+
+        expect(screen.getByRole('textbox')).toHaveValue('Stored prompt')
+    })
+
+    it.each(['list-card', 'board-card'] as const)(
+        'does not reload a matching %s target during monitor startup',
+        (binding) => {
+            const dataSource = new TestMarkdownDataSource()
+            dataSource.select(binding, 'card', 'Card body')
+            const historyStore = new MarkdownDocumentHistoryStore()
+            const switchDocument = vi.spyOn(historyStore, 'switchDocument')
+            render(
+                <AppThemeProvider>
+                    <MarkdownEditor binding={binding} dataSource={dataSource} historyStore={historyStore} />
+                </AppThemeProvider>,
+            )
+
+            expect(screen.getByRole('textbox')).toHaveValue('Card body')
+            expect(switchDocument).not.toHaveBeenCalled()
+        },
+    )
 
     it('keeps a failed editor dirty without blocking another editor flush', () => {
         const failedDataSource = new TestMarkdownDataSource()

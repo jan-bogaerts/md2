@@ -1,7 +1,7 @@
 import { createEditor } from 'lexical'
 import { describe, expect, it, vi } from 'vitest'
 import { MarkdownDocumentHistoryStore } from './markdown_document_history_store'
-import type { CardOpenDocument } from '../../services/open_files_service'
+import type { ActionOpenDocument, CardOpenDocument } from '../../services/open_files_service'
 import type { MarkdownDocumentTarget } from './markdown_data_source'
 
 function historyEntry(editor: ReturnType<typeof createEditor>) {
@@ -10,6 +10,15 @@ function historyEntry(editor: ReturnType<typeof createEditor>) {
 
 function target(): MarkdownDocumentTarget {
     return { document: Object.assign(new EventTarget(), { kind: 'card' as const }) as CardOpenDocument }
+}
+
+function actionTargets() {
+    const document = Object.assign(new EventTarget(), { kind: 'action' as const }) as ActionOpenDocument
+
+    return {
+        phrase: { document, section: { identity: 'phrase-1', kind: 'phrase' as const } },
+        prompt: { document, section: { kind: 'prompt' as const } },
+    }
 }
 
 describe('MarkdownDocumentHistoryStore', () => {
@@ -38,6 +47,32 @@ describe('MarkdownDocumentHistoryStore', () => {
         expect(replaceMarkdown).toHaveBeenLastCalledWith('# Alpha edited')
         expect(historyStore.sharedHistoryState.undoStack).toEqual([alphaUndo])
         expect(historyStore.sharedHistoryState.redoStack).toEqual([alphaRedo])
+    })
+
+    it('restores independent prompt and phrase histories within one action document', async () => {
+        const editor = createEditor()
+        const historyStore = new MarkdownDocumentHistoryStore()
+        const promptUndo = historyEntry(editor)
+        const promptRedo = historyEntry(editor)
+        const phraseUndo = historyEntry(editor)
+        const { phrase, prompt } = actionTargets()
+        historyStore.attachEditor(editor, prompt, 'Prompt')
+        historyStore.sharedHistoryState.undoStack.push(promptUndo)
+        historyStore.sharedHistoryState.redoStack.push(promptRedo)
+
+        historyStore.switchDocument(phrase, 'Phrase', 'Edited prompt', vi.fn())
+        await Promise.resolve()
+        historyStore.sharedHistoryState.undoStack.push(phraseUndo)
+
+        historyStore.switchDocument(prompt, 'Edited prompt', 'Edited phrase', vi.fn())
+        await Promise.resolve()
+        expect(historyStore.sharedHistoryState.undoStack).toEqual([promptUndo])
+        expect(historyStore.sharedHistoryState.redoStack).toEqual([promptRedo])
+
+        historyStore.switchDocument(phrase, 'Edited phrase', 'Edited prompt', vi.fn())
+        await Promise.resolve()
+        expect(historyStore.sharedHistoryState.undoStack).toEqual([phraseUndo])
+        expect(historyStore.sharedHistoryState.redoStack).toEqual([])
     })
 
     it('discards stale history when a card changed outside its editor session', async () => {

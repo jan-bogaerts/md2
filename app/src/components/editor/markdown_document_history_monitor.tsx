@@ -49,6 +49,14 @@ export function MarkdownDocumentHistoryMonitor() {
             pendingDocumentChange = detail
             applyPendingDocumentChange()
         }
+        const reconcileActiveDocument = () => {
+            const target = dataSource.getActiveTarget(binding)
+            if (sameMarkdownTarget(target, getTarget())) return
+            if (!pendingDocumentChange || !sameMarkdownTarget(pendingDocumentChange.target, target)) {
+                pendingDocumentChange = { binding, target }
+            }
+            applyPendingDocumentChange()
+        }
         const handleMarkdownReplaced = (event: Event) => {
             const detail = (event as CustomEvent<MarkdownReplacedDetail>).detail
             if (!sameMarkdownTarget(detail.target, getTarget()) || detail.originBinding === binding) return
@@ -61,6 +69,7 @@ export function MarkdownDocumentHistoryMonitor() {
         dataSource.addEventListener('activeDocumentChanged', handleActiveDocumentChanged)
         dataSource.addEventListener('markdownReplaced', handleMarkdownReplaced)
         setPendingDocumentChangeRetry(applyPendingDocumentChange)
+        reconcileActiveDocument()
 
         return () => {
             setPendingDocumentChangeRetry(() => undefined)

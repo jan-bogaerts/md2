@@ -405,6 +405,60 @@ describe('ActionEditor', () => {
         actionService.removeEventListener(ACTION_DRAFT_CHANGED_EVENT, changed)
     })
 
+    it('flushes prompt and phrase edits to their own sections when switching', () => {
+        renderEditor(loadAction({ phrases: [{ text: 'Original phrase', title: 'Tests' }] }))
+        fireEvent.click(screen.getByRole('tab', { name: 'Prompt' }))
+        const markdownEditor = within(screen.getByTestId('mdx-editor')).getByRole('textbox')
+        fireEvent.change(markdownEditor, { target: { value: 'Edited prompt' } })
+
+        fireEvent.click(screen.getByRole('tab', { name: 'Tests' }))
+
+        expect(markdownEditor).toHaveValue('Original phrase')
+        expect(actionService.draftStore.getDraft('actions/review.json').definition).toMatchObject({
+            phrases: [{ text: 'Original phrase', title: 'Tests' }],
+            prompt: 'Edited prompt',
+        })
+
+        fireEvent.change(markdownEditor, { target: { value: 'Edited phrase' } })
+        fireEvent.click(screen.getByRole('tab', { name: 'Prompt' }))
+
+        expect(markdownEditor).toHaveValue('Edited prompt')
+        expect(actionService.draftStore.getDraft('actions/review.json').definition).toMatchObject({
+            phrases: [{ text: 'Edited phrase', title: 'Tests' }],
+            prompt: 'Edited prompt',
+        })
+    })
+
+    it('flushes a dirty prompt before loading another action prompt', () => {
+        actionService.loadFromFiles([
+            file(),
+            {
+                content: JSON.stringify({
+                    description: 'Second action',
+                    id: 'second-action',
+                    label: 'Second',
+                    prompt: 'Second prompt',
+                    type: 'agent',
+                }),
+                path: 'actions/second.json',
+            },
+        ])
+        const firstAction = actionService.getActionByPath('actions/review.json')
+        const secondAction = actionService.getActionByPath('actions/second.json')
+        if (!firstAction || !secondAction) throw new Error('Missing test actions')
+        actionService.setActionEditorState('actions/second.json', { phrases: [], selectedTab: 'prompt' })
+        renderEditor(firstAction)
+        fireEvent.click(screen.getByRole('tab', { name: 'Prompt' }))
+        const markdownEditor = within(screen.getByTestId('mdx-editor')).getByRole('textbox')
+        fireEvent.change(markdownEditor, { target: { value: 'Edited first prompt' } })
+
+        act(() => openFilesService.openDocument(secondAction))
+
+        expect(markdownEditor).toHaveValue('Second prompt')
+        expect(actionService.draftStore.getDraft('actions/review.json').definition.prompt).toBe('Edited first prompt')
+        expect(actionService.draftStore.getDraft('actions/second.json').definition.prompt).toBe('Second prompt')
+    })
+
     it('shows prompt validation on the tab and through the dialog service', async () => {
         const reportError = vi.spyOn(dialogService, 'error')
         renderEditor()
