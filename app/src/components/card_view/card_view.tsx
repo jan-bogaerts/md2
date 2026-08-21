@@ -155,9 +155,11 @@ export function CardView(props: CardViewProps) {
 
     const handleDeleteCard = async (path: string) => {
         try {
+            const card = dataService.getState().snapshot?.activeCards.find((candidate) => candidate.path === path)
+            if (!card?.header.internalId) throw new Error(`Cannot delete card without an internal ID: ${path}`)
             await dataService.cards.deleteCard(path)
             workspaceViewService.clearSelectedPath(path)
-            cardPopupService.closeCardDetailsPath(path)
+            cardPopupService.closeCardDetailsByInternalId(card.header.internalId)
             if (openAffectsPath === path) handleCloseAffects()
         } catch (error) {
             dialogService.error(error, { fallbackMessage: `Card delete failed: ${path}` })

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ActionContext } from '../data/action_context'
-import { CARD_PATH_CHANGED_EVENT, type CardPathChangedEventDetail, type DataService } from './data/data_service'
+import type { DataService } from './data/data_service'
 import { CardPopupService } from './card_popup_service'
 
 class PopupDataService extends EventTarget {
@@ -38,8 +38,8 @@ describe('CardPopupService', () => {
     it('keeps mixed popup kinds in one activation order without replacing entries', () => {
         const { service } = createService()
         service.toggleAction(actionContext('card-1'), anchor())
-        service.toggleCardDetails('card-1', 'design/F-1.md', anchor())
-        service.toggleCardDetails('card-2', 'design/F-2.md', anchor())
+        service.toggleCardDetails('card-1', anchor())
+        service.toggleCardDetails('card-2', anchor())
         const [actionEntry, firstDetailsEntry, secondDetailsEntry] = service.getSnapshot()
 
         service.activate(actionEntry.id)
@@ -51,10 +51,10 @@ describe('CardPopupService', () => {
     it('uses independent toggle identities for action and card-details popups', () => {
         const { service } = createService()
         service.toggleAction(actionContext('card-1'), anchor())
-        service.toggleCardDetails('card-1', 'design/F-1.md', anchor())
-        service.toggleCardDetails('card-2', 'design/F-2.md', anchor())
+        service.toggleCardDetails('card-1', anchor())
+        service.toggleCardDetails('card-2', anchor())
 
-        service.toggleCardDetails('card-1', 'design/F-1.md', anchor())
+        service.toggleCardDetails('card-1', anchor())
 
         expect(service.getSnapshot().map(({ kind }) => kind)).toEqual(['action', 'card-details'])
         expect(service.getSnapshot()[1]).toMatchObject({ cardInternalId: 'card-2' })
@@ -62,11 +62,11 @@ describe('CardPopupService', () => {
 
     it('selects worktree diff and activates an existing card-details entry', () => {
         const { service } = createService()
-        service.toggleCardDetails('card-1', 'design/F-1.md', anchor())
+        service.toggleCardDetails('card-1', anchor())
         const firstEntry = service.getSnapshot()[0]
         service.toggleAction(actionContext('card-2'), anchor())
 
-        service.openWorktreeDiff('card-1', 'design/F-1.md', anchor())
+        service.openWorktreeDiff('card-1', anchor())
 
         expect(service.getSnapshot()).toHaveLength(2)
         expect(service.getSnapshot().at(-1)).toMatchObject({
@@ -76,24 +76,22 @@ describe('CardPopupService', () => {
         })
     })
 
-    it('updates matching card paths and closes only matching card details', () => {
-        const { owner, service } = createService()
+    it('closes only matching card details by stable identity', () => {
+        const { service } = createService()
         service.toggleAction(actionContext('card-1'), anchor())
-        service.toggleCardDetails('card-1', 'design/F-1.md', anchor())
-        service.toggleCardDetails('card-2', 'design/F-2.md', anchor())
-        const detail: CardPathChangedEventDetail = { fromPath: 'design/F-1.md', toPath: 'design/F-1-renamed.md' }
+        service.toggleCardDetails('card-1', anchor())
+        service.toggleCardDetails('card-2', anchor())
 
-        owner.dispatchEvent(new CustomEvent<CardPathChangedEventDetail>(CARD_PATH_CHANGED_EVENT, { detail }))
-        service.closeCardDetailsPath('design/F-1-renamed.md')
+        service.closeCardDetailsByInternalId('card-1')
 
         expect(service.getSnapshot().map(({ kind }) => kind)).toEqual(['action', 'card-details'])
-        expect(service.getSnapshot()[1]).toMatchObject({ cardPath: 'design/F-2.md' })
+        expect(service.getSnapshot()[1]).toMatchObject({ cardInternalId: 'card-2' })
     })
 
     it('closes card details on board exit while preserving action popups', () => {
         const { service } = createService()
         service.toggleAction(actionContext('card-1'), anchor())
-        service.toggleCardDetails('card-1', 'design/F-1.md', anchor())
+        service.toggleCardDetails('card-1', anchor())
 
         service.closeCardDetails()
 
@@ -106,7 +104,7 @@ describe('CardPopupService', () => {
         const changed = vi.fn()
         service.addEventListener('changed', changed)
         service.toggleAction(actionContext('card-1'), anchor())
-        service.toggleCardDetails('card-1', 'design/F-1.md', anchor())
+        service.toggleCardDetails('card-1', anchor())
         owner.project = { branch: 'feature', id: 'project-1' }
 
         owner.dispatchEvent(new Event('changed'))

@@ -191,7 +191,7 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
             if (!canIntegrate) throw new Error('Card worktree has no changes to integrate')
             const popupAnchorElement = anchorElement
             handleClose()
-            cardPopupService.openWorktreeDiff(assignmentTarget.cardInternalId, assignmentTarget.path, popupAnchorElement)
+            cardPopupService.openWorktreeDiff(assignmentTarget.cardInternalId, popupAnchorElement)
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Could not open worktree diff' })
         }

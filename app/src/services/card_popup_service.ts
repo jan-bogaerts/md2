@@ -1,9 +1,7 @@
 import { actionContextIdentity, type ActionContext } from '../data/action_context'
 import type { CardCommit } from './actions/card_commit_history'
 import {
-    CARD_PATH_CHANGED_EVENT,
     dataService,
-    type CardPathChangedEventDetail,
     type DataService,
 } from './data/data_service'
 import { register } from './service_injector'
@@ -27,7 +25,6 @@ export type CardDetailsDiffSelection =
 
 export interface CardDetailsPopupEntry extends CardPopupEntryBase {
     cardInternalId: string
-    cardPath: string
     diffSelection: CardDetailsDiffSelection | null
     kind: 'card-details'
 }
@@ -71,7 +68,6 @@ export class CardPopupService extends EventTarget {
         this.dataService = dataServiceInstance
         this.currentProjectKey = projectKey(this.dataService)
         this.dataService.addEventListener('changed', this.handleDataServiceChanged)
-        this.dataService.addEventListener(CARD_PATH_CHANGED_EVENT, this.handleCardPathChanged)
     }
 
     getSnapshot() {
@@ -100,9 +96,8 @@ export class CardPopupService extends EventTarget {
         this.setEntries([...this.entries, entry])
     }
 
-    toggleCardDetails(cardInternalId: string, cardPath: string, anchorElement: HTMLElement) {
+    toggleCardDetails(cardInternalId: string, anchorElement: HTMLElement) {
         if (!cardInternalId) throw new Error('Cannot open card details without a card internal ID')
-        if (!cardPath) throw new Error('Cannot open card details without a card path')
 
         const existing = this.findCardDetails(cardInternalId)
         if (existing) {
@@ -110,20 +105,19 @@ export class CardPopupService extends EventTarget {
             return
         }
 
-        this.openCardDetails(cardInternalId, cardPath, anchorElement, null)
+        this.openCardDetails(cardInternalId, anchorElement, null)
     }
 
-    openWorktreeDiff(cardInternalId: string, cardPath: string, anchorElement: HTMLElement) {
+    openWorktreeDiff(cardInternalId: string, anchorElement: HTMLElement) {
         if (!cardInternalId) throw new Error('Cannot open worktree diff without a card internal ID')
-        if (!cardPath) throw new Error('Cannot open worktree diff without a card path')
 
         const existing = this.findCardDetails(cardInternalId)
         if (!existing) {
-            this.openCardDetails(cardInternalId, cardPath, anchorElement, { kind: 'worktree' })
+            this.openCardDetails(cardInternalId, anchorElement, { kind: 'worktree' })
             return
         }
 
-        const updatedEntry = { ...existing, cardPath, diffSelection: { kind: 'worktree' } as const }
+        const updatedEntry = { ...existing, diffSelection: { kind: 'worktree' } as const }
         this.setEntries([
             ...this.entries.filter((entry) => entry.id !== existing.id),
             updatedEntry,
@@ -150,8 +144,8 @@ export class CardPopupService extends EventTarget {
         this.setEntries(this.entries.filter((candidate) => candidate.id !== id))
     }
 
-    closeCardDetailsPath(cardPath: string) {
-        this.removeEntries((entry) => entry.kind === 'card-details' && entry.cardPath === cardPath)
+    closeCardDetailsByInternalId(cardInternalId: string) {
+        this.removeEntries((entry) => entry.kind === 'card-details' && entry.cardInternalId === cardInternalId)
     }
 
     closeCardDetails() {
@@ -170,16 +164,6 @@ export class CardPopupService extends EventTarget {
         this.removeEntries(() => true)
     }
 
-    private readonly handleCardPathChanged = (event: Event) => {
-        const { fromPath, toPath } = (event as CustomEvent<CardPathChangedEventDetail>).detail
-        const changedEntries = this.entries.map((entry) => (
-            entry.kind === 'card-details' && entry.cardPath === fromPath ? { ...entry, cardPath: toPath } : entry
-        ))
-        if (changedEntries.every((entry, index) => entry === this.entries[index])) return
-
-        this.setEntries(changedEntries)
-    }
-
     private readonly handleDataServiceChanged = () => {
         const nextProjectKey = projectKey(this.dataService)
         if (nextProjectKey === this.currentProjectKey) return
@@ -196,14 +180,12 @@ export class CardPopupService extends EventTarget {
 
     private openCardDetails(
         cardInternalId: string,
-        cardPath: string,
         anchorElement: HTMLElement,
         diffSelection: CardDetailsDiffSelection | null,
     ) {
         const entry: CardDetailsPopupEntry = {
             anchorElement,
             cardInternalId,
-            cardPath,
             diffSelection,
             fallbackAnchorElement: createFallbackAnchor(anchorElement),
             id: `card-details-popup-${this.nextId}`,

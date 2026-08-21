@@ -105,9 +105,14 @@ export class ProjectState {
     mergeBackgroundProjectFiles(files: MarkdownFile[], workingFolder: string, repositoryFiles: string[]) {
         const previousActiveCards = this.currentSnapshot?.activeCards ?? []
         this.currentFiles = files
-        this.replaceCurrentContentHashes(files)
-        this.reconcileCards(this.currentFiles, workingFolder, true)
-        this.currentSnapshot = this.createSnapshot(workingFolder, repositoryFiles)
+        const stalePaths = this.reconcileCards(this.currentFiles, workingFolder, true)
+        if (stalePaths.size > 0) this.currentFiles = this.currentFiles.filter(({ path }) => !stalePaths.has(path))
+        this.replaceCurrentContentHashes(this.currentFiles)
+        const currentFilePaths = this.currentFiles.map(({ path }) => path)
+        const nextRepositoryFiles = [
+            ...new Set([...repositoryFiles.filter((path) => !stalePaths.has(path)), ...currentFilePaths]),
+        ].sort()
+        this.currentSnapshot = this.createSnapshot(workingFolder, nextRepositoryFiles)
         if (previousActiveCards !== this.currentSnapshot.activeCards) {
             this.activeCardsChanged(previousActiveCards, this.currentSnapshot.activeCards)
         }
@@ -371,6 +376,13 @@ export class ProjectState {
     private reconcileCards(files: MarkdownFile[], workingFolder: string, preserveExisting = false) {
         const nextCardsByPath = new Map<string, Card>()
         const parseErrors: CardParseError[] = []
+        const stalePaths = new Set<string>()
+        const filePaths = new Set(files.map(({ path }) => path))
+        const existingCardsByInternalId = new Map(
+            [...this.currentCardsByPath.values()]
+                .filter(({ header }) => !!header.internalId)
+                .map((card) => [card.header.internalId as string, card]),
+        )
 
         for (const file of files) {
             if (!markdownParsingService.isMarkdownFile(file.path)) continue
@@ -389,6 +401,18 @@ export class ProjectState {
 
             try {
                 const card = markdownParsingService.parseCard(file, workingFolder)
+                const existingIdentityCard = card.header.internalId
+                    ? existingCardsByInternalId.get(card.header.internalId)
+                    : null
+                if (
+                    preserveExisting
+                    && existingIdentityCard
+                    && existingIdentityCard.path !== file.path
+                    && filePaths.has(existingIdentityCard.path)
+                ) {
+                    stalePaths.add(file.path)
+                    continue
+                }
                 nextCardsByPath.set(file.path, this.attachAgentConversations(card))
             } catch (error) {
                 parseErrors.push({ error, path: file.path })
@@ -398,7 +422,12 @@ export class ProjectState {
         const newParseErrors = parseErrors.filter(({ path }) => !this.parseErrorPaths.has(path))
         this.parseErrorPaths = new Set(parseErrors.map(({ path }) => path))
         if (newParseErrors.length > 0) this.reportCardParseErrors(newParseErrors)
+        stalePaths.forEach((path) => {
+            if (nextCardsByPath.has(path)) stalePaths.delete(path)
+        })
         this.currentCardsByPath = nextCardsByPath
+
+        return stalePaths
     }
 
     private updateCardFromFile(file: MarkdownFile, workingFolder: string) {

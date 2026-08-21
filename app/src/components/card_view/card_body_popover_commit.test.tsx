@@ -4,7 +4,7 @@ import { DEFAULT_CARD_TYPES, type Card, type WorktreeRecord } from '../../data/d
 import { openFilesService } from '../../services/open_files_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { CARD_BODY_POPOVER_SIZE_KEY, CardBodyPopover } from './card_body_popover'
-import { CARD_PATH_CHANGED_EVENT, dataService, type CardPathChangedEventDetail } from '../../services/data/data_service'
+import { cardCollectionFieldChangedEvent, dataService } from '../../services/data/data_service'
 import { cardPopupService } from '../../services/card_popup_service'
 import { worktreeService } from '../../services/project/worktree_service'
 import { actionService } from '../../services/actions/action_service'
@@ -92,8 +92,8 @@ describe('CardBodyPopover commit diff', () => {
         const firstAnchor = document.body.appendChild(document.createElement('button'))
         const secondAnchor = document.body.appendChild(document.createElement('button'))
         const closeBoardDocument = vi.spyOn(openFilesService, 'closeBoardDocument')
-        cardPopupService.toggleCardDetails(card.header.internalId!, card.path, firstAnchor)
-        cardPopupService.toggleCardDetails(secondCard.header.internalId!, secondCard.path, secondAnchor)
+        cardPopupService.toggleCardDetails(card.header.internalId!, firstAnchor)
+        cardPopupService.toggleCardDetails(secondCard.header.internalId!, secondAnchor)
         const firstEntry = cardPopupService.getSnapshot()[0]
 
         render(
@@ -136,8 +136,8 @@ describe('CardBodyPopover commit diff', () => {
         })
         const firstAnchor = document.body.appendChild(document.createElement('button'))
         const secondAnchor = document.body.appendChild(document.createElement('button'))
-        cardPopupService.toggleCardDetails(card.header.internalId!, card.path, firstAnchor)
-        cardPopupService.toggleCardDetails(secondCard.header.internalId!, secondCard.path, secondAnchor)
+        cardPopupService.toggleCardDetails(card.header.internalId!, firstAnchor)
+        cardPopupService.toggleCardDetails(secondCard.header.internalId!, secondAnchor)
 
         render(
             <AppThemeProvider>
@@ -167,7 +167,7 @@ describe('CardBodyPopover commit diff', () => {
         const getStoredValue = vi.spyOn(Storage.prototype, 'getItem')
         const setStoredValue = vi.spyOn(Storage.prototype, 'setItem')
         const anchorElement = document.body.appendChild(document.createElement('button'))
-        cardPopupService.toggleCardDetails(card.header.internalId!, card.path, anchorElement)
+        cardPopupService.toggleCardDetails(card.header.internalId!, anchorElement)
 
         render(
             <AppThemeProvider>
@@ -201,7 +201,7 @@ describe('CardBodyPopover commit diff', () => {
     it('uses persisted desktop size and exposes header drag plus eight resize directions', () => {
         window.localStorage.setItem(CARD_BODY_POPOVER_SIZE_KEY, JSON.stringify({ height: 700, width: 800 }))
         const anchorElement = document.body.appendChild(document.createElement('button'))
-        cardPopupService.toggleCardDetails(card.header.internalId!, card.path, anchorElement)
+        cardPopupService.toggleCardDetails(card.header.internalId!, anchorElement)
 
         render(
             <AppThemeProvider>
@@ -239,7 +239,7 @@ describe('CardBodyPopover commit diff', () => {
             statusColors: new Map<string, string>(),
             visible: true,
         }
-        cardPopupService.toggleCardDetails(card.header.internalId!, card.path, anchorElement)
+        cardPopupService.toggleCardDetails(card.header.internalId!, anchorElement)
         const view = render(
             <AppThemeProvider>
                 <CardBodyPopover {...props} />
@@ -272,7 +272,7 @@ describe('CardBodyPopover commit diff', () => {
         openFilesService.init({ actionService, dataService })
         const anchorElement = document.body.appendChild(document.createElement('button'))
         const setBoardDocument = vi.spyOn(CardMarkdownDataSource.prototype, 'setBoardDocument')
-        cardPopupService.toggleCardDetails(card.header.internalId!, card.path, anchorElement)
+        cardPopupService.toggleCardDetails(card.header.internalId!, anchorElement)
         render(
             <AppThemeProvider>
                 <CardBodyPopover
@@ -296,8 +296,7 @@ describe('CardBodyPopover commit diff', () => {
         activeCards = [renamedCard]
         act(() => {
             dataService.dispatchEvent(new Event('changed'))
-            const detail: CardPathChangedEventDetail = { fromPath: card.path, toPath: renamedCard.path }
-            dataService.dispatchEvent(new CustomEvent(CARD_PATH_CHANGED_EVENT, { detail }))
+            dataService.dispatchEvent(new Event(cardCollectionFieldChangedEvent('identity')))
         })
 
         await waitFor(() => expect(screen.getByRole('dialog', { name: 'F-060 card details' })).toBeInTheDocument())
@@ -317,7 +316,7 @@ describe('CardBodyPopover commit diff', () => {
     it('uses the first Escape to exit diff and the second to close the popover', () => {
         const anchorElement = document.createElement('button')
         document.body.append(anchorElement)
-        cardPopupService.toggleCardDetails(card.header.internalId!, card.path, anchorElement)
+        cardPopupService.toggleCardDetails(card.header.internalId!, anchorElement)
         render(
             <AppThemeProvider>
                 <CardBodyPopover
@@ -363,7 +362,7 @@ describe('CardBodyPopover commit diff', () => {
         vi.spyOn(worktreeService, 'getRecords').mockImplementation(() => records)
         const anchorElement = document.createElement('button')
         document.body.append(anchorElement)
-        cardPopupService.openWorktreeDiff(assignedCard.header.internalId!, assignedCard.path, anchorElement)
+        cardPopupService.openWorktreeDiff(assignedCard.header.internalId!, anchorElement)
         render(
             <AppThemeProvider>
                 <CardBodyPopover

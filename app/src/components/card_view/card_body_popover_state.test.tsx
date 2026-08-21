@@ -39,7 +39,7 @@ let anchorElement: HTMLButtonElement | null = null
 
 function renderPopover(isMobile = false) {
     anchorElement = document.body.appendChild(document.createElement('button'))
-    cardPopupService.toggleCardDetails(activeCard.header.internalId!, activeCard.path, anchorElement)
+    cardPopupService.toggleCardDetails(activeCard.header.internalId!, anchorElement)
     render(
         <AppThemeProvider>
             <CardBodyPopover

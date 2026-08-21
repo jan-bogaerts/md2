@@ -3,6 +3,7 @@ import type { AgentConversation, AgentConversationError, Card, CardHeader } from
 import {
     CARD_ADDED_EVENT,
     CARD_REMOVED_EVENT,
+    cardCollectionFieldChangedEvent,
     cardFieldChangedEvent,
     dataService,
     type CardAddedEventDetail,
@@ -40,6 +41,12 @@ function findCard(path: string | null, service: DataService) {
     return service.getState().snapshot?.activeCards.find((card) => card.path === path) ?? null
 }
 
+function findCardByInternalId(internalId: string | null, service: DataService) {
+    if (!internalId) return null
+
+    return service.getState().snapshot?.activeCards.find((card) => card.header.internalId === internalId) ?? null
+}
+
 export function getProjectCard(path: string, service: DataService = dataService) {
     return findCard(path, service)
 }
@@ -48,6 +55,12 @@ function eventMatchesPath(event: Event, path: string | null) {
     const { card } = (event as CustomEvent<CardAddedEventDetail | CardRemovedEventDetail>).detail
 
     return card.path === path
+}
+
+function eventMatchesInternalId(event: Event, internalId: string | null) {
+    const { card } = (event as CustomEvent<CardAddedEventDetail | CardRemovedEventDetail>).detail
+
+    return card.header.internalId === internalId
 }
 
 function useCardField<T>(path: string | null, field: CardField, select: (card: Card | null) => T, service: DataService) {
@@ -67,6 +80,32 @@ function useCardField<T>(path: string | null, field: CardField, select: (card: C
         }
     }, [field, path, service])
     const getSnapshot = useCallback(() => select(findCard(path, service)), [path, select, service])
+
+    return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
+}
+
+function useCardFieldByInternalId<T>(
+    internalId: string | null,
+    field: CardField,
+    select: (card: Card | null) => T,
+    service: DataService,
+) {
+    const subscribe = useCallback((onStoreChange: () => void) => {
+        const handleLifecycle = (event: Event) => {
+            if (eventMatchesInternalId(event, internalId)) onStoreChange()
+        }
+        const fieldEvent = cardCollectionFieldChangedEvent(field)
+        service.addEventListener(fieldEvent, onStoreChange)
+        service.addEventListener(CARD_ADDED_EVENT, handleLifecycle)
+        service.addEventListener(CARD_REMOVED_EVENT, handleLifecycle)
+
+        return () => {
+            service.removeEventListener(fieldEvent, onStoreChange)
+            service.removeEventListener(CARD_ADDED_EVENT, handleLifecycle)
+            service.removeEventListener(CARD_REMOVED_EVENT, handleLifecycle)
+        }
+    }, [field, internalId, service])
+    const getSnapshot = useCallback(() => select(findCardByInternalId(internalId, service)), [internalId, select, service])
 
     return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
 }
@@ -138,6 +177,26 @@ export function useCardConversations(path: string | null, service: DataService =
     return useCardField(path, 'conversation', select, service)
 }
 
+/** Reads conversation state for one stable card identity. */
+export function useCardConversationsByInternalId(internalId: string | null, service: DataService = dataService) {
+    const snapshotRef = useRef<CardConversationSnapshot | null>(null)
+    const select = useCallback((card: Card | null) => {
+        if (!card) return null
+        const previous = snapshotRef.current
+        const unchanged = previous
+            && previous.conversations === card.agentConversations
+            && previous.errors === card.agentConversationErrors
+        if (unchanged) return previous
+
+        const next = { conversations: card.agentConversations, errors: card.agentConversationErrors }
+        snapshotRef.current = next
+
+        return next
+    }, [])
+
+    return useCardFieldByInternalId(internalId, 'conversation', select, service)
+}
+
 function sameCardMetadata(previous: CardMetadataSnapshot, card: Card) {
     const header = previous.header
     return previous.path === card.path
@@ -200,6 +259,35 @@ export function useCardMetadata(path: string | null, service: DataService = data
         }
     }, [path, service])
     const getSnapshot = useCallback(() => select(findCard(path, service)), [path, select, service])
+
+    return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
+}
+
+/** Reads metadata for one stable card identity, including its current path. */
+export function useCardMetadataByInternalId(internalId: string | null, service: DataService = dataService) {
+    const cardRef = useRef<CardMetadataSnapshot | null>(null)
+    const select = useCallback((card: Card | null) => {
+        if (card && cardRef.current && sameCardMetadata(cardRef.current, card)) return cardRef.current
+        cardRef.current = card ? cardMetadataSnapshot(card) : null
+
+        return cardRef.current
+    }, [])
+    const subscribe = useCallback((onStoreChange: () => void) => {
+        const handleLifecycle = (event: Event) => {
+            if (eventMatchesInternalId(event, internalId)) onStoreChange()
+        }
+        const fieldEvents = CARD_METADATA_FIELDS.map((field) => cardCollectionFieldChangedEvent(field))
+        fieldEvents.forEach((eventName) => service.addEventListener(eventName, onStoreChange))
+        service.addEventListener(CARD_ADDED_EVENT, handleLifecycle)
+        service.addEventListener(CARD_REMOVED_EVENT, handleLifecycle)
+
+        return () => {
+            fieldEvents.forEach((eventName) => service.removeEventListener(eventName, onStoreChange))
+            service.removeEventListener(CARD_ADDED_EVENT, handleLifecycle)
+            service.removeEventListener(CARD_REMOVED_EVENT, handleLifecycle)
+        }
+    }, [internalId, service])
+    const getSnapshot = useCallback(() => select(findCardByInternalId(internalId, service)), [internalId, select, service])
 
     return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
 }

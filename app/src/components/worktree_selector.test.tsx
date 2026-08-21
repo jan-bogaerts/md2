@@ -179,7 +179,7 @@ describe('WorktreeSelector', () => {
         fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
         fireEvent.click(screen.getByRole('menuitem', { name: 'View diff' }))
 
-        expect(openWorktreeDiff).toHaveBeenCalledWith('card-1', 'design/F-1.md', expect.any(HTMLElement))
+        expect(openWorktreeDiff).toHaveBeenCalledWith('card-1', expect.any(HTMLElement))
     })
 
     it('commits and integrates a dirty worktree from one dialog', async () => {

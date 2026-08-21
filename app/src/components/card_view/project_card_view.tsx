@@ -123,7 +123,7 @@ function CardViewContent(props: CardViewContentProps) {
             return
         }
 
-        cardPopupService.toggleCardDetails(card.header.internalId, card.path, event.currentTarget)
+        cardPopupService.toggleCardDetails(card.header.internalId, event.currentTarget)
         telemetryService.trackEvent('navigation')
     }, [card.header.internalId, card.path, isEditingTitle])
 
@@ -161,7 +161,7 @@ function CardViewContent(props: CardViewContentProps) {
             if (!cardElement) throw new Error(`Missing card element: ${card.path}`)
             if (!card.header.internalId) throw new Error(`Missing card internal ID: ${card.path}`)
             closeCardActions()
-            cardPopupService.toggleCardDetails(card.header.internalId, card.path, cardElement)
+            cardPopupService.toggleCardDetails(card.header.internalId, cardElement)
             telemetryService.trackEvent('navigation')
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Card details could not be opened' })
