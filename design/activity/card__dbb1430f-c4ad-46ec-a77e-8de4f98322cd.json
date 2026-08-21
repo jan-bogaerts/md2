@@ -1197,10 +1197,10 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "dbb1430f-c4ad-46ec-a77e-8de4f98322cd",
       "cardPath": "design/feature_descriptions/B_169_prompt_editing_broken.md",
-      "completedAt": "2026-08-21T17:11:56.977Z",
+      "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 154065
+        "usedTokens": 154118
       },
       "entries": [
         {
@@ -3566,6 +3566,23 @@
           "role": "assistant",
           "sequence": 177,
           "timestamp": "2026-08-21T17:11:56.977Z"
+        },
+        {
+          "content": "Has this been implemented?",
+          "id": "agent-turn-7006c108-317d-4959-8e46-f09210890973-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 178,
+          "timestamp": "2026-08-21T17:13:19.325Z"
+        },
+        {
+          "agent": "codex",
+          "content": "Yes.\n\nImplemented and verified against installed MDXEditor 4.2.1/Lexical 0.48.0. Related tests and lint pass. Feature status remains `ready`.\n\n",
+          "id": "agent-turn-7006c108-317d-4959-8e46-f09210890973-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 179,
+          "timestamp": "2026-08-21T17:13:24.134Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -3580,18 +3597,18 @@
         }
       ],
       "startedAt": "2026-08-21T16:06:36.003Z",
-      "status": "completed",
+      "status": "running",
       "timer": {
         "elapsedMs": 801233,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-08-21T17:13:19.325Z"
       },
       "title": "implement",
       "usage": {
-        "cachedInputTokens": 7793408,
-        "inputTokens": 186709,
-        "outputTokens": 14909,
+        "cachedInputTokens": 7946752,
+        "inputTokens": 187441,
+        "outputTokens": 14951,
         "reasoningTokens": 8749,
-        "totalTokens": 8003775
+        "totalTokens": 8157893
       },
       "usageSchemaVersion": 1,
       "viewed": true
@@ -3717,6 +3734,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "31ec8f9d30a478b3eeca3150476543ddf31aa345",
           "committedAt": "2026-08-21T19:12:05+02:00",
           "deletions": 14,
@@ -3728,8 +3746,7 @@
             "app/src/components/editor/markdown_editor.tsx"
           ],
           "filesChanged": 5,
-          "insertions": 84,
-          "branch": "dev_main"
+          "insertions": 84
         }
       ],
       "completedAt": "2026-08-21T19:12:05+02:00",
