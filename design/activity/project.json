@@ -5898,7 +5898,7 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": null,
       "cardPath": null,
-      "completedAt": null,
+      "completedAt": "2026-08-21T10:05:07.193Z",
       "entries": [
         {
           "content": "you keep using shortcuts like `Then :248 fires`\nthis is very difficult to read. how can we make you produce proper readable text instead of these shortcuts and strange sentence constructions?",
@@ -5974,17 +5974,25 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 7,
-          "timestamp": "2026-08-21T09:44:04.492Z"
+          "timestamp": "2026-08-21T10:05:07.193Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-1a921b7c-1d71-4064-b82d-313f957b789c",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "claude",
+          "conversationId": "41f38673-0937-4d90-ac4c-bf2813477e57",
+          "createdAt": "2026-08-21T09:44:04.492Z",
+          "lastUsedAt": "2026-08-21T10:05:07.193Z",
+          "synchronizedThroughMessageId": "agent-turn-cb388906-8e14-430f-b2f9-5b54a1afb9ed-turn-1-assistant-2"
+        }
+      ],
       "startedAt": "2026-08-21T09:43:44.279Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-21T09:43:44.279Z"
+        "elapsedMs": 20213,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
