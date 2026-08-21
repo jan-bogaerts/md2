@@ -969,7 +969,7 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "a2f851ba-744e-4b53-bc9b-33e1eaa6787a",
       "cardPath": "design/feature_descriptions/F_222_claude_account_usage_missing_on_small_screen.md",
-      "completedAt": null,
+      "completedAt": "2026-08-21T12:22:16.909Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 84787
@@ -2332,7 +2332,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 101,
-          "timestamp": "2026-08-21T12:22:16.617Z"
+          "timestamp": "2026-08-21T12:22:16.909Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -2342,15 +2342,15 @@
           "agent": "codex",
           "conversationId": "01a0243d-b723-7f61-b0ba-350c6ec97022",
           "createdAt": "2026-08-21T12:15:03.594Z",
-          "lastUsedAt": "2026-08-21T12:15:03.594Z",
-          "synchronizedThroughMessageId": "agent-turn-a86585f7-46ca-4167-a988-64aa36f4c1d3-turn-1-assistant-3"
+          "lastUsedAt": "2026-08-21T12:22:16.909Z",
+          "synchronizedThroughMessageId": "agent-turn-a86585f7-46ca-4167-a988-64aa36f4c1d3-turn-2-assistant-7"
         }
       ],
       "startedAt": "2026-08-21T12:13:39.198Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 84396,
-        "runningStartedAt": "2026-08-21T12:16:11.010Z"
+        "elapsedMs": 450295,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usage": {
