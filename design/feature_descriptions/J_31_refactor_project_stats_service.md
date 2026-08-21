@@ -3,7 +3,7 @@ author:
 id: J_31
 internalId: b7885271-1cd8-4927-9f68-661c0d87a61f
 title: refactor ProjectStatsService into focused modules
-status: design
+status: ready
 owner:
 affects:
 policy:

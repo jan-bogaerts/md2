@@ -3,7 +3,7 @@ author:
 id: B_152
 internalId: 038937d3-b99c-4dfd-b1da-76c906c5c31c
 title: disbabled input while running agent
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
