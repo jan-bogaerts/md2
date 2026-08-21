@@ -1197,7 +1197,7 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "dbb1430f-c4ad-46ec-a77e-8de4f98322cd",
       "cardPath": "design/feature_descriptions/B_169_prompt_editing_broken.md",
-      "completedAt": null,
+      "completedAt": "2026-08-21T18:17:49.909Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 90866
@@ -6361,7 +6361,7 @@
         }
       ],
       "startedAt": "2026-08-21T16:06:36.003Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "timer": {
         "elapsedMs": 2035750,
         "runningStartedAt": null
@@ -6597,6 +6597,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "b0eedae3052aa8ad434427483236645523306543",
           "committedAt": "2026-08-21T20:17:03+02:00",
           "deletions": 15,
@@ -6616,8 +6617,7 @@
             "app/src/components/editor/markdown_document_history_realm_plugin.ts"
           ],
           "filesChanged": 13,
-          "insertions": 615,
-          "branch": "dev_main"
+          "insertions": 615
         }
       ],
       "completedAt": "2026-08-21T20:17:03+02:00",
