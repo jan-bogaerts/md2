@@ -3,7 +3,7 @@ author:
 id: B_169
 internalId: dbb1430f-c4ad-46ec-a77e-8de4f98322cd
 title: prompt editing broken
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
