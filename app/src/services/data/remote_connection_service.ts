@@ -1,9 +1,11 @@
 import type { RemoteControlConnectionSettings } from '../../data/remote_control_connection'
 import { configureRemoteControlConnection, readRemoteControlConnection } from '../../data/remote_control_connection'
 import { setActionBridgeOverride } from '../../data/electron_action_bridge'
+import { setClaudeRuntimeBridgeOverride } from '../../data/electron_claude_runtime_bridge'
 import { setCodexRuntimeBridgeOverride } from '../../data/electron_codex_runtime_bridge'
 import { agentCapabilitiesService } from '../agents/agent_capabilities_service'
 import { actionRunRegistry } from '../actions/action_run_registry'
+import { claudeRateLimitService } from '../agents/claude_rate_limit_service'
 import { codexRateLimitService } from '../agents/codex_rate_limit_service'
 import { readDesktopConfigFromBridge } from '../config/config_persistence'
 import { configService } from '../config/config_service'
@@ -39,8 +41,10 @@ async function activateRemoteStorage(storage: RemoteControlStorageService) {
         const desktopConfig = await storage.loadDesktopConfig()
         configService.replaceDesktopConfig(desktopConfig)
         setActionBridgeOverride(storage)
+        setClaudeRuntimeBridgeOverride(storage)
         setCodexRuntimeBridgeOverride(storage)
         setDesktopConfigTransportOverride(storage)
+        claudeRateLimitService.start()
         codexRateLimitService.start()
         actionRunRegistry.start()
         await agentCapabilitiesService.reload()
@@ -53,6 +57,7 @@ async function activateRemoteStorage(storage: RemoteControlStorageService) {
 
 function clearRemoteActivation() {
     setActionBridgeOverride(null)
+    setClaudeRuntimeBridgeOverride(null)
     setCodexRuntimeBridgeOverride(null)
     setDesktopConfigTransportOverride(null)
     if (!configService.isInitialized()) return

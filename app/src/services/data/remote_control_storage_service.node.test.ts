@@ -71,6 +71,7 @@ const persistentSubscriptionCases: PersistentSubscriptionCase[] = [
         subscribe: (service) => service.onMergeConflictSessionChanged(() => undefined),
     },
     { method: 'onActionRun', name: 'action-run', subscribe: (service) => service.onActionRun(() => undefined) },
+    { method: 'onClaudeRateLimits', name: 'Claude-rate-limit', subscribe: (service) => service.onClaudeRateLimits(() => undefined) },
     { method: 'onCodexRateLimits', name: 'Codex-rate-limit', subscribe: (service) => service.onCodexRateLimits(() => undefined) },
     {
         method: 'watchProject',
@@ -226,6 +227,22 @@ describe('RemoteControlStorageService', () => {
         await expect(save).resolves.toEqual(desktopConfig)
     })
 
+    it('reads current Claude rate limits through remote control', async () => {
+        installWebSocket()
+        const service = createService()
+        const load = service.getClaudeRateLimits()
+        const socket = lastSocket()
+        const snapshot = { available: true, observedAt: 10, windows: [] }
+
+        socket.open()
+        await flushPromises()
+        const request = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
+        expect(request).toMatchObject({ method: 'getClaudeRateLimits', params: [] })
+        socket.receive({ id: request.id, result: snapshot })
+
+        await expect(load).resolves.toEqual(snapshot)
+    })
+
     it('loads one markdown file through remote control and propagates desktop errors', async () => {
         installWebSocket()
         const service = createService()
@@ -297,6 +314,28 @@ describe('RemoteControlStorageService', () => {
             payload: { requestId: subscriptionRequest.id, snapshot, subscriptionId: 'codex-rate-limits-1' },
         })
         socket.receive({ id: subscriptionRequest.id, result: { subscriptionId: 'codex-rate-limits-1' } })
+        await flushPromises()
+
+        expect(callback).toHaveBeenCalledWith(snapshot)
+    })
+
+    it('receives account-wide Claude runtime snapshots through dedicated remote subscription', async () => {
+        installWebSocket()
+        const service = createService()
+        const callback = vi.fn()
+        service.onClaudeRateLimits(callback)
+        const socket = lastSocket()
+        const snapshot = { available: true, observedAt: 10, windows: [] }
+
+        socket.open()
+        await flushPromises()
+        const subscriptionRequest = JSON.parse(socket.sent[0]) as { id: string, method: string }
+        expect(subscriptionRequest.method).toBe('onClaudeRateLimits')
+        socket.receive({
+            event: 'claudeRateLimits',
+            payload: { requestId: subscriptionRequest.id, snapshot, subscriptionId: 'claude-rate-limits-1' },
+        })
+        socket.receive({ id: subscriptionRequest.id, result: { subscriptionId: 'claude-rate-limits-1' } })
         await flushPromises()
 
         expect(callback).toHaveBeenCalledWith(snapshot)
@@ -830,6 +869,45 @@ describe('RemoteControlStorageService', () => {
         })
 
         await vi.waitFor(() => expect(callback).toHaveBeenCalledWith(event))
+    })
+
+    it('clears stale Claude callback state and restores one subscription after reconnect', async () => {
+        installWebSocket()
+        const service = createService()
+        const callback = vi.fn()
+        service.onClaudeRateLimits(callback)
+        const firstSocket = lastSocket()
+        firstSocket.open()
+        await flushPromises()
+        const firstSubscription = JSON.parse(firstSocket.sent[0]) as { id: string }
+        firstSocket.receive({ id: firstSubscription.id, result: { subscriptionId: 'claude-limits-1' } })
+        await flushPromises()
+        firstSocket.close()
+        firstSocket.receive({
+            event: 'claudeRateLimits',
+            payload: {
+                requestId: firstSubscription.id,
+                snapshot: { available: true, observedAt: 10, windows: [] },
+                subscriptionId: 'claude-limits-1',
+            },
+        })
+
+        const reconnection = service.connect()
+        const secondSocket = lastSocket()
+        secondSocket.open()
+        await reconnection
+        await vi.waitFor(() => expect(secondSocket.sent).toHaveLength(1))
+        const secondSubscription = JSON.parse(secondSocket.sent[0]) as { id: string, method: string }
+        expect(secondSubscription.method).toBe('onClaudeRateLimits')
+        secondSocket.receive({ id: secondSubscription.id, result: { subscriptionId: 'claude-limits-2' } })
+        const snapshot = { available: true, observedAt: 11, windows: [] }
+        secondSocket.receive({
+            event: 'claudeRateLimits',
+            payload: { requestId: secondSubscription.id, snapshot, subscriptionId: 'claude-limits-2' },
+        })
+
+        await vi.waitFor(() => expect(callback).toHaveBeenCalledOnce())
+        expect(callback).toHaveBeenCalledWith(snapshot)
     })
 
     it('sends recursive folder deletion requests', async () => {

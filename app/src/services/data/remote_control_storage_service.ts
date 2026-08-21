@@ -30,6 +30,10 @@ import type {
     CodexRateLimitSnapshot,
     ElectronCodexRuntimeBridge,
 } from '../../data/electron_codex_runtime_bridge'
+import type {
+    ClaudeRateLimitSnapshot,
+    ElectronClaudeRuntimeBridge,
+} from '../../data/electron_claude_runtime_bridge'
 import type { AgentAvailability } from '../../data/electron_data_bridge'
 import type {
     AgentConversation,
@@ -112,6 +116,12 @@ interface CodexRateLimitsPayload {
     subscriptionId: string
 }
 
+interface ClaudeRateLimitsPayload {
+    requestId: string
+    snapshot: ClaudeRateLimitSnapshot
+    subscriptionId: string
+}
+
 interface WorktreesChangedPayload {
     requestId: string
     state: WorktreeState
@@ -157,7 +167,7 @@ function isResponse(message: RemoteControlResponse | RemoteControlEvent): messag
 }
 
 export class RemoteControlStorageService implements
-    StorageService, ElectronActionBridge, ElectronCodexRuntimeBridge, DesktopConfigTransport {
+    StorageService, ElectronActionBridge, ElectronClaudeRuntimeBridge, ElectronCodexRuntimeBridge, DesktopConfigTransport {
     async addWorktree(project: ProjectReference, folderPath: string): Promise<void> {
         await this.request('addWorktree', [project, folderPath])
     }
@@ -167,6 +177,9 @@ export class RemoteControlStorageService implements
     private actionRunSubscriptions: Map<(event: ActionRunEvent) => void, string>
     private connectPromise: Promise<void> | null
     private connectionListeners: Set<(connected: boolean) => void>
+    private claudeRateLimitCallbacks: Map<string, (snapshot: ClaudeRateLimitSnapshot) => void>
+    private claudeRateLimitListeners: Set<(snapshot: ClaudeRateLimitSnapshot) => void>
+    private claudeRateLimitSubscriptions: Map<(snapshot: ClaudeRateLimitSnapshot) => void, string>
     private codexRateLimitCallbacks: Map<string, (snapshot: CodexRateLimitSnapshot) => void>
     private codexRateLimitListeners: Set<(snapshot: CodexRateLimitSnapshot) => void>
     private codexRateLimitSubscriptions: Map<(snapshot: CodexRateLimitSnapshot) => void, string>
@@ -177,6 +190,7 @@ export class RemoteControlStorageService implements
     private pending: Map<string, PendingRequest>
     private requestAgentEvents: Map<string, (event: AgentRunEvent) => void>
     private requestActionRunEvents: Map<string, (event: ActionRunEvent) => void>
+    private requestClaudeRateLimitEvents: Map<string, (snapshot: ClaudeRateLimitSnapshot) => void>
     private requestCodexRateLimitEvents: Map<string, (snapshot: CodexRateLimitSnapshot) => void>
     private requestWatchEvents: Map<string, ProjectWatchSubscription>
     private retired: boolean
@@ -196,6 +210,9 @@ export class RemoteControlStorageService implements
         this.actionRunSubscriptions = new Map()
         this.connectPromise = null
         this.connectionListeners = new Set()
+        this.claudeRateLimitCallbacks = new Map()
+        this.claudeRateLimitListeners = new Set()
+        this.claudeRateLimitSubscriptions = new Map()
         this.codexRateLimitCallbacks = new Map()
         this.codexRateLimitListeners = new Set()
         this.codexRateLimitSubscriptions = new Map()
@@ -206,6 +223,7 @@ export class RemoteControlStorageService implements
         this.pending = new Map()
         this.requestAgentEvents = new Map()
         this.requestActionRunEvents = new Map()
+        this.requestClaudeRateLimitEvents = new Map()
         this.requestCodexRateLimitEvents = new Map()
         this.requestMergeConflictEvents = new Map()
         this.requestWatchEvents = new Map()
@@ -630,6 +648,10 @@ export class RemoteControlStorageService implements
         return this.request<CodexRateLimitSnapshot | null>('getCodexRateLimits', [])
     }
 
+    async getClaudeRateLimits(): Promise<ClaudeRateLimitSnapshot | null> {
+        return this.request<ClaudeRateLimitSnapshot | null>('getClaudeRateLimits', [])
+    }
+
     async notifyActionCardStateChange(cardInternalId: string, state: string): Promise<void> {
         await this.request('notifyActionCardStateChange', [cardInternalId, state])
     }
@@ -682,6 +704,24 @@ export class RemoteControlStorageService implements
 
             this.codexRateLimitSubscriptions.delete(callback)
             this.codexRateLimitCallbacks.delete(subscriptionId)
+            this.unsubscribeBestEffort(subscriptionId)
+        }
+    }
+
+    onClaudeRateLimits(callback: (snapshot: ClaudeRateLimitSnapshot) => void): () => void {
+        this.claudeRateLimitListeners.add(callback)
+        void this.subscribeClaudeRateLimits(callback).catch(() => undefined)
+
+        return () => {
+            this.claudeRateLimitListeners.delete(callback)
+            for (const [requestId, pendingCallback] of this.requestClaudeRateLimitEvents) {
+                if (pendingCallback === callback) this.requestClaudeRateLimitEvents.delete(requestId)
+            }
+            const subscriptionId = this.claudeRateLimitSubscriptions.get(callback)
+            if (!subscriptionId) return
+
+            this.claudeRateLimitSubscriptions.delete(callback)
+            this.claudeRateLimitCallbacks.delete(subscriptionId)
             this.unsubscribeBestEffort(subscriptionId)
         }
     }
@@ -774,6 +814,7 @@ export class RemoteControlStorageService implements
                 resolve()
                 for (const listener of this.connectionListeners) listener(true)
                 void this.restoreActionRunSubscriptions()
+                void this.restoreClaudeRateLimitSubscriptions()
                 void this.restoreCodexRateLimitSubscriptions()
                 void this.restoreProjectWatchSubscriptions()
                 void this.restoreWorktreeSubscription()
@@ -823,6 +864,10 @@ export class RemoteControlStorageService implements
             this.handleCodexRateLimitsEvent(message.payload as CodexRateLimitsPayload)
             return
         }
+        if (message.event === 'claudeRateLimits') {
+            this.handleClaudeRateLimitsEvent(message.payload as ClaudeRateLimitsPayload)
+            return
+        }
         if (message.event === 'watchProject') {
             this.handleWatchProjectEvent(message.payload as WatchProjectPayload)
             return
@@ -848,6 +893,12 @@ export class RemoteControlStorageService implements
     private handleCodexRateLimitsEvent(payload: CodexRateLimitsPayload) {
         const callback = this.codexRateLimitCallbacks.get(payload.subscriptionId)
             ?? this.requestCodexRateLimitEvents.get(payload.requestId)
+        callback?.(payload.snapshot)
+    }
+
+    private handleClaudeRateLimitsEvent(payload: ClaudeRateLimitsPayload) {
+        const callback = this.claudeRateLimitCallbacks.get(payload.subscriptionId)
+            ?? this.requestClaudeRateLimitEvents.get(payload.requestId)
         callback?.(payload.snapshot)
     }
 
@@ -881,6 +932,12 @@ export class RemoteControlStorageService implements
         const pendingCallbacks = new Set(this.requestCodexRateLimitEvents.values())
         const callbacks = [...this.codexRateLimitListeners].filter((callback) => !pendingCallbacks.has(callback))
         await Promise.allSettled(callbacks.map((callback) => this.subscribeCodexRateLimits(callback)))
+    }
+
+    private async restoreClaudeRateLimitSubscriptions() {
+        const pendingCallbacks = new Set(this.requestClaudeRateLimitEvents.values())
+        const callbacks = [...this.claudeRateLimitListeners].filter((callback) => !pendingCallbacks.has(callback))
+        await Promise.allSettled(callbacks.map((callback) => this.subscribeClaudeRateLimits(callback)))
     }
 
     private async restoreProjectWatchSubscriptions() {
@@ -964,6 +1021,26 @@ export class RemoteControlStorageService implements
         }
     }
 
+    private async subscribeClaudeRateLimits(callback: (snapshot: ClaudeRateLimitSnapshot) => void) {
+        const id = this.createRequestId()
+        this.requestClaudeRateLimitEvents.set(id, callback)
+        try {
+            const result = await this.sendRequest<{ subscriptionId: string }>({
+                id,
+                method: 'onClaudeRateLimits',
+                params: [],
+            })
+            if (!this.claudeRateLimitListeners.has(callback)) {
+                this.unsubscribeBestEffort(result.subscriptionId)
+                return
+            }
+            this.claudeRateLimitSubscriptions.set(callback, result.subscriptionId)
+            this.claudeRateLimitCallbacks.set(result.subscriptionId, callback)
+        } finally {
+            this.requestClaudeRateLimitEvents.delete(id)
+        }
+    }
+
     private async subscribeWorktreesChanged() {
         if (this.worktreeListenerCount === 0 || this.worktreeRequestId || this.worktreeServerSubscriptionId) return
 
@@ -1025,11 +1102,14 @@ export class RemoteControlStorageService implements
         this.pending.clear()
         this.actionRunCallbacks.clear()
         this.actionRunSubscriptions.clear()
+        this.claudeRateLimitCallbacks.clear()
+        this.claudeRateLimitSubscriptions.clear()
         this.codexRateLimitCallbacks.clear()
         this.codexRateLimitSubscriptions.clear()
         this.mergeConflictCallbacks.clear()
         this.requestAgentEvents.clear()
         this.requestActionRunEvents.clear()
+        this.requestClaudeRateLimitEvents.clear()
         this.requestCodexRateLimitEvents.clear()
         this.requestMergeConflictEvents.clear()
         this.requestWatchEvents.clear()

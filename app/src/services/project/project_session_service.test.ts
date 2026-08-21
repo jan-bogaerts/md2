@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ElectronDataBridge } from '../../data/electron_data_bridge'
 import { beforeEach } from 'vitest'
 import { getElectronActionBridge, setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge'
+import { getElectronClaudeRuntimeBridge, setClaudeRuntimeBridgeOverride } from '../../data/electron_claude_runtime_bridge'
 import { LAST_PROJECT_STORAGE_KEY } from '../../data/project_session'
 import { configureRemoteControlConnection, REMOTE_CONTROL_ENDPOINT_KEY } from '../../data/remote_control_connection'
 import { RemoteControlStorageService } from '../data/remote_control_storage_service'
@@ -14,6 +15,7 @@ import { projectPersistenceService } from './project_persistence_service'
 import { openFilesService } from '../open_files_service'
 import { createDeferred } from '../test_support/data_service_test_support'
 import { agentCapabilitiesService } from '../agents/agent_capabilities_service'
+import { claudeRateLimitService } from '../agents/claude_rate_limit_service'
 import { projectAccessService, READ_ONLY_PROJECT_ERROR } from './project_access_service'
 
 function createActionBridge(): ElectronActionBridge {
@@ -70,11 +72,14 @@ describe('ProjectSessionService storage activation', () => {
         remoteConnectionService.disconnect()
         configService.init()
         vi.spyOn(RemoteControlStorageService.prototype, 'connect').mockResolvedValue()
+        vi.spyOn(RemoteControlStorageService.prototype, 'getClaudeRateLimits').mockResolvedValue(null)
         vi.spyOn(RemoteControlStorageService.prototype, 'getCodexRateLimits').mockResolvedValue(null)
         vi.spyOn(RemoteControlStorageService.prototype, 'loadActionRunRecoverySnapshot')
             .mockResolvedValue({ activeRunEvents: [], terminalResults: [] })
         vi.spyOn(RemoteControlStorageService.prototype, 'onActionRun').mockReturnValue(() => undefined)
+        vi.spyOn(RemoteControlStorageService.prototype, 'onClaudeRateLimits').mockReturnValue(() => undefined)
         vi.spyOn(RemoteControlStorageService.prototype, 'onCodexRateLimits').mockReturnValue(() => undefined)
+        vi.spyOn(claudeRateLimitService, 'start')
         vi.spyOn(RemoteControlStorageService.prototype, 'loadDesktopConfig').mockResolvedValue({
             agentSelection: { activeAgent: 'custom', permissionMode: 'ask-for-approval', settingsByAgent: { custom: { model: 'custom-model', thinkingLevel: 'high' } } },
             agentProfiles: [{ command: ['custom'], defaultThinkingLevel: 'none', models: ['custom-model'], name: 'custom' }],
@@ -95,6 +100,7 @@ describe('ProjectSessionService storage activation', () => {
         vi.unstubAllGlobals()
         configService.clear()
         setActionBridgeOverride(null)
+        setClaudeRuntimeBridgeOverride(null)
         delete window.md2Actions
         delete window.md2Config
         delete window.md2Data
@@ -103,7 +109,7 @@ describe('ProjectSessionService storage activation', () => {
         projectAccessService.setReadOnly(false)
     })
 
-    it('activates remote storage as the action bridge when opening a remote project', async () => {
+    it('activates remote storage as the action and Claude runtime bridges when opening a remote project', async () => {
         mockProjectOpen()
         configureRemoteControlConnection({ endpoint: 'ws://127.0.0.1:1234' })
         const service = new ProjectSessionService()
@@ -111,6 +117,8 @@ describe('ProjectSessionService storage activation', () => {
         await service.openProject('remote', { branch: 'main', id: 'remote', rootPath: '/repo' }, null)
 
         expect(getElectronActionBridge()).toBeInstanceOf(RemoteControlStorageService)
+        expect(getElectronClaudeRuntimeBridge()).toBeInstanceOf(RemoteControlStorageService)
+        expect(claudeRateLimitService.start).toHaveBeenCalled()
         expect(configService.getDesktopValues()).toMatchObject({
             agentSelection: {
                 activeAgent: 'custom',
@@ -160,7 +168,7 @@ describe('ProjectSessionService storage activation', () => {
         expect(dataService.projectLoading.openProject).not.toHaveBeenCalled()
     })
 
-    it('clears remote desktop config and action bridge when the connection closes', async () => {
+    it('clears remote desktop config, action bridge, and Claude runtime bridge when connection closes', async () => {
         mockProjectOpen()
         const storage = new RemoteControlStorageService()
         storage.init({ endpoint: 'ws://127.0.0.1:1234' })
@@ -177,6 +185,7 @@ describe('ProjectSessionService storage activation', () => {
 
         expect(configService.hasDesktopConfig()).toBe(false)
         expect(getElectronActionBridge()).toBeNull()
+        expect(getElectronClaudeRuntimeBridge()).toBeNull()
     })
 
     it('restores the preload action bridge when opening a local project after remote storage', async () => {
