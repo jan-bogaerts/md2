@@ -3,7 +3,7 @@ author:
 id: B_161
 internalId: 575b64d1-3ac4-41e5-ba72-eebcd3eed8cd
 title: <unknown>
-status: ready for implementation
+status: design
 owner: 
 affects:
 agents:
@@ -12,7 +12,6 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 141899071
 sentryOrganization: elastetic
-after: 97733177-b4c8-47c3-af3d-64c31d4eca93
 ---
 ## Sentry issue
 

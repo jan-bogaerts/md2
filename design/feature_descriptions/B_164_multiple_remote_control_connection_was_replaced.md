@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 4aff5203-e00a-42bb-9c0c-55d2a77c2e57
 ---
 
 Once the error 'remote-control connection was replaced' is shown, it comes back at a regular interval. seems like the websocket is not stable
