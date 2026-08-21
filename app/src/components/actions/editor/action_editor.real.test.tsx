@@ -82,6 +82,22 @@ describe('ActionEditor with installed MDXEditor', () => {
         await waitFor(() => expect(editorText()).toContain('Review every line.'))
     })
 
+    it('keeps loaded prompt as outgoing Markdown when switching to a phrase', async () => {
+        const switchDocument = vi.spyOn(MarkdownDocumentHistoryStore.prototype, 'switchDocument')
+        renderEditor(loadAction())
+        fireEvent.click(screen.getByRole('tab', { name: 'Prompt' }))
+        await waitFor(() => expect(editorText()).toContain('Review every line.'))
+
+        fireEvent.click(screen.getByRole('tab', { name: 'Tests' }))
+
+        await waitFor(() => expect(switchDocument).toHaveBeenLastCalledWith(
+            expect.objectContaining({ section: expect.objectContaining({ kind: 'phrase' }) }),
+            'Run related tests',
+            PROMPT,
+            expect.any(Function),
+        ))
+    })
+
     it('loads persisted Prompt selected before history attachment', async () => {
         const lifecycle: string[] = []
         const action = loadAction()

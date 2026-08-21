@@ -12,7 +12,6 @@ export interface MarkdownDocumentHistoryConfig {
     completeDocumentSwitch: (markdown: string) => void
     dataSource: MarkdownDataSource
     getTarget: () => MarkdownDocumentTarget | null
-    getMarkdown: () => string
     historyStore: MarkdownDocumentHistoryStore
     initialMarkdown: string
     initialTarget: MarkdownDocumentTarget | null

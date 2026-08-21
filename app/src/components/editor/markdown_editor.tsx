@@ -198,7 +198,6 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         setDirty(false)
     }, [setDirty])
 
-    const getMarkdown = useCallback(() => editorRef.current?.getMarkdown() ?? latestMarkdownRef.current, [])
     const getTarget = useCallback(() => activeTargetRef.current, [])
 
     const replaceMarkdown = useCallback((markdown: string) => {
@@ -224,7 +223,6 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
             completeDocumentSwitch,
             dataSource,
             getTarget,
-            getMarkdown,
             historyStore,
             initialMarkdown: initialDocumentSnapshot.markdown,
             initialTarget: initialDocumentSnapshot.target,
@@ -237,7 +235,6 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         completeDocumentSwitch,
         dataSource,
         getTarget,
-        getMarkdown,
         historyStore,
         initialDocumentSnapshot.markdown,
         initialDocumentSnapshot.target,
