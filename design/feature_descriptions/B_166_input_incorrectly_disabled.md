@@ -9,5 +9,6 @@ affects:
 agents:
 policy:
 ---
+The input box on the action popup is sometimes incorrectly disabled.
 
-The input box on the action popup is sometimes incorrectly disabled
+I stopped a streaming action. then send a new prompt to it. now the input box remains disabled until the 'finish' button is pressed.
