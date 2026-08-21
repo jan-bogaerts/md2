@@ -1,0 +1,45 @@
+- generic [ref=f1e1]:
+  - generic [ref=f1e102]:
+    - tablist "Action editor sections" [ref=f1e291]:
+      - tab "Definition" [ref=f1e292] [cursor=pointer]
+      - tab "Prompt" [active] [selected] [ref=f1e293] [cursor=pointer]
+      - tab "Tests" [ref=f1e294] [cursor=pointer]
+      - tab "Add predefined phrase" [ref=f1e295] [cursor=pointer]: +
+    - generic [ref=f1e298]:
+      - toolbar [ref=f1e299]:
+        - generic [ref=f1e300]:
+          - radiogroup [ref=f1e301]:
+            - radio "Undo Ctrl+Z" [disabled]
+          - radiogroup [ref=f1e302]:
+            - radio "Redo Ctrl+Y" [disabled]
+        - separator [ref=f1e303]
+        - generic [ref=f1e304]:
+          - radiogroup [ref=f1e305]:
+            - radio "Bold" [ref=f1e306]
+          - radiogroup [ref=f1e310]:
+            - radio "Italic" [ref=f1e311]
+          - radiogroup [ref=f1e315]:
+            - radio "Underline" [ref=f1e316]
+        - separator [ref=f1e320]
+        - radiogroup "toggle group" [ref=f1e322]:
+          - radio "Bulleted list" [ref=f1e323]
+          - radio "Numbered list" [ref=f1e327]
+          - radio "Check list" [ref=f1e331]
+        - combobox "Block type" [ref=f1e336]
+        - separator [ref=f1e340]
+        - button "Create link" [ref=f1e341]
+        - button "Insert image" [ref=f1e345]
+        - separator [ref=f1e349]
+        - button "Insert Table" [ref=f1e350]
+        - button "Insert thematic break" [ref=f1e354]
+        - button "Insert Code Block" [ref=f1e358]
+        - separator [ref=f1e362]
+        - generic "Find text" [ref=f1e363]:
+          - button "Find text" [ref=f1e364] [cursor=pointer]
+        - separator [ref=f1e367]
+        - generic "Insert placeholder" [ref=f1e368]:
+          - button "Insert placeholder" [ref=f1e369] [cursor=pointer]
+      - textbox "editable markdown" [ref=f1e374]:
+        - paragraph [ref=f1e375]: "Runtime prompt {{card-file}}"
+  - listbox "Typeahead menu"
+  - listbox "Typeahead menu"

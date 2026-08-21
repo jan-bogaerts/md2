@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { Box } from '@mui/material'
+import { StrictMode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ActionDefinition } from '../../../data/action_types'
 import { actionService } from '../../../services/actions/action_service'
@@ -78,6 +79,24 @@ describe('ActionEditor with installed MDXEditor', () => {
         await waitFor(() => expect(document.querySelector('[contenteditable="true"]')).not.toBeNull())
 
         fireEvent.click(screen.getByRole('tab', { name: 'Prompt' }))
+
+        await waitFor(() => expect(editorText()).toContain('Review every line.'))
+    })
+
+    it('loads prompt when action opens after editor initialization under StrictMode', async () => {
+        const action = loadAction()
+        render(
+            <StrictMode>
+                <AppThemeProvider>
+                    <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                        <ListActionEditor cardTypes={['feature']} specialContextTypes={['actions']} states={['ready']} />
+                    </Box>
+                </AppThemeProvider>
+            </StrictMode>,
+        )
+        await waitFor(() => expect(document.querySelector('[contenteditable="true"]')).not.toBeNull())
+        openFilesService.openDocument(action)
+        fireEvent.click(await screen.findByRole('tab', { name: 'Prompt' }))
 
         await waitFor(() => expect(editorText()).toContain('Review every line.'))
     })

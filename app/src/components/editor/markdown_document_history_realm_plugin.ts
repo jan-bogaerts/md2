@@ -1,4 +1,4 @@
-import { addComposerChild$, realmPlugin, rootEditor$ } from '@mdxeditor/editor'
+import { addComposerChild$, realmPlugin } from '@mdxeditor/editor'
 import {
     markdownDocumentHistoryConfig$,
     markdownDocumentHistoryStore$,
@@ -16,14 +16,6 @@ export const markdownDocumentHistoryPlugin = realmPlugin<MarkdownDocumentHistory
         realm.pub(markdownDocumentHistoryConfig$, params)
         realm.pub(markdownDocumentHistoryStore$, params.historyStore)
         realm.pub(addComposerChild$, MarkdownDocumentHistoryPlugin)
-    },
-    postInit(realm, params) {
-        if (!params) throw new Error('Markdown document history plugin requires parameters')
-
-        const editor = realm.getValue(rootEditor$)
-        if (!editor) throw new Error('Cannot initialize Markdown document history without an editor')
-
-        params.historyStore.attachEditor(editor, params.initialTarget, params.initialMarkdown)
     },
     update(realm, params) {
         if (!params) throw new Error('Markdown document history plugin requires parameters')
