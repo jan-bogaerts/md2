@@ -840,6 +840,72 @@ describe('ActionPopup', () => {
         expect(screen.getByRole('button', { name: 'Stream' })).toBeInTheDocument()
     })
 
+    it('keeps a post-start streaming draft editable when the bottom row reacquires it first', async () => {
+        actionRunRegistry.stop()
+        const streamingContext: ActionContext = { kind: 'project' }
+        let runListener: ((event: ActionRunEvent) => void) | null = null
+        const firstStart = deferredValue<string>()
+        const secondStart = deferredValue<string>()
+        const startAction = vi.fn()
+            .mockImplementationOnce(() => firstStart.promise)
+            .mockImplementationOnce(() => secondStart.promise)
+        const cancelActionRun = vi.fn(async () => undefined)
+        window.md2Actions = {
+            cancelActionRun,
+            loadActionRunHistory: vi.fn(async () => []),
+            onActionRun: vi.fn((listener) => {
+                runListener = listener
+
+                return vi.fn()
+            }),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
+            startAction,
+        } as unknown as typeof window.md2Actions
+        mockCodexAvailable()
+        actionRunRegistry.start()
+        actionService.loadFromFiles([file(agentDefinition('stream', { label: 'Stream', streaming: true }))])
+        renderPopup(streamingContext)
+        await waitFor(() => expect(runListener).not.toBeNull())
+        const firstRun = {
+            actionId: 'stream', actionType: 'agent' as const, autoFinish: null, context: streamingContext,
+            interactionReady: true, phase: 'main' as const, rootActionId: 'stream', runId: 'run-1', streaming: true,
+        }
+        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
+
+        fireEvent.change(prompt, { target: { value: 'Start first run' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+        await waitFor(() => expect(startAction).toHaveBeenCalledTimes(1))
+        act(() => {
+            runListener?.({ ...firstRun, status: 'running', type: 'run' })
+            runListener?.({ ...firstRun, status: 'running', type: 'agentState' })
+        })
+        await act(async () => firstStart.resolve('run-1'))
+
+        fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
+        await waitFor(() => expect(cancelActionRun).toHaveBeenCalledWith('run-1'))
+        act(() => runListener?.({ ...firstRun, status: 'cancelled', type: 'run' }))
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument())
+
+        fireEvent.change(prompt, { target: { value: 'Start second run' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+        await waitFor(() => expect(startAction).toHaveBeenCalledTimes(2))
+        const secondRun = { ...firstRun, runId: 'run-2' }
+        act(() => {
+            runListener?.({ ...secondRun, status: 'running', type: 'run' })
+            runListener?.({ ...secondRun, status: 'running', type: 'agentState' })
+        })
+        await act(async () => secondStart.resolve('run-2'))
+
+        await waitFor(() => expect(prompt).not.toHaveAttribute('readonly'))
+        fireEvent.change(prompt, { target: { value: 'Type while running' } })
+        expect(prompt).toHaveValue('Type while running')
+
+        act(() => runListener?.({ ...secondRun, status: 'waitingForInput', type: 'agentState' }))
+        fireEvent.change(prompt, { target: { value: 'Type while waiting' } })
+        expect(prompt).not.toHaveAttribute('readonly')
+        expect(prompt).toHaveValue('Type while waiting')
+    })
+
     it('keeps the prompt empty after completion without preparing another stored prompt', async () => {
         actionRunRegistry.stop()
         let runListener: ((event: ActionRunEvent) => void) | null = null

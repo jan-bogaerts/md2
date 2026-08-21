@@ -67,7 +67,7 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
     })
     const interactionReady = useActionRunSelector(action.id, assignmentContext, (run) => !!run?.interactionReady)
     const liveConversationPath = useActionRunSelector(action.id, assignmentContext, (run) => run?.conversation?.path ?? null)
-    const promptDraft = currentActionPromptDraft(action, assignmentContext, action.type === 'agent')
+    const promptDraft = currentActionPromptDraft(action, assignmentContext, false)
     const prompt = useSyncExternalStore(promptDraft.subscribe, promptDraft.getSnapshot, promptDraft.getSnapshot)
     const editorSnapshot = useSyncExternalStore(
         promptDraft.subscribeEditor,
