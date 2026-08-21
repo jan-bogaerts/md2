@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: b97071c8-d9a2-4039-8fbf-c313219a761c
 ---
 
 for codex, we currently still show account usage for `GPT-5.3-Codex-Spark` . we don't support this model in the app, so no need to show account usage for this, also no need to track it. in fact, this may be removed everywhere that it might be used in code (ex: charts)
