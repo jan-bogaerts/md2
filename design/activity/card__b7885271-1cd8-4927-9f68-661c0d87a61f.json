@@ -2212,11 +2212,11 @@
         "agent-ebb1bb62-78ac-4d93-b260-6388589950f2"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "ask-for-approval",
-        "thinkingLevel": "none",
-        "type": "agent"
+        "thinkingLevel": "none"
       },
       "runId": "action-03f0cf2d-4c80-4367-8ba2-b0ebef76b7be",
       "origin": {
@@ -2225,9 +2225,55 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-ebb1bb62-78ac-4d93-b260-6388589950f2",
       "startedAt": "2026-08-21T09:10:13.350Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-ebb1bb62-78ac-4d93-b260-6388589950f2"
+    },
+    {
+      "commits": [
+        {
+          "commit": "df4900fa2960d2a39242ea54dbce4f89fb8e4c2f",
+          "committedAt": "2026-08-21T14:12:41+02:00",
+          "deletions": 1054,
+          "filePaths": [
+            "app/src/components/stats_view/stats_bar_chart.test.tsx",
+            "app/src/components/stats_view/stats_bar_chart.tsx",
+            "app/src/components/stats_view/stats_content.tsx",
+            "app/src/components/stats_view/stats_controls.tsx",
+            "app/src/components/stats_view/stats_csv.node.test.ts",
+            "app/src/components/stats_view/stats_csv.ts",
+            "app/src/components/stats_view/stats_usage_comparison_charts.tsx",
+            "app/src/components/stats_view/stats_view.tsx",
+            "app/src/services/stats/project_stats_loader.ts",
+            "app/src/services/stats/project_stats_service.node.test.ts",
+            "app/src/services/stats/project_stats_service.ts",
+            "app/src/services/stats/project_stats_types.ts",
+            "app/src/services/stats/stats_activity_dataset.ts",
+            "app/src/services/stats/stats_chart_rows.node.test.ts",
+            "app/src/services/stats/stats_chart_rows.ts",
+            "app/src/services/stats/stats_identities.ts",
+            "app/src/services/stats/stats_options.node.test.ts",
+            "app/src/services/stats/stats_options.ts",
+            "app/src/services/stats/stats_performance_dataset.ts",
+            "app/src/services/stats/stats_snapshot_builder.ts",
+            "app/src/services/stats/stats_time_buckets.node.test.ts",
+            "app/src/services/stats/stats_time_buckets.ts",
+            "app/src/services/stats/stats_totals_dataset.ts",
+            "app/src/services/stats/stats_usage_comparison_dataset.ts",
+            "design/feature_descriptions/J_31_refactor_project_stats_service.md"
+          ],
+          "filesChanged": 25,
+          "insertions": 1773,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-21T14:12:41+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "b7885271-1cd8-4927-9f68-661c0d87a61f",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
