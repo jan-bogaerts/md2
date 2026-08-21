@@ -13,7 +13,6 @@ sentryIssueId: 141200037
 sentryOrganization: elastetic
 after: 54423129-7b7a-485c-aa18-f72fbcdd1ac9
 ---
-
 ## Sentry issue
 
 **Title:** RemoteControlConnectionError: Remote-control connection was replaced
@@ -38,19 +37,19 @@ after: 54423129-7b7a-485c-aa18-f72fbcdd1ac9
 
 ### Application stack frames
 
-- `/assets/index-Do4xGfSN.js:25:6714` — WebSocket.r
-- `/assets/index-Do4xGfSN.js:26:36945` — WebSocket.<anonymous>
-- `/assets/index-Do4xGfSN.js:26:37667` — rh.handleMessage
-- `/assets/index-Do4xGfSN.js:26:37880` — rh.handleEvent
-- `/assets/index-Do4xGfSN.js:26:38444` — rh.handleActionRunEvent
-- `/assets/index-Do4xGfSN.js:27:9627` — unknown function
-- `/assets/index-Do4xGfSN.js:27:12911` — EventTarget.handleIncomingEvent
-- `/assets/index-Do4xGfSN.js:27:16866` — EventTarget.handleEvent
-- `/assets/index-Do4xGfSN.js:27:17613` — EventTarget.publishScopedEvents
-- `/assets/index-Do4xGfSN.js:176:4635` — unknown function
-- `/assets/index-Do4xGfSN.js:175:7093` — EventTarget.refresh
-- `/assets/index-Do4xGfSN.js:175:7502` — EventTarget.loadStoredSummary
-- `/assets/index-Do4xGfSN.js:26:28900` — rh.loadTextFile
-- `/assets/index-Do4xGfSN.js:26:36207` — rh.request
-- `/assets/index-Do4xGfSN.js:26:36305` — rh.sendRequest
-- `/assets/index-Do4xGfSN.js:26:36728` — rh.ensureConnected
+* `/assets/index-Do4xGfSN.js:25:6714` — WebSocket.r
+* `/assets/index-Do4xGfSN.js:26:36945` — WebSocket.\<anonymous>
+* `/assets/index-Do4xGfSN.js:26:37667` — rh.handleMessage
+* `/assets/index-Do4xGfSN.js:26:37880` — rh.handleEvent
+* `/assets/index-Do4xGfSN.js:26:38444` — rh.handleActionRunEvent
+* `/assets/index-Do4xGfSN.js:27:9627` — unknown function
+* `/assets/index-Do4xGfSN.js:27:12911` — EventTarget.handleIncomingEvent
+* `/assets/index-Do4xGfSN.js:27:16866` — EventTarget.handleEvent
+* `/assets/index-Do4xGfSN.js:27:17613` — EventTarget.publishScopedEvents
+* `/assets/index-Do4xGfSN.js:176:4635` — unknown function
+* `/assets/index-Do4xGfSN.js:175:7093` — EventTarget.refresh
+* `/assets/index-Do4xGfSN.js:175:7502` — EventTarget.loadStoredSummary
+* `/assets/index-Do4xGfSN.js:26:28900` — rh.loadTextFile
+* `/assets/index-Do4xGfSN.js:26:36207` — rh.request
+* `/assets/index-Do4xGfSN.js:26:36305` — rh.sendRequest
+* `/assets/index-Do4xGfSN.js:26:36728` — rh.ensureConnected
