@@ -10,8 +10,6 @@ agents:
   - design/activity/card__1d9ff698-58aa-4f60-bc66-7ae73831af42.json
 policy:
 after: d3078abd-23e1-4c90-8b8e-6ee6459b005f
-branch: b_162_project_root_files_are_loaded_twice_on_project_open
-worktree: 3
 ---
 
 Opening a project reads every active card file from storage twice. The second read is redundant work on every project open, and it grows with the size of the working folder.
