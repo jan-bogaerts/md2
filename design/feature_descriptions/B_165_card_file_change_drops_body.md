@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__cd2dca75-15df-4f60-b640-8a8a91aba68e.json
 policy:
+branch: b_165_card_file_change_drops_body
+worktree: 1
 ---
 
 I was editing a card that already had a body. we changed the title which caused the entire body to disappear. The data doesn't seem to be lost, the card simply drops the body: after closing the card and opening it again, the body is there again. This caveat: nothing in the body was changed, so when the body disappeared, the card was closed and opened again.
