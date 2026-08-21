@@ -22,15 +22,11 @@ import {
     $createTextNode,
     $getRoot,
     $getSelection,
-    $isElementNode,
     $isRangeSelection,
-    $isTextNode,
     $setSelection,
     COPY_COMMAND,
     KEY_DOWN_COMMAND,
     PASTE_COMMAND,
-    type ElementNode,
-    type LexicalNode,
 } from 'lexical'
 import { testLexicalEditor } from './lexical_composer_context_stub'
 
@@ -56,6 +52,7 @@ interface StubEditorProps {
 interface StubEditorHandle {
     focus: (callbackFn?: () => void, opts?: { defaultSelection?: 'rootStart' | 'rootEnd'; preventScroll?: boolean }) => void
     getMarkdown: () => string
+    getSelectionMarkdown: () => string
     insertMarkdown: (markdown: string) => void
     setMarkdown: (markdown: string) => void
 }
@@ -80,12 +77,6 @@ export const Cell = <T,>(initialValue: T): StubCell<T> => ({ initialValue })
 export const activeEditor$ = Cell(null)
 export const addComposerChild$ = Cell<ComponentType | null>(null)
 export const addImportVisitor$ = Cell(null)
-export const exportVisitors$ = Cell<unknown[]>([])
-export const jsxComponentDescriptors$ = Cell<unknown[]>([])
-export const jsxIsAvailable$ = Cell(false)
-export const toMarkdownExtensions$ = Cell<unknown[]>([])
-export const toMarkdownOptions$ = Cell({})
-export const usedLexicalNodes$ = Cell<unknown[]>([])
 export const markdown$ = Cell('')
 export const rootEditor$ = Cell(null)
 export const setMarkdown$ = Cell(null)
@@ -167,96 +158,11 @@ function setTestLexicalSelection(text: string, start: number, end: number) {
     }, { discrete: true })
 }
 
-interface MarkdownSegment {
-    bold: boolean
-    text: string
-}
-
-/**
- * Splits Markdown into rendered runs, marking the ones inside `**...**`. The
- * stub only models bold, which is the formatting the remaining editor tests
- * copy; anything else round-trips as plain rendered text.
- */
-function markdownSegments(markdown: string): MarkdownSegment[] {
-    const segments: MarkdownSegment[] = []
-    let cursor = 0
-
-    for (const match of markdown.matchAll(/\*\*([^*]+)\*\*/g)) {
-        const index = match.index
-        if (index > cursor) segments.push({ bold: false, text: markdownToRenderedText(markdown.slice(cursor, index)) })
-        segments.push({ bold: true, text: match[1] })
-        cursor = index + match[0].length
-    }
-    if (cursor < markdown.length) segments.push({ bold: false, text: markdownToRenderedText(markdown.slice(cursor)) })
-
-    return segments.filter(({ text }) => text.length > 0)
-}
-
-/**
- * Rebuilds the test editor as a formatted Lexical tree for the given Markdown
- * and selects the range that the textarea offsets `start`/`end` cover. The real
- * plugin serializes this tree, so the formatting has to live on the nodes
- * rather than being reconstructed from the Markdown string afterwards.
- */
 function setTestLexicalMarkdownSelection(markdown: string, start: number, end: number) {
+    const renderedText = markdownToRenderedText(markdown)
     const renderedStart = markdownToRenderedText(markdown.slice(0, start)).length
     const renderedEnd = markdownToRenderedText(markdown.slice(0, end)).length
-    const segments = markdownSegments(markdown)
-
-    testLexicalEditor.update(() => {
-        const paragraph = $createParagraphNode()
-        const textNodes = segments.map(({ bold, text }) => {
-            const textNode = $createTextNode(text)
-            if (bold) textNode.toggleFormat('bold')
-
-            return textNode
-        })
-        if (textNodes.length === 0) textNodes.push($createTextNode(''))
-        paragraph.append(...textNodes)
-        $getRoot().clear().append(paragraph)
-
-        const selection = $createRangeSelection()
-        const anchor = locateOffset(textNodes, renderedStart)
-        const focus = locateOffset(textNodes, renderedEnd)
-        selection.anchor.set(anchor.node.getKey(), anchor.offset, 'text')
-        selection.focus.set(focus.node.getKey(), focus.offset, 'text')
-        $setSelection(selection)
-    }, { discrete: true })
-}
-
-/** Maps a rendered-text offset onto the text node that contains it. */
-function locateOffset(textNodes: ReturnType<typeof $createTextNode>[], offset: number) {
-    let remaining = offset
-    for (const node of textNodes) {
-        const length = node.getTextContent().length
-        if (remaining <= length) return { node, offset: remaining }
-        remaining -= length
-    }
-    const lastNode = textNodes[textNodes.length - 1]
-
-    return { node: lastNode, offset: lastNode.getTextContent().length }
-}
-
-/**
- * Stands in for MDXEditor's export pipeline. It walks the Lexical tree it is
- * handed rather than any Markdown string, so the selection serializer under
- * test decides what ends up here.
- */
-export function exportMarkdownFromLexical({ root }: { root: ElementNode }) {
-    const blocks = root.getChildren().map((child) => nodeToMarkdown(child)).filter((block) => block.length > 0)
-
-    return `${blocks.join('\n\n')}\n`
-}
-
-function nodeToMarkdown(node: LexicalNode): string {
-    if ($isTextNode(node)) {
-        const text = node.getTextContent()
-
-        return node.hasFormat('bold') ? `**${text}**` : text
-    }
-    if ($isElementNode(node)) return node.getChildren().map((child) => nodeToMarkdown(child)).join('')
-
-    return node.getTextContent()
+    setTestLexicalSelection(renderedText, renderedStart, renderedEnd)
 }
 
 function getTestLexicalText() {
@@ -305,6 +211,10 @@ export const MDXEditor = forwardRef<StubEditorHandle, StubEditorProps>(
                 callbackFn?.()
             },
             getMarkdown: () => latestMarkdownRef.current,
+            getSelectionMarkdown: () => latestMarkdownRef.current.slice(
+                selectionStartRef.current,
+                selectionEndRef.current,
+            ),
             insertMarkdown: (markdownToInsert: string) => {
                 const nextMarkdown = latestMarkdownRef.current.slice(0, selectionStartRef.current)
                     + markdownToInsert

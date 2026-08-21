@@ -225,7 +225,7 @@ if (!isAllowedOrigin()) {
     };
     const clipboardBridge = {
         onCopyAsTextRequested: (callback) => {
-            const listener = () => callback();
+            const listener = (_event, selectionText) => callback(selectionText);
             ipcRenderer.on(CLIPBOARD_COPY_AS_TEXT_CHANNEL, listener);
 
             return () => ipcRenderer.removeListener(CLIPBOARD_COPY_AS_TEXT_CHANNEL, listener);

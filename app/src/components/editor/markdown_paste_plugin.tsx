@@ -1,13 +1,5 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import {
-    exportVisitors$,
-    jsxComponentDescriptors$,
-    jsxIsAvailable$,
-    toMarkdownExtensions$,
-    toMarkdownOptions$,
-    useCellValue,
-    usedLexicalNodes$,
-} from '@mdxeditor/editor'
+import { useCellValue } from '@mdxeditor/editor'
 import {
     $getSelection,
     $isRangeSelection,
@@ -17,12 +9,11 @@ import {
     PASTE_COMMAND,
     type PasteCommandType,
 } from 'lexical'
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { dialogService } from '../../services/dialog_service'
 import { getElectronClipboardBridge } from '../../services/electron_clipboard_bridge'
 import { useDialogError } from '../hooks/use_dialog_error'
 import { markdownPasteConfig$ } from './markdown_paste_cell'
-import { $selectionMarkdown, $selectionPlainText, type MarkdownExportConfig } from './markdown_selection_serializer'
 
 const MARKDOWN_MIME_TYPE = 'text/markdown'
 const PLAIN_TEXT_MIME_TYPE = 'text/plain'
@@ -58,20 +49,17 @@ function clipboardImageFile(clipboardData: DataTransfer) {
     return imageItem?.getAsFile() ?? null
 }
 
+function $selectionPlainText() {
+    const selection = $getSelection()
+    if (!$isRangeSelection(selection) || selection.isCollapsed()) return ''
+
+    return selection.getTextContent()
+}
+
 /** Handles Markdown-aware and literal-text clipboard operations for MDXEditor. */
 export function MarkdownPastePlugin() {
     const config = useCellValue(markdownPasteConfig$)
     const [editor] = useLexicalComposerContext()
-    const jsxComponentDescriptors = useCellValue(jsxComponentDescriptors$)
-    const jsxIsAvailable = useCellValue(jsxIsAvailable$)
-    const nodes = useCellValue(usedLexicalNodes$)
-    const toMarkdownExtensions = useCellValue(toMarkdownExtensions$)
-    const toMarkdownOptions = useCellValue(toMarkdownOptions$)
-    const visitors = useCellValue(exportVisitors$)
-    const exportConfig = useMemo<MarkdownExportConfig>(
-        () => ({ jsxComponentDescriptors, jsxIsAvailable, nodes, toMarkdownExtensions, toMarkdownOptions, visitors }),
-        [jsxComponentDescriptors, jsxIsAvailable, nodes, toMarkdownExtensions, toMarkdownOptions, visitors],
-    )
     const copyIntentRef = useRef<ShortcutIntent>({ generation: 0, shifted: false })
     const pasteIntentRef = useRef<ShortcutIntent>({ generation: 0, shifted: false })
     const configError = config ? null : new Error('Cannot register Markdown paste without configuration')
@@ -94,7 +82,7 @@ export function MarkdownPastePlugin() {
             if (shifted) {
                 event.clipboardData.setData(PLAIN_TEXT_MIME_TYPE, $selectionPlainText())
             } else {
-                const markdown = $selectionMarkdown(editor, exportConfig)
+                const markdown = config.getSelectionMarkdown()
                 if (!markdown) throw new Error('Selected content could not be serialized as Markdown')
                 event.clipboardData.setData(MARKDOWN_MIME_TYPE, markdown)
                 event.clipboardData.setData(PLAIN_TEXT_MIME_TYPE, markdown)
@@ -105,19 +93,20 @@ export function MarkdownPastePlugin() {
             dialogService.error(error, { fallbackMessage: 'Selected content could not be copied' })
             return false
         }
-    }, [config, editor, exportConfig])
+    }, [config])
 
     /**
      * Serves the desktop context menu's `Copy as Text`. The menu click arrives
      * without a `ClipboardEvent`, so the text is written through the async
      * clipboard API instead of `clipboardData`; the text itself comes from the
      * same function the Ctrl+Shift+C shortcut uses, so both entry points agree.
-     * Right-clicking outside the editor leaves no Lexical range selection, and
-     * the DOM selection is used instead.
+     * Right-clicking outside the editor uses Chromium's selection captured
+     * when the menu opened.
      */
-    const handleCopyAsTextRequest = useCallback(() => {
-        const selectedText = editor.getEditorState().read(() => $selectionPlainText())
-        const text = selectedText || (window.getSelection()?.toString() ?? '')
+    const handleCopyAsTextRequest = useCallback((fallbackText: string) => {
+        const editorHasFocus = editor.getRootElement()?.contains(document.activeElement) ?? false
+        const selectedText = editorHasFocus ? editor.getEditorState().read(() => $selectionPlainText()) : ''
+        const text = selectedText || fallbackText
         if (!text) return
 
         void navigator.clipboard.writeText(text).catch((error: unknown) => {

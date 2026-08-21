@@ -4353,7 +4353,7 @@
         "costUsd": 7.868318
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
@@ -4620,11 +4620,11 @@
         "agent-e5451514-b651-4192-8239-2c85f1a9212a"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-9d8c7037-819e-4234-ab38-2b62d045e5fd",
       "origin": {
@@ -4633,9 +4633,9 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-e5451514-b651-4192-8239-2c85f1a9212a",
       "startedAt": "2026-08-21T14:09:37.783Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-e5451514-b651-4192-8239-2c85f1a9212a"
     }
   ],
   "version": 5

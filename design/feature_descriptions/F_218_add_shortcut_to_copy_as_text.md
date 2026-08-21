@@ -3,7 +3,7 @@ author:
 id: F_218
 internalId: 07585a70-9a56-42b6-a98c-a64de9d68995
 title: add shortcut to copy as text
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -55,29 +55,21 @@ The same function has a second defect that matters once we touch this area. It i
 
 ## Implementation details
 
-### 1. Replace the selection serializer with our own
+### 1. Upgrade MDXEditor and use its selection serializer
 
-Add a selection-to-Markdown serializer under `app/src/components/editor/` and stop calling `MDXEditorMethods.getSelectionMarkdown` entirely. The reason for owning it rather than patching around it is that the upstream function ignores both the selection offsets and the export visitors, which are the two things that have to be correct here.
+Upgrade `@mdxeditor/editor` to `4.2.x` and align the app's direct Lexical dependencies with the version used by MDXEditor. Version 4.2 fixes partial selection serialization in `MDXEditorMethods.getSelectionMarkdown`: it trims nodes to the selection boundaries and runs them through the configured Markdown export visitors.
 
-The serializer runs inside `editor.getEditorState().read()` and works as follows:
-
-- Take the current selection. If it is not a `RangeSelection`, or it is collapsed, return an empty string. This preserves today's behavior of leaving the clipboard untouched for a collapsed selection.
-- Use `$generateJSONFromSelectedNodes` from `@lexical/clipboard` to obtain a serialized node tree that is already trimmed to the selection boundaries. This is the step that fixes the block expansion: the clipboard helper splits the boundary text nodes at the selection offsets instead of widening to the containing block.
-- Rehydrate that tree into a scratch Lexical editor created with `createEditor({ nodes })`, where `nodes` is the same node set the real editor uses (available from the realm as `usedLexicalNodes$`), using `$generateNodesFromSerializedNodes` and appending the result to the scratch root.
-- Serialize that scratch root with MDXEditor's `exportMarkdownFromLexical`, passing the realm's `exportVisitors$`, `toMarkdownExtensions$`, `toMarkdownOptions$`, `jsxComponentDescriptors$` and `jsxIsAvailable$`. Reusing the real export path is what guarantees a selected code block or table serializes exactly as it does when the whole document is written to file.
-- Trim the trailing newline that `exportMarkdownFromLexical` appends.
-
-`MarkdownPasteConfig.getSelectionMarkdown` (`app/src/components/editor/markdown_paste_cell.ts:4`) is then no longer supplied by `MarkdownEditor`; the plugin can call the new serializer directly with the Lexical editor it already holds. Remove the now-dead `getSelectionMarkdown` callback at `markdown_editor.tsx:310` and its entry in the plugin parameters at `markdown_editor.tsx:375`.
+Keep `MarkdownPasteConfig.getSelectionMarkdown` supplied by `MarkdownEditor` and use it from `MarkdownPastePlugin`. Do not maintain a separate selection-to-Markdown serializer in the app.
 
 ### 2. Collapse copy as text onto one implementation
 
 The renderer becomes the only place that produces copy-as-text content, and the main process stops touching the clipboard for this item.
 
-- Extract the plain-text production into a single function next to the serializer, used by both entry points. The shifted branch of `handleCopy` calls it instead of inlining `selection.getTextContent()`.
+- Extract the plain-text production into a single function in the clipboard plugin, used by both entry points. The shifted branch of `handleCopy` calls it instead of inlining `selection.getTextContent()`.
 - Add a main-to-renderer channel, `md2-clipboard:copy-as-text`, to `desktop/src/shell/ipc_channels.js` and to `desktop/src/shell/preload.js`. Expose it as `window.md2Clipboard.onCopyAsTextRequested(callback)`, following the existing `md2Lifecycle.onFlushRequested` pattern at `preload.js:216-224`, which returns an unsubscribe function. Declare the bridge type on the renderer side the way `app/src/services/electron_lifecycle_bridge.ts:18` declares `md2Lifecycle`.
 - Change the `Copy as Text` item in `buildEditingMenuSection` to send on that channel instead of writing the clipboard. The function's `clipboard` dependency is then unused and is removed from its signature, from `buildTextContextMenuTemplate`, and from the `registerTextContextMenu` options passed at `desktop/main.js:292`. Keep the `enabled: canCopyAsText` computation as it is — reading `params.selectionText` to decide whether the item is clickable is not a second copy implementation, it is menu state.
 - Register the renderer listener from `MarkdownPastePlugin`, so it is scoped to a mounted editor and torn down with it, alongside the existing command registrations at line 128. The listener calls the shared function and writes the result with `navigator.clipboard.writeText`. The write mechanism necessarily differs between the two entry points, because the IPC path has no `ClipboardEvent` and therefore no `clipboardData` to populate; what is shared, and what the duplication was actually about, is the function that decides what the text is.
-- When there is no Lexical range selection at the time the request arrives — the user right-clicked in a plain input or in non-editor text — the listener falls back to `window.getSelection()?.toString() ?? ''`. Without this fallback, removing the main-process write would regress copy as text outside the Markdown editor.
+- Carry `params.selectionText`, captured when the context menu opens, with the renderer request. Use it when the request did not originate from the focused Markdown editor. This preserves copy as text for plain inputs and non-editor text.
 
 There is one behavior to verify during implementation rather than assume: opening a context menu moves focus, so the implementation must confirm that Lexical's editor-state selection still describes the intended range when the IPC message arrives after the menu item is clicked. If it does not, the request must carry the selection captured at `context-menu` time instead of re-reading it on arrival.
 
@@ -98,5 +90,5 @@ Add `accelerator: 'CommandOrControl+Shift+C'` and `registerAccelerator: false` t
 - Choosing `Copy as Text` from the context menu and pressing Ctrl+Shift+C on the same selection produce byte-identical clipboard content.
 - No code in `desktop/` writes the clipboard for `Copy as Text`. `text_context_menu.js` no longer takes a `clipboard` dependency, and `buildEditingMenuSection` no longer throws its clipboard-missing error.
 - `Copy as Text` still works when the context menu is opened over text outside the Markdown editor, such as a plain input field.
-- `MDXEditorMethods.getSelectionMarkdown` is not called anywhere in `app/src`. The editor stub's `getSelectionMarkdown` and its `selectedMarkdown` heuristic (`app/src/test/mdx_editor_stub.tsx:143` and `:231`) are reworked to match the new contract rather than left describing the removed one.
+- `MDXEditorMethods.getSelectionMarkdown` is the only selection-to-Markdown implementation. No app-owned Markdown export pipeline or `selectedMarkdown` test heuristic remains.
 - `npm run typecheck` passes, and the existing clipboard tests in `app/src/components/editor/markdown_editor.test.tsx` and `desktop/src/shell/text_context_menu.test.mjs` pass after being updated to the new wiring.

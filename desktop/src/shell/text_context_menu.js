@@ -31,7 +31,7 @@ function buildEditingMenuSection(webContents, params) {
         { enabled: canCopy, role: 'copy' },
         {
             accelerator: 'CommandOrControl+Shift+C',
-            click: () => webContents.send(CLIPBOARD_COPY_AS_TEXT_CHANNEL),
+            click: () => webContents.send(CLIPBOARD_COPY_AS_TEXT_CHANNEL, params.selectionText),
             enabled: canCopyAsText,
             label: 'Copy as Text',
             registerAccelerator: false,

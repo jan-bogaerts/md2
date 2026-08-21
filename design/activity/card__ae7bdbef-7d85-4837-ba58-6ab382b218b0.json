@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "ae7bdbef-7d85-4837-ba58-6ab382b218b0",
+      "cardPath": "design/feature_descriptions/F_228_add_support_for_diagrams.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/F_228_add_support_for_diagrams.md, it references a website about a lib that can generate diagrams. can you check and determine which of these diagrams types would be useful for software development?",
+          "id": "agent-turn-a2c269e9-9cbb-41b5-baac-88ca6d890e86-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-08-21T14:15:53.933Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-c1b7cfc9-ebaf-4b88-a4cd-94c116e3c886",
+      "providerSessions": [],
+      "startedAt": "2026-08-21T14:15:53.933Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-08-21T14:15:53.933Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "ae7bdbef-7d85-4837-ba58-6ab382b218b0",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}

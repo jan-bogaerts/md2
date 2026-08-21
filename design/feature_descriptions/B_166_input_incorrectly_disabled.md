@@ -3,7 +3,7 @@ author:
 id: B_166
 internalId: 8021d46c-cb31-4111-9385-9789a43c6c71
 title: input incorrectly disabled
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

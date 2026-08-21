@@ -1,5 +1,5 @@
 export interface ElectronClipboardBridge {
-    onCopyAsTextRequested(callback: () => void): () => void
+    onCopyAsTextRequested(callback: (selectionText: string) => void): () => void
 }
 
 declare global {
