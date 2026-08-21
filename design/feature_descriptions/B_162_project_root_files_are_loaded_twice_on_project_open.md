@@ -7,6 +7,7 @@ status: ready for implementation
 owner: 
 affects:
 agents:
+  - design/activity/card__1d9ff698-58aa-4f60-bc66-7ae73831af42.json
 policy:
 after: d3078abd-23e1-4c90-8b8e-6ee6459b005f
 branch: b_162_project_root_files_are_loaded_twice_on_project_open
