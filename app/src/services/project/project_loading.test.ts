@@ -640,10 +640,36 @@ describe('ProjectLoading', () => {
 
     it('renames card files one at a time while publishing global progress', async () => {
         configService.init()
-        const storage = createStorage({loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, cardSeparator: '-' as const, projectFolder: '', pushMode: 'auto' as const, workingFolder: 'design' }))})
+        const pendingFile = { content: '# Notes', path: 'design/notes.txt' }
+        const updatedPendingFile = { ...pendingFile, content: '# Notes\n\nSaved during migration' }
+        let persistedFiles = [...storageFiles, pendingFile]
+        const commit = vi.fn<StorageService['commit']>(async (request) => {
+            const committedFilesByPath = new Map(request.files.map((file) => [file.path, file]))
+            persistedFiles = persistedFiles.map((file) => committedFilesByPath.get(file.path) ?? file)
+
+            return request.files
+        })
+        const loadProject = vi.fn(async () => ({ files: persistedFiles, workingFolder: 'design' }))
+        const storage = createStorage({
+            commit,
+            loadProject,
+            loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, cardSeparator: '-' as const, projectFolder: '', pushMode: 'auto' as const, workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: persistedFiles, workingFolder: 'design' })),
+        })
         const service = createDataService()
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        commit.mockClear()
+        loadProject.mockClear()
+        vi.mocked(storage.moveFiles).mockImplementation(async (request) => {
+            for (const move of request.moves) {
+                persistedFiles = [
+                    ...persistedFiles.filter(({ path }) => path !== move.fromPath && path !== move.toPath),
+                    { content: move.content, path: move.toPath },
+                ]
+            }
+            if (vi.mocked(storage.moveFiles).mock.calls.length === 1) service.cards.saveFile(updatedPendingFile)
+        })
         const progressStates: Array<GlobalProgress | null> = []
         const handleProgress = (event: Event) => {
             progressStates.push((event as CustomEvent<GlobalProgress | null>).detail)
@@ -671,6 +697,9 @@ describe('ProjectLoading', () => {
         expect(progressStates).toContainEqual(expect.objectContaining({ completed: 1, total: 2 }))
         expect(progressStates.at(-1)).toBeNull()
         expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' })
+        expect(commit).toHaveBeenCalledWith(expect.objectContaining({files: [updatedPendingFile]}))
+        expect(persistedFiles.find(({ path }) => path === pendingFile.path)?.content).toBe(updatedPendingFile.content)
+        expect(commit.mock.invocationCallOrder[0]).toBeLessThan(loadProject.mock.invocationCallOrder.at(-1) ?? 0)
     })
 
     it('keeps configured project states instead of deriving card states', async () => {

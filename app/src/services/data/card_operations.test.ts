@@ -128,6 +128,35 @@ describe('CardOperations', () => {
         })
     })
 
+    it('generates and persists a fresh internal ID whenever storage still lacks one', async () => {
+        configService.init()
+        const legacyFile = {
+            content: '---\nid: F-1\ntitle: Legacy\nstatus: todo\n---\n\n# Legacy',
+            path: 'design/F-1-legacy.md',
+        }
+        const storage = createStorage({
+            listRepositoryFiles: vi.fn(async () => [legacyFile.path]),
+            loadProject: vi.fn(async () => ({ files: [legacyFile], workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [legacyFile], workingFolder: 'design' })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+
+        const firstSnapshot = await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const firstInternalId = firstSnapshot.activeCards[0].header.internalId
+        vi.mocked(storage.commit).mockClear()
+        const secondSnapshot = await service.projectLoading.reloadCurrentProjectSnapshot()
+
+        expect(secondSnapshot?.activeCards[0].header.internalId).toEqual(expect.any(String))
+        expect(secondSnapshot?.activeCards[0].header.internalId).not.toBe(firstInternalId)
+        expect(storage.commit).toHaveBeenCalledOnce()
+        expect(storage.commit).toHaveBeenLastCalledWith({
+            branch: 'main',
+            files: [expect.objectContaining({ content: expect.stringContaining('internalId:'), path: legacyFile.path })],
+            message: 'Add missing card internal IDs',
+        })
+    })
+
     it('adds internal IDs to archived and released cards but leaves regular markdown untouched', async () => {
         configService.init()
         const plainFiles = [
@@ -1196,6 +1225,41 @@ describe('CardOperations', () => {
         const cards = service.getState().snapshot?.activeCards ?? []
         expect(cards.filter((card) => card.header.internalId === 'root-card').map(({ path }) => path))
             .toEqual(['design/F-1-second-rename.md'])
+    })
+
+    it('clears stale rename tracking when switching projects whose cards already have internal IDs', async () => {
+        configService.init()
+        const firstProjectFile: MarkdownFile = {
+            content: '---\nid: F-1\ninternalId: first-card\ntitle: First\nstatus: active\n---\n',
+            path: 'design/F-1-first.md',
+        }
+        const secondProjectFile: MarkdownFile = {
+            content: '---\nid: F-1\ninternalId: second-card\ntitle: Second\nstatus: active\n---\n',
+            path: firstProjectFile.path,
+        }
+        const loadProjectFiles = async (project: { id: string }) => ({
+            files: project.id === 'first' ? [firstProjectFile] : [secondProjectFile],
+            workingFolder: 'design',
+        })
+        const storage = createStorage({
+            loadProject: vi.fn(loadProjectFiles),
+            loadProjectRoot: vi.fn(loadProjectFiles),
+        })
+        const service = createDataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'first' })
+        await service.cards.updateCardTitle(firstProjectFile.path, 'Renamed First')
+        await service.projectLoading.openProject({ branch: 'main', id: 'second' })
+
+        const renamedFile = await service.cards.updateCardTitle(secondProjectFile.path, 'Renamed Second')
+
+        expect(renamedFile.path).toBe('design/F-1-renamed-second.md')
+        const latestMove = vi.mocked(storage.commit).mock.calls.at(-1)?.[0].moves?.[0]
+        expect(latestMove).toMatchObject({
+            fromPath: secondProjectFile.path,
+            toPath: 'design/F-1-renamed-second.md',
+        })
     })
 
     it('changes card type with the next configured ID and keeps the open document attached', async () => {

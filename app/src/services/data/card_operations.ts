@@ -70,7 +70,7 @@ export class CardOperations {
         this.archives = new CardArchiveOperations(this.context, triggerStateActions)
         this.attachments = new CardAttachmentOperations(this.context)
         this.renames = new CardRenameOperations(this.context)
-        this.internalIds = new CardInternalIdOperations(this.context, () => this.renames.reset())
+        this.internalIds = new CardInternalIdOperations(this.context)
         this.images = new CardImageOperations(this.context)
         this.projectFiles = new ProjectFileOperations(this.context)
     }
@@ -265,6 +265,11 @@ export class CardOperations {
 
     ensureCardInternalIds() {
         return this.internalIds.ensureCardInternalIds()
+    }
+
+    /** Drops card-operation tracking scoped to the previously open project. */
+    resetProjectTracking() {
+        this.renames.reset()
     }
 
     updateCardTitle(path: string, title: string, saveReference?: OpenDocumentSaveReference) {

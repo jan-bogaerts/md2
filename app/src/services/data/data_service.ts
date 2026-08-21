@@ -410,7 +410,12 @@ export class DataService extends EventTarget {
             migrateAgentLogReferences: () => this.migrateAgentLogReferences(),
             project: () => this.projectState.project,
             replaceFiles: (files, workingFolder) => this.projectState.replaceFiles(files, workingFolder),
-            replaceProject: (project) => this.projectState.replaceProject(project),
+            replaceProject: (project) => {
+                const currentProject = this.projectState.project
+                const projectChanged = currentProject?.id !== project?.id || currentProject?.branch !== project?.branch
+                this.projectState.replaceProject(project)
+                if (projectChanged) this.cards.resetProjectTracking()
+            },
             ensureCardInternalIds: async () => {
                 if (this.cards.ensureCardInternalIds() > 0) await this.cards.flushPendingCommits()
             },

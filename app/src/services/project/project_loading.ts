@@ -301,6 +301,7 @@ export class ProjectLoading {
             }
 
             if (config.pushMode === 'auto') await storage.push(currentProject)
+            await this.dependencies.flushPendingChanges()
             await this.reloadCurrentProjectSnapshot()
 
             return moves.length

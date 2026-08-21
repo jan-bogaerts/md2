@@ -23,13 +23,9 @@ function requiresInternalId(card: Card, workingFolder: string, releasesFolder: s
  */
 export class CardInternalIdOperations {
     private readonly context: CardOperationContext
-    private readonly onProjectChanged: () => void
-    private generatedInternalIdProjectKey: string | null = null
-    private readonly generatedInternalIdsByPath = new Map<string, string>()
 
-    constructor(context: CardOperationContext, onProjectChanged: () => void) {
+    constructor(context: CardOperationContext) {
         this.context = context
-        this.onProjectChanged = onProjectChanged
     }
 
     /** Returns how many files were queued for persistence. */
@@ -41,29 +37,18 @@ export class CardInternalIdOperations {
             requiresInternalId(card, config.workingFolder, config.releasesFolder, config.archivedFolder)
         )) : []
 
-        const projectKey = `${project.id}:${project.branch}`
-        if (projectKey !== this.generatedInternalIdProjectKey) {
-            this.generatedInternalIdProjectKey = projectKey
-            this.generatedInternalIdsByPath.clear()
-            this.onProjectChanged()
-        }
-        for (const card of cards) {
-            if (card.header.internalId) this.generatedInternalIdsByPath.delete(card.path)
-        }
         const cardsWithoutInternalId = cards.filter(({ header }) => !header.internalId)
         if (cardsWithoutInternalId.length === 0) return 0
 
         const cardsToPersist: Card[] = []
         for (const card of cardsWithoutInternalId) {
-            const generatedInternalId = this.generatedInternalIdsByPath.get(card.path)
-            const internalId = generatedInternalId ?? markdownParsingService.generateInternalId()
-            this.generatedInternalIdsByPath.set(card.path, internalId)
+            const internalId = markdownParsingService.generateInternalId()
             const updatedCard = dependencies.mutateCard(
                 card.path,
                 (currentCard) => setCardHeaderFields(currentCard, { internalId }),
                 config.workingFolder,
             )
-            if (!generatedInternalId) cardsToPersist.push(updatedCard)
+            cardsToPersist.push(updatedCard)
         }
         if (cardsToPersist.length > 0) {
             const changes = cardsToPersist.map((card) => {
