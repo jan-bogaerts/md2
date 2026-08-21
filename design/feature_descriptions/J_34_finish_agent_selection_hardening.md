@@ -9,6 +9,8 @@ affects:
 agents:
 policy:
 after: a2f851ba-744e-4b53-bc9b-33e1eaa6787a
+branch: j_34_finish_agent_selection_hardening
+worktree: 2
 ---
 
 F_216 introduced shared per-agent model and thinking-level memory, but several persistence, compatibility, and execution paths remain incomplete.
