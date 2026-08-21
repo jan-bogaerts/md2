@@ -72,12 +72,19 @@ class ClaudeUsagePoller {
         if (typeof this.onRuntimeEvent !== 'function') throw new Error('Claude usage poller requires a runtime event listener');
     }
 
-    requestPoll({ cwd = process.cwd(), env = process.env, executable } = {}) {
+    requestPoll({
+        cwd = process.cwd(),
+        env = process.env,
+        executable,
+        observedAt = this.now(),
+        onRuntimeEvent = this.onRuntimeEvent,
+    } = {}) {
         if (typeof executable !== 'string' || executable.trim().length === 0) {
             throw new Error('Claude usage poll requires an executable');
         }
         if (this.stopped) return;
-        this.pendingRequest = { cwd, env, executable };
+        if (typeof onRuntimeEvent !== 'function') throw new Error('Claude usage poll requires a runtime event listener');
+        this.pendingRequest = { cwd, env, executable, observedAt, onRuntimeEvent };
         this.schedulePendingPoll();
     }
 
@@ -117,9 +124,8 @@ class ClaudeUsagePoller {
     }
 
     async poll(request) {
-        const { cwd, env, executable } = request;
+        const { cwd, env, executable, observedAt, onRuntimeEvent } = request;
         this.lastPollStartedAt = this.now();
-        const observedAt = this.now();
         let payload = null;
         try {
             const child = this.spawn(executable, [], { cwd, env, stdio: ['pipe', 'pipe', 'pipe'] });
@@ -139,7 +145,7 @@ class ClaudeUsagePoller {
                 payload = fallback.payload;
             }
         } catch {
-            await this.onRuntimeEvent({ kind: 'unavailable', observedAt: this.now() });
+            await onRuntimeEvent({ kind: 'unavailable', observedAt });
 
             return;
         }
@@ -149,7 +155,7 @@ class ClaudeUsagePoller {
 
             return;
         }
-        await this.onRuntimeEvent({ kind: 'snapshot', observedAt, payload });
+        await onRuntimeEvent({ kind: 'snapshot', observedAt, payload });
     }
 
     /** Hands the pty attempt to a worker process, which reports usage, unavailability, or neither. */

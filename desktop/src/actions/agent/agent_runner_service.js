@@ -16,9 +16,10 @@ const {
     persistConversation,
     persistConversationCheckpoint,
 } = require('./agent_conversation_persistence');
-const { AgentExecutableResolver } = require('./agent_executable_availability');
+const { AgentExecutableResolver, executableFromCommand } = require('./agent_executable_availability');
 const { createAgentEnvironment } = require('./agent_environment');
 const { ClaudeUsagePoller } = require('./claude_usage_poller');
+const { CodexUsagePoller } = require('./codex_usage_poller');
 const { diagnoseCodexCacheError, isCodexCacheError } = require('./agent_codex_cache_diagnostic');
 const { logAgentEvent } = require('./agent_file_logger');
 const agentInteractions = require('./agent_run_interactions');
@@ -66,15 +67,24 @@ class AgentRunnerService {
             ?? persistConversation;
         this.spawn = dependencies.spawn ?? crossSpawn;
         this.executableResolver = dependencies.executableResolver ?? new AgentExecutableResolver();
-        this.claudeUsagePoller = dependencies.claudeUsagePoller
-            ?? new ClaudeUsagePoller({onRuntimeEvent: (event) => this.handleClaudeRuntimeEvent(event)});
-        this.diagnoseCodexCacheError = dependencies.diagnoseCodexCacheError ?? diagnoseCodexCacheError;
         this.clearTimeout = dependencies.clearTimeout ?? clearTimeout;
         this.setTimeout = dependencies.setTimeout ?? setTimeout;
         this.terminateProcessTree = dependencies.terminateProcessTree ?? terminateProcessTree;
+        this.claudeUsagePoller = dependencies.claudeUsagePoller
+            ?? new ClaudeUsagePoller({onRuntimeEvent: (event) => this.handleClaudeRuntimeEvent(event)});
+        this.codexUsagePoller = dependencies.codexUsagePoller
+            ?? new CodexUsagePoller({
+                onRuntimeEvent: (event) => this.handleStartupCodexRuntimeEvent(event),
+                terminateProcessTree: this.terminateProcessTree,
+            });
+        this.diagnoseCodexCacheError = dependencies.diagnoseCodexCacheError ?? diagnoseCodexCacheError;
+        this.now = dependencies.now ?? Date.now;
         this.handleFinishTimeout = this.handleFinishTimeout.bind(this);
+        this.handleStartupClaudeRuntimeEvent = this.handleStartupClaudeRuntimeEvent.bind(this);
         this.processes = new Map();
         this.runningConversationIds = new Set();
+        this.startupRefreshRequested = false;
+        this.startupRefreshStopped = false;
         this.usagePollTimer = null;
     }
 
@@ -278,9 +288,10 @@ class AgentRunnerService {
     }
 
     stopAll() {
+        this.startupRefreshStopped = true;
         this.stopUsagePollTicks();
         this.claudeUsagePoller.stop();
-        const completions = [];
+        const completions = [this.codexUsagePoller.stop()];
         for (const run of this.processes.values()) {
             run.cancelled = true;
             transitionConversationStatus(run.conversation, 'cancelled', new Date().toISOString());
@@ -289,6 +300,72 @@ class AgentRunnerService {
         }
 
         return Promise.all(completions);
+    }
+
+    /** Starts one account-wide refresh for each configured built-in provider without waiting for either result. */
+    requestStartupUsageRefresh(profiles) {
+        if (!Array.isArray(profiles)) throw new Error('Startup usage refresh requires agent profiles');
+        if (this.startupRefreshRequested || this.startupRefreshStopped) return;
+        this.startupRefreshRequested = true;
+        const environment = createAgentEnvironment(process.env);
+        const cwd = process.cwd();
+        const observedAt = this.now();
+        const startupProfiles = ['claude', 'codex']
+            .map((provider) => profiles.find(({ name }) => name === provider))
+            .filter((profile) => profile !== undefined);
+        for (const profile of startupProfiles) {
+            void this.startStartupProviderRefresh(profile, { cwd, environment, observedAt });
+        }
+    }
+
+    async startStartupProviderRefresh(profile, { cwd, environment, observedAt }) {
+        const [configuredExecutable, ...configuredArguments] = profile.command;
+        executableFromCommand(profile.command);
+        const executable = await this.executableResolver.find(configuredExecutable, { cwd, env: environment });
+        if (this.startupRefreshStopped) return;
+        if (!executable) {
+            const unavailable = { kind: 'unavailable', observedAt };
+            if (profile.name === 'claude') await this.handleStartupClaudeRuntimeEvent(unavailable);
+            else await this.handleStartupCodexRuntimeEvent(unavailable);
+            return;
+        }
+        if (profile.name === 'claude') {
+            this.claudeUsagePoller.requestPoll({
+                cwd,
+                env: environment,
+                executable,
+                observedAt,
+                onRuntimeEvent: this.handleStartupClaudeRuntimeEvent,
+            });
+            return;
+        }
+        this.codexUsagePoller.requestPoll({
+            argumentsList: configuredArguments,
+            cwd,
+            env: environment,
+            executable,
+            observedAt,
+        });
+    }
+
+    async handleStartupCodexRuntimeEvent(event) {
+        if (!this.codexRuntimeService || this.startupRefreshStopped) return;
+        if (event.kind === 'unavailable') {
+            this.codexRuntimeService.publishUnavailable(event.observedAt);
+            return;
+        }
+        const accepted = this.codexRuntimeService.publishRateLimits(event.payload, event.observedAt, false);
+        if (!accepted) this.codexRuntimeService.publishUnavailable(event.observedAt);
+    }
+
+    async handleStartupClaudeRuntimeEvent(event) {
+        if (!this.claudeRuntimeService || this.startupRefreshStopped) return;
+        if (event.kind === 'unavailable') {
+            this.claudeRuntimeService.publishUnavailable(event.observedAt);
+            return;
+        }
+        const accepted = this.claudeRuntimeService.publishRateLimits(event.payload, event.observedAt);
+        if (!accepted) this.claudeRuntimeService.publishUnavailable(event.observedAt);
     }
 
     ensureTermination(run) {

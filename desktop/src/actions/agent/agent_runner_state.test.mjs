@@ -1118,6 +1118,105 @@ describe('AgentRunnerService state handling', () => {
         });
     });
 
+    it('starts each configured built-in usage refresh once with resolved executables and sanitized environment', async () => {
+        const claudeUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };
+        const codexUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };
+        const executableResolver = { find: vi.fn(async (executable) => `C:\\tools\\${executable}.cmd`) };
+        const service = new AgentRunnerService({
+            claudeUsagePoller,
+            codexUsagePoller,
+            executableResolver,
+            now: () => 10,
+        });
+        const profiles = [
+            { command: ['claude', '--configured'], name: 'claude' },
+            { command: ['codex', '--configured'], name: 'codex' },
+            { command: ['custom'], name: 'custom' },
+        ];
+
+        service.requestStartupUsageRefresh(profiles);
+        service.requestStartupUsageRefresh(profiles);
+        await vi.waitFor(() => expect(codexUsagePoller.requestPoll).toHaveBeenCalledOnce());
+
+        expect(executableResolver.find).toHaveBeenCalledTimes(2);
+        const environment = executableResolver.find.mock.calls[0][1].env;
+        expect(environment).not.toHaveProperty('NODE_OPTIONS');
+        expect(claudeUsagePoller.requestPoll).toHaveBeenCalledWith({
+            cwd: process.cwd(),
+            env: environment,
+            executable: 'C:\\tools\\claude.cmd',
+            observedAt: 10,
+            onRuntimeEvent: service.handleStartupClaudeRuntimeEvent,
+        });
+        expect(codexUsagePoller.requestPoll).toHaveBeenCalledWith({
+            argumentsList: ['--configured'],
+            cwd: process.cwd(),
+            env: environment,
+            executable: 'C:\\tools\\codex.cmd',
+            observedAt: 10,
+        });
+    });
+
+    it('skips missing profiles and publishes unavailable for missing executables without metrics', async () => {
+        const claudeRuntimeService = { publishRateLimits: vi.fn(), publishUnavailable: vi.fn() };
+        const usageMetricsService = { recordAccountUsage: vi.fn() };
+        const claudeUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };
+        const codexUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };
+        const service = new AgentRunnerService({
+            claudeRuntimeService,
+            claudeUsagePoller,
+            codexUsagePoller,
+            executableResolver: { find: vi.fn(async () => null) },
+            now: () => 20,
+            usageMetricsService,
+        });
+
+        service.requestStartupUsageRefresh([{ command: ['claude'], name: 'claude' }]);
+        await vi.waitFor(() => expect(claudeRuntimeService.publishUnavailable).toHaveBeenCalledWith(20));
+
+        expect(claudeUsagePoller.requestPoll).not.toHaveBeenCalled();
+        expect(codexUsagePoller.requestPoll).not.toHaveBeenCalled();
+        expect(usageMetricsService.recordAccountUsage).not.toHaveBeenCalled();
+    });
+
+    it('publishes startup results without metrics and maps rejected runtime payloads to unavailable', async () => {
+        const claudeRuntimeService = { publishRateLimits: vi.fn(() => true), publishUnavailable: vi.fn() };
+        const codexRuntimeService = { publishRateLimits: vi.fn(() => false), publishUnavailable: vi.fn() };
+        const usageMetricsService = { recordAccountUsage: vi.fn() };
+        const service = new AgentRunnerService({ claudeRuntimeService, codexRuntimeService, usageMetricsService });
+        const claudePayload = { windows: [] };
+        const codexPayload = { rateLimits: {} };
+
+        await service.handleStartupClaudeRuntimeEvent({ kind: 'snapshot', observedAt: 30, payload: claudePayload });
+        await service.handleStartupCodexRuntimeEvent({ kind: 'snapshot', observedAt: 31, payload: codexPayload });
+
+        expect(claudeRuntimeService.publishRateLimits).toHaveBeenCalledWith(claudePayload, 30);
+        expect(codexRuntimeService.publishRateLimits).toHaveBeenCalledWith(codexPayload, 31, false);
+        expect(codexRuntimeService.publishUnavailable).toHaveBeenCalledWith(31);
+        expect(usageMetricsService.recordAccountUsage).not.toHaveBeenCalled();
+    });
+
+    it('stops both pollers and ignores executable resolution completing during shutdown', async () => {
+        const resolution = Promise.withResolvers();
+        const claudeUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };
+        const codexUsagePoller = { requestPoll: vi.fn(), stop: vi.fn(async () => undefined) };
+        const service = new AgentRunnerService({
+            claudeUsagePoller,
+            codexUsagePoller,
+            executableResolver: { find: vi.fn(async () => resolution.promise) },
+        });
+
+        service.requestStartupUsageRefresh([{ command: ['claude'], name: 'claude' }]);
+        const stopped = service.stopAll();
+        resolution.resolve('C:\\tools\\claude.cmd');
+        await stopped;
+        await Promise.resolve();
+
+        expect(claudeUsagePoller.stop).toHaveBeenCalledOnce();
+        expect(codexUsagePoller.stop).toHaveBeenCalledOnce();
+        expect(claudeUsagePoller.requestPoll).not.toHaveBeenCalled();
+    });
+
     it('polls Claude usage at run start, on a tick while running, and after the run closes', async () => {
         const child = new EventEmitter();
         child.pid = 43;

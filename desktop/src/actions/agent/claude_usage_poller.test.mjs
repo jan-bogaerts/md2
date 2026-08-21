@@ -109,6 +109,22 @@ describe('ClaudeUsagePoller', () => {
         poller.stop();
     });
 
+    it('uses request observation time and request-scoped runtime listener', async () => {
+        const defaultListener = vi.fn();
+        const startupListener = vi.fn();
+        const poller = new ClaudeUsagePoller({
+            onRuntimeEvent: defaultListener,
+            spawn: vi.fn(() => completedChild()),
+        });
+
+        poller.requestPoll({ executable: 'claude.cmd', observedAt: 10, onRuntimeEvent: startupListener });
+        await poller.activePoll;
+
+        expect(startupListener).toHaveBeenCalledWith(expect.objectContaining({ kind: 'snapshot', observedAt: 10 }));
+        expect(defaultListener).not.toHaveBeenCalled();
+        poller.stop();
+    });
+
     it('hands unparsed output to the worker poll and publishes the usage it reports', async () => {
         const runtimeListener = vi.fn();
         const terminalPoll = vi.fn(async () => ({ payload: TERMINAL_PAYLOAD, unavailable: false }));
@@ -158,11 +174,11 @@ describe('ClaudeUsagePoller', () => {
             expect.objectContaining({ cwd: '/first', env: firstEnvironment, executable: '/tools/first-claude' }),
             expect.objectContaining({ registerAbort: expect.any(Function) }),
         );
-        expect(poller.pendingRequest).toEqual({
+        expect(poller.pendingRequest).toEqual(expect.objectContaining({
             cwd: '/second',
             env: secondEnvironment,
             executable: '/tools/second-claude',
-        });
+        }));
         poller.stop();
     });
 

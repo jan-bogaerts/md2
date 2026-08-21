@@ -59,6 +59,7 @@ const {
 const { checkForUpdate, registerUpdateDownload } = require('./src/shell/update_service');
 const { CloseCoordinator } = require('./src/shell/close_coordinator');
 const { createManagedWindow } = require('./src/shell/window_state');
+const { createWindowWithStartupUsageRefresh } = require('./src/shell/startup_usage_refresh');
 const { ProjectStatsWorkerService } = require('./src/stats/project_stats_worker_service');
 
 const QUIT_WATCHDOG_TIMEOUT_MS = 10000;
@@ -350,7 +351,8 @@ app.whenReady().then(async () => {
     registerThemeBridge();
     const getPrimaryWindow = () => BrowserWindow.getAllWindows()[0] ?? null;
     registerUpdateDownload({ app, getWindow: getPrimaryWindow, https, ipcMain, shell });
-    createWindow();
+    const { agentProfiles } = readDesktopConfig(store);
+    createWindowWithStartupUsageRefresh({ agentProfiles, agentRunnerService, createWindow });
     void checkForUpdate({ app, getWindow: getPrimaryWindow, https });
 
     app.on('activate', () => {
