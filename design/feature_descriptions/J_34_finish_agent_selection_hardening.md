@@ -7,6 +7,7 @@ status: ready for implementation
 owner:
 affects:
 agents:
+  - design/activity/card__d3078abd-23e1-4c90-8b8e-6ee6459b005f.json
 policy:
 after: a2f851ba-744e-4b53-bc9b-33e1eaa6787a
 branch: j_34_finish_agent_selection_hardening
