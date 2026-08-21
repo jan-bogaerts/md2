@@ -1,11 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { AgentConversation, ProjectConfig, ProjectReference, StorageService } from '../../data/data_types'
 import { DEFAULT_PROJECT_CONFIG } from '../../data/data_types'
-import {
-    findStatsSourcePaths,
-    ProjectStatsService,
-    type StatsCardDescriptor,
-} from './project_stats_service'
+import { findStatsSourcePaths } from './project_stats_loader'
+import { ProjectStatsService } from './project_stats_service'
+import type { StatsCardDescriptor } from './project_stats_types'
 import { parseProjectStatsFile } from '../../../../shared/project_stats.mjs'
 
 const project: ProjectReference = { branch: 'main', id: 'project' }

@@ -1,4 +1,4 @@
-import type { StatsChartRow, StatsDataset } from '../../services/stats/project_stats_service';
+import type { StatsChartRow, StatsDataset } from '../../services/stats/project_stats_types';
 
 const CSV_COLUMNS = [
     'dataset',

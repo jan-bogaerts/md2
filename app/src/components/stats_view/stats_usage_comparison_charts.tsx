@@ -1,5 +1,5 @@
 import { Paper, Stack, Typography } from '@mui/material';
-import type { StatsChartRole, StatsChartRow } from '../../services/stats/project_stats_service';
+import type { StatsChartRole, StatsChartRow } from '../../services/stats/project_stats_types';
 import { StatsBarChart } from './stats_bar_chart';
 
 interface StatsUsageComparisonChartsProps {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { StatsChartRow } from '../../services/stats/project_stats_service';
+import type { StatsChartRow } from '../../services/stats/project_stats_types';
 import { serializeStatsCsv } from './stats_csv';
 
 function row(overrides: Partial<StatsChartRow> = {}): StatsChartRow {

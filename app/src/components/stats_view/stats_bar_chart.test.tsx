@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
-import type { StatsChartRow } from '../../services/stats/project_stats_service';
+import type { StatsChartRow } from '../../services/stats/project_stats_types';
 import { AppThemeProvider } from '../../theme/theme_provider';
 import { StatsBarChart } from './stats_bar_chart';
 import { StatsUsageComparisonCharts } from './stats_usage_comparison_charts';

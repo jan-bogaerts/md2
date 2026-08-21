@@ -1,6 +1,7 @@
 import { Box } from '@mui/material'
 import { useEffect, useMemo, useRef } from 'react'
-import { projectStatsService, type StatsCardDescriptor } from '../../services/stats/project_stats_service'
+import { projectStatsService } from '../../services/stats/project_stats_service'
+import type { StatsCardDescriptor } from '../../services/stats/project_stats_types'
 import { useProjectState } from '../hooks/use_project_state'
 import { useWorkspaceView } from '../hooks/use_workspace_view'
 import { StatsContent } from './stats_content'

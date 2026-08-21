@@ -2,13 +2,13 @@ import { Box, Button, MenuItem, Select, Stack, TextField, Typography } from '@mu
 import type { SelectChangeEvent } from '@mui/material';
 import type { ChangeEvent } from 'react';
 import { dialogService } from '../../services/dialog_service';
-import {
-    projectStatsService,
-    type ProjectStatsSnapshot,
-    type StatsChartRow,
-    type StatsControls as StatsControlValues,
-    type StatsDataset,
-} from '../../services/stats/project_stats_service';
+import { projectStatsService } from '../../services/stats/project_stats_service';
+import type {
+    ProjectStatsSnapshot,
+    StatsChartRow,
+    StatsControls as StatsControlValues,
+    StatsDataset,
+} from '../../services/stats/project_stats_types';
 import { downloadStatsCsv } from './stats_csv';
 
 interface StatsControlsProps {

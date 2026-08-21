@@ -1,5 +1,5 @@
 import { Box, Stack, Tooltip, Typography, useTheme } from '@mui/material';
-import type { StatsChartRow } from '../../services/stats/project_stats_service';
+import type { StatsChartRow } from '../../services/stats/project_stats_types';
 
 const BAR_SLOT_WIDTH = 72;
 const BUCKET_WIDTH = 112;
