@@ -11,6 +11,7 @@ branch: j_31_refactor_projectstatsservice_into_focused_modules
 worktree: 2
 agents:
   - design/activity/card__b7885271-1cd8-4927-9f68-661c0d87a61f.json
+after: a2f851ba-744e-4b53-bc9b-33e1eaa6787a
 ---
 
 `app/src/services/stats/project_stats_service.ts` combines source discovery, released-stat caching, session state, control reconciliation, time bucketing, four dataset aggregators, and presentation metadata. Split it without changing behavior.
