@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__d3078abd-23e1-4c90-8b8e-6ee6459b005f.json
 policy:
-branch: j_34_finish_agent_selection_hardening
-worktree: 2
 ---
 
 F_216 introduced shared per-agent model and thinking-level memory, but several persistence, compatibility, and execution paths remain incomplete.
