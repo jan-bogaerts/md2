@@ -22,6 +22,6 @@ account cost should be configured from where the rest is configured for the agen
 
 prices are expressed per month
 
-if we need to to keep things simple, we presume 4 weeks per month (28 days), that makes it easier.&#x20;
+if we need to do complex time calculations, we can keep things perhaps simpler if we presume 4 weeks per month (28 days), that makes it easier.&#x20;
 
 so if 100$ \= 100% account usage, 1% \= 1$
