@@ -12,7 +12,7 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 141899071
 sentryOrganization: elastetic
-after: 8021d46c-cb31-4111-9385-9789a43c6c71
+after: 2740ca78-6f46-4297-8adb-ee047283f48d
 ---
 ## Sentry issue
 

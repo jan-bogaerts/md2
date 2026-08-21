@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 06a8af54-38c9-4b9b-a9a4-bbdf563f036b
 ---
 
 I already had this several times and is ultra ultra annoying: I am typing in some text when the agent finishes (any state: waitingForInput, completed,..). this just cleans the entire input.

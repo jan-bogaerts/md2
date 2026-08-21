@@ -8,7 +8,7 @@ owner:
 affects:
 agents:
 policy:
-after: 2740ca78-6f46-4297-8adb-ee047283f48d
+after: 9b601eb4-e385-404f-9059-07823b25b6fd
 ---
 
 When a second instance is started, the app behaves a little strange at startup:
