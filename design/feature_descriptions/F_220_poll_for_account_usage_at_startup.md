@@ -3,7 +3,7 @@ author:
 id: F_220
 internalId: 2740ca78-6f46-4297-8adb-ee047283f48d
 title: poll for account usage at startup
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
