@@ -3423,7 +3423,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 63,
-          "timestamp": "2026-08-21T15:48:36.551Z"
+          "timestamp": "2026-08-21T15:48:56.120Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -3433,15 +3433,15 @@
           "agent": "codex",
           "conversationId": "01a024f8-d501-7171-998f-ea73ab2e76b7",
           "createdAt": "2026-08-21T15:42:13.117Z",
-          "lastUsedAt": "2026-08-21T15:42:13.117Z",
-          "synchronizedThroughMessageId": "agent-turn-d8316b20-c381-435f-8122-c7fb2b1687ae-turn-1-assistant-5"
+          "lastUsedAt": "2026-08-21T15:48:36.551Z",
+          "synchronizedThroughMessageId": "agent-turn-d8316b20-c381-435f-8122-c7fb2b1687ae-turn-2-assistant-2"
         }
       ],
       "startedAt": "2026-08-21T15:38:02.066Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
-        "elapsedMs": 251051,
-        "runningStartedAt": "2026-08-21T15:48:07.998Z"
+        "elapsedMs": 279604,
+        "runningStartedAt": null
       },
       "title": "review",
       "usage": {
