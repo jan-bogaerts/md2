@@ -2,7 +2,7 @@
 author: 
 id: F_233
 internalId: 2809caf7-2f00-4484-ba68-18306e01f965
-title: statst improvements
+title: stats improvements
 status: design
 owner: 
 affects:
