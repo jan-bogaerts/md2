@@ -1100,7 +1100,7 @@
         "costUsd": 2.298119
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
@@ -1131,6 +1131,42 @@
       "startedAt": "2026-08-21T12:22:38.195Z",
       "status": "cancelled",
       "rootConversationId": "agent-7a71f03b-c095-40cf-94e5-c6bd833a0dbb"
+    },
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "801b2166b2b78bfce53e19cf2de93566e36ce39b",
+          "committedAt": "2026-08-21T14:51:35+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/F_218_add_shortcut_to_copy_as_text.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 87
+        }
+      ],
+      "completedAt": "2026-08-21T12:51:35.493Z",
+      "conversationIds": [
+        "agent-7a71f03b-c095-40cf-94e5-c6bd833a0dbb"
+      ],
+      "details": {
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "ask-for-approval",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-171dfaf3-bed2-480d-8d78-a4332d2ba5ec",
+      "origin": {
+        "cardInternalId": "07585a70-9a56-42b6-a98c-a64de9d68995",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-7a71f03b-c095-40cf-94e5-c6bd833a0dbb",
+      "startedAt": "2026-08-21T12:44:31.269Z",
+      "status": "completed"
     }
   ],
   "version": 4
