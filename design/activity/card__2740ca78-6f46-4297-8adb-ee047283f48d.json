@@ -854,13 +854,50 @@
         "totalTokens": 1277696
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
     "cardInternalId": "2740ca78-6f46-4297-8adb-ee047283f48d",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "31e130b8c5e687a98756e989e004433a3076e31c",
+          "committedAt": "2026-08-21T16:17:53+02:00",
+          "deletions": 3,
+          "filePaths": [
+            "design/feature_descriptions/F_220_poll_for_account_usage_at_startup.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 29
+        }
+      ],
+      "completedAt": "2026-08-21T14:17:53.773Z",
+      "conversationIds": [
+        "agent-6305c74c-fcfe-49c7-9319-0720901cf480"
+      ],
+      "details": {
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-3625d3f4-70fc-42fb-892c-32a7bea98b91",
+      "origin": {
+        "cardInternalId": "2740ca78-6f46-4297-8adb-ee047283f48d",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-6305c74c-fcfe-49c7-9319-0720901cf480",
+      "startedAt": "2026-08-21T14:14:24.404Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
