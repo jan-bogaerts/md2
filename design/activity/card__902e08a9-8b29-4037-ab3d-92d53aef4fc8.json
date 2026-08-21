@@ -7620,7 +7620,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 133316
+        "usedTokens": 139549
       },
       "entries": [
         {
@@ -9058,6 +9058,235 @@
           "role": "assistant",
           "sequence": 107,
           "timestamp": "2026-08-21T08:27:05.631Z"
+        },
+        {
+          "content": "write a new job md file for this, put it in \\`design/feature\\_descriptions/'",
+          "id": "agent-turn-c0a7b7d0-7353-46e2-8037-9adb9e8953e2-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 108,
+          "timestamp": "2026-08-21T09:08:00.468Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-c0a7b7d0-7353-46e2-8037-9adb9e8953e2-event-109",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fb517349168175b016a881576312487d287d5e4f5e1113a79",
+          "sequence": 109,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-21T09:08:07.172Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Using technical-writer skill. Will turn review findings into concise follow-up job, matching existing feature-description format.\n\n",
+          "id": "agent-turn-c0a7b7d0-7353-46e2-8037-9adb9e8953e2-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 110,
+          "timestamp": "2026-08-21T09:08:07.672Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw '.agents/skills/technical-writer/SKILL.md'\"",
+          "content": "---\r\nname: technical-writer\r\ndescription: \"Use this agent when you need to create, improve, or maintain technical documentation including API references, user guides, SDK documentation, and getting-started guides.\"\r\ntools: Read, Write, Edit, Glob, Grep, WebFetch, WebSearch\r\nmodel: haiku\r\n---\r\n\r\nYou are a senior technical writer with expertise in creating comprehensive, user-friendly documentation. Your focus spans API references, user guides, tutorials, and technical content with emphasis on clarity, accuracy, and helping users succeed with technical products and services.\r\n\r\n\r\nWhen invoked:\r\n1. Query context manager for documentation needs and audience\r\n2. Review existing documentation, product features, and user feedback\r\n3. Analyze content gaps, clarity issues, and improvement opportunities\r\n4. Create documentation that empowers users and reduces support burden\r\n\r\nTechnical writing checklist:\r\n- Readability score > 60 achieved\r\n- Technical accuracy 100% verified\r\n- Examples provided comprehensively\r\n- Visuals included appropriately\r\n- Version controlled properly\r\n- Peer reviewed thoroughly\r\n- SEO optimized effectively\r\n- User feedback positive consistently\r\n\r\nDocumentation types:\r\n- Developer documentation\r\n- End-user guides\r\n- Administrator manuals\r\n- API references\r\n- SDK documentation\r\n- Integration guides\r\n- Best practices\r\n- Troubleshooting guides\r\n\r\nContent creation:\r\n- Information architecture\r\n- Content planning\r\n- Writing standards\r\n- Style consistency\r\n- Terminology management\r\n- Version control\r\n- Review processes\r\n- Publishing workflows\r\n\r\nAPI documentation:\r\n- Endpoint descriptions\r\n- Parameter documentation\r\n- Request/response examples\r\n- Authentication guides\r\n- Error references\r\n- Code samples\r\n- SDK guides\r\n- Integration tutorials\r\n\r\nUser guides:\r\n- Getting started\r\n- Feature documentation\r\n- Task-based guides\r\n- Troubleshooting\r\n- FAQs\r\n- Video tutorials\r\n- Quick references\r\n- Best practices\r\n\r\nWriting techniques:\r\n- Information architecture\r\n- Progressive disclosure\r\n- Task-based writing\r\n- Minimalist approach\r\n- Visual communication\r\n- Structured authoring\r\n- Single sourcing\r\n- Localization ready\r\n\r\nDocumentation tools:\r\n- Markdown mastery\r\n- Static site generators\r\n- API doc tools\r\n- Diagramming software\r\n- Screenshot tools\r\n- Version control\r\n- CI/CD integration\r\n- Analytics tracking\r\n\r\nContent standards:\r\n- Style guides\r\n- Writing principles\r\n- Formatting rules\r\n- Terminology consistency\r\n- Voice and tone\r\n- Accessibility standards\r\n- SEO guidelines\r\n- Legal compliance\r\n\r\nVisual communication:\r\n- Diagrams\r\n- Screenshots\r\n- Annotations\r\n- Flowcharts\r\n- Architecture diagrams\r\n- Infographics\r\n- Video content\r\n- Interactive elements\r\n\r\nReview processes:\r\n- Technical accuracy\r\n- Clarity checks\r\n- Completeness review\r\n- Consistency validation\r\n- Accessibility testing\r\n- User testing\r\n- Stakeholder approval\r\n- Continuous updates\r\n\r\nDocumentation automation:\r\n- API doc generation\r\n- Code snippet extraction\r\n- Changelog automation\r\n- Link checking\r\n- Build integration\r\n- Version synchronization\r\n- Translation workflows\r\n- Metrics tracking\r\n\r\n## Communication Protocol\r\n\r\n### Documentation Context Assessment\r\n\r\nInitialize technical writing by understanding documentation needs.\r\n\r\nDocumentation context query:\r\n```json\r\n{\r\n  \"requesting_agent\": \"technical-writer\",\r\n  \"request_type\": \"get_documentation_context\",\r\n  \"payload\": {\r\n    \"query\": \"Documentation context needed: product features, target audiences, existing docs, pain points, preferred formats, and success metrics.\"\r\n  }\r\n}\r\n```\r\n\r\n## Development Workflow\r\n\r\nExecute technical writing through systematic phases:\r\n\r\n### 1. Planning Phase\r\n\r\nUnderstand documentation requirements and audience.\r\n\r\nPlanning priorities:\r\n- Audience analysis\r\n- Content audit\r\n- Gap identification\r\n- Structure design\r\n- Tool selection\r\n- Timeline planning\r\n- Review process\r\n- Success metrics\r\n\r\nContent strategy:\r\n- Define objectives\r\n- Identify audiences\r\n- Map user journeys\r\n- Plan content types\r\n- Create outlines\r\n- Set standards\r\n- Establish workflows\r\n- Define metrics\r\n\r\n### 2. Implementation Phase\r\n\r\nCreate clear, comprehensive documentation.\r\n\r\nImplementation approach:\r\n- Research thoroughly\r\n- Write clearly\r\n- Include examples\r\n- Add visuals\r\n- Review accuracy\r\n- Test usability\r\n- Gather feedback\r\n- Iterate continuously\r\n\r\nWriting patterns:\r\n- User-focused approach\r\n- Clear structure\r\n- Consistent style\r\n- Practical examples\r\n- Visual aids\r\n- Progressive complexity\r\n- Searchable content\r\n- Regular updates\r\n\r\nProgress tracking:\r\n```json\r\n{\r\n  \"agent\": \"technical-writer\",\r\n  \"status\": \"documenting\",\r\n  \"progress\": {\r\n    \"pages_written\": 127,\r\n    \"apis_documented\": 45,\r\n    \"readability_score\": 68,\r\n    \"user_satisfaction\": \"92%\"\r\n  }\r\n}\r\n```\r\n\r\n### 3. Documentation Excellence\r\n\r\nDeliver documentation that drives success.\r\n\r\nExcellence checklist:\r\n- Content comprehensive\r\n- Accuracy verified\r\n- Usability tested\r\n- Feedback incorporated\r\n- Search optimized\r\n- Maintenance planned\r\n- Impact measured\r\n- Users empowered\r\n\r\nDelivery notification:\r\n\"Documentation completed. Created 127 pages covering 45 APIs with average readability score of 68. User satisfaction increased to 92% with 73% reduction in support tickets. Documentation-driven adoption increased by 45%.\"\r\n\r\nInformation architecture:\r\n- Logical organization\r\n- Clear navigation\r\n- Consistent structure\r\n- Intuitive categorization\r\n- Effective search\r\n- Cross-references\r\n- Related content\r\n- User pathways\r\n\r\nWriting excellence:\r\n- Clear language\r\n- Active voice\r\n- Concise sentences\r\n- Logical flow\r\n- Consistent terminology\r\n- Helpful examples\r\n- Visual breaks\r\n- Scannable format\r\n\r\nAPI documentation best practices:\r\n- Complete coverage\r\n- Clear descriptions\r\n- Working examples\r\n- Error handling\r\n- Authentication details\r\n- Rate limits\r\n- Versioning info\r\n- Quick start guide\r\n\r\nUser guide strategies:\r\n- Task orientation\r\n- Step-by-step instructions\r\n- Visual aids\r\n- Common scenarios\r\n- Troubleshooting tips\r\n- Best practices\r\n- Advanced features\r\n- Quick references\r\n\r\nContinuous improvement:\r\n- User feedback collection\r\n- Analytics monitoring\r\n- Regular updates\r\n- Content refresh\r\n- Broken link checks\r\n- Accuracy verification\r\n- Performance optimization\r\n- New feature documentation\r\n\r\nIntegration with other agents:\r\n- Collaborate with product-manager on features\r\n- Support developers on API docs\r\n- Work with ux-researcher on user needs\r\n- Guide support teams on FAQs\r\n- Help marketing on content\r\n- Assist sales-engineer on materials\r\n- Partner with customer-success on guides\r\n- Coordinate with legal-advisor on compliance\r\n\r\nAlways prioritize clarity, accuracy, and user success while creating documentation that reduces friction and enables users to achieve their goals efficiently.\r\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-c0a7b7d0-7353-46e2-8037-9adb9e8953e2-event-111",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw '.agents/skills/technical-writer/SKILL.md'\"",
+          "providerItemId": "exec-fa04ff2d-02e3-4684-9c42-1ba1d620bcdc",
+          "sequence": 111,
+          "status": "completed",
+          "timestamp": "2026-08-21T09:08:09.538Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-c0a7b7d0-7353-46e2-8037-9adb9e8953e2-event-112",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fb517349168175b016a88157c5f1c87d29b7354c45211c113",
+          "sequence": 112,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-21T09:08:12.450Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg --files 'design/feature_descriptions' | Sort-Object | Select-Object -Last 25; rg -n \\\"follow-up|implementation gaps|hardening|regression\\\" design/feature_descriptions -g '*.md' | Select-Object -First 30\"",
+          "content": "design/feature_descriptions\\F_144_appbar_and_toolbar_scrolling.md\r\ndesign/feature_descriptions\\F_180_add_extra_event_logging.md\r\ndesign/feature_descriptions\\F_188_add_support_ctrl_tab_in_list_view.md\r\ndesign/feature_descriptions\\F_189_add_support_to_view_all_agent_instructions.md\r\ndesign/feature_descriptions\\F_198_reconnect_websocket_incomplete.md\r\ndesign/feature_descriptions\\F_202_improve_manual_sentry_import.md\r\ndesign/feature_descriptions\\F_203_loading_total_tokens_used_takes_a_long_time.md\r\ndesign/feature_descriptions\\F_206_add_archive_to_card_popup_context_menu.md\r\ndesign/feature_descriptions\\F_210_account_limits_use_icon.md\r\ndesign/feature_descriptions\\F_212_add_files_changed_reference.md\r\ndesign/feature_descriptions\\F_213_agent_questions_allow_other_response.md\r\ndesign/feature_descriptions\\F_214_improve_support_child_threads.md\r\ndesign/feature_descriptions\\F_216_improve_agent_selection.md\r\ndesign/feature_descriptions\\F_217_approval_required_too_long.md\r\ndesign/feature_descriptions\\F_218_add_shortcut_to_copy_as_text.md\r\ndesign/feature_descriptions\\F_219_open_project_folder_first_on_electron.md\r\ndesign/feature_descriptions\\F_220_poll_for_account_usage_at_startup.md\r\ndesign/feature_descriptions\\F_221_move_token_and_change_count_to_bottom_of_chat.md\r\ndesign/feature_descriptions\\F_222_claude_account_usage_missing_on_small_screen.md\r\ndesign/feature_descriptions\\F_94_no_prefill_prompt_running_conv.md.bak\r\ndesign/feature_descriptions\\F-6-animations.md\r\ndesign/feature_descriptions\\J_28_finishing_action_very_slow.md\r\ndesign/feature_descriptions\\J_31_refactor_project_stats_service.md\r\ndesign/feature_descriptions\\J_33_second_instance_strange_behaviour.md\r\ndesign/feature_descriptions\\New Card Dialog.dc.html\r\ndesign/feature_descriptions\\B_152_disbabled_input_while_running_agent.md:39:- Dispatch one entry at time. Streaming agent receives first entry when current turn permits another message; one-shot agent starts next follow-up after current process completes. Pending structured question or approval delays dispatch, but does not prevent queueing. Remaining entries wait for later turns.\r\ndesign/feature_descriptions\\B_152_disbabled_input_while_running_agent.md:54:- Stop, Finish, failure, and terminal exit clear unsent queue. Existing initial prompt, delivered transcript, placeholder resolution, agent settings, and action-chain finalization behavior remains unchanged except finalization waits for queued follow-ups.\r\n",
+          "durationMs": 36,
+          "exitCode": 0,
+          "id": "agent-turn-c0a7b7d0-7353-46e2-8037-9adb9e8953e2-event-113",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg --files 'design/feature_descriptions' | Sort-Object | Select-Object -Last 25; rg -n \\\"follow-up|implementation gaps|hardening|regression\\\" design/feature_descriptions -g '*.md' | Select-Object -First 30\"",
+          "providerItemId": "exec-45b1eab5-45da-4740-a3e5-1c3f1a0a8b64",
+          "sequence": 113,
+          "status": "completed",
+          "timestamp": "2026-08-21T09:08:14.992Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-c0a7b7d0-7353-46e2-8037-9adb9e8953e2-event-114",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fb517349168175b016a88158141ac87d2ad46e8c85033cf83",
+          "sequence": 114,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-21T09:08:17.530Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/J_31_refactor_project_stats_service.md'; Get-Content -Raw 'design/feature_descriptions/J_33_second_instance_strange_behaviour.md'; Get-Content -Raw 'design/feature_descriptions/F_198_reconnect_websocket_incomplete.md'\"",
+          "content": "---\nauthor:\nid: J_31\ninternalId: b7885271-1cd8-4927-9f68-661c0d87a61f\ntitle: refactor ProjectStatsService into focused modules\nstatus: new\nowner:\naffects:\npolicy:\nafter: 47a847c9-cf6e-4a8a-823c-6a6b012bb21a\nbranch: j_31_refactor_projectstatsservice_into_focused_modules\nworktree: 2\nagents:\n  - design/activity/card__b7885271-1cd8-4927-9f68-661c0d87a61f.json\n---\n\n`app/src/services/stats/project_stats_service.ts` combines source discovery, released-stat caching, session state, control reconciliation, time bucketing, four dataset aggregators, and presentation metadata. Split it without changing behavior.\n\n## Current call sites\n\n* `project_loading.ts`: bind and clear project state; keep current behavior.\n* `stats_view.tsx`: open and close one viewing session; keep current behavior.\n* `stats_content.tsx`: subscribe to snapshots; keep current behavior.\n* `stats_controls.tsx`: update controls; keep current behavior.\n* Chart and CSV components: import snapshot/row types; move imports to a dedicated types module.\n* Service and component tests: preserve public behavior and coverage.\n\nNo verified call site needs different service behavior. Do not add modes or compatibility flags.\n\n## Refactor\n\n* Keep `ProjectStatsService` responsible only for lifecycle, binding, loading coordination, control updates, snapshot publication, and `EventTarget` notifications.\n* Move public stats types and constants to `project_stats_types.ts`.\n* Move UTC range/bucket logic to pure `stats_time_buckets.ts` functions.\n* Move activity, performance, usage-comparison, and totals aggregation into separate pure dataset modules.\n* Move source discovery, released-stat cache loading, and cache persistence into a focused loader owning those dependencies.\n* Build indexes by bucket and identity once per snapshot. Remove repeated full-array filtering per bucket.\n* Generate tooltip and accessibility metadata with each dataset row, not in React.\n* Update call sites directly. Do not create re-export shims or forwarding methods.\n\n## Edge cases\n\nPreserve UTC boundaries, zero-filled buckets, numeric-zero unavailable rows, stable identities/colors, canonical conversation deduplication, exclusion reasons, partial-source warnings, load cancellation, and released-stat cache writes.\n\n## Acceptance criteria\n\n* `project_stats_service.ts` contains orchestration only and has one reason to change.\n* Each extracted module owns one cohesive responsibility and is directly imported by consumers.\n* Dataset aggregation avoids bucket-count Ã— record-count scans.\n* No behavior, CSV schema, persistence schema, or public service lifecycle changes.\n* Existing focused tests, `npm run test:unit`, `npm run typecheck`, and `npm run lint` pass.\n\n## See also\n\n* `design/feature_descriptions/F_211_stats_view_improvements.md`\n* `design/feature_descriptions/J_29_investigate_and_improve_stats_load_speed.md`\n* `design/architecture/architectural_decisions.md`\n\r\n---\nauthor: \nid: J_33\ninternalId: 7f35084a-0348-4869-a764-e0ff2ff2843d\ntitle: second instance strange behaviour\nstatus: new\nowner: \naffects:\nagents:\npolicy:\nafter: 2740ca78-6f46-4297-8adb-ee047283f48d\n---\n\nWhen a second instance is started, the app behaves a little strange at startup:\n\n* screen remains blank for a long time\n* eventually, main window loads and shows no project loaded\n* when trying to load a project, the list with previously loaded folders is emptied, while when the first instance was started, there were items in the list. somehow they got lost\n\nwe need to investigate what the problem here is\r\n---\nauthor: \nid: F_198\ninternalId: f5e9bc66-ebde-41f7-ae6e-503e9e8e284a\ntitle: Reconnect websocket incomplete\nstatus: new\nowner: \naffects:\nagents:\npolicy:\nafter: 32eda264-b7f3-4c65-aee1-59dd3a2a868f\n---\n\nWhen websocket reconnects, worktree states are not correct. Ex: app thinks worktree is still dirty from previous branch. Reloading ap fixes it\r\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-c0a7b7d0-7353-46e2-8037-9adb9e8953e2-event-115",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/J_31_refactor_project_stats_service.md'; Get-Content -Raw 'design/feature_descriptions/J_33_second_instance_strange_behaviour.md'; Get-Content -Raw 'design/feature_descriptions/F_198_reconnect_websocket_incomplete.md'\"",
+          "providerItemId": "exec-438f1008-8c5e-40f1-8869-bc60bb4cdf13",
+          "sequence": 115,
+          "status": "completed",
+          "timestamp": "2026-08-21T09:08:20.437Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-c0a7b7d0-7353-46e2-8037-9adb9e8953e2-event-116",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fb517349168175b016a88158686a887d2a3e3a4b72653ad3e",
+          "sequence": 116,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-21T09:08:22.965Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n '\"'^id: J_'\"' design/feature_descriptions -g 'J_*.md' | Sort-Object\"",
+          "content": "design/feature_descriptions\\J_28_finishing_action_very_slow.md:3:id: J_28\r\ndesign/feature_descriptions\\J_31_refactor_project_stats_service.md:3:id: J_31\r\ndesign/feature_descriptions\\J_33_second_instance_strange_behaviour.md:3:id: J_33\r\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-c0a7b7d0-7353-46e2-8037-9adb9e8953e2-event-117",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n '\"'^id: J_'\"' design/feature_descriptions -g 'J_*.md' | Sort-Object\"",
+          "providerItemId": "exec-1125f86f-45d0-4ae8-9369-3f1d4e1e9017",
+          "sequence": 117,
+          "status": "completed",
+          "timestamp": "2026-08-21T09:08:24.919Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-c0a7b7d0-7353-46e2-8037-9adb9e8953e2-event-118",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fb517349168175b016a88158bb0c087d287802a01d7559b27",
+          "sequence": 118,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-21T09:08:30.200Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '[guid]::NewGuid().ToString()'",
+          "content": "d3078abd-23e1-4c90-8b8e-6ee6459b005f\r\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-c0a7b7d0-7353-46e2-8037-9adb9e8953e2-event-119",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '[guid]::NewGuid().ToString()'",
+          "providerItemId": "exec-f1cacacb-cba3-438d-8554-da314745625c",
+          "sequence": 119,
+          "status": "completed",
+          "timestamp": "2026-08-21T09:08:31.449Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-c0a7b7d0-7353-46e2-8037-9adb9e8953e2-event-120",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fb517349168175b016a881591516087d299d55d800c0bf072",
+          "sequence": 120,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-21T09:08:36.474Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Technical-writer skill drives job toward implementation-ready scope: concrete defects, required behavior, edge cases, verification; no unrelated cleanup.\n\n",
+          "id": "agent-turn-c0a7b7d0-7353-46e2-8037-9adb9e8953e2-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 121,
+          "timestamp": "2026-08-21T09:08:37.276Z"
+        },
+        {
+          "content": "add: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\design\\feature_descriptions\\J_34_finish_agent_selection_hardening.md",
+          "deletions": 0,
+          "id": "agent-turn-c0a7b7d0-7353-46e2-8037-9adb9e8953e2-event-122",
+          "insertions": 59,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-7f13522e-b953-44e4-8528-a2634ccec2ba",
+          "sequence": 122,
+          "status": "completed",
+          "timestamp": "2026-08-21T09:08:56.519Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-c0a7b7d0-7353-46e2-8037-9adb9e8953e2-event-123",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fb517349168175b016a8815aa1ad487d2aa0c1583c33758a9",
+          "sequence": 123,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-21T09:08:58.065Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/J_34_finish_agent_selection_hardening.md'; git status --short -- 'design/feature_descriptions/J_34_finish_agent_selection_hardening.md'\"",
+          "content": "---\nauthor:\nid: J_34\ninternalId: d3078abd-23e1-4c90-8b8e-6ee6459b005f\ntitle: finish agent selection hardening\nstatus: new\nowner:\naffects:\nagents:\npolicy:\nafter: 902e08a9-8b29-4037-ab3d-92d53aef4fc8\n---\n\nF_216 introduced shared per-agent model and thinking-level memory, but several persistence, compatibility, and execution paths remain incomplete.\n\n## Fixes\n\n* Use migration-aware activity parsing at every activity-file boundary. Existing version-4 files must load and migrate for action history, conversations, card settings, release operations, GitHub storage, activity updates, and token usage. Do not require a prior write or repair pass.\n* Keep non-card agent selections for the renderer session. Project, folder, regular-file, and merge-conflict popup close/reopen cycles must reuse a stable store keyed by action and context. Clear these stores when project identity changes.\n* Keep shared permission mode in selection memory, but omit it from flat execution input for agents that do not support permission modes. Custom-agent popup runs must not fail because another agent's shared permission choice is present.\n* Reject profile default thinking levels unsupported by that profile. Custom profiles without a thinking-level adapter may use only `none` unless explicit profile capability support is added.\n* Normalize legacy agent profiles before strict validation wherever desktop config enters the renderer or host, including remote-desktop config. Profiles missing `defaultThinkingLevel` migrate to `none`.\n* Keep unavailable remembered agents, models, and thinking levels visible in config, global controls, and action-popup submenus. Mark them unavailable and surface the existing validation error; never silently replace or hide them.\n* Register `actionAgentSelectionDraftService` with the service injector, following singleton-service architecture.\n* Remove duplicated hard-coded desktop selection fallback. Use one exported canonical default.\n\n## Compatibility and failure behavior\n\n* Version-4 activity migration preserves active agent, model, thinking level, permission mode, conversations, records, and origin.\n* Migration participates in existing queued read-modify-write activity updates and must not introduce unqueued rewrites or lost concurrent changes.\n* Stored invalid or unavailable remembered values remain unchanged until user edits them.\n* Persistence and migration failures continue through `dialogService`; affected actions remain safely disabled when settings cannot be resolved.\n* Conversation selection must not change selection scope or copy settings between actions or cards.\n\n## Tests\n\nAdd regression coverage for:\n\n* Real version-4 files loaded through every production consumer, not only direct migration helpers.\n* Version-4 activity updated concurrently after migration.\n* Non-card popup settings restored after close/reopen and cleared after project change.\n* Custom-agent execution with retained shared permission mode.\n* Rejection of unsupported custom-profile thinking defaults.\n* Remote config containing legacy profiles without `defaultThinkingLevel`.\n* Unavailable remembered values remaining visible with validation errors.\n\n## Acceptance criteria\n\n* All F_216 acceptance criteria pass through production entry points.\n* Existing version-4 activity and legacy desktop config load without data loss.\n* Built-in and custom agents receive only supported flat execution settings.\n* Card memory persists per card/action; non-card memory persists for renderer session only.\n* Shared selection code remains single source for transitions, defaults, validation, and projection.\n* `npm run typecheck`, `npm run lint`, affected tests, app full tests, and desktop full tests pass.\n\n## See also\n\n* `design/feature_descriptions/F_216_improve_agent_selection.md`\n* `design/architecture/architectural_decisions.md`\n\r\nwarning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\nwarning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\n?? design/feature_descriptions/J_34_finish_agent_selection_hardening.md\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-c0a7b7d0-7353-46e2-8037-9adb9e8953e2-event-124",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/J_34_finish_agent_selection_hardening.md'; git status --short -- 'design/feature_descriptions/J_34_finish_agent_selection_hardening.md'\"",
+          "providerItemId": "exec-4551ea00-0394-4424-ab05-8ff3f5dcfa70",
+          "sequence": 124,
+          "status": "completed",
+          "timestamp": "2026-08-21T09:09:00.297Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "agent": "codex",
+          "content": "Created [J_34_finish_agent_selection_hardening.md](C:/Users/janbo/Documents/dev/md2_workers/dev1/design/feature_descriptions/J_34_finish_agent_selection_hardening.md). Covers all review findings, edge cases, architecture fixes, tests, acceptance criteria.\n\n",
+          "id": "agent-turn-c0a7b7d0-7353-46e2-8037-9adb9e8953e2-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 125,
+          "timestamp": "2026-08-21T09:09:03.409Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -9072,21 +9301,21 @@
         }
       ],
       "startedAt": "2026-08-20T19:31:33.272Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "elapsedMs": 726405,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-08-21T09:08:00.468Z"
       },
       "title": "review",
       "usage": {
-        "cachedInputTokens": 3333888,
-        "inputTokens": 153289,
-        "outputTokens": 6710,
-        "reasoningTokens": 4473,
-        "totalTokens": 3498360
+        "cachedInputTokens": 4295424,
+        "inputTokens": 285783,
+        "outputTokens": 8347,
+        "reasoningTokens": 4914,
+        "totalTokens": 4594468
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -9185,11 +9414,11 @@
         "agent-758257bd-1d81-489d-8780-1354937eed2d"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-8bbd1603-0eeb-4c8d-83d6-8a5ada0cb288",
       "origin": {
@@ -9198,9 +9427,9 @@
       },
       "rootActionId": "32eceaf6-37d1-48b4-9bc1-c3f051eb7d8e",
       "rootActionLabel": "review",
-      "rootConversationId": "agent-758257bd-1d81-489d-8780-1354937eed2d",
       "startedAt": "2026-08-20T19:31:33.270Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-758257bd-1d81-489d-8780-1354937eed2d"
     }
   ],
   "version": 4
