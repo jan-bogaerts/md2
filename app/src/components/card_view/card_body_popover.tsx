@@ -22,7 +22,7 @@ import { CardCommitDiffPanel } from './card_commit_diff_panel'
 import { useCardCommits } from '../hooks/use_card_commits'
 import type { CardCommit } from '../../services/actions/card_commit_history'
 import { openFilesService } from '../../services/open_files_service'
-import { getProjectCard, useCardConversations, useCardMetadata } from './use_project_card'
+import { useCardConversations, useCardMetadata } from './use_project_card'
 import { useDialogError } from '../hooks/use_dialog_error'
 import { dialogService } from '../../services/dialog_service'
 import { isWorktreeIntegratable, worktreeService } from '../../services/project/worktree_service'
@@ -113,7 +113,7 @@ function CardBodyPopoverEntry(props: CardBodyPopoverEntryProps) {
         visible,
     } = props
     const readOnly = useProjectReadOnly()
-    const { cardPath, diffSelection } = entry
+    const { cardInternalId, cardPath, diffSelection } = entry
     const anchorElement = entry.anchorElement.isConnected ? entry.anchorElement : entry.fallbackAnchorElement
     const card = useCardMetadata(cardPath)
     const activity = useCardConversations(cardPath)
@@ -152,9 +152,8 @@ function CardBodyPopoverEntry(props: CardBodyPopoverEntryProps) {
     useDialogError(missingCardIdentityError, 'Card details could not be opened')
 
     useEffect(() => {
-        if (!cardPath) return
-        if (!cardIdentity) return
-        const currentCard = getProjectCard(cardPath)
+        const currentCard = dataService.getState().snapshot?.activeCards
+            .find(({ header }) => header.internalId === cardInternalId)
         if (!currentCard) return
 
         const document = openFilesService.openBoardDocument(currentCard)
@@ -165,7 +164,7 @@ function CardBodyPopoverEntry(props: CardBodyPopoverEntryProps) {
             historyStore.discardDocument(document)
             openFilesService.closeBoardDocument(document)
         }
-    }, [cardIdentity, cardPath, dataSource, historyStore])
+    }, [cardInternalId, dataSource, historyStore])
 
     useEffect(() => () => {
         historyStore.clear()

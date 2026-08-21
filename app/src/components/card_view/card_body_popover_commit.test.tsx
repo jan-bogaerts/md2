@@ -1,12 +1,14 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { DEFAULT_CARD_TYPES, type Card, type WorktreeRecord } from '../../data/data_types'
 import { openFilesService } from '../../services/open_files_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { CARD_BODY_POPOVER_SIZE_KEY, CardBodyPopover } from './card_body_popover'
-import { dataService } from '../../services/data/data_service'
+import { CARD_PATH_CHANGED_EVENT, dataService, type CardPathChangedEventDetail } from '../../services/data/data_service'
 import { cardPopupService } from '../../services/card_popup_service'
 import { worktreeService } from '../../services/project/worktree_service'
+import { actionService } from '../../services/actions/action_service'
+import { CardMarkdownDataSource } from '../editor/card_markdown_data_source'
 
 vi.mock('../hooks/use_card_commits', () => ({
     useCardCommits: () => ({
@@ -252,6 +254,64 @@ describe('CardBodyPopover commit diff', () => {
 
         expect(openBoardDocument).toHaveBeenCalledOnce()
         expect(closeBoardDocument).not.toHaveBeenCalled()
+    })
+
+    it('keeps clean card body bound while a title rename changes its path', async () => {
+        const renamedCard = {
+            ...card,
+            content: '# Renamed card\n\nBody',
+            header: { ...card.header, title: 'Renamed card' },
+            path: 'design/F-060-renamed-card.md',
+        }
+        let activeCards = [card]
+        vi.spyOn(dataService, 'getState').mockImplementation(() => ({
+            project: null,
+            runningAgents: [],
+            snapshot: { activeCards, backgroundCards: [], repositoryFiles: [], workingFolder: 'design' },
+        }))
+        openFilesService.init({ actionService, dataService })
+        const anchorElement = document.body.appendChild(document.createElement('button'))
+        const setBoardDocument = vi.spyOn(CardMarkdownDataSource.prototype, 'setBoardDocument')
+        cardPopupService.toggleCardDetails(card.header.internalId!, card.path, anchorElement)
+        render(
+            <AppThemeProvider>
+                <CardBodyPopover
+                    cardTypes={DEFAULT_CARD_TYPES}
+                    isMobile={false}
+                    onDeleteCard={vi.fn(async () => undefined)}
+                    onOpenAffects={vi.fn()}
+                    onOpenInFileMode={vi.fn()}
+                    states={states}
+                    statusColors={new Map()}
+                    visible
+                />
+            </AppThemeProvider>,
+        )
+        const cardDocument = openFilesService.findDocument(card)
+        if (!cardDocument || cardDocument.kind !== 'card') throw new Error('Expected open card document')
+
+        expect(cardDocument.dirty).toBe(false)
+        expect(setBoardDocument).toHaveBeenCalledOnce()
+
+        activeCards = [renamedCard]
+        act(() => {
+            dataService.dispatchEvent(new Event('changed'))
+            const detail: CardPathChangedEventDetail = { fromPath: card.path, toPath: renamedCard.path }
+            dataService.dispatchEvent(new CustomEvent(CARD_PATH_CHANGED_EVENT, { detail }))
+        })
+
+        await waitFor(() => expect(screen.getByRole('dialog', { name: 'F-060 card details' })).toBeInTheDocument())
+        expect(openFilesService.findDocument(renamedCard)).toBe(cardDocument)
+        expect(cardDocument.path).toBe(renamedCard.path)
+        expect(cardDocument.getDraft().content).toBe(renamedCard.content)
+        expect(setBoardDocument).toHaveBeenCalledOnce()
+        expect(setBoardDocument).not.toHaveBeenCalledWith(null)
+
+        fireEvent.click(screen.getByRole('button', { name: 'Close card details' }))
+
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'F-060 card details' })).not.toBeInTheDocument())
+        expect(setBoardDocument).toHaveBeenCalledWith(null)
+        expect(openFilesService.findDocument(renamedCard)).toBeNull()
     })
 
     it('uses the first Escape to exit diff and the second to close the popover', () => {
