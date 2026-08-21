@@ -1333,11 +1333,11 @@
         "agent-7a471b4b-02e1-4db5-97f9-15cb74fd96db"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-056893da-1f24-4fe8-94a3-53df5d3e6ba1",
       "origin": {
@@ -1346,9 +1346,36 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-7a471b4b-02e1-4db5-97f9-15cb74fd96db",
       "startedAt": "2026-08-21T12:42:05.929Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-7a471b4b-02e1-4db5-97f9-15cb74fd96db"
+    },
+    {
+      "commits": [
+        {
+          "commit": "a795488a3f373f0dbc3c7d4a05ecc1b7eb7275e2",
+          "committedAt": "2026-08-21T14:53:06+02:00",
+          "deletions": 21,
+          "filePaths": [
+            "app/src/services/data/card_internal_id_operations.ts",
+            "app/src/services/data/card_operations.test.ts",
+            "app/src/services/data/card_operations.ts",
+            "app/src/services/data/data_service.ts",
+            "app/src/services/project/project_loading.test.ts",
+            "app/src/services/project/project_loading.ts"
+          ],
+          "filesChanged": 6,
+          "insertions": 110,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-21T14:53:06+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "4aff5203-e00a-42bb-9c0c-55d2a77c2e57",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
