@@ -2412,11 +2412,11 @@
         "agent-a8cf1f12-1d04-481b-afc7-3498c081175c"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-53c71c1e-507b-4e24-b78e-53f3b43ee11e",
       "origin": {
@@ -2425,9 +2425,36 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-a8cf1f12-1d04-481b-afc7-3498c081175c",
       "startedAt": "2026-08-21T12:13:39.195Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-a8cf1f12-1d04-481b-afc7-3498c081175c"
+    },
+    {
+      "commits": [
+        {
+          "commit": "62540769d239b40cbb1c2b034db2dd82e91771a0",
+          "committedAt": "2026-08-21T14:26:29+02:00",
+          "deletions": 6,
+          "filePaths": [
+            "app/src/services/data/remote_connection_service.ts",
+            "app/src/services/data/remote_control_storage_service.node.test.ts",
+            "app/src/services/data/remote_control_storage_service.ts",
+            "app/src/services/project/project_session_service.test.ts",
+            "desktop/src/integrations/remote_control_service.js",
+            "desktop/src/integrations/remote_control_service.test.mjs"
+          ],
+          "filesChanged": 6,
+          "insertions": 198,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-21T14:26:29+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "a2f851ba-744e-4b53-bc9b-33e1eaa6787a",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
