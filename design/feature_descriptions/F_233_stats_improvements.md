@@ -52,9 +52,9 @@ policy:
 
 Add `performanceAggregation: 'average' | 'averageWithDeviation' | 'median' | 'sum'` to `StatsControls`, defaulting to **`'average'`** in `INITIAL_CONTROLS` so existing bars do not change meaning. Render a new `Select` in `stats_controls.tsx` immediately after the performance "Metric" select, labelled `Aggregation`, with items: `Sum`, `Average`, `Average ± std dev`, `Median`.
 
-- Average is per conversation run (divide by `sampleCount`), which is what `groupRow` does today.
-- `averageWithDeviation` uses the same bar value as `average`, plus the **population standard deviation** of the group's `metricValue`s (spread around the mean, in the same units as the metric).
-- Median = middle value of the sorted group; even counts average the two middle values.
+* Average is per conversation run (divide by `sampleCount`), which is what `groupRow` does today.
+* `averageWithDeviation` uses the same bar value as `average`, plus the **population standard deviation** of the group's `metricValue`s (spread around the mean, in the same units as the metric).
+* Median \= middle value of the sorted group; even counts average the two middle values.
 
 Compute all of this in `groupRow`, keeping the single pass over `groupSamples`. Add one nullable field `deviation: number | null` to `StatsChartRow` (null for every row except `averageWithDeviation` performance rows) and default it to `null` in `emptyTimeRow`. Add it plus an `aggregation` column to the CSV in `stats_csv.ts`.
 
@@ -72,28 +72,32 @@ Give each chart heading in `stats_usage_comparison_charts.tsx` the sticky treatm
 
 Add one module, `app/src/services/stats/stats_tooltip.ts`, exporting a `statsTooltip(lines)` helper that renders `label: value` pairs joined by newlines, plus small formatters:
 
-- `formatBucketRange(context)` → the existing local `localLabel` only; **drop the raw UTC ISO interval** from every tooltip. Append the short local time-zone name once (from `Intl.DateTimeFormat().resolvedOptions().timeZone`) so the reader knows the times are local.
-- `formatTimestamp(iso)` → medium local date + short local time, used for `resetsAt`.
-- `formatWindow(minutes)` → human text (`10080` → `7 days`).
-- `formatCount(value)` → `Intl.NumberFormat` with at most 2 fraction digits.
+* `formatBucketRange(context)` → the existing local `localLabel` only; **drop the raw UTC ISO interval** from every tooltip. Append the short local time-zone name once (from `Intl.DateTimeFormat().resolvedOptions().timeZone`) so the reader knows the times are local.
+* `formatTimestamp(iso)` → medium local date + short local time, used for `resetsAt`.
+* `formatWindow(minutes)` → human text (`10080` → `7 days`).
+* `formatCount(value)` → `Intl.NumberFormat` with at most 2 fraction digits.
 
 Then rewrite each tooltip producer to emit labelled lines instead of a semicolon run-on. Target shapes:
 
 *Account usage* (`accountSeriesRow`):
 
-    Mon 21 Aug 2026, 02:00 – Tue 22 Aug 2026, 02:00 (Europe/Brussels)
-    Provider: claude · Limit: default · Window: weekly (7 days)
-    Used this period: 26.42% of the weekly limit
-    Limit resets: Sun 23 Aug 2026, 17:00
+```
+Mon 21 Aug 2026, 02:00 – Tue 22 Aug 2026, 02:00 (Europe/Brussels)
+Provider: claude · Limit: default · Window: weekly (7 days)
+Used this period: 26.42% of the weekly limit
+Limit resets: Sun 23 Aug 2026, 17:00
+```
 
 Percentage points are shown as a percentage of that window's quota. When several reset times fall in one bucket, list the earliest and note `(+N more)`. When `available` is false, keep a single "percentage-point delta unavailable" line.
 
 *Tokens per percent account usage* (`ratioSeriesRow`):
 
-    Mon 21 Aug 2026, 02:00 – Tue 22 Aug 2026, 02:00 (Europe/Brussels)
-    Provider: codex · Limit: codex · Window: primary
-    1,016,186 project tokens per 1% of account limit used
-    Project tokens: 84,343,454 · Account limit used: 83%
+```
+Mon 21 Aug 2026, 02:00 – Tue 22 Aug 2026, 02:00 (Europe/Brussels)
+Provider: codex · Limit: codex · Window: primary
+1,016,186 project tokens per 1% of account limit used
+Project tokens: 84,343,454 · Account limit used: 83%
+```
 
 Round the ratio for display; the CSV keeps the unrounded `value`. Apply the same treatment to *Actions per percent account usage*, *Project token usage*, *Project activity*, the performance tooltip (which must now also name the aggregation: `Average duration per run`, `Median tool calls per run`, `Total tokens`, plus an extra `Std dev: …` line for `averageWithDeviation`), and `emptyTimeRow` / `unavailableTimeRow`.
 
@@ -113,17 +117,17 @@ Extend `project_stats_service.node.test.ts` for the four aggregations (including
 
 ## Acceptance criteria
 
-- Agent/model performance shows an `Aggregation` select next to `Metric` with `Sum`, `Average`, `Average ± std dev`, and `Median`; it defaults to `Average`, and `Average` reproduces exactly today's bar values.
-- `Sum` shows per-group totals; `Median` shows the middle run; `Average ± std dev` shows the mean bar with a centred vertical whisker spanning one population standard deviation either side, and the chart's vertical scale accommodates the upper cap.
-- The performance tooltip names the aggregation and the metric explicitly (e.g. "Average duration per run"), so no bar's meaning has to be guessed.
-- Numeric labels above bars are no longer truncated to bar width: they render fully, centred on their bar, growing in both directions, clipped only at the chart panel's edge.
-- Long labels never block hovering the bar underneath or beside them.
-- In "Project usage vs account usage", each chart's heading and legend stay pinned at the left edge while scrolling horizontally.
-- No tooltip in the stats view contains a raw ISO-8601 timestamp or a duplicated date range. Every date and time is locale-formatted local time, with the time zone stated once per tooltip.
-- Every tooltip is a labelled multi-line list; no semicolon run-on strings remain.
-- "Percentage points" no longer appears unexplained: account usage and ratio tooltips express it as a percentage of the named limit window's quota.
-- Ratios in tooltips are rounded for display; the exported CSV keeps full precision.
-- The "Project token usage" chart states whether it shows totals or per-action averages, and a `Token values` select switches between them; the average divides bucket tokens by that provider's completed actions in the same bucket.
-- The performance action filter includes all actions when empty and narrows bars plus sample counts when a subset is chosen.
-- Exported CSV gains `aggregation` and `deviation` columns; existing columns and their order are unchanged.
-- `npm run typecheck` passes and the stats test suites pass.
+* Agent/model performance shows an `Aggregation` select next to `Metric` with `Sum`, `Average`, `Average ± std dev`, and `Median`; it defaults to `Average`, and `Average` reproduces exactly today's bar values.
+* `Sum` shows per-group totals; `Median` shows the middle run; `Average ± std dev` shows the mean bar with a centred vertical whisker spanning one population standard deviation either side, and the chart's vertical scale accommodates the upper cap.
+* The performance tooltip names the aggregation and the metric explicitly (e.g. "Average duration per run"), so no bar's meaning has to be guessed.
+* Numeric labels above bars are no longer truncated to bar width: they render fully, centred on their bar, growing in both directions, clipped only at the chart panel's edge.
+* Long labels never block hovering the bar underneath or beside them.
+* In "Project usage vs account usage", each chart's heading and legend stay pinned at the left edge while scrolling horizontally.
+* No tooltip in the stats view contains a raw ISO-8601 timestamp or a duplicated date range. Every date and time is locale-formatted local time, with the time zone stated once per tooltip.
+* Every tooltip is a labelled multi-line list; no semicolon run-on strings remain.
+* "Percentage points" no longer appears unexplained: account usage and ratio tooltips express it as a percentage of the named limit window's quota.
+* Ratios in tooltips are rounded for display; the exported CSV keeps full precision.
+* The "Project token usage" chart states whether it shows totals or per-action averages, and a `Token values` select switches between them; the average divides bucket tokens by that provider's completed actions in the same bucket.
+* The performance action filter includes all actions when empty and narrows bars plus sample counts when a subset is chosen.
+* Exported CSV gains `aggregation` and `deviation` columns; existing columns and their order are unchanged.
+* `npm run typecheck` passes and the stats test suites pass.
