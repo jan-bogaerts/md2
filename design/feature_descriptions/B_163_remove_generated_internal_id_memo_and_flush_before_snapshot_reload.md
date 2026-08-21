@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 07585a70-9a56-42b6-a98c-a64de9d68995
 ---
 
 `CardInternalIdOperations` keeps a per-path memo of internal IDs it generated but has not yet persisted. The memo exists to make repeated identity sweeps produce a stable ID for a path whose write has not reached disk yet. That window should not exist in the first place. Remove the memo and close the window by flushing pending writes before the snapshot is re-read from storage.
