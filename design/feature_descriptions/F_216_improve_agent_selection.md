@@ -3,7 +3,7 @@ author:
 id: F_216
 internalId: 902e08a9-8b29-4037-ab3d-92d53aef4fc8
 title: improve agent selection
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
