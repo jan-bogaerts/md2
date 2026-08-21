@@ -9,5 +9,8 @@ affects:
 agents:
 policy:
 ---
-
 shortcut: shift + ctrl + c
+
+
+
+also: currently, when copying as markdown, we always seem to take the full line, not the selected text. this also needs to be fixed
