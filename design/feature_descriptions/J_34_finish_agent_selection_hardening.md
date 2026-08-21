@@ -3,7 +3,7 @@ author:
 id: J_34
 internalId: d3078abd-23e1-4c90-8b8e-6ee6459b005f
 title: finish agent selection hardening
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:

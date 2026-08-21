@@ -3,7 +3,7 @@ author:
 id: B_162
 internalId: 1d9ff698-58aa-4f60-bc66-7ae73831af42
 title: project root files are loaded twice on project open
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
