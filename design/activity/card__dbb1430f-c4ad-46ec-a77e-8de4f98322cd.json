@@ -4823,15 +4823,15 @@
           "agent": "codex",
           "conversationId": "01a02512-fbc3-7a82-9804-05c6616a213d",
           "createdAt": "2026-08-21T16:08:48.338Z",
-          "lastUsedAt": "2026-08-21T17:50:24.763Z",
-          "synchronizedThroughMessageId": "agent-turn-84db4a85-a40a-423b-bd3e-7a67e67a7fb2-turn-4-assistant-3"
+          "lastUsedAt": "2026-08-21T17:53:57.301Z",
+          "synchronizedThroughMessageId": "agent-turn-84db4a85-a40a-423b-bd3e-7a67e67a7fb2-turn-5-assistant-4"
         }
       ],
       "startedAt": "2026-08-21T16:06:36.003Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
-        "elapsedMs": 1109048,
-        "runningStartedAt": "2026-08-21T17:51:33.774Z"
+        "elapsedMs": 1252575,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usage": {
