@@ -3,12 +3,14 @@ author:
 id: B_162
 internalId: 1d9ff698-58aa-4f60-bc66-7ae73831af42
 title: project root files are loaded twice on project open
-status: new
+status: ready for implementation
 owner: 
 affects:
 agents:
 policy:
-after: 93f10274-10fd-48a2-9c07-bf50b9f970c8
+after: d3078abd-23e1-4c90-8b8e-6ee6459b005f
+branch: b_162_project_root_files_are_loaded_twice_on_project_open
+worktree: 3
 ---
 
 Opening a project reads every active card file from storage twice. The second read is redundant work on every project open, and it grows with the size of the working folder.
