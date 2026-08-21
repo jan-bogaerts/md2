@@ -10,4 +10,4 @@ agents:
 policy:
 after: e04c89e9-d394-435f-8f13-7d4bb9e942ff
 ---
-
+first noticed while on connected through websocket to electron with using an android (small screen), claude account usage was not on the hamburger menu. But when connected over websockets using a browser, so large screen, but still remote, claude-account-usage is also missing on the status bar, yet in the electron environment (so react in electron renderer), is showing claude-account-status. so something is not transmitted over websockets perhaps?
