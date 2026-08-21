@@ -4282,11 +4282,11 @@
         "agent-5b11a7b7-07fd-47d0-860e-7bcfbdde637a"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-9c803512-28f0-4625-bb57-0c5e6e9e9bef",
       "origin": {
@@ -4295,9 +4295,65 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-5b11a7b7-07fd-47d0-860e-7bcfbdde637a",
       "startedAt": "2026-08-21T09:06:32.399Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-5b11a7b7-07fd-47d0-860e-7bcfbdde637a"
+    },
+    {
+      "commits": [
+        {
+          "commit": "2f391e2312244e30d5dd0a731cff75b05c48b471",
+          "committedAt": "2026-08-21T14:13:17+02:00",
+          "deletions": 400,
+          "filePaths": [
+            "app/src/components/actions/agent/action_agent_prompt.test.tsx",
+            "app/src/components/actions/agent/action_agent_prompt.tsx",
+            "app/src/components/actions/agent/action_agent_prompt_owner.tsx",
+            "app/src/components/actions/conversation/action_conversation_chat.test.tsx",
+            "app/src/components/actions/conversation/action_conversation_chat.tsx",
+            "app/src/components/actions/conversation/action_conversation_chat_owner.tsx",
+            "app/src/components/actions/conversation/action_queued_prompt.tsx",
+            "app/src/components/actions/editor/action_phrase_buttons_owner.tsx",
+            "app/src/components/actions/run/popup/action_popup.test.tsx",
+            "app/src/components/actions/run/popup/action_popup_bottom_row.tsx",
+            "app/src/components/actions/run/popup/action_popup_operations.node.test.ts",
+            "app/src/components/actions/run/popup/action_popup_operations.ts",
+            "app/src/components/actions/run/popup/action_popup_run_disabled.ts",
+            "app/src/data/action_run_types.ts",
+            "app/src/data/electron_action_bridge.ts",
+            "app/src/services/actions/action_prompt_draft_service.node.test.ts",
+            "app/src/services/actions/action_prompt_draft_service.ts",
+            "app/src/services/actions/action_run_registry.node.test.ts",
+            "app/src/services/actions/action_run_registry.ts",
+            "app/src/services/data/remote_control_storage_service.node.test.ts",
+            "app/src/services/data/remote_control_storage_service.ts",
+            "desktop/src/actions/action/action_agent_executor.js",
+            "desktop/src/actions/action/action_run.js",
+            "desktop/src/actions/action/action_run.test.mjs",
+            "desktop/src/actions/action/action_runner_service.js",
+            "desktop/src/actions/agent/agent_run_interactions.js",
+            "desktop/src/actions/agent/agent_run_state.js",
+            "desktop/src/actions/agent/agent_run_validation.js",
+            "desktop/src/actions/agent/agent_run_validation.test.mjs",
+            "desktop/src/actions/agent/agent_runner_service.js",
+            "desktop/src/actions/agent/agent_runner_state.test.mjs",
+            "desktop/src/actions/agent/agent_streaming_event_handlers.js",
+            "desktop/src/shell/local_bridge_dispatch.js",
+            "desktop/src/shell/local_bridge_dispatch.test.mjs",
+            "desktop/src/shell/preload.js"
+          ],
+          "filesChanged": 35,
+          "insertions": 729,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-21T14:13:17+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "038937d3-b99c-4dfd-b1da-76c906c5c31c",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 4
