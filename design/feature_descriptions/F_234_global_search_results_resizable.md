@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__56bd50ce-b28c-4eb4-83cb-1951221f7864.json
 policy:
+branch: f_234_global_search_results_resizable
+worktree: 1
 ---
 
 the global search results popup is currently not resizable. it should be. we already have a couple of resizable popup that all use the same base component. perhaps we can use this again?
