@@ -3,7 +3,7 @@ author:
 id: F_233
 internalId: 2809caf7-2f00-4484-ba68-18306e01f965
 title: stats improvements
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

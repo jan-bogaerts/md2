@@ -2401,12 +2401,20 @@
       ],
       "hasExplicitTitle": true,
       "id": "agent-154ba410-ff14-4f19-b8fb-2c2e84118259",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a0257d-ade2-7d02-a29e-430e15d4bbeb",
+          "createdAt": "2026-08-21T18:05:50.196Z",
+          "lastUsedAt": "2026-08-21T18:05:50.196Z",
+          "synchronizedThroughMessageId": "agent-turn-56c5422e-8556-4bb7-894f-ad7f698c2dde-turn-1-assistant-3"
+        }
+      ],
       "startedAt": "2026-08-21T18:03:08.367Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-21T18:03:08.367Z"
+        "elapsedMs": 161829,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usage": {

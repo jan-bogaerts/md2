@@ -6356,15 +6356,15 @@
           "agent": "codex",
           "conversationId": "01a02512-fbc3-7a82-9804-05c6616a213d",
           "createdAt": "2026-08-21T16:08:48.338Z",
-          "lastUsedAt": "2026-08-21T17:56:18.015Z",
-          "synchronizedThroughMessageId": "agent-turn-137fa353-f418-4d31-80b6-bb9958b1ba20-turn-1-assistant-1"
+          "lastUsedAt": "2026-08-21T18:09:43.456Z",
+          "synchronizedThroughMessageId": "agent-turn-2404a698-01c9-4acb-867d-d2c33910e312-turn-1-assistant-10"
         }
       ],
       "startedAt": "2026-08-21T16:06:36.003Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
-        "elapsedMs": 1259848,
-        "runningStartedAt": "2026-08-21T17:56:47.554Z"
+        "elapsedMs": 2035750,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usage": {

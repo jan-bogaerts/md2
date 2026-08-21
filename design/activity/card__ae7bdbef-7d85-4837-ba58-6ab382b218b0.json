@@ -5,7 +5,7 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": "ae7bdbef-7d85-4837-ba58-6ab382b218b0",
       "cardPath": "design/feature_descriptions/F_228_add_support_for_diagrams.md",
-      "completedAt": null,
+      "completedAt": "2026-08-21T18:13:56.550Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 115961
@@ -956,7 +956,7 @@
         }
       ],
       "startedAt": "2026-08-21T14:15:53.933Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "timer": {
         "elapsedMs": 242044,
         "runningStartedAt": null
@@ -985,11 +985,11 @@
         "agent-c1b7cfc9-ebaf-4b88-a4cd-94c116e3c886"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-c3f2de6d-ef12-470d-b02c-1aa5c4434d51",
       "origin": {
@@ -998,9 +998,9 @@
       },
       "rootActionId": "md2.custom-prompt",
       "rootActionLabel": "+",
-      "rootConversationId": "agent-c1b7cfc9-ebaf-4b88-a4cd-94c116e3c886",
       "startedAt": "2026-08-21T14:15:53.932Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-c1b7cfc9-ebaf-4b88-a4cd-94c116e3c886"
     }
   ],
   "version": 5
