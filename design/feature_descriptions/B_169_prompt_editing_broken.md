@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__dbb1430f-c4ad-46ec-a77e-8de4f98322cd.json
 policy:
+after: 2809caf7-2f00-4484-ba68-18306e01f965
 ---
 
 this is a critical bug that occurred recently. we did not change anything to it directly, so something else broke this. perhaps because of the component upgrade we did?
