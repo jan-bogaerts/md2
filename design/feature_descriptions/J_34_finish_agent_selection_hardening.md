@@ -3,12 +3,12 @@ author:
 id: J_34
 internalId: d3078abd-23e1-4c90-8b8e-6ee6459b005f
 title: finish agent selection hardening
-status: new
+status: ready for implementation
 owner:
 affects:
 agents:
 policy:
-after: 902e08a9-8b29-4037-ab3d-92d53aef4fc8
+after: a2f851ba-744e-4b53-bc9b-33e1eaa6787a
 ---
 
 F_216 introduced shared per-agent model and thinking-level memory, but several persistence, compatibility, and execution paths remain incomplete.
