@@ -50,12 +50,16 @@ function buildCodexStreamingCommand(command) {
 export const BUILTIN_AGENT_PROFILES = [
     {
         command: ['codex'],
+        defaultModel: 'gpt-5.5',
+        defaultThinkingLevel: 'none',
         modelArgument: '--model',
         models: ['gpt-5.5', 'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna'],
         name: 'codex',
     },
     {
         command: ['claude'],
+        defaultModel: 'default',
+        defaultThinkingLevel: 'none',
         modelArgument: '--model',
         models: ['default', 'sonnet', 'fable', 'opus', 'haiku'],
         name: 'claude',
@@ -107,10 +111,15 @@ function validateAgentProfile(profile, index, names) {
     if (defaultModel && !models.includes(defaultModel)) {
         throw new Error(`Invalid default model for agent profile ${name}: ${defaultModel}`)
     }
+    const defaultThinkingLevel = validateThinkingLevel(
+        profile.defaultThinkingLevel,
+        `desktop.agentProfiles[${index}].defaultThinkingLevel`,
+    )
 
     const validated = {
         command: readCommand(profile.command, `desktop.agentProfiles[${index}].command`),
         ...(defaultModel !== undefined ? { defaultModel } : {}),
+        defaultThinkingLevel,
         ...(profile.modelArgument !== undefined ? { modelArgument: requireString(profile.modelArgument, `desktop.agentProfiles[${index}].modelArgument`) } : {}),
         models,
         name,
@@ -138,7 +147,11 @@ export function normalizeAgentProfiles(value) {
     const profiles = []
     for (const [index, profile] of value.entries()) {
         try {
-            profiles.push(validateAgentProfile(profile, index, names))
+            const migratedProfile = profile && typeof profile === 'object' && !Array.isArray(profile)
+                && profile.defaultThinkingLevel === undefined
+                ? { ...profile, defaultThinkingLevel: 'none' }
+                : profile
+            profiles.push(validateAgentProfile(migratedProfile, index, names))
         } catch {
             // drop the invalid profile
         }
@@ -214,6 +227,10 @@ export function defaultModelForProfile(profile) {
     if (profile.defaultModel !== undefined) return profile.defaultModel
 
     return profile.models?.[0] ?? ''
+}
+
+export function defaultThinkingLevelForProfile(profile) {
+    return validateThinkingLevel(profile.defaultThinkingLevel, `agent profile ${profile.name}.defaultThinkingLevel`)
 }
 
 export function buildAgentCommand(profile, model) {

@@ -7,13 +7,20 @@ import { describe, expect, it, vi } from 'vitest';
 const currentDirectory = dirname(fileURLToPath(import.meta.url));
 const mainPath = join(currentDirectory, '..', '..', 'main.js');
 const preloadPath = join(currentDirectory, 'preload.js');
+const defaultDesktopConfig = {
+    agentProfiles: [{ command: ['codex'], defaultThinkingLevel: 'none', models: ['gpt-5.5'], name: 'codex' }],
+    agentSelection: {
+        activeAgent: 'codex', permissionMode: 'ask-for-approval',
+        settingsByAgent: { codex: { model: 'gpt-5.5', thinkingLevel: 'none' } },
+    },
+};
 
 function createPreloadHarness(options = {}) {
     const origin = options.origin ?? 'http://localhost:5173';
     const href = options.href ?? `${origin}/`;
     const allowedOrigins = options.allowedOrigins ?? ['http://localhost:5173'];
     const trustedLocation = options.trustedLocation ?? 'http://localhost:5173';
-    const desktopConfig = options.desktopConfig ?? { agent: 'codex', agentProfiles: [{ command: ['codex'], name: 'codex' }], model: '' };
+    const desktopConfig = options.desktopConfig ?? defaultDesktopConfig;
     const body = {
         appendChild: vi.fn(),
         innerHTML: 'app',
@@ -304,10 +311,16 @@ describe('preload desktop agent bridge', () => {
 
     it('updates cached desktop config only after persistence acknowledgement', async () => {
         const { electron, exposed } = createPreloadHarness();
-        const nextConfig = { agent: 'stored-agent', agentProfiles: [{ command: ['stored-agent'], name: 'stored-agent' }], model: '' };
+        const nextConfig = {
+            agentProfiles: [{ command: ['stored-agent'], defaultThinkingLevel: 'none', models: ['stored-model'], name: 'stored-agent' }],
+            agentSelection: {
+                activeAgent: 'stored-agent', permissionMode: 'ask-for-approval',
+                settingsByAgent: { 'stored-agent': { model: 'stored-model', thinkingLevel: 'none' } },
+            },
+        };
         electron.ipcRenderer.invoke.mockResolvedValueOnce(nextConfig);
 
-        expect(exposed.md2Config.getDesktopConfig()).toEqual({ agent: 'codex', agentProfiles: [{ command: ['codex'], name: 'codex' }], model: '' });
+        expect(exposed.md2Config.getDesktopConfig()).toEqual(defaultDesktopConfig);
         const savePromise = exposed.md2Config.setDesktopConfig(nextConfig);
 
         expect(exposed.md2Config.getDesktopConfig()).not.toEqual(nextConfig);

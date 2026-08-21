@@ -48,7 +48,7 @@ function activity(): CardActivityFile {
             startedAt: '2026-08-12T09:00:00.000Z',
             status: 'completed',
         }],
-        version: 4,
+        version: 5,
     }
 }
 

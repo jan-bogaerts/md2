@@ -1,14 +1,10 @@
 import type { AgentConversation } from '../app/src/data/data_types'
+import type { AgentSelectionState } from './agent_selection.mjs'
 
 export type ActivityOrigin = { kind: 'card'; cardInternalId: string } | { kind: 'project' }
 export type ActionActivityStatus = 'cancelled' | 'completed' | 'failed' | 'okButNotAfter'
 
-export interface ActionSettings {
-    agent: string
-    model: string
-    permissionMode: string
-    thinkingLevel: string
-}
+export type ActionSettings = AgentSelectionState
 
 export interface ActivityCommitReference {
     available?: boolean
@@ -78,7 +74,7 @@ export interface CardActivityFile {
     conversations: Omit<AgentConversation, 'path'>[]
     origin: ActivityOrigin
     records: ActivityRecord[]
-    version: 4
+    version: 5
 }
 
 export type ActivityRepairResult =

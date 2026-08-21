@@ -1,6 +1,7 @@
 export interface AgentProfile {
     command: string[]
     defaultModel?: string
+    defaultThinkingLevel: ThinkingLevel
     modelArgument?: string
     models: string[]
     name: string
@@ -37,6 +38,7 @@ export function validateAgentSelection(profiles: AgentProfile[], selection: Agen
 export function validateThinkingLevel(value: unknown, source: string): ThinkingLevel
 export function validatePermissionMode(value: unknown, source: string): PermissionMode
 export function defaultModelForProfile(profile: AgentProfile): string
+export function defaultThinkingLevelForProfile(profile: AgentProfile): ThinkingLevel
 export function buildAgentCommand(profile: AgentProfile, model: string): string[]
 export function buildAgentExecutionCommand(profile: AgentProfile, model: string, thinkingLevel: ThinkingLevel, searchEnabled?: boolean, permissionMode?: PermissionMode): string[]
 export function buildAgentStreamingCommand(profile: AgentProfile, model: string, thinkingLevel: ThinkingLevel, permissionMode?: PermissionMode): string[]

@@ -4,10 +4,7 @@ import { describe, expect, it } from 'vitest';
 const require = createRequire(import.meta.url);
 const {
     DEFAULT_CODEX_SEARCH_ENABLED,
-    DEFAULT_DESKTOP_AGENT,
-    DEFAULT_DESKTOP_PERMISSION_MODE,
-    DEFAULT_DESKTOP_MODEL,
-    DEFAULT_DESKTOP_THINKING_LEVEL,
+    DEFAULT_DESKTOP_AGENT_SELECTION,
     DEFAULT_EDITOR_COMMAND,
     DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
     DEFAULT_REMOTE_CONTROL_PORT,
@@ -30,6 +27,10 @@ function createFakeStore(initial = {}) {
     };
 }
 
+function selection(activeAgent, model = '', thinkingLevel = 'none', permissionMode = 'ask-for-approval') {
+    return { activeAgent, permissionMode, settingsByAgent: { [activeAgent]: { model, thinkingLevel } } };
+}
+
 describe('resolveAppUrl', () => {
     it('requires an app URL for the unpackaged renderer', () => {
         expect(() => resolveAppUrl({})).toThrow('MD2_APP_URL is required for the unpackaged renderer');
@@ -43,29 +44,23 @@ describe('resolveAppUrl', () => {
 describe('resolveDesktopConfig', () => {
     it('defaults desktop config values', () => {
         expect(resolveDesktopConfig({})).toEqual({
-            agent: DEFAULT_DESKTOP_AGENT,
+            agentSelection: DEFAULT_DESKTOP_AGENT_SELECTION,
             agentProfiles: expect.arrayContaining([expect.objectContaining({ command: ['codex'], name: 'codex' })]),
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             editorCommand: DEFAULT_EDITOR_COMMAND,
             mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
-            model: DEFAULT_DESKTOP_MODEL,
-            permissionMode: DEFAULT_DESKTOP_PERMISSION_MODE,
             remoteControlPort: DEFAULT_REMOTE_CONTROL_PORT,
-            thinkingLevel: DEFAULT_DESKTOP_THINKING_LEVEL,
         });
     });
 
     it('uses configured desktop values', () => {
         expect(resolveDesktopConfig({MD2_AGENT: 'custom-codex'})).toEqual({
-            agent: DEFAULT_DESKTOP_AGENT,
+            agentSelection: DEFAULT_DESKTOP_AGENT_SELECTION,
             agentProfiles: expect.arrayContaining([expect.objectContaining({ command: ['custom-codex'], name: 'codex' })]),
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             editorCommand: DEFAULT_EDITOR_COMMAND,
             mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
-            model: DEFAULT_DESKTOP_MODEL,
-            permissionMode: DEFAULT_DESKTOP_PERMISSION_MODE,
             remoteControlPort: DEFAULT_REMOTE_CONTROL_PORT,
-            thinkingLevel: DEFAULT_DESKTOP_THINKING_LEVEL,
         });
     });
 });
@@ -75,15 +70,12 @@ describe('readDesktopConfig', () => {
         const store = createFakeStore();
 
         expect(readDesktopConfig(store, {})).toEqual({
-            agent: DEFAULT_DESKTOP_AGENT,
+            agentSelection: DEFAULT_DESKTOP_AGENT_SELECTION,
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'codex' })]),
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             editorCommand: DEFAULT_EDITOR_COMMAND,
             mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
-            model: DEFAULT_DESKTOP_MODEL,
-            permissionMode: DEFAULT_DESKTOP_PERMISSION_MODE,
             remoteControlPort: DEFAULT_REMOTE_CONTROL_PORT,
-            thinkingLevel: DEFAULT_DESKTOP_THINKING_LEVEL,
         });
     });
 
@@ -91,16 +83,27 @@ describe('readDesktopConfig', () => {
         const store = createFakeStore({ [DESKTOP_CONFIG_STORE_KEY]: { agent: 'claude' } });
 
         expect(readDesktopConfig(store, {})).toEqual({
-            agent: 'claude',
+            agentSelection: selection('claude', 'default'),
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'claude' })]),
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             editorCommand: DEFAULT_EDITOR_COMMAND,
             mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
-            model: DEFAULT_DESKTOP_MODEL,
-            permissionMode: DEFAULT_DESKTOP_PERMISSION_MODE,
             remoteControlPort: DEFAULT_REMOTE_CONTROL_PORT,
-            thinkingLevel: DEFAULT_DESKTOP_THINKING_LEVEL,
         });
+    });
+
+    it('migrates the legacy flat selection without losing active values', () => {
+        const store = createFakeStore({
+            [DESKTOP_CONFIG_STORE_KEY]: {
+                agent: 'claude',
+                model: 'opus',
+                permissionMode: 'full-access',
+                thinkingLevel: 'max',
+            },
+        });
+
+        expect(readDesktopConfig(store, {}).agentSelection).toEqual(selection('claude', 'opus', 'max', 'full-access'));
+        expect(store.get(DESKTOP_CONFIG_STORE_KEY)).toEqual({agentSelection: selection('claude', 'opus', 'max', 'full-access')});
     });
 
     it('keeps MD2_AGENT scoped to the built-in default profile command', () => {
@@ -115,7 +118,7 @@ describe('readDesktopConfig', () => {
         });
 
         expect(readDesktopConfig(store, { MD2_AGENT: 'env-codex' })).toEqual({
-            agent: 'custom',
+            agentSelection: selection('custom', 'custom-model'),
             agentProfiles: expect.arrayContaining([
                 expect.objectContaining({ command: ['env-codex'], name: 'codex' }),
                 expect.objectContaining({ command: ['stored-custom'], name: 'custom' }),
@@ -123,10 +126,7 @@ describe('readDesktopConfig', () => {
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             editorCommand: DEFAULT_EDITOR_COMMAND,
             mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
-            model: DEFAULT_DESKTOP_MODEL,
-            permissionMode: DEFAULT_DESKTOP_PERMISSION_MODE,
             remoteControlPort: DEFAULT_REMOTE_CONTROL_PORT,
-            thinkingLevel: DEFAULT_DESKTOP_THINKING_LEVEL,
         });
     });
 
@@ -177,9 +177,9 @@ describe('writeDesktopConfig', () => {
     it('removes obsolete permission keys from stored desktop config', () => {
         const store = createFakeStore({[DESKTOP_CONFIG_STORE_KEY]: {accessLevel: 'read-only', approvalPolicy: 'never', model: 'gpt-5'}});
 
-        writeDesktopConfig(store, { permissionMode: 'full-access' });
+        writeDesktopConfig(store, { agentSelection: selection('codex', 'gpt-5', 'none', 'full-access') });
 
-        expect(store.get(DESKTOP_CONFIG_STORE_KEY)).toEqual({ model: 'gpt-5', permissionMode: 'full-access' });
+        expect(store.get(DESKTOP_CONFIG_STORE_KEY)).toEqual({ agentSelection: selection('codex', 'gpt-5', 'none', 'full-access') });
         expect(readDesktopConfig(store, {})).not.toHaveProperty('accessLevel');
         expect(readDesktopConfig(store, {})).not.toHaveProperty('approvalPolicy');
     });
@@ -187,37 +187,31 @@ describe('writeDesktopConfig', () => {
     it('persists values so a subsequent readDesktopConfig reflects them', () => {
         const store = createFakeStore();
 
-        writeDesktopConfig(store, { agent: 'claude' });
+        writeDesktopConfig(store, { agentSelection: selection('claude') });
 
         expect(readDesktopConfig(store, {})).toEqual({
-            agent: 'claude',
+            agentSelection: selection('claude'),
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'claude' })]),
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             editorCommand: DEFAULT_EDITOR_COMMAND,
             mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
-            model: DEFAULT_DESKTOP_MODEL,
-            permissionMode: DEFAULT_DESKTOP_PERMISSION_MODE,
             remoteControlPort: DEFAULT_REMOTE_CONTROL_PORT,
-            thinkingLevel: DEFAULT_DESKTOP_THINKING_LEVEL,
         });
     });
 
     it('merges with a previous write instead of overwriting it', () => {
         const store = createFakeStore();
 
-        writeDesktopConfig(store, { agent: 'claude' });
-        writeDesktopConfig(store, { model: 'custom-model' });
+        writeDesktopConfig(store, { agentSelection: selection('claude') });
+        writeDesktopConfig(store, { agentSelection: selection('claude', 'custom-model') });
 
         expect(readDesktopConfig(store, {})).toEqual({
-            agent: 'claude',
+            agentSelection: selection('claude', 'custom-model'),
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'claude' })]),
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             editorCommand: DEFAULT_EDITOR_COMMAND,
             mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
-            model: 'custom-model',
-            permissionMode: DEFAULT_DESKTOP_PERMISSION_MODE,
             remoteControlPort: DEFAULT_REMOTE_CONTROL_PORT,
-            thinkingLevel: DEFAULT_DESKTOP_THINKING_LEVEL,
         });
     });
 
@@ -248,15 +242,12 @@ describe('writeDesktopConfig', () => {
 
 describe('saveDesktopConfig', () => {
     const validConfig = {
-        agent: 'custom',
-        agentProfiles: [{ command: ['custom-agent'], models: ['custom-model'], name: 'custom' }],
+        agentSelection: selection('custom', 'custom-model', 'high', 'full-access'),
+        agentProfiles: [{ command: ['custom-agent'], defaultThinkingLevel: 'none', models: ['custom-model'], name: 'custom' }],
         codexSearchEnabled: false,
         editorCommand: 'code "{{file}}"',
         mergeConflictResolverCommand: '',
-        model: 'custom-model',
-        permissionMode: 'full-access',
         remoteControlPort: 20877,
-        thinkingLevel: 'high',
     };
 
     it('validates, persists, and returns normalized complete desktop config', () => {
@@ -267,17 +258,17 @@ describe('saveDesktopConfig', () => {
     });
 
     it.each([
-        ['agent', { ...validConfig, agent: '' }, 'Missing config field: desktop.agent'],
+        ['agent', { ...validConfig, agentSelection: { ...validConfig.agentSelection, activeAgent: '' } }, 'activeAgent'],
         ['agent profiles', { ...validConfig, agentProfiles: null }, 'Missing config field: desktop.agentProfiles'],
         ['web search', { ...validConfig, codexSearchEnabled: 'yes' }, 'Missing config field: desktop.codexSearchEnabled'],
         ['editor command', { ...validConfig, editorCommand: 'code file.txt' }, 'requires {{file}} placeholder'],
         ['merge command', { ...validConfig, mergeConflictResolverCommand: 'merge file.txt' }, 'requires {{file}} placeholder'],
-        ['model', { ...validConfig, model: null }, 'Missing config field: desktop.model'],
-        ['permission mode', { ...validConfig, permissionMode: 'invalid' }, 'Invalid permission mode'],
+        ['model', { ...validConfig, agentSelection: selection('custom', null, 'high', 'full-access') }, 'model'],
+        ['permission mode', { ...validConfig, agentSelection: selection('custom', 'custom-model', 'high', 'invalid') }, 'Invalid permission mode'],
         ['remote-control port below range', { ...validConfig, remoteControlPort: 0 }, 'must be an integer from 1 through 65535'],
         ['remote-control port above range', { ...validConfig, remoteControlPort: 65536 }, 'must be an integer from 1 through 65535'],
         ['remote-control port decimal', { ...validConfig, remoteControlPort: 20877.5 }, 'must be an integer from 1 through 65535'],
-        ['thinking level', { ...validConfig, thinkingLevel: 'extreme' }, 'Invalid thinking level'],
+        ['thinking level', { ...validConfig, agentSelection: selection('custom', 'custom-model', 'extreme', 'full-access') }, 'Invalid thinking level'],
     ])('rejects invalid %s before persistence', (_field, config, message) => {
         const store = createFakeStore();
 

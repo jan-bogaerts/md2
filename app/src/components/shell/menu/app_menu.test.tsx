@@ -291,14 +291,17 @@ describe('AppMenu', () => {
         configService.clear()
         configService.init({
             desktopConfig: {
-                agent: 'codex',
                 agentProfiles: [
-                    { command: ['codex'], modelArgument: '--model', models: ['gpt-5'], name: 'codex' },
-                    { command: ['local-agent'], modelArgument: '--model', models: ['local-model'], name: 'local' },
+                    { command: ['codex'], defaultThinkingLevel: 'none', modelArgument: '--model', models: ['gpt-5'], name: 'codex' },
+                    { command: ['local-agent'], defaultThinkingLevel: 'none', modelArgument: '--model', models: ['local-model'], name: 'local' },
                 ],
-                model: 'gpt-5',
-                permissionMode: 'ask-for-approval',
-                thinkingLevel: 'high',
+                agentSelection: {
+                    activeAgent: 'codex', permissionMode: 'ask-for-approval',
+                    settingsByAgent: {
+                        codex: { model: 'gpt-5', thinkingLevel: 'high' },
+                        local: { model: 'local-model', thinkingLevel: 'low' },
+                    },
+                },
             },
         })
 
@@ -312,19 +315,18 @@ describe('AppMenu', () => {
 
         fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Default permission mode' }))
         fireEvent.click(screen.getByRole('option', { name: 'Full access — disables approvals' }))
-        expect(configService.get('desktop.permissionMode')).toBe('full-access')
+        expect(configService.get('desktop.agentSelection').permissionMode).toBe('full-access')
 
         fireEvent.mouseOver(screen.getByRole('combobox', { name: 'Default reasoning level' }))
         expect(await screen.findByRole('tooltip')).toHaveTextContent('Default reasoning level')
 
         fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Default reasoning level' }))
         fireEvent.click(screen.getByRole('option', { name: 'max' }))
-        expect(configService.get('desktop.thinkingLevel')).toBe('max')
+        expect(configService.get('desktop.agentSelection').settingsByAgent.codex.thinkingLevel).toBe('max')
 
         act(() => {
-            configService.set('desktop.agent', 'local')
-            configService.set('desktop.model', 'local-model')
-            configService.set('desktop.thinkingLevel', 'low')
+            const selection = configService.get('desktop.agentSelection')
+            configService.set('desktop.agentSelection', { ...selection, activeAgent: 'local' })
         })
 
         await waitFor(() => expect(screen.getByRole('combobox', { name: 'Default agent' })).toHaveTextContent('local'))

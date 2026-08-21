@@ -10,6 +10,7 @@ export {
     buildAgentExecutionCommand,
     buildResumeAgentCommand,
     defaultModelForProfile,
+    defaultThinkingLevelForProfile,
     findAgentProfile,
     mergeAgentProfiles,
     supportsPermissionMode,

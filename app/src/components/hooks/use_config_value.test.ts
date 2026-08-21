@@ -13,19 +13,18 @@ describe('useConfigValue', () => {
     it('updates when the config service emits changed', () => {
         configService.init({
             desktopConfig: {
-                agent: 'codex',
-                agentProfiles: [{ command: ['codex'], modelArgument: '--model', models: ['gpt-5'], name: 'codex' }],
-                model: 'gpt-5',
+                agentProfiles: [{ command: ['codex'], defaultThinkingLevel: 'none', modelArgument: '--model', models: ['gpt-5'], name: 'codex' }],
+                agentSelection: { activeAgent: 'codex', permissionMode: 'ask-for-approval', settingsByAgent: { codex: { model: 'gpt-5', thinkingLevel: 'none' } } },
             },
         })
-        const { result } = renderHook(() => useConfigValue('desktop.agent'))
+        const { result } = renderHook(() => useConfigValue('desktop.agentSelection'))
 
-        expect(result.current).toBe('codex')
+        expect(result.current.activeAgent).toBe('codex')
 
         act(() => {
-            configService.set('desktop.agent', 'system')
+            configService.set('desktop.agentSelection', { ...result.current, activeAgent: 'system' })
         })
 
-        expect(result.current).toBe('system')
+        expect(result.current.activeAgent).toBe('system')
     })
 })

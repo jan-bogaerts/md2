@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ActionDefinition } from '../../../data/action_types'
 import { BUILTIN_AGENT_PROFILES } from '../../../data/agent_profiles'
+import type { AgentSelectionState } from '../../../data/agent_selection'
 import type { ActionRunSettingsStore } from '../../../services/actions/action_run_settings_service'
 import { createAppTheme } from '../../../theme/app_theme'
 import { AppThemeProvider } from '../../../theme/theme_provider'
@@ -22,6 +23,11 @@ const selectorState = vi.hoisted(() => ({
         permissionMode: 'ask-for-approval' as 'ask-for-approval' | 'approve-for-me' | 'full-access' | '',
         permissionModeSupported: true,
         selectedAgentModels: ['gpt-5.5', 'gpt-5.6-sol'],
+        selection: {
+            activeAgent: 'codex', permissionMode: 'ask-for-approval',
+            settingsByAgent: { codex: { model: 'gpt-5.5', thinkingLevel: 'high' } },
+        } as AgentSelectionState,
+        selectionSources: [] as AgentSelectionState[],
         settingsLoading: false,
         thinkingLevel: 'high' as 'none' | 'low' | 'medium' | 'high' | 'max',
     },
@@ -45,6 +51,11 @@ function renderSelectors(setSettings = vi.fn()) {
     return { ...rendered, setSettings }
 }
 
+function openSubmenu(name: 'Agent' | 'Model' | 'Thinking level') {
+    fireEvent.click(screen.getByRole('button', { name: 'Model' }))
+    fireEvent.click(screen.getByRole('menuitem', { name }))
+}
+
 describe('ActionAgentSelectors', () => {
     beforeEach(() => {
         selectorState.runStatus = null
@@ -61,6 +72,11 @@ describe('ActionAgentSelectors', () => {
             permissionMode: 'ask-for-approval',
             permissionModeSupported: true,
             selectedAgentModels: ['gpt-5.5', 'gpt-5.6-sol'],
+            selection: {
+                activeAgent: 'codex', permissionMode: 'ask-for-approval',
+                settingsByAgent: { codex: { model: 'gpt-5.5', thinkingLevel: 'high' } },
+            },
+            selectionSources: [],
             settingsLoading: false,
             thinkingLevel: 'high',
         }
@@ -71,7 +87,7 @@ describe('ActionAgentSelectors', () => {
         vi.restoreAllMocks()
     })
 
-    it('shows model and thinking level in one button with three labelled menu sections', () => {
+    it('shows Agent, Model, and Thinking level as nested menus', () => {
         renderSelectors()
 
         const modelButton = screen.getByRole('button', { name: 'Model' })
@@ -81,12 +97,9 @@ describe('ActionAgentSelectors', () => {
         fireEvent.click(modelButton)
         const menu = screen.getByRole('menu', { name: 'Agent model settings' })
 
-        expect(within(menu).getByText('Agent')).toBeInTheDocument()
-        expect(within(menu).getByText('Model')).toBeInTheDocument()
-        expect(within(menu).getByText('Thinking level')).toBeInTheDocument()
-        expect(within(menu).getByRole('menuitem', { name: 'gpt-5.6-sol' })).toBeInTheDocument()
-        expect(within(menu).getByRole('menuitem', { name: 'high' })).toBeInTheDocument()
-        expect(within(menu).queryByRole('menuitem', { name: 'sonnet' })).not.toBeInTheDocument()
+        expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['Agent', 'Model', 'Thinking level'])
+        fireEvent.click(within(menu).getByRole('menuitem', { name: 'Model' }))
+        expect(screen.getByRole('menu', { name: 'Model choices' })).toHaveTextContent('gpt-5.6-sol')
     })
 
     it.each([
@@ -132,34 +145,47 @@ describe('ActionAgentSelectors', () => {
         expect(screen.getByRole('button', { name: 'Model' })).toBeDisabled()
     })
 
-    it('resets dependent settings when agent or model changes', () => {
+    it('restores agent defaults and preserves thinking level when model changes', () => {
         const { setSettings } = renderSelectors()
-        fireEvent.click(screen.getByRole('button', { name: 'Model' }))
+        openSubmenu('Agent')
         fireEvent.click(screen.getByRole('menuitem', { name: 'claude' }))
 
-        expect(setSettings).toHaveBeenCalledWith({agent: 'claude', model: 'default', permissionMode: 'ask-for-approval', thinkingLevel: 'none'}, false)
+        expect(setSettings).toHaveBeenCalledWith({
+            activeAgent: 'claude', permissionMode: 'ask-for-approval',
+            settingsByAgent: {
+                claude: { model: 'default', thinkingLevel: 'none' },
+                codex: { model: 'gpt-5.5', thinkingLevel: 'high' },
+            },
+        }, false)
 
-        fireEvent.click(screen.getByRole('button', { name: 'Model' }))
+        openSubmenu('Model')
         fireEvent.click(screen.getByRole('menuitem', { name: 'gpt-5.6-sol' }))
-        expect(setSettings).toHaveBeenLastCalledWith({agent: 'codex', model: 'gpt-5.6-sol', permissionMode: 'ask-for-approval', thinkingLevel: 'none'}, false)
+        expect(setSettings).toHaveBeenLastCalledWith({
+            activeAgent: 'codex', permissionMode: 'ask-for-approval',
+            settingsByAgent: { codex: { model: 'gpt-5.6-sol', thinkingLevel: 'high' } },
+        }, false)
     })
 
     it('stores a full thinking level selected from the full-name menu', () => {
         const { setSettings } = renderSelectors()
-        fireEvent.click(screen.getByRole('button', { name: 'Model' }))
+        openSubmenu('Thinking level')
         fireEvent.click(screen.getByRole('menuitem', { name: 'low' }))
 
-        expect(setSettings).toHaveBeenCalledWith({agent: 'codex', model: 'gpt-5.5', permissionMode: 'ask-for-approval', thinkingLevel: 'low'}, false)
+        expect(setSettings).toHaveBeenCalledWith({
+            activeAgent: 'codex', permissionMode: 'ask-for-approval',
+            settingsByAgent: { codex: { model: 'gpt-5.5', thinkingLevel: 'low' } },
+        }, false)
     })
 
     it('disables unavailable agents and lists models for selected agent only', () => {
         selectorState.settings.agentAvailability.claude = { available: false, error: 'Claude missing' }
         const { rerender } = renderSelectors()
-        fireEvent.click(screen.getByRole('button', { name: 'Model' }))
+        openSubmenu('Agent')
         expect(screen.getByRole('menuitem', { name: /claude/u })).toHaveAttribute('aria-disabled', 'true')
         expect(screen.getByText('Claude missing')).toBeInTheDocument()
 
-        fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' })
+        fireEvent.keyDown(screen.getByRole('menu', { name: 'Agent choices' }), { key: 'ArrowLeft' })
+        fireEvent.keyDown(screen.getByRole('menu', { name: 'Agent model settings' }), { key: 'Escape' })
         selectorState.settings = {
             ...selectorState.settings,
             agent: 'claude',
@@ -172,7 +198,7 @@ describe('ActionAgentSelectors', () => {
                 <ActionAgentSelectors action={action} context={context} settingsStore={settingsStore} />
             </AppThemeProvider>,
         )
-        fireEvent.click(screen.getByRole('button', { name: 'Model' }))
+        openSubmenu('Model')
         expect(screen.getByRole('menuitem', { name: 'sonnet' })).toBeInTheDocument()
         expect(screen.queryByRole('menuitem', { name: 'gpt-5.6-sol' })).not.toBeInTheDocument()
     })
@@ -187,7 +213,10 @@ describe('ActionAgentSelectors', () => {
         expect(within(menu).getByText('Let the provider safety reviewer approve changes automatically.')).toBeInTheDocument()
         expect(within(menu).getByText('Disable the normal approval boundary and allow unrestricted access.')).toBeInTheDocument()
         fireEvent.click(within(menu).getByRole('menuitem', { name: /Approve for me/u }))
-        expect(setSettings).toHaveBeenCalledWith({agent: 'codex', model: 'gpt-5.5', permissionMode: 'approve-for-me', thinkingLevel: 'high'}, true)
+        expect(setSettings).toHaveBeenCalledWith({
+            activeAgent: 'codex', permissionMode: 'approve-for-me',
+            settingsByAgent: { codex: { model: 'gpt-5.5', thinkingLevel: 'high' } },
+        }, true)
     })
 
     it.each([

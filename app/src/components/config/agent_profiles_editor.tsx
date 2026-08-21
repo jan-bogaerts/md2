@@ -1,10 +1,16 @@
-import { Alert, Box, Button, Divider, Stack, TextField, Typography } from '@mui/material'
+import { Alert, Box, Button, Divider, MenuItem, Stack, TextField, Typography } from '@mui/material'
 import Add from 'mdi-material-ui/Plus'
 import DeleteOutline from 'mdi-material-ui/DeleteOutline'
 import Pencil from 'mdi-material-ui/Pencil'
 import type { ChangeEvent } from 'react'
 import { useEffect, useMemo, useState } from 'react'
-import { BUILTIN_AGENT_PROFILES, MODEL_PLACEHOLDER, SESSION_ID_PLACEHOLDER, type AgentProfile } from '../../data/agent_profiles'
+import {
+    BUILTIN_AGENT_PROFILES,
+    MODEL_PLACEHOLDER,
+    SESSION_ID_PLACEHOLDER,
+    THINKING_LEVELS,
+    type AgentProfile,
+} from '../../data/agent_profiles'
 
 const COMMA_SEPARATOR = ','
 
@@ -35,6 +41,7 @@ interface AgentProfileFormProps {
 interface AgentProfileFormState {
     command: string
     defaultModel: string
+    defaultThinkingLevel: string
     modelArgument: string
     models: string
     name: string
@@ -45,6 +52,7 @@ function toFormState(profile?: AgentProfile): AgentProfileFormState {
     return {
         command: profile ? JSON.stringify(profile.command) : '',
         defaultModel: profile?.defaultModel ?? '',
+        defaultThinkingLevel: profile?.defaultThinkingLevel ?? 'none',
         modelArgument: profile?.modelArgument ?? '',
         models: profile?.models?.join(`${COMMA_SEPARATOR} `) ?? '',
         name: profile?.name ?? '',
@@ -71,6 +79,7 @@ function toAgentProfile(form: AgentProfileFormState): AgentProfile {
     return {
         command: readCommand(form.command),
         ...(form.defaultModel.trim().length > 0 ? { defaultModel: form.defaultModel.trim() } : {}),
+        defaultThinkingLevel: form.defaultThinkingLevel as AgentProfile['defaultThinkingLevel'],
         ...(form.modelArgument.trim().length > 0 ? { modelArgument: form.modelArgument.trim() } : {}),
         models,
         name: form.name.trim(),
@@ -107,6 +116,7 @@ function validateForm(form: AgentProfileFormState, usedNames: string[]) {
     if (defaultModel.length > 0 && models.length > 0 && !models.includes(defaultModel)) {
         errors.push(`Default model must be one of: ${models.join(', ')}`)
     }
+    if (!THINKING_LEVELS.some((level) => level === form.defaultThinkingLevel)) errors.push('Profile default thinking level is invalid.')
 
     return errors
 }
@@ -172,6 +182,9 @@ function AgentProfileForm(props: AgentProfileFormProps) {
                 <TextField disabled={disabled} fullWidth label="Model argument" name="modelArgument" onChange={onTextChange} size="small" value={form.modelArgument} />
                 <TextField disabled={disabled} fullWidth helperText="Comma-separated model names." label="Models" name="models" onChange={onTextChange} size="small" value={form.models} />
                 <TextField disabled={disabled} fullWidth label="Profile default model" name="defaultModel" onChange={onTextChange} size="small" value={form.defaultModel} />
+                <TextField disabled={disabled} fullWidth label="Profile default thinking level" name="defaultThinkingLevel" onChange={onTextChange} select size="small" value={form.defaultThinkingLevel}>
+                    {THINKING_LEVELS.map((level) => <MenuItem key={level} value={level}>{level}</MenuItem>)}
+                </TextField>
                 <TextField
                     disabled={disabled}
                     fullWidth

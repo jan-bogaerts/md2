@@ -11,6 +11,17 @@ const context = { cardInternalId: 'card-022', file: 'design/F-022.md', kind: 'ca
 const now = Date.parse('2026-07-06T10:00:00.000Z');
 const MAX_TIMER_DELAY_MS = 2147483647;
 
+function agentConfig(activeAgent = 'codex', model = 'gpt-5.5', agentProfiles = [], thinkingLevel = 'none') {
+    return {
+        agentProfiles,
+        agentSelection: {
+            activeAgent,
+            permissionMode: 'ask-for-approval',
+            settingsByAgent: { [activeAgent]: { model, thinkingLevel } },
+        },
+    };
+}
+
 function createDeferred() {
     let resolveDeferred = () => undefined;
     const promise = new Promise((resolve) => {
@@ -110,6 +121,7 @@ function createLocalGitService(
         loadActionFile: vi.fn(async (_project, actionPath) => actionFiles.find(({ path }) => path === actionPath)),
         loadActionFiles: vi.fn(async () => actionFiles),
         loadActionSchedules: vi.fn(async () => schedules),
+        loadFile: vi.fn(async () => ({ content: '# Card', path: context.file })),
         loadProjectConfig: vi.fn(async () => ({ states: [{ state: 'ready' }], ...projectConfig })),
         runCommand: vi.fn(async (_project, command) => ({ command, exitCode: 0, stderr: '', stdout: 'done' })),
         saveActionSchedules: vi.fn(async (_project, _actionsFolder, nextSchedules) => {
@@ -139,7 +151,7 @@ function createScheduler(localGitService, timerDependencies = {}) {
         }),
         stop: vi.fn(),
     };
-    const agentConfigProvider = timerDependencies.agentConfigProvider ?? (() => ({ agent: 'codex', agentProfiles: [], model: '' }));
+    const agentConfigProvider = timerDependencies.agentConfigProvider ?? (() => agentConfig());
     const actionRunnerService = timerDependencies.actionRunnerService ?? new ActionRunnerService({
         actionWorktreeRunService,
         agentConfigProvider,
@@ -316,10 +328,9 @@ describe('ActionSchedulerService', () => {
         const localGitService = createLocalGitService([schedule], [createAgentAction('implement', { thinkingLevel: 'high' })]);
         const agentRunner = vi.fn(async (_project, request) => successfulAgentResult(request));
         const scheduler = createScheduler(localGitService, {
-            agentConfigProvider: () => ({ agent: 'codex', agentProfiles: [], model: '' }),
+            agentConfigProvider: () => agentConfig(),
             agentRunnerService: { run: agentRunner },
         });
-
         await scheduler.startProject(project);
         await scheduler.fireSchedule('schedule-1');
 
@@ -340,7 +351,7 @@ describe('ActionSchedulerService', () => {
         const localGitService = createLocalGitService([schedule], [createAgentAction()]);
         const agentRunner = vi.fn(async (_project, request) => successfulAgentResult(request));
         const scheduler = createScheduler(localGitService, {
-            agentConfigProvider: () => ({ agent: 'codex', agentProfiles: [], model: '' }),
+            agentConfigProvider: () => agentConfig(),
             agentRunnerService: { run: agentRunner },
         });
 
@@ -365,7 +376,7 @@ describe('ActionSchedulerService', () => {
         const localGitService = createLocalGitService([schedule], actionFiles);
         const agentRunner = vi.fn(async (_project, request) => successfulAgentResult(request));
         const scheduler = createScheduler(localGitService, {
-            agentConfigProvider: () => ({ agent: 'codex', agentProfiles: [], model: '' }),
+            agentConfigProvider: () => agentConfig(),
             agentRunnerService: { run: agentRunner },
         });
 
@@ -380,12 +391,13 @@ describe('ActionSchedulerService', () => {
     });
 
     it.each([
-        ['invalid', [createAgentAction('implement', { thinkingLevel: 'extreme' })], {agent: 'codex', agentProfiles: [], model: ''}, 'Invalid thinking level'],
+        ['invalid', [createAgentAction('implement', { thinkingLevel: 'extreme' })], agentConfig(), 'Invalid thinking level'],
         ['unsupported', [createAgentAction('implement', { agent: undefined, model: undefined, thinkingLevel: undefined })], {
-            agent: 'custom',
             agentProfiles: [{ command: ['custom-agent'], models: ['fast'], name: 'custom' }],
-            model: 'fast',
-            thinkingLevel: 'high',
+            agentSelection: {
+                activeAgent: 'custom', permissionMode: 'ask-for-approval',
+                settingsByAgent: { custom: { model: 'fast', thinkingLevel: 'high' } },
+            },
         }, 'Agent profile does not support thinking levels: custom'],
     ])('rejects %s scheduled thinking-level resolution before process start', async (_label, actionFiles, agentConfig) => {
         const schedule = createSchedule('schedule-1', 'implement', { timestamp: '2026-07-06T10:01:00.000Z', type: 'at' });

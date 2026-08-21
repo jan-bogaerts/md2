@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { ProjectReference } from '../../data/data_types'
+import type { AgentSelectionState } from '../../data/agent_selection'
 import {
     ActionRunSettingsService,
     ActionRunSettingsStore,
-    type ResolvedActionRunSettings,
 } from './action_run_settings_service'
 
-const firstSettings: ResolvedActionRunSettings = {agent: 'codex', model: 'gpt-5.5', permissionMode: 'ask-for-approval', thinkingLevel: 'high'}
-const secondSettings: ResolvedActionRunSettings = {agent: 'claude', model: 'sonnet', permissionMode: 'approve-for-me', thinkingLevel: 'none'}
+const firstSettings: AgentSelectionState = {activeAgent: 'codex', permissionMode: 'ask-for-approval', settingsByAgent: {codex: {model: 'gpt-5.5', thinkingLevel: 'high'}}}
+const secondSettings: AgentSelectionState = {activeAgent: 'claude', permissionMode: 'approve-for-me', settingsByAgent: {claude: {model: 'sonnet', thinkingLevel: 'none'}}}
 
 function deferredVoid() {
     let rejectPromise: (error: unknown) => void = () => undefined

@@ -1,56 +1,59 @@
 import { useSyncExternalStore } from 'react'
 import type { ActionDefinition } from '../../../data/action_types'
 import {
-    PERMISSION_MODES,
-    defaultModelForProfile,
     findAgentProfile,
     mergeAgentProfiles,
     supportsPermissionMode,
     validateThinkingLevel,
 } from '../../../data/agent_profiles'
+import {
+    projectAgentSelection,
+    resolveAgentSelectionState,
+    type AgentSelectionState,
+} from '../../../data/agent_selection'
 import { hasActionRunBackend } from '../../../data/electron_action_bridge'
 import type { ActionRunSettingsStore } from '../../../services/actions/action_run_settings_service'
 import { useAgentCapabilities } from '../../hooks/use_agent_capabilities'
 import { useConfigValueOrFallback, useHasDesktopConfig } from '../../hooks/use_config_value'
 import { useProjectReadOnly } from '../../hooks/use_project_read_only'
 
-function optionAvailable(value: string, options: string[]) {
-    return value.length === 0 || options.includes(value)
-}
-
 /** Resolve agent input and backend state only for controls that consume it. */
 export function useActionRunSettings(action: ActionDefinition, store: ActionRunSettingsStore) {
-    const configuredAgent = useConfigValueOrFallback('desktop.agent', '')
+    const desktopSelection = useConfigValueOrFallback('desktop.agentSelection', {
+        activeAgent: 'codex',
+        permissionMode: 'ask-for-approval',
+        settingsByAgent: { codex: { model: 'gpt-5.5', thinkingLevel: 'none' } },
+    })
     const configuredAgentProfiles = useConfigValueOrFallback('desktop.agentProfiles', [])
-    const configuredModel = useConfigValueOrFallback('desktop.model', '')
-    const configuredPermissionMode = useConfigValueOrFallback('desktop.permissionMode', 'ask-for-approval')
-    const configuredThinkingLevel = useConfigValueOrFallback('desktop.thinkingLevel', 'none')
     const desktopConfigAvailable = useHasDesktopConfig()
     const readOnly = useProjectReadOnly()
     const capabilities = useAgentCapabilities()
     const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot)
     const agentProfiles = mergeAgentProfiles(configuredAgentProfiles)
-    const defaultAgent = action.agent ?? configuredAgent
-    const defaultAgentProfile = findAgentProfile(agentProfiles, defaultAgent)
-    const defaultModel = (action.model ?? configuredModel)
-        || (defaultAgentProfile ? defaultModelForProfile(defaultAgentProfile) : '')
     const savedSettings = snapshot.settings
-    const savedProfile = savedSettings ? findAgentProfile(agentProfiles, savedSettings.agent) : undefined
-    const savedAgentAvailable = savedSettings?.agent === '' || (
-        !!savedSettings
-        && !!savedProfile
-        && !!capabilities.availability.values[savedSettings.agent]?.available
-        && !capabilities.availability.error
-    )
-    const savedSettingsAvailable = !!savedSettings
-        && savedAgentAvailable
-        && optionAvailable(savedSettings.model, savedProfile?.models ?? [])
-        && (savedProfile && supportsPermissionMode(savedProfile)
-            ? PERMISSION_MODES.some((permissionMode) => permissionMode === savedSettings.permissionMode)
-            : savedSettings.permissionMode === '')
-    const effectiveSavedSettings = savedSettingsAvailable ? savedSettings : null
-    const agent = effectiveSavedSettings?.agent ?? defaultAgent
-    const model = effectiveSavedSettings?.model ?? defaultModel
+    const baseSelection = desktopSelection as AgentSelectionState
+    const defaultAgent = action.agent ?? baseSelection.activeAgent
+    const definitionSource: AgentSelectionState | null = action.agent && action.model
+        ? {
+            activeAgent: action.agent,
+            permissionMode: action.permissionMode ?? baseSelection.permissionMode,
+            settingsByAgent: {
+                [action.agent]: {
+                    model: action.model,
+                    thinkingLevel: validateThinkingLevel(action.thinkingLevel ?? 'none', `action "${action.label}"`),
+                },
+            },
+        }
+        : null
+    const unresolvedSelection: AgentSelectionState = savedSettings ?? {
+        activeAgent: defaultAgent,
+        permissionMode: action.permissionMode ?? baseSelection.permissionMode,
+        settingsByAgent: {},
+    }
+    const resolutionSources = [definitionSource, baseSelection].filter((source): source is AgentSelectionState => !!source)
+    const selection = resolveAgentSelectionState(unresolvedSelection, agentProfiles, resolutionSources)
+    const projectedSelection = projectAgentSelection(selection)
+    const { agent, model, permissionMode, thinkingLevel } = projectedSelection
     const selectedAgentProfile = findAgentProfile(agentProfiles, agent)
     const selectedAgentModels = selectedAgentProfile?.models ?? []
     const permissionModeSupported = !!selectedAgentProfile && supportsPermissionMode(selectedAgentProfile)
@@ -73,15 +76,6 @@ export function useActionRunSettings(action: ActionDefinition, store: ActionRunS
                             : action.type === 'agent' && !selectedAgentAvailable
                                 ? selectedAvailability?.error ?? capabilities.availability.error ?? `Agent executable is unavailable for ${agent}`
                                 : null
-    const definitionThinkingLevel = validateThinkingLevel(
-        action.thinkingLevel ?? configuredThinkingLevel,
-        `action "${action.label}"`,
-    )
-    const thinkingLevel = effectiveSavedSettings?.thinkingLevel ?? definitionThinkingLevel
-    const permissionMode = permissionModeSupported
-        ? effectiveSavedSettings?.permissionMode ?? action.permissionMode ?? configuredPermissionMode
-        : ''
-
     return {
         agent,
         agentAvailability: capabilities.availability.values,
@@ -95,8 +89,10 @@ export function useActionRunSettings(action: ActionDefinition, store: ActionRunS
         runDisabledMessage,
         selectedAgentAvailable,
         selectedAgentModels,
+        selectionSources: resolutionSources,
         settingsChangedWhileWaiting: snapshot.settingsChangedWhileWaiting,
         settingsLoading: snapshot.loading,
+        selection,
         thinkingLevel,
     }
 }

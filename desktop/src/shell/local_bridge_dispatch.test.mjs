@@ -137,7 +137,14 @@ function createDispatch(options = {}) {
         updateMetadata: vi.fn((_request, updates) => updates),
         verify: vi.fn(async () => null),
     };
-    const desktopConfig = options.desktopConfig ?? {agent: 'codex', agentProfiles: [{ command: ['codex'], models: ['gpt-5'], name: 'codex' }], editorCommand: 'code -g "{{file}}:{{line}}"', model: 'gpt-5'};
+    const desktopConfig = options.desktopConfig ?? {
+        agentProfiles: [{ command: ['codex'], models: ['gpt-5'], name: 'codex' }],
+        agentSelection: {
+            activeAgent: 'codex', permissionMode: 'ask-for-approval',
+            settingsByAgent: { codex: { model: 'gpt-5', thinkingLevel: 'none' } },
+        },
+        editorCommand: 'code -g "{{file}}:{{line}}"',
+    };
     const saveDesktopConfig = vi.fn((_store, values) => values);
     const diffService = { generateDiff: vi.fn(), generateWorktreeDiff: vi.fn(), openInEditor: vi.fn() };
     const projectStatsWorkerService = {
@@ -198,14 +205,14 @@ describe('createLocalBridgeDispatch', () => {
 
     it('loads and saves desktop config without requiring an active project', async () => {
         const desktopConfig = {
-            agent: 'custom',
             agentProfiles: [{ command: ['custom'], models: ['model'], name: 'custom' }],
+            agentSelection: {
+                activeAgent: 'custom', permissionMode: 'ask-for-approval',
+                settingsByAgent: { custom: { model: 'model', thinkingLevel: 'high' } },
+            },
             codexSearchEnabled: true,
             editorCommand: 'code "{{file}}"',
             mergeConflictResolverCommand: '',
-            model: 'model',
-            permissionMode: 'ask-for-approval',
-            thinkingLevel: 'high',
         };
         const { dispatch, saveDesktopConfig } = createDispatch({ desktopConfig });
 
@@ -216,7 +223,15 @@ describe('createLocalBridgeDispatch', () => {
 
     it('opens chat and diff files through shared configured editor launcher inputs', async () => {
         const editorCommand = 'notepad "{{file}}"';
-        const { diffService, dispatch, worktreeService } = createDispatch({ desktopConfig: { agent: 'codex', agentProfiles: [], editorCommand, model: '' } });
+        const desktopConfig = {
+            agentProfiles: [],
+            agentSelection: {
+                activeAgent: 'codex', permissionMode: 'ask-for-approval',
+                settingsByAgent: { codex: { model: '', thinkingLevel: 'none' } },
+            },
+            editorCommand,
+        };
+        const { diffService, dispatch, worktreeService } = createDispatch({ desktopConfig });
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
         worktreeService.getRecords.mockReturnValue([
             { path: 'C:/worktree', valid: true },

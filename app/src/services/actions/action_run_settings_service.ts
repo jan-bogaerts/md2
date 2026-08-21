@@ -1,14 +1,16 @@
-import type { ActionSettings, CardActivityFile } from '../../../../shared/card_activity.mjs'
+import type { CardActivityFile } from '../../../../shared/card_activity.mjs'
 import { parseActivityValue } from '../../../../shared/card_activity.mjs'
 import type { PermissionMode, ThinkingLevel } from '../../data/agent_profiles'
-import { validatePermissionMode, validateThinkingLevel } from '../../data/agent_profiles'
+import type { AgentSelectionState } from '../../data/agent_selection'
 import { getElectronActionBridge } from '../../data/electron_action_bridge'
 import type { ProjectReference } from '../../data/data_types'
 import type { DataService } from '../data/data_service'
 import { dialogService } from '../dialog_service'
 import { register } from '../service_injector'
 
-export interface ResolvedActionRunSettings extends Omit<ActionSettings, 'permissionMode' | 'thinkingLevel'> {
+export interface ResolvedActionRunSettings {
+    agent: string
+    model: string
     permissionMode: PermissionMode | ''
     thinkingLevel: ThinkingLevel
 }
@@ -16,14 +18,14 @@ export interface ResolvedActionRunSettings extends Omit<ActionSettings, 'permiss
 export interface ActionRunSettingsSnapshot {
     loadError: string | null
     loading: boolean
-    settings: ResolvedActionRunSettings | null
+    settings: AgentSelectionState | null
     settingsChangedWhileWaiting: boolean
 }
 
 interface ActionRunSettingsStoreDependencies {
-    load(cardInternalId: string, actionId: string): Promise<ResolvedActionRunSettings | null>
+    load(cardInternalId: string, actionId: string): Promise<AgentSelectionState | null>
     reportError(error: unknown, fallbackMessage: string): void
-    save(cardInternalId: string, actionId: string, settings: ResolvedActionRunSettings): Promise<void>
+    save(cardInternalId: string, actionId: string, settings: AgentSelectionState): Promise<void>
 }
 
 interface ProjectStateOwner extends EventTarget {
@@ -55,21 +57,13 @@ async function loadPersistedSettings(cardInternalId: string, actionId: string) {
     const settings = activity.actionSettings[actionId]
     if (!settings) return null
 
-    const permissionMode: PermissionMode | '' = settings.permissionMode
-        ? validatePermissionMode(settings.permissionMode, `saved action settings "${actionId}"`)
-        : ''
-
-    return {
-        ...settings,
-        permissionMode,
-        thinkingLevel: validateThinkingLevel(settings.thinkingLevel, `saved action settings "${actionId}"`),
-    }
+    return settings
 }
 
 async function savePersistedSettings(
     cardInternalId: string,
     actionId: string,
-    settings: ResolvedActionRunSettings,
+    settings: AgentSelectionState,
 ) {
     const bridge = getElectronActionBridge()
     if (!bridge?.updateCardActionSettings) throw new Error('Saving card action settings requires Electron')
@@ -93,7 +87,7 @@ export class ActionRunSettingsStore extends EventTarget {
     private readonly cardInternalId: string | null
     private readonly dependencies: ActionRunSettingsStoreDependencies
     private lastPersistedSettingsChangedWhileWaiting = false
-    private lastPersistedSettings: ResolvedActionRunSettings | null = null
+    private lastPersistedSettings: AgentSelectionState | null = null
     private loadPromise: Promise<void> | null = null
     private pendingSave: Promise<void> = Promise.resolve()
     private revision = 0
@@ -130,7 +124,7 @@ export class ActionRunSettingsStore extends EventTarget {
         return this.loadPromise
     }
 
-    setSettings(settings: ResolvedActionRunSettings, changedWhileWaiting: boolean) {
+    setSettings(settings: AgentSelectionState, changedWhileWaiting: boolean) {
         const cardInternalId = this.cardInternalId
         const revision = this.revision + 1
         const settingsChangedWhileWaiting = this.snapshot.settingsChangedWhileWaiting || changedWhileWaiting

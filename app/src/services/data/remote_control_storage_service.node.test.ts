@@ -201,15 +201,12 @@ describe('RemoteControlStorageService', () => {
         installWebSocket()
         const service = createService()
         const desktopConfig = {
-            agent: 'custom',
-            agentProfiles: [{ command: ['custom'], models: ['custom-model'], name: 'custom' }],
+            agentSelection: { activeAgent: 'custom', permissionMode: 'full-access' as const, settingsByAgent: { custom: { model: 'custom-model', thinkingLevel: 'high' as const } } },
+            agentProfiles: [{ command: ['custom'], defaultThinkingLevel: 'none' as const, models: ['custom-model'], name: 'custom' }],
             codexSearchEnabled: false,
             editorCommand: 'code "{{file}}"',
             mergeConflictResolverCommand: '',
-            model: 'custom-model',
-            permissionMode: 'full-access' as const,
             remoteControlPort: 20877,
-            thinkingLevel: 'high' as const,
         }
         const load = service.loadDesktopConfig()
         const socket = lastSocket()
@@ -611,7 +608,7 @@ describe('RemoteControlStorageService', () => {
         const fileRequest = { commit: 'a'.repeat(40), parent: true, path: 'design/F-1.md' }
         const settingsRequest = {
             actionId: 'review', cardInternalId: 'card-1',
-            settings: { agent: 'codex', model: 'gpt-5', permissionMode: 'ask-for-approval', thinkingLevel: 'high' },
+            settings: { activeAgent: 'codex', permissionMode: 'ask-for-approval' as const, settingsByAgent: { codex: { model: 'gpt-5', thinkingLevel: 'high' as const } } },
         }
         const activity = service.loadCardActivity(activityRequest)
         const historicalFile = service.readFileAtCommit(fileRequest)
@@ -626,11 +623,11 @@ describe('RemoteControlStorageService', () => {
         expect(activityMessage).toMatchObject({ method: 'loadCardActivity', params: [activityRequest] })
         expect(fileMessage).toMatchObject({ method: 'readFileAtCommit', params: [fileRequest] })
         expect(settingsMessage).toMatchObject({ method: 'updateCardActionSettings', params: [settingsRequest] })
-        socket.receive({ id: activityMessage.id, result: { actionSettings: {}, conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 4 } })
+        socket.receive({ id: activityMessage.id, result: { actionSettings: {}, conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 5 } })
         socket.receive({ id: fileMessage.id, result: { content: '# Card', exists: true } })
         socket.receive({ id: settingsMessage.id, result: undefined })
 
-        await expect(activity).resolves.toMatchObject({ version: 4 })
+        await expect(activity).resolves.toMatchObject({ version: 5 })
         await expect(historicalFile).resolves.toEqual({ content: '# Card', exists: true })
         await expect(settingsUpdate).resolves.toBeUndefined()
     })

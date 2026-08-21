@@ -1,6 +1,6 @@
 const DEFAULT_DESKTOP_AGENT = 'codex';
 const DEFAULT_DESKTOP_PERMISSION_MODE = 'ask-for-approval';
-const DEFAULT_DESKTOP_MODEL = '';
+const DEFAULT_DESKTOP_MODEL = 'gpt-5.5';
 const DEFAULT_DESKTOP_THINKING_LEVEL = 'none';
 const DEFAULT_CODEX_SEARCH_ENABLED = true;
 const DEFAULT_EDITOR_COMMAND = 'code -g "{{file}}:{{line}}"';
@@ -11,9 +11,17 @@ const {
     BUILTIN_AGENT_PROFILES,
     normalizeAgentProfiles,
     validateAgentProfiles,
-    validatePermissionMode,
-    validateThinkingLevel,
 } = require('../actions/agent/agent_profiles.mjs');
+const {
+    resolveAgentSelectionState,
+    validateAgentSelectionState,
+} = require('../actions/agent/agent_selection.mjs');
+
+const DEFAULT_DESKTOP_AGENT_SELECTION = {
+    activeAgent: DEFAULT_DESKTOP_AGENT,
+    permissionMode: DEFAULT_DESKTOP_PERMISSION_MODE,
+    settingsByAgent: {[DEFAULT_DESKTOP_AGENT]: { model: DEFAULT_DESKTOP_MODEL, thinkingLevel: DEFAULT_DESKTOP_THINKING_LEVEL }},
+};
 
 function requireString(value, fieldName, allowEmpty = false) {
     if (typeof value !== 'string' || (!allowEmpty && value.length === 0)) {
@@ -37,15 +45,12 @@ function validateDesktopConfig(values) {
     }
 
     return {
-        agent: requireString(values.agent, 'agent'),
+        agentSelection: validateAgentSelectionState(values.agentSelection, 'desktop.agentSelection'),
         agentProfiles: validateAgentProfiles(values.agentProfiles),
         codexSearchEnabled: values.codexSearchEnabled,
         editorCommand,
         mergeConflictResolverCommand,
-        model: requireString(values.model, 'model', true),
-        permissionMode: validatePermissionMode(values.permissionMode, 'desktop.permissionMode'),
         remoteControlPort: values.remoteControlPort,
-        thinkingLevel: validateThinkingLevel(values.thinkingLevel, 'desktop.thinkingLevel'),
     };
 }
 
@@ -83,16 +88,13 @@ function resolveDesktopConfig(env = process.env) {
         : null;
 
     return {
-        agent: DEFAULT_DESKTOP_AGENT,
+        agentSelection: structuredClone(DEFAULT_DESKTOP_AGENT_SELECTION),
         agentProfiles,
         codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
         editorCommand: DEFAULT_EDITOR_COMMAND,
         mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
         ...(bridgeAllowedOrigins ? { bridgeAllowedOrigins } : {}),
-        model: DEFAULT_DESKTOP_MODEL,
-        permissionMode: DEFAULT_DESKTOP_PERMISSION_MODE,
         remoteControlPort: DEFAULT_REMOTE_CONTROL_PORT,
-        thinkingLevel: DEFAULT_DESKTOP_THINKING_LEVEL,
     };
 }
 
@@ -102,8 +104,32 @@ function readStoredDesktopConfig(store) {
 
 function removeObsoletePermissionFields(value) {
     return Object.fromEntries(Object.entries(value).filter(([fieldName]) => (
-        fieldName !== 'accessLevel' && fieldName !== 'approvalPolicy'
+        fieldName !== 'accessLevel'
+        && fieldName !== 'agent'
+        && fieldName !== 'approvalPolicy'
+        && fieldName !== 'model'
+        && fieldName !== 'permissionMode'
+        && fieldName !== 'thinkingLevel'
     )));
+}
+
+function migrateStoredAgentSelection(stored) {
+    if (stored.agentSelection !== undefined) return stored;
+    const activeAgent = typeof stored.agent === 'string' && stored.agent.length > 0
+        ? stored.agent
+        : DEFAULT_DESKTOP_AGENT;
+    const model = typeof stored.model === 'string' ? stored.model : DEFAULT_DESKTOP_MODEL;
+    const permissionMode = typeof stored.permissionMode === 'string'
+        ? stored.permissionMode
+        : DEFAULT_DESKTOP_PERMISSION_MODE;
+    const thinkingLevel = typeof stored.thinkingLevel === 'string'
+        ? stored.thinkingLevel
+        : DEFAULT_DESKTOP_THINKING_LEVEL;
+
+    const hasStoredAgentSettings = stored.model !== undefined || stored.thinkingLevel !== undefined;
+    const settingsByAgent = hasStoredAgentSettings ? { [activeAgent]: { model, thinkingLevel } } : {};
+
+    return { ...removeObsoletePermissionFields(stored), agentSelection: { activeAgent, permissionMode, settingsByAgent } };
 }
 
 function applyDefaultAgentProfileModels(agentProfiles) {
@@ -124,10 +150,7 @@ function applyDefaultAgentProfileModels(agentProfiles) {
 
 function readDesktopConfig(store, env = process.env) {
     const stored = readStoredDesktopConfig(store);
-    const storedValues = removeObsoletePermissionFields(stored);
-    if (Object.keys(storedValues).length !== Object.keys(stored).length) {
-        store.set(DESKTOP_CONFIG_STORE_KEY, storedValues);
-    }
+    const storedValues = migrateStoredAgentSelection(stored);
     const resolved = { ...resolveDesktopConfig(env), ...storedValues };
     const profilesWithDefaultModels = applyDefaultAgentProfileModels(resolved.agentProfiles);
     const agentProfiles = normalizeAgentProfiles(profilesWithDefaultModels);
@@ -136,7 +159,12 @@ function readDesktopConfig(store, env = process.env) {
         if (defaultProfile) defaultProfile.command = [env.MD2_AGENT];
     }
 
-    return { ...resolved, agentProfiles };
+    const agentSelection = resolveAgentSelectionState(resolved.agentSelection, agentProfiles);
+    if (JSON.stringify(storedValues) !== JSON.stringify(stored)) {
+        store.set(DESKTOP_CONFIG_STORE_KEY, { ...storedValues, agentSelection });
+    }
+
+    return { ...resolved, agentProfiles, agentSelection };
 }
 
 function writeDesktopConfig(store, values) {
@@ -159,6 +187,7 @@ module.exports = {
     DEFAULT_DESKTOP_PERMISSION_MODE,
     DEFAULT_DESKTOP_MODEL,
     DEFAULT_DESKTOP_THINKING_LEVEL,
+    DEFAULT_DESKTOP_AGENT_SELECTION,
     DEFAULT_CODEX_SEARCH_ENABLED,
     DEFAULT_EDITOR_COMMAND,
     DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,

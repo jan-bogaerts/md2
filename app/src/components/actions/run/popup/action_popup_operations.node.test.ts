@@ -4,6 +4,7 @@ import type { ActionRunEvent } from '../../../../data/action_run_types'
 import type { ActionDefinition } from '../../../../data/action_types'
 import type { AgentConversation } from '../../../../data/data_types'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../../../data/electron_action_bridge'
+import { projectAgentSelection, selectModel, type AgentSelectionState } from '../../../../data/agent_selection'
 import { actionPromptDraftService } from '../../../../services/actions/action_prompt_draft_service'
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
 import { ActionRunSettingsStore, type ResolvedActionRunSettings } from '../../../../services/actions/action_run_settings_service'
@@ -28,6 +29,7 @@ vi.mock('./action_popup_defaults', async (importOriginal) => {
 })
 
 const defaultSettings: ResolvedActionRunSettings = {agent: 'codex', model: 'gpt-5.5', permissionMode: 'ask-for-approval', thinkingLevel: 'high'}
+const defaultSelection: AgentSelectionState = {activeAgent: 'codex', permissionMode: 'ask-for-approval', settingsByAgent: {codex: {model: 'gpt-5.5', thinkingLevel: 'high'}}}
 
 function operationInput(
     inputStore: ActionRunInputStore,
@@ -50,7 +52,9 @@ function operationInput(
             setRunning: vi.fn(),
         },
         runValidationError: null,
-        settings: settingsStore.getSnapshot().settings ?? defaultSettings,
+        settings: settingsStore.getSnapshot().settings
+            ? projectAgentSelection(settingsStore.getSnapshot().settings as AgentSelectionState)
+            : defaultSettings,
         settingsStore,
     } as unknown as ActionPopupOperationInput
 }
@@ -158,7 +162,7 @@ describe('runPopupAction waiting follow-up', () => {
     it('restarts from persisted conversation with changed settings', async () => {
         const inputStore = new ActionRunInputStore()
         const settingsStore = new ActionRunSettingsStore(action.id, null)
-        settingsStore.setSettings({ ...defaultSettings, model: 'gpt-5.6' }, true)
+        settingsStore.setSettings(selectModel(defaultSelection, 'gpt-5.6'), true)
         const run = actionRunRegistry.getActionRunStore(action.id, context)?.getSnapshot() ?? null
         actionPromptDraftService.getDraft(action.id, context, run, { prepare: false }).edit('Next request')
         restartAction.mockImplementation(async (_runId, _action, _context, _runInput, onStarted) => {
@@ -180,7 +184,7 @@ describe('runPopupAction waiting follow-up', () => {
     it('preserves prompt and reports restart failure', async () => {
         const inputStore = new ActionRunInputStore()
         const settingsStore = new ActionRunSettingsStore(action.id, null)
-        settingsStore.setSettings(defaultSettings, true)
+        settingsStore.setSettings(defaultSelection, true)
         const run = actionRunRegistry.getActionRunStore(action.id, context)?.getSnapshot() ?? null
         const draft = actionPromptDraftService.getDraft(action.id, context, run, { prepare: false })
         draft.edit('Keep request')
@@ -203,7 +207,7 @@ describe('runPopupAction waiting follow-up', () => {
     it('restores draft when replacement run fails before persisting submitted message', async () => {
         const inputStore = new ActionRunInputStore()
         const settingsStore = new ActionRunSettingsStore(action.id, null)
-        settingsStore.setSettings(defaultSettings, true)
+        settingsStore.setSettings(defaultSelection, true)
         const previousConversation = storedConversation([{content: 'Earlier answer', id: 'assistant-1', kind: 'message', role: 'assistant', timestamp: '2026-01-01T00:01:00.000Z'}])
         const conversationStore = {
             continuationPath: () => previousConversation.path,
@@ -242,7 +246,7 @@ describe('runPopupAction waiting follow-up', () => {
     it('does not restore draft after failed replacement persisted submitted message', async () => {
         const inputStore = new ActionRunInputStore()
         const settingsStore = new ActionRunSettingsStore(action.id, null)
-        settingsStore.setSettings(defaultSettings, true)
+        settingsStore.setSettings(defaultSelection, true)
         const previousConversation = storedConversation([{content: 'Earlier answer', id: 'assistant-1', kind: 'message', role: 'assistant', timestamp: '2026-01-01T00:01:00.000Z'}])
         const failedConversation = {
             ...previousConversation,

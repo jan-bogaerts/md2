@@ -275,7 +275,12 @@ export const ActionDefinitionFields = memo(function ActionDefinitionFields(props
                     </ActionEditorField>
                 ) : null}
                 {definition.type === 'agent' ? (
-                    <ActionAgentCapabilityFields definition={definition} errors={errors} onChange={handleDefinitionChange} />
+                    <ActionAgentCapabilityFields
+                        definition={definition}
+                        errors={errors}
+                        onChange={handleDefinitionChange}
+                        sourcePath={sourcePath}
+                    />
                 ) : (
                     <ActionEditorTextField
                         error={!!errors.command}

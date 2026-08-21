@@ -1,7 +1,7 @@
 import { Box, Button, Divider, MenuItem, Tab as MuiTab, Tabs, TextField, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material'
 import type { SelectChangeEvent } from '@mui/material'
 import type { ChangeEvent, MouseEvent as ReactMouseEvent, ReactNode, SyntheticEvent } from 'react'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import CardsOutline from 'mdi-material-ui/CardsOutline'
 import CheckCircleOutline from 'mdi-material-ui/CheckCircleOutline'
 import CloudArrowDownOutline from 'mdi-material-ui/CloudArrowDownOutline'
@@ -13,15 +13,20 @@ import FolderOpen from 'mdi-material-ui/FolderOpen'
 import TextBoxOutline from 'mdi-material-ui/TextBoxOutline'
 import BarChartOutlined from '@mui/icons-material/BarChartOutlined'
 import {
-    defaultModelForProfile,
     findAgentProfile,
     mergeAgentProfiles,
     PERMISSION_MODE_OPTIONS,
     supportsPermissionMode,
     THINKING_LEVELS,
-    validateThinkingLevel,
     validatePermissionMode,
+    validateThinkingLevel,
 } from '../../../data/agent_profiles'
+import {
+    selectAgent,
+    selectModel,
+    selectPermissionMode,
+    selectThinkingLevel,
+} from '../../../data/agent_selection'
 import { configService } from '../../../services/config/config_service'
 import { writeDesktopConfigToBridge } from '../../../services/config/config_persistence'
 import { projectSessionService } from '../../../services/project/project_session_service'
@@ -92,16 +97,25 @@ export function AppMenu(props: AppMenuProps) {
     const [currentTab, setCurrentTab] = useState<AppMenuTab>('home')
     const [dialogMode, setDialogMode] = useState<ProjectDialogMode | null>(null)
     const agentProfiles = mergeAgentProfiles(useConfigValue('desktop.agentProfiles'))
-    const selectedAgent = useConfigValue('desktop.agent')
+    const agentSelection = useConfigValue('desktop.agentSelection')
+    const selectedAgent = agentSelection.activeAgent
     const selectedProfile = findAgentProfile(agentProfiles, selectedAgent)
     const selectedModels = selectedProfile?.models ?? []
-    const configuredModel = useConfigValue('desktop.model')
-    const selectedThinkingLevel = useConfigValue('desktop.thinkingLevel')
-    const selectedPermissionMode = useConfigValue('desktop.permissionMode')
+    const activeAgentSettings = agentSelection.settingsByAgent[selectedAgent]
+    const hasActiveAgentSettings = !!activeAgentSettings
+    const selectedThinkingLevel = activeAgentSettings?.thinkingLevel ?? 'none'
+    const selectedPermissionMode = agentSelection.permissionMode
     const desktopAvailable = useHasDesktopConfig()
-    const selectedModel = configuredModel || (selectedProfile ? defaultModelForProfile(selectedProfile) : '')
+    const selectedModel = activeAgentSettings?.model ?? ''
     const projectBranch = project?.branch ?? ''
     const readOnly = useProjectReadOnly()
+
+    useEffect(() => {
+        if (!hasActiveAgentSettings) {
+            const error = new Error(`Missing desktop settings for active agent: ${selectedAgent}`)
+            dialogService.error(error, { fallbackMessage: 'Desktop agent settings are invalid' })
+        }
+    }, [hasActiveAgentSettings, selectedAgent])
 
     const closeDialog = useCallback(() => {
         setDialogMode(null)
@@ -179,15 +193,12 @@ export function AppMenu(props: AppMenuProps) {
     }
 
     const handleAgentChange = (event: SelectChangeEvent) => {
-        const profile = findAgentProfile(agentProfiles, event.target.value)
-        const nextModel = profile ? defaultModelForProfile(profile) : ''
-        configService.set('desktop.agent', event.target.value)
-        configService.set('desktop.model', nextModel)
+        configService.set('desktop.agentSelection', selectAgent(agentSelection, event.target.value, agentProfiles))
         persistDesktopConfig()
     }
 
     const setModel = (value: string) => {
-        configService.set('desktop.model', value)
+        configService.set('desktop.agentSelection', selectModel(agentSelection, value))
         persistDesktopConfig()
     }
 
@@ -201,13 +212,13 @@ export function AppMenu(props: AppMenuProps) {
 
     const handleThinkingLevelChange = (event: SelectChangeEvent) => {
         const thinkingLevel = validateThinkingLevel(event.target.value, 'Default reasoning level')
-        configService.set('desktop.thinkingLevel', thinkingLevel)
+        configService.set('desktop.agentSelection', selectThinkingLevel(agentSelection, thinkingLevel))
         persistDesktopConfig()
     }
 
     const handlePermissionModeChange = (event: SelectChangeEvent) => {
         const permissionMode = validatePermissionMode(event.target.value, 'Default permission mode')
-        configService.set('desktop.permissionMode', permissionMode)
+        configService.set('desktop.agentSelection', selectPermissionMode(agentSelection, permissionMode))
         persistDesktopConfig()
     }
 

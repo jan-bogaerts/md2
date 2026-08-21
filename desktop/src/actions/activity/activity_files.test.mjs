@@ -23,6 +23,10 @@ const {
 
 const terminalTime = '2026-08-04T10:30:00.000Z';
 
+function selection(activeAgent, model, thinkingLevel, permissionMode = 'ask-for-approval') {
+    return { activeAgent, permissionMode, settingsByAgent: { [activeAgent]: { model, thinkingLevel } } };
+}
+
 function waitingConversation() {
     return {
         actionId: 'review',
@@ -55,7 +59,7 @@ describe('project activity conversations', () => {
             const firstContent = await readFile(filePath, 'utf8');
             await ensureActivityFile(project, 'design', origin);
 
-            expect(JSON.parse(firstContent)).toEqual({ actionSettings: {}, conversations: [], origin, records: [], version: 4 });
+            expect(JSON.parse(firstContent)).toEqual({ actionSettings: {}, conversations: [], origin, records: [], version: 5 });
             expect(await readFile(filePath, 'utf8')).toBe(firstContent);
         } finally {
             await rm(rootPath, { force: true, recursive: true });
@@ -154,8 +158,8 @@ describe('project activity conversations', () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-action-settings-'));
         const project = { branch: 'main', rootPath };
         const origin = { cardInternalId: 'card-1', kind: 'card' };
-        const firstSettings = { agent: 'codex', model: 'gpt-5', permissionMode: 'ask-for-approval', thinkingLevel: 'high' };
-        const secondSettings = { agent: 'claude', model: 'sonnet', permissionMode: 'approve-for-me', thinkingLevel: 'none' };
+        const firstSettings = selection('codex', 'gpt-5', 'high');
+        const secondSettings = selection('claude', 'sonnet', 'none', 'approve-for-me');
         const conversation = { ...waitingConversation(), cardInternalId: 'card-1' };
         try {
             await mkdir(join(rootPath, '.git'));
@@ -175,7 +179,7 @@ describe('project activity conversations', () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-action-settings-race-'));
         const project = { branch: 'main', rootPath };
         const origin = { cardInternalId: 'card-1', kind: 'card' };
-        const settings = { agent: 'codex', model: 'gpt-5', permissionMode: 'ask-for-approval', thinkingLevel: 'high' };
+        const settings = selection('codex', 'gpt-5', 'high');
         const conversation = { ...waitingConversation(), cardInternalId: 'card-1' };
         const secondConversation = { ...conversation, id: 'conversation-2', title: 'Second' };
         const reference = 'design/activity/card__card-1.json#conversation=conversation-1';
@@ -462,7 +466,7 @@ describe('project activity conversations', () => {
             await mkdir(join(rootPath, 'releases', 'v1', 'design', 'activity'), { recursive: true });
             const releasedActivity = {
                 actionSettings: {}, conversations: [],
-                origin: { cardInternalId: 'released', kind: 'card' }, records: [], version: 4,
+                origin: { cardInternalId: 'released', kind: 'card' }, records: [], version: 5,
             };
             await writeFile(join(rootPath, releasedPath), `${JSON.stringify(releasedActivity, null, 2)}\n`);
 
@@ -502,7 +506,7 @@ describe('project activity conversations', () => {
         const malformedPath = join('design', 'activity', 'card__malformed.json');
         const futurePath = join('design', 'activity', 'card__future.json');
         const malformedContent = '{broken';
-        const futureContent = JSON.stringify({ version: 5 });
+        const futureContent = JSON.stringify({ version: 6 });
         try {
             await mkdir(join(rootPath, '.git'));
             await mkdir(join(rootPath, 'design', 'activity'), { recursive: true });

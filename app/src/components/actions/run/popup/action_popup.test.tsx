@@ -4,6 +4,7 @@ import type { ActionContext } from '../../../../data/action_context'
 import type { ActionRunEvent } from '../../../../data/action_run_types'
 import { CUSTOM_PROMPT_ACTION_ID, type ActionFile } from '../../../../data/action_types'
 import type { AgentConversation, ProjectReference, StorageService, WorktreeRecord } from '../../../../data/data_types'
+import type { AgentSelectionState } from '../../../../data/agent_selection'
 import { actionService } from '../../../../services/actions/action_service'
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
 import { actionRunSettingsService } from '../../../../services/actions/action_run_settings_service'
@@ -254,7 +255,12 @@ describe('ActionPopup', () => {
     beforeEach(async () => {
         projectPersistenceService.init({ actionService, dataService, openFilesService })
         remoteConnectionService.disconnect()
-        configService.init({ desktopConfig: { agent: 'codex', agentProfiles: BUILTIN_AGENT_PROFILES, model: '' } })
+        configService.init({
+            desktopConfig: {
+                agentProfiles: BUILTIN_AGENT_PROFILES,
+                agentSelection: { activeAgent: 'codex', permissionMode: 'ask-for-approval', settingsByAgent: { codex: { model: 'gpt-5.5', thinkingLevel: 'none' } } },
+            },
+        })
         setMobileBreakpoint(false)
         Object.values(renderProbes).forEach((probe) => probe.mockClear())
         window.md2Actions = {
@@ -613,14 +619,11 @@ describe('ActionPopup', () => {
 
     it('uses host defaults and custom profiles in action selectors', async () => {
         configService.replaceDesktopConfig({
-            agent: 'custom',
-            agentProfiles: [{ command: ['custom'], models: ['host-model'], name: 'custom' }],
+            agentSelection: { activeAgent: 'custom', permissionMode: 'full-access', settingsByAgent: { custom: { model: 'host-model', thinkingLevel: 'high' } } },
+            agentProfiles: [{ command: ['custom'], defaultThinkingLevel: 'none', models: ['host-model'], name: 'custom' }],
             codexSearchEnabled: true,
             editorCommand: 'code "{{file}}"',
             mergeConflictResolverCommand: '',
-            model: 'host-model',
-            permissionMode: 'full-access',
-            thinkingLevel: 'high',
         })
         vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({
             availability: { error: null, loading: false, values: { custom: { available: true, error: null } } },
@@ -635,6 +638,7 @@ describe('ActionPopup', () => {
         expect(model.querySelector('[data-model-label]')).toHaveTextContent('host-model')
         expect(model.querySelector('[data-full-thinking-level]')).toHaveTextContent('high')
         fireEvent.click(model)
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Agent' }))
 
         expect(screen.getByRole('menuitem', { name: 'custom' })).toHaveClass('Mui-selected')
     })
@@ -1788,6 +1792,7 @@ describe('ActionPopup', () => {
         await waitFor(() => expect(screen.getByText('Original answer')).toBeInTheDocument())
 
         fireEvent.click(screen.getByLabelText('Model'))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Agent' }))
         fireEvent.click(await screen.findByRole('menuitem', { name: 'claude' }))
         const activeRun = actionRunRegistry.getActionRunStore('stream', projectContext)?.getSnapshot()
         if (!activeRun) throw new Error('Expected active stream run')
@@ -1819,7 +1824,7 @@ describe('ActionPopup', () => {
             conversations: []
             origin: { cardInternalId: string; kind: 'card' }
             records: []
-            version: 4
+            version: 5
         }>()
         window.md2Actions = {
             loadCardActivity: vi.fn(() => activity.promise),
@@ -1836,18 +1841,13 @@ describe('ActionPopup', () => {
         renderPopup(cardContext)
         expect(screen.getByLabelText('Model')).toBeDisabled()
 
-        activity.resolve({actionSettings: {}, conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 4})
+        activity.resolve({actionSettings: {}, conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 5})
         await waitFor(() => expect(screen.getByLabelText('Model')).toBeEnabled())
     })
 
     it('persists complete settings across close and renderer-store restart without rendering popup roots', async () => {
         const cardContext = { ...context, cardInternalId: 'card-1' }
-        let savedSettings: {
-            agent: string
-            model: string
-            permissionMode: string
-            thinkingLevel: string
-        } | null = null
+        let savedSettings: AgentSelectionState | null = null
         const updateCardActionSettings = vi.fn(async (request) => {
             savedSettings = request.settings
         })
@@ -1856,7 +1856,7 @@ describe('ActionPopup', () => {
             conversations: [],
             origin: { cardInternalId: 'card-1', kind: 'card' as const },
             records: [],
-            version: 4 as const,
+            version: 5 as const,
         }))
         window.md2Actions = {
             loadCardActivity,
@@ -1875,11 +1875,15 @@ describe('ActionPopup', () => {
         Object.values(renderProbes).forEach((probe) => probe.mockClear())
 
         fireEvent.click(screen.getByLabelText('Model'))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Model' }))
         fireEvent.click(screen.getByRole('menuitem', { name: 'gpt-5.6-sol' }))
         await waitFor(() => expect(updateCardActionSettings).toHaveBeenCalledWith({
             actionId: 'review',
             cardInternalId: 'card-1',
-            settings: {agent: 'codex', model: 'gpt-5.6-sol', permissionMode: 'ask-for-approval', thinkingLevel: 'none'},
+            settings: {
+                activeAgent: 'codex', permissionMode: 'ask-for-approval',
+                settingsByAgent: { codex: { model: 'gpt-5.6-sol', thinkingLevel: 'none' } },
+            },
         }))
         expect(renderProbes.content).not.toHaveBeenCalled()
         expect(renderProbes.popup).not.toHaveBeenCalled()
@@ -1903,7 +1907,7 @@ describe('ActionPopup', () => {
             void request
         })
         window.md2Actions = {
-            loadCardActivity: vi.fn(async () => ({actionSettings: {}, conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 4})),
+            loadCardActivity: vi.fn(async () => ({actionSettings: {}, conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 5})),
             onActionRun: vi.fn(() => vi.fn()),
             prepareActionPrompt: vi.fn(async () => ({ prompt: 'Plan' })),
             updateCardActionSettings,
@@ -1921,10 +1925,12 @@ describe('ActionPopup', () => {
         await waitFor(() => expect(screen.getByLabelText('Model')).toBeEnabled())
 
         fireEvent.click(screen.getByLabelText('Model'))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Model' }))
         fireEvent.click(screen.getByRole('menuitem', { name: 'gpt-5.6-sol' }))
         fireEvent.click(screen.getByRole('button', { name: 'Second agent' }))
         await waitFor(() => expect(screen.getByLabelText('Model')).toHaveTextContent('gpt-5.5'))
         fireEvent.click(screen.getByLabelText('Model'))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Model' }))
         fireEvent.click(screen.getByRole('menuitem', { name: 'gpt-5.6-terra' }))
 
         fireEvent.click(screen.getByRole('button', { name: 'First agent' }))
@@ -1932,14 +1938,17 @@ describe('ActionPopup', () => {
         expect(updateCardActionSettings.mock.calls.map(([request]) => request.actionId)).toEqual(['first-agent', 'second-agent'])
     })
 
-    it('uses current defaults for unavailable saved configuration without overwriting persistence', async () => {
+    it('keeps unavailable saved configuration visible without overwriting persistence', async () => {
         const cardContext = { ...context, cardInternalId: 'card-1' }
-        const unavailableSettings = {agent: 'removed-agent', model: 'removed-model', permissionMode: '', thinkingLevel: 'high'}
+        const unavailableSettings: AgentSelectionState = {
+            activeAgent: 'codex', permissionMode: 'ask-for-approval',
+            settingsByAgent: { codex: { model: 'removed-model', thinkingLevel: 'high' } },
+        }
         const updateCardActionSettings = vi.fn(async () => undefined)
         window.md2Actions = {
             loadCardActivity: vi.fn(async () => ({
                 actionSettings: { review: unavailableSettings }, conversations: [],
-                origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 4,
+                origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 5,
             })),
             onActionRun: vi.fn(() => vi.fn()),
             prepareActionPrompt: vi.fn(async () => ({ prompt: 'Plan' })),
@@ -1956,8 +1965,8 @@ describe('ActionPopup', () => {
 
         await waitFor(() => {
             const model = screen.getByLabelText('Model')
-            expect(model.querySelector('[data-model-label]')).toHaveTextContent('gpt-5.5')
-            expect(model.querySelector('[data-full-thinking-level]')).toHaveTextContent('none')
+            expect(model.querySelector('[data-model-label]')).toHaveTextContent('removed-model')
+            expect(model.querySelector('[data-full-thinking-level]')).toHaveTextContent('high')
         })
         expect(updateCardActionSettings).not.toHaveBeenCalled()
     })

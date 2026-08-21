@@ -8,6 +8,7 @@ import {
     MenuItem,
     Select,
     Slider,
+    Stack,
     Switch,
     TextField,
 } from '@mui/material'
@@ -17,12 +18,21 @@ import type { ChangeEvent } from 'react'
 import type { ConfigEntry, ConfigValue } from '../../services/config/config_service'
 import { dialogService } from '../../services/dialog_service'
 import {
-    defaultModelForProfile,
     findAgentProfile,
     mergeAgentProfiles,
-    supportsPermissionMode,
+    PERMISSION_MODE_OPTIONS,
+    THINKING_LEVELS,
+    validatePermissionMode,
+    validateThinkingLevel,
     type AgentProfile,
 } from '../../data/agent_profiles'
+import {
+    selectAgent,
+    selectModel,
+    selectPermissionMode,
+    selectThinkingLevel,
+    type AgentSelectionState,
+} from '../../data/agent_selection'
 import { AgentProfilesEditor } from './agent_profiles_editor'
 
 const CONFIG_PLACEHOLDER_PARTS_PATTERN = /(\{\{[^{}]+\}\})/u
@@ -65,19 +75,12 @@ export function ConfigValueEditor(props: ConfigValueEditorProps) {
     const [numberText, setNumberText] = useState(() => (entry.type === 'number' ? String(value) : ''))
     const [numberValid, setNumberValid] = useState(true)
     const agentProfiles = mergeAgentProfiles((values?.['desktop.agentProfiles'] ?? []) as AgentProfile[])
-    const selectedAgentProfile = findAgentProfile(agentProfiles, (values?.['desktop.agent'] ?? '') as string)
+    const desktopAgentSelection = (values?.['desktop.agentSelection'] ?? null) as AgentSelectionState | null
+    const selectedAgentProfile = findAgentProfile(agentProfiles, desktopAgentSelection?.activeAgent ?? '')
     const selectedAgentModels = selectedAgentProfile?.models ?? []
     const stringValue = value as string
-    const selectOptions = entry.key === 'desktop.agent'
-        ? agentProfiles.map((profile) => ({ label: profile.name, value: profile.name }))
-        : entry.key === 'desktop.model' && selectedAgentModels.length > 0
-            ? selectedAgentModels.map((model) => ({ label: model, value: model }))
-            : entry.type === 'select'
-                ? entry.options ?? []
-                : null
-    const selectValue = entry.key === 'desktop.model' && selectedAgentModels.length > 0 && stringValue.length === 0
-        ? defaultModelForProfile(selectedAgentProfile as AgentProfile)
-        : stringValue
+    const selectOptions = entry.type === 'select' ? entry.options ?? [] : null
+    const selectValue = stringValue
     const helperTextId = `${entry.key}-helper-text`
     const selectLabelId = `${entry.key}-label`
     const description = renderDescription(entry.description)
@@ -119,11 +122,20 @@ export function ConfigValueEditor(props: ConfigValueEditorProps) {
     }
 
     const handleSelectChange = (event: SelectChangeEvent) => {
-        if (entry.key === 'desktop.agent') {
-            const profile = findAgentProfile(agentProfiles, event.target.value)
-            onChange('desktop.model', profile ? defaultModelForProfile(profile) : '')
-        }
         onChange(entry.key, event.target.value)
+    }
+
+    const handleDesktopSelectionChange = (event: ChangeEvent<HTMLInputElement>) => {
+        const selection = value as AgentSelectionState
+        const fieldName = event.target.name
+        const nextSelection = fieldName === 'agent'
+            ? selectAgent(selection, event.target.value, agentProfiles)
+            : fieldName === 'model'
+                ? selectModel(selection, event.target.value)
+                : fieldName === 'thinkingLevel'
+                    ? selectThinkingLevel(selection, validateThinkingLevel(event.target.value, 'desktop agent selection'))
+                    : selectPermissionMode(selection, validatePermissionMode(event.target.value, 'desktop agent selection'))
+        onChange(entry.key, nextSelection)
     }
 
     const handleJsonChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -144,8 +156,33 @@ export function ConfigValueEditor(props: ConfigValueEditorProps) {
 
     if (sliderConfigurationError) return null
 
-    if (entry.key === 'desktop.permissionMode' && (!selectedAgentProfile || !supportsPermissionMode(selectedAgentProfile))) {
-        return <TextField disabled fullWidth helperText={`${selectedAgentProfile?.name ?? 'Selected agent'} does not support permission modes.`} label={entry.label} value="Not supported" />
+    if (entry.key === 'desktop.agentSelection') {
+        const selection = value as AgentSelectionState
+        const activeSettings = selection.settingsByAgent[selection.activeAgent]
+        if (!activeSettings) return null
+
+        return (
+            <FormControl disabled={disabled} fullWidth sx={OUTLINED_FIELD_BLOCK_SX}>
+                <FormLabel>{entry.label}</FormLabel>
+                <Stack direction={{ md: 'row', xs: 'column' }} spacing={1} sx={{ mt: 2 }}>
+                    <TextField disabled={disabled} fullWidth label="Agent" name="agent" onChange={handleDesktopSelectionChange} select size="small" value={selection.activeAgent}>
+                        {agentProfiles.map(({ name }) => <MenuItem key={name} value={name}>{name}</MenuItem>)}
+                    </TextField>
+                    <TextField disabled={disabled} fullWidth label="Model" name="model" onChange={handleDesktopSelectionChange} select size="small" value={activeSettings.model}>
+                        {selectedAgentModels.map((model) => <MenuItem key={model} value={model}>{model}</MenuItem>)}
+                    </TextField>
+                    <TextField disabled={disabled} fullWidth label="Thinking level" name="thinkingLevel" onChange={handleDesktopSelectionChange} select size="small" value={activeSettings.thinkingLevel}>
+                        {THINKING_LEVELS.map((level) => <MenuItem key={level} value={level}>{level}</MenuItem>)}
+                    </TextField>
+                    <TextField disabled={disabled} fullWidth label="Permission mode" name="permissionMode" onChange={handleDesktopSelectionChange} select size="small" value={selection.permissionMode}>
+                        {PERMISSION_MODE_OPTIONS.map(({ label, value: permissionMode }) => (
+                            <MenuItem key={permissionMode} value={permissionMode}>{label}</MenuItem>
+                        ))}
+                    </TextField>
+                </Stack>
+                <FormHelperText sx={{ m: 0, mt: 1 }}>{description}</FormHelperText>
+            </FormControl>
+        )
     }
 
     if (entry.type === 'boolean') {

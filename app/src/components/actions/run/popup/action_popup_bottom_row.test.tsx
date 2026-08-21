@@ -110,7 +110,12 @@ function renderBottomRow(
 describe('ActionPopupBottomRow', () => {
     beforeEach(() => {
         setMobileBreakpoint(false)
-        configService.init({ desktopConfig: { agent: 'codex', agentProfiles: BUILTIN_AGENT_PROFILES, model: '' } })
+        configService.init({
+            desktopConfig: {
+                agentProfiles: BUILTIN_AGENT_PROFILES,
+                agentSelection: { activeAgent: 'codex', permissionMode: 'ask-for-approval', settingsByAgent: { codex: { model: '', thinkingLevel: 'none' } } },
+            },
+        })
         window.md2Actions = { onActionRun: vi.fn(() => vi.fn()) } as unknown as typeof window.md2Actions
         vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({
             availability: { error: null, loading: false, values: { codex: { available: true, error: null } } },

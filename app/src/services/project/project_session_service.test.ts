@@ -76,15 +76,12 @@ describe('ProjectSessionService storage activation', () => {
         vi.spyOn(RemoteControlStorageService.prototype, 'onActionRun').mockReturnValue(() => undefined)
         vi.spyOn(RemoteControlStorageService.prototype, 'onCodexRateLimits').mockReturnValue(() => undefined)
         vi.spyOn(RemoteControlStorageService.prototype, 'loadDesktopConfig').mockResolvedValue({
-            agent: 'custom',
-            agentProfiles: [{ command: ['custom'], models: ['custom-model'], name: 'custom' }],
+            agentSelection: { activeAgent: 'custom', permissionMode: 'ask-for-approval', settingsByAgent: { custom: { model: 'custom-model', thinkingLevel: 'high' } } },
+            agentProfiles: [{ command: ['custom'], defaultThinkingLevel: 'none', models: ['custom-model'], name: 'custom' }],
             codexSearchEnabled: true,
             editorCommand: 'code "{{file}}"',
             mergeConflictResolverCommand: '',
-            model: 'custom-model',
-            permissionMode: 'ask-for-approval',
             remoteControlPort: 20877,
-            thinkingLevel: 'high',
         })
         vi.spyOn(RemoteControlStorageService.prototype, 'loadAgentAvailability')
             .mockResolvedValue({ custom: { available: true, error: null } })
@@ -114,7 +111,12 @@ describe('ProjectSessionService storage activation', () => {
         await service.openProject('remote', { branch: 'main', id: 'remote', rootPath: '/repo' }, null)
 
         expect(getElectronActionBridge()).toBeInstanceOf(RemoteControlStorageService)
-        expect(configService.getDesktopValues()).toMatchObject({ agent: 'custom', model: 'custom-model', thinkingLevel: 'high' })
+        expect(configService.getDesktopValues()).toMatchObject({
+            agentSelection: {
+                activeAgent: 'custom',
+                settingsByAgent: { custom: { model: 'custom-model', thinkingLevel: 'high' } },
+            },
+        })
     })
 
     it('reuses an existing remote storage connection when opening a remote project', async () => {
@@ -194,15 +196,12 @@ describe('ProjectSessionService storage activation', () => {
     it('restores the last local project once after resolving its current reference', async () => {
         mockProjectOpen()
         const desktopConfig = {
-            agent: 'codex',
-            agentProfiles: [{ command: ['codex'], models: ['gpt-5'], name: 'codex' }],
+            agentSelection: { activeAgent: 'codex', permissionMode: 'ask-for-approval' as const, settingsByAgent: { codex: { model: 'gpt-5', thinkingLevel: 'high' as const } } },
+            agentProfiles: [{ command: ['codex'], defaultThinkingLevel: 'none' as const, models: ['gpt-5'], name: 'codex' }],
             codexSearchEnabled: true,
             editorCommand: 'code "{{file}}"',
             mergeConflictResolverCommand: '',
-            model: 'gpt-5',
-            permissionMode: 'ask-for-approval' as const,
             remoteControlPort: 20877,
-            thinkingLevel: 'high' as const,
         }
         const bridge = createDataBridge()
         vi.mocked(bridge.resolveProject).mockResolvedValue({ branch: 'topic', id: 'C:/repo', rootPath: 'C:/repo' })

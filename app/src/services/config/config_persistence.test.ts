@@ -56,12 +56,10 @@ describe('config persistence', () => {
 
     it('reads and writes desktop config through the bridge', () => {
         const desktopConfig: DesktopConfigValues = {
-            agent: 'codex',
+            agentSelection: { activeAgent: 'codex', permissionMode: 'ask-for-approval', settingsByAgent: { codex: { model: '', thinkingLevel: 'none' } } },
             agentProfiles: BUILTIN_AGENT_PROFILES,
             editorCommand: 'code -g "{{file}}:{{line}}"',
             mergeConflictResolverCommand: '',
-            model: '',
-            permissionMode: 'ask-for-approval',
             remoteControlPort: 20877,
         }
         const setDesktopConfig = vi.fn(async (values: DesktopConfigValues) => values)

@@ -29,7 +29,7 @@ function activity(): CardActivityFile {
             record('new', newerHash, '2026-07-20T11:00:00.000Z'),
             record('old', olderHash, '2026-07-20T10:00:00.000Z'),
         ],
-        version: 4,
+        version: 5,
     }
 }
 
@@ -77,7 +77,7 @@ describe('loadCardCommits', () => {
                 origin: { cardInternalId, kind: 'card' },
                 type: 'system',
             }],
-            version: 4,
+            version: 5,
         }
         installBridge({ loadCardActivity: vi.fn(async () => integrationActivity) })
 

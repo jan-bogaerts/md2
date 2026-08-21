@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { StrictMode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { defaultColumnAccent } from '../../data/data_types'
@@ -22,6 +22,10 @@ const worktreeProject: ProjectReference = { branch: 'main', id: 'project', rootP
 const worktreeRecord: WorktreeRecord = {
     branch: 'one', error: null, parkingBranch: 'md2/parking/one', path: 'C:\\one',
     status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false }, valid: true,
+}
+
+function agentSelection(activeAgent: string, model = '', thinkingLevel: 'none' | 'low' | 'medium' | 'high' | 'max' = 'none') {
+    return { activeAgent, permissionMode: 'ask-for-approval' as const, settingsByAgent: { [activeAgent]: { model, thinkingLevel } } }
 }
 
 vi.mock('../../theme/use_app_theme', () => ({ useAppTheme: useAppThemeMock }))
@@ -117,7 +121,7 @@ describe('ConfigPage', () => {
 
         renderConfigPage('#desktop')
 
-        expect(screen.getByLabelText('Default agent')).toBeInTheDocument()
+        expect(screen.getByLabelText('Agent')).toBeInTheDocument()
         expect(screen.queryByRole('switch', { name: 'Startup splash' })).toBeNull()
         expect(screen.getByRole('tab', { name: 'React app' })).toHaveAttribute('href', '#/config/react')
     })
@@ -535,9 +539,8 @@ describe('ConfigPage', () => {
         mockMatchMedia(false)
         configService.init({
             desktopConfig: {
-                agent: 'codex',
                 agentProfiles: BUILTIN_AGENT_PROFILES,
-                model: '',
+                agentSelection: { activeAgent: 'codex', permissionMode: 'ask-for-approval', settingsByAgent: { codex: { model: '', thinkingLevel: 'none' } } },
             },
         })
         configService.loadProjectConfig(null)
@@ -584,30 +587,26 @@ describe('ConfigPage', () => {
         const setDesktopConfig = vi.fn(async (values: DesktopConfigValues) => values)
         window.md2Config = {
             getDesktopConfig: () => ({
-                agent: 'codex',
                 agentProfiles: BUILTIN_AGENT_PROFILES,
-                model: '',
+                agentSelection: agentSelection('codex'),
             }),
             setDesktopConfig,
         }
         initConfigFromElectronBridge()
 
         renderConfigPage('#desktop')
-        configService.setDraftValue('desktop.agent', 'claude')
+        configService.setDraftValue('desktop.agentSelection', agentSelection('claude'))
         fireEvent.change(screen.getByLabelText('Editor command'), { target: { value: 'notepad "{{file}}"' } })
         fireEvent.click(screen.getByRole('switch', { name: 'Codex web search' }))
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
         expect(setDesktopConfig).toHaveBeenCalledWith({
-            agent: 'claude',
+            agentSelection: agentSelection('claude'),
             agentProfiles: BUILTIN_AGENT_PROFILES,
             codexSearchEnabled: false,
             editorCommand: 'notepad "{{file}}"',
             mergeConflictResolverCommand: '',
-            model: '',
-            permissionMode: 'ask-for-approval',
             remoteControlPort: 20877,
-            thinkingLevel: 'none',
         })
 
         delete window.md2Config
@@ -754,15 +753,12 @@ describe('ConfigPage', () => {
     it('awaits remote persistence, applies returned config, then reloads availability', async () => {
         mockMatchMedia(false)
         const hostConfig: DesktopConfigValues = {
-            agent: 'custom',
-            agentProfiles: [{ command: ['custom'], models: ['host-model'], name: 'custom' }],
+            agentSelection: agentSelection('custom', 'host-model', 'medium'),
+            agentProfiles: [{ command: ['custom'], defaultThinkingLevel: 'none', models: ['host-model'], name: 'custom' }],
             codexSearchEnabled: true,
             editorCommand: 'code "{{file}}"',
             mergeConflictResolverCommand: '',
-            model: 'host-model',
-            permissionMode: 'ask-for-approval',
             remoteControlPort: 20877,
-            thinkingLevel: 'medium',
         }
         let acknowledgeSave: (value: DesktopConfigValues) => void = () => undefined
         const saveDesktopConfig = vi.fn(() => new Promise<DesktopConfigValues>((resolve) => {
@@ -773,31 +769,28 @@ describe('ConfigPage', () => {
         configService.init()
         configService.replaceDesktopConfig(hostConfig)
         renderConfigPage('#desktop')
-        configService.setDraftValue('desktop.model', 'saved-model')
+        configService.setDraftValue('desktop.agentSelection', agentSelection('custom', 'saved-model', 'medium'))
 
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
-        expect(saveDesktopConfig).toHaveBeenCalledWith({ ...hostConfig, model: 'saved-model' })
-        expect(configService.get('desktop.model')).toBe('host-model')
+        expect(saveDesktopConfig).toHaveBeenCalledWith({ ...hostConfig, agentSelection: agentSelection('custom', 'saved-model', 'medium') })
+        expect(configService.get('desktop.agentSelection')).toEqual(agentSelection('custom', 'host-model', 'medium'))
         expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
 
-        acknowledgeSave({ ...hostConfig, model: 'normalized-model' })
-        await waitFor(() => expect(configService.get('desktop.model')).toBe('normalized-model'))
+        acknowledgeSave({ ...hostConfig, agentSelection: agentSelection('custom', 'normalized-model', 'medium') })
+        await waitFor(() => expect(configService.get('desktop.agentSelection')).toEqual(agentSelection('custom', 'normalized-model', 'medium')))
         expect(agentCapabilitiesService.reload).toHaveBeenCalledOnce()
     })
 
     it('keeps remote desktop edits in draft when persistence fails', async () => {
         mockMatchMedia(false)
         const hostConfig: DesktopConfigValues = {
-            agent: 'codex',
+            agentSelection: agentSelection('codex'),
             agentProfiles: BUILTIN_AGENT_PROFILES,
             codexSearchEnabled: true,
             editorCommand: 'code "{{file}}"',
             mergeConflictResolverCommand: '',
-            model: '',
-            permissionMode: 'ask-for-approval',
             remoteControlPort: 20877,
-            thinkingLevel: 'none',
         }
         const saveError = new Error('Host rejected desktop config')
         setDesktopConfigTransportOverride({
@@ -809,12 +802,12 @@ describe('ConfigPage', () => {
         configService.init()
         configService.replaceDesktopConfig(hostConfig)
         renderConfigPage('#desktop')
-        configService.setDraftValue('desktop.model', 'unsaved-model')
+        configService.setDraftValue('desktop.agentSelection', agentSelection('codex', 'unsaved-model'))
 
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
         await waitFor(() => expect(error).toHaveBeenCalledWith(saveError, { fallbackMessage: 'Config save failed' }))
-        expect(configService.get('desktop.model')).toBe('')
+        expect(configService.get('desktop.agentSelection')).toEqual(agentSelection('codex'))
         expect(success).not.toHaveBeenCalled()
     })
 
@@ -823,9 +816,8 @@ describe('ConfigPage', () => {
         const setDesktopConfig = vi.fn(async (values: DesktopConfigValues) => values)
         window.md2Config = {
             getDesktopConfig: () => ({
-                agent: 'codex',
                 agentProfiles: BUILTIN_AGENT_PROFILES,
-                model: '',
+                agentSelection: agentSelection('codex'),
             }),
             setDesktopConfig,
         }
@@ -843,6 +835,8 @@ describe('ConfigPage', () => {
         fireEvent.change(screen.getByLabelText('Model argument'), { target: { value: '--model' } })
         fireEvent.change(screen.getByLabelText('Models'), { target: { value: 'gpt-5, gpt-5-mini' } })
         fireEvent.change(screen.getByLabelText('Profile default model'), { target: { value: 'gpt-5' } })
+        fireEvent.mouseDown(screen.getByLabelText('Profile default thinking level'))
+        fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: 'high' }))
         fireEvent.change(screen.getByLabelText('Resume command'), { target: { value: '["local", "resume", "{{sessionId}}"]' } })
         fireEvent.click(screen.getByRole('button', { name: 'Save profile' }))
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
@@ -852,6 +846,7 @@ describe('ConfigPage', () => {
                 expect.objectContaining({
                     command: ['local-agent', '{{model}}'],
                     defaultModel: 'gpt-5',
+                    defaultThinkingLevel: 'high',
                     modelArgument: '--model',
                     models: ['gpt-5', 'gpt-5-mini'],
                     name: 'local',
@@ -871,9 +866,8 @@ describe('ConfigPage', () => {
         const setDesktopConfig = vi.fn(async (values: DesktopConfigValues) => values)
         window.md2Config = {
             getDesktopConfig: () => ({
-                agent: 'codex',
-                agentProfiles: [...BUILTIN_AGENT_PROFILES, { command: ['local-agent'], models: ['local-model'], name: 'local' }],
-                model: '',
+                agentProfiles: [...BUILTIN_AGENT_PROFILES, { command: ['local-agent'], defaultThinkingLevel: 'none', models: ['local-model'], name: 'local' }],
+                agentSelection: agentSelection('codex'),
             }),
             setDesktopConfig,
         }
@@ -911,7 +905,7 @@ describe('ConfigPage', () => {
         mockMatchMedia(false)
         const setDesktopConfig = vi.fn(async (values: DesktopConfigValues) => values)
         window.md2Config = {
-            getDesktopConfig: () => ({agent: 'codex', agentProfiles: BUILTIN_AGENT_PROFILES, model: ''}),
+            getDesktopConfig: () => ({agentProfiles: BUILTIN_AGENT_PROFILES, agentSelection: agentSelection('codex')}),
             setDesktopConfig,
         }
         initConfigFromElectronBridge()
@@ -932,9 +926,8 @@ describe('ConfigPage', () => {
         mockMatchMedia(false)
         window.md2Config = {
             getDesktopConfig: () => ({
-                agent: 'codex',
                 agentProfiles: BUILTIN_AGENT_PROFILES,
-                model: '',
+                agentSelection: agentSelection('codex'),
             }),
             setDesktopConfig: vi.fn(async (values: DesktopConfigValues) => values),
         }
@@ -953,6 +946,10 @@ describe('ConfigPage', () => {
         expect(screen.getByText(/Duplicate agent profile: codex/u)).toBeInTheDocument()
 
         fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'local' } })
+        fireEvent.change(screen.getByLabelText('Command'), { target: { value: '["agent"]' } })
+        fireEvent.change(screen.getByLabelText('Models'), { target: { value: 'model-a' } })
+        fireEvent.change(screen.getByLabelText('Profile default model'), { target: { value: 'removed-model' } })
+        expect(screen.getByText('Default model must be one of: model-a')).toBeInTheDocument()
         expect(screen.queryByLabelText('Session-id pattern')).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Save profile' })).toBeDisabled()
 
@@ -963,9 +960,8 @@ describe('ConfigPage', () => {
         mockMatchMedia(false)
         window.md2Config = {
             getDesktopConfig: () => ({
-                agent: 'claude',
                 agentProfiles: BUILTIN_AGENT_PROFILES,
-                model: '',
+                agentSelection: agentSelection('claude'),
             }),
             setDesktopConfig: vi.fn(async (values: DesktopConfigValues) => values),
         }
@@ -973,7 +969,7 @@ describe('ConfigPage', () => {
 
         renderConfigPage('#desktop')
 
-        expect(configService.get('desktop.agent')).toBe('claude')
+        expect(configService.get('desktop.agentSelection').activeAgent).toBe('claude')
         expect(screen.getByRole('tab', { name: 'Desktop' })).toBeInTheDocument()
 
         delete window.md2Config
@@ -986,7 +982,7 @@ describe('ConfigPage', () => {
         renderConfigPage('#desktop')
 
         expect(screen.getByRole('tab', { name: 'Desktop' })).toBeInTheDocument()
-        expect(screen.getByLabelText('Default agent')).toHaveAttribute('aria-disabled', 'true')
+        expect(screen.getByLabelText('Agent')).toHaveAttribute('aria-disabled', 'true')
         expect(screen.queryByLabelText('Project location')).not.toBeInTheDocument()
     })
 
