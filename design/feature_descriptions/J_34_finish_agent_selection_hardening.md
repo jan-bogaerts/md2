@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__d3078abd-23e1-4c90-8b8e-6ee6459b005f.json
 policy:
+after: 56bd50ce-b28c-4eb4-83cb-1951221f7864
 ---
 
 F_216 introduced shared per-agent model and thinking-level memory, but several persistence, compatibility, and execution paths remain incomplete.

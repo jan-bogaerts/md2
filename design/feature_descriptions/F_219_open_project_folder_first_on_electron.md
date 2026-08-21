@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__9500eb58-7f00-49e3-8961-0303cda178ab.json
 policy:
+after: 07585a70-9a56-42b6-a98c-a64de9d68995
 ---
 
 when running on electron, select the 'folder' in stead of the the 'repository' by default.

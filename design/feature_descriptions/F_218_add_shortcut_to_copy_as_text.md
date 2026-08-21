@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__07585a70-9a56-42b6-a98c-a64de9d68995.json
 policy:
+after: 8021d46c-cb31-4111-9385-9789a43c6c71
 ---
 shortcut: shift + ctrl + c
 

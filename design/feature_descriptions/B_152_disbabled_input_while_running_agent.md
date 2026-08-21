@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__038937d3-b99c-4dfd-b1da-76c906c5c31c.json
 policy:
-after: 10a50270-fcab-4661-9d29-d966aa99eb1e
+after: 389dd95e-e4b1-460c-8171-db15ce961115
 ---
 an agent was running, we sent a steering prompt while the agent was still running. first one went ok. but then, the 'send' button remained disabled after typing in some text in the input button (a recurring issue, clearly the state of the send button is still calculated incorrectly. it should be super simple: text in the input box, then enable the send button).
 
