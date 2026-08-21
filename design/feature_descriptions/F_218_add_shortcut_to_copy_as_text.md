@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__07585a70-9a56-42b6-a98c-a64de9d68995.json
 policy:
 ---
 shortcut: shift + ctrl + c
