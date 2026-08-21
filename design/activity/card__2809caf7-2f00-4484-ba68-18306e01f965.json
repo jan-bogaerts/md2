@@ -585,6 +585,34 @@
       },
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "2809caf7-2f00-4484-ba68-18306e01f965",
+      "cardPath": "design/feature_descriptions/F_233_stats_improvements.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "can you review design/feature_descriptions/F_233_stats_improvements.md, see if the description is ok. keep it short and to the point",
+          "id": "agent-turn-f15b6e34-97a2-41ca-9be2-dc1f6ef749d7-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-08-21T18:02:37.233Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-87837cab-8e38-4ba9-8926-78ca2cb0d851",
+      "providerSessions": [],
+      "startedAt": "2026-08-21T18:02:37.233Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-08-21T18:02:37.233Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
@@ -623,11 +651,11 @@
         "agent-02452735-7ef5-4576-b012-777c255bfc1e"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-cf81e223-2f93-43ee-bf2e-c4307fd8f43c",
       "origin": {
@@ -636,9 +664,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-02452735-7ef5-4576-b012-777c255bfc1e",
       "startedAt": "2026-08-21T16:05:29.845Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-02452735-7ef5-4576-b012-777c255bfc1e"
     }
   ],
   "version": 5
