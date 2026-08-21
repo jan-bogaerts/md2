@@ -1123,6 +1123,29 @@
       "startedAt": "2026-08-21T15:24:07.577Z",
       "status": "completed",
       "rootConversationId": "agent-2c5bafe3-9e40-4fd6-86a7-9dd75c3f3ac9"
+    },
+    {
+      "commits": [
+        {
+          "commit": "20b9fc5b6f5202455b51cbecdc08876e8adcadea",
+          "committedAt": "2026-08-21T17:29:55+02:00",
+          "deletions": 19,
+          "filePaths": [
+            "app/src/components/shell/search/search_control.test.tsx",
+            "app/src/components/shell/search/search_panel.tsx"
+          ],
+          "filesChanged": 2,
+          "insertions": 46,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-21T17:29:55+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "56bd50ce-b28c-4eb4-83cb-1951221f7864",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
