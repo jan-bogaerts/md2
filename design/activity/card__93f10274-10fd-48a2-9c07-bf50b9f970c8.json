@@ -20,7 +20,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "93f10274-10fd-48a2-9c07-bf50b9f970c8",
       "cardPath": "design/feature_descriptions/F_224_add_subscription_costs.md",
-      "completedAt": null,
+      "completedAt": "2026-08-21T16:05:10.523Z",
       "entries": [
         {
           "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/F_224_add_subscription_costs.md`.&#x20;\nupdate the field `status` in the markdown feature description file to `ready for implementation`.\n\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill.\n\nDo not stage or commit changes. You have no need for get at this time.",
@@ -91,7 +91,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 6,
-          "timestamp": "2026-08-21T16:04:37.543Z"
+          "timestamp": "2026-08-21T16:05:10.523Z"
         },
         {
           "content": "design/activity/card__93f10274-10fd-48a2-9c07-bf50b9f970c8.json\n---\ndesign/activity/card__575b64d1-3ac4-41e5-ba72-eebcd3eed8cd.json\ndesign/activity/card__97733177-b4c8-47c3-af3d-64c31d4eca93.json\ndesign/feature_descriptions/B_160_unknown.md\ndesign/feature_descriptions/F_224_add_subscription_costs.md",
@@ -301,16 +301,81 @@
           "summary": [],
           "timestamp": "2026-08-21T16:05:04.988Z",
           "type": "reasoning"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-35c7b62c-c17a-48e0-a0fb-a8491ef46ba0-event-24",
+          "kind": "event",
+          "label": "Tool result",
+          "output": "1\timport type { CardActivityFile } from '../../../../shared/card_activity.mjs'\n2\timport { parseActivityFileForMigration } from '../../../../shared/card_activity.mjs'\n3\timport {\n4\t    addSummaryUsage,\n5\t    agentTokenUsageFilePath,\n6\t    createAgentTokenUsageSummary,\n7\t    emptySummaryUsage,\n8\t    legacySummaryUsage,\n9\t    parseAgentTokenUsageSummary,\n10\t    serializeAgentTokenUsageSummary,\n11\t    type AgentTokenUsageSummary,\n12\t} from '../../../../shared/agent_token_usage_summary.mjs'\n13\timport type { ProjectConfig, ProjectReference, ProjectWatchEvent, StorageService } from '../../data/data_types'\n14\t\n15\tconst CARD_ACTIVITY_FILE = /(?:^|\\/)card__[^/]+\\.json$/u\n16\t\n17\tinterface LoadedProjectUsage {\n18\t    config: ProjectConfig\n19\t    project: ProjectReference\n20\t    reportFailure: (error: unknown) => void\n21\t    storage: StorageService\n22\t}\n23\t\n24\tfunction releaseNameForActivity(activityPath: string, releasesFolder: string) {\n25\t    const normalizedActivityPath = activityPath.replace(/\\\\/gu, '/')\n26\t    const normalizedReleasesFolder = releasesFolder.replace(/\\\\/gu, '/').replace(/^\\/+|\\/+$/gu, '')\n27\t    const prefix = `${normalizedReleasesFolder}/`\n28\t    if (!normalizedActivityPath.startsWith(prefix)) return null\n29\t    const releaseName = normalizedActivityPath.slice(prefix.length).split('/')[0]\n30\t\n31\t    return releaseName.length > 0 ? releaseName : null\n32\t}\n33\t\n34\tfunction legacyActivityUsage(activity: CardActivityFile) {\n35\t    const hasCost = activity.conversations.some((conversation) => conversation.usage?.costUsd !== undefined)\n36\t    const costUsd = activity.conversations.reduce((total, conversation) => total + (conversation.usage?.costUsd ?? 0), 0)\n37\t    const totalTokens = activity.conversations.reduce((total, conversation) => total + (conversation.usage?.totalTokens ?? 0), 0)\n38\t\n39\t    return legacySummaryUsage(totalTokens, hasCost ? costUsd : undefined)\n40\t}\n41\t\n42\texport function createProjectAgentTokenUsageFile(projectFolder: string) {\n43\t    return {\n44\t        content: serializeAgentTokenUsageSummary(createAgentTokenUsageSummary()),\n45\t        path: agentTokenUsageFilePath(projectFolder),\n46\t    }\n47\t}\n48\t\n49\t// TEMPORARY: Internal migration only. Remove after existing internal projects have generated their summary file.\n50\tasync function migrateProjectSummary(\n51\t    project: ProjectReference,\n52\t    config: ProjectConfig,\n53\t    storage: StorageService,\n54\t    repositoryFiles: string[],\n55\t) {\n56\t    if (!storage.loadTextFile) throw new Error('Repository text file loading is not available')\n57\t    const activityPaths = repositoryFiles.filter((path) => CARD_ACTIVITY_FILE.test(path.replace(/\\\\/gu, '/')))\n58\t    const projectUsages = []\n59\t    const releaseUsages = new Map<string, ReturnType<typeof emptySummaryUsage>[]>()\n60\t    for (const activityPath of activityPaths) {\n61\t        let usage\n62\t        try {\n63\t            const activityFile = await storage.loadTextFile(project, activityPath)\n64\t            usage = legacyActivityUsage(parseActivityFileForMigration(activityFile.content))\n65\t        } catch {\n66\t            continue\n67\t        }\n68\t        projectUsages.push(usage)\n69\t        const releaseName = releaseNameForActivity(activityPath, config.releasesFolder)\n70\t        if (!releaseName) continue\n71\t        releaseUsages.set(releaseName, [...(releaseUsages.get(releaseName) ?? []), usage])\n72\t    }\n73\t    const releases = Object.fromEntries(\n74\t        [...releaseUsages.entries()].map(([name, usages]) => [name, addSummaryUsage(usages)]),\n75\t    )\n76\t\n77\t    return createAgentTokenUsageSummary(addSummaryUsage(projectUsages), releases)\n78\t}\n79\t\n80\texport class ProjectAgentTokenUsageService extends EventTarget {\n81\t    private loadedProject: LoadedProjectUsage | null = null\n82\t    private operationPromise: Promise<void> | null = null\n83\t    private pendingRepositoryChange: ProjectWatchEvent['changeKind'] | null = null\n84\t    private repositoryChangeInProgress: ProjectWatchEvent['changeKind'] | null = null\n85\t    private repositoryRefreshProject: LoadedProjectUsage | null = null\n86\t\n[3505 characters omitted]\n  }\n170\t\n171\t    private async loadStoredSummary(loadedProject: LoadedProjectUsage) {\n172\t        const { config, project, storage } = loadedProject\n173\t        if (!storage.loadTextFile) throw new Error('Repository text file loading is not available')\n174\t        const summaryPath = agentTokenUsageFilePath(config.projectFolder)\n175\t        try {\n176\t            const summaryFile = await storage.loadTextFile(project, summaryPath)\n177\t            const summary = parseAgentTokenUsageSummary(summaryFile.content)\n178\t            if (!this.isCurrentProject(loadedProject)) return\n179\t\n180\t            this.setSummary(summary)\n181\t        } catch (error) {\n182\t            const currentRepositoryFiles = await storage.listRepositoryFiles(project)\n183\t            if (!this.isCurrentProject(loadedProject)) return\n184\t            if (currentRepositoryFiles.includes(summaryPath)) throw error\n185\t\n186\t            await this.migrateAndCommitSummary(loadedProject, currentRepositoryFiles)\n187\t        }\n188\t    }\n189\t\n190\t    private async migrateAndCommitSummary(loadedProject: LoadedProjectUsage, repositoryFiles: string[]) {\n191\t        const { config, project, storage } = loadedProject\n192\t        const summaryPath = agentTokenUsageFilePath(config.projectFolder)\n193\t        const summary = await migrateProjectSummary(project, config, storage, repositoryFiles)\n194\t        if (!this.isCurrentProject(loadedProject)) return\n195\t        await storage.commit({\n196\t            branch: project.branch,\n197\t            files: [{ content: serializeAgentTokenUsageSummary(summary), path: summaryPath }],\n198\t            message: 'Add project agent token usage summary',\n199\t        })\n200\t        if (config.pushMode === 'auto') await storage.push(project)\n201\t        if (!this.isCurrentProject(loadedProject)) return\n202\t\n203\t        this.setSummary(summary)\n204\t    }\n205\t\n206\t    private async enqueueOperation(loadedProject: LoadedProjectUsage, operation: () => Promise<void>) {\n207\t        while (this.operationPromise) {\n208\t            const activeOperation = this.operationPromise\n209\t            try {\n210\t                await activeOperation\n211\t            } catch {\n212\t                // A queued operation reports through its own caller. Continue with current work.\n213\t            }\n214\t            if (this.operationPromise === activeOperation) this.operationPromise = null\n215\t        }\n216\t        if (!this.isCurrentProject(loadedProject)) return\n217\t\n218\t        const operationPromise = operation()\n219\t        this.operationPromise = operationPromise\n220\t        try {\n221\t            await operationPromise\n222\t        } finally {\n223\t            if (this.operationPromise === operationPromise) this.operationPromise = null\n224\t        }\n225\t    }\n226\t\n227\t    private isCurrentProject(loadedProject: LoadedProjectUsage) {\n228\t        return this.loadedProject === loadedProject\n229\t    }\n230\t\n231\t    private async refreshFromRepositoryChanges(loadedProject: LoadedProjectUsage) {\n232\t        while (this.isCurrentProject(loadedProject) && this.pendingRepositoryChange) {\n233\t            const changeKind = this.pendingRepositoryChange\n234\t            this.pendingRepositoryChange = null\n235\t            this.repositoryChangeInProgress = changeKind\n236\t            try {\n237\t                if (changeKind === 'removed') {\n238\t                    await this.enqueueOperation(loadedProject, () => this.loadOrMigrateSummary(loadedProject))\n239\t                    continue\n240\t                }\n241\t\n242\t                await this.enqueueOperation(loadedProject, () => this.loadOrMigrateSummary(loadedProject))\n243\t            } finally {\n244\t                this.repositoryChangeInProgress = null\n245\t            }\n246\t        }\n247\t    }\n248\t\n249\t    private setSummary(summary: AgentTokenUsageSummary | null) {\n250\t        if (this.summary === summary) return\n251\t        this.summary = summary\n252\t        this.dispatchEvent(new Event('changed'))\n253\t    }\n254\t}\n255\t\n256\texport const projectAgentTokenUsageService = new ProjectAgentTokenUsageService()\n257\t",
+          "providerItemId": "toolu_01X3MDpaCJrHjeNnjy3HWJEu",
+          "sequence": 24,
+          "status": "completed",
+          "timestamp": "2026-08-21T16:05:06.090Z",
+          "type": "tool.result"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-35c7b62c-c17a-48e0-a0fb-a8491ef46ba0-event-25",
+          "kind": "event",
+          "label": "Tool result",
+          "output": "Found 8 files\napp\\src\\services\\release_operations.ts\napp\\src\\data\\data_types.ts\napp\\src\\services\\agents\\agent_conversation_service.node.test.ts\napp\\src\\services\\agents\\agent_usage.node.test.ts\napp\\src\\services\\agents\\project_agent_token_usage_service.ts\napp\\src\\components\\hooks\\use_worktree_selector_state.ts\napp\\src\\components\\agents\\agent_usage_display.test.tsx\napp\\src\\components\\agents\\agent_usage_display.tsx",
+          "providerItemId": "toolu_01P1atKDLXLUmiVdxdtiU2SE",
+          "sequence": 25,
+          "status": "completed",
+          "timestamp": "2026-08-21T16:05:06.703Z",
+          "type": "tool.result"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-35c7b62c-c17a-48e0-a0fb-a8491ef46ba0-event-26",
+          "kind": "event",
+          "label": "Tool result",
+          "output": "Found 38 files\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts\napp\\src\\services\\data\\remote_control_storage_service.ts\napp\\src\\services\\project\\project_session_service.test.ts\napp\\src\\services\\data\\remote_connection_service.ts\napp\\src\\services\\stats\\stats_usage_comparison_dataset.ts\napp\\src\\services\\stats\\stats_chart_rows.node.test.ts\napp\\src\\services\\stats\\project_stats_types.ts\napp\\src\\services\\stats\\project_stats_service.node.test.ts\napp\\src\\components\\stats_view\\stats_usage_comparison_charts.tsx\napp\\src\\components\\stats_view\\stats_csv.node.test.ts\napp\\src\\components\\stats_view\\stats_bar_chart.test.tsx\napp\\src\\services\\agents\\project_usage_metrics_service.ts\napp\\src\\services\\data\\remote_connection_service.test.ts\napp\\src\\components\\shell\\remote_connect_button.test.tsx\napp\\src\\services\\agents\\codex_cli_update_service.test.ts\napp\\src\\services\\application_startup_service.ts\napp\\src\\data\\project_storage_activation.ts\napp\\src\\services\\agents\\claude_rate_limit_service.test.ts\napp\\src\\services\\agents\\claude_rate_limit_service.ts\napp\\src\\components\\shell\\status_bar.tsx\napp\\src\\data\\electron_claude_runtime_bridge.ts\napp\\src\\components\\shell\\mobile_project_status.tsx\napp\\src\\components\\shell\\claude_rate_limit_status_data.ts\napp\\src\\components\\shell\\claude_rate_limit_status.test.tsx\napp\\src\\components\\shell\\claude_rate_limit_status.tsx\napp\\src\\components\\hooks\\use_claude_rate_limits.ts\napp\\src\\components\\shell\\claude_rate_limit_details.tsx\napp\\src\\components\\shell\\menu\\mobile_menu_button.tsx\napp\\src\\components\\shell\\menu\\mobile_menu_button.test.tsx\napp\\src\\components\\shell\\codex_rate_limit_status_data.ts\napp\\src\\components\\shell\\codex_rate_limit_details.tsx\napp\\src\\components\\shell\\codex_rate_limit_status.test.tsx\napp\\src\\components\\shell\\codex_rate_limit_status.tsx\napp\\src\\data\\electron_codex_runtime_bridge.ts\napp\\src\\services\\agents\\codex_rate_limit_service.test.ts\napp\\src\\services\\agents\\codex_rate_limit_service.ts\napp\\src\\components\\hooks\\use_codex_rate_limits.ts",
+          "providerItemId": "toolu_01KSYCi29QfY9CZnzqib1bMy",
+          "sequence": 26,
+          "status": "completed",
+          "timestamp": "2026-08-21T16:05:07.792Z",
+          "type": "tool.result"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-35c7b62c-c17a-48e0-a0fb-a8491ef46ba0-event-27",
+          "kind": "event",
+          "label": "Tool result",
+          "output": "app\\src\\components\\config\\react_config_section.tsx\napp\\src\\components\\config\\desktop_config_section.tsx\napp\\src\\components\\config\\config_section_layout.tsx\napp\\src\\components\\config\\markdown_config_section.tsx\napp\\src\\components\\config\\project_config_section.tsx\napp\\src\\components\\config\\worktree_config_list.test.tsx\napp\\src\\components\\config\\worktree_config_list.tsx\napp\\src\\components\\config\\worktree_config_row.tsx\napp\\src\\components\\config\\config_page.tsx\napp\\src\\components\\config\\sentry_config_section.test.tsx\napp\\src\\components\\config\\sentry_config_section.tsx\napp\\src\\components\\config\\config_page.test.tsx\napp\\src\\components\\config\\config_value_editor.test.tsx\napp\\src\\components\\config\\config_value_editor.tsx",
+          "providerItemId": "toolu_01VDCRVr9saQtk2r4YSsJwza",
+          "sequence": 27,
+          "status": "completed",
+          "timestamp": "2026-08-21T16:05:08.288Z",
+          "type": "tool.result"
+        },
+        {
+          "agent": "claude",
+          "content": "",
+          "id": "agent-turn-35c7b62c-c17a-48e0-a0fb-a8491ef46ba0-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 28,
+          "timestamp": "2026-08-21T16:05:10.361Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-e74047a4-c2e2-4295-b633-0f3436043fed",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "claude",
+          "conversationId": "59ff12df-d265-4835-a2d7-bf064a47854b",
+          "createdAt": "2026-08-21T16:05:05.328Z",
+          "lastUsedAt": "2026-08-21T16:05:05.328Z",
+          "synchronizedThroughMessageId": "agent-turn-35c7b62c-c17a-48e0-a0fb-a8491ef46ba0-turn-1-assistant-3"
+        }
+      ],
       "startedAt": "2026-08-21T16:04:27.417Z",
-      "status": "running",
+      "status": "failed",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-21T16:04:27.417Z"
+        "elapsedMs": 37911,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
@@ -322,7 +387,7 @@
         "costUsd": 0.4612575
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
