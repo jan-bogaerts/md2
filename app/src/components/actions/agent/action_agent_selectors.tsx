@@ -15,6 +15,7 @@ import type { ActionDefinition } from '../../../data/action_types'
 import {
     PERMISSION_MODE_OPTIONS,
     THINKING_LEVELS,
+    supportsThinkingLevel,
     validatePermissionMode,
     validateThinkingLevel,
     type PermissionMode,
@@ -76,6 +77,8 @@ export function ActionAgentSelectors(props: ActionAgentSelectorsProps) {
     const securityTooltip = settings.permissionModeSupported
         ? permissionOption?.label ?? 'Security'
         : 'Permission controls are unsupported by this agent'
+    const selectedProfile = settings.agentProfiles.find(({ name }) => name === settings.agent) ?? null
+    const selectedModelAvailable = settings.selectedAgentModels.includes(settings.model)
 
     const handleOpenModelMenu = (event: MouseEvent<HTMLButtonElement>) => setModelMenuAnchor(event.currentTarget)
     const handleCloseSubmenu = () => {
@@ -249,18 +252,27 @@ export function ActionAgentSelectors(props: ActionAgentSelectorsProps) {
                 slotProps={{ list: { 'aria-label': 'Agent choices', onKeyDown: handleNestedMenuKeyDown } }}
                 transformOrigin={{ horizontal: 'left', vertical: 'top' }}
             >
+                {!selectedProfile ? (
+                    <MenuItem data-agent={settings.agent} disabled selected>
+                        <ListItemText primary={`${settings.agent} — unavailable`} secondary={settings.selectionValidationError} />
+                    </MenuItem>
+                ) : null}
                 {settings.agentProfiles.map((profile) => {
                     const availability = settings.agentAvailability[profile.name]
+                    const available = availability?.available === true
 
                     return (
                         <MenuItem
                             data-agent={profile.name}
-                            disabled={availability?.available !== true}
+                            disabled={!available}
                             key={profile.name}
                             onClick={handleAgentChange}
                             selected={profile.name === settings.agent}
                         >
-                            <ListItemText primary={profile.name} secondary={availability?.error} />
+                            <ListItemText
+                                primary={available ? profile.name : `${profile.name} — unavailable`}
+                                secondary={availability?.error}
+                            />
                         </MenuItem>
                     )
                 })}
@@ -273,14 +285,19 @@ export function ActionAgentSelectors(props: ActionAgentSelectorsProps) {
                 slotProps={{ list: { 'aria-label': 'Model choices', onKeyDown: handleNestedMenuKeyDown } }}
                 transformOrigin={{ horizontal: 'left', vertical: 'top' }}
             >
-                {(settings.selectedAgentModels.length > 0 ? settings.selectedAgentModels : ['']).map((model) => (
+                {(!selectedModelAvailable ? [settings.model] : []).concat(
+                    settings.selectedAgentModels.length > 0 ? settings.selectedAgentModels : [''],
+                ).map((model) => (
                     <MenuItem
                         data-model={model}
+                        disabled={model === settings.model && !selectedModelAvailable}
                         key={model || 'default'}
                         onClick={handleModelChange}
                         selected={model === settings.model}
                     >
-                        {model || 'Default'}
+                        {model === settings.model && !selectedModelAvailable
+                            ? `${model || 'Default'} — unavailable`
+                            : model || 'Default'}
                     </MenuItem>
                 ))}
             </Menu>
@@ -292,16 +309,23 @@ export function ActionAgentSelectors(props: ActionAgentSelectorsProps) {
                 slotProps={{ list: { 'aria-label': 'Thinking level choices', onKeyDown: handleNestedMenuKeyDown } }}
                 transformOrigin={{ horizontal: 'left', vertical: 'top' }}
             >
-                {THINKING_LEVELS.map((thinkingLevel) => (
-                    <MenuItem
-                        data-thinking-level={thinkingLevel}
-                        key={thinkingLevel}
-                        onClick={handleThinkingLevelChange}
-                        selected={thinkingLevel === settings.thinkingLevel}
-                    >
-                        {thinkingLevel}
-                    </MenuItem>
-                ))}
+                {THINKING_LEVELS.map((thinkingLevel) => {
+                    const available = !!selectedProfile && supportsThinkingLevel(selectedProfile, thinkingLevel)
+
+                    return (
+                        <MenuItem
+                            data-thinking-level={thinkingLevel}
+                            disabled={!available}
+                            key={thinkingLevel}
+                            onClick={handleThinkingLevelChange}
+                            selected={thinkingLevel === settings.thinkingLevel}
+                        >
+                            {thinkingLevel === settings.thinkingLevel && !available
+                                ? `${thinkingLevel} — unavailable`
+                                : thinkingLevel}
+                        </MenuItem>
+                    )
+                })}
             </Menu>
             <Menu
                 anchorEl={securityMenuAnchor}

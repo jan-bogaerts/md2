@@ -21,12 +21,15 @@ import {
     findAgentProfile,
     mergeAgentProfiles,
     PERMISSION_MODE_OPTIONS,
+    supportsThinkingLevel,
     THINKING_LEVELS,
+    validateAgentSelection,
     validatePermissionMode,
     validateThinkingLevel,
     type AgentProfile,
 } from '../../data/agent_profiles'
 import {
+    projectAgentSelection,
     selectAgent,
     selectModel,
     selectPermissionMode,
@@ -45,6 +48,16 @@ const MONOSPACE_CONFIG_KEYS = new Set<ConfigEntry['key']>([
     'project.diffCommand',
     'project.states',
 ])
+
+function desktopSelectionError(selection: AgentSelectionState, profiles: AgentProfile[]) {
+    try {
+        validateAgentSelection(profiles, projectAgentSelection(selection, profiles), 'desktop agent selection')
+
+        return null
+    } catch (error) {
+        return error instanceof Error ? error.message : 'Invalid desktop agent selection'
+    }
+}
 
 interface ConfigValueEditorProps {
     disabled?: boolean
@@ -160,19 +173,58 @@ export function ConfigValueEditor(props: ConfigValueEditorProps) {
         const selection = value as AgentSelectionState
         const activeSettings = selection.settingsByAgent[selection.activeAgent]
         if (!activeSettings) return null
+        const selectionError = desktopSelectionError(selection, agentProfiles)
+        const agentAvailable = !!selectedAgentProfile
+        const modelAvailable = selectedAgentModels.includes(activeSettings.model)
 
         return (
-            <FormControl disabled={disabled} fullWidth sx={OUTLINED_FIELD_BLOCK_SX}>
+            <FormControl disabled={disabled} error={!!selectionError} fullWidth sx={OUTLINED_FIELD_BLOCK_SX}>
                 <FormLabel>{entry.label}</FormLabel>
                 <Stack direction={{ md: 'row', xs: 'column' }} spacing={1} sx={{ mt: 2 }}>
-                    <TextField disabled={disabled} fullWidth label="Agent" name="agent" onChange={handleDesktopSelectionChange} select size="small" value={selection.activeAgent}>
+                    <TextField
+                        disabled={disabled}
+                        fullWidth
+                        label="Agent"
+                        name="agent"
+                        onChange={handleDesktopSelectionChange}
+                        select
+                        size="small"
+                        value={selection.activeAgent}
+                    >
+                        {!agentAvailable ? (
+                            <MenuItem disabled value={selection.activeAgent}>
+                                {selection.activeAgent} — unavailable
+                            </MenuItem>
+                        ) : null}
                         {agentProfiles.map(({ name }) => <MenuItem key={name} value={name}>{name}</MenuItem>)}
                     </TextField>
-                    <TextField disabled={disabled} fullWidth label="Model" name="model" onChange={handleDesktopSelectionChange} select size="small" value={activeSettings.model}>
+                    <TextField
+                        disabled={disabled}
+                        fullWidth
+                        label="Model"
+                        name="model"
+                        onChange={handleDesktopSelectionChange}
+                        select
+                        size="small"
+                        value={activeSettings.model}
+                    >
+                        {!modelAvailable ? (
+                            <MenuItem disabled value={activeSettings.model}>
+                                {activeSettings.model || 'Default'} — unavailable
+                            </MenuItem>
+                        ) : null}
                         {selectedAgentModels.map((model) => <MenuItem key={model} value={model}>{model}</MenuItem>)}
                     </TextField>
                     <TextField disabled={disabled} fullWidth label="Thinking level" name="thinkingLevel" onChange={handleDesktopSelectionChange} select size="small" value={activeSettings.thinkingLevel}>
-                        {THINKING_LEVELS.map((level) => <MenuItem key={level} value={level}>{level}</MenuItem>)}
+                        {THINKING_LEVELS.map((level) => {
+                            const available = !!selectedAgentProfile && supportsThinkingLevel(selectedAgentProfile, level)
+
+                            return (
+                                <MenuItem disabled={!available} key={level} value={level}>
+                                    {level === activeSettings.thinkingLevel && !available ? `${level} — unavailable` : level}
+                                </MenuItem>
+                            )
+                        })}
                     </TextField>
                     <TextField disabled={disabled} fullWidth label="Permission mode" name="permissionMode" onChange={handleDesktopSelectionChange} select size="small" value={selection.permissionMode}>
                         {PERMISSION_MODE_OPTIONS.map(({ label, value: permissionMode }) => (
@@ -180,7 +232,7 @@ export function ConfigValueEditor(props: ConfigValueEditorProps) {
                         ))}
                     </TextField>
                 </Stack>
-                <FormHelperText sx={{ m: 0, mt: 1 }}>{description}</FormHelperText>
+                <FormHelperText sx={{ m: 0, mt: 1 }}>{selectionError ?? description}</FormHelperText>
             </FormControl>
         )
     }

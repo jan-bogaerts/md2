@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { BUILTIN_AGENT_PROFILES, buildResumeAgentCommand, validateAgentProfiles } from './agent_profiles'
+import { BUILTIN_AGENT_PROFILES, buildResumeAgentCommand, migrateAgentProfiles, validateAgentProfiles } from './agent_profiles'
 
 describe('agent profile validation', () => {
     it('provides configured models for built-in profiles', () => {
@@ -33,5 +33,18 @@ describe('agent profile validation', () => {
     it('requires a valid default thinking level', () => {
         expect(() => validateAgentProfiles([{ command: ['agent'], models: ['model-a'], name: 'missing' }])).toThrow('defaultThinkingLevel')
         expect(() => validateAgentProfiles([{ command: ['agent'], defaultThinkingLevel: 'extreme', models: ['model-a'], name: 'invalid' }])).toThrow('defaultThinkingLevel')
+        expect(() => validateAgentProfiles([{ command: ['custom'], defaultThinkingLevel: 'high', models: ['model-a'], name: 'custom' }]))
+            .toThrow('does not support default thinking level high')
+    })
+
+    it('migrates missing legacy default thinking level before strict validation', () => {
+        const migrated = migrateAgentProfiles([{ command: ['custom'], models: ['model-a'], name: 'custom' }])
+
+        expect(validateAgentProfiles(migrated)).toEqual([{
+            command: ['custom'],
+            defaultThinkingLevel: 'none',
+            models: ['model-a'],
+            name: 'custom',
+        }])
     })
 })

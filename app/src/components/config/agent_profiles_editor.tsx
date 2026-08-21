@@ -9,6 +9,7 @@ import {
     MODEL_PLACEHOLDER,
     SESSION_ID_PLACEHOLDER,
     THINKING_LEVELS,
+    supportsThinkingLevel,
     type AgentProfile,
 } from '../../data/agent_profiles'
 
@@ -117,6 +118,9 @@ function validateForm(form: AgentProfileFormState, usedNames: string[]) {
         errors.push(`Default model must be one of: ${models.join(', ')}`)
     }
     if (!THINKING_LEVELS.some((level) => level === form.defaultThinkingLevel)) errors.push('Profile default thinking level is invalid.')
+    else if (!supportsThinkingLevel({ name }, form.defaultThinkingLevel as AgentProfile['defaultThinkingLevel'])) {
+        errors.push(`${name || 'Custom profile'} does not support that default thinking level.`)
+    }
 
     return errors
 }

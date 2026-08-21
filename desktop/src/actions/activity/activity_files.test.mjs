@@ -103,7 +103,7 @@ describe('project activity conversations', () => {
         }
     });
 
-    it('does not migrate or write legacy activity during a read', async () => {
+    it('migrates legacy activity in memory without writing during a read', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-activity-migration-'));
         const filePath = join(rootPath, 'project.json');
         const conversation = waitingConversation();
@@ -118,14 +118,14 @@ describe('project activity conversations', () => {
             await writeFile(filePath, JSON.stringify({ conversations: [conversation], origin: { kind: 'project' }, records: [legacyRecord], version: 1 }));
 
             await expect(readActivityFile(filePath, { kind: 'project' }))
-                .rejects.toThrow('unsupported version 1');
+                .resolves.toMatchObject({ origin: { kind: 'project' }, version: 5 });
             expect(JSON.parse(await readFile(filePath, 'utf8'))).toEqual({conversations: [conversation], origin: { kind: 'project' }, records: [legacyRecord], version: 1});
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }
     });
 
-    it('leaves legacy activity untouched when concurrent readers race', async () => {
+    it('leaves legacy activity untouched when concurrent migration-aware readers race', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-activity-migration-race-'));
         const filePath = join(rootPath, 'project.json');
         const conversation = waitingConversation();
@@ -145,7 +145,7 @@ describe('project activity conversations', () => {
                 readActivityFile(filePath, { kind: 'project' }),
             ]);
 
-            expect(results.map(({ status }) => status)).toEqual(['rejected', 'rejected', 'rejected']);
+            expect(results.map(({ status }) => status)).toEqual(['fulfilled', 'fulfilled', 'fulfilled']);
             expect(rename).not.toHaveBeenCalled();
             await expect(readdir(rootPath)).resolves.toEqual(['project.json']);
         } finally {
@@ -170,6 +170,44 @@ describe('project activity conversations', () => {
 
             expect(persisted.actionSettings).toEqual({ build: secondSettings, review: firstSettings });
             expect(persisted.conversations).toHaveLength(1);
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('serializes concurrent updates after version-4 migration without losing fields', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-version-four-update-race-'));
+        const project = { branch: 'main', rootPath };
+        const origin = { cardInternalId: 'card-1', kind: 'card' };
+        const activityPath = join(rootPath, 'design', 'activity', 'card__card-1.json');
+        const conversation = { ...waitingConversation(), cardInternalId: 'card-1' };
+        const reviewSettings = { agent: 'codex', model: 'gpt-5.5', permissionMode: 'ask-for-approval', thinkingLevel: 'high' };
+        try {
+            await mkdir(join(rootPath, '.git'));
+            await mkdir(join(rootPath, 'design', 'activity'), { recursive: true });
+            await writeFile(activityPath, JSON.stringify({
+                actionSettings: { review: reviewSettings },
+                conversations: [conversation],
+                origin,
+                records: [],
+                version: 4,
+            }));
+
+            await Promise.all([
+                updateCardActionSettings(project, 'design', 'card-1', 'build', selection('claude', 'sonnet', 'none')),
+                updateActivityConversationViewed(project, 'design/activity/card__card-1.json#conversation=conversation-1', false),
+            ]);
+
+            const persisted = JSON.parse(await readFile(activityPath, 'utf8'));
+            expect(persisted).toMatchObject({
+                actionSettings: {
+                    build: selection('claude', 'sonnet', 'none'),
+                    review: selection('codex', 'gpt-5.5', 'high'),
+                },
+                conversations: [{ id: 'conversation-1', viewed: false }],
+                origin,
+                version: 5,
+            });
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }

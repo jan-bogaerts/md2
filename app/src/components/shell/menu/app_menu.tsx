@@ -17,15 +17,19 @@ import {
     mergeAgentProfiles,
     PERMISSION_MODE_OPTIONS,
     supportsPermissionMode,
+    supportsThinkingLevel,
     THINKING_LEVELS,
+    validateAgentSelection,
     validatePermissionMode,
     validateThinkingLevel,
 } from '../../../data/agent_profiles'
 import {
+    projectAgentSelection,
     selectAgent,
     selectModel,
     selectPermissionMode,
     selectThinkingLevel,
+    type AgentSelectionState,
 } from '../../../data/agent_selection'
 import { configService } from '../../../services/config/config_service'
 import { writeDesktopConfigToBridge } from '../../../services/config/config_persistence'
@@ -80,6 +84,19 @@ const MENU_TABS: { label: string; value: AppMenuTab }[] = [
 ]
 const PROJECT_CONTEXT = projectContext()
 
+function desktopSelectionError(
+    selection: AgentSelectionState,
+    profiles: ReturnType<typeof mergeAgentProfiles>,
+) {
+    try {
+        validateAgentSelection(profiles, projectAgentSelection(selection, profiles), 'desktop agent selection')
+
+        return null
+    } catch (error) {
+        return error instanceof Error ? error.message : 'Invalid desktop agent selection'
+    }
+}
+
 function persistDesktopConfig() {
     if (!configService.hasDesktopConfig()) return
 
@@ -107,6 +124,8 @@ export function AppMenu(props: AppMenuProps) {
     const selectedPermissionMode = agentSelection.permissionMode
     const desktopAvailable = useHasDesktopConfig()
     const selectedModel = activeAgentSettings?.model ?? ''
+    const selectionError = hasActiveAgentSettings ? desktopSelectionError(agentSelection, agentProfiles) : null
+    const selectedModelAvailable = selectedModels.includes(selectedModel)
     const projectBranch = project?.branch ?? ''
     const readOnly = useProjectReadOnly()
 
@@ -396,11 +415,13 @@ export function AppMenu(props: AppMenuProps) {
                     <Section label="Setup">
                         <MenuSelect
                             disabled={!desktopAvailable}
+                            errorMessage={selectionError}
                             label="Default agent"
                             minWidth={130}
                             onChange={handleAgentChange}
                             value={selectedAgent}
                         >
+                            {!selectedProfile ? <MenuItem disabled value={selectedAgent}>{selectedAgent} — unavailable</MenuItem> : null}
                             {agentProfiles.map((profile) => (
                                 <MenuItem key={profile.name} value={profile.name}>{profile.name}</MenuItem>
                             ))}
@@ -408,19 +429,23 @@ export function AppMenu(props: AppMenuProps) {
                         {selectedModels.length > 0 ? (
                             <MenuSelect
                                 disabled={!desktopAvailable}
+                                errorMessage={selectionError}
                                 label="Default model"
                                 minWidth={150}
                                 onChange={handleModelSelectChange}
                                 value={selectedModel}
                             >
+                                {!selectedModelAvailable ? <MenuItem disabled value={selectedModel}>{selectedModel || 'Default'} — unavailable</MenuItem> : null}
                                 {selectedModels.map((model) => (
                                     <MenuItem key={model} value={model}>{model}</MenuItem>
                                 ))}
                             </MenuSelect>
                         ) : (
-                            <Tooltip title="Default model">
+                            <Tooltip title={selectionError ?? 'Default model'}>
                                 <TextField
                                     disabled={!desktopAvailable}
+                                    error={!!selectionError}
+                                    helperText={selectionError ? 'Unavailable' : undefined}
                                     onChange={handleModelTextChange}
                                     size="small"
                                     slotProps={{ htmlInput: { 'aria-label': 'Default model' } }}
@@ -432,14 +457,21 @@ export function AppMenu(props: AppMenuProps) {
                         )}
                         <MenuSelect
                             disabled={!desktopAvailable}
+                            errorMessage={selectionError}
                             label="Default reasoning level"
                             minWidth={120}
                             onChange={handleThinkingLevelChange}
                             value={selectedThinkingLevel}
                         >
-                            {THINKING_LEVELS.map((level) => (
-                                <MenuItem key={level} value={level}>{level}</MenuItem>
-                            ))}
+                            {THINKING_LEVELS.map((level) => {
+                                const available = !!selectedProfile && supportsThinkingLevel(selectedProfile, level)
+
+                                return (
+                                    <MenuItem disabled={!available} key={level} value={level}>
+                                        {level === selectedThinkingLevel && !available ? `${level} — unavailable` : level}
+                                    </MenuItem>
+                                )
+                            })}
                         </MenuSelect>
                         {selectedProfile && supportsPermissionMode(selectedProfile) ? (
                             <MenuSelect

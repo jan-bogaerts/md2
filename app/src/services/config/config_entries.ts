@@ -15,7 +15,7 @@ import {
     BUILTIN_AGENT_PROFILES,
     type AgentProfile,
 } from '../../data/agent_profiles'
-import type { AgentSelectionState } from '../../data/agent_selection'
+import { DEFAULT_AGENT_SELECTION, type AgentSelectionState } from '../../data/agent_selection'
 import type { ProjectBackgroundShade } from '../../theme/project_background_shade'
 import { DEFAULT_CARD_SEPARATOR, type CardSeparator } from '../../data/card_identifiers'
 
@@ -95,11 +95,7 @@ const MAX_AUTO_COMMIT_DELAY_MS = 120000
 export const DEFAULT_EDITOR_COMMAND = 'code -g "{{file}}:{{line}}"'
 export const DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND = ''
 export const DEFAULT_REMOTE_CONTROL_PORT = 20877
-export const DEFAULT_DESKTOP_AGENT_SELECTION: AgentSelectionState = {
-    activeAgent: 'codex',
-    permissionMode: 'ask-for-approval',
-    settingsByAgent: { codex: { model: 'gpt-5.5', thinkingLevel: 'none' } },
-}
+export const DEFAULT_DESKTOP_AGENT_SELECTION: AgentSelectionState = DEFAULT_AGENT_SELECTION
 
 export const CONFIG_ENTRIES: ConfigEntry[] = [
     {

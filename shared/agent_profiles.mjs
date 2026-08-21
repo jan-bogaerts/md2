@@ -115,6 +115,9 @@ function validateAgentProfile(profile, index, names) {
         profile.defaultThinkingLevel,
         `desktop.agentProfiles[${index}].defaultThinkingLevel`,
     )
+    if (!supportsThinkingLevel({ name }, defaultThinkingLevel)) {
+        throw new Error(`Agent profile does not support default thinking level ${defaultThinkingLevel}: ${name}`)
+    }
 
     const validated = {
         command: readCommand(profile.command, `desktop.agentProfiles[${index}].command`),
@@ -138,6 +141,16 @@ export function validateAgentProfiles(value) {
     return value.map((profile, index) => validateAgentProfile(profile, index, names))
 }
 
+/** Adds required fields introduced after legacy desktop profiles were persisted. */
+export function migrateAgentProfiles(value) {
+    if (!Array.isArray(value)) return value
+
+    return value.map((profile) => profile && typeof profile === 'object' && !Array.isArray(profile)
+        && profile.defaultThinkingLevel === undefined
+        ? { ...profile, defaultThinkingLevel: 'none' }
+        : profile)
+}
+
 // Tolerant variant for reading persisted config: invalid entries are dropped instead of
 // failing app startup, and the built-ins are used when nothing valid remains.
 export function normalizeAgentProfiles(value) {
@@ -145,13 +158,9 @@ export function normalizeAgentProfiles(value) {
 
     const names = new Set()
     const profiles = []
-    for (const [index, profile] of value.entries()) {
+    for (const [index, profile] of migrateAgentProfiles(value).entries()) {
         try {
-            const migratedProfile = profile && typeof profile === 'object' && !Array.isArray(profile)
-                && profile.defaultThinkingLevel === undefined
-                ? { ...profile, defaultThinkingLevel: 'none' }
-                : profile
-            profiles.push(validateAgentProfile(migratedProfile, index, names))
+            profiles.push(validateAgentProfile(profile, index, names))
         } catch {
             // drop the invalid profile
         }
@@ -192,6 +201,14 @@ export function validateAgentSelection(profiles, selection, source) {
         const error = new Error(`Unknown model for agent profile ${selection.agent} in ${source}: ${selection.model}`)
         error.code = 'unknown-model'
         throw error
+    }
+    if (selection.thinkingLevel !== undefined) {
+        const thinkingLevel = validateThinkingLevel(selection.thinkingLevel, source)
+        if (!supportsThinkingLevel(profile, thinkingLevel)) {
+            const error = new Error(`Agent profile does not support thinking level ${thinkingLevel}: ${profile.name}`)
+            error.code = 'unsupported-thinking-level'
+            throw error
+        }
     }
     if (selection.permissionMode !== undefined) {
         validatePermissionMode(selection.permissionMode, source)
@@ -283,6 +300,12 @@ const THINKING_LEVEL_ADAPTERS = new Map([
     ['claude', buildClaudeThinkingCommand],
     ['codex', buildCodexThinkingCommand],
 ])
+
+export function supportsThinkingLevel(profile, thinkingLevel) {
+    const validatedThinkingLevel = validateThinkingLevel(thinkingLevel, `agent profile ${profile.name}`)
+
+    return validatedThinkingLevel === 'none' || THINKING_LEVEL_ADAPTERS.has(profile.name)
+}
 
 const OUTPUT_COMMAND_ADAPTERS = new Map([
     ['claude', buildClaudeOutputCommand],

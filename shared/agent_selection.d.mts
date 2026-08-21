@@ -14,10 +14,11 @@ export interface AgentSelectionState {
 export interface FlatAgentSelection {
     agent: string
     model: string
-    permissionMode: PermissionMode | ''
+    permissionMode?: PermissionMode | ''
     thinkingLevel: ThinkingLevel
 }
 
+export const DEFAULT_AGENT_SELECTION: AgentSelectionState
 export function profileAgentSettings(profile: AgentProfile): AgentSettings
 export function validateAgentSettings(value: unknown, source: string): AgentSettings
 export function validateAgentSelectionState(value: unknown, source: string, allowEmptyPermissionMode?: boolean): AgentSelectionState
@@ -27,4 +28,4 @@ export function selectAgent(selection: AgentSelectionState, agent: string, profi
 export function selectModel(selection: AgentSelectionState, model: string): AgentSelectionState
 export function selectThinkingLevel(selection: AgentSelectionState, thinkingLevel: ThinkingLevel): AgentSelectionState
 export function selectPermissionMode(selection: AgentSelectionState, permissionMode: PermissionMode): AgentSelectionState
-export function projectAgentSelection(selection: AgentSelectionState): FlatAgentSelection
+export function projectAgentSelection(selection: AgentSelectionState, profiles?: AgentProfile[]): FlatAgentSelection

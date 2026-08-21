@@ -5,7 +5,7 @@ import {
     type StateConfig,
 } from '../../data/data_types'
 import { LEGACY_CARD_SEPARATOR } from '../../data/card_identifiers'
-import { validateAgentProfiles, type AgentProfile } from '../../data/agent_profiles'
+import { migrateAgentProfiles, validateAgentProfiles, type AgentProfile } from '../../data/agent_profiles'
 import { validateAgentSelectionState } from '../../data/agent_selection'
 import {
     CONFIG_ENTRIES,
@@ -139,7 +139,7 @@ function validateStates(value: unknown): StateConfig[] {
 }
 
 function validateDesktopAgentProfiles(value: unknown): AgentProfile[] {
-    return validateAgentProfiles(value)
+    return validateAgentProfiles(migrateAgentProfiles(value))
 }
 
 function validateOption(value: string, entry: ConfigEntry) {

@@ -1,6 +1,7 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ProjectReference } from '../../data/data_types'
 import type { AgentSelectionState } from '../../data/agent_selection'
+import { setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge'
 import {
     ActionRunSettingsService,
     ActionRunSettingsStore,
@@ -8,6 +9,8 @@ import {
 
 const firstSettings: AgentSelectionState = {activeAgent: 'codex', permissionMode: 'ask-for-approval', settingsByAgent: {codex: {model: 'gpt-5.5', thinkingLevel: 'high'}}}
 const secondSettings: AgentSelectionState = {activeAgent: 'claude', permissionMode: 'approve-for-me', settingsByAgent: {claude: {model: 'sonnet', thinkingLevel: 'none'}}}
+
+afterEach(() => setActionBridgeOverride(null))
 
 function deferredVoid() {
     let rejectPromise: (error: unknown) => void = () => undefined
@@ -110,6 +113,23 @@ describe('ActionRunSettingsStore', () => {
         expect(store.getSnapshot().settings).toEqual(firstSettings)
         expect(save).not.toHaveBeenCalled()
     })
+
+    it('loads version-4 card settings through the production bridge boundary', async () => {
+        setActionBridgeOverride({
+            loadCardActivity: vi.fn(async () => ({
+                actionSettings: {review: { agent: 'codex', model: 'gpt-5.5', permissionMode: 'ask-for-approval', thinkingLevel: 'high' }},
+                conversations: [],
+                origin: { cardInternalId: 'card-1', kind: 'card' },
+                records: [],
+                version: 4,
+            })),
+        } as unknown as ElectronActionBridge)
+        const store = new ActionRunSettingsStore('review', 'card-1')
+
+        await store.load()
+
+        expect(store.getSnapshot().settings).toEqual(firstSettings)
+    })
 })
 
 describe('ActionRunSettingsService', () => {
@@ -127,5 +147,21 @@ describe('ActionRunSettingsService', () => {
 
         projectStateOwner.setProject({ branch: 'main', id: 'second' })
         expect(service.getCardStore('card-1', 'review')).not.toBe(first)
+    })
+
+    it('restores non-card action/context stores and clears them when project identity changes', () => {
+        const projectStateOwner = new ProjectStateOwner()
+        const service = new ActionRunSettingsService()
+        service.init(projectStateOwner)
+        const first = service.getSessionStore('review', 'folder\u0000design')
+        first.setSettings(firstSettings, false)
+
+        expect(service.getSessionStore('review', 'folder\u0000design')).toBe(first)
+        expect(service.getSessionStore('review', 'folder\u0000design').getSnapshot().settings).toEqual(firstSettings)
+        expect(service.getSessionStore('build', 'folder\u0000design')).not.toBe(first)
+        expect(service.getSessionStore('review', 'file\u0000design/F-1.md')).not.toBe(first)
+
+        projectStateOwner.setProject({ branch: 'main', id: 'second' })
+        expect(service.getSessionStore('review', 'folder\u0000design')).not.toBe(first)
     })
 })

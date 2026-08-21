@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ActionContext } from '../../../../data/action_context'
-import type { ActionRunEvent } from '../../../../data/action_run_types'
+import type { ActionRunEvent, ActionStartRequest } from '../../../../data/action_run_types'
 import { CUSTOM_PROMPT_ACTION_ID, type ActionFile } from '../../../../data/action_types'
 import type { AgentConversation, ProjectReference, StorageService, WorktreeRecord } from '../../../../data/data_types'
 import type { AgentSelectionState } from '../../../../data/agent_selection'
@@ -677,6 +677,46 @@ describe('ActionPopup', () => {
             }),
         })))
         expect(saveProjectFile).not.toHaveBeenCalled()
+    })
+
+    it('omits retained shared permission mode when custom agent runs', async () => {
+        const startAction = vi.fn(async (request: ActionStartRequest) => {
+            void request
+
+            return 'custom-run'
+        })
+        configService.replaceDesktopConfig({
+            agentSelection: {
+                activeAgent: 'custom',
+                permissionMode: 'full-access',
+                settingsByAgent: { custom: { model: 'host-model', thinkingLevel: 'none' } },
+            },
+            agentProfiles: [{ command: ['custom'], defaultThinkingLevel: 'none', models: ['host-model'], name: 'custom' }],
+        })
+        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({
+            availability: { error: null, loading: false, values: { custom: { available: true, error: null } } },
+            models: { error: null, loading: false, values: [] },
+            thinkingLevels: { error: null, loading: false, values: [] },
+        })
+        window.md2Actions = {
+            onActionRun: vi.fn(() => vi.fn()),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
+            startAction,
+        } as unknown as typeof window.md2Actions
+        renderPopup()
+        const dialog = within(screen.getByRole('dialog', { name: 'Run actions' }))
+
+        fireEvent.click(dialog.getByRole('button', { name: 'Custom prompt' }))
+        const prompt = within(await dialog.findByLabelText('Prompt')).getByRole('textbox')
+        fireEvent.change(prompt, { target: { value: 'Run custom agent' } })
+        await waitFor(() => expect(dialog.getByRole('button', { name: 'Send' })).toBeEnabled())
+        fireEvent.click(dialog.getByRole('button', { name: 'Send' }))
+
+        await waitFor(() => expect(startAction).toHaveBeenCalledOnce())
+        const request = startAction.mock.calls[0][0]
+        expect(request.runInput).toMatchObject({ agent: 'custom', model: 'host-model', thinkingLevel: 'none' })
+        expect(request.runInput).not.toHaveProperty('permissionMode')
+        expect(configService.get('desktop.agentSelection').permissionMode).toBe('full-access')
     })
 
     it('filters the internal action list by context', () => {
@@ -1911,6 +1951,29 @@ describe('ActionPopup', () => {
         expect(loadCardActivity).toHaveBeenCalledTimes(2)
     })
 
+    it('restores non-card settings after popup reopen and drops them after project-store clear', async () => {
+        const fileContext: ActionContext = { file: 'README.md', kind: 'file' }
+        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({
+            availability: { error: null, loading: false, values: { codex: { available: true, error: null } } },
+            models: { error: null, loading: false, values: [] },
+            thinkingLevels: { error: null, loading: false, values: [] },
+        })
+        actionService.loadFromFiles([file(agentDefinition('review', { agent: 'codex', label: 'Review' }))])
+        renderPopup(fileContext)
+
+        fireEvent.click(screen.getByLabelText('Model'))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Model' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'gpt-5.6-sol' }))
+        cleanup()
+        renderPopup(fileContext)
+        expect(screen.getByLabelText('Model')).toHaveTextContent('gpt-5.6-sol')
+
+        cleanup()
+        actionRunSettingsService.clear()
+        renderPopup(fileContext)
+        expect(screen.getByLabelText('Model')).toHaveTextContent('gpt-5.5')
+    })
+
     it('keeps settings independent while switching actions in one card popup', async () => {
         const cardContext = { ...context, cardInternalId: 'card-1' }
         const updateCardActionSettings = vi.fn(async (request: { actionId: string }) => {
@@ -1951,8 +2014,8 @@ describe('ActionPopup', () => {
     it('keeps unavailable saved configuration visible without overwriting persistence', async () => {
         const cardContext = { ...context, cardInternalId: 'card-1' }
         const unavailableSettings: AgentSelectionState = {
-            activeAgent: 'codex', permissionMode: 'ask-for-approval',
-            settingsByAgent: { codex: { model: 'removed-model', thinkingLevel: 'high' } },
+            activeAgent: 'removed-agent', permissionMode: 'ask-for-approval',
+            settingsByAgent: { 'removed-agent': { model: 'removed-model', thinkingLevel: 'high' } },
         }
         const updateCardActionSettings = vi.fn(async () => undefined)
         window.md2Actions = {
@@ -1965,7 +2028,7 @@ describe('ActionPopup', () => {
             updateCardActionSettings,
         } as unknown as typeof window.md2Actions
         vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({
-            availability: { error: null, loading: false, values: { codex: { available: true, error: null } } },
+            availability: { error: null, loading: false, values: { 'removed-agent': { available: false, error: 'Executable removed' } } },
             models: { error: null, loading: false, values: [] },
             thinkingLevels: { error: null, loading: false, values: [] },
         })
@@ -1978,6 +2041,17 @@ describe('ActionPopup', () => {
             expect(model.querySelector('[data-model-label]')).toHaveTextContent('removed-model')
             expect(model.querySelector('[data-full-thinking-level]')).toHaveTextContent('high')
         })
+        expect(screen.getByText('Unknown agent profile in action run settings: removed-agent')).toBeInTheDocument()
+
+        fireEvent.click(screen.getByLabelText('Model'))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Agent' }))
+        expect(screen.getByRole('menuitem', { name: /removed-agent — unavailable/u })).toHaveClass('Mui-selected')
+        fireEvent.keyDown(screen.getByRole('menu', { name: 'Agent choices' }), { key: 'ArrowLeft' })
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Model' }))
+        expect(screen.getByRole('menuitem', { name: 'removed-model — unavailable' })).toHaveClass('Mui-selected')
+        fireEvent.keyDown(screen.getByRole('menu', { name: 'Model choices' }), { key: 'ArrowLeft' })
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Thinking level' }))
+        expect(screen.getByRole('menuitem', { name: 'high — unavailable' })).toHaveClass('Mui-selected')
         expect(updateCardActionSettings).not.toHaveBeenCalled()
     })
 

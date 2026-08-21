@@ -1,5 +1,5 @@
 import type { CardActivityFile } from '../../../../shared/card_activity.mjs'
-import { parseActivityValue } from '../../../../shared/card_activity.mjs'
+import { parseActivityValueForMigration } from '../../../../shared/card_activity.mjs'
 import type { PermissionMode, ThinkingLevel } from '../../data/agent_profiles'
 import type { AgentSelectionState } from '../../data/agent_selection'
 import { getElectronActionBridge } from '../../data/electron_action_bridge'
@@ -11,7 +11,7 @@ import { register } from '../service_injector'
 export interface ResolvedActionRunSettings {
     agent: string
     model: string
-    permissionMode: PermissionMode | ''
+    permissionMode?: PermissionMode | ''
     thinkingLevel: ThinkingLevel
 }
 
@@ -53,7 +53,7 @@ async function loadPersistedSettings(cardInternalId: string, actionId: string) {
 
     const rawActivity = await bridge.loadCardActivity({ cardInternalId })
     const origin = { cardInternalId, kind: 'card' as const }
-    const activity: CardActivityFile = parseActivityValue(rawActivity, origin)
+    const activity: CardActivityFile = parseActivityValueForMigration(rawActivity, origin)
     const settings = activity.actionSettings[actionId]
     if (!settings) return null
 
@@ -180,17 +180,12 @@ export class ActionRunSettingsStore extends EventTarget {
     }
 }
 
-export function createSessionActionRunSettingsStore(actionId: string, contextIdentity: string) {
-    if (contextIdentity.length === 0) throw new Error('Action settings context identity is required')
-
-    return new ActionRunSettingsStore(actionId, null)
-}
-
-/** Owns stable card/action settings stores for current project. */
+/** Owns stable card/action and session action/context settings stores for current project. */
 export class ActionRunSettingsService {
     private projectStateOwner: ProjectStateOwner | null = null
     private activeProjectKey: string | null = null
-    private readonly stores = new Map<string, ActionRunSettingsStore>()
+    private readonly cardStores = new Map<string, ActionRunSettingsStore>()
+    private readonly sessionStores = new Map<string, ActionRunSettingsStore>()
 
     constructor() {
         register('actionRunSettingsService', this)
@@ -206,18 +201,31 @@ export class ActionRunSettingsService {
 
     getCardStore(cardInternalId: string, actionId: string) {
         const key = `${cardInternalId}\u0000${actionId}`
-        const current = this.stores.get(key)
+        const current = this.cardStores.get(key)
         if (current) return current
 
         const store = new ActionRunSettingsStore(actionId, cardInternalId)
-        this.stores.set(key, store)
+        this.cardStores.set(key, store)
         void store.load()
 
         return store
     }
 
+    getSessionStore(actionId: string, contextIdentity: string) {
+        if (contextIdentity.length === 0) throw new Error('Action settings context identity is required')
+        const key = `${contextIdentity}\u0000${actionId}`
+        const current = this.sessionStores.get(key)
+        if (current) return current
+
+        const store = new ActionRunSettingsStore(actionId, null)
+        this.sessionStores.set(key, store)
+
+        return store
+    }
+
     clear() {
-        this.stores.clear()
+        this.cardStores.clear()
+        this.sessionStores.clear()
     }
 
     private readonly handleProjectChanged = () => {

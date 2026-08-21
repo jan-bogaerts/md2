@@ -11,7 +11,7 @@ export interface AgentProfile {
 export interface AgentSelection {
     agent: string
     model: string
-    permissionMode?: PermissionMode
+    permissionMode?: PermissionMode | ''
     thinkingLevel?: ThinkingLevel
 }
 
@@ -31,6 +31,7 @@ export const DEFAULT_PERMISSION_MODE: PermissionMode
 export const PERMISSION_MODE_OPTIONS: PermissionModeOption[]
 export const BUILTIN_AGENT_PROFILES: AgentProfile[]
 export function validateAgentProfiles(value: unknown): AgentProfile[]
+export function migrateAgentProfiles(value: unknown): unknown
 export function normalizeAgentProfiles(value: unknown): AgentProfile[]
 export function mergeAgentProfiles(profiles: AgentProfile[]): AgentProfile[]
 export function findAgentProfile(profiles: AgentProfile[], name: string): AgentProfile | null
@@ -44,4 +45,5 @@ export function buildAgentExecutionCommand(profile: AgentProfile, model: string,
 export function buildAgentStreamingCommand(profile: AgentProfile, model: string, thinkingLevel: ThinkingLevel, permissionMode?: PermissionMode): string[]
 export function supportsAgentStreaming(profile: AgentProfile): boolean
 export function supportsPermissionMode(profile: AgentProfile): boolean
+export function supportsThinkingLevel(profile: Pick<AgentProfile, 'name'>, thinkingLevel: ThinkingLevel): boolean
 export function buildResumeAgentCommand(profile: AgentProfile, sessionId: string, executionCommand?: string[]): string[]

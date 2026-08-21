@@ -56,6 +56,22 @@ describe('agent selection', () => {
         expect(projectAgentSelection(permission)).toEqual({ agent: 'codex', model: 'gpt-5.5', permissionMode: 'full-access', thinkingLevel: 'low' })
     })
 
+    it('omits shared permission mode when projecting a custom agent', () => {
+        const customProfiles = [{ command: ['custom'], defaultThinkingLevel: 'none' as const, models: ['model'], name: 'custom' }]
+        const customSelection: AgentSelectionState = {
+            activeAgent: 'custom',
+            permissionMode: 'full-access',
+            settingsByAgent: { custom: { model: 'model', thinkingLevel: 'none' } },
+        }
+
+        expect(projectAgentSelection(customSelection, customProfiles)).toEqual({
+            agent: 'custom',
+            model: 'model',
+            thinkingLevel: 'none',
+        })
+        expect(customSelection.permissionMode).toBe('full-access')
+    })
+
     it('strictly validates persisted shape', () => {
         expect(validateAgentSelectionState(selection, 'test')).toEqual(selection)
         expect(() => validateAgentSelectionState({ ...selection, settingsByAgent: {} }, 'test')).not.toThrow()

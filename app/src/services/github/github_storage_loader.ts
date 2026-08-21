@@ -1,7 +1,7 @@
 import type { ActionFile } from '../../data/action_types'
 import { ACTION_SCHEDULES_FILE } from '../../data/action_schedule_types'
 import { MissingWorkingFolderError, type AgentConversation, type MarkdownFile, type ProjectReference } from '../../data/data_types'
-import { findActivityConversation, parseActivityFile } from '../../../../shared/card_activity.mjs'
+import { findActivityConversation, parseActivityFileForMigration } from '../../../../shared/card_activity.mjs'
 import { conversationActivityReference, parseConversationActivityReference } from '../../../../shared/activity_paths.mjs'
 import {
     normalizeBranches,
@@ -94,7 +94,7 @@ export class GithubStorageLoader {
         this.context.requireGithubProject(project)
         const { activityPath, conversationId } = parseConversationActivityReference(path)
         const file = await this.gitData.readFile(project, activityPath)
-        const activity = parseActivityFile(file.content)
+        const activity = parseActivityFileForMigration(file.content)
         const conversation = findActivityConversation(activity, conversationId)
 
         return { ...conversation, path }
@@ -103,7 +103,7 @@ export class GithubStorageLoader {
     async loadActivityConversations(project: ProjectReference, path: string): Promise<AgentConversation[]> {
         this.context.requireGithubProject(project)
         const file = await this.gitData.readFile(project, path)
-        const activity = parseActivityFile(file.content)
+        const activity = parseActivityFileForMigration(file.content)
 
         return activity.conversations.map((conversation) => ({
             ...conversation,

@@ -575,17 +575,20 @@ export function compactActivityFileContent(content, expectedOrigin = null) {
 }
 
 export function parseActivityFile(content, expectedOrigin = null) {
-    return parseActivityValue(JSON.parse(content), expectedOrigin);
+    return parseActivityValueForMigration(JSON.parse(content), expectedOrigin);
 }
 
 /** Parses current activity or strictly migrates a recognized legacy version in memory. */
-export function parseActivityFileForMigration(content, expectedOrigin = null) {
-    const value = JSON.parse(content);
+export function parseActivityValueForMigration(value, expectedOrigin = null) {
     if ([LEGACY_ACTIVITY_VERSION, SECOND_ACTIVITY_VERSION, THIRD_ACTIVITY_VERSION, PREVIOUS_ACTIVITY_VERSION].includes(value?.version)) {
         return migrateActivityValue(value, expectedOrigin);
     }
 
     return parseActivityValue(value, expectedOrigin);
+}
+
+export function parseActivityFileForMigration(content, expectedOrigin = null) {
+    return parseActivityValueForMigration(JSON.parse(content), expectedOrigin);
 }
 
 export function findActivityConversation(activity, conversationId) {

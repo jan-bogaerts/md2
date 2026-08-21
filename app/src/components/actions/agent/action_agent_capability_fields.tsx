@@ -62,7 +62,7 @@ export function ActionAgentCapabilityFields(props: ActionAgentCapabilityFieldsPr
             return
         }
         const nextSelection = selectAgent(selection, agent, profiles, [desktopSelection])
-        const projected = projectAgentSelection(nextSelection)
+        const projected = projectAgentSelection(nextSelection, profiles)
         actionAgentSelectionDraftService.setSelection(sourcePath, nextSelection)
         onChange({ ...definition, agent: projected.agent, model: projected.model, thinkingLevel: projected.thinkingLevel })
     }

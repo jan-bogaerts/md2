@@ -5,10 +5,15 @@ import {
     resolveAgentSelectionState,
     type AgentSelectionState,
 } from '../../data/agent_selection'
+import { register } from '../service_injector'
 
 /** Owns per-agent selection memory while action-definition drafts are open. */
 export class ActionAgentSelectionDraftService {
     private readonly selections = new Map<string, AgentSelectionState>()
+
+    constructor() {
+        register('actionAgentSelectionDraftService', this)
+    }
 
     getSelection(
         sourcePath: string,

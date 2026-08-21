@@ -2,7 +2,6 @@ import { useMemo } from 'react'
 import { actionContextIdentity } from '../../../../data/action_context'
 import {
     actionRunSettingsService,
-    createSessionActionRunSettingsStore,
 } from '../../../../services/actions/action_run_settings_service'
 import { AgentAction } from './agent_action'
 import { ActionPopupFrame } from './action_popup_frame'
@@ -19,7 +18,7 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
     const settingsStore = useMemo(
         () => assignmentContext.cardInternalId
             ? actionRunSettingsService.getCardStore(assignmentContext.cardInternalId, action.id)
-            : createSessionActionRunSettingsStore(action.id, settingsContextIdentity),
+            : actionRunSettingsService.getSessionStore(action.id, settingsContextIdentity),
         [action.id, assignmentContext.cardInternalId, settingsContextIdentity],
     )
     const bindings = useMemo(

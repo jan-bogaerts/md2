@@ -21,8 +21,10 @@ export const {
     defaultThinkingLevelForProfile,
     findAgentProfile,
     mergeAgentProfiles,
+    migrateAgentProfiles,
     normalizeAgentProfiles,
     supportsPermissionMode,
+    supportsThinkingLevel,
     supportsAgentStreaming,
     validateAgentProfiles,
     validateAgentSelection,
@@ -45,7 +47,12 @@ export function resolveAgentCommand(config, selection = {}, streaming = false) {
         : supportsPermissionMode(profile)
             ? configuredSelection.permissionMode
             : undefined;
-    validateAgentSelection(profiles, { agent, model, ...(permissionMode !== undefined ? { permissionMode } : {}) }, 'desktop config');
+    validateAgentSelection(profiles, {
+        agent,
+        model,
+        ...(permissionMode !== undefined ? { permissionMode } : {}),
+        thinkingLevel,
+    }, 'desktop config');
 
     const searchEnabled = config.codexSearchEnabled ?? true;
 

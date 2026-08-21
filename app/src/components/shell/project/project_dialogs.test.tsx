@@ -217,7 +217,10 @@ describe('project dialog components', () => {
     })
 
     it('selects Folder by default in Electron and Repository by default in the browser', () => {
-        const { unmount } = render(<ProjectOpenDialog {...projectOpenDialogProps({ isDesktopMode: true })} />, { wrapper: AppThemeProvider })
+        const { unmount } = render(
+            <ProjectOpenDialog {...projectOpenDialogProps({ isDesktopMode: true })} />,
+            { wrapper: AppThemeProvider },
+        )
 
         const desktopProjectKind = screen.getByRole('group', { name: 'Project kind' })
         expect(within(desktopProjectKind).getByRole('button', { name: 'Folder' })).toHaveAttribute('aria-pressed', 'true')
@@ -226,7 +229,10 @@ describe('project dialog components', () => {
         expect(screen.queryByLabelText('Filter repositories')).toBeNull()
         unmount()
 
-        render(<ProjectOpenDialog {...projectOpenDialogProps({ isDesktopMode: false, repositories: REPOSITORIES })} />, { wrapper: AppThemeProvider })
+        render(
+            <ProjectOpenDialog {...projectOpenDialogProps({ isDesktopMode: false, repositories: REPOSITORIES })} />,
+            { wrapper: AppThemeProvider },
+        )
 
         const browserProjectKind = screen.getByRole('group', { name: 'Project kind' })
         expect(within(browserProjectKind).getByRole('button', { name: 'Repository' })).toHaveAttribute('aria-pressed', 'true')

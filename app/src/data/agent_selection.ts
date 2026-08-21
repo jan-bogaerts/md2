@@ -1,4 +1,5 @@
 export {
+    DEFAULT_AGENT_SELECTION,
     profileAgentSettings,
     projectAgentSelection,
     resolveAgentSelectionState,

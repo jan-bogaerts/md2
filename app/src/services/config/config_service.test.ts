@@ -268,6 +268,19 @@ describe('ConfigService', () => {
         expect(service.get('desktop.agentSelection').settingsByAgent.claude.thinkingLevel).toBe('high')
     })
 
+    it('normalizes legacy profiles when remote desktop config replaces renderer config', () => {
+        service.init()
+
+        service.replaceDesktopConfig({agentProfiles: [{ command: ['remote-agent'], models: ['remote-model'], name: 'remote' }] as never})
+
+        expect(service.get('desktop.agentProfiles')).toEqual([{
+            command: ['remote-agent'],
+            defaultThinkingLevel: 'none',
+            models: ['remote-model'],
+            name: 'remote',
+        }])
+    })
+
     it('persists react values across instances, simulating a reload', () => {
         service.init()
         service.loadDraft()

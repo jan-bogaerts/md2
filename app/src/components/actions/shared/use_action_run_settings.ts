@@ -4,9 +4,11 @@ import {
     findAgentProfile,
     mergeAgentProfiles,
     supportsPermissionMode,
+    validateAgentSelection,
     validateThinkingLevel,
 } from '../../../data/agent_profiles'
 import {
+    DEFAULT_AGENT_SELECTION,
     projectAgentSelection,
     resolveAgentSelectionState,
     type AgentSelectionState,
@@ -17,13 +19,19 @@ import { useAgentCapabilities } from '../../hooks/use_agent_capabilities'
 import { useConfigValueOrFallback, useHasDesktopConfig } from '../../hooks/use_config_value'
 import { useProjectReadOnly } from '../../hooks/use_project_read_only'
 
+function agentSelectionError(agentProfiles: ReturnType<typeof mergeAgentProfiles>, selection: ReturnType<typeof projectAgentSelection>) {
+    try {
+        validateAgentSelection(agentProfiles, selection, 'action run settings')
+
+        return null
+    } catch (error) {
+        return error instanceof Error ? error.message : 'Invalid action run settings'
+    }
+}
+
 /** Resolve agent input and backend state only for controls that consume it. */
 export function useActionRunSettings(action: ActionDefinition, store: ActionRunSettingsStore) {
-    const desktopSelection = useConfigValueOrFallback('desktop.agentSelection', {
-        activeAgent: 'codex',
-        permissionMode: 'ask-for-approval',
-        settingsByAgent: { codex: { model: 'gpt-5.5', thinkingLevel: 'none' } },
-    })
+    const desktopSelection = useConfigValueOrFallback('desktop.agentSelection', DEFAULT_AGENT_SELECTION)
     const configuredAgentProfiles = useConfigValueOrFallback('desktop.agentProfiles', [])
     const desktopConfigAvailable = useHasDesktopConfig()
     const readOnly = useProjectReadOnly()
@@ -52,8 +60,9 @@ export function useActionRunSettings(action: ActionDefinition, store: ActionRunS
     }
     const resolutionSources = [definitionSource, baseSelection].filter((source): source is AgentSelectionState => !!source)
     const selection = resolveAgentSelectionState(unresolvedSelection, agentProfiles, resolutionSources)
-    const projectedSelection = projectAgentSelection(selection)
+    const projectedSelection = projectAgentSelection(selection, agentProfiles)
     const { agent, model, permissionMode, thinkingLevel } = projectedSelection
+    const selectionValidationError = action.type === 'agent' ? agentSelectionError(agentProfiles, projectedSelection) : null
     const selectedAgentProfile = findAgentProfile(agentProfiles, agent)
     const selectedAgentModels = selectedAgentProfile?.models ?? []
     const permissionModeSupported = !!selectedAgentProfile && supportsPermissionMode(selectedAgentProfile)
@@ -71,11 +80,13 @@ export function useActionRunSettings(action: ActionDefinition, store: ActionRunS
                     ? 'Host desktop config is unavailable'
                     : !backendAvailable
                         ? 'Action run requires the Electron desktop app'
-                        : action.type === 'agent' && capabilities.availability.loading
-                            ? 'Checking agent executable availability'
-                            : action.type === 'agent' && !selectedAgentAvailable
-                                ? selectedAvailability?.error ?? capabilities.availability.error ?? `Agent executable is unavailable for ${agent}`
-                                : null
+                        : selectionValidationError
+                            ? selectionValidationError
+                            : action.type === 'agent' && capabilities.availability.loading
+                                ? 'Checking agent executable availability'
+                                : action.type === 'agent' && !selectedAgentAvailable
+                                    ? selectedAvailability?.error ?? capabilities.availability.error ?? `Agent executable is unavailable for ${agent}`
+                                    : null
     return {
         agent,
         agentAvailability: capabilities.availability.values,
@@ -90,6 +101,7 @@ export function useActionRunSettings(action: ActionDefinition, store: ActionRunS
         selectedAgentAvailable,
         selectedAgentModels,
         selectionSources: resolutionSources,
+        selectionValidationError,
         settingsChangedWhileWaiting: snapshot.settingsChangedWhileWaiting,
         settingsLoading: snapshot.loading,
         selection,

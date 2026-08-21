@@ -1,10 +1,22 @@
 import {
+    DEFAULT_AGENT_PROFILE_NAME,
+    DEFAULT_PERMISSION_MODE,
     defaultModelForProfile,
     defaultThinkingLevelForProfile,
     findAgentProfile,
+    supportsPermissionMode,
     validatePermissionMode,
     validateThinkingLevel,
 } from './agent_profiles.mjs'
+
+const defaultProfile = findAgentProfile([], DEFAULT_AGENT_PROFILE_NAME)
+if (!defaultProfile) throw new Error(`Missing built-in agent profile: ${DEFAULT_AGENT_PROFILE_NAME}`)
+
+export const DEFAULT_AGENT_SELECTION = {
+    activeAgent: DEFAULT_AGENT_PROFILE_NAME,
+    permissionMode: DEFAULT_PERMISSION_MODE,
+    settingsByAgent: { [DEFAULT_AGENT_PROFILE_NAME]: profileAgentSettings(defaultProfile) },
+}
 
 function requireObject(value, source) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`Invalid agent selection in ${source}`)
@@ -102,14 +114,15 @@ export function selectPermissionMode(selection, permissionMode) {
     return { ...selection, permissionMode: validatePermissionMode(permissionMode, 'agent selection') }
 }
 
-export function projectAgentSelection(selection) {
+export function projectAgentSelection(selection, profiles = []) {
     const settings = selection.settingsByAgent[selection.activeAgent]
     if (!settings) throw new Error(`Missing settings for active agent: ${selection.activeAgent}`)
+    const profile = findAgentProfile(profiles, selection.activeAgent)
 
     return {
         agent: selection.activeAgent,
         model: settings.model,
-        permissionMode: selection.permissionMode,
+        ...(profile && supportsPermissionMode(profile) ? { permissionMode: selection.permissionMode } : {}),
         thinkingLevel: settings.thinkingLevel,
     }
 }

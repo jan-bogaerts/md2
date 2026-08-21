@@ -8,7 +8,11 @@ import {
     selectThinkingLevel,
     type AgentSelectionState,
 } from '../../data/agent_selection'
-import { ActionAgentSelectionDraftService } from './action_agent_selection_draft_service'
+import { getService } from '../service_injector'
+import {
+    ActionAgentSelectionDraftService,
+    actionAgentSelectionDraftService,
+} from './action_agent_selection_draft_service'
 
 const desktopSelection: AgentSelectionState = {
     activeAgent: 'codex',
@@ -31,6 +35,10 @@ const definition: RawActionDefinition = {
 }
 
 describe('ActionAgentSelectionDraftService', () => {
+    it('registers its singleton with the service injector', () => {
+        expect(getService('actionAgentSelectionDraftService')).toBe(actionAgentSelectionDraftService)
+    })
+
     it('remembers agent pairs per editor source while keeping permission shared', () => {
         const service = new ActionAgentSelectionDraftService()
         const initial = service.getSelection('actions/review.json', definition, desktopSelection, BUILTIN_AGENT_PROFILES)

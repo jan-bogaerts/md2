@@ -335,6 +335,31 @@ describe('AppMenu', () => {
         expect(screen.getByDisplayValue('Permissions unsupported')).toBeDisabled()
     })
 
+    it('keeps unavailable remembered global values visible with validation tooltip', async () => {
+        configService.clear()
+        configService.init({
+            desktopConfig: {
+                agentProfiles: [],
+                agentSelection: {
+                    activeAgent: 'removed-agent',
+                    permissionMode: 'ask-for-approval',
+                    settingsByAgent: { 'removed-agent': { model: 'removed-model', thinkingLevel: 'high' } },
+                },
+            },
+        })
+
+        renderMenu()
+        fireEvent.click(screen.getByRole('tab', { name: 'Run' }))
+
+        const agent = screen.getByRole('combobox', { name: 'Default agent' })
+        expect(agent).toHaveTextContent('removed-agent — unavailable')
+        expect(screen.getByRole('textbox', { name: 'Default model' })).toHaveValue('removed-model')
+        expect(screen.getByText('Unavailable')).toBeInTheDocument()
+        expect(screen.getByRole('combobox', { name: 'Default reasoning level' })).toHaveTextContent('high — unavailable')
+        fireEvent.mouseOver(agent)
+        expect(await screen.findByRole('tooltip')).toHaveTextContent('Unknown agent profile in desktop agent selection: removed-agent')
+    })
+
     it('commits pending changes before enabling manual push', async () => {
         const bridge = createBridge()
         const files = [{ content: '---\nid: F-1\ninternalId: f-1\ntitle: Root\nstatus: active\n---\n\n# Root', path: 'design/F-1-root.md' }]

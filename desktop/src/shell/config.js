@@ -1,7 +1,3 @@
-const DEFAULT_DESKTOP_AGENT = 'codex';
-const DEFAULT_DESKTOP_PERMISSION_MODE = 'ask-for-approval';
-const DEFAULT_DESKTOP_MODEL = 'gpt-5.5';
-const DEFAULT_DESKTOP_THINKING_LEVEL = 'none';
 const DEFAULT_CODEX_SEARCH_ENABLED = true;
 const DEFAULT_EDITOR_COMMAND = 'code -g "{{file}}:{{line}}"';
 const DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND = '';
@@ -9,19 +5,21 @@ const DEFAULT_REMOTE_CONTROL_PORT = 20877;
 const DESKTOP_CONFIG_STORE_KEY = 'desktopConfig';
 const {
     BUILTIN_AGENT_PROFILES,
+    migrateAgentProfiles,
     normalizeAgentProfiles,
     validateAgentProfiles,
 } = require('../actions/agent/agent_profiles.mjs');
 const {
+    DEFAULT_AGENT_SELECTION,
     resolveAgentSelectionState,
     validateAgentSelectionState,
 } = require('../actions/agent/agent_selection.mjs');
 
-const DEFAULT_DESKTOP_AGENT_SELECTION = {
-    activeAgent: DEFAULT_DESKTOP_AGENT,
-    permissionMode: DEFAULT_DESKTOP_PERMISSION_MODE,
-    settingsByAgent: {[DEFAULT_DESKTOP_AGENT]: { model: DEFAULT_DESKTOP_MODEL, thinkingLevel: DEFAULT_DESKTOP_THINKING_LEVEL }},
-};
+const DEFAULT_DESKTOP_AGENT_SELECTION = DEFAULT_AGENT_SELECTION;
+const DEFAULT_DESKTOP_AGENT = DEFAULT_AGENT_SELECTION.activeAgent;
+const DEFAULT_DESKTOP_PERMISSION_MODE = DEFAULT_AGENT_SELECTION.permissionMode;
+const DEFAULT_DESKTOP_MODEL = DEFAULT_AGENT_SELECTION.settingsByAgent[DEFAULT_DESKTOP_AGENT].model;
+const DEFAULT_DESKTOP_THINKING_LEVEL = DEFAULT_AGENT_SELECTION.settingsByAgent[DEFAULT_DESKTOP_AGENT].thinkingLevel;
 
 function requireString(value, fieldName, allowEmpty = false) {
     if (typeof value !== 'string' || (!allowEmpty && value.length === 0)) {
@@ -46,7 +44,7 @@ function validateDesktopConfig(values) {
 
     return {
         agentSelection: validateAgentSelectionState(values.agentSelection, 'desktop.agentSelection'),
-        agentProfiles: validateAgentProfiles(values.agentProfiles),
+        agentProfiles: validateAgentProfiles(migrateAgentProfiles(values.agentProfiles)),
         codexSearchEnabled: values.codexSearchEnabled,
         editorCommand,
         mergeConflictResolverCommand,

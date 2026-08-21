@@ -240,6 +240,23 @@ describe('writeDesktopConfig', () => {
     });
 });
 
+describe('saveDesktopConfig legacy profiles', () => {
+    it('normalizes a remote legacy profile before strict host validation', () => {
+        const store = createFakeStore();
+        const values = {
+            ...resolveDesktopConfig({}),
+            agentProfiles: [{ command: ['remote-agent'], models: ['remote-model'], name: 'remote' }],
+        };
+
+        expect(saveDesktopConfig(store, values, {}).agentProfiles).toEqual([{
+            command: ['remote-agent'],
+            defaultThinkingLevel: 'none',
+            models: ['remote-model'],
+            name: 'remote',
+        }]);
+    });
+});
+
 describe('saveDesktopConfig', () => {
     const validConfig = {
         agentSelection: selection('custom', 'custom-model', 'high', 'full-access'),

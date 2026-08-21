@@ -12,7 +12,7 @@ import { markdownParsingService } from './data/markdown_parsing_service'
 import { telemetryService } from './telemetry/telemetry_service'
 import { projectAgentTokenUsageService } from './agents/project_agent_token_usage_service'
 import { getElectronActionBridge, type ElectronActionBridge } from '../data/electron_action_bridge'
-import { parseActivityFile } from '../../../shared/card_activity.mjs'
+import { parseActivityFileForMigration } from '../../../shared/card_activity.mjs'
 import {
     addSummaryUsage,
     agentTokenUsageFilePath,
@@ -73,7 +73,7 @@ async function releaseCardLock(lock: ReleaseCardLock | null) {
     await lock.bridge.releaseReleaseCardLocks(lock.leaseId)
 }
 
-function conversationReleaseUsage(conversation: ReturnType<typeof parseActivityFile>['conversations'][number]): AgentSummaryUsage {
+function conversationReleaseUsage(conversation: ReturnType<typeof parseActivityFileForMigration>['conversations'][number]): AgentSummaryUsage {
     const usage = conversation.usage
     if (!usage) return legacySummaryUsage(0)
     if (conversation.usageSchemaVersion === undefined) return legacySummaryUsage(usage.totalTokens, usage.costUsd)
@@ -91,7 +91,7 @@ function conversationReleaseUsage(conversation: ReturnType<typeof parseActivityF
 
 function releaseUsage(activityFiles: MarkdownFile[]) {
     return addSummaryUsage(activityFiles.flatMap((file) => (
-        parseActivityFile(file.content).conversations.map(conversationReleaseUsage)
+        parseActivityFileForMigration(file.content).conversations.map(conversationReleaseUsage)
     )))
 }
 

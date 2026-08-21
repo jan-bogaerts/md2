@@ -4,6 +4,17 @@ import type { ConfigEntry } from '../../services/config/config_service'
 import { dialogService } from '../../services/dialog_service'
 import { ConfigValueEditor } from './config_value_editor'
 
+const desktopSelectionEntry: ConfigEntry = {
+    defaultValue: { activeAgent: 'codex', permissionMode: 'ask-for-approval', settingsByAgent: {} },
+    description: 'Desktop selection.',
+    editable: true,
+    key: 'desktop.agentSelection',
+    label: 'Desktop agent selection',
+    section: 'desktop',
+    source: 'desktop',
+    type: 'json',
+}
+
 describe('ConfigValueEditor', () => {
     it('reports invalid slider config without crashing the config page', () => {
         const entry: ConfigEntry = {
@@ -112,5 +123,27 @@ describe('ConfigValueEditor', () => {
 
         expect(screen.getByText('{{commit}}').tagName).toBe('CODE')
         expect(screen.getByText('{{file}}').tagName).toBe('CODE')
+    })
+
+    it('keeps unavailable remembered desktop values visible with validation error', () => {
+        const selection = {
+            activeAgent: 'removed-agent',
+            permissionMode: 'ask-for-approval' as const,
+            settingsByAgent: { 'removed-agent': { model: 'removed-model', thinkingLevel: 'high' as const } },
+        }
+
+        render(
+            <ConfigValueEditor
+                entry={desktopSelectionEntry}
+                onChange={vi.fn()}
+                value={selection}
+                values={{ 'desktop.agentProfiles': [], 'desktop.agentSelection': selection }}
+            />,
+        )
+
+        expect(screen.getByLabelText('Agent')).toHaveTextContent('removed-agent — unavailable')
+        expect(screen.getByLabelText('Model')).toHaveTextContent('removed-model — unavailable')
+        expect(screen.getByLabelText('Thinking level')).toHaveTextContent('high — unavailable')
+        expect(screen.getByText('Unknown agent profile in desktop agent selection: removed-agent')).toBeInTheDocument()
     })
 })

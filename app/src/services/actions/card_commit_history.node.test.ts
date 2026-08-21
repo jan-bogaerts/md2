@@ -55,10 +55,10 @@ describe('loadCardCommits', () => {
         await expect(loadCardCommits(cardInternalId)).resolves.toEqual([])
     })
 
-    it('rejects malformed activity instead of hiding corruption', async () => {
-        installBridge({ loadCardActivity: vi.fn(async () => ({ ...activity(), version: 1 } as never)) })
+    it('loads version-4 activity through commit history without a repair pass', async () => {
+        installBridge({ loadCardActivity: vi.fn(async () => ({ ...activity(), version: 4 } as never)) })
 
-        await expect(loadCardCommits(cardInternalId)).rejects.toThrow('unsupported version 1')
+        await expect(loadCardCommits(cardInternalId)).resolves.toHaveLength(2)
     })
 
     it('loads one system integration commit with its system label', async () => {
