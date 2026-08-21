@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 73926
+        "usedTokens": 73942
       },
       "entries": [
         {
@@ -467,6 +467,23 @@
           "role": "assistant",
           "sequence": 36,
           "timestamp": "2026-08-21T14:26:59.219Z"
+        },
+        {
+          "content": "/compact",
+          "id": "agent-turn-a2c269e9-9cbb-41b5-baac-88ca6d890e86-user-36",
+          "kind": "message",
+          "role": "user",
+          "sequence": 37,
+          "timestamp": "2026-08-21T14:29:14.305Z"
+        },
+        {
+          "agent": "codex",
+          "content": "Context compacted.\n\n",
+          "id": "agent-turn-a2c269e9-9cbb-41b5-baac-88ca6d890e86-turn-3-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 38,
+          "timestamp": "2026-08-21T14:29:16.263Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -476,23 +493,23 @@
           "agent": "codex",
           "conversationId": "01a024ad-a25c-77b2-9262-574137ff0b06",
           "createdAt": "2026-08-21T14:16:55.247Z",
-          "lastUsedAt": "2026-08-21T14:16:55.247Z",
-          "synchronizedThroughMessageId": "agent-turn-a2c269e9-9cbb-41b5-baac-88ca6d890e86-turn-1-assistant-3"
+          "lastUsedAt": "2026-08-21T14:26:59.219Z",
+          "synchronizedThroughMessageId": "agent-turn-a2c269e9-9cbb-41b5-baac-88ca6d890e86-turn-2-assistant-3"
         }
       ],
       "startedAt": "2026-08-21T14:15:53.933Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 61314,
-        "runningStartedAt": "2026-08-21T14:25:45.281Z"
+        "elapsedMs": 135252,
+        "runningStartedAt": "2026-08-21T14:29:14.305Z"
       },
       "title": "+",
       "usage": {
-        "cachedInputTokens": 465152,
-        "inputTokens": 69461,
-        "outputTokens": 3019,
+        "cachedInputTokens": 538624,
+        "inputTokens": 69923,
+        "outputTokens": 3027,
         "reasoningTokens": 1753,
-        "totalTokens": 539385
+        "totalTokens": 613327
       },
       "usageSchemaVersion": 1,
       "viewed": true
