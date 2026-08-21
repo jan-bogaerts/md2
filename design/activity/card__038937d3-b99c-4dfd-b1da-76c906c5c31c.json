@@ -756,7 +756,7 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "038937d3-b99c-4dfd-b1da-76c906c5c31c",
       "cardPath": "design/feature_descriptions/B_152_disbabled_input_while_running_agent.md",
-      "completedAt": null,
+      "completedAt": "2026-08-21T09:29:21.396Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 212306
@@ -4178,7 +4178,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 256,
-          "timestamp": "2026-08-21T09:29:21.052Z"
+          "timestamp": "2026-08-21T09:29:21.396Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -4188,15 +4188,15 @@
           "agent": "codex",
           "conversationId": "01a02376-acc0-7931-990f-78e984cbf6a3",
           "createdAt": "2026-08-21T08:38:23.897Z",
-          "lastUsedAt": "2026-08-21T09:06:24.454Z",
-          "synchronizedThroughMessageId": "agent-turn-8fb68270-2cfd-4d86-adf8-acd1106ca545-turn-1-assistant-4"
+          "lastUsedAt": "2026-08-21T09:29:21.396Z",
+          "synchronizedThroughMessageId": "agent-turn-9168a290-dac1-412b-b970-b8587a35467d-turn-1-assistant-8"
         }
       ],
       "startedAt": "2026-08-21T08:36:14.942Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 128955,
-        "runningStartedAt": "2026-08-21T09:06:32.402Z"
+        "elapsedMs": 1497949,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usage": {
