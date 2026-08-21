@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__2740ca78-6f46-4297-8adb-ee047283f48d.json
 policy:
-branch: f_220_poll_for_account_usage_at_startup
-worktree: 2
 ---
 
 ## Current state
