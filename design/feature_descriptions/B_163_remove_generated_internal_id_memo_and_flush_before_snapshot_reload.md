@@ -7,6 +7,7 @@ status: ready for implementation
 owner: 
 affects:
 agents:
+  - design/activity/card__4aff5203-e00a-42bb-9c0c-55d2a77c2e57.json
 policy:
 after: 1d9ff698-58aa-4f60-bc66-7ae73831af42
 branch: b_163_remove_generated_internal_id_memo_and_flush_before_snapshot_reload
