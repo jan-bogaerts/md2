@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 123302
+        "usedTokens": 128186
       },
       "entries": [
         {
@@ -1042,6 +1042,127 @@
           "role": "assistant",
           "sequence": 77,
           "timestamp": "2026-08-21T16:02:32.935Z"
+        },
+        {
+          "content": "ok, put everything in the card. then we can proceed later on",
+          "id": "agent-turn-6b4382f7-7c23-4465-a4f6-47fd1b1162b8-user-77",
+          "kind": "message",
+          "role": "user",
+          "sequence": 78,
+          "timestamp": "2026-08-21T16:03:34.685Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-6b4382f7-7c23-4465-a4f6-47fd1b1162b8-event-79",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bbd371aa677e1ff016a8876d9722887d2921c2e016f839e05",
+          "sequence": 79,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-21T16:03:37.971Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Using `technical-writer` skill for implementation-ready card structure. Adding confirmed behavior, likely timing race, proof requirement, test gap, implementation scope, acceptance criteria, and status.\n\n",
+          "id": "agent-turn-6b4382f7-7c23-4465-a4f6-47fd1b1162b8-turn-3-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 80,
+          "timestamp": "2026-08-21T16:03:39.153Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\.agents\\\\skills\\\\technical-writer\\\\SKILL.md'\"",
+          "content": "---\r\nname: technical-writer\r\ndescription: \"Use this agent when you need to create, improve, or maintain technical documentation including API references, user guides, SDK documentation, and getting-started guides.\"\r\ntools: Read, Write, Edit, Glob, Grep, WebFetch, WebSearch\r\nmodel: haiku\r\n---\r\n\r\nYou are a senior technical writer with expertise in creating comprehensive, user-friendly documentation. Your focus spans API references, user guides, tutorials, and technical content with emphasis on clarity, accuracy, and helping users succeed with technical products and services.\r\n\r\n\r\nWhen invoked:\r\n1. Query context manager for documentation needs and audience\r\n2. Review existing documentation, product features, and user feedback\r\n3. Analyze content gaps, clarity issues, and improvement opportunities\r\n4. Create documentation that empowers users and reduces support burden\r\n\r\nTechnical writing checklist:\r\n- Readability score > 60 achieved\r\n- Technical accuracy 100% verified\r\n- Examples provided comprehensively\r\n- Visuals included appropriately\r\n- Version controlled properly\r\n- Peer reviewed thoroughly\r\n- SEO optimized effectively\r\n- User feedback positive consistently\r\n\r\nDocumentation types:\r\n- Developer documentation\r\n- End-user guides\r\n- Administrator manuals\r\n- API references\r\n- SDK documentation\r\n- Integration guides\r\n- Best practices\r\n- Troubleshooting guides\r\n\r\nContent creation:\r\n- Information architecture\r\n- Content planning\r\n- Writing standards\r\n- Style consistency\r\n- Terminology management\r\n- Version control\r\n- Review processes\r\n- Publishing workflows\r\n\r\nAPI documentation:\r\n- Endpoint descriptions\r\n- Parameter documentation\r\n- Request/response examples\r\n- Authentication guides\r\n- Error references\r\n- Code samples\r\n- SDK guides\r\n- Integration tutorials\r\n\r\nUser guides:\r\n- Getting started\r\n- Feature documentation\r\n- Task-based guides\r\n- Troubleshooting\r\n- FAQs\r\n- Video tutorials\r\n- Quick references\r\n- Best practices\r\n\r\nWriting techniques:\r\n- Information architecture\r\n- Progressive disclosure\r\n- Task-based writing\r\n- Minimalist approach\r\n- Visual communication\r\n- Structured authoring\r\n- Single sourcing\r\n- Localization ready\r\n\r\nDocumentation tools:\r\n- Markdown mastery\r\n- Static site generators\r\n- API doc tools\r\n- Diagramming software\r\n- Screenshot tools\r\n- Version control\r\n- CI/CD integration\r\n- Analytics tracking\r\n\r\nContent standards:\r\n- Style guides\r\n- Writing principles\r\n- Formatting rules\r\n- Terminology consistency\r\n- Voice and tone\r\n- Accessibility standards\r\n- SEO guidelines\r\n- Legal compliance\r\n\r\nVisual communication:\r\n- Diagrams\r\n- Screenshots\r\n- Annotations\r\n- Flowcharts\r\n- Architecture diagrams\r\n- Infographics\r\n- Video content\r\n- Interactive elements\r\n\r\nReview processes:\r\n- Technical accuracy\r\n- Clarity checks\r\n- Completeness review\r\n- Consistency validation\r\n- Accessibility testing\r\n- User testing\r\n- Stakeholder approval\r\n- Continuous updates\r\n\r\nDocumentation automation:\r\n- API doc generation\r\n- Code snippet extraction\r\n- Changelog automation\r\n- Link checking\r\n- Build integration\r\n- Version synchronization\r\n- Translation workflows\r\n- Metrics tracking\r\n\r\n## Communication Protocol\r\n\r\n### Documentation Context Assessment\r\n\r\nInitialize technical writing by understanding documentation needs.\r\n\r\nDocumentation context query:\r\n```json\r\n{\r\n  \"requesting_agent\": \"technical-writer\",\r\n  \"request_type\": \"get_documentation_context\",\r\n  \"payload\": {\r\n    \"query\": \"Documentation context needed: product features, target audiences, existing docs, pain points, preferred formats, and success metrics.\"\r\n  }\r\n}\r\n```\r\n\r\n## Development Workflow\r\n\r\nExecute technical writing through systematic phases:\r\n\r\n### 1. Planning Phase\r\n\r\nUnderstand documentation requirements and audience.\r\n\r\nPlanning priorities:\r\n- Audience analysis\r\n- Content audit\r\n- Gap identification\r\n- Structure design\r\n- Tool selection\r\n- Timeline planning\r\n- Review process\r\n- Success metrics\r\n\r\nContent strategy:\r\n- Define objectives\r\n- Identify audiences\r\n- Map user journeys\r\n- Plan content types\r\n- Create outlines\r\n- Set standards\r\n- Establish workflows\r\n- Define metrics\r\n\r\n### 2. Implementation Phase\r\n\r\nCreate clear, comprehensive documentation.\r\n\r\nImplementation approach:\r\n- Research thoroughly\r\n- Write clearly\r\n- Include examples\r\n- Add visuals\r\n- Review accuracy\r\n- Test usability\r\n- Gather feedback\r\n- Iterate continuously\r\n\r\nWriting patterns:\r\n- User-focused approach\r\n- Clear structure\r\n- Consistent style\r\n- Practical examples\r\n- Visual aids\r\n- Progressive complexity\r\n- Searchable content\r\n- Regular updates\r\n\r\nProgress tracking:\r\n```json\r\n{\r\n  \"agent\": \"technical-writer\",\r\n  \"status\": \"documenting\",\r\n  \"progress\": {\r\n    \"pages_written\": 127,\r\n    \"apis_documented\": 45,\r\n    \"readability_score\": 68,\r\n    \"user_satisfaction\": \"92%\"\r\n  }\r\n}\r\n```\r\n\r\n### 3. Documentation Excellence\r\n\r\nDeliver documentation that drives success.\r\n\r\nExcellence checklist:\r\n- Content comprehensive\r\n- Accuracy verified\r\n- Usability tested\r\n- Feedback incorporated\r\n- Search optimized\r\n- Maintenance planned\r\n- Impact measured\r\n- Users empowered\r\n\r\nDelivery notification:\r\n\"Documentation completed. Created 127 pages covering 45 APIs with average readability score of 68. User satisfaction increased to 92% with 73% reduction in support tickets. Documentation-driven adoption increased by 45%.\"\r\n\r\nInformation architecture:\r\n- Logical organization\r\n- Clear navigation\r\n- Consistent structure\r\n- Intuitive categorization\r\n- Effective search\r\n- Cross-references\r\n- Related content\r\n- User pathways\r\n\r\nWriting excellence:\r\n- Clear language\r\n- Active voice\r\n- Concise sentences\r\n- Logical flow\r\n- Consistent terminology\r\n- Helpful examples\r\n- Visual breaks\r\n- Scannable format\r\n\r\nAPI documentation best practices:\r\n- Complete coverage\r\n- Clear descriptions\r\n- Working examples\r\n- Error handling\r\n- Authentication details\r\n- Rate limits\r\n- Versioning info\r\n- Quick start guide\r\n\r\nUser guide strategies:\r\n- Task orientation\r\n- Step-by-step instructions\r\n- Visual aids\r\n- Common scenarios\r\n- Troubleshooting tips\r\n- Best practices\r\n- Advanced features\r\n- Quick references\r\n\r\nContinuous improvement:\r\n- User feedback collection\r\n- Analytics monitoring\r\n- Regular updates\r\n- Content refresh\r\n- Broken link checks\r\n- Accuracy verification\r\n- Performance optimization\r\n- New feature documentation\r\n\r\nIntegration with other agents:\r\n- Collaborate with product-manager on features\r\n- Support developers on API docs\r\n- Work with ux-researcher on user needs\r\n- Guide support teams on FAQs\r\n- Help marketing on content\r\n- Assist sales-engineer on materials\r\n- Partner with customer-success on guides\r\n- Coordinate with legal-advisor on compliance\r\n\r\nAlways prioritize clarity, accuracy, and user success while creating documentation that reduces friction and enables users to achieve their goals efficiently.\r\n",
+          "durationMs": 14,
+          "exitCode": 0,
+          "id": "agent-turn-6b4382f7-7c23-4465-a4f6-47fd1b1162b8-event-81",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\.agents\\\\skills\\\\technical-writer\\\\SKILL.md'\"",
+          "providerItemId": "exec-2bacfd42-c484-4103-a692-24947acc1fe6",
+          "sequence": 81,
+          "status": "completed",
+          "timestamp": "2026-08-21T16:03:40.466Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-6b4382f7-7c23-4465-a4f6-47fd1b1162b8-event-82",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bbd371aa677e1ff016a8876df2d3487d2824c15b380832c3b",
+          "sequence": 82,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-21T16:03:52.455Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_169_prompt_editing_broken.md",
+          "deletions": 2,
+          "id": "agent-turn-6b4382f7-7c23-4465-a4f6-47fd1b1162b8-event-83",
+          "insertions": 41,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-c4bea14a-96b4-404c-9885-bfbae657ba43",
+          "sequence": 83,
+          "status": "completed",
+          "timestamp": "2026-08-21T16:04:20.368Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-6b4382f7-7c23-4465-a4f6-47fd1b1162b8-event-84",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bbd371aa677e1ff016a887708200087d2b4a81e45c5036888",
+          "sequence": 84,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-21T16:04:22.959Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\feature_descriptions\\\\B_169_prompt_editing_broken.md'\"",
+          "content": "---\nauthor: \nid: B_169\ninternalId: dbb1430f-c4ad-46ec-a77e-8de4f98322cd\ntitle: prompt editing broken\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__dbb1430f-c4ad-46ec-a77e-8de4f98322cd.json\npolicy:\n---\n\nthis is a critical bug that occurred recently. we did not change anything to it directly, so something else broke this. perhaps because of the component upgrade we did?\n\nwhen we open an action in the list editor and go to the prompt, it is empty.\n\n## Current state\n\nAgent-action prompts are stored correctly in `ActionService` drafts. `ActionMarkdownDataSource` reads the current draft's `prompt`, and `ActionEditorNavigation` selects that prompt as the active `list-action` Markdown target. `ListActionEditor` owns one lifetime-stable `MarkdownEditor`; the editor starts with no active target while the Definition tab is selected, then should load the prompt when the Prompt tab becomes active.\n\nThe installed editor stack is `@mdxeditor/editor` 4.2.1 with Lexical 0.48.0, upgraded by F-218. An isolated real MDXEditor renders prompt text containing placeholders such as `{{card-file}}`, so prompt parsing alone does not explain the empty editor.\n\nExisting action-editor tests pass, including a prompt-load assertion, but the shared test setup replaces `@mdxeditor/editor` with `mdx_editor_stub.tsx`. Those tests verify application wiring against the stub, not startup timing against the installed editor.\n\nThe failure boundary is therefore between action-target selection, Markdown history binding, and real MDXEditor initialization. Most likely cause is a lost `activeDocumentChanged` event: the action target can change after the history store attaches to the initial empty target but before `MarkdownDocumentHistoryMonitor` subscribes. The monitor handles later events but does not reconcile the data source's current active target when its subscription starts. If that timing occurs, the editor keeps its empty initial document although the action draft still contains the prompt. This cause must be reproduced and confirmed before changing production behavior.\n\nHere, **target reconciliation** means comparing the editor's bound target with the data source's current active target when monitoring starts, then loading the current target when they differ.\n\n## Implementation details\n\n1. Add a regression test using the installed MDXEditor rather than `mdx_editor_stub.tsx`. Reproduce opening an agent action and selecting Prompt both immediately and after editor initialization. Also cover opening an action whose persisted editor state already selects Prompt.\n2. Confirm whether `activeDocumentChanged` occurs before `MarkdownDocumentHistoryMonitor` subscribes. The test must prove the causal order; do not treat the component upgrade as the cause based only on timing correlation.\n3. If the event is lost as expected, reconcile the active target when `MarkdownDocumentHistoryMonitor` subscribes. Use the same document-switch path as a normal `activeDocumentChanged` event so outgoing content is flushed, incoming Markdown is read from the owning data source, and section-specific undo history is restored. Do not remount MDXEditor or add polling, delays, revision counters, or a second prompt state.\n4. Keep `ActionService` and `ActionMarkdownDataSource` as prompt owners. Do not copy prompt text into React state and do not parse action JSON in the component.\n5. `MarkdownDocumentHistoryMonitor` is shared by `list-action`, `list-card`, and `board-card` bindings. If it changes, all three call sites keep their existing behavior and gain only startup reconciliation. Verify card editors do not reload, lose dirty text, or reset undo history when their current target already matches. If investigation instead proves an action-only cause, keep the fix inside the action-editor binding.\n6. Preserve one mounted list-action editor and independent prompt/phrase histories. Switching Definition, Prompt, predefined phrases, actions, or list tabs must flush the outgoing target before loading the incoming target. Prompt text must never be written to a phrase or another action.\n7. Keep current persistence flow: live edits stage the action draft; blur, document switch, or explicit project flush commits the valid draft through `ActionService` and the existing commit batcher. Invalid prompts remain unsaved and use current dialog/error presentation.\n8. Extend focused tests for prompt loading, prompt editing and saving, prompt/phrase switching, action switching, persisted Prompt selection, and the missed-event timing. Run the action-editor test, Markdown history tests, relevant real-editor integration test, app unit tests, and app lint.\n\nIf investigation disproves the lost-event cause, update this card with the confirmed causal chain before implementing a different fix.\n\n## Acceptance criteria\n\n- Opening an agent action and selecting Prompt displays that action's complete stored prompt, including multiline Markdown and `{{...}}` placeholders.\n- Prompt loads when Prompt is selected immediately after opening, after editor initialization, or restored from persisted editor state.\n- Switching between two actions always displays the selected action's prompt; no empty or previous-action content flashes or remains.\n- Switching among Definition, Prompt, and predefined phrases preserves each section's content and independent undo/redo history.\n- Editing a prompt updates only that action's `prompt`; blur or document switch commits it through existing action-draft persistence.\n- Dirty outgoing prompt text is flushed before another prompt or phrase loads. It cannot overwrite incoming section content.\n- Command actions remain unchanged and show no Prompt tab or prompt editor.\n- List-card and board-card Markdown editors keep their existing content, dirty-state, switching, and history behavior.\n- No polling, timeout-based synchronization, editor remount, duplicate React prompt state, compatibility flag, or silent empty fallback is added.\n- Regression coverage exercises the installed MDXEditor for startup timing; stub-only tests are insufficient for this bug.\n- Focused tests, app unit tests, and app lint pass.\n\r\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-6b4382f7-7c23-4465-a4f6-47fd1b1162b8-event-85",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\feature_descriptions\\\\B_169_prompt_editing_broken.md'\"",
+          "providerItemId": "exec-35a082e6-f639-457e-89e6-828c34068d05",
+          "sequence": 85,
+          "status": "completed",
+          "timestamp": "2026-08-21T16:04:24.437Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-6b4382f7-7c23-4465-a4f6-47fd1b1162b8-event-86",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bbd371aa677e1ff016a88770c95a487d2bc0dd40926d45cf3",
+          "sequence": 86,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-21T16:04:27.493Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Updated [B_169_prompt_editing_broken.md](C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/B_169_prompt_editing_broken.md).\n\nAdded:\n\n- Current state and evidence\n- Likely lost-event timing cause\n- Required cause confirmation\n- Implementation details and scope\n- Shared-editor compatibility requirements\n- Regression and acceptance criteria\n- Status: `ready for implementation`\n\nNo staging, commit, or code changes.\n\n",
+          "id": "agent-turn-6b4382f7-7c23-4465-a4f6-47fd1b1162b8-turn-3-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 87,
+          "timestamp": "2026-08-21T16:04:32.454Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1051,23 +1172,23 @@
           "agent": "codex",
           "conversationId": "01a02507-7515-7061-93d9-ffb58faabfdf",
           "createdAt": "2026-08-21T15:58:33.828Z",
-          "lastUsedAt": "2026-08-21T15:58:33.828Z",
-          "synchronizedThroughMessageId": "agent-turn-6b4382f7-7c23-4465-a4f6-47fd1b1162b8-turn-1-assistant-4"
+          "lastUsedAt": "2026-08-21T16:02:32.935Z",
+          "synchronizedThroughMessageId": "agent-turn-6b4382f7-7c23-4465-a4f6-47fd1b1162b8-turn-2-assistant-1"
         }
       ],
       "startedAt": "2026-08-21T15:54:00.565Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 273263,
-        "runningStartedAt": "2026-08-21T16:01:57.766Z"
+        "elapsedMs": 308432,
+        "runningStartedAt": "2026-08-21T16:03:34.685Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 2731264,
-        "inputTokens": 132343,
-        "outputTokens": 5153,
-        "reasoningTokens": 6069,
-        "totalTokens": 2874829
+        "cachedInputTokens": 3353600,
+        "inputTokens": 140824,
+        "outputTokens": 6825,
+        "reasoningTokens": 6627,
+        "totalTokens": 3507876
       },
       "usageSchemaVersion": 1,
       "viewed": true
