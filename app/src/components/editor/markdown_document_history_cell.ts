@@ -14,6 +14,8 @@ export interface MarkdownDocumentHistoryConfig {
     getTarget: () => MarkdownDocumentTarget | null
     getMarkdown: () => string
     historyStore: MarkdownDocumentHistoryStore
+    initialMarkdown: string
+    initialTarget: MarkdownDocumentTarget | null
     prepareDocumentSwitch: (detail: ActiveMarkdownDocumentChangedDetail, markdown: string) => string | null
     replaceMarkdown: (markdown: string) => void
     setPendingDocumentChangeRetry: (retry: () => void) => void

@@ -82,7 +82,7 @@ describe('ActionEditor with installed MDXEditor', () => {
         await waitFor(() => expect(editorText()).toContain('Review every line.'))
     })
 
-    it('reconciles persisted Prompt selection after target event precedes monitor subscription', async () => {
+    it('loads persisted Prompt selected before history attachment', async () => {
         const lifecycle: string[] = []
         const action = loadAction()
         actionService.setActionEditorState('actions/review.json', {
@@ -99,15 +99,16 @@ describe('ActionEditor with installed MDXEditor', () => {
         })
         const attachEditor = MarkdownDocumentHistoryStore.prototype.attachEditor
         vi.spyOn(MarkdownDocumentHistoryStore.prototype, 'attachEditor').mockImplementation(function (...args) {
-            lifecycle.push('store-attached')
+            lifecycle.push(args[1] ? 'store-attached-current' : 'store-attached-initial')
             attachEditor.apply(this, args)
         })
 
         renderEditor(action)
 
         await waitFor(() => expect(lifecycle).toContain('monitor-subscribed'))
-        expect(lifecycle.indexOf('store-attached')).toBeLessThan(lifecycle.indexOf('target-changed'))
-        expect(lifecycle.indexOf('target-changed')).toBeLessThan(lifecycle.indexOf('monitor-subscribed'))
+        expect(lifecycle.indexOf('target-changed')).toBeLessThan(lifecycle.indexOf('store-attached-initial'))
+        expect(lifecycle.indexOf('store-attached-initial')).toBeLessThan(lifecycle.indexOf('monitor-subscribed'))
+        expect(lifecycle).not.toContain('store-attached-current')
         await waitFor(() => expect(editorText()).toContain('Review every line.'))
     })
 })
