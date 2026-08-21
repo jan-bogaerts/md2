@@ -21,6 +21,8 @@ policy:
   * dates in the tooltips are just utc text i think, format them nicely to local time.
   * see tooltip: `21 Aug 2026, 02:00 – 22 Aug 2026, 02:00; UTC 2026-08-21T00:00:00.000Z to 2026-08-22T00:00:00.000Z; claude / default / weekly; 2642 percentage points; window 10080 minutes; reset 2026-08-23T17:00:00.000Z, 2026-08-23T16:59:00.000Z`
     this is just meaningless spaghetti
-  * project token usage:&#x20;
-    * I think these are currently totals. that is ok, but it needs to say that these are totals
-    * we need the ability to view totals and averages (per action)
+* project token usage:&#x20;
+  * I think these are currently totals. that is ok, but it needs to say that these are totals
+  * we need the ability to view totals and averages (per action)
+* tokens per percent account usage:
+  * tooltip: `21 Aug 2026, 02:00 – 22 Aug 2026, 02:00; UTC 2026-08-21T00:00:00.000Z to 2026-08-22T00:00:00.000Z; codex / codex / primary; 84343454 project tokens; 83 account percentage points; ratio 1016186.1927710844` again, poorly written. hard to read. 'percentage points' wtf?
