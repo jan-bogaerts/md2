@@ -307,8 +307,6 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
 
     useMarkdownDraft(draft, insertMarkdown, replaceDraftMarkdown)
 
-    const getSelectionMarkdown = useCallback(() => editorRef.current?.getSelectionMarkdown() ?? '', [])
-
     const attachFiles = useCallback((files: File[]) => {
         if (!attachmentHandler || readOnly || files.length === 0) return
         void attachmentHandler(files, insertMarkdown).catch((error: unknown) => {
@@ -372,7 +370,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         markdownPlaceholderPlugin({ overlayContainer, placeholders }),
         markdownFileSearchPlugin({ overlayContainer, repositoryFiles }),
         ...(localTextSearch ? [markdownLocalTextSearchPlugin({ overlayContainer })] : []),
-        markdownPastePlugin({ getSelectionMarkdown, imagePasteHandler, insertMarkdown, readOnly }),
+        markdownPastePlugin({ imagePasteHandler, insertMarkdown, readOnly }),
         ...(historyPlugin ? [historyPlugin] : []),
     ]
 

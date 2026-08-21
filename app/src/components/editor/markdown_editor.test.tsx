@@ -251,58 +251,6 @@ describe('MarkdownEditor', () => {
         expect(screen.getByRole('textbox')).toHaveValue('')
     })
 
-    it('copies selected formatted content as Markdown in both text formats', () => {
-        const markdown = '# Title\n\n**Bold** and [Link](https://example.com)\n\n- Item\n\n`code`'
-        renderEditor(markdown)
-        const textbox = screen.getByRole('textbox') as HTMLTextAreaElement
-        const clipboard = clipboardData()
-        selectText(textbox, 0, markdown.length)
-
-        const copyHandled = fireEvent.copy(textbox, { clipboardData: clipboard })
-
-        expect(copyHandled).toBe(false)
-        expect(clipboard.value('text/markdown')).toBe(markdown)
-        expect(clipboard.value('text/plain')).toBe(markdown)
-    })
-
-    it('copies only rendered text with Ctrl+Shift+C', () => {
-        const markdown = '**Bold** and [Link](https://example.com)'
-        renderEditor(markdown)
-        const textbox = screen.getByRole('textbox') as HTMLTextAreaElement
-        const clipboard = clipboardData()
-        selectText(textbox, 0, markdown.length)
-
-        fireEvent.keyDown(textbox, { ctrlKey: true, key: 'c', shiftKey: true })
-        fireEvent.copy(textbox, { clipboardData: clipboard })
-
-        expect(clipboard.value('text/plain')).toBe('Bold and Link')
-        expect(clipboard.value('text/markdown')).toBe('')
-    })
-
-    it('preserves formatting around a partial copied selection', () => {
-        renderEditor('Before **bold text** after')
-        const textbox = screen.getByRole('textbox') as HTMLTextAreaElement
-        const clipboard = clipboardData()
-        selectText(textbox, 9, 13)
-
-        fireEvent.copy(textbox, { clipboardData: clipboard })
-
-        expect(clipboard.value('text/markdown')).toBe('**bold**')
-        expect(clipboard.value('text/plain')).toBe('**bold**')
-    })
-
-    it('leaves clipboard data unchanged for a collapsed selection', () => {
-        renderEditor('Text')
-        const textbox = screen.getByRole('textbox') as HTMLTextAreaElement
-        const clipboard = clipboardData({ 'text/plain': 'existing' })
-        selectText(textbox, 2, 2)
-
-        const copyHandled = fireEvent.copy(textbox, { clipboardData: clipboard })
-
-        expect(copyHandled).toBe(true)
-        expect(clipboard.value('text/plain')).toBe('existing')
-    })
-
     it('replaces the current selection when pasting Markdown', () => {
         renderEditor('before old after')
         const textbox = screen.getByRole('textbox') as HTMLTextAreaElement

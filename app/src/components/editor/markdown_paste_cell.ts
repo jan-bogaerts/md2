@@ -1,7 +1,6 @@
 import { Cell } from '@mdxeditor/editor'
 
 export interface MarkdownPasteConfig {
-    getSelectionMarkdown: () => string
     imagePasteHandler?: MarkdownImagePasteHandler
     insertMarkdown: (markdown: string) => void
     readOnly: boolean

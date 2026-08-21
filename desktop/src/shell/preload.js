@@ -1,5 +1,6 @@
 const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
+const CLIPBOARD_COPY_AS_TEXT_CHANNEL = 'md2-clipboard:copy-as-text';
 const CONFIG_SET_DESKTOP_CHANNEL = 'md2-config:set-desktop';
 const LIFECYCLE_FLUSH_RESULT_CHANNEL = 'md2-lifecycle:flush-pending-commits-result';
 const LIFECYCLE_FLUSH_REQUEST_CHANNEL = 'md2-lifecycle:flush-pending-commits';
@@ -222,6 +223,14 @@ if (!isAllowedOrigin()) {
             return () => ipcRenderer.removeListener(LIFECYCLE_FLUSH_REQUEST_CHANNEL, listener);
         },
     };
+    const clipboardBridge = {
+        onCopyAsTextRequested: (callback) => {
+            const listener = () => callback();
+            ipcRenderer.on(CLIPBOARD_COPY_AS_TEXT_CHANNEL, listener);
+
+            return () => ipcRenderer.removeListener(CLIPBOARD_COPY_AS_TEXT_CHANNEL, listener);
+        },
+    };
     const configBridge = {
         getDesktopConfig: () => desktopConfig,
         setDesktopConfig: async (values) => {
@@ -286,6 +295,7 @@ if (!isAllowedOrigin()) {
 
     contextBridge.exposeInMainWorld('md2Theme', themeBridge);
     contextBridge.exposeInMainWorld('md2Lifecycle', lifecycleBridge);
+    contextBridge.exposeInMainWorld('md2Clipboard', clipboardBridge);
     contextBridge.exposeInMainWorld('md2Config', configBridge);
     contextBridge.exposeInMainWorld('md2RemoteControl', remoteControlBridge);
     contextBridge.exposeInMainWorld('md2Remarkable', remarkableBridge);

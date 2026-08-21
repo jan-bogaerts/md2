@@ -1,3 +1,4 @@
+const { CLIPBOARD_COPY_AS_TEXT_CHANNEL } = require('./ipc_channels');
 const { buildSpellCheckMenuSections } = require('../integrations/spellcheck');
 
 function composeMenuSections(sections) {
@@ -12,10 +13,15 @@ function composeMenuSections(sections) {
     return template;
 }
 
-/** Build native editing commands for the clicked renderer text context. */
-function buildEditingMenuSection(params, clipboard) {
-    if (!clipboard) throw new Error('Clipboard dependency is required for the text context menu');
-
+/**
+ * Build native editing commands for the clicked renderer text context.
+ *
+ * `Copy as Text` asks the renderer to do the copying rather than writing the
+ * clipboard here, so the menu and the Ctrl+Shift+C shortcut produce identical
+ * content. `registerAccelerator: false` draws the shortcut hint without binding
+ * the keystroke at menu level, which would otherwise copy twice for one press.
+ */
+function buildEditingMenuSection(webContents, params) {
     const { canCopy = false, canCut = false, canPaste = false } = params.editFlags ?? {};
     const canCopyAsText = !!params.selectionText;
     if (!canCopy && !canCopyAsText && !canCut && !canPaste) return [];
@@ -24,9 +30,11 @@ function buildEditingMenuSection(params, clipboard) {
         { enabled: canCut, role: 'cut' },
         { enabled: canCopy, role: 'copy' },
         {
-            click: () => clipboard.writeText(params.selectionText),
+            accelerator: 'CommandOrControl+Shift+C',
+            click: () => webContents.send(CLIPBOARD_COPY_AS_TEXT_CHANNEL),
             enabled: canCopyAsText,
             label: 'Copy as Text',
+            registerAccelerator: false,
         },
         { enabled: canPaste, role: 'paste' },
     ];
@@ -36,7 +44,6 @@ function buildTextContextMenuTemplate(webContents, params, options) {
     const {
         activeLanguages = [],
         availableLanguages = [],
-        clipboard,
         onSetLanguages,
     } = options;
     const { correctionItems, languageItems } = buildSpellCheckMenuSections(webContents, params, {
@@ -44,7 +51,7 @@ function buildTextContextMenuTemplate(webContents, params, options) {
         availableLanguages,
         onSetLanguages,
     });
-    const editingItems = buildEditingMenuSection(params, clipboard);
+    const editingItems = buildEditingMenuSection(webContents, params);
 
     return composeMenuSections([correctionItems, editingItems, languageItems]);
 }
@@ -53,7 +60,6 @@ function buildTextContextMenuTemplate(webContents, params, options) {
 function registerTextContextMenu(webContents, options) {
     const {
         buildMenu,
-        clipboard,
         getActiveLanguages,
         getAvailableLanguages,
         setActiveLanguages,
@@ -64,7 +70,6 @@ function registerTextContextMenu(webContents, options) {
         const template = buildTextContextMenuTemplate(webContents, params, {
             activeLanguages: getActiveLanguages?.() ?? [],
             availableLanguages: getAvailableLanguages?.() ?? [],
-            clipboard,
             onSetLanguages: setActiveLanguages,
         });
         if (template.length === 0) return;

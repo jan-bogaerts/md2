@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, clipboard, dialog, ipcMain, nativeTheme, shell } = require('electron');
+const { app, BrowserWindow, Menu, dialog, ipcMain, nativeTheme, shell } = require('electron');
 const { existsSync } = require('node:fs');
 const https = require('node:https');
 const path = require('node:path');
@@ -291,7 +291,6 @@ function createWindow() {
     applyStoredSpellCheckerLanguages(spellCheckerSession, store.get(SPELL_CHECKER_LANGUAGES_STORE_KEY));
     registerTextContextMenu(window.webContents, {
         buildMenu: (template) => Menu.buildFromTemplate(template),
-        clipboard,
         getActiveLanguages: () => spellCheckerSession.getSpellCheckerLanguages(),
         getAvailableLanguages: () => spellCheckerSession.availableSpellCheckerLanguages,
         setActiveLanguages: (languages) => {

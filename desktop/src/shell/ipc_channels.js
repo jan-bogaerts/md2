@@ -1,3 +1,4 @@
+const CLIPBOARD_COPY_AS_TEXT_CHANNEL = 'md2-clipboard:copy-as-text';
 const CONFIG_GET_DESKTOP_CHANNEL = 'md2-config:get-desktop';
 const CONFIG_SET_DESKTOP_CHANNEL = 'md2-config:set-desktop';
 const LIFECYCLE_FLUSH_RESULT_CHANNEL = 'md2-lifecycle:flush-pending-commits-result';
@@ -20,6 +21,7 @@ const UPDATE_DOWNLOAD_CHANNEL = 'md2-update:download';
 const UPDATE_PROGRESS_CHANNEL = 'md2-update:progress';
 
 module.exports = {
+    CLIPBOARD_COPY_AS_TEXT_CHANNEL,
     CONFIG_GET_DESKTOP_CHANNEL,
     CONFIG_SET_DESKTOP_CHANNEL,
     LIFECYCLE_FLUSH_RESULT_CHANNEL,
