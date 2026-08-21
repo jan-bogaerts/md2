@@ -81,6 +81,13 @@ describe('StatsBarChart', () => {
         expect(screen.queryByTestId('stats-bar')).toBeNull();
     });
 
+    it('formats cost values as USD', () => {
+        renderChart(<StatsBarChart rows={[row({ unit: 'dollars', value: 1.25 })]} />);
+
+        expect(screen.getByText(new Intl.NumberFormat(undefined, { currency: 'USD', style: 'currency' }).format(1.25)))
+            .toBeInTheDocument();
+    });
+
     it('keeps grouped bars inside one fixed bucket slot', () => {
         renderChart(<StatsBarChart mode="grouped" rows={[
             row({ identity: 'codex' }),
@@ -148,11 +155,12 @@ describe('StatsBarChart', () => {
         expect(await screen.findByRole('tooltip')).toHaveTextContent('Review: 3');
     });
 
-    it('renders five usage comparison charts in required order', () => {
+    it('renders six usage comparison charts in required order', () => {
         renderChart(<StatsUsageComparisonCharts tokenAggregation="total" rows={[
             row({ chartRole: 'accountUsage', unit: 'percent' }),
             row({ chartRole: 'projectTokens' }),
             row({ chartRole: 'tokensPerAccountUsage' }),
+            row({ chartRole: 'tokensPerDollar', unit: 'tokensPerDollar' }),
             row({ chartRole: 'actionsPerAccountUsage' }),
             row({ chartRole: 'activity' }),
         ]} />);
@@ -161,6 +169,7 @@ describe('StatsBarChart', () => {
             'Account usage',
             'Project token usage (totals)',
             'Tokens per percent account usage',
+            'Tokens per dollar',
             'Actions per percent account usage',
             'Project activity',
         ]);

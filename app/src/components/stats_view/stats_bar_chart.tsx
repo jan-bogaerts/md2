@@ -41,6 +41,9 @@ function formattedValue(row: StatsChartRow) {
     if (row.unit === 'percent') {
         return `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(row.value)}%`;
     }
+    if (row.unit === 'dollars') {
+        return new Intl.NumberFormat(undefined, { currency: 'USD', style: 'currency' }).format(row.value);
+    }
 
     return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(row.value);
 }

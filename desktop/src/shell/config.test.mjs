@@ -260,7 +260,7 @@ describe('saveDesktopConfig legacy profiles', () => {
 describe('saveDesktopConfig', () => {
     const validConfig = {
         agentSelection: selection('custom', 'custom-model', 'high', 'full-access'),
-        agentProfiles: [{ command: ['custom-agent'], defaultThinkingLevel: 'none', models: ['custom-model'], name: 'custom' }],
+        agentProfiles: [{ command: ['custom-agent'], defaultThinkingLevel: 'none', monthlySubscriptionCostUsd: 100, models: ['custom-model'], name: 'custom' }],
         codexSearchEnabled: false,
         editorCommand: 'code "{{file}}"',
         mergeConflictResolverCommand: '',
@@ -277,6 +277,7 @@ describe('saveDesktopConfig', () => {
     it.each([
         ['agent', { ...validConfig, agentSelection: { ...validConfig.agentSelection, activeAgent: '' } }, 'activeAgent'],
         ['agent profiles', { ...validConfig, agentProfiles: null }, 'Missing config field: desktop.agentProfiles'],
+        ['zero subscription cost', { ...validConfig, agentProfiles: [{ ...validConfig.agentProfiles[0], monthlySubscriptionCostUsd: 0 }] }, 'monthlySubscriptionCostUsd'],
         ['web search', { ...validConfig, codexSearchEnabled: 'yes' }, 'Missing config field: desktop.codexSearchEnabled'],
         ['editor command', { ...validConfig, editorCommand: 'code file.txt' }, 'requires {{file}} placeholder'],
         ['merge command', { ...validConfig, mergeConflictResolverCommand: 'merge file.txt' }, 'requires {{file}} placeholder'],

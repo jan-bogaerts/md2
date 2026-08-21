@@ -47,4 +47,15 @@ describe('agent profile validation', () => {
             name: 'custom',
         }])
     })
+
+    it('preserves an optional positive monthly subscription cost and rejects invalid values', () => {
+        const profile = { command: ['agent'], defaultThinkingLevel: 'none', models: ['model-a'], name: 'agent' }
+
+        expect(validateAgentProfiles([{ ...profile, monthlySubscriptionCostUsd: 100 }]))
+            .toEqual([{ ...profile, monthlySubscriptionCostUsd: 100 }])
+        for (const monthlySubscriptionCostUsd of [0, -1, Number.NaN, Number.POSITIVE_INFINITY, '100']) {
+            expect(() => validateAgentProfiles([{ ...profile, monthlySubscriptionCostUsd }]))
+                .toThrow('monthlySubscriptionCostUsd')
+        }
+    })
 })

@@ -242,6 +242,7 @@ export function StatsControls({ snapshot }: StatsControlsProps) {
                         <Select aria-label="Totals metric" onChange={handleTotalsMetricChange} size="small" value={controls.totalsMetric}>
                             <MenuItem value="duration">Measured duration</MenuItem>
                             <MenuItem value="tokens">Token usage</MenuItem>
+                            <MenuItem value="cost">Estimated cost</MenuItem>
                         </Select>
                     </Stack>
                 </>

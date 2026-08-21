@@ -1,6 +1,7 @@
 import type { ReleaseStats } from '../../../../shared/project_stats.mjs';
 import type { ProjectConfig, ProjectReference, StorageService } from '../../data/data_types';
 import type { UsageMetricsAccountRow, UsageMetricsTokenRow } from '../agents/project_usage_metrics_service';
+import type { AgentProfile } from '../../data/agent_profiles';
 
 export type StatsDataset = 'activityOverTime' | 'agentPerformance' | 'usageComparison' | 'totals';
 export type StatsGranularity = 'day' | 'week' | 'month';
@@ -11,7 +12,7 @@ export type StatsPerformanceAggregation = 'average' | 'averageWithDeviation' | '
 export type StatsPerformanceGrouping = 'agent' | 'model';
 export type StatsUsageTokenAggregation = 'average' | 'total';
 export type StatsTotalsGrouping = 'card' | 'action';
-export type StatsTotalsMetric = 'duration' | 'tokens';
+export type StatsTotalsMetric = 'cost' | 'duration' | 'tokens';
 export type StatsStatus = 'idle' | 'loading' | 'ready' | 'error';
 export type StatsChartRole =
     | 'primary'
@@ -19,14 +20,17 @@ export type StatsChartRole =
     | 'projectTokens'
     | 'accountUsage'
     | 'tokensPerAccountUsage'
+    | 'tokensPerDollar'
     | 'actionsPerAccountUsage';
 export type StatsUnit =
     | 'actions'
     | 'actionsPerPercentagePoint'
     | 'cards'
+    | 'dollars'
     | 'milliseconds'
     | 'percent'
     | 'tokens'
+    | 'tokensPerDollar'
     | 'tokensPerPercentagePoint'
     | 'toolCalls';
 export type StatsExclusionReason =
@@ -136,6 +140,7 @@ export interface ProjectStatsSnapshot {
 /** Fully loaded, immutable input every dataset aggregator reads. */
 export interface LoadedStatsSource {
     accountRows: UsageMetricsAccountRow[];
+    agentProfiles: AgentProfile[];
     cards: StatsCardDescriptor[];
     stats: ReleaseStats;
     tokenRows: UsageMetricsTokenRow[];

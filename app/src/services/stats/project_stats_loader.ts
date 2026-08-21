@@ -86,7 +86,7 @@ export class ProjectStatsLoader {
         cards: StatsCardDescriptor[],
         signal: AbortSignal,
         isCurrent: () => boolean,
-    ): Promise<LoadedStatsSource | null> {
+    ): Promise<Omit<LoadedStatsSource, 'agentProfiles'> | null> {
         const repositoryFiles = await binding.storage.listRepositoryFiles(binding.project);
         if (!isCurrent()) return null;
         const { currentActivityPaths, releaseActivityPaths } = findStatsSourcePaths(repositoryFiles, binding.config);

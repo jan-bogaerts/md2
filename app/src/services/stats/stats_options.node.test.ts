@@ -56,6 +56,7 @@ function accountRow(overrides: Partial<UsageMetricsAccountRow> = {}): UsageMetri
 function source(overrides: Partial<LoadedStatsSource> = {}): LoadedStatsSource {
     return {
         accountRows: [],
+        agentProfiles: [],
         cards: [],
         stats: { actions: [], conversations: [] },
         tokenRows: [],

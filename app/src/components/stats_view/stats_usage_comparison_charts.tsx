@@ -21,6 +21,7 @@ const CHARTS: ComparisonChart[] = [
         role: 'projectTokens',
     },
     { label: 'Tokens per percent account usage', mode: 'grouped', role: 'tokensPerAccountUsage' },
+    { label: 'Tokens per dollar', mode: 'grouped', role: 'tokensPerDollar' },
     { label: 'Actions per percent account usage', mode: 'grouped', role: 'actionsPerAccountUsage' },
     { label: 'Project activity', mode: 'groupedStacked', role: 'activity' },
 ];

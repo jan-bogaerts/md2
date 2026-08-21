@@ -79,6 +79,15 @@ function readOptionalString(value, fieldName) {
     return value
 }
 
+function readOptionalPositiveNumber(value, fieldName) {
+    if (value === undefined) return undefined
+    if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
+        throw new Error(`Invalid agent profile field: ${fieldName}`)
+    }
+
+    return value
+}
+
 function readModels(value, fieldName) {
     if (!Array.isArray(value)) throw new Error(`Invalid agent profile field: ${fieldName}`)
     if (value.length === 0) throw new Error(`Empty agent profile field: ${fieldName}`)
@@ -108,6 +117,10 @@ function validateAgentProfile(profile, index, names) {
 
     const models = readModels(profile.models, `desktop.agentProfiles[${index}].models`)
     const defaultModel = readOptionalString(profile.defaultModel, `desktop.agentProfiles[${index}].defaultModel`)
+    const monthlySubscriptionCostUsd = readOptionalPositiveNumber(
+        profile.monthlySubscriptionCostUsd,
+        `desktop.agentProfiles[${index}].monthlySubscriptionCostUsd`,
+    )
     if (defaultModel && !models.includes(defaultModel)) {
         throw new Error(`Invalid default model for agent profile ${name}: ${defaultModel}`)
     }
@@ -124,6 +137,7 @@ function validateAgentProfile(profile, index, names) {
         ...(defaultModel !== undefined ? { defaultModel } : {}),
         defaultThinkingLevel,
         ...(profile.modelArgument !== undefined ? { modelArgument: requireString(profile.modelArgument, `desktop.agentProfiles[${index}].modelArgument`) } : {}),
+        ...(monthlySubscriptionCostUsd !== undefined ? { monthlySubscriptionCostUsd } : {}),
         models,
         name,
         ...(profile.resumeCommand !== undefined ? { resumeCommand: readCommand(profile.resumeCommand, `desktop.agentProfiles[${index}].resumeCommand`) } : {}),

@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { BUILTIN_AGENT_PROFILES } from '../../data/agent_profiles'
 import { DEFAULT_PROJECT_CONFIG, type ProjectConfig, type StorageService } from '../../data/data_types'
 import { projectStatsService } from '../../services/stats/project_stats_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
@@ -48,7 +49,7 @@ describe('StatsContent', () => {
         const metrics = `${metricsHeader}\r\n2026-08-12T10:00:00.000Z,token_usage,codex,,,,,3,2,4,1,10,,\r\n`
         projectStatsService.setControls({activityGranularity: 'day', activityMetric: 'tokens', dataset: 'activityOverTime', endUtc: null, startUtc: null})
         projectStatsService.bindProject({ config, project: { branch: 'main', id: 'project' }, storage: metricsStorage(metrics) })
-        await projectStatsService.open([])
+        await projectStatsService.open([], BUILTIN_AGENT_PROFILES)
         renderContent()
 
         expect(screen.getByRole('heading', { name: 'Project stats' })).toBeInTheDocument()
@@ -64,7 +65,7 @@ describe('StatsContent', () => {
 
     it('renders and reports malformed-source errors without partial chart data', async () => {
         projectStatsService.bindProject({ config, project: { branch: 'main', id: 'project' }, storage: metricsStorage('broken') })
-        await projectStatsService.open([])
+        await projectStatsService.open([], BUILTIN_AGENT_PROFILES)
         renderContent()
 
         expect(screen.getByRole('heading', { name: 'Stats unavailable' })).toBeInTheDocument()
@@ -81,7 +82,7 @@ describe('StatsContent', () => {
             project: { branch: 'main', id: 'warning-project' },
             storage: metricsStorage(`${metricsHeader}\r\n${malformedAccountRow}\r\n${tokenRow}\r\n`),
         })
-        await projectStatsService.open([])
+        await projectStatsService.open([], BUILTIN_AGENT_PROFILES)
         renderContent()
 
         expect(screen.getByRole('listitem')).toHaveAccessibleName(/Project tokens: 10/u)
@@ -93,7 +94,7 @@ describe('StatsContent', () => {
         const metrics = `${metricsHeader}\r\n2026-08-12T10:00:00.000Z,token_usage,codex,,,,,3,2,4,1,10,,\r\n`
         projectStatsService.setControls({ activityGranularity: 'month', activityMetric: 'tokens', dataset: 'activityOverTime' })
         projectStatsService.bindProject({ config, project: { branch: 'main', id: 'controls' }, storage: metricsStorage(metrics) })
-        await projectStatsService.open([])
+        await projectStatsService.open([], BUILTIN_AGENT_PROFILES)
         renderContent()
 
         fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Dataset' }))
@@ -118,6 +119,12 @@ describe('StatsContent', () => {
         fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Token values' }))
         fireEvent.click(screen.getByRole('option', { name: 'Average per action' }))
         expect(screen.getByRole('heading', { name: 'Project token usage (average per action)' })).toBeInTheDocument()
+
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Dataset' }))
+        fireEvent.click(screen.getByRole('option', { name: 'Totals by Card/Action' }))
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Totals metric' }))
+        fireEvent.click(screen.getByRole('option', { name: 'Estimated cost' }))
+        expect(projectStatsService.getSnapshot().controls.totalsMetric).toBe('cost')
     })
 
     it('shows all account series and scope warning without account selectors', async () => {
@@ -131,7 +138,7 @@ describe('StatsContent', () => {
             project: { branch: 'main', id: 'account' },
             storage: metricsStorage([metricsHeader, ...accountRows].join('\r\n')),
         })
-        await projectStatsService.open([])
+        await projectStatsService.open([], BUILTIN_AGENT_PROFILES)
         renderContent()
 
         expect(screen.getByText(/Account usage may include other projects and external CLI sessions/u)).toBeInTheDocument()
@@ -140,7 +147,7 @@ describe('StatsContent', () => {
         expect(screen.queryByRole('combobox', { name: 'Account window' })).toBeNull()
         expect(screen.getByLabelText('Account usage chart legend')).toHaveTextContent('codex / weekly / window-a')
         expect(screen.getByLabelText('Account usage chart legend')).toHaveTextContent('claude / five-hour / window-b')
-        expect(screen.getAllByLabelText('Zero baseline')).toHaveLength(5)
+        expect(screen.getAllByLabelText('Zero baseline')).toHaveLength(6)
         expect(screen.getAllByTestId('stats-chart-viewport')).toHaveLength(1)
     })
 
@@ -164,7 +171,7 @@ describe('StatsContent', () => {
             project: { branch: 'main', id: 'coverage' },
             storage: storage({ 'design/activity/card__card-1.json': activity }),
         })
-        await projectStatsService.open([])
+        await projectStatsService.open([], BUILTIN_AGENT_PROFILES)
         renderContent()
 
         expect(screen.getByText(/1 sample excluded: 1 missing measured timer/u)).toBeInTheDocument()

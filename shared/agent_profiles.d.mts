@@ -3,6 +3,7 @@ export interface AgentProfile {
     defaultModel?: string
     defaultThinkingLevel: ThinkingLevel
     modelArgument?: string
+    monthlySubscriptionCostUsd?: number
     models: string[]
     name: string
     resumeCommand?: string[]

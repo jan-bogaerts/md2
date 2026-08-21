@@ -1,4 +1,5 @@
 import type { StatsActionFact } from '../../../../shared/project_stats.mjs';
+import { findAgentProfile, type AgentProfile } from '../../data/agent_profiles';
 import type { UsageMetricsAccountRow, UsageMetricsTokenRow } from '../agents/project_usage_metrics_service';
 import type {
     LoadedStatsSource,
@@ -31,12 +32,13 @@ import {
     type StatsTooltipLine,
 } from './stats_tooltip';
 
-type RatioRole = 'tokensPerAccountUsage' | 'actionsPerAccountUsage';
+type RatioRole = 'tokensPerAccountUsage' | 'tokensPerDollar' | 'actionsPerAccountUsage';
 
 interface ComparisonIndexes {
     /** Account rows whose delta is absent or non-negative, keyed by bucket and series identity. */
     accountByBucketSeries: Map<string, UsageMetricsAccountRow[]>;
     actionsByBucket: Map<string, StatsActionFact[]>;
+    agentProfiles: AgentProfile[];
     agentActionsByBucketProvider: Map<string, StatsActionFact[]>;
     /** Account rows carrying a non-negative delta, keyed by bucket and series identity. */
     positiveAccountByBucketSeries: Map<string, UsageMetricsAccountRow[]>;
@@ -191,25 +193,55 @@ function ratioSeriesRow(
     series: StatsAccountSeriesOption,
     indexes: ComparisonIndexes,
 ): StatsChartRow[] {
-    const isTokenRatio = role === 'tokensPerAccountUsage';
-    const unit: StatsUnit = isTokenRatio ? 'tokensPerPercentagePoint' : 'actionsPerPercentagePoint';
+    const isActionRatio = role === 'actionsPerAccountUsage';
+    const unit: StatsUnit = role === 'tokensPerDollar'
+        ? 'tokensPerDollar'
+        : isActionRatio ? 'actionsPerPercentagePoint' : 'tokensPerPercentagePoint';
     const seriesKey = bucketIdentityKey(context.start, series.identity);
     const denominator = (indexes.positiveAccountByBucketSeries.get(seriesKey) ?? [])
         .reduce((total, row) => total + row.usedPercentDelta!, 0);
     if (denominator <= 0) return [];
     const providerKey = bucketIdentityKey(context.start, series.provider);
-    const numerator = isTokenRatio
-        ? (indexes.tokensByBucketProvider.get(providerKey) ?? []).reduce((total, row) => total + row.totalTokens, 0)
-        : (indexes.agentActionsByBucketProvider.get(providerKey) ?? []).length;
-    const value = numerator / denominator;
+    const numerator = isActionRatio
+        ? (indexes.agentActionsByBucketProvider.get(providerKey) ?? []).length
+        : (indexes.tokensByBucketProvider.get(providerKey) ?? []).reduce((total, row) => total + row.totalTokens, 0);
     const seriesLabel = accountSeriesLabel(series);
-    const ratioLabel = isTokenRatio ? 'project tokens' : 'completed actions';
+    const profile = findAgentProfile(indexes.agentProfiles, series.provider);
+    const monthlySubscriptionCostUsd = profile?.monthlySubscriptionCostUsd;
+    if (role === 'tokensPerDollar' && monthlySubscriptionCostUsd === undefined) {
+        const tooltip = statsTooltip([
+            { label: null, value: formatBucketRange(context) },
+            { label: 'Provider', value: accountSeriesDescription(series) },
+            { label: null, value: 'Tokens per dollar unavailable: monthly subscription cost is not configured' },
+        ]);
+
+        return [{
+            ...emptyTimeRow(context, granularity, role, role, unit),
+            accessibleLabel: accessibleStatsTooltip(tooltip),
+            available: false,
+            denominator,
+            identity: series.identity,
+            limitId: series.limitId,
+            numerator,
+            provider: series.provider,
+            seriesIdentity: series.identity,
+            seriesLabel,
+            tooltip,
+            value: 0,
+            windowId: series.windowId,
+        }];
+    }
+    const ratio = numerator / denominator;
+    const value = role === 'tokensPerDollar' ? ratio / (monthlySubscriptionCostUsd! / 100) : ratio;
+    const ratioLabel = isActionRatio
+        ? 'completed actions per 1% of account limit used'
+        : role === 'tokensPerDollar' ? 'project tokens per dollar' : 'project tokens per 1% of account limit used';
     const tooltip = statsTooltip([
         { label: null, value: formatBucketRange(context) },
         { label: 'Provider', value: accountSeriesDescription(series) },
-        { label: null, value: `${formatCount(value)} ${ratioLabel} per 1% of account limit used` },
+        { label: null, value: `${formatCount(value)} ${ratioLabel}` },
         {
-            label: isTokenRatio ? 'Project tokens' : 'Completed actions',
+            label: isActionRatio ? 'Completed actions' : 'Project tokens',
             value: `${formatCount(numerator)} · Account limit used: ${formatCount(denominator)}%`,
         },
     ]);
@@ -237,7 +269,9 @@ function ratioRows(
     seriesOptions: StatsAccountSeriesOption[],
     indexes: ComparisonIndexes,
 ): StatsChartRow[] {
-    const unit: StatsUnit = role === 'tokensPerAccountUsage' ? 'tokensPerPercentagePoint' : 'actionsPerPercentagePoint';
+    const unit: StatsUnit = role === 'tokensPerDollar'
+        ? 'tokensPerDollar'
+        : role === 'actionsPerAccountUsage' ? 'actionsPerPercentagePoint' : 'tokensPerPercentagePoint';
 
     return contexts.flatMap((context) => {
         const rows = seriesOptions.flatMap((series) => ratioSeriesRow(context, granularity, role, series, indexes));
@@ -299,6 +333,7 @@ function activityCountRows(
 
 function buildComparisonIndexes(
     accountRows: UsageMetricsAccountRow[],
+    agentProfiles: AgentProfile[],
     tokenRows: UsageMetricsTokenRow[],
     actions: StatsActionFact[],
     granularity: StatsShortGranularity,
@@ -309,6 +344,7 @@ function buildComparisonIndexes(
     return {
         accountByBucketSeries: indexByBucketAndIdentity(accountRows.filter(hasUsableDelta), granularity, recordedAt, accountSeriesIdentity),
         actionsByBucket: indexByBucket(actions, granularity, completedAt),
+        agentProfiles,
         agentActionsByBucketProvider: indexByBucketAndIdentity(
             actions.filter(({ actionType }) => actionType === 'agent'),
             granularity,
@@ -342,12 +378,13 @@ export function usageComparisonRows(source: LoadedStatsSource, controls: StatsCo
         )),
     ];
     const contexts = bucketContexts(bucketDomain(timestamps, granularity, controls), granularity);
-    const indexes = buildComparisonIndexes(accountRows, tokenRows, actions, granularity);
+    const indexes = buildComparisonIndexes(accountRows, source.agentProfiles, tokenRows, actions, granularity);
 
     return [
         ...comparisonAccountRows(contexts, granularity, seriesOptions, indexes),
         ...projectTokenRows(contexts, controls, granularity, source.tokenTimeAvailable, indexes),
         ...ratioRows(contexts, granularity, 'tokensPerAccountUsage', seriesOptions, indexes),
+        ...ratioRows(contexts, granularity, 'tokensPerDollar', seriesOptions, indexes),
         ...ratioRows(contexts, granularity, 'actionsPerAccountUsage', seriesOptions, indexes),
         ...contexts.flatMap((context) => activityCountRows(context, granularity, indexes.actionsByBucket.get(context.start) ?? [])),
     ];

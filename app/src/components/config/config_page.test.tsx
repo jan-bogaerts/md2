@@ -835,6 +835,7 @@ describe('ConfigPage', () => {
         fireEvent.change(screen.getByLabelText('Model argument'), { target: { value: '--model' } })
         fireEvent.change(screen.getByLabelText('Models'), { target: { value: 'gpt-5, gpt-5-mini' } })
         fireEvent.change(screen.getByLabelText('Profile default model'), { target: { value: 'gpt-5' } })
+        fireEvent.change(screen.getByLabelText('Monthly subscription cost (USD)'), { target: { value: '100' } })
         fireEvent.change(screen.getByLabelText('Resume command'), { target: { value: '["local", "resume", "{{sessionId}}"]' } })
         fireEvent.click(screen.getByRole('button', { name: 'Save profile' }))
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
@@ -846,6 +847,7 @@ describe('ConfigPage', () => {
                     defaultModel: 'gpt-5',
                     defaultThinkingLevel: 'none',
                     modelArgument: '--model',
+                    monthlySubscriptionCostUsd: 100,
                     models: ['gpt-5', 'gpt-5-mini'],
                     name: 'local',
                     resumeCommand: ['local', 'resume', '{{sessionId}}'],
@@ -949,6 +951,9 @@ describe('ConfigPage', () => {
         fireEvent.change(screen.getByLabelText('Profile default model'), { target: { value: 'removed-model' } })
         expect(screen.getByText('Default model must be one of: model-a')).toBeInTheDocument()
         fireEvent.change(screen.getByLabelText('Profile default model'), { target: { value: 'model-a' } })
+        fireEvent.change(screen.getByLabelText('Monthly subscription cost (USD)'), { target: { value: '0' } })
+        expect(screen.getByText('Monthly subscription cost must be greater than zero.')).toBeInTheDocument()
+        fireEvent.change(screen.getByLabelText('Monthly subscription cost (USD)'), { target: { value: '' } })
         fireEvent.mouseDown(screen.getByLabelText('Profile default thinking level'))
         fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: 'high' }))
         expect(screen.getByText('local does not support that default thinking level.')).toBeInTheDocument()

@@ -5,6 +5,7 @@ import { findStatsSourcePaths } from './project_stats_loader'
 import { ProjectStatsService } from './project_stats_service'
 import type { StatsCardDescriptor } from './project_stats_types'
 import { parseProjectStatsFile } from '../../../../shared/project_stats.mjs'
+import { BUILTIN_AGENT_PROFILES, type AgentProfile } from '../../data/agent_profiles'
 
 const project: ProjectReference = { branch: 'main', id: 'project' }
 const config: ProjectConfig = {
@@ -122,9 +123,14 @@ function metricsRow(recordedAt: string, totalTokens: number) {
     return `${recordedAt},token_usage,codex,,,,,${totalTokens - 3},1,1,1,${totalTokens},,`
 }
 
-async function openService(service: ProjectStatsService, statsStorage: StorageService, loadedCards = cards) {
+async function openService(
+    service: ProjectStatsService,
+    statsStorage: StorageService,
+    loadedCards = cards,
+    agentProfiles: AgentProfile[] = BUILTIN_AGENT_PROFILES,
+) {
     service.bindProject({ config, project, storage: statsStorage })
-    await service.open(loadedCards)
+    await service.open(loadedCards, agentProfiles)
 }
 
 describe('ProjectStatsService source parsing', () => {
@@ -202,6 +208,67 @@ describe('ProjectStatsService aggregation', () => {
         expect(service.getSnapshot().rows).toMatchObject([{ identity: 'review', value: 37 }])
     })
 
+    it('estimates card and action cost separately for every active-range account series', async () => {
+        const storedConversation = conversation()
+        const records = [agentRecord('run-1', '2026-08-12T10:00:00.000Z', storedConversation.id)]
+        const metrics = [
+            metricsHeader,
+            metricsRow('2026-08-12T09:00:00.000Z', 1_000),
+            '2026-08-12T11:00:00.000Z,account_usage,codex,weekly,window-a,10080,2026-08-17T00:00:00.000Z,,,,,,50,10',
+            '2026-08-12T12:00:00.000Z,account_usage,codex,session,window-b,300,2026-08-12T17:00:00.000Z,,,,,,40,20',
+        ].join('\r\n')
+        const agentProfiles = BUILTIN_AGENT_PROFILES.map((profile) => (
+            profile.name === 'codex' ? { ...profile, monthlySubscriptionCostUsd: 100 } : profile
+        ))
+        const service = new ProjectStatsService()
+        await openService(service, storage({
+            'design/activity/card__card-1.json': activityContent({ conversations: [storedConversation], records }),
+            'design/usage_metrics.csv': metrics,
+        }), cards, agentProfiles)
+        service.setControls({
+            dataset: 'totals',
+            endUtc: '2026-08-12T23:59:59.999Z',
+            startUtc: '2026-08-12T00:00:00.000Z',
+            totalsGrouping: 'card',
+            totalsMetric: 'cost',
+        })
+
+        expect(service.getSnapshot().rows).toMatchObject([
+            { available: true, denominator: 20, displayLabel: 'F_1 / codex / session / window-b', numerator: 1_000, unit: 'dollars', value: 0.2 },
+            { available: true, denominator: 10, displayLabel: 'F_1 / codex / weekly / window-a', numerator: 1_000, unit: 'dollars', value: 0.1 },
+        ])
+
+        service.setControls({ totalsGrouping: 'action' })
+        expect(service.getSnapshot().rows.map(({ actionId, displayLabel, value }) => ({ actionId, displayLabel, value }))).toEqual([
+            { actionId: 'review', displayLabel: 'Review / codex / session / window-b', value: 0.2 },
+            { actionId: 'review', displayLabel: 'Review / codex / weekly / window-a', value: 0.1 },
+        ])
+    })
+
+    it('marks unpriced and unattributed conversation costs unavailable instead of returning partial totals', async () => {
+        const codexConversation = conversation()
+        const unknownConversation = conversation({ id: 'conversation-2' })
+        const records = [agentRecord('run-1', '2026-08-12T10:00:00.000Z', codexConversation.id)]
+        const metrics = [
+            metricsHeader,
+            metricsRow('2026-08-12T09:00:00.000Z', 1_000),
+            '2026-08-12T11:00:00.000Z,account_usage,codex,weekly,window-a,10080,2026-08-17T00:00:00.000Z,,,,,,50,10',
+        ].join('\r\n')
+        const service = new ProjectStatsService()
+        await openService(service, storage({
+            'design/activity/card__card-1.json': activityContent({ conversations: [codexConversation, unknownConversation], records }),
+            'design/usage_metrics.csv': metrics,
+        }))
+        service.setControls({ dataset: 'totals', totalsMetric: 'cost' })
+
+        expect(service.getSnapshot().rows).toEqual(expect.arrayContaining([
+            expect.objectContaining({ available: false, seriesLabel: 'codex / weekly / window-a', value: 0 }),
+            expect.objectContaining({ available: false, seriesLabel: 'Unknown agent / account series unavailable', value: 0 }),
+        ]))
+        expect(service.getSnapshot().rows.find(({ provider }) => provider === 'codex')?.tooltip)
+            .toContain('monthly subscription cost is not configured')
+    })
+
     it('uses metrics deltas for UTC day, ISO-week, and month token buckets', async () => {
         const service = new ProjectStatsService()
         const metrics = [
@@ -254,7 +321,7 @@ describe('ProjectStatsService aggregation', () => {
         })
         const service = new ProjectStatsService()
         service.bindProject({ config, project, storage: firstStorage })
-        const firstLoad = service.open(cards)
+        const firstLoad = service.open(cards, BUILTIN_AGENT_PROFILES)
         service.close()
         releaseFirstList()
         await firstLoad
@@ -269,7 +336,7 @@ describe('ProjectStatsService aggregation', () => {
         await openService(service, statsStorage)
         const listRepositoryFiles = vi.mocked(statsStorage.listRepositoryFiles)
 
-        await service.open(cards)
+        await service.open(cards, BUILTIN_AGENT_PROFILES)
         expect(listRepositoryFiles).toHaveBeenCalledTimes(1)
 
         files['design/activity/card__card-1.json'] = activityContent({
@@ -278,10 +345,10 @@ describe('ProjectStatsService aggregation', () => {
                 actionRecord('run-2', '2026-08-12T11:00:00.000Z'),
             ],
         })
-        await service.open(cards)
+        await service.open(cards, BUILTIN_AGENT_PROFILES)
         expect(listRepositoryFiles).toHaveBeenCalledTimes(1)
         service.close()
-        await service.open(cards)
+        await service.open(cards, BUILTIN_AGENT_PROFILES)
         expect(listRepositoryFiles).toHaveBeenCalledTimes(2)
         expect(service.getSnapshot().rows).toMatchObject([{ value: 2 }])
     })
@@ -298,7 +365,7 @@ describe('ProjectStatsService aggregation', () => {
         service.close()
         vi.mocked(statsStorage.loadTextFile!).mockClear()
 
-        await service.open(cards)
+        await service.open(cards, BUILTIN_AGENT_PROFILES)
 
         expect(service.getSnapshot().rows).toMatchObject([{ value: 1 }])
         expect(statsStorage.loadTextFile).not.toHaveBeenCalledWith(project, releasePath)
@@ -332,7 +399,7 @@ describe('ProjectStatsService aggregation', () => {
         delete files[firstPath]
         service.close()
 
-        await service.open(cards)
+        await service.open(cards, BUILTIN_AGENT_PROFILES)
 
         const migrationCommit = vi.mocked(statsStorage.commit).mock.calls.at(-1)?.[0]
         if (!migrationCommit) throw new Error('Missing stats migration commit')
@@ -583,14 +650,22 @@ describe('ProjectStatsService aggregation', () => {
             '2026-08-12T13:30:00.000Z,account_usage,claude,five-hour,claude-window,300,2026-08-12T18:00:00.000Z,,,,,,40,4',
         ].join('\r\n')
         const service = new ProjectStatsService()
+        const agentProfiles = BUILTIN_AGENT_PROFILES.map((profile) => ({
+            ...profile,
+            monthlySubscriptionCostUsd: profile.name === 'claude' ? 200 : 100,
+        }))
         await openService(service, storage({
             'design/activity/card__card-1.json': activityContent({ conversations: [codexConversation, claudeConversation], records }),
             'design/usage_metrics.csv': metrics,
-        }))
+        }), cards, agentProfiles)
         service.setControls({ dataset: 'usageComparison' })
 
         expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole === 'tokensPerAccountUsage')).toMatchObject([
             { denominator: 4, numerator: 20, provider: 'claude', value: 5 },
+            { denominator: 2, numerator: 10, provider: 'codex', value: 5 },
+        ])
+        expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole === 'tokensPerDollar')).toMatchObject([
+            { denominator: 4, numerator: 20, provider: 'claude', value: 2.5 },
             { denominator: 2, numerator: 10, provider: 'codex', value: 5 },
         ])
         expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole === 'actionsPerAccountUsage')).toMatchObject([
@@ -647,7 +722,7 @@ describe('ProjectStatsService aggregation', () => {
         await openService(service, storage(files))
         service.setControls({ dataset: 'usageComparison' })
 
-        const domains = ['accountUsage', 'projectTokens', 'tokensPerAccountUsage', 'actionsPerAccountUsage', 'activity'].map((chartRole) => (
+        const domains = ['accountUsage', 'projectTokens', 'tokensPerAccountUsage', 'tokensPerDollar', 'actionsPerAccountUsage', 'activity'].map((chartRole) => (
             service.getSnapshot().rows.filter((row) => row.chartRole === chartRole).map(({ utcBucketStart }) => utcBucketStart)
         ))
         expect(domains[0]).toEqual(['2026-08-12T00:00:00.000Z', '2026-08-13T00:00:00.000Z', '2026-08-14T00:00:00.000Z'])
@@ -663,7 +738,7 @@ describe('ProjectStatsService aggregation', () => {
 
         files['design/usage_metrics.csv'] = metricsHeader
         service.close()
-        await service.open(cards)
+        await service.open(cards, BUILTIN_AGENT_PROFILES)
         expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole === 'accountUsage'))
             .toEqual([expect.objectContaining({ available: false, seriesIdentity: null, value: 0 })])
     })
@@ -677,6 +752,7 @@ describe('ProjectStatsService aggregation', () => {
             { available: false, chartRole: 'accountUsage', value: 0 },
             { available: false, chartRole: 'projectTokens', value: 0 },
             { available: false, chartRole: 'tokensPerAccountUsage', value: 0 },
+            { available: false, chartRole: 'tokensPerDollar', value: 0 },
             { available: false, chartRole: 'actionsPerAccountUsage', value: 0 },
         ])
     })
