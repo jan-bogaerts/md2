@@ -2649,6 +2649,29 @@
       "startedAt": "2026-08-21T13:12:43.869Z",
       "status": "completed",
       "rootConversationId": "agent-680f15d7-f65b-446f-b33c-8703ea27b269"
+    },
+    {
+      "commits": [
+        {
+          "commit": "26c2831926e321e286034e68b1c98b3c07e542a5",
+          "committedAt": "2026-08-21T16:05:13+02:00",
+          "deletions": 8,
+          "filePaths": [
+            "app/src/components/card_view/card_body_popover.tsx",
+            "app/src/components/card_view/card_body_popover_commit.test.tsx"
+          ],
+          "filesChanged": 2,
+          "insertions": 67,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-21T16:05:13+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "cd2dca75-15df-4f60-b640-8a8a91aba68e",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
