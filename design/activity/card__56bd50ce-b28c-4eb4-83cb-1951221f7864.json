@@ -315,7 +315,7 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "56bd50ce-b28c-4eb4-83cb-1951221f7864",
       "cardPath": "design/feature_descriptions/F_234_global_search_results_resizable.md",
-      "completedAt": null,
+      "completedAt": "2026-08-21T15:27:30.089Z",
       "entries": [
         {
           "content": "Read and implement the feature/job described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/F_234_global_search_results_resizable.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests.\n5. After implementation is done, update the field `status` in the markdown feature description file to \\`ready\\`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/F_234_global_search_results_resizable.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria.&#x20;\n\nYou should only run the related tests, do not run the entire test suite, that will be done manually later on.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill",
@@ -1026,17 +1026,25 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 59,
-          "timestamp": "2026-08-21T15:27:29.464Z"
+          "timestamp": "2026-08-21T15:27:30.089Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-2c5bafe3-9e40-4fd6-86a7-9dd75c3f3ac9",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "claude",
+          "conversationId": "63453ed9-dceb-4d8a-b017-69309d046306",
+          "createdAt": "2026-08-21T15:27:30.089Z",
+          "lastUsedAt": "2026-08-21T15:27:30.089Z",
+          "synchronizedThroughMessageId": "agent-turn-3ba0e101-aeb2-4c1b-9b68-5ef081592901-turn-1-assistant-10"
+        }
+      ],
       "startedAt": "2026-08-21T15:24:07.578Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 40551,
-        "runningStartedAt": "2026-08-21T15:25:41.875Z"
+        "elapsedMs": 148765,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usage": {
