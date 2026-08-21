@@ -963,13 +963,50 @@
         "totalTokens": 1027944
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
     "cardInternalId": "a2f851ba-744e-4b53-bc9b-33e1eaa6787a",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "20b7d04cc7cc66b32b6127450e8b86c600da3883",
+          "committedAt": "2026-08-21T11:17:33+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/F_222_claude_account_usage_missing_on_small_screen.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 28
+        }
+      ],
+      "completedAt": "2026-08-21T09:17:34.094Z",
+      "conversationIds": [
+        "agent-ba12d542-83fd-4b9e-8a07-777ea67f17aa"
+      ],
+      "details": {
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-5650fa70-f44a-42e3-9251-be575ae5d875",
+      "origin": {
+        "cardInternalId": "a2f851ba-744e-4b53-bc9b-33e1eaa6787a",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-ba12d542-83fd-4b9e-8a07-777ea67f17aa",
+      "startedAt": "2026-08-21T09:14:56.310Z",
+      "status": "completed"
+    }
+  ],
   "version": 4
 }
