@@ -668,3 +668,4 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-08-21T14:32:47.535Z,account_usage,codex,codex,primary,10080,2026-08-27T11:36:41.000Z,,,,,,19,1
 2026-08-21T14:33:20.386Z,token_usage,codex,,,,,41991,2398976,13544,3687,2458198,,
 2026-08-21T14:34:29.431Z,token_usage,codex,,,,,112267,9326080,16039,6753,9461139,,
+2026-08-21T14:39:17.850Z,token_usage,codex,,,,,46299,731136,2798,1376,781609,,
