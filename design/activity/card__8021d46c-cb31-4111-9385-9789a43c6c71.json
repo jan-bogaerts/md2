@@ -5,10 +5,10 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "8021d46c-cb31-4111-9385-9789a43c6c71",
       "cardPath": "design/feature_descriptions/B_166_input_incorrectly_disabled.md",
-      "completedAt": "2026-08-21T13:38:57.798Z",
+      "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 119411
+        "usedTokens": 128823
       },
       "entries": [
         {
@@ -1164,6 +1164,73 @@
           "role": "assistant",
           "sequence": 84,
           "timestamp": "2026-08-21T13:38:57.798Z"
+        },
+        {
+          "content": "why does ActionPopupBottomRow need a draft of the prompt?",
+          "id": "agent-turn-c9e3090a-4607-40de-97e9-46effe1f09da-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 85,
+          "timestamp": "2026-08-21T13:47:26.382Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-c9e3090a-4607-40de-97e9-46effe1f09da-event-86",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0467f88799b247ba016a8856f4cc3c87d2aadb01f01439b2ca",
+          "sequence": 86,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-21T13:47:34.976Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Checking current worktree code path so answer matches exact responsibilities.\n\n",
+          "id": "agent-turn-c9e3090a-4607-40de-97e9-46effe1f09da-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 87,
+          "timestamp": "2026-08-21T13:47:35.452Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\run\\\\popup\\\\action_popup_bottom_row.tsx'\"",
+          "content": "import ArrowUpwardOutlined from '@mui/icons-material/ArrowUpwardOutlined'\nimport StopOutlined from '@mui/icons-material/StopOutlined'\nimport { Box, Button, IconButton, Tooltip, useMediaQuery, useTheme } from '@mui/material'\nimport CalendarOutline from 'mdi-material-ui/CalendarOutline'\nimport Play from 'mdi-material-ui/Play'\nimport { useSyncExternalStore } from 'react'\nimport type { ActionContext } from '../../../../data/action_context'\nimport type { ActionDefinition } from '../../../../data/action_types'\nimport type { ActionRunSettingsStore } from '../../../../services/actions/action_run_settings_service'\nimport { useActionRunSelector } from '../../../hooks/use_action_runs'\nimport {\n    isBrowsingHistoricalConversation,\n    type ActionConversationStore,\n} from '../../conversation/action_conversation_store'\nimport type { ActionHistoryStore } from '../state/action_history_store'\nimport {\n    cancelPopupAction,\n    currentActionPromptDraft,\n    finishPopupAction,\n    runPopupAction,\n} from './action_popup_operations'\nimport { actionPopupRunDisabled } from './action_popup_run_disabled'\nimport type { ActionRunInputStore } from '../state/action_run_input_store'\nimport type { ActionRunResultStore } from '../state/action_run_result_store'\nimport type { ActionScheduleStore } from '../schedule/action_schedule_store'\nimport { ActionUsageSummaryOwner } from './action_usage_summary_owner'\nimport { useActionRunSettings } from '../../shared/use_action_run_settings'\nimport { ActionPopupFinishButton } from './action_popup_finish_button'\nimport type { ActionUsageScopeStore } from './action_usage_scope_store'\nimport { ActionAgentSelectors } from '../../agent/action_agent_selectors'\nimport { MarkdownAttachmentControl } from '../../../editor/markdown_attachment_control'\nimport {\n    attachFilesToCardMarkdown,\n    attachFilesToOriginalMarkdown,\n} from '../../../../services/attachments/attachment_workflow'\nimport { dialogService } from '../../../../services/dialog_service'\n\ninterface ActionPopupBottomRowProps {\n    action: ActionDefinition\n    assignmentContext: ActionContext\n    conversationStore: ActionConversationStore\n    historyStore: ActionHistoryStore\n    /** 2 call sites: for agents it is embedded inside input. commands have no input, but need bottom row for config and info */\n    embedded?: boolean\n    inputStore: ActionRunInputStore\n    resultStore: ActionRunResultStore\n    runValidationError: string | null\n    scheduleStore: ActionScheduleStore\n    settingsStore: ActionRunSettingsStore\n    usageScopeStore: ActionUsageScopeStore\n}\n\n/** Agent settings, usage, and run controls for the popup footer. */\nexport function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {\n    const {\n        action, assignmentContext, conversationStore, embedded = false, historyStore, inputStore, resultStore,\n        runValidationError, scheduleStore, settingsStore, usageScopeStore,\n    } = props\n    const theme = useTheme()\n    const isMobile = useMediaQuery(theme.breakpoints.down('md'))\n    const settings = useActionRunSettings(action, settingsStore)\n    const runStatus = useActionRunSelector(action.id, assignmentContext, (run) => run?.status ?? 'idle')\n    const agentActive = useActionRunSelector(action.id, assignmentContext, (run) => {\n        const active = run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'\n\n        return !!active && run?.activeActionType === 'agent'\n    })\n    const interactionReady = useActionRunSelector(action.id, assignmentContext, (run) => !!run?.interactionReady)\n    const liveConversationPath = useActionRunSelector(action.id, assignmentContext, (run) => run?.conversation?.path ?? null)\n    const promptDraft = currentActionPromptDraft(action, assignmentContext, action.type === 'agent')\n    const prompt = useSyncExternalStore(promptDraft.subscribe, promptDraft.getSnapshot, promptDraft.getSnapshot)\n    const editorSnapshot = useSyncExternalStore(\n        promptDraft.subscribeEditor,\n        promptDraft.getEditorSnapshot,\n        promptDraft.getEditorSnapshot,\n    )\n    con\n[3893 characters omitted]\n                    disabled={editorSnapshot.preparationStatus !== 'ready'}\n                        onFiles={handleAttachmentFiles}\n                    />\n                ) : null}\n                <Box data-footer-selectors sx={{ flexShrink: 1, minWidth: 158, overflow: 'hidden' }}>\n                    {action.type === 'agent' ? (\n                        <ActionAgentSelectors action={action} context={assignmentContext} settingsStore={settingsStore} />\n                    ) : null}\n                </Box>\n                <Box data-footer-usage sx={{ display: 'flex', flexShrink: 1, justifyContent: 'center', minWidth: 235, overflow: 'hidden' }}>\n                    <ActionUsageSummaryOwner\n                        action={action}\n                        context={assignmentContext}\n                        conversationStore={conversationStore}\n                        historyStore={historyStore}\n                        scopeStore={usageScopeStore}\n                    />\n                </Box>\n                <Box\n                    data-footer-controls\n                    sx={{ alignItems: 'center', display: 'flex', flexShrink: 0, gap: 1, justifyContent: 'flex-end', minWidth: 64 }}\n                >\n                    {showFinish ? (\n                        <ActionPopupFinishButton\n                            disabled={browsingHistory || !settings.backendAvailable || (sessionActive && !interactionReady)}\n                            onFinish={handleFinish}\n                            onStop={handleCancel}\n                        />\n                    ) : null}\n                    {showSchedule ? (\n                        <Tooltip title=\"Schedule\">\n                            <span>\n                                <IconButton\n                                    aria-label=\"Schedule\"\n                                    disabled={!settings.backendAvailable}\n                                    onClick={handleToggleSchedule}\n                                    size=\"small\"\n                                >\n                                    <CalendarOutline sx={{ fontSize: 18 }} />\n                                </IconButton>\n                            </span>\n                        </Tooltip>\n                    ) : null}\n                    {showAgentSend ? (\n                        <Tooltip title=\"Send\">\n                            <span>\n                                <IconButton aria-label=\"Send\" color=\"primary\" disabled={runDisabled} onClick={handlePrimaryRun} size=\"small\">\n                                    <ArrowUpwardOutlined sx={{ fontSize: 18 }} />\n                                </IconButton>\n                            </span>\n                        </Tooltip>\n                    ) : showCommandRun ? (\n                        <Tooltip title=\"Run\">\n                            <Button\n                                disabled={runDisabled}\n                                onClick={handlePrimaryRun}\n                                size=\"small\"\n                                startIcon={<Play sx={{ fontSize: '13px !important' }} />}\n                                sx={{ height: 34, px: 2 }}\n                                variant=\"contained\"\n                            >\n                                Run\n                            </Button>\n                        </Tooltip>\n                    ) : showStop ? (\n                        <Tooltip title=\"Stop\">\n                            <span>\n                                <IconButton\n                                    aria-label=\"Stop\"\n                                    disabled={browsingHistory || !settings.backendAvailable}\n                                    onClick={handleCancel}\n                                    size=\"small\"\n                                >\n                                    <StopOutlined sx={{ fontSize: 18 }} />\n                                </IconButton>\n                            </span>\n                        </Tooltip>\n                    ) : null}\n                </Box>\n            </Box>\n        </Box>\n    )\n}\n\r\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-c9e3090a-4607-40de-97e9-46effe1f09da-event-88",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\run\\\\popup\\\\action_popup_bottom_row.tsx'\"",
+          "providerItemId": "exec-f4d777f0-59e9-45c1-b937-27a5a4004a20",
+          "sequence": 88,
+          "status": "completed",
+          "timestamp": "2026-08-21T13:47:37.542Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-c9e3090a-4607-40de-97e9-46effe1f09da-event-89",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0467f88799b247ba016a8856fc666c87d2b89b58310424e9f7",
+          "sequence": 89,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-21T13:47:43.928Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "It needs access to draft, but must not prepare it.\n\nUses:\n\n- `prompt` text decides whether Send and Schedule appear.\n- Text plus preparation status decides whether Send/Run is disabled.\n- Preparation status disables attachment control.\n- `requestInsertion` inserts uploaded attachment Markdown into editor.\n\nActual send operation reads draft again through `runPopupAction`; bottom row does not own draft content.\n\nBug comes from acquisition call also requesting preparation:\n\n```ts\ncurrentActionPromptDraft(action, assignmentContext, action.type === 'agent')\n```\n\nShould acquire existing draft without changing lifecycle:\n\n```ts\ncurrentActionPromptDraft(action, assignmentContext, false)\n```\n\n`ActionAgentPromptOwner` remains sole preparation owner.\n\n",
+          "id": "agent-turn-c9e3090a-4607-40de-97e9-46effe1f09da-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 90,
+          "timestamp": "2026-08-21T13:47:47.104Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1178,18 +1245,18 @@
         }
       ],
       "startedAt": "2026-08-21T13:33:23.809Z",
-      "status": "completed",
+      "status": "running",
       "timer": {
         "elapsedMs": 262312,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-08-21T13:47:26.382Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 2069504,
-        "inputTokens": 134251,
-        "outputTokens": 4270,
-        "reasoningTokens": 4416,
-        "totalTokens": 2212441
+        "cachedInputTokens": 2313728,
+        "inputTokens": 144405,
+        "outputTokens": 4524,
+        "reasoningTokens": 4780,
+        "totalTokens": 2467437
       },
       "usageSchemaVersion": 1,
       "viewed": true
@@ -1219,11 +1286,11 @@
         "agent-fce198df-bc8a-4d77-93b0-2860b2a7e25b"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-55ca4a3a-9b82-4629-9ffa-320e46ee30c4",
       "origin": {
@@ -1232,9 +1299,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-fce198df-bc8a-4d77-93b0-2860b2a7e25b",
       "startedAt": "2026-08-21T13:33:23.807Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-fce198df-bc8a-4d77-93b0-2860b2a7e25b"
     }
   ],
   "version": 5
