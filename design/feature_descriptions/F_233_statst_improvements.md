@@ -3,12 +3,11 @@ author:
 id: F_233
 internalId: 2809caf7-2f00-4484-ba68-18306e01f965
 title: statst improvements
-status: new
+status: design
 owner: 
 affects:
 agents:
 policy:
-after: 545671dd-18d4-4878-93b9-0ed24f2077fa
 ---
 * agent/model performance:
   * we currently have metrics: measured duration, tokens and toolcalls.
