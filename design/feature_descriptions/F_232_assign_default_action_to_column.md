@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 859bf6d9-e791-45d3-b1de-774bb7daef32
 ---
 
 in the project config we are currently already able to define the  columns (or card states) used in the board view. Add option to provide an action id that would be presented as the default action when a card is in that column
