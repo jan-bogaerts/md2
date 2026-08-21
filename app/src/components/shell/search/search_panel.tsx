@@ -1,4 +1,4 @@
-import { Box, IconButton, InputAdornment, Paper, TextField, ToggleButton, Tooltip } from '@mui/material'
+import { Box, IconButton, InputAdornment, TextField, ToggleButton, Tooltip, Typography } from '@mui/material'
 import type { ChangeEvent, FocusEvent } from 'react'
 import { useEffect, useState } from 'react'
 import AutoFix from 'mdi-material-ui/AutoFix'
@@ -17,12 +17,14 @@ import type { SearchMode, SearchRegexpAgent, SearchResults as SearchResultsData 
 import { workspaceNavigationService } from '../../../services/project/workspace_navigation_service'
 import { useWorkspaceView } from '../../hooks/use_workspace_view'
 import { NO_DRAG_REGION } from '../drag_region'
+import { ResizablePopper } from '../../resizable_popper'
 import { SearchResults } from './search_results'
 import { useProjectConfig } from '../../hooks/use_project_config'
 
 const RESULTS_MAX_HEIGHT = 420
 const RESULTS_WIDTH = 460
-const DROPDOWN_TOP_OFFSET = 4
+const RESULTS_SIZE_STORAGE_KEY = 'search-panel-results-size'
+const SEARCH_DROPDOWN_LABEL_ID = 'search-dropdown-label'
 const EMPTY_RESULTS: SearchResultsData = { active: [], actions: [], backgroundGroups: [] }
 const SEARCH_ACTION_CONTEXT: ActionContext = { folder: '', kind: 'folder' }
 
@@ -217,21 +219,25 @@ export function SearchPanel(props: SearchPanelProps) {
                 />
             </Box>
             {isDropdownOpen ? (
-                <Paper
-                    aria-label="Search dropdown"
-                    elevation={4}
-                    role="region"
-                    style={NO_DRAG_REGION}
-                    sx={{
-                        left: 0,
-                        maxHeight: RESULTS_MAX_HEIGHT,
-                        overflow: 'auto',
-                        position: 'absolute',
-                        right: 0,
-                        top: `calc(100% + ${DROPDOWN_TOP_OFFSET}px)`,
-                        zIndex: 'modal',
-                    }}
+                <ResizablePopper
+                    anchorElement={controlElement}
+                    closeOnEscape={false}
+                    constrainSizeToViewport
+                    draggable={false}
+                    initialSize={{ height: RESULTS_MAX_HEIGHT, width: RESULTS_WIDTH }}
+                    labelId={SEARCH_DROPDOWN_LABEL_ID}
+                    open={isDropdownOpen}
+                    paperSx={{ ...NO_DRAG_REGION, flexDirection: 'column', overflow: 'auto' }}
+                    resizeCorner="lower-right"
+                    resizeLabel="Resize search results"
+                    storageKey={RESULTS_SIZE_STORAGE_KEY}
                 >
+                    <Typography
+                        id={SEARCH_DROPDOWN_LABEL_ID}
+                        sx={{ clip: 'rect(0 0 0 0)', clipPath: 'inset(50%)', height: 1, overflow: 'hidden', position: 'absolute', whiteSpace: 'nowrap', width: 1 }}
+                    >
+                        Search dropdown
+                    </Typography>
                     <Box aria-label="Search options" role="group" sx={{ alignItems: 'center', display: 'flex', gap: 1, p: 1 }}>
                         <Tooltip title="RegExp mode">
                             <ToggleButton
@@ -288,7 +294,7 @@ export function SearchPanel(props: SearchPanelProps) {
                             results={results}
                         />
                     ) : null}
-                </Paper>
+                </ResizablePopper>
             ) : null}
             {actionPopupOpen ? (
                 <ActionPopup

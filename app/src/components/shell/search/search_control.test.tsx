@@ -61,6 +61,7 @@ describe('SearchControl', () => {
     afterEach(() => {
         actionService.clear()
         workspaceViewService.setViewMode('cards')
+        window.localStorage.removeItem('search-panel-results-size')
     })
 
     it('subscribes to project data only while search is open', () => {
@@ -81,11 +82,31 @@ describe('SearchControl', () => {
 
         focusSearch()
 
-        expect(screen.getByRole('region', { name: 'Search dropdown' })).toBeInTheDocument()
+        expect(screen.getByRole('dialog', { name: 'Search dropdown' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'RegExp mode' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Search background file bodies' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Search actions' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Ask agent to build a RegExp' })).toBeInTheDocument()
+    })
+
+    it('can be resized by dragging its lower-right corner handle and persists the chosen size', () => {
+        render(<SearchControl />)
+
+        focusSearch()
+
+        const dialog = screen.getByRole('dialog', { name: 'Search dropdown' })
+        const handle = screen.getByRole('separator', { name: 'Resize search results' })
+
+        expect(dialog.style.width).toBe('460px')
+        expect(dialog.style.height).toBe('420px')
+
+        fireEvent.pointerDown(handle, { clientX: 0, clientY: 0, pointerId: 1 })
+        fireEvent.pointerMove(window, { clientX: 40, clientY: 30, pointerId: 1 })
+        fireEvent.pointerUp(window, { pointerId: 1 })
+
+        expect(dialog.style.width).toBe('500px')
+        expect(dialog.style.height).toBe('450px')
+        expect(window.localStorage.getItem('search-panel-results-size')).toBe(JSON.stringify({ height: 450, width: 500 }))
     })
 
     it('shows a focused search popover from the mobile search icon', () => {
@@ -96,7 +117,7 @@ describe('SearchControl', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Search' }))
 
         expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveFocus()
-        expect(screen.getByRole('region', { name: 'Search dropdown' })).toBeInTheDocument()
+        expect(screen.getByRole('dialog', { name: 'Search dropdown' })).toBeInTheDocument()
     })
 
     it('highlights a case-insensitive plain text match while preserving its context', () => {
