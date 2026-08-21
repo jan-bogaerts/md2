@@ -5893,6 +5893,110 @@
       },
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": null,
+      "cardPath": null,
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "you keep using shortcuts like `Then :248 fires`\nthis is very difficult to read. how can we make you produce proper readable text instead of these shortcuts and strange sentence constructions?",
+          "id": "agent-turn-cb388906-8e14-430f-b2f9-5b54a1afb9ed-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-08-21T09:43:44.279Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-cb388906-8e14-430f-b2f9-5b54a1afb9ed-event-2",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeFgEXKk2odJa6dLNFFuL:thinking:0",
+          "sequence": 2,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-21T09:43:50.364Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Got it — I'll write in full sentences and name what's being referenced instead of leaving bare line numbers. For example, instead of \"Then :248 fires,\" I'll write something like \"Then the `onCardMove` handler at `card.ts:248` fires.\"\n\nThat shorthand comes from caveman mode, which is currently active in this session (per the startup hook) and pushes toward dropped words and compressed fragments. If you'd like it off entirely, just say \"stop caveman\" or \"normal\" and I'll switch to normal prose for the rest of the session.",
+          "id": "agent-turn-cb388906-8e14-430f-b2f9-5b54a1afb9ed-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 3,
+          "timestamp": "2026-08-21T09:43:52.584Z"
+        },
+        {
+          "content": "- [App test & typecheck](app-test-and-typecheck.md) — use `npm run typecheck`, never `npm run build` to check types; vitest uses threads pool\n- [No doc rewrites without approval](no-doc-rewrites-without-approval.md) — never modify existing design/feature docs without explicit yes\n- [md2 is simple, free, open source](md2-simple-free-open-source.md) — no vendor backend/paid infra in solutions; prefer simplest design\n- [Granular events, no object republish](granular-events-no-object-republish.md) — scoped EventTarget events only; never hand-rolled listener maps, never republish a card/snapshot for one field\n- [Findings before changes](findings-before-changes.md) — report findings + ask permission before editing; \"fix all\" does not carry to later questions",
+          "id": "agent-turn-cb388906-8e14-430f-b2f9-5b54a1afb9ed-event-4",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_012EPmmKqYsaAwMfYdK4szek",
+          "sequence": 4,
+          "status": "completed",
+          "timestamp": "2026-08-21T09:43:53.853Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-cb388906-8e14-430f-b2f9-5b54a1afb9ed-event-5",
+          "kind": "event",
+          "label": "Write",
+          "output": "File created successfully at: C:\\Users\\janbo\\.claude\\projects\\C--Users-janbo-Documents-dev-md2\\memory\\readable-prose-no-shorthand.md",
+          "providerItemId": "toolu_01BJkqysUAKdx3CSmDnqTDEP",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-08-21T09:43:59.043Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-cb388906-8e14-430f-b2f9-5b54a1afb9ed-event-6",
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\.claude\\projects\\C--Users-janbo-Documents-dev-md2\\memory\\MEMORY.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01SpfXHetEtHD4JbPiZ9gwqY",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-08-21T09:44:01.952Z",
+          "type": "fileChange"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nSaved that as a standing preference. Let me know if you'd also like caveman mode turned off entirely for this session.",
+          "id": "agent-turn-cb388906-8e14-430f-b2f9-5b54a1afb9ed-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 7,
+          "timestamp": "2026-08-21T09:44:04.492Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-1a921b7c-1d71-4064-b82d-313f957b789c",
+      "providerSessions": [],
+      "startedAt": "2026-08-21T09:43:44.279Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-08-21T09:43:44.279Z"
+      },
+      "title": "+",
+      "usage": {
+        "cachedInputTokens": 160297,
+        "inputTokens": 8,
+        "outputTokens": 1309,
+        "reasoningTokens": 0,
+        "totalTokens": 161614,
+        "costUsd": 0.30073560000000005
+      },
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
@@ -6181,11 +6285,11 @@
         "agent-74758ba7-96b9-4737-a758-27128d76e9ce"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-b455119a-d293-4a0b-9271-36dece7c01bd",
       "origin": {
@@ -6193,9 +6297,9 @@
       },
       "rootActionId": "65ad68d5-4ad3-4afe-b861-0bbb00d2505e",
       "rootActionLabel": "write release note",
-      "rootConversationId": "agent-74758ba7-96b9-4737-a758-27128d76e9ce",
       "startedAt": "2026-08-20T14:30:37.070Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-74758ba7-96b9-4737-a758-27128d76e9ce"
     }
   ],
   "version": 4
