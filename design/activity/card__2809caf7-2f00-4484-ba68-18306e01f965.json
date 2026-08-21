@@ -2816,11 +2816,11 @@
         "agent-51a75a8f-b0b5-451a-bbcf-e14132325ed4"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-e22525e2-6ce4-4931-b266-5f7378f8e316",
       "origin": {
@@ -2829,9 +2829,48 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-51a75a8f-b0b5-451a-bbcf-e14132325ed4",
       "startedAt": "2026-08-21T18:04:36.497Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-51a75a8f-b0b5-451a-bbcf-e14132325ed4"
+    },
+    {
+      "commits": [
+        {
+          "commit": "f4b6b32e6d95dd40c70af04c9e19954cae992a33",
+          "committedAt": "2026-08-21T20:17:34+02:00",
+          "deletions": 67,
+          "filePaths": [
+            "app/src/components/stats_view/stats_bar_chart.test.tsx",
+            "app/src/components/stats_view/stats_bar_chart.tsx",
+            "app/src/components/stats_view/stats_content.test.tsx",
+            "app/src/components/stats_view/stats_content.tsx",
+            "app/src/components/stats_view/stats_controls.tsx",
+            "app/src/components/stats_view/stats_csv.node.test.ts",
+            "app/src/components/stats_view/stats_csv.ts",
+            "app/src/components/stats_view/stats_usage_comparison_charts.tsx",
+            "app/src/services/stats/project_stats_service.node.test.ts",
+            "app/src/services/stats/project_stats_types.ts",
+            "app/src/services/stats/stats_activity_dataset.ts",
+            "app/src/services/stats/stats_chart_rows.node.test.ts",
+            "app/src/services/stats/stats_chart_rows.ts",
+            "app/src/services/stats/stats_performance_dataset.ts",
+            "app/src/services/stats/stats_tooltip.node.test.ts",
+            "app/src/services/stats/stats_tooltip.ts",
+            "app/src/services/stats/stats_totals_dataset.ts",
+            "app/src/services/stats/stats_usage_comparison_dataset.ts"
+          ],
+          "filesChanged": 18,
+          "insertions": 485,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-21T20:17:34+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "2809caf7-2f00-4484-ba68-18306e01f965",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
