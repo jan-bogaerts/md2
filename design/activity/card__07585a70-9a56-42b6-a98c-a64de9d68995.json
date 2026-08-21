@@ -12,7 +12,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "07585a70-9a56-42b6-a98c-a64de9d68995",
       "cardPath": "design/feature_descriptions/F_218_add_shortcut_to_copy_as_text.md",
-      "completedAt": null,
+      "completedAt": "2026-08-21T12:51:34.880Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 80157
@@ -1070,7 +1070,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 85,
-          "timestamp": "2026-08-21T12:51:34.321Z"
+          "timestamp": "2026-08-21T12:51:34.880Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1080,15 +1080,15 @@
           "agent": "claude",
           "conversationId": "5411a8ed-766f-470f-ade1-3d11c28ca1a4",
           "createdAt": "2026-08-21T12:44:56.113Z",
-          "lastUsedAt": "2026-08-21T12:47:07.985Z",
-          "synchronizedThroughMessageId": "agent-turn-64f8285f-e32d-445b-b400-537eaf5c4121-turn-2-assistant-1"
+          "lastUsedAt": "2026-08-21T12:51:34.880Z",
+          "synchronizedThroughMessageId": "agent-turn-64f8285f-e32d-445b-b400-537eaf5c4121-turn-3-assistant-2"
         }
       ],
       "startedAt": "2026-08-21T12:22:38.197Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 199798,
-        "runningStartedAt": "2026-08-21T12:48:51.463Z"
+        "elapsedMs": 363215,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
