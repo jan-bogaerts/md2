@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__8021d46c-cb31-4111-9385-9789a43c6c71.json
 policy:
-branch: b_166_input_incorrectly_disabled
-worktree: 2
 ---
 The input box on the action popup is sometimes incorrectly disabled.
 
