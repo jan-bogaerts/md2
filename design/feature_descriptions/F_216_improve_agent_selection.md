@@ -10,8 +10,6 @@ agents:
   - design/activity/card__902e08a9-8b29-4037-ab3d-92d53aef4fc8.json
 policy:
 after: 8c0611fd-44e8-4f65-bc86-11c26afacc8e
-branch: f_216_improve_agent_selection
-worktree: 1
 ---
 right now, on the action popup, when changing the agent in the agent-selector component, it is a bit annoying:&#x20;
 
