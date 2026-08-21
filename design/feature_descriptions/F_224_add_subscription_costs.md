@@ -13,6 +13,6 @@ Allow the user to enter agent subscription costs so we can calculate things like
 
 * cost per card
 * cost per action
-*
+* tokens per dollar (derived from tokens per % account usage).&#x20;
 
 this allows the user to compare different configurations
