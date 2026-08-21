@@ -3948,11 +3948,11 @@
         "agent-51a75a8f-b0b5-451a-bbcf-e14132325ed4"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-bca2d31e-d9d0-43df-a8c2-bc50f45f6218",
       "origin": {
@@ -3961,9 +3961,40 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-51a75a8f-b0b5-451a-bbcf-e14132325ed4",
       "startedAt": "2026-08-21T18:23:38.498Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-51a75a8f-b0b5-451a-bbcf-e14132325ed4"
+    },
+    {
+      "commits": [
+        {
+          "commit": "9d562e7e4415eebc5c1163dafdce859954f7d388",
+          "committedAt": "2026-08-21T21:19:29+02:00",
+          "deletions": 16,
+          "filePaths": [
+            "app/src/components/stats_view/stats_bar_chart.test.tsx",
+            "app/src/components/stats_view/stats_bar_chart.tsx",
+            "app/src/services/agents/project_usage_metrics_service.node.test.ts",
+            "app/src/services/agents/project_usage_metrics_service.ts",
+            "app/src/services/stats/project_stats_service.node.test.ts",
+            "app/src/services/stats/project_stats_types.ts",
+            "app/src/services/stats/stats_chart_rows.node.test.ts",
+            "app/src/services/stats/stats_usage_comparison_dataset.ts",
+            "desktop/src/actions/agent/usage_metrics_service.js",
+            "desktop/src/actions/agent/usage_metrics_service.test.mjs"
+          ],
+          "filesChanged": 10,
+          "insertions": 94,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-21T21:19:29+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "2809caf7-2f00-4484-ba68-18306e01f965",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
