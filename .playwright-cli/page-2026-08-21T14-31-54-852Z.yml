@@ -1,0 +1,44 @@
+- dialog [ref=f4e103]:
+  - generic [ref=f4e104]:
+    - generic [ref=f4e105]:
+      - heading "New card" [level=2] [ref=f4e109]
+      - button "Close" [ref=f4e110] [cursor=pointer]
+    - generic [ref=f4e113]:
+      - generic [ref=f4e115]:
+        - textbox "Title" [ref=f4e116]:
+          - /placeholder: Card title…
+        - group
+      - radiogroup "Type" [ref=f4e117]:
+        - radio "Feature" [checked] [ref=f4e118] [cursor=pointer]
+        - radio "Job" [ref=f4e120] [cursor=pointer]
+        - radio "Bug" [ref=f4e122] [cursor=pointer]
+      - generic [ref=f4e124]:
+        - paragraph [ref=f4e125]: Markdown
+        - group "Description" [ref=f4e126]:
+          - textbox "editable markdown" [active] [ref=f4e131]:
+            - paragraph [ref=f4e132]:
+              - link "Example" [ref=f4e164]:
+                - /url: https://example.com
+          - dialog [ref=f4e166]:
+            - link "https://example.com" [ref=f4e167] [cursor=pointer]:
+              - /url: https://example.com
+            - button "Edit link URL" [ref=f4e171]
+            - button "Copy to clipboard" [ref=f4e174]
+            - button "Remove link" [ref=f4e177]
+    - generic [ref=f4e134]:
+      - generic [ref=f4e135]:
+        - generic "Attach files" [ref=f4e136]:
+          - button "Attach files" [ref=f4e137] [cursor=pointer]
+        - generic [ref=f4e140]:
+          - combobox "Target column" [ref=f4e141] [cursor=pointer]:
+            - generic [ref=f4e142]:
+              - paragraph [ref=f4e143]: Add to
+              - paragraph [ref=f4e145]: new
+          - textbox: new
+          - group
+      - generic [ref=f4e146]:
+        - button "Cancel" [ref=f4e147] [cursor=pointer]
+        - button "Create card" [disabled]:
+          - generic:
+            - generic: Add
+            - generic: Ctrl+↵

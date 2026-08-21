@@ -29,6 +29,7 @@ import { attachFilesToNewCardMarkdown } from '../../../services/attachments/new_
 
 const DIALOG_WIDTH = 480
 const DISCARD_CARD_MESSAGE = 'Discard this new card draft?'
+const LINK_POPUP_LAYER_OFFSET = 1
 
 function attachFilesToNewCardDraft(files: File[]) {
     void attachFilesToNewCardMarkdown(files, projectSessionService.newCardMarkdownDraft.requestInsertion).catch((error: unknown) => {
@@ -64,6 +65,7 @@ export function NewCardDialog(props: NewCardDialogProps) {
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
     const cancellationInProgressRef = useRef(false)
     const wasOpenRef = useRef(false)
+    const [editorOverlayContainer, setEditorOverlayContainer] = useState<HTMLElement | null>(null)
     const [targetStatus, setTargetStatus] = useState('')
     const [title, setTitle] = useState('')
     const [type, setType] = useState('')
@@ -321,6 +323,7 @@ export function NewCardDialog(props: NewCardDialogProps) {
                         <Box
                             aria-label="Description"
                             data-testid="new-card-description"
+                            ref={setEditorOverlayContainer}
                             role="group"
                             sx={{
                                 bgcolor: 'background.paper',
@@ -343,6 +346,7 @@ export function NewCardDialog(props: NewCardDialogProps) {
                                 '&:hover:not(:focus-within)': { borderColor: 'custom.borderHover' },
                                 '& > [data-sticky-toolbar]': { minHeight: '100%' },
                                 '& .light-theme, & .dark-theme': { minHeight: '100%' },
+                                '& [data-radix-popper-content-wrapper]': {zIndex: (currentTheme) => `${currentTheme.zIndex.modal + LINK_POPUP_LAYER_OFFSET} !important`},
                                 '& .mdxeditor-content': {
                                     boxSizing: 'border-box',
                                     minHeight: isMobile ? '100%' : 268,
@@ -350,7 +354,10 @@ export function NewCardDialog(props: NewCardDialogProps) {
                                 },
                             }}
                         >
-                            <NewCardMarkdownEditor draft={projectSessionService.newCardMarkdownDraft} />
+                            <NewCardMarkdownEditor
+                                draft={projectSessionService.newCardMarkdownDraft}
+                                overlayContainer={editorOverlayContainer}
+                            />
                         </Box>
                     </Stack>
                 </DialogContent>
