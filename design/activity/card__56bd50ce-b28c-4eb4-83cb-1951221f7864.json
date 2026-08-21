@@ -20,7 +20,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "56bd50ce-b28c-4eb4-83cb-1951221f7864",
       "cardPath": "design/feature_descriptions/F_234_global_search_results_resizable.md",
-      "completedAt": null,
+      "completedAt": "2026-08-21T15:21:14.293Z",
       "entries": [
         {
           "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/F_234_global_search_results_resizable.md`.&#x20;\nupdate the field `status` in the markdown feature description file to `ready for implementation`.\n\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill.\n\nDo not stage or commit changes. You have no need for get at this time.",
@@ -265,17 +265,25 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 20,
-          "timestamp": "2026-08-21T15:21:08.921Z"
+          "timestamp": "2026-08-21T15:21:14.293Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-15df1bb9-4d4a-4b69-82fe-199d3852898a",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "claude",
+          "conversationId": "da60e09b-afff-4935-ad3c-42fb337286f9",
+          "createdAt": "2026-08-21T15:21:14.293Z",
+          "lastUsedAt": "2026-08-21T15:21:14.293Z",
+          "synchronizedThroughMessageId": "agent-turn-2dcf66f1-4833-4c5c-9574-0cbc05c199cf-turn-1-assistant-2"
+        }
+      ],
       "startedAt": "2026-08-21T15:20:15.462Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-21T15:20:15.462Z"
+        "elapsedMs": 58831,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
