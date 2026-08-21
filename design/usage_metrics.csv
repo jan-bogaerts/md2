@@ -652,3 +652,8 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-08-21T14:15:55.117Z,account_usage,codex,codex_bengalfox,secondary,10080,2026-08-28T14:15:56.000Z,,,,,,0,0
 2026-08-21T14:16:16.104Z,token_usage,codex,,,,,62467,5010688,9560,5120,5087835,,
 2026-08-21T14:16:42.874Z,token_usage,codex,,,,,32531,1905920,3968,2738,1945157,,
+2026-08-21T14:16:55.247Z,token_usage,codex,,,,,39154,116480,1187,720,157541,,
+2026-08-21T14:16:56.520Z,account_usage,codex,codex_bengalfox,primary,300,2026-08-21T19:16:57.000Z,,,,,,0,0
+2026-08-21T14:16:56.520Z,account_usage,codex,codex_bengalfox,secondary,10080,2026-08-28T14:16:57.000Z,,,,,,0,0
+2026-08-21T14:17:52.665Z,token_usage,codex,,,,,103547,1166592,4339,3218,1277696,,
+2026-08-21T14:18:41.646Z,token_usage,codex,,,,,60093,422400,2043,1708,486244,,
