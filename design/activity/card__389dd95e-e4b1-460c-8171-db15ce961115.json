@@ -622,13 +622,50 @@
         "costUsd": 0.9120911999999999
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
     "cardInternalId": "389dd95e-e4b1-460c-8171-db15ce961115",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "6ce014e2cb94cb6ab8cd87dfebc4c9156fdbd036",
+          "committedAt": "2026-08-21T14:59:38+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/B_143_links_in_new_card_popup.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 24
+        }
+      ],
+      "completedAt": "2026-08-21T12:59:38.805Z",
+      "conversationIds": [
+        "agent-a9f1d863-b6b1-4681-9314-a67766ed3ecd"
+      ],
+      "details": {
+        "agent": "claude",
+        "model": "sonnet",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-5d81dcf9-be09-4426-b873-12908fb69754",
+      "origin": {
+        "cardInternalId": "389dd95e-e4b1-460c-8171-db15ce961115",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-a9f1d863-b6b1-4681-9314-a67766ed3ecd",
+      "startedAt": "2026-08-21T12:57:15.731Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
