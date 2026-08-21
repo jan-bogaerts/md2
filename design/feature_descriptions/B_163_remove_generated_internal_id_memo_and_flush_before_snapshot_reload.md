@@ -3,7 +3,7 @@ author:
 id: B_163
 internalId: 4aff5203-e00a-42bb-9c0c-55d2a77c2e57
 title: remove generated internal id memo and flush before snapshot reload
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
