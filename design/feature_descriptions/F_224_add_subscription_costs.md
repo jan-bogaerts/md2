@@ -3,7 +3,7 @@ author:
 id: F_224
 internalId: 93f10274-10fd-48a2-9c07-bf50b9f970c8
 title: add subscription costs
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
