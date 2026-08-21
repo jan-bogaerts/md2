@@ -9,5 +9,7 @@ affects:
 agents:
 policy:
 ---
+in desktop config section, we configure the agents:
 
-in&#x20;
+* we need to provide better default values for all possible inputs
+* use dropdowns for the default models
