@@ -5,7 +5,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "dbb1430f-c4ad-46ec-a77e-8de4f98322cd",
       "cardPath": "design/feature_descriptions/B_169_prompt_editing_broken.md",
-      "completedAt": null,
+      "completedAt": "2026-08-21T16:04:32.810Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 128186
@@ -1162,7 +1162,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 87,
-          "timestamp": "2026-08-21T16:04:32.454Z"
+          "timestamp": "2026-08-21T16:04:32.810Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1172,15 +1172,15 @@
           "agent": "codex",
           "conversationId": "01a02507-7515-7061-93d9-ffb58faabfdf",
           "createdAt": "2026-08-21T15:58:33.828Z",
-          "lastUsedAt": "2026-08-21T16:02:32.935Z",
-          "synchronizedThroughMessageId": "agent-turn-6b4382f7-7c23-4465-a4f6-47fd1b1162b8-turn-2-assistant-1"
+          "lastUsedAt": "2026-08-21T16:04:32.810Z",
+          "synchronizedThroughMessageId": "agent-turn-6b4382f7-7c23-4465-a4f6-47fd1b1162b8-turn-3-assistant-2"
         }
       ],
       "startedAt": "2026-08-21T15:54:00.565Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 308432,
-        "runningStartedAt": "2026-08-21T16:03:34.685Z"
+        "elapsedMs": 366557,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
