@@ -2432,7 +2432,7 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": "2740ca78-6f46-4297-8adb-ee047283f48d",
       "cardPath": "design/feature_descriptions/F_220_poll_for_account_usage_at_startup.md",
-      "completedAt": null,
+      "completedAt": "2026-08-21T16:03:51.015Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 60012
@@ -2858,7 +2858,7 @@
         }
       ],
       "startedAt": "2026-08-21T15:21:22.475Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "timer": {
         "elapsedMs": 170976,
         "runningStartedAt": null
@@ -2977,11 +2977,11 @@
         "agent-413786fb-2354-405d-a993-102013a2d795"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-01ae0962-7921-44eb-8d46-4ba7d5cdb3f9",
       "origin": {
@@ -2990,9 +2990,9 @@
       },
       "rootActionId": "md2.custom-prompt",
       "rootActionLabel": "+",
-      "rootConversationId": "agent-413786fb-2354-405d-a993-102013a2d795",
       "startedAt": "2026-08-21T15:22:33.050Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-413786fb-2354-405d-a993-102013a2d795"
     }
   ],
   "version": 5
