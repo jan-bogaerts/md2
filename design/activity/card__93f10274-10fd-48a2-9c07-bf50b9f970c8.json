@@ -879,7 +879,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 54289
+        "usedTokens": 62962
       },
       "entries": [
         {
@@ -1099,24 +1099,188 @@
           "role": "assistant",
           "sequence": 17,
           "timestamp": "2026-08-21T17:51:10.907Z"
+        },
+        {
+          "content": "update",
+          "id": "agent-turn-4f441776-2902-4412-bf21-6a5feacad94a-user-17",
+          "kind": "message",
+          "role": "user",
+          "sequence": 18,
+          "timestamp": "2026-08-21T17:52:41.033Z"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll revise the card in place: keep subscription cost inside each `AgentProfile`, correct the editor/config flow, and resolve the ambiguous cost-rate and 28-day language without expanding beyond this feature document.\n\n",
+          "id": "agent-turn-4f441776-2902-4412-bf21-6a5feacad94a-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 19,
+          "timestamp": "2026-08-21T17:52:43.554Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-4f441776-2902-4412-bf21-6a5feacad94a-event-20",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0abe6da3a44745bb016a88906d50d887d28b85eba1da5f6c6a",
+          "sequence": 20,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-21T17:52:54.174Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-4f441776-2902-4412-bf21-6a5feacad94a-event-21",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0abe6da3a44745bb016a889095ae6487d288400c52dd12e141",
+          "sequence": 21,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-21T17:53:24.745Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "The first patch hit the file’s existing character-encoding artifacts, so I’m replacing only this card’s body cleanly while preserving its metadata and status. The revised calculation will explicitly keep separate estimates for separate account-limit series.\n\n",
+          "id": "agent-turn-4f441776-2902-4412-bf21-6a5feacad94a-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 22,
+          "timestamp": "2026-08-21T17:53:25.772Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-4f441776-2902-4412-bf21-6a5feacad94a-event-23",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0abe6da3a44745bb016a8890b9384487d2903e32f2205ff559",
+          "sequence": 23,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-21T17:53:59.831Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "delete: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_224_add_subscription_costs.md",
+          "deletions": 56,
+          "id": "agent-turn-4f441776-2902-4412-bf21-6a5feacad94a-event-24",
+          "insertions": 0,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-26123d42-a2c1-48ae-8046-fde79a753308",
+          "sequence": 24,
+          "status": "completed",
+          "timestamp": "2026-08-21T17:54:04.297Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "add: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_224_add_subscription_costs.md",
+          "deletions": 0,
+          "id": "agent-turn-4f441776-2902-4412-bf21-6a5feacad94a-event-25",
+          "insertions": 55,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-1ee59236-82d9-428c-b09e-9736b899c374",
+          "sequence": 25,
+          "status": "completed",
+          "timestamp": "2026-08-21T17:54:31.270Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-4f441776-2902-4412-bf21-6a5feacad94a-event-26",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0abe6da3a44745bb016a8890dba65887d28529c70f77f107dc",
+          "sequence": 26,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-21T17:54:34.182Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff --check -- 'design/feature_descriptions/F_224_add_subscription_costs.md'; git diff -- 'design/feature_descriptions/F_224_add_subscription_costs.md'\"",
+          "content": "diff --git a/design/feature_descriptions/F_224_add_subscription_costs.md b/design/feature_descriptions/F_224_add_subscription_costs.md\nindex 8fd07393..436e2f89 100644\n--- a/design/feature_descriptions/F_224_add_subscription_costs.md\n+++ b/design/feature_descriptions/F_224_add_subscription_costs.md\n@@ -11,46 +11,45 @@ agents:\n policy:\n after: 97733177-b4c8-47c3-af3d-64c31d4eca93\n ---\n-Allow the user to enter agent subscription costs so we can calculate things like:\n+Allow the user to enter agent subscription costs so we can calculate:\n \n * cost per card\n * cost per action\n-* tokens per dollar (derived from tokens per % account usage).&#x20;\n+* tokens per dollar, derived from tokens per percentage point of account usage\n \n-this allows the user to compare different configurations.\n+This allows the user to compare different agent configurations.\n \n-account cost should be configured from where the rest is configured for the agents: in the desktop config section.\n+Account cost is part of the agent profile and is configured with the rest of that agent's settings in the desktop config section. Do not create a separate subscription-cost config list.\n \n-prices are expressed per month\n-\n-if we need to do complex time calculations, we can keep things perhaps simpler if we presume 4 weeks per month (28 days), that makes it easier.&#x20;\n-\n-so if 100$ \\= 100% account usage, 1% \\= 1$\n+Prices are expressed per month. For this feature, a $100 subscription represents 100% account usage, so one percentage point is worth $1.\n \n ## Current state\n \n-No cost concept exists anywhere in the app today — no cost field in config, no cost type in stats, no cost UI.\n+No cost concept exists anywhere in the app today: no cost field in agent profiles, cost type in stats, or cost UI.\n \n Pieces this feature reuses:\n \n-* **Desktop config precedent.** `desktop.agentProfiles` (`app/src/services/config/config_entries.ts:325-334`) already stores an array of per-agent objects, of type `json`, edited in the desktop config section (`app/src/components/config/config_page.tsx`, `app/src/components/config/config_value_editor.tsx`). A new per-agent monthly-cost field would follow this same shape and location.\n-* **Account usage percentage already tracked.** `design/usage_metrics.csv` is parsed by `app/src/services/agents/project_usage_metrics_service.ts` into `UsageMetricsAccountRow` rows: `provider` (`claude` or `codex`), `limitId`, `windowId`, `windowDurationMinutes`, `usedPercent`, `usedPercentDelta`. A provider can have more than one row series at once — e.g. a short session-length window and a longer weekly window — each tracked with its own `limitId`/`windowId`.\n-* **Tokens per percentage point already computed.** `app/src/services/stats/stats_usage_comparison_dataset.ts` (`ratioSeriesRow`, `ratioRows`) already produces a `tokensPerAccountUsage` ratio per account series: total provider tokens in a time bucket divided by the summed `usedPercentDelta` for that bucket. This is exactly \"tokens per % account usage\" the feature text asks for — it just isn't expressed in dollars yet.\n-* **Tokens per card / per action already summed.** `app/src/services/stats/stats_totals_dataset.ts` (`totalsRows`) already sums `totalTokens` from `StatsConversationFact` records grouped by `cardInternalId` or `actionId`. Each conversation fact also carries `agent` (`shared/project_stats.mjs`), so tokens spent on a card or action are already attributable to the agent (`claude`/`codex`) that produced them. Only the token-to-dollar conversion is missing.\n+* **Agent profile ownership.** `desktop.agentProfiles` (`app/src/services/config/config_entries.ts`) stores each agent's command, models, and defaults. The shared `AgentProfile` type and validation live in `shared/agent_profiles.d.mts` and `shared/agent_profiles.mjs`. Subscription cost belongs on this same profile.\n+* **Dedicated profile editor.** `desktop.agentProfiles` is rendered by `AgentProfilesEditor` (`app/src/components/config/agent_profiles_editor.tsx`) through the special-case route in `config_value_editor.tsx`; it \n[3067 characters omitted]\nl `monthlySubscriptionCostUsd`. Keep the field in `desktop.agentProfiles`; do not add another desktop config entry. Update the shared declaration, validation and normalization, app-side parity, desktop config tests, and the existing agent profile form. A configured value must be a finite number greater than zero. Absence means cost calculation is unavailable for that agent.\n+* Dollar per percentage point for an agent is `monthlySubscriptionCostUsd / 100`. Match an account-usage provider to the agent profile with the same name.\n+* Extend `stats_usage_comparison_dataset.ts` so each existing tokens-per-percentage-point series also produces tokens per dollar. Divide its tokens-per-percentage-point value by the agent's dollar-per-percentage-point value. Preserve the account-series identity: a provider with multiple limit/window series produces a separate estimate for each series.\n+* Extend the totals calculation and UI so cost per card and cost per action are estimates per account series, rather than implying that an agent has one universal tokens-per-dollar rate. For the active stats range, calculate each provider/series rate from that range's total provider tokens and positive account-usage deltas, convert matching conversations, and aggregate them by card or action. Label each cost result with its account series.\n+* If the active range has no positive usage denominator, no matching agent profile, no configured subscription cost, or a conversation whose agent cannot be costed for that series, report the affected cost result as unavailable rather than returning a partial or zero result.\n+* Do not prorate the subscription price by the selected date range. This feature values account-usage percentage points directly using the rule above, so no calendar-month or 28-day conversion is needed.\n \n ## Acceptance criteria\n \n-* User can enter a monthly subscription cost (USD) per agent (`claude`, `codex`) in the desktop config section, using the same list/JSON editing pattern as the existing agent profiles list.\n-* $100 configured monthly cost is treated as 100% of that agent's account usage, so each 1% of usage is worth $1; this conversion is applied consistently everywhere an account-usage percentage is turned into a dollar figure.\n-* The existing \"tokens per % account usage\" figures gain a dollar-denominated counterpart (tokens per dollar) without changing today's token-only figures.\n-* Cost per card and cost per action are derived from each card's/action's already-tracked total tokens (grouped by the agent that produced them) combined with that agent's tokens-per-dollar rate, and are viewable wherever per-card/per-action totals are shown today.\n-* If no subscription cost is configured for an agent, cost figures involving that agent are reported as unavailable rather than shown as zero or causing an error.\n-* Time-to-month conversions use the 4-week/28-day approximation stated in the feature text.\n\\ No newline at end of file\n+* User can enter an optional monthly subscription cost in USD while editing any built-in or custom agent profile in the existing desktop agent-profile editor.\n+* Subscription cost remains part of `desktop.agentProfiles`; no parallel agent-price config or duplicate agent-to-price mapping is introduced.\n+* A $100 configured monthly cost makes each percentage point of that agent's account usage worth $1 everywhere account usage is converted to dollars.\n+* Existing tokens-per-percentage-point figures gain a tokens-per-dollar counterpart for every calculable account series without changing today's token-only figures.\n+* Cost per card and cost per action are derived from already-tracked conversation tokens and shown per account series wherever per-card/per-action totals are shown today; the series is visible in the result label.\n+* A cost result is unavailable, not zero or partial, when its required subscription price, positive usage denominator, matching series, or conversation cost is unavailable.\n+* Selecting a shorter or longer stats range does not prorate the configured monthly subscription cost.\n",
+          "durationMs": 34,
+          "exitCode": 0,
+          "id": "agent-turn-4f441776-2902-4412-bf21-6a5feacad94a-event-27",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff --check -- 'design/feature_descriptions/F_224_add_subscription_costs.md'; git diff -- 'design/feature_descriptions/F_224_add_subscription_costs.md'\"",
+          "providerItemId": "exec-7250876d-d0ee-4f22-8b27-8d82a5dfb4c8",
+          "sequence": 27,
+          "status": "completed",
+          "timestamp": "2026-08-21T17:54:36.134Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-4f441776-2902-4412-bf21-6a5feacad94a-event-28",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0abe6da3a44745bb016a8890e0365887d2b54fd9d9d9e4841a",
+          "sequence": 28,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-21T17:54:39.854Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git status --short -- 'design/feature_descriptions/F_224_add_subscription_costs.md'\"",
+          "content": "",
+          "durationMs": 3,
+          "exitCode": 0,
+          "id": "agent-turn-4f441776-2902-4412-bf21-6a5feacad94a-event-29",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git status --short -- 'design/feature_descriptions/F_224_add_subscription_costs.md'\"",
+          "providerItemId": "exec-b82dc173-7cc9-49e2-a023-70053c9a26e8",
+          "sequence": 29,
+          "status": "completed",
+          "timestamp": "2026-08-21T17:54:41.652Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "agent": "codex",
+          "content": "Updated [F_224_add_subscription_costs.md](C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/F_224_add_subscription_costs.md).\n\nThe card now:\n\n- Stores `monthlySubscriptionCostUsd` within `AgentProfile`.\n- Explicitly rejects a separate pricing config list.\n- Uses the existing agent-profile editor.\n- Defines validation and unavailable states.\n- Keeps separate estimates for multiple account-usage series.\n- Removes ambiguous 28-day prorating.\n- Covers built-in and custom agents.\n\n`git diff --check` passes. No tests were run because only documentation changed.\n\n",
+          "id": "agent-turn-4f441776-2902-4412-bf21-6a5feacad94a-turn-2-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 30,
+          "timestamp": "2026-08-21T17:54:47.239Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-df895b27-a89f-42ab-a949-cce4a38e7f37",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a02571-9541-76c3-aaa1-0adb2b267543",
+          "createdAt": "2026-08-21T17:51:10.907Z",
+          "lastUsedAt": "2026-08-21T17:51:10.907Z",
+          "synchronizedThroughMessageId": "agent-turn-4f441776-2902-4412-bf21-6a5feacad94a-turn-1-assistant-3"
+        }
+      ],
       "startedAt": "2026-08-21T17:49:54.125Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-21T17:49:54.125Z"
+        "elapsedMs": 76782,
+        "runningStartedAt": "2026-08-21T17:52:41.033Z"
       },
       "title": "+",
       "usage": {
-        "cachedInputTokens": 248832,
-        "inputTokens": 57264,
-        "outputTokens": 1608,
-        "reasoningTokens": 801,
-        "totalTokens": 308505
+        "cachedInputTokens": 649472,
+        "inputTokens": 70604,
+        "outputTokens": 6487,
+        "reasoningTokens": 1453,
+        "totalTokens": 728016
       },
       "usageSchemaVersion": 1,
       "viewed": true
