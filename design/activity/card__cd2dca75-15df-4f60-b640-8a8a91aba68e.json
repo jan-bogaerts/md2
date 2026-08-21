@@ -19,7 +19,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 109098
+        "usedTokens": 119920
       },
       "entries": [
         {
@@ -985,24 +985,216 @@
           "role": "assistant",
           "sequence": 69,
           "timestamp": "2026-08-21T13:05:59.848Z"
+        },
+        {
+          "content": "card title UI",
+          "id": "agent-turn-7011c5c0-9816-4832-ab9b-9ef8e9e6348e-user-69",
+          "kind": "message",
+          "role": "user",
+          "sequence": 70,
+          "timestamp": "2026-08-21T13:08:47.804Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-7011c5c0-9816-4832-ab9b-9ef8e9e6348e-event-71",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0e457b3f273a309d016a884de2dfdc87d291fff36ed7bab9c8",
+          "sequence": 71,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-21T13:08:54.288Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "UI path confirmed. Cause chain now narrow: title edit renames card path; popup rebind temporarily clears active Markdown target; editor receives empty body. Inspecting cleanup and document-retention rules before writing fix contract.\n\n",
+          "id": "agent-turn-7011c5c0-9816-4832-ab9b-9ef8e9e6348e-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 72,
+          "timestamp": "2026-08-21T13:08:55.968Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$lines = Get-Content '\"'app/src/services/open_files_service.ts'; \"'$lines[170..340]; rg -n \"activeDocumentChanged|setBoardDocument'\"\\\\(null|cardPath\\\" app/src/components/card_view app/src/components/editor app/src/services --glob '*.test.ts' --glob '*.test.tsx' | Select-Object -First 300\"",
+          "content": "app/src/services\\card_popup_service.test.ts:90:        expect(service.getSnapshot()[1]).toMatchObject({ cardPath: 'design/F-2.md' })\r\napp/src/components/card_view\\mobile_card_view.test.tsx:169:        expect(cardDragDropService.getOverlaySnapshot().cardPath).toBeNull()\r\napp/src/components/card_view\\mobile_card_view.test.tsx:182:        expect(cardDragDropService.getOverlaySnapshot().cardPath).toBe('design/F-1.md')\r\napp/src/components/card_view\\mobile_card_view.test.tsx:186:        expect(cardDragDropService.getOverlaySnapshot().cardPath).toBeNull()\r\napp/src/components/card_view\\mobile_card_view.test.tsx:191:        expect(cardDragDropService.getOverlaySnapshot().cardPath).toBe('design/F-1.md')\r\napp/src/components/card_view\\mobile_card_view.test.tsx:194:        expect(cardDragDropService.getOverlaySnapshot().cardPath).toBeNull()\r\napp/src/components/card_view\\card_worktree_indicator.test.tsx:11:        cardPath: 'design/F-1.md',\r\napp/src/components/card_view\\card_worktree_indicator.test.tsx:51:            <CardWorktreeIndicator cardId={Card.header.id} cardInternalId={Card.header.internalId!} cardPath={Card.path} primaryPath=\"C:\\\\primary\" service={service} />\r\napp/src/components/card_view\\card_worktree_indicator.test.tsx:109:                    cardPath={Card.path}\r\napp/src/components/card_view\\card_subscription_hooks.test.tsx:198:        render(<CardWorktreeIndicator cardId=\"F-1\" cardInternalId=\"card-1\" cardPath={firstCard.path} primaryPath=\"project\" service={service} />)\r\napp/src/components/card_view\\card_path_menu_items.test.tsx:21:        renderMenuItems({ cardPath: 'design/F_116.md', onSelected, rootPath: 'C:\\\\repo\\\\' })\r\napp/src/components/card_view\\card_path_menu_items.test.tsx:35:        renderMenuItems({ cardPath: 'design/F_116.md', onSelected: vi.fn(), rootPath: '/repo/' })\r\napp/src/components/card_view\\card_path_menu_items.test.tsx:45:        renderMenuItems({ cardPath: 'design/F_116.md', onSelected: vi.fn() })\r\napp/src/components/card_view\\card_path_menu_items.test.tsx:59:        renderMenuItems({ cardPath: 'design/F_116.md', onSelected, rootPath: 'C:\\\\repo' })\r\napp/src/components/card_view\\card_drag_drop_service.node.test.ts:12:        expect(service.getOverlaySnapshot()).toEqual({ cardPath: 'design/F-1.md', width: 235 })\r\napp/src/components/card_view\\card_drag_drop_service.node.test.ts:17:        expect(service.getOverlaySnapshot()).toEqual({ cardPath: null, width: null })\r\napp/src/components/card_view\\card_commit_diff_panel.test.tsx:32:const cardPath = 'design/F-060.md'\r\napp/src/components/card_view\\card_commit_diff_panel.test.tsx:54:        filePaths: [cardPath, 'app/other.ts'],\r\napp/src/components/card_view\\card_commit_diff_panel.test.tsx:149:                    path: cardPath,\r\napp/src/components/card_view\\affects_editor_dialog.test.tsx:69:                cardPath=\"design/F-1-root.md\"\r\napp/src/components/card_view\\affects_editor_dialog.test.tsx:87:                cardPath=\"design/F-1-root.md\"\r\napp/src/components/card_view\\affects_editor_dialog.test.tsx:104:                cardPath=\"design/F-1-root.md\"\r\napp/src/services\\agents\\agent_integration.test.ts:473:                    cardPath: activeFile.path,\r\napp/src/services\\agents\\agent_integration.test.ts:481:                    cardPath: archivedFile.path,\r\napp/src/services\\agents\\agent_integration.test.ts:489:                cardPath: releasedFile.path,\r\napp/src/services\\agents\\agent_integration.test.ts:540:        const projectConversation = { ...conversation(projectReference), cardInternalId: null, cardPath: null }\r\napp/src/services\\agents\\agent_integration.test.ts:590:            cardPath: historicalFile.path,\r\napp/src/services\\agents\\agent_integration.test.ts:680:            cardPath: oldActiveFile.path,\r\napp/src/services\\agents\\agent_conversation_service.node.test.ts:69:                cardPath: 'design/F-1.md',\r\napp/src/services\\agents\\agent_conversation_service.node.test.ts:156:            cardPath: null,\r\napp/src/services\\agents\\agent_conversation_service.node.test.ts:170:            cardPath: null,\r\napp/src/services\\agents\\agent_convers\n[1528 characters omitted]\nesign/F-1-root.md', kind: 'existing' },\r\napp/src/services\\data\\data_service.test.ts:414:            target: { cardPath: 'design/F-1-root.md', kind: 'existing' },\r\napp/src/services\\project\\project_loading.test.ts:397:            cardPath: null,\r\napp/src/services\\project\\project_loading.test.ts:1582:        const cardPath = 'design/F-1-root.md'\r\napp/src/services\\project\\project_loading.test.ts:1587:            body: useCardBody(cardPath, service),\r\napp/src/services\\project\\project_loading.test.ts:1588:            metadata: useCardMetadata(cardPath, service),\r\napp/src/services\\project\\project_loading.test.ts:1593:            titleRendered(useCardTitle(cardPath, service))\r\napp/src/services\\project\\project_loading.test.ts:1599:            service.addEventListener(cardFieldChangedEvent(cardPath, field), recordEvent)\r\napp/src/services\\project\\project_loading.test.ts:1612:                event: { changeKind: 'changed', path: cardPath },\r\napp/src/services\\project\\project_loading.test.ts:1625:        const card = service.getState().snapshot?.activeCards.find(({ path }) => path === cardPath)\r\napp/src/services\\project\\project_loading.test.ts:1628:        expect(board.result.current.readyPaths).toEqual([cardPath])\r\napp/src/services\\project\\project_loading.test.ts:1633:            cardFieldChangedEvent(cardPath, 'ordering'),\r\napp/src/services\\project\\project_loading.test.ts:1635:            cardFieldChangedEvent(cardPath, 'status'),\r\napp/src/services\\project\\project_loading.test.ts:1667:        const cardPath = 'design/F-1-root.md'\r\napp/src/services\\project\\project_loading.test.ts:1670:            body: useCardBody(cardPath, service),\r\napp/src/services\\project\\project_loading.test.ts:1671:            metadata: useCardMetadata(cardPath, service),\r\napp/src/services\\project\\project_loading.test.ts:1677:            service.addEventListener(cardFieldChangedEvent(cardPath, field), recordEvent)\r\napp/src/services\\project\\project_loading.test.ts:1689:        currentFiles = storageFiles.map((file) => file.path === cardPath\r\napp/src/services\\project\\project_loading.test.ts:1708:        expect(loadFile).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, cardPath)\r\napp/src/services\\project\\project_loading.test.ts:1710:        expect(board.result.current.readyPaths).toEqual([cardPath])\r\napp/src/services\\project\\project_loading.test.ts:1714:            cardFieldChangedEvent(cardPath, 'body'),\r\napp/src/services\\project\\project_loading.test.ts:1716:            cardFieldChangedEvent(cardPath, 'ordering'),\r\napp/src/services\\project\\project_loading.test.ts:1718:            cardFieldChangedEvent(cardPath, 'status'),\r\napp/src/services\\remarkable\\remarkable_import_service.node.test.ts:33:        target: { cardPath: 'design/F-1-card.md', kind: 'existing' },\r\napp/src/services\\remarkable\\remarkable_import_service.node.test.ts:45:        expect(plan.cardPath).toBe('design/F-1-card.md')\r\napp/src/services\\remarkable\\remarkable_import_service.node.test.ts:76:        expect(() => buildRemarkableImport(baseInput({ target: { cardPath: 'design/missing.md', kind: 'existing' } }))).toThrow(/not loaded/u)\r\napp/src/services\\remarkable\\remarkable_import_service.node.test.ts:87:        const cardFile = plan.commitFiles.find((file) => file.path === plan.cardPath)\r\napp/src/services\\remarkable\\remarkable_import_service.node.test.ts:89:        expect(plan.cardPath).toBe('design/F_2_scanned_notes.md')\r\napp/src/services\\remarkable\\remarkable_convert_service.node.test.ts:13:            { cardPath: 'design/F-1-card.md', imagePaths: ['design/note.png'] },\r\napp/src/services\\remarkable\\remarkable_convert_service.node.test.ts:22:            { cardPath: 'design/F-1-card.md', imagePaths: [] },\r\napp/src/services\\remarkable\\remarkable_convert_service.node.test.ts:30:            { cardPath: 'design/F-1-card.md', cardType: 'feature', imagePaths: ['design/a.png', 'design/b.png'] },\r\napp/src/services\\actions\\action_run_registry.node.test.ts:47:        cardPath: context.file,\r\napp/src/services\\search\\search_regexp_agent.node.test.ts:8:        cardPath: '.md2-search-regexp',\r\n",
+          "durationMs": 56,
+          "exitCode": 0,
+          "id": "agent-turn-7011c5c0-9816-4832-ab9b-9ef8e9e6348e-event-73",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$lines = Get-Content '\"'app/src/services/open_files_service.ts'; \"'$lines[170..340]; rg -n \"activeDocumentChanged|setBoardDocument'\"\\\\(null|cardPath\\\" app/src/components/card_view app/src/components/editor app/src/services --glob '*.test.ts' --glob '*.test.tsx' | Select-Object -First 300\"",
+          "providerItemId": "exec-5fc48a2e-367a-4d9b-a55f-cecae0a5f28f",
+          "sequence": 73,
+          "status": "completed",
+          "timestamp": "2026-08-21T13:08:58.115Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-7011c5c0-9816-4832-ab9b-9ef8e9e6348e-event-74",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0e457b3f273a309d016a884dec57b887d2acc0c368855dcada",
+          "sequence": 74,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-21T13:08:59.757Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$lines = Get-Content '\"'app/src/services/project/project_loading.test.ts'; \"'$lines[1540..1730]'",
+          "content": "",
+          "durationMs": 2,
+          "exitCode": 0,
+          "id": "agent-turn-7011c5c0-9816-4832-ab9b-9ef8e9e6348e-event-75",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$lines = Get-Content '\"'app/src/services/project/project_loading.test.ts'; \"'$lines[1540..1730]'",
+          "providerItemId": "exec-05bcba24-9cd1-44bb-88df-ff25d2932227",
+          "sequence": 75,
+          "status": "completed",
+          "timestamp": "2026-08-21T13:09:01.528Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-7011c5c0-9816-4832-ab9b-9ef8e9e6348e-event-76",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0e457b3f273a309d016a884defa74487d2bc6e5910efcf397f",
+          "sequence": 76,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-21T13:09:16.560Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-7011c5c0-9816-4832-ab9b-9ef8e9e6348e-event-77",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0e457b3f273a309d016a884dfd902c87d28895252cf661adde",
+          "sequence": 77,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-21T13:09:29.778Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-7011c5c0-9816-4832-ab9b-9ef8e9e6348e-event-78",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0e457b3f273a309d016a884e0ac84487d291b963ba6c7a6bcd",
+          "sequence": 78,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-21T13:09:35.091Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Cause found. Card identity stays same during title-driven rename, but popup binding treats path change like card replacement. Cleanup publishes null Markdown target; history monitor writes empty string into visible editor. Fix contract: bind popup document by stable `internalId`; path renewal must not clear editor.\n\n",
+          "id": "agent-turn-7011c5c0-9816-4832-ab9b-9ef8e9e6348e-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 79,
+          "timestamp": "2026-08-21T13:09:37.301Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_165_card_file_change_drops_body.md",
+          "deletions": 2,
+          "id": "agent-turn-7011c5c0-9816-4832-ab9b-9ef8e9e6348e-event-80",
+          "insertions": 28,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-b642ebc4-ccd6-4bc5-8646-383f3324db46",
+          "sequence": 80,
+          "status": "completed",
+          "timestamp": "2026-08-21T13:09:56.932Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-7011c5c0-9816-4832-ab9b-9ef8e9e6348e-event-81",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0e457b3f273a309d016a884e280a6c87d2b12b8553d9d2856e",
+          "sequence": 81,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-21T13:09:59.606Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/B_165_card_file_change_drops_body.md'\"",
+          "content": "---\nauthor: \nid: B_165\ninternalId: cd2dca75-15df-4f60-b640-8a8a91aba68e\ntitle: card file change drops body\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__cd2dca75-15df-4f60-b640-8a8a91aba68e.json\npolicy:\n---\n\nI was editing a card that already had a body. we changed the title which caused the entire body to disappear. The data doesn't seem to be lost, the card simply drops the body: after closing the card and opening it again, the body is there again. This caveat: nothing in the body was changed, so when the body disappeared, the card was closed and opened again.\n\nwe recently did some major refactoring round the file watcher, when cards get reloaded and such. something went wrong, was skipped or brings it now to the surface.\n\nlets investigate the algorithm and see where it is going wrong.\n\n## Current state\n\nChanging a card title through the card UI calls `CardMarkdownDataSource.updateActiveCardTitle`, then `CardRenameOperations.updateCardTitle`. When new title changes filename slug, `CardRenameOperations.renameCard` commits pending edits, updates title and first body heading, commits file move, and calls `reconcileCardPath` (`app/src/services/data/card_rename_operations.ts`). `reconcileCardPath` updates loaded card path and publishes `CARD_PATH_CHANGED_EVENT`.\n\n`CardPopupService.handleCardPathChanged` keeps open card-details entry and changes its `cardPath` (`app/src/services/card_popup_service.ts`). Card still has same `internalId`; `OpenFilesService` therefore keeps same logical card document and renews its path (`app/src/services/open_files_service.ts`).\n\n`CardBodyPopoverEntry` nevertheless binds board document in effect depending on both `cardIdentity` and `cardPath` (`app/src/components/card_view/card_body_popover.tsx`). Path change runs effect cleanup. Cleanup calls `dataSource.setBoardDocument(null)` before closing old board document. Null target means no card document is bound. `MarkdownDocumentHistoryMonitor` handles this `activeDocumentChanged` event by switching editor Markdown to empty string (`app/src/components/editor/markdown_document_history_monitor.tsx`, `app/src/components/editor/markdown_document_history_store.ts`). This clears visible body even though owned card and persisted file still contain it. Closing and reopening popup creates fresh binding from owned card, so body returns.\n\n## Implementation details\n\n- Bind card-details editor lifetime to stable card `internalId`, not mutable file path. Title-driven path rename must renew existing document path without clearing board binding.\n- Change `CardBodyPopoverEntry` document-binding effect so `cardPath` change alone does not run `setBoardDocument(null)`, discard history, close document, or open another document. Resolve initial/current card by `internalId` if needed, because using old path after rename is invalid.\n- Keep existing cleanup when popup entry closes, project changes, or stable card identity changes. These events end document lifetime and must still release board membership and history.\n- Keep `CardPopupService` path update, `OpenFilesService` stable-identity renewal, title serialization, file move, watcher echo suppression, and unsaved-body preservation unchanged.\n- Add regression coverage at popup/document-binding boundary. Test must use clean card body, because reported failure occurs when body was not edited and no dirty draft protects binding.\n\n## Acceptance criteria\n\n- Open card with existing clean body. Change title through card UI so filename changes. Popup stays open and body remains visible throughout rename.\n- Active `board-card` Markdown target never becomes `null` because only card path changed.\n- Same logical open card document remains bound across rename; its `path` changes to committed target path.\n- Title and first body heading use new title, while remainder of body stays unchanged in editor, loaded card, and committed file.\n- Closing and reopening card is not required to restore body.\n- Actual popup close, project change, or card identity change still clears binding and releases document.\n- Existing dirty-body rename behavior, card rename tests, watcher tests, and card popup tests pass. Add regression test that fails before fix.\n\r\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-7011c5c0-9816-4832-ab9b-9ef8e9e6348e-event-82",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/B_165_card_file_change_drops_body.md'\"",
+          "providerItemId": "exec-e28c667a-4f46-45b7-b0b2-d3f7390590de",
+          "sequence": 82,
+          "status": "completed",
+          "timestamp": "2026-08-21T13:10:01.621Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-7011c5c0-9816-4832-ab9b-9ef8e9e6348e-event-83",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0e457b3f273a309d016a884e2c7be887d298ed3beeeaa0e70a",
+          "sequence": 83,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-21T13:10:03.835Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Updated [B_165_card_file_change_drops_body.md](C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/B_165_card_file_change_drops_body.md).\n\nAdded requested sections. Status now `ready for implementation`. No tests run; documentation-only change. Nothing staged or committed.\n\n",
+          "id": "agent-turn-7011c5c0-9816-4832-ab9b-9ef8e9e6348e-turn-2-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 84,
+          "timestamp": "2026-08-21T13:10:05.100Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-5fa1a228-6b2b-4cd3-ae99-74b7e1d87800",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a0246a-5a50-7730-964b-8a53235000f3",
+          "createdAt": "2026-08-21T13:05:59.848Z",
+          "lastUsedAt": "2026-08-21T13:05:59.848Z",
+          "synchronizedThroughMessageId": "agent-turn-7011c5c0-9816-4832-ab9b-9ef8e9e6348e-turn-1-assistant-3"
+        }
+      ],
       "startedAt": "2026-08-21T13:02:24.524Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-21T13:02:24.524Z"
+        "elapsedMs": 215324,
+        "runningStartedAt": "2026-08-21T13:08:47.804Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 1542400,
-        "inputTokens": 141684,
-        "outputTokens": 2682,
-        "reasoningTokens": 3931,
-        "totalTokens": 1690697
+        "cachedInputTokens": 2109440,
+        "inputTokens": 155013,
+        "outputTokens": 3952,
+        "reasoningTokens": 5448,
+        "totalTokens": 2273853
       },
       "usageSchemaVersion": 1,
       "viewed": true
