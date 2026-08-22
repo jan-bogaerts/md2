@@ -202,8 +202,8 @@ function projectTokenRows(
 }
 
 /**
- * One account series per provider: the longest reported limit window, ties broken on the
- * lexicographically smallest identity, so a provider reporting several windows still has one rate.
+ * One account series per provider: the longest reported limit window, ties broken by its
+ * code-point identity, so a provider reporting several windows still has one deterministic rate.
  */
 export function longestWindowSeriesByProvider(seriesOptions: StatsAccountSeriesOption[]) {
     const seriesByProvider = new Map<string, StatsAccountSeriesOption>();
@@ -211,7 +211,7 @@ export function longestWindowSeriesByProvider(seriesOptions: StatsAccountSeriesO
         const current = seriesByProvider.get(series.provider);
         const wins = !current
             || series.windowDurationMinutes > current.windowDurationMinutes
-            || (series.windowDurationMinutes === current.windowDurationMinutes && series.identity.localeCompare(current.identity) < 0);
+            || (series.windowDurationMinutes === current.windowDurationMinutes && series.identity < current.identity);
         if (wins) seriesByProvider.set(series.provider, series);
     }
 

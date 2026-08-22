@@ -181,11 +181,17 @@ function accountSeries(source: LoadedStatsSource, controls: StatsControls) {
 function providerRates(source: LoadedStatsSource, controls: StatsControls) {
     const accountRows = source.accountRows.filter(({ recordedAt }) => inRange(recordedAt, controls));
     const tokenRows = source.tokenRows.filter(({ recordedAt }) => inRange(recordedAt, controls));
+    const denominatorsBySeries = new Map<string, number>();
+    for (const row of accountRows) {
+        if (row.usedPercentDelta === null || row.usedPercentDelta <= 0) continue;
+        const identity = accountSeriesIdentity(row);
+        denominatorsBySeries.set(identity, (denominatorsBySeries.get(identity) ?? 0) + row.usedPercentDelta);
+    }
+    const activeSeries = accountSeries(source, controls)
+        .filter(({ identity }) => (denominatorsBySeries.get(identity) ?? 0) > 0);
     const rates = new Map<string, ProviderRate>();
-    for (const [provider, series] of longestWindowSeriesByProvider(accountSeries(source, controls))) {
-        const denominator = accountRows
-            .filter((row) => accountSeriesIdentity(row) === series.identity && row.usedPercentDelta !== null && row.usedPercentDelta > 0)
-            .reduce((total, row) => total + row.usedPercentDelta!, 0);
+    for (const [provider, series] of longestWindowSeriesByProvider(activeSeries)) {
+        const denominator = denominatorsBySeries.get(series.identity)!;
         const numerator = tokenRows
             .filter((row) => row.provider === provider)
             .reduce((total, row) => total + row.totalTokens, 0);
@@ -228,13 +234,15 @@ function groupCost(group: ConversationGroup, rates: Map<string, ProviderRate>): 
         unpricedByReason.set(reason, (unpricedByReason.get(reason) ?? 0) + 1);
     }
     const singleAgent = agentIdentities.size === 1 ? [...agentIdentities][0] : null;
+    const unpricedRunCount = [...unpricedByReason.values()].reduce((total, count) => total + count, 0);
+    const priced = unpricedRunCount === 0;
 
     return {
-        priced: group.conversations.length > [...unpricedByReason.values()].reduce((total, count) => total + count, 0),
+        priced,
         rate: singleAgent ? rates.get(singleAgent) ?? null : null,
         singleAgent,
         unpricedByReason,
-        value,
+        value: priced ? value : 0,
     };
 }
 

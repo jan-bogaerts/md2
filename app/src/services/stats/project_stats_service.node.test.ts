@@ -215,6 +215,7 @@ describe('ProjectStatsService aggregation', () => {
         const metrics = [
             metricsHeader,
             metricsRow('2026-08-12T09:00:00.000Z', 1_000),
+            '2026-08-12T10:30:00.000Z,account_usage,codex,codex_bengalfox,secondary,10080,2026-08-17T00:00:00.000Z,,,,,,0,0',
             '2026-08-12T11:00:00.000Z,account_usage,codex,weekly,window-a,10080,2026-08-17T00:00:00.000Z,,,,,,50,10',
             '2026-08-12T12:00:00.000Z,account_usage,codex,session,window-b,300,2026-08-12T17:00:00.000Z,,,,,,40,20',
         ].join('\r\n')
@@ -234,7 +235,7 @@ describe('ProjectStatsService aggregation', () => {
             totalsMetric: 'cost',
         })
 
-        // Only the weekly window prices the bar; the shorter session window is ignored.
+        // Only the active weekly window prices the bar; the inactive equal-length and shorter windows are ignored.
         expect(service.getSnapshot().rows).toMatchObject([{
             available: true,
             denominator: 10,
@@ -287,7 +288,7 @@ describe('ProjectStatsService aggregation', () => {
         expect(service.getSnapshot().rows[0].tooltip).toContain('Priced with: Mixed agents')
     })
 
-    it('keeps a partially priced multi-agent card in the Mixed series', async () => {
+    it('marks a partially priced multi-agent card unavailable', async () => {
         const codexConversation = conversation({ id: 'codex-conversation' })
         const claudeConversation = conversation({ id: 'claude-conversation' })
         const records = [
@@ -313,10 +314,10 @@ describe('ProjectStatsService aggregation', () => {
 
         expect(service.getSnapshot().rows).toMatchObject([{
             agent: null,
-            available: true,
+            available: false,
             seriesIdentity: 'mixed',
             seriesLabel: 'Mixed',
-            value: 0.1,
+            value: 0,
         }])
         expect(service.getSnapshot().rows[0].tooltip).toContain('Priced with: Mixed agents')
         expect(service.getSnapshot().rows[0].tooltip).toContain('Not priced: 1 run (monthly subscription cost is not configured)')
