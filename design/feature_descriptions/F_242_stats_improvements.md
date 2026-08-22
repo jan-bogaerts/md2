@@ -21,3 +21,4 @@ policy:
     {id}:{title}
     {value}&#x20;
     if value is time based, convert it to HH:MM:SS
+  * make legend sticky to the left side for scrollling
