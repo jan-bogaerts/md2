@@ -152,6 +152,7 @@ export function AppMenu(props: AppMenuProps) {
     })
     const branchOptions = actions.branches.length > 0 ? actions.branches : (project ? [{ name: project.branch }] : [])
     const selectedBranch = branchOptions.some((branch) => branch.name === actions.switchBranch) ? actions.switchBranch : projectBranch
+    const canCommit = !readOnly && actions.isProjectOpen && !actions.isLoading && hasPendingSave
 
     const handleTabChange = (_event: SyntheticEvent, value: AppMenuTab) => {
         setCurrentTab(value)
@@ -181,13 +182,26 @@ export function AppMenu(props: AppMenuProps) {
         actions.openNewCardDialog()
     }
 
-    const handleCommit = async () => {
+    const handleCommit = useCallback(async () => {
         try {
-            await actions.commit()
+            await projectSessionService.commit()
         } catch {
             // ProjectSessionService emits the user-visible error.
         }
-    }
+    }, [])
+
+    useEffect(() => {
+        const handleSaveShortcut = (event: KeyboardEvent) => {
+            if (event.key.toLowerCase() !== 's' || !event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) return
+
+            event.preventDefault()
+            if (canCommit) void handleCommit()
+        }
+
+        window.addEventListener('keydown', handleSaveShortcut)
+
+        return () => window.removeEventListener('keydown', handleSaveShortcut)
+    }, [canCommit, handleCommit])
 
     const handlePush = async () => {
         try {
@@ -343,9 +357,10 @@ export function AppMenu(props: AppMenuProps) {
                             value={selectedBranch}
                         />
                         <MenuIconButton
-                            disabled={readOnly || !actions.isProjectOpen || actions.isLoading || !hasPendingSave}
+                            disabled={!canCommit}
                             label="Commit"
                             onClick={handleCommit}
+                            tooltip="Commit (Ctrl+S)"
                         >
                             <ContentSaveOutline fontSize="small" />
                         </MenuIconButton>
