@@ -5630,11 +5630,11 @@
         "agent-eb85f5c3-386f-4e01-91c4-58d7e62b63d9"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-a7249e5f-4167-48a7-b6bd-32d1327eab05",
       "origin": {
@@ -5643,9 +5643,57 @@
       },
       "rootActionId": "32eceaf6-37d1-48b4-9bc1-c3f051eb7d8e",
       "rootActionLabel": "review",
-      "rootConversationId": "agent-eb85f5c3-386f-4e01-91c4-58d7e62b63d9",
       "startedAt": "2026-08-22T13:34:17.275Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-eb85f5c3-386f-4e01-91c4-58d7e62b63d9"
+    },
+    {
+      "commits": [
+        {
+          "commit": "3b07433645d1ffd40794cb155ddfffb632114b92",
+          "committedAt": "2026-08-22T16:11:11+02:00",
+          "deletions": 130,
+          "filePaths": [
+            "app/src/components/actions/agent/action_agent_question.test.tsx",
+            "app/src/components/actions/agent/action_agent_question.tsx",
+            "app/src/components/actions/agent/action_agent_question_owner.tsx",
+            "app/src/components/actions/agent/action_agent_single_response_question.tsx",
+            "app/src/components/actions/run/popup/action_popup.test.tsx",
+            "app/src/components/actions/run/trigger/card_run_button.test.tsx",
+            "app/src/data/action_run_types.ts",
+            "app/src/data/electron_action_bridge.ts",
+            "app/src/services/actions/action_run_registry.node.test.ts",
+            "app/src/services/actions/action_run_registry.ts",
+            "app/src/services/data/remote_control_storage_service.node.test.ts",
+            "app/src/services/data/remote_control_storage_service.ts",
+            "desktop/src/actions/action/action_run.js",
+            "desktop/src/actions/action/action_run.test.mjs",
+            "desktop/src/actions/action/action_runner_service.js",
+            "desktop/src/actions/agent/agent_claude_streaming_adapter.js",
+            "desktop/src/actions/agent/agent_run_interactions.js",
+            "desktop/src/actions/agent/agent_run_state.js",
+            "desktop/src/actions/agent/agent_runner_service.js",
+            "desktop/src/actions/agent/agent_runner_state.test.mjs",
+            "desktop/src/actions/agent/agent_streaming_adapter.js",
+            "desktop/src/actions/agent/agent_streaming_adapter.test.mjs",
+            "desktop/src/actions/agent/agent_streaming_event_handlers.js",
+            "desktop/src/shell/local_bridge_dispatch.js",
+            "desktop/src/shell/local_bridge_dispatch.test.mjs",
+            "desktop/src/shell/preload.js",
+            "desktop/src/shell/preload.test.mjs"
+          ],
+          "filesChanged": 27,
+          "insertions": 841,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-22T16:11:11+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "bfad1b82-e967-48bc-af8f-a11ce1fa4a55",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
