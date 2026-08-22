@@ -13,8 +13,12 @@ branch: f_233_stats_improvements
 worktree: 3
 changedFiles:
   - app/src/services/stats/project_stats_service.node.test.ts
+  - app/src/services/stats/stats_subscription_cost.node.test.ts
+  - app/src/services/stats/stats_subscription_cost.ts
   - app/src/services/stats/stats_totals_dataset.ts
   - app/src/services/stats/stats_usage_comparison_dataset.ts
+  - design/feature_descriptions/F_224_add_subscription_costs.md
+  - design/feature_descriptions/F_242_stats_improvements.md
 ---
 * agent/model performance:
   * we currently have metrics: measured duration, tokens and toolcalls.
