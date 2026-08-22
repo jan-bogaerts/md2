@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__b632dc97-1096-488d-aae6-82c1516fa0b0.json
 policy:
 ---
 shortcut to save / commit the project.
