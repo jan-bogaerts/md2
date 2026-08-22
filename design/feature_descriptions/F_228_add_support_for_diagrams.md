@@ -27,9 +27,9 @@ A diagram can derive its content from a configured project source, such as modul
 
 The parent diagram definition can configure drill-down behavior for its items:
 
-- the child diagram definition to show after an item is selected;
-- the diagram action that loads the child diagram's data; and
-- the selected item's text passed to that action as input.
+* the child diagram definition to show after an item is selected;
+* the diagram action that loads the child diagram's data; and
+* the selected item's text passed to that action as input.
 
 The resulting child diagram follows the same model and can define another drill-down. Repeating this interaction lets users navigate from an overview into progressively more detailed diagrams and understand the project through its structure and relationships.
 
@@ -43,63 +43,63 @@ Rendering the SVG as an ordinary Markdown image is insufficient for this interac
 
 The generated diagram needs an interaction contract that associates each clickable SVG item with at least:
 
-- a stable item identifier;
-- the item's displayed or source text; and
-- the parent diagram's configured drill-down target.
+* a stable item identifier;
+* the item's displayed or source text; and
+* the parent diagram's configured drill-down target.
 
 Clickable items must also expose keyboard focus and an accessible name. The visual output remains usable when no drill-down is configured.
 
 ## Open design questions
 
-- How diagram definitions, generated SVG, and interaction metadata are stored.
-- How a diagram action receives the Diagram Design skill or shared generation instructions.
-- How the selected item text is represented in the action context and prompt placeholders.
-- How generated SVG is sanitized before it is inserted into the application DOM.
-- Whether generated child diagrams are persisted, cached, or regenerated when opened.
-- How users return to parent diagrams and see their current location in a drill-down chain.
+* How diagram definitions, generated SVG, and interaction metadata are stored.
+* How a diagram action receives the Diagram Design skill or shared generation instructions.
+* How the selected item text is represented in the action context and prompt placeholders.
+* How generated SVG is sanitized before it is inserted into the application DOM.
+* Whether generated child diagrams are persisted, cached, or regenerated when opened.
+* How users return to parent diagrams and see their current location in a drill-down chain.
 
 ## Diagram types useful for software development
 
 ### Software architecture and design
 
-- **Architecture:** components, services, stores, external systems, and their connections.
-- **IT current-state:** legacy systems grouped by phase or department for modernization work.
-- **High-level:** a simplified end-to-end system or data-platform overview.
-- **Layer stack:** application layers, abstractions, governance controls, or security defenses.
-- **Nested:** system boundaries, scopes, ownership, and containment.
-- **Tree:** file structures, syntax trees, configuration, or hierarchical data.
-- **Dependency graph:** module, package, service, or build dependencies, including fan-in and cycles.
-- **UML class:** classes, operations, inheritance, and composition in object-oriented designs.
+* **Architecture:** components, services, stores, external systems, and their connections.
+* **IT current-state:** legacy systems grouped by phase or department for modernization work.
+* **High-level:** a simplified end-to-end system or data-platform overview.
+* **Layer stack:** application layers, abstractions, governance controls, or security defenses.
+* **Nested:** system boundaries, scopes, ownership, and containment.
+* **Tree:** file structures, syntax trees, configuration, or hierarchical data.
+* **Dependency graph:** module, package, service, or build dependencies, including fan-in and cycles.
+* **UML class:** classes, operations, inheritance, and composition in object-oriented designs.
 
 ### Behavior and interaction
 
-- **Flowchart:** algorithms, validation, branching business logic, and policy evaluation.
-- **Sequence:** time-ordered API calls, events, authentication, and asynchronous interactions.
-- **State machine:** UI, workflow, job, connection, or domain-state lifecycles.
-- **Swimlane:** processes involving several services, users, or teams, with explicit handoffs.
-- **Process:** ordered multi-actor workflows and data handoffs.
+* **Flowchart:** algorithms, validation, branching business logic, and policy evaluation.
+* **Sequence:** time-ordered API calls, events, authentication, and asynchronous interactions.
+* **State machine:** UI, workflow, job, connection, or domain-state lifecycles.
+* **Swimlane:** processes involving several services, users, or teams, with explicit handoffs.
+* **Process:** ordered multi-actor workflows and data handoffs.
 
 ### Data and runtime
 
-- **ER / data model:** conceptual entities, fields, and relationships.
-- **Database schema:** physical tables, types, constraints, indexes, and foreign keys.
-- **Data flow:** how information moves and transforms through a system.
-- **Deployment:** runtime zones, hosts, containers, artifacts, ports, and replicas.
-- **Medallion:** bronze, silver, and gold analytical data layers.
-- **DP integration:** data-platform sources, core services, and consumers.
-- **DP security matrix:** permissions by role or component.
-- **Sankey:** quantified traffic, cost, event, or data-volume movement through a system.
+* **ER / data model:** conceptual entities, fields, and relationships.
+* **Database schema:** physical tables, types, constraints, indexes, and foreign keys.
+* **Data flow:** how information moves and transforms through a system.
+* **Deployment:** runtime zones, hosts, containers, artifacts, ports, and replicas.
+* **Medallion:** bronze, silver, and gold analytical data layers.
+* **DP integration:** data-platform sources, core services, and consumers.
+* **DP security matrix:** permissions by role or component.
+* **Sankey:** quantified traffic, cost, event, or data-volume movement through a system.
 
 ### Planning, product, and operations
 
-- **Timeline:** incident reconstruction, migrations, release history, and other dated events.
-- **Gantt:** release, migration, or infrastructure project planning.
-- **Kanban:** work in progress, limits, states, and blocked work.
-- **Story map:** user activities divided into features and release slices.
-- **User journey:** user actions and experience across product stages.
-- **Quadrant:** risk, impact, effort, or priority comparisons on two axes.
-- **Fishbone:** grouped causes used for incident and defect root-cause analysis.
-- **Wardley map:** value-chain evolution and build-versus-buy decisions.
-- **Org chart:** code ownership, team responsibility, routing, and escalation.
+* **Timeline:** incident reconstruction, migrations, release history, and other dated events.
+* **Gantt:** release, migration, or infrastructure project planning.
+* **Kanban:** work in progress, limits, states, and blocked work.
+* **Story map:** user activities divided into features and release slices.
+* **User journey:** user actions and experience across product stages.
+* **Quadrant:** risk, impact, effort, or priority comparisons on two axes.
+* **Fishbone:** grouped causes used for incident and defect root-cause analysis.
+* **Wardley map:** value-chain evolution and build-versus-buy decisions.
+* **Org chart:** code ownership, team responsibility, routing, and escalation.
 
 Generic chart types are outside the scope of this feature.
