@@ -22,5 +22,7 @@ policy:
     {value}&#x20;
     if value is time based, convert it to HH:MM:SS
   * the label below the bar should only contain the card id, not the agent or model.
-  * I'm not certain why we include the account name in the legend? here all we need to know: was it claude or codex
+  * for estimated cost:&#x20;
+    * I'm not certain why we include the account name in the legend? here all we need to know: was it claude or codex, possibly which model.
+    * I hope this is calculated as: sum of (tokens \* cost per token for agent used) for each action that was run by the card. This way, some cards can have actions with mixed agents. these should have a legend color of 'mixed'
   * make legend sticky to the left side for scrollling
