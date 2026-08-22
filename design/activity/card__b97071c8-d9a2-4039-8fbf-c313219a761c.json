@@ -19,7 +19,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 102735
+        "usedTokens": 108258
       },
       "entries": [
         {
@@ -811,6 +811,143 @@
           "role": "user",
           "sequence": 59,
           "timestamp": "2026-08-22T14:42:09.158Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-c6ab87cc-e839-4e7d-8529-227bf4de1032-event-60",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0d7f72151d7a844f016a89b5458b5487d2802a414e03b31292",
+          "sequence": 60,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T14:42:13.277Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Agreed. I’ll revise the note so the architectural unit is a reusable agent protocol—Codex, Claude, and ACP—with OpenCode represented as the first ACP-backed profile. I’m using the `technical-writer` skill to keep that distinction explicit and the investigation concise.\n\n",
+          "id": "agent-turn-c6ab87cc-e839-4e7d-8529-227bf4de1032-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 61,
+          "timestamp": "2026-08-22T14:42:14.643Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw '.agents\\\\skills\\\\technical-writer\\\\SKILL.md'\"",
+          "content": "",
+          "durationMs": 3,
+          "exitCode": 0,
+          "id": "agent-turn-c6ab87cc-e839-4e7d-8529-227bf4de1032-event-62",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw '.agents\\\\skills\\\\technical-writer\\\\SKILL.md'\"",
+          "providerItemId": "exec-b6dfb0f7-b4dd-4e8f-b937-a1bdec6012b2",
+          "sequence": 62,
+          "status": "completed",
+          "timestamp": "2026-08-22T14:42:16.375Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-c6ab87cc-e839-4e7d-8529-227bf4de1032-event-63",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0d7f72151d7a844f016a89b54b723c87d2a0eb613bc69667ba",
+          "sequence": 63,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T14:42:25.745Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "The key correction is that `profile.name` currently doubles as both runner identity and protocol selector. The note should recommend separating those concerns: profiles configure executables/models, while a required `protocol` selects command construction and event/session/permission handling. OpenCode then needs little provider-specific orchestration beyond its ACP profile.\n\n",
+          "id": "agent-turn-c6ab87cc-e839-4e7d-8529-227bf4de1032-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 64,
+          "timestamp": "2026-08-22T14:42:28.851Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_226_investigate_integration_of_opencodex.md",
+          "deletions": 8,
+          "id": "agent-turn-c6ab87cc-e839-4e7d-8529-227bf4de1032-event-65",
+          "insertions": 11,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-dc9f7b59-74d6-446c-bb09-0a87e9161c78",
+          "sequence": 65,
+          "status": "completed",
+          "timestamp": "2026-08-22T14:42:53.745Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-c6ab87cc-e839-4e7d-8529-227bf4de1032-event-66",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0d7f72151d7a844f016a89b57244c487d2b547e74fe0d002c4",
+          "sequence": 66,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T14:42:56.811Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff --check -- 'design/feature_descriptions/F_226_investigate_integration_of_opencodex.md'\"",
+          "content": "",
+          "durationMs": 30,
+          "exitCode": 0,
+          "id": "agent-turn-c6ab87cc-e839-4e7d-8529-227bf4de1032-event-67",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff --check -- 'design/feature_descriptions/F_226_investigate_integration_of_opencodex.md'\"",
+          "providerItemId": "exec-a35208d8-8c50-47e2-bb9e-0903a1793da1",
+          "sequence": 67,
+          "status": "completed",
+          "timestamp": "2026-08-22T14:42:58.832Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\feature_descriptions\\\\F_226_investigate_integration_of_opencodex.md'\"",
+          "content": "---\nauthor: \nid: F_226\ninternalId: b97071c8-d9a2-4039-8fbf-c313219a761c\ntitle: investigate integration of opencodex\nstatus: new\nowner: \naffects:\nagents:\n  - design/activity/card__b97071c8-d9a2-4039-8fbf-c313219a761c.json\npolicy:\nafter: ed8ce460-5ff7-46f0-8bf2-09764585b8b2\n---\n\nwe need to check if it is possible to integrate the `opencodex` agent  runner in a similar way as we did for codex and claude\n\n## Investigation\n\nThe runner is named [OpenCode](https://dev.opencode.ai/docs/), not OpenCodex. Integration is feasible through a new reusable agent protocol.\n\nMD2 currently has profiles for Codex and Claude, but a profile does not declare its protocol. Instead, command construction, output parsing, streaming, permissions, and resume behavior are selected through hard-coded checks against the profile name. This prevents a profile for another runner from reusing an existing protocol.\n\nOpenCode offers three relevant interfaces:\n\n- `opencode run --format json` provides provider-specific JSONL events. Supporting this would require an OpenCode-specific protocol and would not provide MD2's interactive approval flow. See the [CLI documentation](https://dev.opencode.ai/docs/cli/).\n- `opencode acp` provides a persistent JSON-RPC process with sessions, tool updates, and interactive permission requests. ACP is runner-neutral and fits the current streaming conversation model. See the [ACP documentation](https://dev.opencode.ai/docs/acp/).\n- `opencode serve` exposes an HTTP API and server-sent event stream. It supports sessions and permission responses, but adds server lifecycle, port, and authentication handling without a clear benefit over ACP for the desktop app. See the [server documentation](https://dev.opencode.ai/docs/server/).\n\n### Required work\n\n- Add a required protocol identifier to agent profiles. The existing profiles use `codex` and `claude`; the OpenCode profile uses `acp`.\n- Select command construction, output parsing, streaming, permissions, and resume behavior by protocol instead of profile name. Profiles continue to own the executable, supported models, and defaults.\n- Add an ACP adapter in `desktop/src/actions/agent/agent_streaming_adapter.js`, including initialization, session creation/loading, prompts, assistant and tool updates, permission responses, cancellation, token usage, and changed paths.\n- Add an `opencode` built-in profile configured to start `opencode acp`. OpenCode becomes the first ACP-backed profile, while future ACP runners can reuse the same adapter.\n- Extend the hard-coded provider lists used by usage-metrics persistence and loading. Account quota polling should remain unsupported unless a reliable provider-neutral source is found.\n- Add protocol fixtures and tests for execution, continuation, malformed output, token accounting, file changes, permissions, cancellation, and a missing session.\n\n### Risks and recommendation\n\nOpenCode supports many dynamically configured providers/models while MD2 profiles use static model lists. The first implementation can keep an explicit model list; dynamic capability discovery is separate work. ACP support must also define which optional ACP capabilities MD2 requires and how unsupported capabilities are reported. The local machine does not currently have the `opencode` executable installed, so no end-to-end Windows probe was possible.\n\nAdd ACP as the third supported protocol beside Codex and Claude, then add OpenCode as its first profile. Do not add a separate OpenCode JSONL protocol or use `opencode serve` unless an ACP capability gap is verified.\n\r\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-c6ab87cc-e839-4e7d-8529-227bf4de1032-event-68",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\feature_descriptions\\\\F_226_investigate_integration_of_opencodex.md'\"",
+          "providerItemId": "exec-9265ef78-eb03-417e-951e-69b753d3c0b7",
+          "sequence": 68,
+          "status": "completed",
+          "timestamp": "2026-08-22T14:43:02.187Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-c6ab87cc-e839-4e7d-8529-227bf4de1032-event-69",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0d7f72151d7a844f016a89b579823487d2841ac96b3aca69a6",
+          "sequence": 69,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T14:43:05.493Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Updated [F_226](C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_226_investigate_integration_of_opencodex.md:16) accordingly:\n\n- Profiles declare a protocol.\n- Existing protocols: `codex` and `claude`.\n- Next reusable protocol: `acp`.\n- OpenCode becomes the first ACP-backed profile.\n- Avoid a separate OpenCode JSONL implementation unless ACP proves insufficient.\n\nAlso clarified which behavior belongs to protocols versus profiles. `git diff --check` passes.\n\n",
+          "id": "agent-turn-c6ab87cc-e839-4e7d-8529-227bf4de1032-turn-2-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 70,
+          "timestamp": "2026-08-22T14:43:07.896Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -832,11 +969,11 @@
       },
       "title": "+",
       "usage": {
-        "cachedInputTokens": 1151232,
-        "inputTokens": 102576,
-        "outputTokens": 2680,
-        "reasoningTokens": 1366,
-        "totalTokens": 1257854
+        "cachedInputTokens": 1674240,
+        "inputTokens": 111604,
+        "outputTokens": 4277,
+        "reasoningTokens": 1758,
+        "totalTokens": 1791879
       },
       "usageSchemaVersion": 1,
       "viewed": true
