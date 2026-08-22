@@ -12,6 +12,8 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 142213314
 sentryOrganization: elastetic
+branch: b_172_error_cannot_switch_markdown_history_before_editor_is_attached
+worktree: 2
 ---
 ## Sentry issue
 
@@ -88,8 +90,6 @@ sentryOrganization: elastetic
 * `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-UyamjWOn.js:589:11956` — u
 * `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-UyamjWOn.js:630:58134` — v5.switchDocument
 
-
-
 Uncaught Error Error: Cannot switch Markdown history before editor is attached
 at switchDocument (c:\Users\janbo\Documents\dev\md2\app\src\components\editor\markdown\_document\_history\_store.ts:120:28)
 at applyPendingDocumentChange (c:\Users\janbo\Documents\dev\md2\app\src\components\editor\markdown\_document\_history\_monitor.tsx:41:26)
@@ -116,21 +116,21 @@ History monitor is shared by `board-card`, `list-card`, and `list-action`. Verif
 
 ## Implementation details
 
-- Give editor attachment and data-source monitoring one React effect lifecycle. Setup must attach Lexical editor before subscribing and reconciling current target. Cleanup must remove listeners and pending retry callback before detaching editor. This prevents any subscribed monitor from observing a detached store.
-- Keep lifecycle active while ancestor passive cleanup clears board binding. `setBoardDocument(null)` must still flush outgoing Markdown, switch active history to no target, discard history, and close board document in current order.
-- Preserve startup reconciliation: target changes that occur before effect setup must load after attachment. React `StrictMode` cleanup and restart must detach and reattach once per lifecycle without losing selected Prompt content.
-- Keep `switchDocument` fail-fast check. Do not hide invalid lifecycle with an attachment flag, ignored exception, stale editor reference, polling, delay, or empty-Markdown fallback.
-- Keep all shared call-site behavior. Board-card retains popup-close flush and document release; list-card retains card switching and independent history; list-action retains Prompt/phrase switching, missed-event reconciliation, and independent section histories.
-- Add installed-MDXEditor regression coverage reproducing ancestor passive cleanup clearing an active target during editor removal. Extend popup coverage to verify clean and dirty card close, binding clear, history discard, and board-document close. Existing stub-only tests cannot prove effect ordering.
-- Run focused Markdown history, real-editor, card-body, card-popup, and action-editor tests; then app unit tests and lint.
+* Give editor attachment and data-source monitoring one React effect lifecycle. Setup must attach Lexical editor before subscribing and reconciling current target. Cleanup must remove listeners and pending retry callback before detaching editor. This prevents any subscribed monitor from observing a detached store.
+* Keep lifecycle active while ancestor passive cleanup clears board binding. `setBoardDocument(null)` must still flush outgoing Markdown, switch active history to no target, discard history, and close board document in current order.
+* Preserve startup reconciliation: target changes that occur before effect setup must load after attachment. React `StrictMode` cleanup and restart must detach and reattach once per lifecycle without losing selected Prompt content.
+* Keep `switchDocument` fail-fast check. Do not hide invalid lifecycle with an attachment flag, ignored exception, stale editor reference, polling, delay, or empty-Markdown fallback.
+* Keep all shared call-site behavior. Board-card retains popup-close flush and document release; list-card retains card switching and independent history; list-action retains Prompt/phrase switching, missed-event reconciliation, and independent section histories.
+* Add installed-MDXEditor regression coverage reproducing ancestor passive cleanup clearing an active target during editor removal. Extend popup coverage to verify clean and dirty card close, binding clear, history discard, and board-document close. Existing stub-only tests cannot prove effect ordering.
+* Run focused Markdown history, real-editor, card-body, card-popup, and action-editor tests; then app unit tests and lint.
 
 ## Acceptance criteria
 
-- Closing card-details popup with active board-card editor does not report `Cannot switch Markdown history before editor is attached`.
-- Popup cleanup clears active `board-card` target, discards its history, and closes board document after outgoing Markdown is flushed.
-- Dirty card body is committed before document closes; clean body remains unchanged. Reopening card shows persisted content.
-- Target change before history lifecycle setup is reconciled after editor attaches. Prompt selected immediately, after initialization, or through persisted state still loads complete content.
-- React `StrictMode` setup-cleanup probe leaves history attached when monitoring is active and produces no teardown error.
-- List-card switching and list-action Prompt/phrase switching preserve content plus independent undo/redo histories.
-- Unmounting list-card or list-action editor cannot deliver a data-source event to detached history store.
-- Regression test uses installed MDXEditor and fails with current split layout/passive lifecycle. Focused tests, app unit tests, and app lint pass.
+* Closing card-details popup with active board-card editor does not report `Cannot switch Markdown history before editor is attached`.
+* Popup cleanup clears active `board-card` target, discards its history, and closes board document after outgoing Markdown is flushed.
+* Dirty card body is committed before document closes; clean body remains unchanged. Reopening card shows persisted content.
+* Target change before history lifecycle setup is reconciled after editor attaches. Prompt selected immediately, after initialization, or through persisted state still loads complete content.
+* React `StrictMode` setup-cleanup probe leaves history attached when monitoring is active and produces no teardown error.
+* List-card switching and list-action Prompt/phrase switching preserve content plus independent undo/redo histories.
+* Unmounting list-card or list-action editor cannot deliver a data-source event to detached history store.
+* Regression test uses installed MDXEditor and fails with current split layout/passive lifecycle. Focused tests, app unit tests, and app lint pass.
