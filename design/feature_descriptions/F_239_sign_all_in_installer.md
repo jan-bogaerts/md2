@@ -3,7 +3,7 @@ author:
 id: F_239
 internalId: 1c141485-6431-438a-a4ca-9443f75443e2
 title: sign all in installer
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

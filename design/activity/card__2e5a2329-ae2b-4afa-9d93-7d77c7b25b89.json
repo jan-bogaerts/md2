@@ -1674,7 +1674,7 @@
         "totalTokens": 1415787
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -1745,6 +1745,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "030c70e7ed99c60ed9e68577a1b57f7fa2f4c800",
           "committedAt": "2026-08-22T10:58:50+02:00",
           "deletions": 10,
@@ -1753,8 +1754,7 @@
             "app/src/components/stats_view/stats_bar_chart.tsx"
           ],
           "filesChanged": 2,
-          "insertions": 179,
-          "branch": "dev_main"
+          "insertions": 179
         }
       ],
       "completedAt": "2026-08-22T10:58:50+02:00",
