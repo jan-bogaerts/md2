@@ -976,6 +976,10 @@
       "cardInternalId": "c8999726-4f9a-4963-ba9b-7c32b2190156",
       "cardPath": "design/feature_descriptions/B_170_sub_agent_support_claude.md",
       "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 1000000,
+        "usedTokens": 142054
+      },
       "entries": [
         {
           "content": "Read and implement the feature/job described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_170_sub_agent_support_claude.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests.\n5. After implementation is done, update the field `status` in the markdown feature description file to \\`ready\\`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_170_sub_agent_support_claude.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria.&#x20;\n\nYou should only run the related tests, do not run the entire test suite, that will be done manually later on.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill",
@@ -984,6 +988,1191 @@
           "role": "user",
           "sequence": 1,
           "timestamp": "2026-08-22T09:35:11.161Z"
+        },
+        {
+          "agent": "claude",
+          "content": "I'll read the spec first.",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 2,
+          "timestamp": "2026-08-22T09:35:14.128Z"
+        },
+        {
+          "content": "---\nauthor: \nid: B_170\ninternalId: c8999726-4f9a-4963-ba9b-7c32b2190156\ntitle: sub agent support claude\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__c8999726-4f9a-4963-ba9b-7c32b2190156.json\npolicy:\nafter: bfad1b82-e967-48bc-af8f-a11ce1fa4a55\nbranch: b_170_sub_agent_support_claude\nworktree: 1\n---\nclaude tried to start a sub agent which terminated the conversation. we need to add full support to sub agents in claude\n\n## Current state\n\nmd2 runs Claude as a child process. `buildClaudeStreamingCommand` in `shared/agent_profiles.mjs` starts it with `--print --verbose --output-format stream-json --include-partial-messages --input-format stream-json --permission-prompt-tool stdio`, and `createAgentEnvironment` in `desktop/src/actions/agent/agent_environment.js` copies the parent environment with only the two debugger variables removed. Nothing in that command line or environment mentions sub agents.\n\n`ClaudeStreamingAdapter` in `desktop/src/actions/agent/agent_claude_streaming_adapter.js` decodes that stream. It keeps exactly one set of turn state fields for the whole process: `activeMessageId`, `activeBlocks` keyed by content-block index, `activeTextOrdinal`, and `turnHasAssistantText`. That design assumes a single message is being streamed at any moment.\n\nClaude marks every message produced by a sub agent with `parent_tool_use_id`, naming the `Agent` tool call that spawned it. Neither `agent_claude_streaming_adapter.js` nor `agent_claude_events.js` reads that field, so parent and sub-agent frames are folded into the same state:\n\n* A sub-agent `message_start` overwrites `activeMessageId` and clears `activeBlocks`. A `content_block_delta` belonging to the parent message that arrives afterwards no longer finds its tracked block, so `handleContentBlockDelta` calls `emitProtocolError('invalid content_block_delta')` and the parent's streamed text stops growing.\n* `handleToolResults` resolves a `tool_result` by searching `activeBlocks` for the matching `tool_use` id. After the interleaved clear, the parent's tool call is gone from that map, so its result is rendered as a bare `tool.result` row instead of completing the original tool row.\n* Sub-agent text blocks reach `handleAssistantCompletion` and become ordinary assistant items, so sub-agent output is attributed to the main agent in the transcript and in `run.assistantItems`.\n\nErrors thrown out of `handleMessage` are not recoverable. `handleStreamingLine` in `desktop/src/actions/agent/agent_runner_service.js` catches them and calls `failStreamingRun`, which marks the conversation `failed`, appends the error, ends the child's stdin and terminates the process tree. Every `throw new Error(...)` in the adapter is therefore a conversation-ending event, which is what the reported crash looked like from the user's side.\n\nApprovals are unaffected in shape — a sub agent's tool request arrives as the same `control_request` with subtype `can_use_tool`, keyed by a unique `request_id` — but `claudeApprovalRequest` records no origin, so the approval card cannot tell the user that a sub agent, not the main agent, is asking.\n\nBy default the Claude CLI does not forward sub-agent text or thinking at all; that requires the `--forward-subagent-text` flag or the `CLAUDE_CODE_FORWARD_SUBAGENT_TEXT` environment variable. Nested sub agents (depth two and deeper) are also only forwarded when that setting is on, keyed by the `Agent` tool-use id that spawned them.\n\nTwo more places constrain the fix. `normalizeEvent` in `shared/agent_conversations.mjs` rebuilds every event entry from an explicit field whitelist, so any field it does not know about is dropped when a conversation is persisted and reloaded. And `buildActionConversationRenderGroups` in `app/src/components/actions/conversation/action_conversation_render_groups.ts` produces a flat list of groups; the only existing nesting is `CompletedToolCallGroup`, which collapses adjacent completed tool calls.\n\n## implementation details\n\n* Turn forwarding on through the environment rather than the command line\n[2117 characters omitted]\n unknown frame shapes fatal. Replace the `throw new Error(...)` calls in `claudeApprovalRequest`, `handleContentBlockStart` and `handleAssistantCompletion` that sub-agent traffic can now reach with `emitProtocolError`, so a frame md2 does not understand degrades to one visible error row rather than killing the conversation. Genuine writer failures keep throwing.\n* Carry origin on approvals: add `parentItemId` and the sub agent's label to the approval object built by `claudeApprovalRequest`, thread it through `handleApproval` in `desktop/src/actions/agent/agent_streaming_event_handlers.js` unchanged, and show it in the approval card so the user sees which agent is asking. Decision handling and `availableDecisions` stay as they are.\n* Persist the new field: add `parentItemId` to `createProviderEventEntry` in `desktop/src/actions/agent/agent_conversation.js`, to the whitelist in `normalizeEvent` in `shared/agent_conversations.mjs`, and to `AgentConversationEvent` in `app/src/data/data_types.ts`. It is optional, so no activity-file version bump is needed and older files stay readable.\n* Nest in the transcript: extend `buildActionConversationRenderGroups` with a `subAgent` group that collects consecutive entries sharing a `parentItemId` and attaches them to the `tool.Agent` entry with that provider item id. Render it with a new component modeled on `CompletedToolCallGroup` — collapsed by default, header showing the sub agent's label and the entry count, expanded body reusing `ActionConversationEventRow`. Entries whose `parentItemId` names a tool call that never arrived render flat, so a truncated stream still shows its content.\n* Nested sub agents (depth two and deeper) attach to the `Agent` tool call that spawned them, which is itself a sub-agent entry, so the grouping is applied recursively rather than only one level deep.\n* Tests: extend `desktop/src/actions/agent/agent_streaming_adapter.test.mjs` with interleaved parent and sub-agent frames, a sub-agent approval, a sub-agent `result` frame, and a nested sub agent; extend the conversation round-trip coverage in `shared` so `parentItemId` survives persist and reload; extend `app/src/components/actions/conversation/action_conversation_rendering.test.tsx` for nesting, collapse and the orphaned-parent case.\n\n## acceptance criteria\n\n* A Claude conversation in which the agent spawns one or more sub agents runs to completion; no sub-agent frame marks the conversation `failed` or terminates the child process.\n* Parent assistant text streamed before, during and after a sub agent's run stays in one transcript message with its content intact, and no `Claude protocol error` row appears for well-formed traffic.\n* A tool call issued by the main agent completes on its own transcript row even when sub-agent frames arrive between the call and its result.\n* Sub-agent text, thinking and tool calls appear grouped under the `Agent` tool call that spawned them, collapsed by default, with the sub agent's label and entry count in the header.\n* Sub agents nested more than one level deep appear under their own spawning `Agent` entry, not flattened into the top-level sub agent's group.\n* No sub-agent output appears as a main-agent assistant message, and the provider session id recorded for resume is unchanged by sub-agent activity.\n* An approval requested by a sub agent shows which agent asked, and accepting, declining or cancelling it behaves exactly as the equivalent main-agent approval.\n* Reopening a persisted conversation reproduces the same nesting, because `parentItemId` survives the round trip through the activity file.\n* Activity files written before this change still load, and files written after it remain readable by the current parser without a version bump.\n* On a Claude CLI that does not support sub-agent text forwarding, the run still starts and completes, showing the `Agent` tool call and its result without nested content.\n* Token usage, cost and context-window figures for the turn are unchanged by sub-agent activity, since only the top-level `result` frame reports them.",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-3",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01PnN5voHfdEP5Vg1cd5bNSd",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-08-22T09:35:17.663Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-4",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHZQ2vurWticuB8zo9hM:thinking:0",
+          "sequence": 4,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T09:35:19.452Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "   515 desktop/src/actions/agent/agent_claude_streaming_adapter.js\n    64 desktop/src/actions/agent/agent_claude_events.js\n    13 desktop/src/actions/agent/agent_environment.js\n   176 desktop/src/actions/agent/agent_conversation.js\n   239 desktop/src/actions/agent/agent_streaming_event_handlers.js\n   306 shared/agent_conversations.mjs\n    69 app/src/components/actions/conversation/action_conversation_render_groups.ts\n  1462 desktop/src/actions/agent/agent_streaming_adapter.test.mjs\n   119 app/src/components/actions/conversation/action_conversation_rendering.test.tsx\n  2963 total",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-5",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_013ykeY6YZH2MJBNkSidDV4a",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-08-22T09:35:21.713Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "const { normalizedContent } = require('./agent_event_utils');\nconst { boundedAgentResult } = require('../../../../shared/agent_conversations.mjs');\nconst { claudeChangedPaths, claudeUsage } = require('./agent_claude_events');\nconst { isMissingSession } = require('./agent_provider_protocol');\n\nconst CLAUDE_APPROVAL_DECISIONS = ['accept', 'acceptForSession', 'decline', 'cancel'];\nconst CLAUDE_CONTEXT_USAGE_TIMEOUT_MS = 1_000;\nconst CLAUDE_FILE_TOOLS = new Set(['Edit', 'MultiEdit', 'NotebookEdit', 'Write']);\nconst CLAUDE_QUESTION_TOOL = 'AskUserQuestion';\n\nfunction requireMessage(content) {\n    if (typeof content !== 'string' || content.trim().length === 0) throw new Error('Streaming agent message is required');\n\n    return content;\n}\n\nfunction claudeUserMessage(content) {\n    return { message: { content, role: 'user' }, type: 'user' };\n}\n\nfunction claudeControlResponse(requestId, response) {\n    return {\n        response: { request_id: requestId, response, subtype: 'success' },\n        type: 'control_response',\n    };\n}\n\nfunction claudeContextUsageRequest(requestId) {\n    return {\n        request: { subtype: 'get_context_usage' },\n        request_id: requestId,\n        type: 'control_request',\n    };\n}\n\nfunction claudeContextWindowUsage(event) {\n    const response = event.response;\n    if (!response || typeof response !== 'object' || Array.isArray(response) || response.subtype !== 'success') return null;\n    const contextUsage = response.response;\n    if (!contextUsage || typeof contextUsage !== 'object' || Array.isArray(contextUsage)) return null;\n    const { maxTokens, totalTokens } = contextUsage;\n    if (!Number.isSafeInteger(totalTokens) || totalTokens < 0) return null;\n    if (!Number.isSafeInteger(maxTokens) || maxTokens <= 0) return null;\n\n    return { capacityTokens: maxTokens, usedTokens: totalTokens };\n}\n\nfunction claudeQuestionRequest(event) {\n    if (event.type !== 'control_request' || event.request?.subtype !== 'can_use_tool') return null;\n    if (event.request.tool_name !== CLAUDE_QUESTION_TOOL || !Array.isArray(event.request.input?.questions)) return null;\n\n    const questions = event.request.input.questions.map((question, index) => ({\n        ...question,\n        id: question.id ?? `claude-question-${index}`,\n    }));\n\n    return {\n        input: event.request.input,\n        questions,\n        requestId: event.request_id,\n        toolUseId: event.request.tool_use_id,\n    };\n}\n\nfunction approvalFilePaths(toolName, input) {\n    if (!CLAUDE_FILE_TOOLS.has(toolName) || !input || typeof input !== 'object' || Array.isArray(input)) return [];\n    const filePath = toolName === 'NotebookEdit' ? input.notebook_path : input.file_path;\n\n    return typeof filePath === 'string' && filePath.length > 0 ? [filePath] : [];\n}\n\nfunction claudeApprovalRequest(event) {\n    if (event.type !== 'control_request' || event.request?.subtype !== 'can_use_tool') return null;\n    if (event.request.tool_name === CLAUDE_QUESTION_TOOL) return null;\n    const { input, permission_suggestions: permissionSuggestions, tool_name: toolName, tool_use_id: toolUseId } = event.request;\n    if (event.request_id === undefined || event.request_id === null) throw new Error('Missing Claude approval request id');\n    if (typeof toolName !== 'string' || toolName.length === 0) throw new Error('Missing Claude approval tool name');\n    if (typeof toolUseId !== 'string' || toolUseId.length === 0) throw new Error('Missing Claude approval tool use id');\n    if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('Missing Claude approval input');\n    if (permissionSuggestions !== undefined && !Array.isArray(permissionSuggestions)) {\n        throw new Error('Invalid Claude approval permission suggestions');\n    }\n    const availableDecisions = permissionSuggestions?.length > 0\n        ? CLAUDE_APPROVAL_DECISIONS\n        : CLAUDE_APPROVAL_DECISIONS.filter((decision) => decision !== 'acceptForSession');\n    const approval = {\n        approvalId: toolUseId,\n        availableDecisions,\n        command: toolName === 'Bash' && typeo\n[19567 characters omitted]\npendingContextUsage.timeout);\n        this.pendingContextUsage = null;\n        await this.onEvent({ ...pendingContextUsage.turnCompletedEvent, contextWindowUsage });\n    }\n\n    static ignoreProtocolNoise() {\n        // Valid protocol additions need no user-facing event until adapter support exists.\n    }\n\n    async emitProtocolError(content) {\n        const providerItemId = `error:${this.activeMessageId ?? 'unknown-message'}:${this.protocolErrorSequence}`;\n        this.protocolErrorSequence += 1;\n        const event = { ...eventBase(providerItemId, 'error', 'Claude protocol error', 'failed'), content };\n        await this.onEvent({ event, type: 'event' });\n    }\n}\n\nmodule.exports = { ClaudeStreamingAdapter };\n=====EVENTS=====\nconst { validateAgentTokenUsage } = require('../../../../shared/agent_usage_math.mjs');\nconst { normalizeChangedPaths, normalizedContent } = require('./agent_event_utils');\n\nconst CLAUDE_FILE_TOOLS = new Set(['Edit', 'MultiEdit', 'NotebookEdit', 'Write']);\n\n/**\n * Claude speaks the same stream-json wire format on both the one-shot and the streaming path, so\n * every decoder here is shared by `agent_provider_protocol` and `ClaudeStreamingAdapter`. Keep it\n * that way: a decoder that lives in only one of them silently gives the two paths different output\n * for identical agent behaviour.\n */\nfunction claudeAssistantText(event) {\n    if (event.type !== 'assistant' || !Array.isArray(event.message?.content)) return '';\n\n    return event.message.content\n        .filter(({ type }) => type === 'text')\n        .map(({ text }) => text)\n        .filter((text) => typeof text === 'string')\n        .join('');\n}\n\nfunction claudeChangedPaths(event, rootPath) {\n    if (event.type !== 'assistant' || !Array.isArray(event.message?.content)) return [];\n\n    const filePaths = event.message.content\n        .filter((block) => block?.type === 'tool_use' && CLAUDE_FILE_TOOLS.has(block.name))\n        .map(({ input, name }) => name === 'NotebookEdit' ? input?.notebook_path : input?.file_path);\n\n    return normalizeChangedPaths(rootPath, filePaths);\n}\n\n/** Tool calls and their results, so the transcript shows what ran as well as what came back. */\nfunction claudeTranscriptEvents(event) {\n    if (!Array.isArray(event.message?.content)) return [];\n    if (event.type === 'assistant') {\n        return event.message.content\n            .filter((block) => block?.type === 'tool_use')\n            .map((block) => ({ content: JSON.stringify(block.input ?? {}), toolType: `tool.${block.name}` }));\n    }\n    if (event.type === 'user') {\n        return event.message.content\n            .filter((block) => block?.type === 'tool_result')\n            .map((block) => ({ content: normalizedContent(block.content), toolType: 'tool.result' }))\n            .filter(({ content }) => content !== null);\n    }\n\n    return [];\n}\n\n// Claude folds thinking into output_tokens, so reasoningTokens is always 0, and reports cache\n// creation and cache reads as buckets alongside a cache-free input_tokens.\nfunction claudeUsage(event) {\n    if (event.type !== 'result' || !event.usage || typeof event.usage !== 'object' || Array.isArray(event.usage)) return null;\n\n    return validateAgentTokenUsage({\n        cachedInputTokens: (event.usage.cache_creation_input_tokens ?? 0) + (event.usage.cache_read_input_tokens ?? 0),\n        costUsd: event.total_cost_usd,\n        inputTokens: event.usage.input_tokens,\n        outputTokens: event.usage.output_tokens,\n        reasoningTokens: 0,\n    }, event.usage.total_tokens);\n}\n\nmodule.exports = { claudeAssistantText, claudeChangedPaths, claudeTranscriptEvents, claudeUsage };\n=====ENV=====\nconst BLOCKED_AGENT_ENVIRONMENT_VARIABLES = new Set([\n    'node_options',\n    'vscode_inspector_options',\n]);\n\n/** Copy parent environment without editor debugger auto-attach settings. */\nfunction createAgentEnvironment(environment) {\n    return Object.fromEntries(\n        Object.entries(environment).filter(([name]) => !BLOCKED_AGENT_ENVIRONMENT_VARIABLES.has(name.toLowerCase())),\n    );\n}\n\nmodule.exports = { createAgentEnvironment };",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-6",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01Vsc6CY6E1ScKnDqJMETzWa",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-08-22T09:35:24.278Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "./desktop/src/actions/agent/agent_environment.js:7:function createAgentEnvironment(environment) {\n./desktop/src/actions/agent/agent_environment.js:13:module.exports = { createAgentEnvironment };\n./desktop/src/actions/agent/agent_environment.test.mjs:5:const { createAgentEnvironment } = require('./agent_environment');\n./desktop/src/actions/agent/agent_environment.test.mjs:7:describe('createAgentEnvironment', () => {\n./desktop/src/actions/agent/agent_environment.test.mjs:15:        expect(createAgentEnvironment(environment)).toEqual({ Path: 'C:\\\\tools' });\n./desktop/src/actions/agent/agent_runner_service.js:20:const { createAgentEnvironment } = require('./agent_environment');\n./desktop/src/actions/agent/agent_runner_service.js:139:        const environment = createAgentEnvironment(process.env);\n./desktop/src/actions/agent/agent_runner_service.js:322:        const environment = createAgentEnvironment(process.env);\n=====CONV=====\nconst { sumAgentTokenUsage } = require('../../../../shared/agent_usage_math.mjs');\nconst {\n    AGENT_CONVERSATION_USAGE_SCHEMA_VERSION,\n    boundedAgentResult,\n} = require('../../../../shared/agent_conversations.mjs');\n\nfunction createMessageEntry(id, role, content, timestamp, agent, sequence) {\n    return {\n        ...(agent ? { agent } : {}),\n        content,\n        id,\n        kind: 'message',\n        role,\n        ...(Number.isSafeInteger(sequence) ? { sequence } : {}),\n        timestamp,\n    };\n}\n\nfunction createEventEntry(id, type, content, timestamp, sequence) {\n    return {\n        content,\n        id,\n        kind: 'event',\n        ...(Number.isSafeInteger(sequence) ? { sequence } : {}),\n        timestamp,\n        type,\n    };\n}\n\nfunction createProviderEventEntry(providerEvent, id, timestamp, sequence) {\n    const content = providerEvent.type === 'commandExecution' || providerEvent.type === 'tool.result'\n        ? boundedAgentResult(providerEvent.content)\n        : providerEvent.content;\n    const event = {\n        content,\n        id,\n        kind: 'event',\n        label: providerEvent.label,\n        providerItemId: providerEvent.providerItemId,\n        sequence,\n        status: providerEvent.status,\n        timestamp,\n        type: providerEvent.type,\n    };\n    if (typeof providerEvent.command === 'string') event.command = providerEvent.command;\n    if (Number.isSafeInteger(providerEvent.deletions) && providerEvent.deletions >= 0) event.deletions = providerEvent.deletions;\n    if (Array.isArray(providerEvent.details)) event.details = [...providerEvent.details];\n    if (Number.isFinite(providerEvent.durationMs)) event.durationMs = providerEvent.durationMs;\n    if (Number.isSafeInteger(providerEvent.exitCode)) event.exitCode = providerEvent.exitCode;\n    if (Number.isSafeInteger(providerEvent.insertions) && providerEvent.insertions >= 0) event.insertions = providerEvent.insertions;\n    if (providerEvent.type !== 'commandExecution' && typeof providerEvent.output === 'string') {\n        event.output = boundedAgentResult(providerEvent.output);\n    }\n    if (Array.isArray(providerEvent.summary)) event.summary = [...providerEvent.summary];\n    if (typeof providerEvent.workingDirectory === 'string') event.workingDirectory = providerEvent.workingDirectory;\n\n    return event;\n}\n\nfunction accumulateUsage(current, turn) {\n    return sumAgentTokenUsage([current, turn]);\n}\n\n/** Updates conversation status and accumulates only completed running periods. */\nfunction transitionConversationStatus(conversation, status, transitionedAt) {\n    if (!conversation.timer) {\n        conversation.status = status;\n        return;\n    }\n\n    const wasRunning = conversation.status === 'running';\n    const isRunning = status === 'running';\n    if (wasRunning === isRunning) {\n        conversation.status = status;\n        return;\n    }\n    const transitionedAtMs = Date.parse(transitionedAt);\n    if (Number.isNaN(transitionedAtMs)) throw new Error('Invalid agent conversation timer transition timestamp');\n\n    if (isRunning) {\n        conversation.timer = { ...conversation.timer, runningStartedAt: transitionedAt };\n    } else {\n        const runningStartedAtMs = Date.parse(conversation.timer.runningStartedAt);\n        if (Number.isNaN(runningStartedAtMs)) throw new Error('Missing agent conversation running start timestamp');\n        if (transitionedAtMs < runningStartedAtMs) throw new Error('Agent conversation timer transition precedes running start');\n        conversation.timer = {\n            elapsedMs: conversation.timer.elapsedMs + transitionedAtMs - runningStartedAtMs,\n            runningStartedAt: null,\n        };\n    }\n    conversation.status = status;\n}\n\nfunction createConversation(request, id, startedAt, reference) {\n    if (request.conversation) {\n        const legacyUsage = request.conversation.usage && request.conversation.usageSchemaVersion === undefined\n            ? {\n                cachedInputTokens: 0,\n                inputTokens: 0,\n                legacyTotalTokens: request.conversation.usage.totalTokens,\n                outputTokens: 0,\n                reasoningTokens: 0,\n                totalTokens: request.conversation.usage.totalTokens,\n                ...(request.conversation.usage.costUsd !== undefined ? { costUsd: request.conversation.usage.costUsd } : {}),\n            }\n            : request.conversation.usage;\n        const conversation = {\n            ...request.conversation,\n            completedAt: null,\n            entries: [...request.conversation.entries],\n            path: reference,\n            providerSessions: [...request.conversation.providerSessions],\n            ...(legacyUsage ? { usage: legacyUsage } : {}),\n            usageSchemaVersion: AGENT_CONVERSATION_USAGE_SCHEMA_VERSION,\n        };\n        transitionConversationStatus(conversation, 'running', startedAt);\n\n        return conversation;\n    }\n\n    return {\n        actionId: request.actionId ?? null,\n        cardInternalId: request.activityOrigin.kind === 'card' ? request.activityOrigin.cardInternalId : null,\n        cardPath: request.cardPath ?? null,\n        completedAt: null,\n        entries: [],\n        hasExplicitTitle: true,\n        id,\n        path: reference,\n        providerSessions: [],\n        startedAt,\n        status: 'running',\n        timer: { elapsedMs: 0, runningStartedAt: startedAt },\n        title: typeof request.title === 'string' && request.title.length > 0 ? request.title : 'Agent run',\n        usageSchemaVersion: AGENT_CONVERSATION_USAGE_SCHEMA_VERSION,\n        viewed: true,\n    };\n}\n\n/** Snapshots the mutable conversation collections while reusing immutable entries. */\nfunction snapshotConversation(conversation) {\n    return {\n        ...conversation,\n        entries: [...conversation.entries],\n        providerSessions: [...conversation.providerSessions],\n    };\n}\n\nfunction updateProviderSession(run, synchronizedThroughMessageId, completedAt) {\n    const conversationId = run.providerConversationId ?? run.request.providerConversationId;\n    if (!conversationId) return;\n\n    const sessions = run.conversation.providerSessions;\n    const current = sessions.find(({ agent }) => agent === run.agent);\n    const nextSession = {\n        agent: run.agent,\n        conversationId,\n        createdAt: current?.createdAt ?? completedAt,\n        lastUsedAt: completedAt,\n        synchronizedThroughMessageId,\n    };\n    run.conversation.providerSessions = current\n        ? sessions.map((session) => (session.agent === run.agent ? nextSession : session))\n        : [...sessions, nextSession];\n}\n\nmodule.exports = {\n    accumulateUsage,\n    createProviderEventEntry,\n    createConversation,\n    createEventEntry,\n    createMessageEntry,\n    snapshotConversation,\n    transitionConversationStatus,\n    updateProviderSession,\n};",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-7",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_018iwMJJwZbsCcVmzYJsoSaf",
+          "sequence": 7,
+          "status": "completed",
+          "timestamp": "2026-08-22T09:35:51.276Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "import { normalizeAgentTokenUsage } from './agent_usage_math.mjs';\n\nconst AGENT_MESSAGE_ROLES = new Set(['assistant', 'user']);\nconst AGENT_STATUSES = new Set(['cancelled', 'completed', 'failed', 'running', 'waitingForInput']);\nconst INTERNAL_EVENT_TYPES = new Set(['closed', 'started', 'turnCompleted']);\nexport const AGENT_RESULT_MAX_LENGTH = 8_192;\nexport const AGENT_CONVERSATION_USAGE_SCHEMA_VERSION = 1;\n\nfunction safePrefix(value, length) {\n    if (length <= 0) return '';\n    const end = length < value.length\n        && /[\\uD800-\\uDBFF]/u.test(value[length - 1])\n        && /[\\uDC00-\\uDFFF]/u.test(value[length])\n        ? length - 1\n        : length;\n\n    return value.slice(0, end);\n}\n\nfunction safeSuffix(value, length) {\n    if (length <= 0) return '';\n    const candidateStart = Math.max(0, value.length - length);\n    const start = candidateStart > 0\n        && /[\\uDC00-\\uDFFF]/u.test(value[candidateStart])\n        && /[\\uD800-\\uDBFF]/u.test(value[candidateStart - 1])\n        ? candidateStart + 1\n        : candidateStart;\n\n    return value.slice(start);\n}\n\nfunction omittedCharacterMarker(omittedCharacters) {\n    return `\\n[${omittedCharacters} characters omitted]\\n`;\n}\n\nfunction boundedAgentResultParts(headSource, tailSource, totalLength) {\n    let marker = omittedCharacterMarker(totalLength);\n    while (true) {\n        const retainedLength = AGENT_RESULT_MAX_LENGTH - marker.length;\n        const head = safePrefix(headSource, Math.ceil(retainedLength / 2));\n        const tail = safeSuffix(tailSource, Math.floor(retainedLength / 2));\n        const nextMarker = omittedCharacterMarker(totalLength - head.length - tail.length);\n        if (nextMarker === marker) return `${head}${marker}${tail}`;\n        marker = nextMarker;\n    }\n}\n\n/** Bound one command or tool result while retaining useful beginning and ending context. */\nexport function boundedAgentResult(value) {\n    if (value.length <= AGENT_RESULT_MAX_LENGTH) return value;\n\n    return boundedAgentResultParts(value, value, value.length);\n}\n\n/** Append a streamed result without retaining its omitted middle in memory. */\nexport function appendBoundedAgentResult(state, chunk) {\n    const current = state ?? { head: '', tail: '', totalLength: 0 };\n    const head = current.head.length === AGENT_RESULT_MAX_LENGTH\n        ? current.head\n        : safePrefix(`${current.head}${chunk}`, AGENT_RESULT_MAX_LENGTH);\n    const tail = safeSuffix(`${current.tail}${chunk}`, AGENT_RESULT_MAX_LENGTH);\n    const totalLength = current.totalLength + chunk.length;\n    const value = totalLength <= AGENT_RESULT_MAX_LENGTH\n        ? head\n        : boundedAgentResultParts(head, tail, totalLength);\n\n    return { state: { head, tail, totalLength }, value };\n}\n\nfunction requiredString(value, fieldName) {\n    if (typeof value !== 'string' || value.length === 0) throw new Error(`Malformed agent conversation: missing ${fieldName}`);\n\n    return value;\n}\n\nfunction optionalString(value) {\n    return typeof value === 'string' && value.length > 0 ? value : null;\n}\n\nfunction optionalInteger(value) {\n    return Number.isSafeInteger(value) ? value : null;\n}\n\nfunction optionalNonNegativeInteger(value) {\n    return Number.isSafeInteger(value) && value >= 0 ? value : null;\n}\n\nfunction optionalNumber(value) {\n    return typeof value === 'number' && Number.isFinite(value) ? value : null;\n}\n\nfunction optionalStringArray(value) {\n    return Array.isArray(value) && value.every((entry) => typeof entry === 'string') ? [...value] : null;\n}\n\nfunction normalizeMessage(value) {\n    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;\n    if (!AGENT_MESSAGE_ROLES.has(value.role)) return null;\n    if (typeof value.content !== 'string') return null;\n    const id = optionalString(value.id);\n    const timestamp = optionalString(value.timestamp);\n    if (!id || !timestamp) return null;\n    const agent = optionalString(value.agent);\n    const sequence = optionalInteger(value.sequence);\n\n    return {\n        ...(agent ? { agent } : {}),\n        content: value.content,\n        id,\n        kind: 'message',\n        role: value.role,\n        ...(sequence !== null ? { sequence } : {}),\n        timestamp,\n    };\n}\n\nfunction normalizeEvent(value) {\n    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;\n    if (typeof value.content !== 'string') return null;\n    const id = optionalString(value.id);\n    const timestamp = optionalString(value.timestamp);\n    const type = optionalString(value.type);\n    if (!id || !timestamp || !type) return null;\n    const command = optionalString(value.command);\n    const content = value.type === 'commandExecution' || value.type === 'tool.result'\n        ? boundedAgentResult(value.content)\n        : value.content;\n    const deletions = optionalNonNegativeInteger(value.deletions);\n    const details = optionalStringArray(value.details);\n    const durationMs = optionalNumber(value.durationMs);\n    const exitCode = optionalInteger(value.exitCode);\n    const insertions = optionalNonNegativeInteger(value.insertions);\n    const label = optionalString(value.label);\n    const output = value.type !== 'commandExecution' && typeof value.output === 'string'\n        ? boundedAgentResult(value.output)\n        : null;\n    const providerItemId = optionalString(value.providerItemId);\n    const sequence = optionalInteger(value.sequence);\n    const status = optionalString(value.status);\n    const summary = optionalStringArray(value.summary);\n    const workingDirectory = optionalString(value.workingDirectory);\n\n    return {\n        ...(command ? { command } : {}),\n        content,\n        ...(deletions !== null ? { deletions } : {}),\n        ...(details ? { details } : {}),\n        ...(durationMs !== null ? { durationMs } : {}),\n        ...(exitCode !== null ? { exitCode } : {}),\n        id,\n        ...(insertions !== null ? { insertions } : {}),\n        kind: 'event',\n        ...(label ? { label } : {}),\n        ...(output !== null ? { output } : {}),\n        ...(providerItemId ? { providerItemId } : {}),\n        ...(sequence !== null ? { sequence } : {}),\n        ...(status ? { status } : {}),\n        ...(summary ? { summary } : {}),\n        timestamp,\n        type,\n        ...(workingDirectory ? { workingDirectory } : {}),\n    };\n}\n\nfunction normalizeProviderSession(value) {\n    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;\n    const agent = optionalString(value.agent);\n    const conversationId = optionalString(value.conversationId);\n    const createdAt = optionalString(value.createdAt);\n    const lastUsedAt = optionalString(value.lastUsedAt);\n    const synchronizedThroughMessageId = optionalString(value.synchronizedThroughMessageId);\n    if (!agent || !conversationId || !createdAt || !lastUsedAt || !synchronizedThroughMessageId) return null;\n\n    return { agent, conversationId, createdAt, lastUsedAt, synchronizedThroughMessageId };\n}\n\nfunction normalizeContextWindowUsage(value) {\n    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;\n    const { capacityTokens, usedTokens } = value;\n    if (!Number.isSafeInteger(usedTokens) || usedTokens < 0) return null;",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-8",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01Qg6fy8SwmfVbx2Ngvu7rcE",
+          "sequence": 8,
+          "status": "completed",
+          "timestamp": "2026-08-22T09:35:53.645Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "import type {\n    AgentConversationEntry,\n    AgentConversationEventEntry,\n} from '../../../data/data_types'\nimport { eventIdentity } from './event_display'\n\nconst TOOL_CALL_EVENT_TYPES = new Set([\n    'collabAgentToolCall',\n    'commandExecution',\n    'dynamicToolCall',\n    'fileChange',\n    'imageView',\n    'mcpToolCall',\n    'webSearch',\n])\n\nexport type ActionConversationRenderGroup = {\n    entries: AgentConversationEventEntry[]\n    key: string\n    kind: 'completedToolCalls'\n} | {\n    entry: AgentConversationEntry\n    key: string\n    kind: 'entry'\n}\n\nfunction isToolCall(entry: AgentConversationEventEntry) {\n    return TOOL_CALL_EVENT_TYPES.has(entry.type) || entry.type.startsWith('tool.')\n}\n\nfunction isCompletedToolCall(entry: AgentConversationEventEntry) {\n    return entry.status === 'completed' && isToolCall(entry)\n}\n\nfunction appendCompletedToolCallRun(\n    groups: ActionConversationRenderGroup[],\n    entries: AgentConversationEventEntry[],\n) {\n    if (entries.length === 0) return\n    if (entries.length === 1) {\n        const [entry] = entries\n        groups.push({ entry, key: eventIdentity(entry), kind: 'entry' })\n        return\n    }\n\n    groups.push({ entries, key: eventIdentity(entries[0]), kind: 'completedToolCalls' })\n}\n\n/** Builds UI-only groups without changing canonical conversation entries. */\nexport function buildActionConversationRenderGroups(entries: AgentConversationEntry[]) {\n    const groups: ActionConversationRenderGroup[] = []\n    let completedToolCalls: AgentConversationEventEntry[] = []\n\n    for (const entry of entries) {\n        if (entry.kind === 'event' && isCompletedToolCall(entry)) {\n            completedToolCalls.push(entry)\n            continue\n        }\n\n        appendCompletedToolCallRun(groups, completedToolCalls)\n        completedToolCalls = []\n        const key = entry.kind === 'event' ? eventIdentity(entry) : entry.id\n        groups.push({ entry, key, kind: 'entry' })\n    }\n\n    appendCompletedToolCallRun(groups, completedToolCalls)\n\n    return groups\n}\n=====DIR=====\naction_conversation_chat.test.tsx\naction_conversation_chat.tsx\naction_conversation_chat_owner.test.tsx\naction_conversation_chat_owner.tsx\naction_conversation_event_row.tsx\naction_conversation_link.tsx\naction_conversation_link_context.ts\naction_conversation_link_navigation.node.test.ts\naction_conversation_link_navigation.ts\naction_conversation_message.tsx\naction_conversation_picker.test.tsx\naction_conversation_picker.tsx\naction_conversation_picker_data.ts\naction_conversation_picker_owner.tsx\naction_conversation_render_groups.ts\naction_conversation_rendering.test.tsx\naction_conversation_reservation.node.test.ts\naction_conversation_reservation.ts\naction_conversation_reserved_block.tsx\naction_conversation_store.node.test.ts\naction_conversation_store.ts\naction_conversation_url_transform.ts\naction_list_error.test.tsx\naction_log_error_display.test.tsx\naction_log_error_display.tsx\naction_log_error_owner.node.test.ts\naction_log_error_owner.tsx\naction_log_error_selector.ts\naction_queued_prompt.tsx\nagent_tool_event.tsx\ncommand_execution_event.tsx\ncommit_reference_row.tsx\ncompleted_tool_call_group.tsx\nconversation_context_window.node.test.ts\nconversation_context_window.ts\nconversation_duration.ts\nconversation_timer.test.tsx\nconversation_timer.tsx\ndiff_line_mapping.ts\ndiff_view.test.tsx\ndiff_view.tsx\nevent_display.ts\nreasoning_display.test.ts\nreasoning_display.ts\nreasoning_event.test.tsx\nreasoning_event.tsx",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-9",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_015MBs3SifF2gM7iYSAvJpSx",
+          "sequence": 9,
+          "status": "completed",
+          "timestamp": "2026-08-22T09:35:56.285Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "import ExpandLessOutlined from '@mui/icons-material/ExpandLessOutlined'\nimport ExpandMoreOutlined from '@mui/icons-material/ExpandMoreOutlined'\nimport { Box, Button, Typography } from '@mui/material'\nimport { useState } from 'react'\nimport type { AgentConversationEventEntry } from '../../../data/data_types'\nimport { ActionConversationEventRow } from './action_conversation_event_row'\nimport { eventIdentity } from './event_display'\n\ninterface CompletedToolCallGroupProps {\n    entries: AgentConversationEventEntry[]\n}\n\n/** Shows adjacent completed tool calls as one expandable summary. */\nexport function CompletedToolCallGroup({ entries }: CompletedToolCallGroupProps) {\n    const [expanded, setExpanded] = useState(false)\n    const toggleExpanded = () => {\n        setExpanded((current) => !current)\n    }\n\n    return (\n        <Box\n            aria-label=\"Completed tool calls\"\n            role=\"group\"\n            sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, flexShrink: 0, minWidth: 0, overflow: 'hidden' }}\n        >\n            <Button\n                aria-expanded={expanded}\n                endIcon={expanded ? <ExpandLessOutlined /> : <ExpandMoreOutlined />}\n                fullWidth\n                onClick={toggleExpanded}\n                sx={{ color: 'text.secondary', justifyContent: 'space-between', minWidth: 0, px: 1, py: 0.75, textAlign: 'left' }}\n            >\n                <Typography noWrap sx={{ minWidth: 0 }} variant=\"caption\">Tools called ({entries.length})</Typography>\n            </Button>\n            {expanded ? entries.map((entry) => (\n                <Box\n                    key={eventIdentity(entry)}\n                    sx={{ borderColor: 'divider', minWidth: 0 }}\n                >\n                    <ActionConversationEventRow entry={entry} grouped />\n                </Box>\n            )) : null}\n        </Box>\n    )\n}\n=====ROW=====\nimport { Box } from '@mui/material'\nimport { memo } from 'react'\nimport type { AgentConversationEventEntry } from '../../../data/data_types'\nimport { AgentToolEvent } from './agent_tool_event'\nimport { CommandExecutionEvent } from './command_execution_event'\nimport { ReasoningEvent } from './reasoning_event'\n\ninterface ActionConversationEventRowProps {\n    entry: AgentConversationEventEntry\n    grouped: boolean\n}\n\n/** Renders one referentially stable transcript event. */\nexport const ActionConversationEventRow = memo(function ActionConversationEventRow({ entry, grouped }: ActionConversationEventRowProps) {\n    if (entry.type === 'reasoning') return <Box sx={{ minWidth: 0 }}><ReasoningEvent event={entry} /></Box>\n    if (entry.type === 'commandExecution') {\n        return <Box sx={{ minWidth: 0 }}><CommandExecutionEvent event={entry} grouped={grouped} /></Box>\n    }\n\n    return <Box sx={{ minWidth: 0 }}><AgentToolEvent event={entry} grouped={grouped} /></Box>\n})\n=====RENDERTEST=====\nimport { cleanup, render } from '@testing-library/react'\nimport type { ReactNode } from 'react'\nimport { afterEach, describe, expect, it, vi } from 'vitest'\nimport type { AgentConversation, AgentConversationEntry } from '../../../data/data_types'\nimport { AppThemeProvider } from '../../../theme/theme_provider'\nimport { ActionConversationChat } from './action_conversation_chat'\n\nconst renderProbes = vi.hoisted(() => ({ event: vi.fn(), markdown: vi.fn() }))\n\nvi.mock('react-markdown', () => ({\n    default: ({ children }: { children: ReactNode }) => {\n        renderProbes.markdown(children)\n\n        return <div>{children}</div>\n    },\n}))\n\nvi.mock('./agent_tool_event', () => ({\n    AgentToolEvent: () => {\n        renderProbes.event()\n\n        return <div>Tool event</div>\n    },\n}))\n\nfunction conversation(entries: AgentConversationEntry[]): AgentConversation {\n    return {\n        actionId: 'review',\n        cardInternalId: 'card-1',\n        cardPath: 'design/F-138.md',\n        completedAt: null,\n        entries,\n        hasExplicitTitle: false,\n        id: 'conversation-1',\n        path: 'conversation.json',\n        providerSessions: [],\n        startedAt: '2026-08-04T10:00:00.000Z',\n        status: 'running',\n        title: 'Review',\n        viewed: true,\n    }\n}\n\ndescribe('ActionConversationChat rendering', () => {\n    afterEach(() => {\n        cleanup()\n        vi.clearAllMocks()\n    })\n\n    it('rerenders only changed entries while assistant output streams', () => {\n        const historicalMessage = {content: 'Historical', id: 'message-1', kind: 'message' as const, role: 'assistant' as const, timestamp: 'now'}\n        const toolEvent = {\n            content: '', id: 'event-1', kind: 'event' as const, providerItemId: 'tool-1', status: 'completed',\n            timestamp: 'now', type: 'tool',\n        }\n        const streamingMessage = {content: 'Live', id: 'message-2', kind: 'message' as const, role: 'assistant' as const, timestamp: 'now'}\n        const firstConversation = conversation([historicalMessage, toolEvent, streamingMessage])\n        const { rerender } = render(\n            <AppThemeProvider>\n                <ActionConversationChat conversation={firstConversation} status=\"running\" />\n            </AppThemeProvider>,\n        )\n        renderProbes.markdown.mockClear()\n        renderProbes.event.mockClear()\n\n        rerender(\n            <AppThemeProvider>\n                <ActionConversationChat\n                    conversation={{\n                        ...firstConversation,\n                        entries: [historicalMessage, toolEvent, { ...streamingMessage, content: 'Live update' }],\n                    }}\n                    status=\"running\"\n                />\n            </AppThemeProvider>,\n        )\n\n        expect(renderProbes.markdown).toHaveBeenCalledOnce()\n        expect(renderProbes.markdown).toHaveBeenCalledWith('Live update')\n        expect(renderProbes.event).not.toHaveBeenCalled()\n    })\n\n    it('does not rerender unchanged grouped tool rows while assistant output streams', () => {\n        const historicalMessage = {content: 'Historical', id: 'message-1', kind: 'message' as const, role: 'assistant' as const, timestamp: 'now'}\n        const firstTool = {\n            content: '', id: 'event-1', kind: 'event' as const, providerItemId: 'tool-1', status: 'completed',\n            timestamp: 'now', type: 'webSearch',\n        }\n        const secondTool = {\n            content: '', id: 'event-2', kind: 'event' as const, providerItemId: 'tool-2', status: 'completed',\n            timestamp: 'now', type: 'mcpToolCall',\n        }\n        const streamingMessage = {content: 'Live', id: 'message-2', kind: 'message' as const, role: 'assistant' as const, timestamp: 'now'}\n        const firstConversation = conversation([historicalMessage, firstTool, secondTool, streamingMessage])\n        const { rerender } = render(\n            <AppThemeProvider>\n                <ActionConversationChat conversation={firstConversation} status=\"running\" />\n            </AppThemeProvider>,\n        )\n        renderProbes.markdown.mockClear()\n        renderProbes.event.mockClear()\n\n        rerender(\n            <AppThemeProvider>\n                <ActionConversationChat\n                    conversation={{\n                        ...firstConversation,\n                        entries: [historicalMessage, firstTool, secondTool, { ...streamingMessage, content: 'Live update' }],\n                    }}\n                    status=\"running\"\n                />\n            </AppThemeProvider>,\n        )\n\n        expect(renderProbes.markdown).toHaveBeenCalledOnce()\n        expect(renderProbes.markdown).toHaveBeenCalledWith('Live update')\n        expect(renderProbes.event).not.toHaveBeenCalled()\n    })\n})",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-10",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_0145sNpDUngzuhLE5AS5wWcH",
+          "sequence": 10,
+          "status": "completed",
+          "timestamp": "2026-08-22T09:35:58.957Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "Exit code 1\n/usr/bin/bash: line 1: cd: app/src/components/actions/conversation/: No such file or directory",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-11",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01BKLZuhz4mc1k5YPZ1EtrzT",
+          "sequence": 11,
+          "status": "failed",
+          "timestamp": "2026-08-22T09:36:01.470Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "import { Box, CircularProgress, Stack, Tooltip, Typography } from '@mui/material'\nimport { useLayoutEffect, useRef, useState, type UIEvent } from 'react'\nimport type { AgentConversation } from '../../../data/data_types'\nimport type { ActionQueuedPrompt } from '../../../data/action_run_types'\nimport type { PopupRunStatus } from '../run/popup/action_popup_defaults'\nimport { ActionConversationEventRow } from './action_conversation_event_row'\nimport { ActionConversationMessage } from './action_conversation_message'\nimport { actionStatusLabel } from '../shared/action_status'\nimport { ConversationTimer } from './conversation_timer'\nimport { buildActionConversationRenderGroups } from './action_conversation_render_groups'\nimport { CompletedToolCallGroup } from './completed_tool_call_group'\nimport {\n    createActionConversationReservationState,\n    reservedActionConversationBlockCount,\n    updateActionConversationReservation,\n} from './action_conversation_reservation'\nimport { ActionConversationReservedBlock } from './action_conversation_reserved_block'\nimport { contextWindowUsedPercent } from './conversation_context_window'\nimport { reasoningDisplay } from './reasoning_display'\nimport { ActionQueuedPromptRow } from './action_queued_prompt'\n\nconst CHAT_END_TOLERANCE = 4\nconst MIN_CHAT_HEIGHT = 96\n\ninterface ActionConversationChatProps {\n    conversation: AgentConversation | null\n    queuedPrompts?: ActionQueuedPrompt[]\n    runId?: string | null\n    status: PopupRunStatus\n}\n\nfunction viewportIsAtEnd(viewport: HTMLDivElement) {\n    return viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop <= CHAT_END_TOLERANCE\n}\n\nfunction hasAgentActivity(conversation: AgentConversation) {\n    return conversation.providerSessions.some(({ agent }) => agent === 'codex')\n        || conversation.entries.some((entry) => entry.kind === 'message' && entry.agent === 'codex')\n        || conversation.entries.some((entry) => entry.kind === 'event' && !!entry.providerItemId)\n}\n\nfunction conversationEventIsVisible(entry: AgentConversation['entries'][number]) {\n    if (entry.kind !== 'event' || entry.type === 'diagnostic') return false\n    if (entry.type !== 'reasoning' || entry.status !== 'completed') return true\n\n    return reasoningDisplay(entry).hasText\n}\n\nfunction visibleConversationGroups(conversation: AgentConversation | null) {\n    if (!conversation) return []\n    const showEvents = hasAgentActivity(conversation)\n    const visibleEntries = conversation.entries.filter((entry) => entry.kind === 'message'\n        || (showEvents && conversationEventIsVisible(entry)))\n\n    return buildActionConversationRenderGroups(visibleEntries)\n}\n\n/** Ordered user/assistant transcript shown above the popup prompt. */\nexport function ActionConversationChat({ conversation, queuedPrompts = [], runId = null, status }: ActionConversationChatProps) {\n    const groups = visibleConversationGroups(conversation)\n    const viewportRef = useRef<HTMLDivElement>(null)\n    const conversationPathRef = useRef<string | null | undefined>(undefined)\n    const stuckToEndRef = useRef(true)\n    const conversationPath = conversation?.path ?? null\n    const [reservationState, setReservationState] = useState(() => updateActionConversationReservation(\n        createActionConversationReservationState(),\n        conversationPath,\n        groups,\n        status,\n    ))\n    const nextReservationState = updateActionConversationReservation(reservationState, conversationPath, groups, status)\n    if (nextReservationState !== reservationState) setReservationState(nextReservationState)\n    const reservedBlockCount = reservedActionConversationBlockCount(nextReservationState)\n    const contextUsedPercent = contextWindowUsedPercent(conversation?.contextWindowUsage)\n\n    const handleScroll = (event: UIEvent<HTMLDivElement>) => {\n        stuckToEndRef.current = viewportIsAtEnd(event.currentTarget)\n    }\n\n    useLayoutEffect(() => {\n        const viewport = viewportRef.current\n        if (!viewport) return\n\n        const conversationPath = conversation?.path ?? null\n        const conver\n[1038 characters omitted]\nionMessage\n                                cardInternalId={conversation?.cardInternalId ?? null}\n                                entry={entry}\n                                key={group.key}\n                            />\n                        )\n                    }\n\n                    return <ActionConversationEventRow entry={entry} grouped={false} key={group.key} />\n                })}\n                {Array.from({ length: reservedBlockCount }, (_, index) => (\n                    <ActionConversationReservedBlock key={`reserved-block-${index}`} />\n                ))}\n                {runId ? queuedPrompts.map((entry) => (\n                    <ActionQueuedPromptRow entry={entry} key={entry.id} runId={runId} />\n                )) : null}\n                {conversation || status !== 'idle' ? (\n                    <Stack\n                        aria-label=\"Conversation metadata\"\n                        direction=\"row\"\n                        spacing={1}\n                        sx={{ alignItems: 'baseline', flexShrink: 0 }}\n                    >\n                        {status !== 'idle' ? (\n                            <Typography color={status === 'failed' ? 'error.main' : 'text.secondary'} role=\"status\" variant=\"caption\">\n                                {actionStatusLabel(status)}\n                            </Typography>\n                        ) : null}\n                        {conversation ? (\n                            <ConversationTimer status={status} timer={conversation.timer} />\n                        ) : null}\n                        <Box sx={{ flex: 1 }} />\n                        {contextUsedPercent !== null ? (\n                            <Box sx={{ display: 'inline-flex', height: 16, position: 'relative', width: 16 }}>\n                                <CircularProgress\n                                    aria-hidden=\"true\"\n                                    size={16}\n                                    sx={{ color: 'action.disabledBackground', left: 0, position: 'absolute', top: 0 }}\n                                    value={100}\n                                    variant=\"determinate\"\n                                />\n                                <Tooltip describeChild title={`Context usage: ${contextUsedPercent}%`}>\n                                    <CircularProgress\n                                        aria-label=\"Context usage\"\n                                        color=\"info\"\n                                        size={16}\n                                        sx={{ left: 0, position: 'absolute', top: 0 }}\n                                        value={contextUsedPercent}\n                                        variant=\"determinate\"\n                                    />\n                                </Tooltip>\n                            </Box>\n                        ) : null}\n                    </Stack>\n                ) : null}\n            </Stack>\n        </Stack>\n    )\n}\n=====EVENTDISPLAY=====\nimport type { AgentConversationEvent } from '../../../data/data_types'\n\nconst COMMAND_PREVIEW_LENGTH = 96\n\nexport function eventStatusLabel(status?: string) {\n    if (!status) return 'Unknown'\n    if (status === 'inProgress' || status === 'running' || status === 'started') return 'Running'\n    if (status === 'completed') return 'Completed'\n    if (status === 'failed') return 'Failed'\n    if (status === 'declined') return 'Declined'\n\n    return status\n}\n\nexport function eventHasError(status?: string) {\n    return status === 'failed' || status === 'declined'\n}\n\nexport function commandPreview(command?: string) {\n    const oneLine = command?.replace(/\\s+/gu, ' ').trim() ?? ''\n    const characters = Array.from(oneLine)\n    if (characters.length <= COMMAND_PREVIEW_LENGTH) return oneLine\n\n    return `${characters.slice(0, COMMAND_PREVIEW_LENGTH - 1).join('')}…`\n}\n\nexport function readableEventText(value?: string) {\n    return value?.trim() ? value.split(/\\r?\\n/u) : []\n}\n\nexport function eventIdentity(event: AgentConversationEvent) {\n    return event.providerItemId ?? event.id\n}",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-12",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01BQJQPMU75LsftZnT3K7CLR",
+          "sequence": 12,
+          "status": "completed",
+          "timestamp": "2026-08-22T09:36:03.994Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-13",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHZTStQKGPDca1jGMRK8:thinking:0",
+          "sequence": 13,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T09:36:06.360Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "281:export interface AgentConversationEvent {\n282-    command?: string\n283-    content: string\n284-    deletions?: number\n285-    details?: string[]\n286-    durationMs?: number\n287-    exitCode?: number\n288-    id: string\n289-    insertions?: number\n290-    label?: string\n291-    output?: string\n292-    providerItemId?: string\n293-    sequence?: number\n294-    status?: string\n295-    summary?: string[]\n296-    timestamp: string\n297-    type: string\n298-    workingDirectory?: string\n299-}\n300-\n301-export interface AgentConversationMessageEntry extends AgentConversationMessage {\n302-    kind: 'message'\n303-}\n304-\n305:export interface AgentConversationEventEntry extends AgentConversationEvent {\n306-    kind: 'event'\n307-}\n308-\n309:export type AgentConversationEntry = AgentConversationMessageEntry | AgentConversationEventEntry\n310-\n311-export interface AgentTokenUsage {\n312-    cachedInputTokens: number\n313-    costUsd?: number\n314-    inputTokens: number\n315-    legacyTotalTokens?: number\n316-    outputTokens: number\n317-    reasoningTokens: number\n318-    totalTokens: number\n319-}\n320-\n321-export interface AgentContextWindowUsage {\n322-    capacityTokens: number\n323-    usedTokens: number\n324-}\n325-\n326-export interface AgentConversationTimer {\n327-    elapsedMs: number\n328-    runningStartedAt: string | null\n329-}\n330-\n331-export interface AgentConversation {\n332-    actionId?: string | null\n333-    cardInternalId?: string | null\n334-    cardPath: string | null\n335-    completedAt: string | null\n336-    contextWindowUsage?: AgentContextWindowUsage\n337-    entries: AgentConversationEntry[]\n338-    hasExplicitTitle: boolean\n339-    id: string\n--\n=====HANDLERS=====\nconst {\n    accumulateUsage,\n    createProviderEventEntry,\n    createEventEntry,\n    transitionConversationStatus,\n    updateProviderSession,\n} = require('./agent_conversation');\nconst { emitRunEvent, hasPendingInteraction } = require('./agent_run_state');\nconst {\n    appendAssistantOutput,\n    appendDiagnosticContent,\n    completeAssistantOutput,\n    lastMessageEntry,\n    nextRunSequence,\n    replaceAssistantOutput,\n    startAssistantItem,\n} = require('./agent_run_transcript');\nconst { redactConversationEvent, redactSecrets } = require('./agent_secret_redaction');\nconst { requireString } = require('./agent_run_validation');\n\nfunction handleSessionStarted(service, run, event) {\n    run.providerConversationId = event.conversationId;\n}\n\nfunction handleTurnStarted(service, run) {\n    run.assistantItemIndex = 0;\n    run.assistantItems.clear();\n    run.currentAssistantMessageId = null;\n    run.liveTurnUsage = null;\n    run.turnStarted = true;\n}\n\nfunction handleUsage(service, run, event) {\n    run.liveTurnUsage = event.usage;\n    const usage = accumulateUsage(run.conversation.usage, event.usage);\n    emitRunEvent(run, {\n        ...(event.contextWindowUsage !== undefined ? { contextWindowUsage: event.contextWindowUsage } : {}),\n        type: 'usage',\n        usage,\n    });\n}\n\nfunction handleAssistantStarted(service, run, event, timestamp) {\n    const item = startAssistantItem(run, requireString(event.itemId, 'assistant item id'), timestamp);\n    emitRunEvent(run, { content: '', messageId: item.messageId, sequence: item.sequence, type: 'output' });\n}\n\nfunction handleAssistant(service, run, event, timestamp) {\n    const safeContent = redactSecrets(event.content, run.secretValues);\n    const itemId = run.agent === 'codex'\n        ? requireString(event.itemId, 'assistant item id')\n        : event.itemId;\n    const { message, segment } = appendAssistantOutput(run, safeContent, timestamp, itemId);\n    if (segment.length > 0) {\n        emitRunEvent(run, { content: segment, messageId: message.id, sequence: message.sequence, type: 'output' });\n    }\n}\n\nfunction handleAssistantCompleted(service, run, event, timestamp) {\n    const safeContent = redactSecrets(event.content, run.secretValues);\n    const itemId = requireString(event.itemId, 'assistant item id');\n    const { message, previousContent, replaced } = replaceAssistantOutput(run, safeContent, timestamp, itemId);\n[3309 characters omitted]\nal request id: ${requestId}`);\n    run.pendingApprovals.set(requestId, { ...event.approval, submitted: false });\n    transitionConversationStatus(run.conversation, 'waitingForInput', timestamp);\n    await service.persistCheckpoint(run);\n    emitRunEvent(run, { state: 'waitingForInput', type: 'state' });\n    emitRunEvent(run, { approval: event.approval, state: 'waitingForInput', type: 'approval' });\n}\n\nfunction handleApprovalSubmitted(service, run, event) {\n    const approval = run.pendingApprovals.get(event.requestId);\n    if (!approval) return;\n    approval.submitted = true;\n    emitRunEvent(run, { requestId: event.requestId, type: 'approvalSubmitted' });\n}\n\nasync function handleApprovalResolved(service, run, event, timestamp) {\n    if (!run.pendingApprovals.delete(event.requestId)) return;\n    const state = hasPendingInteraction(run) ? 'waitingForInput' : 'running';\n    transitionConversationStatus(run.conversation, state, timestamp);\n    await service.persistCheckpoint(run);\n    emitRunEvent(run, { requestId: event.requestId, state, type: 'approvalResolved' });\n    emitRunEvent(run, { state, type: 'state' });\n}\n\n/**\n * End of a streaming turn: settle the assistant message, then either shut the process down,\n * send the message queued while the turn was running, or park the run waiting for input.\n */\nasync function handleTurnCompleted(service, run, event, timestamp) {\n    completeAssistantOutput(run, timestamp);\n    run.turnActive = false;\n    run.waitingForQuestion = false;\n    run.pendingApprovals.clear();\n    run.missingSession = run.missingSession || event.missingSession;\n    if (event.missingSession) run.finishing = true;\n    if (event.contextWindowUsage !== undefined) {\n        if (event.contextWindowUsage) run.conversation.contextWindowUsage = event.contextWindowUsage;\n        else delete run.conversation.contextWindowUsage;\n    }\n    if (!event.usage && event.contextWindowUsage !== undefined) {\n        emitRunEvent(run, {\n            contextWindowUsage: event.contextWindowUsage,\n            type: 'usage',\n            usage: run.conversation.usage,\n        });\n    }\n    if (event.error) {\n        service.failStreamingRun(run, new Error(event.error));\n        return;\n    }\n    if (!event.missingSession && event.usage) {\n        run.liveTurnUsage = event.usage;\n        run.conversation.usage = accumulateUsage(run.conversation.usage, run.liveTurnUsage);\n        run.liveTurnUsage = null;\n        await service.persistSuccessfulTurn(run);\n        await service.recordTokenUsage(run, event.usage, timestamp);\n        emitRunEvent(run, {\n            ...(event.contextWindowUsage !== undefined ? { contextWindowUsage: event.contextWindowUsage } : {}),\n            type: 'usage',\n            usage: run.conversation.usage,\n        });\n    }\n    if (run.finishing) {\n        service.beginFinishShutdown(run);\n        return;\n    }\n    const synchronizedMessage = lastMessageEntry(run.conversation);\n    if (synchronizedMessage) updateProviderSession(run, synchronizedMessage.id, timestamp);\n    transitionConversationStatus(run.conversation, 'waitingForInput', timestamp);\n    run.conversation.completedAt = null;\n    await service.persistCheckpoint(run);\n    emitRunEvent(run, { state: 'waitingForInput', type: 'state' });\n}\n\n/** Keyed by streaming event type; unknown types are ignored. Each handler takes `(service, run, event, timestamp)`. */\nconst STREAMING_EVENT_HANDLERS = {\n    approval: handleApproval,\n    approvalResolved: handleApprovalResolved,\n    approvalSubmitted: handleApprovalSubmitted,\n    assistant: handleAssistant,\n    assistantCompleted: handleAssistantCompleted,\n    assistantStarted: handleAssistantStarted,\n    changedPaths: handleChangedPaths,\n    error: handleError,\n    event: handleEvent,\n    fatal: handleFatal,\n    question: handleQuestion,\n    sessionFailed: handleSessionFailed,\n    sessionStarted: handleSessionStarted,\n    transcript: handleTranscript,\n    turnCompleted: handleTurnCompleted,\n    turnStarted: handleTurnStarted,\n    usage: handleUsage,\n};\n\nmodule.exports = { STREAMING_EVENT_HANDLERS };",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-14",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01GxS8XVxiLeYY1b9v6dVVmG",
+          "sequence": 14,
+          "status": "completed",
+          "timestamp": "2026-08-22T09:36:08.036Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-15",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHZTmR8AcUr2su6cooMo:thinking:0",
+          "sequence": 15,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T09:36:10.280Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "app/src/components/actions/agent/action_agent_approval.test.tsx\napp/src/components/actions/agent/action_agent_approval.tsx\napp/src/components/actions/agent/action_agent_approvals.tsx\napp/src/components/actions/agent/action_agent_preset_name_owner.tsx\napp/src/components/actions/agent/action_agent_selectors.test.tsx\napp/src/components/actions/agent/action_agent_selectors.tsx\napp/src/components/actions/editor/action_phrase_buttons_owner.tsx\napp/src/components/actions/run/popup/action_agent_interaction.tsx\napp/src/components/actions/run/popup/action_popup.test.tsx\napp/src/components/actions/run/popup/action_popup_bottom_row.test.tsx\napp/src/components/actions/run/popup/action_popup_operations.node.test.ts\napp/src/components/actions/run/popup/action_popup_operations.ts\napp/src/components/actions/run/state/action_run_history.test.tsx\napp/src/components/actions/run/trigger/card_run_button.test.tsx\n---\napp/src/data/action_run_types.ts:117:    permissionSuggestions?: unknown[] | null\napp/src/data/action_run_types.ts:122:    toolName?: string | null",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-16",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01Tk3GHMbWdpvThD99CAC2jX",
+          "sequence": 16,
+          "status": "completed",
+          "timestamp": "2026-08-22T09:36:11.937Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "export interface AgentApproval {\n    additionalPermissions?: AgentAdditionalPermissions | null\n    approvalId?: string | null\n    availableDecisions?: AgentApprovalDecision[] | null\n    command?: string | null\n    commandActions?: AgentCommandAction[] | null\n    cwd?: string | null\n    environmentId?: string | null\n    filePaths: string[]\n    grantRoot?: string | null\n    input?: Record<string, unknown> | null\n    itemId: string\n    kind: 'commandExecution' | 'fileChange' | 'toolUse'\n    networkApprovalContext?: { host: string, protocol: AgentNetworkProtocol } | null\n    proposedExecpolicyAmendment?: string[] | null\n    proposedNetworkPolicyAmendments?: AgentNetworkPolicyAmendment[] | null\n    provider?: 'claude' | 'codex'\n    permissionSuggestions?: unknown[] | null\n    reason?: string | null\n    requestId: AgentApprovalRequestId\n    startedAtMs: number\n    threadId?: string\n    toolName?: string | null\n    turnId?: string\n}\n\ninterface ActionRunEventBase {\n    actionId: string\n    actionType?: ActionType\n    autoFinish?: ActionAutoFinish | null\n    context: ActionContext\n    runId: string\n    interactionReady?: boolean\n    phase: ActionRunPhase\n    rootActionId: string\n    sequence?: number\n=====APPROVAL=====\nimport { Box, Button, Stack, Typography } from '@mui/material'\nimport { useState } from 'react'\nimport type { MouseEvent } from 'react'\nimport type {\n    AgentApprovalDecision,\n    AgentCommandAction,\n    AgentFileSystemPath,\n} from '../../../data/action_run_types'\nimport type { LiveAgentApproval } from '../../../services/actions/action_run_registry'\n\nconst DEFAULT_APPROVAL_DECISIONS: AgentApprovalDecision[] = ['accept', 'acceptForSession', 'decline', 'cancel']\n\ninterface ActionAgentApprovalProps {\n    approval: LiveAgentApproval\n    onDecision: (requestId: number | string, decision: AgentApprovalDecision) => Promise<void>\n}\n\nfunction decisionLabel(decision: AgentApprovalDecision) {\n    if (decision === 'accept') return 'Allow once'\n    if (decision === 'acceptForSession') return 'Allow for session'\n    if (decision === 'decline') return 'Decline'\n    if (decision === 'cancel') return 'Stop turn'\n    if ('acceptWithExecpolicyAmendment' in decision) return 'Allow with command policy'\n    const { action, host } = decision.applyNetworkPolicyAmendment.network_policy_amendment\n\n    return `${action === 'allow' ? 'Allow' : 'Deny'} ${host} for session`\n}\n\nfunction fileSystemPathLabel(path: AgentFileSystemPath) {\n    if (path.type === 'path') return path.path\n    if (path.type === 'glob_pattern') return path.pattern\n\n    return path.value\n}\n\nfunction commandActionLabel(action: AgentCommandAction) {\n    if (action.type === 'read') return `Read ${action.name}: ${action.path}`\n    if (action.type === 'listFiles') return `List files${action.path ? `: ${action.path}` : ''}`\n    if (action.type === 'search') {\n        return `Search${action.query ? ` for ${action.query}` : ''}${action.path ? ` in ${action.path}` : ''}`\n    }\n\n    return action.command\n}\n\nfunction structuredValueLabel(value: unknown) {\n    if (typeof value === 'string') return value\n\n    return JSON.stringify(value, null, 2) ?? String(value)\n}\n\nfunction permissionLabels(approval: LiveAgentApproval) {\n    const permissions = approval.additionalPermissions\n    if (!permissions) return []\n    const labels: string[] = []\n    if (permissions.network?.enabled !== null && permissions.network?.enabled !== undefined) {\n        labels.push(`Network: ${permissions.network.enabled ? 'enabled' : 'disabled'}`)\n    }\n    for (const path of permissions.fileSystem?.read ?? []) labels.push(`Read: ${path}`)\n    for (const path of permissions.fileSystem?.write ?? []) labels.push(`Write: ${path}`)\n    for (const entry of permissions.fileSystem?.entries ?? []) {\n        labels.push(`${entry.access}: ${fileSystemPathLabel(entry.path)}`)\n    }\n\n    return labels\n}\n\nfunction approvalDetails(approval: LiveAgentApproval) {\n    const details: { label: string, values: string[] }[] = []\n    if (approval.toolName) details.push({ label: 'Tool', values: [approval.toolName] })\n    if\n[2798 characters omitted]\nondary\" variant=\"body2\">{approval.reason}</Typography> : null}\n            </Stack>\n            {details.map(({ label, values }) => (\n                <Stack key={label} spacing={0.25}>\n                    {label === 'Actions' ? (\n                        <Typography\n                            aria-expanded={actionsExpanded}\n                            aria-label=\"Toggle full actions\"\n                            color=\"text.secondary\"\n                            component=\"button\"\n                            onClick={handleActionsToggle}\n                            sx={{ bgcolor: 'transparent', border: 0, cursor: 'pointer', p: 0, textAlign: 'left', width: 'fit-content' }}\n                            variant=\"caption\"\n                        >\n                            {label}\n                        </Typography>\n                    ) : <Typography color=\"text.secondary\" variant=\"caption\">{label}</Typography>}\n                    {values.map((value) => (\n                        label === 'Command' ? (\n                            <Box\n                                aria-expanded={commandExpanded}\n                                aria-label=\"Toggle full command\"\n                                component=\"button\"\n                                key={value}\n                                onClick={handleCommandToggle}\n                                sx={{\n                                    bgcolor: 'transparent', border: 0, color: 'text.primary', cursor: 'pointer', display: 'block',\n                                    font: 'inherit', fontFamily: 'monospace', minWidth: 0, overflow: 'hidden',\n                                    overflowWrap: commandExpanded ? 'anywhere' : 'normal',\n                                    p: 0, textAlign: 'left', textOverflow: commandExpanded ? 'clip' : 'ellipsis',\n                                    whiteSpace: commandExpanded ? 'pre-wrap' : 'nowrap', width: '100%',\n                                }}\n                            >\n                                {value}\n                            </Box>\n                        ) : (\n                            <Box\n                                component=\"code\"\n                                key={value}\n                                sx={{\n                                    color: 'text.primary',\n                                    ...(label === 'Actions' ? {\n                                        minWidth: 0,\n                                        overflow: 'hidden',\n                                        overflowWrap: actionsExpanded ? 'anywhere' : 'normal',\n                                        textOverflow: actionsExpanded ? 'clip' : 'ellipsis',\n                                        whiteSpace: actionsExpanded ? 'pre-wrap' : 'nowrap',\n                                    } : { overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }),\n                                }}\n                            >\n                                {value}\n                            </Box>\n                        )\n                    ))}\n                </Stack>\n            ))}\n            <Stack direction=\"row\" spacing={1} sx={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}>\n                {decisions.map((decision, index) => {\n                    const label = decisionLabel(decision)\n                    const destructive = decision === 'cancel'\n                    const primary = decision === 'accept'\n\n                    return (\n                        <Button\n                            color={destructive ? 'error' : 'primary'}\n                            data-decision-index={index}\n                            disabled={disabled}\n                            key={`${index}-${label}`}\n                            onClick={handleDecisionClick}\n                            size=\"small\"\n                            variant={primary ? 'contained' : 'outlined'}\n                        >\n                            {label}\n                        </Button>\n                    )\n                })}\n            </Stack>\n        </Stack>\n    )\n}",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-17",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01HzCNU4MS1ihbJgbCbxsqYw",
+          "sequence": 17,
+          "status": "completed",
+          "timestamp": "2026-08-22T09:36:14.794Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-18",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHZUFCU5baoDXCrrvfht:thinking:0",
+          "sequence": 18,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T09:36:16.704Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "import { createRequire } from 'node:module';\nimport { describe, expect, it, vi } from 'vitest';\nimport { AGENT_RESULT_MAX_LENGTH } from '../../../../shared/agent_conversations.mjs';\n\nconst require = createRequire(import.meta.url);\nconst { createAgentStreamingAdapter } = require('./agent_streaming_adapter');\n\nfunction harness(agent, providerConversationId = null) {\n    const events = [];\n    const runtimeEvents = [];\n    const writes = [];\n    const adapter = createAgentStreamingAdapter(\n        agent,\n        (message) => writes.push(message),\n        (event) => events.push(event),\n        'C:\\\\repo',\n        providerConversationId,\n        (event) => runtimeEvents.push(event),\n    );\n\n    return { adapter, events, runtimeEvents, writes };\n}\n\nfunction codexBreakdown(cachedInputTokens, inputTokens, outputTokens, reasoningOutputTokens) {\n    return {\n        cachedInputTokens,\n        inputTokens,\n        outputTokens,\n        reasoningOutputTokens,\n        totalTokens: inputTokens + outputTokens,\n    };\n}\n\nfunction codexTokenUsage(last, total) {\n    return {\n        method: 'thread/tokenUsage/updated',\n        params: { tokenUsage: { last, modelContextWindow: 258_400, total } },\n    };\n}\n\nfunction claudeContextUsageResponse(requestId, response, subtype = 'success') {\n    return {\n        response: { request_id: requestId, response, subtype },\n        type: 'control_response',\n    };\n}\n\nfunction latestClaudeContextUsageRequest(writes) {\n    return writes.findLast(({ request, type }) => type === 'control_request' && request?.subtype === 'get_context_usage');\n}\n\nasync function answerClaudeContextUsage(adapter, writes, response = { maxTokens: 258_400, totalTokens: 42_000 }) {\n    const request = latestClaudeContextUsageRequest(writes);\n    await adapter.handleMessage(claudeContextUsageResponse(request.request_id, response));\n}\n\ndescribe('ClaudeStreamingAdapter', () => {\n    it('writes multiple user turns and treats each result as a turn boundary', async () => {\n        const { adapter, events, writes } = harness('claude');\n\n        await adapter.start('plan');\n        await adapter.handleMessage({ session_id: 'session-1', subtype: 'init', type: 'system' });\n        await adapter.handleMessage({ message: { content: [{ text: 'proposal', type: 'text' }], id: 'message-1' }, type: 'assistant' });\n        await adapter.handleMessage({ total_cost_usd: 0.01, type: 'result', usage: { input_tokens: 4, output_tokens: 2 } });\n        await answerClaudeContextUsage(adapter, writes);\n        await adapter.sendMessage('approved');\n\n        expect(writes).toEqual([\n            { message: { content: 'plan', role: 'user' }, type: 'user' },\n            {\n                request: { subtype: 'get_context_usage' },\n                request_id: 'claude-context-usage-1',\n                type: 'control_request',\n            },\n            { message: { content: 'approved', role: 'user' }, type: 'user' },\n        ]);\n        expect(events).toContainEqual({ conversationId: 'session-1', type: 'sessionStarted' });\n        expect(events).toContainEqual({ content: 'proposal', itemId: 'message-1:text:0', type: 'assistantCompleted' });\n        expect(events.at(-1)).toMatchObject({ error: null, type: 'turnCompleted' });\n    });\n....\n57:describe('ClaudeStreamingAdapter', () => {\n58:    it('writes multiple user turns and treats each result as a turn boundary', async () => {\n82:    it('delays completion and maps only the matching context usage response without changing turn usage', async () => {\n124:    it('reports the latest context snapshot independently for each successful turn', async () => {\n168:    it('times out successfully and ignores the late response while a newer request is pending', async () => {\n198:    it('correlates structured question answers through the Claude control protocol', async () => {\n233:    it('maps root-confined file changes and tool lifecycle events', async () => {\n262:    it('bounds Claude command and tool results without truncating their inputs or duplicating command output', async () => {\n308:    it('reports only structured pre-turn missing-session results as resumable', async () => {\n332:    it('separates assistant messages within a turn and restarts the separator each turn', async () => {\n355:    it('streams ordered text, thinking, and tool activity then replaces text with authoritative completion', async () => {\n409:    it('reconciles an aggregated assistant message that arrives after the next step cleared active blocks', async () => {\n444:    it('keeps one assistant item per step across an AskUserQuestion pause with re-delivered aggregates', async () => {\n496:    it('suppresses routine Claude protocol noise', async () => {\n541:    it('keeps concurrent approvals isolated and maps Claude decisions to control responses', async () => {\n618:describe('CodexStreamingAdapter', () => {\n619:    it('initializes, starts one thread, then starts and steers a turn', async () => {\n649:    it('publishes initial, updated, and unavailable account rate-limit runtime events', async () => {\n686:    it('ignores child-thread notifications while preserving root collaboration and completion', async () => {\n782:    it('maps deltas, usage, file changes, questions, and turn completion', async () => {\n864:    it('transmits completed real-shape file-change counts and readable content', async () => {\n895:    it('keeps only latest valid context-window snapshot for completed Codex turn', async () => {\n921:    it('reports Codex turn usage as every model request in the turn, not only the newest', async () => {\n936:    it('excludes earlier Codex turns from the current turn by baselining cumulative usage', async () => {\n953:    it('reconstructs the turn baseline when a resumed Codex thread already carries cumulative usage', async () => {\n966:    it('rejects Codex cumulative usage whose provider total contradicts its buckets', async () => {\n976:    it('accepts context-only token usage emitted after Codex compaction', async () => {\n1006:    it('clears live context-window usage when a token notification has invalid context data', async () => {\n1025:    it('tracks concurrent approval requests and writes only supported decisions', async () => {\n1102:    it('rejects approval requests that do not match the active turn item', async () => {\n1119:    it('closes only matching streamed agent messages once', async () => {\n1143:    it('streams reasoning sections and replaces them with authoritative completion', async () => {\n1185:    it('retains completed reasoning without text', async () => {\n1202:    it('retains exact command and ordered output through authoritative completion', async () => {\n1244:    it('keeps streamed command output bounded before authoritative completion', async () => {\n1278:    it('retains declined command state', async () => {\n1307:    it('replaces plan deltas, records compaction and system events, and omits terminal input', async () => {\n1339:    it('clears completed item tracking when next turn starts', async () => {\n1354:    it('normalizes supported tool events and diagnoses unknown item types without failing', async () => {\n1378:    it('bounds structured tool result text with shared head-tail marker', async () => {\n1404:    it('resumes a saved thread before sending the first turn', async () => {\n1423:    it('reports a structured missing saved thread before any turn starts', async () => {\n1443:    it('reports request errors as fatal and rejects use before thread setup', async () => {\n1453:    it('reports server and turn request errors as fatal', async () => {",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-19",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01EYPHBB6xkSZ6AgNc1SxsFP",
+          "sequence": 19,
+          "status": "completed",
+          "timestamp": "2026-08-22T09:36:18.353Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-20",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHZUWL3ZEAmMHiECjwBk:thinking:0",
+          "sequence": 20,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T09:36:23.071Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "ls: cannot access 'shared/*.test.mjs': No such file or directory\nshared/agent_conversations.mjs:117:function normalizeEvent(value) {\nshared/agent_conversations.mjs:243:                ? normalizeEvent(entry)",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-21",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_014i9XyCzPtrPT9wpn1ANhSj",
+          "sequence": 21,
+          "status": "completed",
+          "timestamp": "2026-08-22T09:36:23.793Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "./app/src/services/agents/agent_conversation_service.node.test.ts\n./app/src/services/agents/agent_conversation_service.ts\n./desktop/src/actions/activity/activity_files.test.mjs\n./desktop/src/actions/agent/agent_codex_event.test.mjs\n./desktop/src/actions/agent/agent_conversation.test.mjs\n./desktop/src/actions/agent/agent_runner_state.test.mjs\n./desktop/src/actions/agent/agent_streaming_adapter.test.mjs\n./desktop/src/actions/agent/agent_transcript.test.mjs\n./shared/card_activity.mjs\n---\n                ...previousEntry,\n                content: `${previousEntry.content}\\n${entry.content}`,\n            };\n            continue;\n        }\n        groupedEntries.push(entry);\n    }\n\n    return groupedEntries;\n}\n\nfunction isConversationEntry(entry) {\n    if (entry.kind !== 'event') return true;\n    if (INTERNAL_EVENT_TYPES.has(entry.type)) return false;\n\n    return entry.type !== 'error' || typeof entry.providerItemId === 'string';\n}\n\nfunction normalizeEntries(value) {\n    if (!Array.isArray(value)) throw new Error('Malformed agent conversation: missing entries');\n\n    const entries = value.map((entry, index) => {\n        if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {\n            throw new Error(`Malformed agent conversation: invalid entries[${index}]`);\n        }\n        const normalized = entry.kind === 'message'\n            ? normalizeMessage(entry)\n            : entry.kind === 'event'\n                ? normalizeEvent(entry)\n                : null;\n        if (!normalized) throw new Error(`Malformed agent conversation: invalid entries[${index}]`);\n\n        return normalized;\n    });\n\n    return coalesceDiagnosticEntries(entries.filter(isConversationEntry));\n}\n\n/** Parse one canonical conversation value and validate every ordered entry. */\nexport function parseAgentConversationValue(parsed, referencePath) {\n    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('Malformed agent conversation: root must be an object');\n    const id = requiredString(parsed.id, 'id');\n    const status = requiredString(parsed.status, 'status');\n    if (!AGENT_STATUSES.has(status)) throw new Error(`Malformed agent conversation: invalid status ${status}`);\n    const startedAt = requiredString(parsed.startedAt, 'startedAt');\n    const hasExplicitTitle = typeof parsed.title === 'string' && parsed.title.trim().length > 0;\n    const contextWindowUsage = normalizeContextWindowUsage(parsed.contextWindowUsage);\n    const usage = normalizeAgentTokenUsage(parsed.usage);\n    if (parsed.usageSchemaVersion !== undefined\n        && parsed.usageSchemaVersion !== AGENT_CONVERSATION_USAGE_SCHEMA_VERSION) {\n        throw new Error(`Malformed agent conversation: unsupported usageSchemaVersion ${String(parsed.usageSchemaVersion)}`);\n    }\n    if (usage && parsed.usageSchemaVersion === undefined\n        && typeof parsed.usage.totalTokens === 'number'\n        && Number.isFinite(parsed.usage.totalTokens)\n        && parsed.usage.totalTokens >= 0) {\n        usage.totalTokens = parsed.usage.totalTokens;\n    }\n    if (usage && parsed.usageSchemaVersion === AGENT_CONVERSATION_USAGE_SCHEMA_VERSION\n        && parsed.usage.totalTokens !== usage.totalTokens) {\n        throw new Error('Malformed agent conversation: inconsistent usage.totalTokens');\n    }\n    const timer = parsed.timer === undefined ? null : normalizeTimer(parsed.timer);\n    if (parsed.viewed !== undefined && typeof parsed.viewed !== 'boolean') {\n        throw new Error('Malformed agent conversation: invalid viewed');\n    }\n\n    return {\n        actionId: optionalString(parsed.actionId),\n        cardInternalId: optionalString(parsed.cardInternalId),\n        cardPath: optionalString(parsed.cardPath),\n        completedAt: optionalString(parsed.completedAt),\n        ...(contextWindowUsage ? { contextWindowUsage } : {}),\n        entries: normalizeEntries(parsed.entries),\n        hasExplicitTitle,\n        id,\n        path: referencePath,\n        providerSessions: normalizeArray(parsed.providerSessions, normalizeProviderSession),\n        startedAt,\n        status,\n        ...(timer ? { timer } : {}),\n        title: hasExplicitTitle ? parsed.title : id,\n        ...(usage ? { usage } : {}),\n        ...(parsed.usageSchemaVersion !== undefined ? { usageSchemaVersion: parsed.usageSchemaVersion } : {}),\n        viewed: parsed.viewed ?? true,\n    };\n}\n\n/** Parse one canonical conversation record and validate every ordered entry. */\nexport function parseAgentConversation(content, referencePath) {\n    return parseAgentConversationValue(JSON.parse(content), referencePath);\n}",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-22",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_019mhMxZxyZMnc357Y2jd9f8",
+          "sequence": 22,
+          "status": "completed",
+          "timestamp": "2026-08-22T09:36:29.605Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "17:describe('agent conversation', () => {\n18:    it('accumulates token buckets and optional reported cost', () => {\n32:    it('creates messages and events in persisted shapes', () => {\n37:    it('omits unavailable numeric event detail', () => {\n54:    it('preserves non-negative file-change counts in persisted provider events', () => {\n73:    it('bounds redacted provider results and never duplicates command output', () => {\n100:    it('creates a new running conversation', () => {\n120:    it('resumes the canonical conversation at its requested reference', () => {\n140:    it('keeps legacy conversation duration unavailable when resumed', () => {\n154:    it('adds each running period once across repeated pause and resume events', () => {\n173:    it('snapshots mutable conversation collections without cloning immutable entries', () => {\n187:    it('updates a provider session cursor when an id is available', () => {\n---\nimport { createRequire } from 'node:module';\nimport { describe, expect, it } from 'vitest';\nimport { AGENT_RESULT_MAX_LENGTH } from '../../../../shared/agent_conversations.mjs';\n\nconst require = createRequire(import.meta.url);\nconst {\n    accumulateUsage,\n    createProviderEventEntry,\n    createConversation,\n    createEventEntry,\n    createMessageEntry,\n    snapshotConversation,\n    transitionConversationStatus,\n    updateProviderSession,\n} = require('./agent_conversation');\n\ndescribe('agent conversation', () => {\n    it('accumulates token buckets and optional reported cost', () => {\n        const current = { cachedInputTokens: 2, costUsd: 0.1, inputTokens: 10, outputTokens: 3, reasoningTokens: 1, totalTokens: 16 };\n        const turn = { cachedInputTokens: 4, inputTokens: 20, outputTokens: 6, reasoningTokens: 2, totalTokens: 32 };\n\n        expect(accumulateUsage(current, turn)).toEqual({\n            cachedInputTokens: 6,\n            costUsd: 0.1,\n            inputTokens: 30,\n            outputTokens: 9,\n            reasoningTokens: 3,\n            totalTokens: 48,\n        });\n    });",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-23",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_016Mmxs3w8MjowcLLjHYDKvz",
+          "sequence": 23,
+          "status": "completed",
+          "timestamp": "2026-08-22T09:36:32.044Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-24",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHZVX3z5GLcbh8sLNovL:thinking:0",
+          "sequence": 24,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T09:36:33.789Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "./app/src/services/agents/agent_conversation_service.node.test.ts\n---\n./app/src/services/agents/agent_conversation_service.node.test.ts:6:    parseAgentConversation,\n./app/src/services/agents/agent_conversation_service.node.test.ts:7:    parseAgentConversationValue,\n./app/src/services/agents/agent_conversation_service.node.test.ts:10:import { listAgentConversationReferences, parseAgentConversationLog } from './agent_conversation_service'\n./app/src/services/agents/agent_conversation_service.node.test.ts:12:describe('parseAgentConversationLog', () => {\n./app/src/services/agents/agent_conversation_service.node.test.ts:62:        expect(parseAgentConversationValue(source, 'design/logs/one.json'))\n./app/src/services/agents/agent_conversation_service.node.test.ts:63:            .toEqual(parseAgentConversation(JSON.stringify(source), 'design/logs/one.json'))\n./app/src/services/agents/agent_conversation_service.node.test.ts:67:        const conversation = parseAgentConversationLog(\n./app/src/services/agents/agent_conversation_service.node.test.ts:105:        expect(parseAgentConversationLog(JSON.stringify(source), 'design/logs/one.json').viewed).toBe(expected)\n./app/src/services/agents/agent_conversation_service.node.test.ts:109:        expect(() => parseAgentConversationLog(JSON.stringify({\n./app/src/services/agents/agent_conversation_service.node.test.ts:127:        const timed = parseAgentConversationLog(JSON.stringify({",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-25",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_012Vbu9w5XGcKYxD187v2yL6",
+          "sequence": 25,
+          "status": "completed",
+          "timestamp": "2026-08-22T09:36:36.430Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "import { describe, expect, it } from 'vitest'\nimport {\n    AGENT_RESULT_MAX_LENGTH,\n    appendBoundedAgentResult,\n    boundedAgentResult,\n    parseAgentConversation,\n    parseAgentConversationValue,\n} from '../../../../shared/agent_conversations.mjs'\nimport type { StorageService } from '../../data/data_types'\nimport { listAgentConversationReferences, parseAgentConversationLog } from './agent_conversation_service'\n\ndescribe('parseAgentConversationLog', () => {\n    it.each([AGENT_RESULT_MAX_LENGTH - 1, AGENT_RESULT_MAX_LENGTH])(\n        'preserves a command result containing %i characters byte-for-byte',\n        (length) => {\n            const content = 'x'.repeat(length)\n\n            expect(boundedAgentResult(content)).toBe(content)\n        },\n    )\n\n    it('retains head and tail with an omitted-character marker above the result limit', () => {\n        const content = `${'head'.repeat(1_500)}${'middle'.repeat(1_000)}${'tail'.repeat(1_500)}`\n        const bounded = boundedAgentResult(content)\n\n        expect(bounded).toHaveLength(AGENT_RESULT_MAX_LENGTH)\n        expect(bounded).toMatch(/^head/u)\n        expect(bounded).toMatch(/tail$/u)\n        expect(bounded).toMatch(/\\n\\[\\d+ characters omitted\\]\\n/u)\n    })\n\n    it('does not split a Unicode surrogate pair at either retained boundary', () => {\n        const content = `${'a'.repeat(4_079)}😀${'b'.repeat(4_100)}😀${'c'.repeat(4_079)}`\n        const bounded = boundedAgentResult(content)\n        const codeUnits = [...bounded].flatMap((character) => (\n            character.length === 2 ? [] : [character.charCodeAt(0)]\n        ))\n\n        expect(codeUnits.some((codeUnit) => codeUnit >= 0xD800 && codeUnit <= 0xDFFF)).toBe(false)\n        expect(bounded.length).toBeLessThanOrEqual(AGENT_RESULT_MAX_LENGTH)\n    })\n\n    it('produces the same bounded result from streamed chunks without retaining the middle', () => {\n        const chunks = ['head'.repeat(1_500), 'middle'.repeat(2_000), 'tail'.repeat(1_500)]\n        let accumulated = appendBoundedAgentResult(null, '')\n        for (const chunk of chunks) accumulated = appendBoundedAgentResult(accumulated.state, chunk)\n\n        expect(accumulated.value).toBe(boundedAgentResult(chunks.join('')))\n        expect(accumulated.state.head).toHaveLength(AGENT_RESULT_MAX_LENGTH)\n        expect(accumulated.state.tail).toHaveLength(AGENT_RESULT_MAX_LENGTH)\n    })\n\n    it('produces equivalent results from string and value parsers', () => {\n        const source = {\n            completedAt: null,\n            entries: [{ content: 'hello', id: 'message-1', kind: 'message', role: 'assistant', timestamp: '2026-01-01T00:00:00.000Z' }],\n            id: 'agent-1',\n            startedAt: '2026-01-01T00:00:00.000Z',\n            status: 'completed',\n        }\n\n        expect(parseAgentConversationValue(source, 'design/logs/one.json'))\n            .toEqual(parseAgentConversation(JSON.stringify(source), 'design/logs/one.json'))\n    })\n\n    it('normalizes a persisted agent log', () => {\n        const conversation = parseAgentConversationLog(\n            JSON.stringify({\n                cardPath: 'design/F-1.md',\n                completedAt: null,",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-26",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01GLCEzXFheN42YcQUinrA9i",
+          "sequence": 26,
+          "status": "completed",
+          "timestamp": "2026-08-22T09:36:38.719Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-27",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHZW1iADKLpq2WbfCMYD:thinking:0",
+          "sequence": 27,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T09:36:41.966Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "import { createRequire } from 'node:module';\nimport { describe, expect, it } from 'vitest';\n\nconst require = createRequire(import.meta.url);\nconst { createAgentEnvironment } = require('./agent_environment');\n\ndescribe('createAgentEnvironment', () => {\n    it('removes inherited VS Code debugger auto-attach variables', () => {\n        const environment = {\n            NODE_OPTIONS: '--require vscode-js-debug/bootloader.js',\n            Path: 'C:\\\\tools',\n            vscode_inspector_options: '{\"autoAttachMode\":\"always\"}',\n        };\n\n        expect(createAgentEnvironment(environment)).toEqual({ Path: 'C:\\\\tools' });\n        expect(environment).toHaveProperty('NODE_OPTIONS');\n    });\n});\n=====\n        const startedAt = new Date().toISOString();\n        const conversationId = request.conversation?.id ?? request.conversationId ?? `agent-${crypto.randomUUID()}`;\n        const reference = request.reference ?? conversationReference(request, conversationId);\n        const conversation = createConversation(request, conversationId, startedAt, reference);\n        let nextSequence = nextConversationSequence(conversation);\n        if (this.runningConversationIds.has(conversation.id)) throw new Error(`Agent conversation already has a running turn: ${conversation.id}`);\n        const lastMessage = lastMessageEntry(conversation);\n        if (request.reuseLastUserMessage) {\n            if (lastMessage?.role !== 'user' || lastMessage.content !== prompt) throw new Error('Missing failed-turn user message for agent retry');\n        } else {\n            conversation.entries.push(createMessageEntry(`${id}-user`, 'user', prompt, startedAt, undefined, nextSequence));\n            nextSequence += 1;\n        }\n        const [configuredExecutable, ...configuredArguments] = command;\n        const environment = createAgentEnvironment(process.env);\n        const executable = await this.executableResolver.find(configuredExecutable, { cwd: rootPath, env: environment });\n        if (!executable) throw new Error(`Executable not found for ${agent}: ${configuredExecutable}`);\n        const argumentsList = streaming ? configuredArguments : [...configuredArguments, prompt];\n        const initialConversation = snapshotConversation(conversation);\n        await this.persistConversationCheckpoint({ conversation: initialConversation, request });\n        this.requestUsagePoll({ agent, environment, executable, rootPath });\n        const child = this.spawn(executable, argumentsList, {\n            cwd: rootPath,\n            detached: process.platform !== 'win32',\n            env: environment,\n            stdio: ['pipe', 'pipe', 'pipe'],\n            // windowsHide: true,\n        });\n        logAgentEvent('[agent:start]', {\n            arguments: configuredArguments,\n            cwd: rootPath,\n     * runs there, and that question blocks the poll. Polling the project folder means the answer\n     * covers the folder agents are about to run in anyway.\n     */\n    requestProjectUsageRefresh(project, profiles) {\n        if (!Array.isArray(profiles)) throw new Error('Project usage refresh requires agent profiles');\n        const cwd = requireRootPath(project);\n        if (this.usageRefreshStopped) return;\n        // A refresh for the previous project stops driving the interval the moment a new one starts.\n        this.stopUsagePollTicks();\n        this.claudeUsagePollContext = null;\n        this.usageRefreshGeneration += 1;\n        const generation = this.usageRefreshGeneration;\n        const environment = createAgentEnvironment(process.env);\n        const observedAt = this.now();\n        const refreshProfiles = ['claude', 'codex']\n            .map((provider) => profiles.find(({ name }) => name === provider))\n            .filter((profile) => profile !== undefined);\n        for (const profile of refreshProfiles) {\n            void this.startProviderUsageRefresh(profile, { cwd, environment, generation, observedAt });\n        }\n    }\n\n    async startProviderUsageRefresh(profile, { cwd, environment, generation, observedAt }) {\n        const [configuredExecutable, ...configuredArguments] = profile.command;\n        executableFromCommand(profile.command);\n        const executable = await this.executableResolver.find(configuredExecutable, { cwd, env: environment });",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-28",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01K8rwuH6QbQyef3LhFdhL38",
+          "sequence": 28,
+          "status": "completed",
+          "timestamp": "2026-08-22T09:36:42.604Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-29",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHZWJVhyUSSWRi1V3UMV:thinking:0",
+          "sequence": 29,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T09:37:02.111Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "import BuildOutlined from '@mui/icons-material/BuildOutlined'\nimport { Box, Button, Stack, Typography } from '@mui/material'\nimport { useState } from 'react'\nimport type { AgentConversationEvent } from '../../../data/data_types'\nimport { eventHasError, eventStatusLabel, readableEventText } from './event_display'\n\nconst TOOL_DETAIL_MAX_HEIGHT = 240\n\ninterface AgentToolEventProps {\n    event: AgentConversationEvent\n    grouped: boolean\n}\n\n/** Generic compact renderer for normalized Codex tool and system events. */\nexport function AgentToolEvent({ event, grouped }: AgentToolEventProps) {\n    const [expanded, setExpanded] = useState(false)\n    const label = event.label ?? 'Agent event'\n    const hasError = eventHasError(event.status)\n    const contentLines = readableEventText(event.content)\n    const outputLines = readableEventText(event.output)\n    const durationMs = typeof event.durationMs === 'number' && Number.isFinite(event.durationMs)\n        ? event.durationMs\n        : null\n    const hasDetail = contentLines.length > 0 || outputLines.length > 0 || durationMs !== null\n    const toggleExpanded = () => {\n        setExpanded((current) => !current)\n    }\n\n    return (\n        <Box\n            sx={{\n                border: grouped ? 'none' : '1px solid',\n                borderColor: hasError ? 'error.main' : 'divider',\n                borderRadius: grouped ? 0 : 1,\n                flexShrink: 0,\n                minWidth: 0,\n                overflow: 'hidden',\n            }}\n        >\n            <Button\n                aria-expanded={hasDetail ? expanded : undefined}\n                aria-label={`${label} details`}\n                disabled={!hasDetail}\n                fullWidth\n                onClick={toggleExpanded}\n                startIcon={<BuildOutlined />}\n                sx={{\n                    color: hasError ? 'error.main' : 'text.secondary',\n                    display: 'flex',\n                    justifyContent: 'flex-start',\n                    minWidth: 0,\n                    px: 1,\n                    py: 0.75,\n                    textAlign: 'left',\n                }}\n            >\n                <Stack direction=\"row\" spacing={1} sx={{ alignItems: 'center', minWidth: 0, width: '100%' }}>\n                    <Typography noWrap sx={{ flex: 1, minWidth: 0 }} variant=\"caption\">{label}</Typography>\n                    <Typography color=\"inherit\" role=\"status\" variant=\"caption\">\n                        {eventStatusLabel(event.status)}\n                    </Typography>\n                </Stack>\n            </Button>\n            {expanded ? (\n                <Stack\n                    spacing={1}\n                    sx={{\n                        bgcolor: 'background.default',\n                        borderTop: '1px solid',\n                        borderColor: 'divider',\n                        color: hasError ? 'error.main' : 'text.secondary',\n                        maxHeight: TOOL_DETAIL_MAX_HEIGHT,\n                        minWidth: 0,\n                        overflow: 'auto',\n                        p: 1,\n                    }}\n                >\n                    {contentLines.map((line, index) => (\n                        <Typography key={`content-${index}`} sx={{ overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }} variant=\"body2\">\n                            {line}\n                        </Typography>\n                    ))}\n                    {outputLines.map((line, index) => (\n                        <Typography key={`output-${index}`} sx={{ overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }} variant=\"body2\">\n                            {line}\n                        </Typography>\n                    ))}\n                    {durationMs !== null ? (\n                        <Typography variant=\"caption\">Duration: {durationMs} ms</Typography>\n                    ) : null}\n                </Stack>\n            ) : null}\n        </Box>\n    )\n}",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-30",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01VShfRnmHNdSq1MrMY9hSBG",
+          "sequence": 30,
+          "status": "completed",
+          "timestamp": "2026-08-22T09:37:03.282Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-31",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHZXqLssHYdULJ7hcGri:thinking:0",
+          "sequence": 31,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T09:37:08.057Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-32",
+          "kind": "event",
+          "label": "ToolSearch",
+          "output": "No matching deferred tools found",
+          "providerItemId": "toolu_01RPQfh7YSQV579vJQWtcV7y",
+          "sequence": 32,
+          "status": "completed",
+          "timestamp": "2026-08-22T09:37:08.358Z",
+          "type": "tool.ToolSearch"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-33",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHZYD467pm14hbgLv9m2:thinking:0",
+          "sequence": 33,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T09:37:20.872Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nRead spec + all touched files. Plan below.\n\n## Change Plan — B_170 sub agent support (Claude)\n\n**Block 1 — Forward flag via environment**\n`desktop/src/actions/agent/agent_environment.js`: `createAgentEnvironment(environment, agent)` sets `CLAUDE_CODE_FORWARD_SUBAGENT_TEXT=1` when `agent === 'claude'` and no case-insensitive key of that name already exists in the parent environment. Both call sites in `agent_runner_service.js` (`:139` run spawn passes `agent`, `:322` usage refresh passes the profile name per provider). Environment route, not a CLI flag, so an older CLI ignores it instead of exiting.\n\n**Block 2 — Per-stream turn state in the adapter**\n`agent_claude_streaming_adapter.js`: replace `activeMessageId` / `activeBlocks` / `activeTextOrdinal` / `turnHasAssistantText` with `streamStates: Map` keyed by `parent_tool_use_id` (`null` = main agent). `handleStreamEvent`, `handleAssistantCompletion`, `handleToolResults` resolve their record first, so a sub-agent `message_start` can no longer clear the parent's blocks. Generated provider item ids get the stream key as prefix (main agent keeps today's ids exactly). `tool_result` resolves by scanning tool blocks across every stream, which also fixes a parent tool completing after the next message started. `handleResult` returns early for any `result` carrying `parent_tool_use_id`, so only the top-level result clears approvals, ends the turn, and reports usage.\n\n**Block 3 — Sub-agent output as nested events, non-fatal unknown frames**\nSub-agent text → `event` (never `assistantStarted`/`assistant`, which would pollute `lastMessageEntry` and corrupt `updateProviderSession` resume); sub-agent thinking stays `reasoning`, tools stay `tool.*`; all carry `parentItemId = <spawning Agent tool_use id>`. Label per sub agent captured from the `Agent` tool call input (`subagent_type`, falling back to `description`). Reachable `throw new Error(...)` sites (`claudeApprovalRequest` validation, duplicate approval id, invalid question request, missing assistant message id) become `emitProtocolError` so one bad frame is one error row, not a `failStreamingRun`. `writeLine` failures keep throwing.\n\n**Block 4 — Approval origin**\n`parentItemId` + `subAgentLabel` on the approval object from `claudeApprovalRequest`; passes untouched through `handleApproval`; `AgentApproval` in `app/src/data/action_run_types.ts` gains both optional fields; `action_agent_approval.tsx` shows a `Requested by` detail row. Decisions and `availableDecisions` unchanged.\n\n**Block 5 — Persist `parentItemId`**\n`createProviderEventEntry` in `agent_conversation.js`, whitelist in `normalizeEvent` in `shared/agent_conversations.mjs`, `AgentConversationEvent` in `app/src/data/data_types.ts`. Optional field, no version bump, old files still load.\n\n**Block 6 — Transcript nesting**\n`action_conversation_render_groups.ts` gains a `subAgent` group: entries sharing a `parentItemId` attach to the `tool.Agent` entry whose `providerItemId` matches, applied recursively so depth-2 sub agents sit under their own spawning entry. Orphans (parent entry never arrived) render flat. New `sub_agent_group.tsx` modeled on `completed_tool_call_group.tsx` — collapsed by default, header = label + entry count, body reuses `ActionConversationEventRow`. Wired into `action_conversation_chat.tsx`.\n\n**Block 7 — Tests**\n`agent_streaming_adapter.test.mjs`: interleaved parent/sub-agent frames, parent tool result across a sub-agent message, sub-agent approval, sub-agent `result` ignored, nested sub agent. `agent_environment.test.mjs`: flag set, user value preserved, not set for codex. `agent_conversation_service.node.test.ts`: `parentItemId` survives round trip. `action_conversation_rendering.test.tsx`: nesting, collapse, orphan.\n\nFiles touched: 9 source + 4 test. No new deps.",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 34,
+          "timestamp": "2026-08-22T09:37:38.579Z"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-35",
+          "kind": "event",
+          "label": "AskUserQuestion",
+          "output": "The user answered: \"Approve this 7-block plan for B_170?\"=\"Approve, implement all blocks\". Read the answers carefully — they may request clarification, changes, or that you not proceed — and follow what they actually say.",
+          "providerItemId": "toolu_014wc11BgnBWHn5Go2kETxXf",
+          "sequence": 35,
+          "status": "completed",
+          "timestamp": "2026-08-22T11:33:35.456Z",
+          "type": "tool.AskUserQuestion"
+        },
+        {
+          "content": "claude-question-0: Approve, implement all blocks",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-answer-35",
+          "kind": "message",
+          "role": "user",
+          "sequence": 36,
+          "timestamp": "2026-08-22T11:33:35.446Z"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nApproved. Block 1 first.",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 37,
+          "timestamp": "2026-08-22T11:33:38.096Z"
+        },
+        {
+          "content": "(Bash completed with no output)",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-38",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_018x8x58JxGrz4bekFJw34NH",
+          "sequence": 38,
+          "status": "completed",
+          "timestamp": "2026-08-22T11:33:45.563Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNow the two call sites.",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-turn-1-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 39,
+          "timestamp": "2026-08-22T11:33:47.878Z"
+        },
+        {
+          "content": "        }\n        const [configuredExecutable, ...configuredArguments] = command;\n        const environment = createAgentEnvironment(process.env, agent);\n        const executable = await this.executableResolver.find(configuredExecutable, { cwd: rootPath, env: environment });\n        if (!executable) throw new Error(`Executable not found for ${agent}: ${configuredExecutable}`);\n        this.stopUsagePollTicks();\n        this.claudeUsagePollContext = null;\n        this.usageRefreshGeneration += 1;\n        const generation = this.usageRefreshGeneration;\n        const environment = createAgentEnvironment(process.env);\n        const observedAt = this.now();\n        const refreshProfiles = ['claude', 'codex']\n            .map((provider) => profiles.find(({ name }) => name === provider))\n            .filter((profile) => profile !== undefined);\n        for (const profile of refreshProfiles) {\n            void this.startProviderUsageRefresh(profile, { cwd, environment, generation, observedAt });\n        }\n    }\n\n    async startProviderUsageRefresh(profile, { cwd, environment, generation, observedAt }) {\n        const [configuredExecutable, ...configuredArguments] = profile.command;\n        executableFromCommand(profile.command);\n        const executable = await this.executableResolver.find(configuredExecutable, { cwd, env: environment });\n        // Resolution outlives a project switch, and its result belongs to the folder it started in.",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-40",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01FzP9K22Wf7znEBufUsbxbi",
+          "sequence": 40,
+          "status": "completed",
+          "timestamp": "2026-08-22T11:33:50.732Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-41",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHiSQ4G8stMg3M1zQWMY:thinking:0",
+          "sequence": 41,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T11:33:53.584Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "145:        this.requestUsagePoll({ agent, environment, executable, rootPath });\n146-        const child = this.spawn(executable, argumentsList, {\n147-            cwd: rootPath,\n148-            detached: process.platform !== 'win32',\n149-            env: environment,\n--\n415:    requestUsagePoll(run) {\n416-        if (run.agent !== 'claude') return;\n417-        this.claudeUsagePoller.requestPoll({ cwd: run.rootPath, env: run.environment, executable: run.executable });\n418-    }\n419-\n--\n736:            this.requestUsagePoll(run);\n737-            if (persistenceError) {\n738-                if (run.onCompletionError) run.onCompletionError(persistenceError);\n739-                return;\n740-            }",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-42",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_019UZZ1r5gGfTtA4ceVhTAAC",
+          "sequence": 42,
+          "status": "completed",
+          "timestamp": "2026-08-22T11:33:59.048Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nBlock 1 test:",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-turn-1-assistant-5",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 43,
+          "timestamp": "2026-08-22T11:34:03.228Z"
+        },
+        {
+          "content": "Traceback (most recent call last):\r\n  File \"<stdin>\", line 26, in <module>\r\nAssertionError\r\n\n RUN  v4.1.11 C:/Users/janbo/Documents/dev/md2_workers/dev1\n\n\n Test Files  1 passed (1)\n      Tests  1 passed (1)\n   Start at  13:34:14\n   Duration  386ms (transform 14ms, setup 0ms, import 62ms, tests 3ms, environment 0ms)",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-44",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01CVLzhhccdKhqu1JWh4K4FD",
+          "sequence": 44,
+          "status": "completed",
+          "timestamp": "2026-08-22T11:34:15.078Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-45",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHiUCHPgtsNsimiqvC7Q:thinking:0",
+          "sequence": 45,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T11:34:19.052Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "        };$\n$\n        expect(createAgentEnvironment(environment)).toEqual({ Path: 'C:\\\\tools' });$\n        expect(environment).toHaveProperty('NODE_OPTIONS');$\n    });$\n});$",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-46",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01QqA5YR5xz3Pu5iaeigEsMN",
+          "sequence": 46,
+          "status": "completed",
+          "timestamp": "2026-08-22T11:34:19.957Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-47",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHiUZUrHv7f2CqoWiodS:thinking:0",
+          "sequence": 47,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T11:34:27.496Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "'    Path: \\'C:\\\\\\\\tools\\',\\n            vscode_inspector_options: \\'{\"autoAttachMode\":\"always\"}\\',\\n        };\\n\\n        expect(createAgentEnvironment(environment)).toEqual({ Path: \\'C:\\\\\\\\tools\\' });\\n        expect(environment).toHaveProperty(\\'NODE_OPTIONS\\');\\n    });\\n});\\n'",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-48",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_019py3j2Qnk7wGmNhp272UDU",
+          "sequence": 48,
+          "status": "completed",
+          "timestamp": "2026-08-22T11:34:30.058Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-49",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHiVJHL8tLSMT8v7sL6B:thinking:0",
+          "sequence": 49,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T11:34:34.149Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "\"        expect(createAgentEnvironment(environment)).toEqual({ Path: 'C:\\\\tools' });\"\r\nFalse",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-50",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01PZcKMpND8yshF7nfPNzyjS",
+          "sequence": 50,
+          "status": "completed",
+          "timestamp": "2026-08-22T11:34:37.234Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-51",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHiVrGRy2SJLrevUZij5:thinking:0",
+          "sequence": 51,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T11:34:42.139Z",
+          "type": "reasoning"
+        },
+        {
+          "content": " RUN  v4.1.11 C:/Users/janbo/Documents/dev/md2_workers/dev1\n\n\n Test Files  1 passed (1)\n      Tests  4 passed (4)\n   Start at  13:34:49\n   Duration  180ms (transform 15ms, setup 0ms, import 45ms, tests 4ms, environment 0ms)",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-52",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01JvZm9sXnwTZ17mtaFwFjTm",
+          "sequence": 52,
+          "status": "completed",
+          "timestamp": "2026-08-22T11:34:49.729Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-53",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHiWmXT7yAi8nuyU8ovR:thinking:0",
+          "sequence": 53,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T11:35:41.383Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNow the adapter (blocks 2+3).",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-turn-1-assistant-6",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 54,
+          "timestamp": "2026-08-22T11:35:41.384Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-55",
+          "kind": "event",
+          "label": "Write",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\desktop\\src\\actions\\agent\\agent_claude_streaming_adapter.js has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01BaGxpJCuQ5tUTGt83NGpJf",
+          "sequence": 55,
+          "status": "completed",
+          "timestamp": "2026-08-22T11:37:11.150Z",
+          "type": "fileChange"
+        },
+        {
+          "content": " RUN  v4.1.11 C:/Users/janbo/Documents/dev/md2_workers/dev1\n\n\n Test Files  1 passed (1)\n      Tests  57 passed (57)\n   Start at  13:37:16\n   Duration  264ms (transform 52ms, setup 0ms, import 120ms, tests 24ms, environment 0ms)",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-56",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01Lzst4tHfftWkrs8tJ5dbY2",
+          "sequence": 56,
+          "status": "completed",
+          "timestamp": "2026-08-22T11:37:16.673Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-57",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHiharZkv15Fns9i8U6Q:thinking:0",
+          "sequence": 57,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T11:37:19.599Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "23:function redactConversationEvent(event, secretValues) {\n24-    return {\n25-        ...event,\n26-        command: redactSecrets(event.command, secretValues),\n27-        content: redactSecrets(event.content, secretValues),\n28-        details: Array.isArray(event.details) ? redactTextArray(event.details, secretValues) : event.details,\n29-        label: redactSecrets(event.label, secretValues),\n30-        output: redactSecrets(event.output, secretValues),\n31-        summary: Array.isArray(event.summary) ? redactTextArray(event.summary, secretValues) : event.summary,\n32-        workingDirectory: redactSecrets(event.workingDirectory, secretValues),\n33-    };\n34-}\n35-\n36:module.exports = { redactConversationEvent, redactSecrets, redactTextArray, secretAnswerValues };",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-58",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01P3nQeLgJ91TcHgzMxiY6a7",
+          "sequence": 58,
+          "status": "completed",
+          "timestamp": "2026-08-22T11:37:20.241Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nGood — spreads. Block 5 (persistence) next.",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-turn-1-assistant-7",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 59,
+          "timestamp": "2026-08-22T11:37:22.534Z"
+        },
+        {
+          "content": "ok",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-60",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01Vw5QEGjPKfDPvoF7DP3Km7",
+          "sequence": 60,
+          "status": "completed",
+          "timestamp": "2026-08-22T11:37:29.765Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nBlock 4 — approval origin in types + card.",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-turn-1-assistant-8",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 61,
+          "timestamp": "2026-08-22T11:37:32.141Z"
+        },
+        {
+          "content": "ok",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-62",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01B9V2vQND5488s9zR64iFvt",
+          "sequence": 62,
+          "status": "completed",
+          "timestamp": "2026-08-22T11:37:38.766Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-63",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHijDJai3TT9TpPNAzAM:thinking:0",
+          "sequence": 63,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T11:37:41.675Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "45:    approvals: LiveAgentApproval[]\n54:export interface LiveAgentApproval extends AgentApproval {",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-64",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01FTzGGEZ65uq3yFoe5n3C2v",
+          "sequence": 64,
+          "status": "completed",
+          "timestamp": "2026-08-22T11:37:42.605Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-65",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHijVJkbXkMYzurfEWcN:thinking:0",
+          "sequence": 65,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T11:37:55.186Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "import type { PopupRunStatus } from '../run/popup/action_popup_defaults'\nimport type { ActionConversationRenderGroup } from './action_conversation_render_groups'\n\nconst MIN_RESERVED_BLOCK_COUNT = 1\n\nexport interface ActionConversationReservationState {\n    active: boolean\n    conversationPath: string | null\n    inputKey: string\n    permanentKeys: Set<string>\n    runningKeys: Set<string>\n    slotCount: number\n}\n\nfunction runIsActive(status: PopupRunStatus) {\n    return status === 'queued' || status === 'running' || status === 'waitingForInput'\n}\n\nfunction groupIsRunning(group: ActionConversationRenderGroup) {\n    if (group.kind !== 'entry' || group.entry.kind !== 'event') return false\n\n    return group.entry.status === 'inProgress'\n        || group.entry.status === 'running'\n        || group.entry.status === 'started'\n}\n\nfunction reservationInputKey(\n    conversationPath: string | null,\n    groups: ActionConversationRenderGroup[],\n    active: boolean,\n) {\n    return JSON.stringify([conversationPath, active, groups.map((group) => [group.key, groupIsRunning(group)])])\n}\n\n/** Creates empty presentation state for chat-bottom reservation tracking. */\nexport function createActionConversationReservationState(): ActionConversationReservationState {\n    return {\n        active: false,\n        conversationPath: null,\n        inputKey: '',\n        permanentKeys: new Set(),\n        runningKeys: new Set(),\n        slotCount: 0,\n    }\n}\n\n/** Advances reserved-slot state from visible render-group lifecycle changes. */\nexport function updateActionConversationReservation(\n    previous: ActionConversationReservationState,\n    conversationPath: string | null,\n    groups: ActionConversationRenderGroup[],\n    status: PopupRunStatus,\n) {\n    const active = runIsActive(status)\n    const inputKey = reservationInputKey(conversationPath, groups, active)\n    if (inputKey === previous.inputKey) return previous\n    if (!active) return { ...createActionConversationReservationState(), inputKey }\n\n    const runningKeys = new Set(groups.filter(groupIsRunning).map(({ key }) => key))\n    const permanentKeys = new Set(groups.filter((group) => !groupIsRunning(group)).map(({ key }) => key))\n    const sessionChanged = !previous.active || previous.conversationPath !== conversationPath\n    if (sessionChanged) {\n        return {\n            active,\n            conversationPath,\n            inputKey,\n            permanentKeys,\n            runningKeys,\n            slotCount: Math.max(MIN_RESERVED_BLOCK_COUNT, runningKeys.size),\n        }\n    }\n\n    const newPermanentCount = [...permanentKeys].filter((key) => !previous.permanentKeys.has(key)).length\n    const retainedRunningCount = [...runningKeys].filter((key) => previous.runningKeys.has(key)).length\n    const newRunningCount = runningKeys.size - retainedRunningCount\n    const reducedSlotCount = Math.max(MIN_RESERVED_BLOCK_COUNT, previous.slotCount - newPermanentCount)\n    const availableSlotCount = Math.max(0, reducedSlotCount - retainedRunningCount)\n    const slotCount = reducedSlotCount + Math.max(0, newRunningCount - availableSlotCount)\n\n    return { active, conversationPath, inputKey, permanentKeys, runningKeys, slotCount }\n}\n\n/** Returns currently unused slots rendered as bottom placeholders. */\nexport function reservedActionConversationBlockCount(state: ActionConversationReservationState) {\n    return Math.max(0, state.slotCount - state.runningKeys.size)\n}",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-66",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01K2BNi5Z5QDXNm7D8QmCFGJ",
+          "sequence": 66,
+          "status": "completed",
+          "timestamp": "2026-08-22T11:37:55.527Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-67",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHikScoZZD3oSN4PZLQ5:thinking:0",
+          "sequence": 67,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T11:37:59.586Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-68",
+          "kind": "event",
+          "label": "Write",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\actions\\conversation\\action_conversation_render_groups.ts has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01GfAKwa6PYCkUYE77YNhfRo",
+          "sequence": 68,
+          "status": "completed",
+          "timestamp": "2026-08-22T11:38:16.648Z",
+          "type": "fileChange"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNow the sub-agent group component and chat wiring.",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-turn-1-assistant-9",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 69,
+          "timestamp": "2026-08-22T11:38:18.604Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-70",
+          "kind": "event",
+          "label": "Write",
+          "output": "File created successfully at: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\actions\\conversation\\sub_agent_group.tsx (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_017CJ9Hod7J53WGd3bJQJdBu",
+          "sequence": 70,
+          "status": "completed",
+          "timestamp": "2026-08-22T11:38:27.395Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "ok\r\nnpm error Missing script: \"typecheck\"\nnpm error\nnpm error To see a list of scripts, run:\nnpm error   npm run\nnpm error A complete log of this run can be found in: C:\\Users\\janbo\\AppData\\Local\\npm-cache\\_logs\\2026-08-22T11_38_37_679Z-debug-0.log",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-71",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01VCRGwY2demXW8426SEwv8j",
+          "sequence": 71,
+          "status": "completed",
+          "timestamp": "2026-08-22T11:38:37.802Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "LICENSE\nREADME.md\nagents.md\napp\ndesign\ndesktop\ndocs\nmd2.config.json\nnode_modules\npackage-lock.json\npackage.json\nscreenshots\nshared\ntemp.jpg\n{\n  \"name\": \"md2\",\n  \"private\": true,\n  \"scripts\": {\n    \"build:windows\": \"node desktop/packaging/build_windows.js\",\n    \"dev\": \"concurrently -k -n APP,DESKTOP -c blue,green \\\"npm:dev:app\\\" \\\"npm:dev:desktop\\\"\",\n    \"dev:app\": \"npm run dev --prefix app\",\n    \"dev:desktop\": \"wait-on http://localhost:5173 && npm start --prefix desktop\",\n    \"install:all\": \"npm install --prefix app && npm install --prefix desktop\"\n  },\n  \"devDependencies\": {\n    \"concurrently\": \"^10.0.3\",\n    \"wait-on\": \"^9.0.10\"\n  },\n  \"dependencies\": {\n    \"electron-window-state\": \"^5.0.3\"\n  }\n}",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-72",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01H6XSdkRzm7GVag5FLnoXQK",
+          "sequence": 72,
+          "status": "completed",
+          "timestamp": "2026-08-22T11:38:40.241Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "> app@0.4.2 typecheck\n> tsc --noEmit",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-73",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01TVdvwnmnLD6nirMogrbrzi",
+          "sequence": 73,
+          "status": "completed",
+          "timestamp": "2026-08-22T11:38:55.042Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-74",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHiprV7AM7rgWQQJoRx3:thinking:0",
+          "sequence": 74,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T11:39:05.828Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "Exit code 2\nsed: can't read desktop/src/actions/agent/agent_streaming_adapter.test.mjs: No such file or directory",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-75",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01YMke4vkbCgVz7jveooH9gH",
+          "sequence": 75,
+          "status": "failed",
+          "timestamp": "2026-08-22T11:39:06.468Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "    ])('maps Claude %s approval decisions exactly', async (decision, response) => {\n        const { adapter, writes } = harness('claude');\n        await adapter.handleMessage({\n            request: {\n                input: { command: 'npm test' },\n                subtype: 'can_use_tool',\n                tool_name: 'Bash',\n                tool_use_id: 'tool-1',\n            },\n            request_id: 'request-1',\n            type: 'control_request',\n        });\n\n        await adapter.answerApproval('request-1', decision);\n\n        expect(writes.at(-1)).toEqual({\n            response: { request_id: 'request-1', response, subtype: 'success' },\n            type: 'control_response',\n        });\n    });\n});\n\ndescribe('CodexStreamingAdapter', () => {\n    it('initializes, starts one thread, then starts and steers a turn', async () => {\n        const { adapter, events, writes } = harness('codex');",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-76",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01VvqdNuwACeZbaN1KdronSj",
+          "sequence": 76,
+          "status": "completed",
+          "timestamp": "2026-08-22T11:39:08.840Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "Exit code 2\n/usr/bin/bash: -c: line 171: unexpected EOF while looking for matching `''",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-77",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_017XMXyhGM4eagK9ZFXQmdDX",
+          "sequence": 77,
+          "status": "failed",
+          "timestamp": "2026-08-22T11:39:38.110Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-78",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHit14NySuSvjRvXm2dH:thinking:0",
+          "sequence": 78,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T11:39:41.564Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-79",
+          "kind": "event",
+          "label": "Write",
+          "output": "File created successfully at: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\temp_patch_tests.py (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01BW1zoJx4HL9ZbVK4vUpBKS",
+          "sequence": 79,
+          "status": "completed",
+          "timestamp": "2026-08-22T11:40:05.749Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "ok\r\n\n RUN  v4.1.11 C:/Users/janbo/Documents/dev/md2_workers/dev1\n\n\n Test Files  1 passed (1)\n      Tests  62 passed (62)\n   Start at  13:40:11\n   Duration  269ms (transform 50ms, setup 0ms, import 121ms, tests 27ms, environment 0ms)",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-80",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01TyfoWsHf1yirpoGDsV9PDJ",
+          "sequence": 80,
+          "status": "completed",
+          "timestamp": "2026-08-22T11:40:11.720Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-81",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHivVtXY9AQ4ebSXQnjc:thinking:0",
+          "sequence": 81,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T11:40:23.136Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-82",
+          "kind": "event",
+          "label": "Write",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\temp_patch_tests.py has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01XD1hGqPG4Zm4Qzo924J67Y",
+          "sequence": 82,
+          "status": "completed",
+          "timestamp": "2026-08-22T11:40:44.513Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "ok\r\n            \u001b[36m<span\u001b[39m\n              \u001b[33mclass\u001b[39m=\u001b[32m\"MuiButton-icon MuiButton-endIcon css-1w1lyga-MuiButton-endIcon\"\u001b[39m\n            \u001b[36m>\u001b[39m\n              \u001b[36m<svg\u001b[39m\n                \u001b[33maria-hidden\u001b[39m=\u001b[32m\"true\"\u001b[39m\n                \u001b[33mclass\u001b[39m=\u001b[32m\"MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1j9lygv-MuiSvgIcon-root\"\u001b[39m\n                \u001b[33mdata-testid\u001b[39m=\u001b[32m\"ExpandMoreOutlinedIcon\"\u001b[39m\n                \u001b[33mfocusable\u001b[39m=\u001b[32m\"false\"\u001b[39m\n                \u001b[33mviewBox\u001b[39m=\u001b[32m\"0 0 24 24\"\u001b[39m\n              \u001b[36m>\u001b[39m\n                \u001b[36m<path\u001b[39m\n                  \u001b[33md\u001b[39m=\u001b[32m\"M16.59 8.59 12 13.17 7.41 8.59 6 10l6 6 6-6z\"\u001b[39m\n                \u001b[36m/>\u001b[39m\n              \u001b[36m</svg>\u001b[39m\n            \u001b[36m</span>\u001b[39m\n          \u001b[36m</button>\u001b[39m\n        \u001b[36m</div>\u001b[39m\n        \u001b[36m<div\u001b[39m\n          \u001b[33maria-hidden\u001b[39m=\u001b[32m\"true\"\u001b[39m\n          \u001b[33mclass\u001b[39m=\u001b[32m\"MuiBox-root css-q9yuo9\"\u001b[39m\n          \u001b[33mdata-conversation-reserved-block\u001b[39m=\u001b[32m\"true\"\u001b[39m\n        \u001b[36m/>\u001b[39m\n        \u001b[36m<div\u001b[39m\n          \u001b[33maria-label\u001b[39m=\u001b[32m\"Conversation metadata\"\u001b[39m\n          \u001b[33mclass\u001b[39m=\u001b[32m\"MuiStack-root css-1capn23-MuiStack-root\"\u001b[39m\n        \u001b[36m>\u001b[39m\n          \u001b[36m<span\u001b[39m\n            \u001b[33mclass\u001b[39m=\u001b[32m\"MuiTypography-root MuiTypography-caption css-1dxnlct-MuiTypography-root\"\u001b[39m\n            \u001b[33mrole\u001b[39m=\u001b[32m\"status\"\u001b[39m\n          \u001b[36m>\u001b[39m\n            \u001b[0mrunning\u001b[0m\n          \u001b[36m</span>\u001b[39m\n          \u001b[36m<div\u001b[39m\n            \u001b[33mclass\u001b[39m=\u001b[32m\"MuiBox-root css-1rr4qq7\"\u001b[39m\n          \u001b[36m/>\u001b[39m\n        \u001b[36m</div>\u001b[39m\n      \u001b[36m</div>\u001b[39m\n    \u001b[36m</div>\u001b[39m\n  \u001b[36m</div>\u001b[39m\n\u001b[36m</body>\u001b[39m\n ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19\n ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38\n ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17\n ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19\n ❯ src/components/actions/conversation/action_conversation_rendering.test.tsx:166:32\n    164|         )\n    165|\n    166|         fireEvent.click(screen.getByRole('button', { name: /Explore \\(…\n       |                                ^\n    167|\n    168|         expect(screen.getByRole('group', { name: 'Sub agent Plan' })).…\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯\n\n\n Test Files  1 failed | 1 passed (2)\n      Tests  1 failed | 41 passed (42)\n   Start at  13:40:50\n   Duration  2.91s (transform 453ms, setup 96ms, import 1.59s, tests 233ms, environment 768ms)",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-83",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_017cMue2QcUHB5YnYN4gU6Tf",
+          "sequence": 83,
+          "status": "completed",
+          "timestamp": "2026-08-22T11:40:53.438Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-84",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHiya1AbpHm4cbvfFzNT:thinking:0",
+          "sequence": 84,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T11:40:59.754Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "<stdin>:13: SyntaxWarning: invalid escape sequence '\\('\r\n<stdin>:14: SyntaxWarning: invalid escape sequence '\\('\r\nok",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-85",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01CRRoGSXgU7aoJpLksLVzQV",
+          "sequence": 85,
+          "status": "completed",
+          "timestamp": "2026-08-22T11:41:05.061Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": " RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev1/app\n\n\n Test Files  15 passed (15)\n      Tests  142 passed (142)\n   Start at  13:41:10\n   Duration  25.88s (transform 984ms, setup 713ms, import 11.07s, tests 5.29s, environment 7.50s)",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-86",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01Nq5YsCbGi5bui9pHTT76kX",
+          "sequence": 86,
+          "status": "completed",
+          "timestamp": "2026-08-22T11:41:36.411Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "        \"CLAUDE_CODE_MESSAGING_SOCKET\": \"\\\\\\\\.\\\\pipe\\\\cc-msg-445e7374c52417a83442bd48e83f647b\",\n        \"CLAUDE_CODE_MESSAGING_TOKEN\": \"7296d8ba8d446ed104f9885ffc965d62\",\n        \"CLAUDE_CODE_SESSION_ID\": \"981eba45-f721-4a96-9c93-c69db45237fc\",\n        \"CLAUDE_EFFORT\": \"medium\",\n        \"CLAUDE_PID\": \"31344\",\n\n\nNumber of calls: 1\n\n ❯ desktop/src/actions/agent/agent_runner_state.test.mjs:1153:46\n    1151|             onRuntimeEvent: service.handleAccountClaudeRuntimeEvent,\n    1152|         });\n    1153|         expect(codexUsagePoller.requestPoll).toHaveBeenCalledWith({\n       |                                              ^\n    1154|             argumentsList: ['--configured'],\n    1155|             cwd: '/projects/md2',\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯\n\n\n Test Files  2 failed | 28 passed (30)\n      Tests  1 failed | 313 passed (314)\n   Start at  13:41:41\n   Duration  1.18s (transform 1.75s, setup 0ms, import 3.35s, tests 1.84s, environment 4ms)",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-87",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01AMJVqxk2KSaLGCkQsBK3Gj",
+          "sequence": 87,
+          "status": "completed",
+          "timestamp": "2026-08-22T11:41:43.136Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "10: FAIL  desktop/src/actions/agent/claude_usage_terminal.test.mjs [ desktop/src/actions/agent/claude_usage_terminal.test.mjs ]\n11:Error: Cannot find module 'node-pty'\n22: FAIL  desktop/src/actions/agent/agent_runner_state.test.mjs > AgentRunnerService state handling > refreshes each configured built-in provider in the active project folder\n23:AssertionError: expected \"vi.fn()\" to be called with arguments: [ { …(5) } ]",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-88",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_012toFxiaoDj83YHpe2xf1JP",
+          "sequence": 88,
+          "status": "completed",
+          "timestamp": "2026-08-22T11:41:50.212Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-89",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHj3mQsf3kpf4Z4gQhA1:thinking:0",
+          "sequence": 89,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T11:41:54.232Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "    it('refreshes each configured built-in provider in the active project folder', async () => {\n        const claudeUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };\n        const codexUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };\n        const executableResolver = { find: vi.fn(async (executable) => `/tools/${executable}.cmd`) };\n        const service = new AgentRunnerService({\n            claudeUsagePoller,\n            codexUsagePoller,\n            executableResolver,\n            now: () => 10,\n            setTimeout: vi.fn(),\n        });\n        const profiles = [\n            { command: ['claude', '--configured'], name: 'claude' },\n            { command: ['codex', '--configured'], name: 'codex' },\n            { command: ['custom'], name: 'custom' },\n        ];\n\n        service.requestProjectUsageRefresh({ rootPath: '/projects/md2' }, profiles);\n        await vi.waitFor(() => expect(codexUsagePoller.requestPoll).toHaveBeenCalledOnce());\n\n        expect(executableResolver.find).toHaveBeenCalledTimes(2);\n        const environment = executableResolver.find.mock.calls[0][1].env;\n        expect(environment).not.toHaveProperty('NODE_OPTIONS');\n        // The folder is the whole point: Claude's trust question is asked per folder, and a poll\n        // started outside the project hits a folder Claude may never have run in.\n        expect(claudeUsagePoller.requestPoll).toHaveBeenCalledWith({\n            cwd: '/projects/md2',\n            env: environment,\n            executable: '/tools/claude.cmd',\n            observedAt: 10,\n            onRuntimeEvent: service.handleAccountClaudeRuntimeEvent,\n        });\n        expect(codexUsagePoller.requestPoll).toHaveBeenCalledWith({\n            argumentsList: ['--configured'],\n            cwd: '/projects/md2',\n            env: environment,\n            executable: '/tools/codex.cmd',\n            observedAt: 10,\n        });\n    });\n\n    it('moves later polls to the new project folder on a project switch', async () => {\n        const ticks = [];\n        const claudeUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };\n        const codexUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };\n        const service = new AgentRunnerService({\n            claudeUsagePoller,\n            codexUsagePoller,\n            executableResolver: { find: vi.fn(async () => '/tools/claude') },\n            setTimeout: (callback) => {\n                ticks.push(callback);\n\n                return ticks.length;\n            },\n        });",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-90",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01DznYvBi2mcUvCrCB1TWQcN",
+          "sequence": 90,
+          "status": "completed",
+          "timestamp": "2026-08-22T11:41:54.529Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-91",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHj45oQpKkGRJwbLQthy:thinking:0",
+          "sequence": 91,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T11:41:59.495Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "ok\r\n\n RUN  v4.1.11 C:/Users/janbo/Documents/dev/md2_workers/dev1\n\n\n Test Files  4 passed (4)\n      Tests  117 passed (117)\n   Start at  13:42:06\n   Duration  847ms (transform 224ms, setup 0ms, import 479ms, tests 602ms, environment 0ms)",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-92",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01Dbnwq9Bne1gEY331UaSziW",
+          "sequence": 92,
+          "status": "completed",
+          "timestamp": "2026-08-22T11:42:07.620Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": " FAIL  desktop/src/actions/agent/claude_usage_terminal.test.mjs [ desktop/src/actions/agent/claude_usage_terminal.test.mjs ]\n Test Files  1 failed | 29 passed (30)\n      Tests  314 passed (314)",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-93",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01WgF3K4NhvK2z2sNPY7pvUA",
+          "sequence": 93,
+          "status": "completed",
+          "timestamp": "2026-08-22T11:42:14.728Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-94",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHj5Yt7iGniCbKUpoWp6:thinking:0",
+          "sequence": 94,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T11:42:18.561Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "> app@0.4.2 typecheck\n> tsc --noEmit\n\n[\n  'dev',          'build',\n  'lint',         'lint-fix',\n  'preview',      'typecheck',\n  'test',         'test:full',\n  'test:related', 'test:ui',\n  'test:unit',    'test:watch'\n]",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-95",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01Wftj9fuLrMqrdbqLsjNmV6",
+          "sequence": 95,
+          "status": "completed",
+          "timestamp": "2026-08-22T11:42:32.659Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "(Bash completed with no output)",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-96",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01Wv3uxsDrwBoEgvPg44t8ne",
+          "sequence": 96,
+          "status": "completed",
+          "timestamp": "2026-08-22T11:42:40.432Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "[\n  'lint',\n  'lint-fix',\n  'package:windows',\n  'postpackage:windows',\n  'start',\n  'test',\n  'test:full',\n  'test:watch'\n]",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-97",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01V93x7TwhBrbEbhMnbZvvEy",
+          "sequence": 97,
+          "status": "completed",
+          "timestamp": "2026-08-22T11:42:50.065Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-98",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHj8A12j8WbXBhFaXEpU:thinking:0",
+          "sequence": 98,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T11:42:57.218Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "ok\r\n---\nauthor: \nid: B_170\ninternalId: c8999726-4f9a-4963-ba9b-7c32b2190156\ntitle: sub agent support claude\nstatus: ready\nowner: \naffects:\nagents:\n  - design/activity/card__c8999726-4f9a-4963-ba9b-7c32b2190156.json\nShell cwd was reset to C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-event-99",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_012ah7FiB6BXjnL8T8YZPGsi",
+          "sequence": 99,
+          "status": "completed",
+          "timestamp": "2026-08-22T11:43:00.440Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nDone. All 7 blocks implemented.\n\n**What changed**\n\n- `desktop/src/actions/agent/agent_environment.js` — `createAgentEnvironment(environment, agent)` adds `CLAUDE_CODE_FORWARD_SUBAGENT_TEXT=1` for Claude runs unless the parent environment already names it (any casing). Only the run spawn in `agent_runner_service.js:139` passes the agent; usage polling keeps the plain shared environment because it runs a reporting command, not a conversation.\n- `agent_claude_streaming_adapter.js` — turn state split into one record per stream in `streamStates`, keyed by `parent_tool_use_id`; generated item ids namespaced by stream key (main-agent ids byte-identical to before); tool calls tracked in a turn-lived `toolBlocks` map so a result completes its own row whenever it arrives; a `result` frame carrying `parent_tool_use_id` only drops that sub agent's state and never ends the turn; sub-agent text emits an `agentMessage` event, thinking `reasoning`, tools `tool.*`, each with `parentItemId`; the reachable throws (approval validation, duplicate request id, invalid question request, missing assistant message id) now emit one protocol-error row instead of failing the run.\n- Approval origin: `parentItemId` + `subAgentLabel` on the approval, passing untouched through `handleApproval`; `AgentApproval` extended; card shows a `Requested by` row.\n- Persistence: `parentItemId` in `createProviderEventEntry`, the `normalizeEvent` whitelist, and `AgentConversationEvent`. Optional, no version bump.\n- Transcript: `buildActionConversationRenderGroups` builds `subAgent` groups recursively, orphans render flat; new `sub_agent_group.tsx` (collapsed, header `label (count)`); wired into the chat; `groupIsRunning` in the reservation state now also reads a sub-agent group's own entry.\n\n**Tests** — 4 env cases, 5 adapter cases (interleaved frames, late parent tool result, sub-agent approval, ignored sub-agent result, nested sub agent), a persist/reload round trip, a `createProviderEventEntry` case, 3 rendering cases (collapse, depth-2 nesting, orphan). `desktop/src/actions/agent`: 314 passed; `app/src/components/actions/conversation`: 142 passed; app typecheck and eslint clean.\n\nOne unrelated pre-existing failure: `desktop/src/actions/agent/claude_usage_terminal.test.mjs` cannot load — `Cannot find module 'node-pty'` in this worktree. I did not touch it.\n\nFeature doc `status` set to `ready` in `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_170_sub_agent_support_claude.md`. Nothing committed.",
+          "id": "agent-turn-78e68ae7-7b94-4282-9d0e-7a118d58976e-turn-1-assistant-10",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 100,
+          "timestamp": "2026-08-22T11:43:15.227Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -992,10 +2181,18 @@
       "startedAt": "2026-08-22T09:35:11.161Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-22T09:35:11.161Z"
+        "elapsedMs": 149124,
+        "runningStartedAt": "2026-08-22T11:33:35.446Z"
       },
       "title": "implement",
+      "usage": {
+        "cachedInputTokens": 5810051,
+        "inputTokens": 122,
+        "outputTokens": 51099,
+        "reasoningTokens": 0,
+        "totalTokens": 5861272,
+        "costUsd": 5.949834000000001
+      },
       "usageSchemaVersion": 1,
       "viewed": true
     }
