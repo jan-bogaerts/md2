@@ -3,7 +3,7 @@ author:
 id: F_229
 internalId: de77178e-987f-437c-9af3-81b704eca3d4
 title: action log remains at end when input expands
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

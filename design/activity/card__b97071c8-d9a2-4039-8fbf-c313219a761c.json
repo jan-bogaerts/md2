@@ -803,16 +803,32 @@
           "role": "assistant",
           "sequence": 58,
           "timestamp": "2026-08-22T14:33:11.017Z"
+        },
+        {
+          "content": "so we should adjust this a little bit: yes we currently have 'profiles' with 2 possible hardcoded entries, but for other types of profiles, we haven't actually yet had a protocol defined. so this is most likely the way to go: we have protocols. currently already supported: codex & claude, next we should add ACP. opencode will then be the first with this protocol.",
+          "id": "agent-turn-c6ab87cc-e839-4e7d-8529-227bf4de1032-user-58",
+          "kind": "message",
+          "role": "user",
+          "sequence": 59,
+          "timestamp": "2026-08-22T14:42:09.158Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-25186382-26f1-4022-a5f1-327cf4f9b652",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a029e1-a74e-7482-b048-8b3369402db1",
+          "createdAt": "2026-08-22T14:33:11.017Z",
+          "lastUsedAt": "2026-08-22T14:33:11.017Z",
+          "synchronizedThroughMessageId": "agent-turn-c6ab87cc-e839-4e7d-8529-227bf4de1032-turn-1-assistant-4"
+        }
+      ],
       "startedAt": "2026-08-22T14:30:49.216Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-22T14:30:49.216Z"
+        "elapsedMs": 141801,
+        "runningStartedAt": "2026-08-22T14:42:09.158Z"
       },
       "title": "+",
       "usage": {
