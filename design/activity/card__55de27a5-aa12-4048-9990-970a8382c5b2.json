@@ -23,7 +23,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 83820
+        "usedTokens": 94555
       },
       "entries": [
         {
@@ -699,6 +699,119 @@
           "role": "assistant",
           "sequence": 57,
           "timestamp": "2026-08-22T13:50:55.842Z"
+        },
+        {
+          "content": "1. agreed.\n2. fix actionPromptDraft\n\ngo",
+          "id": "agent-turn-40e5bd68-4597-40ac-b5c8-a215822a9961-user-57",
+          "kind": "message",
+          "role": "user",
+          "sequence": 58,
+          "timestamp": "2026-08-22T13:52:58.725Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-40e5bd68-4597-40ac-b5c8-a215822a9961-event-59",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHu3o3GLMNiYPVyN6A2U:thinking:0",
+          "sequence": 59,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T13:53:05.378Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Rewriting the three sections around single-key drafts and relocated send.",
+          "id": "agent-turn-40e5bd68-4597-40ac-b5c8-a215822a9961-turn-3-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 60,
+          "timestamp": "2026-08-22T13:53:05.381Z"
+        },
+        {
+          "content": "20:## Current state\n42:## implementation details\n53:## acceptance criteria",
+          "id": "agent-turn-40e5bd68-4597-40ac-b5c8-a215822a9961-event-61",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01GRSqmTmPANGoUEysddrhUN",
+          "sequence": 61,
+          "status": "completed",
+          "timestamp": "2026-08-22T13:53:06.722Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "I already had this several times and is ultra ultra annoying: I am typing in some text when the agent finishes (any state: waitingForInput, completed,..). this just cleans the entire input.\n\nit also appears to cause a reload of the entire popup which is overkill and wrong behaviour.&#x20;\n\nfind why it is doing this and propose a solution",
+          "id": "agent-turn-40e5bd68-4597-40ac-b5c8-a215822a9961-event-62",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_012JAXgobjjdNBxALcZ27LZP",
+          "sequence": 62,
+          "status": "completed",
+          "timestamp": "2026-08-22T13:53:14.703Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "Exit code 2\n/usr/bin/bash: -c: line 28: unexpected EOF while looking for matching `''",
+          "id": "agent-turn-40e5bd68-4597-40ac-b5c8-a215822a9961-event-63",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01YYZeUvYQuePv3A8XH71rvu",
+          "sequence": 63,
+          "status": "failed",
+          "timestamp": "2026-08-22T13:53:55.819Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-40e5bd68-4597-40ac-b5c8-a215822a9961-event-64",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHu7znoyoZi1s9DEg5xv:thinking:0",
+          "sequence": 64,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T13:54:03.078Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-40e5bd68-4597-40ac-b5c8-a215822a9961-event-65",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\t---\n2\tauthor: \n3\tid: B_167\n4\tinternalId: 55de27a5-aa12-4048-9990-970a8382c5b2\n5\ttitle: don't drop input when agent is done\n6\tstatus: ready for implementation\n7\towner: \n8\taffects:\n9\tagents:\n10\t  - design/activity/card__55de27a5-aa12-4048-9990-970a8382c5b2.json\n11\tpolicy:\n12\tafter: e9e0858d-a215-42bb-873e-01848ea6a803\n13\t---\n14\t\n15\tI already had this several times and is ultra ultra annoying: I am typing in some text when the agent finishes (any state: waitingForInput, completed,..). this just cleans the entire input.\n16\t\n17\tit also appears to cause a reload of the entire popup which is overkill and wrong behaviour.&#x20;\n18\t\n19\tfind why it is doing this and propose a solution\n20\t## Current state",
+          "providerItemId": "toolu_019QCW9PBRS8MthPczKFkX2t",
+          "sequence": 65,
+          "status": "completed",
+          "timestamp": "2026-08-22T13:54:03.984Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-40e5bd68-4597-40ac-b5c8-a215822a9961-event-66",
+          "kind": "event",
+          "label": "Write",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_167_don_t_drop_input_when_agent_is_done.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01QYy2eYLxj2fgzE5T3CDP2Y",
+          "sequence": 66,
+          "status": "completed",
+          "timestamp": "2026-08-22T13:54:37.683Z",
+          "type": "fileChange"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nDoc rewritten. Original report text and frontmatter (`status: ready for implementation`) unchanged; the three sections now describe the structural fix rather than the migration patch.\n\nWhat changed versus the earlier version:\n\n**Current state** — added the two paragraphs that answer your questions: that the same editor reads from two objects and which one gets a keystroke is an unobservable race, and that `ActionPromptDraft` owning `send`, `bindRun`, and the Electron bridge call is the reason drafts are keyed by run at all, while its only caller `runPopupAction` already holds `run.runId`.\n\n**Implementation details** — now: single key of action id plus `actionContextIdentity`, `runPromptDraftKey` deleted; `send`, `bindRun`, the `run` field and `ActionPromptRunBinding` removed from the draft; enqueue moved into `runPopupAction` with clear only after the bridge accepts; clearing allowed only on consumption; the three registry clears replaced by a hook that drops only unedited drafts; same rule for the two conversation-store clears; debounce flush before that check; no `loading: true` on post-run reconcile.\n\nOne consequence stated explicitly in the doc so it is not a surprise at implementation time: with a single draft spanning the run, an unsent steering prompt now stays in the editor after the run ends and becomes the opening prompt of a continuation. That replaces the per-run isolation that previously stopped stale text leaking between sessions — deliberate, but a behaviour change.\n\nNothing staged or committed.",
+          "id": "agent-turn-40e5bd68-4597-40ac-b5c8-a215822a9961-turn-3-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 67,
+          "timestamp": "2026-08-22T13:54:46.068Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -708,24 +821,24 @@
           "agent": "claude",
           "conversationId": "de76d98a-dad8-405f-bd01-4b855461e39e",
           "createdAt": "2026-08-22T13:40:07.611Z",
-          "lastUsedAt": "2026-08-22T13:44:07.537Z",
-          "synchronizedThroughMessageId": "agent-turn-40e5bd68-4597-40ac-b5c8-a215822a9961-turn-1-assistant-1"
+          "lastUsedAt": "2026-08-22T13:50:55.842Z",
+          "synchronizedThroughMessageId": "agent-turn-40e5bd68-4597-40ac-b5c8-a215822a9961-turn-2-assistant-1"
         }
       ],
       "startedAt": "2026-08-22T13:31:56.688Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 209239,
-        "runningStartedAt": "2026-08-22T13:50:18.969Z"
+        "elapsedMs": 246112,
+        "runningStartedAt": "2026-08-22T13:52:58.725Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 1749205,
-        "inputTokens": 62,
-        "outputTokens": 14501,
+        "cachedInputTokens": 2283571,
+        "inputTokens": 74,
+        "outputTokens": 23091,
         "reasoningTokens": 0,
-        "totalTokens": 1763768,
-        "costUsd": 3.2466665000000003
+        "totalTokens": 2306736,
+        "costUsd": 4.797894
       },
       "usageSchemaVersion": 1,
       "viewed": true
