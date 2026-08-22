@@ -30,6 +30,7 @@ describe('electron-builder configuration', () => {
             win: {
                 executableName: EXECUTABLE_NAME,
                 icon: 'build/md2.ico',
+                signExts: ['.dll', '.node'],
                 target: [{ arch: ['x64'], target: 'nsis' }],
             },
         });

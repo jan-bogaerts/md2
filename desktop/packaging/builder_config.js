@@ -86,6 +86,7 @@ function createBuilderConfig(secrets = loadSigningSecrets()) {
             artifactName: 'MD2-Setup-${version}-${arch}.${ext}',
             executableName: EXECUTABLE_NAME,
             icon: 'build/md2.ico',
+            signExts: ['.dll', '.node'],
             signtoolOptions: createSigntoolOptions(secrets),
             target: [{ arch: ['x64'], target: 'nsis' }],
         },
