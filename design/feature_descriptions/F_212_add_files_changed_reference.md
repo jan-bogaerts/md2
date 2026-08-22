@@ -3,12 +3,11 @@ author:
 id: F_212
 internalId: e9e0858d-a215-42bb-873e-01848ea6a803
 title: Add files changed reference
-status: new
+status: design
 owner: 
 affects:
 agents:
 policy:
-after: e9c39111-06ec-4e90-98ec-3d1d0fb7e400
 ---
 
 We already keep track of file changes done by the agent. We should also keep track of the file paths that were changed, added, deleted and add this list to the header section of the card. Note no need for self reference of card
