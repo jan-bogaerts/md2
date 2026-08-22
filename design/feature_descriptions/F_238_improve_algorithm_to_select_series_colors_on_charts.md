@@ -10,8 +10,6 @@ agents:
   - design/activity/card__2e5a2329-ae2b-4afa-9d93-7d77c7b25b89.json
 policy:
 after: c8999726-4f9a-4963-ba9b-7c32b2190156
-branch: f_238_improve_algorithm_to_select_series_colors_on_charts
-worktree: 1
 ---
 
 * make certain that the same color isn't picked 2 times
