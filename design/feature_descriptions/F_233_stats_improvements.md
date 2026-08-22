@@ -11,6 +11,10 @@ agents:
 policy:
 branch: f_233_stats_improvements
 worktree: 3
+changedFiles:
+  - app/src/services/stats/project_stats_service.node.test.ts
+  - app/src/services/stats/stats_totals_dataset.ts
+  - app/src/services/stats/stats_usage_comparison_dataset.ts
 ---
 * agent/model performance:
   * we currently have metrics: measured duration, tokens and toolcalls.
