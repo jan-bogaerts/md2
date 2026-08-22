@@ -1811,6 +1811,30 @@
       "startedAt": "2026-08-22T09:37:10.292Z",
       "status": "completed",
       "rootConversationId": "agent-501d0ffd-9122-42ed-bdd3-7e9d7a82d57e"
+    },
+    {
+      "commits": [
+        {
+          "commit": "8ba613ddd6c3d0a96142d02549d9124b4d484b68",
+          "committedAt": "2026-08-22T14:19:11+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "desktop/src/actions/agent/agent_runner_state.test.mjs",
+            "desktop/src/actions/agent/codex_runtime_service.js",
+            "desktop/src/actions/agent/codex_runtime_service.test.mjs"
+          ],
+          "filesChanged": 3,
+          "insertions": 119,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-22T14:19:11+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "269f5e9f-dbe4-4818-bd5a-7915bba398af",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
