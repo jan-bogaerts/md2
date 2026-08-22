@@ -10,6 +10,8 @@ agents:
   - design/activity/card__55de27a5-aa12-4048-9990-970a8382c5b2.json
 policy:
 after: e9e0858d-a215-42bb-873e-01848ea6a803
+branch: b_167_don_t_drop_input_when_agent_is_done
+worktree: 2
 ---
 
 I already had this several times and is ultra ultra annoying: I am typing in some text when the agent finishes (any state: waitingForInput, completed,..). this just cleans the entire input.
