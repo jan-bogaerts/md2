@@ -13,6 +13,20 @@
           "thinkingLevel": "medium"
         }
       }
+    },
+    "47dafdc7-0be7-4d56-bb5a-07c813906416": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
     }
   },
   "conversations": [
@@ -323,6 +337,153 @@
       },
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
+      "cardInternalId": "d9aa7d07-b618-4b83-9802-799c88174fb5",
+      "cardPath": "design/feature_descriptions/B_173_stats_crypto_randomuuid_not_supported_in_browser.md",
+      "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 1000000,
+        "usedTokens": 36822
+      },
+      "entries": [
+        {
+          "content": "Read and implement the feature/job described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_173_stats_crypto_randomuuid_not_supported_in_browser.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests.\n5. After implementation is done, update the field `status` in the markdown feature description file to \\`ready\\`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_173_stats_crypto_randomuuid_not_supported_in_browser.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria.&#x20;\n\nYou should only run the related tests, do not run the entire test suite, that will be done manually later on.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill",
+          "id": "agent-turn-0abf7085-7148-4000-b8dc-90d4f1eeb621-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-08-22T13:07:10.464Z"
+        },
+        {
+          "agent": "claude",
+          "content": "I'll read the feature description first.",
+          "id": "agent-turn-0abf7085-7148-4000-b8dc-90d4f1eeb621-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 2,
+          "timestamp": "2026-08-22T13:07:14.271Z"
+        },
+        {
+          "content": "---\r\nauthor: \r\nid: B_173\r\ninternalId: d9aa7d07-b618-4b83-9802-799c88174fb5\r\ntitle: stats crypto randomUUID not supported in browser\r\nstatus: ready for implementation\r\nowner: \r\naffects:\r\nagents:\r\n  - design/activity/card__d9aa7d07-b618-4b83-9802-799c88174fb5.json\r\npolicy:\r\nbranch: b_173_stats_crypto_randomuuid_not_supported_in_browser\r\nworktree: 2\r\n---\r\n\r\nApparently the stats view somewhere uses `crypto.randomUUID` . When we run the app in a browser (ex through websockets), we get this error: crypto.randomUUID is not a function\r\n\r\nthis needs to be fixed. we have had this before. perhaps we can make a note somewhere that we shouldn't use the crypto lib in the react app?\r\n\r\n\r\n## Current state\r\n\r\n`crypto.randomUUID()` only exists in **secure contexts** (https, or `localhost`). The remote-control server serves the app over plain `http://<lan-ip>:<port>`, which is not a secure context. There `crypto` is defined but `crypto.randomUUID` is not, so the call fails with `crypto.randomUUID is not a function`. `crypto.getRandomValues` stays available in insecure contexts, which is why library-based UUID generation keeps working.\r\n\r\nThe repository already fixed this once. [app/src/data/uuid.ts](../../app/src/data/uuid.ts) exports `generateUuid()`, backed by the `uuid` package (v14, `app/package.json`), and six call sites use it (`action_definition_writer.ts`, `action_service.ts`, `markdown_parsing_service.ts`, `action_phrase_editor_state.ts`).\r\n\r\nTwo renderer call sites were missed and still call the native API directly:\r\n\r\n- [app/src/services/stats/project_stats_worker_client.ts:87](../../app/src/services/stats/project_stats_worker_client.ts#L87) — `calculateActivityStatsOutsideMainThread` builds `calculationId` with `crypto.randomUUID()`. This runs on every stats calculation, before the desktop/browser branch, so it throws in the browser regardless of which backend would have been used. This is the reported crash.\r\n- [app/src/services/data/card_image_operations.ts:68](../../app/src/services/data/card_image_operations.ts#L68) — `createAvailablePastedImagePath` defaults its `createIdentifier` parameter to `crypto.randomUUID()`. Same crash, not yet reported, triggered when an image is pasted into a card in the browser.\r\n\r\nNothing prevents a third occurrence: `app/eslint.config.js` has no rule against the native API, and `design/CODEMAP.md` does not mention the secure-context constraint. `desktop/` call sites are out of scope — they run in Node, where `crypto.randomUUID` is always present.\r\n\r\n## Implementation details\r\n\r\n1. `app/src/services/stats/project_stats_worker_client.ts` — import `generateUuid` from `../../data/uuid` and replace `crypto.randomUUID()` at line 87 with `generateUuid()`. The value is an opaque correlation id passed to `storage.calculateActivityStats` / `cancelActivityStatsCalculation`; format is unchanged (UUID v4), so the desktop side needs no change.\r\n2. `app/src/services/data/card_image_operations.ts` — import `generateUuid` from `../../data/uuid` and change the `createIdentifier` default to `() => generateUuid()`. The injectable parameter stays, so existing tests that pass their own identifier generator are unaffected.\r\n3. `app/eslint.config.js` — add to `projectRules`:\r\n\r\n```js\r\n'no-restricted-properties': ['error', {\r\n  object: 'crypto',\r\n  property: 'randomUUID',\r\n  message: 'Not available in insecure browser contexts (remote control over http). Use generateUuid() from src/data/uuid.',\r\n}],\r\n```\r\n\r\n   The config only applies to `app/**/*.{ts,tsx}`, so `desktop/` and `shared/` keep using the native API.\r\n4. `design/CODEMAP.md` — add one bullet under `## Gotchas / don't-touch`: the renderer also runs over plain http via remote control, therefore secure-context-only APIs (`crypto.randomUUID`, and by extension `crypto.subtle`) must not be used in `app/`; use `generateUuid()` from `app/src/data/uuid.ts`.\r\n5. Tests — no new UUID unit test is needed; [app/src/data/uuid.node.test.ts](../../app/src/data/uuid.node.test.ts) already covers generation when `randomUUID` is unavailable. Note that `app/src/components/actions/editor/action_phrase_editor_state.node.test.ts:15` spies on `crypto.randomUUID`; it passes only because the `uuid` package delegates to the native API when it exists. That test is pre-existing and stays untouched unless it breaks.\r\n\r\n## Acceptance criteria\r\n\r\n- Opening the stats view in a browser served over plain http (remote control, e.g. from a phone on the LAN) renders the stats without the `crypto.randomUUID is not a function` error.\r\n- Pasting an image into a card in that same browser session produces a uniquely named image file without error.\r\n- `grep -rn \"crypto.randomUUID\" app/src` returns no hits outside test files.\r\n- `npm run lint` in `app/` fails with the new rule when `crypto.randomUUID` is reintroduced in `app/src`, and passes on the fixed tree.\r\n- `npm run typecheck` and the existing vitest suite pass unchanged.\r\n- Stats calculation in Electron still cancels correctly: aborting a running calculation reaches `cancelActivityStatsCalculation` with the same id that started it.\r\n- `design/CODEMAP.md` documents the secure-context constraint under Gotchas.",
+          "id": "agent-turn-0abf7085-7148-4000-b8dc-90d4f1eeb621-event-3",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01LyPbQibqiL7Mf88m6CsWXc",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-08-22T13:07:18.163Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-0abf7085-7148-4000-b8dc-90d4f1eeb621-event-4",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHqZmdYpN98eA1LcgMaR:thinking:0",
+          "sequence": 4,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T13:07:20.705Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "import { v4 as createUuidV4 } from 'uuid'\n\n/** Generates a UUID v4 in secure and non-secure browser contexts. */\nexport function generateUuid() {\n    return createUuidV4()\n}\n=== worker client ===\n            continue\n        }\n        const detail = result.status === 'rejected' && result.reason instanceof Error\n            ? result.reason.message\n            : 'file could not be loaded'\n        warnings.push(`${path}: ${detail}`)\n    }\n\n    return { sources, warnings }\n}\n\nexport async function calculateActivityStatsOutsideMainThread(\n    storage: StorageService,\n    project: ProjectReference,\n    paths: string[],\n    signal: AbortSignal,\n) {\n    const calculationId = crypto.randomUUID()\n    if (storage.calculateActivityStats) {\n        const handleAbort = () => {\n            if (storage.cancelActivityStatsCalculation) void storage.cancelActivityStatsCalculation(calculationId)\n        }\n        signal.addEventListener('abort', handleAbort, { once: true })\n        try {\n            return await storage.calculateActivityStats(project, paths, calculationId)\n        } finally {\n            signal.removeEventListener('abort', handleAbort)\n        }\n    }\n    const { sources, warnings } = await loadBrowserSources(storage, project, paths)\n    if (signal.aborted) throw abortError()\n    const calculated = typeof Worker === 'undefined'\n        ? calculateActivityStatsFromSources(sources)\n        : await calculateActivityStatsInBrowser(sources, signal)\n\n    return { stats: calculated.stats, warnings: [...warnings, ...calculated.warnings] }\n}\n=== img ops ===\nimport { resolveCardAssetPath } from '../../data/asset_paths'\nimport type { MarkdownFile } from '../../data/data_types'\nimport type { CardOperationContext } from './card_operation_context'\nimport { dialogService } from '../dialog_service'\n\nconst BASE64_CHUNK_SIZE = 32768\nconst MAXIMUM_FILE_NAME_ATTEMPTS = 100\nconst PASTED_IMAGE_NAME_PREFIX = 'pasted-image-'\nconst SUPPORTED_CLIPBOARD_IMAGE_EXTENSIONS: Readonly<Record<string, string>> = {\n    'image/gif': '.gif',\n    'image/jpeg': '.jpg',\n    'image/png': '.png',\n    'image/svg+xml': '.svg',\n    'image/webp': '.webp',\n}\n\nexport interface SavedCardImage {\n    fileName: string\n    path: string\n}\n\n/** Saves an image before inserting its reference, removing the asset if insertion fails. */\nexport async function saveAndInsertPastedImage(\n    file: File,\n    insertMarkdown: (markdown: string) => void,\n    saveImage: (file: File) => Promise<SavedCardImage>,\n    deleteImage: (path: string) => Promise<void>,\n) {\n    const savedImage = await saveImage(file)\n    try {\n        insertMarkdown(`![pasted image](<${savedImage.fileName}>)`)\n    } catch (error) {\n        try {\n            await deleteImage(savedImage.path)\n        } catch (cleanupError) {\n            dialogService.error(cleanupError, { fallbackMessage: `Could not remove ${savedImage.path}` })\n        }\n        throw error\n    }\n\n    return savedImage\n}\n\n/** Maps a supported clipboard image MIME type to its persisted extension. */\nexport function clipboardImageExtension(mimeType: string) {\n    const extension = SUPPORTED_CLIPBOARD_IMAGE_EXTENSIONS[mimeType.toLowerCase()]\n    if (!extension) throw new Error(`Unsupported clipboard image type: ${mimeType}`)\n\n    return extension\n}\n\n/** Encodes clipboard binary content for storage commit APIs. */\nexport async function clipboardImageBase64(file: File) {\n    const bytes = new Uint8Array(await file.arrayBuffer())\n    let binary = ''\n    for (let offset = 0; offset < bytes.length; offset += BASE64_CHUNK_SIZE) {\n        binary += String.fromCharCode(...bytes.subarray(offset, offset + BASE64_CHUNK_SIZE))\n    }\n\n    return btoa(binary)\n}\n\n/** Generates a unique bare image name and resolves it beside the destination card. */\nexport function createAvailablePastedImagePath(\n    cardPath: string,\n    mimeType: string,\n    existingPaths: Iterable<string>,\n    createIdentifier: () => string = () => crypto.randomUUID(),\n): SavedCardImage {\n    const extension = clipboardImageExtension(mimeType)\n    const normalizedExistingPaths = new Set([...existingPaths].map((path) => path.replace(/\\\\/gu, '/').toLowerCase()))\n\n    for (let attempt = 0; attempt < MAXIMUM_FILE_NAME_ATTEMPTS; attempt += 1) {\n        const fileName = `${PASTED_IMAGE_NAME_PREFIX}${createIdentifier()}${extension}`\n        const path = resolveCardAssetPath(cardPath, fileName)\n        if (!normalizedExistingPaths.has(path.toLowerCase())) return { fileName, path }\n    }\n\n    throw new Error('Could not generate an available pasted image file name')\n}\n\n/** Persists and removes image assets owned by card editor workflows. */\nexport class CardImageOperations {\n    private readonly context: CardOperationContext\n    private readonly reservedPaths = new Set<string>()\n\n    constructor(context: CardOperationContext) {\n        this.context = context\n    }\n\n=== eslint ===\nimport js from '@eslint/js'\nimport importPlugin from 'eslint-plugin-import'\nimport react from 'eslint-plugin-react'\nimport reactHooks from 'eslint-plugin-react-hooks'\nimport reactRefresh from 'eslint-plugin-react-refresh'\nimport globals from 'globals'\nimport tseslint from 'typescript-eslint'\n\nconst projectRules = {\n  ...react.configs.recommended.rules,\n  ...reactHooks.configs.recommended.rules,\n  eqeqeq: 'off',\n  'no-underscore-dangle': 'off',\n  'no-param-reassign': 'off',\n  'consistent-return': 'off',\n  'comma-dangle': ['error', 'always-multiline'],\n  'no-restricted-syntax': ['error', 'LabeledStatement', 'WithStatement'],\n  'no-use-before-define': ['error', { variables: true, functions: false, classes: true }],\n  'no-await-in-loop': 'off',\n  'guard-for-in': 'off',\n  'no-const-assign': 'error',\n  'no-continue': 'off',\n  'import/prefer-default-export': 'off',\n  indent: ['error', 4, { SwitchCase: 1 }],\n  'max-len': ['error', { code: 140, ignoreComments: true, ignoreStrings: true, ignoreTemplateLiterals: true }],\n  'no-trailing-spaces': ['warn', { skipBlankLines: true }],\n  'import/no-extraneous-dependencies': 'off',\n  'no-plusplus': 'off',\n  'no-multi-spaces': ['error', { ignoreEOLComments: true }],\n  quotes: 'off',\n  'object-curly-newline': ['error', {\n    ObjectExpression: { multiline: true },\n    ObjectPattern: { multiline: true },\n  }],\n  'no-console': 'off',\n  'class-methods-use-this': ['error', { exceptMethods: ['render', 'componentDidMount'] }],\n  'prefer-destructuring': 'off',\n  'react/react-in-jsx-scope': 'off',\n  'react/prop-types': 'off',\n  'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],\n}\n\nexport default tseslint.config(\n  { ignores: ['dist'] },\n  {\n    extends: [js.configs.recommended, ...tseslint.configs.recommended],\n    files: ['**/*.{ts,tsx}'],\n    languageOptions: {\n      ecmaVersion: 2023,\n      globals: {\n        ...globals.browser,\n        ...globals.node,\n        ...globals.jest,\n      },\n      parserOptions: {\n        ecmaFeatures: {\n          jsx: true,\n        },\n      },\n    },\n    plugins: {\n      import: importPlugin,\n      react,\n      'react-hooks': reactHooks,\n      'react-refresh': reactRefresh,\n    },\n    settings: {\n      react: {\n        createClass: 'createReactClass',\n        pragma: 'React',\n        fragment: 'Fragment',\n        version: 'detect',\n        flowVersion: '0.53',\n      },\n      'import/resolver': {\n        node: {\n          extensions: ['.js', '.jsx', '.ts', '.tsx'],\n        },\n      },\n    },\n    rules: projectRules,\n  },\n)",
+          "id": "agent-turn-0abf7085-7148-4000-b8dc-90d4f1eeb621-event-5",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_016wvhBDMCfEjWEdRke3Nvai",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-08-22T13:07:22.481Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "app/src/services/data/card_image_operations.ts:68:    createIdentifier: () => string = () => crypto.randomUUID(),\napp/src/services/stats/project_stats_worker_client.ts:87:    const calculationId = crypto.randomUUID()\ndesktop/src/actions/action/action_run.js:95:                id: `prompt-${crypto.randomUUID()}`,\ndesktop/src/actions/action/action_runner_service.js:13:    return `action-${crypto.randomUUID()}`;\ndesktop/src/actions/action/action_runner_service.js:192:        const conversationId = `agent-${crypto.randomUUID()}`;\ndesktop/src/actions/action/action_worktree_run_service.js:142:        const leaseId = crypto.randomUUID();\ndesktop/src/actions/activity/activity_files.js:104:    const temporaryPath = `${filePath}.${crypto.randomUUID()}.tmp`;\ndesktop/src/actions/agent/agent_runner_service.js:124:        const id = `agent-turn-${crypto.randomUUID()}`;\ndesktop/src/actions/agent/agent_runner_service.js:126:        const conversationId = request.conversation?.id ?? request.conversationId ?? `agent-${crypto.randomUUID()}`;\ndesktop/src/git/merge_conflict_service.js:152:            id: crypto.randomUUID(),\ndesktop/src/integrations/remote_control_service.js:284:        const subscriptionId = crypto.randomUUID();\ndesktop/src/integrations/remote_control_service.js:297:        const subscriptionId = crypto.randomUUID();\ndesktop/src/integrations/remote_control_service.js:309:        const subscriptionId = crypto.randomUUID();\ndesktop/src/integrations/remote_control_service.js:324:        const subscriptionId = crypto.randomUUID();\ndesktop/src/integrations/remote_control_service.js:339:        const subscriptionId = crypto.randomUUID();\ndesktop/src/integrations/remote_control_service.js:351:        const subscriptionId = crypto.randomUUID();\n--- tests ---\ncard_attachment_operations.test.ts\ncard_image_operations.test.ts\ncard_operations.test.ts\ncard_separator_migration.node.test.ts\ndata_service.test.ts\ndiff_service.node.test.ts\nexternal_card_import_service.node.test.ts\nlocal_git_storage_service.node.test.ts\nmarkdown_parsing_service.node.test.ts\nremote_connection_service.test.ts\nremote_control_storage_service.node.test.ts\nproject_stats_schema.node.test.ts\nproject_stats_service.node.test.ts\nproject_stats_worker_client.node.test.ts\nstats_chart_rows.node.test.ts\nstats_options.node.test.ts\nstats_time_buckets.node.test.ts\nstats_tooltip.node.test.ts\n--- codemap gotchas ---\n126:## Gotchas / don't-touch\n127-\n128-- **`shared/*.mjs` is required by desktop CJS** (`require('../../../shared/x.mjs')`) and imported by app ESM. Relies on Node's `require(ESM)` support. No build step converts it — edit the `.mjs` and the `.d.mts` sidecar together.\n129-- **Channel names are duplicated** in `ipc_channels.js` and `preload.js` (preload is sandboxed and can't import the shared module cleanly). Change both.\n130-- **`main.tsx` line 1 prism import** and **`vite.config.ts` `define: {global:'globalThis'}`** are both load-order hacks for prismjs-via-Lexical. Removing either breaks the built app only (not dev). See F-045 note in vite.config.ts.\n131-- **`local_bridge_dispatch.js` keeps `currentLocalProject` as mutable state**; many methods depend on a prior `loadProject`/`resolveProject` having set it. Order-sensitive.\n132-- **Quit is intercepted** (`before-quit` → `preventDefault` → `stopAndQuit`, [main.js:341](../desktop/main.js#L341)) to flush renderer commits and telemetry, guarded by a 10s force-exit watchdog. Don't add blocking work to shutdown without honoring the watchdog.\n133-- Vitest **`pool: 'threads'` is deliberate** — do not switch to forks.\n134-- `commit_batcher.ts` starts with a UTF-8 BOM (`﻿`) — preserved intentionally; don't strip on edit.\n135-- Desktop reads `.env` at startup ([main.js:6](../desktop/main.js#L6)); packaged path differs (`process.resourcesPath`).",
+          "id": "agent-turn-0abf7085-7148-4000-b8dc-90d4f1eeb621-event-6",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01Emayw2tYPXvgoGgirRuPBd",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-08-22T13:07:25.836Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-0abf7085-7148-4000-b8dc-90d4f1eeb621-event-7",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHqaKm5inKubV6SVauUx:thinking:0",
+          "sequence": 7,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T13:07:30.462Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "import { describe, expect, it, vi } from 'vitest'\nimport { calculateActivityStatsInBrowser } from './project_stats_worker_client'\n\ninterface TestWorker {\n    onerror: ((event: ErrorEvent) => void) | null\n    onmessage: ((event: MessageEvent) => void) | null\n    postMessage: ReturnType<typeof vi.fn>\n    terminate: ReturnType<typeof vi.fn>\n}\n\nfunction worker(): TestWorker {\n    return {\n        onerror: null,\n        onmessage: null,\n        postMessage: vi.fn(),\n        terminate: vi.fn(),\n    }\n}\n\ndescribe('browser project stats worker client', () => {\n    it('publishes worker result and terminates worker', async () => {\n        const statsWorker = worker()\n        const calculation = calculateActivityStatsInBrowser([], new AbortController().signal, () => statsWorker as unknown as Worker)\n        statsWorker.onmessage?.({ data: { result: { stats: { actions: [], conversations: [] }, warnings: [] } } } as MessageEvent)\n\n        await expect(calculation).resolves.toEqual({ stats: { actions: [], conversations: [] }, warnings: [] })\n        expect(statsWorker.postMessage).toHaveBeenCalledWith({ sources: [] })\n        expect(statsWorker.terminate).toHaveBeenCalledTimes(1)\n    })\n\n    it('terminates worker when calculation is cancelled', async () => {\n        const statsWorker = worker()\n        const abortController = new AbortController()\n        const calculation = calculateActivityStatsInBrowser([], abortController.signal, () => statsWorker as unknown as Worker)\n        const rejection = expect(calculation).rejects.toThrow('Stats calculation cancelled')\n\n        abortController.abort()\n\n        await rejection\n        expect(statsWorker.terminate).toHaveBeenCalledTimes(1)\n=== img test head ===\nimport { afterEach, describe, expect, it, vi } from 'vitest'\nimport { configService } from '../config/config_service'\nimport { openFilesService } from '../open_files_service'\nimport { createDataService, createStorage } from '../test_support/data_service_test_support'\nimport {\n    clipboardImageBase64,\n    clipboardImageExtension,\n    createAvailablePastedImagePath,\n    saveAndInsertPastedImage,\n} from './card_image_operations'\nimport { dialogService } from '../dialog_service'\n\nfunction clipboardFile(type: string, bytes: number[] = [105, 109, 97, 103, 101]) {\n    return {\n        arrayBuffer: async () => Uint8Array.from(bytes).buffer,\n        type,\n    } as File\n}\n\ndescribe('card image operations', () => {\n    afterEach(() => {\n        for (const document of openFilesService.getRegisteredDocuments()) openFilesService.discardDocument(document)\n        configService.clear()\n        vi.restoreAllMocks()\n    })\n\n    it('maps supported clipboard MIME types and rejects unsupported image types', () => {\n        expect(clipboardImageExtension('image/png')).toBe('.png')\n        expect(clipboardImageExtension('image/jpeg')).toBe('.jpg')\n        expect(clipboardImageExtension('image/gif')).toBe('.gif')\n        expect(clipboardImageExtension('image/webp')).toBe('.webp')\n        expect(clipboardImageExtension('image/svg+xml')).toBe('.svg')\n        expect(() => clipboardImageExtension('image/bmp')).toThrow('Unsupported clipboard image type: image/bmp')\n    })\n\n    it('encodes clipboard image bytes as base64', async () => {\n        await expect(clipboardImageBase64(clipboardFile('image/png'))).resolves.toBe('aW1hZ2U=')\n    })\n\n    it('generates a collision-safe bare name beside the card', () => {",
+          "id": "agent-turn-0abf7085-7148-4000-b8dc-90d4f1eeb621-event-8",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01Uz7swsDtLy17giQBAcjXFt",
+          "sequence": 8,
+          "status": "completed",
+          "timestamp": "2026-08-22T13:07:31.427Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-0abf7085-7148-4000-b8dc-90d4f1eeb621-event-9",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHqajYpAqXGyXLRtcKpQ:thinking:0",
+          "sequence": 9,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T13:07:40.220Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\n## Change Plan\n\nRoot cause: `crypto.randomUUID` only exists in secure contexts (https/localhost). Remote-control serves renderer over plain `http://<lan-ip>`, so property missing → `is not a function`. Two renderer call sites still use it.\n\n**Block 1 — stats worker client fix**\n`app/src/services/stats/project_stats_worker_client.ts:87`: import `generateUuid` from `../../data/uuid`, replace `crypto.randomUUID()`. Id stays UUID v4 → desktop cancel path unchanged.\n\n**Block 2 — pasted-image path fix**\n`app/src/services/data/card_image_operations.ts:68`: default `createIdentifier` → `() => generateUuid()`. Injectable param kept, existing tests unaffected.\n\n**Block 3 — eslint guard**\n`app/eslint.config.js` `projectRules`: add `no-restricted-properties` for `crypto.randomUUID` with message pointing at `generateUuid()`. Scope = `app/**` only, so `desktop/` (Node) untouched.\n\n**Block 4 — CODEMAP note**\n`design/CODEMAP.md` `## Gotchas / don't-touch`: bullet that renderer also runs over plain http via remote control, therefore secure-context-only APIs (`crypto.randomUUID`, `crypto.subtle`) forbidden in `app/`.\n\n**Block 5 — tests**\n- `project_stats_worker_client.node.test.ts`: new test — stub `globalThis.crypto` with `getRandomValues` only (no `randomUUID`, mimics insecure browser), call `calculateActivityStatsOutsideMainThread` against a fake storage; assert no throw, and that abort reaches `cancelActivityStatsCalculation` with **same id** passed to `calculateActivityStats` (covers the Electron-cancel criterion too).\n- `card_image_operations.test.ts`: new test — same insecure-crypto stub, call `createAvailablePastedImagePath` with no identifier generator; assert name matches `pasted-image-<uuid>.png`.\n\nWhy the stub proves it: direct `crypto.randomUUID()` throws under the stub; `uuid` package falls back to `getRandomValues`, so only the fixed code passes.\n\n**Block 6 — verify**\n`npm run typecheck` in `app/`, `npx eslint` on the two changed files, vitest on the two test files only. Then set `status: ready` in the feature doc at `C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_173_...md`.\n\nNo new prod deps. No behavior change beyond id source.\n\nApprove?",
+          "id": "agent-turn-0abf7085-7148-4000-b8dc-90d4f1eeb621-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 10,
+          "timestamp": "2026-08-22T13:07:51.724Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-a3e2c587-a144-4f31-901e-2be637dcbcd0",
+      "providerSessions": [],
+      "startedAt": "2026-08-22T13:07:10.464Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-08-22T13:07:10.464Z"
+      },
+      "title": "implement",
+      "usage": {
+        "cachedInputTokens": 162805,
+        "inputTokens": 10,
+        "outputTokens": 2445,
+        "reasoningTokens": 0,
+        "totalTokens": 165260,
+        "costUsd": 0.352043
+      },
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
@@ -337,11 +498,11 @@
         "agent-1df7144e-7fba-443b-9d3d-54127f461503"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-702c655d-50f6-463a-8373-6dcb648fe7a8",
       "origin": {
@@ -350,9 +511,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-1df7144e-7fba-443b-9d3d-54127f461503",
       "startedAt": "2026-08-22T13:04:34.868Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-1df7144e-7fba-443b-9d3d-54127f461503"
     }
   ],
   "version": 5
