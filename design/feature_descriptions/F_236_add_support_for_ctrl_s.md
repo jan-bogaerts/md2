@@ -9,5 +9,6 @@ affects:
 agents:
 policy:
 ---
+shortcut to save / commit the project.
 
-shortcut to save / commit the project
+make certain that the shortcut is shown in the tooltip of the button on the app bar.
