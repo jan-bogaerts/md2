@@ -61,7 +61,6 @@ export interface AgentQuestionOption {
 export interface AgentQuestion {
     header: string
     id: string
-    isOther?: boolean
     isSecret?: boolean
     options?: AgentQuestionOption[] | null
     question: string
@@ -154,6 +153,11 @@ export type ActionRunUpdate =
         requestId: number | string | null
     }
     | {
+        event: AgentConversationEventEntry
+        kind: 'agentQuestionDismissed'
+        requestId: number | string | null
+    }
+    | {
         approval: AgentApproval
         kind: 'agentApproval'
     }
@@ -162,7 +166,12 @@ export type ActionRunUpdate =
         requestId: AgentApprovalRequestId
     }
     | {
-        kind: 'agentQuestionAnswer' | 'agentUserMessage'
+        kind: 'agentQuestionAnswer'
+        requestId: number | string | null
+        userMessage: AgentConversationMessageEntry
+    }
+    | {
+        kind: 'agentUserMessage'
         userMessage: AgentConversationMessageEntry
     }
     | {

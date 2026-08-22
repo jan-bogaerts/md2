@@ -374,6 +374,11 @@ function createLocalBridgeDispatch(dependencies) {
 
             return actionRunnerService.answerAgentQuestion(runId, requestId, answers);
         },
+        dismissActionQuestions: (runId, requestId) => {
+            if (!actionRunnerService) throw new Error('Action runner is not available');
+
+            return actionRunnerService.dismissAgentQuestions(runId, requestId);
+        },
         deleteActionQueuedPrompt: (runId, promptId, revision) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 

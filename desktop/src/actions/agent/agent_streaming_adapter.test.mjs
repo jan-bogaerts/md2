@@ -241,6 +241,38 @@ describe('ClaudeStreamingAdapter', () => {
         });
     });
 
+    it('dismisses Claude questions with a non-interrupting deny response', async () => {
+        const { adapter, writes } = harness('claude');
+        const questions = [{ header: 'Confirm', options: [{ label: 'Yes' }], question: 'Proceed?' }];
+
+        await adapter.handleMessage({
+            request: {
+                input: { questions },
+                subtype: 'can_use_tool',
+                tool_name: 'AskUserQuestion',
+                tool_use_id: 'tool-1',
+            },
+            request_id: 'request-1',
+            type: 'control_request',
+        });
+        await adapter.dismissQuestion('request-1');
+
+        expect(writes.at(-1)).toEqual({
+            response: {
+                request_id: 'request-1',
+                response: {
+                    behavior: 'deny',
+                    message: 'User dismissed questions',
+                    toolUseID: 'tool-1',
+                },
+                subtype: 'success',
+            },
+            type: 'control_response',
+        });
+        await expect(adapter.answerQuestion('request-1', { 'claude-question-0': ['Yes'] }))
+            .rejects.toThrow('Unknown or stale Claude question request id');
+    });
+
     it('maps root-confined file changes and tool lifecycle events', async () => {
         const { adapter, events } = harness('claude');
 
@@ -859,6 +891,18 @@ describe('ClaudeStreamingAdapter', () => {
 });
 
 describe('CodexStreamingAdapter', () => {
+    it('dismisses Codex questions with a valid empty answers map', async () => {
+        const { adapter, writes } = harness('codex');
+        const questions = [{ header: 'Confirm', id: 'confirm', question: 'Proceed?' }];
+
+        await adapter.handleMessage({ id: 99, method: 'item/tool/requestUserInput', params: { questions } });
+        await adapter.dismissQuestion(99);
+
+        expect(writes).toContainEqual({ id: 99, result: { answers: {} } });
+        await expect(adapter.answerQuestion(99, { confirm: ['Yes'] }))
+            .rejects.toThrow('Unknown or stale Codex question request id');
+    });
+
     it('initializes, starts one thread, then starts and steers a turn', async () => {
         const { adapter, events, writes } = harness('codex');
 

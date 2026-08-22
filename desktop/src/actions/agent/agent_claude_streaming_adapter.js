@@ -269,7 +269,8 @@ class ClaudeStreamingAdapter {
 
     async answerQuestion(requestId, answers) {
         const pendingQuestion = this.pendingQuestions.get(requestId);
-        if (!pendingQuestion) throw new Error(`Unknown Claude question request id: ${requestId}`);
+        if (!pendingQuestion) throw new Error(`Unknown or stale Claude question request id: ${requestId}`);
+        if (pendingQuestion.submitted) throw new Error(`Claude question request was already submitted: ${requestId}`);
         const mappedAnswers = Object.fromEntries(pendingQuestion.questions.map(({ id, question }) => {
             if (!Object.hasOwn(answers, id)) throw new Error(`Missing answer for Claude question: ${id}`);
 
@@ -277,7 +278,32 @@ class ClaudeStreamingAdapter {
         }));
         const updatedInput = { ...pendingQuestion.input, answers: mappedAnswers };
         const response = { behavior: 'allow', toolUseID: pendingQuestion.toolUseId, updatedInput };
-        await this.writeLine(claudeControlResponse(requestId, response));
+        pendingQuestion.submitted = true;
+        try {
+            await this.writeLine(claudeControlResponse(requestId, response));
+        } catch (error) {
+            pendingQuestion.submitted = false;
+            throw error;
+        }
+        this.pendingQuestions.delete(requestId);
+    }
+
+    async dismissQuestion(requestId) {
+        const pendingQuestion = this.pendingQuestions.get(requestId);
+        if (!pendingQuestion) throw new Error(`Unknown or stale Claude question request id: ${requestId}`);
+        if (pendingQuestion.submitted) throw new Error(`Claude question request was already submitted: ${requestId}`);
+        const response = {
+            behavior: 'deny',
+            message: 'User dismissed questions',
+            toolUseID: pendingQuestion.toolUseId,
+        };
+        pendingQuestion.submitted = true;
+        try {
+            await this.writeLine(claudeControlResponse(requestId, response));
+        } catch (error) {
+            pendingQuestion.submitted = false;
+            throw error;
+        }
         this.pendingQuestions.delete(requestId);
     }
 
@@ -308,7 +334,10 @@ class ClaudeStreamingAdapter {
         }
         const questionRequest = claudeQuestionRequest(event);
         if (questionRequest) {
-            this.pendingQuestions.set(questionRequest.requestId, questionRequest);
+            if (this.pendingQuestions.has(questionRequest.requestId)) {
+                throw new Error(`Duplicate Claude question request id: ${questionRequest.requestId}`);
+            }
+            this.pendingQuestions.set(questionRequest.requestId, { ...questionRequest, submitted: false });
             await this.onEvent({
                 questions: questionRequest.questions,
                 requestId: questionRequest.requestId,

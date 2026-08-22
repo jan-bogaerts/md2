@@ -260,6 +260,13 @@ export async function answerActionQuestion(
     await bridge.answerActionQuestion(runId, requestId, answers)
 }
 
+export async function dismissActionQuestions(runId: string, requestId: number | string | null) {
+    const bridge = getElectronActionBridge()
+    if (!bridge?.dismissActionQuestions) throw new Error('Dismissing streaming agent questions requires Electron')
+
+    await bridge.dismissActionQuestions(runId, requestId)
+}
+
 export async function answerActionApproval(
     runId: string,
     requestId: AgentApprovalRequestId,
@@ -781,6 +788,18 @@ export class ActionRunRegistry extends EventTarget {
                 status: 'waitingForInput',
             }
         }
+        if (event.type === 'update' && event.update.kind === 'agentQuestionDismissed' && next.conversation) {
+            const matchingQuestion = next.question?.requestId === event.update.requestId
+            next = {
+                ...next,
+                conversation: {
+                    ...next.conversation,
+                    entries: [...next.conversation.entries, event.update.event],
+                },
+                question: matchingQuestion ? null : next.question,
+                status: matchingQuestion && next.approvals.length === 0 ? event.status : next.status,
+            }
+        }
         if (event.type === 'update' && event.update.kind === 'agentApproval') {
             const requestId = event.update.approval.requestId
             const approvals = next.approvals.filter((approval) => approval.requestId !== requestId)
@@ -810,7 +829,7 @@ export class ActionRunRegistry extends EventTarget {
         }
         if (
             event.type === 'update'
-            && (event.update.kind === 'agentUserMessage' || event.update.kind === 'agentQuestionAnswer')
+            && event.update.kind === 'agentUserMessage'
             && next.conversation
         ) {
             next = {
@@ -818,9 +837,21 @@ export class ActionRunRegistry extends EventTarget {
                 conversation: {
                     ...next.conversation,
                     entries: [...next.conversation.entries, event.update.userMessage],
+                    status: conversationStatus(next.question || next.approvals.length > 0 ? 'waitingForInput' : event.status),
                 },
-                question: null,
-                status: next.approvals.length > 0 ? 'waitingForInput' : event.status,
+                status: next.question || next.approvals.length > 0 ? 'waitingForInput' : event.status,
+            }
+        }
+        if (event.type === 'update' && event.update.kind === 'agentQuestionAnswer' && next.conversation) {
+            const matchingQuestion = next.question?.requestId === event.update.requestId
+            next = {
+                ...next,
+                conversation: {
+                    ...next.conversation,
+                    entries: [...next.conversation.entries, event.update.userMessage],
+                },
+                question: matchingQuestion ? null : next.question,
+                status: matchingQuestion && next.approvals.length === 0 ? event.status : next.status,
             }
         }
         if (event.type === 'update' && (event.update.kind === 'output' || event.update.kind === 'error')) {
@@ -836,6 +867,7 @@ export class ActionRunRegistry extends EventTarget {
             && event.update.kind !== 'agentPromptQueued'
             && event.update.kind !== 'agentPromptRemoved'
             && event.update.kind !== 'agentUsage'
+            && event.update.kind !== 'agentUserMessage'
             && next.conversation
         ) {
             next = {

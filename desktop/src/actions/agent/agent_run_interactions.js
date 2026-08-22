@@ -1,4 +1,4 @@
-const { createMessageEntry, transitionConversationStatus } = require('./agent_conversation');
+const { createEventEntry, createMessageEntry, transitionConversationStatus } = require('./agent_conversation');
 const { emitRunEvent, hasPendingInteraction } = require('./agent_run_state');
 const { lastMessageEntry, nextRunSequence } = require('./agent_run_transcript');
 const { requireString } = require('./agent_run_validation');
@@ -26,11 +26,12 @@ async function sendStreamingMessage(service, run, content) {
     const messageId = `${run.id}-user-${run.conversation.entries.length}`;
     run.conversation.entries.push(createMessageEntry(messageId, 'user', message, timestamp, undefined, nextRunSequence(run)));
     const userMessage = lastMessageEntry(run.conversation);
-    transitionConversationStatus(run.conversation, 'running', timestamp);
+    const state = hasPendingInteraction(run) ? 'waitingForInput' : 'running';
+    transitionConversationStatus(run.conversation, state, timestamp);
     run.turnActive = true;
     await service.persistCheckpoint(run);
     emitRunEvent(run, { type: 'userMessage', userMessage });
-    emitRunEvent(run, { state: 'running', type: 'state' });
+    emitRunEvent(run, { state, type: 'state' });
 }
 
 function sendMessage(service, run, content) {
@@ -41,12 +42,20 @@ function sendMessage(service, run, content) {
     });
 }
 
+function requirePendingQuestion(run, requestId) {
+    if (!run.waitingForQuestion || run.pendingQuestionRequestId !== requestId) {
+        throw new Error(`Unknown or stale agent question request id: ${requestId}`);
+    }
+
+    return run.pendingQuestions;
+}
+
 /** Records the answers as a user message, with secret answers replaced by a placeholder and remembered for redaction. */
 function answerQuestion(service, run, requestId, answers) {
     if (!answers || typeof answers !== 'object' || Array.isArray(answers)) throw new Error('Missing streaming question answers');
 
     return queueInteractionWrite(run, async () => {
-        const pendingQuestions = run.pendingQuestions;
+        const pendingQuestions = requirePendingQuestion(run, requestId);
         const secretQuestionIds = new Set(pendingQuestions.filter(({ isSecret }) => isSecret).map(({ id }) => id));
         const content = Object.entries(answers)
             .map(([questionId, answer]) => (
@@ -71,13 +80,59 @@ function answerQuestion(service, run, requestId, answers) {
             nextRunSequence(run),
         ));
         const userMessage = lastMessageEntry(run.conversation);
-        run.waitingForQuestion = false;
-        run.pendingQuestions = [];
+        const questionStillCurrent = run.pendingQuestionRequestId === requestId;
+        if (questionStillCurrent) {
+            run.waitingForQuestion = false;
+            run.pendingQuestionRequestId = null;
+            run.pendingQuestions = [];
+        }
         const state = hasPendingInteraction(run) ? 'waitingForInput' : 'running';
         transitionConversationStatus(run.conversation, state, timestamp);
         await service.persistCheckpoint(run);
-        emitRunEvent(run, { state, type: 'questionAnswered', userMessage });
+        emitRunEvent(run, { requestId, state, type: 'questionAnswered', userMessage });
         emitRunEvent(run, { state, type: 'state' });
+    });
+}
+
+function dismissQuestions(service, run, requestId) {
+    return queueInteractionWrite(run, async () => {
+        requirePendingQuestion(run, requestId);
+        await run.streamingAdapter.dismissQuestion(requestId);
+        const timestamp = new Date().toISOString();
+        const event = {
+            ...createEventEntry(
+                `${run.id}-questions-dismissed-${run.conversation.entries.length}`,
+                'questionsDismissed',
+                '',
+                timestamp,
+                nextRunSequence(run),
+            ),
+            label: 'Questions dismissed',
+            status: 'completed',
+        };
+        run.conversation.entries.push(event);
+        const questionStillCurrent = run.pendingQuestionRequestId === requestId;
+        if (questionStillCurrent) {
+            run.waitingForQuestion = false;
+            run.pendingQuestionRequestId = null;
+            run.pendingQuestions = [];
+        }
+        const state = hasPendingInteraction(run) ? 'waitingForInput' : 'running';
+        transitionConversationStatus(run.conversation, state, timestamp);
+        let persistenceError = null;
+        try {
+            await service.persistCheckpoint(run);
+        } catch (error) {
+            persistenceError = error;
+        }
+        emitRunEvent(run, { event, requestId, state, type: 'questionDismissed' });
+        emitRunEvent(run, { state, type: 'state' });
+        if (persistenceError) {
+            throw new Error(
+                'Questions dismissed, but conversation checkpoint could not be saved',
+                { cause: persistenceError },
+            );
+        }
     });
 }
 
@@ -92,6 +147,7 @@ function answerApproval(service, run, requestId, decision) {
 module.exports = {
     answerApproval,
     answerQuestion,
+    dismissQuestions,
     queueInteractionWrite,
     sendMessage,
     sendStreamingMessage,

@@ -151,6 +151,7 @@ export interface ElectronActionBridge {
     cancelActionRun(runId: string): Promise<void>
     closeWaitingActionConversation?(reference: string, status: 'cancelled' | 'completed'): Promise<AgentConversation>
     deleteActionQueuedPrompt?(runId: string, promptId: string, revision: number): Promise<{ deleted: true }>
+    dismissActionQuestions?(runId: string, requestId: number | string | null): Promise<void>
     editActionQueuedPrompt?(runId: string, promptId: string, revision: number, content: string): Promise<ActionQueuedPrompt>
     enqueueActionPrompt?(runId: string, content: string): Promise<ActionQueuedPrompt>
     finishActionRun?(runId: string): Promise<void>

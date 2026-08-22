@@ -1,6 +1,5 @@
 import type { ActionContext } from '../../../data/action_context'
-import { actionRunRegistry, answerActionQuestion } from '../../../services/actions/action_run_registry'
-import { dialogService } from '../../../services/dialog_service'
+import { actionRunRegistry, answerActionQuestion, dismissActionQuestions } from '../../../services/actions/action_run_registry'
 import { useActionRunSelector } from '../../hooks/use_action_runs'
 import { ActionAgentQuestion } from './action_agent_question'
 
@@ -15,14 +14,21 @@ export function ActionAgentQuestionOwner({ actionId, context }: ActionAgentQuest
 
     const handleAnswer = async (answers: Record<string, string[]>) => {
         const currentRunId = actionRunRegistry.getActionRunStore(actionId, context)?.getSnapshot().runId
-        if (!currentRunId || !question) return
+        if (!currentRunId) throw new Error('Missing active action run for question answer')
+        if (!question) throw new Error('Missing pending agent question for answer')
 
-        try {
-            await answerActionQuestion(currentRunId, question.requestId, answers)
-        } catch (error) {
-            dialogService.error(error, { fallbackMessage: 'Could not answer agent question' })
-        }
+        await answerActionQuestion(currentRunId, question.requestId, answers)
     }
 
-    return question ? <ActionAgentQuestion onAnswer={handleAnswer} questions={question.questions} /> : null
+    const handleDismiss = async () => {
+        const currentRunId = actionRunRegistry.getActionRunStore(actionId, context)?.getSnapshot().runId
+        if (!currentRunId) throw new Error('Missing active action run for question dismissal')
+        if (!question) throw new Error('Missing pending agent question for dismissal')
+
+        await dismissActionQuestions(currentRunId, question.requestId)
+    }
+
+    return question
+        ? <ActionAgentQuestion onAnswer={handleAnswer} onDismiss={handleDismiss} questions={question.questions} />
+        : null
 }

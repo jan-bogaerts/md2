@@ -17,6 +17,7 @@ describe('ActionAgentQuestion', () => {
         render(
             <ActionAgentQuestion
                 onAnswer={onAnswer}
+                onDismiss={vi.fn(async () => undefined)}
                 questions={[{ header: 'Reason', id: 'reason', question: 'Why?' }]}
             />,
         )
@@ -37,6 +38,7 @@ describe('ActionAgentQuestion', () => {
         render(
             <ActionAgentQuestion
                 onAnswer={onAnswer}
+                onDismiss={vi.fn(async () => undefined)}
                 questions={[
                     { header: 'Confirm', id: 'confirm', options: [{ label: 'Yes' }, { label: 'No' }], question: 'Proceed?' },
                     { header: 'Reason', id: 'reason', question: 'Why?' },
@@ -60,6 +62,7 @@ describe('ActionAgentQuestion', () => {
         render(
             <ActionAgentQuestion
                 onAnswer={onAnswer}
+                onDismiss={vi.fn(async () => undefined)}
                 questions={[{
                     header: 'Confirm',
                     id: 'confirm',
@@ -79,10 +82,10 @@ describe('ActionAgentQuestion', () => {
         render(
             <ActionAgentQuestion
                 onAnswer={onAnswer}
+                onDismiss={vi.fn(async () => undefined)}
                 questions={[{
                     header: 'Confirm',
                     id: 'confirm',
-                    isOther: true,
                     options: [{ label: 'Yes' }, { label: 'No' }],
                     question: 'Proceed?',
                 }]}
@@ -100,11 +103,11 @@ describe('ActionAgentQuestion', () => {
         render(
             <ActionAgentQuestion
                 onAnswer={onAnswer}
+                onDismiss={vi.fn(async () => undefined)}
                 questions={[
                     {
                         header: 'Approach',
                         id: 'approach',
-                        isOther: true,
                         options: [{ label: 'A' }, { label: 'B' }],
                         question: 'Which approach?',
                     },
@@ -121,5 +124,111 @@ describe('ActionAgentQuestion', () => {
             approach: ['Approach C'],
             reason: ['Lower risk'],
         }))
+    })
+
+    it('mixes a standard option and custom option answer without provider other flags', async () => {
+        const onAnswer = vi.fn(async () => undefined)
+        render(
+            <ActionAgentQuestion
+                onAnswer={onAnswer}
+                onDismiss={vi.fn(async () => undefined)}
+                questions={[
+                    {
+                        header: 'Approach',
+                        id: 'approach',
+                        options: [{ label: 'A' }, { label: 'B' }],
+                        question: 'Which approach?',
+                    },
+                    {
+                        header: 'Timing',
+                        id: 'timing',
+                        options: [{ label: 'Now' }, { label: 'Later' }],
+                        question: 'When?',
+                    },
+                ]}
+            />,
+        )
+
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Which approach?' }))
+        fireEvent.click(screen.getByRole('option', { name: 'A' }))
+        fireEvent.change(screen.getByRole('textbox', { name: 'Other answer for When?' }), { target: { value: 'Tomorrow' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Submit' }))
+
+        await waitFor(() => expect(onAnswer).toHaveBeenCalledWith({
+            approach: ['A'],
+            timing: ['Tomorrow'],
+        }))
+    })
+
+    it('keeps cancel available and reports dismissal failure', async () => {
+        let rejectDismissal!: (reason?: unknown) => void
+        const dismissal = new Promise<void>((_resolve, reject) => {
+            rejectDismissal = reject
+        })
+        const onDismiss = vi.fn(async () => dismissal)
+        const error = vi.spyOn(dialogService, 'error')
+        render(
+            <ActionAgentQuestion
+                onAnswer={vi.fn(async () => undefined)}
+                onDismiss={onDismiss}
+                questions={[{
+                    header: 'Confirm',
+                    id: 'confirm',
+                    options: [{ label: 'Yes' }],
+                    question: 'Proceed?',
+                }]}
+            />,
+        )
+
+        const cancel = screen.getByRole('button', { name: 'Cancel questions' })
+        fireEvent.click(cancel)
+        expect(cancel).toBeDisabled()
+        rejectDismissal(new Error('Provider unavailable'))
+
+        await waitFor(() => expect(error).toHaveBeenCalledWith(
+            expect.objectContaining({ message: 'Provider unavailable' }),
+            { fallbackMessage: 'Questions could not be dismissed' },
+        ))
+        expect(cancel).toBeEnabled()
+        expect(screen.getByText('Proceed?')).toBeInTheDocument()
+    })
+
+    it('rejects whitespace-only custom option answers', () => {
+        const onAnswer = vi.fn(async () => undefined)
+        render(
+            <ActionAgentQuestion
+                onAnswer={onAnswer}
+                onDismiss={vi.fn(async () => undefined)}
+                questions={[{
+                    header: 'Confirm',
+                    id: 'confirm',
+                    options: [{ label: 'Yes' }],
+                    question: 'Proceed?',
+                }]}
+            />,
+        )
+
+        fireEvent.change(screen.getByRole('textbox', { name: 'Other answer for Proceed?' }), { target: { value: '   ' } })
+
+        expect(screen.getByRole('button', { name: 'Submit' })).toBeDisabled()
+        expect(onAnswer).not.toHaveBeenCalled()
+    })
+
+    it('dismisses a complete multi-question set', async () => {
+        const onDismiss = vi.fn(async () => undefined)
+        render(
+            <ActionAgentQuestion
+                onAnswer={vi.fn(async () => undefined)}
+                onDismiss={onDismiss}
+                questions={[
+                    { header: 'First', id: 'first', options: [{ label: 'A' }], question: 'First?' },
+                    { header: 'Second', id: 'second', options: [{ label: 'B' }], question: 'Second?' },
+                ]}
+            />,
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: 'Cancel questions' }))
+
+        await waitFor(() => expect(onDismiss).toHaveBeenCalledOnce())
     })
 })

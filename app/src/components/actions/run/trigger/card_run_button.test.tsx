@@ -297,6 +297,7 @@ describe('CardRunButton', () => {
             const resolvedUpdate: ActionRunUpdate = interactionKind === 'agentQuestion'
                 ? {
                     kind: 'agentQuestionAnswer',
+                    requestId: 7,
                     userMessage: { content: 'Proceed', id: 'message-1', kind: 'message', role: 'user', timestamp: 'later' },
                 }
                 : { kind: 'agentApprovalResolved', requestId: approval.requestId }

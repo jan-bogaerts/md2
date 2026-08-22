@@ -1488,6 +1488,7 @@ describe('ActionPopup', () => {
             ...eventBase, status: 'waitingForInput', type: 'update',
             update: {
                 kind: 'agentQuestionAnswer',
+                requestId: 7,
                 userMessage: { content: 'Yes', id: 'answer-1', kind: 'message', role: 'user', timestamp: 'now' },
             },
         }))

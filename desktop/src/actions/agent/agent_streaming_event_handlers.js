@@ -107,6 +107,7 @@ function handleSessionFailed(service, run, event) {
 async function handleQuestion(service, run, event, timestamp) {
     transitionConversationStatus(run.conversation, 'waitingForInput', timestamp);
     run.waitingForQuestion = true;
+    run.pendingQuestionRequestId = event.requestId;
     run.pendingQuestions = event.questions;
     await service.persistCheckpoint(run);
     emitRunEvent(run, { state: 'waitingForInput', type: 'state' });
@@ -147,6 +148,8 @@ async function handleTurnCompleted(service, run, event, timestamp) {
     completeAssistantOutput(run, timestamp);
     run.turnActive = false;
     run.waitingForQuestion = false;
+    run.pendingQuestionRequestId = null;
+    run.pendingQuestions = [];
     run.pendingApprovals.clear();
     run.missingSession = run.missingSession || event.missingSession;
     if (event.missingSession) run.finishing = true;

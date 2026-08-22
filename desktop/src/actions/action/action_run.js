@@ -41,6 +41,7 @@ class ActionRun {
         this.activeAgentRunId = null;
         this.activeAgentDispatchAvailable = false;
         this.activeAgentQuestion = false;
+        this.activeAgentQuestionRequestId = null;
         this.activeAgentApprovals = new Map();
         this.autoFinishPending = false;
         this.commitReferenceKeys = new Set();
@@ -134,8 +135,19 @@ class ActionRun {
     async answerAgentQuestion(requestId, answers) {
         if (!this.activeAgentRunId) throw new Error(`Action run has no active streaming agent: ${this.runId}`);
         await this.agentRunnerService.answerQuestion(this.activeAgentRunId, requestId, answers);
-        this.activeAgentQuestion = false;
-        this.activeAgentDispatchAvailable = false;
+        if (this.activeAgentQuestionRequestId === requestId) {
+            this.activeAgentQuestion = false;
+            this.activeAgentQuestionRequestId = null;
+        }
+    }
+
+    async dismissAgentQuestions(requestId) {
+        if (!this.activeAgentRunId) throw new Error(`Action run has no active streaming agent: ${this.runId}`);
+        await this.agentRunnerService.dismissQuestions(this.activeAgentRunId, requestId);
+        if (this.activeAgentQuestionRequestId === requestId) {
+            this.activeAgentQuestion = false;
+            this.activeAgentQuestionRequestId = null;
+        }
     }
 
     answerAgentApproval(requestId, decision) {
@@ -518,6 +530,7 @@ class ActionRun {
             else {
                 this.activeAgentDispatchAvailable = false;
                 this.activeAgentQuestion = false;
+                this.activeAgentQuestionRequestId = null;
                 this.activeAgentApprovals.clear();
                 this.publish(action, phase, 'running', { interactionReady: false, type: 'agentState' });
             }
@@ -546,6 +559,7 @@ class ActionRun {
             }
             if (agentEvent.type === 'question') {
                 this.activeAgentQuestion = true;
+                this.activeAgentQuestionRequestId = agentEvent.requestId;
                 const update = {
                     kind: 'agentQuestion',
                     questions: agentEvent.questions,
@@ -555,15 +569,37 @@ class ActionRun {
                 return;
             }
             if (agentEvent.type === 'userMessage') {
-                this.activeAgentQuestion = false;
                 const update = { kind: 'agentUserMessage', userMessage: agentEvent.userMessage };
-                this.publish(action, phase, 'running', { type: 'update', update });
+                const state = this.activeAgentQuestion || this.activeAgentApprovals.size > 0 ? 'waitingForInput' : 'running';
+                this.publish(action, phase, state, { type: 'update', update });
                 return;
             }
             if (agentEvent.type === 'questionAnswered') {
-                this.activeAgentQuestion = false;
-                const update = { kind: 'agentQuestionAnswer', userMessage: agentEvent.userMessage };
+                if (this.activeAgentQuestionRequestId === agentEvent.requestId) {
+                    this.activeAgentQuestion = false;
+                    this.activeAgentQuestionRequestId = null;
+                }
+                const update = {
+                    kind: 'agentQuestionAnswer',
+                    requestId: agentEvent.requestId,
+                    userMessage: agentEvent.userMessage,
+                };
                 this.publish(action, phase, agentEvent.state, { type: 'update', update });
+                return;
+            }
+            if (agentEvent.type === 'questionDismissed') {
+                if (this.activeAgentQuestionRequestId === agentEvent.requestId) {
+                    this.activeAgentQuestion = false;
+                    this.activeAgentQuestionRequestId = null;
+                    this.activeAgentDispatchAvailable = true;
+                }
+                const update = {
+                    event: agentEvent.event,
+                    kind: 'agentQuestionDismissed',
+                    requestId: agentEvent.requestId,
+                };
+                this.publish(action, phase, agentEvent.state, { type: 'update', update });
+                void this.dispatchStreamingPrompt().catch(() => undefined);
                 return;
             }
             if (agentEvent.type === 'approval') {

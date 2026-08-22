@@ -418,6 +418,69 @@ describe('ActionRun', () => {
         expect(run.activeAgentProject).toBeNull();
     });
 
+    it('releases first queued prompt after matching question dismissal', async () => {
+        const agentCompletion = deferred();
+        const agentStarted = deferred();
+        const sendMessage = vi.fn(async () => undefined);
+        let agentInput;
+        const dismissQuestions = vi.fn(async (_runId, requestId) => {
+            const event = {
+                content: '',
+                id: 'dismissed-1',
+                kind: 'event',
+                label: 'Questions dismissed',
+                status: 'completed',
+                timestamp: 'now',
+                type: 'questionsDismissed',
+            };
+            agentInput.onEvent({ event, requestId, state: 'running', type: 'questionDismissed' });
+        });
+        const agentRunnerService = { dismissQuestions, sendMessage, stop: vi.fn() };
+        const agentExecutor = {
+            execute: vi.fn(async (input) => {
+                agentInput = input;
+                input.onActiveRunChange('agent-run');
+                agentStarted.resolve();
+                await agentCompletion.promise;
+                input.onActiveRunChange(null);
+
+                return {
+                    agent: 'codex', conversationId: 'conversation', exitCode: 0, model: 'gpt', prompt: 'run',
+                    reference: 'run.json', stderr: '', stdout: '', thinkingLevel: 'none',
+                };
+            }),
+        };
+        const rootAction = action('main', { agent: 'codex', model: 'gpt', prompt: 'run', streaming: true, type: 'agent' });
+        const { events, run } = createRun(rootAction, { agentExecutor, agentRunnerService });
+        await agentStarted.promise;
+        agentInput.onEvent({ state: 'waitingForInput', type: 'state' });
+        agentInput.onEvent({ questions: [{ id: 'confirm', question: 'Proceed?' }], requestId: 7, type: 'question' });
+        await run.enqueueAgentPrompt('Continue differently');
+        await Promise.resolve();
+        expect(sendMessage).not.toHaveBeenCalled();
+
+        await run.dismissAgentQuestions(7);
+        await vi.waitFor(() => expect(sendMessage).toHaveBeenCalledWith('agent-run', 'Continue differently'));
+
+        expect(dismissQuestions).toHaveBeenCalledWith('agent-run', 7);
+        expect(events).toContainEqual(expect.objectContaining({
+            status: 'running',
+            update: expect.objectContaining({ kind: 'agentQuestionDismissed', requestId: 7 }),
+        }));
+        agentInput.onEvent({ questions: [{ id: 'next', question: 'Next?' }], requestId: 8, type: 'question' });
+        agentInput.onEvent({
+            type: 'userMessage',
+            userMessage: { content: 'Continue differently', id: 'message-1', kind: 'message', role: 'user', timestamp: 'now' },
+        });
+        await run.enqueueAgentPrompt('Wait for next answer');
+        await Promise.resolve();
+        expect(run.activeAgentQuestion).toBe(true);
+        expect(run.activeAgentQuestionRequestId).toBe(8);
+        expect(sendMessage).toHaveBeenCalledOnce();
+        agentCompletion.resolve();
+        await run.completion;
+    });
+
     it('runs a queued one-shot follow-up before action completion', async () => {
         const firstCompletion = deferred();
         const firstResult = {

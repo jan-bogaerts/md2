@@ -865,6 +865,7 @@ describe('AgentRunnerService state handling', () => {
             id: 'run-1',
             onEvent: vi.fn(),
             pendingApprovals: new Map(),
+            pendingQuestionRequestId: 7,
             pendingQuestions: [{ id: 'token', isSecret: true }],
             persistence: Promise.resolve(),
             streaming: true,
@@ -886,6 +887,202 @@ describe('AgentRunnerService state handling', () => {
         expect(answerMessage.content).toContain('token: [secret]');
         expect(run.stdout).toContain('echo [secret]');
         expect(JSON.stringify(run.onEvent.mock.calls)).not.toContain('top-secret');
+    });
+
+    it('dismisses questions after provider resolution and persists one transcript event', async () => {
+        const persistConversationCheckpoint = vi.fn(async () => undefined);
+        const dismissQuestion = vi.fn(async () => undefined);
+        const service = new AgentRunnerService({ persistConversationCheckpoint });
+        const run = {
+            conversation: { entries: [], providerSessions: [], status: 'waitingForInput' },
+            id: 'run-1',
+            interactionWrites: Promise.resolve(),
+            nextSequence: 1,
+            onEvent: vi.fn(),
+            pendingApprovals: new Map(),
+            pendingQuestionRequestId: 7,
+            pendingQuestions: [{ id: 'confirm', isSecret: false }],
+            persistence: Promise.resolve(),
+            streaming: true,
+            streamingAdapter: { dismissQuestion },
+            waitingForQuestion: true,
+        };
+        service.processes.set('run-1', run);
+
+        await service.dismissQuestions('run-1', 7);
+
+        expect(dismissQuestion).toHaveBeenCalledWith(7);
+        expect(run.waitingForQuestion).toBe(false);
+        expect(run.pendingQuestions).toEqual([]);
+        expect(run.conversation.entries).toEqual([
+            expect.objectContaining({ kind: 'event', label: 'Questions dismissed', type: 'questionsDismissed' }),
+        ]);
+        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({
+            event: run.conversation.entries[0],
+            requestId: 7,
+            state: 'running',
+            type: 'questionDismissed',
+        }));
+        expect(persistConversationCheckpoint).toHaveBeenCalledOnce();
+    });
+
+    it('keeps questions pending when provider dismissal fails', async () => {
+        const service = new AgentRunnerService({ persistConversationCheckpoint: vi.fn(async () => undefined) });
+        const run = {
+            conversation: { entries: [], providerSessions: [], status: 'waitingForInput' },
+            id: 'run-1',
+            interactionWrites: Promise.resolve(),
+            nextSequence: 1,
+            onEvent: vi.fn(),
+            pendingApprovals: new Map(),
+            pendingQuestionRequestId: 7,
+            pendingQuestions: [{ id: 'confirm', isSecret: false }],
+            persistence: Promise.resolve(),
+            streaming: true,
+            streamingAdapter: { dismissQuestion: vi.fn(async () => { throw new Error('Provider unavailable'); }) },
+            waitingForQuestion: true,
+        };
+        service.processes.set('run-1', run);
+
+        await expect(service.dismissQuestions('run-1', 7)).rejects.toThrow('Provider unavailable');
+
+        expect(run.waitingForQuestion).toBe(true);
+        expect(run.pendingQuestionRequestId).toBe(7);
+        expect(run.pendingQuestions).toHaveLength(1);
+        expect(run.conversation.entries).toEqual([]);
+        expect(run.onEvent).not.toHaveBeenCalled();
+    });
+
+    it('publishes accepted dismissal when conversation checkpoint persistence fails', async () => {
+        const persistenceError = new Error('Storage unavailable');
+        const dismissQuestion = vi.fn(async () => undefined);
+        const persistConversationCheckpoint = vi.fn(async () => { throw persistenceError; });
+        const service = new AgentRunnerService({ persistConversationCheckpoint });
+        const run = {
+            conversation: { entries: [], providerSessions: [], status: 'waitingForInput' },
+            id: 'run-1',
+            interactionWrites: Promise.resolve(),
+            nextSequence: 1,
+            onEvent: vi.fn(),
+            pendingApprovals: new Map(),
+            pendingQuestionRequestId: 7,
+            pendingQuestions: [{ id: 'confirm', isSecret: false }],
+            persistence: Promise.resolve(),
+            streaming: true,
+            streamingAdapter: { dismissQuestion },
+            waitingForQuestion: true,
+        };
+        service.processes.set('run-1', run);
+
+        await expect(service.dismissQuestions('run-1', 7))
+            .rejects.toThrow('Questions dismissed, but conversation checkpoint could not be saved');
+
+        expect(dismissQuestion).toHaveBeenCalledWith(7);
+        expect(run.waitingForQuestion).toBe(false);
+        expect(run.pendingQuestionRequestId).toBeNull();
+        expect(run.pendingQuestions).toEqual([]);
+        expect(run.conversation.entries).toEqual([
+            expect.objectContaining({ kind: 'event', label: 'Questions dismissed', type: 'questionsDismissed' }),
+        ]);
+        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({
+            requestId: 7,
+            state: 'running',
+            type: 'questionDismissed',
+        }));
+    });
+
+    it('keeps a newer pending question while recording a sent message', async () => {
+        const sendMessage = vi.fn(async () => undefined);
+        const service = new AgentRunnerService({ persistConversationCheckpoint: vi.fn(async () => undefined) });
+        const run = {
+            conversation: { entries: [], providerSessions: [], status: 'waitingForInput' },
+            id: 'run-1',
+            interactionWrites: Promise.resolve(),
+            nextSequence: 1,
+            onEvent: vi.fn(),
+            pendingApprovals: new Map(),
+            pendingQuestionRequestId: 8,
+            pendingQuestions: [{ id: 'next', isSecret: false }],
+            persistence: Promise.resolve(),
+            streaming: true,
+            streamingAdapter: { sendMessage },
+            turnIndex: 1,
+            waitingForQuestion: true,
+        };
+        service.processes.set('run-1', run);
+
+        await service.sendMessage('run-1', 'Queued prompt');
+
+        expect(run.waitingForQuestion).toBe(true);
+        expect(run.pendingQuestionRequestId).toBe(8);
+        expect(run.conversation.status).toBe('waitingForInput');
+        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({ state: 'waitingForInput', type: 'state' }));
+    });
+
+    it('lets first queued answer or dismissal win without resolving twice', async () => {
+        const dismissal = Promise.withResolvers();
+        const dismissQuestion = vi.fn(async () => dismissal.promise);
+        const answerQuestion = vi.fn(async () => undefined);
+        const service = new AgentRunnerService({ persistConversationCheckpoint: vi.fn(async () => undefined) });
+        const run = {
+            conversation: { entries: [], providerSessions: [], status: 'waitingForInput' },
+            id: 'run-1',
+            interactionWrites: Promise.resolve(),
+            nextSequence: 1,
+            onEvent: vi.fn(),
+            pendingApprovals: new Map(),
+            pendingQuestionRequestId: 7,
+            pendingQuestions: [{ id: 'confirm', isSecret: false }],
+            persistence: Promise.resolve(),
+            secretValues: new Set(),
+            streaming: true,
+            streamingAdapter: { answerQuestion, dismissQuestion },
+            waitingForQuestion: true,
+        };
+        service.processes.set('run-1', run);
+
+        const dismissing = service.dismissQuestions('run-1', 7);
+        const answering = service.answerQuestion('run-1', 7, { confirm: ['Yes'] });
+        await vi.waitFor(() => expect(dismissQuestion).toHaveBeenCalledOnce());
+        dismissal.resolve();
+
+        await dismissing;
+        await expect(answering).rejects.toThrow('Unknown or stale agent question request id');
+        expect(answerQuestion).not.toHaveBeenCalled();
+        expect(run.conversation.entries).toHaveLength(1);
+    });
+
+    it('rejects queued dismissal after question answer wins the race', async () => {
+        const answer = Promise.withResolvers();
+        const answerQuestion = vi.fn(async () => answer.promise);
+        const dismissQuestion = vi.fn(async () => undefined);
+        const service = new AgentRunnerService({ persistConversationCheckpoint: vi.fn(async () => undefined) });
+        const run = {
+            conversation: { entries: [], providerSessions: [], status: 'waitingForInput' },
+            id: 'run-1',
+            interactionWrites: Promise.resolve(),
+            nextSequence: 1,
+            onEvent: vi.fn(),
+            pendingApprovals: new Map(),
+            pendingQuestionRequestId: 7,
+            pendingQuestions: [{ id: 'confirm', isSecret: false }],
+            persistence: Promise.resolve(),
+            secretValues: new Set(),
+            streaming: true,
+            streamingAdapter: { answerQuestion, dismissQuestion },
+            waitingForQuestion: true,
+        };
+        service.processes.set('run-1', run);
+
+        const answering = service.answerQuestion('run-1', 7, { confirm: ['Yes'] });
+        const dismissing = service.dismissQuestions('run-1', 7);
+        await vi.waitFor(() => expect(answerQuestion).toHaveBeenCalledOnce());
+        answer.resolve();
+
+        await answering;
+        await expect(dismissing).rejects.toThrow('Unknown or stale agent question request id');
+        expect(dismissQuestion).not.toHaveBeenCalled();
+        expect(run.conversation.entries).toEqual([expect.objectContaining({ kind: 'message', role: 'user' })]);
     });
 
     it('creates separate assistant messages around intervening event', async () => {

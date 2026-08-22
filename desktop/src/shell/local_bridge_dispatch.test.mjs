@@ -13,6 +13,7 @@ function createDispatch(options = {}) {
         deleteQueuedAgentPrompt: vi.fn(async () => ({ deleted: true })),
         editQueuedAgentPrompt: vi.fn(async (_runId, _promptId, _revision, content) => ({ content })),
         enqueueAgentPrompt: vi.fn(async (_runId, content) => ({ content })),
+        dismissAgentQuestions: vi.fn(),
         finishAgentRun: vi.fn(),
         handleCardStateChange: vi.fn(),
         loadRunRecoverySnapshot: vi.fn((rendererRunIds) => ({
@@ -683,6 +684,7 @@ describe('createLocalBridgeDispatch', () => {
         await dispatch.actionBridge.deleteActionQueuedPrompt('action-1', 'prompt-1', 1);
         await dispatch.actionBridge.answerActionApproval('action-1', 41, 'accept');
         await dispatch.actionBridge.answerActionQuestion('action-1', 7, { confirm: ['Yes'] });
+        await dispatch.actionBridge.dismissActionQuestions('action-1', 7);
         await dispatch.actionBridge.finishActionRun('action-1');
 
         expect(actionRunnerService.cancel).toHaveBeenCalledWith('action-1');
@@ -692,6 +694,7 @@ describe('createLocalBridgeDispatch', () => {
         expect(actionRunnerService.deleteQueuedAgentPrompt).toHaveBeenCalledWith('action-1', 'prompt-1', 1);
         expect(actionRunnerService.answerAgentApproval).toHaveBeenCalledWith('action-1', 41, 'accept');
         expect(actionRunnerService.answerAgentQuestion).toHaveBeenCalledWith('action-1', 7, { confirm: ['Yes'] });
+        expect(actionRunnerService.dismissAgentQuestions).toHaveBeenCalledWith('action-1', 7);
         expect(actionRunnerService.finishAgentRun).toHaveBeenCalledWith('action-1');
     });
 

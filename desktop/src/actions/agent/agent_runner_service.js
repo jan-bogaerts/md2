@@ -249,6 +249,10 @@ class AgentRunnerService {
         return agentInteractions.answerQuestion(this, this.requireStreamingRun(runId), requestId, answers);
     }
 
+    dismissQuestions(runId, requestId) {
+        return agentInteractions.dismissQuestions(this, this.requireStreamingRun(runId), requestId);
+    }
+
     answerApproval(runId, requestId, decision) {
         return agentInteractions.answerApproval(this, this.requireStreamingRun(runId), requestId, decision);
     }
@@ -655,6 +659,7 @@ class AgentRunnerService {
         run.streamingFailure = new Error(message);
         transitionConversationStatus(run.conversation, 'failed', timestamp);
         run.waitingForQuestion = false;
+        run.pendingQuestionRequestId = null;
         run.pendingQuestions = [];
         const separator = run.stderr.length > 0 && !run.stderr.endsWith('\n') ? '\n' : '';
         run.stderr += `${separator}${message}`;

@@ -423,13 +423,92 @@ describe('ActionRunRegistry', () => {
 
         emit({
             actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
-            update: { kind: 'agentQuestionAnswer', userMessage: nextMessage },
+            update: { kind: 'agentQuestionAnswer', requestId: 7, userMessage: nextMessage },
         })
 
         expect(getRun(service)).toMatchObject({
             conversation: { entries: [firstMessage, nextMessage], status: 'running' },
             question: null,
             status: 'running',
+        })
+        service.stop()
+    })
+
+    it('logs dismissal and clears only the matching question request', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        service.start()
+        const questions = [{ header: 'Confirm', id: 'confirm', question: 'Proceed?' }]
+        const dismissedEvent = {
+            content: '',
+            id: 'dismissed-1',
+            kind: 'event' as const,
+            label: 'Questions dismissed',
+            status: 'completed',
+            timestamp: 'later',
+            type: 'questionsDismissed',
+        }
+
+        emit({ actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'run' })
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { conversation: agentConversation([]), kind: 'agentStarted' },
+        })
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'waitingForInput', type: 'update',
+            update: { kind: 'agentQuestion', questions, requestId: 8 },
+        })
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'waitingForInput', type: 'update',
+            update: { event: dismissedEvent, kind: 'agentQuestionDismissed', requestId: 7 },
+        })
+
+        expect(getRun(service)).toMatchObject({
+            conversation: { entries: [dismissedEvent] },
+            question: { questions, requestId: 8 },
+            status: 'waitingForInput',
+        })
+
+        const matchingEvent = { ...dismissedEvent, id: 'dismissed-2' }
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { event: matchingEvent, kind: 'agentQuestionDismissed', requestId: 8 },
+        })
+
+        expect(getRun(service)).toMatchObject({
+            conversation: { entries: [dismissedEvent, matchingEvent], status: 'running' },
+            question: null,
+            status: 'running',
+        })
+        service.stop()
+    })
+
+    it('keeps a newer question when a queued user message arrives', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        const questions = [{ header: 'Next', id: 'next', question: 'Next?' }]
+        service.start()
+        emit({ actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'run' })
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { conversation: agentConversation([]), kind: 'agentStarted' },
+        })
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'waitingForInput', type: 'update',
+            update: { kind: 'agentQuestion', questions, requestId: 8 },
+        })
+        const queuedMessage = { content: 'Queued prompt', id: 'queued-1', kind: 'message' as const, role: 'user' as const, timestamp: 'now' }
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { kind: 'agentUserMessage', userMessage: queuedMessage },
+        })
+
+        expect(getRun(service)).toMatchObject({
+            conversation: { entries: [queuedMessage], status: 'waitingForInput' },
+            question: { questions, requestId: 8 },
+            status: 'waitingForInput',
         })
         service.stop()
     })

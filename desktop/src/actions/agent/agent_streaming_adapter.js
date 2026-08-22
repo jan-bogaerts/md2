@@ -147,6 +147,7 @@ class CodexStreamingAdapter {
         this.nextRequestId = 1;
         this.pendingRequests = new Map();
         this.pendingApprovals = new Map();
+        this.pendingQuestions = new Map();
         this.threadId = null;
         this.turnContextWindowUsage = undefined;
         this.turnUsage = null;
@@ -176,12 +177,35 @@ class CodexStreamingAdapter {
     }
 
     async answerQuestion(requestId, answers) {
-        if (requestId === null || requestId === undefined) throw new Error('Missing Codex question request id');
+        const pendingQuestion = this.pendingQuestions.get(requestId);
+        if (!pendingQuestion) throw new Error(`Unknown or stale Codex question request id: ${requestId}`);
+        if (pendingQuestion.submitted) throw new Error(`Codex question request was already submitted: ${requestId}`);
         const normalizedAnswers = Object.fromEntries(Object.entries(answers).map(([questionId, answer]) => [
             questionId,
             { answers: Array.isArray(answer) ? answer : [answer] },
         ]));
-        await this.writeLine({ id: requestId, result: { answers: normalizedAnswers } });
+        pendingQuestion.submitted = true;
+        try {
+            await this.writeLine({ id: requestId, result: { answers: normalizedAnswers } });
+        } catch (error) {
+            pendingQuestion.submitted = false;
+            throw error;
+        }
+        this.pendingQuestions.delete(requestId);
+    }
+
+    async dismissQuestion(requestId) {
+        const pendingQuestion = this.pendingQuestions.get(requestId);
+        if (!pendingQuestion) throw new Error(`Unknown or stale Codex question request id: ${requestId}`);
+        if (pendingQuestion.submitted) throw new Error(`Codex question request was already submitted: ${requestId}`);
+        pendingQuestion.submitted = true;
+        try {
+            await this.writeLine({ id: requestId, result: { answers: {} } });
+        } catch (error) {
+            pendingQuestion.submitted = false;
+            throw error;
+        }
+        this.pendingQuestions.delete(requestId);
     }
 
     async answerApproval(requestId, decision) {
@@ -220,6 +244,9 @@ class CodexStreamingAdapter {
             return;
         }
         if (message.method === 'item/tool/requestUserInput') {
+            if (message.id === null || message.id === undefined) throw new Error('Missing Codex question request id');
+            if (this.pendingQuestions.has(message.id)) throw new Error(`Duplicate Codex question request id: ${message.id}`);
+            this.pendingQuestions.set(message.id, { submitted: false });
             await this.onEvent({ questions: message.params.questions, requestId: message.id, type: 'question' });
             return;
         }
@@ -427,6 +454,7 @@ class CodexStreamingAdapter {
             }
             const completedTurnId = params.turn?.id ?? this.activeTurnId;
             await this.resolveApprovalsForTurn(completedTurnId);
+            this.pendingQuestions.clear();
             this.activeTurnId = null;
             const contextWindowUsage = this.turnContextWindowUsage;
             await this.onEvent({

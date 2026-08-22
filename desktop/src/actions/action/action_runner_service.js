@@ -311,6 +311,10 @@ class ActionRunnerService {
         return this.requireRun(runId).answerAgentQuestion(requestId, answers);
     }
 
+    dismissAgentQuestions(runId, requestId) {
+        return this.requireRun(runId).dismissAgentQuestions(requestId);
+    }
+
     answerAgentApproval(runId, requestId, decision) {
         return this.requireRun(runId).answerAgentApproval(requestId, decision);
     }

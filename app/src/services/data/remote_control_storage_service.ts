@@ -608,6 +608,10 @@ export class RemoteControlStorageService implements
         await this.request('answerActionQuestion', [runId, requestId, answers])
     }
 
+    async dismissActionQuestions(runId: string, requestId: number | string | null): Promise<void> {
+        await this.request('dismissActionQuestions', [runId, requestId])
+    }
+
     async answerActionApproval(
         runId: string,
         requestId: AgentApprovalRequestId,

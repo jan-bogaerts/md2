@@ -74,10 +74,11 @@ describe('preload desktop agent bridge', () => {
     it('exposes only the named desktop bridges through contextBridge', () => {
         const { electron, exposed, window } = createPreloadHarness();
 
-        expect(electron.contextBridge.exposeInMainWorld).toHaveBeenCalledTimes(12);
+        expect(electron.contextBridge.exposeInMainWorld).toHaveBeenCalledTimes(13);
         expect(Object.keys(exposed).sort()).toEqual([
             'md2Actions',
             'md2ClaudeRuntime',
+            'md2Clipboard',
             'md2CodexRuntime',
             'md2Config',
             'md2Data',
@@ -117,6 +118,7 @@ describe('preload desktop agent bridge', () => {
         expect(exposed.md2Actions.sendActionMessage).toEqual(expect.any(Function));
         expect(exposed.md2Actions.answerActionApproval).toEqual(expect.any(Function));
         expect(exposed.md2Actions.answerActionQuestion).toEqual(expect.any(Function));
+        expect(exposed.md2Actions.dismissActionQuestions).toEqual(expect.any(Function));
         expect(exposed.md2Actions.closeWaitingActionConversation).toEqual(expect.any(Function));
         expect(exposed.md2Actions.updateActionConversationViewed).toEqual(expect.any(Function));
         expect(exposed.md2Actions.updateCardActionSettings).toEqual(expect.any(Function));
