@@ -133,7 +133,7 @@ describe('ActionEditor with installed MDXEditor', () => {
             addEventListener(type, listener, options)
         })
         const attachEditor = MarkdownDocumentHistoryStore.prototype.attachEditor
-        vi.spyOn(MarkdownDocumentHistoryStore.prototype, 'attachEditor').mockImplementation(function (...args) {
+        vi.spyOn(MarkdownDocumentHistoryStore.prototype, 'attachEditor').mockImplementation(function (this: MarkdownDocumentHistoryStore, ...args) {
             lifecycle.push(args[1] ? 'store-attached-current' : 'store-attached-initial')
             attachEditor.apply(this, args)
         })
