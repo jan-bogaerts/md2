@@ -1,0 +1,439 @@
+{
+  "actionSettings": {
+    "5b88355d-f964-459a-bc67-6618650866ba": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
+    }
+  },
+  "conversations": [
+    {
+      "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "cardInternalId": "f790586e-149f-4338-8f8e-ad90bcdc1b12",
+      "cardPath": "design/feature_descriptions/B_171_claude_account_usage_issues.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/B_171_claude_account_usage_issues.md`.&#x20;\nupdate the field `status` in the markdown feature description file to `ready for implementation`.\n\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill.\n\nDo not stage or commit changes. You have no need for get at this time.",
+          "id": "agent-turn-7d568f55-d1e6-4dbf-8c7d-39fc21dd2cfa-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-08-22T08:15:10.886Z"
+        },
+        {
+          "agent": "claude",
+          "content": "I'll start by reading the feature description file.",
+          "id": "agent-turn-7d568f55-d1e6-4dbf-8c7d-39fc21dd2cfa-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 2,
+          "timestamp": "2026-08-22T08:15:13.958Z"
+        },
+        {
+          "content": "---\nauthor: \nid: B_171\ninternalId: f790586e-149f-4338-8f8e-ad90bcdc1b12\ntitle: claude account usage issues\nstatus: design\nowner: \naffects:\nagents:\n  - design/activity/card__f790586e-149f-4338-8f8e-ad90bcdc1b12.json\npolicy:\n---\n\nWe have a polling system that retrieves the claude account usage from the cli. this sort of works.\n\nHere is the problem: it only begins to work after i manually started claude cli and ran `/usage` myself. Then our poller is also able to get the values.\n\nif it can't get a value, it appears to die silently. we need to improve this so that we at least have some console.error or console.warning logs.\n\nAlso, i am wondering if it has anything to do with timing. I have the impression that, when running 'claude' and then input '/usage' in the cli, it takes just a fraction of a second, the screen flickers. second time it is faster. perhaps this is our issue?",
+          "id": "agent-turn-7d568f55-d1e6-4dbf-8c7d-39fc21dd2cfa-event-3",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01QUGycnG7K5CifScNmQ9WAp",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-08-22T08:15:15.802Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-7d568f55-d1e6-4dbf-8c7d-39fc21dd2cfa-event-4",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHTJ47z9BS8ZvxBTAYzH:thinking:0",
+          "sequence": 4,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T08:15:17.689Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "app/src/components/actions/run/popup/action_usage_scope_store.node.test.ts\napp/src/components/actions/run/popup/action_usage_scope_store.ts\napp/src/components/actions/run/popup/action_usage_summary.test.tsx\napp/src/components/actions/run/popup/action_usage_summary.tsx\napp/src/components/actions/run/popup/action_usage_summary_data.node.test.ts\napp/src/components/actions/run/popup/action_usage_summary_data.ts\napp/src/components/actions/run/popup/action_usage_summary_owner.test.tsx\napp/src/components/actions/run/popup/action_usage_summary_owner.tsx\napp/src/components/agents/agent_usage_display.test.tsx\napp/src/components/agents/agent_usage_display.tsx\napp/src/components/shell/project_agent_usage_details.tsx\napp/src/components/shell/project_agent_usage_summary.test.tsx\napp/src/components/shell/project_agent_usage_summary.tsx\napp/src/components/stats_view/stats_usage_comparison_charts.tsx\napp/src/services/agents/agent_usage.node.test.ts\napp/src/services/agents/agent_usage.ts\napp/src/services/agents/project_agent_token_usage_service.node.test.ts\napp/src/services/agents/project_agent_token_usage_service.ts\napp/src/services/agents/project_usage_metrics_service.node.test.ts\napp/src/services/agents/project_usage_metrics_service.ts\napp/src/services/stats/stats_usage_comparison_dataset.ts\ndesktop/node_modules/eslint-plugin-import/lib/rules/enforce-node-protocol-usage.js\ndesktop/node_modules/yargs/build/lib/usage.js\ndesktop/src/actions/agent/claude_usage_parsing.js\ndesktop/src/actions/agent/claude_usage_poller.js\ndesktop/src/actions/agent/claude_usage_terminal.js\ndesktop/src/actions/agent/claude_usage_terminal_host.js\ndesktop/src/actions/agent/claude_usage_terminal_worker.js\ndesktop/src/actions/agent/codex_usage_poller.js\ndesktop/src/actions/agent/project_agent_token_usage.js\ndesktop/src/actions/agent/usage_metrics_service.js\ndesktop/src/shell/startup_usage_refresh.js",
+          "id": "agent-turn-7d568f55-d1e6-4dbf-8c7d-39fc21dd2cfa-event-5",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_015HZH859qwk6uA7eNPkxhXc",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-08-22T08:15:21.513Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "  179 claude_usage_poller.js\n  170 claude_usage_terminal.js\n   54 claude_usage_terminal_host.js\n   33 claude_usage_terminal_worker.js\n  159 claude_usage_parsing.js\n  595 total\n=== POLLER ===\nconst crossSpawn = require('cross-spawn');\nconst { logAgentEvent } = require('./agent_file_logger');\nconst { parseClaudeUsageOutput } = require('./claude_usage_parsing');\nconst { createUtilityProcessTerminalPoll } = require('./claude_usage_terminal_host');\n\nconst CLAUDE_USAGE_POLL_COOLDOWN_MS = 120_000;\nconst CLAUDE_USAGE_MAX_OUTPUT_CHARS = 1_000_000;\nconst CLAUDE_USAGE_TERMINAL_TIMEOUT_MS = 20_000;\n\nfunction collectProcessOutput(child, dependencies) {\n    const { clearTimeout: clearPollTimeout, setTimeout: setPollTimeout, timeoutMs } = dependencies;\n\n    return new Promise((resolve, reject) => {\n        let stdout = '';\n        let settled = false;\n        let timeout;\n        const finish = (result, error = null) => {\n            if (settled) return;\n            settled = true;\n            clearPollTimeout(timeout);\n            if (error) reject(error);\n            else resolve(result);\n        };\n        // Pipe errors (EPIPE when Claude exits before reading stdin) reach no listener otherwise,\n        // and an unhandled stream error takes the Electron main process down.\n        const ignoreStreamError = () => {};\n        child.stdin?.on('error', ignoreStreamError);\n        child.stdout?.on('error', ignoreStreamError);\n        child.stderr?.on('error', ignoreStreamError);\n        child.stdout?.on('data', (chunk) => {\n            if (stdout.length >= CLAUDE_USAGE_MAX_OUTPUT_CHARS) return;\n            stdout += chunk.toString();\n        });\n        child.stderr?.resume(); // Unread stderr fills its pipe buffer and blocks Claude forever.\n        child.on('error', (error) => finish(null, error));\n        child.on('close', (exitCode) => finish({ exitCode: exitCode ?? 1, stdout }));\n        timeout = setPollTimeout(() => {\n            try {\n                child.kill();\n            } catch {\n                // The child is already gone.\n            }\n            finish({ exitCode: 1, stdout });\n        }, timeoutMs);\n        child.stdin?.end('/usage\\n');\n    });\n}\n\n/**\n * Runs Claude `/usage` after Claude output, with a two-minute maximum frequency.\n *\n * The plain-stdout attempt runs here; the pty fallback runs in a worker process, because node-pty\n * cannot be hosted in the main process without risking a native crash that ends the application.\n */\nclass ClaudeUsagePoller {\n    constructor(dependencies = {}) {\n        this.clearTimeout = dependencies.clearTimeout ?? clearTimeout;\n        this.cooldownMs = dependencies.cooldownMs ?? CLAUDE_USAGE_POLL_COOLDOWN_MS;\n        this.now = dependencies.now ?? Date.now;\n        this.onRuntimeEvent = dependencies.onRuntimeEvent;\n        this.setTimeout = dependencies.setTimeout ?? setTimeout;\n        this.spawn = dependencies.spawn ?? crossSpawn;\n        this.terminalPoll = dependencies.terminalPoll ?? createUtilityProcessTerminalPoll();\n        this.terminalTimeoutMs = dependencies.terminalTimeoutMs ?? CLAUDE_USAGE_TERMINAL_TIMEOUT_MS;\n        this.processTimeoutMs = dependencies.processTimeoutMs ?? this.terminalTimeoutMs;\n        this.abortTerminalPoll = null;\n        this.activePoll = null;\n        this.lastPollStartedAt = Number.NEGATIVE_INFINITY;\n        this.pendingRequest = null;\n        this.pendingTimer = null;\n        this.stopped = false;\n        if (typeof this.onRuntimeEvent !== 'function') throw new Error('Claude usage poller requires a runtime event listener');\n    }\n\n    requestPoll({\n        cwd = process.cwd(),\n        env = process.env,\n        executable,\n        observedAt = this.now(),\n        onRuntimeEvent = this.onRuntimeEvent,\n    } = {}) {\n        if (typeof executable !== 'string' || executable.trim().length === 0) {\n            throw new Error('Claude usage poll requires an executable');\n        }\n        if (this.stopped) return;\n        if (typeof onRuntimeEvent !== 'function') throw new Error('Claude usage poll requires a runtime event listener');\n        this.pendingRequest = { cwd, env, executable, observedAt, onRuntimeEvent };\n        this.schedulePendingPoll();\n    }\n\n    stop() {\n        this.stopped = true;\n        this.pendingRequest = null;\n        if (this.pendingTimer) this.clearTimeout(this.pendingTimer);\n        this.pendingTimer = null;\n        // A worker left running past shutdown holds a pty open while Electron is already exiting.\n        this.abortTerminalPoll?.();\n        this.abortTerminalPoll = null;\n    }\n\n    schedulePendingPoll() {\n        if (this.stopped || !this.pendingRequest || this.activePoll || this.pendingTimer) return;\n        const delay = Math.max(0, this.cooldownMs - (this.now() - this.lastPollStartedAt));\n        if (delay === 0) {\n            const request = this.pendingRequest;\n            this.pendingRequest = null;\n            this.activePoll = this.runPendingPoll(request);\n            return;\n        }\n        this.pendingTimer = this.setTimeout(() => {\n            this.pendingTimer = null;\n            this.schedulePendingPoll();\n        }, delay);\n    }\n\n    async runPendingPoll(request) {\n        try {\n            await this.poll(request);\n        } catch {\n            // A failing poll must never escape as an unhandled rejection; the next one retries.\n        }\n        this.activePoll = null;\n        this.schedulePendingPoll();\n    }\n\n    async poll(request) {\n        const { cwd, env, executable, observedAt, onRuntimeEvent } = request;\n        this.lastPollStartedAt = this.now();\n        let payload = null;\n        try {\n            const child = this.spawn(executable, [], { cwd, env, stdio: ['pipe', 'pipe', 'pipe'] });\n            const { stdout } = await collectProcessOutput(child, {\n                clearTimeout: this.clearTimeout,\n                setTimeout: this.setTimeout,\n                timeoutMs: this.processTimeoutMs,\n            });\n            // A usage report that arrived is worth keeping even when the exit itself failed or timed out.\n            payload = parseClaudeUsageOutput(stdout, observedAt);\n            if (this.stopped) return;\n            if (!payload) {\n                // Unparsed output is the one failure that leaves no trace anywhere else, so it is logged verbatim.\n                logAgentEvent('[claude:usage-unparsed]', { observedAt, stdout });\n                const fallback = await this.pollTerminal(request, observedAt);\n                if (fallback.unavailable) throw new Error('Claude usage terminal failed');\n                payload = fallback.payload;\n            }\n        } catch {\n            await onRuntimeEvent({ kind: 'unavailable', observedAt });\n\n            return;\n        }\n        // An inconclusive terminal fallback says nothing about Claude, so it reports neither usage nor unavailability.\n        if (!payload) {\n            logAgentEvent('[claude:usage-inconclusive]', { observedAt });\n\n            return;\n        }\n        await onRuntimeEvent({ kind: 'snapshot', observedAt, payload });\n    }\n\n    /** Hands the pty attempt to a worker process, which reports usage, unavailability, or neither. */\n    pollTerminal(pollRequest, observedAt) {\n        const request = {\n            cwd: pollRequest.cwd,\n            env: { ...pollRequest.env },\n            executable: pollRequest.executable,\n            observedAt,\n            timeoutMs: this.terminalTimeoutMs,\n        };\n\n        return this.terminalPoll(request, {\n            registerAbort: (abort) => {\n                this.abortTerminalPoll = abort;\n            },\n        });\n    }\n}\n\nmodule.exports = { CLAUDE_USAGE_POLL_COOLDOWN_MS, ClaudeUsagePoller };",
+          "id": "agent-turn-7d568f55-d1e6-4dbf-8c7d-39fc21dd2cfa-event-6",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01J3gn5BynRq3SWW7GmLXjyh",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-08-22T08:15:24.213Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "=== TERMINAL ===\nconst nodePty = require('node-pty');\nconst { Terminal } = require('@xterm/headless');\nconst { parseClaudeUsageOutput } = require('./claude_usage_parsing');\n\nconst CLAUDE_USAGE_TERMINAL_COLUMNS = 140;\nconst CLAUDE_USAGE_TERMINAL_ROWS = 45;\n\n/** Reads the visible screen only; scanning the whole scrollback on every redraw stalls the host process. */\nfunction terminalScreenText(terminal) {\n    const lines = [];\n    const { active } = terminal.buffer;\n    const start = Math.max(0, active.baseY);\n    const end = Math.min(active.length, start + (terminal.rows ?? CLAUDE_USAGE_TERMINAL_ROWS));\n    for (let index = start; index < end; index += 1) {\n        const line = active.getLine(index)?.translateToString(true);\n        if (line) lines.push(line);\n    }\n\n    return lines.join('\\n');\n}\n\nfunction terminalReady(output) {\n    return output.includes('? for shortcuts') || output.includes('Try \"');\n}\n\nfunction collectTerminalUsage(processHandle, terminal, observedAt, dependencies) {\n    const { clearTimeout: clearPollTimeout, registerAbort, setTimeout: setPollTimeout, timeoutMs } = dependencies;\n\n    return new Promise((resolve, reject) => {\n        let commandSent = false;\n        let exited = false;\n        let pendingExitCode = null;\n        let pendingWrites = 0;\n        let settled = false;\n        let terminalDisposed = false;\n        let dataSubscription;\n        let exitSubscription;\n        let timeout;\n        // node-pty exposes no liveness check and its Windows agent faults natively when a pty is\n        // killed or written after its process ended, so both go through this guard. `onExit` can\n        // still be in flight, hence the try/catch on top of the flag.\n        const withLiveProcess = (action) => {\n            if (exited) return false;\n            try {\n                action();\n\n                return true;\n            } catch {\n                exited = true;\n\n                return false;\n            }\n        };\n        const killProcess = () => {\n            withLiveProcess(() => processHandle.kill());\n            exited = true;\n        };\n        // xterm flushes writes in chunks; disposing while chunks are queued runs the rest of the\n        // flush against a disposed terminal, so disposal waits for the write buffer to drain.\n        const disposeTerminal = () => {\n            if (terminalDisposed || pendingWrites > 0) return;\n            terminalDisposed = true;\n            terminal.dispose();\n        };\n        const finish = (result, error = null) => {\n            if (settled) return;\n            settled = true;\n            clearPollTimeout(timeout);\n            registerAbort?.(null);\n            dataSubscription?.dispose();\n            exitSubscription?.dispose();\n            disposeTerminal();\n            if (error) reject(error);\n            else resolve(result);\n        };\n        const inspectScreen = () => {\n            if (settled || exited) return;\n            const output = terminalScreenText(terminal);\n            if (!commandSent && terminalReady(output)) {\n                commandSent = true;\n                if (!withLiveProcess(() => processHandle.write('/usage\\r'))) finish(null);\n                return;\n            }\n            if (!commandSent) return;\n            const payload = parseClaudeUsageOutput(output, observedAt);\n            if (!payload) return;\n            killProcess();\n            finish(payload);\n        };\n        // The exit can arrive while xterm still has queued chunks, so the screen is only judged once they land.\n        const settleExit = (exitCode) => {\n            if (settled) return;\n            if (pendingWrites > 0) {\n                pendingExitCode = exitCode;\n                return;\n            }\n            // A failed exit still counts when the screen holds a complete report; only a screen without one is a failure.\n            const payload = parseClaudeUsageOutput(terminalScreenText(terminal), observedAt);\n            if (!payload && exitCode !== 0) {\n                finish(null, new Error('Claude usage terminal failed'));\n     \n[2106 characters omitted]\nCLAUDE_USAGE_TERMINAL_ROWS,\n    runTerminalUsagePoll,\n};\n=== HOST ===\nconst CLAUDE_USAGE_SERVICE_NAME = 'claude-usage';\nconst CLAUDE_USAGE_WORKER_GRACE_MS = 5_000;\n// A worker that dies, hangs or is aborted says nothing about Claude itself, so it reports neither usage nor unavailability.\nconst INCONCLUSIVE_RESULT = Object.freeze({ payload: null, unavailable: false });\n\n/**\n * Runs one pty-backed `/usage` poll in an Electron utility process and resolves with the worker's\n * `{ payload, unavailable }` result, or an inconclusive one when the worker never reports back.\n *\n * The pty is hosted out of process because node-pty's ConPTY layer faults natively on teardown\n * races: a native fault cannot be caught in JavaScript, so in the main process it would take\n * Electron down. Here the worst case is a lost poll, and the next one starts from a clean process.\n */\nfunction createUtilityProcessTerminalPoll(dependencies = {}) {\n    const clearPollTimeout = dependencies.clearTimeout ?? clearTimeout;\n    const loadUtilityProcess = dependencies.loadUtilityProcess ?? (() => require('electron').utilityProcess);\n    const setPollTimeout = dependencies.setTimeout ?? setTimeout;\n    const workerPath = dependencies.workerPath ?? require.resolve('./claude_usage_terminal_worker');\n\n    return (request, { registerAbort } = {}) => new Promise((resolve) => {\n        let worker = null;\n        let settled = false;\n        let timeout = null;\n        const finish = (result) => {\n            if (settled) return;\n            settled = true;\n            clearPollTimeout(timeout);\n            registerAbort?.(null);\n            try {\n                worker?.kill();\n            } catch {\n                // The worker is already gone.\n            }\n            resolve(result);\n        };\n        try {\n            // Claude's own output travels over the pty, so inherited stdio carries only worker faults worth seeing.\n            worker = loadUtilityProcess().fork(workerPath, [], { serviceName: CLAUDE_USAGE_SERVICE_NAME, stdio: 'inherit' });\n        } catch {\n            finish(INCONCLUSIVE_RESULT);\n\n            return;\n        }\n        registerAbort?.(() => finish(INCONCLUSIVE_RESULT));\n        worker.on('message', (message) => finish(message?.result ?? INCONCLUSIVE_RESULT));\n        // A native ConPTY fault reaches the parent as an exit without a reply, so it costs one poll and nothing more.\n        worker.on('exit', () => finish(INCONCLUSIVE_RESULT));\n        worker.on('spawn', () => worker.postMessage(request));\n        // The worker enforces its own deadline; this one only covers a worker that never reports back.\n        timeout = setPollTimeout(() => finish(INCONCLUSIVE_RESULT), request.timeoutMs + CLAUDE_USAGE_WORKER_GRACE_MS);\n    });\n}\n\nmodule.exports = { CLAUDE_USAGE_WORKER_GRACE_MS, INCONCLUSIVE_RESULT, createUtilityProcessTerminalPoll };\n=== WORKER ===\nconst { runTerminalUsagePoll } = require('./claude_usage_terminal');\n\n/**\n * Electron utility-process entry for a single pty-backed `/usage` poll.\n *\n * node-pty drives Claude through a real ConPTY, whose native layer faults on teardown races that\n * no JavaScript guard can intercept. Run in the main process that fault ends the application; run\n * here it ends a disposable worker, and the parent reads the silent exit as a failed poll.\n */\nasync function pollUsage(request) {\n    try {\n        return { payload: await runTerminalUsagePoll(request), unavailable: false };\n    } catch {\n        // Claude could not be started or ended in failure, which is the parent's cue to mark it unavailable.\n        return { payload: null, unavailable: true };\n    }\n}\n\nfunction listenForPollRequests(parentPort) {\n    if (!parentPort) return;\n    parentPort.on('message', async ({ data }) => {\n        const result = await pollUsage(data);\n        try {\n            parentPort.postMessage({ result });\n        } catch {\n            // The parent stopped waiting and tore this worker down.\n        }\n    });\n}\n\nlistenForPollRequests(process.parentPort);\n\nmodule.exports = { listenForPollRequests, pollUsage };",
+          "id": "agent-turn-7d568f55-d1e6-4dbf-8c7d-39fc21dd2cfa-event-7",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01NdX2pibW44mxK3AdD8y4DX",
+          "sequence": 7,
+          "status": "completed",
+          "timestamp": "2026-08-22T08:15:27.224Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "const RESET_CLOCK_TOLERANCE_MS = 60_000;\nconst MONTHS = new Map([\n    ['jan', 0], ['feb', 1], ['mar', 2], ['apr', 3], ['may', 4], ['jun', 5],\n    ['jul', 6], ['aug', 7], ['sep', 8], ['oct', 9], ['nov', 10], ['dec', 11],\n]);\nconst WINDOW_PATTERNS = [\n    // Claude omits the minutes on a whole hour (\"7pm\"), so they are optional here.\n    { id: 'five_hour', pattern: /^Current session:\\s*(\\d{1,3})% used\\s*·\\s*resets\\s+([A-Za-z]{3})\\s+(\\d{1,2}),\\s+(\\d{1,2})(?::(\\d{2}))?(am|pm)\\s+\\(([^)]+)\\)\\s*$/iu },\n    { id: 'weekly', pattern: /^Current week \\(all models\\):\\s*(\\d{1,3})% used\\s*·\\s*resets\\s+([A-Za-z]{3})\\s+(\\d{1,2}),\\s+(\\d{1,2})(?::(\\d{2}))?(am|pm)\\s+\\(([^)]+)\\)\\s*$/iu },\n];\nconst TERMINAL_WINDOW_DEFINITIONS = [\n    { heading: 'Current session', id: 'five_hour' },\n    { heading: 'Current week (all models)', id: 'weekly' },\n];\nconst TERMINAL_RESET_PATTERN = /^(?:([A-Za-z]{3})\\s+(\\d{1,2}),\\s+)?(\\d{1,2})(?::(\\d{2}))?(am|pm)\\s+\\(([^)]+)\\)$/iu;\n\nfunction datePartsInTimeZone(timestamp, timeZone) {\n    const formatter = new Intl.DateTimeFormat('en-US', {\n        day: '2-digit',\n        hour: '2-digit',\n        hourCycle: 'h23',\n        minute: '2-digit',\n        month: '2-digit',\n        second: '2-digit',\n        timeZone,\n        year: 'numeric',\n    });\n    const parts = Object.fromEntries(formatter.formatToParts(new Date(timestamp)).map(({ type, value }) => [type, value]));\n\n    return {\n        day: Number(parts.day),\n        hour: Number(parts.hour),\n        minute: Number(parts.minute),\n        month: Number(parts.month) - 1,\n        second: Number(parts.second),\n        year: Number(parts.year),\n    };\n}\n\nfunction matchingDateParts(left, right) {\n    return left.day === right.day\n        && left.hour === right.hour\n        && left.minute === right.minute\n        && left.month === right.month\n        && left.year === right.year;\n}\n\nfunction localDateTimeToUnixMs(parts, timeZone) {\n    const targetAsUtc = Date.UTC(parts.year, parts.month, parts.day, parts.hour, parts.minute);\n    let timestamp = targetAsUtc;\n    for (let index = 0; index < 3; index += 1) {\n        const zoned = datePartsInTimeZone(timestamp, timeZone);\n        const representedAsUtc = Date.UTC(zoned.year, zoned.month, zoned.day, zoned.hour, zoned.minute, zoned.second);\n        timestamp = targetAsUtc - (representedAsUtc - timestamp);\n    }\n    if (!matchingDateParts(datePartsInTimeZone(timestamp, timeZone), parts)) throw new Error('Invalid Claude reset time');\n\n    return timestamp;\n}\n\nfunction resetTimestamp(match, observedAt) {\n    const [, , monthName, dayText, hourText, minuteText, meridiem, timeZone] = match;\n    const month = MONTHS.get(monthName.toLowerCase());\n    if (month === undefined) throw new Error('Invalid Claude reset month');\n    const observedYear = datePartsInTimeZone(observedAt, timeZone).year;\n    const hourValue = Number(hourText);\n    if (hourValue < 1 || hourValue > 12) throw new Error('Invalid Claude reset hour');\n    const hour = (hourValue % 12) + (meridiem.toLowerCase() === 'pm' ? 12 : 0);\n    const baseParts = { day: Number(dayText), hour, minute: Number(minuteText ?? 0), month };\n    const candidates = [observedYear - 1, observedYear, observedYear + 1].map((year) => (\n        localDateTimeToUnixMs({ ...baseParts, year }, timeZone)\n    ));\n\n    return candidates.reduce((nearest, candidate) => (\n        Math.abs(candidate - observedAt) < Math.abs(nearest - observedAt) ? candidate : nearest\n    ));\n}\n\nfunction terminalResetTimestamp(resetText, observedAt) {\n    const match = TERMINAL_RESET_PATTERN.exec(resetText);\n    if (!match) throw new Error('Invalid Claude reset time');\n    const [, monthName, dayText, hourText, minuteText, meridiem, timeZone] = match;\n    const observedParts = datePartsInTimeZone(observedAt, timeZone);\n    const hourValue = Number(hourText);\n    if (hourValue < 1 || hourValue > 12) throw new Error('Invalid Claude reset hour');\n    const hour = (hourValue % 12) + (meridiem.toLowerCase() === 'pm' ? 12 : 0);\n    const minute = Number(minuteText ?? 0);\n    if (!monthName) {\n        const baseParts = {\n[571 characters omitted]\n\n    const month = MONTHS.get(monthName.toLowerCase());\n    if (month === undefined) throw new Error('Invalid Claude reset month');\n    const baseParts = { day: Number(dayText), hour, minute, month };\n    const candidates = [observedParts.year - 1, observedParts.year, observedParts.year + 1].map((year) => (\n        localDateTimeToUnixMs({ ...baseParts, year }, timeZone)\n    ));\n\n    return candidates.reduce((nearest, candidate) => (\n        Math.abs(candidate - observedAt) < Math.abs(nearest - observedAt) ? candidate : nearest\n    ));\n}\n\nfunction parseTerminalWindow(lines, definition, observedAt) {\n    const headingIndex = lines.findLastIndex((line) => line === definition.heading);\n    if (headingIndex < 0) return null;\n    const windowLines = lines.slice(headingIndex + 1, headingIndex + 5);\n    const percentMatch = windowLines.map((line) => /(\\d{1,3})% used\\s*$/iu.exec(line)).find((match) => match !== null);\n    const resetMatch = windowLines.map((line) => /^Resets\\s+(.+)$/iu.exec(line)).find((match) => match !== null);\n    if (!percentMatch || !resetMatch) return null;\n    const usedPercent = Number(percentMatch[1]);\n    if (!Number.isInteger(usedPercent) || usedPercent < 0 || usedPercent > 100) throw new Error('Invalid Claude usage percent');\n\n    return { id: definition.id, resetsAt: terminalResetTimestamp(resetMatch[1], observedAt), usedPercent };\n}\n\nfunction parseTerminalUsageOutput(lines, observedAt) {\n    const windows = TERMINAL_WINDOW_DEFINITIONS.map((definition) => parseTerminalWindow(lines, definition, observedAt));\n    if (windows.some((window) => window === null)) return null;\n\n    return { windows };\n}\n\nfunction parseClaudeUsageOutput(output, observedAt) {\n    if (typeof output !== 'string' || !Number.isFinite(observedAt)) return null;\n    const lines = output.split(/\\r?\\n/u).map((line) => line.trim()).filter((line) => line.length > 0);\n    const legacyLines = lines.map((line) => line.replace(/\\u00C2\\u00B7/gu, '\\u00B7'));\n    try {\n        const windows = WINDOW_PATTERNS.map(({ id, pattern }) => {\n            // A redrawn or repeated report restates the same window; the first line reported wins.\n            const match = legacyLines.map((line) => pattern.exec(line)).find((candidate) => candidate !== null);\n            if (!match) throw new Error('Missing Claude usage window');\n            const usedPercent = Number(match[1]);\n            if (!Number.isInteger(usedPercent) || usedPercent < 0 || usedPercent > 100) throw new Error('Invalid Claude usage percent');\n\n            return { id, resetsAt: resetTimestamp(match, observedAt), usedPercent };\n        });\n\n        return { windows };\n    } catch {\n        try {\n            return parseTerminalUsageOutput(lines, observedAt);\n        } catch {\n            return null;\n        }\n    }\n}\n\nmodule.exports = { parseClaudeUsageOutput };\n=== LOGGER ===\n// const fs = require('node:fs');\n// const os = require('node:os');\n// const path = require('node:path');\nconst util = require('node:util');\n\nconst AGENT_LOGGING_ENABLED = false;\n\n// const AGENT_LOG_PATH = path.join(os.tmpdir(), 'md2-agent-debug.log');\n\n// let agentLogStream = null;\n\nfunction formatAgentLogEntry(values, timestamp = new Date()) {\n    const content = util.formatWithOptions({ colors: false, depth: null }, ...values);\n\n    return `${timestamp.toISOString()} ${content}`;\n}\n\n// function handleAgentLogError(error) {\n//     console.error('[agent:log-error]', error);\n// }\n\n// function getAgentLogStream() {\n//     if (agentLogStream) return agentLogStream;\n\n//     agentLogStream = fs.createWriteStream(AGENT_LOG_PATH, { flags: 'a' });\n//     agentLogStream.on('error', handleAgentLogError);\n\n//     return agentLogStream;\n// }\n\n/** Writes temporary agent diagnostics when agent logging is enabled. */\nfunction logAgentEvent(...values) {\n    if (!AGENT_LOGGING_ENABLED) return;\n\n    console.log(...values);\n    // disabled for now. can be used again for later testing if needed\n    // getAgentLogStream().write(`${formatAgentLogEntry(values)}\\n`);\n}\n\nmodule.exports = { formatAgentLogEntry, logAgentEvent };",
+          "id": "agent-turn-7d568f55-d1e6-4dbf-8c7d-39fc21dd2cfa-event-8",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01M28rvUYjALztr4Gi152hCK",
+          "sequence": 8,
+          "status": "completed",
+          "timestamp": "2026-08-22T08:15:29.951Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-7d568f55-d1e6-4dbf-8c7d-39fc21dd2cfa-event-9",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHTK6hJ9h5xQ7id3nFFa:thinking:0",
+          "sequence": 9,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T08:15:34.285Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "./actions/agent/agent_runner_service.js:21:const { ClaudeUsagePoller } = require('./claude_usage_poller');\n./actions/agent/agent_runner_service.js:74:            ?? new ClaudeUsagePoller({onRuntimeEvent: (event) => this.handleClaudeRuntimeEvent(event)});\n./actions/agent/agent_runner_service.js:333:            this.claudeUsagePoller.requestPoll({\n./actions/agent/agent_runner_service.js:342:        this.codexUsagePoller.requestPoll({\n./actions/agent/agent_runner_service.js:403:        this.claudeUsagePoller.requestPoll({ cwd: run.rootPath, env: run.environment, executable: run.executable });\n./actions/agent/claude_usage_poller.js:55:class ClaudeUsagePoller {\n./actions/agent/claude_usage_poller.js:75:    requestPoll({\n./actions/agent/claude_usage_poller.js:142:                logAgentEvent('[claude:usage-unparsed]', { observedAt, stdout });\n./actions/agent/claude_usage_poller.js:154:            logAgentEvent('[claude:usage-inconclusive]', { observedAt });\n./actions/agent/claude_usage_poller.js:179:module.exports = { CLAUDE_USAGE_POLL_COOLDOWN_MS, ClaudeUsagePoller };\n./actions/agent/codex_usage_poller.js:55:    requestPoll({ argumentsList = [], cwd = process.cwd(), env = process.env, executable, observedAt = this.now() } = {}) {",
+          "id": "agent-turn-7d568f55-d1e6-4dbf-8c7d-39fc21dd2cfa-event-10",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01BEQC2g9fKEufpok7dvPNRc",
+          "sequence": 10,
+          "status": "completed",
+          "timestamp": "2026-08-22T08:15:35.373Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "        }\n\n        return Promise.all(completions);\n    }\n\n    /** Starts one account-wide refresh for each configured built-in provider without waiting for either result. */\n    requestStartupUsageRefresh(profiles) {\n        if (!Array.isArray(profiles)) throw new Error('Startup usage refresh requires agent profiles');\n        if (this.startupRefreshRequested || this.startupRefreshStopped) return;\n        this.startupRefreshRequested = true;\n        const environment = createAgentEnvironment(process.env);\n        const cwd = process.cwd();\n        const observedAt = this.now();\n        const startupProfiles = ['claude', 'codex']\n            .map((provider) => profiles.find(({ name }) => name === provider))\n            .filter((profile) => profile !== undefined);\n        for (const profile of startupProfiles) {\n            void this.startStartupProviderRefresh(profile, { cwd, environment, observedAt });\n        }\n    }\n\n    async startStartupProviderRefresh(profile, { cwd, environment, observedAt }) {\n        const [configuredExecutable, ...configuredArguments] = profile.command;\n        executableFromCommand(profile.command);\n        const executable = await this.executableResolver.find(configuredExecutable, { cwd, env: environment });\n        if (this.startupRefreshStopped) return;\n        if (!executable) {\n            const unavailable = { kind: 'unavailable', observedAt };\n            if (profile.name === 'claude') await this.handleStartupClaudeRuntimeEvent(unavailable);\n            else await this.handleStartupCodexRuntimeEvent(unavailable);\n            return;\n        }\n        if (profile.name === 'claude') {\n            this.claudeUsagePoller.requestPoll({\n                cwd,\n                env: environment,\n                executable,\n                observedAt,\n                onRuntimeEvent: this.handleStartupClaudeRuntimeEvent,\n            });\n            return;\n        }\n        this.codexUsagePoller.requestPoll({\n            argumentsList: configuredArguments,\n            cwd,\n            env: environment,\n            executable,\n            observedAt,\n        });\n    }\n\n    async handleStartupCodexRuntimeEvent(event) {\n        if (!this.codexRuntimeService || this.startupRefreshStopped) return;\n        if (event.kind === 'unavailable') {\n            this.codexRuntimeService.publishUnavailable(event.observedAt);\n            return;\n        }\n        const accepted = this.codexRuntimeService.publishRateLimits(event.payload, event.observedAt, false);\n        if (!accepted) this.codexRuntimeService.publishUnavailable(event.observedAt);\n    }\n\n    async handleStartupClaudeRuntimeEvent(event) {\n        if (!this.claudeRuntimeService || this.startupRefreshStopped) return;\n        if (event.kind === 'unavailable') {\n            this.claudeRuntimeService.publishUnavailable(event.observedAt);\n            return;\n        }\n        const accepted = this.claudeRuntimeService.publishRateLimits(event.payload, event.observedAt);\n        if (!accepted) this.claudeRuntimeService.publishUnavailable(event.observedAt);\n    }\n\n    ensureTermination(run) {\n        run.termination ??= this.terminateProcessTree(run.child);\n\n        return run.termination;\n    }\n\n    async handleCodexRuntimeEvent(event) {\n        if (!this.codexRuntimeService) return;\n        if (event.kind === 'unavailable') {\n            this.codexRuntimeService.publishUnavailable(event.observedAt);\n            return;\n        }\n        const accepted = this.codexRuntimeService.publishRateLimits(event.payload, event.observedAt, event.kind === 'update');\n        if (!accepted || !this.usageMetricsService) return;\n        await this.usageMetricsService.recordAccountUsage('codex', this.codexRuntimeService.getSnapshot());\n    }\n\n    async handleClaudeRuntimeEvent(event) {\n        if (!this.claudeRuntimeService) return;\n        if (event.kind === 'unavailable') {\n            this.claudeRuntimeService.publishUnavailable(event.observedAt);\n            return;\n        }\n        const accepted = this.claudeRuntimeService.publishRateLimits(event.payload, event.observedAt);\n        if (!accepted || !this.usageMetricsService) return;\n        const snapshot = this.claudeRuntimeService.getSnapshot();\n        await this.usageMetricsService.recordAccountUsage('claude', snapshot);\n    }\n\n    /** Refreshes account usage for agents that report it out of band; Codex reports it inside its own protocol. */\n    requestUsagePoll(run) {\n        if (run.agent !== 'claude') return;\n        this.claudeUsagePoller.requestPoll({ cwd: run.rootPath, env: run.environment, executable: run.executable });\n    }\n\n    /** Picks any active run whose agent needs polling; the usage snapshot is account-wide, so any one will do. */\n    pollableRun() {\n        for (const run of this.processes.values()) {\n            if (run.agent === 'claude') return run;\n        }\n\n        return null;\n    }\n\n    /** Keeps a repeating poll running while a pollable run is active; long runs would otherwise show a frozen figure. */\n    syncUsagePollTicks() {\n        const run = this.pollableRun();\n        if (!run) {\n            this.stopUsagePollTicks();\n            return;\n=== STARTUP ===\n/** Starts account usage refresh before creating renderer, without waiting for provider work. */\nfunction createWindowWithStartupUsageRefresh({ agentProfiles, agentRunnerService, createWindow }) {\n    agentRunnerService.requestStartupUsageRefresh(agentProfiles);\n\n    return createWindow();\n}\n\nmodule.exports = { createWindowWithStartupUsageRefresh };",
+          "id": "agent-turn-7d568f55-d1e6-4dbf-8c7d-39fc21dd2cfa-event-11",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01Mkcdjb3SjnuoA79KFuLUud",
+          "sequence": 11,
+          "status": "completed",
+          "timestamp": "2026-08-22T08:15:38.454Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-7d568f55-d1e6-4dbf-8c7d-39fc21dd2cfa-event-12",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHTKj2LZ95eyU78ozjUn:thinking:0",
+          "sequence": 12,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T08:15:46.677Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "F_226_investigate_integration_of_opencodex.md\nF_227_remove_gpt_5_3_codex_spark_from_account_usage.md\nF_228_add_support_for_diagrams.md\nF_229_action_log_remains_at_end_when_input_expands.md\nF_230_running_agents_popup.md\nF_231_code_blocks_in_markdown_editor.md\nF_232_assign_default_action_to_column.md\nF_233_stats_improvements.md\nF_234_global_search_results_resizable.md\nF_235_improve_default_values_for_agent_config.md\nF_236_add_support_for_ctrl_s.md\nF_237_add_menu_items_to_markdown_editor.md\nF_238_improve_algorithm_to_select_series_colors_on_charts.md\nF_239_sign_all_in_installer.md\nF_94_no_prefill_prompt_running_conv.md.bak\nJ_28_finishing_action_very_slow.md\nJ_31_refactor_project_stats_service.md\nJ_33_second_instance_strange_behaviour.md\nJ_34_finish_agent_selection_hardening.md\nNew Card Dialog.dc.html\n===",
+          "id": "agent-turn-7d568f55-d1e6-4dbf-8c7d-39fc21dd2cfa-event-13",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_018hqTYtoHqwaeu2MkLxfw28",
+          "sequence": 13,
+          "status": "completed",
+          "timestamp": "2026-08-22T08:15:48.312Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "B_143_links_in_new_card_popup.md\nB_152_disbabled_input_while_running_agent.md\nB_154_conversation_selector_disabled_while_conversation_is_running.md\nB_161_unknown.md\nB_162_project_root_files_are_loaded_twice_on_project_open.md",
+          "id": "agent-turn-7d568f55-d1e6-4dbf-8c7d-39fc21dd2cfa-event-14",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01U7seugiQbFWj1CWN14LyJu",
+          "sequence": 14,
+          "status": "completed",
+          "timestamp": "2026-08-22T08:15:50.569Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "---\nauthor: \nid: B_162\ninternalId: 1d9ff698-58aa-4f60-bc66-7ae73831af42\ntitle: project root files are loaded twice on project open\nstatus: ready\nowner: \naffects:\nagents:\n  - design/activity/card__1d9ff698-58aa-4f60-bc66-7ae73831af42.json\npolicy:\nafter: d3078abd-23e1-4c90-8b8e-6ee6459b005f\n---\n\nOpening a project reads every active card file from storage twice. The second read is redundant work on every project open, and it grows with the size of the working folder.\n\n## Current state\n\n`ProjectLoading.openProject` performs a fast first pass over the working folder root, so the board can render before the rest of the project is available:\n\n- `app/src/services/project/project_loading.ts:234` calls `storage.loadProjectRoot(project, config.workingFolder)`. This returns the markdown files directly inside the working folder root, which are exactly the files that become `activeCards` (`isActive` is `isRootWorkingFolderFile`, see `app/src/services/data/markdown_parsing_service.ts:529`).\n- `app/src/services/project/project_loading.ts:236` publishes them through `replaceProjectFiles`.\n- `app/src/services/project/project_loading.ts:248` then starts `loadFullProjectInBackground` without awaiting it.\n\n`loadFullProjectInBackground` loads the remainder of the project:\n\n- `app/src/services/project/project_loading.ts:550` calls `storage.loadProject(project, projectFolder)`.\n- `projectFolder` (`design`) is an ancestor of `workingFolder` (`design/feature_descriptions`), so this result contains the working folder root files again, in addition to the released, archived and other project files that the first pass did not load.\n\nEvery active card file is therefore read, transferred and parsed twice per project open: once by `loadProjectRoot` and once by `loadProject`.\n\nThe second copy is then discarded for those paths. `loadFullProjectInBackground` builds `nextFiles = mergeFiles(importedFiles, remainingFiles)`, and `mergeFiles(current, updates)` lets `updates` win (`app/src/services/data/data_service_context.ts:37`). `remainingFiles` is the already loaded in-memory set, so the in-memory copy overrides the freshly read one for every path present in both. `mergeBackgroundProjectFiles` is documented as adding files discovered by the full load \"without replacing cards already owned by the root snapshot\" (`app/src/services/project/project_state.ts:104`), which confirms the intent: the second read of those paths is not wanted, only tolerated.\n\nThe cost is paid in full regardless: storage round trip, file content transfer, `replaceCurrentContentHashes` hashing and `reconcileCards` parsing over the duplicated files.\n\n## Required behavior\n\n- A project open reads each active card file from storage exactly once.\n- The staged load keeps its current user-visible behavior: working folder root files become available first, the rest of the project follows in the background without blocking.\n- The set of files present after the background load completes is unchanged.\n\n## Implementation details\n\n- The background load must not re-read what the root pass already loaded. Restrict `loadFullProjectInBackground` to the project files outside the working folder root, rather than loading the whole project folder and discarding the overlap afterwards.\n- This needs a storage-level way to express \"project folder except the working folder root\". `StorageService.loadProject` currently takes a single folder. Either add an exclusion parameter, or add a dedicated call for the non-root remainder. The chosen shape must be implemented for every storage backend, including `RemoteControlStorageService`, since remote clients run the same loading code.\n- If the storage layer cannot express the exclusion, the second-best option is to filter before the expensive work rather than after: drop the overlapping paths from the `loadProject` result as soon as it arrives, so hashing and card parsing never see them. This removes the parse and hash cost but not the transfer cost, and should be treated as a fallback.\n- Do not change the merge direction in `mergeFiles(importedFiles, remainingFiles)`. In-memory content must keep winning over the freshly read copy, because in-memory content may hold changes that are not on disk yet.\n- `reloadCurrentProjectSnapshot` (`app/src/services/project/project_loading.ts:352`) has the same shape but is out of scope here. It has a single production caller, the card separator migration at `app/src/services/project/project_loading.ts:304`, where a full re-read after a bulk rename is deliberate.\n\n## Acceptance criteria\n\n- Opening a project issues exactly one storage read per active card file. A test that counts `loadProjectRoot` and `loadProject` calls and inspects the returned paths shows no path present in both results.\n- After the background load completes, the project snapshot contains the same active, released, archived and other project files as before the change.\n- Working folder root files are still shown before the background load finishes.\n- Files that only the background load discovers, including released and archived cards, are still added to the snapshot.\n- In-memory content still takes precedence over storage content for paths that exist in both the root pass and the background pass.\n- Remote-control storage follows the same single-read behavior as local storage.",
+          "id": "agent-turn-7d568f55-d1e6-4dbf-8c7d-39fc21dd2cfa-event-15",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01Sgey9q5wQN9vE2DhsQaP1r",
+          "sequence": 15,
+          "status": "completed",
+          "timestamp": "2026-08-22T08:15:52.988Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-7d568f55-d1e6-4dbf-8c7d-39fc21dd2cfa-event-16",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHTLo1Ub3hdsmsAkdfek:thinking:0",
+          "sequence": 16,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T08:15:57.115Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "    /** Keeps a repeating poll running while a pollable run is active; long runs would otherwise show a frozen figure. */\n    syncUsagePollTicks() {\n        const run = this.pollableRun();\n        if (!run) {\n            this.stopUsagePollTicks();\n            return;\n        }\n        if (this.usagePollTimer) return;\n        this.usagePollTimer = this.setTimeout(() => {\n            this.usagePollTimer = null;\n            const activeRun = this.pollableRun();\n            if (!activeRun) return;\n            this.requestUsagePoll(activeRun);\n            this.syncUsagePollTicks();\n        }, AGENT_USAGE_POLL_TICK_MS);\n    }\n\n    stopUsagePollTicks() {\n        if (!this.usagePollTimer) return;\n        this.clearTimeout(this.usagePollTimer);\n        this.usagePollTimer = null;\n    }\n\n    recordTokenUsage(run, usage, recordedAt) {\n        if (!this.usageMetricsService) return false;\n\n        return this.usageMetricsService.recordTokenUsage(\n            run.agent,\n            usage,\n            Date.parse(recordedAt),\n        );\n    }\n\n    handleOutput(runId, channel, chunk) {\n        const run = this.processes.get(runId);\n        if (!run) return;\n\n        const content = chunk.toString();\n        if (channel === 'stdout' && run.protocolLines) {\n            run.protocolLines.push(chunk);\n            return;\n        }\n        if (channel === 'stdout' && run.parser) {\n            run.parser.push(chunk);\n            return;\n        }\n        if (channel === 'stderr') {\n            run.stderrBuffer += content;\n            const filtered = filterCompleteStderrLines(run.stderrBuffer);\n            run.stderrBuffer = filtered.remainder;\n            if (filtered.content.length === 0) return;\n            this.recordStderr(run, filtered.content);\n            return;\n        }\n        this.recordOutput(runId, channel, content);\n    }\n=== runtime svc ===\nclaude_runtime_service.js\nclaude_runtime_service.test.mjs\ncodex_runtime_service.js\ncodex_runtime_service.test.mjs",
+          "id": "agent-turn-7d568f55-d1e6-4dbf-8c7d-39fc21dd2cfa-event-17",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01NQ7bRTEWyKkZnnQLTmU1Zb",
+          "sequence": 17,
+          "status": "completed",
+          "timestamp": "2026-08-22T08:15:58.537Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-7d568f55-d1e6-4dbf-8c7d-39fc21dd2cfa-event-18",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHTMCkV4rzkYLNurQwou:thinking:0",
+          "sequence": 18,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T08:16:13.751Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "const RATE_LIMIT_EVENT = 'rateLimits';\nconst WINDOW_IDS = new Set(['five_hour', 'weekly']);\n\nfunction normalizeWindow(window) {\n    if (!window || typeof window !== 'object' || Array.isArray(window)) return null;\n    if (!WINDOW_IDS.has(window.id)) return null;\n    if (!Number.isInteger(window.usedPercent) || window.usedPercent < 0 || window.usedPercent > 100) return null;\n    if (!Number.isFinite(window.resetsAt)) return null;\n\n    return { id: window.id, resetsAt: window.resetsAt, usedPercent: window.usedPercent };\n}\n\nfunction normalizeWindows(payload) {\n    if (!payload || typeof payload !== 'object' || Array.isArray(payload) || !Array.isArray(payload.windows)) return null;\n    const windows = payload.windows.map(normalizeWindow);\n    if (windows.some((window) => window === null) || windows.length !== WINDOW_IDS.size) return null;\n    if (new Set(windows.map(({ id }) => id)).size !== WINDOW_IDS.size) return null;\n    if (!windows.every(({ id }) => WINDOW_IDS.has(id))) return null;\n\n    return windows;\n}\n\nfunction sameWindows(left, right) {\n    return left.length === right.length && left.every((window, index) => (\n        window.id === right[index].id\n        && window.resetsAt === right[index].resetsAt\n        && window.usedPercent === right[index].usedPercent\n    ));\n}\n\n/** Owns latest account-wide Claude rate-limit snapshot in desktop process. */\nclass ClaudeRuntimeService {\n    constructor() {\n        this.events = new EventTarget();\n        this.snapshot = null;\n    }\n\n    getSnapshot() {\n        return this.snapshot ? structuredClone(this.snapshot) : null;\n    }\n\n    subscribe(listener) {\n        const handleRateLimits = (event) => listener(event.detail);\n        this.events.addEventListener(RATE_LIMIT_EVENT, handleRateLimits);\n        if (this.snapshot) listener(this.getSnapshot());\n\n        return () => this.events.removeEventListener(RATE_LIMIT_EVENT, handleRateLimits);\n    }\n\n    publishRateLimits(payload, observedAt) {\n        if (!Number.isFinite(observedAt)) throw new Error('Invalid Claude rate-limit observation time');\n        if (this.snapshot && observedAt < this.snapshot.observedAt) return false;\n        const windows = normalizeWindows(payload);\n        if (!windows) return false;\n        const changed = !this.snapshot || !this.snapshot.available || !sameWindows(this.snapshot.windows, windows);\n        this.snapshot = { available: true, observedAt, windows };\n        if (changed) this.notify();\n\n        return true;\n    }\n\n    publishUnavailable(observedAt) {\n        if (!Number.isFinite(observedAt)) throw new Error('Invalid Claude rate-limit observation time');\n        if (this.snapshot && observedAt < this.snapshot.observedAt) return false;\n        const changed = !this.snapshot || this.snapshot.available;\n        this.snapshot = { available: false, observedAt, windows: [] };\n        if (changed) this.notify();\n\n        return true;\n    }\n\n    notify() {\n        this.events.dispatchEvent(new CustomEvent(RATE_LIMIT_EVENT, { detail: this.getSnapshot() }));\n    }\n}\n\nmodule.exports = { ClaudeRuntimeService };",
+          "id": "agent-turn-7d568f55-d1e6-4dbf-8c7d-39fc21dd2cfa-event-19",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01DzpypUMvok8CwW68PGw3UG",
+          "sequence": 19,
+          "status": "completed",
+          "timestamp": "2026-08-22T08:16:14.374Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-7d568f55-d1e6-4dbf-8c7d-39fc21dd2cfa-event-20",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHTNNbqoXY7AkYhmg2EP:thinking:0",
+          "sequence": 20,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T08:16:17.613Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "Exit code 2\n./actions/agent/agent_file_logger.js:19://     console.error('[agent:log-error]', error);\n./actions/agent/agent_runner_service.js:277:        console.warn('[agent:finish-timeout]', {\n./git/git_commands.js:84:            console.warn('[git:index-lock-retry]', {\n./project/project_files.js:355:        console.error('Project watcher failed to close:', error);\n=== CLAUDE.md ===",
+          "id": "agent-turn-7d568f55-d1e6-4dbf-8c7d-39fc21dd2cfa-event-21",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01T4msWLfLphS8JwrPvYin8a",
+          "sequence": 21,
+          "status": "failed",
+          "timestamp": "2026-08-22T08:16:19.028Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-7d568f55-d1e6-4dbf-8c7d-39fc21dd2cfa-event-22",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHTNiiZX1cEFrsvi3xQX:thinking:0",
+          "sequence": 22,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T08:16:21.530Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "claude_usage_parsing.js\nclaude_usage_parsing.test.mjs\nclaude_usage_poller.js\nclaude_usage_poller.test.mjs\nclaude_usage_terminal.js\nclaude_usage_terminal.test.mjs\nclaude_usage_terminal_host.js\nclaude_usage_terminal_host.test.mjs\nclaude_usage_terminal_worker.js\ncodex_usage_poller.js\ncodex_usage_poller.test.mjs\nproject_agent_token_usage.js\nproject_agent_token_usage.test.mjs\nusage_metrics_service.js\nusage_metrics_service.test.mjs\n===\nbuild\nelectron-builder.config.cjs\neslint.config.js\nmain.js\nnode_modules\npackage-lock.json\npackage.json\npackaging\nsrc\nstart_electron.js\ntest_agent_spawn.mjs\nvitest.config.mjs\n{\n  \"name\": \"desktop\",\n  \"version\": \"0.4.2\",\n  \"private\": true,\n  \"description\": \"MD² Electron host shell\",\n  \"main\": \"main.js\",\n  \"scripts\": {\n    \"lint\": \"eslint .\",\n    \"lint-fix\": \"eslint . --fix\",\n    \"package:windows\": \"electron-builder --config electron-builder.config.cjs --win nsis --x64\",\n    \"postpackage:windows\": \"node packaging/verify_windows_package.mjs\",\n    \"start\": \"node start_electron.js\",\n    \"test\": \"vitest run\",\n    \"test:full\": \"vitest run\",\n    \"test:watch\": \"vitest\"\n  },\n  \"keywords\": [],\n  \"author\": \"Elastetic\",\n  \"license\": \"AGPL-3.0-only\",\n  \"devDependencies\": {\n    \"@electron/asar\": \"^4.2.0\",\n    \"@eslint/js\": \"^9.39.4\",\n    \"electron\": \"^43.0.0\",\n    \"electron-builder\": \"^26.15.3\",\n    \"eslint\": \"^9.39.4\",\n    \"eslint-plugin-import\": \"^2.32.0\",\n    \"globals\": \"^17.7.0\",\n    \"node-abi\": \"^4.33.0\",\n    \"vitest\": \"^4.1.9\"\n  },",
+          "id": "agent-turn-7d568f55-d1e6-4dbf-8c7d-39fc21dd2cfa-event-23",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_013gSG9jq6yyxPRuwRpPYNeL",
+          "sequence": 23,
+          "status": "completed",
+          "timestamp": "2026-08-22T08:16:22.624Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-7d568f55-d1e6-4dbf-8c7d-39fc21dd2cfa-event-24",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHTNygECcm7mnnZgh76X:thinking:0",
+          "sequence": 24,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T08:16:49.923Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "6:const AGENT_LOGGING_ENABLED = false;\n32:function logAgentEvent(...values) {\n33:    if (!AGENT_LOGGING_ENABLED) return;\n6:const CLAUDE_USAGE_POLL_COOLDOWN_MS = 120_000;\n8:const CLAUDE_USAGE_TERMINAL_TIMEOUT_MS = 20_000;\n40:            } catch {\n45:        child.stdin?.end('/usage\\n');\n64:        this.terminalTimeoutMs = dependencies.terminalTimeoutMs ?? CLAUDE_USAGE_TERMINAL_TIMEOUT_MS;\n119:        } catch {\n142:                logAgentEvent('[claude:usage-unparsed]', { observedAt, stdout });\n147:        } catch {\n154:            logAgentEvent('[claude:usage-inconclusive]', { observedAt });\n--- terminal ---\n22:function terminalReady(output) {\n80:                commandSent = true;\n85:            const payload = parseClaudeUsageOutput(output, observedAt);\n98:            const payload = parseClaudeUsageOutput(terminalScreenText(terminal), observedAt);\n123:        timeout = setPollTimeout(() => {\n124:            const payload = parseClaudeUsageOutput(terminalScreenText(terminal), observedAt);\n--- host ---\n4:const INCONCLUSIVE_RESULT = Object.freeze({ payload: null, unavailable: false });\n40:            finish(INCONCLUSIVE_RESULT);\n44:        registerAbort?.(() => finish(INCONCLUSIVE_RESULT));\n45:        worker.on('message', (message) => finish(message?.result ?? INCONCLUSIVE_RESULT));\n47:        worker.on('exit', () => finish(INCONCLUSIVE_RESULT));\n48:        worker.on('spawn', () => worker.postMessage(request));\n50:        timeout = setPollTimeout(() => finish(INCONCLUSIVE_RESULT), request.timeoutMs + CLAUDE_USAGE_WORKER_GRACE_MS);\n54:module.exports = { CLAUDE_USAGE_WORKER_GRACE_MS, INCONCLUSIVE_RESULT, createUtilityProcessTerminalPoll };\n--- worker ---\n12:        return { payload: await runTerminalUsagePoll(request), unavailable: false };\n13:    } catch {\n14:        // Claude could not be started or ended in failure, which is the parent's cue to mark it unavailable.\n15:        return { payload: null, unavailable: true };\n25:        } catch {\n--- runner ---\n52:const AGENT_USAGE_POLL_TICK_MS = 120_000;\n306:    requestStartupUsageRefresh(profiles) {\n309:        this.startupRefreshRequested = true;\n311:        const cwd = process.cwd();\n429:        }, AGENT_USAGE_POLL_TICK_MS);",
+          "id": "agent-turn-7d568f55-d1e6-4dbf-8c7d-39fc21dd2cfa-event-25",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01ETnKKJJDRF5kt6bEYjpHPR",
+          "sequence": 25,
+          "status": "completed",
+          "timestamp": "2026-08-22T08:16:54.875Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-7d568f55-d1e6-4dbf-8c7d-39fc21dd2cfa-event-26",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHTRMZfUy9Nj5nsqzXsa:thinking:0",
+          "sequence": 26,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T08:16:58.064Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "Exit code 2\n/usr/bin/bash: -c: line 55: unexpected EOF while looking for matching `''",
+          "id": "agent-turn-7d568f55-d1e6-4dbf-8c7d-39fc21dd2cfa-event-27",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01PMGo8XdzTnwvkEntqpWZbs",
+          "sequence": 27,
+          "status": "failed",
+          "timestamp": "2026-08-22T08:18:01.655Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-7d568f55-d1e6-4dbf-8c7d-39fc21dd2cfa-event-28",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHTWHx2FUpid9Tf9wKDh:thinking:0",
+          "sequence": 28,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T08:18:10.365Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nHeredoc broke on quoting. Using Write instead.",
+          "id": "agent-turn-7d568f55-d1e6-4dbf-8c7d-39fc21dd2cfa-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 29,
+          "timestamp": "2026-08-22T08:18:10.366Z"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-7d568f55-d1e6-4dbf-8c7d-39fc21dd2cfa-event-30",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\t---\n2\tauthor: \n3\tid: B_171\n4\tinternalId: f790586e-149f-4338-8f8e-ad90bcdc1b12\n5\ttitle: claude account usage issues\n6\tstatus: design\n7\towner: \n8\taffects:\n9\tagents:\n10\t  - design/activity/card__f790586e-149f-4338-8f8e-ad90bcdc1b12.json\n11\tpolicy:\n12\t---\n13\t\n14\tWe have a polling system that retrieves the claude account usage from the cli. this sort of works.\n15\t\n16\tHere is the problem: it only begins to work after i manually started claude cli and ran `/usage` myself. Then our poller is also able to get the values.\n17\t\n18\tif it can't get a value, it appears to die silently. we need to improve this so that we at least have some console.error or console.warning logs.\n19\t\n20\tAlso, i am wondering if it has anything to do with timing. I have the impression that, when running 'claude' and then input '/usage' in the cli, it takes just a fraction of a second, the screen flickers. second time it is faster. perhaps this is our issue?",
+          "providerItemId": "toolu_018hDpWv6YzKnam6VHXwk8cv",
+          "sequence": 30,
+          "status": "completed",
+          "timestamp": "2026-08-22T08:18:11.168Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-7d568f55-d1e6-4dbf-8c7d-39fc21dd2cfa-event-31",
+          "kind": "event",
+          "label": "Write",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_171_claude_account_usage_issues.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_017TzUgpdRiZgzj73EqjxaUy",
+          "sequence": 31,
+          "status": "completed",
+          "timestamp": "2026-08-22T08:18:58.155Z",
+          "type": "fileChange"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nDoc updated. Status now `ready for implementation`. Original text untouched, three sections appended.\n\n**Root cause chain found while reading code:**\n\n- `logAgentEvent` is a no-op — `AGENT_LOGGING_ENABLED = false` at `desktop/src/actions/agent/agent_file_logger.js:6`. Both poller diagnostics print nothing.\n- Inconclusive polls call `onRuntimeEvent` never (`claude_usage_poller.js:152`), so the runtime snapshot stays `null` and the UI never populates. That is the \"dies silently\".\n- Most likely trigger for \"only works after manual `/usage`\": the pty fallback only sends `/usage` after seeing `? for shortcuts` or `Try \"` (`claude_usage_terminal.js:22`). A trust-this-folder or onboarding screen contains neither, so it waits out 20s and gives up. Running `claude` by hand once clears the prompt for that folder.\n- Startup poll uses `process.cwd()` (`agent_runner_service.js:311`), the app launch dir, not a project folder — the folder least likely to be trusted.\n- Your timing hunch is real but likely secondary: one 20s constant covers spawn + cold start + MCP connect + `/usage` round trip, and the stdout attempt burns its own 20s first (`claude_usage_poller.js:65`).\n- Bonus: a failed startup poll never retries, so usage stays blank until a Claude run starts.\n\n**Three calls I made — flag if wrong:**\n\n1. Failure logs always-on via `console.warn`/`console.error`; `AGENT_LOGGING_ENABLED` kept only for verbatim output dumps.\n2. Poller does **not** auto-answer a trust prompt — it logs and stops. Auto-trusting a folder is your decision, not a background poller's.\n3. Retry scope included (bounded backoff on startup failure). Drop it if you want this card logging-only.",
+          "id": "agent-turn-7d568f55-d1e6-4dbf-8c7d-39fc21dd2cfa-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 32,
+          "timestamp": "2026-08-22T08:19:09.035Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-2fad5977-d309-4575-9428-51bd0f279bab",
+      "providerSessions": [],
+      "startedAt": "2026-08-22T08:15:10.886Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-08-22T08:15:10.886Z"
+      },
+      "title": "complete",
+      "usage": {
+        "cachedInputTokens": 858123,
+        "inputTokens": 38,
+        "outputTokens": 17396,
+        "reasoningTokens": 0,
+        "totalTokens": 875557,
+        "costUsd": 1.3501335
+      },
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "f790586e-149f-4338-8f8e-ad90bcdc1b12",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
