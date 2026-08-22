@@ -1769,6 +1769,30 @@
       "startedAt": "2026-08-22T09:22:47.259Z",
       "status": "completed",
       "rootConversationId": "agent-0f713707-4b60-46c8-93b9-a8bac6e83feb"
+    },
+    {
+      "commits": [
+        {
+          "commit": "33d48a3f3b56f5a2a0ed2f3c4f6d77efb620cb35",
+          "committedAt": "2026-08-22T11:34:33+02:00",
+          "deletions": 6,
+          "filePaths": [
+            "app/src/components/shell/menu/app_menu.test.tsx",
+            "app/src/components/shell/menu/app_menu.tsx",
+            "app/src/components/shell/menu/menu_icon_button.tsx"
+          ],
+          "filesChanged": 3,
+          "insertions": 137,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-22T11:34:33+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "b632dc97-1096-488d-aae6-82c1516fa0b0",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
