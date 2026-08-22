@@ -3,7 +3,7 @@ author:
 id: F_212
 internalId: e9e0858d-a215-42bb-873e-01848ea6a803
 title: Add files changed reference
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
