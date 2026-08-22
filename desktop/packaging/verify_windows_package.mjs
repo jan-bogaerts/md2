@@ -104,6 +104,21 @@ export async function collectSignatureVerificationPaths(paths, readDirectoryImpl
     return [...executableCodePaths, paths.installerPath];
 }
 
+export function createAuthenticodeVerificationArgs(scriptPath, artifactPath, expectedPublisher, paths) {
+    const args = [
+        '-NoProfile',
+        '-ExecutionPolicy',
+        'Bypass',
+        '-File',
+        scriptPath,
+        '-ArtifactPath',
+        artifactPath,
+    ];
+    const requiresConfiguredPublisher = artifactPath === paths.executablePath || artifactPath === paths.installerPath;
+    if (requiresConfiguredPublisher) args.push('-ExpectedPublisher', expectedPublisher);
+    return args;
+}
+
 async function finalizeUnpackedDirectory(paths) {
     const { sourceUnpackedDirectory, unpackedDirectory } = paths;
     if (!existsSync(sourceUnpackedDirectory)) {
@@ -122,17 +137,7 @@ async function verifySignatures(paths, expectedPublisher) {
     const scriptPath = path.join(currentDirectory, 'verify_authenticode.ps1');
     const artifactPaths = await collectSignatureVerificationPaths(paths);
     for (const artifactPath of artifactPaths) {
-        const args = [
-            '-NoProfile',
-            '-ExecutionPolicy',
-            'Bypass',
-            '-File',
-            scriptPath,
-            '-ArtifactPath',
-            artifactPath,
-            '-ExpectedPublisher',
-            expectedPublisher,
-        ];
+        const args = createAuthenticodeVerificationArgs(scriptPath, artifactPath, expectedPublisher, paths);
         await execFileAsync('powershell.exe', args);
     }
 }

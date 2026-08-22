@@ -3,7 +3,7 @@ author:
 id: F_227
 internalId: 269f5e9f-dbe4-4818-bd5a-7915bba398af
 title: remove GPT-5-3-Codex-Spark from account usage
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

@@ -5,6 +5,7 @@ import {
     assertPackageEntries,
     collectSignatureVerificationPaths,
     collectWindowsExecutableCodePaths,
+    createAuthenticodeVerificationArgs,
     resolveArtifactPaths,
 } from './verify_windows_package.mjs';
 
@@ -101,6 +102,19 @@ describe('Windows package verification', () => {
             path.join(unpackedDirectory, 'resources', 'native.node'),
             installerPath,
         ]);
+    });
+
+    it('requires configured publisher only for main executable and outer installer', () => {
+        const paths = resolveArtifactPaths('2.3.4', 'C:\\release');
+        const scriptPath = 'C:\\verify_authenticode.ps1';
+        const runtimeDllPath = path.join(paths.unpackedDirectory, 'd3dcompiler_47.dll');
+
+        expect(createAuthenticodeVerificationArgs(scriptPath, runtimeDllPath, 'Elastetic', paths))
+            .not.toContain('-ExpectedPublisher');
+        expect(createAuthenticodeVerificationArgs(scriptPath, paths.executablePath, 'Elastetic', paths))
+            .toEqual(expect.arrayContaining(['-ExpectedPublisher', 'Elastetic']));
+        expect(createAuthenticodeVerificationArgs(scriptPath, paths.installerPath, 'Elastetic', paths))
+            .toEqual(expect.arrayContaining(['-ExpectedPublisher', 'Elastetic']));
     });
 });
 
