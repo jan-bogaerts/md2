@@ -8,7 +8,7 @@ owner:
 affects:
 agents:
 policy:
-after: 54cf673d-8090-4644-b5a1-67a4e111ba87
+after: 545671dd-18d4-4878-93b9-0ed24f2077fa
 ---
 in desktop config section, we configure the agents:
 
