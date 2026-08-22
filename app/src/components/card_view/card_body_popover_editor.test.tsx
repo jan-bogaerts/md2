@@ -19,7 +19,7 @@ const card: Card = {
     content: '# Card\n\nOriginal body',
     hasFrontmatter: true,
     header: {
-        affects: [], after: null, agentLogReferences: [], author: null, id: 'B-172', internalId: 'card-172',
+        affects: [], after: null, agentLogReferences: [], changedFiles: [], author: null, id: 'B-172', internalId: 'card-172',
         owner: null, policy: {}, references: [], status: 'ready', title: 'History teardown', worktree: null,
         worktreeError: null, worktreeValue: null,
     },

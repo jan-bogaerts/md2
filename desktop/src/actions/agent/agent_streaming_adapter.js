@@ -1,7 +1,6 @@
 const { validateAgentTokenUsage } = require('../../../../shared/agent_usage_math.mjs');
 const { appendBoundedAgentResult } = require('../../../../shared/agent_conversations.mjs');
 const { ClaudeStreamingAdapter } = require('./agent_claude_streaming_adapter');
-const { codexChangedPaths } = require('./agent_codex_events');
 const { diagnosticEvent, normalizeCodexEvent, systemEvent } = require('./agent_codex_event');
 const { isMissingSession } = require('./agent_provider_protocol');
 
@@ -546,9 +545,7 @@ class CodexStreamingAdapter {
             trackedItem.assistantCompleted = true;
             await this.flushAssistantStreams();
         }
-        const changedPaths = codexChangedPaths(item, this.rootPath);
-        if (changedPaths.length > 0) await this.onEvent({ paths: changedPaths, type: 'changedPaths' });
-        const event = normalizeCodexEvent(item, 'completed');
+        const event = normalizeCodexEvent(item, 'completed', this.rootPath);
         if (event) await this.emitEvent(event);
         if (!event && !CODEX_NON_EVENT_ITEM_TYPES.has(item.type) && trackedItem) {
             await this.emitDiagnostic(method, item.type, item.id);

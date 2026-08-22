@@ -40,6 +40,10 @@ export function setCardAffects(card: Card, affects: string[]) {
     card.header.affects = [...affects]
 }
 
+export function setCardChangedFiles(card: Card, changedFiles: string[]) {
+    card.header.changedFiles = [...changedFiles]
+}
+
 export function setCardAgentLogReferences(card: Card, references: string[]) {
     card.header.agentLogReferences = [...references]
 }

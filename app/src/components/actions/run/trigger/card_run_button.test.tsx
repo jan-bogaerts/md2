@@ -62,7 +62,7 @@ const card: Card = {
     agentConversations: [],
     content: '',
     header: {
-        affects: [], after: null, agentLogReferences: [], author: null, id: 'F-010', internalId: 'f-010', owner: null,
+        affects: [], after: null, agentLogReferences: [], changedFiles: [], author: null, id: 'F-010', internalId: 'f-010', owner: null,
         policy: {}, references: [], status: 'design', title: 'Feature',
     },
     hasFrontmatter:true,

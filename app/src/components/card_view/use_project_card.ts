@@ -24,7 +24,7 @@ export interface CardConversationSnapshot {
 }
 
 export interface CardMetadataSnapshot {
-    header: Omit<CardHeader, 'affects' | 'agentLogReferences' | 'references'>
+    header: Omit<CardHeader, 'affects' | 'agentLogReferences' | 'changedFiles' | 'references'>
     isActive: boolean
     path: string
 }

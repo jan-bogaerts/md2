@@ -8,6 +8,9 @@ const { requireString } = require('./agent_run_validation');
 function recordProviderEvent(run, providerEvent, timestamp) {
     const safeEvent = redactConversationEvent(providerEvent, run.secretValues);
     const providerItemId = requireString(safeEvent.providerItemId, 'event providerItemId');
+    if (safeEvent.type === 'fileChange' && safeEvent.status === 'completed' && Array.isArray(safeEvent.paths)) {
+        safeEvent.paths.forEach((filePath) => run.changedPaths.add(filePath));
+    }
     const currentIndex = run.providerEventEntryIndexes.get(providerItemId);
     let eventEntry;
     if (currentIndex !== undefined) {

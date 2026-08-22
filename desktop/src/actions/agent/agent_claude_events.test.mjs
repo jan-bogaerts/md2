@@ -5,7 +5,6 @@ const require = createRequire(import.meta.url);
 const {
     ClaudeFileResultDecoder,
     claudeAssistantText,
-    claudeChangedPaths,
     claudeFileResultUsage,
     claudeTranscriptEvents,
     claudeUsage,
@@ -27,15 +26,18 @@ describe('claude event decoders', () => {
     });
 
     it('normalizes file tool paths and drops non-file tools and paths outside the root', () => {
-        const changedPaths = claudeChangedPaths(assistant([
-            { input: { file_path: 'design\\card.md' }, name: 'Write', type: 'tool_use' },
-            { input: { file_path: 'design/card.md' }, name: 'Edit', type: 'tool_use' },
-            { input: { file_path: 'C:\\outside\\secret.md' }, name: 'MultiEdit', type: 'tool_use' },
-            { input: { notebook_path: 'notes/review.ipynb' }, name: 'NotebookEdit', type: 'tool_use' },
-            { input: { file_path: 'ignored.md' }, name: 'Read', type: 'tool_use' },
-        ]), ROOT_PATH);
+        const decoder = new ClaudeFileResultDecoder(ROOT_PATH);
+        const events = decoder.decode(assistant([
+            { id: 'write-1', input: { file_path: 'design\\card.md' }, name: 'Write', type: 'tool_use' },
+            { id: 'edit-1', input: { file_path: 'design/card.md' }, name: 'Edit', type: 'tool_use' },
+            { id: 'edit-2', input: { file_path: 'C:\\outside\\secret.md' }, name: 'MultiEdit', type: 'tool_use' },
+            { id: 'notebook-1', input: { notebook_path: 'notes/review.ipynb' }, name: 'NotebookEdit', type: 'tool_use' },
+            { id: 'read-1', input: { file_path: 'ignored.md' }, name: 'Read', type: 'tool_use' },
+        ]));
 
-        expect(changedPaths).toEqual(['design/card.md', 'notes/review.ipynb']);
+        expect(events.map(({ paths }) => paths)).toEqual([
+            ['design/card.md'], ['design/card.md'], [], ['notes/review.ipynb'],
+        ]);
     });
 
     it('reports both tool calls and tool results so the transcript shows what ran', () => {
@@ -110,7 +112,7 @@ describe('claude event decoders', () => {
     });
 
     it('correlates successful applied results with file tool ids', () => {
-        const decoder = new ClaudeFileResultDecoder();
+        const decoder = new ClaudeFileResultDecoder(ROOT_PATH);
         const started = decoder.decode(assistant([
             { id: 'edit-1', input: { file_path: 'design/card.md' }, name: 'Edit', type: 'tool_use' },
         ]));
@@ -126,6 +128,7 @@ describe('claude event decoders', () => {
             deletions: 1,
             insertions: 1,
             output: 'updated',
+            paths: ['design/card.md'],
             providerItemId: 'edit-1',
             status: 'completed',
         })]);

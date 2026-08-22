@@ -29,7 +29,7 @@ function card(path: string, status: string, title: string): Card {
         agentConversations: [],
         content: `# ${title}`,
         header: {
-            affects: [], after: null, agentLogReferences: [], author: null, id: path, internalId: path,
+            affects: [], after: null, agentLogReferences: [], changedFiles: [], author: null, id: path, internalId: path,
             owner: null, policy: {}, references: [], status, title,
         },
         hasFrontmatter:true,

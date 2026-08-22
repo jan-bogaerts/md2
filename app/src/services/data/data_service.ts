@@ -80,6 +80,7 @@ function eventCard(card: ProjectSnapshot['activeCards'][number]) {
             ...card.header,
             affects: [...card.header.affects],
             agentLogReferences: [...card.header.agentLogReferences],
+            changedFiles: [...card.header.changedFiles],
             policy: { ...card.header.policy },
             references: [...card.header.references],
         },
@@ -101,6 +102,7 @@ function cardFieldChanged(field: CardField, previousCard: CardAddedEventDetail['
     const previousHeader = previousCard.header
     const header = card.header
     if (field === 'affects') return !isSameArray(previousHeader.affects, header.affects)
+    if (field === 'changedFiles') return !isSameArray(previousHeader.changedFiles, header.changedFiles)
     if (field === 'body') return previousCard.content !== card.content
     if (field === 'conversation') {
         return !isSameArray(previousCard.agentConversations, card.agentConversations)

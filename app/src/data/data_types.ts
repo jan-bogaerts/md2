@@ -74,6 +74,7 @@ export interface CardHeader {
     agentLogReferences: string[]
     author: string | null
     branch?: string | null
+    changedFiles: string[]
     id: string
     internalId: string | null
     owner: string | null
@@ -289,6 +290,7 @@ export interface AgentConversationEvent {
     insertions?: number
     label?: string
     output?: string
+    paths?: string[]
     parentItemId?: string
     providerItemId?: string
     sequence?: number

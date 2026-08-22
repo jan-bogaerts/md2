@@ -12,7 +12,7 @@ import {
 import { cardAgentState } from './card_agent_state'
 import { conversation, createDataService, createDeferred, createStorage, waitForWorkerTurn } from '../test_support/data_service_test_support'
 
-vi.mock('../actions/electron_action_runner', () => ({ runElectronAction: vi.fn(async () => ({ logs: [], status: 'completed' })) }))
+vi.mock('../actions/electron_action_runner', () => ({ runElectronAction: vi.fn(async () => ({ changedPaths: [], logs: [], status: 'completed' })) }))
 
 describe('AgentIntegration', () => {
     afterEach(() => {
@@ -104,6 +104,7 @@ describe('AgentIntegration', () => {
     it('surfaces failed onState actions on the moved card', async () => {
         configService.init()
         vi.mocked(runElectronAction).mockResolvedValueOnce({
+            changedPaths: [],
             logs: [{
                 actionId: 'ready-action',
                 actionName: 'ready-action',
@@ -154,6 +155,7 @@ describe('AgentIntegration', () => {
     it('keeps a failed onState action on its card after a rename changes the card path', async () => {
         configService.init()
         vi.mocked(runElectronAction).mockResolvedValueOnce({
+            changedPaths: [],
             logs: [{
                 actionId: 'ready-action',
                 actionName: 'ready-action',

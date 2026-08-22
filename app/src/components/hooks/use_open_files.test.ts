@@ -7,7 +7,7 @@ import { useOpenFiles } from './use_open_files'
 const card: Card = {
     agentConversationErrors: [], agentConversations: [], content: '', hasFrontmatter: true, isActive: true, path: 'design/card.md',
     header: {
-        affects: [], after: null, agentLogReferences: [], author: null, id: 'F-1', internalId: 'card-1',
+        affects: [], after: null, agentLogReferences: [], changedFiles: [], author: null, id: 'F-1', internalId: 'card-1',
         owner: null, policy: {}, references: [], status: null, title: 'Card',
     },
 }

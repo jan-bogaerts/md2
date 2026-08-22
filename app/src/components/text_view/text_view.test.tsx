@@ -26,6 +26,7 @@ function card(path: string, overrides: Partial<Card['header']> = {}, content = '
             affects: [],
             after: null,
             agentLogReferences: [],
+            changedFiles: [],
             author: null,
             id: 'F-0',
             internalId: path,

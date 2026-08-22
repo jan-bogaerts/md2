@@ -1,6 +1,6 @@
 const { normalizedContent } = require('./agent_event_utils');
 const { boundedAgentResult } = require('../../../../shared/agent_conversations.mjs');
-const { ClaudeFileResultDecoder, claudeChangedPaths, claudeUsage } = require('./agent_claude_events');
+const { ClaudeFileResultDecoder, claudeUsage } = require('./agent_claude_events');
 const { isMissingSession } = require('./agent_provider_protocol');
 
 const CLAUDE_APPROVAL_DECISIONS = ['accept', 'acceptForSession', 'decline', 'cancel'];
@@ -236,7 +236,7 @@ class ClaudeStreamingAdapter {
         this.protocolErrorSequence = 1;
         this.contextUsageRequestSequence = 1;
         this.pendingContextUsage = null;
-        this.fileResultDecoder = new ClaudeFileResultDecoder();
+        this.fileResultDecoder = new ClaudeFileResultDecoder(rootPath);
         this.turnStarted = false;
     }
 
@@ -594,8 +594,6 @@ class ClaudeStreamingAdapter {
                 await this.onEvent({ event: ownedEvent(toolEvent, streamKey), type: 'event' });
             }
         }
-        const changedPaths = claudeChangedPaths(event, this.rootPath);
-        if (changedPaths.length > 0) await this.onEvent({ paths: changedPaths, type: 'changedPaths' });
     }
 
     async handleToolResults(event) {

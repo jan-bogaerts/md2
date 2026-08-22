@@ -100,6 +100,28 @@ describe('ActionRunRegistry', () => {
         service.stop()
     })
 
+    it('returns changed paths from terminal run data', async () => {
+        const { bridge, emit } = bridgeWithEvents({ startAction: vi.fn(async () => 'run-1') })
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        let resolveStarted!: () => void
+        const started = new Promise<void>((resolve) => {
+            resolveStarted = resolve
+        })
+        const completion = service.startRun({ id: 'build' } as ActionDefinition, context, {}, resolveStarted)
+        await started
+
+        emit(runEvent('running'))
+        emit({ ...runEvent('completed'), changedPaths: ['app/a.ts', 'desktop/b.js'] })
+
+        await expect(completion).resolves.toEqual({
+            changedPaths: ['app/a.ts', 'desktop/b.js'],
+            logs: [],
+            status: 'completed',
+        })
+        service.stop()
+    })
+
     it.each(['completed', 'failed', 'cancelled', 'okButNotAfter'] as const)('clears card running state after %s', (status) => {
         const { bridge, emit } = bridgeWithEvents()
         setActionBridgeOverride(bridge)
@@ -591,7 +613,7 @@ describe('ActionRunRegistry', () => {
         const second = bridgeWithEvents({
             loadActionRunRecoverySnapshot: vi.fn(async () => ({
                 activeRunEvents: [],
-                terminalResults: [{ failure: null, runId: 'run-1', status: 'completed' as const }],
+                terminalResults: [{ changedPaths: ['app/recovered.ts'], failure: null, runId: 'run-1', status: 'completed' as const }],
             })),
         })
 
@@ -607,7 +629,7 @@ describe('ActionRunRegistry', () => {
         }))
         expect(store.getSnapshot().logs[0]).toMatchObject({ message: 'build completed', status: 'completed' })
         expect(second.bridge.loadActionRunRecoverySnapshot).toHaveBeenCalledWith(['run-1'])
-        await expect(completion).resolves.toMatchObject({ status: 'completed' })
+        await expect(completion).resolves.toMatchObject({ changedPaths: ['app/recovered.ts'], status: 'completed' })
         release()
         service.stop()
     })

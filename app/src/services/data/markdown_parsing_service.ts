@@ -28,6 +28,7 @@ export interface NewCardHeader {
     /** Activity conversation references serialized through the existing `agents` frontmatter field. */
     agentLogReferences?: string[]
     author?: string | null
+    changedFiles?: string[]
     id: string
     internalId: string
     owner?: string | null
@@ -60,6 +61,7 @@ function cloneCardHeader(header: CardHeader): CardHeader {
         ...header,
         affects: [...header.affects],
         agentLogReferences: [...header.agentLogReferences],
+        changedFiles: [...header.changedFiles],
         policy: { ...header.policy },
         references: [...header.references],
     }
@@ -102,6 +104,10 @@ function currentHeaderFields(card: Card, source: CardSourceState): MarkdownHeade
     if (!sameStringArray(header.agentLogReferences, sourceHeader.agentLogReferences)) fields.agents = [...header.agentLogReferences]
     if (header.author !== sourceHeader.author) setNullableHeaderField(fields, 'author', header.author)
     if (header.branch !== sourceHeader.branch) setNullableHeaderField(fields, 'branch', header.branch ?? null)
+    if (!sameStringArray(header.changedFiles, sourceHeader.changedFiles)) {
+        if (header.changedFiles.length === 0) delete fields.changedFiles
+        else fields.changedFiles = [...header.changedFiles]
+    }
     if (header.id !== sourceHeader.id) fields.id = header.id
     if (header.internalId !== sourceHeader.internalId) setNullableHeaderField(fields, 'internalId', header.internalId)
     if (header.owner !== sourceHeader.owner) setNullableHeaderField(fields, 'owner', header.owner)
@@ -341,6 +347,7 @@ function parseCardHeader(fields: MarkdownHeaderFields, file: MarkdownFile, body:
         agentLogReferences: getListField(fields, 'agents'),
         author: getStringField(fields, 'author'),
         branch: getStringField(fields, 'branch'),
+        changedFiles: getUniqueListField(fields, 'changedFiles'),
         id,
         internalId: getStringField(fields, 'internalId'),
         owner: getStringField(fields, 'owner'),
@@ -475,6 +482,7 @@ function serializeNewHeader(header: NewCardHeader) {
 
     const affects = header.affects ?? []
     const agentLogReferences = header.agentLogReferences ?? []
+    const changedFiles = [...new Set(header.changedFiles ?? [])]
     const policy = header.policy ?? {}
     const references = [...new Set(header.references ?? [])]
 
@@ -487,6 +495,7 @@ function serializeNewHeader(header: NewCardHeader) {
     lines.push(`owner: ${header.owner ?? ''}`)
     lines.push('affects:', ...affects.map((entry) => `${LIST_ITEM_PREFIX}${entry}`))
     lines.push('agents:', ...agentLogReferences.map((entry) => `${LIST_ITEM_PREFIX}${entry}`))
+    if (changedFiles.length > 0) lines.push('changedFiles:', ...changedFiles.map((entry) => `${LIST_ITEM_PREFIX}${entry}`))
     lines.push('policy:', ...Object.entries(policy).map(([key, value]) => `${CHILD_INDENT}${key}: ${value ? 'true' : 'false'}`))
     if (references.length > 0) lines.push('references:', ...references.map((entry) => `${LIST_ITEM_PREFIX}${entry}`))
     if (header.sentryIssueId) lines.push(`sentryIssueId: ${header.sentryIssueId}`)

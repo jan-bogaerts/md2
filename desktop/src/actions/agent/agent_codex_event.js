@@ -1,5 +1,6 @@
 const { normalizedContent } = require('./agent_event_utils');
 const { countFileContentLines, countPatchLines } = require('./agent_file_change');
+const { codexChangedPaths } = require('./agent_codex_events');
 const { boundedAgentResult } = require('../../../../shared/agent_conversations.mjs');
 
 const MAX_EVENT_CONTENT_LENGTH = 16_384;
@@ -219,7 +220,7 @@ function commandEvent(item, lifecycleStatus) {
     };
 }
 
-function fileEvent(item, lifecycleStatus) {
+function fileEvent(item, lifecycleStatus, rootPath) {
     const status = itemStatus(item, lifecycleStatus);
     const lineUsage = status === 'completed' ? fileChangeLineUsage(item.changes) : null;
 
@@ -227,6 +228,7 @@ function fileEvent(item, lifecycleStatus) {
         ...eventBase(item, lifecycleStatus, 'File changes'),
         content: fileChangeContent(item.changes),
         ...(lineUsage ?? {}),
+        paths: rootPath ? codexChangedPaths(item, rootPath) : [],
     };
 }
 
@@ -265,14 +267,14 @@ function collaborationEvent(item, lifecycleStatus) {
     };
 }
 
-function normalizeCodexEvent(item, lifecycleStatus) {
+function normalizeCodexEvent(item, lifecycleStatus, rootPath) {
     if (!item || typeof item.id !== 'string' || typeof item.type !== 'string') return null;
     const type = canonicalCodexItemType(item.type);
     if (!SUPPORTED_CODEX_ITEM_TYPES.has(type)) return null;
     const normalizedItem = type === item.type ? item : { ...item, type };
     if (type === 'reasoning') return reasoningEvent(normalizedItem, lifecycleStatus);
     if (type === 'commandExecution') return commandEvent(normalizedItem, lifecycleStatus);
-    if (type === 'fileChange') return fileEvent(normalizedItem, lifecycleStatus);
+    if (type === 'fileChange') return fileEvent(normalizedItem, lifecycleStatus, rootPath);
     if (type === 'mcpToolCall') return mcpEvent(normalizedItem, lifecycleStatus);
     if (type === 'dynamicToolCall') return dynamicToolEvent(normalizedItem, lifecycleStatus);
     if (type === 'collabAgentToolCall') return collaborationEvent(normalizedItem, lifecycleStatus);

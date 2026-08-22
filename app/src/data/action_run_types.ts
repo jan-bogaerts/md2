@@ -128,6 +128,7 @@ interface ActionRunEventBase {
     actionId: string
     actionType?: ActionType
     autoFinish?: ActionAutoFinish | null
+    changedPaths?: string[]
     context: ActionContext
     runId: string
     interactionReady?: boolean
@@ -243,6 +244,7 @@ export interface ActionRunLogEntry {
 }
 
 export interface ActionRunResult {
+    changedPaths: string[]
     logs: ActionRunLogEntry[]
     status: ActionRunStatus
 }

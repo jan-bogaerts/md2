@@ -11,7 +11,7 @@ const card: Card = {
     agentConversations: [],
     content: '# First',
     header: {
-        affects: [], after: null, agentLogReferences: [], author: null, id: 'F-1', internalId: 'one', owner: 'JB',
+        affects: [], after: null, agentLogReferences: [], changedFiles: [], author: null, id: 'F-1', internalId: 'one', owner: 'JB',
         policy: {}, references: [], status: 'todo', title: 'First card',
     },
     hasFrontmatter:true,

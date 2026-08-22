@@ -50,7 +50,7 @@ function card(id: string, title: string, status: string, policy: Record<string, 
         agentConversations: [],
         content: `# ${title}\n\nBody of ${id}`,
         header: {
-            affects: [], after: null, agentLogReferences: [], author: null, id, internalId: id.toLowerCase(), owner: null,
+            affects: [], after: null, agentLogReferences: [], changedFiles: [], author: null, id, internalId: id.toLowerCase(), owner: null,
             policy, references: [], status, title,
             worktree: null, worktreeError: null, worktreeValue: null,
         },

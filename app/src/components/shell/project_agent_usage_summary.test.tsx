@@ -58,7 +58,7 @@ function card(path: string, totalTokens: number): Card {
         agentConversations: [conversation(path, totalTokens)],
         content: '',
         header: {
-            affects: [], after: null, agentLogReferences: [], author: null, id: path, internalId: path,
+            affects: [], after: null, agentLogReferences: [], changedFiles: [], author: null, id: path, internalId: path,
             owner: null, policy: {}, references: [], status: 'done', title: path,
         },
         hasFrontmatter:true,

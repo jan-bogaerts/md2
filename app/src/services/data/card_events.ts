@@ -3,6 +3,7 @@ export const CARD_CHANGED_EVENT = 'cardChanged'
 export const CARD_FIELDS = [
     'affects',
     'body',
+    'changedFiles',
     'conversation',
     'identity',
     'ordering',

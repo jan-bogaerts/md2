@@ -94,6 +94,7 @@ describe('agent provider protocol', () => {
 
         expect(events[0].providerEvents).toEqual([expect.objectContaining({
             content: 'design/card.md',
+            paths: ['design/card.md'],
             providerItemId: 'edit-1',
             status: 'inProgress',
             type: 'fileChange',
@@ -102,6 +103,7 @@ describe('agent provider protocol', () => {
             deletions: 1,
             insertions: 1,
             output: 'updated',
+            paths: ['design/card.md'],
             providerItemId: 'edit-1',
             status: 'completed',
             type: 'fileChange',
@@ -173,17 +175,22 @@ describe('agent provider protocol', () => {
     it('extracts normalized root-confined Claude file tool paths', () => {
         const { events, instance } = parser('claude');
         const content = [
-            { input: { file_path: 'design\\card.md' }, name: 'Write', type: 'tool_use' },
-            { input: { file_path: 'design/card.md' }, name: 'Edit', type: 'tool_use' },
-            { input: { file_path: 'C:\\outside\\secret.md' }, name: 'MultiEdit', type: 'tool_use' },
-            { input: { notebook_path: 'notes/review.ipynb' }, name: 'NotebookEdit', type: 'tool_use' },
-            { input: { file_path: 'ignored.md' }, name: 'Read', type: 'tool_use' },
+            { id: 'write-1', input: { file_path: 'design\\card.md' }, name: 'Write', type: 'tool_use' },
+            { id: 'edit-1', input: { file_path: 'design/card.md' }, name: 'Edit', type: 'tool_use' },
+            { id: 'edit-2', input: { file_path: 'C:\\outside\\secret.md' }, name: 'MultiEdit', type: 'tool_use' },
+            { id: 'notebook-1', input: { notebook_path: 'notes/review.ipynb' }, name: 'NotebookEdit', type: 'tool_use' },
+            { id: 'read-1', input: { file_path: 'ignored.md' }, name: 'Read', type: 'tool_use' },
         ];
 
         instance.push(`${JSON.stringify({ message: { content }, type: 'assistant' })}\n`);
         instance.finish();
 
-        expect(events[0].changedPaths).toEqual(['design/card.md', 'notes/review.ipynb']);
+        expect(events[0].providerEvents.map(({ paths }) => paths)).toEqual([
+            ['design/card.md'],
+            ['design/card.md'],
+            [],
+            ['notes/review.ipynb'],
+        ]);
     });
 
     it('extracts Codex patch paths and rejects escapes', () => {
@@ -197,23 +204,28 @@ describe('agent provider protocol', () => {
                     { kind: 'update', path: 'app/src/app.tsx' },
                 ],
                 path: 'desktop/src/main.js',
+                id: 'file-1',
                 type: 'file_change',
             },
             type: 'item.completed',
         })}\n`);
         instance.finish();
 
-        expect(events[0].changedPaths).toEqual(['desktop/src/main.js', 'app/src/app.tsx']);
+        expect(events[0].providerEvents[0]).toMatchObject({
+            paths: ['desktop/src/main.js', 'app/src/app.tsx'],
+            status: 'completed',
+            type: 'fileChange',
+        });
     });
 
     it('tolerates unknown and malformed changed-path shapes', () => {
         const { events, instance } = parser('codex');
 
-        instance.push('{"type":"item.completed","item":{"type":"future_patch","changes":"bad"}}\n');
-        instance.push('{"type":"item.completed","item":{"type":"patch","changes":[null,{"kind":"update"}]}}\n');
+        instance.push('{"type":"item.completed","item":{"id":"future","type":"future_patch","changes":"bad"}}\n');
+        instance.push('{"type":"item.completed","item":{"id":"patch","type":"patch","changes":[null,{"kind":"update"}]}}\n');
         instance.finish();
 
-        expect(events.map(({ changedPaths }) => changedPaths)).toEqual([[], []]);
+        expect(events.map(({ providerEvents }) => providerEvents)).toEqual([[], []]);
     });
 
     it('recognizes structured missing-session failures only before turn events', () => {

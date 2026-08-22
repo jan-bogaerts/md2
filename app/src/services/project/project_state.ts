@@ -40,6 +40,7 @@ function cloneCard(card: Card): Card {
             ...card.header,
             affects: [...card.header.affects],
             agentLogReferences: [...card.header.agentLogReferences],
+            changedFiles: [...card.header.changedFiles],
             policy: { ...card.header.policy },
         },
     }

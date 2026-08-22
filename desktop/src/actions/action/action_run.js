@@ -46,6 +46,7 @@ class ActionRun {
         this.autoFinishPending = false;
         this.commitReferenceKeys = new Set();
         this.commitReferences = [];
+        this.changedPaths = new Set();
         this.conversationIds = [];
         this.completion = null;
         this.controller = new AbortController();
@@ -279,8 +280,10 @@ class ActionRun {
 
         this.discardQueuedPrompts();
 
+        let changedPaths = [];
         try {
-            await this.persistRootActivity(status, failure);
+            const activityPersisted = await this.persistRootActivity(status, failure);
+            if (activityPersisted) changedPaths = [...this.changedPaths];
         } catch (error) {
             failure = error;
             status = 'failed';
@@ -289,11 +292,16 @@ class ActionRun {
         }
 
         const result = {
+            changedPaths,
             runId: this.runId,
             failure: failure ? errorMessage(failure, 'Action failed') : null,
             status,
         };
-        this.publish(this.rootAction, 'main', status, { message: result.failure, type: 'run' });
+        this.publish(this.rootAction, 'main', status, {
+            changedPaths: result.changedPaths,
+            message: result.failure,
+            type: 'run',
+        });
 
         return result;
     }
@@ -396,6 +404,9 @@ class ActionRun {
             const result = action.type === 'agent'
                 ? await this.executeAgentAction(action, phase, isRoot, project)
                 : await this.executeCommandAction(action, phase, isRoot, project);
+            if (action.type === 'agent') {
+                for (const changedPath of result.changedPaths ?? []) this.changedPaths.add(changedPath);
+            }
             const committedResult = await this.commitTrackedAgentChanges(project, action, result);
             const runProject = {
                 ...project,
@@ -447,7 +458,7 @@ class ActionRun {
             return persisted;
         });
         if (this.rootAction.type === 'agent' && typeof this.rootConversationId !== 'string') {
-            return;
+            return false;
         }
         const details = this.rootDetails ?? {
             command: this.rootAction.command,
@@ -474,6 +485,8 @@ class ActionRun {
             record,
             `Record ${this.rootAction.label} activity`,
         );
+
+        return true;
     }
 
     async commitTrackedAgentChanges(project, action, result) {

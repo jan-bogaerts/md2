@@ -165,7 +165,7 @@ describe('runPopupAction waiting follow-up', () => {
         actionPromptDraftService.getDraft(action.id, context, run, { prepare: false }).edit('Next request')
         restartAction.mockImplementation(async (_runId, _action, _context, _runInput, onStarted) => {
             onStarted('run-2')
-            return { logs: [], status: 'completed' }
+            return { changedPaths: [], logs: [], status: 'completed' }
         })
 
         await runPopupAction(operationInput(inputStore, settingsStore))
@@ -263,7 +263,7 @@ describe('runPopupAction waiting follow-up', () => {
         actionPromptDraftService.getDraft(action.id, context, run, { prepare: false }).edit('Sent request')
         restartAction.mockImplementation(async (_runId, _action, _context, _runInput, onStarted) => {
             onStarted('run-2')
-            return { logs: [], status: 'failed' }
+            return { changedPaths: [], logs: [], status: 'failed' }
         })
 
         await runPopupAction(operationInput(inputStore, settingsStore, conversationStore))

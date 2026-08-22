@@ -48,6 +48,7 @@ function createProviderEventEntry(providerEvent, id, timestamp, sequence) {
     if (Number.isFinite(providerEvent.durationMs)) event.durationMs = providerEvent.durationMs;
     if (Number.isSafeInteger(providerEvent.exitCode)) event.exitCode = providerEvent.exitCode;
     if (Number.isSafeInteger(providerEvent.insertions) && providerEvent.insertions >= 0) event.insertions = providerEvent.insertions;
+    if (Array.isArray(providerEvent.paths)) event.paths = [...providerEvent.paths];
     if (providerEvent.type !== 'commandExecution' && typeof providerEvent.output === 'string') {
         event.output = boundedAgentResult(providerEvent.output);
     }

@@ -52,10 +52,11 @@ describe('Codex event normalization', () => {
         ];
         const item = { changes, id: 'file-1', type: 'fileChange' };
 
-        expect(normalizeCodexEvent(item, 'completed')).toMatchObject({
+        expect(normalizeCodexEvent(item, 'completed', 'C:\\repo')).toMatchObject({
             content: 'update: updated.txt\nadd: added.txt\ndelete: deleted.txt',
             deletions: 2,
             insertions: 3,
+            paths: ['updated.txt', 'added.txt', 'deleted.txt'],
             status: 'completed',
         });
     });

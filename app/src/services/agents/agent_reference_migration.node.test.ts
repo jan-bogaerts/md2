@@ -12,6 +12,7 @@ function card(references: string[]): Card {
             after: null,
             affects: [],
             agentLogReferences: references,
+            changedFiles: [],
             author: null,
             id: 'F-1',
             internalId: 'card-1',

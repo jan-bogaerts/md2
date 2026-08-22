@@ -19,7 +19,7 @@ function card(id: string, status: string): Card {
         content: `# ${id}`,
         hasFrontmatter: true,
         header: {
-            affects: [], after: null, agentLogReferences: [], author: null, id, internalId: id.toLowerCase(), owner: null,
+            affects: [], after: null, agentLogReferences: [], changedFiles: [], author: null, id, internalId: id.toLowerCase(), owner: null,
             policy: {}, references: [], status, title: id, worktree: null, worktreeError: null, worktreeValue: null,
         },
         isActive: true,

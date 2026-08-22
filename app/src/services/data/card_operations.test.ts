@@ -1382,6 +1382,58 @@ describe('CardOperations', () => {
         expect(committed.files[0].content).toBe('---\ncustomField: keep me\nid: F-1\ninternalId: card-1\ntitle: Root\nstatus: ready\n---\n\n# Root')
     })
 
+    it('accumulates normalized changed files without self references or no-op writes', async () => {
+        configService.init()
+        const storage = createStorage()
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        openFilesService.init({ actionService, dataService: service })
+        const card = service.getState().snapshot?.activeCards[0]
+        if (!card) throw new Error('Expected loaded card')
+        const document = openFilesService.openDocument(card)
+        if (document.kind !== 'card') throw new Error('Expected card document')
+        document.updateDraft({ content: '# Root\n\nUnflushed body' }, 'list-card')
+        const changedFilesEvent = vi.fn()
+        const titleEvent = vi.fn()
+        const changedDetails: CardChangedEventDetail[] = []
+        const captureChanged = (event: Event) => changedDetails.push((event as CustomEvent<CardChangedEventDetail>).detail)
+        service.addEventListener(cardFieldChangedEvent(card.path, 'changedFiles'), changedFilesEvent)
+        service.addEventListener(cardFieldChangedEvent(card.path, 'title'), titleEvent)
+        service.addEventListener(CARD_CHANGED_EVENT, captureChanged)
+
+        service.cards.addCardChangedFiles('root-card', card.path, [
+            'desktop\\z.js', 'app/a.ts', card.path, 'app/a.ts',
+        ])
+        service.cards.addCardChangedFiles('root-card', card.path, ['desktop/a.js', 'app\\a.ts'])
+        await service.cards.flushPendingCommits()
+
+        expect(service.getState().snapshot?.activeCards[0].header.changedFiles).toEqual([
+            'app/a.ts', 'desktop/a.js', 'desktop/z.js',
+        ])
+        const request = vi.mocked(storage.commit).mock.calls.at(-1)?.[0] as CommitRequest
+        expect(request.files).toHaveLength(1)
+        expect(request.files[0].content).toContain(
+            'changedFiles:\n  - app/a.ts\n  - desktop/a.js\n  - desktop/z.js',
+        )
+        expect(request.files[0].content).toContain('Unflushed body')
+        expect(changedFilesEvent).toHaveBeenCalledTimes(2)
+        expect(titleEvent).not.toHaveBeenCalled()
+        const eventChangedFiles = changedDetails.at(-1)?.card.header.changedFiles
+        const ownedChangedFiles = service.getState().snapshot?.activeCards[0].header.changedFiles
+        expect(eventChangedFiles).not.toBe(ownedChangedFiles)
+        eventChangedFiles?.push('event-only.ts')
+        expect(ownedChangedFiles).not.toContain('event-only.ts')
+
+        vi.mocked(storage.commit).mockClear()
+        changedFilesEvent.mockClear()
+        service.cards.addCardChangedFiles('root-card', card.path, ['app/a.ts', card.path])
+        await service.cards.flushPendingCommits()
+
+        expect(storage.commit).not.toHaveBeenCalled()
+        expect(changedFilesEvent).not.toHaveBeenCalled()
+    })
+
     it('preserves the frontmatter header when a card body is edited', async () => {
         configService.init()
         const storage = createStorage()

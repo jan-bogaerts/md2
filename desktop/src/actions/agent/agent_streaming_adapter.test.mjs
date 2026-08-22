@@ -292,9 +292,8 @@ describe('ClaudeStreamingAdapter', () => {
             type: 'user',
         });
 
-        expect(events).toContainEqual({ paths: ['design/feature.md'], type: 'changedPaths' });
         expect(events).toContainEqual({
-            event: expect.objectContaining({ content: 'design\\feature.md', providerItemId: 'tool-1', type: 'fileChange' }),
+            event: expect.objectContaining({content: 'design\\feature.md', paths: ['design/feature.md'], providerItemId: 'tool-1', type: 'fileChange'}),
             type: 'event',
         });
         expect(events).toContainEqual({
@@ -302,6 +301,7 @@ describe('ClaudeStreamingAdapter', () => {
                 deletions: 0,
                 insertions: 2,
                 output: 'written',
+                paths: ['design/feature.md'],
                 providerItemId: 'tool-1',
                 status: 'completed',
             }),
@@ -1131,7 +1131,10 @@ describe('CodexStreamingAdapter', () => {
         expect(events).toContainEqual({ content: 'hello', itemId: 'message-1', type: 'assistant' });
         expect(events).toContainEqual({ itemId: 'message-1', type: 'assistantStarted' });
         expect(events).toContainEqual({ content: '\n\n', itemId: 'message-1', type: 'assistant' });
-        expect(events).toContainEqual({ paths: ['design/feature.md'], type: 'changedPaths' });
+        expect(events).toContainEqual({
+            event: expect.objectContaining({ paths: ['design/feature.md'], providerItemId: 'file-1', status: 'completed' }),
+            type: 'event',
+        });
         expect(events).toContainEqual({ questions, requestId: 99, type: 'question' });
         expect(events).toContainEqual({
             contextWindowUsage: { capacityTokens: 258_400, usedTokens: 7 },

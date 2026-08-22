@@ -14,6 +14,7 @@ function makeHeader(overrides: Partial<CardHeader> = {}): CardHeader {
         affects: [],
         after: null,
         agentLogReferences: [],
+        changedFiles: [],
         author: null,
         id: 'F-1',
         internalId: null,

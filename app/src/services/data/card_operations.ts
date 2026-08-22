@@ -20,6 +20,7 @@ import {
     setCardAffects,
     setCardAgentLogReferences,
     setCardBody,
+    setCardChangedFiles,
     setCardHeaderFields,
     setCardReferences,
     setCardWorktree,
@@ -48,6 +49,19 @@ function importedSentryIdentities(cards: Card[]) {
 
         return [sentryIdentityKey(sentryBaseUrl, sentryOrganization, sentryIssueId)]
     }))
+}
+
+function normalizeChangedFilePath(path: string) {
+    return path.replace(/\\/gu, '/')
+}
+
+function mergedChangedFiles(currentPaths: string[], capturedPaths: string[], excludedPaths: string[]) {
+    const excluded = new Set(excludedPaths.map(normalizeChangedFilePath))
+
+    return [...new Set([...currentPaths, ...capturedPaths]
+        .map(normalizeChangedFilePath)
+        .filter((path) => path.length > 0 && !excluded.has(path)))]
+        .sort()
 }
 
 /** The card-facing surface of the data service, delegating to focused operation modules. */
@@ -197,6 +211,17 @@ export class CardOperations {
 
     updateCardAffects(path: string, affects: string[]): Card {
         return this.context.saveCardChange(path, (card) => setCardAffects(card, affects))
+    }
+
+    addCardChangedFiles(cardInternalId: string, actionCardPath: string, capturedPaths: string[]) {
+        if (capturedPaths.length === 0) return this.context.dependencies.requireCardByInternalId(cardInternalId)
+        const card = this.context.dependencies.requireCardByInternalId(cardInternalId)
+        const changedFiles = mergedChangedFiles(card.header.changedFiles, capturedPaths, [actionCardPath, card.path])
+        const unchanged = card.header.changedFiles.length === changedFiles.length
+            && card.header.changedFiles.every((path, index) => path === changedFiles[index])
+        if (unchanged) return card
+
+        return this.context.saveCardChange(card.path, (currentCard) => setCardChangedFiles(currentCard, changedFiles))
     }
 
     addCardReferences(path: string, references: string[]) {

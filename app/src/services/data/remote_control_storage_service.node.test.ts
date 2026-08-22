@@ -843,7 +843,7 @@ describe('RemoteControlStorageService', () => {
         })
         const snapshot = {
             activeRunEvents: [],
-            terminalResults: [{ failure: null, runId: 'run-ended', status: 'completed' }],
+            terminalResults: [{ changedPaths: [], failure: null, runId: 'run-ended', status: 'completed' }],
         }
         socket.receive({ id: sentRequest.id, result: snapshot })
 

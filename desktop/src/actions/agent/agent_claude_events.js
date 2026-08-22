@@ -13,13 +13,14 @@ function claudeFilePath(block) {
     return typeof filePath === 'string' && filePath.length > 0 ? filePath : null;
 }
 
-function claudeFileToolEvent(block, status = 'inProgress') {
+function claudeFileToolEvent(block, status = 'inProgress', rootPath) {
     const filePath = claudeFilePath(block);
     if (typeof block?.id !== 'string' || block.id.length === 0 || !filePath) return null;
 
     return {
         content: filePath,
         label: block.name,
+        paths: rootPath ? normalizeChangedPaths(rootPath, [filePath]) : [],
         providerItemId: block.id,
         status,
         type: 'fileChange',
@@ -58,8 +59,9 @@ function claudeFileResultUsage(toolName, result) {
 }
 
 class ClaudeFileResultDecoder {
-    constructor() {
+    constructor(rootPath) {
         this.fileTools = new Map();
+        this.rootPath = rootPath;
     }
 
     decode(event) {
@@ -75,7 +77,7 @@ class ClaudeFileResultDecoder {
         return event.message.content
             .filter((block) => block?.type === 'tool_use')
             .map((block) => {
-                const fileEvent = claudeFileToolEvent(block);
+                const fileEvent = claudeFileToolEvent(block, 'inProgress', this.rootPath);
                 if (fileEvent) this.fileTools.set(block.id, structuredClone(block));
 
                 return fileEvent;
@@ -99,7 +101,7 @@ class ClaudeFileResultDecoder {
         if (!tool) return null;
         this.fileTools.delete(block.tool_use_id);
         const status = block.is_error === true ? 'failed' : 'completed';
-        const fileEvent = claudeFileToolEvent(tool, status);
+        const fileEvent = claudeFileToolEvent(tool, status, this.rootPath);
         const output = normalizedContent(block.content);
         if (output !== null) fileEvent.output = boundedAgentResult(output);
         if (status !== 'completed') return fileEvent;
@@ -127,16 +129,6 @@ function claudeAssistantText(event) {
         .map(({ text }) => text)
         .filter((text) => typeof text === 'string')
         .join('');
-}
-
-function claudeChangedPaths(event, rootPath) {
-    if (event.type !== 'assistant' || !Array.isArray(event.message?.content)) return [];
-
-    const filePaths = event.message.content
-        .filter((block) => block?.type === 'tool_use' && CLAUDE_FILE_TOOLS.has(block.name))
-        .map(({ input, name }) => name === 'NotebookEdit' ? input?.notebook_path : input?.file_path);
-
-    return normalizeChangedPaths(rootPath, filePaths);
 }
 
 /** Tool calls and their results, so the transcript shows what ran as well as what came back. */
@@ -174,7 +166,6 @@ function claudeUsage(event) {
 module.exports = {
     ClaudeFileResultDecoder,
     claudeAssistantText,
-    claudeChangedPaths,
     claudeFileResultUsage,
     claudeFileToolEvent,
     claudeTranscriptEvents,

@@ -25,8 +25,10 @@ import type {
 } from '../../data/electron_action_bridge'
 import { actionService } from './action_service'
 import { actionPromptDraftService } from './action_prompt_draft_service'
-import { register } from '../service_injector'
+import { dialogService } from '../dialog_service'
+import { getService, register } from '../service_injector'
 import { projectAccessService } from '../project/project_access_service'
+import type { DataService } from '../data/data_service'
 
 const TERMINAL_STATUSES = new Set<ActionRunTerminalStatus>(['cancelled', 'completed', 'failed', 'okButNotAfter'])
 const ACTIVE_STATUSES = new Set<ActionRunStatus>(['queued', 'running', 'waitingForInput'])
@@ -38,6 +40,7 @@ export interface ActionRun {
     activeActionId: string | null
     activeActionStreaming: boolean
     activeActionType: ActionDefinition['type'] | null
+    changedPaths: string[]
     conversation: AgentConversation | null
     context: ActionContext
     runId: string
@@ -79,6 +82,17 @@ function actionType(actionId: string) {
 
 function actionStreaming(actionId: string) {
     return actionService.getActions().find((action) => action.id === actionId)?.streaming ?? false
+}
+
+function applyTerminalCardChangedFiles(context: ActionContext, changedPaths: string[]) {
+    if (changedPaths.length === 0) return
+    if ((context.kind !== 'card' && context.kind !== 'file') || !context.cardInternalId || !context.file) return
+
+    try {
+        getService<DataService>('dataService').cards.addCardChangedFiles(context.cardInternalId, context.file, changedPaths)
+    } catch (error) {
+        dialogService.error(error, { fallbackMessage: `Changed files update failed: ${context.file}` })
+    }
 }
 
 function createLog(event: ActionRunEvent): ActionRunLogEntry {
@@ -375,6 +389,7 @@ export class ActionRunRegistry extends EventTarget {
     private readonly globalActiveListeners = new Set<StoreListener>()
     private globalActiveSnapshot: ActiveActionRun[] = EMPTY_ACTIVE_RUNS
     private recoveryEvents: ActionRunEvent[] | null = null
+    private runContexts = new Map<string, ActionContext>()
     private runs = new Map<string, ActionRunStore>()
     private subscribedBridge: ElectronActionBridge | null = null
     private startsInProgress = 0
@@ -409,6 +424,7 @@ export class ActionRunRegistry extends EventTarget {
         this.unsubscribeBridge = null
         this.eventSequences = new Map()
         this.recoveryEvents = null
+        this.runContexts = new Map()
         this.runs = new Map()
         this.actionContextStores.clear()
         this.contextActiveSnapshots.clear()
@@ -502,6 +518,7 @@ export class ActionRunRegistry extends EventTarget {
             this.startsInProgress -= 1
         }
         onStarted?.(runId)
+        if (!this.terminalResults.has(runId)) this.runContexts.set(runId, context)
 
         return this.waitForRun(runId)
     }
@@ -526,6 +543,7 @@ export class ActionRunRegistry extends EventTarget {
             this.terminalResults.delete(previousRunId)
         }
         onStarted?.(runId)
+        if (!this.terminalResults.has(runId)) this.runContexts.set(runId, context)
 
         return this.waitForRun(runId)
     }
@@ -539,7 +557,11 @@ export class ActionRunRegistry extends EventTarget {
         }
         const current = this.runs.get(runId)?.getSnapshot()
         if (current && TERMINAL_STATUSES.has(current.status as ActionRunTerminalStatus)) {
-            const result = { logs: current.logs, status: current.status as ActionRunTerminalStatus }
+            const result = {
+                changedPaths: current.changedPaths,
+                logs: current.logs,
+                status: current.status as ActionRunTerminalStatus,
+            }
             this.releaseTerminalRun(runId)
 
             return Promise.resolve(result)
@@ -593,12 +615,13 @@ export class ActionRunRegistry extends EventTarget {
             }
             if (activeSnapshotRunIds.has(runId) || activeRecoveryRunIds.has(runId)) continue
 
-            this.completeRecoveredRun({ failure: LOST_DURING_RECONNECTION_FAILURE, runId, status: 'failed' })
+            this.completeRecoveredRun({ changedPaths: [], failure: LOST_DURING_RECONNECTION_FAILURE, runId, status: 'failed' })
         }
     }
 
     private completeRecoveredRun(result: ActionRunRecoveryTerminalResult) {
         const store = this.runs.get(result.runId)
+        const context = store?.getSnapshot().context ?? this.runContexts.get(result.runId) ?? null
         let logs: ActionRunLogEntry[] = []
         if (store) {
             const current = store.getSnapshot()
@@ -634,6 +657,7 @@ export class ActionRunRegistry extends EventTarget {
                 activeActionStreaming: false,
                 activeActionType: null,
                 approvals: [],
+                changedPaths: result.changedPaths,
                 conversation,
                 interactionReady: false,
                 logs,
@@ -648,7 +672,8 @@ export class ActionRunRegistry extends EventTarget {
 
         const waiters = this.waiters.get(result.runId)
         this.waiters.delete(result.runId)
-        const actionResult = { logs, status: result.status }
+        const actionResult = { changedPaths: result.changedPaths, logs, status: result.status }
+        if (context) applyTerminalCardChangedFiles(context, result.changedPaths)
         for (const resolve of waiters ?? []) resolve(actionResult)
         this.releaseTerminalRun(result.runId)
     }
@@ -680,6 +705,7 @@ export class ActionRunRegistry extends EventTarget {
             activeActionId: null,
             activeActionStreaming: false,
             activeActionType: null,
+            changedPaths: [],
             conversation: null,
             approvals: [],
             context: event.context,
@@ -693,7 +719,13 @@ export class ActionRunRegistry extends EventTarget {
             status: 'running' as const,
         }
         let next = { ...current, context: event.context, rootActionId: event.rootActionId }
-        if (event.type === 'run') next = { ...next, status: event.status }
+        if (event.type === 'run') {
+            next = {
+                ...next,
+                changedPaths: event.changedPaths ? [...event.changedPaths] : next.changedPaths,
+                status: event.status,
+            }
+        }
         if (event.type === 'run' && TERMINAL_STATUSES.has(event.status as ActionRunTerminalStatus)) {
             next = { ...next, approvals: [], question: null, queuedPrompts: [] }
             actionPromptDraftService.clearRunDrafts(event.runId)
@@ -886,6 +918,7 @@ export class ActionRunRegistry extends EventTarget {
         this.publishActiveIndexes(contextKey(current.context), contextKey(next.context))
         this.publishScopedEvents(event)
         if (event.type === 'run' && TERMINAL_STATUSES.has(event.status as ActionRunTerminalStatus)) {
+            applyTerminalCardChangedFiles(event.context, next.changedPaths)
             this.resolveWaiters(next)
             this.releaseTerminalRun(event.runId)
         }
@@ -921,7 +954,11 @@ export class ActionRunRegistry extends EventTarget {
     private resolveWaiters(run: ActionRun) {
         const waiters = this.waiters.get(run.runId)
         this.waiters.delete(run.runId)
-        const result = { logs: run.logs, status: run.status as ActionRunTerminalStatus }
+        const result = {
+            changedPaths: run.changedPaths,
+            logs: run.logs,
+            status: run.status as ActionRunTerminalStatus,
+        }
         if (!waiters && this.startsInProgress > 0) this.terminalResults.set(run.runId, result)
         for (const resolve of waiters ?? []) resolve(result)
     }
@@ -940,6 +977,7 @@ export class ActionRunRegistry extends EventTarget {
         if ((this.actionContextListeners.get(bindingKey)?.size ?? 0) > 0) return
 
         this.runs.delete(runId)
+        this.runContexts.delete(runId)
         this.eventSequences.delete(runId)
         if (this.actionContextStores.get(bindingKey) === store) {
             this.actionContextStores.delete(bindingKey)

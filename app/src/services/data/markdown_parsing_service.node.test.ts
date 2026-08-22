@@ -108,6 +108,28 @@ describe('markdownParsingService.parseCard', () => {
         expect(cardWithoutReferences.header.references).toEqual([])
     })
 
+    it('parses unique changed files and defaults a missing field to an owned empty array', () => {
+        const content = '---\nid: F-2\ntitle: Second\nchangedFiles:\n  - app/src/a.ts\n  - app/src/a.ts\n  - desktop/main.js\n---\n\n# Second'
+        const card = markdownParsingService.parseCard({ content, path: 'design/F-2-second.md' }, 'design')
+        const otherCard = markdownParsingService.parseCard(ROOT_FILE, 'design')
+
+        expect(card.header.changedFiles).toEqual(['app/src/a.ts', 'desktop/main.js'])
+        expect(otherCard.header.changedFiles).toEqual([])
+        expect(card.header.changedFiles).not.toBe(otherCard.header.changedFiles)
+    })
+
+    it('serializes changed files without disturbing unrelated fields or body', () => {
+        const content = '---\nid: F-2\ntitle: Second\ncustomField: keep me\n---\n\n# Second\n\nBody'
+        const card = markdownParsingService.parseCard({ content, path: 'design/F-2-second.md' }, 'design')
+
+        card.header.changedFiles = ['app/src/a.ts', 'desktop/main.js']
+        const serialized = markdownParsingService.serializeCard(card)
+
+        expect(serialized.content).toContain('changedFiles:\n  - app/src/a.ts\n  - desktop/main.js')
+        expect(serialized.content).toContain('customField: keep me')
+        expect(serialized.content.endsWith('# Second\n\nBody')).toBe(true)
+    })
+
     it('serializes changed references without disturbing unknown fields', () => {
         const content = '---\nid: F-2\ntitle: Second\ncustomField: keep me\n---\n\n# Second'
         const card = markdownParsingService.parseCard({ content, path: 'design/F-2-second.md' }, 'design')

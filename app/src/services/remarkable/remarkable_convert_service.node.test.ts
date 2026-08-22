@@ -25,7 +25,7 @@ describe('convertRemarkableImagesToText', () => {
     })
 
     it('passes the image paths to the agent and binds the run to the card', async () => {
-        const run = vi.fn<RunFn>(async () => ({ logs: [], status: 'completed' }))
+        const run = vi.fn<RunFn>(async () => ({ changedPaths: [], logs: [], status: 'completed' }))
         await convertRemarkableImagesToText(
             { cardPath: 'design/F-1-card.md', cardType: 'feature', imagePaths: ['design/a.png', 'design/b.png'] },
             { isAgentAvailable: () => true, run },

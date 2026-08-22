@@ -17,6 +17,7 @@ import type {
 } from './action_run_types'
 
 export interface ActionRunRecoveryTerminalResult {
+    changedPaths: string[]
     failure: string | null
     runId: string
     status: ActionRunTerminalStatus

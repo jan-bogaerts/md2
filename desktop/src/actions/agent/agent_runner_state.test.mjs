@@ -21,6 +21,7 @@ describe('AgentRunnerService state handling', () => {
         const service = new AgentRunnerService();
         const run = {
             agent: 'claude',
+            changedPaths: new Set(),
             conversation: { entries: [] },
             id: 'run-1',
             missingSession: false,
@@ -37,7 +38,6 @@ describe('AgentRunnerService state handling', () => {
         service.processes.set(run.id, run);
         const providerEvent = {
             assistantText: '',
-            changedPaths: [],
             conversationId: null,
             errorText: '',
             missingSession: false,
@@ -45,6 +45,7 @@ describe('AgentRunnerService state handling', () => {
                 {
                     content: 'design/card.md',
                     label: 'Edit',
+                    paths: ['design/card.md'],
                     providerItemId: 'edit-1',
                     status: 'inProgress',
                     type: 'fileChange',
@@ -54,6 +55,7 @@ describe('AgentRunnerService state handling', () => {
                     deletions: 2,
                     insertions: 3,
                     label: 'Edit',
+                    paths: ['design/card.md'],
                     providerItemId: 'edit-1',
                     status: 'completed',
                     type: 'fileChange',
@@ -75,6 +77,30 @@ describe('AgentRunnerService state handling', () => {
             type: 'fileChange',
         })]);
         expect(run.onEvent).toHaveBeenCalledTimes(2);
+        expect([...run.changedPaths]).toEqual(['design/card.md']);
+    });
+
+    it('does not accumulate incomplete or failed provider file events', () => {
+        const service = new AgentRunnerService();
+        const run = {
+            agent: 'claude', changedPaths: new Set(), conversation: { entries: [] }, id: 'run-1',
+            missingSession: false, nextSequence: 1, onEvent: vi.fn(), providerEventEntryIndexes: new Map(),
+            providerConversationId: null, reportedProviderErrors: new Set(), secretValues: new Set(), stdout: '',
+            turnStarted: false, turnUsage: null,
+        };
+        service.processes.set(run.id, run);
+        const providerEvent = {
+            assistantText: '', conversationId: null, errorText: '', missingSession: false,
+            providerEvents: [
+                { content: 'started.md', paths: ['started.md'], providerItemId: 'started', status: 'inProgress', type: 'fileChange' },
+                { content: 'failed.md', paths: ['failed.md'], providerItemId: 'failed', status: 'failed', type: 'fileChange' },
+            ],
+            transcriptEvents: [], turnStarted: true, usage: null,
+        };
+
+        service.handleProviderEvent(run.id, providerEvent);
+
+        expect([...run.changedPaths]).toEqual([]);
     });
 
     it('persists a new conversation before spawning its process and publishing started', async () => {

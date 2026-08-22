@@ -130,6 +130,7 @@ async function runWithPrompt(input: ActionPopupOperationInput, prompt: string, p
         if (previousRunId) restorePrompt(action, context, prompt)
         const message = error instanceof Error ? error.message : 'Action run failed'
         resultStore.setResult({
+            changedPaths: [],
             logs: [{
                 actionId: action.id,
                 actionName: action.label,

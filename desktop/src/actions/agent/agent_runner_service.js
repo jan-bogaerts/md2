@@ -569,7 +569,6 @@ class AgentRunnerService {
         const timestamp = new Date().toISOString();
         run.turnStarted = run.turnStarted || providerEvent.turnStarted;
         run.missingSession = run.missingSession || providerEvent.missingSession;
-        providerEvent.changedPaths.forEach((filePath) => run.changedPaths.add(filePath));
         if (providerEvent.conversationId) run.providerConversationId = providerEvent.conversationId;
         if (providerEvent.usage) run.turnUsage = providerEvent.usage;
         for (const event of providerEvent.providerEvents) recordProviderEvent(run, event, timestamp);

@@ -71,10 +71,6 @@ function handleAssistantCompleted(service, run, event, timestamp) {
     });
 }
 
-function handleChangedPaths(service, run, event) {
-    event.paths.forEach((filePath) => run.changedPaths.add(filePath));
-}
-
 /** Provider events are keyed by `providerItemId` so a later revision of the same item replaces its entry. */
 function handleEvent(service, run, event, timestamp) {
     recordProviderEvent(run, event.event, timestamp);
@@ -200,7 +196,6 @@ const STREAMING_EVENT_HANDLERS = {
     assistant: handleAssistant,
     assistantCompleted: handleAssistantCompleted,
     assistantStarted: handleAssistantStarted,
-    changedPaths: handleChangedPaths,
     error: handleError,
     event: handleEvent,
     fatal: handleFatal,

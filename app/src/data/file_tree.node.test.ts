@@ -12,6 +12,7 @@ function card(path: string, overrides: Partial<Card['header']> = {}): Card {
             affects: [],
             after: null,
             agentLogReferences: [],
+            changedFiles: [],
             author: null,
             id: 'F-0',
             internalId: null,

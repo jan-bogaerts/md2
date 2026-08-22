@@ -244,6 +244,53 @@ describe('ActionRun', () => {
         expect(events.every((event) => event.context === context)).toBe(true);
     });
 
+    it('publishes accumulated agent paths only after activity persistence', async () => {
+        const rootAction = action('main', {
+            onAfter: [action('after', { prompt: 'after', type: 'agent' })],
+            prompt: 'main',
+            type: 'agent',
+        });
+        const agentExecutor = {
+            execute: vi.fn(async ({ action: currentAction }) => ({
+                agent: 'codex',
+                changedPaths: currentAction.id === 'main' ? ['app/a.ts'] : ['desktop/b.js', 'app/a.ts'],
+                conversationId: currentAction.id,
+                exitCode: 0,
+                model: 'gpt',
+                prompt: currentAction.prompt,
+                stderr: '',
+                stdout: '',
+                thinkingLevel: 'none',
+            })),
+        };
+        const order = [];
+        const localGitService = {
+            appendAndCommitActionActivity: vi.fn(async () => {
+                order.push('activity');
+
+                return { relativePath: 'design/activity/card__card-1.json' };
+            }),
+        };
+        const { events, run } = createRun(rootAction, { agentExecutor, localGitService });
+        const originalPublisher = run.publisher;
+        run.publisher = (event) => {
+            originalPublisher(event);
+            if (event.type === 'run' && event.status === 'completed') order.push('terminal');
+        };
+
+        await expect(run.completion).resolves.toMatchObject({
+            changedPaths: ['app/a.ts', 'desktop/b.js'],
+            status: 'completed',
+        });
+
+        expect(order).toEqual(['activity', 'terminal']);
+        expect(events.at(-1)).toMatchObject({
+            changedPaths: ['app/a.ts', 'desktop/b.js'],
+            status: 'completed',
+            type: 'run',
+        });
+    });
+
     it('cancels active command before root cancellation and starts no later phase', async () => {
         const commandCompletion = deferred();
         const commandRunner = vi.fn(async (_project, command, signal) => {
