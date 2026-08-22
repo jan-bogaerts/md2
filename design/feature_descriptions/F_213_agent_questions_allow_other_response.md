@@ -25,23 +25,23 @@ Prompt input now remains editable during pending questions. Non-empty text enabl
 
 ## implementation details
 
-- Show `Other` text input for every option question. Keep one answer per question, allowing standard option for one question and custom text for another. Trim validation rejects empty custom answers.
-- Add `Cancel questions` control to structured-question component. Cancellation dismisses complete pending question set; it does not stop turn, finish conversation, or cancel action sequence.
-- Add question-dismiss operation through owner, registry, Electron bridge, remote-control storage, desktop action run, runner service, and provider adapters. Keep answer and dismiss as distinct operations.
-- Resolve provider request before removing UI. Claude sends non-interrupting `deny` control response explaining user dismissed questions. Codex returns valid empty `answers` map. Neither response supplies fabricated answers or interrupts active turn.
-- After provider accepts dismissal, clear pending question state and publish `agentQuestionDismissed`. Add `Questions dismissed` event to persisted conversation transcript; an event is logged system activity, not user message sent to agent.
-- Release queued-prompt dispatch after dismissal. User may type before or after cancellation; first queued custom prompt follows normal FIFO delivery when provider accepts another message.
-- Serialize answer and dismiss operations. First accepted operation wins; stale second operation reports error and cannot clear or answer newer question request.
-- Keep question components visible and pending state unchanged when dismissal fails. Report error through `dialogService`.
-- Add component tests for mixed standard/custom answers and cancel state. Add registry, bridge, remote-control, action-run, runner, Codex adapter, and Claude adapter tests for dismissal, logging, queue release, failure, and answer/dismiss race.
+* Show `Other` text input for every option question. Keep one answer per question, allowing standard option for one question and custom text for another. Trim validation rejects empty custom answers.
+* Add `Cancel questions` control to structured-question component. Cancellation dismisses complete pending question set; it does not stop turn, finish conversation, or cancel action sequence.
+* Add question-dismiss operation through owner, registry, Electron bridge, remote-control storage, desktop action run, runner service, and provider adapters. Keep answer and dismiss as distinct operations.
+* Resolve provider request before removing UI. Claude sends non-interrupting `deny` control response explaining user dismissed questions. Codex returns valid empty `answers` map. Neither response supplies fabricated answers or interrupts active turn.
+* After provider accepts dismissal, clear pending question state and publish `agentQuestionDismissed`. Add `Questions dismissed` event to persisted conversation transcript; an event is logged system activity, not user message sent to agent.
+* Release queued-prompt dispatch after dismissal. User may type before or after cancellation; first queued custom prompt follows normal FIFO delivery when provider accepts another message.
+* Serialize answer and dismiss operations. First accepted operation wins; stale second operation reports error and cannot clear or answer newer question request.
+* Keep question components visible and pending state unchanged when dismissal fails. Report error through `dialogService`.
+* Add component tests for mixed standard/custom answers and cancel state. Add registry, bridge, remote-control, action-run, runner, Codex adapter, and Claude adapter tests for dismissal, logging, queue release, failure, and answer/dismiss race.
 
 ## acceptance criteria
 
-- Every option question offers standard choices and `Other` text input, regardless of provider. User can submit standard answer for one question and non-empty custom answer for another in same question set.
-- `Cancel questions` dismisses all currently displayed questions without stopping turn, conversation, or action sequence.
-- Successful cancellation removes question components, logs one `Questions dismissed` transcript event, and sends no fabricated user answer.
-- Prompt editor remains usable while questions are pending. Non-whitespace text enables Send; prompt may queue before dismissal and dispatches after provider request resolves.
-- After cancellation, user can continue conversation with normal free-form prompt. Prompt appears as user message only when dispatched through existing queue flow.
-- Claude and Codex both leave pending-question state and continue turn after their provider-specific dismissal response.
-- Dismissal failure keeps questions visible and reports error. Answer/dismiss race resolves once, never clears newer request, and never duplicates transcript event.
-- Existing standard answers, secret-answer redaction, queued-prompt ordering, approvals, Finish, Stop, and action-sequence behavior remain unchanged.
+* Every option question offers standard choices and `Other` text input, regardless of provider. User can submit standard answer for one question and non-empty custom answer for another in same question set.
+* `Cancel questions` dismisses all currently displayed questions without stopping turn, conversation, or action sequence.
+* Successful cancellation removes question components, logs one `Questions dismissed` transcript event, and sends no fabricated user answer.
+* Prompt editor remains usable while questions are pending. Non-whitespace text enables Send; prompt may queue before dismissal and dispatches after provider request resolves.
+* After cancellation, user can continue conversation with normal free-form prompt. Prompt appears as user message only when dispatched through existing queue flow.
+* Claude and Codex both leave pending-question state and continue turn after their provider-specific dismissal response.
+* Dismissal failure keeps questions visible and reports error. Answer/dismiss race resolves once, never clears newer request, and never duplicates transcript event.
+* Existing standard answers, secret-answer redaction, queued-prompt ordering, approvals, Finish, Stop, and action-sequence behavior remain unchanged.
