@@ -116,6 +116,11 @@ export function ActionAgentApproval({ approval, onDecision }: ActionAgentApprova
         <Stack aria-label="Agent approval" spacing={1.5} sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 1.5 }}>
             <Stack spacing={0.5}>
                 <Typography color="text.primary" variant="subtitle2">Approval required</Typography>
+                {approval.parentItemId ? (
+                    <Typography color="text.secondary" variant="body2">
+                        Requested by: {approval.subAgentLabel ?? 'Sub agent'}
+                    </Typography>
+                ) : null}
                 {approval.reason ? <Typography color="text.secondary" variant="body2">{approval.reason}</Typography> : null}
             </Stack>
             {details.map(({ label, values }) => (

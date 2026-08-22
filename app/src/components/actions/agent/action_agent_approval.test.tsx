@@ -178,4 +178,14 @@ describe('ActionAgentApproval', () => {
         expect(screen.getByText(/"command": "npm test"/u)).toBeInTheDocument()
         expect(screen.getByText(/"destination": "session"/u)).toBeInTheDocument()
     })
+
+    it('names the sub agent requesting approval', () => {
+        render(<ActionAgentApproval approval={{
+            ...approval,
+            parentItemId: 'agent-1',
+            subAgentLabel: 'Explore',
+        }} onDecision={vi.fn()} />)
+
+        expect(screen.getByText('Requested by: Explore')).toBeInTheDocument()
+    })
 })

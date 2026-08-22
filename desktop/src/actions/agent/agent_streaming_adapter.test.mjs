@@ -38,6 +38,16 @@ function codexTokenUsage(last, total) {
     };
 }
 
+const SUB_AGENT_TOOL_USE_ID = 'tool-sub-agent';
+
+function claudeStreamEvent(event, parentToolUseId = null) {
+    return {
+        event,
+        ...(parentToolUseId ? { parent_tool_use_id: parentToolUseId } : {}),
+        type: 'stream_event',
+    };
+}
+
 function claudeContextUsageResponse(requestId, response, subtype = 'success') {
     return {
         response: { request_id: requestId, response, subtype },
@@ -612,6 +622,206 @@ describe('ClaudeStreamingAdapter', () => {
             response: { request_id: 'request-1', response, subtype: 'success' },
             type: 'control_response',
         });
+    });
+
+    it('keeps parent text and tool rows intact while a sub agent interleaves its own frames', async () => {
+        const { adapter, events } = harness('claude');
+
+        await adapter.handleMessage(claudeStreamEvent({ message: { id: 'message-1' }, type: 'message_start' }));
+        await adapter.handleMessage(claudeStreamEvent({
+            content_block: { text: '', type: 'text' },
+            index: 0,
+            type: 'content_block_start',
+        }));
+        await adapter.handleMessage(claudeStreamEvent({
+            delta: { text: 'before', type: 'text_delta' },
+            index: 0,
+            type: 'content_block_delta',
+        }));
+        await adapter.handleMessage(claudeStreamEvent({ message: { id: 'message-sub' }, type: 'message_start' }, SUB_AGENT_TOOL_USE_ID));
+        await adapter.handleMessage(claudeStreamEvent({
+            content_block: { text: 'sub text', type: 'text' },
+            index: 0,
+            type: 'content_block_start',
+        }, SUB_AGENT_TOOL_USE_ID));
+        await adapter.handleMessage(claudeStreamEvent({
+            delta: { text: ' after', type: 'text_delta' },
+            index: 0,
+            type: 'content_block_delta',
+        }));
+
+        expect(events.filter(({ event }) => event?.type === 'error')).toEqual([]);
+        expect(events.filter(({ type }) => type === 'assistant')).toEqual([
+            { content: 'before', itemId: 'message-1:text:0', type: 'assistant' },
+            { content: ' after', itemId: 'message-1:text:0', type: 'assistant' },
+        ]);
+        expect(events).toContainEqual({
+            event: {
+                content: 'sub text',
+                label: 'Sub agent',
+                parentItemId: SUB_AGENT_TOOL_USE_ID,
+                providerItemId: `${SUB_AGENT_TOOL_USE_ID}:message-sub:text:0`,
+                status: 'inProgress',
+                type: 'agentMessage',
+            },
+            type: 'event',
+        });
+    });
+
+    it('completes a parent tool row whose result arrives after sub-agent frames', async () => {
+        const { adapter, events } = harness('claude');
+
+        await adapter.handleMessage(claudeStreamEvent({ message: { id: 'message-1' }, type: 'message_start' }));
+        await adapter.handleMessage(claudeStreamEvent({
+            content_block: { id: 'tool-parent', input: { command: 'npm test' }, name: 'Bash', type: 'tool_use' },
+            index: 0,
+            type: 'content_block_start',
+        }));
+        await adapter.handleMessage(claudeStreamEvent({ message: { id: 'message-sub' }, type: 'message_start' }, SUB_AGENT_TOOL_USE_ID));
+        await adapter.handleMessage({
+            message: { content: [{ content: 'ok', tool_use_id: 'tool-parent', type: 'tool_result' }] },
+            type: 'user',
+        });
+
+        expect(events.at(-1)).toEqual({
+            event: {
+                command: 'npm test',
+                content: 'ok',
+                label: 'npm test',
+                providerItemId: 'tool-parent',
+                status: 'completed',
+                type: 'commandExecution',
+                workingDirectory: undefined,
+            },
+            type: 'event',
+        });
+    });
+
+    it('names the sub agent that asked for an approval without changing its decisions', async () => {
+        const { adapter, events } = harness('claude');
+
+        await adapter.handleMessage({
+            message: {
+                content: [{
+                    id: SUB_AGENT_TOOL_USE_ID,
+                    input: { description: 'sweep', prompt: 'search', subagent_type: 'Explore' },
+                    name: 'Agent',
+                    type: 'tool_use',
+                }],
+                id: 'message-1',
+            },
+            type: 'assistant',
+        });
+        await adapter.handleMessage({
+            request: {
+                input: { command: 'rg todo' },
+                parent_tool_use_id: SUB_AGENT_TOOL_USE_ID,
+                subtype: 'can_use_tool',
+                tool_name: 'Bash',
+                tool_use_id: 'tool-sub',
+            },
+            request_id: 'request-1',
+            type: 'control_request',
+        });
+
+        const { approval } = events.findLast(({ type }) => type === 'approval');
+
+        expect(approval).toMatchObject({
+            availableDecisions: ['accept', 'decline', 'cancel'],
+            parentItemId: SUB_AGENT_TOOL_USE_ID,
+            subAgentLabel: 'Explore',
+        });
+    });
+
+    it('keeps malformed sub-agent approval errors under their spawning Agent call', async () => {
+        const { adapter, events } = harness('claude');
+
+        await adapter.handleMessage({
+            request: {
+                input: { command: 'rg todo' },
+                parent_tool_use_id: SUB_AGENT_TOOL_USE_ID,
+                subtype: 'can_use_tool',
+                tool_use_id: 'tool-sub',
+            },
+            request_id: 'request-1',
+            type: 'control_request',
+        });
+
+        expect(events.at(-1)).toEqual({
+            event: {
+                content: 'missing Claude approval tool name',
+                label: 'Claude protocol error',
+                parentItemId: SUB_AGENT_TOOL_USE_ID,
+                providerItemId: `${SUB_AGENT_TOOL_USE_ID}:error:unknown-message:1`,
+                status: 'failed',
+                type: 'error',
+            },
+            type: 'event',
+        });
+    });
+
+    it('ignores a sub-agent result frame so only the main agent ends the turn', async () => {
+        const { adapter, events, writes } = harness('claude');
+
+        await adapter.handleMessage({ message: { content: [{ text: 'plan', type: 'text' }], id: 'message-1' }, type: 'assistant' });
+        await adapter.handleMessage({
+            parent_tool_use_id: SUB_AGENT_TOOL_USE_ID,
+            total_cost_usd: 0.5,
+            type: 'result',
+            usage: { input_tokens: 9, output_tokens: 9 },
+        });
+
+        expect(events.some(({ type }) => type === 'turnCompleted')).toBe(false);
+        expect(latestClaudeContextUsageRequest(writes)).toBeUndefined();
+
+        await adapter.handleMessage({ total_cost_usd: 0.01, type: 'result', usage: { input_tokens: 4, output_tokens: 2 } });
+        await answerClaudeContextUsage(adapter, writes);
+
+        expect(events.at(-1)).toMatchObject({ error: null, type: 'turnCompleted' });
+        expect(events.at(-1).usage).toMatchObject({ inputTokens: 4, outputTokens: 2 });
+    });
+
+    it('attaches a nested sub agent to the Agent call inside its own parent sub agent', async () => {
+        const { adapter, events } = harness('claude');
+        const nestedToolUseId = 'tool-nested-agent';
+
+        await adapter.handleMessage({
+            message: {
+                content: [{ id: nestedToolUseId, input: { subagent_type: 'Plan' }, name: 'Agent', type: 'tool_use' }],
+                id: 'message-sub',
+            },
+            parent_tool_use_id: SUB_AGENT_TOOL_USE_ID,
+            type: 'assistant',
+        });
+        await adapter.handleMessage({
+            message: { content: [{ text: 'nested output', type: 'text' }], id: 'message-nested' },
+            parent_tool_use_id: nestedToolUseId,
+            type: 'assistant',
+        });
+
+        expect(events).toContainEqual({
+            event: {
+                content: JSON.stringify({ subagent_type: 'Plan' }),
+                label: 'Agent',
+                parentItemId: SUB_AGENT_TOOL_USE_ID,
+                providerItemId: nestedToolUseId,
+                status: 'inProgress',
+                type: 'tool.Agent',
+            },
+            type: 'event',
+        });
+        expect(events).toContainEqual({
+            event: {
+                content: 'nested output',
+                label: 'Plan',
+                parentItemId: nestedToolUseId,
+                providerItemId: `${nestedToolUseId}:message-nested:text:0`,
+                status: 'completed',
+                type: 'agentMessage',
+            },
+            type: 'event',
+        });
+        expect(events.some(({ type }) => type === 'assistantCompleted')).toBe(false);
     });
 });
 

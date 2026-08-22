@@ -34,6 +34,24 @@ describe('agent conversation', () => {
         expect(createEventEntry('event-1', 'output', 'done', 'now')).toEqual({content: 'done', id: 'event-1', kind: 'event', timestamp: 'now', type: 'output'});
     });
 
+    it('persists the spawning Agent call on a sub-agent provider event', () => {
+        const entry = createProviderEventEntry(
+            {
+                content: 'sub output',
+                label: 'Explore',
+                parentItemId: 'agent-1',
+                providerItemId: 'agent-1:message-sub:text:0',
+                status: 'completed',
+                type: 'agentMessage',
+            },
+            'event-1',
+            '2026-01-01T00:00:00.000Z',
+            2,
+        );
+
+        expect(entry.parentItemId).toBe('agent-1');
+    });
+
     it('omits unavailable numeric event detail', () => {
         const providerEvent = {
             content: '',

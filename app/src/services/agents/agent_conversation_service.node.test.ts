@@ -63,6 +63,31 @@ describe('parseAgentConversationLog', () => {
             .toEqual(parseAgentConversation(JSON.stringify(source), 'design/logs/one.json'))
     })
 
+    it('keeps sub-agent nesting across a persist and reload round trip', () => {
+        const source = {
+            completedAt: null,
+            entries: [
+                {
+                    content: '{}', id: 'event-1', kind: 'event', providerItemId: 'agent-1', status: 'completed',
+                    timestamp: '2026-01-01T00:00:00.000Z', type: 'tool.Agent',
+                },
+                {
+                    content: 'sub output', id: 'event-2', kind: 'event', parentItemId: 'agent-1',
+                    providerItemId: 'agent-1:message-sub:text:0', status: 'completed',
+                    timestamp: '2026-01-01T00:00:01.000Z', type: 'agentMessage',
+                },
+            ],
+            id: 'agent-1',
+            startedAt: '2026-01-01T00:00:00.000Z',
+            status: 'completed',
+        }
+
+        const reloaded = parseAgentConversation(JSON.stringify(source), 'design/logs/one.json')
+
+        expect(reloaded.entries[1]).toMatchObject({ parentItemId: 'agent-1', type: 'agentMessage' })
+        expect(reloaded.entries[0]).not.toHaveProperty('parentItemId')
+    })
+
     it('normalizes a persisted agent log', () => {
         const conversation = parseAgentConversationLog(
             JSON.stringify({

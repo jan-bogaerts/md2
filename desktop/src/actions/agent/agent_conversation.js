@@ -51,6 +51,9 @@ function createProviderEventEntry(providerEvent, id, timestamp, sequence) {
     if (providerEvent.type !== 'commandExecution' && typeof providerEvent.output === 'string') {
         event.output = boundedAgentResult(providerEvent.output);
     }
+    if (typeof providerEvent.parentItemId === 'string' && providerEvent.parentItemId.length > 0) {
+        event.parentItemId = providerEvent.parentItemId;
+    }
     if (Array.isArray(providerEvent.summary)) event.summary = [...providerEvent.summary];
     if (typeof providerEvent.workingDirectory === 'string') event.workingDirectory = providerEvent.workingDirectory;
 

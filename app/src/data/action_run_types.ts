@@ -111,6 +111,7 @@ export interface AgentApproval {
     itemId: string
     kind: 'commandExecution' | 'fileChange' | 'toolUse'
     networkApprovalContext?: { host: string, protocol: AgentNetworkProtocol } | null
+    parentItemId?: string | null
     proposedExecpolicyAmendment?: string[] | null
     proposedNetworkPolicyAmendments?: AgentNetworkPolicyAmendment[] | null
     provider?: 'claude' | 'codex'
@@ -118,6 +119,7 @@ export interface AgentApproval {
     reason?: string | null
     requestId: AgentApprovalRequestId
     startedAtMs: number
+    subAgentLabel?: string | null
     threadId?: string
     toolName?: string | null
     turnId?: string

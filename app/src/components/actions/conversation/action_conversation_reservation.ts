@@ -17,7 +17,7 @@ function runIsActive(status: PopupRunStatus) {
 }
 
 function groupIsRunning(group: ActionConversationRenderGroup) {
-    if (group.kind !== 'entry' || group.entry.kind !== 'event') return false
+    if (group.kind === 'completedToolCalls' || group.entry.kind !== 'event') return false
 
     return group.entry.status === 'inProgress'
         || group.entry.status === 'running'

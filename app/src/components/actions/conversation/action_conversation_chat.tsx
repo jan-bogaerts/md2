@@ -9,6 +9,7 @@ import { actionStatusLabel } from '../shared/action_status'
 import { ConversationTimer } from './conversation_timer'
 import { buildActionConversationRenderGroups } from './action_conversation_render_groups'
 import { CompletedToolCallGroup } from './completed_tool_call_group'
+import { SubAgentGroup } from './sub_agent_group'
 import {
     createActionConversationReservationState,
     reservedActionConversationBlockCount,
@@ -102,6 +103,9 @@ export function ActionConversationChat({ conversation, queuedPrompts = [], runId
                 {groups.map((group) => {
                     if (group.kind === 'completedToolCalls') {
                         return <CompletedToolCallGroup entries={group.entries} key={group.key} />
+                    }
+                    if (group.kind === 'subAgent') {
+                        return <SubAgentGroup entry={group.entry} groups={group.groups} key={group.key} label={group.label} />
                     }
 
                     const { entry } = group

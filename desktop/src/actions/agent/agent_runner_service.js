@@ -136,7 +136,7 @@ class AgentRunnerService {
             nextSequence += 1;
         }
         const [configuredExecutable, ...configuredArguments] = command;
-        const environment = createAgentEnvironment(process.env);
+        const environment = createAgentEnvironment(process.env, agent);
         const executable = await this.executableResolver.find(configuredExecutable, { cwd: rootPath, env: environment });
         if (!executable) throw new Error(`Executable not found for ${agent}: ${configuredExecutable}`);
         const argumentsList = streaming ? configuredArguments : [...configuredArguments, prompt];
@@ -319,11 +319,13 @@ class AgentRunnerService {
         this.claudeUsagePollContext = null;
         this.usageRefreshGeneration += 1;
         const generation = this.usageRefreshGeneration;
-        const environment = createAgentEnvironment(process.env);
         const observedAt = this.now();
         const refreshProfiles = ['claude', 'codex']
             .map((provider) => profiles.find(({ name }) => name === provider))
             .filter((profile) => profile !== undefined);
+        // Usage polling runs a reporting command rather than a conversation, so it stays on the plain
+        // inherited environment shared by every provider.
+        const environment = createAgentEnvironment(process.env);
         for (const profile of refreshProfiles) {
             void this.startProviderUsageRefresh(profile, { cwd, environment, generation, observedAt });
         }

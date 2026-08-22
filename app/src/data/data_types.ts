@@ -289,6 +289,7 @@ export interface AgentConversationEvent {
     insertions?: number
     label?: string
     output?: string
+    parentItemId?: string
     providerItemId?: string
     sequence?: number
     status?: string
