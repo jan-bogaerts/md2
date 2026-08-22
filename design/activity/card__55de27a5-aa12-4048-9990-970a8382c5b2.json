@@ -861,7 +861,7 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "55de27a5-aa12-4048-9990-970a8382c5b2",
       "cardPath": "design/feature_descriptions/B_167_don_t_drop_input_when_agent_is_done.md",
-      "completedAt": null,
+      "completedAt": "2026-08-22T19:56:55.738Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 151006
@@ -2482,7 +2482,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 128,
-          "timestamp": "2026-08-22T19:56:55.218Z"
+          "timestamp": "2026-08-22T19:56:55.738Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -2492,15 +2492,15 @@
           "agent": "claude",
           "conversationId": "0bc1214b-90e7-44ab-831c-1eead9723a24",
           "createdAt": "2026-08-22T13:58:17.221Z",
-          "lastUsedAt": "2026-08-22T13:58:17.221Z",
-          "synchronizedThroughMessageId": "agent-turn-c0dad6bd-f06c-4cb5-a1ab-5aed2b4e7a6e-turn-1-assistant-2"
+          "lastUsedAt": "2026-08-22T19:56:55.738Z",
+          "synchronizedThroughMessageId": "agent-turn-8e278ca7-9b57-4ee2-b10d-95d82196efeb-turn-1-assistant-9"
         }
       ],
       "startedAt": "2026-08-22T13:56:12.106Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 132225,
-        "runningStartedAt": "2026-08-22T19:46:37.939Z"
+        "elapsedMs": 750024,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usage": {
