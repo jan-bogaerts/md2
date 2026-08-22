@@ -955,7 +955,7 @@
         "costUsd": 4.6299814999999995
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
@@ -998,6 +998,42 @@
       "startedAt": "2026-08-22T09:01:54.996Z",
       "status": "completed",
       "rootConversationId": "agent-2ba3f862-b96f-41d8-885c-b35d3b00e2ed"
+    },
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "f9aacf862b8f95611e7a9c3fe0ba0f3d89f8e75b",
+          "committedAt": "2026-08-22T11:27:45+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/B_170_sub_agent_support_claude.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 51
+        }
+      ],
+      "completedAt": "2026-08-22T09:27:45.514Z",
+      "conversationIds": [
+        "agent-2ba3f862-b96f-41d8-885c-b35d3b00e2ed"
+      ],
+      "details": {
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-8bf49d4c-a063-4a64-9e60-152b491758d0",
+      "origin": {
+        "cardInternalId": "c8999726-4f9a-4963-ba9b-7c32b2190156",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-2ba3f862-b96f-41d8-885c-b35d3b00e2ed",
+      "startedAt": "2026-08-22T09:26:51.135Z",
+      "status": "completed"
     }
   ],
   "version": 5
