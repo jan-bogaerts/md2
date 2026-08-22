@@ -9,5 +9,5 @@ affects:
 agents:
 policy:
 ---
-* project usage vs&#x20;
-* keep same colors for same agents
+* project usage vs account usage
+  * keep same colors for same agents
