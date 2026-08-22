@@ -2626,6 +2626,31 @@
       "startedAt": "2026-08-22T12:21:10.000Z",
       "status": "completed",
       "rootConversationId": "agent-87f9037e-7972-4143-b6eb-f882177d0ead"
+    },
+    {
+      "commits": [
+        {
+          "commit": "bd425ecd81742782fcff14fc9f3f6399cc4476dd",
+          "committedAt": "2026-08-22T14:52:14+02:00",
+          "deletions": 82,
+          "filePaths": [
+            "app/src/components/card_view/card_body_popover.real.test.tsx",
+            "app/src/components/card_view/card_body_popover_editor.test.tsx",
+            "app/src/components/editor/markdown_document_history_monitor.tsx",
+            "app/src/components/editor/markdown_document_history_plugin.tsx"
+          ],
+          "filesChanged": 4,
+          "insertions": 295,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-22T14:52:14+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "be9b4114-07cb-48b0-a79f-68654ced052e",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
