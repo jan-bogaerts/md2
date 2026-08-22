@@ -2621,12 +2621,20 @@
       ],
       "hasExplicitTitle": true,
       "id": "agent-d12560ce-20dc-4f6b-8168-196c17938b44",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a029bf-738f-7fe3-b88d-dc8bdf0d6a5b",
+          "createdAt": "2026-08-22T13:57:13.189Z",
+          "lastUsedAt": "2026-08-22T13:57:13.189Z",
+          "synchronizedThroughMessageId": "agent-turn-e1c90ffa-e4ed-4beb-be1d-526306142b04-turn-1-assistant-5"
+        }
+      ],
       "startedAt": "2026-08-22T13:53:27.599Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-22T13:53:27.599Z"
+        "elapsedMs": 225590,
+        "runningStartedAt": null
       },
       "title": "review",
       "usage": {
@@ -2637,7 +2645,7 @@
         "totalTokens": 1488658
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
