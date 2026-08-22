@@ -711,13 +711,50 @@
         "totalTokens": 1039699
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
     "cardInternalId": "269f5e9f-dbe4-4818-bd5a-7915bba398af",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "b170be809c02c995fafec11c3190d7fa94ce52db",
+          "committedAt": "2026-08-22T11:30:48+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/F_227_remove_gpt_5_3_codex_spark_from_account_usage.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 27
+        }
+      ],
+      "completedAt": "2026-08-22T09:30:49.107Z",
+      "conversationIds": [
+        "agent-b9ecdd09-8dc3-42ab-a92a-0a333663cd11"
+      ],
+      "details": {
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-9f66db5d-43c7-43d9-bd5b-b139c40238c6",
+      "origin": {
+        "cardInternalId": "269f5e9f-dbe4-4818-bd5a-7915bba398af",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-b9ecdd09-8dc3-42ab-a92a-0a333663cd11",
+      "startedAt": "2026-08-22T09:25:24.679Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
