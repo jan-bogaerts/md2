@@ -12,8 +12,6 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 142213314
 sentryOrganization: elastetic
-branch: b_172_error_cannot_switch_markdown_history_before_editor_is_attached
-worktree: 2
 ---
 ## Sentry issue
 
