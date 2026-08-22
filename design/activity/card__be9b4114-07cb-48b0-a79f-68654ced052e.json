@@ -995,13 +995,50 @@
         "totalTokens": 1303617
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
     "cardInternalId": "be9b4114-07cb-48b0-a79f-68654ced052e",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "73591552d5c81294c6e59f065486d8a5782ab6d7",
+          "committedAt": "2026-08-22T13:57:17+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/B_172_error_cannot_switch_markdown_history_before_editor_is_attached.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 33
+        }
+      ],
+      "completedAt": "2026-08-22T11:57:17.340Z",
+      "conversationIds": [
+        "agent-961791ca-7a98-4c0d-ba23-84030df5bdec"
+      ],
+      "details": {
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-253c787e-afcb-49b3-97f5-cfa4ce21dc99",
+      "origin": {
+        "cardInternalId": "be9b4114-07cb-48b0-a79f-68654ced052e",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-961791ca-7a98-4c0d-ba23-84030df5bdec",
+      "startedAt": "2026-08-22T11:53:05.711Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
