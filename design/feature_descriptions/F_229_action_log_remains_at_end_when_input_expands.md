@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__de77178e-987f-437c-9af3-81b704eca3d4.json
 policy:
-branch: f_229_action_log_remains_at_end_when_input_expands
-worktree: 1
 ---
 
 In the action popup, when the user enters some text in the input editor, we expand the editor so there is more room for entering text. this all works fine.
