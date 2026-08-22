@@ -5462,6 +5462,30 @@
       "startedAt": "2026-08-22T15:14:27.023Z",
       "status": "completed",
       "rootConversationId": "agent-5447102d-fa44-4a8f-8793-ffe533fa7e0d"
+    },
+    {
+      "commits": [
+        {
+          "commit": "0058168eec2e2a226af9c1e9d6c3ce272eefc3b1",
+          "committedAt": "2026-08-22T17:24:04+02:00",
+          "deletions": 13,
+          "filePaths": [
+            "app/src/services/stats/project_stats_service.node.test.ts",
+            "app/src/services/stats/stats_totals_dataset.ts",
+            "app/src/services/stats/stats_usage_comparison_dataset.ts"
+          ],
+          "filesChanged": 3,
+          "insertions": 22,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-22T17:24:04+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "2809caf7-2f00-4484-ba68-18306e01f965",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
