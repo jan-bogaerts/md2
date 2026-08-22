@@ -1,8 +1,10 @@
 import { Box, Stack, Tooltip, Typography, useTheme } from '@mui/material';
+import { useMemo } from 'react';
 import type { StatsChartRow } from '../../services/stats/project_stats_types';
 
 const BAR_SLOT_WIDTH = 72;
 const BUCKET_WIDTH = 112;
+const CSS_COLOR_VALUE_COUNT = 0x1000000;
 const MINIMUM_CHART_HEIGHT = 260;
 const VALUE_LABEL_HEIGHT = 20;
 
@@ -26,11 +28,38 @@ interface BarRows {
     rows: StatsChartRow[];
 }
 
-function stableColorIndex(identity: string, paletteLength: number) {
-    let hash = 0;
-    for (const character of identity) hash = ((hash * 31) + character.codePointAt(0)!) | 0;
+function effectiveSeriesIdentity(row: StatsChartRow) {
+    return row.seriesIdentity ?? row.identity;
+}
 
-    return Math.abs(hash) % paletteLength;
+function normalizedCssColor(color: string) {
+    return color.trim().toLowerCase();
+}
+
+function randomCssColor() {
+    const colorValue = Math.floor(Math.random() * CSS_COLOR_VALUE_COUNT);
+
+    return `#${colorValue.toString(16).padStart(6, '0')}`;
+}
+
+function createSeriesColorMap(identityKey: string, paletteKey: string) {
+    const identities = JSON.parse(identityKey) as string[];
+    const palette = JSON.parse(paletteKey) as string[];
+    const availablePreparedColors = [...new Map(palette.map((color) => [normalizedCssColor(color), color])).values()];
+    const usedColors = new Set<string>();
+    const colorsByIdentity = new Map<string, string>();
+
+    for (const identity of identities) {
+        const preparedColor = availablePreparedColors[colorsByIdentity.size];
+        let color = preparedColor ?? randomCssColor();
+
+        while (usedColors.has(normalizedCssColor(color))) color = randomCssColor();
+
+        usedColors.add(normalizedCssColor(color));
+        colorsByIdentity.set(identity, color);
+    }
+
+    return colorsByIdentity;
 }
 
 function formattedValue(row: StatsChartRow) {
@@ -123,6 +152,9 @@ export function StatsBarChart({ ariaLabel = 'Stats bar chart', mode = 'single', 
     const maximum = maximumMagnitude(buckets, mode);
     const hasNegativeDomain = mode !== 'stacked' && mode !== 'groupedStacked' && rows.some(({ value }) => value < 0);
     const palette = theme.palette.custom.chartPalette;
+    const identityKey = JSON.stringify([...new Set(rows.map(effectiveSeriesIdentity))]);
+    const paletteKey = JSON.stringify(palette);
+    const colorsByIdentity = useMemo(() => createSeriesColorMap(identityKey, paletteKey), [identityKey, paletteKey]);
     const legend = [...new Map(rows.flatMap((row) => (
         row.seriesIdentity && row.seriesLabel ? [[row.seriesIdentity, row.seriesLabel] as [string, string]] : []
     ))).entries()];
@@ -152,8 +184,10 @@ export function StatsBarChart({ ariaLabel = 'Stats bar chart', mode = 'single', 
                     {legend.map(([identity, label]) => (
                         <Stack direction="row" key={identity} spacing={0.75} sx={{ alignItems: 'center' }}>
                             <Box
+                                data-series-identity={identity}
+                                data-testid="stats-legend-swatch"
                                 sx={{
-                                    bgcolor: palette[stableColorIndex(identity, palette.length)],
+                                    bgcolor: colorsByIdentity.get(identity),
                                     borderRadius: 99,
                                     height: 8,
                                     width: 8,
@@ -236,8 +270,8 @@ export function StatsBarChart({ ariaLabel = 'Stats bar chart', mode = 'single', 
                                                             totalValue + Math.max(segment.value, 0)
                                                         ), 0), maximum, domainPercentage)
                                                         : { labelOffset: 0, percentage: 0 };
-                                                    const identity = row.seriesIdentity ?? row.identity;
-                                                    const color = palette[stableColorIndex(identity, palette.length)];
+                                                    const identity = effectiveSeriesIdentity(row);
+                                                    const color = colorsByIdentity.get(identity);
                                                     const isNegative = row.value < 0;
                                                     const barLabel = formattedValue(row);
                                                     const showBar = row.available && row.value !== 0;
@@ -262,6 +296,7 @@ export function StatsBarChart({ ariaLabel = 'Stats bar chart', mode = 'single', 
                                                             {showBar ? (
                                                                 <Tooltip slotProps={{ tooltip: { sx: { whiteSpace: 'pre-line' } } }} title={row.tooltip}>
                                                                     <Box
+                                                                        data-series-identity={identity}
                                                                         data-testid="stats-bar"
                                                                         sx={{
                                                                             bgcolor: color,
