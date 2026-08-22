@@ -8,7 +8,7 @@ owner:
 affects:
 agents:
 policy:
-after: de77178e-987f-437c-9af3-81b704eca3d4
+after: ae7bdbef-7d85-4837-ba58-6ab382b218b0
 ---
 
 when user clicks on the 'running agents' button on the status bar, we show a popup containing a list of all agents currently running. it also includes an id, perhaps an internal id of the card it is running for.
