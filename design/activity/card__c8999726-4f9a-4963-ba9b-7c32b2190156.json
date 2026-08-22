@@ -4036,11 +4036,11 @@
         "agent-e29d0617-78e6-42c7-aa82-4588fcc88a8d"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-34bb8f34-399f-4494-8848-e7b5acc46757",
       "origin": {
@@ -4049,9 +4049,48 @@
       },
       "rootActionId": "32eceaf6-37d1-48b4-9bc1-c3f051eb7d8e",
       "rootActionLabel": "review",
-      "rootConversationId": "agent-e29d0617-78e6-42c7-aa82-4588fcc88a8d",
       "startedAt": "2026-08-22T12:19:00.600Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-e29d0617-78e6-42c7-aa82-4588fcc88a8d"
+    },
+    {
+      "commits": [
+        {
+          "commit": "6b7653469ab9b64811551071d2b3aeb67aac8800",
+          "committedAt": "2026-08-22T15:04:00+02:00",
+          "deletions": 72,
+          "filePaths": [
+            "app/src/components/actions/agent/action_agent_approval.test.tsx",
+            "app/src/components/actions/agent/action_agent_approval.tsx",
+            "app/src/components/actions/conversation/action_conversation_chat.tsx",
+            "app/src/components/actions/conversation/action_conversation_render_groups.ts",
+            "app/src/components/actions/conversation/action_conversation_rendering.test.tsx",
+            "app/src/components/actions/conversation/action_conversation_reservation.ts",
+            "app/src/components/actions/conversation/sub_agent_group.tsx",
+            "app/src/data/action_run_types.ts",
+            "app/src/data/data_types.ts",
+            "app/src/services/agents/agent_conversation_service.node.test.ts",
+            "desktop/src/actions/agent/agent_claude_streaming_adapter.js",
+            "desktop/src/actions/agent/agent_conversation.js",
+            "desktop/src/actions/agent/agent_conversation.test.mjs",
+            "desktop/src/actions/agent/agent_environment.js",
+            "desktop/src/actions/agent/agent_environment.test.mjs",
+            "desktop/src/actions/agent/agent_runner_service.js",
+            "desktop/src/actions/agent/agent_streaming_adapter.test.mjs",
+            "shared/agent_conversations.mjs"
+          ],
+          "filesChanged": 18,
+          "insertions": 792,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-22T15:04:00+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "c8999726-4f9a-4963-ba9b-7c32b2190156",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
