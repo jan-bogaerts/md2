@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__d9aa7d07-b618-4b83-9802-799c88174fb5.json
 policy:
-branch: b_173_stats_crypto_randomuuid_not_supported_in_browser
-worktree: 2
 ---
 Apparently the stats view somewhere uses `crypto.randomUUID` . When we run the app in a browser (ex through websockets), we get this error: crypto.randomUUID is not a function
 
