@@ -20,10 +20,10 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "55de27a5-aa12-4048-9990-970a8382c5b2",
       "cardPath": "design/feature_descriptions/B_167_don_t_drop_input_when_agent_is_done.md",
-      "completedAt": "2026-08-22T13:40:07.611Z",
+      "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 78135
+        "usedTokens": 79986
       },
       "entries": [
         {
@@ -572,6 +572,64 @@
           "role": "assistant",
           "sequence": 46,
           "timestamp": "2026-08-22T13:40:07.611Z"
+        },
+        {
+          "content": "i don't understand something: why is the state of the prompt used in the key of the draft prompt? is it in any way possible that we have different draft prompts for different conversation states?",
+          "id": "agent-turn-40e5bd68-4597-40ac-b5c8-a215822a9961-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 47,
+          "timestamp": "2026-08-22T13:43:31.433Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-40e5bd68-4597-40ac-b5c8-a215822a9961-event-48",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHtL4n8tqtcCnE9BEiBV:thinking:0",
+          "sequence": 48,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T13:43:47.939Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "2f391e23 Integrate into project\n2ef6a980 Integrate into project\ncba390fd Integrate into project\n2cbfef4a Save project changes before worktree synchronization\n440c8e96 Save project changes before worktree synchronization",
+          "id": "agent-turn-40e5bd68-4597-40ac-b5c8-a215822a9961-event-49",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_019HbCQHckzqEt4k7sHHgEUc",
+          "sequence": 49,
+          "status": "completed",
+          "timestamp": "2026-08-22T13:43:50.082Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-40e5bd68-4597-40ac-b5c8-a215822a9961-event-50",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHtMLppEwsXpqFekrKfn:thinking:0",
+          "sequence": 50,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T13:43:53.205Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Good question — and the honest answer is that it should not be there.\n\n**What the key actually encodes.** `ActionPromptDraftService.getDraft` (`app/src/services/actions/action_prompt_draft_service.ts:167-190`) picks between two namespaces:\n\n- `run\\0<runId>\\0<activeActionId>` — chosen only when the run belongs to this root action, `activeActionType === 'agent'`, and `activeActionId` is set.\n- `idle\\0<actionId>\\0<contextIdentity>` — every other case.\n\nSo the key does not encode \"conversation state\" as data. It switches which map bucket the editor reads from, and that switch is driven by live run state. Same action, same card, same editor, two possible objects.\n\n**Why it was built that way.** Two real needs, both about the *run*, not the text:\n\n1. `ActionPromptDraft.send()` enqueues to `run.runId` (line 141-150). A draft that can be sent must know its run.\n2. Per-run cleanup. `clearRunDrafts(runId)` wipes everything for a finished run so a steering prompt from session A never leaks into session B. In a chained run the root action spawns child agent actions, and `clearRunDraft(runId, actionId)` retires each child's steering draft as that child ends.\n\nBoth needs are about *lifetime and delivery target*. Neither requires the text to live under a different key.\n\n**Can different drafts coexist for different states? Yes.** The `drafts` Map holds both keys at once — nothing evicts one when the other is created. The clearest evidence is `clearDraft` itself (line 201-205): it clears the run key *and* the idle key, because the author knew both could hold content for the same action and context. Concretely: the idle draft is created and prepared with the default prompt before the run; a run starts and typing goes into the run draft; if anything writes through `currentActionPromptDraft` while status is momentarily inactive, that write lands in the idle draft instead. The editor shows whichever the current state resolves to, so text can be present in the map and invisible on screen.\n\nThat is exactly the bug in B_167: at completion the state flips, `getDraft` resolves to the other bucket, and the typed text is both cleared and orphaned.\n\n**Implication for the plan.** The doc's migration step (carry edited text from run key to idle key) fixes the symptom while keeping the existing structure. The cleaner fix is to key the draft only by action plus context identity — one draft per editor, for its whole life — and store the run binding as a *field* on the draft, which `bindRun` already does (line 84-86). Then `send()` still has its target, `clearRunDrafts` still has its per-run cleanup hook, and no state change can ever swap the object under the editor.\n\nWant me to rewrite the implementation details around single-key drafts instead of migration?",
+          "id": "agent-turn-40e5bd68-4597-40ac-b5c8-a215822a9961-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 51,
+          "timestamp": "2026-08-22T13:44:07.537Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -586,19 +644,19 @@
         }
       ],
       "startedAt": "2026-08-22T13:31:56.688Z",
-      "status": "completed",
+      "status": "running",
       "timer": {
         "elapsedMs": 173135,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-08-22T13:43:31.433Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 1342994,
-        "inputTokens": 52,
-        "outputTokens": 10175,
+        "cachedInputTokens": 1501794,
+        "inputTokens": 56,
+        "outputTokens": 12271,
         "reasoningTokens": 0,
-        "totalTokens": 1353221,
-        "costUsd": 1.528071
+        "totalTokens": 1514121,
+        "costUsd": 2.2794145
       },
       "usageSchemaVersion": 1,
       "viewed": true
@@ -616,11 +674,11 @@
         "agent-7ab9bdb0-8bcb-4353-a37c-8112feb0b250"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-b03b30df-2949-4f83-8cdd-9717654b0b53",
       "origin": {
@@ -629,9 +687,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-7ab9bdb0-8bcb-4353-a37c-8112feb0b250",
       "startedAt": "2026-08-22T13:31:56.688Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-7ab9bdb0-8bcb-4353-a37c-8112feb0b250"
     }
   ],
   "version": 5
