@@ -20,9 +20,39 @@ import { ActionConversationChat } from './action_conversation_chat'
 let clientHeight = 100
 let scrollHeight = 300
 let scrollPositions = new WeakMap<HTMLElement, number>()
+let resizeObserverCallback: ResizeObserverCallback | null = null
+let disconnectedViewportObserverCount = 0
+const observeViewport = vi.fn()
 const originalClientHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientHeight')
 const originalScrollHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'scrollHeight')
 const originalScrollTop = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'scrollTop')
+
+class ControllableResizeObserver {
+    private readonly callback: ResizeObserverCallback
+    private observesViewport = false
+
+    constructor(callback: ResizeObserverCallback) {
+        this.callback = callback
+    }
+
+    disconnect() {
+        if (this.observesViewport) disconnectedViewportObserverCount += 1
+    }
+
+    observe(target: Element) {
+        if (!(target instanceof HTMLElement) || target.getAttribute('aria-label') !== 'Conversation chat') return
+
+        this.observesViewport = true
+        resizeObserverCallback = this.callback
+        observeViewport(target)
+    }
+
+    unobserve(target: Element) {
+        if (target instanceof HTMLElement && target.getAttribute('aria-label') === 'Conversation chat') {
+            this.observesViewport = false
+        }
+    }
+}
 
 function message(id: string, content: string): AgentConversationMessageEntry {
     return { content, id, kind: 'message', role: 'assistant', timestamp: '2026-07-27T10:00:00.000Z' }
@@ -119,11 +149,21 @@ function restoreProperty(name: 'clientHeight' | 'scrollHeight' | 'scrollTop', de
     delete HTMLElement.prototype[name]
 }
 
+function reportViewportResize() {
+    if (!resizeObserverCallback) throw new Error('ResizeObserver callback was not registered')
+
+    resizeObserverCallback([], {} as ResizeObserver)
+}
+
 describe('ActionConversationChat', () => {
     beforeEach(() => {
         clientHeight = 100
         scrollHeight = 300
         scrollPositions = new WeakMap<HTMLElement, number>()
+        resizeObserverCallback = null
+        disconnectedViewportObserverCount = 0
+        observeViewport.mockClear()
+        vi.stubGlobal('ResizeObserver', ControllableResizeObserver)
         Object.defineProperty(HTMLElement.prototype, 'clientHeight', { configurable: true, get: () => clientHeight })
         Object.defineProperty(HTMLElement.prototype, 'scrollHeight', { configurable: true, get: () => scrollHeight })
         Object.defineProperty(HTMLElement.prototype, 'scrollTop', {
@@ -142,6 +182,7 @@ describe('ActionConversationChat', () => {
         cleanup()
         setActionBridgeOverride(null)
         vi.restoreAllMocks()
+        vi.unstubAllGlobals()
         restoreProperty('clientHeight', originalClientHeight)
         restoreProperty('scrollHeight', originalScrollHeight)
         restoreProperty('scrollTop', originalScrollTop)
@@ -151,6 +192,43 @@ describe('ActionConversationChat', () => {
         renderChat(conversation('first.json', [message('message-1', 'First')]))
 
         expect(screen.getByLabelText('Conversation chat').scrollTop).toBe(200)
+    })
+
+    it('keeps an end-stuck viewport at the end after its height shrinks', () => {
+        const { unmount } = renderChat(conversation('first.json', [message('message-1', 'First')]))
+        const viewport = screen.getByLabelText('Conversation chat')
+        expect(observeViewport).toHaveBeenCalledWith(viewport)
+
+        clientHeight = 80
+        reportViewportResize()
+
+        expect(viewport.scrollTop).toBe(220)
+        unmount()
+        expect(disconnectedViewportObserverCount).toBe(1)
+    })
+
+    it('preserves a scrolled-up position after the viewport height changes', () => {
+        renderChat(conversation('first.json', [message('message-1', 'First')]))
+        const viewport = screen.getByLabelText('Conversation chat')
+        viewport.scrollTop = 40
+        fireEvent.scroll(viewport)
+
+        clientHeight = 80
+        reportViewportResize()
+
+        expect(viewport.scrollTop).toBe(40)
+    })
+
+    it('restores resize stickiness after the user returns within the end tolerance', () => {
+        renderChat(conversation('first.json', [message('message-1', 'First')]))
+        const viewport = screen.getByLabelText('Conversation chat')
+        viewport.scrollTop = 196
+        fireEvent.scroll(viewport)
+
+        clientHeight = 80
+        reportViewportResize()
+
+        expect(viewport.scrollTop).toBe(220)
     })
 
     it('keeps duration and context usage indicator as the final row inside the scrollable transcript', async () => {

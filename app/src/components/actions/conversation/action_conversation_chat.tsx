@@ -1,5 +1,5 @@
 import { Box, CircularProgress, Stack, Tooltip, Typography } from '@mui/material'
-import { useLayoutEffect, useRef, useState, type UIEvent } from 'react'
+import { useCallback, useLayoutEffect, useRef, useState, type UIEvent } from 'react'
 import type { AgentConversation } from '../../../data/data_types'
 import type { ActionQueuedPrompt } from '../../../data/action_run_types'
 import type { PopupRunStatus } from '../run/popup/action_popup_defaults'
@@ -60,6 +60,7 @@ function visibleConversationGroups(conversation: AgentConversation | null) {
 export function ActionConversationChat({ conversation, queuedPrompts = [], runId = null, status }: ActionConversationChatProps) {
     const groups = visibleConversationGroups(conversation)
     const viewportRef = useRef<HTMLDivElement>(null)
+    const viewportHeightRef = useRef<number | null>(null)
     const conversationPathRef = useRef<string | null | undefined>(undefined)
     const stuckToEndRef = useRef(true)
     const conversationPath = conversation?.path ?? null
@@ -78,6 +79,18 @@ export function ActionConversationChat({ conversation, queuedPrompts = [], runId
         stuckToEndRef.current = viewportIsAtEnd(event.currentTarget)
     }
 
+    const handleViewportResize = useCallback(() => {
+        const viewport = viewportRef.current
+        if (!viewport) return
+
+        const previousViewportHeight = viewportHeightRef.current
+        const viewportHeight = viewport.clientHeight
+        viewportHeightRef.current = viewportHeight
+        if (previousViewportHeight === viewportHeight || !stuckToEndRef.current) return
+
+        viewport.scrollTop = viewport.scrollHeight
+    }, [])
+
     useLayoutEffect(() => {
         const viewport = viewportRef.current
         if (!viewport) return
@@ -90,6 +103,17 @@ export function ActionConversationChat({ conversation, queuedPrompts = [], runId
 
         viewport.scrollTop = viewport.scrollHeight
     })
+
+    useLayoutEffect(() => {
+        const viewport = viewportRef.current
+        if (!viewport) return
+
+        viewportHeightRef.current = viewport.clientHeight
+        const resizeObserver = new ResizeObserver(handleViewportResize)
+        resizeObserver.observe(viewport)
+
+        return resizeObserver.disconnect.bind(resizeObserver)
+    }, [handleViewportResize])
 
     return (
         <Stack spacing={1} sx={{ flex: 1, minHeight: 0 }}>
