@@ -10,7 +10,6 @@ agents:
   - design/activity/card__2809caf7-2f00-4484-ba68-18306e01f965.json
 policy:
 branch: f_233_stats_improvements
-worktree: 2
 ---
 * agent/model performance:
   * we currently have metrics: measured duration, tokens and toolcalls.
