@@ -3,7 +3,7 @@ author:
 id: B_172
 internalId: be9b4114-07cb-48b0-a79f-68654ced052e
 title: Error: Cannot switch Markdown history before editor is attached
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

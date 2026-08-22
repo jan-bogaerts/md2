@@ -3246,16 +3246,32 @@
           "role": "assistant",
           "sequence": 74,
           "timestamp": "2026-08-22T12:24:15.118Z"
+        },
+        {
+          "content": "fix",
+          "id": "agent-turn-45f5e823-3a1f-476d-8010-3dff362a7f14-user-74",
+          "kind": "message",
+          "role": "user",
+          "sequence": 75,
+          "timestamp": "2026-08-22T12:51:55.434Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-e29d0617-78e6-42c7-aa82-4588fcc88a8d",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a02968-fa78-7b30-9cd2-fc6d9c91e386",
+          "createdAt": "2026-08-22T12:24:15.118Z",
+          "lastUsedAt": "2026-08-22T12:24:15.118Z",
+          "synchronizedThroughMessageId": "agent-turn-45f5e823-3a1f-476d-8010-3dff362a7f14-turn-1-assistant-5"
+        }
+      ],
       "startedAt": "2026-08-22T12:19:00.603Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-22T12:19:00.603Z"
+        "elapsedMs": 314515,
+        "runningStartedAt": "2026-08-22T12:51:55.434Z"
       },
       "title": "review",
       "usage": {
