@@ -872,6 +872,42 @@
       "startedAt": "2026-08-22T13:31:56.688Z",
       "status": "completed",
       "rootConversationId": "agent-7ab9bdb0-8bcb-4353-a37c-8112feb0b250"
+    },
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "23db4911a3dc6a38ba0d25f3cff75a9d9ce98854",
+          "committedAt": "2026-08-22T15:55:28+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/B_167_don_t_drop_input_when_agent_is_done.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 53
+        }
+      ],
+      "completedAt": "2026-08-22T13:55:28.764Z",
+      "conversationIds": [
+        "agent-7ab9bdb0-8bcb-4353-a37c-8112feb0b250"
+      ],
+      "details": {
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-b8bf40e1-5fb4-4eae-9d44-80d950c0b47e",
+      "origin": {
+        "cardInternalId": "55de27a5-aa12-4048-9990-970a8382c5b2",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-7ab9bdb0-8bcb-4353-a37c-8112feb0b250",
+      "startedAt": "2026-08-22T13:43:31.430Z",
+      "status": "completed"
     }
   ],
   "version": 5
