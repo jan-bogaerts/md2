@@ -10,6 +10,8 @@ agents:
   - design/activity/card__bfad1b82-e967-48bc-af8f-a11ce1fa4a55.json
 policy:
 after: 269f5e9f-dbe4-4818-bd5a-7915bba398af
+branch: f_213_agent_questions_allow_other_response
+worktree: 1
 ---
 when an agents asks 1 or more questions, we currently don't appear to allow for any other response. it needs to be a selection between what the agent proposes. this is not ok, we also need to allow for 'other' responses (user enters input instead) or stop the response completely.
 
