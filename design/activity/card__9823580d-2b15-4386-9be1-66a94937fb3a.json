@@ -4805,11 +4805,11 @@
         "agent-d12560ce-20dc-4f6b-8168-196c17938b44"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-3477980a-b6ca-4235-8565-4173249382fc",
       "origin": {
@@ -4818,9 +4818,53 @@
       },
       "rootActionId": "32eceaf6-37d1-48b4-9bc1-c3f051eb7d8e",
       "rootActionLabel": "review",
-      "rootConversationId": "agent-d12560ce-20dc-4f6b-8168-196c17938b44",
       "startedAt": "2026-08-22T13:53:27.598Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-d12560ce-20dc-4f6b-8168-196c17938b44"
+    },
+    {
+      "commits": [
+        {
+          "commit": "9d0e3a66ebea02c3fb983f3c20d20c83a70d73df",
+          "committedAt": "2026-08-22T16:31:40+02:00",
+          "deletions": 283,
+          "filePaths": [
+            "app/src/components/card_view/card_body_popover_editor.test.tsx",
+            "app/src/components/stats_view/stats_bar_chart.test.tsx",
+            "app/src/components/stats_view/stats_bar_chart.tsx",
+            "app/src/components/stats_view/stats_content.test.tsx",
+            "app/src/components/stats_view/stats_content.tsx",
+            "app/src/components/stats_view/stats_controls.tsx",
+            "app/src/components/stats_view/stats_csv.node.test.ts",
+            "app/src/components/stats_view/stats_series_color_provider.tsx",
+            "app/src/components/stats_view/stats_series_colors.node.test.ts",
+            "app/src/components/stats_view/stats_series_colors.ts",
+            "app/src/components/stats_view/stats_series_colors_context.ts",
+            "app/src/components/stats_view/stats_usage_comparison_charts.tsx",
+            "app/src/services/stats/project_stats_service.node.test.ts",
+            "app/src/services/stats/project_stats_types.ts",
+            "app/src/services/stats/stats_chart_rows.node.test.ts",
+            "app/src/services/stats/stats_identities.ts",
+            "app/src/services/stats/stats_tooltip.node.test.ts",
+            "app/src/services/stats/stats_tooltip.ts",
+            "app/src/services/stats/stats_totals_dataset.ts",
+            "app/src/services/stats/stats_usage_comparison_dataset.ts",
+            "app/src/theme/app_theme.node.test.ts",
+            "app/src/theme/app_theme.ts",
+            "app/src/theme/mui.d.ts"
+          ],
+          "filesChanged": 23,
+          "insertions": 925,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-22T16:31:40+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "9823580d-2b15-4386-9be1-66a94937fb3a",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
