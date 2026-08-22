@@ -16,3 +16,5 @@ policy:
     instead of using a filter, lets just split this chart in 2, so we have 2 charts in the list: project token usage totals and project usage average per action. this way we can remove the filter.
   * since we have average token usage per action, per agent, we can also show 'average cost per action per agent', similar like we show 'tokens per dollar'
     and similar to 'project activity' and 'project token usage totals', we can also show 'total cost per agent per day?
+* totals by card/action:
+  *
