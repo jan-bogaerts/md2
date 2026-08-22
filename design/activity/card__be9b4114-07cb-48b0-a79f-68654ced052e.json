@@ -5,7 +5,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "be9b4114-07cb-48b0-a79f-68654ced052e",
       "cardPath": "design/feature_descriptions/B_172_error_cannot_switch_markdown_history_before_editor_is_attached.md",
-      "completedAt": null,
+      "completedAt": "2026-08-22T11:57:16.684Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 92986
@@ -966,17 +966,25 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 69,
-          "timestamp": "2026-08-22T11:57:16.360Z"
+          "timestamp": "2026-08-22T11:57:16.684Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-961791ca-7a98-4c0d-ba23-84030df5bdec",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a02951-408b-7a60-b357-46e1a792f577",
+          "createdAt": "2026-08-22T11:57:16.684Z",
+          "lastUsedAt": "2026-08-22T11:57:16.684Z",
+          "synchronizedThroughMessageId": "agent-turn-97e58f94-1828-4f42-a0f9-67342224a0d9-turn-1-assistant-3"
+        }
+      ],
       "startedAt": "2026-08-22T11:53:05.716Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-22T11:53:05.716Z"
+        "elapsedMs": 250968,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
