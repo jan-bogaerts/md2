@@ -14,3 +14,5 @@ policy:
   * we already made the legends sticky to the left, but the titles should do the same.
   * we currently have an extra filter 'token values' with `average per action` and `totals` This is only applied to 'project token usage'
     instead of using a filter, lets just split this chart in 2, so we have 2 charts in the list: project token usage totals and project usage average per action
+  * since we have average token usage per action, per agent, we can also show 'average cost per action per agent', similar like we show 'tokens per dollar'
+    and similar to 'project activity', we can also show 'total cost per agent per day?
