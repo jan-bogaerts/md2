@@ -6988,11 +6988,11 @@
         "agent-dbd9ae27-fb7c-4b7f-8537-4c88cd9048ec"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-6a359b63-7f55-4338-b784-f8943a3552f5",
       "origin": {
@@ -7001,9 +7001,37 @@
       },
       "rootActionId": "md2.custom-prompt",
       "rootActionLabel": "+",
-      "rootConversationId": "agent-dbd9ae27-fb7c-4b7f-8537-4c88cd9048ec",
       "startedAt": "2026-08-22T15:46:14.808Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-dbd9ae27-fb7c-4b7f-8537-4c88cd9048ec"
+    },
+    {
+      "commits": [
+        {
+          "commit": "dc3d3e7923536cc245484b12e46d57a845040ff5",
+          "committedAt": "2026-08-22T17:57:07+02:00",
+          "deletions": 27,
+          "filePaths": [
+            "app/src/services/stats/project_stats_service.node.test.ts",
+            "app/src/services/stats/stats_subscription_cost.node.test.ts",
+            "app/src/services/stats/stats_subscription_cost.ts",
+            "app/src/services/stats/stats_totals_dataset.ts",
+            "app/src/services/stats/stats_usage_comparison_dataset.ts",
+            "design/feature_descriptions/F_224_add_subscription_costs.md",
+            "design/feature_descriptions/F_242_stats_improvements.md"
+          ],
+          "filesChanged": 7,
+          "insertions": 63,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-22T17:57:07+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "2809caf7-2f00-4484-ba68-18306e01f965",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
