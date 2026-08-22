@@ -23,7 +23,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 79986
+        "usedTokens": 83820
       },
       "entries": [
         {
@@ -630,6 +630,75 @@
           "role": "assistant",
           "sequence": 51,
           "timestamp": "2026-08-22T13:44:07.537Z"
+        },
+        {
+          "content": "* first of, as soon as we have a custom prompt, why would we want to clear it? this does not make much sense to me.\n* why is the actionPromptDraft responsible for knowing where to send prompt towards? who calls send? doesn't it know the runId?\n* do you think that different drafts for different states are a good idea? lets say we are in 'run' state, user is typing something, but state changes to 'waitingForInput' or 'completed', should that draft be cleared? should the user have to start typing again?",
+          "id": "agent-turn-40e5bd68-4597-40ac-b5c8-a215822a9961-user-51",
+          "kind": "message",
+          "role": "user",
+          "sequence": 52,
+          "timestamp": "2026-08-22T13:50:18.969Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-40e5bd68-4597-40ac-b5c8-a215822a9961-event-53",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHtr2W4F5zfPyQc7FVfq:thinking:0",
+          "sequence": 53,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T13:50:21.552Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "components/actions/agent/action_agent_preset_name_owner.tsx:48:            promptDraft.getSnapshot(),\ncomponents/actions/agent/action_agent_preset_name_owner.tsx:49:            promptDraft.getEditorSnapshot().preparationStatus,\ncomponents/actions/agent/action_agent_prompt.tsx:46:    const prompt = useSyncExternalStore(promptDraft.subscribe, promptDraft.getSnapshot, promptDraft.getSnapshot)\ncomponents/actions/agent/action_agent_prompt.tsx:48:        promptDraft.subscribeEditor,\ncomponents/actions/agent/action_agent_prompt.tsx:49:        promptDraft.getEditorSnapshot,\ncomponents/actions/agent/action_agent_prompt.tsx:50:        promptDraft.getEditorSnapshot,\ncomponents/actions/agent/action_agent_prompt.tsx:193:                        draft={promptDraft.markdownDraft}\ncomponents/actions/agent/action_agent_prompt_owner.tsx:81:        void promptDraft.prepare(() => defaultPreparePrompt(action, context)).catch((error: unknown) => {\ncomponents/actions/agent/action_agent_prompt_owner.tsx:87:        const prompt = promptDraft.getSnapshot()\ncomponents/actions/agent/action_agent_prompt_owner.tsx:98:            promptDraft.getEditorSnapshot().preparationStatus,\ncomponents/actions/editor/action_phrase_buttons_owner.tsx:53:        promptDraft.replace(text)\ncomponents/actions/run/popup/action_popup_bottom_row.tsx:71:    const prompt = useSyncExternalStore(promptDraft.subscribe, promptDraft.getSnapshot, promptDraft.getSnapshot)\ncomponents/actions/run/popup/action_popup_bottom_row.tsx:73:        promptDraft.subscribeEditor,\ncomponents/actions/run/popup/action_popup_bottom_row.tsx:74:        promptDraft.getEditorSnapshot,\ncomponents/actions/run/popup/action_popup_bottom_row.tsx:75:        promptDraft.getEditorSnapshot,\ncomponents/actions/run/popup/action_popup_bottom_row.tsx:126:            ? attachFilesToCardMarkdown(attachmentCopyTarget, files, promptDraft.requestInsertion)\ncomponents/actions/run/popup/action_popup_bottom_row.tsx:127:            : attachFilesToOriginalMarkdown(files, promptDraft.requestInsertion)\ncomponents/actions/run/popup/action_popup_operations.ts:155:    const prompt = promptDraft.getSnapshot()\ncomponents/actions/run/popup/action_popup_operations.ts:170:            await promptDraft.send()",
+          "id": "agent-turn-40e5bd68-4597-40ac-b5c8-a215822a9961-event-54",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01Vc68MhRsLW31zEh54Lhs7n",
+          "sequence": 54,
+          "status": "completed",
+          "timestamp": "2026-08-22T13:50:22.615Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "                stderr: message,\n                stdout: '',\n            }],\n            status: 'failed',\n        })\n        dialogService.error(error, { fallbackMessage: 'Action run failed' })\n    }\n}\n\nexport async function runPopupAction(input: ActionPopupOperationInput) {\n    const { action, context, conversationStore, settingsStore } = input\n    const run = currentActionRun(action, context)\n    if (activeRunHasHistoricalDisplay(run, conversationStore)) return\n\n    const promptDraft = actionPromptDraftService.getDraft(action.id, context, run, { prepare: false })\n    const prompt = promptDraft.getSnapshot()\n    const sessionActive = run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'\n    const agentActive = sessionActive && run?.activeActionType === 'agent'\n\n    if (agentActive && run) {\n        if (\n            run.status === 'waitingForInput'\n            && !run.question\n            && run.approvals.length === 0\n            && settingsStore.getSnapshot().settingsChangedWhileWaiting\n        ) {\n            await runWithPrompt(input, prompt, run.runId)\n            return\n        }\n        try {\n            await promptDraft.send()\n        } catch (error) {\n            dialogService.error(error, { fallbackMessage: 'Could not send agent message' })\n        }\n        return\n    }\n\n    await runWithPrompt(input, prompt)\n}\n\nexport async function convertPromptToAction(input: ActionPopupOperationInput) {\n    const { action, context, inputStore, settings } = input\n    const prompt = currentActionPromptDraft(action, context, false).getSnapshot()\n    const { actionLabel } = inputStore.getSnapshot()\n    inputStore.setConvertMessage(null)\n    try {\n        const label = actionLabel.trim().length > 0 ? actionLabel : prompt.trim().slice(0, DEFAULT_CONVERT_LABEL_LENGTH)\n        const convertInput = {\n            ...(settings.agent ? { agent: settings.agent } : {}),\n            context,\n            label,\n            ...(settings.model ? { model: settings.model } : {}),\n            ...(settings.permissionMode ? { permissionMode: settings.permissionMode } : {}),\n            prompt,\n        }\n        const result = await defaultConvertPromptToAction(convertInput)\n        inputStore.setConvertMessage(`Saved ${result.path}`)\n\n        return true\n    } catch (error) {\n        inputStore.setConvertMessage(error instanceof Error ? error.message : 'Could not convert prompt to action')\n\n        return false\n    }\n}\n\nexport async function saveAndRunPopupAction(input: ActionPopupOperationInput) {\n    if (!await convertPromptToAction(input)) return\n\n    await runPopupAction(input)\n}\n\nasync function closeWaitingConversation(\n    action: ActionDefinition,\n    context: ActionContext,\n    conversationStore: ActionConversationStore,\n    status: 'cancelled' | 'completed',\n) {\n    const conversation = conversationStore.getSnapshot().selectedConversation\n    if (!conversation) throw new Error('No agent conversation is selected')\n    if (conversation.status !== 'waitingForInput') throw new Error('Selected agent conversation is no longer waiting for input')\n\n    const updatedConversation = await defaultCloseWaitingConversation(conversation.path, status)\n    conversationStore.updateConversation(updatedConversation)\n    dataService.agents.updateAgentConversation(updatedConversation)\n    actionPromptDraftService.clearDraft(action.id, context, null)\n}\n\nexport async function cancelPopupAction(\n    action: ActionDefinition,\n    context: ActionContext,",
+          "id": "agent-turn-40e5bd68-4597-40ac-b5c8-a215822a9961-event-55",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01HSb3CoL7PXe1NaUbZvMz2Y",
+          "sequence": 55,
+          "status": "completed",
+          "timestamp": "2026-08-22T13:50:26.516Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-40e5bd68-4597-40ac-b5c8-a215822a9961-event-56",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHtrZmVnJQbyxKhkZu7r:thinking:0",
+          "sequence": 56,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T13:50:38.159Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "All three point the same direction. Taking them in order:\n\n**1. Clearing a custom prompt.** It does not make sense, except in one case. There is exactly one legitimate reason to clear: the text was *consumed* — delivered as a chat message or used to start a run. Keeping it then would risk a double send. That is `ActionPromptDraft.send()` clearing after `enqueueActionPrompt` resolves, and `handleStarted` in `runWithPrompt` clearing after the run starts.\n\nEvery other clear in the codebase discards data the system cannot regenerate. The three registry clears (`action_run_registry.ts:638`, `:692`, `:709`) and the two conversation-store clears (`action_conversation_store.ts:140`, `:202`) all fire on events that have nothing to do with whether the user still wants their text.\n\nWorth separating two kinds of content that currently share one clear path. A *prepared default prompt* is machine-generated and regenerable, so dropping it is free. *User-typed text* is neither. `ActionPromptDraft` already distinguishes them through `locallyEdited` / `hasLocalEdits()`, but no clear path consults it.\n\n**2. `send()` living on the draft.** Misplaced, and you are right that the caller already knows. The only caller is `runPopupAction` in `app/src/components/actions/run/popup/action_popup_operations.ts:170`. That function fetched the run at line 151 and uses `run.runId` directly at line 167 for the restart path — then calls `promptDraft.send()`, which re-derives the same runId from the `run` field it was handed earlier through `bindRun`.\n\nSo `ActionPromptDraft` currently owns three unrelated jobs: hold text, know its delivery target, and talk to the Electron bridge via `enqueueActionPrompt`. Only the first belongs to a draft. Move enqueue and clear-on-success into `runPopupAction`, which has the run, the error handling, and the `dialogService` reporting already. Then `bindRun`, the `run` field, and the `ActionPromptRunBinding` type disappear from the draft — and with them the main argument for keying drafts by run.\n\n**3. Different drafts per state.** No, it is not a good idea, and the answer to your scenario is that the draft should survive untouched. The user should never retype.\n\nRun status describes the *agent*. Unsent editor text describes the *user's intent*. Coupling storage of the second to transitions of the first is wrong on three counts:\n\n- The transition is asynchronous and unpredictable. The agent can finish mid-sentence. Any state-keyed storage is a race by construction — that is precisely how B_167 manifests, with text lost to a `waitingForInput` transition the user never saw coming.\n- Nothing about a status change alters what the user meant to say. Text typed during `running` is equally valid as a steering message, as a follow-up after `waitingForInput`, or as the opening prompt of a continuation after `completed`. Only the delivery mechanism differs, and that is chosen at send time, not at storage time.\n- It makes the same editor read from two buckets. The `drafts` map can hold both keys at once — `clearDraft` clearing both is the author's own acknowledgement of that.\n\nThe right model is one draft per action plus context identity, living as long as the popup, cleared only when its content is consumed or the user clears it. Run-scoped cleanup still works: `clearRunDrafts(runId)` becomes \"clear the draft bound to this run *if that draft was never edited*\".\n\nThat is a stronger fix than the migration approach currently written into B_167 — migration patches the flip, single-key removes it. Want me to rewrite the implementation details and acceptance criteria around single-key drafts plus moving send into `runPopupAction`?",
+          "id": "agent-turn-40e5bd68-4597-40ac-b5c8-a215822a9961-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 57,
+          "timestamp": "2026-08-22T13:50:55.842Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -639,24 +708,24 @@
           "agent": "claude",
           "conversationId": "de76d98a-dad8-405f-bd01-4b855461e39e",
           "createdAt": "2026-08-22T13:40:07.611Z",
-          "lastUsedAt": "2026-08-22T13:40:07.611Z",
-          "synchronizedThroughMessageId": "agent-turn-12b8023f-c0cd-4591-acb5-f1a75d0904b8-turn-1-assistant-5"
+          "lastUsedAt": "2026-08-22T13:44:07.537Z",
+          "synchronizedThroughMessageId": "agent-turn-40e5bd68-4597-40ac-b5c8-a215822a9961-turn-1-assistant-1"
         }
       ],
       "startedAt": "2026-08-22T13:31:56.688Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 173135,
-        "runningStartedAt": "2026-08-22T13:43:31.433Z"
+        "elapsedMs": 209239,
+        "runningStartedAt": "2026-08-22T13:50:18.969Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 1501794,
-        "inputTokens": 56,
-        "outputTokens": 12271,
+        "cachedInputTokens": 1749205,
+        "inputTokens": 62,
+        "outputTokens": 14501,
         "reasoningTokens": 0,
-        "totalTokens": 1514121,
-        "costUsd": 2.2794145
+        "totalTokens": 1763768,
+        "costUsd": 3.2466665000000003
       },
       "usageSchemaVersion": 1,
       "viewed": true
