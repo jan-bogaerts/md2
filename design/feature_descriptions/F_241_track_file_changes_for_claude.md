@@ -3,7 +3,7 @@ author:
 id: F_241
 internalId: 573854b5-fd44-4868-918e-56fdb505a905
 title: track file changes for claude
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

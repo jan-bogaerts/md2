@@ -78,6 +78,36 @@ describe('agent provider protocol', () => {
         expect(events[1].transcriptEvents).toEqual([{ content: 'written', toolType: 'tool.result' }]);
     });
 
+    it('normalizes one-shot Claude file results to canonical provider events', () => {
+        const { events, instance } = parser('claude');
+
+        instance.push(`${JSON.stringify({
+            message: {content: [{ id: 'edit-1', input: { file_path: 'design/card.md' }, name: 'Edit', type: 'tool_use' }]},
+            type: 'assistant',
+        })}\n`);
+        instance.push(`${JSON.stringify({
+            message: { content: [{ content: 'updated', tool_use_id: 'edit-1', type: 'tool_result' }] },
+            tool_use_result: { structuredPatch: [{ lines: [' context', '-old', '+new'] }] },
+            type: 'user',
+        })}\n`);
+        instance.finish();
+
+        expect(events[0].providerEvents).toEqual([expect.objectContaining({
+            content: 'design/card.md',
+            providerItemId: 'edit-1',
+            status: 'inProgress',
+            type: 'fileChange',
+        })]);
+        expect(events[1].providerEvents).toEqual([expect.objectContaining({
+            deletions: 1,
+            insertions: 1,
+            output: 'updated',
+            providerItemId: 'edit-1',
+            status: 'completed',
+            type: 'fileChange',
+        })]);
+    });
+
     it('normalizes Codex usage from the completed turn, splitting cached out of input', () => {
         const { events, instance } = parser('codex');
 

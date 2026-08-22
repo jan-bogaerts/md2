@@ -1,6 +1,6 @@
 const { normalizedContent } = require('./agent_event_utils');
 const { boundedAgentResult } = require('../../../../shared/agent_conversations.mjs');
-const { claudeChangedPaths, claudeUsage } = require('./agent_claude_events');
+const { ClaudeFileResultDecoder, claudeChangedPaths, claudeUsage } = require('./agent_claude_events');
 const { isMissingSession } = require('./agent_provider_protocol');
 
 const CLAUDE_APPROVAL_DECISIONS = ['accept', 'acceptForSession', 'decline', 'cancel'];
@@ -236,6 +236,7 @@ class ClaudeStreamingAdapter {
         this.protocolErrorSequence = 1;
         this.contextUsageRequestSequence = 1;
         this.pendingContextUsage = null;
+        this.fileResultDecoder = new ClaudeFileResultDecoder();
         this.turnStarted = false;
     }
 
@@ -518,6 +519,7 @@ class ClaudeStreamingAdapter {
             await this.emitProtocolError('missing Claude assistant message id', streamKey);
             return;
         }
+        const fileEvents = new Map(this.fileResultDecoder.decode(event).map((fileEvent) => [fileEvent.providerItemId, fileEvent]));
         let textOrdinal = 0;
         for (const [index, block] of event.message.content.entries()) {
             if (block.type === 'text' && typeof block.text === 'string') {
@@ -559,7 +561,8 @@ class ClaudeStreamingAdapter {
             if (block.type === 'tool_use') {
                 this.rememberSubAgent(block);
                 this.toolBlocks.set(providerItemId, { block, providerItemId, streamKey });
-                await this.onEvent({ event: ownedEvent(claudeToolEvent(block, 'inProgress', providerItemId), streamKey), type: 'event' });
+                const toolEvent = fileEvents.get(providerItemId) ?? claudeToolEvent(block, 'inProgress', providerItemId);
+                await this.onEvent({ event: ownedEvent(toolEvent, streamKey), type: 'event' });
             }
         }
         const changedPaths = claudeChangedPaths(event, this.rootPath);
@@ -568,17 +571,18 @@ class ClaudeStreamingAdapter {
 
     async handleToolResults(event) {
         if (!Array.isArray(event.message?.content)) return;
+        const fileEvents = new Map(this.fileResultDecoder.decode(event).map((fileEvent) => [fileEvent.providerItemId, fileEvent]));
         for (const block of event.message.content) {
             if (block?.type !== 'tool_result' || typeof block.tool_use_id !== 'string') continue;
             // Looked up across every stream and every message of the turn, so a result still completes
             // its own row after the next message started or after a sub agent interleaved its frames.
             const trackedTool = this.toolBlocks.get(block.tool_use_id);
-            const toolEvent = trackedTool?.block?.type === 'tool_use'
+            const toolEvent = fileEvents.get(block.tool_use_id) ?? (trackedTool?.block?.type === 'tool_use'
                 ? claudeToolEvent(trackedTool.block, block.is_error ? 'failed' : 'completed')
-                : eventBase(block.tool_use_id, 'tool.result', 'Tool result', block.is_error ? 'failed' : 'completed');
+                : eventBase(block.tool_use_id, 'tool.result', 'Tool result', block.is_error ? 'failed' : 'completed'));
             const result = boundedAgentResult(normalizedContent(block.content) ?? '');
             if (toolEvent.type === 'commandExecution') toolEvent.content = result;
-            else toolEvent.output = result;
+            else if (!Object.hasOwn(toolEvent, 'output')) toolEvent.output = result;
             await this.onEvent({ event: ownedEvent(toolEvent, trackedTool?.streamKey ?? null), type: 'event' });
         }
     }
@@ -598,6 +602,7 @@ class ClaudeStreamingAdapter {
         this.streamStates.clear();
         this.subAgentLabels.clear();
         this.toolBlocks.clear();
+        this.fileResultDecoder.reset();
         this.streamedTextItems.clear();
         this.pendingQuestions.clear();
         this.turnStarted = false;

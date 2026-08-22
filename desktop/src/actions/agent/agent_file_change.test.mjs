@@ -2,7 +2,7 @@ import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
 
 const require = createRequire(import.meta.url);
-const { countFileContentLines, countPatchLines } = require('./agent_file_change');
+const { countFileContentLines, countLineChanges, countPatchLines } = require('./agent_file_change');
 
 describe('agent file changes', () => {
     it('counts complete file content without a phantom terminal line', () => {
@@ -27,5 +27,14 @@ describe('agent file changes', () => {
         expect(countPatchLines(null)).toBeNull();
         expect(countPatchLines(['missing prefix'])).toBeNull();
         expect(countPatchLines(['+valid', 4])).toBeNull();
+    });
+
+    it('finds smallest whole-line insertion and deletion difference', () => {
+        expect(countLineChanges('first\nshared\nlast\n', 'changed\nshared\nnew\n'))
+            .toEqual({ deletions: 2, insertions: 2 });
+        expect(countLineChanges('', 'first\nsecond')).toEqual({ deletions: 0, insertions: 2 });
+        expect(countLineChanges('first\nsecond', '')).toEqual({ deletions: 2, insertions: 0 });
+        expect(countLineChanges('same', 'same')).toEqual({ deletions: 0, insertions: 0 });
+        expect(countLineChanges(null, 'new')).toBeNull();
     });
 });

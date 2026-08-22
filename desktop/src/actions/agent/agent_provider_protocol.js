@@ -1,5 +1,11 @@
 const { validateAgentTokenUsage } = require('../../../../shared/agent_usage_math.mjs');
-const { claudeAssistantText, claudeChangedPaths, claudeTranscriptEvents, claudeUsage } = require('./agent_claude_events');
+const {
+    ClaudeFileResultDecoder,
+    claudeAssistantText,
+    claudeChangedPaths,
+    claudeTranscriptEvents,
+    claudeUsage,
+} = require('./agent_claude_events');
 const { codexChangedPaths, codexTranscriptEvents } = require('./agent_codex_events');
 const { JsonLineBuffer } = require('./agent_event_utils');
 
@@ -119,6 +125,7 @@ class AgentProviderProtocolParser {
         this.onMalformed = onMalformed;
         this.rootPath = rootPath;
         this.turnStarted = false;
+        this.claudeFileResultDecoder = agent === 'claude' ? new ClaudeFileResultDecoder() : null;
     }
 
     push(chunk) {
@@ -151,6 +158,7 @@ class AgentProviderProtocolParser {
             conversationId: providerConversationId(this.agent, event),
             errorText: providerErrorText(this.agent, event),
             missingSession,
+            providerEvents: this.claudeFileResultDecoder?.decode(event) ?? [],
             transcriptEvents: providerTranscriptEvents(this.agent, event),
             turnStarted: this.turnStarted,
             usage: providerUsage(this.agent, event),

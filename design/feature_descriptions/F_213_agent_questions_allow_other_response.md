@@ -3,7 +3,7 @@ author:
 id: F_213
 internalId: bfad1b82-e967-48bc-af8f-a11ce1fa4a55
 title: agent questions allow other response
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

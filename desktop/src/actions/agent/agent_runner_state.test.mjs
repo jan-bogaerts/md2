@@ -17,6 +17,66 @@ function diagnosticStreamingEvent(content, providerItemId) {
 }
 
 describe('AgentRunnerService state handling', () => {
+    it('reconciles and persists one-shot canonical provider file events', () => {
+        const service = new AgentRunnerService();
+        const run = {
+            agent: 'claude',
+            conversation: { entries: [] },
+            id: 'run-1',
+            missingSession: false,
+            nextSequence: 1,
+            onEvent: vi.fn(),
+            providerEventEntryIndexes: new Map(),
+            providerConversationId: null,
+            reportedProviderErrors: new Set(),
+            secretValues: new Set(),
+            stdout: '',
+            turnStarted: false,
+            turnUsage: null,
+        };
+        service.processes.set(run.id, run);
+        const providerEvent = {
+            assistantText: '',
+            changedPaths: [],
+            conversationId: null,
+            errorText: '',
+            missingSession: false,
+            providerEvents: [
+                {
+                    content: 'design/card.md',
+                    label: 'Edit',
+                    providerItemId: 'edit-1',
+                    status: 'inProgress',
+                    type: 'fileChange',
+                },
+                {
+                    content: 'design/card.md',
+                    deletions: 2,
+                    insertions: 3,
+                    label: 'Edit',
+                    providerItemId: 'edit-1',
+                    status: 'completed',
+                    type: 'fileChange',
+                },
+            ],
+            transcriptEvents: [],
+            turnStarted: true,
+            usage: null,
+        };
+
+        service.handleProviderEvent(run.id, providerEvent);
+
+        expect(run.conversation.entries).toEqual([expect.objectContaining({
+            deletions: 2,
+            insertions: 3,
+            providerItemId: 'edit-1',
+            sequence: 1,
+            status: 'completed',
+            type: 'fileChange',
+        })]);
+        expect(run.onEvent).toHaveBeenCalledTimes(2);
+    });
+
     it('persists a new conversation before spawning its process and publishing started', async () => {
         const initialCheckpoint = Promise.withResolvers();
         const child = new EventEmitter();

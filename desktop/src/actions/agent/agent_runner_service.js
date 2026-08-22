@@ -22,6 +22,7 @@ const { ClaudeUsagePoller } = require('./claude_usage_poller');
 const { CodexUsagePoller } = require('./codex_usage_poller');
 const { diagnoseCodexCacheError, isCodexCacheError } = require('./agent_codex_cache_diagnostic');
 const { logAgentEvent } = require('./agent_file_logger');
+const { recordProviderEvent } = require('./agent_provider_event');
 const agentInteractions = require('./agent_run_interactions');
 const {
     attachRunProtocol,
@@ -567,6 +568,7 @@ class AgentRunnerService {
         providerEvent.changedPaths.forEach((filePath) => run.changedPaths.add(filePath));
         if (providerEvent.conversationId) run.providerConversationId = providerEvent.conversationId;
         if (providerEvent.usage) run.turnUsage = providerEvent.usage;
+        for (const event of providerEvent.providerEvents) recordProviderEvent(run, event, timestamp);
         for (const transcriptEvent of providerEvent.transcriptEvents) {
             run.conversation.entries.push(createEventEntry(
                 `${runId}-provider-${run.conversation.entries.length}`,

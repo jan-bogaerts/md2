@@ -3,7 +3,7 @@ author:
 id: B_173
 internalId: d9aa7d07-b618-4b83-9802-799c88174fb5
 title: stats crypto randomUUID not supported in browser
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

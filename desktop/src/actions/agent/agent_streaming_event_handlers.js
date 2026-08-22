@@ -1,21 +1,20 @@
 const {
     accumulateUsage,
-    createProviderEventEntry,
     createEventEntry,
     transitionConversationStatus,
     updateProviderSession,
 } = require('./agent_conversation');
+const { recordProviderEvent } = require('./agent_provider_event');
 const { emitRunEvent, hasPendingInteraction } = require('./agent_run_state');
 const {
     appendAssistantOutput,
-    appendDiagnosticContent,
     completeAssistantOutput,
     lastMessageEntry,
     nextRunSequence,
     replaceAssistantOutput,
     startAssistantItem,
 } = require('./agent_run_transcript');
-const { redactConversationEvent, redactSecrets } = require('./agent_secret_redaction');
+const { redactSecrets } = require('./agent_secret_redaction');
 const { requireString } = require('./agent_run_validation');
 
 function handleSessionStarted(service, run, event) {
@@ -78,32 +77,7 @@ function handleChangedPaths(service, run, event) {
 
 /** Provider events are keyed by `providerItemId` so a later revision of the same item replaces its entry. */
 function handleEvent(service, run, event, timestamp) {
-    const safeEvent = redactConversationEvent(event.event, run.secretValues);
-    const providerItemId = requireString(safeEvent.providerItemId, 'event providerItemId');
-    const currentIndex = run.providerEventEntryIndexes.get(providerItemId);
-    let eventEntry;
-    if (currentIndex !== undefined) {
-        const current = run.conversation.entries[currentIndex];
-        eventEntry = createProviderEventEntry(safeEvent, current.id, timestamp, current.sequence);
-        run.conversation.entries[currentIndex] = eventEntry;
-    } else {
-        const previousEntry = run.conversation.entries.at(-1);
-        if (safeEvent.type === 'diagnostic' && previousEntry?.kind === 'event' && previousEntry.type === 'diagnostic') {
-            eventEntry = appendDiagnosticContent(previousEntry, safeEvent.content);
-            run.conversation.entries[run.conversation.entries.length - 1] = eventEntry;
-        } else {
-            const sequence = nextRunSequence(run);
-            eventEntry = createProviderEventEntry(
-                safeEvent,
-                `${run.id}-event-${sequence}`,
-                timestamp,
-                sequence,
-            );
-            run.providerEventEntryIndexes.set(providerItemId, run.conversation.entries.length);
-            run.conversation.entries.push(eventEntry);
-        }
-    }
-    emitRunEvent(run, { event: eventEntry, type: 'agentEvent' });
+    recordProviderEvent(run, event.event, timestamp);
 }
 
 function handleTranscript(service, run, event, timestamp) {

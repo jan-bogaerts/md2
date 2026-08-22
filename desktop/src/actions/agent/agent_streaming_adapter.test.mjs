@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { AGENT_RESULT_MAX_LENGTH } from '../../../../shared/agent_conversations.mjs';
 
 const require = createRequire(import.meta.url);
+const { createAgentProviderProtocolParser } = require('./agent_provider_protocol');
 const { createAgentStreamingAdapter } = require('./agent_streaming_adapter');
 
 function harness(agent, providerConversationId = null) {
@@ -255,6 +256,7 @@ describe('ClaudeStreamingAdapter', () => {
         });
         await adapter.handleMessage({
             message: { content: [{ content: 'written', tool_use_id: 'tool-1', type: 'tool_result' }] },
+            tool_use_result: { structuredPatch: [{ lines: ['+first', '+second'] }] },
             type: 'user',
         });
 
@@ -264,9 +266,40 @@ describe('ClaudeStreamingAdapter', () => {
             type: 'event',
         });
         expect(events).toContainEqual({
-            event: expect.objectContaining({ output: 'written', providerItemId: 'tool-1', status: 'completed' }),
+            event: expect.objectContaining({
+                deletions: 0,
+                insertions: 2,
+                output: 'written',
+                providerItemId: 'tool-1',
+                status: 'completed',
+            }),
             type: 'event',
         });
+    });
+
+    it('normalizes equivalent streaming and one-shot Claude file results identically', async () => {
+        const assistantEvent = {
+            message: {
+                content: [{ id: 'edit-parity', input: { file_path: 'design/parity.md' }, name: 'Edit', type: 'tool_use' }],
+                id: 'message-parity',
+            },
+            type: 'assistant',
+        };
+        const resultEvent = {
+            message: { content: [{ content: 'updated', tool_use_id: 'edit-parity', type: 'tool_result' }] },
+            tool_use_result: { structuredPatch: [{ lines: ['-before', '+after'] }] },
+            type: 'user',
+        };
+        const streaming = harness('claude');
+        await streaming.adapter.handleMessage(assistantEvent);
+        await streaming.adapter.handleMessage(resultEvent);
+        const protocolEvents = [];
+        const parser = createAgentProviderProtocolParser('claude', (event) => protocolEvents.push(event), vi.fn(), 'C:\\repo');
+        parser.push(`${JSON.stringify(assistantEvent)}\n${JSON.stringify(resultEvent)}\n`);
+        parser.finish();
+
+        const streamingCompletion = streaming.events.findLast(({ event }) => event?.providerItemId === 'edit-parity').event;
+        expect(streamingCompletion).toEqual(protocolEvents.at(-1).providerEvents[0]);
     });
 
     it('bounds Claude command and tool results without truncating their inputs or duplicating command output', async () => {
