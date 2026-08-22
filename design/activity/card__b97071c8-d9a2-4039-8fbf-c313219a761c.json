@@ -983,6 +983,31 @@
     "cardInternalId": "b97071c8-d9a2-4039-8fbf-c313219a761c",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [],
+      "completedAt": "2026-08-22T14:44:08.136Z",
+      "conversationIds": [
+        "agent-25186382-26f1-4022-a5f1-327cf4f9b652"
+      ],
+      "details": {
+        "agent": "codex",
+        "model": "gpt-5.6-terra",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-3383de7b-670c-4420-a87e-4816eed4bacd",
+      "origin": {
+        "cardInternalId": "b97071c8-d9a2-4039-8fbf-c313219a761c",
+        "kind": "card"
+      },
+      "rootActionId": "md2.custom-prompt",
+      "rootActionLabel": "+",
+      "rootConversationId": "agent-25186382-26f1-4022-a5f1-327cf4f9b652",
+      "startedAt": "2026-08-22T14:30:49.215Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
