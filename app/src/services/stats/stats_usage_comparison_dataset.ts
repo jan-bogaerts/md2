@@ -32,6 +32,7 @@ import {
     statsTooltip,
     type StatsTooltipLine,
 } from './stats_tooltip';
+import { subscriptionCostPerPercentagePoint } from './stats_subscription_cost';
 
 type RatioRole = 'tokensPerAccountUsage' | 'tokensPerDollar' | 'actionsPerAccountUsage';
 type CostRole = 'costPerAgent' | 'costPerActionAverage';
@@ -48,7 +49,7 @@ const TOKEN_VARIANTS: TokenChartVariant[] = [
     { aggregation: 'average', role: 'projectTokensAverage', valueLabel: 'Average project tokens per action' },
 ];
 
-const SUBSCRIPTION_SHARE_NOTE = 'Share of the monthly subscription consumed in this bucket, not a metered per-token price';
+const SUBSCRIPTION_SHARE_NOTE = 'Estimated from the limit window\'s share of a fixed 28-day subscription month, not a metered per-token price';
 
 interface ComparisonIndexes {
     /** Account rows whose delta is absent or non-negative, keyed by bucket and series identity. */
@@ -256,7 +257,11 @@ function costProviderRow(
     if (role === 'costPerActionAverage' && actionCount === 0) {
         return unavailableCostRow(context, granularity, role, series, `completed ${series.provider} actions`);
     }
-    const estimatedCost = pointsUsed * (monthlySubscriptionCostUsd / 100);
+    const costPerPercentagePoint = subscriptionCostPerPercentagePoint(
+        monthlySubscriptionCostUsd,
+        series.windowDurationMinutes,
+    );
+    const estimatedCost = pointsUsed * costPerPercentagePoint;
     const value = role === 'costPerAgent' ? estimatedCost : estimatedCost / actionCount;
     const tooltipLines: StatsTooltipLine[] = [
         { label: null, value: formatBucketRange(context) },
@@ -355,7 +360,10 @@ function ratioSeriesRow(
         }];
     }
     const ratio = numerator / denominator;
-    const value = role === 'tokensPerDollar' ? ratio / (monthlySubscriptionCostUsd! / 100) : ratio;
+    const costPerPercentagePoint = role === 'tokensPerDollar'
+        ? subscriptionCostPerPercentagePoint(monthlySubscriptionCostUsd!, series.windowDurationMinutes)
+        : null;
+    const value = costPerPercentagePoint === null ? ratio : ratio / costPerPercentagePoint;
     const ratioLabel = isActionRatio
         ? 'completed actions per 1% of account limit used'
         : role === 'tokensPerDollar' ? 'project tokens per dollar' : 'project tokens per 1% of account limit used';

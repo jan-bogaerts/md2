@@ -243,13 +243,13 @@ describe('ProjectStatsService aggregation', () => {
             numerator: 1_000,
             seriesLabel: 'codex',
             unit: 'dollars',
-            value: 0.1,
+            value: 0.025,
         }])
-        expect(service.getSnapshot().rows[0].tooltip).toBe(`F_1: First\n${formatDollars(0.1)}\nPriced with: codex subscription rate`)
+        expect(service.getSnapshot().rows[0].tooltip).toBe(`F_1: First\n${formatDollars(0.025)}\nPriced with: codex subscription rate`)
 
         service.setControls({ totalsGrouping: 'action' })
         expect(service.getSnapshot().rows.map(({ actionId, displayLabel, value }) => ({ actionId, displayLabel, value }))).toEqual([
-            { actionId: 'review', displayLabel: 'Review', value: 0.1 },
+            { actionId: 'review', displayLabel: 'Review', value: 0.025 },
         ])
     })
 
@@ -275,7 +275,7 @@ describe('ProjectStatsService aggregation', () => {
         }), cards, agentProfiles)
         service.setControls({ dataset: 'totals', totalsGrouping: 'card', totalsMetric: 'cost' })
 
-        // codex: 1000 tokens per 10 points, claude: 1000 per 20 points, both at $1 per point.
+        // A weekly percentage point costs $0.25 in a fixed four-week month.
         expect(service.getSnapshot().rows).toMatchObject([{
             agent: null,
             available: true,
@@ -284,7 +284,7 @@ describe('ProjectStatsService aggregation', () => {
             seriesIdentity: 'mixed',
             seriesLabel: 'Mixed',
         }])
-        expect(service.getSnapshot().rows[0].value).toBeCloseTo(0.3, 10)
+        expect(service.getSnapshot().rows[0].value).toBeCloseTo(0.075, 10)
         expect(service.getSnapshot().rows[0].tooltip).toContain('Priced with: Mixed agents')
     })
 
@@ -742,8 +742,8 @@ describe('ProjectStatsService aggregation', () => {
             { denominator: 2, numerator: 10, provider: 'codex', value: 5 },
         ])
         expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole === 'tokensPerDollar')).toMatchObject([
-            { denominator: 4, numerator: 20, provider: 'claude', value: 2.5 },
-            { denominator: 2, numerator: 10, provider: 'codex', value: 5 },
+            { denominator: 4, numerator: 20, provider: 'claude', value: 336 },
+            { denominator: 2, numerator: 10, provider: 'codex', value: 20 },
         ])
         expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole === 'actionsPerAccountUsage')).toMatchObject([
             { denominator: 4, numerator: 1, provider: 'claude', value: 0.25 },
@@ -808,20 +808,20 @@ describe('ProjectStatsService aggregation', () => {
         }), cards, agentProfiles)
         service.setControls({ dataset: 'usageComparison' })
 
-        // $100 a month is $1 per percentage point, and only the weekly window counts for codex.
+        // A $100 subscription makes one weekly percentage point cost $0.25 in a fixed four-week month.
         expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole === 'costPerAgent')).toMatchObject([
             { available: false, provider: 'claude', unit: 'dollars', value: 0 },
-            { available: true, denominator: 100, numerator: 10, provider: 'codex', unit: 'dollars', value: 10 },
+            { available: true, denominator: 100, numerator: 10, provider: 'codex', unit: 'dollars', value: 2.5 },
         ])
         expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole === 'costPerActionAverage')).toMatchObject([
             { available: false, provider: 'claude', unit: 'dollars', value: 0 },
-            { available: true, denominator: 10, numerator: 1, provider: 'codex', unit: 'dollars', value: 10 },
+            { available: true, denominator: 10, numerator: 1, provider: 'codex', unit: 'dollars', value: 2.5 },
         ])
         const codexCost = service.getSnapshot().rows
             .find(({ chartRole, provider }) => chartRole === 'costPerAgent' && provider === 'codex')
 
-        expect(codexCost?.tooltip).toContain('Share of the monthly subscription consumed in this bucket, not a metered per-token price')
-        expect(codexCost?.tooltip).toContain(`Estimated cost: ${formatDollars(10)}`)
+        expect(codexCost?.tooltip).toContain('Estimated from the limit window\'s share of a fixed 28-day subscription month')
+        expect(codexCost?.tooltip).toContain(`Estimated cost: ${formatDollars(2.5)}`)
         expect(service.getSnapshot().rows.find(({ chartRole, provider }) => chartRole === 'costPerAgent' && provider === 'claude')?.tooltip)
             .toContain('Unavailable: monthly subscription cost for claude')
     })

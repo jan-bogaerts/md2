@@ -12,6 +12,7 @@ import { accountSeriesIdentity, actionLabel, cardDisplay } from './stats_identit
 import { inRange } from './stats_time_buckets';
 import { accessibleStatsTooltip, formatCount, formatDollars, formatDurationHms, statsTooltip, type StatsTooltipLine } from './stats_tooltip';
 import { longestWindowSeriesByProvider } from './stats_usage_comparison_dataset';
+import { subscriptionCostPerPercentagePoint } from './stats_subscription_cost';
 
 const MIXED_AGENT_IDENTITY = 'mixed';
 const UNKNOWN_AGENT_LABEL = 'Unknown agent';
@@ -202,7 +203,10 @@ function providerRates(source: LoadedStatsSource, controls: StatsControls) {
         else if (!profile) reason = 'matching agent profile is unavailable';
         else if (monthlySubscriptionCostUsd === undefined) reason = 'monthly subscription cost is not configured';
         else if (numerator <= 0) reason = 'positive provider token total is unavailable';
-        const tokensPerDollar = reason ? 0 : (numerator / denominator) / (monthlySubscriptionCostUsd! / 100);
+        const costPerPercentagePoint = reason
+            ? 0
+            : subscriptionCostPerPercentagePoint(monthlySubscriptionCostUsd!, series.windowDurationMinutes);
+        const tokensPerDollar = reason ? 0 : (numerator / denominator) / costPerPercentagePoint;
 
         rates.set(provider, {
             available: reason === null,

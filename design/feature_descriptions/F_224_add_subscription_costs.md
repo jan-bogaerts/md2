@@ -22,7 +22,7 @@ This allows the user to compare different agent configurations.
 
 Account cost is part of the agent profile and is configured with the rest of that agent's settings in the desktop config section. Do not create a separate subscription-cost config list.
 
-Prices are expressed per month. For this feature, a $100 subscription represents 100% account usage, so one percentage point is worth $1.
+Prices are expressed per month. Treat a month as four weeks (28 days) and allocate the price across the number of reported limit windows in that period. A weekly limit therefore exposes 400 percentage points per subscription month.
 
 ## Current state
 
@@ -39,18 +39,18 @@ Pieces this feature reuses:
 ## Implementation details
 
 * Extend `AgentProfile` with optional `monthlySubscriptionCostUsd`. Keep the field in `desktop.agentProfiles`; do not add another desktop config entry. Update the shared declaration, validation and normalization, app-side parity, desktop config tests, and the existing agent profile form. A configured value must be a finite number greater than zero. Absence means cost calculation is unavailable for that agent.
-* Dollar per percentage point for an agent is `monthlySubscriptionCostUsd / 100`. Match an account-usage provider to the agent profile with the same name.
+* Dollar per percentage point for an agent and account series is `monthlySubscriptionCostUsd / (100 * (40320 / windowDurationMinutes))`. Match an account-usage provider to the agent profile with the same name.
 * Extend `stats_usage_comparison_dataset.ts` so each existing tokens-per-percentage-point series also produces tokens per dollar. Divide its tokens-per-percentage-point value by the agent's dollar-per-percentage-point value. Preserve the account-series identity: a provider with multiple limit/window series produces a separate estimate for each series.
 * Extend the totals calculation and UI so cost per card and cost per action are estimates per account series, rather than implying that an agent has one universal tokens-per-dollar rate. For the active stats range, calculate each provider/series rate from that range's total provider tokens and positive account-usage deltas, convert matching conversations, and aggregate them by card or action. Label each cost result with its account series.
 * If the active range has no positive usage denominator, no matching agent profile, no configured subscription cost, or a conversation whose agent cannot be costed for that series, report the affected cost result as unavailable rather than returning a partial or zero result.
-* Do not prorate the subscription price by the selected date range. This feature values account-usage percentage points directly using the rule above, so no calendar-month or 28-day conversion is needed.
+* Do not prorate the subscription price by the selected stats range. Normalize every account percentage point by its reported window duration against the fixed 28-day subscription month.
 
 ## Acceptance criteria
 
 * User can enter an optional monthly subscription cost in USD while editing any built-in or custom agent profile in the existing desktop agent-profile editor.
 * Subscription cost remains part of `desktop.agentProfiles`; no parallel agent-price config or duplicate agent-to-price mapping is introduced.
-* A $100 configured monthly cost makes each percentage point of that agent's account usage worth $1 everywhere account usage is converted to dollars.
+* A $100 configured monthly cost makes each weekly account percentage point worth $0.25; other window durations are normalized against the same fixed 28-day month.
 * Existing tokens-per-percentage-point figures gain a tokens-per-dollar counterpart for every calculable account series without changing today's token-only figures.
 * Cost per card and cost per action are derived from already-tracked conversation tokens and shown per account series wherever per-card/per-action totals are shown today; the series is visible in the result label.
 * A cost result is unavailable, not zero or partial, when its required subscription price, positive usage denominator, matching series, or conversation cost is unavailable.
-* Selecting a shorter or longer stats range does not prorate the configured monthly subscription cost.
+* Selecting a shorter or longer stats range does not prorate the configured monthly subscription cost; the account window duration determines the conversion.

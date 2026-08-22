@@ -39,9 +39,9 @@ after: d9aa7d07-b618-4b83-9802-799c88174fb5
 
 **Token values filter.** `usageTokenAggregation` (`project_stats_types.ts`) with its `Token values` select in `stats_controls.tsx` switches `projectTokenRows` between the bucket token total and that total divided by the provider's completed agent actions in the same bucket, and switches the chart heading through the `CHARTS` label record. It applies to the `projectTokens` chart only, which is why it reads as a stray global filter.
 
-**Cost in the comparison view.** There is none. `tokensPerDollar` divides the bucket's tokens-per-percentage-point ratio by `monthlySubscriptionCostUsd / 100` (dollars per one percent of the subscription window), taken from the agent profile (`shared/agent_profiles.mjs`). No chart shows dollars.
+**Cost in the comparison view.** There is none. `tokensPerDollar` derives dollars from the configured monthly subscription price and the account-series window duration. No chart shows dollars.
 
-**Cost per token.** No agent profile carries a per-token price; `monthlySubscriptionCostUsd` is the only money in the model. Cost is therefore always *derived*: dollars per percentage point × percentage points consumed. `seriesRates` in `stats_totals_dataset.ts` computes one rate per **account series** (`provider / limitId / windowId`) over the whole selected range, so a provider reporting several limit windows (claude reports a weekly and a 5-hour window) yields several competing rates.
+**Cost per token.** No agent profile carries a per-token price; `monthlySubscriptionCostUsd` is the only money in the model. Cost is therefore always *derived*: window-normalized dollars per percentage point × percentage points consumed. `seriesRates` in `stats_totals_dataset.ts` computes one rate per **account series** (`provider / limitId / windowId`) over the whole selected range, so a provider reporting several limit windows (claude reports a weekly and a 5-hour window) yields several competing rates.
 
 **Totals by card/action.** `costTotalsRows` emits one row per *card × agent × account series*, so a single card produces several bars. `displayLabel` is `"<card id> / <provider> / <limitId> / <windowId>"`, which is also the text under the bar, and `seriesLabel` (the legend entry) is the same `provider / limitId / windowId` triple — that is where the account name in the legend comes from. Tooltips in this dataset are still the old semicolon strings (`totalRow`, `costRow`, `unavailableAgentRow`); `cardDisplay` (`stats_identities.ts`) builds `"<id>: <title>; <path>"`, which is where the file path in the tooltip comes from. Duration totals print raw milliseconds. The `Totals` chart legend is `StatsBarChart`'s own legend and is already sticky.
 
@@ -82,14 +82,14 @@ Add two `grouped` charts after `Tokens per dollar`: **`Estimated cost per agent`
 
 Rate rule (decided): each provider uses the account series with the **largest `windowDurationMinutes`**; ties break on the lexicographically smallest series identity. Add `longestWindowSeriesByProvider(seriesOptions)` to `stats_usage_comparison_dataset.ts` and reuse it in the totals dataset.
 
-Per bucket, per provider, with `pointsUsed` the sum of positive `usedPercentDelta` of that series in that bucket and `dollarsPerPoint = monthlySubscriptionCostUsd / 100`:
+Per bucket, per provider, with `pointsUsed` the sum of positive `usedPercentDelta` of that series in that bucket, a fixed 28-day subscription month, and `dollarsPerPoint = monthlySubscriptionCostUsd / (100 * (40320 / windowDurationMinutes))`:
 
 ```
 estimatedCost        = pointsUsed * dollarsPerPoint
 averageCostPerAction = estimatedCost / completed agent actions of that provider in the bucket
 ```
 
-**Note this consequence, and state it in the tooltip:** with a per-bucket rate the token term cancels out — `tokens / ((tokens / pointsUsed) / dollarsPerPoint)` reduces to `pointsUsed * dollarsPerPoint`. So the cost chart is the account-usage chart expressed in the subscription's money, not an independent measurement; the upside is that it stays correct when a bucket has account usage but no recorded project tokens. Emit `unavailableTimeRow` for a bucket when the provider has no positive delta or the profile has no `monthlySubscriptionCostUsd`; emit an unavailable row for the average when the action count is 0. Set `numerator` (actions or points) and `denominator` on the rows so the CSV keeps the inputs.
+**Note this consequence, and state it in the tooltip:** with a per-bucket rate the token term cancels out — `tokens / ((tokens / pointsUsed) / dollarsPerPoint)` reduces to `pointsUsed * dollarsPerPoint`. So the cost chart is the account-usage chart expressed as a window-normalized share of the subscription, not an independent measurement; the upside is that it stays correct when a bucket has account usage but no recorded project tokens. Emit `unavailableTimeRow` for a bucket when the provider has no positive delta or the profile has no `monthlySubscriptionCostUsd`; emit an unavailable row for the average when the action count is 0. Set `numerator` (actions or points) and `denominator` on the rows so the CSV keeps the inputs.
 
 ### 5. Totals by card/action: one bar per group, agent legend, mixed detection
 
@@ -135,7 +135,7 @@ Verify with `npm run typecheck` and the vitest suites in `app/`.
 * In *Project usage vs account usage*, each chart's heading stays pinned to the left edge while scrolling horizontally, exactly as its legend already does.
 * The `Token values` select is gone. *Project usage vs account usage* lists both `Project token usage (totals)` and `Project token usage (average per action)`, each labelled with what it shows, the average being bucket tokens divided by that provider's completed actions in the same bucket.
 * Two new charts appear: `Estimated cost per agent` (per bucket, per agent) and `Average cost per action`, in dollars, one series per agent, with buckets marked unavailable when the agent has no positive account usage or no configured monthly subscription cost.
-* Cost tooltips state that the estimate is the share of the monthly subscription consumed in that bucket, so it is never read as a metered per-token price.
+* Cost tooltips state that the estimate normalizes the account limit window against a fixed 28-day subscription month, so it is never read as a metered per-token price.
 * In *Totals by Card/Action*, each card or action is a single bar; its tooltip is exactly `<id>: <title>` on the first line and the value on the second, with no file path anywhere.
 * Time-based totals in tooltips read as `HH:MM:SS`, not raw milliseconds.
 * The label under a bar in *Totals by Card/Action* shows only the card id (or action label) — no agent, model, account or window.
