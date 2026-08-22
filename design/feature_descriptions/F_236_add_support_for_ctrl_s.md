@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__b632dc97-1096-488d-aae6-82c1516fa0b0.json
 policy:
-branch: f_236_add_support_for_ctrl_s
-worktree: 1
 ---
 shortcut to save / commit the project.
 
