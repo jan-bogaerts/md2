@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__269f5e9f-dbe4-4818-bd5a-7915bba398af.json
 policy:
-branch: f_227_remove_gpt_5_3_codex_spark_from_account_usage
-worktree: 2
 ---
 for codex, we currently still show account usage for `GPT-5.3-Codex-Spark` . we don't support this model in the app, so no need to show account usage for this, also no need to track it. in fact, this may be removed everywhere that it might be used in code (ex: charts)
 
