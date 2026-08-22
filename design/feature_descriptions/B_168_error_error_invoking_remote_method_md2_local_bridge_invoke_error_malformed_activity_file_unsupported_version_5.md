@@ -13,7 +13,6 @@ sentryIssueId: 142079375
 sentryOrganization: elastetic
 after: 545671dd-18d4-4878-93b9-0ed24f2077fa
 ---
-
 ## Sentry issue
 
 **Title:** Error: Error invoking remote method 'md2-local-bridge:invoke': Error: Malformed activity file: unsupported version 5
@@ -38,4 +37,4 @@ after: 545671dd-18d4-4878-93b9-0ed24f2077fa
 
 ### Application stack frames
 
-- No application stack frames provided.
+* No application stack frames provided.
