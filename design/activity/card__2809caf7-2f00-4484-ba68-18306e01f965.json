@@ -5222,15 +5222,15 @@
           "agent": "codex",
           "conversationId": "01a02a09-9b12-7e02-aadb-80b08184452c",
           "createdAt": "2026-08-22T15:19:08.220Z",
-          "lastUsedAt": "2026-08-22T15:20:10.989Z",
-          "synchronizedThroughMessageId": "agent-turn-aa7757cc-0135-41e0-9697-43ef6aec624a-turn-1-assistant-4"
+          "lastUsedAt": "2026-08-22T15:23:52.487Z",
+          "synchronizedThroughMessageId": "agent-turn-21927439-a988-402b-9c56-566a945f5b02-turn-1-assistant-5"
         }
       ],
       "startedAt": "2026-08-22T15:14:27.026Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
-        "elapsedMs": 281194,
-        "runningStartedAt": "2026-08-22T15:20:23.288Z"
+        "elapsedMs": 490393,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {

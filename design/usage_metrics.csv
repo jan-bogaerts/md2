@@ -960,3 +960,6 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-08-22T14:54:00.710Z,account_usage,codex,codex,primary,10080,2026-08-27T11:36:41.000Z,,,,,,34,1
 2026-08-22T15:03:27.875Z,token_usage,codex,,,,,170511,12449024,21378,13263,12654176,,
 2026-08-22T15:19:08.220Z,token_usage,codex,,,,,101730,2025856,5276,3305,2136167,,
+2026-08-22T15:22:18.333Z,account_usage,codex,codex,primary,10080,2026-08-27T11:36:42.000Z,,,,,,35,1
+2026-08-22T15:22:25.302Z,account_usage,codex,codex,primary,10080,2026-08-27T11:36:41.000Z,,,,,,35,0
+2026-08-22T15:23:52.487Z,token_usage,codex,,,,,35501,1334784,2572,2270,1375127,,
