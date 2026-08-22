@@ -1,4 +1,5 @@
 const { normalizedContent } = require('./agent_event_utils');
+const { countFileContentLines, countPatchLines } = require('./agent_file_change');
 const { boundedAgentResult } = require('../../../../shared/agent_conversations.mjs');
 
 const MAX_EVENT_CONTENT_LENGTH = 16_384;
@@ -105,25 +106,14 @@ function fileChangeContent(changes) {
         .join('\n');
 }
 
-/** Count lines in complete added or deleted file content without treating a terminal newline as another line. */
-function countFileContentLines(content) {
-    if (typeof content !== 'string') return null;
-    if (content.length === 0) return 0;
-
-    const lines = content.replace(/\r\n/gu, '\n').split('\n');
-
-    return lines.at(-1) === '' ? lines.length - 1 : lines.length;
-}
-
 /** Count content-line additions and removals in one structurally valid unified diff. */
 function countUnifiedDiffLines(diff) {
     if (typeof diff !== 'string' || diff.length === 0) return null;
 
-    let deletions = 0;
     let foundHunk = false;
-    let insertions = 0;
     let oldLinesRemaining = 0;
     let newLinesRemaining = 0;
+    const patchLines = [];
     for (const line of diff.replace(/\r/gu, '').split('\n')) {
         if (oldLinesRemaining === 0 && newLinesRemaining === 0) {
             const match = UNIFIED_DIFF_HUNK_PATTERN.exec(line);
@@ -136,10 +126,8 @@ function countUnifiedDiffLines(diff) {
         }
         if (line.startsWith('\\ No newline at end of file')) continue;
         if (line.startsWith('+')) {
-            insertions += 1;
             newLinesRemaining -= 1;
         } else if (line.startsWith('-')) {
-            deletions += 1;
             oldLinesRemaining -= 1;
         } else if (line.startsWith(' ')) {
             oldLinesRemaining -= 1;
@@ -147,11 +135,12 @@ function countUnifiedDiffLines(diff) {
         } else {
             return null;
         }
+        patchLines.push(line);
         if (oldLinesRemaining < 0 || newLinesRemaining < 0) return null;
     }
     if (!foundHunk || oldLinesRemaining !== 0 || newLinesRemaining !== 0) return null;
 
-    return { deletions, insertions };
+    return countPatchLines(patchLines);
 }
 
 function fileChangeLineUsage(changes) {
