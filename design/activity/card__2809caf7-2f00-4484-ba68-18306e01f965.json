@@ -5247,10 +5247,10 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": "2809caf7-2f00-4484-ba68-18306e01f965",
       "cardPath": "design/feature_descriptions/F_233_stats_improvements.md",
-      "completedAt": "2026-08-22T16:04:38.212Z",
+      "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 122639
+        "usedTokens": 183211
       },
       "entries": [
         {
@@ -7127,6 +7127,306 @@
           "summary": [],
           "timestamp": "2026-08-22T16:04:34.559Z",
           "type": "reasoning"
+        },
+        {
+          "content": "we don't want the all or nothing behaviour. fix it so that errors are skipped",
+          "id": "agent-turn-75b7519b-c573-4e10-a2a3-be5873764ed2-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 143,
+          "timestamp": "2026-08-22T16:04:59.267Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-75b7519b-c573-4e10-a2a3-be5873764ed2-event-144",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0236ce82b0051e48016a89c8b217cc87d2acac1b7904c4b5fe",
+          "sequence": 144,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T16:05:09.974Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll change cost grouping to sum every priceable conversation, skip only unpriceable ones, and keep the skipped-run reasons in the tooltip. This directly changes the one `groupCost` caller; card and action grouping should both receive the same partial-result behavior. I’ll update the two tests and the F_224 requirement that currently mandates all-or-nothing.\n\n",
+          "id": "agent-turn-75b7519b-c573-4e10-a2a3-be5873764ed2-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 145,
+          "timestamp": "2026-08-22T16:05:12.203Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app\\\\src\\\\services\\\\stats\\\\project_stats_service.node.test.ts' | Select-Object -Skip 250 -First 120; Get-Content 'design\\\\feature_descriptions\\\\F_224_add_subscription_costs.md' | Select-Object -Skip 38 -First 22; rg -n \\\"partial|unpriced|Not priced|priced\\\" design/feature_descriptions/F_242_stats_improvements.md app/src/services/stats --glob '*.ts'\"",
+          "content": "        expect(service.getSnapshot().rows.map(({ actionId, displayLabel, value }) => ({ actionId, displayLabel, value }))).toEqual([\r\n            { actionId: 'review', displayLabel: 'Review', value: 0.025 },\r\n        ])\r\n    })\r\n\r\n    it('prices a mixed card per run and labels its series Mixed', async () => {\r\n        const codexConversation = conversation({ id: 'codex-conversation' })\r\n        const claudeConversation = conversation({ id: 'claude-conversation' })\r\n        const records = [\r\n            agentRecord('codex-run', '2026-08-12T10:00:00.000Z', codexConversation.id),\r\n            agentRecord('claude-run', '2026-08-12T10:30:00.000Z', claudeConversation.id, {details: { agent: 'claude', model: 'sonnet', type: 'agent' }}),\r\n        ]\r\n        const metrics = [\r\n            metricsHeader,\r\n            '2026-08-12T09:00:00.000Z,token_usage,codex,,,,,997,1,1,1,1000,,',\r\n            '2026-08-12T09:30:00.000Z,token_usage,claude,,,,,997,1,1,1,1000,,',\r\n            '2026-08-12T11:00:00.000Z,account_usage,codex,weekly,window-a,10080,2026-08-17T00:00:00.000Z,,,,,,50,10',\r\n            '2026-08-12T11:30:00.000Z,account_usage,claude,weekly,window-c,10080,2026-08-17T00:00:00.000Z,,,,,,50,20',\r\n        ].join('\\r\\n')\r\n        const agentProfiles = BUILTIN_AGENT_PROFILES.map((profile) => ({ ...profile, monthlySubscriptionCostUsd: 100 }))\r\n        const service = new ProjectStatsService()\r\n        await openService(service, storage({\r\n            'design/activity/card__card-1.json': activityContent({ conversations: [codexConversation, claudeConversation], records }),\r\n            'design/usage_metrics.csv': metrics,\r\n        }), cards, agentProfiles)\r\n        service.setControls({ dataset: 'totals', totalsGrouping: 'card', totalsMetric: 'cost' })\r\n\r\n        // A weekly percentage point costs $0.25 in a fixed four-week month.\r\n        expect(service.getSnapshot().rows).toMatchObject([{\r\n            agent: null,\r\n            available: true,\r\n            displayLabel: 'F_1',\r\n            sampleCount: 2,\r\n            seriesIdentity: 'mixed',\r\n            seriesLabel: 'Mixed',\r\n        }])\r\n        expect(service.getSnapshot().rows[0].value).toBeCloseTo(0.075, 10)\r\n        expect(service.getSnapshot().rows[0].tooltip).toContain('Priced with: Mixed agents')\r\n    })\r\n\r\n    it('marks a partially priced multi-agent card unavailable', async () => {\r\n        const codexConversation = conversation({ id: 'codex-conversation' })\r\n        const claudeConversation = conversation({ id: 'claude-conversation' })\r\n        const records = [\r\n            agentRecord('codex-run', '2026-08-12T10:00:00.000Z', codexConversation.id),\r\n            agentRecord('claude-run', '2026-08-12T10:30:00.000Z', claudeConversation.id, { details: { agent: 'claude', model: 'sonnet', type: 'agent' } }),\r\n        ]\r\n        const metrics = [\r\n            metricsHeader,\r\n            '2026-08-12T09:00:00.000Z,token_usage,codex,,,,,997,1,1,1,1000,,',\r\n            '2026-08-12T09:30:00.000Z,token_usage,claude,,,,,997,1,1,1,1000,,',\r\n            '2026-08-12T11:00:00.000Z,account_usage,codex,weekly,window-a,10080,2026-08-17T00:00:00.000Z,,,,,,50,10',\r\n            '2026-08-12T11:30:00.000Z,account_usage,claude,weekly,window-c,10080,2026-08-17T00:00:00.000Z,,,,,,50,20',\r\n        ].join('\\r\\n')\r\n        const agentProfiles = BUILTIN_AGENT_PROFILES.map((profile) => (\r\n            profile.name === 'codex' ? { ...profile, monthlySubscriptionCostUsd: 100 } : profile\r\n        ))\r\n        const service = new ProjectStatsService()\r\n        await openService(service, storage({\r\n            'design/activity/card__card-1.json': activityContent({ conversations: [codexConversation, claudeConversation], records }),\r\n            'design/usage_metrics.csv': metrics,\r\n        }), cards, agentProfiles)\r\n        service.setControls({ dataset: 'totals', totalsGrouping: 'card', totalsMetric: 'cost' })\r\n\r\n        expect(service.getSnapshot().rows).toMatchObject([{\r\n            agent: null,\r\n            available: false,\r\n            seriesIdentity: 'mixed',\r\n            seriesLabel: 'Mixed\n[5864 characters omitted]\nnator, matching series, or conversation cost is unavailable.\r\n* Selecting a shorter or longer stats range does not prorate the configured monthly subscription cost; the account window duration determines the conversion.\r\ndesign/feature_descriptions/F_242_stats_improvements.md:99:* `costTotalsRows` emits **one row per card (or action)**. Its value is `Σ over conversations of conversation.totalTokens / tokensPerDollar(conversation.agent)`, so a card whose actions ran on different agents is priced per action with that action's agent rate.\ndesign/feature_descriptions/F_242_stats_improvements.md:101:* Conversations whose agent has no usable rate contribute 0 and add one tooltip line, `Not priced: <n> run(s) (<reason>)`. When no conversation can be priced, the row stays `available: false` with the reason and value 0.\ndesign/feature_descriptions/F_242_stats_improvements.md:115:Line 1 is `<id>: <title>` for cards, the action label for actions. Line 2 is the formatted value: `formatDurationHms` for `milliseconds`, `formatCount` for tokens, currency for dollars. The cost row adds a `Priced with: <agent> subscription rate` line (or `Mixed agents`) and any not-priced note.\ndesign/feature_descriptions/F_242_stats_improvements.md:143:* A mixed card's cost is the sum over its actions of that action's tokens priced at its own agent's rate, and runs that cannot be priced are called out in the tooltip instead of silently dropping the bar.\napp/src/services/stats\\project_stats_service.node.test.ts:291:    it('marks a partially priced multi-agent card unavailable', async () => {\napp/src/services/stats\\project_stats_service.node.test.ts:323:        expect(service.getSnapshot().rows[0].tooltip).toContain('Not priced: 1 run (monthly subscription cost is not configured)')\napp/src/services/stats\\project_stats_service.node.test.ts:326:    it('marks unpriced and unattributed conversation costs unavailable instead of returning partial totals', async () => {\napp/src/services/stats\\project_stats_service.node.test.ts:345:        expect(service.getSnapshot().rows[0].tooltip).toContain('Not priced: 1 run (monthly subscription cost is not configured)')\napp/src/services/stats\\project_stats_service.node.test.ts:346:        expect(service.getSnapshot().rows[0].tooltip).toContain('Not priced: 1 run (matching account series is unavailable)')\napp/src/services/stats\\project_stats_service.node.test.ts:792:    it('prices account usage per agent in dollars from the longest window and flags unpriced agents', async () => {\napp/src/services/stats\\stats_usage_comparison_dataset.ts:310:            return [unavailableTimeRow(context, granularity, role, role, 'dollars', 'account usage priced by a subscription')];\napp/src/services/stats\\stats_totals_dataset.ts:44:    priced: boolean;\napp/src/services/stats\\stats_totals_dataset.ts:48:    unpricedByReason: Map<string, number>;\napp/src/services/stats\\stats_totals_dataset.ts:228:    const unpricedByReason = new Map<string, number>();\napp/src/services/stats\\stats_totals_dataset.ts:238:        unpricedByReason.set(reason, (unpricedByReason.get(reason) ?? 0) + 1);\napp/src/services/stats\\stats_totals_dataset.ts:241:    const unpricedRunCount = [...unpricedByReason.values()].reduce((total, count) => total + count, 0);\napp/src/services/stats\\stats_totals_dataset.ts:242:    const priced = unpricedRunCount === 0;\napp/src/services/stats\\stats_totals_dataset.ts:245:        priced,\napp/src/services/stats\\stats_totals_dataset.ts:248:        unpricedByReason,\napp/src/services/stats\\stats_totals_dataset.ts:249:        value: priced ? value : 0,\napp/src/services/stats\\stats_totals_dataset.ts:259:    const { priced, rate, singleAgent, unpricedByReason, value } = groupCost(group, rates);\napp/src/services/stats\\stats_totals_dataset.ts:264:    for (const [reason, count] of unpricedByReason) {\napp/src/services/stats\\stats_totals_dataset.ts:265:        extraLines.push({ label: null, value: `Not priced: ${count} run${count === 1 ? '' : 's'} (${reason})` });\napp/src/services/stats\\stats_totals_dataset.ts:272:        available: priced,\n",
+          "durationMs": 54,
+          "exitCode": 0,
+          "id": "agent-turn-75b7519b-c573-4e10-a2a3-be5873764ed2-event-146",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app\\\\src\\\\services\\\\stats\\\\project_stats_service.node.test.ts' | Select-Object -Skip 250 -First 120; Get-Content 'design\\\\feature_descriptions\\\\F_224_add_subscription_costs.md' | Select-Object -Skip 38 -First 22; rg -n \\\"partial|unpriced|Not priced|priced\\\" design/feature_descriptions/F_242_stats_improvements.md app/src/services/stats --glob '*.ts'\"",
+          "providerItemId": "exec-c7214930-8e46-4641-9dff-68f9eb2457ab",
+          "sequence": 146,
+          "status": "completed",
+          "timestamp": "2026-08-22T16:05:15.161Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-75b7519b-c573-4e10-a2a3-be5873764ed2-event-147",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0236ce82b0051e48016a89c8be889087d28e267752400e0a6d",
+          "sequence": 147,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T16:05:29.460Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\app\\src\\services\\stats\\project_stats_service.node.test.ts\nupdate: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\app\\src\\services\\stats\\stats_totals_dataset.ts\nupdate: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\design\\feature_descriptions\\F_224_add_subscription_costs.md\nupdate: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\design\\feature_descriptions\\F_242_stats_improvements.md",
+          "deletions": 20,
+          "id": "agent-turn-75b7519b-c573-4e10-a2a3-be5873764ed2-event-148",
+          "insertions": 24,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-37d27598-6fa9-4b4c-bff2-f5131a535c49",
+          "sequence": 148,
+          "status": "completed",
+          "timestamp": "2026-08-22T16:05:53.474Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-75b7519b-c573-4e10-a2a3-be5873764ed2-event-149",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0236ce82b0051e48016a89c8e484dc87d2aaa11ab8920a6d02",
+          "sequence": 149,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T16:05:54.993Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"Not priced:|priced|unpricedRunCount|value: priced\\\" app/src/services/stats design/feature_descriptions/F_224_add_subscription_costs.md design/feature_descriptions/F_242_stats_improvements.md --glob '*.ts' --glob '*.md'; npm run test -- src/services/stats/project_stats_service.node.test.ts\"",
+          "content": "\n> app@0.4.3 test\n> vitest run src/services/stats/project_stats_service.node.test.ts\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev3/app\n\n\n Test Files  1 passed (1)\n      Tests  30 passed (30)\n   Start at  18:05:58\n   Duration  366ms (transform 150ms, setup 14ms, import 190ms, tests 53ms, environment 0ms)\n\n",
+          "durationMs": 917,
+          "exitCode": 0,
+          "id": "agent-turn-75b7519b-c573-4e10-a2a3-be5873764ed2-event-150",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"Not priced:|priced|unpricedRunCount|value: priced\\\" app/src/services/stats design/feature_descriptions/F_224_add_subscription_costs.md design/feature_descriptions/F_242_stats_improvements.md --glob '*.ts' --glob '*.md'; npm run test -- src/services/stats/project_stats_service.node.test.ts\"",
+          "providerItemId": "exec-9e406390-ddbf-48c5-84ef-36cb135b13e8",
+          "sequence": 150,
+          "status": "completed",
+          "timestamp": "2026-08-22T16:05:58.789Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\app"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-75b7519b-c573-4e10-a2a3-be5873764ed2-event-151",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0236ce82b0051e48016a89c8ea1fdc87d2b00aa14bd9708948",
+          "sequence": 151,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T16:06:02.225Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "The regression now passes for action grouping: a priced conversation contributes its cost even when another conversation in the same action is skipped. A fully unpriceable group remains unavailable. I’m checking for stale wording and running the required lint/type/unit verification next.\n\n",
+          "id": "agent-turn-75b7519b-c573-4e10-a2a3-be5873764ed2-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 152,
+          "timestamp": "2026-08-22T16:06:03.452Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"Not priced:|marks a partially|unpricedRunCount|value: priced|not zero or partial\\\" app/src/services/stats design/feature_descriptions/F_224_add_subscription_costs.md design/feature_descriptions/F_242_stats_improvements.md --glob '*.ts' --glob '*.md'; rg --files design | rg 'project_stats\\\\.json\"'$'\"'\"",
+          "content": "",
+          "durationMs": 42,
+          "exitCode": 1,
+          "id": "agent-turn-75b7519b-c573-4e10-a2a3-be5873764ed2-event-153",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"Not priced:|marks a partially|unpricedRunCount|value: priced|not zero or partial\\\" app/src/services/stats design/feature_descriptions/F_224_add_subscription_costs.md design/feature_descriptions/F_242_stats_improvements.md --glob '*.ts' --glob '*.md'; rg --files design | rg 'project_stats\\\\.json\"'$'\"'\"",
+          "providerItemId": "exec-cad8d4dc-3954-42f2-ac20-94403aad5823",
+          "sequence": 153,
+          "status": "failed",
+          "timestamp": "2026-08-22T16:06:05.782Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-75b7519b-c573-4e10-a2a3-be5873764ed2-event-154",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0236ce82b0051e48016a89c8f1884487d287eb8de1b5d5a693",
+          "sequence": 154,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T16:06:08.028Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint-fix'",
+          "content": "\n> app@0.4.3 lint-fix\n> eslint . --fix\n\n",
+          "durationMs": 14508,
+          "exitCode": 0,
+          "id": "agent-turn-75b7519b-c573-4e10-a2a3-be5873764ed2-event-155",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint-fix'",
+          "providerItemId": "exec-8704389b-13f4-4b55-ba99-789d377c94a0",
+          "sequence": 155,
+          "status": "completed",
+          "timestamp": "2026-08-22T16:06:24.062Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\app"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-75b7519b-c573-4e10-a2a3-be5873764ed2-event-156",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0236ce82b0051e48016a89c9037dd887d2b63fb0f7de71909a",
+          "sequence": 156,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T16:06:25.834Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
+          "content": "\n> app@0.4.3 lint\n> eslint .\n\n",
+          "durationMs": 15861,
+          "exitCode": 0,
+          "id": "agent-turn-75b7519b-c573-4e10-a2a3-be5873764ed2-event-157",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
+          "providerItemId": "exec-36ee37b4-5336-4248-af36-34e6c5590c1e",
+          "sequence": 157,
+          "status": "completed",
+          "timestamp": "2026-08-22T16:06:45.506Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\app"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test:unit'",
+          "content": "\n> app@0.4.3 test:unit\n> vitest run --project unit\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev3/app\n\n\n Test Files  101 passed (101)\n      Tests  868 passed (868)\n   Start at  18:06:30\n   Duration  5.60s (transform 1.13s, setup 134ms, import 2.72s, tests 2.50s, environment 0ms)\n\n",
+          "durationMs": 6270,
+          "exitCode": 0,
+          "id": "agent-turn-75b7519b-c573-4e10-a2a3-be5873764ed2-event-158",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test:unit'",
+          "providerItemId": "exec-527f97ef-f49b-4d1a-9c85-91d2ae30f9d5",
+          "sequence": 158,
+          "status": "completed",
+          "timestamp": "2026-08-22T16:06:36.010Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\app"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run typecheck'",
+          "content": "\n> app@0.4.3 typecheck\n> tsc --noEmit\n\n",
+          "durationMs": 10908,
+          "exitCode": 0,
+          "id": "agent-turn-75b7519b-c573-4e10-a2a3-be5873764ed2-event-159",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run typecheck'",
+          "providerItemId": "exec-c21ac7de-4ac6-4124-9789-3c0a6780dcff",
+          "sequence": 159,
+          "status": "completed",
+          "timestamp": "2026-08-22T16:06:40.764Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\app"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-75b7519b-c573-4e10-a2a3-be5873764ed2-event-160",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0236ce82b0051e48016a89c9192e5c87d291a47301d4ec768a",
+          "sequence": 160,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T16:06:47.774Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git diff --check; git status --short; git diff -- app/src/services/stats/stats_totals_dataset.ts app/src/services/stats/project_stats_service.node.test.ts design/feature_descriptions/F_224_add_subscription_costs.md design/feature_descriptions/F_242_stats_improvements.md'",
+          "content": "warning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\nwarning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\n M app/src/services/stats/project_stats_service.node.test.ts\n M app/src/services/stats/stats_totals_dataset.ts\n M design/feature_descriptions/F_224_add_subscription_costs.md\n M design/feature_descriptions/F_242_stats_improvements.md\n?? .claude/\ndiff --git a/app/src/services/stats/project_stats_service.node.test.ts b/app/src/services/stats/project_stats_service.node.test.ts\nindex e99a651a..fc70fc64 100644\n--- a/app/src/services/stats/project_stats_service.node.test.ts\n+++ b/app/src/services/stats/project_stats_service.node.test.ts\n@@ -288,7 +288,7 @@ describe('ProjectStatsService aggregation', () => {\n         expect(service.getSnapshot().rows[0].tooltip).toContain('Priced with: Mixed agents')\n     })\n \n-    it('marks a partially priced multi-agent card unavailable', async () => {\n+    it('keeps an action cost subtotal when one conversation cannot be priced', async () => {\n         const codexConversation = conversation({ id: 'codex-conversation' })\n         const claudeConversation = conversation({ id: 'claude-conversation' })\n         const records = [\n@@ -310,20 +310,22 @@ describe('ProjectStatsService aggregation', () => {\n             'design/activity/card__card-1.json': activityContent({ conversations: [codexConversation, claudeConversation], records }),\n             'design/usage_metrics.csv': metrics,\n         }), cards, agentProfiles)\n-        service.setControls({ dataset: 'totals', totalsGrouping: 'card', totalsMetric: 'cost' })\n+        service.setControls({ dataset: 'totals', totalsGrouping: 'action', totalsMetric: 'cost' })\n \n         expect(service.getSnapshot().rows).toMatchObject([{\n+            actionId: 'review',\n             agent: null,\n-            available: false,\n+            available: true,\n             seriesIdentity: 'mixed',\n             seriesLabel: 'Mixed',\n-            value: 0,\n+            value: 0.025,\n         }])\n         expect(service.getSnapshot().rows[0].tooltip).toContain('Priced with: Mixed agents')\n-        expect(service.getSnapshot().rows[0].tooltip).toContain('Not priced: 1 run (monthly subscription cost is not configured)')\n+        expect(service.getSnapshot().rows[0].tooltip)\n+            .toContain('Skipped from estimate: 1 run (monthly subscription cost is not configured)')\n     })\n \n-    it('marks unpriced and unattributed conversation costs unavailable instead of returning partial totals', async () => {\n+    it('marks a group unavailable when no conversation can be priced', async () => {\n         const codexConversation = conversation()\n         const unknownConversation = conversation({ id: 'conversation-2' })\n         const records = [agentRecord('run-1', '2026-08-12T10:00:00.000Z', codexConversation.id)]\n@@ -342,8 +344,10 @@ describe('ProjectStatsService aggregation', () => {\n         expect(service.getSnapshot().rows).toEqual([\n             expect.objectContaining({ available: false, displayLabel: 'F_1', sampleCount: 2, seriesLabel: 'Mixed', value: 0 }),\n         ])\n-        expect(service.getSnapshot().rows[0].tooltip).toContain('Not priced: 1 run (monthly subscription cost is not configured)')\n-        expect(service.getSnapshot().rows[0].tooltip).toContain('Not priced: 1 run (matching account series is unavailable)')\n+        expect(service.getSnapshot().rows[0].tooltip)\n+            .toContain('Skipped from estimate: 1 run (monthly subscription cost is not configured)')\n+        expect(service.getSnapshot().rows[0].tooltip)\n+            .toContain('Skipped from estimate: 1 run (matching account series is unavailable)')\n     })\n \n     it('uses metrics deltas for UTC day, ISO-week, and month token buckets', async () => {\ndiff --git a/app/src/services/stats/stats_totals_dataset.ts b/app/src/services/stats/stats_totals_dataset.ts\nindex cc633d97..e52c79a8 100644\n--- a/app/src/services/stats/stats_totals_dataset.ts\n+++ b/app/src/services/stats/stats_totals_dataset.ts\n@@ -41,7 +41,7 @@ interface\n[4754 characters omitted]\nported window duration against the fixed 28-day subscription month.\n \n ## Acceptance criteria\n@@ -52,5 +52,5 @@ Pieces this feature reuses:\n * A $100 configured monthly cost makes each weekly account percentage point worth $0.25; other window durations are normalized against the same fixed 28-day month.\n * Existing tokens-per-percentage-point figures gain a tokens-per-dollar counterpart for every calculable account series without changing today's token-only figures.\n * Cost per card and cost per action are derived from already-tracked conversation tokens and shown per account series wherever per-card/per-action totals are shown today; the series is visible in the result label.\n-* A cost result is unavailable, not zero or partial, when its required subscription price, positive usage denominator, matching series, or conversation cost is unavailable.\n+* A cost result includes every priceable conversation and reports skipped-run counts and reasons. It is unavailable only when none of its conversations can be priced.\n * Selecting a shorter or longer stats range does not prorate the configured monthly subscription cost; the account window duration determines the conversion.\ndiff --git a/design/feature_descriptions/F_242_stats_improvements.md b/design/feature_descriptions/F_242_stats_improvements.md\nindex aef8a426..833134e6 100644\n--- a/design/feature_descriptions/F_242_stats_improvements.md\n+++ b/design/feature_descriptions/F_242_stats_improvements.md\n@@ -98,7 +98,7 @@ In `stats_totals_dataset.ts`:\n * `seriesRates` returns **one rate per provider**, from the longest-window series (same rule as above) over the selected range. Drop the per-series fan-out.\n * `costTotalsRows` emits **one row per card (or action)**. Its value is `Σ over conversations of conversation.totalTokens / tokensPerDollar(conversation.agent)`, so a card whose actions ran on different agents is priced per action with that action's agent rate.\n * Series identity and legend label: the single agent name when every counted conversation shares one agent, otherwise identity `mixed` with label `Mixed`. The account name, limit id and window id disappear from the legend. The model is not shown, because a card's actions routinely mix models within one agent.\n-* Conversations whose agent has no usable rate contribute 0 and add one tooltip line, `Not priced: <n> run(s) (<reason>)`. When no conversation can be priced, the row stays `available: false` with the reason and value 0.\n+* Conversations whose agent has no usable rate are skipped and add one tooltip line, `Skipped from estimate: <n> run(s) (<reason>)`. Priceable conversations still produce a subtotal; only a row with no priceable conversation stays `available: false` with value 0.\n * `displayLabel` becomes the card id (or action label) alone, so the text under the bar carries no agent or model. Delete `unavailableAgentRow`, now covered by the unavailable branch above.\n \n ### 6. Totals tooltips\n@@ -140,7 +140,7 @@ Verify with `npm run typecheck` and the vitest suites in `app/`.\n * Time-based totals in tooltips read as `HH:MM:SS`, not raw milliseconds.\n * The label under a bar in *Totals by Card/Action* shows only the card id (or action label) — no agent, model, account or window.\n * The estimated-cost legend names the agent, or `Mixed` for a card whose actions ran on more than one agent; no account name, limit id or window id appears in it.\n-* A mixed card's cost is the sum over its actions of that action's tokens priced at its own agent's rate, and runs that cannot be priced are called out in the tooltip instead of silently dropping the bar.\n+* A mixed card's cost is the sum over its priceable conversations at each conversation's agent rate. Unpriceable runs are skipped and called out in the tooltip; they do not hide the subtotal.\n * Where an agent reports several limit windows, exactly one rate is used per agent — the one from the longest window.\n * The legend of *Totals by Card/Action* stays pinned to the left while scrolling horizontally.\n * `npm run typecheck` and the `app/` vitest suites pass.\n",
+          "durationMs": 87,
+          "exitCode": 0,
+          "id": "agent-turn-75b7519b-c573-4e10-a2a3-be5873764ed2-event-161",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git diff --check; git status --short; git diff -- app/src/services/stats/stats_totals_dataset.ts app/src/services/stats/project_stats_service.node.test.ts design/feature_descriptions/F_224_add_subscription_costs.md design/feature_descriptions/F_242_stats_improvements.md'",
+          "providerItemId": "exec-d134808b-4836-4303-aa1c-f6f653164edc",
+          "sequence": 161,
+          "status": "completed",
+          "timestamp": "2026-08-22T16:06:50.208Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-75b7519b-c573-4e10-a2a3-be5873764ed2-event-162",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0236ce82b0051e48016a89c91f9d0c87d286d8fba720bf5c0b",
+          "sequence": 162,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T16:07:01.153Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"function groupCost|pricedRunCount|Skipped from estimate|keeps an action cost subtotal|Skip conversations that cannot|Priceable conversations still\" app/src/services/stats/stats_totals_dataset.ts app/src/services/stats/project_stats_service.node.test.ts design/feature_descriptions/F_224_add_subscription_costs.md design/feature_descriptions/F_242_stats_improvements.md'",
+          "content": "design/feature_descriptions/F_224_add_subscription_costs.md:45:* Skip conversations that cannot be costed because they have no usable provider rate, retain the subtotal from priceable conversations, and list skipped-run counts and reasons in the tooltip. Mark the result unavailable only when no conversation can be priced.\ndesign/feature_descriptions/F_242_stats_improvements.md:101:* Conversations whose agent has no usable rate are skipped and add one tooltip line, `Skipped from estimate: <n> run(s) (<reason>)`. Priceable conversations still produce a subtotal; only a row with no priceable conversation stays `available: false` with value 0.\napp/src/services/stats/stats_totals_dataset.ts:226:function groupCost(group: ConversationGroup, rates: Map<string, ProviderRate>): GroupCost {\napp/src/services/stats/stats_totals_dataset.ts:229:    let pricedRunCount = 0;\napp/src/services/stats/stats_totals_dataset.ts:236:            pricedRunCount += 1;\napp/src/services/stats/stats_totals_dataset.ts:245:        available: pricedRunCount > 0,\napp/src/services/stats/stats_totals_dataset.ts:265:        extraLines.push({ label: null, value: `Skipped from estimate: ${count} run${count === 1 ? '' : 's'} (${reason})` });\napp/src/services/stats/project_stats_service.node.test.ts:291:    it('keeps an action cost subtotal when one conversation cannot be priced', async () => {\napp/src/services/stats/project_stats_service.node.test.ts:325:            .toContain('Skipped from estimate: 1 run (monthly subscription cost is not configured)')\napp/src/services/stats/project_stats_service.node.test.ts:348:            .toContain('Skipped from estimate: 1 run (monthly subscription cost is not configured)')\napp/src/services/stats/project_stats_service.node.test.ts:350:            .toContain('Skipped from estimate: 1 run (matching account series is unavailable)')\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-75b7519b-c573-4e10-a2a3-be5873764ed2-event-163",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"function groupCost|pricedRunCount|Skipped from estimate|keeps an action cost subtotal|Skip conversations that cannot|Priceable conversations still\" app/src/services/stats/stats_totals_dataset.ts app/src/services/stats/project_stats_service.node.test.ts design/feature_descriptions/F_224_add_subscription_costs.md design/feature_descriptions/F_242_stats_improvements.md'",
+          "providerItemId": "exec-83134a79-b7df-411f-8456-d4d8d6910fac",
+          "sequence": 163,
+          "status": "completed",
+          "timestamp": "2026-08-22T16:07:03.202Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-75b7519b-c573-4e10-a2a3-be5873764ed2-event-164",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0236ce82b0051e48016a89c92aee8087d2b932fefe6463dd2f",
+          "sequence": 164,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T16:07:08.028Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Fixed the all-or-nothing behavior.\n\nRoot cause: `implement` has 42 conversations totaling 217,576,890 tokens. One 9,429,795-token conversation switched from Claude to Codex, so it has no single provider rate. That one conversation previously zeroed the entire action.\n\nNow:\n\n- 41 priceable conversations remain included: 208,147,095 tokens.\n- The mixed-provider conversation is skipped.\n- `implement` shows the resulting cost subtotal.\n- Tooltip reports: `Skipped from estimate: 1 run (...)`.\n- A row is unavailable only if none of its conversations can be priced.\n\nChanged [stats_totals_dataset.ts](C:/Users/janbo/Documents/dev/md2_workers/dev3/app/src/services/stats/stats_totals_dataset.ts:226) with an action-grouping regression test at [project_stats_service.node.test.ts](C:/Users/janbo/Documents/dev/md2_workers/dev3/app/src/services/stats/project_stats_service.node.test.ts:291).\n\nVerification passed: 868 unit tests, lint, typecheck, and `git diff --check`.\n\n",
+          "id": "agent-turn-75b7519b-c573-4e10-a2a3-be5873764ed2-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 165,
+          "timestamp": "2026-08-22T16:07:11.997Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -7141,18 +7441,18 @@
         }
       ],
       "startedAt": "2026-08-22T15:46:14.811Z",
-      "status": "cancelled",
+      "status": "running",
       "timer": {
         "elapsedMs": 696993,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-08-22T16:04:59.267Z"
       },
       "title": "+",
       "usage": {
-        "cachedInputTokens": 3971584,
-        "inputTokens": 186905,
-        "outputTokens": 10775,
-        "reasoningTokens": 6659,
-        "totalTokens": 4175923
+        "cachedInputTokens": 5539200,
+        "inputTokens": 223039,
+        "outputTokens": 13584,
+        "reasoningTokens": 7861,
+        "totalTokens": 5783684
       },
       "usageSchemaVersion": 1,
       "viewed": true
@@ -7484,11 +7784,11 @@
         "agent-dbd9ae27-fb7c-4b7f-8537-4c88cd9048ec"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-cc3c2d49-f114-44d7-a4cb-e79ae05d1e35",
       "origin": {
@@ -7497,9 +7797,9 @@
       },
       "rootActionId": "md2.custom-prompt",
       "rootActionLabel": "+",
-      "rootConversationId": "agent-dbd9ae27-fb7c-4b7f-8537-4c88cd9048ec",
       "startedAt": "2026-08-22T16:01:03.490Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-dbd9ae27-fb7c-4b7f-8537-4c88cd9048ec"
     }
   ],
   "version": 5
