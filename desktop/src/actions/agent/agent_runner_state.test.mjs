@@ -7,6 +7,7 @@ import { AGENT_RESULT_MAX_LENGTH } from '../../../../shared/agent_conversations.
 
 const require = createRequire(import.meta.url);
 const { AGENT_FINISH_GRACE_MS, AgentRunnerService } = require('./agent_runner_service');
+const { CodexRuntimeService } = require('./codex_runtime_service');
 
 function diagnosticStreamingEvent(content, providerItemId) {
     return {
@@ -1082,6 +1083,50 @@ describe('AgentRunnerService state handling', () => {
         expect(codexRuntimeService.publishUnavailable).toHaveBeenCalledWith(11);
         expect(usageMetricsService.recordAccountUsage).toHaveBeenCalledWith('codex', snapshot);
         expect(persistConversation).not.toHaveBeenCalled();
+    });
+
+    it('passes only supported Codex buckets to account metrics', async () => {
+        const codexRuntimeService = new CodexRuntimeService();
+        const usageMetricsService = { recordAccountUsage: vi.fn(async () => true) };
+        const service = new AgentRunnerService({ codexRuntimeService, usageMetricsService });
+        const supportedBucket = {
+            credits: null,
+            individualLimit: null,
+            limitId: 'codex',
+            limitName: 'Codex',
+            planType: 'plus',
+            primary: { resetsAt: 100, usedPercent: 20, windowDurationMins: 300 },
+            rateLimitReachedType: null,
+            secondary: null,
+        };
+        const sparkBucket = {
+            ...supportedBucket, limitId: 'spark', limitName: 'GPT-5.3-Codex-Spark', primary: {
+                resetsAt: 100,
+                usedPercent: 60,
+                windowDurationMins: 300,
+            },
+        };
+
+        await service.handleCodexRuntimeEvent({
+            kind: 'snapshot',
+            observedAt: 10,
+            payload: { rateLimitsByLimitId: { codex: supportedBucket, spark: sparkBucket } },
+        });
+        await service.handleCodexRuntimeEvent({
+            kind: 'update',
+            observedAt: 11,
+            payload: { rateLimits: { limitId: 'spark', primary: { usedPercent: 80 } } },
+        });
+
+        expect(usageMetricsService.recordAccountUsage).toHaveBeenCalledTimes(2);
+        expect(usageMetricsService.recordAccountUsage).toHaveBeenNthCalledWith(1, 'codex', expect.objectContaining({
+            buckets: [expect.objectContaining({ limitId: 'codex', limitName: 'Codex' })],
+            observedAt: 10,
+        }));
+        expect(usageMetricsService.recordAccountUsage).toHaveBeenNthCalledWith(2, 'codex', expect.objectContaining({
+            buckets: [expect.objectContaining({ limitId: 'codex', limitName: 'Codex' })],
+            observedAt: 11,
+        }));
     });
 
     it('routes Claude account updates to active project metrics and polls for Claude runs only', async () => {

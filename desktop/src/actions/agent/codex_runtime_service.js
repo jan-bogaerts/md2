@@ -1,4 +1,5 @@
 const DEFAULT_RATE_LIMIT_ID = 'default';
+const EXCLUDED_RATE_LIMIT_NAMES = new Set(['GPT-5.3-Codex-Spark']);
 const RATE_LIMIT_EVENT = 'rateLimits';
 const UPDATE_REQUIRED_EVENT = 'updateRequired';
 
@@ -178,6 +179,7 @@ function mergeBucket(current, incoming) {
 class CodexRuntimeService {
     constructor() {
         this.events = new EventTarget();
+        this.excludedRateLimitIds = new Set();
         this.publishedUpdateMismatches = new Set();
         this.snapshot = null;
         this.updateRequiredSnapshot = null;
@@ -227,11 +229,15 @@ class CodexRuntimeService {
         const buckets = normalizeBuckets(payload);
         const resetCredits = normalizeResetCredits(payload.rateLimitResetCredits);
         if (!buckets || resetCredits === undefined) return false;
+        const supportedBuckets = this.filterSupportedBuckets(buckets, sparse);
         const currentBuckets = new Map((this.snapshot?.buckets ?? []).map((bucket) => [bucket.limitId, bucket]));
         if (sparse) {
-            for (const bucket of buckets) currentBuckets.set(bucket.limitId, mergeBucket(currentBuckets.get(bucket.limitId), bucket));
+            for (const bucket of supportedBuckets) {
+                const currentBucket = currentBuckets.get(bucket.limitId);
+                currentBuckets.set(bucket.limitId, mergeBucket(currentBucket, bucket));
+            }
         }
-        const normalizedBuckets = (sparse ? [...currentBuckets.values()] : buckets).map(completeBucket);
+        const normalizedBuckets = (sparse ? [...currentBuckets.values()] : supportedBuckets).map(completeBucket);
         const rateLimitResetCredits = sparse && resetCredits === null
             ? this.snapshot?.rateLimitResetCredits ?? null
             : resetCredits;
@@ -244,6 +250,25 @@ class CodexRuntimeService {
         this.notify();
 
         return true;
+    }
+
+    filterSupportedBuckets(buckets, sparse) {
+        if (!sparse) {
+            const excludedBuckets = buckets.filter((bucket) => EXCLUDED_RATE_LIMIT_NAMES.has(bucket.limitName));
+            this.excludedRateLimitIds = new Set(excludedBuckets.map((bucket) => bucket.limitId));
+
+            return buckets.filter((bucket) => !EXCLUDED_RATE_LIMIT_NAMES.has(bucket.limitName));
+        }
+
+        return buckets.filter((bucket) => {
+            if (EXCLUDED_RATE_LIMIT_NAMES.has(bucket.limitName)) {
+                this.excludedRateLimitIds.add(bucket.limitId);
+                return false;
+            }
+            if (bucket.limitName !== undefined && bucket.limitName !== null) this.excludedRateLimitIds.delete(bucket.limitId);
+
+            return !this.excludedRateLimitIds.has(bucket.limitId);
+        });
     }
 
     publishUnavailable(observedAt) {
