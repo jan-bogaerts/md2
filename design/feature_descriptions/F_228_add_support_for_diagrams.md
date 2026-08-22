@@ -13,6 +13,19 @@ after: b97071c8-d9a2-4039-8fbf-c313219a761c
 ---
 analyze this site: [https://github.com/cathrynlavery/diagram-design](https://github.com/cathrynlavery/diagram-design) on how diagrams are rendered.
 
+
+
+what we need:
+
+* new view containing:
+  * component that renders an svg, handles clicking on it, renders tooltips,.. everything related to the diagram.
+  * breadcrumb at top to switch between different types of diagrams (first crumb) and new crumb every time user clicks on an element that opens a new diagram. this is a way to navigate back or forward in the navigation tree.&#x20;
+    should have a `back` button in front to go 1 step back. when at first step, disabled.
+
+
+
+from agent conversation:
+
 ## Rendering approach
 
 Diagram Design is an agent skill and template system, not a conventional diagram-rendering library with a structured diagram language. It generates self-contained HTML files containing inline SVG and CSS. Static, script-free output is the default; diagrams can also be exported as standalone SVG or rasterized to PNG.
@@ -32,6 +45,8 @@ The parent diagram definition can configure drill-down behavior for its items:
 * the selected item's text passed to that action as input.
 
 The resulting child diagram follows the same model and can define another drill-down. Repeating this interaction lets users navigate from an overview into progressively more detailed diagrams and understand the project through its structure and relationships.
+
+
 
 ## Clickable SVG feasibility
 
