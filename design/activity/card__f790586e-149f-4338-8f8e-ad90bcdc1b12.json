@@ -21,6 +21,10 @@
       "cardInternalId": "f790586e-149f-4338-8f8e-ad90bcdc1b12",
       "cardPath": "design/feature_descriptions/B_171_claude_account_usage_issues.md",
       "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 1000000,
+        "usedTokens": 79520
+      },
       "entries": [
         {
           "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/B_171_claude_account_usage_issues.md`.&#x20;\nupdate the field `status` in the markdown feature description file to `ready for implementation`.\n\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill.\n\nDo not stage or commit changes. You have no need for get at this time.",
@@ -437,6 +441,140 @@
           "role": "user",
           "sequence": 35,
           "timestamp": "2026-08-22T08:27:30.344Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-603c0a8c-16d9-4c3b-a15b-f964448d5f33-event-36",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHUEL4w79qbmQoUMWwwm:thinking:0",
+          "sequence": 36,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T08:27:40.733Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "./actions/agent/agent_runner_service.js:306:    requestStartupUsageRefresh(profiles) {\n./actions/agent/agent_runner_state.test.mjs:1137:        service.requestStartupUsageRefresh(profiles);\n./actions/agent/agent_runner_state.test.mjs:1138:        service.requestStartupUsageRefresh(profiles);\n./actions/agent/agent_runner_state.test.mjs:1174:        service.requestStartupUsageRefresh([{ command: ['claude'], name: 'claude' }]);\n./actions/agent/agent_runner_state.test.mjs:1209:        service.requestStartupUsageRefresh([{ command: ['claude'], name: 'claude' }]);\n./shell/startup_usage_refresh.js:2:function createWindowWithStartupUsageRefresh({ agentProfiles, agentRunnerService, createWindow }) {\n./shell/startup_usage_refresh.js:3:    agentRunnerService.requestStartupUsageRefresh(agentProfiles);\n./shell/startup_usage_refresh.js:8:module.exports = { createWindowWithStartupUsageRefresh };\n./shell/startup_usage_refresh.test.mjs:5:const { createWindowWithStartupUsageRefresh } = require('./startup_usage_refresh');\n./shell/startup_usage_refresh.test.mjs:7:describe('createWindowWithStartupUsageRefresh', () => {\n./shell/startup_usage_refresh.test.mjs:13:            requestStartupUsageRefresh: vi.fn(() => {\n./shell/startup_usage_refresh.test.mjs:26:        const result = createWindowWithStartupUsageRefresh({ agentProfiles, agentRunnerService, createWindow });\n./shell/startup_usage_refresh.test.mjs:30:        expect(agentRunnerService.requestStartupUsageRefresh).toHaveBeenCalledWith(agentProfiles);",
+          "id": "agent-turn-603c0a8c-16d9-4c3b-a15b-f964448d5f33-event-37",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01Q1eRNLjnc11quDgMMUGXMK",
+          "sequence": 37,
+          "status": "completed",
+          "timestamp": "2026-08-22T08:27:42.933Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-603c0a8c-16d9-4c3b-a15b-f964448d5f33-event-38",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHUF92CAayE7aWT3ZNsi:thinking:0",
+          "sequence": 38,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T08:27:45.408Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "main.js:62:const { createWindowWithStartupUsageRefresh } = require('./src/shell/startup_usage_refresh');\nmain.js:355:    createWindowWithStartupUsageRefresh({ agentProfiles, agentRunnerService, createWindow });\nsrc/actions/agent/agent_runner_service.js:306:    requestStartupUsageRefresh(profiles) {\nsrc/actions/agent/agent_runner_state.test.mjs:1137:        service.requestStartupUsageRefresh(profiles);\nsrc/actions/agent/agent_runner_state.test.mjs:1138:        service.requestStartupUsageRefresh(profiles);\nsrc/actions/agent/agent_runner_state.test.mjs:1174:        service.requestStartupUsageRefresh([{ command: ['claude'], name: 'claude' }]);\nsrc/actions/agent/agent_runner_state.test.mjs:1209:        service.requestStartupUsageRefresh([{ command: ['claude'], name: 'claude' }]);\nsrc/shell/startup_usage_refresh.js:2:function createWindowWithStartupUsageRefresh({ agentProfiles, agentRunnerService, createWindow }) {\nsrc/shell/startup_usage_refresh.js:3:    agentRunnerService.requestStartupUsageRefresh(agentProfiles);\nsrc/shell/startup_usage_refresh.js:8:module.exports = { createWindowWithStartupUsageRefresh };\nsrc/shell/startup_usage_refresh.test.mjs:5:const { createWindowWithStartupUsageRefresh } = require('./startup_usage_refresh');\nsrc/shell/startup_usage_refresh.test.mjs:7:describe('createWindowWithStartupUsageRefresh', () => {\nsrc/shell/startup_usage_refresh.test.mjs:13:            requestStartupUsageRefresh: vi.fn(() => {\nsrc/shell/startup_usage_refresh.test.mjs:26:        const result = createWindowWithStartupUsageRefresh({ agentProfiles, agentRunnerService, createWindow });\nsrc/shell/startup_usage_refresh.test.mjs:30:        expect(agentRunnerService.requestStartupUsageRefresh).toHaveBeenCalledWith(agentProfiles);\n--- project open ipc ---\nsrc/actions/action/action_scheduler_service.js:235:        const configuredWorkingFolder = config?.workingFolder ?? DEFAULT_WORKING_FOLDER;\nsrc/actions/action/action_scheduler_service.js:237:            throw new Error('Invalid project workingFolder');\nsrc/git/diff_service.js:116:        'active-cards-folder': typeof request.workingFolder === 'string' && request.workingFolder.length > 0\nsrc/git/diff_service.js:117:            ? path.resolve(rootPath, request.workingFolder)\nsrc/project/project_files.js:100:function createMissingWorkingFolderError(workingFolder) {\nsrc/project/project_files.js:101:    const error = new Error(`Working folder is missing: ${workingFolder}`);\nsrc/project/project_files.js:103:    error.workingFolder = workingFolder;\nsrc/project/project_files.js:108:async function createProjectNow(project, workingFolder) {\nsrc/project/project_files.js:111:    const workingFolderPath = ensureInsideRoot(rootPath, path.join(rootPath, workingFolder));\nsrc/project/project_files.js:113:    if (!await pathExists(workingFolderPath)) {\nsrc/project/project_files.js:114:        await fs.promises.mkdir(workingFolderPath, { recursive: true });\nsrc/project/project_files.js:115:        await fs.promises.writeFile(path.join(workingFolderPath, 'README.md'), PROJECT_README_TEMPLATE);\nsrc/project/project_files.js:116:        await runGit(rootPath, ['add', workingFolder]);\nsrc/project/project_files.js:117:        await commitStagedChanges(rootPath, `Create ${workingFolder} workspace`);\nsrc/project/project_files.js:123:function createProject(project, workingFolder) {\nsrc/project/project_files.js:126:    return withGitIndexMutation(rootPath, () => createProjectNow(project, workingFolder));\nsrc/project/project_files.js:129:async function loadProject(project, workingFolder, excludedRootFolder) {\nsrc/project/project_files.js:132:    const workingFolderPath = ensureInsideRoot(rootPath, path.join(rootPath, workingFolder));\nsrc/project/project_files.js:137:    if (!await pathExists(workingFolderPath)) {\nsrc/project/project_files.js:138:        throw createMissingWorkingFolderError(workingFolder);\nsrc/project/project_files.js:142:        files: await readMarkdownFiles(rootPath, workingFolderPath, excludedRootFolderPath),\nsrc/project/project_files.js:143:        workingFolder,\nsrc/project/project_files.js:147:async function loadProjectRoot(project, workingFolder) {\nsrc/project/project_files.js:150:    const workingFolderPath = ensureInsideRoot(rootPath, path.join(rootPath, workingFolder));\nsrc/project/project_files.js:152:    if (!await pathExists(workingFolderPath)) {\nsrc/project/project_files.js:153:        throw createMissingWorkingFolderError(workingFolder);\nsrc/project/project_files.js:157:        files: await readRootMarkdownFiles(rootPath, workingFolderPath),\nsrc/project/project_files.js:158:        workingFolder,\nsrc/shell/local_bridge_dispatch.js:61:        openProjectFolder,\nsrc/shell/local_bridge_dispatch.js:130:        createProject: async (project, workingFolder) => {",
+          "id": "agent-turn-603c0a8c-16d9-4c3b-a15b-f964448d5f33-event-39",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_0114qJQXzBhdWgrTcRxytd8A",
+          "sequence": 39,
+          "status": "completed",
+          "timestamp": "2026-08-22T08:27:47.221Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-603c0a8c-16d9-4c3b-a15b-f964448d5f33-event-40",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHUFSuizLVeJ1dice9jJ:thinking:0",
+          "sequence": 40,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T08:27:51.004Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "75:            && currentLocalProject.rootPath === project.rootPath;\n84:            && conflictSession.projectRoot === project.rootPath;\n86:            if (!currentLocalProject || currentLocalProject.rootPath !== conflictSession.projectRoot) {\n90:                    rootPath: conflictSession.projectRoot,\n107:            return projectStatsWorkerService.calculate(project.rootPath, paths, calculationId);\n162:        loadProjectAsset: (project, path) => localGitService.loadProjectAsset(project, path),\n163:        loadProject: async (project, workingFolder, excludedRootFolder) => {\n165:            if (excludedRootFolder === undefined) return localGitService.loadProject(project, workingFolder);\n167:            return localGitService.loadProject(project, workingFolder, excludedRootFolder);\n169:        loadProjectConfig: (project) => localGitService.loadProjectConfig(project),\n170:        loadProjectRoot: async (project, workingFolder) => {\n173:            return localGitService.loadProjectRoot(project, workingFolder);\n179:            const rootPath = await openProjectFolder();\n180:            if (!rootPath) return null;\n182:            const project = await localGitService.resolveLocalProject(rootPath);\n220:                { branch: session.projectBranch, id: session.projectId, rootPath: session.projectRoot },\n274:            const resolvedProject = await localGitService.resolveLocalProject(project.rootPath);\n309:                const commitMetadata = await localGitService.resolveCommitMetadata(project.rootPath, integration.commit);\n389:            return { ...result, repositoryRoot: currentLocalProject.rootPath };\n496:            const projectConfig = await localGitService.loadProjectConfig(currentLocalProject);",
+          "id": "agent-turn-603c0a8c-16d9-4c3b-a15b-f964448d5f33-event-41",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01WfuiqwoSx9KLRYjJibKWLY",
+          "sequence": 41,
+          "status": "completed",
+          "timestamp": "2026-08-22T08:27:52.499Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "        mergeConflictService,\n        openProjectFolder,\n        openWorktreeFolder,\n        projectStatsWorkerService,\n        readDesktopConfig,\n        saveDesktopConfig,\n        updateCodexCli,\n        worktreeService,\n    } = dependencies;\n    let currentLocalProject = null;\n\n    function isCurrentProject(project) {\n        return !!currentLocalProject\n            && currentLocalProject.branch === project.branch\n            && currentLocalProject.id === project.id\n            && currentLocalProject.rootPath === project.rootPath;\n    }\n\n    async function activateProject(project) {\n        if (isCurrentProject(project)) return;\n\n        const conflictSession = mergeConflictService?.getInternalSession();\n        const sameConflictProject = conflictSession\n            && conflictSession.projectBranch === project.branch\n            && conflictSession.projectRoot === project.rootPath;\n        if (conflictSession && !sameConflictProject) {\n            if (!currentLocalProject || currentLocalProject.rootPath !== conflictSession.projectRoot) {\n                const conflictProject = {\n                    branch: conflictSession.projectBranch,\n                    id: conflictSession.projectId,\n                    rootPath: conflictSession.projectRoot,\n                };\n                await worktreeService.startProject(conflictProject);\n            }\n            await worktreeService.abortConflict({ sessionId: conflictSession.id });\n        }\n\n        currentLocalProject = project;\n        if (actionSchedulerService) await actionSchedulerService.startProject(project);\n        await worktreeService.startProject(project);\n    }\n---163-178---\n        loadFile: (project, path) => localGitService.loadFile(project, path),\n        loadTextFile: (project, path) => localGitService.loadTextFile(project, path),\n        loadProjectAsset: (project, path) => localGitService.loadProjectAsset(project, path),\n        loadProject: async (project, workingFolder, excludedRootFolder) => {\n            await activateProject(project);\n            if (excludedRootFolder === undefined) return localGitService.loadProject(project, workingFolder);\n\n            return localGitService.loadProject(project, workingFolder, excludedRootFolder);\n        },\n        loadProjectConfig: (project) => localGitService.loadProjectConfig(project),\n        loadProjectRoot: async (project, workingFolder) => {\n            await activateProject(project);\n\n            return localGitService.loadProjectRoot(project, workingFolder);\n        },\n        moveFiles: (request) => localGitService.moveFiles(request, currentLocalProject),\n        openProjectFolder: async () => {\n            if (!openProjectFolder) throw new Error('Project folder picker is not available');",
+          "id": "agent-turn-603c0a8c-16d9-4c3b-a15b-f964448d5f33-event-42",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01NHsrkAbr3yZdZnuyJ47d9B",
+          "sequence": 42,
+          "status": "completed",
+          "timestamp": "2026-08-22T08:27:55.423Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-603c0a8c-16d9-4c3b-a15b-f964448d5f33-event-43",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeHUG3sAnYyYKfyMP5L1h:thinking:0",
+          "sequence": 43,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T08:28:10.926Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Read the project-load hook before rewriting.",
+          "id": "agent-turn-603c0a8c-16d9-4c3b-a15b-f964448d5f33-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 44,
+          "timestamp": "2026-08-22T08:28:10.926Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-603c0a8c-16d9-4c3b-a15b-f964448d5f33-event-45",
+          "kind": "event",
+          "label": "Write",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_171_claude_account_usage_issues.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01TaAWD5FFTdhMqYTAjn9Zzk",
+          "sequence": 45,
+          "status": "completed",
+          "timestamp": "2026-08-22T08:29:11.515Z",
+          "type": "fileChange"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nDoc rewritten. Changes from your four points:\n\n- **Logging section** no longer mentions `logAgentEvent` or the tracing flag. It now lists the silent paths as what they are: empty catches and silent substitutions, with `claude_usage_poller.js:142` and `:154` named only as the two sites that mark unparsed/inconclusive polls without reaching the console.\n- **Trust screen** is now its own section. Records the parent-vs-child folder detail — trust is per folder, your manual run in the parent did not cover the polled folder. Poller detects the screen and answers it affirmatively, once per session, then keeps waiting for the ready marker. One caveat kept in the doc: exact prompt wording and keystroke must be verified against the installed CLI at implementation time, not hard-coded from memory, since a wrong keystroke on an unexpected screen is worse than not answering.\n- **Poll folder and trigger**: cwd becomes the project root, triggered from `activateProject` (`desktop/src/shell/local_bridge_dispatch.js:78`) — that is where the main process learns the current project, and it already fans out to `actionSchedulerService.startProject` and `worktreeService.startProject`. `startup_usage_refresh.js` and its call at `desktop/main.js:355` are removed as dead.\n- **Regular polling**: fixed 120s interval, same scheduling on success, failure and inconclusive. No backoff, no retryable/non-retryable split. The tick no longer requires an active Claude run, so `syncUsagePollTicks`'s pollable-run condition goes away.\n\nNothing staged or committed.",
+          "id": "agent-turn-603c0a8c-16d9-4c3b-a15b-f964448d5f33-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 46,
+          "timestamp": "2026-08-22T08:29:21.333Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -458,12 +596,12 @@
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 858123,
-        "inputTokens": 38,
-        "outputTokens": 17396,
+        "cachedInputTokens": 1289292,
+        "inputTokens": 50,
+        "outputTokens": 25766,
         "reasoningTokens": 0,
-        "totalTokens": 875557,
-        "costUsd": 1.3501335
+        "totalTokens": 1315108,
+        "costUsd": 2.3901244999999998
       },
       "usageSchemaVersion": 1,
       "viewed": true
