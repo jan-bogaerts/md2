@@ -7,7 +7,9 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__e9e0858d-a215-42bb-873e-01848ea6a803.json
 policy:
 ---
+We already keep track of file changes done by the agent. We should also keep track of the file paths that were changed, added, deleted and add this list to the header section of the card. Note no need for self reference of card (ex: when agent modifies card)
 
-We already keep track of file changes done by the agent. We should also keep track of the file paths that were changed, added, deleted and add this list to the header section of the card. Note no need for self reference of card
+for the card popup, we already have a 'properties' button that shows a popup. This needs an extra field for the new 'changed files' item.
