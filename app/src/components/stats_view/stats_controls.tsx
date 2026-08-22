@@ -87,10 +87,6 @@ function handleUsageGranularityChange(event: SelectChangeEvent) {
     setStatsControls({ usageGranularity: event.target.value as StatsControlValues['usageGranularity'] });
 }
 
-function handleUsageTokenAggregationChange(event: SelectChangeEvent) {
-    setStatsControls({ usageTokenAggregation: event.target.value as StatsControlValues['usageTokenAggregation'] });
-}
-
 function handleTotalsGroupingChange(event: SelectChangeEvent) {
     setStatsControls({ totalsGrouping: event.target.value as StatsControlValues['totalsGrouping'] });
 }
@@ -211,22 +207,13 @@ export function StatsControls({ snapshot }: StatsControlsProps) {
                 </>
             ) : null}
             {controls.dataset === 'usageComparison' ? (
-                <>
-                    <Stack spacing={0.75}>
-                        <Typography color="text.secondary" sx={{ fontWeight: 600 }} variant="caption">Granularity</Typography>
-                        <Select aria-label="Usage granularity" onChange={handleUsageGranularityChange} size="small" value={controls.usageGranularity}>
-                            <MenuItem value="day">Day</MenuItem>
-                            <MenuItem value="week">Week</MenuItem>
-                        </Select>
-                    </Stack>
-                    <Stack spacing={0.75}>
-                        <Typography color="text.secondary" sx={{ fontWeight: 600 }} variant="caption">Token values</Typography>
-                        <Select aria-label="Token values" onChange={handleUsageTokenAggregationChange} size="small" value={controls.usageTokenAggregation}>
-                            <MenuItem value="total">Totals</MenuItem>
-                            <MenuItem value="average">Average per action</MenuItem>
-                        </Select>
-                    </Stack>
-                </>
+                <Stack spacing={0.75}>
+                    <Typography color="text.secondary" sx={{ fontWeight: 600 }} variant="caption">Granularity</Typography>
+                    <Select aria-label="Usage granularity" onChange={handleUsageGranularityChange} size="small" value={controls.usageGranularity}>
+                        <MenuItem value="day">Day</MenuItem>
+                        <MenuItem value="week">Week</MenuItem>
+                    </Select>
+                </Stack>
             ) : null}
             {controls.dataset === 'totals' ? (
                 <>

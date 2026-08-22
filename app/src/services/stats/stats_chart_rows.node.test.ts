@@ -19,7 +19,7 @@ describe('emptyTimeRow', () => {
     })
 
     it('carries one local range and unit in multiline and flat accessible forms', () => {
-        const row = emptyTimeRow(context, 'day', 'projectTokens', 'tokens', 'tokens')
+        const row = emptyTimeRow(context, 'day', 'projectTokensTotal', 'tokens', 'tokens')
 
         expect(row.tooltip).toContain('\nValue: 0 tokens')
         expect(row.tooltip).not.toContain('2026-08-12T00:00:00.000Z')

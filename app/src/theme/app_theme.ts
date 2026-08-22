@@ -52,6 +52,15 @@ function paletteForMode(mode: PaletteMode, colorScheme: ColorSchemeConfig, backg
             chartPalette: isDark
                 ? ['#7aa2f7', '#9ece6a', '#e0af68', '#bb9af7', '#7dcfff', '#f7768e', '#73daca', '#c0caf5']
                 : ['#3366cc', '#2e8b57', '#d97706', '#7c3aed', '#0284c7', '#dc2626', '#0f766e', '#64748b'],
+            chartPalettes: isDark
+                ? {
+                    claude: ['#e0af68', '#f7768e', '#bb9af7', '#c0caf5'],
+                    codex: ['#7aa2f7', '#9ece6a', '#7dcfff', '#73daca'],
+                }
+                : {
+                    claude: ['#d97706', '#dc2626', '#7c3aed', '#64748b'],
+                    codex: ['#3366cc', '#2e8b57', '#0284c7', '#0f766e'],
+                },
             colHead: modePalette.text.secondary,
             primaryBg: primaryBackground,
             text3: modePalette.text.secondary,

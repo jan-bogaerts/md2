@@ -114,10 +114,8 @@ describe('StatsContent', () => {
 
         fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Dataset' }))
         fireEvent.click(screen.getByRole('option', { name: 'Project usage vs account usage' }))
-        expect(screen.getByRole('combobox', { name: 'Token values' })).toHaveTextContent('Totals')
-
-        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Token values' }))
-        fireEvent.click(screen.getByRole('option', { name: 'Average per action' }))
+        expect(screen.queryByRole('combobox', { name: 'Token values' })).toBeNull()
+        expect(screen.getByRole('heading', { name: 'Project token usage (totals)' })).toBeInTheDocument()
         expect(screen.getByRole('heading', { name: 'Project token usage (average per action)' })).toBeInTheDocument()
 
         fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Dataset' }))
@@ -147,7 +145,7 @@ describe('StatsContent', () => {
         expect(screen.queryByRole('combobox', { name: 'Account window' })).toBeNull()
         expect(screen.getByLabelText('Account usage chart legend')).toHaveTextContent('codex / weekly / window-a')
         expect(screen.getByLabelText('Account usage chart legend')).toHaveTextContent('claude / five-hour / window-b')
-        expect(screen.getAllByLabelText('Zero baseline')).toHaveLength(6)
+        expect(screen.getAllByLabelText('Zero baseline')).toHaveLength(9)
         expect(screen.getAllByTestId('stats-chart-viewport')).toHaveLength(1)
     })
 

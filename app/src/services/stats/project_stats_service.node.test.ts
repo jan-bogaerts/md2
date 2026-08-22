@@ -3,6 +3,7 @@ import type { AgentConversation, ProjectConfig, ProjectReference, StorageService
 import { DEFAULT_PROJECT_CONFIG } from '../../data/data_types'
 import { findStatsSourcePaths } from './project_stats_loader'
 import { ProjectStatsService } from './project_stats_service'
+import { formatDollars } from './stats_tooltip'
 import type { StatsCardDescriptor } from './project_stats_types'
 import { parseProjectStatsFile } from '../../../../shared/project_stats.mjs'
 import { BUILTIN_AGENT_PROFILES, type AgentProfile } from '../../data/agent_profiles'
@@ -208,7 +209,7 @@ describe('ProjectStatsService aggregation', () => {
         expect(service.getSnapshot().rows).toMatchObject([{ identity: 'review', value: 37 }])
     })
 
-    it('estimates card and action cost separately for every active-range account series', async () => {
+    it('prices one bar per card from the longest account window and names the agent in the legend', async () => {
         const storedConversation = conversation()
         const records = [agentRecord('run-1', '2026-08-12T10:00:00.000Z', storedConversation.id)]
         const metrics = [
@@ -233,16 +234,92 @@ describe('ProjectStatsService aggregation', () => {
             totalsMetric: 'cost',
         })
 
-        expect(service.getSnapshot().rows).toMatchObject([
-            { available: true, denominator: 20, displayLabel: 'F_1 / codex / session / window-b', numerator: 1_000, unit: 'dollars', value: 0.2 },
-            { available: true, denominator: 10, displayLabel: 'F_1 / codex / weekly / window-a', numerator: 1_000, unit: 'dollars', value: 0.1 },
-        ])
+        // Only the weekly window prices the bar; the shorter session window is ignored.
+        expect(service.getSnapshot().rows).toMatchObject([{
+            available: true,
+            denominator: 10,
+            displayLabel: 'F_1',
+            numerator: 1_000,
+            seriesLabel: 'codex',
+            unit: 'dollars',
+            value: 0.1,
+        }])
+        expect(service.getSnapshot().rows[0].tooltip).toBe(`F_1: First\n${formatDollars(0.1)}\nPriced with: codex subscription rate`)
 
         service.setControls({ totalsGrouping: 'action' })
         expect(service.getSnapshot().rows.map(({ actionId, displayLabel, value }) => ({ actionId, displayLabel, value }))).toEqual([
-            { actionId: 'review', displayLabel: 'Review / codex / session / window-b', value: 0.2 },
-            { actionId: 'review', displayLabel: 'Review / codex / weekly / window-a', value: 0.1 },
+            { actionId: 'review', displayLabel: 'Review', value: 0.1 },
         ])
+    })
+
+    it('prices a mixed card per run and labels its series Mixed', async () => {
+        const codexConversation = conversation({ id: 'codex-conversation' })
+        const claudeConversation = conversation({ id: 'claude-conversation' })
+        const records = [
+            agentRecord('codex-run', '2026-08-12T10:00:00.000Z', codexConversation.id),
+            agentRecord('claude-run', '2026-08-12T10:30:00.000Z', claudeConversation.id, {details: { agent: 'claude', model: 'sonnet', type: 'agent' }}),
+        ]
+        const metrics = [
+            metricsHeader,
+            '2026-08-12T09:00:00.000Z,token_usage,codex,,,,,997,1,1,1,1000,,',
+            '2026-08-12T09:30:00.000Z,token_usage,claude,,,,,997,1,1,1,1000,,',
+            '2026-08-12T11:00:00.000Z,account_usage,codex,weekly,window-a,10080,2026-08-17T00:00:00.000Z,,,,,,50,10',
+            '2026-08-12T11:30:00.000Z,account_usage,claude,weekly,window-c,10080,2026-08-17T00:00:00.000Z,,,,,,50,20',
+        ].join('\r\n')
+        const agentProfiles = BUILTIN_AGENT_PROFILES.map((profile) => ({ ...profile, monthlySubscriptionCostUsd: 100 }))
+        const service = new ProjectStatsService()
+        await openService(service, storage({
+            'design/activity/card__card-1.json': activityContent({ conversations: [codexConversation, claudeConversation], records }),
+            'design/usage_metrics.csv': metrics,
+        }), cards, agentProfiles)
+        service.setControls({ dataset: 'totals', totalsGrouping: 'card', totalsMetric: 'cost' })
+
+        // codex: 1000 tokens per 10 points, claude: 1000 per 20 points, both at $1 per point.
+        expect(service.getSnapshot().rows).toMatchObject([{
+            agent: null,
+            available: true,
+            displayLabel: 'F_1',
+            sampleCount: 2,
+            seriesIdentity: 'mixed',
+            seriesLabel: 'Mixed',
+        }])
+        expect(service.getSnapshot().rows[0].value).toBeCloseTo(0.3, 10)
+        expect(service.getSnapshot().rows[0].tooltip).toContain('Priced with: Mixed agents')
+    })
+
+    it('keeps a partially priced multi-agent card in the Mixed series', async () => {
+        const codexConversation = conversation({ id: 'codex-conversation' })
+        const claudeConversation = conversation({ id: 'claude-conversation' })
+        const records = [
+            agentRecord('codex-run', '2026-08-12T10:00:00.000Z', codexConversation.id),
+            agentRecord('claude-run', '2026-08-12T10:30:00.000Z', claudeConversation.id, { details: { agent: 'claude', model: 'sonnet', type: 'agent' } }),
+        ]
+        const metrics = [
+            metricsHeader,
+            '2026-08-12T09:00:00.000Z,token_usage,codex,,,,,997,1,1,1,1000,,',
+            '2026-08-12T09:30:00.000Z,token_usage,claude,,,,,997,1,1,1,1000,,',
+            '2026-08-12T11:00:00.000Z,account_usage,codex,weekly,window-a,10080,2026-08-17T00:00:00.000Z,,,,,,50,10',
+            '2026-08-12T11:30:00.000Z,account_usage,claude,weekly,window-c,10080,2026-08-17T00:00:00.000Z,,,,,,50,20',
+        ].join('\r\n')
+        const agentProfiles = BUILTIN_AGENT_PROFILES.map((profile) => (
+            profile.name === 'codex' ? { ...profile, monthlySubscriptionCostUsd: 100 } : profile
+        ))
+        const service = new ProjectStatsService()
+        await openService(service, storage({
+            'design/activity/card__card-1.json': activityContent({ conversations: [codexConversation, claudeConversation], records }),
+            'design/usage_metrics.csv': metrics,
+        }), cards, agentProfiles)
+        service.setControls({ dataset: 'totals', totalsGrouping: 'card', totalsMetric: 'cost' })
+
+        expect(service.getSnapshot().rows).toMatchObject([{
+            agent: null,
+            available: true,
+            seriesIdentity: 'mixed',
+            seriesLabel: 'Mixed',
+            value: 0.1,
+        }])
+        expect(service.getSnapshot().rows[0].tooltip).toContain('Priced with: Mixed agents')
+        expect(service.getSnapshot().rows[0].tooltip).toContain('Not priced: 1 run (monthly subscription cost is not configured)')
     })
 
     it('marks unpriced and unattributed conversation costs unavailable instead of returning partial totals', async () => {
@@ -261,12 +338,11 @@ describe('ProjectStatsService aggregation', () => {
         }))
         service.setControls({ dataset: 'totals', totalsMetric: 'cost' })
 
-        expect(service.getSnapshot().rows).toEqual(expect.arrayContaining([
-            expect.objectContaining({ available: false, seriesLabel: 'codex / weekly / window-a', value: 0 }),
-            expect.objectContaining({ available: false, seriesLabel: 'Unknown agent / account series unavailable', value: 0 }),
-        ]))
-        expect(service.getSnapshot().rows.find(({ provider }) => provider === 'codex')?.tooltip)
-            .toContain('monthly subscription cost is not configured')
+        expect(service.getSnapshot().rows).toEqual([
+            expect.objectContaining({ available: false, displayLabel: 'F_1', sampleCount: 2, seriesLabel: 'Mixed', value: 0 }),
+        ])
+        expect(service.getSnapshot().rows[0].tooltip).toContain('Not priced: 1 run (monthly subscription cost is not configured)')
+        expect(service.getSnapshot().rows[0].tooltip).toContain('Not priced: 1 run (matching account series is unavailable)')
     })
 
     it('uses metrics deltas for UTC day, ISO-week, and month token buckets', async () => {
@@ -681,7 +757,7 @@ describe('ProjectStatsService aggregation', () => {
             .every(({ seriesLabel }) => !seriesLabel?.includes('internal'))).toBe(true)
     })
 
-    it('switches project token usage from totals to average per completed provider action', async () => {
+    it('reports project token totals and per-action averages as two separate charts', async () => {
         const conversations = [conversation({ id: 'first' }), conversation({ id: 'second' })]
         const records = conversations.map(({ id }, index) => agentRecord(`run-${index}`, '2026-08-12T10:00:00.000Z', id))
         const metrics = [
@@ -696,20 +772,57 @@ describe('ProjectStatsService aggregation', () => {
         }))
         service.setControls({ dataset: 'usageComparison' })
 
-        expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole === 'projectTokens')).toMatchObject([
+        expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole === 'projectTokensTotal')).toMatchObject([
             { aggregation: 'total', provider: 'claude', value: 40 },
             { aggregation: 'total', provider: 'codex', value: 100 },
         ])
-        expect(service.getSnapshot().rows.find(({ chartRole, provider }) => chartRole === 'projectTokens' && provider === 'codex')?.tooltip)
+        expect(service.getSnapshot().rows.find(({ chartRole, provider }) => chartRole === 'projectTokensTotal' && provider === 'codex')?.tooltip)
             .toContain('Total project tokens: 100')
 
-        service.setControls({ usageTokenAggregation: 'average' })
-        expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole === 'projectTokens')).toMatchObject([
+        // No control chooses between them: both charts are present in the same snapshot.
+        expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole === 'projectTokensAverage')).toMatchObject([
             { aggregation: 'average', provider: 'claude', value: 0 },
             { aggregation: 'average', provider: 'codex', value: 50 },
         ])
-        expect(service.getSnapshot().rows.find(({ chartRole, provider }) => chartRole === 'projectTokens' && provider === 'codex')?.tooltip)
+        expect(service.getSnapshot().rows.find(({ chartRole, provider }) => chartRole === 'projectTokensAverage' && provider === 'codex')?.tooltip)
             .toContain('Average project tokens per action: 50')
+    })
+
+    it('prices account usage per agent in dollars from the longest window and flags unpriced agents', async () => {
+        const storedConversation = conversation()
+        const records = [agentRecord('run-1', '2026-08-12T10:00:00.000Z', storedConversation.id)]
+        const metrics = [
+            metricsHeader,
+            '2026-08-12T11:00:00.000Z,account_usage,codex,weekly,window-a,10080,2026-08-17T00:00:00.000Z,,,,,,50,10',
+            '2026-08-12T11:30:00.000Z,account_usage,codex,session,window-b,300,2026-08-12T17:00:00.000Z,,,,,,40,5',
+            '2026-08-12T12:00:00.000Z,account_usage,claude,weekly,window-c,10080,2026-08-17T00:00:00.000Z,,,,,,40,4',
+        ].join('\r\n')
+        const agentProfiles = BUILTIN_AGENT_PROFILES.map((profile) => (
+            profile.name === 'codex' ? { ...profile, monthlySubscriptionCostUsd: 100 } : profile
+        ))
+        const service = new ProjectStatsService()
+        await openService(service, storage({
+            'design/activity/card__card-1.json': activityContent({ conversations: [storedConversation], records }),
+            'design/usage_metrics.csv': metrics,
+        }), cards, agentProfiles)
+        service.setControls({ dataset: 'usageComparison' })
+
+        // $100 a month is $1 per percentage point, and only the weekly window counts for codex.
+        expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole === 'costPerAgent')).toMatchObject([
+            { available: false, provider: 'claude', unit: 'dollars', value: 0 },
+            { available: true, denominator: 100, numerator: 10, provider: 'codex', unit: 'dollars', value: 10 },
+        ])
+        expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole === 'costPerActionAverage')).toMatchObject([
+            { available: false, provider: 'claude', unit: 'dollars', value: 0 },
+            { available: true, denominator: 10, numerator: 1, provider: 'codex', unit: 'dollars', value: 10 },
+        ])
+        const codexCost = service.getSnapshot().rows
+            .find(({ chartRole, provider }) => chartRole === 'costPerAgent' && provider === 'codex')
+
+        expect(codexCost?.tooltip).toContain('Share of the monthly subscription consumed in this bucket, not a metered per-token price')
+        expect(codexCost?.tooltip).toContain(`Estimated cost: ${formatDollars(10)}`)
+        expect(service.getSnapshot().rows.find(({ chartRole, provider }) => chartRole === 'costPerAgent' && provider === 'claude')?.tooltip)
+            .toContain('Unavailable: monthly subscription cost for claude')
     })
 
     it('aligns usage comparison bucket domains and clears removed account selections after reload', async () => {
@@ -722,14 +835,22 @@ describe('ProjectStatsService aggregation', () => {
         await openService(service, storage(files))
         service.setControls({ dataset: 'usageComparison' })
 
-        const domains = ['accountUsage', 'projectTokens', 'tokensPerAccountUsage', 'tokensPerDollar', 'actionsPerAccountUsage', 'activity'].map((chartRole) => (
+        const domains = [
+            'accountUsage',
+            'projectTokensTotal',
+            'projectTokensAverage',
+            'tokensPerAccountUsage',
+            'tokensPerDollar',
+            'costPerAgent',
+            'costPerActionAverage',
+            'actionsPerAccountUsage',
+            'activity',
+        ].map((chartRole) => (
             service.getSnapshot().rows.filter((row) => row.chartRole === chartRole).map(({ utcBucketStart }) => utcBucketStart)
         ))
         expect(domains[0]).toEqual(['2026-08-12T00:00:00.000Z', '2026-08-13T00:00:00.000Z', '2026-08-14T00:00:00.000Z'])
         expect(domains[1]).toEqual(domains[0])
-        expect(domains[2]).toEqual(domains[0])
-        expect(domains[3]).toEqual(domains[0])
-        expect(domains[4]).toEqual(domains[0])
+        for (const domain of domains.slice(1, -1)) expect(domain).toEqual(domains[0])
         expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole === 'accountUsage')).toMatchObject([
             { available: false, value: 0 },
             { available: false, value: 0 },
@@ -750,22 +871,35 @@ describe('ProjectStatsService aggregation', () => {
 
         expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole !== 'activity')).toMatchObject([
             { available: false, chartRole: 'accountUsage', value: 0 },
-            { available: false, chartRole: 'projectTokens', value: 0 },
+            { available: false, chartRole: 'projectTokensTotal', value: 0 },
+            { available: false, chartRole: 'projectTokensAverage', value: 0 },
             { available: false, chartRole: 'tokensPerAccountUsage', value: 0 },
             { available: false, chartRole: 'tokensPerDollar', value: 0 },
+            { available: false, chartRole: 'costPerAgent', value: 0 },
+            { available: false, chartRole: 'costPerActionAverage', value: 0 },
             { available: false, chartRole: 'actionsPerAccountUsage', value: 0 },
         ])
     })
 
-    it('uses visible card ID while retaining full title and path context', async () => {
+    it('names a totals bar by id and title only, with no file path anywhere', async () => {
         const service = new ProjectStatsService()
         await openService(service, storage({'design/activity/card__card-1.json': activityContent({ conversations: [conversation()] })}))
         service.setControls({ dataset: 'totals', totalsGrouping: 'card', totalsMetric: 'tokens' })
 
         expect(service.getSnapshot().rows).toMatchObject([{
-            accessibleLabel: expect.stringContaining('F_1: First; design/active/F_1.md'),
+            accessibleLabel: 'F_1: First; 10',
             displayLabel: 'F_1',
             identity: 'card-1',
+            tooltip: 'F_1: First\n10',
         }])
+        expect(service.getSnapshot().rows[0].tooltip).not.toContain('design/active/F_1.md')
+    })
+
+    it('formats time-based totals as HH:MM:SS instead of raw milliseconds', async () => {
+        const service = new ProjectStatsService()
+        await openService(service, storage({'design/activity/card__card-1.json': activityContent({conversations: [conversation({ timer: { elapsedMs: 3_723_000, runningStartedAt: null } })]})}))
+        service.setControls({ dataset: 'totals', totalsGrouping: 'card', totalsMetric: 'duration' })
+
+        expect(service.getSnapshot().rows).toMatchObject([{ tooltip: 'F_1: First\n01:02:03', value: 3_723_000 }])
     })
 })

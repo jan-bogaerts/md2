@@ -33,6 +33,24 @@ export function formatWindow(minutes: number) {
     return `${formatCount(minutes)} ${minutes === 1 ? 'minute' : 'minutes'}`;
 }
 
+export function formatDollars(value: number) {
+    return new Intl.NumberFormat(undefined, { currency: 'USD', style: 'currency' }).format(value);
+}
+
+/**
+ * Always HH:MM:SS, hours zero-padded to two digits and free to pass 99 for long totals.
+ * `formatDuration` in conversation_duration.ts is deliberately not reused: it drops hours below one
+ * hour, does not pad them, and sits on the chat timer's hot path.
+ */
+export function formatDurationHms(milliseconds: number) {
+    const totalSeconds = Math.max(Math.floor(milliseconds / 1_000), 0);
+    const hours = Math.floor(totalSeconds / 3_600);
+    const minutes = Math.floor((totalSeconds % 3_600) / 60);
+    const seconds = totalSeconds % 60;
+
+    return [hours, minutes, seconds].map((part) => String(part).padStart(2, '0')).join(':');
+}
+
 export function formatCount(value: number) {
     return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(value);
 }

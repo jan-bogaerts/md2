@@ -61,6 +61,23 @@ function renderedColors(elements: HTMLElement[]) {
     return elements.map((element) => getComputedStyle(element).backgroundColor);
 }
 
+function renderedHexColor(hexColor: string) {
+    const probe = document.createElement('div');
+    probe.style.backgroundColor = hexColor;
+
+    return probe.style.backgroundColor;
+}
+
+function agentRow(agent: string) {
+    return row({ identity: agent, provider: agent, seriesIdentity: agent, seriesLabel: agent });
+}
+
+function barColor(chartName: string, identity: string) {
+    const bars = within(screen.getByRole('list', { name: chartName })).getAllByTestId('stats-bar');
+
+    return getComputedStyle(bars.find((bar) => bar.dataset.seriesIdentity === identity)!).backgroundColor;
+}
+
 describe('StatsBarChart', () => {
     afterEach(() => {
         cleanup();
@@ -289,12 +306,15 @@ describe('StatsBarChart', () => {
         expect(await screen.findByRole('tooltip')).toHaveTextContent('Review: 3');
     });
 
-    it('renders six usage comparison charts in required order', () => {
-        renderChart(<StatsUsageComparisonCharts tokenAggregation="total" rows={[
+    it('renders every usage comparison chart in required order with left-pinned headings', () => {
+        renderChart(<StatsUsageComparisonCharts rows={[
             row({ chartRole: 'accountUsage', unit: 'percent' }),
-            row({ chartRole: 'projectTokens' }),
+            row({ chartRole: 'projectTokensTotal' }),
+            row({ chartRole: 'projectTokensAverage' }),
             row({ chartRole: 'tokensPerAccountUsage' }),
             row({ chartRole: 'tokensPerDollar', unit: 'tokensPerDollar' }),
+            row({ chartRole: 'costPerAgent', unit: 'dollars' }),
+            row({ chartRole: 'costPerActionAverage', unit: 'dollars' }),
             row({ chartRole: 'actionsPerAccountUsage' }),
             row({ chartRole: 'activity' }),
         ]} />);
@@ -302,14 +322,72 @@ describe('StatsBarChart', () => {
         expect(screen.getAllByRole('heading').map(({ textContent }) => textContent)).toEqual([
             'Account usage',
             'Project token usage (totals)',
+            'Project token usage (average per action)',
             'Tokens per percent account usage',
             'Tokens per dollar',
+            'Estimated cost per agent',
+            'Average cost per action',
             'Actions per percent account usage',
             'Project activity',
         ]);
         expect(screen.getByRole('list', { name: 'Project token usage (totals) chart' })).toHaveAttribute('data-chart-mode', 'grouped');
         expect(screen.getByRole('list', { name: 'Project activity chart' })).toHaveAttribute('data-chart-mode', 'groupedStacked');
-        expect(screen.getByRole('heading', { name: 'Account usage' })).toHaveStyle({ left: '0', position: 'sticky' });
+        // A sticky box can only shift inside its own containing block, so the heading must shrink to its text first.
+        expect(screen.getByRole('heading', { name: 'Account usage' }))
+            .toHaveStyle({ alignSelf: 'flex-start', left: '0', position: 'sticky', width: 'max-content' });
         expect(screen.queryByTestId('stats-chart-viewport')).toBeNull();
+    });
+
+    it('keeps the totals legend pinned to the left while the chart scrolls horizontally', () => {
+        renderChart(<StatsBarChart ariaLabel="Totals chart" mode="single" rows={[
+            row({ identity: 'F_1', seriesIdentity: 'codex', seriesLabel: 'codex', unit: 'dollars' }),
+            row({ identity: 'F_2', seriesIdentity: 'mixed', seriesLabel: 'Mixed', unit: 'dollars' }),
+        ]} />);
+
+        expect(screen.getByLabelText('Totals chart legend'))
+            .toHaveStyle({ alignSelf: 'flex-start', left: '0', position: 'sticky' });
+        expect(screen.getAllByTestId('stats-legend-swatch')).toHaveLength(2);
+    });
+
+    it('gives each agent its own family color, identically in every chart and whatever the row order', () => {
+        const theme = createAppTheme('light');
+        const { claude, codex } = theme.palette.custom.chartPalettes;
+        const rows = [agentRow('claude'), agentRow('codex')];
+        render(
+            <ThemeProvider theme={theme}>
+                <StatsBarChart ariaLabel="First chart" mode="grouped" rows={rows} />
+                <StatsBarChart ariaLabel="Second chart" mode="grouped" rows={[...rows].reverse()} />
+            </ThemeProvider>,
+        );
+
+        expect(barColor('First chart', 'claude')).toBe(renderedHexColor(claude[0]));
+        expect(barColor('First chart', 'codex')).toBe(renderedHexColor(codex[0]));
+        expect(barColor('Second chart', 'claude')).toBe(barColor('First chart', 'claude'));
+        expect(barColor('Second chart', 'codex')).toBe(barColor('First chart', 'codex'));
+    });
+
+    it('keeps one series color when comparison charts contain different identity subsets', () => {
+        renderChart(<StatsUsageComparisonCharts rows={[
+            row({ chartRole: 'accountUsage', identity: 'a', provider: 'claude', seriesIdentity: 'a', seriesLabel: 'A' }),
+            row({ chartRole: 'accountUsage', identity: 'b', provider: 'claude', seriesIdentity: 'b', seriesLabel: 'B' }),
+            row({ chartRole: 'projectTokensTotal', identity: 'b', provider: 'claude', seriesIdentity: 'b', seriesLabel: 'B' }),
+        ]} />);
+
+        expect(barColor('Account usage chart', 'b')).toBe(barColor('Project token usage (totals) chart', 'b'));
+    });
+
+    it('keeps agent colors stable across value-only rerenders', () => {
+        const theme = createAppTheme('light');
+        const rows = [agentRow('claude'), agentRow('codex')];
+        const view = render(<ThemeProvider theme={theme}><StatsBarChart mode="grouped" rows={rows} /></ThemeProvider>);
+        const before = renderedColors(screen.getAllByTestId('stats-bar'));
+
+        view.rerender(
+            <ThemeProvider theme={theme}>
+                <StatsBarChart mode="grouped" rows={rows.map((current) => ({ ...current, value: current.value * 3 }))} />
+            </ThemeProvider>,
+        );
+
+        expect(renderedColors(screen.getAllByTestId('stats-bar'))).toEqual(before);
     });
 });

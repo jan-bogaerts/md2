@@ -10,15 +10,17 @@ export type StatsActivityMetric = 'cards' | 'actions' | 'tokens';
 export type StatsPerformanceMetric = 'duration' | 'tokens' | 'toolCalls';
 export type StatsPerformanceAggregation = 'average' | 'averageWithDeviation' | 'median' | 'sum';
 export type StatsPerformanceGrouping = 'agent' | 'model';
-export type StatsUsageTokenAggregation = 'average' | 'total';
 export type StatsTotalsGrouping = 'card' | 'action';
 export type StatsTotalsMetric = 'cost' | 'duration' | 'tokens';
 export type StatsStatus = 'idle' | 'loading' | 'ready' | 'error';
 export type StatsChartRole =
     | 'primary'
     | 'activity'
-    | 'projectTokens'
+    | 'projectTokensAverage'
+    | 'projectTokensTotal'
     | 'accountUsage'
+    | 'costPerActionAverage'
+    | 'costPerAgent'
     | 'tokensPerAccountUsage'
     | 'tokensPerDollar'
     | 'actionsPerAccountUsage';
@@ -57,7 +59,6 @@ export interface StatsControls {
     totalsGrouping: StatsTotalsGrouping;
     totalsMetric: StatsTotalsMetric;
     usageGranularity: StatsShortGranularity;
-    usageTokenAggregation: StatsUsageTokenAggregation;
 }
 
 export interface StatsStatusCounts {
@@ -172,7 +173,6 @@ export const INITIAL_CONTROLS: StatsControls = {
     totalsGrouping: 'card',
     totalsMetric: 'duration',
     usageGranularity: 'day',
-    usageTokenAggregation: 'total',
 };
 export const INITIAL_SNAPSHOT: ProjectStatsSnapshot = {
     controls: INITIAL_CONTROLS,

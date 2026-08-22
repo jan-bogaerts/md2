@@ -77,7 +77,7 @@ describe('CardBodyPopover editor cleanup', () => {
     })
 
     it('clears binding, discards history, and closes a clean board document without committing', async () => {
-        const updateCardBody = vi.spyOn(dataService.cards, 'updateCardBody').mockImplementation(() => undefined)
+        const updateCardBody = vi.spyOn(dataService.cards, 'updateCardBody').mockImplementation(() => card)
         const setBoardDocument = vi.spyOn(CardMarkdownDataSource.prototype, 'setBoardDocument')
         const discardDocument = vi.spyOn(MarkdownDocumentHistoryStore.prototype, 'discardDocument')
         const closeBoardDocument = vi.spyOn(openFilesService, 'closeBoardDocument')
@@ -98,7 +98,7 @@ describe('CardBodyPopover editor cleanup', () => {
 
     it('commits a dirty body before close and restores its draft when reopened', async () => {
         const editedMarkdown = '# Card\n\nEdited before close'
-        const updateCardBody = vi.spyOn(dataService.cards, 'updateCardBody').mockImplementation(() => undefined)
+        const updateCardBody = vi.spyOn(dataService.cards, 'updateCardBody').mockImplementation(() => card)
         const setBoardDocument = vi.spyOn(CardMarkdownDataSource.prototype, 'setBoardDocument')
         const discardDocument = vi.spyOn(MarkdownDocumentHistoryStore.prototype, 'discardDocument')
         const closeBoardDocument = vi.spyOn(openFilesService, 'closeBoardDocument')

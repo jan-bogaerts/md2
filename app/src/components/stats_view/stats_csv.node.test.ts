@@ -45,6 +45,26 @@ describe('serializeStatsCsv', () => {
         ].join('\r\n'));
     });
 
+    it('exports both project token charts and both cost charts with their aggregation and inputs', () => {
+        const csv = serializeStatsCsv('usageComparison', [
+            row({ aggregation: 'total', chartRole: 'projectTokensTotal', displayLabel: '18 Aug', grouping: 'day', identity: 'codex', provider: 'codex', value: 100 }),
+            row({ aggregation: 'average', chartRole: 'projectTokensAverage', denominator: 2, displayLabel: '18 Aug', grouping: 'day', identity: 'codex', numerator: 100, provider: 'codex', value: 50 }),
+            row({ chartRole: 'costPerAgent', denominator: 100, displayLabel: '18 Aug', grouping: 'day', identity: 'codex', numerator: 10, provider: 'codex', unit: 'dollars', value: 10 }),
+            row({ chartRole: 'costPerActionAverage', denominator: 10, displayLabel: '18 Aug', grouping: 'day', identity: 'codex', numerator: 2, provider: 'codex', unit: 'dollars', value: 5 }),
+        ]);
+
+        expect(csv.split('\r\n').slice(1, 5).map((record) => {
+            const fields = record.split(',');
+
+            return [fields[1], fields[18], fields[19], fields[20], fields[21], fields[26]];
+        })).toEqual([
+            ['projectTokensTotal', 'tokens', '100', '', '', 'total'],
+            ['projectTokensAverage', 'tokens', '50', '100', '2', 'average'],
+            ['costPerAgent', 'dollars', '10', '10', '100', ''],
+            ['costPerActionAverage', 'dollars', '5', '2', '10', ''],
+        ]);
+    });
+
     it('exports one grouped row per bucket and series with sample and status counts', () => {
         const csv = serializeStatsCsv('agentPerformance', [row({
             chartRole: 'primary',

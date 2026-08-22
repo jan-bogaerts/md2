@@ -4,6 +4,7 @@ interface CustomPalette {
     borderHover: string
     borderStrong: string
     chartPalette: string[]
+    chartPalettes: Record<string, string[]>
     colHead: string
     primaryBg: string
     text3: string

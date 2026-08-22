@@ -26,6 +26,7 @@ import {
     accessibleStatsTooltip,
     formatBucketRange,
     formatCount,
+    formatDollars,
     formatTimestamp,
     formatWindow,
     statsTooltip,
@@ -33,6 +34,21 @@ import {
 } from './stats_tooltip';
 
 type RatioRole = 'tokensPerAccountUsage' | 'tokensPerDollar' | 'actionsPerAccountUsage';
+type CostRole = 'costPerAgent' | 'costPerActionAverage';
+
+interface TokenChartVariant {
+    aggregation: 'average' | 'total';
+    role: 'projectTokensAverage' | 'projectTokensTotal';
+    valueLabel: string;
+}
+
+/** Both project-token charts read the same bucket totals, so no control has to choose between them. */
+const TOKEN_VARIANTS: TokenChartVariant[] = [
+    { aggregation: 'total', role: 'projectTokensTotal', valueLabel: 'Total project tokens' },
+    { aggregation: 'average', role: 'projectTokensAverage', valueLabel: 'Average project tokens per action' },
+];
+
+const SUBSCRIPTION_SHARE_NOTE = 'Share of the monthly subscription consumed in this bucket, not a metered per-token price';
 
 interface ComparisonIndexes {
     /** Account rows whose delta is absent or non-negative, keyed by bucket and series identity. */
@@ -145,16 +161,15 @@ function comparisonAccountRows(
 
 function projectTokenRows(
     contexts: StatsBucketContext[],
-    controls: StatsControls,
     granularity: StatsShortGranularity,
     tokenTimeAvailable: boolean,
     indexes: ComparisonIndexes,
 ): StatsChartRow[] {
-    return contexts.flatMap((context) => {
+    return TOKEN_VARIANTS.flatMap(({ aggregation, role, valueLabel }) => contexts.flatMap((context) => {
         if (indexes.providers.length === 0) {
             return tokenTimeAvailable
-                ? [emptyTimeRow(context, granularity, 'projectTokens', 'tokens', 'tokens')]
-                : [unavailableTimeRow(context, granularity, 'projectTokens', 'tokens', 'tokens', 'project token usage')];
+                ? [emptyTimeRow(context, granularity, role, 'tokens', 'tokens')]
+                : [unavailableTimeRow(context, granularity, role, 'tokens', 'tokens', 'project token usage')];
         }
 
         return indexes.providers.map((provider) => {
@@ -162,9 +177,7 @@ function projectTokenRows(
             const rows = indexes.tokensByBucketProvider.get(providerKey) ?? [];
             const tokenTotal = rows.reduce((total, row) => total + row.totalTokens, 0);
             const actionCount = (indexes.agentActionsByBucketProvider.get(providerKey) ?? []).length;
-            const average = actionCount === 0 ? 0 : tokenTotal / actionCount;
-            const value = controls.usageTokenAggregation === 'average' ? average : tokenTotal;
-            const valueLabel = controls.usageTokenAggregation === 'average' ? 'Average project tokens per action' : 'Total project tokens';
+            const value = aggregation === 'total' ? tokenTotal : actionCount === 0 ? 0 : tokenTotal / actionCount;
             const tooltip = statsTooltip([
                 { label: null, value: formatBucketRange(context) },
                 { label: 'Provider', value: provider },
@@ -172,10 +185,12 @@ function projectTokenRows(
             ]);
 
             return {
-                ...emptyTimeRow(context, granularity, 'projectTokens', 'tokens', 'tokens'),
+                ...emptyTimeRow(context, granularity, role, 'tokens', 'tokens'),
                 accessibleLabel: accessibleStatsTooltip(tooltip),
-                aggregation: controls.usageTokenAggregation,
+                aggregation,
+                denominator: aggregation === 'average' ? actionCount : null,
                 identity: provider,
+                numerator: aggregation === 'average' ? tokenTotal : null,
                 provider,
                 seriesIdentity: provider,
                 seriesLabel: provider,
@@ -183,6 +198,114 @@ function projectTokenRows(
                 value,
             };
         });
+    }));
+}
+
+/**
+ * One account series per provider: the longest reported limit window, ties broken on the
+ * lexicographically smallest identity, so a provider reporting several windows still has one rate.
+ */
+export function longestWindowSeriesByProvider(seriesOptions: StatsAccountSeriesOption[]) {
+    const seriesByProvider = new Map<string, StatsAccountSeriesOption>();
+    for (const series of seriesOptions) {
+        const current = seriesByProvider.get(series.provider);
+        const wins = !current
+            || series.windowDurationMinutes > current.windowDurationMinutes
+            || (series.windowDurationMinutes === current.windowDurationMinutes && series.identity.localeCompare(current.identity) < 0);
+        if (wins) seriesByProvider.set(series.provider, series);
+    }
+
+    return seriesByProvider;
+}
+
+function unavailableCostRow(
+    context: StatsBucketContext,
+    granularity: StatsShortGranularity,
+    role: CostRole,
+    series: StatsAccountSeriesOption,
+    unavailableLabel: string,
+): StatsChartRow {
+    return {
+        ...unavailableTimeRow(context, granularity, role, role, 'dollars', unavailableLabel),
+        identity: series.provider,
+        limitId: series.limitId,
+        provider: series.provider,
+        seriesIdentity: series.provider,
+        seriesLabel: series.provider,
+        windowId: series.windowId,
+    };
+}
+
+function costProviderRow(
+    context: StatsBucketContext,
+    granularity: StatsShortGranularity,
+    role: CostRole,
+    series: StatsAccountSeriesOption,
+    indexes: ComparisonIndexes,
+): StatsChartRow {
+    const pointsUsed = (indexes.positiveAccountByBucketSeries.get(bucketIdentityKey(context.start, series.identity)) ?? [])
+        .reduce((total, row) => total + row.usedPercentDelta!, 0);
+    const monthlySubscriptionCostUsd = findAgentProfile(indexes.agentProfiles, series.provider)?.monthlySubscriptionCostUsd;
+    if (pointsUsed <= 0) {
+        return unavailableCostRow(context, granularity, role, series, `positive account usage for ${series.provider}`);
+    }
+    if (monthlySubscriptionCostUsd === undefined) {
+        return unavailableCostRow(context, granularity, role, series, `monthly subscription cost for ${series.provider}`);
+    }
+    const actionCount = (indexes.agentActionsByBucketProvider.get(bucketIdentityKey(context.start, series.provider)) ?? []).length;
+    if (role === 'costPerActionAverage' && actionCount === 0) {
+        return unavailableCostRow(context, granularity, role, series, `completed ${series.provider} actions`);
+    }
+    const estimatedCost = pointsUsed * (monthlySubscriptionCostUsd / 100);
+    const value = role === 'costPerAgent' ? estimatedCost : estimatedCost / actionCount;
+    const tooltipLines: StatsTooltipLine[] = [
+        { label: null, value: formatBucketRange(context) },
+        { label: 'Provider', value: accountSeriesWindowDescription(series) },
+        { label: role === 'costPerAgent' ? 'Estimated cost' : 'Average cost per action', value: formatDollars(value) },
+        { label: null, value: SUBSCRIPTION_SHARE_NOTE },
+        {
+            label: 'Account limit used',
+            value: `${formatCount(pointsUsed)}% \u00b7 Monthly subscription: ${formatDollars(monthlySubscriptionCostUsd)}`,
+        },
+    ];
+    if (role === 'costPerActionAverage') {
+        tooltipLines.push({ label: 'Completed actions', value: formatCount(actionCount) });
+    }
+    const tooltip = statsTooltip(tooltipLines);
+
+    return {
+        ...emptyTimeRow(context, granularity, role, role, 'dollars'),
+        accessibleLabel: accessibleStatsTooltip(tooltip),
+        // Both inputs stay in the CSV: the account points consumed, and the rate or action count they meet.
+        denominator: role === 'costPerAgent' ? monthlySubscriptionCostUsd : pointsUsed,
+        identity: series.provider,
+        limitId: series.limitId,
+        numerator: role === 'costPerAgent' ? pointsUsed : actionCount,
+        provider: series.provider,
+        seriesIdentity: series.provider,
+        seriesLabel: series.provider,
+        tooltip,
+        value,
+        windowId: series.windowId,
+    };
+}
+
+function costRows(
+    contexts: StatsBucketContext[],
+    granularity: StatsShortGranularity,
+    role: CostRole,
+    seriesOptions: StatsAccountSeriesOption[],
+    indexes: ComparisonIndexes,
+): StatsChartRow[] {
+    const seriesByProvider = longestWindowSeriesByProvider(seriesOptions);
+    const providers = [...seriesByProvider.keys()].sort();
+
+    return contexts.flatMap((context) => {
+        if (providers.length === 0) {
+            return [unavailableTimeRow(context, granularity, role, role, 'dollars', 'account usage priced by a subscription')];
+        }
+
+        return providers.map((provider) => costProviderRow(context, granularity, role, seriesByProvider.get(provider)!, indexes));
     });
 }
 
@@ -382,9 +505,11 @@ export function usageComparisonRows(source: LoadedStatsSource, controls: StatsCo
 
     return [
         ...comparisonAccountRows(contexts, granularity, seriesOptions, indexes),
-        ...projectTokenRows(contexts, controls, granularity, source.tokenTimeAvailable, indexes),
+        ...projectTokenRows(contexts, granularity, source.tokenTimeAvailable, indexes),
         ...ratioRows(contexts, granularity, 'tokensPerAccountUsage', seriesOptions, indexes),
         ...ratioRows(contexts, granularity, 'tokensPerDollar', seriesOptions, indexes),
+        ...costRows(contexts, granularity, 'costPerAgent', seriesOptions, indexes),
+        ...costRows(contexts, granularity, 'costPerActionAverage', seriesOptions, indexes),
         ...ratioRows(contexts, granularity, 'actionsPerAccountUsage', seriesOptions, indexes),
         ...contexts.flatMap((context) => activityCountRows(context, granularity, indexes.actionsByBucket.get(context.start) ?? [])),
     ];

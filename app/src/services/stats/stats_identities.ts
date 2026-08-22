@@ -20,11 +20,11 @@ export function actionLabel(actionId: string, storedLabel: string | null) {
     return storedLabel ?? actionId;
 }
 
-/** Prefers the visible card ID for display while keeping title and path in the tooltip. */
+/** Prefers the visible card ID for display and names the card as "<id>: <title>" in tooltips. */
 export function cardDisplay(cardInternalId: string, cardPath: string | null, cardsById: Map<string, StatsCardDescriptor>) {
     const card = cardsById.get(cardInternalId);
-    if (card) return { label: card.visibleId, tooltip: `${card.visibleId}: ${card.title}; ${card.path}` };
+    if (card) return { label: card.visibleId, title: `${card.visibleId}: ${card.title}` };
     const fallback = cardPath ?? cardInternalId;
 
-    return { label: fallback, tooltip: fallback };
+    return { label: fallback, title: fallback };
 }
