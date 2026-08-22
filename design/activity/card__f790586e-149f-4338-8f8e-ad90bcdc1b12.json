@@ -2472,6 +2472,43 @@
       "startedAt": "2026-08-22T08:30:31.382Z",
       "status": "completed",
       "rootConversationId": "agent-b96a2b96-a3ce-4737-a192-c0389598f265"
+    },
+    {
+      "commits": [
+        {
+          "commit": "d1693c3f58e509b3266ff87a52218f131f06744f",
+          "committedAt": "2026-08-22T11:00:24+02:00",
+          "deletions": 578,
+          "filePaths": [
+            "desktop/main.js",
+            "desktop/src/actions/agent/agent_runner_service.js",
+            "desktop/src/actions/agent/agent_runner_state.test.mjs",
+            "desktop/src/actions/agent/claude_usage_diagnostics.js",
+            "desktop/src/actions/agent/claude_usage_diagnostics.test.mjs",
+            "desktop/src/actions/agent/claude_usage_poller.js",
+            "desktop/src/actions/agent/claude_usage_poller.test.mjs",
+            "desktop/src/actions/agent/claude_usage_terminal.js",
+            "desktop/src/actions/agent/claude_usage_terminal.test.mjs",
+            "desktop/src/actions/agent/claude_usage_terminal_host.js",
+            "desktop/src/actions/agent/claude_usage_terminal_host.test.mjs",
+            "desktop/src/actions/agent/claude_usage_terminal_worker.js",
+            "desktop/src/shell/local_bridge_dispatch.js",
+            "desktop/src/shell/local_bridge_dispatch.test.mjs",
+            "desktop/src/shell/startup_usage_refresh.js",
+            "desktop/src/shell/startup_usage_refresh.test.mjs"
+          ],
+          "filesChanged": 16,
+          "insertions": 1356,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-22T11:00:24+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "f790586e-149f-4338-8f8e-ad90bcdc1b12",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
