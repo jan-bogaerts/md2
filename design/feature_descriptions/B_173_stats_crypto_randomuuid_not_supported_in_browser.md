@@ -12,11 +12,9 @@ policy:
 branch: b_173_stats_crypto_randomuuid_not_supported_in_browser
 worktree: 2
 ---
-
 Apparently the stats view somewhere uses `crypto.randomUUID` . When we run the app in a browser (ex through websockets), we get this error: crypto.randomUUID is not a function
 
 this needs to be fixed. we have had this before. perhaps we can make a note somewhere that we shouldn't use the crypto lib in the react app?
-
 
 ## Current state
 
@@ -26,8 +24,8 @@ The repository already fixed this once. [app/src/data/uuid.ts](../../app/src/dat
 
 Two renderer call sites were missed and still call the native API directly:
 
-- [app/src/services/stats/project_stats_worker_client.ts:87](../../app/src/services/stats/project_stats_worker_client.ts#L87) — `calculateActivityStatsOutsideMainThread` builds `calculationId` with `crypto.randomUUID()`. This runs on every stats calculation, before the desktop/browser branch, so it throws in the browser regardless of which backend would have been used. This is the reported crash.
-- [app/src/services/data/card_image_operations.ts:68](../../app/src/services/data/card_image_operations.ts#L68) — `createAvailablePastedImagePath` defaults its `createIdentifier` parameter to `crypto.randomUUID()`. Same crash, not yet reported, triggered when an image is pasted into a card in the browser.
+* [app/src/services/stats/project\_stats\_worker\_client.ts:87](../../app/src/services/stats/project_stats_worker_client.ts#L87) — `calculateActivityStatsOutsideMainThread` builds `calculationId` with `crypto.randomUUID()`. This runs on every stats calculation, before the desktop/browser branch, so it throws in the browser regardless of which backend would have been used. This is the reported crash.
+* [app/src/services/data/card\_image\_operations.ts:68](../../app/src/services/data/card_image_operations.ts#L68) — `createAvailablePastedImagePath` defaults its `createIdentifier` parameter to `crypto.randomUUID()`. Same crash, not yet reported, triggered when an image is pasted into a card in the browser.
 
 Nothing prevents a third occurrence: `app/eslint.config.js` has no rule against the native API, and `design/CODEMAP.md` does not mention the secure-context constraint. `desktop/` call sites are out of scope — they run in Node, where `crypto.randomUUID` is always present.
 
@@ -45,16 +43,16 @@ Nothing prevents a third occurrence: `app/eslint.config.js` has no rule against 
 }],
 ```
 
-   The config only applies to `app/**/*.{ts,tsx}`, so `desktop/` and `shared/` keep using the native API.
-4. `design/CODEMAP.md` — add one bullet under `## Gotchas / don't-touch`: the renderer also runs over plain http via remote control, therefore secure-context-only APIs (`crypto.randomUUID`, and by extension `crypto.subtle`) must not be used in `app/`; use `generateUuid()` from `app/src/data/uuid.ts`.
-5. Tests — no new UUID unit test is needed; [app/src/data/uuid.node.test.ts](../../app/src/data/uuid.node.test.ts) already covers generation when `randomUUID` is unavailable. Note that `app/src/components/actions/editor/action_phrase_editor_state.node.test.ts:15` spies on `crypto.randomUUID`; it passes only because the `uuid` package delegates to the native API when it exists. That test is pre-existing and stays untouched unless it breaks.
+The config only applies to `app/**/*.{ts,tsx}`, so `desktop/` and `shared/` keep using the native API.
+4\. `design/CODEMAP.md` — add one bullet under `## Gotchas / don't-touch`: the renderer also runs over plain http via remote control, therefore secure-context-only APIs (`crypto.randomUUID`, and by extension `crypto.subtle`) must not be used in `app/`; use `generateUuid()` from `app/src/data/uuid.ts`.
+5\. Tests — no new UUID unit test is needed; [app/src/data/uuid.node.test.ts](../../app/src/data/uuid.node.test.ts) already covers generation when `randomUUID` is unavailable. Note that `app/src/components/actions/editor/action_phrase_editor_state.node.test.ts:15` spies on `crypto.randomUUID`; it passes only because the `uuid` package delegates to the native API when it exists. That test is pre-existing and stays untouched unless it breaks.
 
 ## Acceptance criteria
 
-- Opening the stats view in a browser served over plain http (remote control, e.g. from a phone on the LAN) renders the stats without the `crypto.randomUUID is not a function` error.
-- Pasting an image into a card in that same browser session produces a uniquely named image file without error.
-- `grep -rn "crypto.randomUUID" app/src` returns no hits outside test files.
-- `npm run lint` in `app/` fails with the new rule when `crypto.randomUUID` is reintroduced in `app/src`, and passes on the fixed tree.
-- `npm run typecheck` and the existing vitest suite pass unchanged.
-- Stats calculation in Electron still cancels correctly: aborting a running calculation reaches `cancelActivityStatsCalculation` with the same id that started it.
-- `design/CODEMAP.md` documents the secure-context constraint under Gotchas.
+* Opening the stats view in a browser served over plain http (remote control, e.g. from a phone on the LAN) renders the stats without the `crypto.randomUUID is not a function` error.
+* Pasting an image into a card in that same browser session produces a uniquely named image file without error.
+* `grep -rn "crypto.randomUUID" app/src` returns no hits outside test files.
+* `npm run lint` in `app/` fails with the new rule when `crypto.randomUUID` is reintroduced in `app/src`, and passes on the fixed tree.
+* `npm run typecheck` and the existing vitest suite pass unchanged.
+* Stats calculation in Electron still cancels correctly: aborting a running calculation reaches `cancelActivityStatsCalculation` with the same id that started it.
+* `design/CODEMAP.md` documents the secure-context constraint under Gotchas.
