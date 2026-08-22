@@ -5,7 +5,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "1c141485-6431-438a-a4ca-9443f75443e2",
       "cardPath": "design/feature_descriptions/F_239_sign_all_in_installer.md",
-      "completedAt": null,
+      "completedAt": "2026-08-22T08:33:31.306Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 69218
@@ -628,17 +628,25 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 46,
-          "timestamp": "2026-08-22T08:33:30.961Z"
+          "timestamp": "2026-08-22T08:33:31.306Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-c7def2f9-57c3-40b3-9900-907b30bf4e84",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a02898-272b-7a41-b617-b7bdd705d683",
+          "createdAt": "2026-08-22T08:33:31.306Z",
+          "lastUsedAt": "2026-08-22T08:33:31.306Z",
+          "synchronizedThroughMessageId": "agent-turn-b2ad1afa-90e5-416d-9997-ad3ed4481777-turn-1-assistant-5"
+        }
+      ],
       "startedAt": "2026-08-22T08:30:55.005Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-22T08:30:55.005Z"
+        "elapsedMs": 156301,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
