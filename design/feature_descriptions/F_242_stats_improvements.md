@@ -21,4 +21,6 @@ policy:
     {id}:{title}
     {value}&#x20;
     if value is time based, convert it to HH:MM:SS
+  * the label below the bar should only contain the card id, not the agent or model.
+  *
   * make legend sticky to the left side for scrollling
