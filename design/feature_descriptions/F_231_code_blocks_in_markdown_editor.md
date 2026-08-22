@@ -10,6 +10,9 @@ agents:
 policy:
 after: 55de27a5-aa12-4048-9990-970a8382c5b2
 ---
+need to add support for multi line code blocks
 
-* currently we only support inline code blocks. there is something annoying about them, noticed in lib version 4.0.4: when code block at end of text or end of line, and code block is closed, sometimes the cursor refuses to go out of the code block: all newly entered text remains in the code block. this is annoying and should be fixed somehow.
-* need to add support for multi line code blocks
+
+
+```&#x60;&#x60;&#x60;
+```
