@@ -90,6 +90,7 @@ Keep analysis and documentation **short, precise, and to the point**. Avoid verb
 - avoid magic numbers, use named constants instead
 - use ; at end of statements
 - avoid multiple inheritance
+- do not do CRLF rewrites
 
 ## events & state updates
 - Never hand-roll listener registries: no `Map`s of listener `Set`s, no custom subscribe/unsubscribe functions, no revision counters. Use the standard `EventTarget` (`addEventListener` / `removeEventListener` / `dispatchEvent`) — extend it or compose one in the service.
