@@ -1,4 +1,5 @@
 import type { ProjectReference, StorageService } from '../../data/data_types'
+import { generateUuid } from '../../data/uuid'
 import {
     calculateActivityStatsFromSources,
     type ActivityStatsCalculationResult,
@@ -84,7 +85,7 @@ export async function calculateActivityStatsOutsideMainThread(
     paths: string[],
     signal: AbortSignal,
 ) {
-    const calculationId = crypto.randomUUID()
+    const calculationId = generateUuid()
     if (storage.calculateActivityStats) {
         const handleAbort = () => {
             if (storage.cancelActivityStatsCalculation) void storage.cancelActivityStatsCalculation(calculationId)

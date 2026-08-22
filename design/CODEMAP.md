@@ -130,6 +130,7 @@ Renderer components in [app/src/components/](../app/src/components/), grouped by
 - **`main.tsx` line 1 prism import** and **`vite.config.ts` `define: {global:'globalThis'}`** are both load-order hacks for prismjs-via-Lexical. Removing either breaks the built app only (not dev). See F-045 note in vite.config.ts.
 - **`local_bridge_dispatch.js` keeps `currentLocalProject` as mutable state**; many methods depend on a prior `loadProject`/`resolveProject` having set it. Order-sensitive.
 - **Quit is intercepted** (`before-quit` → `preventDefault` → `stopAndQuit`, [main.js:341](../desktop/main.js#L341)) to flush renderer commits and telemetry, guarded by a 10s force-exit watchdog. Don't add blocking work to shutdown without honoring the watchdog.
+- **The renderer also runs over plain `http://<lan-ip>` via remote control**, which is not a secure context. Secure-context-only APIs (`crypto.randomUUID`, and by extension `crypto.subtle`) are missing there and throw. In `app/` use `generateUuid()` from [app/src/data/uuid.ts](../app/src/data/uuid.ts); an eslint `no-restricted-properties` rule enforces this. `desktop/` and `shared/` run in Node and are unaffected.
 - Vitest **`pool: 'threads'` is deliberate** — do not switch to forks.
 - `commit_batcher.ts` starts with a UTF-8 BOM (`﻿`) — preserved intentionally; don't strip on edit.
 - Desktop reads `.env` at startup ([main.js:6](../desktop/main.js#L6)); packaged path differs (`process.resourcesPath`).

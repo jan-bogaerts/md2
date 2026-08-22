@@ -1,5 +1,14 @@
-import { describe, expect, it, vi } from 'vitest'
-import { calculateActivityStatsInBrowser } from './project_stats_worker_client'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { ProjectReference, StorageService } from '../../data/data_types'
+import { calculateActivityStatsInBrowser, calculateActivityStatsOutsideMainThread } from './project_stats_worker_client'
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u
+
+/** Replaces the global crypto with the insecure-context shape: getRandomValues but no randomUUID. */
+function stubInsecureCrypto() {
+    const { getRandomValues } = globalThis.crypto
+    vi.stubGlobal('crypto', { getRandomValues: getRandomValues.bind(globalThis.crypto) })
+}
 
 interface TestWorker {
     onerror: ((event: ErrorEvent) => void) | null
@@ -38,5 +47,38 @@ describe('browser project stats worker client', () => {
 
         await rejection
         expect(statsWorker.terminate).toHaveBeenCalledTimes(1)
+    })
+})
+
+describe('activity stats calculation identifier', () => {
+    afterEach(() => {
+        vi.unstubAllGlobals()
+    })
+
+    it('starts and cancels a desktop calculation with one identifier when randomUUID is unavailable', async () => {
+        stubInsecureCrypto()
+        const abortController = new AbortController()
+        let startedId = ''
+        const cancelActivityStatsCalculation = vi.fn(async () => {})
+        const storage = {
+            calculateActivityStats: vi.fn(async (_project: ProjectReference, _paths: string[], calculationId: string) => {
+                startedId = calculationId
+                abortController.abort()
+
+                return { stats: { actions: [], conversations: [] }, warnings: [] }
+            }),
+            cancelActivityStatsCalculation,
+        } as unknown as StorageService
+
+        const result = await calculateActivityStatsOutsideMainThread(
+            storage,
+            { name: 'project' } as unknown as ProjectReference,
+            [],
+            abortController.signal,
+        )
+
+        expect(result).toEqual({ stats: { actions: [], conversations: [] }, warnings: [] })
+        expect(startedId).toMatch(UUID_PATTERN)
+        expect(cancelActivityStatsCalculation).toHaveBeenCalledWith(startedId)
     })
 })

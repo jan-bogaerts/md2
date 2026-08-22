@@ -1,5 +1,6 @@
 import { resolveCardAssetPath } from '../../data/asset_paths'
 import type { MarkdownFile } from '../../data/data_types'
+import { generateUuid } from '../../data/uuid'
 import type { CardOperationContext } from './card_operation_context'
 import { dialogService } from '../dialog_service'
 
@@ -65,7 +66,7 @@ export function createAvailablePastedImagePath(
     cardPath: string,
     mimeType: string,
     existingPaths: Iterable<string>,
-    createIdentifier: () => string = () => crypto.randomUUID(),
+    createIdentifier: () => string = () => generateUuid(),
 ): SavedCardImage {
     const extension = clipboardImageExtension(mimeType)
     const normalizedExistingPaths = new Set([...existingPaths].map((path) => path.replace(/\\/gu, '/').toLowerCase()))
