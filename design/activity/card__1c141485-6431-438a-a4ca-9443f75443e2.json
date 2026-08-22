@@ -1458,6 +1458,31 @@
       "startedAt": "2026-08-22T09:02:39.418Z",
       "status": "completed",
       "rootConversationId": "agent-95a4cd40-3bf9-45e7-beb1-a2567156881a"
+    },
+    {
+      "commits": [
+        {
+          "commit": "851f00ad725419cf9d88abeb23c7da18bf63c1b2",
+          "committedAt": "2026-08-22T11:34:05+02:00",
+          "deletions": 3,
+          "filePaths": [
+            "desktop/packaging/builder_config.js",
+            "desktop/packaging/builder_config.test.mjs",
+            "desktop/packaging/verify_windows_package.mjs",
+            "desktop/packaging/verify_windows_package.test.mjs"
+          ],
+          "filesChanged": 4,
+          "insertions": 94,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-22T11:34:05+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "1c141485-6431-438a-a4ca-9443f75443e2",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
