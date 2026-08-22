@@ -10,6 +10,8 @@ agents:
   - design/activity/card__9823580d-2b15-4386-9be1-66a94937fb3a.json
 policy:
 after: d9aa7d07-b618-4b83-9802-799c88174fb5
+branch: f_242_stats_improvements
+worktree: 3
 ---
 * project usage vs account usage
   * keep same colors for same agents. lets prepare 2 sets of colors that differ enough (subset of the already created chart colors). for claude a set and for codex another set and always pick the colors sequentially, not randome. this way, we always have the same colors for the same agent or model, makes it easier to read the chart.
@@ -45,7 +47,7 @@ after: d9aa7d07-b618-4b83-9802-799c88174fb5
 
 **Totals by card/action.** `costTotalsRows` emits one row per *card × agent × account series*, so a single card produces several bars. `displayLabel` is `"<card id> / <provider> / <limitId> / <windowId>"`, which is also the text under the bar, and `seriesLabel` (the legend entry) is the same `provider / limitId / windowId` triple — that is where the account name in the legend comes from. Tooltips in this dataset are still the old semicolon strings (`totalRow`, `costRow`, `unavailableAgentRow`); `cardDisplay` (`stats_identities.ts`) builds `"<id>: <title>; <path>"`, which is where the file path in the tooltip comes from. Duration totals print raw milliseconds. The `Totals` chart legend is `StatsBarChart`'s own legend and is already sticky.
 
-**Already delivered by F_233.** The performance `Aggregation` select, the widened value labels, the labelled multi-line tooltip module (`stats_tooltip.ts`), and the local-time bucket formatting are implemented; the sticky heading was attempted but does not work, for the reason above.
+**Already delivered by F\_233.** The performance `Aggregation` select, the widened value labels, the labelled multi-line tooltip module (`stats_tooltip.ts`), and the local-time bucket formatting are implemented; the sticky heading was attempted but does not work, for the reason above.
 
 ## Implementation details
 
@@ -63,7 +65,7 @@ Move color allocation out of `stats_bar_chart.tsx` into a new `app/src/component
 3. Assign sequentially from the group's palette. Grouped families are assigned first, the neutral group last, skipping any color already taken in this chart.
 4. Past the end of a list, keep today's random-color-with-retry overflow.
 
-Keep memoization by ordered identity list plus palette, as F_238 requires. Same agent, same colors across every chart, because the family and the position within it are derived from the identity, not from render order.
+Keep memoization by ordered identity list plus palette, as F\_238 requires. Same agent, same colors across every chart, because the family and the position within it are derived from the identity, not from render order.
 
 ### 2. Sticky headings
 
@@ -112,7 +114,7 @@ F_242: stats improvements
 01:23:45
 ```
 
-  Line 1 is `<id>: <title>` for cards, the action label for actions. Line 2 is the formatted value: `formatDurationHms` for `milliseconds`, `formatCount` for tokens, currency for dollars. The cost row adds a `Priced with: <agent> subscription rate` line (or `Mixed agents`) and any not-priced note.
+Line 1 is `<id>: <title>` for cards, the action label for actions. Line 2 is the formatted value: `formatDurationHms` for `milliseconds`, `formatCount` for tokens, currency for dollars. The cost row adds a `Priced with: <agent> subscription rate` line (or `Mixed agents`) and any not-priced note.
 
 ### 7. Sticky legend on totals
 
