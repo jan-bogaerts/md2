@@ -3,7 +3,7 @@ author:
 id: F_238
 internalId: 2e5a2329-ae2b-4afa-9d93-7d77c7b25b89
 title: improve algorithm to select series colors on charts
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

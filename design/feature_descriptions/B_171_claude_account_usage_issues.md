@@ -3,7 +3,7 @@ author:
 id: B_171
 internalId: f790586e-149f-4338-8f8e-ad90bcdc1b12
 title: claude account usage issues
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
