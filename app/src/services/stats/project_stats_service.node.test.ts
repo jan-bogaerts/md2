@@ -288,7 +288,7 @@ describe('ProjectStatsService aggregation', () => {
         expect(service.getSnapshot().rows[0].tooltip).toContain('Priced with: Mixed agents')
     })
 
-    it('marks a partially priced multi-agent card unavailable', async () => {
+    it('keeps an action cost subtotal when one conversation cannot be priced', async () => {
         const codexConversation = conversation({ id: 'codex-conversation' })
         const claudeConversation = conversation({ id: 'claude-conversation' })
         const records = [
@@ -310,20 +310,22 @@ describe('ProjectStatsService aggregation', () => {
             'design/activity/card__card-1.json': activityContent({ conversations: [codexConversation, claudeConversation], records }),
             'design/usage_metrics.csv': metrics,
         }), cards, agentProfiles)
-        service.setControls({ dataset: 'totals', totalsGrouping: 'card', totalsMetric: 'cost' })
+        service.setControls({ dataset: 'totals', totalsGrouping: 'action', totalsMetric: 'cost' })
 
         expect(service.getSnapshot().rows).toMatchObject([{
+            actionId: 'review',
             agent: null,
-            available: false,
+            available: true,
             seriesIdentity: 'mixed',
             seriesLabel: 'Mixed',
-            value: 0,
+            value: 0.025,
         }])
         expect(service.getSnapshot().rows[0].tooltip).toContain('Priced with: Mixed agents')
-        expect(service.getSnapshot().rows[0].tooltip).toContain('Not priced: 1 run (monthly subscription cost is not configured)')
+        expect(service.getSnapshot().rows[0].tooltip)
+            .toContain('Skipped from estimate: 1 run (monthly subscription cost is not configured)')
     })
 
-    it('marks unpriced and unattributed conversation costs unavailable instead of returning partial totals', async () => {
+    it('marks a group unavailable when no conversation can be priced', async () => {
         const codexConversation = conversation()
         const unknownConversation = conversation({ id: 'conversation-2' })
         const records = [agentRecord('run-1', '2026-08-12T10:00:00.000Z', codexConversation.id)]
@@ -342,8 +344,10 @@ describe('ProjectStatsService aggregation', () => {
         expect(service.getSnapshot().rows).toEqual([
             expect.objectContaining({ available: false, displayLabel: 'F_1', sampleCount: 2, seriesLabel: 'Mixed', value: 0 }),
         ])
-        expect(service.getSnapshot().rows[0].tooltip).toContain('Not priced: 1 run (monthly subscription cost is not configured)')
-        expect(service.getSnapshot().rows[0].tooltip).toContain('Not priced: 1 run (matching account series is unavailable)')
+        expect(service.getSnapshot().rows[0].tooltip)
+            .toContain('Skipped from estimate: 1 run (monthly subscription cost is not configured)')
+        expect(service.getSnapshot().rows[0].tooltip)
+            .toContain('Skipped from estimate: 1 run (matching account series is unavailable)')
     })
 
     it('uses metrics deltas for UTC day, ISO-week, and month token buckets', async () => {

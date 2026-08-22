@@ -41,7 +41,7 @@ interface ProviderRate {
 }
 
 interface GroupCost {
-    priced: boolean;
+    available: boolean;
     rate: ProviderRate | null;
     /** The one agent behind this bar, or null when its runs mixed agents. */
     singleAgent: string | null;
@@ -226,27 +226,27 @@ function providerRates(source: LoadedStatsSource, controls: StatsControls) {
 function groupCost(group: ConversationGroup, rates: Map<string, ProviderRate>): GroupCost {
     const agentIdentities = new Set<string>();
     const unpricedByReason = new Map<string, number>();
+    let pricedRunCount = 0;
     let value = 0;
     for (const { agent, totalTokens } of group.conversations) {
         agentIdentities.add(agent ?? UNKNOWN_AGENT_LABEL);
         const rate = agent === null ? undefined : rates.get(agent);
         if (rate?.available) {
             value += totalTokens / rate.tokensPerDollar;
+            pricedRunCount += 1;
             continue;
         }
         const reason = rate?.reason ?? NO_ACCOUNT_SERIES_REASON;
         unpricedByReason.set(reason, (unpricedByReason.get(reason) ?? 0) + 1);
     }
     const singleAgent = agentIdentities.size === 1 ? [...agentIdentities][0] : null;
-    const unpricedRunCount = [...unpricedByReason.values()].reduce((total, count) => total + count, 0);
-    const priced = unpricedRunCount === 0;
 
     return {
-        priced,
+        available: pricedRunCount > 0,
         rate: singleAgent ? rates.get(singleAgent) ?? null : null,
         singleAgent,
         unpricedByReason,
-        value: priced ? value : 0,
+        value,
     };
 }
 
@@ -256,20 +256,20 @@ function costRow(
     group: ConversationGroup,
     rates: Map<string, ProviderRate>,
 ): StatsChartRow {
-    const { priced, rate, singleAgent, unpricedByReason, value } = groupCost(group, rates);
+    const { available, rate, singleAgent, unpricedByReason, value } = groupCost(group, rates);
     const extraLines: StatsTooltipLine[] = [{
         label: 'Priced with',
         value: singleAgent ? `${singleAgent} subscription rate` : 'Mixed agents',
     }];
     for (const [reason, count] of unpricedByReason) {
-        extraLines.push({ label: null, value: `Not priced: ${count} run${count === 1 ? '' : 's'} (${reason})` });
+        extraLines.push({ label: null, value: `Skipped from estimate: ${count} run${count === 1 ? '' : 's'} (${reason})` });
     }
     const row = totalRow(controls, groupIdentity, { label: group.label, title: group.title, value }, 'dollars', extraLines);
 
     return {
         ...row,
         agent: singleAgent,
-        available: priced,
+        available,
         denominator: rate?.denominator ?? null,
         limitId: rate?.limitId ?? null,
         numerator: rate?.numerator ?? null,

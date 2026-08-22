@@ -98,7 +98,7 @@ In `stats_totals_dataset.ts`:
 * `seriesRates` returns **one rate per provider**, from the longest-window series (same rule as above) over the selected range. Drop the per-series fan-out.
 * `costTotalsRows` emits **one row per card (or action)**. Its value is `Σ over conversations of conversation.totalTokens / tokensPerDollar(conversation.agent)`, so a card whose actions ran on different agents is priced per action with that action's agent rate.
 * Series identity and legend label: the single agent name when every counted conversation shares one agent, otherwise identity `mixed` with label `Mixed`. The account name, limit id and window id disappear from the legend. The model is not shown, because a card's actions routinely mix models within one agent.
-* Conversations whose agent has no usable rate contribute 0 and add one tooltip line, `Not priced: <n> run(s) (<reason>)`. When no conversation can be priced, the row stays `available: false` with the reason and value 0.
+* Conversations whose agent has no usable rate are skipped and add one tooltip line, `Skipped from estimate: <n> run(s) (<reason>)`. Priceable conversations still produce a subtotal; only a row with no priceable conversation stays `available: false` with value 0.
 * `displayLabel` becomes the card id (or action label) alone, so the text under the bar carries no agent or model. Delete `unavailableAgentRow`, now covered by the unavailable branch above.
 
 ### 6. Totals tooltips
@@ -140,7 +140,7 @@ Verify with `npm run typecheck` and the vitest suites in `app/`.
 * Time-based totals in tooltips read as `HH:MM:SS`, not raw milliseconds.
 * The label under a bar in *Totals by Card/Action* shows only the card id (or action label) — no agent, model, account or window.
 * The estimated-cost legend names the agent, or `Mixed` for a card whose actions ran on more than one agent; no account name, limit id or window id appears in it.
-* A mixed card's cost is the sum over its actions of that action's tokens priced at its own agent's rate, and runs that cannot be priced are called out in the tooltip instead of silently dropping the bar.
+* A mixed card's cost is the sum over its priceable conversations at each conversation's agent rate. Unpriceable runs are skipped and called out in the tooltip; they do not hide the subtotal.
 * Where an agent reports several limit windows, exactly one rate is used per agent — the one from the longest window.
 * The legend of *Totals by Card/Action* stays pinned to the left while scrolling horizontally.
 * `npm run typecheck` and the `app/` vitest suites pass.

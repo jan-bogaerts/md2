@@ -42,7 +42,7 @@ Pieces this feature reuses:
 * Dollar per percentage point for an agent and account series is `monthlySubscriptionCostUsd / (100 * (40320 / windowDurationMinutes))`. Match an account-usage provider to the agent profile with the same name.
 * Extend `stats_usage_comparison_dataset.ts` so each existing tokens-per-percentage-point series also produces tokens per dollar. Divide its tokens-per-percentage-point value by the agent's dollar-per-percentage-point value. Preserve the account-series identity: a provider with multiple limit/window series produces a separate estimate for each series.
 * Extend the totals calculation and UI so cost per card and cost per action are estimates per account series, rather than implying that an agent has one universal tokens-per-dollar rate. For the active stats range, calculate each provider/series rate from that range's total provider tokens and positive account-usage deltas, convert matching conversations, and aggregate them by card or action. Label each cost result with its account series.
-* If the active range has no positive usage denominator, no matching agent profile, no configured subscription cost, or a conversation whose agent cannot be costed for that series, report the affected cost result as unavailable rather than returning a partial or zero result.
+* Skip conversations that cannot be costed because they have no usable provider rate, retain the subtotal from priceable conversations, and list skipped-run counts and reasons in the tooltip. Mark the result unavailable only when no conversation can be priced.
 * Do not prorate the subscription price by the selected stats range. Normalize every account percentage point by its reported window duration against the fixed 28-day subscription month.
 
 ## Acceptance criteria
@@ -52,5 +52,5 @@ Pieces this feature reuses:
 * A $100 configured monthly cost makes each weekly account percentage point worth $0.25; other window durations are normalized against the same fixed 28-day month.
 * Existing tokens-per-percentage-point figures gain a tokens-per-dollar counterpart for every calculable account series without changing today's token-only figures.
 * Cost per card and cost per action are derived from already-tracked conversation tokens and shown per account series wherever per-card/per-action totals are shown today; the series is visible in the result label.
-* A cost result is unavailable, not zero or partial, when its required subscription price, positive usage denominator, matching series, or conversation cost is unavailable.
+* A cost result includes every priceable conversation and reports skipped-run counts and reasons. It is unavailable only when none of its conversations can be priced.
 * Selecting a shorter or longer stats range does not prorate the configured monthly subscription cost; the account window duration determines the conversion.
