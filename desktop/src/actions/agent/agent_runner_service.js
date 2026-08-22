@@ -74,17 +74,18 @@ class AgentRunnerService {
             ?? new ClaudeUsagePoller({onRuntimeEvent: (event) => this.handleClaudeRuntimeEvent(event)});
         this.codexUsagePoller = dependencies.codexUsagePoller
             ?? new CodexUsagePoller({
-                onRuntimeEvent: (event) => this.handleStartupCodexRuntimeEvent(event),
+                onRuntimeEvent: (event) => this.handleAccountCodexRuntimeEvent(event),
                 terminateProcessTree: this.terminateProcessTree,
             });
         this.diagnoseCodexCacheError = dependencies.diagnoseCodexCacheError ?? diagnoseCodexCacheError;
         this.now = dependencies.now ?? Date.now;
         this.handleFinishTimeout = this.handleFinishTimeout.bind(this);
-        this.handleStartupClaudeRuntimeEvent = this.handleStartupClaudeRuntimeEvent.bind(this);
+        this.handleAccountClaudeRuntimeEvent = this.handleAccountClaudeRuntimeEvent.bind(this);
         this.processes = new Map();
         this.runningConversationIds = new Set();
-        this.startupRefreshRequested = false;
-        this.startupRefreshStopped = false;
+        this.usageRefreshStopped = false;
+        this.usageRefreshGeneration = 0;
+        this.claudeUsagePollContext = null;
         this.usagePollTimer = null;
     }
 
@@ -186,7 +187,6 @@ class AgentRunnerService {
         });
         this.processes.set(id, run);
         this.runningConversationIds.add(conversation.id);
-        this.syncUsagePollTicks();
 
         child.stdout.on('data', (chunk) => this.handleOutput(id, 'stdout', chunk));
         child.stderr.on('data', (chunk) => this.handleOutput(id, 'stderr', chunk));
@@ -288,7 +288,7 @@ class AgentRunnerService {
     }
 
     stopAll() {
-        this.startupRefreshStopped = true;
+        this.usageRefreshStopped = true;
         this.stopUsagePollTicks();
         this.claudeUsagePoller.stop();
         const completions = [this.codexUsagePoller.stop()];
@@ -302,41 +302,55 @@ class AgentRunnerService {
         return Promise.all(completions);
     }
 
-    /** Starts one account-wide refresh for each configured built-in provider without waiting for either result. */
-    requestStartupUsageRefresh(profiles) {
-        if (!Array.isArray(profiles)) throw new Error('Startup usage refresh requires agent profiles');
-        if (this.startupRefreshRequested || this.startupRefreshStopped) return;
-        this.startupRefreshRequested = true;
+    /**
+     * Starts one account-wide usage refresh for each configured built-in provider in the active
+     * project's folder, and keeps the Claude one repeating from there.
+     *
+     * The folder matters: Claude asks whether the files in a folder are trusted the first time it
+     * runs there, and that question blocks the poll. Polling the project folder means the answer
+     * covers the folder agents are about to run in anyway.
+     */
+    requestProjectUsageRefresh(project, profiles) {
+        if (!Array.isArray(profiles)) throw new Error('Project usage refresh requires agent profiles');
+        const cwd = requireRootPath(project);
+        if (this.usageRefreshStopped) return;
+        // A refresh for the previous project stops driving the interval the moment a new one starts.
+        this.stopUsagePollTicks();
+        this.claudeUsagePollContext = null;
+        this.usageRefreshGeneration += 1;
+        const generation = this.usageRefreshGeneration;
         const environment = createAgentEnvironment(process.env);
-        const cwd = process.cwd();
         const observedAt = this.now();
-        const startupProfiles = ['claude', 'codex']
+        const refreshProfiles = ['claude', 'codex']
             .map((provider) => profiles.find(({ name }) => name === provider))
             .filter((profile) => profile !== undefined);
-        for (const profile of startupProfiles) {
-            void this.startStartupProviderRefresh(profile, { cwd, environment, observedAt });
+        for (const profile of refreshProfiles) {
+            void this.startProviderUsageRefresh(profile, { cwd, environment, generation, observedAt });
         }
     }
 
-    async startStartupProviderRefresh(profile, { cwd, environment, observedAt }) {
+    async startProviderUsageRefresh(profile, { cwd, environment, generation, observedAt }) {
         const [configuredExecutable, ...configuredArguments] = profile.command;
         executableFromCommand(profile.command);
         const executable = await this.executableResolver.find(configuredExecutable, { cwd, env: environment });
-        if (this.startupRefreshStopped) return;
+        // Resolution outlives a project switch, and its result belongs to the folder it started in.
+        if (this.usageRefreshStopped || this.usageRefreshGeneration !== generation) return;
         if (!executable) {
             const unavailable = { kind: 'unavailable', observedAt };
-            if (profile.name === 'claude') await this.handleStartupClaudeRuntimeEvent(unavailable);
-            else await this.handleStartupCodexRuntimeEvent(unavailable);
+            if (profile.name === 'claude') await this.handleAccountClaudeRuntimeEvent(unavailable);
+            else await this.handleAccountCodexRuntimeEvent(unavailable);
             return;
         }
         if (profile.name === 'claude') {
+            this.claudeUsagePollContext = { cwd, env: environment, executable };
             this.claudeUsagePoller.requestPoll({
                 cwd,
                 env: environment,
                 executable,
                 observedAt,
-                onRuntimeEvent: this.handleStartupClaudeRuntimeEvent,
+                onRuntimeEvent: this.handleAccountClaudeRuntimeEvent,
             });
+            this.syncUsagePollTicks();
             return;
         }
         this.codexUsagePoller.requestPoll({
@@ -348,8 +362,8 @@ class AgentRunnerService {
         });
     }
 
-    async handleStartupCodexRuntimeEvent(event) {
-        if (!this.codexRuntimeService || this.startupRefreshStopped) return;
+    async handleAccountCodexRuntimeEvent(event) {
+        if (!this.codexRuntimeService || this.usageRefreshStopped) return;
         if (event.kind === 'unavailable') {
             this.codexRuntimeService.publishUnavailable(event.observedAt);
             return;
@@ -358,8 +372,8 @@ class AgentRunnerService {
         if (!accepted) this.codexRuntimeService.publishUnavailable(event.observedAt);
     }
 
-    async handleStartupClaudeRuntimeEvent(event) {
-        if (!this.claudeRuntimeService || this.startupRefreshStopped) return;
+    async handleAccountClaudeRuntimeEvent(event) {
+        if (!this.claudeRuntimeService || this.usageRefreshStopped) return;
         if (event.kind === 'unavailable') {
             this.claudeRuntimeService.publishUnavailable(event.observedAt);
             return;
@@ -403,28 +417,21 @@ class AgentRunnerService {
         this.claudeUsagePoller.requestPoll({ cwd: run.rootPath, env: run.environment, executable: run.executable });
     }
 
-    /** Picks any active run whose agent needs polling; the usage snapshot is account-wide, so any one will do. */
-    pollableRun() {
-        for (const run of this.processes.values()) {
-            if (run.agent === 'claude') return run;
-        }
-
-        return null;
-    }
-
-    /** Keeps a repeating poll running while a pollable run is active; long runs would otherwise show a frozen figure. */
+    /**
+     * Keeps the account usage poll repeating for the active project, whatever the previous one
+     * returned. Success, failure and an inconclusive result all schedule the next poll the same
+     * way: a single failed poll used to leave the display empty until the user started a run.
+     *
+     * The poller's own cooldown stays the floor between poll starts, so an interval poll and a
+     * run-triggered poll can never put two Claude processes side by side.
+     */
     syncUsagePollTicks() {
-        const run = this.pollableRun();
-        if (!run) {
-            this.stopUsagePollTicks();
-            return;
-        }
-        if (this.usagePollTimer) return;
+        if (this.usageRefreshStopped || !this.claudeUsagePollContext || this.usagePollTimer) return;
         this.usagePollTimer = this.setTimeout(() => {
             this.usagePollTimer = null;
-            const activeRun = this.pollableRun();
-            if (!activeRun) return;
-            this.requestUsagePoll(activeRun);
+            const context = this.claudeUsagePollContext;
+            if (this.usageRefreshStopped || !context) return;
+            this.claudeUsagePoller.requestPoll({ ...context });
             this.syncUsagePollTicks();
         }, AGENT_USAGE_POLL_TICK_MS);
     }
@@ -737,7 +744,6 @@ class AgentRunnerService {
         } finally {
             this.processes.delete(runId);
             this.runningConversationIds.delete(run.conversation.id);
-            this.syncUsagePollTicks();
         }
     }
 

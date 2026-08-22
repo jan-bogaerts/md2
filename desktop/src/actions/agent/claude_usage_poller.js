@@ -1,11 +1,16 @@
 const crossSpawn = require('cross-spawn');
-const { logAgentEvent } = require('./agent_file_logger');
+const { CLAUDE_USAGE_POLL_REASONS, logUsagePollFailure, usageScreenExcerpt } = require('./claude_usage_diagnostics');
 const { parseClaudeUsageOutput } = require('./claude_usage_parsing');
 const { createUtilityProcessTerminalPoll } = require('./claude_usage_terminal_host');
 
 const CLAUDE_USAGE_POLL_COOLDOWN_MS = 120_000;
 const CLAUDE_USAGE_MAX_OUTPUT_CHARS = 1_000_000;
-const CLAUDE_USAGE_TERMINAL_TIMEOUT_MS = 20_000;
+// Claude with piped, non-TTY stdin does not run a slash command the way an interactive session
+// does, so this attempt is a cheap long shot and gets a budget to match. The pty fallback carries
+// the poll and must not have to share it: a cold Claude start alone can outlast this whole window.
+const CLAUDE_USAGE_PROCESS_TIMEOUT_MS = 5_000;
+const CLAUDE_USAGE_READY_TIMEOUT_MS = 30_000;
+const CLAUDE_USAGE_REPORT_TIMEOUT_MS = 20_000;
 
 function collectProcessOutput(child, dependencies) {
     const { clearTimeout: clearPollTimeout, setTimeout: setPollTimeout, timeoutMs } = dependencies;
@@ -51,18 +56,24 @@ function collectProcessOutput(child, dependencies) {
  *
  * The plain-stdout attempt runs here; the pty fallback runs in a worker process, because node-pty
  * cannot be hosted in the main process without risking a native crash that ends the application.
+ *
+ * Every outcome without a usage report is written to the console exactly once, with the reason that
+ * separates it from the other failure paths. A poll that says nothing is the outcome the user feels
+ * as an account usage display that simply never fills in.
  */
 class ClaudeUsagePoller {
     constructor(dependencies = {}) {
         this.clearTimeout = dependencies.clearTimeout ?? clearTimeout;
         this.cooldownMs = dependencies.cooldownMs ?? CLAUDE_USAGE_POLL_COOLDOWN_MS;
+        this.logFailure = dependencies.logFailure ?? logUsagePollFailure;
         this.now = dependencies.now ?? Date.now;
         this.onRuntimeEvent = dependencies.onRuntimeEvent;
         this.setTimeout = dependencies.setTimeout ?? setTimeout;
         this.spawn = dependencies.spawn ?? crossSpawn;
         this.terminalPoll = dependencies.terminalPoll ?? createUtilityProcessTerminalPoll();
-        this.terminalTimeoutMs = dependencies.terminalTimeoutMs ?? CLAUDE_USAGE_TERMINAL_TIMEOUT_MS;
-        this.processTimeoutMs = dependencies.processTimeoutMs ?? this.terminalTimeoutMs;
+        this.readyTimeoutMs = dependencies.readyTimeoutMs ?? CLAUDE_USAGE_READY_TIMEOUT_MS;
+        this.reportTimeoutMs = dependencies.reportTimeoutMs ?? CLAUDE_USAGE_REPORT_TIMEOUT_MS;
+        this.processTimeoutMs = dependencies.processTimeoutMs ?? CLAUDE_USAGE_PROCESS_TIMEOUT_MS;
         this.abortTerminalPoll = null;
         this.activePoll = null;
         this.lastPollStartedAt = Number.NEGATIVE_INFINITY;
@@ -116,17 +127,70 @@ class ClaudeUsagePoller {
     async runPendingPoll(request) {
         try {
             await this.poll(request);
-        } catch {
+        } catch (error) {
             // A failing poll must never escape as an unhandled rejection; the next one retries.
+            this.reportFailure(request, this.now(), {
+                attempt: 'poll',
+                error,
+                reason: CLAUDE_USAGE_POLL_REASONS.runtimeListenerFailed,
+            });
         }
         this.activePoll = null;
         this.schedulePendingPoll();
     }
 
+    /** One console record per failed attempt, so a repeating failure cannot flood the console. */
+    reportFailure(request, startedAt, { attempt, error, reason, screenExcerpt }) {
+        this.logFailure({
+            attempt,
+            cwd: request.cwd,
+            elapsedMs: this.now() - startedAt,
+            error,
+            executable: request.executable,
+            reason,
+            screenExcerpt,
+        });
+    }
+
     async poll(request) {
-        const { cwd, env, executable, observedAt, onRuntimeEvent } = request;
-        this.lastPollStartedAt = this.now();
-        let payload = null;
+        const { observedAt, onRuntimeEvent } = request;
+        const startedAt = this.now();
+        this.lastPollStartedAt = startedAt;
+        const attempt = await this.pollProcess(request, startedAt);
+        if (this.stopped) return;
+        if (attempt.payload) {
+            await onRuntimeEvent({ kind: 'snapshot', observedAt, payload: attempt.payload });
+            return;
+        }
+        if (attempt.unavailable) {
+            await onRuntimeEvent({ kind: 'unavailable', observedAt });
+            return;
+        }
+        const fallback = await this.pollTerminal(request, observedAt);
+        if (!fallback.payload) {
+            this.reportFailure(request, startedAt, {
+                attempt: 'pty',
+                error: fallback.error,
+                // Shutdown cut this poll short, whatever the worker managed to report before it went.
+                reason: this.stopped
+                    ? CLAUDE_USAGE_POLL_REASONS.pollAborted
+                    : (fallback.reason ?? CLAUDE_USAGE_POLL_REASONS.ptyNoReadyMarker),
+                screenExcerpt: fallback.screenExcerpt,
+            });
+        }
+        if (this.stopped) return;
+        if (fallback.unavailable) {
+            await onRuntimeEvent({ kind: 'unavailable', observedAt });
+            return;
+        }
+        // An inconclusive terminal fallback says nothing about Claude, so it reports neither usage nor unavailability.
+        if (!fallback.payload) return;
+        await onRuntimeEvent({ kind: 'snapshot', observedAt, payload: fallback.payload });
+    }
+
+    /** The plain-stdout attempt: cheap, usually fruitless, and until now completely undocumented when it failed. */
+    async pollProcess(request, startedAt) {
+        const { cwd, env, executable, observedAt } = request;
         try {
             const child = this.spawn(executable, [], { cwd, env, stdio: ['pipe', 'pipe', 'pipe'] });
             const { stdout } = await collectProcessOutput(child, {
@@ -135,27 +199,24 @@ class ClaudeUsagePoller {
                 timeoutMs: this.processTimeoutMs,
             });
             // A usage report that arrived is worth keeping even when the exit itself failed or timed out.
-            payload = parseClaudeUsageOutput(stdout, observedAt);
-            if (this.stopped) return;
-            if (!payload) {
-                // Unparsed output is the one failure that leaves no trace anywhere else, so it is logged verbatim.
-                logAgentEvent('[claude:usage-unparsed]', { observedAt, stdout });
-                const fallback = await this.pollTerminal(request, observedAt);
-                if (fallback.unavailable) throw new Error('Claude usage terminal failed');
-                payload = fallback.payload;
-            }
-        } catch {
-            await onRuntimeEvent({ kind: 'unavailable', observedAt });
+            const payload = parseClaudeUsageOutput(stdout, observedAt);
+            if (payload || this.stopped) return { payload, unavailable: false };
+            this.reportFailure(request, startedAt, {
+                attempt: 'stdout',
+                reason: CLAUDE_USAGE_POLL_REASONS.stdoutUnparsed,
+                screenExcerpt: usageScreenExcerpt(stdout),
+            });
 
-            return;
-        }
-        // An inconclusive terminal fallback says nothing about Claude, so it reports neither usage nor unavailability.
-        if (!payload) {
-            logAgentEvent('[claude:usage-inconclusive]', { observedAt });
+            return { payload: null, unavailable: false };
+        } catch (error) {
+            this.reportFailure(request, startedAt, {
+                attempt: 'stdout',
+                error,
+                reason: CLAUDE_USAGE_POLL_REASONS.stdoutSpawnFailed,
+            });
 
-            return;
+            return { payload: null, unavailable: true };
         }
-        await onRuntimeEvent({ kind: 'snapshot', observedAt, payload });
     }
 
     /** Hands the pty attempt to a worker process, which reports usage, unavailability, or neither. */
@@ -165,7 +226,9 @@ class ClaudeUsagePoller {
             env: { ...pollRequest.env },
             executable: pollRequest.executable,
             observedAt,
-            timeoutMs: this.terminalTimeoutMs,
+            readyTimeoutMs: this.readyTimeoutMs,
+            reportTimeoutMs: this.reportTimeoutMs,
+            timeoutMs: this.readyTimeoutMs + this.reportTimeoutMs,
         };
 
         return this.terminalPoll(request, {
@@ -176,4 +239,10 @@ class ClaudeUsagePoller {
     }
 }
 
-module.exports = { CLAUDE_USAGE_POLL_COOLDOWN_MS, ClaudeUsagePoller };
+module.exports = {
+    CLAUDE_USAGE_POLL_COOLDOWN_MS,
+    CLAUDE_USAGE_PROCESS_TIMEOUT_MS,
+    CLAUDE_USAGE_READY_TIMEOUT_MS,
+    CLAUDE_USAGE_REPORT_TIMEOUT_MS,
+    ClaudeUsagePoller,
+};

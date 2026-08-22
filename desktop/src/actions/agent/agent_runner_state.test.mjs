@@ -1118,15 +1118,16 @@ describe('AgentRunnerService state handling', () => {
         });
     });
 
-    it('starts each configured built-in usage refresh once with resolved executables and sanitized environment', async () => {
+    it('refreshes each configured built-in provider in the active project folder', async () => {
         const claudeUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };
         const codexUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };
-        const executableResolver = { find: vi.fn(async (executable) => `C:\\tools\\${executable}.cmd`) };
+        const executableResolver = { find: vi.fn(async (executable) => `/tools/${executable}.cmd`) };
         const service = new AgentRunnerService({
             claudeUsagePoller,
             codexUsagePoller,
             executableResolver,
             now: () => 10,
+            setTimeout: vi.fn(),
         });
         const profiles = [
             { command: ['claude', '--configured'], name: 'claude' },
@@ -1134,27 +1135,63 @@ describe('AgentRunnerService state handling', () => {
             { command: ['custom'], name: 'custom' },
         ];
 
-        service.requestStartupUsageRefresh(profiles);
-        service.requestStartupUsageRefresh(profiles);
+        service.requestProjectUsageRefresh({ rootPath: '/projects/md2' }, profiles);
         await vi.waitFor(() => expect(codexUsagePoller.requestPoll).toHaveBeenCalledOnce());
 
         expect(executableResolver.find).toHaveBeenCalledTimes(2);
         const environment = executableResolver.find.mock.calls[0][1].env;
         expect(environment).not.toHaveProperty('NODE_OPTIONS');
+        // The folder is the whole point: Claude's trust question is asked per folder, and a poll
+        // started outside the project hits a folder Claude may never have run in.
         expect(claudeUsagePoller.requestPoll).toHaveBeenCalledWith({
-            cwd: process.cwd(),
+            cwd: '/projects/md2',
             env: environment,
-            executable: 'C:\\tools\\claude.cmd',
+            executable: '/tools/claude.cmd',
             observedAt: 10,
-            onRuntimeEvent: service.handleStartupClaudeRuntimeEvent,
+            onRuntimeEvent: service.handleAccountClaudeRuntimeEvent,
         });
         expect(codexUsagePoller.requestPoll).toHaveBeenCalledWith({
             argumentsList: ['--configured'],
-            cwd: process.cwd(),
+            cwd: '/projects/md2',
             env: environment,
-            executable: 'C:\\tools\\codex.cmd',
+            executable: '/tools/codex.cmd',
             observedAt: 10,
         });
+    });
+
+    it('moves later polls to the new project folder on a project switch', async () => {
+        const ticks = [];
+        const claudeUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };
+        const codexUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };
+        const service = new AgentRunnerService({
+            claudeUsagePoller,
+            codexUsagePoller,
+            executableResolver: { find: vi.fn(async () => '/tools/claude') },
+            setTimeout: (callback) => {
+                ticks.push(callback);
+
+                return ticks.length;
+            },
+        });
+        const profiles = [{ command: ['claude'], name: 'claude' }];
+
+        service.requestProjectUsageRefresh({ rootPath: '/first' }, profiles);
+        await vi.waitFor(() => expect(claudeUsagePoller.requestPoll).toHaveBeenCalledOnce());
+        service.requestProjectUsageRefresh({ rootPath: '/second' }, profiles);
+        await vi.waitFor(() => expect(claudeUsagePoller.requestPoll).toHaveBeenCalledTimes(2));
+        ticks.at(-1)();
+
+        expect(claudeUsagePoller.requestPoll).toHaveBeenCalledTimes(3);
+        expect(claudeUsagePoller.requestPoll).toHaveBeenLastCalledWith(expect.objectContaining({ cwd: '/second' }));
+    });
+
+    it('rejects a refresh without a project folder', () => {
+        const service = new AgentRunnerService({
+            claudeUsagePoller: { requestPoll: vi.fn(), stop: vi.fn() },
+            codexUsagePoller: { requestPoll: vi.fn(), stop: vi.fn() },
+        });
+
+        expect(() => service.requestProjectUsageRefresh(null, [])).toThrow('Missing local Git project rootPath');
     });
 
     it('skips missing profiles and publishes unavailable for missing executables without metrics', async () => {
@@ -1171,7 +1208,7 @@ describe('AgentRunnerService state handling', () => {
             usageMetricsService,
         });
 
-        service.requestStartupUsageRefresh([{ command: ['claude'], name: 'claude' }]);
+        service.requestProjectUsageRefresh({ rootPath: '/project' }, [{ command: ['claude'], name: 'claude' }]);
         await vi.waitFor(() => expect(claudeRuntimeService.publishUnavailable).toHaveBeenCalledWith(20));
 
         expect(claudeUsagePoller.requestPoll).not.toHaveBeenCalled();
@@ -1187,8 +1224,8 @@ describe('AgentRunnerService state handling', () => {
         const claudePayload = { windows: [] };
         const codexPayload = { rateLimits: {} };
 
-        await service.handleStartupClaudeRuntimeEvent({ kind: 'snapshot', observedAt: 30, payload: claudePayload });
-        await service.handleStartupCodexRuntimeEvent({ kind: 'snapshot', observedAt: 31, payload: codexPayload });
+        await service.handleAccountClaudeRuntimeEvent({ kind: 'snapshot', observedAt: 30, payload: claudePayload });
+        await service.handleAccountCodexRuntimeEvent({ kind: 'snapshot', observedAt: 31, payload: codexPayload });
 
         expect(claudeRuntimeService.publishRateLimits).toHaveBeenCalledWith(claudePayload, 30);
         expect(codexRuntimeService.publishRateLimits).toHaveBeenCalledWith(codexPayload, 31, false);
@@ -1206,7 +1243,7 @@ describe('AgentRunnerService state handling', () => {
             executableResolver: { find: vi.fn(async () => resolution.promise) },
         });
 
-        service.requestStartupUsageRefresh([{ command: ['claude'], name: 'claude' }]);
+        service.requestProjectUsageRefresh({ rootPath: '/project' }, [{ command: ['claude'], name: 'claude' }]);
         const stopped = service.stopAll();
         resolution.resolve('C:\\tools\\claude.cmd');
         await stopped;
@@ -1217,23 +1254,20 @@ describe('AgentRunnerService state handling', () => {
         expect(claudeUsagePoller.requestPoll).not.toHaveBeenCalled();
     });
 
-    it('polls Claude usage at run start, on a tick while running, and after the run closes', async () => {
+    it('polls Claude usage at run start and again after the run closes', async () => {
         const child = new EventEmitter();
         child.pid = 43;
         child.stdin = new PassThrough();
         child.stdout = new PassThrough();
         child.stderr = new PassThrough();
-        const ticks = [];
-        const cleared = [];
         const claudeUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };
         const executable = '/tools/custom-claude';
         const service = new AgentRunnerService({
             claudeUsagePoller,
-            clearTimeout: (handle) => cleared.push(handle),
             executableResolver: { find: vi.fn(async () => executable) },
             persistConversation: vi.fn(async () => undefined),
             persistConversationCheckpoint: vi.fn(async () => undefined),
-            setTimeout: (callback) => ticks.push(callback),
+            setTimeout: vi.fn(),
             spawn: vi.fn(() => child),
         });
         const project = { rootPath: resolve(import.meta.dirname, '../../../..') };
@@ -1248,26 +1282,54 @@ describe('AgentRunnerService state handling', () => {
             executable,
         });
 
-        ticks[0]();
-
-        expect(claudeUsagePoller.requestPoll).toHaveBeenCalledTimes(2);
-
         child.emit('close', 0);
-        await vi.waitFor(() => expect(claudeUsagePoller.requestPoll).toHaveBeenCalledTimes(3));
+        await vi.waitFor(() => expect(claudeUsagePoller.requestPoll).toHaveBeenCalledTimes(2));
         expect(claudeUsagePoller.requestPoll).toHaveBeenNthCalledWith(2, {
             cwd: project.rootPath,
             env: expect.objectContaining({}),
             executable,
         });
-        expect(claudeUsagePoller.requestPoll).toHaveBeenNthCalledWith(3, {
-            cwd: project.rootPath,
-            env: expect.objectContaining({}),
-            executable,
-        });
-        ticks[1]();
+    });
 
-        expect(cleared).toEqual([2]);
-        expect(claudeUsagePoller.requestPoll).toHaveBeenCalledTimes(3);
+    // Before this, one failed poll left the display empty until the user happened to start a run.
+    it('keeps the interval running through repeated failures and with no Claude run active', async () => {
+        const ticks = [];
+        // The poller swallows its own failures, so a failing poll looks exactly like this one.
+        const claudeUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };
+        const cleared = [];
+        const service = new AgentRunnerService({
+            claudeUsagePoller,
+            clearTimeout: (handle) => cleared.push(handle),
+            codexUsagePoller: { requestPoll: vi.fn(), stop: vi.fn(async () => undefined) },
+            executableResolver: { find: vi.fn(async () => '/tools/claude') },
+            setTimeout: (callback) => {
+                ticks.push(callback);
+
+                return ticks.length;
+            },
+        });
+
+        service.requestProjectUsageRefresh({ rootPath: '/project' }, [{ command: ['claude'], name: 'claude' }]);
+        await vi.waitFor(() => expect(claudeUsagePoller.requestPoll).toHaveBeenCalledOnce());
+        // Three consecutive polls that report nothing, with no run in the service at any point.
+        for (let index = 0; index < 3; index += 1) ticks.at(-1)();
+
+        expect(service.processes.size).toBe(0);
+        expect(claudeUsagePoller.requestPoll).toHaveBeenCalledTimes(4);
+        expect(claudeUsagePoller.requestPoll).toHaveBeenLastCalledWith({
+            cwd: '/project',
+            env: expect.objectContaining({}),
+            executable: '/tools/claude',
+        });
+        // A fourth poll is still scheduled after the third failure.
+        expect(service.usagePollTimer).not.toBeNull();
+
+        await service.stopAll();
+
+        expect(cleared).toContain(ticks.length);
+        expect(service.usagePollTimer).toBeNull();
+        ticks.at(-1)();
+        expect(claudeUsagePoller.requestPoll).toHaveBeenCalledTimes(4);
     });
 
     it('leaves usage polling alone for agents that report usage inside their protocol', async () => {

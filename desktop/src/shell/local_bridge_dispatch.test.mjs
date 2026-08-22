@@ -33,6 +33,7 @@ function createDispatch(options = {}) {
         subscribeRunEvents: vi.fn(() => vi.fn()),
     };
     const agentRunnerService = {
+        requestProjectUsageRefresh: vi.fn(),
         run: vi.fn(async () => ({ runId: 'run-1' })),
         start: vi.fn(async () => ({ runId: 'run-2' })),
         stop: vi.fn(),
@@ -367,6 +368,34 @@ describe('createLocalBridgeDispatch', () => {
         expect(localGitService.loadProjectRoot).toHaveBeenCalledOnce();
         expect(actionSchedulerService.startProject).toHaveBeenCalledOnce();
         expect(worktreeService.startProject).toHaveBeenCalledOnce();
+    });
+
+    it('starts the account usage refresh in the activated project folder, and only then', async () => {
+        const { agentRunnerService, dispatch } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+
+        // Creating the dispatch is the whole of app start; no project has been activated yet.
+        expect(agentRunnerService.requestProjectUsageRefresh).not.toHaveBeenCalled();
+
+        await dispatch.dataBridge.loadProject(project, 'design');
+
+        expect(agentRunnerService.requestProjectUsageRefresh).toHaveBeenCalledOnce();
+        expect(agentRunnerService.requestProjectUsageRefresh).toHaveBeenCalledWith(
+            project,
+            [{ command: ['codex'], models: ['gpt-5'], name: 'codex' }],
+        );
+    });
+
+    it('moves the account usage refresh to the newly activated project', async () => {
+        const { agentRunnerService, dispatch } = createDispatch();
+        const first = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        const second = { branch: 'main', id: 'other', rootPath: 'C:/other' };
+
+        await dispatch.dataBridge.loadProject(first, 'design');
+        await dispatch.dataBridge.loadProject(second, 'design');
+
+        expect(agentRunnerService.requestProjectUsageRefresh).toHaveBeenCalledTimes(2);
+        expect(agentRunnerService.requestProjectUsageRefresh).toHaveBeenLastCalledWith(second, expect.any(Array));
     });
 
     it('selects a worktree folder without mutating Git', async () => {

@@ -1,3 +1,4 @@
+const { CLAUDE_USAGE_POLL_REASONS } = require('./claude_usage_diagnostics');
 const { runTerminalUsagePoll } = require('./claude_usage_terminal');
 
 /**
@@ -9,10 +10,19 @@ const { runTerminalUsagePoll } = require('./claude_usage_terminal');
  */
 async function pollUsage(request) {
     try {
-        return { payload: await runTerminalUsagePoll(request), unavailable: false };
-    } catch {
-        // Claude could not be started or ended in failure, which is the parent's cue to mark it unavailable.
-        return { payload: null, unavailable: true };
+        const { payload, reason, screenExcerpt } = await runTerminalUsagePoll(request);
+
+        return { payload, reason, screenExcerpt, unavailable: false };
+    } catch (error) {
+        // Claude could not be started or ended in failure, which is the parent's cue to mark it
+        // unavailable. The reason and screen travel with it so the parent can say which it was.
+        return {
+            error: error?.message,
+            payload: null,
+            reason: error?.reason ?? CLAUDE_USAGE_POLL_REASONS.ptyFailed,
+            screenExcerpt: error?.screenExcerpt ?? '',
+            unavailable: true,
+        };
     }
 }
 

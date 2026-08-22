@@ -97,6 +97,12 @@ function createLocalBridgeDispatch(dependencies) {
         currentLocalProject = project;
         if (actionSchedulerService) await actionSchedulerService.startProject(project);
         await worktreeService.startProject(project);
+        // Account usage polls run in this folder: Claude's per-folder trust question blocks a poll
+        // started anywhere it has never run, which is why the poll waits for a project at all.
+        if (agentRunnerService) {
+            const { agentProfiles } = readDesktopConfig(desktopConfigStore);
+            agentRunnerService.requestProjectUsageRefresh(project, agentProfiles);
+        }
     }
 
     const dataBridge = {
