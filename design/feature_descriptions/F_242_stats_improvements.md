@@ -17,4 +17,7 @@ policy:
   * since we have average token usage per action, per agent, we can also show 'average cost per action per agent', similar like we show 'tokens per dollar'
     and similar to 'project activity' and 'project token usage totals', we can also show 'total cost per agent per day?
 * totals by card/action:
-  *
+  * we show a tooltip per bar, good, but it shouldn't contain the path of the file of the card, just:
+    {id}:{title}
+    {value}&#x20;
+    if value is time based, convert it to HH:MM:SS
