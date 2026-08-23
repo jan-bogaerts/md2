@@ -10,10 +10,9 @@ agents:
   - design/activity/card__10a50270-fcab-4661-9d29-d966aa99eb1e.json
 policy:
 branch: f_214_improve_support_child_threads
-worktree: 3
+worktree: 1
 after: 9b601eb4-e385-404f-9059-07823b25b6fd
 ---
-
 codex can use child threads. currently we either ignore them or print them in the main conversation thread.
 
 Not certain if claude has similar concept.
@@ -21,6 +20,7 @@ Not certain if claude has similar concept.
 we should show in the ui that sub threads are running.
 
 need to think some more on how best to show visually. codex uses sub-converations where a user can click on the thread and that opens the sub conversation. with arrow can go back to root conversation
+
 ## Current state
 
 Codex child threads exist and md2 discards them. When the root agent calls a collaboration tool, the Codex app-server sends the root thread a `collabAgentToolCall` item that carries `tool`, `prompt`, `receiverThreadIds` (the child thread ids it started) and `agentsStates` (per child thread status). It then sends the child thread's own `turn/started`, `item/*`, `thread/tokenUsage/updated` and `turn/completed` notifications, all tagged with that child `threadId`.
