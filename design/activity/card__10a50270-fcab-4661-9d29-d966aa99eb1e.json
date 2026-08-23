@@ -691,7 +691,11 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "10a50270-fcab-4661-9d29-d966aa99eb1e",
       "cardPath": "design/feature_descriptions/F_214_improve_support_child_threads.md",
-      "completedAt": "2026-08-23T14:43:33.890Z",
+      "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 1000000,
+        "usedTokens": 96892
+      },
       "entries": [
         {
           "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/F_214_improve_support_child_threads.md`.&#x20;\nupdate the field `status` in the markdown feature description file to `ready for implementation`.\n\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill.\n\nDo not stage or commit changes. You have no need for get at this time.",
@@ -1313,18 +1317,258 @@
           "status": "failed",
           "timestamp": "2026-08-23T14:43:33.727Z",
           "type": "tool.AskUserQuestion"
+        },
+        {
+          "content": "we already looked at this once before. similar questions were asked related to how best to show child threads. can you see what we did for claude? we should do something similar",
+          "id": "agent-turn-528e6be0-fdaf-41e9-b21a-411efd1c5254-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 52,
+          "timestamp": "2026-08-23T14:45:13.961Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-528e6be0-fdaf-41e9-b21a-411efd1c5254-event-53",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKrquzR6oPSVV2saGPZj:thinking:0",
+          "sequence": 53,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:45:19.418Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "design/feature_descriptions/B_170_sub_agent_support_claude.md\ndesign/feature_descriptions/F_214_improve_support_child_threads.md",
+          "id": "agent-turn-528e6be0-fdaf-41e9-b21a-411efd1c5254-event-54",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_018C1DGF1wXV4Wim86kf6Ay9",
+          "sequence": 54,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:45:21.020Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "---\r\nauthor: \r\nid: B_170\r\ninternalId: c8999726-4f9a-4963-ba9b-7c32b2190156\r\ntitle: sub agent support claude\r\nstatus: ready\r\nowner: \r\naffects:\r\nagents:\r\n  - design/activity/card__c8999726-4f9a-4963-ba9b-7c32b2190156.json\r\npolicy:\r\nafter: bfad1b82-e967-48bc-af8f-a11ce1fa4a55\r\n---\r\nclaude tried to start a sub agent which terminated the conversation. we need to add full support to sub agents in claude\n\n## Current state\n\nmd2 runs Claude as a child process. `buildClaudeStreamingCommand` in `shared/agent_profiles.mjs` starts it with `--print --verbose --output-format stream-json --include-partial-messages --input-format stream-json --permission-prompt-tool stdio`, and `createAgentEnvironment` in `desktop/src/actions/agent/agent_environment.js` copies the parent environment with only the two debugger variables removed. Nothing in that command line or environment mentions sub agents.\n\n`ClaudeStreamingAdapter` in `desktop/src/actions/agent/agent_claude_streaming_adapter.js` decodes that stream. It keeps exactly one set of turn state fields for the whole process: `activeMessageId`, `activeBlocks` keyed by content-block index, `activeTextOrdinal`, and `turnHasAssistantText`. That design assumes a single message is being streamed at any moment.\n\nClaude marks every message produced by a sub agent with `parent_tool_use_id`, naming the `Agent` tool call that spawned it. Neither `agent_claude_streaming_adapter.js` nor `agent_claude_events.js` reads that field, so parent and sub-agent frames are folded into the same state:\n\n* A sub-agent `message_start` overwrites `activeMessageId` and clears `activeBlocks`. A `content_block_delta` belonging to the parent message that arrives afterwards no longer finds its tracked block, so `handleContentBlockDelta` calls `emitProtocolError('invalid content_block_delta')` and the parent's streamed text stops growing.\n* `handleToolResults` resolves a `tool_result` by searching `activeBlocks` for the matching `tool_use` id. After the interleaved clear, the parent's tool call is gone from that map, so its result is rendered as a bare `tool.result` row instead of completing the original tool row.\n* Sub-agent text blocks reach `handleAssistantCompletion` and become ordinary assistant items, so sub-agent output is attributed to the main agent in the transcript and in `run.assistantItems`.\n\nErrors thrown out of `handleMessage` are not recoverable. `handleStreamingLine` in `desktop/src/actions/agent/agent_runner_service.js` catches them and calls `failStreamingRun`, which marks the conversation `failed`, appends the error, ends the child's stdin and terminates the process tree. Every `throw new Error(...)` in the adapter is therefore a conversation-ending event, which is what the reported crash looked like from the user's side.\n\nApprovals are unaffected in shape — a sub agent's tool request arrives as the same `control_request` with subtype `can_use_tool`, keyed by a unique `request_id` — but `claudeApprovalRequest` records no origin, so the approval card cannot tell the user that a sub agent, not the main agent, is asking.\n\nBy default the Claude CLI does not forward sub-agent text or thinking at all; that requires the `--forward-subagent-text` flag or the `CLAUDE_CODE_FORWARD_SUBAGENT_TEXT` environment variable. Nested sub agents (depth two and deeper) are also only forwarded when that setting is on, keyed by the `Agent` tool-use id that spawned them.\n\nTwo more places constrain the fix. `normalizeEvent` in `shared/agent_conversations.mjs` rebuilds every event entry from an explicit field whitelist, so any field it does not know about is dropped when a conversation is persisted and reloaded. And `buildActionConversationRenderGroups` in `app/src/components/actions/conversation/action_conversation_render_groups.ts` produces a flat list of groups; the only existing nesting is `CompletedToolCallGroup`, which collapses adjacent completed tool calls.\n\n## implementation details\n\n* Turn forwarding on through the environment rather than the command line: in `desktop/src/actions/agent/agent_environment.js`, se\n[2060 characters omitted]\n unknown frame shapes fatal. Replace the `throw new Error(...)` calls in `claudeApprovalRequest`, `handleContentBlockStart` and `handleAssistantCompletion` that sub-agent traffic can now reach with `emitProtocolError`, so a frame md2 does not understand degrades to one visible error row rather than killing the conversation. Genuine writer failures keep throwing.\n* Carry origin on approvals: add `parentItemId` and the sub agent's label to the approval object built by `claudeApprovalRequest`, thread it through `handleApproval` in `desktop/src/actions/agent/agent_streaming_event_handlers.js` unchanged, and show it in the approval card so the user sees which agent is asking. Decision handling and `availableDecisions` stay as they are.\n* Persist the new field: add `parentItemId` to `createProviderEventEntry` in `desktop/src/actions/agent/agent_conversation.js`, to the whitelist in `normalizeEvent` in `shared/agent_conversations.mjs`, and to `AgentConversationEvent` in `app/src/data/data_types.ts`. It is optional, so no activity-file version bump is needed and older files stay readable.\n* Nest in the transcript: extend `buildActionConversationRenderGroups` with a `subAgent` group that collects consecutive entries sharing a `parentItemId` and attaches them to the `tool.Agent` entry with that provider item id. Render it with a new component modeled on `CompletedToolCallGroup` — collapsed by default, header showing the sub agent's label and the entry count, expanded body reusing `ActionConversationEventRow`. Entries whose `parentItemId` names a tool call that never arrived render flat, so a truncated stream still shows its content.\n* Nested sub agents (depth two and deeper) attach to the `Agent` tool call that spawned them, which is itself a sub-agent entry, so the grouping is applied recursively rather than only one level deep.\n* Tests: extend `desktop/src/actions/agent/agent_streaming_adapter.test.mjs` with interleaved parent and sub-agent frames, a sub-agent approval, a sub-agent `result` frame, and a nested sub agent; extend the conversation round-trip coverage in `shared` so `parentItemId` survives persist and reload; extend `app/src/components/actions/conversation/action_conversation_rendering.test.tsx` for nesting, collapse and the orphaned-parent case.\n\n## acceptance criteria\n\n* A Claude conversation in which the agent spawns one or more sub agents runs to completion; no sub-agent frame marks the conversation `failed` or terminates the child process.\n* Parent assistant text streamed before, during and after a sub agent's run stays in one transcript message with its content intact, and no `Claude protocol error` row appears for well-formed traffic.\n* A tool call issued by the main agent completes on its own transcript row even when sub-agent frames arrive between the call and its result.\n* Sub-agent text, thinking and tool calls appear grouped under the `Agent` tool call that spawned them, collapsed by default, with the sub agent's label and entry count in the header.\n* Sub agents nested more than one level deep appear under their own spawning `Agent` entry, not flattened into the top-level sub agent's group.\n* No sub-agent output appears as a main-agent assistant message, and the provider session id recorded for resume is unchanged by sub-agent activity.\n* An approval requested by a sub agent shows which agent asked, and accepting, declining or cancelling it behaves exactly as the equivalent main-agent approval.\n* Reopening a persisted conversation reproduces the same nesting, because `parentItemId` survives the round trip through the activity file.\n* Activity files written before this change still load, and files written after it remain readable by the current parser without a version bump.\n* On a Claude CLI that does not support sub-agent text forwarding, the run still starts and completes, showing the `Agent` tool call and its result without nested content.\n* Token usage, cost and context-window figures for the turn are unchanged by sub-agent activity, since only the top-level `result` frame reports them.",
+          "id": "agent-turn-528e6be0-fdaf-41e9-b21a-411efd1c5254-event-55",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01GswDD7E4omeURsQw4jP2Pm",
+          "sequence": 55,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:45:23.648Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-528e6be0-fdaf-41e9-b21a-411efd1c5254-event-56",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKrrY8JQSWKFdD5EkoqB:thinking:0",
+          "sequence": 56,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:45:28.740Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "                await this.onEvent({ content, missingSession, type: 'sessionFailed' });\n                return;\n            }\n            await this.onEvent({ content, type: 'fatal' });\n            return;\n        }\n        if (purpose === 'initialize') {\n            await this.writeLine({ method: 'initialized', params: {} });\n            await this.sendRequest('account/rateLimits/read', undefined, 'rateLimitsRead');\n            if (this.providerConversationId) {\n                await this.sendRequest('thread/resume', {\n                    cwd: this.rootPath,\n                    threadId: this.providerConversationId,\n                }, 'threadResume');\n                return;\n            }\n            await this.sendRequest('thread/start', { cwd: this.rootPath }, 'threadStart');\n            return;\n        }\n        if (purpose === 'threadStart' || purpose === 'threadResume') {\n            this.threadId = message.result?.thread?.id ?? message.result?.threadId ?? this.providerConversationId;\n            if (!this.threadId) throw new Error('Codex app-server did not return a thread id');\n            await this.onEvent({ conversationId: this.threadId, type: 'sessionStarted' });\n            await this.sendMessage(this.initialPrompt);\n            return;\n        }\n        if (purpose === 'rateLimitsRead') {\n            const hasSingleBucket = !!message.result?.rateLimits && typeof message.result.rateLimits === 'object';\n            const hasBuckets = !!message.result?.rateLimitsByLimitId\n                && typeof message.result.rateLimitsByLimitId === 'object'\n                && Object.keys(message.result.rateLimitsByLimitId).length > 0;\n            await this.onRuntimeEvent(hasSingleBucket || hasBuckets\n                ? { kind: 'snapshot', observedAt: Date.now(), payload: message.result }\n                : { kind: 'unavailable', observedAt: Date.now() });\n        }\n    }\n\n    async handleNotification(method, params) {\n        if (this.threadId && params.threadId !== undefined && params.threadId !== this.threadId) return;\n\n        if (method === 'turn/started') {\n            this.activeItems.clear();\n            this.assistantItemOrder = [];\n            this.assistantStreams.clear();\n            this.completedItemIds.clear();\n            this.turnContextWindowUsage = undefined;\n            this.turnUsage = null;\n            this.turnUsageBaseline = null;\n            this.activeTurnId = params.turn?.id ?? params.turnId;\n            await this.onEvent({ turnId: this.activeTurnId, type: 'turnStarted' });\n            return;\n        }\n        if (method === 'serverRequest/resolved') {\n            await this.handleApprovalResolved(params);\n            return;\n        }\n        if (method === 'item/started') {\n            await this.handleItemStarted(method, params.item);\n            return;\n        }\n        if (method === 'item/agentMessage/delta') {\n            const trackedItem = await this.requireActiveItem(method, params.itemId, 'agentMessage');\n            if (!trackedItem) return;\n            trackedItem.assistantText = trackedItem.assistantText || params.delta.length > 0;\n            trackedItem.bufferedAssistantText += params.delta;\n            await this.flushAssistantStreams();\n            return;\n        }\n        if (method === 'item/reasoning/summaryTextDelta') {\n            await this.handleReasoningDelta(method, params, 'summary', params.summaryIndex);\n            return;\n        }\n        if (method === 'item/reasoning/summaryPartAdded') {\n            const trackedItem = await this.requireActiveItem(method, params.itemId, 'reasoning');\n            if (!trackedItem) return;\n            trackedItem.event = {\n                ...trackedItem.event,\n                summary: eventTextParts(trackedItem.event, 'summary', params.summaryIndex),\n            };\n            await this.emitEvent(trackedItem.event);\n            return;\n        }\n        if (method === 'item/reasoning/textDelta') {\n            await this.handleReasoningDelta(method, params, 'details', params.contentIndex);\n            return;\n        }\n        if (method === 'item/commandExecution/outputDelta') {\n            const trackedItem = await this.requireActiveItem(method, params.itemId, 'commandExecution');\n            if (!trackedItem) return;\n            const bounded = appendBoundedAgentResult(trackedItem.resultState, params.delta);\n            trackedItem.resultState = bounded.state;\n            trackedItem.event = { ...trackedItem.event, content: bounded.value };\n            await this.emitEvent(trackedItem.event);\n            return;\n        }\n        if (method === 'item/plan/delta') {\n            const trackedItem = await this.requireActiveItem(method, params.itemId, 'plan');\n            if (!trackedItem) return;\n            trackedItem.event = { ...trackedItem.event, content: `${trackedItem.event.content}${params.delta}` };\n            await this.emitEvent(trackedItem.event);\n            return;\n        }\n        if (method === 'thread/tokenUsage/updated') {\n            if (isCodexContextOnlyTokenUsage(params)) {\n                this.turnContextWindowUsage = codexContextWindowUsage(params);\n                return;\n            }\n            const counters = codexTurnCounters(params);\n            if (!counters) return;\n            this.turnUsageBaseline ??= counters.baseline;\n            const usage = codexUsage(codexUsageGrowth(counters.totals, this.turnUsageBaseline));\n            this.turnContextWindowUsage = codexContextWindowUsage(params);\n            this.turnUsage = usage;\n            await this.onEvent({ contextWindowUsage: this.turnContextWindowUsage, type: 'usage', usage });\n            return;\n        }\n        if (method === 'account/rateLimits/updated') {\n            await this.onRuntimeEvent({ kind: 'update', observedAt: Date.now(), payload: params });\n            return;\n        }\n        if (method === 'item/completed') {",
+          "id": "agent-turn-528e6be0-fdaf-41e9-b21a-411efd1c5254-event-57",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01EfmJYtnXeRK8QZwf1ZaehF",
+          "sequence": 57,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:45:29.218Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "        content: selectedEventContent(item.arguments),\n        durationMs: item.durationMs,\n        output: boundedAgentResult(toolResult(item)),\n    };\n}\n\nfunction dynamicToolEvent(item, lifecycleStatus) {\n    const label = [item.namespace, item.tool].filter((value) => typeof value === 'string' && value.length > 0).join(': ');\n\n    return {\n        ...eventBase(item, lifecycleStatus, label || 'Dynamic tool'),\n        content: selectedEventContent(item.arguments),\n        durationMs: item.durationMs,\n        output: boundedAgentResult(toolResult(item)),\n    };\n}\n\nfunction collaborationEvent(item, lifecycleStatus) {\n    const toolLabel = typeof item.tool === 'string' && item.tool.length > 0 ? item.tool : 'Agent tool';\n\n    return {\n        ...eventBase(item, lifecycleStatus, `Collaboration: ${toolLabel}`),\n        content: item.prompt ?? '',\n        output: boundedAgentResult(selectedEventContent({\n            agentsStates: item.agentsStates,\n            receiverThreadIds: item.receiverThreadIds,\n        }, false)),\n    };\n}\n\nfunction normalizeCodexEvent(item, lifecycleStatus, rootPath) {\n    if (!item || typeof item.id !== 'string' || typeof item.type !== 'string') return null;\n    const type = canonicalCodexItemType(item.type);\n    if (!SUPPORTED_CODEX_ITEM_TYPES.has(type)) return null;\n    const normalizedItem = type === item.type ? item : { ...item, type };\n    if (type === 'reasoning') return reasoningEvent(normalizedItem, lifecycleStatus);\n    if (type === 'commandExecution') return commandEvent(normalizedItem, lifecycleStatus);\n    if (type === 'fileChange') return fileEvent(normalizedItem, lifecycleStatus, rootPath);\n    if (type === 'mcpToolCall') return mcpEvent(normalizedItem, lifecycleStatus);\n    if (type === 'dynamicToolCall') return dynamicToolEvent(normalizedItem, lifecycleStatus);\n    if (type === 'collabAgentToolCall') return collaborationEvent(normalizedItem, lifecycleStatus);\n    if (type === 'webSearch') {\n        return {\n            ...eventBase(normalizedItem, lifecycleStatus, 'Web search'),\n            content: normalizedItem.query,\n            output: boundedAgentResult(normalizedContent(normalizedItem.action) ?? ''),\n        };\n    }\n    if (type === 'imageView') {\n        return { ...eventBase(normalizedItem, lifecycleStatus, 'Image view'), content: normalizedItem.path };\n    }\n    if (type === 'plan') {\n        return { ...eventBase(normalizedItem, lifecycleStatus, 'Plan'), content: normalizedItem.text };\n    }\n    if (type === 'contextCompaction') {\n        return { ...eventBase(normalizedItem, lifecycleStatus, 'Context compacted') };\n    }\n    if (type === 'enteredReviewMode' || type === 'exitedReviewMode') {\n        const label = type === 'enteredReviewMode' ? 'Entered review mode' : 'Exited review mode';\n\n        return { ...eventBase(normalizedItem, lifecycleStatus, label), content: normalizedItem.review };\n==CONV==\nfunction createProviderEventEntry(providerEvent, id, timestamp, sequence) {\n    const content = providerEvent.type === 'commandExecution' || providerEvent.type === 'tool.result'\n        ? boundedAgentResult(providerEvent.content)\n        : providerEvent.content;\n    const event = {\n        content,\n        id,\n        kind: 'event',\n        label: providerEvent.label,\n        providerItemId: providerEvent.providerItemId,\n        sequence,\n        status: providerEvent.status,\n        timestamp,\n        type: providerEvent.type,\n    };\n    if (typeof providerEvent.command === 'string') event.command = providerEvent.command;\n    if (Number.isSafeInteger(providerEvent.deletions) && providerEvent.deletions >= 0) event.deletions = providerEvent.deletions;\n    if (Array.isArray(providerEvent.details)) event.details = [...providerEvent.details];\n    if (Number.isFinite(providerEvent.durationMs)) event.durationMs = providerEvent.durationMs;\n    if (Number.isSafeInteger(providerEvent.exitCode)) event.exitCode = providerEvent.exitCode;\n    if (Number.isSafeInteger(providerEvent.insertions) && providerEvent.insertions >= 0) event.insertions = providerEvent.insertions;\n    if \n[39 characters omitted]\nent.paths = [...providerEvent.paths];\n    if (providerEvent.type !== 'commandExecution' && typeof providerEvent.output === 'string') {\n        event.output = boundedAgentResult(providerEvent.output);\n    }\n    if (typeof providerEvent.parentItemId === 'string' && providerEvent.parentItemId.length > 0) {\n        event.parentItemId = providerEvent.parentItemId;\n    }\n    if (Array.isArray(providerEvent.summary)) event.summary = [...providerEvent.summary];\n    if (typeof providerEvent.workingDirectory === 'string') event.workingDirectory = providerEvent.workingDirectory;\n\n    return event;\n}\n\nfunction accumulateUsage(current, turn) {\n    return sumAgentTokenUsage([current, turn]);\n}\n\n/** Updates conversation status and accumulates only completed running periods. */\nfunction transitionConversationStatus(conversation, status, transitionedAt) {\n    if (!conversation.timer) {\n        conversation.status = status;\n        return;\n    }\n\n    const wasRunning = conversation.status === 'running';\n    const isRunning = status === 'running';\n    if (wasRunning === isRunning) {\n        conversation.status = status;\n        return;\n    }\n    const transitionedAtMs = Date.parse(transitionedAt);\n    if (Number.isNaN(transitionedAtMs)) throw new Error('Invalid agent conversation timer transition timestamp');\n\n    if (isRunning) {\n        conversation.timer = { ...conversation.timer, runningStartedAt: transitionedAt };\n    } else {\n        const runningStartedAtMs = Date.parse(conversation.timer.runningStartedAt);\n        if (Number.isNaN(runningStartedAtMs)) throw new Error('Missing agent conversation running start timestamp');\n        if (transitionedAtMs < runningStartedAtMs) throw new Error('Agent conversation timer transition precedes running start');\n        conversation.timer = {\n==NORM==\n    const id = optionalString(value.id);\n    const timestamp = optionalString(value.timestamp);\n    const type = optionalString(value.type);\n    if (!id || !timestamp || !type) return null;\n    const command = optionalString(value.command);\n    const content = value.type === 'commandExecution' || value.type === 'tool.result'\n        ? boundedAgentResult(value.content)\n        : value.content;\n    const deletions = optionalNonNegativeInteger(value.deletions);\n    const details = optionalStringArray(value.details);\n    const durationMs = optionalNumber(value.durationMs);\n    const exitCode = optionalInteger(value.exitCode);\n    const insertions = optionalNonNegativeInteger(value.insertions);\n    const label = optionalString(value.label);\n    const output = value.type !== 'commandExecution' && typeof value.output === 'string'\n        ? boundedAgentResult(value.output)\n        : null;\n    const parentItemId = optionalString(value.parentItemId);\n    const providerItemId = optionalString(value.providerItemId);\n    const sequence = optionalInteger(value.sequence);\n    const status = optionalString(value.status);\n    const summary = optionalStringArray(value.summary);\n    const workingDirectory = optionalString(value.workingDirectory);\n\n    return {\n        ...(command ? { command } : {}),\n        content,\n        ...(deletions !== null ? { deletions } : {}),\n        ...(details ? { details } : {}),\n        ...(durationMs !== null ? { durationMs } : {}),\n        ...(exitCode !== null ? { exitCode } : {}),\n        id,\n        ...(insertions !== null ? { insertions } : {}),\n        kind: 'event',\n        ...(label ? { label } : {}),\n        ...(output !== null ? { output } : {}),\n        ...(parentItemId ? { parentItemId } : {}),\n        ...(providerItemId ? { providerItemId } : {}),\n        ...(sequence !== null ? { sequence } : {}),\n        ...(status ? { status } : {}),\n        ...(summary ? { summary } : {}),\n        timestamp,\n        type,\n        ...(workingDirectory ? { workingDirectory } : {}),\n    };\n}\n\nfunction normalizeProviderSession(value) {\n    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;\n    const agent = optionalString(value.agent);\n    const conversationId = optionalString(value.conversationId);",
+          "id": "agent-turn-528e6be0-fdaf-41e9-b21a-411efd1c5254-event-58",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01LsQy8rmoZVGnzSMXrUPm8b",
+          "sequence": 58,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:45:32.464Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-528e6be0-fdaf-41e9-b21a-411efd1c5254-event-59",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKrsAzLLgPAzbNPM6zck:thinking:0",
+          "sequence": 59,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:45:40.618Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "        pendingQuestion.submitted = true;\n        try {\n            await this.writeLine({ id: requestId, result: { answers: {} } });\n        } catch (error) {\n            pendingQuestion.submitted = false;\n            throw error;\n        }\n        this.pendingQuestions.delete(requestId);\n    }\n\n    async answerApproval(requestId, decision) {\n        const pendingApproval = this.pendingApprovals.get(requestId);\n        if (!pendingApproval) throw new Error(`Unknown or stale Codex approval request id: ${requestId}`);\n        if (pendingApproval.submitted) throw new Error(`Codex approval request was already submitted: ${requestId}`);\n        const availableDecisions = availableApprovalDecisions(pendingApproval.approval);\n        if (!availableDecisions.some((availableDecision) => sameDecision(availableDecision, decision))) {\n            throw new Error(`Unsupported Codex approval decision for request ${requestId}`);\n        }\n        pendingApproval.submitted = true;\n        try {\n            await this.writeLine({ id: requestId, result: { decision } });\n        } catch (error) {\n            pendingApproval.submitted = false;\n            throw error;\n        }\n        await this.onEvent({ requestId, type: 'approvalSubmitted' });\n    }\n\n    async sendRequest(method, params, purpose = null) {\n        const id = this.nextRequestId;\n        this.nextRequestId += 1;\n        if (purpose) this.pendingRequests.set(id, purpose);\n        try {\n            await this.writeLine({ id, method, params });\n        } catch (error) {\n            this.pendingRequests.delete(id);\n            throw error;\n        }\n    }\n\n    async handleMessage(message) {\n        if (Object.hasOwn(message, 'id') && !message.method) {\n            await this.handleResponse(message);\n            return;\n        }\n        if (message.method === 'item/tool/requestUserInput') {\n            if (message.id === null || message.id === undefined) throw new Error('Missing Codex question request id');\n            if (this.pendingQuestions.has(message.id)) throw new Error(`Duplicate Codex question request id: ${message.id}`);\n            this.pendingQuestions.set(message.id, { submitted: false });\n            await this.onEvent({ questions: message.params.questions, requestId: message.id, type: 'question' });\n            return;\n        }\n        if (CODEX_APPROVAL_METHODS.has(message.method)) {\n            await this.handleApprovalRequest(message);\n            return;\n        }\n        await this.handleNotification(message.method, message.params ?? {});\n    }\n\n    async handleApprovalRequest(message) {\n        if (message.id === null || message.id === undefined) throw new Error('Missing Codex approval request id');\n        if (this.pendingApprovals.has(message.id)) throw new Error(`Duplicate Codex approval request id: ${message.id}`);\n        const kind = CODEX_APPROVAL_METHODS.get(message.method);\n        const params = message.params;\n        if (!params || typeof params !== 'object' || Array.isArray(params)) throw new Error('Missing Codex approval params');\n        const threadId = requireCodexApprovalId(params.threadId, 'thread id');\n        const turnId = requireCodexApprovalId(params.turnId, 'turn id');\n        const itemId = requireCodexApprovalId(params.itemId, 'item id');\n        if (threadId !== this.threadId) throw new Error(`Mismatched Codex approval thread id: ${threadId}`);\n        if (turnId !== this.activeTurnId) throw new Error(`Mismatched Codex approval turn id: ${turnId}`);\n        const trackedItem = this.activeItems.get(itemId);\n        if (!trackedItem || trackedItem.itemType !== kind || this.completedItemIds.has(itemId)) {\n            throw new Error(`Mismatched Codex approval item id: ${itemId}`);\n        }\n        const filePaths = kind === 'fileChange'\n            ? trackedItem.item.changes\n                ?.filter(({ path }) => typeof path === 'string' && path.length > 0)\n                .map(({ path }) => path) ?? []\n            : [];\n        const approval = { ...params, filePaths, kind, provider: 'codex', requestId: message.id };\n        this.pendingApprovals.set(message.id, { approval, submitted: false });\n        await this.onEvent({ approval, type: 'approval' });\n    }\n\n    async handleResponse(message) {\n        const purpose = this.pendingRequests.get(message.id);\n        if (!purpose) {\n            if (message.error) await this.onEvent({ content: message.error.message ?? 'Codex request failed', type: 'fatal' });\n            return;\n        }\n        this.pendingRequests.delete(message.id);\n        if (message.error) {\n            const content = message.error.message ?? `Codex ${purpose} failed`;\n            if (purpose === 'rateLimitsRead') {\n                await this.onRuntimeEvent({ kind: 'unavailable', observedAt: Date.now() });\n                return;\n            }\n            if (purpose === 'threadResume') {\n                const missingSession = isCodexMissingThreadError(message.error, this.providerConversationId)\n                    || isMissingSession('codex', { error: message.error, type: 'error' }, false);\n                await this.onEvent({ content, missingSession, type: 'sessionFailed' });\n==EMIT==\n379:            await this.emitEvent(trackedItem.event);\n380-            return;\n381-        }\n382-        if (method === 'item/reasoning/textDelta') {\n383-            await this.handleReasoningDelta(method, params, 'details', params.contentIndex);\n384-            return;\n385-        }\n386-        if (method === 'item/commandExecution/outputDelta') {\n387-            const trackedItem = await this.requireActiveItem(method, params.itemId, 'commandExecution');\n388-            if (!trackedItem) return;\n389-            const bounded = appendBoundedAgentResult(trackedItem.resultState, params.delta);\n390-            trackedItem.resultState = bounded.state;\n391-            trackedItem.event = { ...trackedItem.event, content: bounded.value };\n392:            await this.emitEvent(trackedItem.event);\n393-            return;\n394-        }\n395-        if (method === 'item/plan/delta') {\n396-            const trackedItem = await this.requireActiveItem(method, params.itemId, 'plan');\n397-            if (!trackedItem) return;\n398-            trackedItem.event = { ...trackedItem.event, content: `${trackedItem.event.content}${params.delta}` };\n399:            await this.emitEvent(trackedItem.event);\n400-            return;\n401-        }\n402-        if (method === 'thread/tokenUsage/updated') {\n403-            if (isCodexContextOnlyTokenUsage(params)) {\n404-                this.turnContextWindowUsage = codexContextWindowUsage(params);\n405-                return;\n406-            }\n407-            const counters = codexTurnCounters(params);\n408-            if (!counters) return;\n409-            this.turnUsageBaseline ??= counters.baseline;\n410-            const usage = codexUsage(codexUsageGrowth(counters.totals, this.turnUsageBaseline));\n411-            this.turnContextWindowUsage = codexContextWindowUsage(params);\n--\n426:            await this.emitEvent(normalizedSystemEvent);\n427-            return;\n428-        }\n429-        if (method === 'error') {\n430-            const content = params.error?.message ?? 'Codex turn failed';\n431:            await this.emitEvent({",
+          "id": "agent-turn-528e6be0-fdaf-41e9-b21a-411efd1c5254-event-60",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01Crpxn6qcuzhqKfCU7P7BeH",
+          "sequence": 60,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:45:42.110Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-528e6be0-fdaf-41e9-b21a-411efd1c5254-event-61",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKrstUwBpR2Zx4mYKVwL:thinking:0",
+          "sequence": 61,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:46:00.649Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "Exit code 2\n/usr/bin/bash: -c: line 31: unexpected EOF while looking for matching `''",
+          "id": "agent-turn-528e6be0-fdaf-41e9-b21a-411efd1c5254-event-62",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01LaYNgros6Gi9rQuLhEFd8N",
+          "sequence": 62,
+          "status": "failed",
+          "timestamp": "2026-08-23T14:46:57.993Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-528e6be0-fdaf-41e9-b21a-411efd1c5254-event-63",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKryUqJMfebTdCdUbrHL:thinking:0",
+          "sequence": 63,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:47:06.168Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "x\nline with 'quote and `backtick` and $var",
+          "id": "agent-turn-528e6be0-fdaf-41e9-b21a-411efd1c5254-event-64",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01X2fD5SiVwSy9BUPq1GGX9S",
+          "sequence": 64,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:47:09.831Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-528e6be0-fdaf-41e9-b21a-411efd1c5254-event-65",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKrzMXYRJb5HsvHiaQAn:thinking:0",
+          "sequence": 65,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:47:14.801Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "39 design/feature_descriptions/F_214_improve_support_child_threads.md",
+          "id": "agent-turn-528e6be0-fdaf-41e9-b21a-411efd1c5254-event-66",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01JDR2Y7ziNhXeEVLkHeKmih",
+          "sequence": 66,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:47:29.053Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "56 design/feature_descriptions/F_214_improve_support_child_threads.md",
+          "id": "agent-turn-528e6be0-fdaf-41e9-b21a-411efd1c5254-event-67",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01XkQBY77abypsGoWnfReW1b",
+          "sequence": 67,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:47:52.541Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "---\nauthor: \nid: F_214\ninternalId: 10a50270-fcab-4661-9d29-d966aa99eb1e\ntitle: improve support child threads\nstatus: ready for implementation\nowner: \naffects:\nagents:\npolicy:\nbranch: f_214_improve_support_child_threads\nworktree: 3\n---\n\ncodex can use child threads. currently we either ignore them or print them in the main conversation thread.\n\nNot certain if claude has similar concept.\n\nwe should show in the ui that sub threads are running.\n\n M design/feature_descriptions/F_214_improve_support_child_threads.md",
+          "id": "agent-turn-528e6be0-fdaf-41e9-b21a-411efd1c5254-event-68",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_014KpyUXjxqt5tmeXnfHqL9x",
+          "sequence": 68,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:48:03.765Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-528e6be0-fdaf-41e9-b21a-411efd1c5254-event-69",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKs4L4bU8xHNQ57bpBJf:thinking:0",
+          "sequence": 69,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:48:05.965Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Doc updated. Status now `ready for implementation`. Original text kept, three sections appended.\n\n**Prior art found:** `design/feature_descriptions/B_170_sub_agent_support_claude.md` — Claude sub agents. Solved with per-stream state map, `parentItemId` on events, collapsible `SubAgentGroup`, `Requested by` on approvals. All of that is provider-neutral and already shipped.\n\n**F_214 mirrors it for Codex:**\n- Per-thread state map replaces flat `activeItems`/`activeTurnId`/usage fields in `agent_streaming_adapter.js`, so a child `turn/started` no longer wipes root state — that is why the current code drops child threads at line 337.\n- Child threads registered from `receiverThreadIds` on the `collabAgentToolCall` item; events tagged with `parentItemId` = that item id. Recursive, so a collaboration inside a child nests under the child.\n- Child assistant text becomes an `agentMessage` event, never main-agent message — protects resume pointer.\n- Only root `turn/completed` ends turn. Steering still targets root turn.\n- Child approvals stop being fatal (today they throw → `failStreamingRun` kills conversation) and show which collaboration asked.\n- Usage summed per thread with own baseline; context window root-only.\n- Renderer: treat `collabAgentToolCall` as spawning call alongside `tool.Agent`; header gains running-child count from `agentsStates`. No new component, no schema bump.\n\nNothing staged or committed.",
+          "id": "agent-turn-528e6be0-fdaf-41e9-b21a-411efd1c5254-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 70,
+          "timestamp": "2026-08-23T14:48:14.730Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-4b2ddb04-6b42-4a21-aef2-e7532855f200",
       "providerSessions": [],
       "startedAt": "2026-08-23T14:36:57.097Z",
-      "status": "failed",
+      "status": "running",
       "timer": {
         "elapsedMs": 154580,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-08-23T14:45:13.961Z"
       },
       "title": "complete",
+      "usage": {
+        "cachedInputTokens": 937748,
+        "inputTokens": 22,
+        "outputTokens": 12778,
+        "reasoningTokens": 0,
+        "totalTokens": 950548,
+        "costUsd": 1.5369769999999998
+      },
       "usageSchemaVersion": 1,
       "viewed": true
     }
@@ -1389,11 +1633,11 @@
         "agent-4b2ddb04-6b42-4a21-aef2-e7532855f200"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-938eeeb2-1f1f-4e58-a9c3-34deab843f9f",
       "origin": {
@@ -1402,9 +1646,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-4b2ddb04-6b42-4a21-aef2-e7532855f200",
       "startedAt": "2026-08-23T14:36:57.096Z",
-      "status": "failed"
+      "status": "failed",
+      "rootConversationId": "agent-4b2ddb04-6b42-4a21-aef2-e7532855f200"
     }
   ],
   "version": 5
