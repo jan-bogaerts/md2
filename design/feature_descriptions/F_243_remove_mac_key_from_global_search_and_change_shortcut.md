@@ -3,7 +3,7 @@ author:
 id: F_243
 internalId: 933da3dd-6634-467f-bd86-e3205f22da5d
 title: remove mac key from global search and change shortcut
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

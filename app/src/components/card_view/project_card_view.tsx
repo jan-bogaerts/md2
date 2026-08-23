@@ -12,6 +12,7 @@ import { dialogService } from '../../services/dialog_service'
 import { ActionEntryPoints } from '../actions/run/trigger/action_entry_points'
 import { CardRunButton } from '../actions/run/trigger/card_run_button'
 import { useRunningActionForContext } from '../hooks/use_action_runs'
+import { CardArchiveDialog } from './card_archive_dialog'
 import { CardDeleteDialog } from './card_delete_dialog'
 import { CardPathMenuItems } from './card_path_menu_items'
 import { CardPolicyMenuItem } from './card_policy_menu_item'
@@ -26,6 +27,7 @@ import { useProjectReadOnly } from '../hooks/use_project_read_only'
 import { attachFilesToCard } from '../../services/attachments/attachment_workflow'
 
 export interface CardHandlers {
+    onArchiveCard: (path: string) => Promise<void>
     onDeleteCard: (path: string) => Promise<void>
     onOpenInFileMode: (path: string) => void
     onTogglePolicy: (path: string, policyKey: string) => void
@@ -78,13 +80,14 @@ export const CardView = memo(function CardView(props: CardViewProps) {
 function CardViewContent(props: CardViewContentProps) {
     const { card, cardTypes, isSelected, primaryPath, references, rootPath } = props
     const { onOpenInFileMode } = props
-    const { onDeleteCard, onTogglePolicy, onTitleChange } = props
+    const { onArchiveCard, onDeleteCard, onTogglePolicy, onTitleChange } = props
     const theme = useTheme()
     const readOnly = useProjectReadOnly()
     const [cardElement, setCardElement] = useState<HTMLDivElement | null>(null)
     const [actionsAnchorElement, setActionsAnchorElement] = useState<HTMLElement | null>(null)
     const [actionsMenuPosition, setActionsMenuPosition] = useState<MenuPosition | null>(null)
     const [isEditingTitle, setIsEditingTitle] = useState(false)
+    const [archiveCardPath, setArchiveCardPath] = useState<string | null>(null)
     const [deleteCardPath, setDeleteCardPath] = useState<string | null>(null)
     const [titleDraft, setTitleDraft] = useState(card.header.title)
     const fileInputRef = useRef<HTMLInputElement>(null)
@@ -214,6 +217,15 @@ function CardViewContent(props: CardViewContentProps) {
         closeCardActions()
         setTitleDraft(card.header.title)
         setIsEditingTitle(true)
+    }
+
+    const closeArchiveCardDialog = () => {
+        setArchiveCardPath(null)
+    }
+
+    const openArchiveCardDialog = () => {
+        closeCardActions()
+        setArchiveCardPath(card.path)
     }
 
     const closeDeleteCardDialog = () => {
@@ -381,8 +393,10 @@ function CardViewContent(props: CardViewContentProps) {
                     Attach files{references.length > 0 ? ` (${references.length})` : ''}
                 </MenuItem>
                 <MenuItem disabled={readOnly} onClick={editTitleFromMenu}>Edit title</MenuItem>
+                <MenuItem disabled={readOnly} onClick={openArchiveCardDialog}>Archive</MenuItem>
                 <MenuItem disabled={readOnly} onClick={openDeleteCardDialog}>Delete</MenuItem>
             </Menu>
+            <CardArchiveDialog cardPath={archiveCardPath} onArchiveCard={onArchiveCard} onClose={closeArchiveCardDialog} />
             <CardDeleteDialog cardPath={deleteCardPath} onClose={closeDeleteCardDialog} onDeleteCard={onDeleteCard} />
         </CardDragContainer>
     )

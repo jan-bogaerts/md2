@@ -911,16 +911,32 @@
           "role": "assistant",
           "sequence": 22,
           "timestamp": "2026-08-23T14:47:59.644Z"
+        },
+        {
+          "content": "go",
+          "id": "agent-turn-b3d4890f-48e8-4a98-8edd-f042eb04df36-user-22",
+          "kind": "message",
+          "role": "user",
+          "sequence": 23,
+          "timestamp": "2026-08-23T14:48:33.756Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-5536dc6c-8773-46c9-954f-e926c4131c54",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "claude",
+          "conversationId": "5b7a0b7d-694c-43db-9b82-dcc190ba1b1b",
+          "createdAt": "2026-08-23T14:47:59.644Z",
+          "lastUsedAt": "2026-08-23T14:47:59.644Z",
+          "synchronizedThroughMessageId": "agent-turn-b3d4890f-48e8-4a98-8edd-f042eb04df36-turn-1-assistant-3"
+        }
+      ],
       "startedAt": "2026-08-23T14:47:06.943Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-23T14:47:06.943Z"
+        "elapsedMs": 52701,
+        "runningStartedAt": "2026-08-23T14:48:33.756Z"
       },
       "title": "implement",
       "usage": {
