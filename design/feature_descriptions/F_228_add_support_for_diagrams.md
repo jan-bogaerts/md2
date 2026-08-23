@@ -13,8 +13,6 @@ after: b97071c8-d9a2-4039-8fbf-c313219a761c
 ---
 analyze this site: [https://github.com/cathrynlavery/diagram-design](https://github.com/cathrynlavery/diagram-design) on how diagrams are rendered.
 
-
-
 what we need:
 
 * new view containing:
@@ -22,7 +20,9 @@ what we need:
   * breadcrumb at top to switch between different types of diagrams (first crumb) and new crumb every time user clicks on an element that opens a new diagram. this is a way to navigate back or forward in the navigation tree.&#x20;
     should have a `back` button in front to go 1 step back. when at first step, disabled.
 
+## related cards
 
+[F\_246\_add\_action\_diagram\_target.md](design/feature_descriptions/F_246_add_action_diagram_target.md)
 
 from agent conversation:
 
@@ -45,8 +45,6 @@ The parent diagram definition can configure drill-down behavior for its items:
 * the selected item's text passed to that action as input.
 
 The resulting child diagram follows the same model and can define another drill-down. Repeating this interaction lets users navigate from an overview into progressively more detailed diagrams and understand the project through its structure and relationships.
-
-
 
 ## Clickable SVG feasibility
 
