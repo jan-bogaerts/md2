@@ -1,10 +1,11 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { CardHeader, Card, ProjectSnapshot } from '../../../data/data_types'
 import { actionService } from '../../../services/actions/action_service'
 import { ACTIONS_CHANGED_EVENT } from '../../../services/actions/action_service_events'
 import { workspaceNavigationService } from '../../../services/project/workspace_navigation_service'
 import { workspaceViewService } from '../../../services/project/workspace_view_service'
+import { searchOpenService } from '../../../services/search/search_open_service'
 import { DialogDisplay } from '../../dialog_display'
 import { AppThemeProvider } from '../../../theme/theme_provider'
 import { SearchControl } from './search_control'
@@ -57,12 +58,56 @@ function typeQuery(value: string) {
     fireEvent.change(screen.getByRole('textbox', { name: 'Search project' }), { target: { value } })
 }
 
+function setClientPlatform(platform: string, userAgent: string) {
+    Object.defineProperty(window.navigator, 'userAgent', { configurable: true, value: userAgent })
+    Object.defineProperty(window.navigator, 'userAgentData', { configurable: true, value: { platform } })
+}
+
 describe('SearchControl', () => {
     afterEach(cleanup)
     afterEach(() => {
         actionService.clear()
         workspaceViewService.setViewMode('cards')
         window.localStorage.removeItem('search-panel-results-size')
+        Reflect.deleteProperty(window.navigator, 'userAgent')
+        Reflect.deleteProperty(window.navigator, 'userAgentData')
+    })
+
+    it('shows the Windows shortcut in the collapsed launcher and expanded panel', () => {
+        setClientPlatform('Windows', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)')
+        render(<SearchControl />)
+
+        expect(screen.getByText('Ctrl+Shift+F')).toBeInTheDocument()
+        focusSearch()
+
+        expect(screen.getByText('Ctrl+Shift+F')).toBeInTheDocument()
+    })
+
+    it('shows the Apple shortcut in the collapsed launcher and expanded panel', () => {
+        setClientPlatform('macOS', 'Mozilla/5.0 (Macintosh)')
+        render(<SearchControl />)
+
+        expect(screen.getByText('⌘⇧F')).toBeInTheDocument()
+        focusSearch()
+
+        expect(screen.getByText('⌘⇧F')).toBeInTheDocument()
+    })
+
+    it('opens and focuses desktop search when requested by the search service', () => {
+        render(<SearchControl />)
+
+        act(() => searchOpenService.requestOpen())
+
+        expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveFocus()
+    })
+
+    it('opens mobile search on its icon anchor when requested by the search service', () => {
+        render(<SearchControl isMobile />)
+
+        act(() => searchOpenService.requestOpen())
+
+        expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveFocus()
+        expect(screen.getByRole('dialog', { name: 'Search dropdown' })).toBeInTheDocument()
     })
 
     it('subscribes to project data only while search is open', () => {

@@ -1,8 +1,14 @@
 import { Box, IconButton, InputAdornment, Popover, TextField, Tooltip } from '@mui/material'
 import type { MouseEvent } from 'react'
-import { useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Magnify from 'mdi-material-ui/Magnify'
+import {
+    GLOBAL_SEARCH_SHORTCUT_BINDING,
+    SEARCH_OPEN_REQUESTED_EVENT,
+    searchOpenService,
+} from '../../../services/search/search_open_service'
 import type { SearchRegexpAgent } from '../../../services/search/search_types'
+import { formatShortcut } from '../../../services/shortcuts/keyboard_platform'
 import { NO_DRAG_REGION } from '../drag_region'
 import { SearchPanel } from './search_panel'
 
@@ -20,6 +26,26 @@ export function SearchControl(props: SearchControlProps) {
     const [query, setQuery] = useState('')
     const [desktopOpen, setDesktopOpen] = useState(false)
     const [searchAnchorElement, setSearchAnchorElement] = useState<HTMLElement | null>(null)
+    const mobileButtonElement = useRef<HTMLButtonElement | null>(null)
+    const shortcutLabel = formatShortcut(GLOBAL_SEARCH_SHORTCUT_BINDING)
+
+    const handleOpenRequested = useCallback(() => {
+        if (!isMobile) {
+            setDesktopOpen(true)
+            return
+        }
+
+        const anchorElement = mobileButtonElement.current
+        if (!anchorElement) throw new Error('Cannot open mobile search without its anchor button')
+
+        setSearchAnchorElement(anchorElement)
+    }, [isMobile])
+
+    useEffect(() => {
+        searchOpenService.addEventListener(SEARCH_OPEN_REQUESTED_EVENT, handleOpenRequested)
+
+        return () => searchOpenService.removeEventListener(SEARCH_OPEN_REQUESTED_EVENT, handleOpenRequested)
+    }, [handleOpenRequested])
 
     const openDesktop = () => {
         setDesktopOpen(true)
@@ -76,7 +102,7 @@ export function SearchControl(props: SearchControlProps) {
                                         px: 0.75,
                                     }}
                                 >
-                                    ⌘K
+                                    {shortcutLabel}
                                 </Box>
                             </InputAdornment>
                         ),
@@ -107,6 +133,7 @@ export function SearchControl(props: SearchControlProps) {
                 <IconButton
                     aria-label="Search"
                     onClick={openMobile}
+                    ref={mobileButtonElement}
                     size="small"
                     sx={{ height: 34, width: 34 }}
                 >

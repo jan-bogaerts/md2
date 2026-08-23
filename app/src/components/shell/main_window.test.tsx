@@ -224,6 +224,52 @@ describe('MainWindow', () => {
         expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveFocus()
     })
 
+    it('opens desktop search from Ctrl+Shift+F while another text field is focused', () => {
+        mockMatchMedia(false)
+        render(
+            <AppThemeProvider>
+                <input aria-label="Other field" />
+                <MainWindow auth={auth} toolbarAction={<button type="button">Action</button>} />
+            </AppThemeProvider>,
+        )
+        const otherInput = screen.getByLabelText('Other field')
+        otherInput.focus()
+        const shortcutEvent = new KeyboardEvent('keydown', {
+            bubbles: true,
+            cancelable: true,
+            ctrlKey: true,
+            key: 'f',
+            shiftKey: true,
+        })
+
+        fireEvent(otherInput, shortcutEvent)
+
+        expect(shortcutEvent.defaultPrevented).toBe(true)
+        expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveFocus()
+    })
+
+    it('opens mobile search from Ctrl+Shift+F but leaves Ctrl+F untouched', () => {
+        mockMatchMedia(true)
+        renderWindow()
+        const localSearchEvent = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ctrlKey: true, key: 'f' })
+        fireEvent(window, localSearchEvent)
+
+        expect(localSearchEvent.defaultPrevented).toBe(false)
+        expect(screen.queryByRole('textbox', { name: 'Search project' })).toBeNull()
+
+        const globalSearchEvent = new KeyboardEvent('keydown', {
+            bubbles: true,
+            cancelable: true,
+            ctrlKey: true,
+            key: 'f',
+            shiftKey: true,
+        })
+        fireEvent(window, globalSearchEvent)
+
+        expect(globalSearchEvent.defaultPrevented).toBe(true)
+        expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveFocus()
+    })
+
     it('keeps GitHub authentication in the mobile drawer footer', () => {
         mockMatchMedia(true)
         renderWindow()

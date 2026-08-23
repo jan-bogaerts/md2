@@ -13,7 +13,9 @@ import { useActions } from '../../hooks/use_actions'
 import { useProjectState } from '../../hooks/use_project_state'
 import { dialogService } from '../../../services/dialog_service'
 import { InvalidSearchPatternError, defaultSearchRegexpAgent, searchActions, searchProject } from '../../../services/search/search_project'
+import { GLOBAL_SEARCH_SHORTCUT_BINDING } from '../../../services/search/search_open_service'
 import type { SearchMode, SearchRegexpAgent, SearchResults as SearchResultsData } from '../../../services/search/search_types'
+import { formatShortcut } from '../../../services/shortcuts/keyboard_platform'
 import { workspaceNavigationService } from '../../../services/project/workspace_navigation_service'
 import { useWorkspaceView } from '../../hooks/use_workspace_view'
 import { NO_DRAG_REGION } from '../drag_region'
@@ -52,6 +54,7 @@ export function SearchPanel(props: SearchPanelProps) {
     const [isAgentBusy, setIsAgentBusy] = useState(false)
     const [actionPopupOpen, setActionPopupOpen] = useState(false)
     const [controlElement, setControlElement] = useState<HTMLDivElement | null>(null)
+    const shortcutLabel = formatShortcut(GLOBAL_SEARCH_SHORTCUT_BINDING)
 
     const hasQuery = query.trim().length > 0
     const isDropdownOpen = !isDismissed
@@ -196,7 +199,7 @@ export function SearchPanel(props: SearchPanelProps) {
                                             px: 0.75,
                                         }}
                                     >
-                                        ⌘K
+                                        {shortcutLabel}
                                     </Box>
                                 </InputAdornment>
                             ),

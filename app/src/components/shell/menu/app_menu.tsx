@@ -38,6 +38,7 @@ import { workspaceViewService, type WorkspaceViewMode } from '../../../services/
 import { workspaceNavigationService } from '../../../services/project/workspace_navigation_service'
 import { actionService } from '../../../services/actions/action_service'
 import { dialogService } from '../../../services/dialog_service'
+import { keyboardShortcutService } from '../../../services/shortcuts/keyboard_shortcut_service'
 import { projectContext } from '../../../data/action_context'
 import type { UseGithubAuthResult } from '../../../auth/use_github_auth'
 import { useConfigValue, useHasDesktopConfig } from '../../hooks/use_config_value'
@@ -191,16 +192,16 @@ export function AppMenu(props: AppMenuProps) {
     }, [])
 
     useEffect(() => {
-        const handleSaveShortcut = (event: KeyboardEvent) => {
-            if (event.key.toLowerCase() !== 's' || !event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) return
-
-            event.preventDefault()
-            if (canCommit) void handleCommit()
-        }
-
-        window.addEventListener('keydown', handleSaveShortcut)
-
-        return () => window.removeEventListener('keydown', handleSaveShortcut)
+        return keyboardShortcutService.register({
+            alt: false,
+            id: 'commit',
+            key: 's',
+            mod: true,
+            run: () => {
+                if (canCommit) void handleCommit()
+            },
+            shift: false,
+        })
     }, [canCommit, handleCommit])
 
     const handlePush = async () => {
