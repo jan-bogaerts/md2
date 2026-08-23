@@ -1,0 +1,475 @@
+{
+  "actionSettings": {
+    "5b88355d-f964-459a-bc67-6618650866ba": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
+    }
+  },
+  "conversations": [
+    {
+      "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "cardInternalId": "9b601eb4-e385-404f-9059-07823b25b6fd",
+      "cardPath": "design/feature_descriptions/F_217_approval_required_too_long.md",
+      "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 1000000,
+        "usedTokens": 52746
+      },
+      "entries": [
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/F_217_approval_required_too_long.md`.&#x20;\nupdate the field `status` in the markdown feature description file to `ready for implementation`.\n\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill.\n\nDo not stage or commit changes. You have no need for get at this time.",
+          "id": "agent-turn-06420926-13fc-4f46-83b1-52e1bae483e1-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-08-23T14:43:04.542Z"
+        },
+        {
+          "agent": "claude",
+          "content": "I'll read the feature doc first.",
+          "id": "agent-turn-06420926-13fc-4f46-83b1-52e1bae483e1-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 2,
+          "timestamp": "2026-08-23T14:43:07.338Z"
+        },
+        {
+          "content": "---\r\nauthor: \r\nid: F_217\r\ninternalId: 9b601eb4-e385-404f-9059-07823b25b6fd\r\ntitle: approval required too long\r\nstatus: design\r\nowner: \r\naffects:\r\nagents:\r\n  - design/activity/card__9b601eb4-e385-404f-9059-07823b25b6fd.json\r\npolicy:\r\nafter: a0687111-dded-4140-8d97-666bd331ddfc\r\n---\r\nApproval required\n\n```&#x60;&#x60;&#x60;\nTool\nPowerShell\nInput\n{\n\"command\": \"npm test -- src/actions/agent/claude_usage 2>&1 | Select-Object -Last 25\",\n\"timeout\": 300000,\n\"description\": \"Run claude usage tests\"\n}\nSession permission suggestions\n{\n\"type\": \"addRules\",\n\"rules\": [\n{\n\"toolName\": \"PowerShell\",\n\"ruleContent\": \"npm test -- src/actions/agent/claude_usage 2>&1\"\n}\n],\n\"behavior\": \"allow\",\n\"destination\": \"localSettings\"\n}\n```\n\ncan't we use 1 line (ex: value of first field) for input and if the user want to expand, show the entire text\n\nalso 'session permission suggestions' aren't they used to prefill the selection boxes? in that case, we don't need to show it at all, otherwise, can't we just use 'behavior' as the 1 line value and if the user wants to expand, he can see everything.\n\nnote: i'm not certain if this was for claude or codex, but both should behave similar when showing permission for approval&#x20;",
+          "id": "agent-turn-06420926-13fc-4f46-83b1-52e1bae483e1-event-3",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_013jV79YyrHCCf3XBEbF6HFT",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:43:08.757Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-06420926-13fc-4f46-83b1-52e1bae483e1-event-4",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKrgazAbsmzVvPErdEFT:thinking:0",
+          "sequence": 4,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:43:10.344Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "LICENSE\nREADME.md\nagents.md\napp\ndesign\ndesktop\ndocs\nmd2.config.json\nnode_modules\npackage-lock.json\npackage.json\nrelease\nscreenshots\nshared\ntemp.jpg\ngrep: src: No such file or directory",
+          "id": "agent-turn-06420926-13fc-4f46-83b1-52e1bae483e1-event-5",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01QkrD9YX8e1BEeRQXhtB1Sc",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:43:11.211Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "app/src/auth/github_api_client.node.test.ts\napp/src/auth/github_api_client.ts\napp/src/components/actions/agent/action_agent_approval.test.tsx\napp/src/components/actions/agent/action_agent_approval.tsx\napp/src/components/actions/agent/action_agent_approvals.tsx\napp/src/components/actions/agent/action_agent_capability_fields.tsx\napp/src/components/actions/agent/action_agent_preset_name_owner.tsx\napp/src/components/actions/agent/action_agent_selectors.test.tsx\napp/src/components/actions/agent/action_agent_selectors.tsx\napp/src/components/actions/editor/action_definition_fields.tsx\napp/src/components/actions/editor/action_phrase_buttons_owner.tsx\napp/src/components/actions/run/popup/action_agent_interaction.tsx\napp/src/components/actions/run/popup/action_popup.test.tsx\napp/src/components/actions/run/popup/action_popup_bottom_row.test.tsx\napp/src/components/actions/run/popup/action_popup_defaults.ts\napp/src/components/actions/run/popup/action_popup_operations.node.test.ts\napp/src/components/actions/run/popup/action_popup_operations.ts\napp/src/components/actions/run/state/action_run_history.test.tsx\napp/src/components/actions/run/state/action_run_history.tsx\napp/src/components/actions/run/state/action_run_status.test.tsx\napp/src/components/actions/run/state/action_run_status.tsx\napp/src/components/actions/run/trigger/card_run_button.test.tsx\napp/src/components/actions/shared/use_action_run_settings.ts\napp/src/components/config/config_page.test.tsx\napp/src/components/config/config_value_editor.test.tsx\napp/src/components/config/config_value_editor.tsx\napp/src/components/dialog_display.test.tsx\napp/src/components/editor/action_markdown_data_source.node.test.ts\napp/src/components/hooks/use_config_value.test.ts\napp/src/components/merge_conflict_dialog.test.tsx\napp/src/components/sentry_import_confirmation_dialog.test.tsx\napp/src/components/shell/menu/app_menu.test.tsx\napp/src/components/shell/menu/app_menu.tsx\napp/src/components/shell/remote_connect_button.test.tsx\napp/src/data/action_context.node.test.ts\napp/src/data/action_run_types.ts\napp/src/data/agent_profiles.ts\napp/src/data/agent_selection.node.test.ts\napp/src/data/agent_selection.ts\napp/src/data/electron_action_bridge.ts\napp/src/services/actions/action_agent_selection_draft_service.node.test.ts\napp/src/services/actions/action_agent_selection_draft_service.ts\napp/src/services/actions/action_definition_writer.ts\napp/src/services/actions/action_run_approval_registry.node.test.ts\napp/src/services/actions/action_run_registry.node.test.ts\napp/src/services/actions/action_run_registry.ts\napp/src/services/actions/action_run_settings_service.node.test.ts\napp/src/services/actions/action_run_settings_service.ts\napp/src/services/actions/action_service_helpers.ts\napp/src/services/actions/action_text.node.test.ts",
+          "id": "agent-turn-06420926-13fc-4f46-83b1-52e1bae483e1-event-6",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_018Ra62a9hpk7EVFcDXkmTK3",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:43:15.239Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "import { Box, Button, Stack, Typography } from '@mui/material'\nimport { useState } from 'react'\nimport type { MouseEvent } from 'react'\nimport type {\n    AgentApprovalDecision,\n    AgentCommandAction,\n    AgentFileSystemPath,\n} from '../../../data/action_run_types'\nimport type { LiveAgentApproval } from '../../../services/actions/action_run_registry'\n\nconst DEFAULT_APPROVAL_DECISIONS: AgentApprovalDecision[] = ['accept', 'acceptForSession', 'decline', 'cancel']\n\ninterface ActionAgentApprovalProps {\n    approval: LiveAgentApproval\n    onDecision: (requestId: number | string, decision: AgentApprovalDecision) => Promise<void>\n}\n\nfunction decisionLabel(decision: AgentApprovalDecision) {\n    if (decision === 'accept') return 'Allow once'\n    if (decision === 'acceptForSession') return 'Allow for session'\n    if (decision === 'decline') return 'Decline'\n    if (decision === 'cancel') return 'Stop turn'\n    if ('acceptWithExecpolicyAmendment' in decision) return 'Allow with command policy'\n    const { action, host } = decision.applyNetworkPolicyAmendment.network_policy_amendment\n\n    return `${action === 'allow' ? 'Allow' : 'Deny'} ${host} for session`\n}\n\nfunction fileSystemPathLabel(path: AgentFileSystemPath) {\n    if (path.type === 'path') return path.path\n    if (path.type === 'glob_pattern') return path.pattern\n\n    return path.value\n}\n\nfunction commandActionLabel(action: AgentCommandAction) {\n    if (action.type === 'read') return `Read ${action.name}: ${action.path}`\n    if (action.type === 'listFiles') return `List files${action.path ? `: ${action.path}` : ''}`\n    if (action.type === 'search') {\n        return `Search${action.query ? ` for ${action.query}` : ''}${action.path ? ` in ${action.path}` : ''}`\n    }\n\n    return action.command\n}\n\nfunction structuredValueLabel(value: unknown) {\n    if (typeof value === 'string') return value\n\n    return JSON.stringify(value, null, 2) ?? String(value)\n}\n\nfunction permissionLabels(approval: LiveAgentApproval) {\n    const permissions = approval.additionalPermissions\n    if (!permissions) return []\n    const labels: string[] = []\n    if (permissions.network?.enabled !== null && permissions.network?.enabled !== undefined) {\n        labels.push(`Network: ${permissions.network.enabled ? 'enabled' : 'disabled'}`)\n    }\n    for (const path of permissions.fileSystem?.read ?? []) labels.push(`Read: ${path}`)\n    for (const path of permissions.fileSystem?.write ?? []) labels.push(`Write: ${path}`)\n    for (const entry of permissions.fileSystem?.entries ?? []) {\n        labels.push(`${entry.access}: ${fileSystemPathLabel(entry.path)}`)\n    }\n\n    return labels\n}\n\nfunction approvalDetails(approval: LiveAgentApproval) {\n    const details: { label: string, values: string[] }[] = []\n    if (approval.toolName) details.push({ label: 'Tool', values: [approval.toolName] })\n    if (approval.command) details.push({ label: 'Command', values: [approval.command] })\n    if (approval.cwd) details.push({ label: 'Working directory', values: [approval.cwd] })\n    const commandActionLabels = approval.commandActions\n        ?.map(commandActionLabel)\n        .filter((label) => label !== approval.command) ?? []\n    if (commandActionLabels.length > 0) details.push({ label: 'Actions', values: commandActionLabels })\n    if (approval.networkApprovalContext) {\n        const { host, protocol } = approval.networkApprovalContext\n        details.push({ label: 'Network', values: [`${protocol}://${host}`] })\n    }\n    const permissions = permissionLabels(approval)\n    if (permissions.length > 0) details.push({ label: 'Requested permissions', values: permissions })\n    if (approval.grantRoot) details.push({ label: 'Requested write root', values: [approval.grantRoot] })\n    if (approval.filePaths.length > 0) details.push({ label: 'Affected files', values: approval.filePaths })\n    if (approval.input) details.push({ label: 'Input', values: [structuredValueLabel(approval.input)] })\n    if (approval.permissionSuggestions?.length) {\n        details.push({ label: 'Session permission suggestions', values: approval.per\n[3372 characters omitted]\nherit', fontFamily: 'monospace', minWidth: 0, overflow: 'hidden',\n                                    overflowWrap: commandExpanded ? 'anywhere' : 'normal',\n                                    p: 0, textAlign: 'left', textOverflow: commandExpanded ? 'clip' : 'ellipsis',\n                                    whiteSpace: commandExpanded ? 'pre-wrap' : 'nowrap', width: '100%',\n                                }}\n                            >\n                                {value}\n                            </Box>\n                        ) : (\n                            <Box\n                                component=\"code\"\n                                key={value}\n                                sx={{\n                                    color: 'text.primary',\n                                    ...(label === 'Actions' ? {\n                                        minWidth: 0,\n                                        overflow: 'hidden',\n                                        overflowWrap: actionsExpanded ? 'anywhere' : 'normal',\n                                        textOverflow: actionsExpanded ? 'clip' : 'ellipsis',\n                                        whiteSpace: actionsExpanded ? 'pre-wrap' : 'nowrap',\n                                    } : { overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }),\n                                }}\n                            >\n                                {value}\n                            </Box>\n                        )\n                    ))}\n                </Stack>\n            ))}\n            <Stack direction=\"row\" spacing={1} sx={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}>\n                {decisions.map((decision, index) => {\n                    const label = decisionLabel(decision)\n                    const destructive = decision === 'cancel'\n                    const primary = decision === 'accept'\n\n                    return (\n                        <Button\n                            color={destructive ? 'error' : 'primary'}\n                            data-decision-index={index}\n                            disabled={disabled}\n                            key={`${index}-${label}`}\n                            onClick={handleDecisionClick}\n                            size=\"small\"\n                            variant={primary ? 'contained' : 'outlined'}\n                        >\n                            {label}\n                        </Button>\n                    )\n                })}\n            </Stack>\n        </Stack>\n    )\n}\n=====APPROVALS=====\nimport type { ActionContext } from '../../../data/action_context'\nimport type { AgentApprovalDecision, AgentApprovalRequestId } from '../../../data/action_run_types'\nimport { actionRunRegistry, answerActionApproval } from '../../../services/actions/action_run_registry'\nimport { dialogService } from '../../../services/dialog_service'\nimport { useActionRunSelector } from '../../hooks/use_action_runs'\nimport { ActionAgentApproval } from './action_agent_approval'\n\ninterface ActionAgentApprovalsProps {\n    actionId: string\n    context: ActionContext\n}\n\n/** Subscribes approval UI only to its bound run. */\nexport function ActionAgentApprovals({ actionId, context }: ActionAgentApprovalsProps) {\n    const approvals = useActionRunSelector(actionId, context, (run) => run?.approvals ?? null)\n\n    const handleDecision = async (requestId: AgentApprovalRequestId, decision: AgentApprovalDecision) => {\n        const currentRunId = actionRunRegistry.getActionRunStore(actionId, context)?.getSnapshot().runId\n        if (!currentRunId) return\n\n        try {\n            await answerActionApproval(currentRunId, requestId, decision)\n        } catch (error) {\n            dialogService.error(error, { fallbackMessage: 'Could not answer agent approval' })\n            throw error\n        }\n    }\n\n    return approvals?.map((approval) => (\n        <ActionAgentApproval\n            approval={approval}\n            key={`${typeof approval.requestId}-${approval.requestId}`}\n            onDecision={handleDecision}\n        />\n    )) ?? null\n}",
+          "id": "agent-turn-06420926-13fc-4f46-83b1-52e1bae483e1-event-7",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01Cz4SWBsoZBRTEuQGzp47MW",
+          "sequence": 7,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:43:17.815Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-06420926-13fc-4f46-83b1-52e1bae483e1-event-8",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKrhFwDTFw2XFZpBHU7r:thinking:0",
+          "sequence": 8,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:43:21.111Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "app/src/components/actions/agent/action_agent_approval.test.tsx:167:            permissionSuggestions: [{ behavior: 'allow', destination: 'session', tool: 'Bash' }],\napp/src/components/actions/agent/action_agent_approval.tsx:86:    if (approval.permissionSuggestions?.length) {\napp/src/components/actions/agent/action_agent_approval.tsx:87:        details.push({ label: 'Session permission suggestions', values: approval.permissionSuggestions.map(structuredValueLabel) })\napp/src/data/action_run_types.ts:117:    permissionSuggestions?: unknown[] | null\napp/src/services/actions/action_run_approval_registry.node.test.ts:26:            permissionSuggestions: [{ behavior: 'allow', destination: 'session' }], provider: 'claude', requestId: 42,",
+          "id": "agent-turn-06420926-13fc-4f46-83b1-52e1bae483e1-event-9",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_0166SoGGUEGakXJrc1ebTwoZ",
+          "sequence": 9,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:43:24.371Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "    } | null\n    network: { enabled: boolean | null } | null\n}\nexport type AgentCommandAction =\n    | { command: string, name: string, path: string, type: 'read' }\n    | { command: string, path: string | null, type: 'listFiles' }\n    | { command: string, path: string | null, query: string | null, type: 'search' }\n    | { command: string, type: 'unknown' }\nexport interface AgentNetworkPolicyAmendment {\n    action: 'allow' | 'deny'\n    host: string\n}\nexport type AgentApprovalDecision =\n    | 'accept'\n    | 'acceptForSession'\n    | 'cancel'\n    | 'decline'\n    | { acceptWithExecpolicyAmendment: { execpolicy_amendment: string[] } }\n    | { applyNetworkPolicyAmendment: { network_policy_amendment: AgentNetworkPolicyAmendment } }\nexport interface AgentApproval {\n    additionalPermissions?: AgentAdditionalPermissions | null\n    approvalId?: string | null\n    availableDecisions?: AgentApprovalDecision[] | null\n    command?: string | null\n    commandActions?: AgentCommandAction[] | null\n    cwd?: string | null\n    environmentId?: string | null\n    filePaths: string[]\n    grantRoot?: string | null\n    input?: Record<string, unknown> | null\n    itemId: string\n    kind: 'commandExecution' | 'fileChange' | 'toolUse'\n    networkApprovalContext?: { host: string, protocol: AgentNetworkProtocol } | null\n    parentItemId?: string | null\n    proposedExecpolicyAmendment?: string[] | null\n    proposedNetworkPolicyAmendments?: AgentNetworkPolicyAmendment[] | null\n    provider?: 'claude' | 'codex'\n    permissionSuggestions?: unknown[] | null\n    reason?: string | null\n    requestId: AgentApprovalRequestId\n    startedAtMs: number\n    subAgentLabel?: string | null\n    threadId?: string\n    toolName?: string | null\n    turnId?: string\n}\n\ninterface ActionRunEventBase {\n    actionId: string\n    actionType?: ActionType\n    autoFinish?: ActionAutoFinish | null\n    changedPaths?: string[]\n    context: ActionContext\n    runId: string\n    interactionReady?: boolean\n    phase: ActionRunPhase\n    rootActionId: string\n    sequence?: number\n    streaming?: boolean\n}\n\nexport type ActionRunUpdate =\n    | {\n        continued?: boolean\n        conversation: AgentConversation\n        kind: 'agentStarted'\n    }\n    | {\n        conversation: AgentConversation\n        kind: 'agentClosed'\n    }\n    | {\n        kind: 'agentQuestion'\n        questions: AgentQuestion[]\n        requestId: number | string | null\n    }\n    | {\n        event: AgentConversationEventEntry\n        kind: 'agentQuestionDismissed'\n        requestId: number | string | null\n    }\n    | {\n        approval: AgentApproval\n        kind: 'agentApproval'\n    }\n    | {\n        kind: 'agentApprovalResolved' | 'agentApprovalSubmitted'\n        requestId: AgentApprovalRequestId\n    }\n    | {\n        kind: 'agentQuestionAnswer'\n====",
+          "id": "agent-turn-06420926-13fc-4f46-83b1-52e1bae483e1-event-10",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_011UFeaBjHEtkCdbe6bARChT",
+          "sequence": 10,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:43:27.248Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-06420926-13fc-4f46-83b1-52e1bae483e1-event-11",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKrhxXjZTwYoURLy89Sc:thinking:0",
+          "sequence": 11,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:43:29.891Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "app/src/components/actions/agent/action_agent_approval.tsx\napp/src/components/actions/agent/action_agent_approvals.tsx\napp/src/data/action_run_types.ts\napp/src/services/actions/action_run_registry.ts",
+          "id": "agent-turn-06420926-13fc-4f46-83b1-52e1bae483e1-event-12",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01Wu3sFWwPLm3fwWC2CN8SAj",
+          "sequence": 12,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:43:31.461Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "app/src/components/actions/agent/action_agent_approval.test.tsx:160:    it('shows tool input and provider permission suggestions without provider or environment', () => {\napp/src/components/actions/agent/action_agent_approval.tsx:87:        details.push({ label: 'Session permission suggestions', values: approval.permissionSuggestions.map(structuredValueLabel) })\napp/src/components/card_view/affects_editor_dialog.test.tsx:6:import { filterAffectsSuggestions } from './affects_suggestions'\napp/src/components/card_view/affects_editor_dialog.test.tsx:35:        const suggestions = filterAffectsSuggestions(\napp/src/components/card_view/affects_editor_dialog.test.tsx:42:        expect(suggestions).toEqual(['app/src/new.ts'])\napp/src/components/card_view/affects_editor_dialog.tsx:4:import { filterAffectsSuggestions } from './affects_suggestions'\napp/src/components/card_view/affects_editor_dialog.tsx:43:    const suggestions = useMemo(\napp/src/components/card_view/affects_editor_dialog.tsx:47:    const canAddInput = repositoryFiles.includes(input.trim()) && suggestions.includes(input.trim())\napp/src/components/card_view/affects_editor_dialog.tsx:90:                            options={suggestions}\n====\ndesktop/src/actions/agent/agent_claude_streaming_adapter.js\ndesktop/src/actions/agent/agent_streaming_adapter.test.mjs\ndesktop/src/integrations/spellcheck.test.mjs",
+          "id": "agent-turn-06420926-13fc-4f46-83b1-52e1bae483e1-event-13",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01Dn86CSnJqRRiYGHJ2TG3HH",
+          "sequence": 13,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:43:40.848Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "106:    const { input, permission_suggestions: permissionSuggestions, tool_name: toolName, tool_use_id: toolUseId } = event.request;\n120:    if (permissionSuggestions !== undefined && !Array.isArray(permissionSuggestions)) {\n121:        return { error: 'invalid Claude approval permission suggestions', streamKey: parentItemId };\n123:    const availableDecisions = permissionSuggestions?.length > 0\n136:        permissionSuggestions: structuredClone(permissionSuggestions ?? []),\n145:    return { approval, input, permissionSuggestions: permissionSuggestions ?? [], toolUseId };\n149:    const { input, permissionSuggestions, toolUseId } = pendingApproval;\n156:            updatedPermissions: permissionSuggestions,",
+          "id": "agent-turn-06420926-13fc-4f46-83b1-52e1bae483e1-event-14",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01FYaEz6q1QSNCwojuEFhdAE",
+          "sequence": 14,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:43:43.363Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "}\n\nfunction approvalFilePaths(toolName, input) {\n    if (!CLAUDE_FILE_TOOLS.has(toolName) || !input || typeof input !== 'object' || Array.isArray(input)) return [];\n    const filePath = toolName === 'NotebookEdit' ? input.notebook_path : input.file_path;\n\n    return typeof filePath === 'string' && filePath.length > 0 ? [filePath] : [];\n}\n\n/**\n * Returns `{ error }` rather than throwing for a malformed request: sub agents put frame shapes on\n * this path that md2 has never seen, and a throw here ends the whole conversation.\n */\nfunction claudeApprovalRequest(event, subAgentLabels) {\n    if (event.type !== 'control_request' || event.request?.subtype !== 'can_use_tool') return null;\n    if (event.request.tool_name === CLAUDE_QUESTION_TOOL) return null;\n    const { input, permission_suggestions: permissionSuggestions, tool_name: toolName, tool_use_id: toolUseId } = event.request;\n    const parentItemId = claudeStreamKey(event.request) ?? claudeStreamKey(event);\n    if (event.request_id === undefined || event.request_id === null) {\n        return { error: 'missing Claude approval request id', streamKey: parentItemId };\n    }\n    if (typeof toolName !== 'string' || toolName.length === 0) {\n        return { error: 'missing Claude approval tool name', streamKey: parentItemId };\n    }\n    if (typeof toolUseId !== 'string' || toolUseId.length === 0) {\n        return { error: 'missing Claude approval tool use id', streamKey: parentItemId };\n    }\n    if (!input || typeof input !== 'object' || Array.isArray(input)) {\n        return { error: 'missing Claude approval input', streamKey: parentItemId };\n    }\n    if (permissionSuggestions !== undefined && !Array.isArray(permissionSuggestions)) {\n        return { error: 'invalid Claude approval permission suggestions', streamKey: parentItemId };\n    }\n    const availableDecisions = permissionSuggestions?.length > 0\n        ? CLAUDE_APPROVAL_DECISIONS\n        : CLAUDE_APPROVAL_DECISIONS.filter((decision) => decision !== 'acceptForSession');\n    const approval = {\n        approvalId: toolUseId,\n        availableDecisions,\n        command: toolName === 'Bash' && typeof input.command === 'string' ? input.command : null,\n        cwd: typeof input.cwd === 'string' ? input.cwd : null,\n        filePaths: approvalFilePaths(toolName, input),\n        input: structuredClone(input),\n        itemId: toolUseId,\n        kind: toolName === 'Bash' ? 'commandExecution' : CLAUDE_FILE_TOOLS.has(toolName) ? 'fileChange' : 'toolUse',\n        ...(parentItemId ? { parentItemId } : {}),\n        permissionSuggestions: structuredClone(permissionSuggestions ?? []),\n        provider: 'claude',\n        reason: event.request.decision_reason ?? event.request.reason ?? null,\n        requestId: event.request_id,\n        startedAtMs: Date.now(),\n        ...(parentItemId ? { subAgentLabel: subAgentLabels.get(parentItemId) ?? DEFAULT_SUB_AGENT_LABEL } : {}),\n        toolName,\n    };\n\n    return { approval, input, permissionSuggestions: permissionSuggestions ?? [], toolUseId };\n}\n\nfunction claudeApprovalResponse(pendingApproval, decision) {\n    const { input, permissionSuggestions, toolUseId } = pendingApproval;\n    if (decision === 'accept') return { behavior: 'allow', toolUseID: toolUseId, updatedInput: input };\n    if (decision === 'acceptForSession') {\n        return {\n            behavior: 'allow',\n            toolUseID: toolUseId,\n            updatedInput: input,\n            updatedPermissions: permissionSuggestions,\n        };\n    }\n    if (decision === 'decline') {\n        return { behavior: 'deny', message: 'User declined this tool request', toolUseID: toolUseId };\n    }\n\n    return { behavior: 'deny', interrupt: true, message: 'User stopped the turn', toolUseID: toolUseId };\n}\n\nfunction isClaudeMissingSessionResult(event, providerConversationId) {\n    if (!providerConversationId || event.type !== 'result' || event.is_error !== true) return false;\n    if (event.session_id !== providerConversationId || !Array.isArray(event.errors)) return false;\n\n    return event.errors.includes(`No conversation found with session ID: ${providerConversationId}`);\n}\n\nfunction eventBase(providerItemId, type, label, status = 'inProgress') {\n    return { content: '', label, providerItemId, status, type };\n}",
+          "id": "agent-turn-06420926-13fc-4f46-83b1-52e1bae483e1-event-15",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01GDqMQhfozMxgQxLYuBKXbQ",
+          "sequence": 15,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:43:45.722Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-06420926-13fc-4f46-83b1-52e1bae483e1-event-16",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKrjL9XTSC1qzE1UQYT5:thinking:0",
+          "sequence": 16,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:43:50.509Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "agent_claude_events.js\nagent_claude_events.test.mjs\nagent_claude_streaming_adapter.js\nagent_codex_cache_diagnostic.js\nagent_codex_cache_diagnostic.test.mjs\nagent_codex_event.js\nagent_codex_event.test.mjs\nagent_codex_events.js\nagent_codex_events.test.mjs\nagent_conversation.js\nagent_conversation.test.mjs\nagent_conversation_persistence.js\nagent_conversation_persistence.test.mjs\nagent_environment.js\nagent_environment.test.mjs\nagent_event_utils.js\nagent_executable_availability.js\nagent_executable_availability.test.mjs\nagent_file_change.js\nagent_file_change.test.mjs\nagent_file_logger.js\nagent_file_logger.test.mjs\nagent_profiles.mjs\nagent_profiles.test.mjs\nagent_profiles_parity.test.mjs\nagent_provider_event.js\nagent_provider_protocol.js\nagent_provider_protocol.test.mjs\nagent_run_interactions.js\nagent_run_state.js\nagent_run_transcript.js\nagent_run_transcript.test.mjs\nagent_run_validation.js\nagent_run_validation.test.mjs\nagent_runner_service.js\nagent_runner_state.test.mjs\nagent_secret_redaction.js\nagent_secret_redaction.test.mjs\nagent_selection.mjs\nagent_stderr_filter.js\nagent_stderr_filter.test.mjs\nagent_streaming_adapter.js\nagent_streaming_adapter.test.mjs\nagent_streaming_event_handlers.js\nagent_transcript.js\nagent_transcript.test.mjs\nclaude_runtime_service.js\nclaude_runtime_service.test.mjs\nclaude_usage_diagnostics.js\nclaude_usage_diagnostics.test.mjs\nclaude_usage_parsing.js\nclaude_usage_parsing.test.mjs\nclaude_usage_poller.js\nclaude_usage_poller.test.mjs\nclaude_usage_terminal.js\nclaude_usage_terminal.test.mjs\nclaude_usage_terminal_host.js\nclaude_usage_terminal_host.test.mjs\nclaude_usage_terminal_worker.js\ncodex_cli_update.js\ncodex_cli_update.test.mjs\ncodex_runtime_service.js\ncodex_runtime_service.test.mjs\ncodex_usage_poller.js\ncodex_usage_poller.test.mjs\nproject_agent_token_usage.js\nproject_agent_token_usage.test.mjs\nusage_metrics_service.js\nusage_metrics_service.test.mjs\ngrep: desktop/src/actions/agent/agent_codex_streaming_adapter.js: No such file or directory",
+          "id": "agent-turn-06420926-13fc-4f46-83b1-52e1bae483e1-event-17",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01Dtc9xPgkRtUMStqaeWXbdh",
+          "sequence": 17,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:43:51.896Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "====\n56:        const commandButton = screen.getByRole('button', { name: 'Toggle full command' })\n91:        const actionsButton = screen.getByRole('button', { name: 'Toggle full actions' })\n117:        const commandButtons = screen.getAllByRole('button', { name: 'Toggle full command' })",
+          "id": "agent-turn-06420926-13fc-4f46-83b1-52e1bae483e1-event-18",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01UydLiY55ZmQBgrSuBG7zNX",
+          "sequence": 18,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:43:55.542Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "            cwd: null,\n            filePaths: ['app/main.ts', 'desktop/main.js'],\n            kind: 'fileChange',\n            networkApprovalContext: null,\n        }} onDecision={vi.fn()} />)\n\n        expect(screen.getByText('app/main.ts')).toBeInTheDocument()\n        expect(screen.getByText('desktop/main.js')).toBeInTheDocument()\n    })\n\n    it('shows tool input and provider permission suggestions without provider or environment', () => {\n        render(<ActionAgentApproval approval={{\n            ...approval,\n            availableDecisions: ['accept', 'acceptForSession', 'decline', 'cancel'],\n            command: 'npm test',\n            environmentId: 'local',\n            input: { command: 'npm test' },\n            permissionSuggestions: [{ behavior: 'allow', destination: 'session', tool: 'Bash' }],\n            provider: 'claude',\n            requestId: 'request-1',\n            toolName: 'Bash',\n        }} onDecision={vi.fn()} />)\n\n        expect(screen.queryByText('Provider')).not.toBeInTheDocument()\n        expect(screen.queryByText('claude')).not.toBeInTheDocument()\n        expect(screen.queryByText('Environment')).not.toBeInTheDocument()\n        expect(screen.queryByText('local')).not.toBeInTheDocument()\n        expect(screen.getByText('Bash')).toBeInTheDocument()\n        expect(screen.getByText(/\"command\": \"npm test\"/u)).toBeInTheDocument()\n        expect(screen.getByText(/\"destination\": \"session\"/u)).toBeInTheDocument()\n    })\n\n    it('names the sub agent requesting approval', () => {\n        render(<ActionAgentApproval approval={{\n            ...approval,\n            parentItemId: 'agent-1',\n===CODEX===",
+          "id": "agent-turn-06420926-13fc-4f46-83b1-52e1bae483e1-event-19",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_013GMDSCBCzotuGKXZjhNVPJ",
+          "sequence": 19,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:43:58.156Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-06420926-13fc-4f46-83b1-52e1bae483e1-event-20",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKrkH7VcSvZ9Apqtz4MC:thinking:0",
+          "sequence": 20,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:44:01.176Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "desktop/src/actions/agent/agent_claude_streaming_adapter.js:134:        kind: toolName === 'Bash' ? 'commandExecution' : CLAUDE_FILE_TOOLS.has(toolName) ? 'fileChange' : 'toolUse',\ndesktop/src/actions/agent/agent_claude_streaming_adapter.js:203:            type: 'commandExecution',\ndesktop/src/actions/agent/agent_claude_streaming_adapter.js:611:            if (toolEvent.type === 'commandExecution') toolEvent.content = result;\ndesktop/src/actions/agent/agent_codex_event.js:12:    'commandExecution',\ndesktop/src/actions/agent/agent_codex_event.js:276:    if (type === 'commandExecution') return commandEvent(normalizedItem, lifecycleStatus);\ndesktop/src/actions/agent/agent_conversation.js:31:    const content = providerEvent.type === 'commandExecution' || providerEvent.type === 'tool.result'\ndesktop/src/actions/agent/agent_conversation.js:52:    if (providerEvent.type !== 'commandExecution' && typeof providerEvent.output === 'string') {\ndesktop/src/actions/agent/agent_streaming_adapter.js:11:    ['item/commandExecution/requestApproval', 'commandExecution'],\ndesktop/src/actions/agent/agent_streaming_adapter.js:386:        if (method === 'item/commandExecution/outputDelta') {\ndesktop/src/actions/agent/agent_streaming_adapter.js:387:            const trackedItem = await this.requireActiveItem(method, params.itemId, 'commandExecution');\ndesktop/src/actions/agent/agent_streaming_adapter.js:503:        const initialResult = item.type === 'commandExecution'\ndesktop/src/actions/agent/agent_transcript.js:7:    'commandExecution',\ndesktop/src/actions/agent/agent_transcript.js:54:    const resultContent = event.type === 'commandExecution'\ndesktop/src/actions/agent/agent_transcript.js:58:    const eventValues = event.type === 'commandExecution'",
+          "id": "agent-turn-06420926-13fc-4f46-83b1-52e1bae483e1-event-21",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01LaESq1G64SxCtWJy6w3Amo",
+          "sequence": 21,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:44:01.729Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "11:    ['item/commandExecution/requestApproval', 'commandExecution'],\n12:    ['item/fileChange/requestApproval', 'fileChange'],\n13-]);\n14-const CODEX_COMMAND_APPROVAL_DECISIONS = ['accept', 'acceptForSession', 'decline', 'cancel'];\n15-const CODEX_FILE_APPROVAL_DECISIONS = ['accept', 'acceptForSession', 'decline', 'cancel'];\n16-const CODEX_NON_EVENT_ITEM_TYPES = new Set(['agentMessage', 'hookPrompt', 'userMessage']);\n17-\n18-function requireMessage(content) {\n19-    if (typeof content !== 'string' || content.trim().length === 0) throw new Error('Streaming agent message is required');\n20-\n21-    return content;\n22-}\n23-\n24-function codexInput(content) {\n25-    return [{ text: requireMessage(content), type: 'text' }];\n26-}\n27-\n28-/** Reads one Codex breakdown, rejecting malformed counters and totals before they feed turn arithmetic. */\n29-function codexUsageCounters(breakdown) {\n30-    if (!breakdown || typeof breakdown !== 'object' || Array.isArray(breakdown)) return null;\n31-    const cachedInputTokens = breakdown.cachedInputTokens ?? 0;\n32-    const reasoningTokens = breakdown.reasoningOutputTokens ?? 0;\n33-    validateAgentTokenUsage({\n34-        cachedInputTokens,\n35-        inputTokens: breakdown.inputTokens - cachedInputTokens,\n36-        outputTokens: breakdown.outputTokens - reasoningTokens,\n37-        reasoningTokens,\n38-    }, breakdown.totalTokens);\n39-\n40-    return {\n41-        cachedInputTokens,\n42-        inputTokens: breakdown.inputTokens,\n43-        outputTokens: breakdown.outputTokens,\n44-        reasoningTokens,\n45-    };\n46-}\n47-\n48-/** Growth of cumulative counters; clamped so an out-of-order or reset reading cannot report negative usage. */\n49-function codexUsageGrowth(counters, baseline) {\n50-    return {\n51-        cachedInputTokens: Math.max(counters.cachedInputTokens - baseline.cachedInputTokens, 0),\n52-        inputTokens: Math.max(counters.inputTokens - baseline.inputTokens, 0),",
+          "id": "agent-turn-06420926-13fc-4f46-83b1-52e1bae483e1-event-22",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01QheKFCFaMW7ai91n89eohC",
+          "sequence": 22,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:44:03.986Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "10:const CODEX_APPROVAL_METHODS = new Map([\n116:    if (typeof value !== 'string' || value.length === 0) throw new Error(`Missing Codex approval ${field}`);\n125:function availableApprovalDecisions(approval) {\n126:    if (approval.kind === 'fileChange') return CODEX_FILE_APPROVAL_DECISIONS;\n127:    if (Array.isArray(approval.availableDecisions)) return approval.availableDecisions;\n212:        if (!pendingApproval) throw new Error(`Unknown or stale Codex approval request id: ${requestId}`);\n213:        if (pendingApproval.submitted) throw new Error(`Codex approval request was already submitted: ${requestId}`);\n214:        const availableDecisions = availableApprovalDecisions(pendingApproval.approval);\n216:            throw new Error(`Unsupported Codex approval decision for request ${requestId}`);\n225:        await this.onEvent({ requestId, type: 'approvalSubmitted' });\n252:        if (CODEX_APPROVAL_METHODS.has(message.method)) {\n260:        if (message.id === null || message.id === undefined) throw new Error('Missing Codex approval request id');\n261:        if (this.pendingApprovals.has(message.id)) throw new Error(`Duplicate Codex approval request id: ${message.id}`);\n262:        const kind = CODEX_APPROVAL_METHODS.get(message.method);\n264:        if (!params || typeof params !== 'object' || Array.isArray(params)) throw new Error('Missing Codex approval params');\n268:        if (threadId !== this.threadId) throw new Error(`Mismatched Codex approval thread id: ${threadId}`);\n269:        if (turnId !== this.activeTurnId) throw new Error(`Mismatched Codex approval turn id: ${turnId}`);\n272:            throw new Error(`Mismatched Codex approval item id: ${itemId}`);\n279:        const approval = { ...params, filePaths, kind, provider: 'codex', requestId: message.id };\n280:        this.pendingApprovals.set(message.id, { approval, submitted: false });\n281:        await this.onEvent({ approval, type: 'approval' });\n478:        if (params.threadId !== pendingApproval.approval.threadId) {\n479:            throw new Error(`Mismatched Codex approval resolution thread id: ${params.threadId}`);\n482:        await this.onEvent({ requestId: params.requestId, type: 'approvalResolved' });\n487:            if (pendingApproval.approval.turnId !== turnId) continue;\n489:            await this.onEvent({ requestId, type: 'approvalResolved' });",
+          "id": "agent-turn-06420926-13fc-4f46-83b1-52e1bae483e1-event-23",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01TGEMFoEzSbM5SM9Mu4L4C2",
+          "sequence": 23,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:44:07.290Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-06420926-13fc-4f46-83b1-52e1bae483e1-event-24",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKrku9RP6JxzRzZ7wYad:thinking:0",
+          "sequence": 24,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:44:17.585Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "F_234_global_search_results_resizable.md\nF_235_improve_default_values_for_agent_config.md\nF_236_add_support_for_ctrl_s.md\nF_237_add_menu_items_to_markdown_editor.md\nF_238_improve_algorithm_to_select_series_colors_on_charts.md\nF_239_sign_all_in_installer.md\nF_240_action_popup_card_id_add_tooltip.md\nF_241_track_file_changes_for_claude.md\nF_242_stats_improvements.md\nF_243_remove_mac_key_from_global_search_and_change_shortcut.md\nF_245_add_support_for_api_pricing_calculation.md\nF_246_add_action_diagram_target.md\nF_247_open_project_click_on_previous_selects.md\nF_94_no_prefill_prompt_running_conv.md.bak\nJ_28_finishing_action_very_slow.md\nJ_31_refactor_project_stats_service.md\nJ_33_second_instance_strange_behaviour.md\nJ_34_finish_agent_selection_hardening.md\nJ_35_served_browser_app_always_loads_same_project.md\nNew Card Dialog.dc.html",
+          "id": "agent-turn-06420926-13fc-4f46-83b1-52e1bae483e1-event-25",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01J7wSUjWzpkSKCeuRZGofCg",
+          "sequence": 25,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:44:18.928Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "---\nauthor: \nid: F_240\ninternalId: db4400c0-0d7f-4265-8939-8b4e493c7208\ntitle: action popup card id add tooltip\nstatus: new\nowner: \naffects:\nagents:\npolicy:\nafter: 97733177-b4c8-47c3-af3d-64c31d4eca93\n---\n\non the action popup, in the upper left corner, we show the id of the card (if any). we should add a tooltip to that shows the title of the card.\n\nbe careful: I think the component currently doesn't capture mouse events cause it shows a drag icon to move the popup around",
+          "id": "agent-turn-06420926-13fc-4f46-83b1-52e1bae483e1-event-26",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01Thauyvnqbv5Hxz2SSdnoW8",
+          "sequence": 26,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:44:20.917Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "design/feature_descriptions/B_143_links_in_new_card_popup.md\ndesign/feature_descriptions/B_152_disbabled_input_while_running_agent.md\ndesign/feature_descriptions/B_154_conversation_selector_disabled_while_conversation_is_running.md\ndesign/feature_descriptions/B_161_unknown.md\ndesign/feature_descriptions/B_162_project_root_files_are_loaded_twice_on_project_open.md",
+          "id": "agent-turn-06420926-13fc-4f46-83b1-52e1bae483e1-event-27",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01HRGDgUQks2jRTkTffs8HDo",
+          "sequence": 27,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:44:23.146Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "---\nauthor: \nid: B_152\ninternalId: 038937d3-b99c-4dfd-b1da-76c906c5c31c\ntitle: disbabled input while running agent\nstatus: ready\nowner: \naffects:\nagents:\n  - design/activity/card__038937d3-b99c-4dfd-b1da-76c906c5c31c.json\npolicy:\nafter: 389dd95e-e4b1-460c-8171-db15ce961115\n---\nan agent was running, we sent a steering prompt while the agent was still running. first one went ok. but then, the 'send' button remained disabled after typing in some text in the input button (a recurring issue, clearly the state of the send button is still calculated incorrectly. it should be super simple: text in the input box, then enable the send button).\n\nwe also got this error after trying to send it with ctrl+enter: `Queued agent prompt is empty`\\*\\*\\*\\*  which makes me think we can't queue more then 1 prompt and aren't showing that prompts are queued.\n\nthen after closing the action popup and re opening it, the input box was just disabled. perhaps because the system thought there was still something in a queue? anyway, this is wrong behaviour.\n\nI think the primary problem was that there was something in the queue and we were not giving any visual queue that something was in a queue (so no way to remove from queue either) and we incorrectly prevented multiple items to be queued\n\nSo, if items in queue, show those messages at bottom of chatlog, marked as queued with option to delete or edit\n\n## Current state\n\nA **queued prompt** is user text accepted for later delivery to active agent. `ActionPromptDraft` currently synchronizes editor text through Electron into one mutable `run.queuedMessage` slot. New text replaces that slot; backend cannot retain several prompts. Turn completion consumes at most one slot.\n\n`ActionPopupBottomRow` shows Send only before a run or while agent waits for input. During active turn it shows Stop, and `Ctrl+Enter` uses same disabled rule. Structured questions and approvals also block Send. Chat renders only delivered conversation entries, so queued text has no visible state or edit/delete controls.\n\nBecause draft synchronization and sending are separate asynchronous writes to same slot, Send can read cleared or superseded content and report `Queued agent prompt is empty`. Closing and reopening popup restores editor binding, but backend exposes no queue snapshot for UI recovery.\n\n## implementation details\n\n- Separate editable input draft from accepted queue. Desktop action run owns ordered queue entries with stable id, content, revision, and dispatch state; replace single `queuedMessage` slot and single-session revision contract.\n- Add Electron and remote-control operations to append, edit, and delete queue entries. Publish granular queue events through existing action-run event path, and store stable queue snapshot in `ActionRunRegistry`.\n- While live agent exists, show and enable Send when editor is ready, backend is available, and trimmed input is non-empty. Running state, existing queued items, structured question, and approval do not disable editor or queue submission. `Ctrl+Enter` follows identical rule.\n- Append submitted prompt atomically, then clear input only after backend accepts entry. Failure keeps input and reports error through `dialogService`.\n- Render queued entries after delivered chat entries, in FIFO order, marked `Queued`. Give each entry accessible Edit and Delete controls. Edit changes content without changing order; reject whitespace-only edit. Delete removes only selected unsent entry.\n- Dispatch one entry at time. Streaming agent receives first entry when current turn permits another message; one-shot agent starts next follow-up after current process completes. Pending structured question or approval delays dispatch, but does not prevent queueing. Remaining entries wait for later turns.\n- When dispatch starts, remove entry from editable queue and use existing delivered-user-message path. Queued entries remain UI-only and must not enter persisted conversation or activity history before delivery.\n- Serialize enqueue, edit, delete, turn completion, and immediate dispatch so each accepted entry is delivered at most once. Operation racing dispatch either updates/deletes entry before dispatch or reports that entry was already sent; it must not affect another entry.\n- Keep queue in desktop run state so closing and reopening popup restores all unsent entries. Stop, Finish, failure, or terminal process exit discards remaining entries and clears queue UI.\n- Extend desktop runner/action-run tests, bridge and remote-control tests, prompt-draft service tests, registry tests, popup tests, and chat rendering tests. Keep placeholder resolution on every dispatched entry.\n\n## acceptance criteria\n\n- During running or waiting live agent, typing non-whitespace text enables Send; clicking Send or pressing `Ctrl+Enter` appends one queued prompt and clears input after acceptance.\n- User can queue several prompts. Chat bottom shows every unsent prompt once, in FIFO order, with `Queued`, Edit, and Delete controls.\n- Pending question or approval does not block queue submission. Queued prompts remain unsent until pending interaction resolves.\n- Editing queued prompt changes correct entry without moving it. Deleting queued prompt prevents its delivery. Empty edit is rejected without losing existing content.\n- Streaming and one-shot runs dispatch queued prompts one at time in FIFO order. Each accepted prompt is delivered at most once and becomes normal user chat message only when dispatched.\n- Popup close/reopen restores unsent queue and editable input. Queue occupancy never disables prepared editor or prevents another prompt from being queued.\n- Failed enqueue retains input. Failed edit/delete retains last accepted queue state and reports error. Dispatch race never sends wrong, deleted, stale, or duplicate prompt.\n- Stop, Finish, failure, and terminal exit clear unsent queue. Existing initial prompt, delivered transcript, placeholder resolution, agent settings, and action-chain finalization behavior remains unchanged except finalization waits for queued follow-ups.",
+          "id": "agent-turn-06420926-13fc-4f46-83b1-52e1bae483e1-event-28",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01LxZmaVKbGLqYMsHz57Jvvr",
+          "sequence": 28,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:44:25.118Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-06420926-13fc-4f46-83b1-52e1bae483e1-event-29",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKrnDm8kKb5CnXRyAVpZ:thinking:0",
+          "sequence": 29,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:44:26.952Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{}",
+          "id": "agent-turn-06420926-13fc-4f46-83b1-52e1bae483e1-event-30",
+          "kind": "event",
+          "label": "AskUserQuestion",
+          "output": "The user answered: \"Session permission suggestions: they are never shown as prefilled selection boxes — md2 uses them only to enable the \"Allow for session\" button and sends them verbatim as `updatedPermissions`. How should the approval card render them?\"=\"Hide entirely (Recommended)\", \"Tool `Input` row: what should the collapsed one-line summary show?\"=\"First field value (Recommended)\", \"Should collapse/expand state be per-row (current pattern) or one toggle for the whole approval card?\"=\"Per-row toggles (Recommended)\". Read the answers carefully — they may request clarification, changes, or that you not proceed — and follow what they actually say.",
+          "providerItemId": "toolu_014xdwiQSbBMtvBxWHE4UArG",
+          "sequence": 30,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:46:39.743Z",
+          "type": "tool.AskUserQuestion"
+        },
+        {
+          "content": "claude-question-0: Hide entirely (Recommended)\nclaude-question-1: First field value (Recommended)\nclaude-question-2: Per-row toggles (Recommended)",
+          "id": "agent-turn-06420926-13fc-4f46-83b1-52e1bae483e1-answer-30",
+          "kind": "message",
+          "role": "user",
+          "sequence": 31,
+          "timestamp": "2026-08-23T14:46:39.738Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-06420926-13fc-4f46-83b1-52e1bae483e1-event-32",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKrx8yRtA1PMszz8zKrM:thinking:0",
+          "sequence": 32,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:46:42.754Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "6:status: ready for implementation",
+          "id": "agent-turn-06420926-13fc-4f46-83b1-52e1bae483e1-event-33",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01HM9z8Xs8VCA216ZW2TwjDZ",
+          "sequence": 33,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:46:45.543Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNow append the three sections.",
+          "id": "agent-turn-06420926-13fc-4f46-83b1-52e1bae483e1-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 34,
+          "timestamp": "2026-08-23T14:46:47.270Z"
+        },
+        {
+          "content": "done",
+          "id": "agent-turn-06420926-13fc-4f46-83b1-52e1bae483e1-event-35",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01FubHctzagsiu8FANwHGpQW",
+          "sequence": 35,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:47:12.486Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nDone. `F_217` updated: status → `ready for implementation`, three sections appended.\n\nKey findings behind it:\n- Suggestions safe to drop from UI. `agent_claude_streaming_adapter.js:123` uses them only to add the \"Allow for session\" button; `claudeApprovalResponse` sends them back as `updatedPermissions`. Never rendered as selection boxes.\n- `Input` row is the other height hog — full pretty-printed JSON, duplicates the Command row for Bash/PowerShell calls.\n- Claude-only fields. Codex approvals (spread from JSON-RPC params in `agent_streaming_adapter.js:279`) have no `input`, no suggestions — so \"both behave similar\" holds once suggestions are gone; Command/Actions collapse already applies to both.\n\nNothing staged or committed.",
+          "id": "agent-turn-06420926-13fc-4f46-83b1-52e1bae483e1-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 36,
+          "timestamp": "2026-08-23T14:47:18.817Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-d76a42a8-97ea-4b41-8d24-41ee732f30f5",
+      "providerSessions": [],
+      "startedAt": "2026-08-23T14:43:04.542Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 89649,
+        "runningStartedAt": "2026-08-23T14:46:39.738Z"
+      },
+      "title": "complete",
+      "usage": {
+        "cachedInputTokens": 967545,
+        "inputTokens": 48,
+        "outputTokens": 7357,
+        "reasoningTokens": 0,
+        "totalTokens": 974950,
+        "costUsd": 1.028681
+      },
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "9b601eb4-e385-404f-9059-07823b25b6fd",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
