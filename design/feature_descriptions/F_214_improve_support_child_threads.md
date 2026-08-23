@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__10a50270-fcab-4661-9d29-d966aa99eb1e.json
 policy:
 branch: f_214_improve_support_child_threads
 worktree: 3
