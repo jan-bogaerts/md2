@@ -2651,6 +2651,43 @@
       "startedAt": "2026-08-22T19:46:37.935Z",
       "status": "completed",
       "rootConversationId": "agent-5d0bd9df-7183-4716-b87d-ec791ebedcdd"
+    },
+    {
+      "commits": [
+        {
+          "commit": "635b95e8f319fac44bd050c4a2ec82356bdf214b",
+          "committedAt": "2026-08-23T16:01:47+02:00",
+          "deletions": 631,
+          "filePaths": [
+            "app/src/components/actions/agent/action_agent_prompt.test.tsx",
+            "app/src/components/actions/agent/action_agent_prompt_owner.tsx",
+            "app/src/components/actions/conversation/action_conversation_store.node.test.ts",
+            "app/src/components/actions/conversation/action_conversation_store.ts",
+            "app/src/components/actions/run/popup/action_popup.test.tsx",
+            "app/src/components/actions/run/popup/action_popup_bottom_row.test.tsx",
+            "app/src/components/actions/run/popup/action_popup_operations.node.test.ts",
+            "app/src/components/actions/run/popup/action_popup_operations.ts",
+            "app/src/components/editor/markdown_editor.tsx",
+            "app/src/components/editor/use_markdown_draft.ts",
+            "app/src/services/actions/action_prompt_draft_service.node.test.ts",
+            "app/src/services/actions/action_prompt_draft_service.ts",
+            "app/src/services/actions/action_run_registry.node.test.ts",
+            "app/src/services/actions/action_run_registry.ts",
+            "app/src/services/actions/action_service.node.test.ts",
+            "app/src/services/markdown/markdown_draft.ts"
+          ],
+          "filesChanged": 16,
+          "insertions": 785,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-23T16:01:47+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "55de27a5-aa12-4048-9990-970a8382c5b2",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
