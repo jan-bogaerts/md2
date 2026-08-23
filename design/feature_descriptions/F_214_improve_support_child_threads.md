@@ -3,12 +3,13 @@ author:
 id: F_214
 internalId: 10a50270-fcab-4661-9d29-d966aa99eb1e
 title: improve support child threads
-status: new
+status: design
 owner: 
 affects:
 agents:
 policy:
-after: 47a847c9-cf6e-4a8a-823c-6a6b012bb21a
+branch: f_214_improve_support_child_threads
+worktree: 3
 ---
 
 codex can use child threads. currently we either ignore them or print them in the main conversation thread.
