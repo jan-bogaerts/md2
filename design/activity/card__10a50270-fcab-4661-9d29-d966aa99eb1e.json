@@ -1,5 +1,34 @@
 {
-  "actionSettings": {},
+  "actionSettings": {
+    "5b88355d-f964-459a-bc67-6618650866ba": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
+    },
+    "47dafdc7-0be7-4d56-bb5a-07c813906416": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
+    }
+  },
   "conversations": [
     {
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
@@ -117,6 +146,546 @@
       "title": "complete",
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
+      "cardInternalId": "10a50270-fcab-4661-9d29-d966aa99eb1e",
+      "cardPath": "design/feature_descriptions/F_214_improve_support_child_threads.md",
+      "completedAt": "2026-08-23T14:36:28.498Z",
+      "entries": [
+        {
+          "content": "Read and implement the feature/job described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/F_214_improve_support_child_threads.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests.\n5. After implementation is done, update the field `status` in the markdown feature description file to \\`ready\\`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/F_214_improve_support_child_threads.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria.&#x20;\n\nYou should only run the related tests, do not run the entire test suite, that will be done manually later on.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill",
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-08-23T14:34:16.153Z"
+        },
+        {
+          "agent": "claude",
+          "content": "I'll start by reading the feature description.",
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 2,
+          "timestamp": "2026-08-23T14:34:19.268Z"
+        },
+        {
+          "content": "---\nauthor: \nid: F_214\ninternalId: 10a50270-fcab-4661-9d29-d966aa99eb1e\ntitle: improve support child threads\nstatus: design\nowner: \naffects:\nagents:\n  - design/activity/card__10a50270-fcab-4661-9d29-d966aa99eb1e.json\npolicy:\nbranch: f_214_improve_support_child_threads\nworktree: 3\n---\n\ncodex can use child threads. currently we either ignore them or print them in the main conversation thread.\n\nNot certain if claude has similar concept.\n\nwe should show in the ui that sub threads are running.\n\nneed to think some more on how best to show visually. codex uses sub-converations where a user can click on the thread and that opens the sub conversation. with arrow can go back to root conversation",
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-3",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01WYpeH31moykuvbzobqRwVF",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:34:22.530Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-4",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKr1nytkEFnmnom4wTY4:thinking:0",
+          "sequence": 4,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:34:24.319Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nSpec thin. Need codebase recon before plan.",
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 5,
+          "timestamp": "2026-08-23T14:34:24.320Z"
+        },
+        {
+          "content": "LICENSE\nREADME.md\nagents.md\napp\ndesign\ndesktop\ndocs\nmd2.config.json\nnode_modules\npackage-lock.json\npackage.json\nscreenshots\nshared\ntemp.jpg",
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-6",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01ReXhB97NPC64DzF5uyyYhJ",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:34:25.512Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "# Agent Instructions\r\n\r\nYou should always only do what is instructed, never just do something because you think this is part of the task. if you believe something is missing in the task, say so, don't just do it.\r\nex: instruction is to split up feature descriptions, nothing is mentioned about changing feature status, then don't change it.\r\n\r\n## folder structure\r\n- app: react-front end\r\n- desktop: electron desktop-host / backend app\r\n\r\n## system info\r\n- we are running on windows\r\n- the shell is Windows PowerShell 5.x, not PowerShell 7 (`pwsh`)\r\n- do not use bash-style or PowerShell 7 command chaining such as `&&` or `||`\r\n- coreutils like ls cat,... are available\r\n- when multiple commands are needed, run them as separate shell/tool calls\r\n- if a single PowerShell command must include multiple statements, use native PowerShell syntax and prefer separate lines or `;` only when necessary\r\n- for git workflows, prefer one command per tool call, for example `git add ...`, then `git commit ...`, then `git status`\r\n\r\n\r\n## operation principles for work on design documents\r\nBefore writing or modifying a design document, **analyze the codebase first**. Review relevant modules, data flow, interfaces, configuration, and dependencies. Do not rely on assumptions or partial understanding.\r\n\r\nYou must identify:\r\n- current implementation and architecture\r\n- all components affected by the change\r\n- required code modifications\r\n- edge cases and failure modes\r\n- compatibility and side effects\r\n- testing implications\r\n\r\nDo **not** start writing implementation details until the system behavior is understood.\r\n\r\nKeep analysis and documentation **short, precise, and to the point**. Avoid verbosity, repetition, or speculation.\r\n\r\n\r\n## Impact analysis before edits\r\n- Before changing a shared helper, utility, or service method, list all call sites and state whether each should keep old behavior or receive the new behavior.\r\n- Do not add compatibility flags, fallback branches, or mode parameters unless at least two verified call sites need different behavior.\r\n- Prefer direct, single-purpose changes when the inspected call graph shows only one behavior is required.\r\n\r\n## Architecture decision docs\r\n- follow the architectural decisions described in `design\\architecture\\architectural_decisions.md`\r\n- Do not edit `design/architecture/architectural_decisions.md` unless the user explicitly asks to update architectural decisions.\r\n- When adding a new architecture note, create or update the specific architecture markdown file only, and link it from related feature docs.\r\n- If a change seems to belong in `architectural_decisions.md`, ask first.\r\n\r\n## code style guide\r\n- Put every **component or class** in it's **own file**.\r\n- Add a short **JSDoc** to new functions when useful.\r\n- **avoid functions nested** inside other functions when writing new functions.\r\n- no abbreviations for variable names (common abreviations like i or idx are ok).\r\n- no inline code for react event handlers, use a constant instead\r\n- Never throw errors while a React component is rendering. Report real errors through `dialogService` in an effect and render a safe loading or fallback state.\r\n- Use async/await for all asynchronous operations; avoid .then().\r\n- stick to the given task, don't change code that is not related to the task.\r\n- Prefer const; only use let when reassignment is required.\r\n- Prefer `!!x` over `Boolean(x)` for boolean coercion.\r\n- Prefer array helpers like `find`, `some`, `map`, and `filter` for simple single-purpose collection queries or transforms. Use `for...of` loops when control flow is more complex, needs early continue guards, or spans multiple steps.\r\n- Destructure objects from loop variables (const { category, observation } = meta).\r\n- Use nullish coalescing (??) instead of || when zero is a valid value.\r\n- Missing required fields, variables, constructor state, config values, or domain payload data must fail fast with a clear error instead of silently falling back to defaults.\r\n- Do not add backward compatibility fallbacks or legacy shape suppo\n[410 characters omitted]\nata = { keyPoints, timestamp }; \r\n addBackend(category, observation, keypointData)).\r\n ```\r\n- Compute shared values once per iteration (e.g., const time = …).\r\n- Accumulate items in arrays first, then call batched DB operations once per array.\r\n- Check array length (> 0) before performing DB writes.\r\n- Keep object field order consistent and avoid multi-step mutations.\r\n- Prefer instance methods for logic used by a single class and tightly coupled to that class workflow. Use module-level functions only for reusable pure helpers shared across files or classes. If the logic is class-scoped but does not use instance state, use a static method.\r\n- Do not introduce instance methods that only forward to a static method or helper just to route through `this` or `this.constructor`.\r\n- If logic does not use instance state, prefer a module-level function by default.\r\n- Use a static method only when the logic is clearly class-scoped and the class already has meaningful instance behavior or multiple related methods.\r\n- Do not create a service class when it would only expose one short static/helper method. Export a plain function from the module instead.\r\n- Before adding a new service class, verify that it owns state, lifecycle, injected dependencies, or multiple related operations. If it does not, keep it as a function.\r\n- For single-condition `if` statements whose body is only `return`, omit braces.\r\n- when working on react components, take a look at other related components for formatting and layout styles and recurring patterns.\r\n- “Extract” means move behavior and ownership, not just markup.\r\n  - if a new component receives more than 5-7 behavior props, reconsider the split.\r\n  - If most handlers still live in the parent, the extraction is incomplete.\r\n  - The extracted component should be testable mostly on its own. \r\n- Do not extract trivial one-line predicates or conversions into named helpers unless:\r\n  - they are used widely enough to remove meaningful duplication, or\r\n  - the name captures non-obvious domain semantics that the inline code would hide poorly.\r\n- Verify actual field types before normalizing. Do not add coercion defensively. Only normalize when the inspected code path shows mixed types are real, and prefer doing it at the input boundary rather than at arbitrary comparison sites.\r\n- avoid magic numbers, use named constants instead\r\n- use ; at end of statements\r\n- avoid multiple inheritance\r\n- do not do CRLF rewrites\r\n\r\n## events & state updates\r\n- Never hand-roll listener registries: no `Map`s of listener `Set`s, no custom subscribe/unsubscribe functions, no revision counters. Use the standard `EventTarget` (`addEventListener` / `removeEventListener` / `dispatchEvent`) — extend it or compose one in the service.\r\n- Signal state changes with granular, scoped events (e.g. one event type per card or per card+action). Never republish or refresh a whole object (card, snapshot) to announce a change to one of its fields: every component watching that object would repaint.\r\n- In React, subscribe with `useSyncExternalStore`. `getSnapshot` must return a value derived from the actual service data (a primitive or stable reference), not a revision counter.\r\n\r\n## react component style guide\r\n----\napp:\neslint.config.js\nindex.html\nnode_modules\npackage-lock.json\npackage.json\npublic\nsrc\ntsconfig.json\nvite.config.test.ts\nvite.config.ts\n\nshared:\naction_definition_validation_parity_cases.d.mts\naction_definition_validation_parity_cases.mjs\naction_definitions.d.mts\naction_definitions.mjs\naction_history.d.mts\naction_history.mjs\nactivity_paths.d.mts\nactivity_paths.mjs\nagent_conversations.d.mts\nagent_conversations.mjs\nagent_profiles.d.mts\nagent_profiles.mjs\nagent_selection.d.mts\nagent_selection.mjs\nagent_token_usage_summary.d.mts\nagent_token_usage_summary.mjs\nagent_usage_math.d.mts\nagent_usage_math.mjs\ncard_activity.d.mts\ncard_activity.mjs\npath_utils.d.mts\npath_utils.mjs\nproject_stats.d.mts\nproject_stats.mjs\nreleased_card_actions.d.mts\nreleased_card_actions.mjs\ntolerant_action_definitions.d.mts\ntolerant_action_definitions.mjs",
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-7",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01Q4qwkMMwc24iujPMM6qGHy",
+          "sequence": 7,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:34:27.783Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "## react component style guide\n- dialogs have buttons in the bottom right corner\n- use the `dialogService` to show errors, warnings,...\n- for styling, read and use this guide: `design\\STYLE_GUIDE.md`\n- application states belong in services, not in components.\n- Root components own layout; leaf components bind to changing application data. Place subscriptions in the smallest component that renders their value.\n\n## Linting\nAs an agent working on this codebase, you must:\n1. **Follow all linting rules** defined in each subproject's `eslint.config.js`.\n2. **Do not override or ignore** linting rules unless explicitly instructed.\n3. **Run the linter** locally before submitting or committing code:\n```powershell\nnpm run lint\n```\n4. Fix all linting errors and warnings before submitting a pull request.\n5.  Use auto-fix   \n```powershell\nnpm run lint-fix\n```\n\n\n## Testing\n\n### Agent Responsibilities\n\nyou must:\n\n1. **Do not break existing tests.** If a test fails after your change, either:\n   - Fix the code if the test remains correct, or\n   - Update the test and explain why if behavior intentionally changed.\n2. **Add tests** for:\n   - New public functions or utilities.\n   - New React components or significant UI states.\n   - Bug fixes (a regression test that would fail before the fix).\n3. **Run tests in proportion to the change**:\n   - During implementation, run test files directly with `npm run test -- <test paths>`. In `app/`, `npm run test:related -- <source paths>` can find ESM dependents when the affected set is useful.\n   - Before submitting, run `npm run test:unit` in `app/` plus the directly affected UI or desktop tests.\n   - Run `npm run test:full` in each affected subproject for cross-cutting changes, shared infrastructure changes, releases, and changes whose impact cannot be isolated confidently.\n   - Full suites also run in merge, scheduled, and release CI; they are not required after every local edit.\n   - A selectively run test file must pass independently. Treat order-dependent failures, leaked asynchronous work, and shared-state contamination as test defects.\n4. **Keep only tests for stable behavior**\n  Temporary tests must be removed before finishing when they:\n   - Assert visual values or configuration constants.\n   - Duplicate existing coverage.\n   - Run Git, agents, servers, shells, or external programs.\n\nMock external boundaries. Tests must stay fast and in-process.\n\n### Test Conventions\n\n- **Location / Naming**\n\n  - Place tests close to the code they test\n- **Structure**\n\n  - Use `describe` blocks to group related tests by component or function.\n  - Use clear, descriptive `it` / `test` names that describe behavior, not implementation.\n- **Style**\n\n  - Follow the same **code style guide** as production code (no unnecessary nesting, use `const`, clear variable names, etc.).\n  - Use **async/await** in tests for async behavior; avoid `.then()`.\n\n### Test / Code Conflicts\n\n- When a test fails after your changes, assume your changes caused it and may also have broken related app behavior. Fix the code first. \n- Fix pre-existing failures.\n- Treat tests as signals, not automatic source of truth.\n- If an existing test conflicts with current implementation, naming, comments, docs, or the user request, do **not** immediately change code to satisfy the test.\n  - First determine whether the test may be stale or whether the code may be wrong.\n- If the correct behavior is not clearly established from the current task or nearby code, ask the user a single concise clarifying question before changing either the code or the test.\n- Do not broaden a task by \"fixing\" unrelated behavior only because an older test expects it.\n- When a test failure reveals behavior outside the requested change, prefer pausing for confirmation over making compatibility changes.\n- When updating a test to match intended behavior, briefly state why the test was considered stale.\n- Never change the requirements cause the test is failing: fix the test or make a note, but stick to the requirements. Example: `The failing test exposed that MUI’s chip delete icon is not accessible by label in this version. I’m replacing it with an explicit Remove … button so removal is user-centric and testable.` this is not allowed. fix the test instead.\n\n### React Testing Guidelines\n\n- Prefer **user-centric tests** using React Testing Library:\n\n  - Use queries like `getByRole`, `getByText`, `getByLabelText`, etc.\n  - Avoid testing implementation details such as internal state or private functions.\n- Use `@testing-library/jest-dom` matchers, for example:\n\n  - `expect(element).toBeInTheDocument()`\n  - `expect(button).toBeDisabled()`\n  - `expect(message).toHaveTextContent('...')`\n- For user interactions, use `userEvent` (if configured) instead of calling event handlers directly.",
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-8",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01TK3XD8ugfteeKhYVXcyX19",
+          "sequence": 8,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:34:29.890Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-9",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKr2MvJBDCMGvPNvmULt:thinking:0",
+          "sequence": 9,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:34:33.184Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "desktop/src/actions/action/action_agent_executor.test.mjs\ndesktop/src/actions/action/action_definitions.test.mjs\ndesktop/src/actions/action/action_definition_resolver.test.mjs\ndesktop/src/actions/action/action_files.test.mjs\ndesktop/src/actions/action/action_run.test.mjs\ndesktop/src/actions/action/action_runner_service.test.mjs\ndesktop/src/actions/action/action_run_history.test.mjs\ndesktop/src/actions/action/action_run_request.test.mjs\ndesktop/src/actions/action/action_scheduler_service.test.mjs\ndesktop/src/actions/activity/activity_files.test.mjs\ndesktop/src/actions/activity/card_activity.test.mjs\ndesktop/src/actions/agent/agent_codex_cache_diagnostic.js\ndesktop/src/actions/agent/agent_codex_cache_diagnostic.test.mjs\ndesktop/src/actions/agent/agent_codex_event.js\ndesktop/src/actions/agent/agent_codex_event.test.mjs\ndesktop/src/actions/agent/agent_codex_events.js\ndesktop/src/actions/agent/agent_codex_events.test.mjs\ndesktop/src/actions/agent/agent_conversation.test.mjs\ndesktop/src/actions/agent/agent_environment.test.mjs\ndesktop/src/actions/agent/agent_executable_availability.test.mjs\ndesktop/src/actions/agent/agent_profiles.mjs\ndesktop/src/actions/agent/agent_profiles.test.mjs\ndesktop/src/actions/agent/agent_profiles_parity.test.mjs\ndesktop/src/actions/agent/agent_provider_protocol.js\ndesktop/src/actions/agent/agent_provider_protocol.test.mjs\ndesktop/src/actions/agent/agent_runner_service.js\ndesktop/src/actions/agent/agent_runner_state.test.mjs\ndesktop/src/actions/agent/agent_run_state.js\ndesktop/src/actions/agent/agent_run_transcript.test.mjs\ndesktop/src/actions/agent/agent_run_validation.test.mjs\ndesktop/src/actions/agent/agent_streaming_adapter.js\ndesktop/src/actions/agent/agent_streaming_adapter.test.mjs\ndesktop/src/actions/agent/agent_streaming_event_handlers.js\ndesktop/src/actions/agent/codex_cli_update.js\ndesktop/src/actions/agent/codex_cli_update.test.mjs\ndesktop/src/actions/agent/codex_runtime_service.js\ndesktop/src/actions/agent/codex_runtime_service.test.mjs\ndesktop/src/actions/agent/codex_usage_poller.js\ndesktop/src/actions/agent/codex_usage_poller.test.mjs\ndesktop/src/actions/agent/project_agent_token_usage.test.mjs\ndesktop/src/actions/agent/usage_metrics_service.js\ndesktop/src/actions/agent/usage_metrics_service.test.mjs\ndesktop/src/integrations/remote_control_service.js\ndesktop/src/integrations/remote_control_service.test.mjs\ndesktop/src/shell/config.js\ndesktop/src/shell/config.test.mjs\ndesktop/src/shell/local_bridge_dispatch.js\ndesktop/src/shell/local_bridge_dispatch.test.mjs\ndesktop/src/shell/preload.js\ndesktop/src/shell/preload.test.mjs",
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-10",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01CfbSG2pZtpZx8QGsBzFDcC",
+          "sequence": 10,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:34:34.209Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "desktop/src/actions/agent/agent_provider_protocol.js:17:    'thread_not_found',\ndesktop/src/actions/agent/agent_provider_protocol.js:92:    if (agent === 'codex' && event.type === 'thread.started') return event.thread_id ?? event.thread?.thread_id ?? null;\ndesktop/src/actions/agent/agent_streaming_adapter.js:60: * only the newest request while `tokenUsage.total` accumulates the whole thread. Turn usage is the\ndesktop/src/actions/agent/agent_streaming_adapter.js:112:    return error.message === `no rollout found for thread id ${providerConversationId}`;\ndesktop/src/actions/agent/agent_streaming_adapter.js:150:        this.threadId = null;\ndesktop/src/actions/agent/agent_streaming_adapter.js:166:        if (!this.threadId) throw new Error('Codex streaming thread is not ready');\ndesktop/src/actions/agent/agent_streaming_adapter.js:171:                threadId: this.threadId,\ndesktop/src/actions/agent/agent_streaming_adapter.js:175:        await this.sendRequest('turn/start', { input, threadId: this.threadId });\ndesktop/src/actions/agent/agent_streaming_adapter.js:265:        const threadId = requireCodexApprovalId(params.threadId, 'thread id');\ndesktop/src/actions/agent/agent_streaming_adapter.js:268:        if (threadId !== this.threadId) throw new Error(`Mismatched Codex approval thread id: ${threadId}`);\ndesktop/src/actions/agent/agent_streaming_adapter.js:297:            if (purpose === 'threadResume') {\ndesktop/src/actions/agent/agent_streaming_adapter.js:310:                await this.sendRequest('thread/resume', {\ndesktop/src/actions/agent/agent_streaming_adapter.js:312:                    threadId: this.providerConversationId,\ndesktop/src/actions/agent/agent_streaming_adapter.js:313:                }, 'threadResume');\ndesktop/src/actions/agent/agent_streaming_adapter.js:316:            await this.sendRequest('thread/start', { cwd: this.rootPath }, 'threadStart');\ndesktop/src/actions/agent/agent_streaming_adapter.js:319:        if (purpose === 'threadStart' || purpose === 'threadResume') {\ndesktop/src/actions/agent/agent_streaming_adapter.js:320:            this.threadId = message.result?.thread?.id ?? message.result?.threadId ?? this.providerConversationId;\ndesktop/src/actions/agent/agent_streaming_adapter.js:321:            if (!this.threadId) throw new Error('Codex app-server did not return a thread id');\ndesktop/src/actions/agent/agent_streaming_adapter.js:322:            await this.onEvent({ conversationId: this.threadId, type: 'sessionStarted' });\ndesktop/src/actions/agent/agent_streaming_adapter.js:338:        if (this.threadId && params.threadId !== undefined && params.threadId !== this.threadId) return;\ndesktop/src/actions/agent/agent_streaming_adapter.js:402:        if (method === 'thread/tokenUsage/updated') {\ndesktop/src/actions/agent/agent_streaming_adapter.js:478:        if (params.threadId !== pendingApproval.approval.threadId) {\ndesktop/src/actions/agent/agent_streaming_adapter.js:479:            throw new Error(`Mismatched Codex approval resolution thread id: ${params.threadId}`);\ndesktop/src/actions/agent/codex_usage_poller.js:33:/** Reads Codex account rate limits once without creating a thread or turn. */",
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-11",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_013914R52yhUtFsSomuMZUEC",
+          "sequence": 11,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:34:36.313Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-12",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKr2ozSaWEM7LXmkgmM6:thinking:0",
+          "sequence": 12,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:34:38.889Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "----\n   49 desktop/src/actions/agent/agent_codex_events.js\n  358 desktop/src/actions/agent/agent_codex_event.js\n  211 desktop/src/actions/agent/agent_streaming_event_handlers.js\n  631 desktop/src/actions/agent/agent_streaming_adapter.js\n 1249 total",
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-13",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_012Dw3kZsDk9sfYivhGzoQdT",
+          "sequence": 13,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:34:41.358Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "const { normalizeChangedPaths, normalizedContent } = require('./agent_event_utils');\n\nconst CODEX_FILE_ITEM_KEYS = new Set(['file', 'filechange', 'patch']);\nconst CODEX_SILENT_ITEM_KEYS = new Set(['agentmessage', 'usermessage', 'reasoning', 'error', 'file', 'filechange', 'patch']);\n\n/**\n * `codex exec` and the codex app-server are different wire protocols and keep separate handlers,\n * but they describe the same item vocabulary in different casings (`file_change` / `fileChange`).\n * Only that shared vocabulary lives here; parsing stays with each protocol.\n */\nfunction codexItemKey(item) {\n    return typeof item?.type === 'string' ? item.type.replace(/[^a-z]/giu, '').toLowerCase() : '';\n}\n\nfunction isCodexFileItem(item) {\n    return CODEX_FILE_ITEM_KEYS.has(codexItemKey(item));\n}\n\nfunction codexChangedPaths(item, rootPath) {\n    if (!isCodexFileItem(item)) return [];\n    const filePaths = typeof item.path === 'string' ? [item.path] : [];\n    if (Array.isArray(item.changes)) filePaths.push(...item.changes.map((change) => change?.path));\n\n    return normalizeChangedPaths(rootPath, filePaths);\n}\n\n/** Assistant messages, user echoes and reasoning reach the conversation elsewhere; skip them here. */\nfunction codexTranscriptContent(item) {\n    if (!item || CODEX_SILENT_ITEM_KEYS.has(codexItemKey(item))) return null;\n\n    return normalizedContent(\n        item.aggregated_output\n        ?? item.aggregatedOutput\n        ?? item.output\n        ?? item.result\n        ?? item.changes\n        ?? item.command\n        ?? item.path\n        ?? item.name,\n    );\n}\n\nfunction codexTranscriptEvents(item) {\n    const content = codexTranscriptContent(item);\n\n    return content ? [{ content, toolType: `tool.${item.type}` }] : [];\n}\n\nmodule.exports = { codexChangedPaths, codexTranscriptEvents };\n========\nconst { normalizedContent } = require('./agent_event_utils');\nconst { countFileContentLines, countPatchLines } = require('./agent_file_change');\nconst { codexChangedPaths } = require('./agent_codex_events');\nconst { boundedAgentResult } = require('../../../../shared/agent_conversations.mjs');\n\nconst MAX_EVENT_CONTENT_LENGTH = 16_384;\nconst MAX_EVENT_FIELDS = 12;\nconst TRUNCATED_EVENT_SUFFIX = '\\n[event content truncated]';\nconst UNIFIED_DIFF_HUNK_PATTERN = /^@@ -(\\d+)(?:,(\\d+))? \\+(\\d+)(?:,(\\d+))? @@/u;\nconst SUPPORTED_CODEX_ITEM_TYPES = new Set([\n    'collabAgentToolCall',\n    'commandExecution',\n    'contextCompaction',\n    'dynamicToolCall',\n    'enteredReviewMode',\n    'exitedReviewMode',\n    'fileChange',\n    'imageView',\n    'mcpToolCall',\n    'plan',\n    'reasoning',\n    'webSearch',\n]);\n\nfunction itemStatus(item, lifecycleStatus) {\n    return typeof item.status === 'string' ? item.status : lifecycleStatus;\n}\n\nfunction optionalContent(value) {\n    const content = normalizedContent(value) ?? '';\n    if (content.length <= MAX_EVENT_CONTENT_LENGTH) return content;\n\n    const retainedLength = MAX_EVENT_CONTENT_LENGTH - TRUNCATED_EVENT_SUFFIX.length;\n\n    return `${content.slice(0, retainedLength)}${TRUNCATED_EVENT_SUFFIX}`;\n}\n\nfunction readableFieldName(fieldName) {\n    return fieldName\n        .replace(/([a-z])([A-Z])/gu, '$1 $2')\n        .replace(/[_-]+/gu, ' ')\n        .replace(/^./u, (character) => character.toUpperCase());\n}\n\nfunction parseStructuredString(value) {\n    const trimmed = value.trim();\n    if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) return value;\n\n    try {\n        return JSON.parse(trimmed);\n    } catch {\n        return 'Structured event detail unavailable';\n    }\n}\n\nfunction selectedFieldValue(value) {\n    if (typeof value === 'string') return value;\n    if (typeof value === 'number' || typeof value === 'boolean') return String(value);\n    if (!Array.isArray(value)) return null;\n    const values = value\n        .filter((entry) => typeof entry === 'string' || typeof entry === 'number' || typeof entry === 'boolean')\n        .map(String);\n\n    return values.length > 0 ? values.join(', ') : null;\n}\n\nfunction selectedEventContent(value, boundContent = true) {\n    if (value === undefined || value === nu\n[6936 characters omitted]\nvent(item, lifecycleStatus) {\n    const toolLabel = typeof item.tool === 'string' && item.tool.length > 0 ? item.tool : 'Agent tool';\n\n    return {\n        ...eventBase(item, lifecycleStatus, `Collaboration: ${toolLabel}`),\n        content: item.prompt ?? '',\n        output: boundedAgentResult(selectedEventContent({\n            agentsStates: item.agentsStates,\n            receiverThreadIds: item.receiverThreadIds,\n        }, false)),\n    };\n}\n\nfunction normalizeCodexEvent(item, lifecycleStatus, rootPath) {\n    if (!item || typeof item.id !== 'string' || typeof item.type !== 'string') return null;\n    const type = canonicalCodexItemType(item.type);\n    if (!SUPPORTED_CODEX_ITEM_TYPES.has(type)) return null;\n    const normalizedItem = type === item.type ? item : { ...item, type };\n    if (type === 'reasoning') return reasoningEvent(normalizedItem, lifecycleStatus);\n    if (type === 'commandExecution') return commandEvent(normalizedItem, lifecycleStatus);\n    if (type === 'fileChange') return fileEvent(normalizedItem, lifecycleStatus, rootPath);\n    if (type === 'mcpToolCall') return mcpEvent(normalizedItem, lifecycleStatus);\n    if (type === 'dynamicToolCall') return dynamicToolEvent(normalizedItem, lifecycleStatus);\n    if (type === 'collabAgentToolCall') return collaborationEvent(normalizedItem, lifecycleStatus);\n    if (type === 'webSearch') {\n        return {\n            ...eventBase(normalizedItem, lifecycleStatus, 'Web search'),\n            content: normalizedItem.query,\n            output: boundedAgentResult(normalizedContent(normalizedItem.action) ?? ''),\n        };\n    }\n    if (type === 'imageView') {\n        return { ...eventBase(normalizedItem, lifecycleStatus, 'Image view'), content: normalizedItem.path };\n    }\n    if (type === 'plan') {\n        return { ...eventBase(normalizedItem, lifecycleStatus, 'Plan'), content: normalizedItem.text };\n    }\n    if (type === 'contextCompaction') {\n        return { ...eventBase(normalizedItem, lifecycleStatus, 'Context compacted') };\n    }\n    if (type === 'enteredReviewMode' || type === 'exitedReviewMode') {\n        const label = type === 'enteredReviewMode' ? 'Entered review mode' : 'Exited review mode';\n\n        return { ...eventBase(normalizedItem, lifecycleStatus, label), content: normalizedItem.review };\n    }\n\n    return null;\n}\n\nfunction diagnosticEvent(method, itemType, itemId, sequence) {\n    const providerItemId = typeof itemId === 'string' && itemId.length > 0 ? itemId : 'unknown';\n    const normalizedType = typeof itemType === 'string' && itemType.length > 0 ? itemType : 'unknown';\n\n    return {\n        content: `${method}: ${normalizedType} (${providerItemId})`,\n        label: 'Codex protocol diagnostic',\n        providerItemId: `diagnostic:${providerItemId}:${sequence}`,\n        status: 'completed',\n        type: 'diagnostic',\n    };\n}\n\nfunction systemEvent(method, params) {\n    const turnId = typeof params.turnId === 'string' ? params.turnId : 'unknown-turn';\n    const providerItemId = `system:${turnId}:${method}`;\n    if (method === 'model/rerouted') {\n        return {\n            content: `${params.fromModel} to ${params.toModel}: ${optionalContent(params.reason)}`,\n            label: 'Model rerouted',\n            providerItemId,\n            status: 'completed',\n            type: 'system',\n        };\n    }\n    if (method === 'model/safetyBuffering/updated') {\n        return {\n            content: optionalContent({ reasons: params.reasons, useCases: params.useCases }),\n            label: 'Safety buffering',\n            providerItemId,\n            status: params.showBufferingUi ? 'inProgress' : 'completed',\n            type: 'system',\n        };\n    }\n    if (method === 'model/verification') {\n        return {\n            content: optionalContent(params.verifications),\n            label: 'Model verification',\n            providerItemId,\n            status: 'completed',\n            type: 'system',\n        };\n    }\n\n    return null;\n}\n\nmodule.exports = {\n    countUnifiedDiffLines,\n    diagnosticEvent,\n    normalizeCodexEvent,\n    systemEvent,\n};",
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-14",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01AFfKTG2bc6XUMDfx8NLFRZ",
+          "sequence": 14,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:34:43.612Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-15",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKr3M5iVEcfyBQhKpDu3:thinking:0",
+          "sequence": 15,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:34:47.212Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "const { validateAgentTokenUsage } = require('../../../../shared/agent_usage_math.mjs');\nconst { appendBoundedAgentResult } = require('../../../../shared/agent_conversations.mjs');\nconst { ClaudeStreamingAdapter } = require('./agent_claude_streaming_adapter');\nconst { diagnosticEvent, normalizeCodexEvent, systemEvent } = require('./agent_codex_event');\nconst { isMissingSession } = require('./agent_provider_protocol');\n\nconst CODEX_CLIENT_NAME = 'md2';\nconst CODEX_CLIENT_VERSION = '1';\nconst CODEX_MISSING_THREAD_ERROR_CODE = -32600;\nconst CODEX_APPROVAL_METHODS = new Map([\n    ['item/commandExecution/requestApproval', 'commandExecution'],\n    ['item/fileChange/requestApproval', 'fileChange'],\n]);\nconst CODEX_COMMAND_APPROVAL_DECISIONS = ['accept', 'acceptForSession', 'decline', 'cancel'];\nconst CODEX_FILE_APPROVAL_DECISIONS = ['accept', 'acceptForSession', 'decline', 'cancel'];\nconst CODEX_NON_EVENT_ITEM_TYPES = new Set(['agentMessage', 'hookPrompt', 'userMessage']);\n\nfunction requireMessage(content) {\n    if (typeof content !== 'string' || content.trim().length === 0) throw new Error('Streaming agent message is required');\n\n    return content;\n}\n\nfunction codexInput(content) {\n    return [{ text: requireMessage(content), type: 'text' }];\n}\n\n/** Reads one Codex breakdown, rejecting malformed counters and totals before they feed turn arithmetic. */\nfunction codexUsageCounters(breakdown) {\n    if (!breakdown || typeof breakdown !== 'object' || Array.isArray(breakdown)) return null;\n    const cachedInputTokens = breakdown.cachedInputTokens ?? 0;\n    const reasoningTokens = breakdown.reasoningOutputTokens ?? 0;\n    validateAgentTokenUsage({\n        cachedInputTokens,\n        inputTokens: breakdown.inputTokens - cachedInputTokens,\n        outputTokens: breakdown.outputTokens - reasoningTokens,\n        reasoningTokens,\n    }, breakdown.totalTokens);\n\n    return {\n        cachedInputTokens,\n        inputTokens: breakdown.inputTokens,\n        outputTokens: breakdown.outputTokens,\n        reasoningTokens,\n    };\n}\n\n/** Growth of cumulative counters; clamped so an out-of-order or reset reading cannot report negative usage. */\nfunction codexUsageGrowth(counters, baseline) {\n    return {\n        cachedInputTokens: Math.max(counters.cachedInputTokens - baseline.cachedInputTokens, 0),\n        inputTokens: Math.max(counters.inputTokens - baseline.inputTokens, 0),\n        outputTokens: Math.max(counters.outputTokens - baseline.outputTokens, 0),\n        reasoningTokens: Math.max(counters.reasoningTokens - baseline.reasoningTokens, 0),\n    };\n}\n\n/**\n * Codex counts tokens per model request, but one turn spans many of them: `tokenUsage.last` holds\n * only the newest request while `tokenUsage.total` accumulates the whole thread. Turn usage is the\n * growth of `total` since the turn began, which matches the whole-turn totals Claude reports and\n * makes both providers comparable. `total - last` reconstructs that baseline from the turn's first\n * reading. Codex builds without `total` fall back to the newest request alone.\n */\nfunction codexTurnCounters(params) {\n    const last = codexUsageCounters(params.tokenUsage?.last);\n    const totals = codexUsageCounters(params.tokenUsage?.total) ?? last;\n    if (!last || !totals) return null;\n\n    return { baseline: codexUsageGrowth(totals, last), totals };\n}\n\n/** Splits Codex counters into disjoint buckets: cached input sits inside input, reasoning inside output. */\nfunction codexUsage(counters) {\n    return validateAgentTokenUsage({\n        cachedInputTokens: counters.cachedInputTokens,\n        inputTokens: counters.inputTokens - counters.cachedInputTokens,\n        outputTokens: counters.outputTokens - counters.reasoningTokens,\n        reasoningTokens: counters.reasoningTokens,\n    });\n}\n\nfunction codexContextWindowUsage(params) {\n    const usedTokens = params.tokenUsage?.last?.totalTokens;\n    const capacityTokens = params.tokenUsage?.modelContextWindow;\n    if (!Number.isSafeInteger(usedTokens) || usedTokens < 0) return null;\n    if (!Number.isSafeInteger(capacityTokens) || capacityTokens <= 0) return null;\n\n    return { capacityTokens, usedTokens };\n}\n\nfunction isCodexContextOnlyTokenUsage(params) {\n    const usage = params.tokenUsage?.last;\n    if (!usage || usage.totalTokens <= 0) return false;\n\n    return usage.cachedInputTokens === 0\n        && usage.inputTokens === 0\n        && usage.outputTokens === 0\n        && (usage.reasoningOutputTokens ?? 0) === 0;\n}\n\nfunction eventTextParts(event, field, index) {\n    const parts = [...event[field]];\n    while (parts.length <= index) parts.push('');\n\n    return parts;\n}\n\nfunction isCodexMissingThreadError(error, providerConversationId) {\n    if (!providerConversationId || error?.code !== CODEX_MISSING_THREAD_ERROR_CODE) return false;\n\n    return error.message === `no rollout found for thread id ${providerConversationId}`;\n}\n\nfunction requireCodexApprovalId(value, field) {\n    if (typeof value !== 'string' || value.length === 0) throw new Error(`Missing Codex approval ${field}`);\n\n    return value;\n}",
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-16",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_011oANTvJ4r8VypzzcJ7pa97",
+          "sequence": 16,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:34:48.185Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "function sameDecision(left, right) {\n    return JSON.stringify(left) === JSON.stringify(right);\n}\n\nfunction availableApprovalDecisions(approval) {\n    if (approval.kind === 'fileChange') return CODEX_FILE_APPROVAL_DECISIONS;\n    if (Array.isArray(approval.availableDecisions)) return approval.availableDecisions;\n\n    return CODEX_COMMAND_APPROVAL_DECISIONS;\n}\n\nclass CodexStreamingAdapter {\n    constructor(writeLine, onEvent, rootPath, providerConversationId, onRuntimeEvent) {\n        this.writeLine = writeLine;\n        this.onEvent = onEvent;\n        this.onRuntimeEvent = onRuntimeEvent;\n        this.providerConversationId = providerConversationId;\n        this.rootPath = rootPath;\n        this.activeTurnId = null;\n        this.activeItems = new Map();\n        this.assistantItemOrder = [];\n        this.assistantStreams = new Map();\n        this.completedItemIds = new Set();\n        this.diagnosticSequence = 1;\n        this.initialPrompt = null;\n        this.nextRequestId = 1;\n        this.pendingRequests = new Map();\n        this.pendingApprovals = new Map();\n        this.pendingQuestions = new Map();\n        this.threadId = null;\n        this.turnContextWindowUsage = undefined;\n        this.turnUsage = null;\n        this.turnUsageBaseline = null;\n    }\n\n    async start(prompt) {\n        this.initialPrompt = requireMessage(prompt);\n        await this.sendRequest('initialize', {\n            capabilities: { experimentalApi: true },\n            clientInfo: { name: CODEX_CLIENT_NAME, version: CODEX_CLIENT_VERSION },\n        }, 'initialize');\n    }\n\n    async sendMessage(content) {\n        const input = codexInput(content);\n        if (!this.threadId) throw new Error('Codex streaming thread is not ready');\n        if (this.activeTurnId) {\n            await this.sendRequest('turn/steer', {\n                expectedTurnId: this.activeTurnId,\n                input,\n                threadId: this.threadId,\n            });\n            return;\n        }\n        await this.sendRequest('turn/start', { input, threadId: this.threadId });\n    }\n\n    async answerQuestion(requestId, answers) {\n        const pendingQuestion = this.pendingQuestions.get(requestId);\n        if (!pendingQuestion) throw new Error(`Unknown or stale Codex question request id: ${requestId}`);\n        if (pendingQuestion.submitted) throw new Error(`Codex question request was already submitted: ${requestId}`);\n        const normalizedAnswers = Object.fromEntries(Object.entries(answers).map(([questionId, answer]) => [\n            questionId,\n            { answers: Array.isArray(answer) ? answer : [answer] },\n        ]));\n        pendingQuestion.submitted = true;\n        try {\n            await this.writeLine({ id: requestId, result: { answers: normalizedAnswers } });\n        } catch (error) {\n            pendingQuestion.submitted = false;\n            throw error;\n        }\n        this.pendingQuestions.delete(requestId);\n    }\n\n    async dismissQuestion(requestId) {\n        const pendingQuestion = this.pendingQuestions.get(requestId);\n        if (!pendingQuestion) throw new Error(`Unknown or stale Codex question request id: ${requestId}`);\n        if (pendingQuestion.submitted) throw new Error(`Codex question request was already submitted: ${requestId}`);\n        pendingQuestion.submitted = true;\n        try {\n            await this.writeLine({ id: requestId, result: { answers: {} } });\n        } catch (error) {\n            pendingQuestion.submitted = false;\n            throw error;\n        }\n        this.pendingQuestions.delete(requestId);\n    }\n\n    async answerApproval(requestId, decision) {\n        const pendingApproval = this.pendingApprovals.get(requestId);\n        if (!pendingApproval) throw new Error(`Unknown or stale Codex approval request id: ${requestId}`);\n        if (pendingApproval.submitted) throw new Error(`Codex approval request was already submitted: ${requestId}`);\n        const availableDecisions = availableApprovalDecisions(pendingApproval.approval);\n        if (!availableDecisions.some((availableDecision) => sameDecision(availableDeci\n[8203 characters omitted]\n (method === 'item/reasoning/textDelta') {\n            await this.handleReasoningDelta(method, params, 'details', params.contentIndex);\n            return;\n        }\n        if (method === 'item/commandExecution/outputDelta') {\n            const trackedItem = await this.requireActiveItem(method, params.itemId, 'commandExecution');\n            if (!trackedItem) return;\n            const bounded = appendBoundedAgentResult(trackedItem.resultState, params.delta);\n            trackedItem.resultState = bounded.state;\n            trackedItem.event = { ...trackedItem.event, content: bounded.value };\n            await this.emitEvent(trackedItem.event);\n            return;\n        }\n        if (method === 'item/plan/delta') {\n            const trackedItem = await this.requireActiveItem(method, params.itemId, 'plan');\n            if (!trackedItem) return;\n            trackedItem.event = { ...trackedItem.event, content: `${trackedItem.event.content}${params.delta}` };\n            await this.emitEvent(trackedItem.event);\n            return;\n        }\n        if (method === 'thread/tokenUsage/updated') {\n            if (isCodexContextOnlyTokenUsage(params)) {\n                this.turnContextWindowUsage = codexContextWindowUsage(params);\n                return;\n            }\n            const counters = codexTurnCounters(params);\n            if (!counters) return;\n            this.turnUsageBaseline ??= counters.baseline;\n            const usage = codexUsage(codexUsageGrowth(counters.totals, this.turnUsageBaseline));\n            this.turnContextWindowUsage = codexContextWindowUsage(params);\n            this.turnUsage = usage;\n            await this.onEvent({ contextWindowUsage: this.turnContextWindowUsage, type: 'usage', usage });\n            return;\n        }\n        if (method === 'account/rateLimits/updated') {\n            await this.onRuntimeEvent({ kind: 'update', observedAt: Date.now(), payload: params });\n            return;\n        }\n        if (method === 'item/completed') {\n            await this.handleItemCompleted(method, params.item);\n            return;\n        }\n        const normalizedSystemEvent = systemEvent(method, params);\n        if (normalizedSystemEvent) {\n            await this.emitEvent(normalizedSystemEvent);\n            return;\n        }\n        if (method === 'error') {\n            const content = params.error?.message ?? 'Codex turn failed';\n            await this.emitEvent({\n                content,\n                label: 'Turn failure',\n                providerItemId: `system:${this.activeTurnId ?? 'unknown-turn'}:error`,\n                status: 'failed',\n                type: 'system',\n            });\n            await this.onEvent({ content, type: 'fatal' });\n            return;\n        }\n        if (method === 'turn/completed') {\n            const error = params.turn?.status === 'failed'\n                ? params.turn.error?.message ?? 'Codex turn failed'\n                : null;\n            if (error) {\n                await this.emitEvent({\n                    content: error,\n                    label: 'Turn failure',\n                    providerItemId: `system:${params.turn?.id ?? this.activeTurnId ?? 'unknown-turn'}:turn/completed`,\n                    status: 'failed',\n                    type: 'system',\n                });\n            }\n            const completedTurnId = params.turn?.id ?? this.activeTurnId;\n            await this.resolveApprovalsForTurn(completedTurnId);\n            this.pendingQuestions.clear();\n            this.activeTurnId = null;\n            const contextWindowUsage = this.turnContextWindowUsage;\n            await this.onEvent({\n                ...(contextWindowUsage !== undefined ? { contextWindowUsage } : {}),\n                error,\n                type: 'turnCompleted',\n                usage: this.turnUsage,\n            });\n            this.turnContextWindowUsage = undefined;\n            this.turnUsage = null;\n            this.turnUsageBaseline = null;\n            return;\n        }\n        if (method?.startsWith('item/') && typeof params.itemId === 'string') {",
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-17",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01NtdnrCfUBD8BvUxRmZpBay",
+          "sequence": 17,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:34:50.472Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "        if (method?.startsWith('item/') && typeof params.itemId === 'string') {\n            await this.emitDiagnostic(method, null, params.itemId);\n        }\n    }\n\n    async handleApprovalResolved(params) {\n        const pendingApproval = this.pendingApprovals.get(params.requestId);\n        if (!pendingApproval) return;\n        if (params.threadId !== pendingApproval.approval.threadId) {\n            throw new Error(`Mismatched Codex approval resolution thread id: ${params.threadId}`);\n        }\n        this.pendingApprovals.delete(params.requestId);\n        await this.onEvent({ requestId: params.requestId, type: 'approvalResolved' });\n    }\n\n    async resolveApprovalsForTurn(turnId) {\n        for (const [requestId, pendingApproval] of this.pendingApprovals) {\n            if (pendingApproval.approval.turnId !== turnId) continue;\n            this.pendingApprovals.delete(requestId);\n            await this.onEvent({ requestId, type: 'approvalResolved' });\n        }\n    }\n\n    async handleItemStarted(method, item) {\n        if (!item || typeof item.id !== 'string' || typeof item.type !== 'string') {\n            await this.emitDiagnostic(method, item?.type, item?.id);\n            return;\n        }\n        if (this.activeItems.has(item.id) || this.completedItemIds.has(item.id)) {\n            await this.emitDiagnostic(method, item.type, item.id);\n            return;\n        }\n        const event = normalizeCodexEvent(item, 'inProgress');\n        const initialResult = item.type === 'commandExecution'\n            ? appendBoundedAgentResult(null, event?.content ?? '')\n            : null;\n        const knownNonEvent = CODEX_NON_EVENT_ITEM_TYPES.has(item.type);\n        const trackedItem = {\n            event,\n            assistantCompleted: false,\n            assistantText: false,\n            bufferedAssistantText: '',\n            item,\n            itemType: item.type,\n            resultState: initialResult?.state ?? null,\n        };\n        this.activeItems.set(item.id, trackedItem);\n        if (item.type === 'agentMessage') {\n            this.assistantItemOrder.push(item.id);\n            this.assistantStreams.set(item.id, trackedItem);\n            await this.onEvent({ itemId: item.id, type: 'assistantStarted' });\n        }\n        if (event) {\n            await this.emitEvent(event);\n            return;\n        }\n        if (!knownNonEvent) await this.emitDiagnostic(method, item.type, item.id);\n    }\n\n    async handleItemCompleted(method, item) {\n        if (!item || typeof item.id !== 'string' || typeof item.type !== 'string') {\n            await this.emitDiagnostic(method, item?.type, item?.id);\n            return;\n        }\n        if (this.completedItemIds.has(item.id)) {\n            await this.emitDiagnostic(method, item.type, item.id);\n            return;\n        }\n        const trackedItem = this.activeItems.get(item.id);\n        if (!trackedItem) await this.emitDiagnostic(method, item.type, item.id);\n        if (trackedItem && trackedItem.itemType !== item.type) {\n            await this.emitDiagnostic(method, item.type, item.id);\n            return;\n        }\n        if (item.type === 'agentMessage' && trackedItem) {\n            trackedItem.assistantCompleted = true;\n            await this.flushAssistantStreams();\n        }\n        const event = normalizeCodexEvent(item, 'completed', this.rootPath);\n        if (event) await this.emitEvent(event);\n        if (!event && !CODEX_NON_EVENT_ITEM_TYPES.has(item.type) && trackedItem) {\n            await this.emitDiagnostic(method, item.type, item.id);\n        }\n        this.activeItems.delete(item.id);\n        this.completedItemIds.add(item.id);\n    }\n\n    async requireActiveItem(method, itemId, expectedType) {\n        const trackedItem = this.activeItems.get(itemId);\n        if (!trackedItem || trackedItem.itemType !== expectedType || this.completedItemIds.has(itemId)) {\n            await this.emitDiagnostic(method, expectedType, itemId);\n\n            return null;\n        }\n\n        return trackedItem;\n    }\n\n    async handleReasoningDelta(method, params, field, index) {\n        const trackedItem = await this.requireActiveItem(method, params.itemId, 'reasoning');\n        if (!trackedItem || !Number.isSafeInteger(index) || index < 0) {\n            if (trackedItem) await this.emitDiagnostic(method, 'reasoning', params.itemId);\n            return;\n        }\n        const parts = eventTextParts(trackedItem.event, field, index);\n        parts[index] += params.delta;\n        const event = { ...trackedItem.event, [field]: parts };\n        trackedItem.event = {\n            ...event,\n            content: event.summary.length > 0 ? event.summary.join('\\n\\n') : event.details.join('\\n\\n'),\n        };\n        await this.emitEvent(trackedItem.event);\n    }\n\n    async flushAssistantStreams() {\n        while (this.assistantItemOrder.length > 0) {\n            const itemId = this.assistantItemOrder[0];\n            const stream = this.assistantStreams.get(itemId);\n            if (!stream) {\n                this.assistantItemOrder.shift();\n                continue;\n            }\n            if (stream.bufferedAssistantText.length > 0) {\n                const content = stream.bufferedAssistantText;\n                stream.bufferedAssistantText = '';\n                await this.onEvent({ content, itemId, type: 'assistant' });\n            }\n            if (!stream.assistantCompleted) return;\n            if (stream.assistantText) await this.onEvent({ content: '\\n\\n', itemId, type: 'assistant' });\n            this.assistantStreams.delete(itemId);\n            this.assistantItemOrder.shift();\n        }\n    }\n\n    async emitEvent(event) {\n        await this.onEvent({ event, type: 'event' });\n    }\n\n    async emitDiagnostic(method, itemType, itemId) {\n        const event = diagnosticEvent(method, itemType, itemId, this.diagnosticSequence);\n        this.diagnosticSequence += 1;\n        await this.emitEvent(event);\n    }\n}\n\nfunction createAgentStreamingAdapter(\n    agent,\n    writeLine,\n    onEvent,\n    rootPath,\n    providerConversationId = null,\n    onRuntimeEvent = async () => undefined,\n) {\n    if (agent === 'claude') return new ClaudeStreamingAdapter(writeLine, onEvent, rootPath, providerConversationId);\n    if (agent === 'codex') {\n        return new CodexStreamingAdapter(writeLine, onEvent, rootPath, providerConversationId, onRuntimeEvent);\n    }\n\n    throw new Error(`Agent profile does not support streaming: ${agent}`);\n}\n\nmodule.exports = { createAgentStreamingAdapter };",
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-18",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_011wskTVYKNUFJHhmGEhahvb",
+          "sequence": 18,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:34:54.162Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-19",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKr48UiKAmgBM4A9QgXb:thinking:0",
+          "sequence": 19,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:34:58.397Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "desktop/src/actions/agent/agent_claude_streaming_adapter.js:26:    const parentToolUseId = value?.parent_tool_use_id;\ndesktop/src/actions/agent/agent_claude_streaming_adapter.js:28:    return typeof parentToolUseId === 'string' && parentToolUseId.length > 0 ? parentToolUseId : null;\ndesktop/src/actions/agent/agent_claude_streaming_adapter.js:38:    const { description, subagent_type: subagentType } = input;\ndesktop/src/actions/agent/agent_claude_streaming_adapter.js:39:    if (typeof subagentType === 'string' && subagentType.length > 0) return subagentType;\nagent_claude_events.js\nagent_claude_events.test.mjs\nagent_claude_streaming_adapter.js\nagent_codex_cache_diagnostic.js\nagent_codex_cache_diagnostic.test.mjs\nagent_codex_event.js\nagent_codex_event.test.mjs\nagent_codex_events.js\nagent_codex_events.test.mjs\nagent_conversation.js\nagent_conversation.test.mjs\nagent_conversation_persistence.js\nagent_conversation_persistence.test.mjs\nagent_environment.js\nagent_environment.test.mjs\nagent_event_utils.js\nagent_executable_availability.js\nagent_executable_availability.test.mjs\nagent_file_change.js\nagent_file_change.test.mjs\nagent_file_logger.js\nagent_file_logger.test.mjs\nagent_profiles.mjs\nagent_profiles.test.mjs\nagent_profiles_parity.test.mjs\nagent_provider_event.js\nagent_provider_protocol.js\nagent_provider_protocol.test.mjs\nagent_run_interactions.js\nagent_run_state.js\nagent_run_transcript.js\nagent_run_transcript.test.mjs\nagent_run_validation.js\nagent_run_validation.test.mjs\nagent_runner_service.js\nagent_runner_state.test.mjs\nagent_secret_redaction.js\nagent_secret_redaction.test.mjs\nagent_selection.mjs\nagent_stderr_filter.js\nagent_stderr_filter.test.mjs\nagent_streaming_adapter.js\nagent_streaming_adapter.test.mjs\nagent_streaming_event_handlers.js\nagent_transcript.js\nagent_transcript.test.mjs\nclaude_runtime_service.js\nclaude_runtime_service.test.mjs\nclaude_usage_diagnostics.js\nclaude_usage_diagnostics.test.mjs\nclaude_usage_parsing.js\nclaude_usage_parsing.test.mjs\nclaude_usage_poller.js\nclaude_usage_poller.test.mjs\nclaude_usage_terminal.js\nclaude_usage_terminal.test.mjs\nclaude_usage_terminal_host.js\nclaude_usage_terminal_host.test.mjs\nclaude_usage_terminal_worker.js\ncodex_cli_update.js\ncodex_cli_update.test.mjs\ncodex_runtime_service.js\ncodex_runtime_service.test.mjs\ncodex_usage_poller.js\ncodex_usage_poller.test.mjs\nproject_agent_token_usage.js\nproject_agent_token_usage.test.mjs\nusage_metrics_service.js\nusage_metrics_service.test.mjs",
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-20",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01WhpyE6BEKvCwQWmfe5tdrE",
+          "sequence": 20,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:34:59.313Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "const { normalizedContent } = require('./agent_event_utils');\nconst { boundedAgentResult } = require('../../../../shared/agent_conversations.mjs');\nconst { ClaudeFileResultDecoder, claudeUsage } = require('./agent_claude_events');\nconst { isMissingSession } = require('./agent_provider_protocol');\n\nconst CLAUDE_APPROVAL_DECISIONS = ['accept', 'acceptForSession', 'decline', 'cancel'];\nconst CLAUDE_CONTEXT_USAGE_TIMEOUT_MS = 1_000;\nconst CLAUDE_FILE_TOOLS = new Set(['Edit', 'MultiEdit', 'NotebookEdit', 'Write']);\nconst CLAUDE_QUESTION_TOOL = 'AskUserQuestion';\nconst CLAUDE_SUB_AGENT_TOOL = 'Agent';\nconst CLAUDE_SUB_AGENT_MESSAGE_TYPE = 'agentMessage';\nconst DEFAULT_SUB_AGENT_LABEL = 'Sub agent';\n\nfunction requireMessage(content) {\n    if (typeof content !== 'string' || content.trim().length === 0) throw new Error('Streaming agent message is required');\n\n    return content;\n}\n\n/**\n * Claude stamps every frame produced by a sub agent with the id of the `Agent` tool call that\n * spawned it. That id is the stream key: the main agent owns the `null` key, each sub agent owns\n * its own, and a sub agent spawned by a sub agent owns the id of the nested `Agent` call.\n */\nfunction claudeStreamKey(value) {\n    const parentToolUseId = value?.parent_tool_use_id;\n\n    return typeof parentToolUseId === 'string' && parentToolUseId.length > 0 ? parentToolUseId : null;\n}\n\n/** Generated ids are only unique within one stream, so the owning stream key namespaces them. */\nfunction namespacedItemId(streamKey, itemId) {\n    return streamKey ? `${streamKey}:${itemId}` : itemId;\n}\n\nfunction claudeSubAgentLabel(input) {\n    if (!input || typeof input !== 'object' || Array.isArray(input)) return null;\n    const { description, subagent_type: subagentType } = input;\n    if (typeof subagentType === 'string' && subagentType.length > 0) return subagentType;\n\n    return typeof description === 'string' && description.length > 0 ? description : null;\n}\n\nfunction claudeUserMessage(content) {\n    return { message: { content, role: 'user' }, type: 'user' };\n}\n\nfunction claudeControlResponse(requestId, response) {\n    return {\n        response: { request_id: requestId, response, subtype: 'success' },\n        type: 'control_response',\n    };\n}\n\nfunction claudeContextUsageRequest(requestId) {\n    return {\n        request: { subtype: 'get_context_usage' },\n        request_id: requestId,\n        type: 'control_request',\n    };\n}\n\nfunction claudeContextWindowUsage(event) {\n    const response = event.response;\n    if (!response || typeof response !== 'object' || Array.isArray(response) || response.subtype !== 'success') return null;\n    const contextUsage = response.response;\n    if (!contextUsage || typeof contextUsage !== 'object' || Array.isArray(contextUsage)) return null;\n    const { maxTokens, totalTokens } = contextUsage;\n    if (!Number.isSafeInteger(totalTokens) || totalTokens < 0) return null;\n    if (!Number.isSafeInteger(maxTokens) || maxTokens <= 0) return null;\n\n    return { capacityTokens: maxTokens, usedTokens: totalTokens };\n}\n\nfunction claudeQuestionRequest(event) {\n    if (event.type !== 'control_request' || event.request?.subtype !== 'can_use_tool') return null;\n    if (event.request.tool_name !== CLAUDE_QUESTION_TOOL || !Array.isArray(event.request.input?.questions)) return null;\n\n    const questions = event.request.input.questions.map((question, index) => ({\n        ...question,\n        id: question.id ?? `claude-question-${index}`,\n    }));\n\n    return {\n        input: event.request.input,\n        questions,\n        requestId: event.request_id,\n        toolUseId: event.request.tool_use_id,\n    };\n}\n\nfunction approvalFilePaths(toolName, input) {\n    if (!CLAUDE_FILE_TOOLS.has(toolName) || !input || typeof input !== 'object' || Array.isArray(input)) return [];\n    const filePath = toolName === 'NotebookEdit' ? input.notebook_path : input.file_path;\n\n    return typeof filePath === 'string' && filePath.length > 0 ? [filePath] : [];\n}\n\n/**\n * Returns `{ error }` rather than throwing for a malformed request: sub agents put frame shapes on\n\n[783 characters omitted]\nmissing Claude approval tool name', streamKey: parentItemId };\n    }\n    if (typeof toolUseId !== 'string' || toolUseId.length === 0) {\n        return { error: 'missing Claude approval tool use id', streamKey: parentItemId };\n    }\n    if (!input || typeof input !== 'object' || Array.isArray(input)) {\n        return { error: 'missing Claude approval input', streamKey: parentItemId };\n    }\n    if (permissionSuggestions !== undefined && !Array.isArray(permissionSuggestions)) {\n        return { error: 'invalid Claude approval permission suggestions', streamKey: parentItemId };\n    }\n    const availableDecisions = permissionSuggestions?.length > 0\n        ? CLAUDE_APPROVAL_DECISIONS\n        : CLAUDE_APPROVAL_DECISIONS.filter((decision) => decision !== 'acceptForSession');\n    const approval = {\n        approvalId: toolUseId,\n        availableDecisions,\n        command: toolName === 'Bash' && typeof input.command === 'string' ? input.command : null,\n        cwd: typeof input.cwd === 'string' ? input.cwd : null,\n        filePaths: approvalFilePaths(toolName, input),\n        input: structuredClone(input),\n        itemId: toolUseId,\n        kind: toolName === 'Bash' ? 'commandExecution' : CLAUDE_FILE_TOOLS.has(toolName) ? 'fileChange' : 'toolUse',\n        ...(parentItemId ? { parentItemId } : {}),\n        permissionSuggestions: structuredClone(permissionSuggestions ?? []),\n        provider: 'claude',\n        reason: event.request.decision_reason ?? event.request.reason ?? null,\n        requestId: event.request_id,\n        startedAtMs: Date.now(),\n        ...(parentItemId ? { subAgentLabel: subAgentLabels.get(parentItemId) ?? DEFAULT_SUB_AGENT_LABEL } : {}),\n        toolName,\n    };\n\n    return { approval, input, permissionSuggestions: permissionSuggestions ?? [], toolUseId };\n}\n\nfunction claudeApprovalResponse(pendingApproval, decision) {\n    const { input, permissionSuggestions, toolUseId } = pendingApproval;\n    if (decision === 'accept') return { behavior: 'allow', toolUseID: toolUseId, updatedInput: input };\n    if (decision === 'acceptForSession') {\n        return {\n            behavior: 'allow',\n            toolUseID: toolUseId,\n            updatedInput: input,\n            updatedPermissions: permissionSuggestions,\n        };\n    }\n    if (decision === 'decline') {\n        return { behavior: 'deny', message: 'User declined this tool request', toolUseID: toolUseId };\n    }\n\n    return { behavior: 'deny', interrupt: true, message: 'User stopped the turn', toolUseID: toolUseId };\n}\n\nfunction isClaudeMissingSessionResult(event, providerConversationId) {\n    if (!providerConversationId || event.type !== 'result' || event.is_error !== true) return false;\n    if (event.session_id !== providerConversationId || !Array.isArray(event.errors)) return false;\n\n    return event.errors.includes(`No conversation found with session ID: ${providerConversationId}`);\n}\n\nfunction eventBase(providerItemId, type, label, status = 'inProgress') {\n    return { content: '', label, providerItemId, status, type };\n}\n\n/** Sub-agent activity carries the spawning `Agent` tool-use id so the transcript can nest it. */\nfunction ownedEvent(event, streamKey) {\n    return streamKey ? { ...event, parentItemId: streamKey } : event;\n}\n\nfunction toolInputContent(input) {\n    if (typeof input === 'string') return input;\n\n    return JSON.stringify(input ?? {});\n}\n\n// Text blocks carry no provider id, so they are keyed by a per-message text ordinal instead of the raw\n// content-block index. The ordinal is index-independent, so a leading thinking/tool block shifting the\n// aggregated array does not break the streamed↔aggregated reconciliation across an `AskUserQuestion` pause.\nfunction claudeTextItemId(messageId, textOrdinal) {\n    return `${messageId}:text:${textOrdinal}`;\n}\n\nfunction claudeToolEvent(block, status = 'inProgress', providerItemId = block.id) {\n    const base = eventBase(providerItemId, `tool.${block.name}`, block.name, status);\n    if (block.name === 'Bash') {\n        return {\n            ...base,\n            command: block.input?.command,",
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-21",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_015HUkXCm3Fh7E4M3kVzs99c",
+          "sequence": 21,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:35:01.927Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-22",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKr4hSc196zjFbUphytw:thinking:0",
+          "sequence": 22,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:35:05.551Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "app/src/components/actions/agent/action_agent_approval.test.tsx\napp/src/components/actions/agent/action_agent_approval.tsx\napp/src/components/actions/conversation/action_conversation_rendering.test.tsx\napp/src/components/actions/conversation/action_conversation_render_groups.ts\napp/src/data/action_run_types.ts\napp/src/data/data_types.ts\napp/src/services/agents/agent_conversation_service.node.test.ts\ndesktop/src/actions/agent/agent_claude_streaming_adapter.js\ndesktop/src/actions/agent/agent_conversation.js\ndesktop/src/actions/agent/agent_conversation.test.mjs\ndesktop/src/actions/agent/agent_streaming_adapter.test.mjs\nshared/agent_conversations.mjs",
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-23",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01EuYt6dc4mLAZzXgKgn8zJi",
+          "sequence": 23,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:35:05.785Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "app/src/components/actions/conversation/action_conversation_render_groups.ts:30:    kind: 'subAgent'\napp/src/components/actions/conversation/action_conversation_render_groups.ts:71:function subAgentLabel(entry: AgentConversationEventEntry, children: AgentConversationEventEntry[]) {\napp/src/components/actions/conversation/action_conversation_render_groups.ts:99:    let parentItemId = entry.parentItemId\napp/src/components/actions/conversation/action_conversation_render_groups.ts:100:    while (parentItemId) {\napp/src/components/actions/conversation/action_conversation_render_groups.ts:101:        if (parentItemId === ancestorId) return true\napp/src/components/actions/conversation/action_conversation_render_groups.ts:102:        if (visitedParentIds.has(parentItemId)) return false\napp/src/components/actions/conversation/action_conversation_render_groups.ts:103:        visitedParentIds.add(parentItemId)\napp/src/components/actions/conversation/action_conversation_render_groups.ts:104:        parentItemId = agentCalls.get(parentItemId)?.parentItemId\napp/src/components/actions/conversation/action_conversation_render_groups.ts:138:                kind: 'subAgent',\napp/src/components/actions/conversation/action_conversation_render_groups.ts:139:                label: subAgentLabel(entry, descendants),\napp/src/data/action_run_types.ts:113:    parentItemId?: string | null\napp/src/data/action_run_types.ts:121:    subAgentLabel?: string | null\nshared/agent_conversations.mjs:137:    const parentItemId = optionalString(value.parentItemId);\nshared/agent_conversations.mjs:156:        ...(parentItemId ? { parentItemId } : {}),",
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-24",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_013XqcbxmsoDXDGA5aNKszt3",
+          "sequence": 24,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:35:08.121Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "import type {\n    AgentConversationEntry,\n    AgentConversationEventEntry,\n} from '../../../data/data_types'\nimport { eventIdentity } from './event_display'\n\nconst TOOL_CALL_EVENT_TYPES = new Set([\n    'collabAgentToolCall',\n    'commandExecution',\n    'dynamicToolCall',\n    'fileChange',\n    'imageView',\n    'mcpToolCall',\n    'webSearch',\n])\nconst DEFAULT_SUB_AGENT_LABEL = 'Sub agent'\n\nexport type ActionConversationRenderGroup = {\n    entries: AgentConversationEventEntry[]\n    key: string\n    kind: 'completedToolCalls'\n} | {\n    entry: AgentConversationEntry\n    key: string\n    kind: 'entry'\n} | {\n    entry: AgentConversationEventEntry\n    groups: ActionConversationRenderGroup[]\n    key: string\n    kind: 'subAgent'\n    label: string\n}\n\nfunction isToolCall(entry: AgentConversationEventEntry) {\n    return TOOL_CALL_EVENT_TYPES.has(entry.type) || entry.type.startsWith('tool.')\n}\n\nfunction isCompletedToolCall(entry: AgentConversationEventEntry) {\n    return entry.status === 'completed' && isToolCall(entry)\n}\n\nfunction appendCompletedToolCallRun(\n    groups: ActionConversationRenderGroup[],\n    entries: AgentConversationEventEntry[],\n) {\n    if (entries.length === 0) return\n    if (entries.length === 1) {\n        const [entry] = entries\n        groups.push({ entry, key: eventIdentity(entry), kind: 'entry' })\n        return\n    }\n\n    groups.push({ entries, key: eventIdentity(entries[0]), kind: 'completedToolCalls' })\n}\n\nfunction parsedToolInput(content: string) {\n    try {\n        const parsed: unknown = JSON.parse(content)\n        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null\n\n        return parsed as Record<string, unknown>\n    } catch {\n        return null\n    }\n}\n\n/**\n * The spawning `Agent` call names the sub agent in its input, but that input is still partial JSON\n * while the call streams, so a label already carried by the sub agent's own entries is the fallback.\n */\nfunction subAgentLabel(entry: AgentConversationEventEntry, children: AgentConversationEventEntry[]) {\n    const input = parsedToolInput(entry.content)\n    const subagentType = input?.subagent_type\n    if (typeof subagentType === 'string' && subagentType.length > 0) return subagentType\n    const description = input?.description\n    if (typeof description === 'string' && description.length > 0) return description\n    const labelled = children.find((child) => (\n        child.type === 'agentMessage' && typeof child.label === 'string' && child.label.length > 0\n    ))\n\n    return labelled?.label ?? DEFAULT_SUB_AGENT_LABEL\n}\n\nfunction agentCallsByProviderId(entries: AgentConversationEntry[]) {\n    return new Map(entries\n        .filter((entry): entry is AgentConversationEventEntry => (\n            entry.kind === 'event' && entry.type === 'tool.Agent' && !!entry.providerItemId\n        ))\n        .map((entry) => [entry.providerItemId as string, entry]))\n}\n\nfunction isDescendantOf(\n    entry: AgentConversationEntry,\n    ancestorId: string,\n    agentCalls: Map<string, AgentConversationEventEntry>,\n) {\n    if (entry.kind !== 'event') return false\n    const visitedParentIds = new Set<string>()\n    let parentItemId = entry.parentItemId\n    while (parentItemId) {\n        if (parentItemId === ancestorId) return true\n        if (visitedParentIds.has(parentItemId)) return false\n        visitedParentIds.add(parentItemId)\n        parentItemId = agentCalls.get(parentItemId)?.parentItemId\n    }\n\n    return false\n}\n\nfunction buildGroups(entries: AgentConversationEntry[], agentCalls: Map<string, AgentConversationEventEntry>) {\n    const groups: ActionConversationRenderGroup[] = []\n    let completedToolCalls: AgentConversationEventEntry[] = []\n\n    for (let index = 0; index < entries.length; index += 1) {\n        const entry = entries[index]\n        const isAgentCall = entry.kind === 'event' && entry.type === 'tool.Agent' && !!entry.providerItemId\n        if (entry.kind === 'event' && !isAgentCall && isCompletedToolCall(entry)) {\n            completedToolCalls.push(entry)\n            continue\n        }\n\n        appendCompletedToolCallRun(groups, completedToolCalls)\n        completedToolCalls = []\n        if (isAgentCall) {\n            const descendants: AgentConversationEventEntry[] = []\n            while (index + 1 < entries.length && isDescendantOf(entries[index + 1], entry.providerItemId as string, agentCalls)) {\n                index += 1\n                descendants.push(entries[index] as AgentConversationEventEntry)\n            }\n            if (descendants.length === 0) {\n                groups.push({ entry, key: eventIdentity(entry), kind: 'entry' })\n                continue\n            }\n            groups.push({\n                entry,\n                groups: buildGroups(descendants, agentCalls),\n                key: eventIdentity(entry),\n                kind: 'subAgent',\n                label: subAgentLabel(entry, descendants),\n            })\n            continue\n        }\n        const key = entry.kind === 'event' ? eventIdentity(entry) : entry.id\n        groups.push({ entry, key, kind: 'entry' })\n    }\n\n    appendCompletedToolCallRun(groups, completedToolCalls)\n\n    return groups\n}\n\n/** Builds UI-only groups without changing canonical conversation entries. */\nexport function buildActionConversationRenderGroups(entries: AgentConversationEntry[]) {\n    return buildGroups(entries, agentCallsByProviderId(entries))\n}\n=====\naction_conversation_chat.test.tsx\naction_conversation_chat.tsx\naction_conversation_chat_owner.test.tsx\naction_conversation_chat_owner.tsx\naction_conversation_event_row.tsx\naction_conversation_link.tsx\naction_conversation_link_context.ts\naction_conversation_link_navigation.node.test.ts\naction_conversation_link_navigation.ts\naction_conversation_message.tsx\naction_conversation_picker.test.tsx\naction_conversation_picker.tsx\naction_conversation_picker_data.ts\naction_conversation_picker_owner.tsx\naction_conversation_render_groups.ts\naction_conversation_rendering.test.tsx\naction_conversation_reservation.node.test.ts\naction_conversation_reservation.ts\naction_conversation_reserved_block.tsx\naction_conversation_store.node.test.ts\naction_conversation_store.ts\naction_conversation_url_transform.ts\naction_list_error.test.tsx\naction_log_error_display.test.tsx\naction_log_error_display.tsx\naction_log_error_owner.node.test.ts\naction_log_error_owner.tsx\naction_log_error_selector.ts\naction_queued_prompt.tsx\nagent_tool_event.tsx\ncommand_execution_event.tsx\ncommit_reference_row.tsx\ncompleted_tool_call_group.tsx\nconversation_context_window.node.test.ts\nconversation_context_window.ts\nconversation_duration.ts\nconversation_timer.test.tsx\nconversation_timer.tsx\ndiff_line_mapping.ts\ndiff_view.test.tsx\ndiff_view.tsx\nevent_display.ts\nreasoning_display.test.ts\nreasoning_display.ts\nreasoning_event.test.tsx\nreasoning_event.tsx\nsub_agent_group.tsx",
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-25",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01FtYQR2rtpgAzNyqKZTCGvT",
+          "sequence": 25,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:35:10.829Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-26",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKr5MGSFNekzphQhvDD5:thinking:0",
+          "sequence": 26,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:35:15.979Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "design/activity/card__1c141485-6431-438a-a4ca-9443f75443e2.json\ndesign/activity/card__573854b5-fd44-4868-918e-56fdb505a905.json\ndesign/activity/card__93f10274-10fd-48a2-9c07-bf50b9f970c8.json\ndesign/activity/card__b7885271-1cd8-4927-9f68-661c0d87a61f.json\ndesign/activity/card__bfad1b82-e967-48bc-af8f-a11ce1fa4a55.json\ndesign/activity/card__c8999726-4f9a-4963-ba9b-7c32b2190156.json\ndesign/activity/card__e9e0858d-a215-42bb-873e-01848ea6a803.json\ndesign/feature_descriptions/F_214_improve_support_child_threads.md\ndesign/releases/0_1_0/card__16bc6dc5-0f8e-421d-b0a9-c83d3a3a65f0.json\ndesign/releases/0_1_0/card__88a28fc1-ccbf-4d02-b560-c6726a0394dc.json\ndesign/releases/0_1_0/card__9df160a1-c669-422b-aea5-da5655c12134.json\ndesign/releases/0_1_0/card__b9792dd7-f034-4b29-9da5-04fc8cea37c9.json\ndesign/releases/0_2_0/card__0ef8b9a6-ac40-4617-b077-17260b17a61c.json\ndesign/releases/0_2_0/card__3616573b-1a04-4f9f-aa5c-88ae92cb1188.json\ndesign/releases/0_2_0/card__a2cf4f9a-dc7f-417e-8591-c5993e770738.json\ndesign/releases/0_2_0/card__d078e271-bd1a-4a6d-86a0-d9cf3264c7e0.json\ndesign/releases/0_3_0/card__012efbb1-c938-4539-a646-0f263e72dea6.json\ndesign/releases/0_3_0/card__2b696eca-93cd-48b1-a237-b3cb9658e1d8.json\ndesign/releases/0_3_0/card__4bb52e4a-38c7-47bd-9fe8-c49cdd08c0b0.json\ndesign/releases/0_3_0/card__6874b231-0cef-4a8a-8b0b-cc91f3daff42.json\ndesign/releases/0_3_0/card__894c324e-d9cf-400f-b964-5256ffff9b24.json\ndesign/releases/0_4_0/B_150_codex_shows_incorrect_waiting_for_input.md\ndesign/releases/0_4_0/card__065a1db8-981d-4e22-8d62-8f8cc5995408.json\ndesign/releases/0_4_0/card__12faf0b2-355c-4860-b04b-6d5523a5c137.json\ndesign/releases/0_4_0/card__146d495f-955a-4b9d-bf70-80520208883d.json\ndesign/releases/0_4_0/card__168acbb7-c395-4962-9e69-96ec1fb6a594.json\ndesign/releases/0_4_0/card__2433b65f-efed-4a22-af41-529cd35af655.json\ndesign/releases/0_4_0/card__332eb86e-d703-4707-a8de-0bdec67e23f5.json\ndesign/releases/0_4_0/card__4191dc0a-7628-45bf-ada1-b1366e9f05f9.json\ndesign/releases/0_4_0/card__5936b8d1-a0b9-4d53-9edf-e753e80796dd.json",
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-27",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01KJantG14RmbXa7zezR3jRh",
+          "sequence": 27,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:35:17.881Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-28",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKr5srhD8VMWdo2NqGWy:thinking:0",
+          "sequence": 28,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:35:20.339Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "desktop/src/actions/agent/agent_codex_event.js:11:    'collabAgentToolCall',\ndesktop/src/actions/agent/agent_codex_event.js:280:    if (type === 'collabAgentToolCall') return collaborationEvent(normalizedItem, lifecycleStatus);\ndesktop/src/actions/agent/agent_streaming_adapter.test.mjs:982:            type: 'collabAgentToolCall',\ndesktop/src/actions/agent/agent_transcript.js:6:    'collabAgentToolCall',\napp/src/components/actions/conversation/action_conversation_chat.test.tsx:821:            toolEvent('Collaboration call', 'collabAgentToolCall'),\napp/src/components/actions/conversation/action_conversation_chat.test.tsx:935:            toolEvent('Declined call', 'collabAgentToolCall', 'declined'),\napp/src/components/actions/conversation/action_conversation_render_groups.ts:8:    'collabAgentToolCall',\nshared/project_stats.mjs:8:    'collabAgentToolCall',",
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-29",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_012NrgkqHJcwNxF5zVqNZSdq",
+          "sequence": 29,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:35:21.324Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "        await adapter.handleMessage({ id: 1, result: {} });\n        await adapter.handleMessage({\n            id: 2,\n            result: { rateLimitResetCredits: null, rateLimits, rateLimitsByLimitId: null },\n        });\n        await adapter.handleMessage({\n            method: 'account/rateLimits/updated',\n            params: { rateLimits: { ...rateLimits, primary: { ...rateLimits.primary, usedPercent: 30 } } },\n        });\n\n        expect(runtimeEvents).toEqual([\n            expect.objectContaining({ kind: 'snapshot', payload: expect.objectContaining({ rateLimits }) }),\n            expect.objectContaining({ kind: 'update', payload: expect.objectContaining({ rateLimits: expect.any(Object) }) }),\n        ]);\n\n        const unavailable = harness('codex');\n        await unavailable.adapter.start('plan');\n        await unavailable.adapter.handleMessage({ id: 1, result: {} });\n        await unavailable.adapter.handleMessage({ error: { message: 'not logged in' }, id: 2 });\n        expect(unavailable.runtimeEvents).toEqual([expect.objectContaining({ kind: 'unavailable' })]);\n        expect(unavailable.events).toEqual([]);\n    });\n\n    it('ignores child-thread notifications while preserving root collaboration and completion', async () => {\n        const { adapter, events, runtimeEvents, writes } = harness('codex');\n        const rootCollaborationItem = {\n            agentsStates: { 'thread-child': { status: 'running' } },\n            id: 'wait-1',\n            prompt: '',\n            receiverThreadIds: ['thread-child'],\n            status: 'inProgress',\n            tool: 'wait',\n            type: 'collabAgentToolCall',\n        };\n\n        await adapter.start('plan');\n        await adapter.handleMessage({ id: 1, result: {} });\n        await adapter.handleMessage({ id: 3, result: { thread: { id: 'thread-root' } } });\n        await adapter.handleMessage({\n            method: 'turn/started',\n            params: { threadId: 'thread-root', turn: { id: 'turn-root' }, turnId: 'turn-root' },\n        });\n        await adapter.handleMessage({\n            method: 'item/started',\n            params: { item: rootCollaborationItem, threadId: 'thread-root', turnId: 'turn-root' },\n        });\n        const eventCountBeforeChildNotifications = events.length;\n        await adapter.handleMessage({\n            method: 'turn/started',\n            params: { threadId: 'thread-child', turn: { id: 'turn-child' }, turnId: 'turn-child' },\n        });\n        await adapter.handleMessage({\n            method: 'item/started',\n            params: {\n                item: { id: 'child-message', phase: null, text: '', type: 'agentMessage' },\n                threadId: 'thread-child',\n                turnId: 'turn-child',\n            },\n        });\n        await adapter.handleMessage({\n            method: 'thread/tokenUsage/updated',\n            params: {\n                threadId: 'thread-child',\n                tokenUsage: {\n                    last: { cachedInputTokens: 0, inputTokens: 10, outputTokens: 2, totalTokens: 12 },\n                    modelContextWindow: 100_000,\n                },\n                turnId: 'turn-child',\n            },\n        });\n        await adapter.handleMessage({\n            method: 'turn/completed',\n            params: {\n                threadId: 'thread-child',\n                turn: { id: 'turn-child', status: 'completed' },\n                turnId: 'turn-child',\n            },\n        });\n\n        expect(events).toHaveLength(eventCountBeforeChildNotifications);\n        await adapter.sendMessage('root still running');",
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-30",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_011b2wpW5tKmzfJFAsaPeBZk",
+          "sequence": 30,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:35:23.408Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-31",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKr6H6giUz8YqngPCmfu:thinking:0",
+          "sequence": 31,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:35:32.994Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "import ExpandLessOutlined from '@mui/icons-material/ExpandLessOutlined'\r\nimport ExpandMoreOutlined from '@mui/icons-material/ExpandMoreOutlined'\r\nimport { Box, Button, Typography } from '@mui/material'\r\nimport { useState } from 'react'\r\nimport type { AgentConversationEventEntry } from '../../../data/data_types'\r\nimport { ActionConversationEventRow } from './action_conversation_event_row'\r\nimport { CompletedToolCallGroup } from './completed_tool_call_group'\r\nimport type { ActionConversationRenderGroup } from './action_conversation_render_groups'\r\n\r\ninterface SubAgentGroupProps {\r\n    entry: AgentConversationEventEntry\r\n    groups: ActionConversationRenderGroup[]\r\n    label: string\r\n}\r\n\r\nfunction groupEntryCount(groups: ActionConversationRenderGroup[]): number {\r\n    return groups.reduce((count, group) => {\r\n        if (group.kind === 'completedToolCalls') return count + group.entries.length\r\n        if (group.kind === 'subAgent') return count + 1 + groupEntryCount(group.groups)\r\n\r\n        return count + 1\r\n    }, 0)\r\n}\r\n\r\n/** Shows one sub agent's text, thinking and tool calls under the `Agent` call that spawned it. */\r\nexport function SubAgentGroup({ entry, groups, label }: SubAgentGroupProps) {\r\n    const [expanded, setExpanded] = useState(false)\r\n    const toggleExpanded = () => {\r\n        setExpanded((current) => !current)\r\n    }\r\n\r\n    return (\r\n        <Box\r\n            aria-label={`Sub agent ${label}`}\r\n            role=\"group\"\r\n            sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, flexShrink: 0, minWidth: 0, overflow: 'hidden' }}\r\n        >\r\n            <ActionConversationEventRow entry={entry} grouped />\r\n            <Button\r\n                aria-expanded={expanded}\r\n                aria-label={`${label} entries`}\r\n                endIcon={expanded ? <ExpandLessOutlined /> : <ExpandMoreOutlined />}\r\n                fullWidth\r\n                onClick={toggleExpanded}\r\n                sx={{ color: 'text.secondary', justifyContent: 'space-between', minWidth: 0, px: 1, py: 0.75, textAlign: 'left' }}\r\n            >\r\n                <Typography noWrap sx={{ minWidth: 0 }} variant=\"caption\">{label} ({groupEntryCount(groups)})</Typography>\r\n            </Button>\r\n            {expanded ? groups.map((group) => {\r\n                if (group.kind === 'completedToolCalls') {\r\n                    return <CompletedToolCallGroup entries={group.entries} key={group.key} />\r\n                }\r\n                if (group.kind === 'subAgent') {\r\n                    return <SubAgentGroup entry={group.entry} groups={group.groups} key={group.key} label={group.label} />\r\n                }\r\n                if (group.entry.kind !== 'event') return null\r\n\r\n                return (\r\n                    <Box key={group.key} sx={{ borderColor: 'divider', minWidth: 0 }}>\r\n                        <ActionConversationEventRow entry={group.entry} grouped />\r\n                    </Box>\r\n                )\r\n            }) : null}\r\n        </Box>\r\n    )\r\n}\r\n=====\n    const id = optionalString(value.id);\n    const timestamp = optionalString(value.timestamp);\n    if (!id || !timestamp) return null;\n    const agent = optionalString(value.agent);\n    const sequence = optionalInteger(value.sequence);\n\n    return {\n        ...(agent ? { agent } : {}),\n        content: value.content,\n        id,\n        kind: 'message',\n        role: value.role,\n        ...(sequence !== null ? { sequence } : {}),\n        timestamp,\n    };\n}\n\nfunction normalizeEvent(value) {\n    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;\n    if (typeof value.content !== 'string') return null;\n    const id = optionalString(value.id);\n    const timestamp = optionalString(value.timestamp);\n    const type = optionalString(value.type);\n    if (!id || !timestamp || !type) return null;\n    const command = optionalString(value.command);\n    const content = value.type === 'commandExecution' || value.type === 'tool.result'\n        ? boundedAgentResult(value.content)\n        : value.content;\n    const deletions = optionalNonNegativeInteger(value.deletions);\n    const details = optionalStringArray(value.details);\n    const durationMs = optionalNumber(value.durationMs);\n    const exitCode = optionalInteger(value.exitCode);\n    const insertions = optionalNonNegativeInteger(value.insertions);\n    const label = optionalString(value.label);\n    const output = value.type !== 'commandExecution' && typeof value.output === 'string'\n        ? boundedAgentResult(value.output)\n        : null;\n    const parentItemId = optionalString(value.parentItemId);\n    const providerItemId = optionalString(value.providerItemId);\n    const sequence = optionalInteger(value.sequence);\n    const status = optionalString(value.status);\n    const summary = optionalStringArray(value.summary);\n    const workingDirectory = optionalString(value.workingDirectory);\n\n    return {\n        ...(command ? { command } : {}),\n        content,\n        ...(deletions !== null ? { deletions } : {}),\n        ...(details ? { details } : {}),\n        ...(durationMs !== null ? { durationMs } : {}),\n        ...(exitCode !== null ? { exitCode } : {}),\n        id,\n        ...(insertions !== null ? { insertions } : {}),\n        kind: 'event',\n        ...(label ? { label } : {}),\n        ...(output !== null ? { output } : {}),\n        ...(parentItemId ? { parentItemId } : {}),\n        ...(providerItemId ? { providerItemId } : {}),\n        ...(sequence !== null ? { sequence } : {}),\n        ...(status ? { status } : {}),\n        ...(summary ? { summary } : {}),\n        timestamp,\n        type,\n        ...(workingDirectory ? { workingDirectory } : {}),\n    };\n}\n\nfunction normalizeProviderSession(value) {\n    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;\n    const agent = optionalString(value.agent);\n    const conversationId = optionalString(value.conversationId);\n    const createdAt = optionalString(value.createdAt);\n    const lastUsedAt = optionalString(value.lastUsedAt);\n    const synchronizedThroughMessageId = optionalString(value.synchronizedThroughMessageId);\n    if (!agent || !conversationId || !createdAt || !lastUsedAt || !synchronizedThroughMessageId) return null;\n\n    return { agent, conversationId, createdAt, lastUsedAt, synchronizedThroughMessageId };\n}\n\nfunction normalizeContextWindowUsage(value) {\n    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;\n    const { capacityTokens, usedTokens } = value;\n    if (!Number.isSafeInteger(usedTokens) || usedTokens < 0) return null;\n    if (!Number.isSafeInteger(capacityTokens) || capacityTokens <= 0) return null;\n\n    return { capacityTokens, usedTokens };\n}\n\nfunction normalizeTimer(value) {\n    if (!value || typeof value !== 'object' || Array.isArray(value)) {\n        throw new Error('Malformed agent conversation: invalid timer');\n    }\n    const { elapsedMs, runningStartedAt } = value;\n    if (typeof elapsedMs !== 'number' || !Number.isFinite(elapsedMs) || elapsedMs < 0) {\n        throw new Error('Malformed agent conversation: invalid timer.elapsedMs');\n    }\n    if (runningStartedAt !== null\n        && (typeof runningStartedAt !== 'string' || Number.isNaN(Date.parse(runningStartedAt)))) {\n        throw new Error('Malformed agent conversation: invalid timer.runningStartedAt');\n    }",
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-32",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01NUcTk6gDfs8yyEQC5CCjaE",
+          "sequence": 32,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:35:33.751Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-33",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKr73RCKE1Y6HMPNSSR3:thinking:0",
+          "sequence": 33,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:35:40.453Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "            command: block.input?.command,\n            content: block.input?.command ?? toolInputContent(block.input),\n            label: block.input?.command ?? 'Bash',\n            type: 'commandExecution',\n            workingDirectory: block.input?.cwd,\n        };\n    }\n    if (CLAUDE_FILE_TOOLS.has(block.name)) {\n        const filePaths = approvalFilePaths(block.name, block.input);\n        const content = typeof block.input === 'string' ? block.input : filePaths.join('\\n');\n\n        return { ...base, content, label: block.name, type: 'fileChange' };\n    }\n\n    return { ...base, content: toolInputContent(block.input) };\n}\n\nfunction createStreamState() {\n    return { activeBlocks: new Map(), activeMessageId: null, activeTextOrdinal: 0, turnHasAssistantText: false };\n}\n\nclass ClaudeStreamingAdapter {\n    constructor(writeLine, onEvent, rootPath, providerConversationId) {\n        this.writeLine = writeLine;\n        this.onEvent = onEvent;\n        this.pendingApprovals = new Map();\n        this.pendingQuestions = new Map();\n        this.providerConversationId = providerConversationId;\n        this.rootPath = rootPath;\n        // One record per stream, so interleaved parent and sub-agent frames cannot clear each other.\n        this.streamStates = new Map();\n        this.subAgentLabels = new Map();\n        // Tool calls outlive the message that issued them: their result can arrive after the next\n        // `message_start`, and for a sub agent it arrives on a different stream entirely.\n        this.toolBlocks = new Map();\n        this.streamedTextItems = new Map();\n        this.protocolErrorSequence = 1;\n        this.contextUsageRequestSequence = 1;\n        this.pendingContextUsage = null;\n        this.fileResultDecoder = new ClaudeFileResultDecoder(rootPath);\n        this.turnStarted = false;\n    }\n\n    streamState(streamKey) {\n        const current = this.streamStates.get(streamKey);\n        if (current) return current;\n        const created = createStreamState();\n        this.streamStates.set(streamKey, created);\n\n        return created;\n    }\n\n    subAgentLabel(streamKey) {\n        return this.subAgentLabels.get(streamKey) ?? DEFAULT_SUB_AGENT_LABEL;\n    }\n\n    rememberSubAgent(block) {\n        if (block?.name !== CLAUDE_SUB_AGENT_TOOL || typeof block.id !== 'string') return;\n        const label = claudeSubAgentLabel(block.input);\n        if (label) this.subAgentLabels.set(block.id, label);\n    }\n\n    async start(prompt) {\n        await this.sendMessage(prompt);\n    }\n\n    async sendMessage(content) {\n        await this.writeLine(claudeUserMessage(requireMessage(content)));\n    }\n\n    async answerQuestion(requestId, answers) {\n        const pendingQuestion = this.pendingQuestions.get(requestId);\n        if (!pendingQuestion) throw new Error(`Unknown or stale Claude question request id: ${requestId}`);\n        if (pendingQuestion.submitted) throw new Error(`Claude question request was already submitted: ${requestId}`);\n        const mappedAnswers = Object.fromEntries(pendingQuestion.questions.map(({ id, question }) => {\n            if (!Object.hasOwn(answers, id)) throw new Error(`Missing answer for Claude question: ${id}`);\n\n            return [question, answers[id]];\n        }));\n        const updatedInput = { ...pendingQuestion.input, answers: mappedAnswers };\n        const response = { behavior: 'allow', toolUseID: pendingQuestion.toolUseId, updatedInput };\n        pendingQuestion.submitted = true;\n        try {\n            await this.writeLine(claudeControlResponse(requestId, response));\n        } catch (error) {\n            pendingQuestion.submitted = false;\n            throw error;\n        }\n        this.pendingQuestions.delete(requestId);\n    }\n\n    async dismissQuestion(requestId) {\n        const pendingQuestion = this.pendingQuestions.get(requestId);\n        if (!pendingQuestion) throw new Error(`Unknown or stale Claude question request id: ${requestId}`);\n        if (pendingQuestion.submitted) throw new Error(`Claude question request was already submitted: ${requestId}`);\n        const response = {\n\n[4092 characters omitted]\nvent);\n            return;\n        }\n        if (event.type === 'result') {\n            // Only the main agent's result ends the turn; a sub agent finishing must not clear the\n            // parent's pending approvals, report usage, or request context usage.\n            if (streamKey) {\n                this.streamStates.delete(streamKey);\n                return;\n            }\n            await this.handleResult(event);\n            return;\n        }\n        ClaudeStreamingAdapter.ignoreProtocolNoise();\n    }\n\n    async ensureTurnStarted() {\n        if (this.turnStarted) return;\n        this.turnStarted = true;\n        await this.onEvent({ type: 'turnStarted' });\n    }\n\n    async handleStreamEvent(streamEvent, streamKey = null) {\n        if (!streamEvent || typeof streamEvent.type !== 'string') {\n            await this.emitProtocolError('invalid stream event', streamKey);\n            return;\n        }\n        if (streamEvent.type === 'message_start') {\n            await this.ensureTurnStarted();\n            const state = this.streamState(streamKey);\n            state.activeMessageId = streamEvent.message?.id;\n            state.activeBlocks.clear();\n            state.activeTextOrdinal = 0;\n            if (typeof state.activeMessageId !== 'string' || state.activeMessageId.length === 0) {\n                await this.emitProtocolError('message_start missing message id', streamKey);\n            }\n            return;\n        }\n        if (streamEvent.type === 'content_block_start') {\n            await this.handleContentBlockStart(streamEvent, streamKey);\n            return;\n        }\n        if (streamEvent.type === 'content_block_delta') {\n            await this.handleContentBlockDelta(streamEvent, streamKey);\n            return;\n        }\n        if (streamEvent.type === 'content_block_stop' || streamEvent.type === 'message_delta' || streamEvent.type === 'message_stop') return;\n        ClaudeStreamingAdapter.ignoreProtocolNoise();\n    }\n\n    async handleContentBlockStart(streamEvent, streamKey) {\n        const state = this.streamState(streamKey);\n        const validBlock = !!streamEvent.content_block\n            && typeof streamEvent.content_block === 'object'\n            && !Array.isArray(streamEvent.content_block);\n        const { activeMessageId } = state;\n        if (!Number.isSafeInteger(streamEvent.index) || !validBlock || typeof activeMessageId !== 'string' || activeMessageId.length === 0) {\n            await this.emitProtocolError('invalid content_block_start', streamKey);\n            return;\n        }\n        const block = structuredClone(streamEvent.content_block);\n        const generatedItemId = block.type === 'text'\n            ? claudeTextItemId(activeMessageId, state.activeTextOrdinal++)\n            : `${activeMessageId}:${block.type}:${streamEvent.index}`;\n        const providerItemId = block.type === 'text'\n            ? namespacedItemId(streamKey, generatedItemId)\n            : block.id ?? namespacedItemId(streamKey, generatedItemId);\n        const separator = block.type === 'text' && !streamKey && state.turnHasAssistantText ? '\\n\\n' : '';\n        const trackedBlock = { block, inputJson: '', providerItemId, separator, streamKey, text: block.text ?? block.thinking ?? '' };\n        state.activeBlocks.set(streamEvent.index, trackedBlock);\n        if (block.type === 'text') {\n            if (streamKey) {\n                await this.onEvent({ event: this.subAgentTextEvent(streamKey, providerItemId, trackedBlock.text), type: 'event' });\n                return;\n            }\n            // Keyed by stable providerItemId so the later aggregated `assistant` message reconciles\n            // even after `message_start` of the next step has cleared `activeBlocks`.\n            this.streamedTextItems.set(providerItemId, { separator });\n            await this.onEvent({ itemId: providerItemId, type: 'assistantStarted' });\n            if (separator.length > 0) await this.onEvent({ content: separator, itemId: providerItemId, type: 'assistant' });\n            return;\n        }\n        if (block.type === 'thinking') {",
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-34",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_0112RbBfSGNLhdW8yfo4shcr",
+          "sequence": 34,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:35:40.928Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "460:                await this.onEvent({ event: this.subAgentTextEvent(streamKey, providerItemId, trackedBlock.text), type: 'event' });\n461-                return;\n462-            }\n463-            // Keyed by stable providerItemId so the later aggregated `assistant` message reconciles\n464-            // even after `message_start` of the next step has cleared `activeBlocks`.\n465-            this.streamedTextItems.set(providerItemId, { separator });\n466-            await this.onEvent({ itemId: providerItemId, type: 'assistantStarted' });\n467-            if (separator.length > 0) await this.onEvent({ content: separator, itemId: providerItemId, type: 'assistant' });\n468-            return;\n469-        }\n470-        if (block.type === 'thinking') {\n471-            const event = {\n472-                ...eventBase(providerItemId, 'reasoning', 'Thinking'),\n473-                content: trackedBlock.text,\n474-                details: [trackedBlock.text],\n475-                summary: [],\n476-            };\n477-            await this.onEvent({ event: ownedEvent(event, streamKey), type: 'event' });\n478-            return;\n479-        }\n480-        if (block.type === 'tool_use') {\n--\n487:    subAgentTextEvent(streamKey, providerItemId, content, status = 'inProgress') {\n488-        return {\n489-            ...eventBase(providerItemId, CLAUDE_SUB_AGENT_MESSAGE_TYPE, this.subAgentLabel(streamKey), status),\n490-            content,\n491-            parentItemId: streamKey,\n492-        };\n493-    }\n494-\n495-    async handleContentBlockDelta(streamEvent, streamKey) {\n496-        const state = this.streamState(streamKey);\n497-        const trackedBlock = state.activeBlocks.get(streamEvent.index);\n498-        if (!trackedBlock || !streamEvent.delta || typeof streamEvent.delta.type !== 'string') {\n499-            await this.emitProtocolError('invalid content_block_delta', streamKey);\n500-            return;\n501-        }\n502-        const { delta } = streamEvent;\n503-        if (delta.type === 'text_delta' && typeof delta.text === 'string' && trackedBlock.block.type === 'text') {\n504-            trackedBlock.text += delta.text;",
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-35",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01R4uaQqwvk9XayLHvGR3dSH",
+          "sequence": 35,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:35:43.279Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-36",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKr7kKpkSBJAkBiagN7k:thinking:0",
+          "sequence": 36,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:36:04.913Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "const { boundedAgentResult } = require('../../../../shared/agent_conversations.mjs');\n\nconst ESCAPE_CHARACTER = String.fromCharCode(27);\nconst ANSI_ESCAPE_PATTERN = new RegExp(`${ESCAPE_CHARACTER}\\\\[[0-?]*[ -/]*[@-~]`, 'gu');\nconst HANDOFF_EVENT_TYPES = new Set([\n    'collabAgentToolCall',\n    'commandExecution',\n    'dynamicToolCall',\n    'fileChange',\n    'mcpToolCall',\n    'plan',\n    'webSearch',\n]);\n\nfunction cleanContent(value) {\n    return value.replace(ANSI_ESCAPE_PATTERN, '').replace(/\\r/g, '').trim();\n}\n\nfunction messageLabel(message) {\n    if (message.role === 'user') return 'User';\n\n    return `Assistant${message.agent ? ` (${message.agent})` : ''}`;\n}\n\nfunction normalizeMessage(message) {\n    const content = cleanContent(message.content);\n    if (content.length === 0) return null;\n\n    return { content, label: messageLabel(message), sequence: message.sequence, timestamp: message.timestamp };\n}\n\nfunction normalizeEvent(event) {\n    if (event.type === 'error') {\n        const content = cleanContent(event.content);\n\n        return content.length > 0\n            ? { content, label: 'Failure', sequence: event.sequence, timestamp: event.timestamp }\n            : null;\n    }\n    if (event.type.startsWith('tool.')) {\n        const resultContent = event.type === 'tool.result' ? boundedAgentResult(event.content) : event.content;\n        const content = cleanContent(resultContent);\n        if (content.length === 0) return null;\n        const toolType = event.type.slice('tool.'.length);\n\n        return {\n            content,\n            label: toolType === 'result' ? 'Tool result' : `Tool (${toolType})`,\n            sequence: event.sequence,\n            timestamp: event.timestamp,\n        };\n    }\n    if (!HANDOFF_EVENT_TYPES.has(event.type)) return null;\n    const resultContent = event.type === 'commandExecution'\n        ? boundedAgentResult(event.content)\n        : event.content;\n    const output = typeof event.output === 'string' ? boundedAgentResult(event.output) : event.output;\n    const eventValues = event.type === 'commandExecution'\n        ? [event.command, resultContent]\n        : [event.command, resultContent, output];\n=====\n55:    if (typeof providerEvent.parentItemId === 'string' && providerEvent.parentItemId.length > 0) {\n56:        event.parentItemId = providerEvent.parentItemId;",
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-37",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_015pcaq12TbjcvqkV1aUkrSA",
+          "sequence": 37,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:36:05.898Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-38",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKr9RTp3LCtKkmF12LJ6:thinking:0",
+          "sequence": 38,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:36:10.568Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "10:import { buildActionConversationRenderGroups } from './action_conversation_render_groups'\n12:import { SubAgentGroup } from './sub_agent_group'\n56:    return buildActionConversationRenderGroups(visibleEntries)\n131:                    if (group.kind === 'subAgent') {\n132:                        return <SubAgentGroup entry={group.entry} groups={group.groups} key={group.key} label={group.label} />",
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-39",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01BY37mnK3d518GBdYgFB3iX",
+          "sequence": 39,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:36:11.437Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-40",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKr9rPkj9vpzG9GEtKQu:thinking:0",
+          "sequence": 40,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:36:15.864Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "CODEMAP.md\nImpossible to add card mobile.md\nSTYLE_GUIDE.md\nactions\nactivity\nagent_token_usage.json\narchitecture\ncommunications\nconfig_style_guide.md\nfeature_descriptions\nproject_stats.json\nreleases\nusage_metrics.csv",
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-41",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01BFjPezjG6M3zUzHJGNy2hF",
+          "sequence": 41,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:36:16.652Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-event-42",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKrADCeZaBWBcD6njr2n:thinking:0",
+          "sequence": 42,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:36:19.190Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nRecon done. Findings first, then plan.\n\n## What exists today\n\n**Codex child threads — dropped.** `desktop/src/actions/agent/agent_streaming_adapter.js:338`: `handleNotification` returns early when `params.threadId` differs from the root `threadId`. Every notification from a child thread (its `turn/started`, `item/started`, `item/completed`, deltas, token usage) is discarded. The only trace left is the parent-side `collabAgentToolCall` item, which `collaborationEvent` (`agent_codex_event.js:243`) renders as one flat row carrying `receiverThreadIds` and `agentsStates` as text.\n\n**Claude already does this properly.** Claude stamps sub-agent frames with `parent_tool_use_id`; `agent_claude_streaming_adapter.js` turns that into `parentItemId` on each event, sub-agent assistant text becomes an `agentMessage` event instead of main-thread text, and the UI nests it: `action_conversation_render_groups.ts` builds a `subAgent` group under each `tool.Agent` entry, rendered by `sub_agent_group.tsx` as a collapsible box. `parentItemId` already survives persistence (`shared/agent_conversations.mjs:137`).\n\nSo the work is: make Codex child threads produce the same `parentItemId`-stamped events, attached to the `collabAgentToolCall` item that owns the child thread, and make the existing group UI accept that parent type plus show a running state.\n\n## Change plan — blocks\n\n**Block 1 — Codex child-thread routing (desktop)**\n`agent_streaming_adapter.js`. Replace the single root-thread item bookkeeping (`activeItems`, `completedItemIds`) with one state record per thread id, root included. Register child threads when a `collabAgentToolCall` item starts: each id in `receiverThreadIds` (plus `agentsStates` keys) maps to that item's id, first registration wins so a later `wait` call does not re-parent a thread. `handleNotification` then routes a notification to its thread's state instead of dropping it; a thread id that is ne",
+          "id": "agent-turn-e32f686f-0a08-41ef-a26d-8c7d463fdacc-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 43,
+          "timestamp": "2026-08-23T14:36:28.498Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-9cf62e5a-90ce-4a10-aee3-8853ca4c9deb",
+      "providerSessions": [],
+      "startedAt": "2026-08-23T14:34:16.153Z",
+      "status": "cancelled",
+      "timer": {
+        "elapsedMs": 132216,
+        "runningStartedAt": null
+      },
+      "title": "implement",
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
@@ -131,11 +700,11 @@
         "agent-46f87bf1-f19c-4a75-94d5-c6272054b859"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-c1a937dd-819a-419f-bce8-75b51e07a001",
       "origin": {
@@ -144,9 +713,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-46f87bf1-f19c-4a75-94d5-c6272054b859",
       "startedAt": "2026-08-23T14:33:23.194Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-46f87bf1-f19c-4a75-94d5-c6272054b859"
     }
   ],
   "version": 5
