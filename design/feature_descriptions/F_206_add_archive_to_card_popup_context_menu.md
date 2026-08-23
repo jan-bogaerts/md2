@@ -11,15 +11,14 @@ agents:
 policy:
 after: 10a50270-fcab-4661-9d29-d966aa99eb1e
 ---
-
 No way to archive cards, add menu item in context menu
 
 Terms used below:
 
-- **archive a card**: move one card file, plus the assets that only that card references, into the project's configured `archivedFolder`, in a single commit that also repairs the ordering links of the cards left behind. The card stops being an active card and becomes a background card. This is not **delete** (which removes the file) and not **release** (which moves a whole set of cards, plus their activity logs, into a named release folder).
-- **card menu**: the MUI `Menu` built in `project_card_view.tsx:353`. One menu, two entry points: the three-dots button on the card (`openCardActions`) and right-click on the card body (`openCardContextMenu`, desktop only, suppressed on mobile). It is the menu this feature extends.
-- **card details popup**: the separate `CardBodyPopover` that opens when a card is clicked. It is not extended here, but it must be closed when its card is archived.
-- **card handlers**: the `CardHandlers` interface (`project_card_view.tsx:28`) that carries board-level callbacks down through `CardColumn` into each card.
+* **archive a card**: move one card file, plus the assets that only that card references, into the project's configured `archivedFolder`, in a single commit that also repairs the ordering links of the cards left behind. The card stops being an active card and becomes a background card. This is not **delete** (which removes the file) and not **release** (which moves a whole set of cards, plus their activity logs, into a named release folder).
+* **card menu**: the MUI `Menu` built in `project_card_view.tsx:353`. One menu, two entry points: the three-dots button on the card (`openCardActions`) and right-click on the card body (`openCardContextMenu`, desktop only, suppressed on mobile). It is the menu this feature extends.
+* **card details popup**: the separate `CardBodyPopover` that opens when a card is clicked. It is not extended here, but it must be closed when its card is archived.
+* **card handlers**: the `CardHandlers` interface (`project_card_view.tsx:28`) that carries board-level callbacks down through `CardColumn` into each card.
 
 ## Current state
 
@@ -31,8 +30,8 @@ Its only caller is `CardOperations.moveCard` (`app/src/services/data/card_operat
 
 The three callers of `moveCard` cannot produce that status in practice:
 
-- drag and drop (`card_view.tsx:145`, `mobile_card_view.tsx:111`) passes the status of the column the card was dropped on;
-- `CardStateSelector` (`card_state_selector.tsx:33`) offers only the states from project config.
+* drag and drop (`card_view.tsx:145`, `mobile_card_view.tsx:111`) passes the status of the column the card was dropped on;
+* `CardStateSelector` (`card_state_selector.tsx:33`) offers only the states from project config.
 
 Board columns come from configured states as well (`use_card_view_columns.ts`), and `archived` is a folder setting (`project.archivedFolder`), not a state. So unless a project happens to configure a state literally named `archived`, there is no column to drop on and no entry in the state selector. That is the reported gap: the operation exists, the way to invoke it does not.
 
