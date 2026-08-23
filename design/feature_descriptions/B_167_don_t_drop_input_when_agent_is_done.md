@@ -11,7 +11,6 @@ agents:
 policy:
 after: e9e0858d-a215-42bb-873e-01848ea6a803
 branch: b_167_don_t_drop_input_when_agent_is_done
-worktree: 2
 changedFiles:
   - app/src/services/actions/action_prompt_draft_service.node.test.ts
   - app/src/services/actions/action_prompt_draft_service.ts
