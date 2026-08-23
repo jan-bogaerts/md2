@@ -1008,11 +1008,11 @@
         "agent-101f0b84-68ab-4156-9ac7-113fb0a4a1fb"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-e0645008-a278-4db2-b860-7e4324039d0e",
       "origin": {
@@ -1021,9 +1021,32 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-101f0b84-68ab-4156-9ac7-113fb0a4a1fb",
       "startedAt": "2026-08-23T14:30:33.680Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-101f0b84-68ab-4156-9ac7-113fb0a4a1fb"
+    },
+    {
+      "commits": [
+        {
+          "commit": "fd727b2ea92d5435cebe83048b1563cb637d30c1",
+          "committedAt": "2026-08-23T16:31:17+02:00",
+          "deletions": 3,
+          "filePaths": [
+            "app/src/services/project/project_session_service.test.ts",
+            "app/src/services/project/project_session_service.ts"
+          ],
+          "filesChanged": 2,
+          "insertions": 55,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-23T16:31:17+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "df937269-dfea-443f-b5e4-ef60704df3b5",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
