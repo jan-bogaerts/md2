@@ -7,6 +7,7 @@ status: ready for implementation
 owner: 
 affects:
 agents:
+  - design/activity/card__df937269-dfea-443f-b5e4-ef60704df3b5.json
 policy:
 branch: j_35_served_browser_app_always_loads_same_project
 worktree: 1
