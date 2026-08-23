@@ -1,6 +1,7 @@
 const VALUE_CHANGED_EVENT = 'valueChanged'
 const EDITOR_CHANGED_EVENT = 'editorChanged'
 export const MARKDOWN_INSERTION_REQUESTED_EVENT = 'insertionRequested'
+export const MARKDOWN_FLUSH_REQUESTED_EVENT = 'flushRequested'
 
 type MarkdownDraftListener = () => void
 
@@ -50,6 +51,11 @@ export class MarkdownDraft extends EventTarget {
         if (this.value.length === 0) return
 
         this.replace('')
+    }
+
+    /** Asks the mounted editor, if any, to commit its debounced buffer into this draft now. */
+    readonly requestFlush = () => {
+        this.dispatchEvent(new Event(MARKDOWN_FLUSH_REQUESTED_EVENT))
     }
 
     readonly requestInsertion = (markdown: string) => new Promise<void>((resolve, reject) => {

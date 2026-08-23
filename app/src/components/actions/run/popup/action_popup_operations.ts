@@ -1,5 +1,6 @@
 import type { ActionContext } from '../../../../data/action_context'
 import type { ActionDefinition } from '../../../../data/action_types'
+import { getElectronActionBridge } from '../../../../data/electron_action_bridge'
 import { actionPromptDraftService } from '../../../../services/actions/action_prompt_draft_service'
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
 import type {
@@ -42,8 +43,14 @@ function hasPersistedSubmittedMessage(
 }
 
 function restorePrompt(action: ActionDefinition, context: ActionContext, prompt: string) {
-    const currentRun = currentActionRun(action, context)
-    actionPromptDraftService.getDraft(action.id, context, currentRun, { prepare: false }).edit(prompt)
+    actionPromptDraftService.getDraft(action.id, context, { prepare: false }).edit(prompt)
+}
+
+async function enqueueActionPrompt(runId: string, content: string) {
+    const bridge = getElectronActionBridge()
+    if (!bridge?.enqueueActionPrompt) throw new Error('Agent prompt queue requires Electron')
+
+    return bridge.enqueueActionPrompt(runId, content)
 }
 
 export interface ActionPopupOperationInput {
@@ -63,9 +70,7 @@ export function currentActionRun(action: ActionDefinition, context: ActionContex
 }
 
 export function currentActionPromptDraft(action: ActionDefinition, context: ActionContext, prepare: boolean) {
-    const run = currentActionRun(action, context)
-
-    return actionPromptDraftService.getDraft(action.id, context, run, { prepare })
+    return actionPromptDraftService.getDraft(action.id, context, { prepare })
 }
 
 function activeRunHasHistoricalDisplay(
@@ -106,7 +111,7 @@ async function runWithPrompt(input: ActionPopupOperationInput, prompt: string, p
         const handleStarted = (runId: string) => {
             resultStore.setRunId(runId)
             settingsStore.markSettingsApplied()
-            actionPromptDraftService.clearDraft(action.id, context, currentActionRun(action, context))
+            actionPromptDraftService.clearDraft(action.id, context)
         }
         const result = previousRunId
             ? await defaultRestartAction(previousRunId, action, context, runInput, handleStarted)
@@ -152,7 +157,7 @@ export async function runPopupAction(input: ActionPopupOperationInput) {
     const run = currentActionRun(action, context)
     if (activeRunHasHistoricalDisplay(run, conversationStore)) return
 
-    const promptDraft = actionPromptDraftService.getDraft(action.id, context, run, { prepare: false })
+    const promptDraft = actionPromptDraftService.getDraft(action.id, context, { prepare: false })
     const prompt = promptDraft.getSnapshot()
     const sessionActive = run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'
     const agentActive = sessionActive && run?.activeActionType === 'agent'
@@ -168,7 +173,12 @@ export async function runPopupAction(input: ActionPopupOperationInput) {
             return
         }
         try {
-            await promptDraft.send()
+            if (!run.activeActionId) throw new Error('Action run has no active agent')
+            if (prompt.trim().length === 0) throw new Error('Queued agent prompt is empty')
+
+            const revision = promptDraft.getRevision()
+            await enqueueActionPrompt(run.runId, prompt)
+            if (promptDraft.getRevision() === revision) actionPromptDraftService.clearDraft(action.id, context)
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Could not send agent message' })
         }
@@ -223,7 +233,7 @@ async function closeWaitingConversation(
     const updatedConversation = await defaultCloseWaitingConversation(conversation.path, status)
     conversationStore.updateConversation(updatedConversation)
     dataService.agents.updateAgentConversation(updatedConversation)
-    actionPromptDraftService.clearDraft(action.id, context, null)
+    actionPromptDraftService.clearDraft(action.id, context)
 }
 
 export async function cancelPopupAction(
@@ -245,7 +255,7 @@ export async function cancelPopupAction(
     }
 
     await defaultCancelAction(run.runId)
-    actionPromptDraftService.clearDraft(action.id, context, run)
+    actionPromptDraftService.clearDraft(action.id, context)
 }
 
 export async function finishPopupAction(
@@ -268,7 +278,7 @@ export async function finishPopupAction(
 
     try {
         await defaultFinishAction(run.runId)
-        actionPromptDraftService.clearDraft(action.id, context, run)
+        actionPromptDraftService.clearDraft(action.id, context)
     } catch (error) {
         dialogService.error(error, { fallbackMessage: 'Could not finish agent session' })
     }

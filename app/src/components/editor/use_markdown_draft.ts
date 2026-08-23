@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import {
+    MARKDOWN_FLUSH_REQUESTED_EVENT,
     MARKDOWN_INSERTION_REQUESTED_EVENT,
     type MarkdownDraft,
     type MarkdownInsertionRequest,
@@ -10,6 +11,7 @@ export function useMarkdownDraft(
     draft: MarkdownDraft | undefined,
     insertMarkdown: (markdown: string) => void,
     replaceMarkdown: (markdown: string) => void,
+    flush: () => boolean,
 ) {
     useEffect(() => {
         if (!draft) return undefined
@@ -35,4 +37,15 @@ export function useMarkdownDraft(
 
         return () => draft.removeEventListener(MARKDOWN_INSERTION_REQUESTED_EVENT, handleInsertionRequest)
     }, [draft, insertMarkdown])
+
+    useEffect(() => {
+        if (!draft) return undefined
+
+        const handleFlushRequest = () => {
+            flush()
+        }
+        draft.addEventListener(MARKDOWN_FLUSH_REQUESTED_EVENT, handleFlushRequest)
+
+        return () => draft.removeEventListener(MARKDOWN_FLUSH_REQUESTED_EVENT, handleFlushRequest)
+    }, [draft, flush])
 }

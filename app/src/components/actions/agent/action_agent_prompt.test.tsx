@@ -97,7 +97,7 @@ afterEach(() => {
 
 describe('ActionAgentPrompt', () => {
     it('stays read-only during prompt preparation and becomes editable when ready', async () => {
-        const promptDraft = new ActionPromptDraft('', true, null)
+        const promptDraft = new ActionPromptDraft('', true)
         render(<ActionAgentPrompt convertMessage={null} promptDraft={promptDraft} />)
         const prompt = screen.getByLabelText('Markdown prompt')
 
@@ -110,7 +110,7 @@ describe('ActionAgentPrompt', () => {
     })
 
     it('passes card attachment handler to hidden-toolbar prompt editor', () => {
-        const promptDraft = new ActionPromptDraft('', false, null)
+        const promptDraft = new ActionPromptDraft('', false)
         render(
             <ActionAgentPrompt
                 attachmentHandler={vi.fn(async () => undefined)}
@@ -124,7 +124,7 @@ describe('ActionAgentPrompt', () => {
     })
 
     it('configures action placeholders on its hidden-toolbar editor', () => {
-        const promptDraft = new ActionPromptDraft('', false, null)
+        const promptDraft = new ActionPromptDraft('', false)
         render(
             <ActionAgentPrompt
                 convertMessage={null}
@@ -143,7 +143,7 @@ describe('ActionAgentPrompt', () => {
     })
 
     it('keeps typing local when prompt loses focus', () => {
-        const promptDraft = new ActionPromptDraft('', false, null)
+        const promptDraft = new ActionPromptDraft('', false)
         render(
             <ActionAgentPrompt
                 convertMessage={null}
@@ -167,7 +167,7 @@ describe('ActionAgentPrompt', () => {
         { keyModifier: { metaKey: true }, shortcut: 'Meta+Enter' },
     ])('flushes the latest prompt before running $shortcut without passing it to the editor', ({ keyModifier }) => {
         const handleRunShortcut = vi.fn()
-        const promptDraft = new ActionPromptDraft('', false, null)
+        const promptDraft = new ActionPromptDraft('', false)
         render(
             <ActionAgentPrompt
                 convertMessage={null}
@@ -186,7 +186,7 @@ describe('ActionAgentPrompt', () => {
     })
 
     it('keeps plain Enter and Shift+Enter editor behavior', () => {
-        const promptDraft = new ActionPromptDraft('Line', false, null)
+        const promptDraft = new ActionPromptDraft('Line', false)
         render(
             <ActionAgentPrompt
                 convertMessage={null}
@@ -204,7 +204,7 @@ describe('ActionAgentPrompt', () => {
     })
 
     it('keeps Ctrl+Enter editor behavior when no shortcut callback exists', () => {
-        const promptDraft = new ActionPromptDraft('Line', false, null)
+        const promptDraft = new ActionPromptDraft('Line', false)
         render(
             <ActionAgentPrompt
                 convertMessage={null}
@@ -220,7 +220,7 @@ describe('ActionAgentPrompt', () => {
     })
 
     it('applies each external replacement to the mounted editor once', () => {
-        const promptDraft = new ActionPromptDraft('Initial', false, null)
+        const promptDraft = new ActionPromptDraft('Initial', false)
         render(
             <ActionAgentPrompt
                 convertMessage={null}
@@ -233,7 +233,7 @@ describe('ActionAgentPrompt', () => {
     })
 
     it.each(['', '   \n\t'])('collapses only the editor region for an empty draft %#', (value) => {
-        const promptDraft = new ActionPromptDraft(value, false, null)
+        const promptDraft = new ActionPromptDraft(value, false)
         render(
             <ActionAgentPrompt
                 bottomRow={<div>Controls</div>}
@@ -251,7 +251,7 @@ describe('ActionAgentPrompt', () => {
 
     it('disables pointer and keyboard resize while the prompt is empty', () => {
         window.localStorage.setItem('md2.actionPromptHeight', '160')
-        const promptDraft = new ActionPromptDraft('', false, null)
+        const promptDraft = new ActionPromptDraft('', false)
         render(<ActionAgentPrompt convertMessage={null} promptDraft={promptDraft} />)
         const separator = screen.getByRole('separator', { name: 'Resize prompt' })
 
@@ -269,7 +269,7 @@ describe('ActionAgentPrompt', () => {
     it('restores the saved height on live text entry and preserves it across empty transitions', () => {
         window.localStorage.setItem('md2.actionPromptHeight', '188')
         mockAvailablePromptHeight(400)
-        const promptDraft = new ActionPromptDraft('', false, null)
+        const promptDraft = new ActionPromptDraft('', false)
         render(<ActionAgentPrompt convertMessage={null} promptDraft={promptDraft} />)
         const prompt = screen.getByLabelText('Markdown prompt')
         const separator = screen.getByRole('separator', { name: 'Resize prompt' })
@@ -290,7 +290,7 @@ describe('ActionAgentPrompt', () => {
     it('clamps a restored height against the available popup height', () => {
         window.localStorage.setItem('md2.actionPromptHeight', '220')
         mockAvailablePromptHeight(250)
-        const promptDraft = new ActionPromptDraft('', false, null)
+        const promptDraft = new ActionPromptDraft('', false)
         render(<ActionAgentPrompt convertMessage={null} promptDraft={promptDraft} />)
 
         fireEvent.change(screen.getByLabelText('Markdown prompt'), { target: { value: 'Plan' } })
@@ -302,7 +302,7 @@ describe('ActionAgentPrompt', () => {
     it('persists non-empty pointer and keyboard resize without overwriting it after clearing', () => {
         window.localStorage.setItem('md2.actionPromptHeight', '160')
         mockAvailablePromptHeight(400)
-        const promptDraft = new ActionPromptDraft('Plan', false, null)
+        const promptDraft = new ActionPromptDraft('Plan', false)
         render(<ActionAgentPrompt convertMessage={null} promptDraft={promptDraft} />)
         const separator = screen.getByRole('separator', { name: 'Resize prompt' })
 

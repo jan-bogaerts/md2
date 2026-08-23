@@ -76,7 +76,8 @@ export function ActionAgentPromptOwner(props: ActionAgentPromptOwnerProps) {
     const attachmentHandler = action.type === 'agent' ? handleAttachments : undefined
 
     useEffect(() => {
-        if (!prepare || remoteConnection.status === 'connecting' || remoteConnection.status === 'reconnecting') return
+        if (!prepare || promptDraft.hasLocalEdits()) return
+        if (remoteConnection.status === 'connecting' || remoteConnection.status === 'reconnecting') return
 
         void promptDraft.prepare(() => defaultPreparePrompt(action, context)).catch((error: unknown) => {
             dialogService.error(error, { fallbackMessage: 'Could not prepare action prompt' })

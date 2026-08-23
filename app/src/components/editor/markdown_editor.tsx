@@ -162,6 +162,13 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     }, [])
 
     const flush = useCallback(() => {
+        if (draft) {
+            const editorMarkdown = editorRef.current?.getMarkdown()
+            if (editorMarkdown !== undefined && editorMarkdown !== latestMarkdownRef.current) {
+                latestMarkdownRef.current = editorMarkdown
+                draft.edit(editorMarkdown)
+            }
+        }
         if (latestMarkdownRef.current === lastEmittedMarkdownRef.current) return true
 
         const activeTarget = activeTargetRef.current
@@ -177,7 +184,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         queueMicrotask(() => applyPendingDocumentChangeRef.current())
 
         return true
-    }, [binding, dataSource, setDirty])
+    }, [binding, dataSource, draft, setDirty])
 
     const prepareDocumentSwitch = useCallback((detail: ActiveMarkdownDocumentChangedDetail, nextMarkdown: string) => {
         if (detail.discard) lastEmittedMarkdownRef.current = latestMarkdownRef.current
@@ -308,7 +315,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
 
     const getSelectionMarkdown = useCallback(() => editorRef.current?.getSelectionMarkdown() ?? '', [])
 
-    useMarkdownDraft(draft, insertMarkdown, replaceDraftMarkdown)
+    useMarkdownDraft(draft, insertMarkdown, replaceDraftMarkdown, flush)
 
     const attachFiles = useCallback((files: File[]) => {
         if (!attachmentHandler || readOnly || files.length === 0) return

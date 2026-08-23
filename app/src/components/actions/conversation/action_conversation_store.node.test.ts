@@ -80,8 +80,7 @@ describe('ActionConversationStore', () => {
             }
             emit({ ...eventBase, status: status === 'waitingForInput' ? 'running' : status, type: 'run' })
             if (status === 'waitingForInput') emit({ ...eventBase, status, type: 'agentState' })
-            const run = actionRunRegistry.getActionRunStore('implement', context)?.getSnapshot() ?? null
-            const draft = actionPromptDraftService.getDraft('implement', context, run, { prepare: false })
+            const draft = actionPromptDraftService.getDraft('implement', context, { prepare: false })
             draft.edit('Keep active prompt')
             const historicalConversation = conversation('conversation-history.json')
             vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(historicalConversation)
@@ -163,6 +162,44 @@ describe('ActionConversationStore', () => {
         await store.load()
 
         expect(store.getSnapshot().selectedConversation).toBe(continuedConversation)
+    })
+
+    it('keeps user-edited prompt text when a finished run reconciles history', async () => {
+        const waitingConversation = { ...conversation('conversation-waiting.json'), status: 'waitingForInput' as const }
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([waitingConversation])
+        const draft = actionPromptDraftService.getDraft('implement', context, { prepare: false })
+        draft.edit('Typed while the agent was finishing')
+        const store = new ActionConversationStore('implement', context)
+
+        await store.load()
+
+        expect(store.getSnapshot().selectedConversation).toBe(waitingConversation)
+        expect(draft.getSnapshot()).toBe('Typed while the agent was finishing')
+    })
+
+    it('drops an untouched prepared default when a finished run reconciles history', async () => {
+        const waitingConversation = { ...conversation('conversation-waiting.json'), status: 'waitingForInput' as const }
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([waitingConversation])
+        const draft = actionPromptDraftService.getDraft('implement', context, { prepare: true })
+        await draft.prepare(async () => 'Prepared default')
+        const store = new ActionConversationStore('implement', context)
+
+        await store.load()
+
+        expect(draft.getSnapshot()).toBe('')
+    })
+
+    it('reconciles a loaded list without publishing a loading state', async () => {
+        const listed = conversation('conversation.json')
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([listed])
+        const store = new ActionConversationStore('implement', context)
+        await store.load()
+        const loadingStates: boolean[] = []
+        store.subscribe(() => loadingStates.push(store.getSnapshot().loading))
+
+        await store.load()
+
+        expect(loadingStates).not.toContain(true)
     })
 
     it('treats a project-origin conversation as belonging to a merge-conflict context', async () => {

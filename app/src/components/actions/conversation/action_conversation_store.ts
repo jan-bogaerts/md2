@@ -107,7 +107,7 @@ export class ActionConversationStore {
     async load() {
         const request = this.loadRequest + 1
         this.loadRequest = request
-        this.setSnapshot({ ...this.snapshot, loading: true })
+        if (this.snapshot.conversations.length === 0) this.setSnapshot({ ...this.snapshot, loading: true })
         try {
             const conversations = await defaultLoadConversations(this.context)
             if (request !== this.loadRequest) return
@@ -137,7 +137,9 @@ export class ActionConversationStore {
                 }
             }
             this.setSnapshot({ conversations, loading: false, selectedConversation })
-            if (selectedConversation && !runActive) actionPromptDraftService.clearDraft(this.actionId, this.context, run)
+            if (selectedConversation && !runActive) {
+                actionPromptDraftService.discardUneditedDraft(this.actionId, this.context)
+            }
         } catch (error) {
             if (request !== this.loadRequest) return
 
@@ -199,7 +201,7 @@ export class ActionConversationStore {
         const runActive = run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'
         if (runActive) return
 
-        actionPromptDraftService.clearDraft(this.actionId, this.context, run)
+        actionPromptDraftService.discardUneditedDraft(this.actionId, this.context)
     }
 
     private validateSelection(conversation: AgentConversation) {

@@ -1,19 +1,11 @@
 import { actionContextIdentity, type ActionContext } from '../../data/action_context'
-import { getElectronActionBridge } from '../../data/electron_action_bridge'
-import type { ActionDefinition } from '../../data/action_types'
 import { isRemoteControlConnectionError } from '../data/remote_control_storage_service'
 import { register } from '../service_injector'
 import { MarkdownDraft } from '../markdown/markdown_draft'
 
-export type ActionPromptPreparationStatus = 'failed' | 'loading' | 'ready'
+const DRAFT_KEY_SEPARATOR = String.fromCharCode(0)
 
-export interface ActionPromptRunBinding {
-    activeActionId: string | null
-    activeActionType: ActionDefinition['type'] | null
-    runId: string
-    interactionReady: boolean
-    rootActionId: string
-}
+export type ActionPromptPreparationStatus = 'failed' | 'loading' | 'ready'
 
 interface ActionPromptDraftEditorSnapshot {
     preparationStatus: ActionPromptPreparationStatus
@@ -25,19 +17,8 @@ interface ActionPromptDraftOptions {
     prepare: boolean
 }
 
-function idlePromptDraftKey(actionId: string, context: ActionContext) {
-    return `idle\u0000${actionId}\u0000${actionContextIdentity(context)}`
-}
-
-function runPromptDraftKey(runId: string, actionId: string) {
-    return `run\u0000${runId}\u0000${actionId}`
-}
-
-async function enqueueActionPrompt(runId: string, content: string) {
-    const bridge = getElectronActionBridge()
-    if (!bridge?.enqueueActionPrompt) throw new Error('Agent prompt queue requires Electron')
-
-    return bridge.enqueueActionPrompt(runId, content)
+function promptDraftKey(actionId: string, context: ActionContext) {
+    return `${actionId}${DRAFT_KEY_SEPARATOR}${actionContextIdentity(context)}`
 }
 
 /** Stable prompt state shared by editor and prompt-dependent leaf controls. */
@@ -45,22 +26,16 @@ export class ActionPromptDraft {
     private editorSnapshot: ActionPromptDraftEditorSnapshot
     private locallyEdited = false
     readonly markdownDraft: MarkdownDraft
-    private run: ActionPromptRunBinding | null
     private preparationRequired: boolean
     private preparationStarted = false
     private revision = 0
 
-    constructor(
-        initialValue: string,
-        preparationRequired: boolean,
-        run: ActionPromptRunBinding | null,
-    ) {
+    constructor(initialValue: string, preparationRequired: boolean) {
         this.editorSnapshot = {
             preparationStatus: preparationRequired ? 'loading' : 'ready',
             replacementRevision: 0,
         }
         this.markdownDraft = new MarkdownDraft(initialValue)
-        this.run = run
         this.preparationRequired = preparationRequired
     }
 
@@ -76,10 +51,6 @@ export class ActionPromptDraft {
         this.markdownDraft.addEventListener('actionEditorChanged', listener)
 
         return () => this.markdownDraft.removeEventListener('actionEditorChanged', listener)
-    }
-
-    bindRun(run: ActionPromptRunBinding | null) {
-        this.run = run
     }
 
     /** Record an editor-local value without starting asynchronous synchronization. */
@@ -105,7 +76,11 @@ export class ActionPromptDraft {
     }
 
     clear() {
-        if (this.getSnapshot().length === 0 && this.editorSnapshot.preparationStatus === 'ready') return
+        if (this.getSnapshot().length === 0 && this.editorSnapshot.preparationStatus === 'ready') {
+            this.locallyEdited = false
+
+            return
+        }
 
         this.replace('')
     }
@@ -136,19 +111,17 @@ export class ActionPromptDraft {
         }
     }
 
+    getRevision() {
+        return this.revision
+    }
+
     hasLocalEdits() {
         return this.locallyEdited
     }
 
-    async send() {
-        const run = this.run
-        if (!run?.activeActionId) throw new Error('Action run has no active agent')
-        if (this.getSnapshot().trim().length === 0) throw new Error('Queued agent prompt is empty')
-
-        const value = this.getSnapshot()
-        const revision = this.revision
-        await enqueueActionPrompt(run.runId, value)
-        if (this.revision === revision) this.clear()
+    /** Asks a mounted editor to commit its debounced buffer before this value is inspected. */
+    requestFlush() {
+        this.markdownDraft.requestFlush()
     }
 
     private setPreparationStatus(preparationStatus: ActionPromptPreparationStatus) {
@@ -163,7 +136,7 @@ export class ActionPromptDraft {
     }
 }
 
-/** Owns lifetime-stable prompt drafts, remote sessions, revisions, and explicit cleanup. */
+/** Owns lifetime-stable prompt drafts, revisions, and explicit cleanup. */
 export class ActionPromptDraftService {
     private readonly drafts = new Map<string, ActionPromptDraft>()
 
@@ -171,65 +144,45 @@ export class ActionPromptDraftService {
         register('actionPromptDraftService', this)
     }
 
-    getDraft(
-        actionId: string,
-        context: ActionContext,
-        run: ActionPromptRunBinding | null,
-        options: ActionPromptDraftOptions,
-    ) {
-        const activeRun = run?.rootActionId === actionId
-            && run.activeActionType === 'agent'
-            && run.activeActionId
-            ? run
-            : null
-        const key = activeRun
-            ? runPromptDraftKey(activeRun.runId, activeRun.activeActionId as string)
-            : idlePromptDraftKey(actionId, context)
+    getDraft(actionId: string, context: ActionContext, options: ActionPromptDraftOptions) {
+        const key = promptDraftKey(actionId, context)
         const current = this.drafts.get(key)
-        if (current) {
-            current.bindRun(activeRun)
+        if (current) return current
 
-            return current
-        }
-
-        const draft = new ActionPromptDraft(options.initialValue ?? '', options.prepare, activeRun)
+        const draft = new ActionPromptDraft(options.initialValue ?? '', options.prepare)
         this.drafts.set(key, draft)
 
         return draft
     }
 
-    clearDraft(actionId: string, context: ActionContext, run: ActionPromptRunBinding | null) {
-        const activeActionId = run?.rootActionId === actionId ? run.activeActionId : null
-        if (activeActionId && run) this.clearByKey(runPromptDraftKey(run.runId, activeActionId))
-        this.clearByKey(idlePromptDraftKey(actionId, context))
+    /** Empties the editor while keeping the draft object the editor is bound to. */
+    clearDraft(actionId: string, context: ActionContext) {
+        this.drafts.get(promptDraftKey(actionId, context))?.clear()
     }
 
-    clearRunDraft(runId: string, actionId: string) {
-        this.clearByKey(runPromptDraftKey(runId, actionId))
+    /** Drops a prepared default the user never touched and keeps every typed character. */
+    discardUneditedDraft(actionId: string, context: ActionContext) {
+        const draft = this.drafts.get(promptDraftKey(actionId, context))
+        if (!draft) return
+
+        draft.requestFlush()
+        if (draft.hasLocalEdits()) return
+
+        draft.clear()
     }
 
-    clearRunDrafts(runId: string) {
-        const prefix = `run\u0000${runId}\u0000`
+    clearAction(actionId: string) {
+        const prefix = `${actionId}${DRAFT_KEY_SEPARATOR}`
         for (const key of this.drafts.keys()) {
             if (key.startsWith(prefix)) this.clearByKey(key)
         }
     }
 
-    clearAction(actionId: string) {
-        const idlePrefix = `idle\u0000${actionId}\u0000`
-        const runSuffix = `\u0000${actionId}`
-        for (const key of this.drafts.keys()) {
-            if (key.startsWith(idlePrefix) || (key.startsWith('run\u0000') && key.endsWith(runSuffix))) {
-                this.clearByKey(key)
-            }
-        }
-    }
-
-    /** Drop cached prepared defaults while preserving user edits and active-run drafts. */
+    /** Drop cached prepared defaults while preserving user edits. */
     invalidateIdlePreparedDrafts(actionId: string) {
-        const idlePrefix = `idle\u0000${actionId}\u0000`
+        const prefix = `${actionId}${DRAFT_KEY_SEPARATOR}`
         for (const [key, draft] of this.drafts) {
-            if (key.startsWith(idlePrefix) && !draft.hasLocalEdits()) this.drafts.delete(key)
+            if (key.startsWith(prefix) && !draft.hasLocalEdits()) this.drafts.delete(key)
         }
     }
 

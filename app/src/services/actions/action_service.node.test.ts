@@ -96,12 +96,12 @@ describe('ActionService', () => {
         const service = new ActionService(() => ({ persistActionFile: vi.fn(async () => undefined) }))
         service.loadFromFiles([file(definition)])
         const context = { cardInternalId: 'card-1', kind: 'card' as const }
-        const cachedDraft = actionPromptDraftService.getDraft(definition.id, context, null, { prepare: true })
+        const cachedDraft = actionPromptDraftService.getDraft(definition.id, context, { prepare: true })
         await cachedDraft.prepare(async () => definition.prompt as string)
 
         await service.saveDefinition('actions/action.json', { ...definition, prompt: 'New prompt' })
 
-        expect(actionPromptDraftService.getDraft(definition.id, context, null, { prepare: true })).not.toBe(cachedDraft)
+        expect(actionPromptDraftService.getDraft(definition.id, context, { prepare: true })).not.toBe(cachedDraft)
     })
 
     it('keeps editor state with each owning action', () => {

@@ -3,6 +3,7 @@ import type { ActionDefinition } from '../../data/action_types'
 import type { ActionRunEvent } from '../../data/action_run_types'
 import type { AgentConversation, AgentConversationEntry } from '../../data/data_types'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge'
+import { actionPromptDraftService } from './action_prompt_draft_service'
 import { ActionRunRegistry, notifyActionCardStateChange } from './action_run_registry'
 
 const context = { file: 'design/F-1.md', kind: 'card' as const }
@@ -825,4 +826,66 @@ describe('ActionRunRegistry', () => {
         service.stop()
     })
 
+})
+
+describe('ActionRunRegistry prompt drafts', () => {
+    afterEach(() => {
+        actionPromptDraftService.clearAll()
+        setActionBridgeOverride(null)
+    })
+
+    function startAgentRun() {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        service.start()
+        emit(runEvent('running'))
+        emit({
+            actionId: 'build', actionType: 'agent', context, interactionReady: true, phase: 'main',
+            rootActionId: 'build', runId: 'run-1', status: 'running', type: 'action',
+        })
+
+        return { emit, service }
+    }
+
+    const endings: [string, ActionRunEvent][] = [
+        ['an agent step ending in waitingForInput', {
+            actionId: 'build', actionType: 'agent', context, interactionReady: false, phase: 'main',
+            rootActionId: 'build', runId: 'run-1', status: 'waitingForInput', type: 'action',
+        }],
+        ['a completed run', runEvent('completed')],
+        ['a failed run', runEvent('failed')],
+        ['a cancelled run', runEvent('cancelled')],
+    ]
+
+    it.each(endings)('keeps user-edited prompt text after %s', (_name, endingEvent) => {
+        const { emit } = startAgentRun()
+        const draft = actionPromptDraftService.getDraft('build', context, { prepare: false })
+        draft.edit('Typed while the agent was finishing')
+
+        emit(endingEvent)
+
+        expect(draft.getSnapshot()).toBe('Typed while the agent was finishing')
+        expect(actionPromptDraftService.getDraft('build', context, { prepare: false })).toBe(draft)
+    })
+
+    it.each(endings)('drops an untouched prepared default after %s', async (_name, endingEvent) => {
+        const { emit } = startAgentRun()
+        const draft = actionPromptDraftService.getDraft('build', context, { prepare: true })
+        await draft.prepare(async () => 'Prepared default')
+
+        emit(endingEvent)
+
+        expect(draft.getSnapshot()).toBe('')
+    })
+
+    it('keeps text still buffered by the editor when a run ends', () => {
+        const { emit } = startAgentRun()
+        const draft = actionPromptDraftService.getDraft('build', context, { prepare: false })
+        draft.markdownDraft.addEventListener('flushRequested', () => draft.edit('Buffered keystrokes'))
+
+        emit(runEvent('completed'))
+
+        expect(draft.getSnapshot()).toBe('Buffered keystrokes')
+    })
 })

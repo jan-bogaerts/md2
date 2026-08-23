@@ -188,7 +188,7 @@ describe('ActionPopupBottomRow', () => {
     })
 
     it('marks the row as embedded without changing agent control behavior', () => {
-        actionPromptDraftService.getDraft(action.id, context, null, { prepare: false }).edit('Plan')
+        actionPromptDraftService.getDraft(action.id, context, { prepare: false }).edit('Plan')
         renderBottomRow(action, new ActionConversationStore(action.id, context), true)
         const bottomRow = screen.getByTestId('action-popup-bottom-row')
 
@@ -198,7 +198,7 @@ describe('ActionPopupBottomRow', () => {
     })
 
     it('enables Send from first live prompt change without rendering unrelated content', () => {
-        const promptDraft = actionPromptDraftService.getDraft(action.id, context, null, { prepare: false })
+        const promptDraft = actionPromptDraftService.getDraft(action.id, context, { prepare: false })
         const { unrelatedRender } = renderBottomRow()
         const send = screen.getByRole('button', { name: 'Send' })
         expect(send).toBeDisabled()
@@ -210,7 +210,7 @@ describe('ActionPopupBottomRow', () => {
     })
 
     it('disables Send when live prompt is cleared', () => {
-        const promptDraft = actionPromptDraftService.getDraft(action.id, context, null, { prepare: false })
+        const promptDraft = actionPromptDraftService.getDraft(action.id, context, { prepare: false })
         promptDraft.edit('Plan')
         renderBottomRow()
         const send = screen.getByRole('button', { name: 'Send' })
@@ -231,7 +231,7 @@ describe('ActionPopupBottomRow', () => {
         vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([source])
         const conversationStore = new ActionConversationStore(action.id, context)
         await conversationStore.load()
-        const promptDraft = actionPromptDraftService.getDraft(action.id, context, null, { prepare: false })
+        const promptDraft = actionPromptDraftService.getDraft(action.id, context, { prepare: false })
         const { unrelatedRender } = renderBottomRow(action, conversationStore)
 
         expect(screen.getByRole('button', { name: 'Finish' })).toBeInTheDocument()
@@ -272,8 +272,7 @@ describe('ActionPopupBottomRow', () => {
         }
         emit({ ...eventBase, status: status === 'waitingForInput' ? 'running' : status, type: 'run' })
         if (status === 'waitingForInput') emit({ ...eventBase, status, type: 'agentState' })
-        const run = actionRunRegistry.getActionRunStore(action.id, context)?.getSnapshot() ?? null
-        actionPromptDraftService.getDraft(action.id, context, run, { prepare: false }).edit('Keep draft')
+        actionPromptDraftService.getDraft(action.id, context, { prepare: false }).edit('Keep draft')
         const historicalConversation = { ...waitingConversation(action.id), path: 'history.json', status: 'completed' as const }
         vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(historicalConversation)
         const conversationStore = new ActionConversationStore(action.id, context)
@@ -285,7 +284,7 @@ describe('ActionPopupBottomRow', () => {
     })
 
     it('renders icon-only Schedule and exposes descriptive tooltips for idle controls', async () => {
-        actionPromptDraftService.getDraft(action.id, context, null, { prepare: false }).edit('Plan')
+        actionPromptDraftService.getDraft(action.id, context, { prepare: false }).edit('Plan')
         renderBottomRow()
         const schedule = screen.getByRole('button', { name: 'Schedule' })
 
@@ -425,7 +424,7 @@ describe('ActionPopupBottomRow', () => {
         vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([source])
         const conversationStore = new ActionConversationStore(action.id, context)
         await conversationStore.load()
-        actionPromptDraftService.getDraft(action.id, context, null, { prepare: false }).edit('Continue')
+        actionPromptDraftService.getDraft(action.id, context, { prepare: false }).edit('Continue')
         renderBottomRow(action, conversationStore)
 
         fireEvent.click(screen.getByRole('button', { name: 'Finish' }))

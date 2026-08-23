@@ -666,7 +666,7 @@ export class ActionRunRegistry extends EventTarget {
                 status: result.status,
             }
             store.update(next)
-            actionPromptDraftService.clearRunDrafts(result.runId)
+            actionPromptDraftService.discardUneditedDraft(next.rootActionId, next.context)
             this.publishActiveIndexes(contextKey(current.context), contextKey(next.context))
         }
 
@@ -728,7 +728,7 @@ export class ActionRunRegistry extends EventTarget {
         }
         if (event.type === 'run' && TERMINAL_STATUSES.has(event.status as ActionRunTerminalStatus)) {
             next = { ...next, approvals: [], question: null, queuedPrompts: [] }
-            actionPromptDraftService.clearRunDrafts(event.runId)
+            actionPromptDraftService.discardUneditedDraft(next.rootActionId, next.context)
         }
         if (event.type === 'agentState') next = { ...next, status: event.status }
         if (event.type === 'action') {
@@ -745,7 +745,7 @@ export class ActionRunRegistry extends EventTarget {
                 reference: event.reference ?? next.reference,
             }
             if (active) next.status = event.status
-            if (!active) actionPromptDraftService.clearRunDraft(event.runId, event.actionId)
+            if (!active) actionPromptDraftService.discardUneditedDraft(next.rootActionId, next.context)
         }
         if (event.type === 'agentState') {
             next = {
@@ -768,7 +768,7 @@ export class ActionRunRegistry extends EventTarget {
         if (event.type === 'update' && event.update.kind === 'agentStarted') {
             const { continued } = event.update
             next = { ...next, conversation: event.update.conversation }
-            if (continued) actionPromptDraftService.clearRunDraft(event.runId, event.actionId)
+            if (continued) actionPromptDraftService.discardUneditedDraft(next.rootActionId, next.context)
         }
         if (event.type === 'update' && event.update.kind === 'agentClosed') {
             next = { ...next, conversation: event.update.conversation }
