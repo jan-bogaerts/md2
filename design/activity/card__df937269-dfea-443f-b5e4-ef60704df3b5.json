@@ -5,10 +5,10 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "df937269-dfea-443f-b5e4-ef60704df3b5",
       "cardPath": "design/feature_descriptions/J_35_served_browser_app_always_loads_same_project.md",
-      "completedAt": "2026-08-23T14:25:34.825Z",
+      "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 62788
+        "usedTokens": 73092
       },
       "entries": [
         {
@@ -911,6 +911,36 @@
           "summary": [],
           "timestamp": "2026-08-23T14:25:34.069Z",
           "type": "reasoning"
+        },
+        {
+          "content": "you got interrupted. continue",
+          "id": "agent-turn-fc6f7bf2-c62c-4ed4-9f7e-bf7f51462a54-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 68,
+          "timestamp": "2026-08-23T14:30:33.684Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-fc6f7bf2-c62c-4ed4-9f7e-bf7f51462a54-event-69",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_06d78acd26499ad1016a8b0410223887d2b8a0dbedc28cc140",
+          "sequence": 69,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:30:39.816Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Implemented J_35.\n\n- Remote startup now queries desktop `getActiveProject()` before loading project.\n- Desktop project overrides stale browser `localStorage`.\n- Stored project remains fallback when desktop has no active project.\n- Explicit remote opens, local restores, GitHub restores unchanged.\n- Added two regression tests in [project_session_service.test.ts](C:/Users/janbo/Documents/dev/md2_workers/dev1/app/src/services/project/project_session_service.test.ts:243).\n- Updated logic in [project_session_service.ts](C:/Users/janbo/Documents/dev/md2_workers/dev1/app/src/services/project/project_session_service.ts:159).\n- Set feature [status to ready](C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/J_35_served_browser_app_always_loads_same_project.md:6).\n\nVerification: 27 related tests passed. Targeted ESLint clean.\n\n",
+          "id": "agent-turn-fc6f7bf2-c62c-4ed4-9f7e-bf7f51462a54-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 70,
+          "timestamp": "2026-08-23T14:30:43.401Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -925,18 +955,18 @@
         }
       ],
       "startedAt": "2026-08-23T14:19:20.455Z",
-      "status": "failed",
+      "status": "running",
       "timer": {
         "elapsedMs": 236124,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-08-23T14:30:33.684Z"
       },
       "title": "implement",
       "usage": {
-        "cachedInputTokens": 325376,
-        "inputTokens": 57111,
-        "outputTokens": 1748,
-        "reasoningTokens": 1167,
-        "totalTokens": 385402
+        "cachedInputTokens": 394752,
+        "inputTokens": 60586,
+        "outputTokens": 1935,
+        "reasoningTokens": 1221,
+        "totalTokens": 458494
       },
       "usageSchemaVersion": 1,
       "viewed": true
@@ -954,11 +984,11 @@
         "agent-101f0b84-68ab-4156-9ac7-113fb0a4a1fb"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-3684f350-8594-422f-8c9f-83f5942c56df",
       "origin": {
@@ -967,9 +997,9 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-101f0b84-68ab-4156-9ac7-113fb0a4a1fb",
       "startedAt": "2026-08-23T14:19:20.454Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-101f0b84-68ab-4156-9ac7-113fb0a4a1fb"
     }
   ],
   "version": 5
