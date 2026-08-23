@@ -3,7 +3,7 @@ author:
 id: J_35
 internalId: df937269-dfea-443f-b5e4-ef60704df3b5
 title: served browser app always loads same project
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
