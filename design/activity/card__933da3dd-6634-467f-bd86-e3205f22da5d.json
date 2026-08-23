@@ -20,7 +20,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "933da3dd-6634-467f-bd86-e3205f22da5d",
       "cardPath": "design/feature_descriptions/F_243_remove_mac_key_from_global_search_and_change_shortcut.md",
-      "completedAt": null,
+      "completedAt": "2026-08-23T14:24:13.995Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 63743
@@ -646,7 +646,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 50,
-          "timestamp": "2026-08-23T14:24:13.452Z"
+          "timestamp": "2026-08-23T14:24:13.995Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -656,15 +656,15 @@
           "agent": "claude",
           "conversationId": "557b1b2d-c71a-48cf-be02-919688bd72aa",
           "createdAt": "2026-08-23T14:19:51.419Z",
-          "lastUsedAt": "2026-08-23T14:19:51.419Z",
-          "synchronizedThroughMessageId": "agent-turn-d7f7238e-71f3-42d8-9068-daab3e6ad513-turn-1-assistant-1"
+          "lastUsedAt": "2026-08-23T14:24:13.995Z",
+          "synchronizedThroughMessageId": "agent-turn-d7f7238e-71f3-42d8-9068-daab3e6ad513-turn-2-assistant-1"
         }
       ],
       "startedAt": "2026-08-22T19:48:02.778Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 96089,
-        "runningStartedAt": "2026-08-23T14:22:14.798Z"
+        "elapsedMs": 215286,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
