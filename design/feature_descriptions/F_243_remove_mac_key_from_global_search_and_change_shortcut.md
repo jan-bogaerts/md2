@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__933da3dd-6634-467f-bd86-e3205f22da5d.json
 policy:
-branch: f_243_remove_mac_key_from_global_search_and_change_shortcut
-worktree: 2
 ---
 it shows the mac key while we are on windows. the mac key can be shown when running on mac, but not for windows users. when on electron, we should know the os, not certain when on browser.
 
