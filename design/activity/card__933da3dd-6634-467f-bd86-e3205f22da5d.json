@@ -379,20 +379,60 @@
           "status": "inProgress",
           "timestamp": "2026-08-22T19:49:30.257Z",
           "type": "tool.AskUserQuestion"
+        },
+        {
+          "content": "can you repeat the question?",
+          "id": "agent-turn-d7f7238e-71f3-42d8-9068-daab3e6ad513-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 29,
+          "timestamp": "2026-08-23T14:19:42.814Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d7f7238e-71f3-42d8-9068-daab3e6ad513-event-30",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKpu34fFX7wjbTvcDLBR:thinking:0",
+          "sequence": 30,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:19:46.081Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Two questions:\n\n**1. Mac shortcut.** Windows gets Ctrl+Shift+F. What mac users get?\n- **A (rec):** ⌘⇧F — mirror Windows. One handler, badge renders ⌘⇧F on mac, Ctrl+Shift+F elsewhere.\n- **B:** keep ⌘K on mac, Ctrl+Shift+F on Windows/Linux. Two shortcuts, two badge strings.\n- **C:** mac accepts both ⌘⇧F and ⌘K, badge shows ⌘⇧F.\n\n**2. Scope.** Found: ⌘K badge is decorative. No keydown handler anywhere opens global search — badge lies today (`app/src/components/shell/search/search_control.tsx:79`, `search_panel.tsx:199`; only handler-like code is Ctrl+S commit in `app_menu.tsx:193`).\n- **A (rec):** add real window keydown handler that opens/focuses global search, plus platform-correct badge.\n- **B:** badge text only, shortcut stays dead.",
+          "id": "agent-turn-d7f7238e-71f3-42d8-9068-daab3e6ad513-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 31,
+          "timestamp": "2026-08-23T14:19:51.419Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-a0641673-8eec-4b74-96a0-3302e4a07001",
       "providerSessions": [],
       "startedAt": "2026-08-22T19:48:02.778Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "elapsedMs": 87484,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-08-23T14:19:42.814Z"
       },
       "title": "complete",
+      "usage": {
+        "cachedInputTokens": 45739,
+        "inputTokens": 2,
+        "outputTokens": 390,
+        "reasoningTokens": 0,
+        "totalTokens": 46131,
+        "costUsd": 0.3268255
+      },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -407,11 +447,11 @@
         "agent-a0641673-8eec-4b74-96a0-3302e4a07001"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-d58d2b97-92b0-491d-a5a0-4059f6fb02bd",
       "origin": {
@@ -420,9 +460,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-a0641673-8eec-4b74-96a0-3302e4a07001",
       "startedAt": "2026-08-22T19:48:02.777Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-a0641673-8eec-4b74-96a0-3302e4a07001"
     }
   ],
   "version": 5
