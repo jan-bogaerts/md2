@@ -11,6 +11,7 @@ agents:
 policy:
 branch: f_214_improve_support_child_threads
 worktree: 3
+after: 9b601eb4-e385-404f-9059-07823b25b6fd
 ---
 
 codex can use child threads. currently we either ignore them or print them in the main conversation thread.

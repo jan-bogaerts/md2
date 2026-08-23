@@ -10,7 +10,6 @@ agents:
   - design/activity/card__df937269-dfea-443f-b5e4-ef60704df3b5.json
 policy:
 branch: j_35_served_browser_app_always_loads_same_project
-worktree: 1
 ---
 
 When the desktop app serves the React build over the LAN (remote control), the browser always opens the same project (md2), no matter which project is currently loaded in the desktop app.
