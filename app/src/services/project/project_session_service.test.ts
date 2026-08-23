@@ -240,6 +240,47 @@ describe('ProjectSessionService storage activation', () => {
         expect(configService.getDesktopValues()).toEqual(desktopConfig)
     })
 
+    it('restores the desktop active project instead of a stale stored remote project', async () => {
+        mockProjectOpen()
+        configureRemoteControlConnection({ endpoint: 'ws://127.0.0.1:1234' })
+        const storedProject = { branch: 'main', id: 'stale', rootPath: 'C:/stale' }
+        const activeProject = { branch: 'topic', id: 'active', rootPath: 'C:/active' }
+        window.localStorage.setItem(LAST_PROJECT_STORAGE_KEY, JSON.stringify({
+            project: storedProject,
+            storageType: 'remote',
+        }))
+        const getActiveProject = vi.spyOn(RemoteControlStorageService.prototype, 'getActiveProject')
+            .mockResolvedValue(activeProject)
+        const service = new ProjectSessionService()
+
+        await service.restoreLastProject(null)
+
+        expect(getActiveProject).toHaveBeenCalledOnce()
+        expect(dataService.projectLoading.openProject).toHaveBeenCalledOnce()
+        expect(dataService.projectLoading.openProject).toHaveBeenCalledWith(activeProject)
+        expect(JSON.parse(window.localStorage.getItem(LAST_PROJECT_STORAGE_KEY) ?? '{}')).toEqual({
+            project: activeProject,
+            storageType: 'remote',
+        })
+    })
+
+    it('falls back to the stored remote project when the desktop has no active project', async () => {
+        mockProjectOpen()
+        configureRemoteControlConnection({ endpoint: 'ws://127.0.0.1:1234' })
+        const storedProject = { branch: 'main', id: 'stored', rootPath: 'C:/stored' }
+        window.localStorage.setItem(LAST_PROJECT_STORAGE_KEY, JSON.stringify({
+            project: storedProject,
+            storageType: 'remote',
+        }))
+        vi.spyOn(RemoteControlStorageService.prototype, 'getActiveProject').mockResolvedValue(null)
+        const service = new ProjectSessionService()
+
+        await service.restoreLastProject(null)
+
+        expect(dataService.projectLoading.openProject).toHaveBeenCalledOnce()
+        expect(dataService.projectLoading.openProject).toHaveBeenCalledWith(storedProject)
+    })
+
     it('skips the last GitHub project when no restored token exists', async () => {
         mockProjectOpen()
         window.localStorage.setItem(LAST_PROJECT_STORAGE_KEY, JSON.stringify({

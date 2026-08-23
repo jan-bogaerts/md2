@@ -16,6 +16,7 @@ import { configureRemoteControlConnection } from '../../data/remote_control_conn
 import { configService } from '../config/config_service'
 import { dataService } from '../data/data_service'
 import { remoteConnectionService } from '../data/remote_connection_service'
+import { RemoteControlStorageService } from '../data/remote_control_storage_service'
 import { dialogService } from '../dialog_service'
 import { GithubPendingCommitConflictError, GithubStorageService } from '../github/github_storage_service'
 import { markdownParsingService } from '../data/markdown_parsing_service'
@@ -156,10 +157,20 @@ async function activateProjectSession(storage: StorageService, storageType: Stor
 }
 
 async function resolveRestoredProject(storageType: StorageType, storage: StorageService, project: ProjectReference) {
-    if (storageType !== 'local') return project
-    if (!storage.resolveProject) throw new Error('Local project validation is not available')
+    if (storageType === 'remote') {
+        if (!(storage instanceof RemoteControlStorageService)) throw new Error('Remote project lookup is not available')
 
-    return storage.resolveProject(project)
+        await activateStorageService('remote', storage)
+
+        return await storage.getActiveProject() ?? project
+    }
+    if (storageType === 'local') {
+        if (!storage.resolveProject) throw new Error('Local project validation is not available')
+
+        return storage.resolveProject(project)
+    }
+
+    return project
 }
 
 export class ProjectSessionService extends EventTarget {
