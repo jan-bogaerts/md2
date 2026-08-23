@@ -1,0 +1,404 @@
+{
+  "actionSettings": {
+    "5b88355d-f964-459a-bc67-6618650866ba": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
+    }
+  },
+  "conversations": [
+    {
+      "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "cardInternalId": "933da3dd-6634-467f-bd86-e3205f22da5d",
+      "cardPath": "design/feature_descriptions/F_243_remove_mac_key_from_global_search_and_change_shortcut.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/F_243_remove_mac_key_from_global_search_and_change_shortcut.md`.&#x20;\nupdate the field `status` in the markdown feature description file to `ready for implementation`.\n\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill.\n\nDo not stage or commit changes. You have no need for get at this time.",
+          "id": "agent-turn-aed5ce59-b0f2-4b84-b836-6600fa9b173b-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-08-22T19:48:02.778Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-aed5ce59-b0f2-4b84-b836-6600fa9b173b-event-2",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeJN8C8qMyiDZny7oyVpG:thinking:0",
+          "sequence": 2,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T19:48:07.104Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cat design/feature_descriptions/F_243_remove_mac_key_from_global_search_and_change_shortcut.md",
+          "content": "---\nauthor: \nid: F_243\ninternalId: 933da3dd-6634-467f-bd86-e3205f22da5d\ntitle: remove mac key from global search and change shortcut\nstatus: design\nowner: \naffects:\nagents:\n  - design/activity/card__933da3dd-6634-467f-bd86-e3205f22da5d.json\npolicy:\n---\nit shows the mac key while we are on windows. the mac key can be shown when running on mac, but not for windows users. when on electron, we should know the os, not certain when on browser.\n\nat least on windows, lets use shift+ctrl+F to search",
+          "id": "agent-turn-aed5ce59-b0f2-4b84-b836-6600fa9b173b-event-3",
+          "kind": "event",
+          "label": "cat design/feature_descriptions/F_243_remove_mac_key_from_global_search_and_change_shortcut.md",
+          "providerItemId": "toolu_01L6GS4tv5CLjYjXo92d3mQy",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-08-22T19:48:08.643Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-aed5ce59-b0f2-4b84-b836-6600fa9b173b-event-4",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeJN8YkKVnV9anL3HkcE1:thinking:0",
+          "sequence": 4,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T19:48:10.585Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "grep -rniE \"⌘|cmd\\+|metaKey|global.?search\" --include=*.ts --include=*.tsx --include=*.js --include=*.svelte -l src app packages 2>/dev/null | head -50; echo ---; ls",
+          "content": "app/dist/assets/dist-CiW50JcL.js\napp/dist/assets/index-CgLkvvgC.js\napp/node_modules/.vite/deps/@mdxeditor_editor.js\napp/node_modules/.vite/deps/@mui_material.js\napp/node_modules/.vite/deps/@sentry_react.js\napp/node_modules/.vite/deps/dist-DqeZ3c0D.js\napp/node_modules/.vite/deps/dist-e0fVYjsv.js\napp/node_modules/.vite/deps/lexical.js\napp/node_modules/.vite/deps/LexicalLink.dev-CkBsVvZZ.js\napp/node_modules/.vite/deps/react-arborist.js\napp/node_modules/.vite/deps/react-dom_client.js\napp/node_modules/@asamuzakjp/dom-selector/src/js/finder.js\napp/node_modules/@codemirror/autocomplete/dist/index.js\napp/node_modules/@codemirror/lint/dist/index.js\napp/node_modules/@codemirror/view/dist/index.d.ts\napp/node_modules/@codemirror/view/dist/index.js\napp/node_modules/@floating-ui/react/dist/floating-ui.react.esm.js\napp/node_modules/@floating-ui/react/dist/floating-ui.react.umd.js\napp/node_modules/@floating-ui/react/dist/floating-ui.react.umd.min.js\napp/node_modules/@lexical/extension/dist/LexicalExtension.dev.js\napp/node_modules/@lexical/extension/dist/LexicalExtension.prod.js\napp/node_modules/@lexical/extension/src/PreventSelectAllExtension.ts\napp/node_modules/@lexical/link/dist/LexicalLink.dev.js\napp/node_modules/@lexical/link/dist/LexicalLink.prod.js\napp/node_modules/@lexical/link/src/ClickableLinkExtension.ts\napp/node_modules/@lexical/rich-text/dist/LexicalRichText.dev.js\napp/node_modules/@lexical/rich-text/src/index.ts\napp/node_modules/@mdxeditor/editor/dist/index.d.ts\napp/node_modules/@mdxeditor/editor/dist/plugins/core/index.js\napp/node_modules/@mdxeditor/editor/dist/plugins/headings/index.js\napp/node_modules/@mdxeditor/editor/dist/plugins/link-dialog/index.js\napp/node_modules/@mdxeditor/editor/dist/plugins/toolbar/components/UndoRedo.js\napp/node_modules/@mdxeditor/editor/dist/utils/detectMac.js\napp/node_modules/@mui/material/MenuList/MenuList.js\napp/node_modules/@mui/material/Select/SelectInput.js\napp/node_modules/@mui/material/useAutocomplete/useAutocomplete.js\napp/node_modules/@mui/utils/useIsFocusVisible/useIsFocusVisible.js\napp/node_modules/@mui/utils/useRovingTabIndex/useRovingTabIndex.js\napp/node_modules/@radix-ui/react-focus-scope/dist/index.js\napp/node_modules/@radix-ui/react-roving-focus/dist/index.js\napp/node_modules/@radix-ui/react-select/dist/index.js\napp/node_modules/@sentry/replay/build/npm/cjs/index.js\napp/node_modules/@sentry/replay/build/npm/esm/index.js\napp/node_modules/@sentry/replay/build/npm/types/types/replayFrame.d.ts\napp/node_modules/@sentry/replay/build/npm/types-ts3.8/types/replayFrame.d.ts\napp/node_modules/@testing-library/user-event/dist/cjs/event/createEvent.js\napp/node_modules/@testing-library/user-event/dist/cjs/system/index.js\napp/node_modules/@testing-library/user-event/dist/esm/event/createEvent.js\napp/node_modules/@testing-library/user-event/dist/esm/system/index.js\napp/node_modules/@types/node/punycode.d.ts\n---\nLICENSE\nREADME.md\nagents.md\napp\ndesign\ndesktop\ndocs\nmd2.config.json\nnode_modules\npackage-lock.json\npackage.json\nrelease\nscreenshots\nshared\ntemp.jpg",
+          "id": "agent-turn-aed5ce59-b0f2-4b84-b836-6600fa9b173b-event-5",
+          "kind": "event",
+          "label": "grep -rniE \"⌘|cmd\\+|metaKey|global.?search\" --include=*.ts --include=*.tsx --include=*.js --include=*.svelte -l src app packages 2>/dev/null | head -50; echo ---; ls",
+          "providerItemId": "toolu_01JrKk26wyDJLM894G7YovHp",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-08-22T19:48:22.724Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd app/src 2>/dev/null && grep -rniE \"globalsearch|global search\" -l . | head -30; echo \"--- src tree ---\"; ls",
+          "content": "--- src tree ---\nApp.test.tsx\napp\napp.tsx\nauth\ncomponents\ndata\nmain.tsx\nprism_bootstrap.ts\nproject_template\nservices\ntest\ntheme",
+          "id": "agent-turn-aed5ce59-b0f2-4b84-b836-6600fa9b173b-event-6",
+          "kind": "event",
+          "label": "cd app/src 2>/dev/null && grep -rniE \"globalsearch|global search\" -l . | head -30; echo \"--- src tree ---\"; ls",
+          "providerItemId": "toolu_012YvRtdxTpwtLzUEdTwnRdE",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-08-22T19:48:25.018Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd app/src && grep -rniE \"⌘|metaKey|Cmd|search\" -l . | head -40",
+          "content": "Exit code 1\n/usr/bin/bash: line 1: cd: app/src: No such file or directory",
+          "id": "agent-turn-aed5ce59-b0f2-4b84-b836-6600fa9b173b-event-7",
+          "kind": "event",
+          "label": "cd app/src && grep -rniE \"⌘|metaKey|Cmd|search\" -l . | head -40",
+          "providerItemId": "toolu_011iT8R9vicxZm3dCBSDAftU",
+          "sequence": 7,
+          "status": "failed",
+          "timestamp": "2026-08-22T19:48:27.060Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-aed5ce59-b0f2-4b84-b836-6600fa9b173b-event-8",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeJN9tcSCn36Cj4PBXeqU:thinking:0",
+          "sequence": 8,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T19:48:28.888Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "grep -rlniE \"⌘|metaKey|search\" . | head -40",
+          "content": "./components/actions/agent/action_agent_approval.tsx\n./components/actions/agent/action_agent_prompt.test.tsx\n./components/actions/agent/action_agent_prompt.tsx\n./components/actions/conversation/action_conversation_chat.test.tsx\n./components/actions/conversation/action_conversation_rendering.test.tsx\n./components/actions/conversation/action_conversation_render_groups.ts\n./components/actions/run/popup/action_popup.test.tsx\n./components/card_view/card_body_popover.tsx\n./components/card_view/card_view.test.tsx\n./components/card_view/card_view.test.tsx.bak\n./components/config/config_page.test.tsx\n./components/editor/markdown_editor.tsx\n./components/editor/markdown_editor_file_search.test.tsx\n./components/editor/markdown_editor_local_text_search.test.tsx\n./components/editor/markdown_file_search.node.test.ts\n./components/editor/markdown_file_search.ts\n./components/editor/markdown_file_search_config_cell.ts\n./components/editor/markdown_file_search_menu.test.tsx\n./components/editor/markdown_file_search_menu.tsx\n./components/editor/markdown_file_search_option.ts\n./components/editor/markdown_file_search_options.ts\n./components/editor/markdown_file_search_option_item.test.tsx\n./components/editor/markdown_file_search_option_item.tsx\n./components/editor/markdown_file_search_realm_plugin.ts\n./components/editor/markdown_file_search_selection.ts\n./components/editor/markdown_file_search_trigger.ts\n./components/editor/markdown_file_search_typeahead_plugin.node.test.ts\n./components/editor/markdown_file_search_typeahead_plugin.tsx\n./components/editor/markdown_format_toolbar_controls.tsx\n./components/editor/markdown_local_text_search.node.test.ts\n./components/editor/markdown_local_text_search.ts\n./components/editor/markdown_local_text_search_command.ts\n./components/editor/markdown_local_text_search_config_cell.ts\n./components/editor/markdown_local_text_search_plugin.tsx\n./components/editor/markdown_local_text_search_realm_plugin.ts\n./components/editor/markdown_local_text_search_toolbar_control.tsx\n./components/editor/markdown_paste_plugin.tsx\n./components/shell/main_window.test.tsx\n./components/shell/main_window.tsx\n./components/shell/menu/app_menu.test.tsx",
+          "id": "agent-turn-aed5ce59-b0f2-4b84-b836-6600fa9b173b-event-9",
+          "kind": "event",
+          "label": "grep -rlniE \"⌘|metaKey|search\" . | head -40",
+          "providerItemId": "toolu_012VbFqucNpmGqcJABZ2sVsi",
+          "sequence": 9,
+          "status": "completed",
+          "timestamp": "2026-08-22T19:48:29.924Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "grep -rlniE \"⌘|metaKey|search\" . | tail -40; echo \"=== ⌘ hits ===\"; grep -rn \"⌘\" . | head -40",
+          "content": "./components/editor/markdown_local_text_search_toolbar_control.tsx\n./components/editor/markdown_paste_plugin.tsx\n./components/shell/main_window.test.tsx\n./components/shell/main_window.tsx\n./components/shell/menu/app_menu.test.tsx\n./components/shell/menu/app_menu.tsx\n./components/shell/menu/main_toolbar.test.tsx\n./components/shell/menu/main_toolbar.tsx\n./components/shell/project/project_dialogs.test.tsx\n./components/shell/remote_connect_button.test.tsx\n./components/shell/search/search_control.test.tsx\n./components/shell/search/search_control.tsx\n./components/shell/search/search_panel.tsx\n./components/shell/search/search_results.tsx\n./data/action_run_types.ts\n./data/electron_action_bridge.node.test.ts\n./data/electron_action_bridge.ts\n./data/project_session.test.ts\n./project_template/actions/largest-files.json\n./services/actions/electron_action_runner.node.test.ts\n./services/agents/agent_conversation_service.node.test.ts\n./services/config/config_entries.ts\n./services/config/config_service.test.ts\n./services/config/config_service.ts\n./services/data/card_attachment_operations.test.ts\n./services/data/remote_control_storage_service.node.test.ts\n./services/data/remote_control_storage_service.ts\n./services/project/project_loading.test.ts\n./services/project/project_loading.ts\n./services/project/project_session_service.test.ts\n./services/project/workspace_navigation_service.ts\n./services/search/search_project.node.test.ts\n./services/search/search_project.ts\n./services/search/search_regexp_agent.node.test.ts\n./services/search/search_regexp_agent.ts\n./services/search/search_types.ts\n./services/sentry/sentry_api_client.node.test.ts\n./services/sentry/sentry_api_client.ts\n./services/stats/project_stats_service.node.test.ts\n./test/mdx_editor_stub.tsx\n=== ⌘ hits ===\n./components/shell/search/search_control.tsx:79:                                    ⌘K\n./components/shell/search/search_panel.tsx:199:                                        ⌘K",
+          "id": "agent-turn-aed5ce59-b0f2-4b84-b836-6600fa9b173b-event-10",
+          "kind": "event",
+          "label": "grep -rlniE \"⌘|metaKey|search\" . | tail -40; echo \"=== ⌘ hits ===\"; grep -rn \"⌘\" . | head -40",
+          "providerItemId": "toolu_017CSDj6zZmofvNKBNEx3LMx",
+          "sequence": 10,
+          "status": "completed",
+          "timestamp": "2026-08-22T19:48:32.547Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "sed -n '1,130p' components/shell/search/search_control.tsx",
+          "content": "import { Box, IconButton, InputAdornment, Popover, TextField, Tooltip } from '@mui/material'\nimport type { MouseEvent } from 'react'\nimport { useState } from 'react'\nimport Magnify from 'mdi-material-ui/Magnify'\nimport type { SearchRegexpAgent } from '../../../services/search/search_types'\nimport { NO_DRAG_REGION } from '../drag_region'\nimport { SearchPanel } from './search_panel'\n\nconst RESULTS_WIDTH = 460\n\ninterface SearchControlProps {\n    isMobile?: boolean\n    /** Builds a RegExp from the current query; defaults to the not-yet-available agent. */\n    regexpAgent?: SearchRegexpAgent\n}\n\n/** Lightweight search launcher that mounts data-aware search only while open. */\nexport function SearchControl(props: SearchControlProps) {\n    const { isMobile = false, regexpAgent } = props\n    const [query, setQuery] = useState('')\n    const [desktopOpen, setDesktopOpen] = useState(false)\n    const [searchAnchorElement, setSearchAnchorElement] = useState<HTMLElement | null>(null)\n\n    const openDesktop = () => {\n        setDesktopOpen(true)\n    }\n\n    const closeDesktop = () => {\n        setDesktopOpen(false)\n    }\n\n    const openMobile = (event: MouseEvent<HTMLElement>) => {\n        setSearchAnchorElement(event.currentTarget)\n    }\n\n    const closeMobile = () => {\n        setSearchAnchorElement(null)\n    }\n\n    const updateQuery = (nextQuery: string) => {\n        setQuery(nextQuery)\n    }\n\n    if (!isMobile) {\n        if (desktopOpen) {\n            return (\n                <SearchPanel\n                    initialQuery={query}\n                    onClose={closeDesktop}\n                    onQueryChange={updateQuery}\n                    regexpAgent={regexpAgent}\n                />\n            )\n        }\n\n        return (\n            <TextField\n                fullWidth\n                onFocus={openDesktop}\n                placeholder=\"Search cards…\"\n                size=\"small\"\n                slotProps={{\n                    htmlInput: { 'aria-label': 'Search project', readOnly: true },\n                    input: {\n                        endAdornment: (\n                            <InputAdornment position=\"end\">\n                                <Box\n                                    component=\"span\"\n                                    sx={{\n                                        border: 1,\n                                        borderColor: 'divider',\n                                        borderRadius: 0.5,\n                                        color: 'text.disabled',\n                                        fontSize: 10.5,\n                                        lineHeight: 1.4,\n                                        px: 0.75,\n                                    }}\n                                >\n                                    ⌘K\n                                </Box>\n                            </InputAdornment>\n                        ),\n                        startAdornment: (\n                            <InputAdornment position=\"start\">\n                                <Magnify fontSize=\"small\" />\n                            </InputAdornment>\n                        ),\n                        sx: {\n                            bgcolor: 'background.default',\n                            borderRadius: 99,\n                            fontSize: 13,\n                            height: 32,\n                            '& fieldset': { borderColor: 'divider' },\n                        },\n                    },\n                }}\n                style={NO_DRAG_REGION}\n                value={query}\n                variant=\"outlined\"\n            />\n        )\n    }\n\n    return (\n        <>\n            <Tooltip title=\"Search\">\n                <IconButton\n                    aria-label=\"Search\"\n                    onClick={openMobile}\n                    size=\"small\"\n                    sx={{ height: 34, width: 34 }}\n                >\n                    <Magnify />\n                </IconButton>\n            </Tooltip>\n            <Popover\n                anchorEl={searchAnchorElement}\n                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}\n                disableAutoFocus\n                onClose={closeMobile}\n                open={!!searchAnchorElement}\n                slotProps={{paper: { sx: { mt: 0.5, overflow: 'visible', p: 1, width: `min(${RESULTS_WIDTH}px, calc(100vw - 32px))` } }}}\n                transformOrigin={{ horizontal: 'right', vertical: 'top' }}\n            >\n                {searchAnchorElement ? (\n                    <SearchPanel\n                        initialQuery={query}\n                        onClose={closeMobile}\n                        onQueryChange={updateQuery}\n                        regexpAgent={regexpAgent}",
+          "id": "agent-turn-aed5ce59-b0f2-4b84-b836-6600fa9b173b-event-11",
+          "kind": "event",
+          "label": "sed -n '1,130p' components/shell/search/search_control.tsx",
+          "providerItemId": "toolu_019Co63C3ddH9g39Ak3ie4hG",
+          "sequence": 11,
+          "status": "completed",
+          "timestamp": "2026-08-22T19:48:34.609Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "sed -n '150,240p' components/shell/search/search_panel.tsx; echo \"=== keydown handlers for search shortcut ===\"; grep -rn \"ctrlKey\\|metaKey\\|'k'\\|\\\"k\\\"\\|KeyK\" --include=*.tsx --include=*.ts . | grep -v node_modules | head -30",
+          "content": "    const handleSelectAction = (action: ActionDefinition) => {\n        try {\n            if (viewMode === 'text') {\n                if (!action.sourcePath) throw new Error(`Action cannot be opened in text view: ${action.id}`)\n                workspaceNavigationService.open(action.sourcePath)\n                setIsDismissed(true)\n                onClose()\n                return\n            }\n\n            setActionPopupOpen(true)\n            setIsDismissed(true)\n        } catch (error) {\n            dialogService.error(error, { fallbackMessage: 'Action search result could not be opened' })\n        }\n    }\n\n    const closeActionPopup = () => {\n        setActionPopupOpen(false)\n        onClose()\n    }\n\n    return (\n        <Box onBlur={handleControlBlur} ref={setControlElement} sx={{ maxWidth: RESULTS_WIDTH, position: 'relative', width: '100%' }}>\n            <Box style={NO_DRAG_REGION}>\n                <TextField\n                    fullWidth\n                    onChange={handleQueryChange}\n                    onFocus={handleSearchFocus}\n                    placeholder=\"Search cards…\"\n                    size=\"small\"\n                    slotProps={{\n                        htmlInput: { 'aria-label': 'Search project' },\n                        input: {\n                            endAdornment: (\n                                <InputAdornment position=\"end\">\n                                    <Box\n                                        component=\"span\"\n                                        sx={{\n                                            border: 1,\n                                            borderColor: 'divider',\n                                            borderRadius: 0.5,\n                                            color: 'text.disabled',\n                                            fontSize: 10.5,\n                                            lineHeight: 1.4,\n                                            px: 0.75,\n                                        }}\n                                    >\n                                        ⌘K\n                                    </Box>\n                                </InputAdornment>\n                            ),\n                            startAdornment: (\n                                <InputAdornment position=\"start\">\n                                    <Magnify fontSize=\"small\" />\n                                </InputAdornment>\n                            ),\n                            sx: {\n                                bgcolor: 'background.default',\n                                borderRadius: 99,\n                                fontSize: 13,\n                                height: 32,\n                                '& fieldset': { borderColor: 'divider' },\n                            },\n                        },\n                    }}\n                    value={query}\n                    variant=\"outlined\"\n                />\n            </Box>\n            {isDropdownOpen ? (\n                <ResizablePopper\n                    anchorElement={controlElement}\n                    closeOnEscape={false}\n                    constrainSizeToViewport\n                    draggable={false}\n                    initialSize={{ height: RESULTS_MAX_HEIGHT, width: RESULTS_WIDTH }}\n                    labelId={SEARCH_DROPDOWN_LABEL_ID}\n                    open={isDropdownOpen}\n                    paperSx={{ ...NO_DRAG_REGION, flexDirection: 'column', overflow: 'auto' }}\n                    resizeCorner=\"lower-right\"\n                    resizeLabel=\"Resize search results\"\n                    storageKey={RESULTS_SIZE_STORAGE_KEY}\n                >\n                    <Typography\n                        id={SEARCH_DROPDOWN_LABEL_ID}\n                        sx={{ clip: 'rect(0 0 0 0)', clipPath: 'inset(50%)', height: 1, overflow: 'hidden', position: 'absolute', whiteSpace: 'nowrap', width: 1 }}\n                    >\n                        Search dropdown\n                    </Typography>\n=== keydown handlers for search shortcut ===\n./components/actions/agent/action_agent_prompt.test.tsx:166:        { keyModifier: { ctrlKey: true }, shortcut: 'Ctrl+Enter' },\n./components/actions/agent/action_agent_prompt.test.tsx:167:        { keyModifier: { metaKey: true }, shortcut: 'Meta+Enter' },\n./components/actions/agent/action_agent_prompt.test.tsx:216:        fireEvent.keyDown(prompt, { ctrlKey: true, key: 'Enter' })\n./components/actions/agent/action_agent_prompt.tsx:127:        if (event.key !== 'Enter' || (!event.ctrlKey && !event.metaKey) || !onRunShortcut) return\n./components/actions/run/popup/action_popup.test.tsx:667:        else fireEvent.keyDown(prompt, { ctrlKey: true, key: 'Enter' })\n./components/actions/run/popup/action_popup.test.tsx:1342:        fireEvent.keyDown(prompt, { ctrlKey: true, key: 'Enter' })\n./components/actions/run/popup/action_popup_bottom_row.test.tsx:357:        fireEvent.click(finish, { ctrlKey: true })\n./components/actions/run/popup/action_popup_finish_button.tsx:70:        if (event.ctrlKey) {\n./components/editor/markdown_editor.test.tsx:283:        fireEvent.keyDown(textbox, { ctrlKey: true, key: 'v', shiftKey: true })\n./components/editor/markdown_editor.test.tsx:297:        fireEvent.keyDown(textbox, { ctrlKey: true, key: 'c', shiftKey: true })\n./components/editor/markdown_editor.test.tsx:309:        fireEvent.keyDown(textbox, { ctrlKey: true, key: 'v', shiftKey: true })\n./components/editor/markdown_editor_local_text_search.test.tsx:81:        const browserEventAllowed = fireEvent.keyDown(editor, { ctrlKey: true, key: 'f' })\n./components/editor/markdown_editor_local_text_search.test.tsx:92:        fireEvent.keyDown(editor, { ctrlKey: true, key: 'f' })\n./components/editor/markdown_editor_local_text_search.test.tsx:113:        fireEvent.keyDown(editor, { ctrlKey: true, key: 'f' })\n./components/editor/markdown_editor_local_text_search.test.tsx:130:        fireEvent.keyDown(editor, { ctrlKey: true, key: 'f' })\n./components/editor/markdown_editor_local_text_search.test.tsx:152:        fireEvent.keyDown(editor, { ctrlKey: true, key: 'f' })\n./components/editor/markdown_editor_local_text_search.test.tsx:165:        fireEvent.keyDown(editor, { ctrlKey: true, key: 'f' })\n./components/editor/markdown_editor_local_text_search.test.tsx:188:        fireEvent.keyDown(editor, { ctrlKey: true, key: 'f' })\n./components/editor/markdown_editor_local_text_search.test.tsx:211:        fireEvent.keyDown(editor, { ctrlKey: true, key: 'f' })\n./components/editor/markdown_editor_local_text_search.test.tsx:230:        fireEvent.keyDown(editor, { ctrlKey: true, key: 'f' })\n./components/editor/markdown_editor_local_text_search.test.tsx:244:        fireEvent.keyDown(editor, { ctrlKey: true, key: 'f' })\n./components/editor/markdown_editor_local_text_search.test.tsx:269:        fireEvent.keyDown(editor, { ctrlKey: true, key: 'f' })\n./components/editor/markdown_editor_local_text_search.test.tsx:286:        fireEvent.keyDown(editor, { ctrlKey: true, key: 'f' })\n./components/editor/markdown_editor_local_text_search.test.tsx:305:        fireEvent.keyDown(editor, { ctrlKey: true, key: 'f' })\n./components/editor/markdown_editor_local_text_search.test.tsx:340:        const browserEventAllowed = fireEvent.keyDown(screen.getByRole('textbox'), { ctrlKey: true, key: 'f' })\n./components/editor/markdown_local_text_search_plugin.tsx:26:    return event.ctrlKey && !event.altKey && !event.metaKey && event.key.toLowerCase() === 'f'\n./components/editor/markdown_paste_plugin.tsx:42:    return event.ctrlKey && !event.altKey && !event.metaKey && event.key.toLowerCase() === key\n./components/shell/menu/app_menu.test.tsx:211:        const shortcutEvent = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ctrlKey: true, key: 's' })\n./components/shell/menu/app_menu.test.tsx:224:        const noProjectEvent = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ctrlKey: true, key: 's' })\n./components/shell/menu/app_menu.test.tsx:229:        const noChangesEvent = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ctrlKey: true, key: 's' })",
+          "id": "agent-turn-aed5ce59-b0f2-4b84-b836-6600fa9b173b-event-12",
+          "kind": "event",
+          "label": "sed -n '150,240p' components/shell/search/search_panel.tsx; echo \"=== keydown handlers for search shortcut ===\"; grep -rn \"ctrlKey\\|metaKey\\|'k'\\|\\\"k\\\"\\|KeyK\" --include=*.tsx --include=*.ts . | grep -v node_modules | head -30",
+          "providerItemId": "toolu_01MbJ6q6tuaLxHpkPQesz7Bv",
+          "sequence": 12,
+          "status": "completed",
+          "timestamp": "2026-08-22T19:48:37.740Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-aed5ce59-b0f2-4b84-b836-6600fa9b173b-event-13",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeJNAgDLTY27G3XPxZm7k:thinking:0",
+          "sequence": 13,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T19:48:42.317Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "grep -rn \"SearchControl\" --include=*.tsx . | grep -v test | head; echo \"=== app_menu shortcut infra ===\"; grep -n \"shortcut\\|keydown\\|Ctrl+\\|accelerator\" components/shell/menu/app_menu.tsx | head -40",
+          "content": "./components/shell/main_window.tsx:10:import { SearchControl } from './search/search_control'\n./components/shell/main_window.tsx:54:                search={<SearchControl isMobile={isMobile} regexpAgent={regexpAgent} />}\n./components/shell/search/search_control.tsx:11:interface SearchControlProps {\n./components/shell/search/search_control.tsx:18:export function SearchControl(props: SearchControlProps) {\n=== app_menu shortcut infra ===\n201:        window.addEventListener('keydown', handleSaveShortcut)\n203:        return () => window.removeEventListener('keydown', handleSaveShortcut)\n363:                            tooltip=\"Commit (Ctrl+S)\"",
+          "id": "agent-turn-aed5ce59-b0f2-4b84-b836-6600fa9b173b-event-14",
+          "kind": "event",
+          "label": "grep -rn \"SearchControl\" --include=*.tsx . | grep -v test | head; echo \"=== app_menu shortcut infra ===\"; grep -n \"shortcut\\|keydown\\|Ctrl+\\|accelerator\" components/shell/menu/app_menu.tsx | head -40",
+          "providerItemId": "toolu_01EdmjFJZwg3WvqUaoJcLPob",
+          "sequence": 14,
+          "status": "completed",
+          "timestamp": "2026-08-22T19:48:44.058Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "sed -n '180,210p' components/shell/menu/app_menu.tsx; echo \"=== main_window ===\"; sed -n '1,80p' components/shell/main_window.tsx",
+          "content": "    const handleOpenCardDialog = () => {\n        actions.openNewCardDialog()\n    }\n\n    const handleCommit = useCallback(async () => {\n        try {\n            await projectSessionService.commit()\n        } catch {\n            // ProjectSessionService emits the user-visible error.\n        }\n    }, [])\n\n    useEffect(() => {\n        const handleSaveShortcut = (event: KeyboardEvent) => {\n            if (event.key.toLowerCase() !== 's' || !event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) return\n\n            event.preventDefault()\n            if (canCommit) void handleCommit()\n        }\n\n        window.addEventListener('keydown', handleSaveShortcut)\n\n        return () => window.removeEventListener('keydown', handleSaveShortcut)\n    }, [canCommit, handleCommit])\n\n    const handlePush = async () => {\n        try {\n            await actions.push()\n        } catch {\n            // ProjectSessionService emits the user-visible error.\n=== main_window ===\nimport { Box, useMediaQuery, useTheme } from '@mui/material'\nimport { useCallback, useMemo, useState, type ReactNode } from 'react'\nimport { navigateTo, useAppLocation } from '../../app/app_navigation'\nimport type { UseGithubAuthResult } from '../../auth/use_github_auth'\nimport { ConfigPage } from '../config/config_page'\nimport { useProjectReference } from '../hooks/use_project_reference'\nimport { ProjectWorkspace } from '../project_workspace'\nimport { createSearchRegexpAgent, isSearchRegexpAgentAvailable } from '../../services/search/search_regexp_agent'\nimport { AppMenu } from './menu/app_menu'\nimport { SearchControl } from './search/search_control'\nimport { StatusBar } from './status_bar'\n\ninterface MainWindowProps {\n    auth: UseGithubAuthResult\n    toolbarAction: ReactNode\n}\n\n/** Main window: owns the global layout and switches between desktop and mobile presentations. */\nexport function MainWindow(props: MainWindowProps) {\n    const { auth, toolbarAction } = props\n    const location = useAppLocation()\n    const theme = useTheme()\n    const isMobile = useMediaQuery(theme.breakpoints.down('md'))\n    const [isMenuOpen, setIsMenuOpen] = useState(false)\n    const project = useProjectReference()\n    const isConfigOpen = location.pathname === '/config'\n    const regexpAgent = useMemo(\n        () => isSearchRegexpAgentAvailable() ? createSearchRegexpAgent() : undefined,\n        [],\n    )\n\n    const handleOpenMenu = useCallback(() => {\n        setIsMenuOpen(true)\n    }, [])\n\n    const handleCloseMenu = useCallback(() => {\n        setIsMenuOpen(false)\n    }, [])\n\n    const handleOpenConfig = useCallback(() => {\n        navigateTo('/config')\n    }, [])\n\n    return (\n        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>\n            <AppMenu\n                accessToken={auth.accessToken}\n                auth={auth}\n                extraActions={toolbarAction}\n                isGithubAuthenticated={auth.isAuthenticated}\n                isMobile={isMobile}\n                onOpenConfig={handleOpenConfig}\n                onOpenMobileMenu={handleOpenMenu}\n                search={<SearchControl isMobile={isMobile} regexpAgent={regexpAgent} />}\n            />\n            <ProjectWorkspace\n                auth={auth}\n                isMenuOpen={isMenuOpen}\n                key={project ? `${project.id}:${project.branch}` : 'no-project'}\n                onLeftPanelInteraction={handleCloseMenu}\n            />\n            {!isMobile ? <StatusBar /> : null}\n            {isConfigOpen ? <ConfigPage hash={location.hash} /> : null}\n        </Box>\n    )\n}",
+          "id": "agent-turn-aed5ce59-b0f2-4b84-b836-6600fa9b173b-event-15",
+          "kind": "event",
+          "label": "sed -n '180,210p' components/shell/menu/app_menu.tsx; echo \"=== main_window ===\"; sed -n '1,80p' components/shell/main_window.tsx",
+          "providerItemId": "toolu_015uNVfHNy787D6rYoRtegxA",
+          "sequence": 15,
+          "status": "completed",
+          "timestamp": "2026-08-22T19:48:46.221Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-aed5ce59-b0f2-4b84-b836-6600fa9b173b-event-16",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeJNBJTfdGZv3GUYs32to:thinking:0",
+          "sequence": 16,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T19:48:49.309Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "grep -rn \"platform\" --include=*.ts --include=*.tsx . | grep -vi test | head -30; echo \"=== preload/electron api ===\"; grep -rn \"platform\" ../../desktop --include=*.ts --include=*.js -l 2>/dev/null | grep -v node_modules | head",
+          "content": "=== preload/electron api ===\n../../desktop/main.js\n../../desktop/packaging/build_windows.js\n../../desktop/packaging/rebuild_native_dependencies.js\n../../desktop/src/actions/agent/agent_codex_cache_diagnostic.js\n../../desktop/src/actions/agent/agent_executable_availability.js\n../../desktop/src/actions/agent/agent_runner_service.js\n../../desktop/src/actions/agent/codex_usage_poller.js\n../../desktop/src/actions/process_tree.js\n../../desktop/src/git/git_index_coordinator.js\n../../desktop/src/git/git_lock_diagnostics.js",
+          "id": "agent-turn-aed5ce59-b0f2-4b84-b836-6600fa9b173b-event-17",
+          "kind": "event",
+          "label": "grep -rn \"platform\" --include=*.ts --include=*.tsx . | grep -vi test | head -30; echo \"=== preload/electron api ===\"; grep -rn \"platform\" ../../desktop --include=*.ts --include=*.js -l 2>/dev/null | grep -v node_modules | head",
+          "providerItemId": "toolu_01NttxSHHZDB7ajWqaptuoru",
+          "sequence": 17,
+          "status": "completed",
+          "timestamp": "2026-08-22T19:48:53.450Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-aed5ce59-b0f2-4b84-b836-6600fa9b173b-event-18",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeJNBqUyRYLMRj1xrQaQ3:thinking:0",
+          "sequence": 18,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T19:48:55.901Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "grep -rn \"isElectron\\|window.electron\\|electronAPI\\|contextBridge\" --include=*.ts --include=*.tsx . | grep -vi \"\\.test\\.\" | head -20; echo \"=== preload ===\"; ls ../../desktop; grep -rn \"exposeInMainWorld\" ../../desktop/*.js ../../desktop/src/*.js 2>/dev/null | head",
+          "content": "./components/shell/menu/main_toolbar.tsx:5:import { isElectron } from '../../../services/electron_lifecycle_bridge'\n./components/shell/menu/main_toolbar.tsx:85:                        sx={{ display: 'flex', flex: `0 0 ${SEARCH_WIDTH}px`, ml: 0.5, minWidth: 180, mr: isElectron() ? '130px' : 0 }}\n./services/electron_lifecycle_bridge.ts:29:export const isElectron = () => {\n=== preload ===\nbuild\nelectron-builder.config.cjs\neslint.config.js\nmain.js\nnode_modules\npackage-lock.json\npackage.json\npackaging\nsrc\nstart_electron.js\ntest_agent_spawn.mjs\nvitest.config.mjs",
+          "id": "agent-turn-aed5ce59-b0f2-4b84-b836-6600fa9b173b-event-19",
+          "kind": "event",
+          "label": "grep -rn \"isElectron\\|window.electron\\|electronAPI\\|contextBridge\" --include=*.ts --include=*.tsx . | grep -vi \"\\.test\\.\" | head -20; echo \"=== preload ===\"; ls ../../desktop; grep -rn \"exposeInMainWorld\" ../../desktop/*.js ../../desktop/src/*.js 2>/dev/null | head",
+          "providerItemId": "toolu_01G8GbX7PYL4VsUPdCiNBbKF",
+          "sequence": 19,
+          "status": "completed",
+          "timestamp": "2026-08-22T19:48:57.102Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "sed -n '1,60p' services/electron_lifecycle_bridge.ts",
+          "content": "export type ElectronCloseReason = 'app-quit' | 'window-close'\n\nexport interface ElectronFlushRequest {\n    reason: ElectronCloseReason\n    requestId: string\n}\n\nexport interface ElectronFlushResult {\n    requestId: string\n    success: boolean\n}\n\nexport interface ElectronLifecycleBridge {\n    onFlushRequested(callback: (request: ElectronFlushRequest) => void): () => void\n    reportFlushResult(result: ElectronFlushResult): void\n}\n\ndeclare global {\n    interface Window {\n        md2Lifecycle?: ElectronLifecycleBridge\n    }\n}\n\nexport function getElectronLifecycleBridge() {\n    return window.md2Lifecycle ?? null\n}\n\n\nexport const isElectron = () => {\n    return window.md2Lifecycle ?? null\n}",
+          "id": "agent-turn-aed5ce59-b0f2-4b84-b836-6600fa9b173b-event-20",
+          "kind": "event",
+          "label": "sed -n '1,60p' services/electron_lifecycle_bridge.ts",
+          "providerItemId": "toolu_01N2nzKxRFGoDToXvtanYCwu",
+          "sequence": 20,
+          "status": "completed",
+          "timestamp": "2026-08-22T19:48:59.135Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-aed5ce59-b0f2-4b84-b836-6600fa9b173b-event-21",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeJNCGE1TS78xcqvvTiGC:thinking:0",
+          "sequence": 21,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T19:49:03.898Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "sed -n '1,60p' components/editor/markdown_local_text_search_plugin.tsx; echo \"=== detectMac in deps ===\"; cat ../node_modules/@mdxeditor/editor/dist/utils/detectMac.js 2>/dev/null | head -20",
+          "content": "import ArrowDownwardOutlined from '@mui/icons-material/ArrowDownwardOutlined'\nimport ArrowUpwardOutlined from '@mui/icons-material/ArrowUpwardOutlined'\nimport SearchOutlined from '@mui/icons-material/SearchOutlined'\nimport { Box, IconButton, InputAdornment, Paper, Popper, TextField, ToggleButton, Tooltip, Typography } from '@mui/material'\nimport { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'\nimport { useCellValue } from '@mdxeditor/editor'\nimport { COMMAND_PRIORITY_HIGH, KEY_DOWN_COMMAND } from 'lexical'\nimport {\n    useCallback,\n    useEffect,\n    useState,\n    type ChangeEvent,\n    type KeyboardEvent as ReactKeyboardEvent,\n} from 'react'\nimport { useDialogError } from '../hooks/use_dialog_error'\nimport {\n    getMarkdownSearchSeed,\n    getMarkdownSearchSelectionEnd,\n    getMarkdownSearchSelectionStart,\n    selectMarkdownTextMatch,\n} from './markdown_local_text_search'\nimport { OPEN_MARKDOWN_LOCAL_TEXT_SEARCH_COMMAND } from './markdown_local_text_search_command'\nimport { markdownLocalTextSearchConfig$ } from './markdown_local_text_search_config_cell'\n\nfunction isOpenSearchShortcut(event: KeyboardEvent) {\n    return event.ctrlKey && !event.altKey && !event.metaKey && event.key.toLowerCase() === 'f'\n}\n\n/** Editor-local search keyboard handling and popup. */\nexport function MarkdownLocalTextSearchPlugin() {\n    const config = useCellValue(markdownLocalTextSearchConfig$)\n    const [editor] = useLexicalComposerContext()\n    const [activeCaseSensitive, setActiveCaseSensitive] = useState(false)\n    const [activeTerm, setActiveTerm] = useState<string | null>(null)\n    const [draftCaseSensitive, setDraftCaseSensitive] = useState(false)\n    const [draftTerm, setDraftTerm] = useState('')\n    const [open, setOpen] = useState(false)\n    const [resultCount, setResultCount] = useState<number | null>(null)\n    const [searchOrigin, setSearchOrigin] = useState(0)\n    const rootElement = editor.getRootElement()\n    const configError = config ? null : new Error('Cannot register Markdown local text search without configuration')\n    useDialogError(configError, 'Local text search is unavailable')\n\n    const closeSearch = useCallback(() => {\n        setOpen(false)\n    }, [])\n\n    const openSearch = useCallback(() => {\n        const selectedText = getMarkdownSearchSeed(editor)\n        setSearchOrigin(getMarkdownSearchSelectionEnd(editor))\n        if (selectedText) setDraftTerm(selectedText)\n        setOpen(true)\n        return true\n    }, [editor])\n\n    const selectNextMatch = useCallback(() => {\n        if (!activeTerm) return\n        const offset = getMarkdownSearchSelectionEnd(editor)\n        const result = selectMarkdownTextMatch(editor, activeTerm, offset, activeCaseSensitive)\n        setResultCount(result.count)\n=== detectMac in deps ===\nconst CAN_USE_DOM = typeof window !== \"undefined\" && typeof window.document.createElement !== \"undefined\";\nconst IS_APPLE = CAN_USE_DOM && (() => {\n  var _a;\n  const platform = (_a = navigator.userAgentData) == null ? void 0 : _a.platform;\n  return platform ? /mac/i.test(platform) : /Mac|iPod|iPhone|iPad/.test(navigator.userAgent);\n})();\nfunction controlOrMeta(metaKey, ctrlKey) {\n  if (IS_APPLE) {\n    return metaKey;\n  }\n  return ctrlKey;\n}\nexport {\n  CAN_USE_DOM,\n  IS_APPLE,\n  controlOrMeta\n};",
+          "id": "agent-turn-aed5ce59-b0f2-4b84-b836-6600fa9b173b-event-22",
+          "kind": "event",
+          "label": "sed -n '1,60p' components/editor/markdown_local_text_search_plugin.tsx; echo \"=== detectMac in deps ===\"; cat ../node_modules/@mdxeditor/editor/dist/utils/detectMac.js 2>/dev/null | head -20",
+          "providerItemId": "toolu_01BCcCro9zg89a7KpRvNqhar",
+          "sequence": 22,
+          "status": "completed",
+          "timestamp": "2026-08-22T19:49:04.947Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-aed5ce59-b0f2-4b84-b836-6600fa9b173b-event-23",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeJNCgT2z4RMTPM6VRkB5:thinking:0",
+          "sequence": 23,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T19:49:14.352Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2 && grep -rl \"ready for implementation\" design/feature_descriptions | head -3",
+          "content": "design/feature_descriptions/B_167_don_t_drop_input_when_agent_is_done.md",
+          "id": "agent-turn-aed5ce59-b0f2-4b84-b836-6600fa9b173b-event-24",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2 && grep -rl \"ready for implementation\" design/feature_descriptions | head -3",
+          "providerItemId": "toolu_01DYB8vL7E9FLmHcQQP3xWZf",
+          "sequence": 24,
+          "status": "completed",
+          "timestamp": "2026-08-22T19:49:15.307Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cat design/feature_descriptions/B_167_don_t_drop_input_when_agent_is_done.md",
+          "content": "---\nauthor: \nid: B_167\ninternalId: 55de27a5-aa12-4048-9990-970a8382c5b2\ntitle: don't drop input when agent is done\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__55de27a5-aa12-4048-9990-970a8382c5b2.json\npolicy:\nafter: e9e0858d-a215-42bb-873e-01848ea6a803\nbranch: b_167_don_t_drop_input_when_agent_is_done\nworktree: 2\n---\n\nI already had this several times and is ultra ultra annoying: I am typing in some text when the agent finishes (any state: waitingForInput, completed,..). this just cleans the entire input.\n\nit also appears to cause a reload of the entire popup which is overkill and wrong behaviour.&#x20;\n\nfind why it is doing this and propose a solution\n\n## Current state\n\n**Prompt draft** is the editor-backing text object owned by `ActionPromptDraftService` (`app/src/services/actions/action_prompt_draft_service.ts`). Drafts live in one map under two key shapes: `run\\0<runId>\\0<activeActionId>` while the run has a live agent, and `idle\\0<actionId>\\0<contextIdentity>` otherwise. `getDraft` picks the run key only when the run belongs to this root action, `activeActionType === 'agent'`, and `activeActionId` is set.\n\nThe same editor therefore reads from two different objects depending on live run status. Both keys can hold content at once; `clearDraft` clearing both is the existing acknowledgement of that. Status changes are asynchronous and can land mid-sentence, so which object receives the user's next keystroke is a race the user cannot see or control.\n\nWhile an agent runs, `MarkdownEditor` flushes typed text into the run-keyed draft on debounce and on blur, so text can still be in flight at the moment the run status changes.\n\nThree registry paths clear that draft when the agent stops:\n\n1. `ActionRunRegistry.handleEvent` (`action_run_registry.ts:709`): an `action` event whose status is not `queued` or `running` counts as inactive and calls `clearRunDraft(runId, actionId)`. An agent turn ending in `waitingForInput` takes this path — the everyday case in the report.\n2. The same method at line 692: any terminal `run` event calls `clearRunDrafts(runId)`.\n3. `handleRunResult` (`action_run_registry.ts:638`) calls `clearRunDrafts(result.runId)` once the run store reaches a terminal status.\n\n`clearRunDraft` and `clearRunDrafts` call `ActionPromptDraft.clear()`, which calls `replace('')`, bumps `replacementRevision`, and forces `MarkdownEditor` to swap its content for empty text. The draft is then deleted from the map. None of these paths consults `hasLocalEdits()`, so user-typed text and a machine-prepared default prompt are discarded alike. Even without the clear, the key flip alone hides the text: `getDraft` now resolves to the idle key, a different and empty object.\n\nA fourth clear follows on the idle side. `runWithPrompt` (`action_popup_operations.ts:117`) awaits the run, then calls `conversationStore.load()`. `ActionConversationStore.load` (`action_conversation_store.ts:100-145`) publishes `loading: true`, reloads the conversation list, auto-selects `latestWaitingConversation` because the run is no longer active, and then calls `clearDraft` at line 140. `ActionConversationPicker` shows its loading state and the chat re-resolves its displayed conversation during that window; that is the \"reload of the entire popup\" in the report. `clearPromptDraftWhenIdle` (line 202) clears on the same rule whenever the run is not active.\n\n`ActionAgentPromptOwner` then recomputes `prepare` (`action_agent_prompt_owner.tsx:71-75`). With the session inactive and no conversation selected, `prepare` turns true and the effect calls `promptDraft.prepare(...)`, which `replace()`s the fresh idle draft with the default prepared prompt — overwriting the editor once more.\n\nDelivery responsibility is also misplaced. `ActionPromptDraft` holds a `run` binding set through `bindRun`, and its `send()` (line 141-150) calls the Electron bridge helper `enqueueActionPrompt` and clears itself on success. Its only caller, `runPopupAction` (`action_popup_operations.ts:170`), already fetched the run at line 151 and alr\n[1309 characters omitted]\nompt)` and clears the draft only after the bridge resolves; a failed enqueue keeps the text and reports the error.\n- Clear a draft only when its content was consumed or the user asked for it. Consumed means the prompt was enqueued to a live agent and accepted, or a run started with it (`handleStarted` in `runWithPrompt`), or the user pressed an explicit clear. No status transition, conversation selection, or popup lifecycle event may clear user-edited text.\n- Replace `clearRunDraft` and `clearRunDrafts` in `ActionRunRegistry` (`action_run_registry.ts:638`, `:692`, `:709`) with a run-completion hook that discards a draft only when `hasLocalEdits()` is false, so an unused prepared default is dropped while typed text survives every transition, including `waitingForInput`.\n- `ActionConversationStore.load` (line 140) and `clearPromptDraftWhenIdle` (line 202) apply the same rule: auto-selecting the latest waiting conversation stays, but it may clear only an unedited prepared draft.\n- Gate the preparation effect in `ActionAgentPromptOwner` on the draft having no local edits, so a prepared default never overwrites user text once the single draft outlives the run. `ActionPromptDraft.prepare` already guards on `preparationRequired`, and `edit()` clears that flag.\n- Flush any pending `MarkdownEditor` debounce into the draft before a run-completion hook evaluates `hasLocalEdits()`, so text typed in the final moments of a run is not judged as unedited.\n- Remove the reload flicker: `ActionConversationStore.load` must not publish `loading: true` when a conversation list is already present and it is only reconciling after a finished run, so the picker and chat keep their rendered state and scroll position.\n- Because one draft now spans a whole run, a steering prompt typed but never sent stays in the editor after the run ends and can be sent as the opening prompt of a continuation. This is intended, and it replaces the per-run isolation that existed to stop stale text leaking between sessions.\n- Tests: rework `action_prompt_draft_service.node.test.ts` for single-key drafts and the removed `send`; extend `action_popup_operations` coverage for enqueue, clear-on-accept, and keep-on-failure; extend `action_run_registry.node.test.ts` for the `waitingForInput` and terminal paths preserving edited text; extend `action_conversation_store.node.test.ts` for no-clear and no-flicker after a finished run; extend popup tests for typed text surviving completion.\n\n## acceptance criteria\n\n- Typing in the prompt editor while a run reaches `waitingForInput` leaves the text intact, including text still buffered by the editor debounce at the moment of transition. The user never retypes.\n- The same holds for every terminal status (`completed`, `failed`, `cancelled`) and for the `action` event that ends an agent step.\n- One prompt draft exists per action and context identity. No run status change, conversation selection, or agent-step boundary swaps the object bound to the editor.\n- Text retained after completion is editable and sendable: it starts a new run, or continues the selected conversation, without re-entry.\n- Sending a prompt to a live agent enqueues through `runPopupAction` and clears the editor only after the bridge accepts. A failed enqueue keeps the text on screen and reports the error through `dialogService`.\n- `ActionPromptDraft` exposes no delivery API: no `send`, no `bindRun`, no run binding. Sending a prompt still works from both the Send button and `Ctrl+Enter`.\n- A prepared default prompt the user never edited is still cleared or replaced exactly as today. A prepared default never overwrites user-edited text.\n- Finishing a run produces no visible popup reload: the conversation picker keeps its rendered list without a loading state and the chat keeps its scroll position, while the newest conversation is still selected.\n- Starting a run, Stop, Finish, and saving an edited action definition still clear the draft as before.\n- Closing and reopening the popup after completion shows the retained text for that action and card context.",
+          "id": "agent-turn-aed5ce59-b0f2-4b84-b836-6600fa9b173b-event-25",
+          "kind": "event",
+          "label": "cat design/feature_descriptions/B_167_don_t_drop_input_when_agent_is_done.md",
+          "providerItemId": "toolu_01VdKaMyrpE7q9eS1sETMf7C",
+          "sequence": 25,
+          "status": "completed",
+          "timestamp": "2026-08-22T19:49:17.501Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-aed5ce59-b0f2-4b84-b836-6600fa9b173b-event-26",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeJNDcVvkVUKANrQBcLYN:thinking:0",
+          "sequence": 26,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-22T19:49:22.831Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "grep -n \"it(\\|describe(\" app/src/components/shell/search/search_control.test.tsx | head -20; echo ===; grep -rn \"K\\b\" app/src/components/shell/search/search_panel.tsx | head -5",
+          "content": "60:describe('SearchControl', () => {\n68:    it('subscribes to project data only while search is open', () => {\n79:    it('shows the search controls in a dropdown only while search is focused', () => {\n93:    it('can be resized by dragging its lower-right corner handle and persists the chosen size', () => {\n113:    it('shows a focused search popover from the mobile search icon', () => {\n124:    it('highlights a case-insensitive plain text match while preserving its context', () => {\n137:    it('highlights a RegExp match while preserving its context', () => {\n150:    it('renders normalized context as plain text when the RegExp cannot be relocated', () => {\n162:    it('searches background cards by header and groups them by folder', () => {\n171:    it('includes background bodies only when the full-body toggle is on', () => {\n182:    it('includes actions only when the action toggle is on and opens the action popup', () => {\n204:    it('opens action search results in an editor tab from text view', () => {\n227:    it('reports an invalid RegExp without clearing the previous results', () => {\n246:    it('navigates to the selected result through the navigation service', () => {\n259:    it('populates the query from a successful agent request', async () => {\n270:    it('surfaces an agent failure without changing the current query', async () => {\n===\n199:                                        ⌘K",
+          "id": "agent-turn-aed5ce59-b0f2-4b84-b836-6600fa9b173b-event-27",
+          "kind": "event",
+          "label": "grep -n \"it(\\|describe(\" app/src/components/shell/search/search_control.test.tsx | head -20; echo ===; grep -rn \"K\\b\" app/src/components/shell/search/search_panel.tsx | head -5",
+          "providerItemId": "toolu_01DaFifW9HJLqjnnDBD53Pjo",
+          "sequence": 27,
+          "status": "completed",
+          "timestamp": "2026-08-22T19:49:23.787Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "{\"questions\":[{\"question\":\"Mac shortcut for global search — what should mac users get?\",\"header\":\"Mac key\",\"options\":[{\"label\":\"⌘⇧F (mirror Windows) (Recommended)\",\"description\":\"Both platforms use Shift+Mod+F. Badge shows ⌘⇧F on mac, Ctrl+Shift+F elsewhere. One code path, one mental model.\"},{\"label\":\"Keep ⌘K on mac\",\"description\":\"Mac keeps Cmd+K, Windows/Linux gets Ctrl+Shift+F. Two different shortcuts, two badge strings.\"},{\"label\":\"⌘⇧F and ⌘K both on mac\",\"description\":\"Mac accepts either; badge shows ⌘⇧F. Wider surface, more handler branches.\"}],\"multiSelect\":false},{\"question\":\"The ⌘K badge is decorative today — no keyboard handler opens global search anywhere in the app. Scope?\",\"header\":\"Scope\",\"options\":[{\"label\":\"Implement working shortcut (Recommended)\",\"description\":\"Add a window keydown handler that opens/focuses global search, plus fix the badge. Badge stops lying.\"},{\"label\":\"Badge text only\",\"description\":\"Only swap ⌘K for platform-correct label. Shortcut stays non-functional.\"}],\"multiSelect\":false}]}",
+          "id": "agent-turn-aed5ce59-b0f2-4b84-b836-6600fa9b173b-event-28",
+          "kind": "event",
+          "label": "AskUserQuestion",
+          "providerItemId": "toolu_01LCnNcqoHV2E5AfivHpFtL6",
+          "sequence": 28,
+          "status": "inProgress",
+          "timestamp": "2026-08-22T19:49:30.257Z",
+          "type": "tool.AskUserQuestion"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-a0641673-8eec-4b74-96a0-3302e4a07001",
+      "providerSessions": [],
+      "startedAt": "2026-08-22T19:48:02.778Z",
+      "status": "waitingForInput",
+      "timer": {
+        "elapsedMs": 87484,
+        "runningStartedAt": null
+      },
+      "title": "complete",
+      "usageSchemaVersion": 1,
+      "viewed": false
+    }
+  ],
+  "origin": {
+    "cardInternalId": "933da3dd-6634-467f-bd86-e3205f22da5d",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
