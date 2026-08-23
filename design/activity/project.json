@@ -6707,6 +6707,607 @@
       },
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": null,
+      "cardPath": null,
+      "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 1000000,
+        "usedTokens": 63373
+      },
+      "entries": [
+        {
+          "content": "There is something very strange going on with the 'serve' function on the app menu: no matter which project is loaded, the react app in the browser always loads the same project: md2. Why is this?&#x20;",
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-08-23T14:12:12.269Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-2",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKpKpo4225fSq2Yvgv1y:thinking:0",
+          "sequence": 2,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:12:16.067Z",
+          "type": "reasoning"
+        },
+        {
+          "content": ".codex-schema-temp/ClientRequest.json\n.codex-schema-temp/codex_app_server_protocol.schemas.json\n.codex-schema-temp/codex_app_server_protocol.v2.schemas.json\n.codex-schema-temp/McpServerElicitationRequestParams.json\n.codex-schema-temp/McpServerElicitationRequestResponse.json\n.codex-schema-temp/ServerNotification.json\n.codex-schema-temp/ServerRequest.json\n.codex-schema-temp/v1/InitializeParams.json\n.codex-schema-temp/v1/InitializeResponse.json\n.codex-schema-temp/v2/AccountRateLimitsUpdatedNotification.json\n.codex-schema-temp/v2/AccountUpdatedNotification.json\n.codex-schema-temp/v2/AppsListParams.json\n.codex-schema-temp/v2/CommandExecOutputDeltaNotification.json\n.codex-schema-temp/v2/CommandExecParams.json\n.codex-schema-temp/v2/ErrorNotification.json\n.codex-schema-temp/v2/ExperimentalFeatureListParams.json\n.codex-schema-temp/v2/ExternalAgentConfigDetectResponse.json\n.codex-schema-temp/v2/ExternalAgentConfigImportCompletedNotification.json\n.codex-schema-temp/v2/ExternalAgentConfigImportHistoriesReadResponse.json\n.codex-schema-temp/v2/ExternalAgentConfigImportParams.json\n.codex-schema-temp/v2/ExternalAgentConfigImportProgressNotification.json\n.codex-schema-temp/v2/FileChangeOutputDeltaNotification.json\n.codex-schema-temp/v2/GetAccountRateLimitsResponse.json\n.codex-schema-temp/v2/GetAccountResponse.json\n.codex-schema-temp/v2/ItemCompletedNotification.json\n.codex-schema-temp/v2/ItemGuardianApprovalReviewCompletedNotification.json\n.codex-schema-temp/v2/ItemGuardianApprovalReviewStartedNotification.json\n.codex-schema-temp/v2/ItemStartedNotification.json\n.codex-schema-temp/v2/ListMcpServerStatusParams.json\n.codex-schema-temp/v2/ListMcpServerStatusResponse.json\n.codex-schema-temp/v2/McpResourceReadParams.json\n.codex-schema-temp/v2/McpResourceReadResponse.json\n.codex-schema-temp/v2/McpServerOauthLoginCompletedNotification.json\n.codex-schema-temp/v2/McpServerOauthLoginParams.json\n.codex-schema-temp/v2/McpServerOauthLoginResponse.json\n.codex-schema-temp/v2/McpServerRefreshResponse.json\n.codex-schema-temp/v2/McpServerStatusUpdatedNotification.json\n.codex-schema-temp/v2/McpServerToolCallParams.json\n.codex-schema-temp/v2/McpServerToolCallResponse.json\n.codex-schema-temp/v2/ModelListParams.json\n.codex-schema-temp/v2/PluginInstalledResponse.json\n.codex-schema-temp/v2/PluginListResponse.json\n.codex-schema-temp/v2/PluginReadResponse.json\n.codex-schema-temp/v2/PluginShareListResponse.json\n.codex-schema-temp/v2/RemoteControlStatusChangedNotification.json\n.codex-schema-temp/v2/ReviewStartResponse.json\n.codex-schema-temp/v2/ServerRequestResolvedNotification.json\n.codex-schema-temp/v2/ThreadForkResponse.json\n.codex-schema-temp/v2/ThreadListParams.json\n.codex-schema-temp/v2/ThreadListResponse.json",
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-3",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_015H9qKN8uhSNRfSWrjSqjM8",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:12:31.446Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-4",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKpM91hgE4BqZtuiW6AQ:thinking:0",
+          "sequence": 4,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:12:33.138Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "LICENSE\nREADME.md\nagents.md\napp\ndesign\ndesktop\ndocs\nmd2.config.json\nnode_modules\npackage-lock.json\npackage.json\nrelease\nscreenshots\nshared\ntemp.jpg\n---\napp/node_modules/@asamuzakjp/css-color/dist/esm/js/typedef.d.ts\napp/node_modules/@asamuzakjp/css-color/dist/esm/js/util.d.ts\napp/node_modules/@asamuzakjp/css-color/src/js/cache.ts\napp/node_modules/@asamuzakjp/css-color/src/js/typedef.ts\napp/node_modules/@asamuzakjp/css-color/src/js/util.ts\napp/node_modules/@babel/types/lib/index-legacy.d.ts\napp/node_modules/@babel/types/lib/index.d.ts\napp/node_modules/@codemirror/commands/dist/index.d.ts\napp/node_modules/@codemirror/lang-sql/dist/index.d.ts\napp/node_modules/@codemirror/legacy-modes/mode/clike.d.ts\napp/node_modules/@codemirror/state/dist/index.d.ts\napp/node_modules/@codemirror/view/dist/index.d.ts\napp/node_modules/@csstools/css-calc/dist/index.d.ts\napp/node_modules/@dnd-kit/core/dist/hooks/useDroppable.d.ts\napp/node_modules/@dnd-kit/core/dist/hooks/utilities/index.d.ts\napp/node_modules/@dnd-kit/core/dist/hooks/utilities/useMutationObserver.d.ts\napp/node_modules/@dnd-kit/core/dist/hooks/utilities/useResizeObserver.d.ts\napp/node_modules/@dnd-kit/sortable/dist/hooks/useSortable.d.ts\napp/node_modules/@dnd-kit/utilities/dist/hooks/useIsomorphicLayoutEffect.d.ts\napp/node_modules/@emotion/cache/src/index.ts\napp/node_modules/@emotion/cache/src/stylis-plugins.ts\napp/node_modules/@emotion/react/src/context.tsx\napp/node_modules/@emotion/react/src/types.ts\napp/node_modules/@emotion/utils/src/index.ts\napp/node_modules/@eslint/core/dist/esm/types.d.ts\napp/node_modules/@eslint/eslintrc/node_modules/globals/index.d.ts\napp/node_modules/@floating-ui/dom/dist/floating-ui.dom.d.ts\napp/node_modules/@floating-ui/react/dist/floating-ui.react.d.ts\napp/node_modules/@lexical/a11y/src/index.ts\napp/node_modules/@lexical/clipboard/dist/clipboard.d.ts",
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-5",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01KmEPaWFbGLCKy6H2MTF1mo",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:12:35.611Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "app/src/app/use_app_bootstrap.test.ts\napp/src/components/actions/agent/action_agent_capability_fields.test.tsx\napp/src/components/actions/agent/action_agent_prompt.test.tsx\napp/src/components/actions/agent/action_agent_selectors.test.tsx\napp/src/components/actions/conversation/action_conversation_chat.test.tsx\napp/src/components/actions/conversation/action_conversation_chat.tsx\napp/src/components/actions/conversation/action_conversation_reservation.node.test.ts\napp/src/components/actions/conversation/action_conversation_reservation.ts\napp/src/components/actions/conversation/action_conversation_reserved_block.tsx\napp/src/components/actions/conversation/action_conversation_store.node.test.ts\napp/src/components/actions/conversation/action_conversation_url_transform.ts\napp/src/components/actions/conversation/action_log_error_selector.ts\napp/src/components/actions/editor/action_definition_fields.test.tsx\napp/src/components/actions/run/popup/action_popup_operations.node.test.ts\napp/src/components/config/config_page.test.tsx\napp/src/components/editor/markdown_editor.test.tsx\napp/src/components/editor/markdown_paste_plugin.tsx\napp/src/components/hooks/use_worktree_selector_state.ts\napp/src/components/project_workspace.test.tsx\napp/src/components/resizable_popper.test.tsx\napp/src/components/shell/claude_rate_limit_details.tsx\napp/src/components/shell/claude_rate_limit_status.test.tsx\napp/src/components/shell/codex_rate_limit_details.tsx\napp/src/components/shell/codex_rate_limit_status.test.tsx\napp/src/components/shell/menu/app_menu.test.tsx\napp/src/components/shell/menu/mobile_menu_button.test.tsx\napp/src/components/shell/remote_connect_button.tsx\napp/src/components/shell/remote_connect_dialog.tsx\napp/src/components/shell/remote_control_button.test.tsx\napp/src/components/shell/remote_control_button.tsx\napp/src/components/shell/remote_control_connection_info.tsx\napp/src/components/shell/running_agents_indicator.test.tsx\napp/src/components/stats_view/stats_content.test.tsx\napp/src/components/text_view/file_tree_view.tsx\napp/src/components/text_view/text_view.test.tsx\napp/src/components/worktree_selector.test.tsx\napp/src/data/agent_profiles.node.test.ts\napp/src/data/agent_selection.node.test.ts\napp/src/data/electron_action_bridge.ts\napp/src/data/electron_claude_runtime_bridge.ts",
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-6",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_018JJEwxPCRrFeugty2npu5c",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:12:39.089Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "(Bash completed with no output)",
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-7",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01FLPpMhvZncfBPU1iUJ6kgm",
+          "sequence": 7,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:12:41.181Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "app_menu.test.tsx\napp_menu.tsx\nbranch_menu_select.tsx\nmain_toolbar.test.tsx\nmain_toolbar.tsx\nmenu.test.tsx\nmenu.tsx\nmenu_icon_button.tsx\nmenu_select.test.tsx\nmenu_select.tsx\nmobile_create_menu.test.tsx\nmobile_create_menu.tsx\nmobile_menu_button.test.tsx\nmobile_menu_button.tsx\nproject_name.node.test.ts\nproject_name.ts\nproject_name_label.test.tsx\nproject_name_label.tsx\nsection.test.tsx\nsection.tsx\ntab.test.tsx\ntab.tsx\ntheme_mode_toggle.tsx\n---\ndesktop/packaging/builder_config.js\ndesktop/src/actions/action/action_runner_service.js\ndesktop/src/actions/action/action_run_request.js\ndesktop/src/actions/agent/agent_codex_event.js\ndesktop/src/actions/agent/agent_codex_events.js\ndesktop/src/actions/agent/agent_provider_protocol.js\ndesktop/src/actions/agent/agent_runner_service.js\ndesktop/src/actions/agent/agent_streaming_adapter.js\ndesktop/src/actions/agent/claude_runtime_service.js\ndesktop/src/actions/agent/claude_usage_parsing.js\ndesktop/src/actions/agent/claude_usage_poller.js\ndesktop/src/actions/agent/claude_usage_terminal.js\ndesktop/src/actions/agent/codex_runtime_service.js\ndesktop/src/actions/agent/codex_usage_poller.js\ndesktop/src/actions/agent/usage_metrics_service.js\ndesktop/src/git/worktree_service.js\ndesktop/src/integrations/remote_connect_url.js\ndesktop/src/integrations/remote_control_service.js\ndesktop/src/shell/local_bridge_dispatch.js\ndesktop/src/shell/preload.js",
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-8",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_015FyH2DykHeGbKDdYZsfWak",
+          "sequence": 8,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:12:44.991Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-9",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKpN95hLmittsmApN1qz:thinking:0",
+          "sequence": 9,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:12:47.246Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "app/src/components/shell/menu/app_menu.test.tsx:301:    it('keeps the mobile create menu on Home and preserves the Run toolbar', () => {\napp/src/components/shell/menu/mobile_menu_button.test.tsx:42:            observedAt: Date.now(),\n---\napp/src/components/actions/conversation/action_conversation_chat.test.tsx\napp/src/components/actions/conversation/action_conversation_chat.tsx\napp/src/components/actions/conversation/action_conversation_url_transform.ts\napp/src/components/hooks/use_worktree_selector_state.ts\napp/src/components/resizable_popper.test.tsx\napp/src/components/shell/remote_control_button.test.tsx\napp/src/components/shell/remote_control_button.tsx\napp/src/components/shell/remote_control_connection_info.tsx\napp/src/components/text_view/file_tree_view.tsx\napp/src/services/config/config_entries.ts\napp/src/test/real_editor_setup.ts\ndesktop/src/actions/action/action_runner_service.js\ndesktop/src/git/worktree_service.js",
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-10",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_016sbiP8qnD6KtbN8ZSMDLwa",
+          "sequence": 10,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:12:48.352Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-11",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKpNPX7EaXUfrnJRAH4u:thinking:0",
+          "sequence": 11,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:12:50.838Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "import { Box, Button, Divider, MenuItem, Tab as MuiTab, Tabs, TextField, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material'\nimport type { SelectChangeEvent } from '@mui/material'\nimport type { ChangeEvent, MouseEvent as ReactMouseEvent, ReactNode, SyntheticEvent } from 'react'\nimport { useCallback, useEffect, useState } from 'react'\nimport CardsOutline from 'mdi-material-ui/CardsOutline'\nimport CheckCircleOutline from 'mdi-material-ui/CheckCircleOutline'\nimport CloudArrowDownOutline from 'mdi-material-ui/CloudArrowDownOutline'\nimport CloudArrowUpOutline from 'mdi-material-ui/CloudArrowUpOutline'\nimport Cog from 'mdi-material-ui/Cog'\nimport ContentSaveOutline from 'mdi-material-ui/ContentSaveOutline'\nimport FileDocumentPlusOutline from 'mdi-material-ui/FileDocumentPlusOutline'\nimport FolderOpen from 'mdi-material-ui/FolderOpen'\nimport TextBoxOutline from 'mdi-material-ui/TextBoxOutline'\nimport BarChartOutlined from '@mui/icons-material/BarChartOutlined'\nimport {\n    findAgentProfile,\n    mergeAgentProfiles,\n    PERMISSION_MODE_OPTIONS,\n    supportsPermissionMode,\n    supportsThinkingLevel,\n    THINKING_LEVELS,\n    validateAgentSelection,\n    validatePermissionMode,\n    validateThinkingLevel,\n} from '../../../data/agent_profiles'\nimport {\n    projectAgentSelection,\n    selectAgent,\n    selectModel,\n    selectPermissionMode,\n    selectThinkingLevel,\n    type AgentSelectionState,\n} from '../../../data/agent_selection'\nimport { configService } from '../../../services/config/config_service'\nimport { writeDesktopConfigToBridge } from '../../../services/config/config_persistence'\nimport { projectSessionService } from '../../../services/project/project_session_service'\nimport { workspaceViewService, type WorkspaceViewMode } from '../../../services/project/workspace_view_service'\nimport { workspaceNavigationService } from '../../../services/project/workspace_navigation_service'\nimport { actionService } from '../../../services/actions/action_service'\nimport { dialogService } from '../../../services/dialog_service'\nimport { projectContext } from '../../../data/action_context'\nimport type { UseGithubAuthResult } from '../../../auth/use_github_auth'\nimport { useConfigValue, useHasDesktopConfig } from '../../hooks/use_config_value'\nimport { useProjectState } from '../../hooks/use_project_state'\nimport { useProjectPersistence } from '../../hooks/use_project_persistence'\nimport { useProjectConfig } from '../../hooks/use_project_config'\nimport { useProjectReadOnly } from '../../hooks/use_project_read_only'\nimport { usePrimaryWorktreeStatus } from '../../hooks/use_worktrees'\nimport { useWorkspaceView } from '../../hooks/use_workspace_view'\nimport { ActionEntryPoints } from '../../actions/run/trigger/action_entry_points'\nimport { MainToolbar } from './main_toolbar'\nimport { GithubAuthToolbarButton } from '../github_auth_toolbar_button'\nimport { NO_DRAG_REGION } from '../drag_region'\nimport { BranchSwitchDialog } from '../project/branch_switch_dialog'\nimport { CompleteReleaseDialog } from '../project/complete_release_dialog'\nimport { NewCardDialog } from '../project/new_card_dialog'\nimport { ProjectOpenDialog } from '../project/project_open_dialog'\nimport { useProjectToolbarMenuActions } from '../project/use_project_toolbar_menu_actions'\nimport { Menu } from './menu'\nimport { BranchMenuSelect } from './branch_menu_select'\nimport { MenuIconButton } from './menu_icon_button'\nimport { MenuSelect } from './menu_select'\nimport { MobileCreateMenu } from './mobile_create_menu'\nimport { Section } from './section'\nimport { Tab } from './tab'\n\ntype AppMenuTab = 'home' | 'agents'\ntype ProjectDialogMode = 'open' | 'branch' | 'card' | 'release'\n\ninterface AppMenuProps {\n    accessToken: string | null\n    auth: UseGithubAuthResult\n    extraActions: ReactNode\n    isGithubAuthenticated: boolean\n    isMobile: boolean\n    onOpenConfig: () => void\n    onOpenMobileMenu: () => void\n    search: ReactNode\n}\n\nconst MENU_TABS: { label: string; value: AppMenuTab }[] = [\n    { label: 'Home', value: 'home' },\n    { label: 'Run', value: 'agents\n[450 characters omitted]\nsistDesktopConfig() {\n    if (!configService.hasDesktopConfig()) return\n\n    writeDesktopConfigToBridge(configService.getDesktopValues())\n}\n\n/** Tabbed app menu hosting project, account and agent actions. */\nexport function AppMenu(props: AppMenuProps) {\n    const { accessToken, auth, extraActions, isGithubAuthenticated, isMobile, onOpenConfig, onOpenMobileMenu, search } = props\n    const { project } = useProjectState()\n    const { hasPendingPush, hasPendingSave } = useProjectPersistence()\n    const primaryWorktreeStatus = usePrimaryWorktreeStatus()\n    const projectConfig = useProjectConfig()\n    const { viewMode } = useWorkspaceView()\n    const [currentTab, setCurrentTab] = useState<AppMenuTab>('home')\n    const [dialogMode, setDialogMode] = useState<ProjectDialogMode | null>(null)\n    const agentProfiles = mergeAgentProfiles(useConfigValue('desktop.agentProfiles'))\n    const agentSelection = useConfigValue('desktop.agentSelection')\n    const selectedAgent = agentSelection.activeAgent\n    const selectedProfile = findAgentProfile(agentProfiles, selectedAgent)\n    const selectedModels = selectedProfile?.models ?? []\n    const activeAgentSettings = agentSelection.settingsByAgent[selectedAgent]\n    const hasActiveAgentSettings = !!activeAgentSettings\n    const selectedThinkingLevel = activeAgentSettings?.thinkingLevel ?? 'none'\n    const selectedPermissionMode = agentSelection.permissionMode\n    const desktopAvailable = useHasDesktopConfig()\n    const selectedModel = activeAgentSettings?.model ?? ''\n    const selectionError = hasActiveAgentSettings ? desktopSelectionError(agentSelection, agentProfiles) : null\n    const selectedModelAvailable = selectedModels.includes(selectedModel)\n    const projectBranch = project?.branch ?? ''\n    const readOnly = useProjectReadOnly()\n\n    useEffect(() => {\n        if (!hasActiveAgentSettings) {\n            const error = new Error(`Missing desktop settings for active agent: ${selectedAgent}`)\n            dialogService.error(error, { fallbackMessage: 'Desktop agent settings are invalid' })\n        }\n    }, [hasActiveAgentSettings, selectedAgent])\n\n    const closeDialog = useCallback(() => {\n        setDialogMode(null)\n    }, [])\n\n    const openDialog = useCallback((mode: ProjectDialogMode) => {\n        setDialogMode(mode)\n    }, [])\n\n    const actions = useProjectToolbarMenuActions({\n        accessToken,\n        isGithubAuthenticated,\n        onCloseDialog: closeDialog,\n        onOpenDialog: openDialog,\n    })\n    const branchOptions = actions.branches.length > 0 ? actions.branches : (project ? [{ name: project.branch }] : [])\n    const selectedBranch = branchOptions.some((branch) => branch.name === actions.switchBranch) ? actions.switchBranch : projectBranch\n    const canCommit = !readOnly && actions.isProjectOpen && !actions.isLoading && hasPendingSave\n\n    const handleTabChange = (_event: SyntheticEvent, value: AppMenuTab) => {\n        setCurrentTab(value)\n    }\n\n    const handleOpenProject = () => {\n        actions.openProjectDialog()\n    }\n\n    const handleCreateProjectFolders = (projectFolder: string) => {\n        void actions.createProjectFolders(projectFolder)\n    }\n\n    const handleLoadBranches = () => {\n        void actions.loadSwitchBranches()\n    }\n\n    const handleBranchChange = (event: SelectChangeEvent) => {\n        void actions.switchProjectBranch(event.target.value)\n    }\n\n    const handleOpenReleaseDialog = () => {\n        void actions.openReleaseDialog()\n    }\n\n    const handleOpenCardDialog = () => {\n        actions.openNewCardDialog()\n    }\n\n    const handleCommit = useCallback(async () => {\n        try {\n            await projectSessionService.commit()\n        } catch {\n            // ProjectSessionService emits the user-visible error.\n        }\n    }, [])\n\n    useEffect(() => {\n        const handleSaveShortcut = (event: KeyboardEvent) => {\n            if (event.key.toLowerCase() !== 's' || !event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) return\n\n            event.preventDefault()\n            if (canCommit) void handleCommit()\n        }",
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-12",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01GzK77pwBMneT8qn2VNaLpT",
+          "sequence": 12,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:12:51.184Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-13",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKpNbbtPcfYHSVPMsceu:thinking:0",
+          "sequence": 13,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:12:53.605Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "desktop/src/integrations/remote_control_service.js:6:const { WebSocketServer } = require('ws');\ndesktop/src/integrations/remote_control_service.js:105:        this.websocketServer = null;\ndesktop/src/integrations/remote_control_service.js:134:            const server = http.createServer();\ndesktop/src/integrations/remote_control_service.js:135:            const websocketServer = new WebSocketServer({ noServer: true });\ndesktop/src/integrations/remote_control_service.js:146:                service.websocketServer = websocketServer;\ndesktop/src/integrations/remote_control_service.js:147:                service.registerServerEvents(server, websocketServer);\ndesktop/src/integrations/remote_control_service.js:164:        const websocketServer = this.websocketServer;\ndesktop/src/integrations/remote_control_service.js:166:        this.websocketServer = null;\ndesktop/src/integrations/remote_control_service.js:185:        if (websocketServer) websocketServer.close();\ndesktop/src/integrations/remote_control_service.js:195:    registerServerEvents(server, websocketServer) {\ndesktop/src/integrations/remote_control_service.js:201:            websocketServer.handleUpgrade(request, socket, head, (client) => {\ndesktop/src/integrations/remote_control_service.js:202:                websocketServer.emit('connection', client);\ndesktop/src/integrations/remote_control_service.js:206:        websocketServer.on('connection', (client) => {\ndesktop/src/integrations/remote_control_service.js:222:    /** Serves the bundled React build so a LAN browser loads the app; the WebSocket upgrade is same-origin. */\n---\ndesktop/src/actions/action/action_agent_executor.test.mjs\ndesktop/src/actions/action/action_command_executor.test.mjs\ndesktop/src/actions/action/action_definitions.test.mjs\ndesktop/src/actions/action/action_run.test.mjs\ndesktop/src/actions/action/action_runner_service.js\ndesktop/src/actions/action/action_runner_service.test.mjs\ndesktop/src/actions/action/action_run_history.test.mjs\ndesktop/src/actions/action/action_run_request.js\ndesktop/src/actions/action/action_run_request.test.mjs\ndesktop/src/actions/activity/activity_files.test.mjs",
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-14",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01WfVGqgZM9UqyWjd2XY2VUw",
+          "sequence": 14,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:12:54.410Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-15",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKpNqfE3FsC98wbfZ4an:thinking:0",
+          "sequence": 15,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:12:58.345Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "        server.on('upgrade', (request, socket, head) => {\n            websocketServer.handleUpgrade(request, socket, head, (client) => {\n                websocketServer.emit('connection', client);\n            });\n        });\n\n        websocketServer.on('connection', (client) => {\n            this.clients.add(client);\n            this.clientCount += 1;\n            this.emitStatus();\n            client.on('message', (message) => {\n                void this.handleMessage(client, message);\n            });\n            client.on('close', () => {\n                this.clients.delete(client);\n                this.clearClientSubscriptions(client);\n                this.clientCount = Math.max(0, this.clientCount - 1);\n                this.emitStatus();\n            });\n        });\n    }\n\n    /** Serves the bundled React build so a LAN browser loads the app; the WebSocket upgrade is same-origin. */\n    handleStaticRequest(request, response) {\n        if (!this.staticDir || (request.method !== 'GET' && request.method !== 'HEAD')) {\n            response.writeHead(NOT_FOUND_STATUS).end();\n            return;\n        }\n\n        const filePath = resolveStaticFile(this.staticDir, request.url ?? '/');\n        if (!filePath) {\n            response.writeHead(NOT_FOUND_STATUS).end();\n            return;\n        }\n\n        fs.readFile(filePath, (error, data) => {\n            if (error) {\n                response.writeHead(NOT_FOUND_STATUS).end();\n                return;\n            }\n\n            response.writeHead(200, { 'Content-Type': contentTypeFor(filePath) });\n            response.end(request.method === 'HEAD' ? undefined : data);\n        });\n    }\n\n    async handleMessage(client, rawMessage) {\n        let request;\n        try {\n            request = JSON.parse(rawMessage.toString());\n        } catch {\n            sendJson(client, { error: { message: 'Invalid remote-control JSON message' }, id: null });\n            return;\n        }\n\n        const { id, method, params = [] } = request;\n        try {\n            const result = await this.invoke(client, method, params, id);\n            sendJson(client, { id, result });\n        } catch (error) {\n            sendJson(client, { error: { message: errorMessage(error) }, id });\n        }\n    }\n\n    async invoke(client, method, params, id) {\n        if (method === 'unsubscribe') return this.unsubscribe(client, params);\n        if (method === 'onActionRun') return this.onActionRun(client, id);\n        if (method === 'onClaudeRateLimits') return this.onClaudeRateLimits(client, id);\n        if (method === 'onCodexRateLimits') return this.onCodexRateLimits(client, id);\n        if (method === 'onMergeConflictSessionChanged') return this.onMergeConflictSessionChanged(client, id);\n        if (method === 'onWorktreesChanged') return this.onWorktreesChanged(client, id);\n        if (method === 'watchProject') return this.watchProject(client, params, id);\n        if (!this.dispatcher) throw new Error('Remote-control dispatch is not configured');\n        if (AGENT_EVENT_METHODS.has(method)) {\n            return this.dispatcher.invoke(method, [...params, (event) => sendJson(client, { event: 'agentRun', payload: { event, requestId: id } })]);\n        }\n\n        return this.dispatcher.invoke(method, params);\n    }\n\n    watchProject(client, params, id) {\n        if (!this.dispatcher) throw new Error('Remote-control dispatch is not configured');\n        if (!Array.isArray(params)) throw new Error('Remote-control params must be an array');\n\n        const subscriptionId = crypto.randomUUID();\n        const cleanup = this.dispatcher.invoke('watchProject', [\n            params[0],\n            (event) => sendJson(client, { event: 'watchProject', payload: { event, requestId: id, subscriptionId } }),\n        ]);\n        this.addSubscription(client, subscriptionId, cleanup);\n\n        return { subscriptionId };\n    }\n\n    onActionRun(client, id) {\n        if (!this.dispatcher) throw new Error('Remote-control dispatch is not configured');\n\n        const subscriptionId = crypto.randomUUID();\n        const cleanup = this.dispatcher.invoke('onActionRun', [\n            (event) => sendJson(client, { event: 'actionRun', payload: { event, requestId: id, subscriptionId } }),\n        ]);\n        this.addSubscription(client, subscriptionId, cleanup);\n\n        return { subscriptionId };\n    }\n\n    onCodexRateLimits(client, id) {\n        if (!this.dispatcher) throw new Error('Remote-control dispatch is not configured');\n\n        const subscriptionId = crypto.randomUUID();\n        const cleanup = this.dispatcher.invoke('onCodexRateLimits', [\n            (snapshot) => sendJson(client, {\n                event: 'codexRateLimits',\n                payload: { requestId: id, snapshot, subscriptionId },\n            }),\n        ]);\n        this.addSubscription(client, subscriptionId, cleanup);\n\n        return { subscriptionId };\n    }",
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-16",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_017WCg6YZKYTAuTGWqc1qvqz",
+          "sequence": 16,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:12:58.665Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-17",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKpP9menP6bUwmmEpQU6:thinking:0",
+          "sequence": 17,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:13:00.613Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "app_navigation.ts\nuse_app_bootstrap.test.ts\nuse_app_bootstrap.ts\n---\nimport { useSyncExternalStore } from 'react'\nimport {\n    applicationStartupService,\n    type ApplicationStartupService,\n} from '../services/application_startup_service'\n\n/** Subscribe to application startup state without starting service work from React. */\nexport function useAppBootstrap(service: ApplicationStartupService = applicationStartupService) {\n    return useSyncExternalStore(\n        (onStoreChange) => {\n            service.addEventListener('changed', onStoreChange)\n\n            return () => service.removeEventListener('changed', onStoreChange)\n        },\n        () => service.getSnapshot(),\n        () => service.getSnapshot(),\n    )\n}",
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-18",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01F6ADUoymU2qqfkoKFzZn5h",
+          "sequence": 18,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:13:01.494Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "15:import { isProjectLoadErrorReported } from './project/project_loading'\n16:import { projectPersistenceService } from './project/project_persistence_service'\n17:import { projectSessionService } from './project/project_session_service'\n45:    projectPersistenceService.init({ actionService, dataService, openFilesService })\n61:    restoreLastProject: (accessToken) => projectSessionService.restoreLastProject(accessToken),\n64:/** Initializes renderer services and restores root project data once per application run. */",
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-19",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_017XNMPzKfG1mJsmn5DRkiAo",
+          "sequence": 19,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:13:03.601Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "282:    async restoreLastProject(accessToken: string | null) {\n283-        this.setError(null)\n284-        const lastProject = readLastProject()\n285-        if (!lastProject) return\n286-        if ((lastProject.storageType === 'github' || lastProject.storageType === 'github-readonly') && !accessToken) return\n287-\n288-        const storage = createStorageService(lastProject.storageType, accessToken)\n289-        const project = await resolveRestoredProject(lastProject.storageType, storage, lastProject.project)\n290-        await activateProjectSession(storage, lastProject.storageType, project)\n291-    }\n292-\n293-    async listRepositories(accessToken: string | null): Promise<RepositoryReference[]> {\n294-        return this.withLoading('Repository list failed', async () => createGithubStorage(accessToken).listRepositories())\n295-    }\n296-\n297-    async listBranches(storageType: StorageType, project: ProjectReference, accessToken: string | null): Promise<BranchReference[]> {\n298-        return this.withLoading('Branch list failed', async () => {\n299-            const storage = createStorageService(storageType, accessToken)\n300-\n301-            return storage.listBranches(project)\n302-        })\n303-    }\n304-\n305-    async findGithubRepositoryBranches(\n306-        owner: string,\n307-        repositoryName: string,\n308-        accessToken: string | null,\n309-        storageType: 'github' | 'github-readonly' = 'github',\n310-    ) {\n311-        return this.withLoading('Manual repository branch list failed', async () => {\n312-            const storage = createGithubStorage(accessToken, storageType === 'github-readonly')\n313-            const repository = await storage.findRepository(owner, repositoryName)\n314-            const branches = await storage.listBranches(repository)\n315-\n316-            return { branches, repository }\n317-        })\n318-    }\n319-\n320-    async openProject(\n321-        storageType: StorageType,\n322-        project: ProjectReference,",
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-20",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01Q7UTFMAxKrGKp8Hzpabn13",
+          "sequence": 20,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:13:05.520Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "app/src/data/project_session.ts:7:export const LAST_PROJECT_STORAGE_KEY = 'md2.lastProject'\napp/src/data/project_session.ts:33:    const lastProject = value as Partial<LastProject>\napp/src/data/project_session.ts:35:    return isStorageType(lastProject.storageType) && isProjectReference(lastProject.project)\napp/src/data/project_session.ts:67:export function readLastProject(): LastProject | null {\napp/src/data/project_session.ts:87:export function writeLastProject(storageType: StorageType, project: ProjectReference) {\napp/src/services/project/project_session_service.ts:13:import { createStorageService, readLastProject, writeLastProject, type StorageType } from '../../data/project_session'\napp/src/services/project/project_session_service.ts:155:    writeLastProject(storageType, project)\napp/src/services/project/project_session_service.ts:284:        const lastProject = readLastProject()\napp/src/services/project/project_session_service.ts:285:        if (!lastProject) return\napp/src/services/project/project_session_service.ts:286:        if ((lastProject.storageType === 'github' || lastProject.storageType === 'github-readonly') && !accessToken) return\napp/src/services/project/project_session_service.ts:288:        const storage = createStorageService(lastProject.storageType, accessToken)\napp/src/services/project/project_session_service.ts:289:        const project = await resolveRestoredProject(lastProject.storageType, storage, lastProject.project)\napp/src/services/project/project_session_service.ts:290:        await activateProjectSession(storage, lastProject.storageType, project)",
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-21",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01NuJzWgAgPFD66B1wxB4qii",
+          "sequence": 21,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:13:07.802Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "import { GithubStorageService } from '../services/github/github_storage_service'\nimport { githubAuthService } from '../services/github/github_auth_service'\nimport { LocalGitStorageService } from '../services/data/local_git_storage_service'\nimport { RemoteControlStorageService } from '../services/data/remote_control_storage_service'\nimport type { ProjectReference, StorageService } from './data_types'\n\nexport const LAST_PROJECT_STORAGE_KEY = 'md2.lastProject'\n\nexport type StorageType = 'github' | 'github-readonly' | 'local' | 'remote'\n\nexport interface LastProject {\n    project: ProjectReference\n    storageType: StorageType\n}\n\nconst STORAGE_TYPES: StorageType[] = ['github', 'github-readonly', 'local', 'remote']\n\nfunction isProjectReference(value: unknown): value is ProjectReference {\n    if (!value || typeof value !== 'object' || Array.isArray(value)) return false\n\n    const project = value as Partial<ProjectReference>\n\n    return typeof project.branch === 'string' && typeof project.id === 'string'\n}\n\nfunction isStorageType(value: unknown): value is StorageType {\n    return typeof value === 'string' && STORAGE_TYPES.includes(value as StorageType)\n}\n\nfunction isLastProject(value: unknown): value is LastProject {\n    if (!value || typeof value !== 'object' || Array.isArray(value)) return false\n\n    const lastProject = value as Partial<LastProject>\n\n    return isStorageType(lastProject.storageType) && isProjectReference(lastProject.project)\n}\n\nfunction discardLastProject() {\n    window.localStorage.removeItem(LAST_PROJECT_STORAGE_KEY)\n}\n\n/** Create only the storage backend for the chosen source. GitHub requires an access token. */\nexport function createStorageService(storageType: StorageType, accessToken: string | null): StorageService {\n    if (storageType === 'remote') {\n        const storage = new RemoteControlStorageService()\n        storage.init()\n\n        return storage\n    }\n\n    if (storageType === 'github' || storageType === 'github-readonly') {\n        const storage = new GithubStorageService(storageType === 'github-readonly')\n        storage.init({\n            accessToken: accessToken ?? '',\n            onUnauthorized: () => githubAuthService.handleUnauthorized(),\n        })\n\n        return storage\n    }\n\n    const storage = new LocalGitStorageService()\n    storage.init()\n\n    return storage\n}\n\nexport function readLastProject(): LastProject | null {\n    const storedValue = window.localStorage.getItem(LAST_PROJECT_STORAGE_KEY)\n    if (!storedValue) return null\n\n    let parsedValue: unknown\n    try {\n        parsedValue = JSON.parse(storedValue)\n    } catch {\n        discardLastProject()\n\n        return null\n    }\n\n    if (isLastProject(parsedValue)) return parsedValue\n\n    discardLastProject()\n\n    return null\n}\n\nexport function writeLastProject(storageType: StorageType, project: ProjectReference) {\n    window.localStorage.setItem(LAST_PROJECT_STORAGE_KEY, JSON.stringify({ project, storageType }))\n}",
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-22",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01LKJQ6XfopTfQkBnYNAhzBs",
+          "sequence": 22,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:13:09.793Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-23",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKpPyHtbVgT7nLLKHQZn:thinking:0",
+          "sequence": 23,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:13:14.373Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "import type { ActionFile } from '../../data/action_types'\nimport type {\n    ActionQueuedPrompt,\n    ActionRunEvent,\n    ActionPromptRequest,\n    ActionStartRequest,\n    AgentConversationReservation,\n    AgentApprovalDecision,\n    AgentApprovalRequestId,\n    PreparedActionPrompt,\n} from '../../data/action_run_types'\nimport type { ActionSchedule } from '../../data/action_schedule_types'\nimport type {\n    ActionRunHistoryEntry,\n    ActionRunHistoryRequest,\n    ActionRunRecoverySnapshot,\n    CardActivityRequest,\n    CardActionSettingsRequest,\n    DiffRequest,\n    DiffResult,\n    ElectronActionBridge,\n    HistoricalFileContent,\n    OpenInEditorRequest,\n    ReadFileAtCommitRequest,\n    WorktreeDiffRequest,\n    WorktreeDiffResult,\n} from '../../data/electron_action_bridge'\nimport type { CardActivityFile } from '../../../../shared/card_activity.mjs'\nimport type {\n    CodexRateLimitSnapshot,\n    ElectronCodexRuntimeBridge,\n} from '../../data/electron_codex_runtime_bridge'\nimport type {\n    ClaudeRateLimitSnapshot,\n    ElectronClaudeRuntimeBridge,\n} from '../../data/electron_claude_runtime_bridge'\nimport type { AgentAvailability } from '../../data/electron_data_bridge'\nimport type {\n    AgentConversation,\n    AgentRunEvent,\n    BranchReference,\n    CommitWorktreeRequest,\n    CommitRequest,\n    CommitResult,\n    DeleteFileRequest,\n    DeleteFolderRequest,\n    IntegrateWorktreeRequest,\n    MarkdownFile,\n    MoveFilesRequest,\n    PrepareWorktreeRequest,\n    ProjectAsset,\n    ProjectConfig,\n    ProjectReference,\n    ProjectWatchEvent,\n    ProjectWatchNotification,\n    RepositoryReference,\n    StorageProjectFiles,\n    StorageService,\n    TopLevelFolderReference,\n    WorktreeOperationRequest,\n    WorktreeState,\n} from '../../data/data_types'\nimport { readRemoteControlConnection, type RemoteControlConnectionSettings } from '../../data/remote_control_connection'\nimport type {\n    MergeConflictPathRequest,\n    MergeConflictSession,\n    MergeConflictSessionRequest,\n    WorktreeOperationOutcome,\n} from '../../data/merge_conflict_types'\nimport type { DesktopConfigValues } from '../config/config_entries'\nimport type { DesktopConfigTransport } from '../config/desktop_config_transport'\n\ninterface RemoteControlRequest {\n    id: string\n    method: string\n    params: unknown[]\n}\n\ninterface RemoteControlResponse {\n    error?: { message: string }\n    id: string\n    result?: unknown\n}\n\ninterface RemoteControlEvent {\n    event: string\n    payload: unknown\n}\n\ninterface PendingRequest {\n    method: string\n    reject: (error: Error) => void\n    resolve: (value: unknown) => void\n}\n\ninterface AgentRunPayload {\n    event: AgentRunEvent\n    requestId: string\n}\n\ninterface WatchProjectPayload {\n    event: ProjectWatchNotification\n    requestId: string\n    subscriptionId: string\n}\n\ninterface ActionRunPayload {\n    event: ActionRunEvent\n    requestId: string\n    subscriptionId: string\n}\n\ninterface CodexRateLimitsPayload {\n    requestId: string\n    snapshot: CodexRateLimitSnapshot\n    subscriptionId: string\n}\n\ninterface ClaudeRateLimitsPayload {\n    requestId: string",
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-24",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_014eAMZKQcP2xyMgJZiWhp2T",
+          "sequence": 24,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:13:14.746Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "342:    async loadProjectAsset(_project: ProjectReference, path: string): Promise<ProjectAsset> {\n343:        return this.request<ProjectAsset>('loadProjectAsset', [path])\n350:    async loadProject(\n359:        return this.request<StorageProjectFiles>('loadProject', params)\n366:    async loadProjectRoot(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles> {\n367:        return this.request<StorageProjectFiles>('loadProjectRoot', [project, workingFolder])\n370:    async loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null> {\n371:        return this.request<Partial<ProjectConfig> | null>('loadProjectConfig', [project])",
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-25",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01R1epWFTMecCfFMxwAJysGM",
+          "sequence": 25,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:13:17.164Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "    async loadAgentConversation(_project: ProjectReference, path: string): Promise<AgentConversation> {\n        return this.request<AgentConversation>('loadAgentConversation', [path])\n    }\n\n    async loadActivityConversations(_project: ProjectReference, path: string): Promise<AgentConversation[]> {\n        return this.request<AgentConversation[]>('loadActivityConversations', [path])\n    }\n\n    async listAgentConversationReferences(project: ProjectReference, projectFolder: string): Promise<string[]> {\n        return this.request<string[]>('listAgentConversationReferences', [project, projectFolder])\n    }\n\n    async loadProjectAsset(_project: ProjectReference, path: string): Promise<ProjectAsset> {\n        return this.request<ProjectAsset>('loadProjectAsset', [path])\n    }\n\n    async loadTextFile(project: ProjectReference, path: string): Promise<MarkdownFile> {\n        return this.request<MarkdownFile>('loadTextFile', [project, path])\n    }\n\n    async loadProject(\n        project: ProjectReference,\n        workingFolder: string,\n        excludedRootFolder?: string,\n    ): Promise<StorageProjectFiles> {\n        const params = excludedRootFolder === undefined\n            ? [project, workingFolder]\n            : [project, workingFolder, excludedRootFolder]\n\n        return this.request<StorageProjectFiles>('loadProject', params)\n    }\n\n    async loadFile(project: ProjectReference, path: string): Promise<MarkdownFile> {\n        return this.request<MarkdownFile>('loadFile', [project, path])\n    }\n\n    async loadProjectRoot(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles> {\n        return this.request<StorageProjectFiles>('loadProjectRoot', [project, workingFolder])\n    }\n\n    async loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null> {\n        return this.request<Partial<ProjectConfig> | null>('loadProjectConfig', [project])\n    }\n\n    async listRepositoryFiles(project: ProjectReference): Promise<string[]> {\n        return this.request<string[]>('listRepositoryFiles', [project])\n    }\n\n    async listTopLevelFolders(project: ProjectReference): Promise<TopLevelFolderReference[]> {\n        return this.request<TopLevelFolderReference[]>('listTopLevelFolders', [project])\n    }",
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-26",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_012e82uw53Sgmrr4PHvQpmH5",
+          "sequence": 26,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:13:19.092Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-27",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKpQfgG1eGBthppwvkcT:thinking:0",
+          "sequence": 27,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:13:23.837Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "app/src/services/project/project_session_service.ts:158:async function resolveRestoredProject(storageType: StorageType, storage: StorageService, project: ProjectReference) {\napp/src/services/project/project_session_service.ts-159-    if (storageType !== 'local') return project\napp/src/services/project/project_session_service.ts-160-    if (!storage.resolveProject) throw new Error('Local project validation is not available')\napp/src/services/project/project_session_service.ts-161-\napp/src/services/project/project_session_service.ts-162-    return storage.resolveProject(project)\napp/src/services/project/project_session_service.ts-163-}\napp/src/services/project/project_session_service.ts-164-\napp/src/services/project/project_session_service.ts-165-export class ProjectSessionService extends EventTarget {\napp/src/services/project/project_session_service.ts-166-    private cardCreationState: CardCreationState = { isCreatingCard: false }\napp/src/services/project/project_session_service.ts-167-    private readonly newCardAttachmentPaths = new Set<string>()\napp/src/services/project/project_session_service.ts-168-    private readonly newCardAttachmentSaves = new Set<Promise<unknown>>()\napp/src/services/project/project_session_service.ts-169-    private readonly newCardImageSaves = new Set<Promise<void>>()\napp/src/services/project/project_session_service.ts-170-    private readonly newCardImagePaths = new Set<string>()\napp/src/services/project/project_session_service.ts-171-    readonly newCardMarkdownDraft = new MarkdownDraft('')\napp/src/services/project/project_session_service.ts-172-    private readonly projectAccess = projectAccessService\napp/src/services/project/project_session_service.ts-173-    private state: ProjectSessionState = {\napp/src/services/project/project_session_service.ts-174-        errorMessage: null,\napp/src/services/project/project_session_service.ts-175-        isCommitting: false,\napp/src/services/project/project_session_service.ts-176-        isLoading: false,\napp/src/services/project/project_session_service.ts-177-        isPulling: false,\napp/src/services/project/project_session_service.ts-178-        isPushing: false,\napp/src/services/project/project_session_service.ts-179-        pendingGithubConflictProject: null,\napp/src/services/project/project_session_service.ts-180-    }\napp/src/services/project/project_session_service.ts-181-\napp/src/services/project/project_session_service.ts-182-    constructor() {\napp/src/services/project/project_session_service.ts-183-        super()\napp/src/services/project/project_session_service.ts-184-        register('projectSessionService', this)\napp/src/services/project/project_session_service.ts-185-    }\napp/src/services/project/project_session_service.ts-186-\napp/src/services/project/project_session_service.ts-187-    getSnapshot(): ProjectSessionState {\napp/src/services/project/project_session_service.ts-188-        return this.state\n--\napp/src/services/project/project_session_service.ts:289:        const project = await resolveRestoredProject(lastProject.storageType, storage, lastProject.project)\napp/src/services/project/project_session_service.ts-290-        await activateProjectSession(storage, lastProject.storageType, project)\napp/src/services/project/project_session_service.ts-291-    }\napp/src/services/project/project_session_service.ts-292-\napp/src/services/project/project_session_service.ts-293-    async listRepositories(accessToken: string | null): Promise<RepositoryReference[]> {\napp/src/services/project/project_session_service.ts-294-        return this.withLoading('Repository list failed', async () => createGithubStorage(accessToken).listRepositories())\napp/src/services/project/project_session_service.ts-295-    }\napp/src/services/project/project_session_service.ts-296-\napp/src/services/project/project_session_service.ts-297-    async listBranches(storageType: StorageType, project: ProjectReference, accessToken: string | null): Promise<BranchReference[]> {\napp/src/services/project/project_session_service.ts-298-        return this.withLoading('Branch list failed', async () => {\napp/src/services/project/project_session_service.ts-299-            const storage = createStorageService(storageType, accessToken)\napp/src/services/project/project_session_service.ts-300-\napp/src/services/project/project_session_service.ts-301-            return storage.listBranches(project)\napp/src/services/project/project_session_service.ts-302-        })\napp/src/services/project/project_session_service.ts-303-    }\napp/src/services/project/project_session_service.ts-304-\napp/src/services/project/project_session_service.ts-305-    async findGithubRepositoryBranches(\napp/src/services/project/project_session_service.ts-306-        owner: string,\napp/src/services/project/project_session_service.ts-307-        repositoryName: string,\napp/src/services/project/project_session_service.ts-308-        accessToken: string | null,\napp/src/services/project/project_session_service.ts-309-        storageType: 'github' | 'github-readonly' = 'github',\napp/src/services/project/project_session_service.ts-310-    ) {\napp/src/services/project/project_session_service.ts-311-        return this.withLoading('Manual repository branch list failed', async () => {\napp/src/services/project/project_session_service.ts-312-            const storage = createGithubStorage(accessToken, storageType === 'github-readonly')\napp/src/services/project/project_session_service.ts-313-            const repository = await storage.findRepository(owner, repositoryName)\napp/src/services/project/project_session_service.ts-314-            const branches = await storage.listBranches(repository)\napp/src/services/project/project_session_service.ts-315-\napp/src/services/project/project_session_service.ts-316-            return { branches, repository }",
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-28",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01WjrK6bDofGFGQGEFXkcFgX",
+          "sequence": 28,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:13:24.205Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-29",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKpR2m2f86GmhiC52HFA:thinking:0",
+          "sequence": 29,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:13:26.602Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "app/src/components/project_command_events.ts:7:export type ProjectDialogSource = 'personal' | 'public' | 'remote'\napp/src/components/shell/project/project_open_dialog.tsx:34:type ProjectSource = 'local' | 'personal' | 'public' | 'remote'\napp/src/components/shell/project/project_open_dialog.tsx:168:        setSource(nextProjectKind === 'repository' ? 'personal' : isDesktopMode ? 'local' : 'remote')\napp/src/components/shell/project/project_open_dialog.tsx:370:                    ) : !projectOpenResolution && source === 'remote' ? (\napp/src/components/shell/project/project_open_dialog.tsx:472:                ) : !projectOpenResolution && source === 'remote' ? (\napp/src/components/shell/project/use_project_toolbar_menu_actions.ts:267:            const nextBranches = await projectSessionService.listBranches('remote', remoteProject, accessToken)\napp/src/components/shell/project/use_project_toolbar_menu_actions.ts:293:        await openProject('remote', nextProject)\napp/src/components/shell/remote_connect_button.tsx:14:        requestOpenProjectDialog('remote')\napp/src/components/shell/remote_connect_button.tsx:20:        const resolution = await projectSessionService.openProject('remote', activeProject, null, storage)\napp/src/components/shell/remote_connect_button.tsx:21:        if (resolution) requestOpenProjectDialog('remote', activeProject, resolution)\napp/src/components/shell/remote_connect_button.tsx:23:        requestOpenProjectDialog('remote', activeProject)\napp/src/data/project_session.ts:9:export type StorageType = 'github' | 'github-readonly' | 'local' | 'remote'\napp/src/data/project_session.ts:16:const STORAGE_TYPES: StorageType[] = ['github', 'github-readonly', 'local', 'remote']\napp/src/data/project_session.ts:44:    if (storageType === 'remote') {\napp/src/data/project_storage_activation.ts:15:    if (storageType !== 'remote') {\napp/src/services/project/project_session_service.ts:154:    remoteConnectionService.setProjectStorageActive(storageType === 'remote')\napp/src/services/project/project_session_service.ts:401:            await activateStorageService('remote', storage)",
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-30",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01BmFNeQTqJQAymcYkHJ5vcJ",
+          "sequence": 30,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:13:27.542Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "import { Button, Tooltip } from '@mui/material'\nimport { useEffect, useState, useSyncExternalStore } from 'react'\nimport type { RemoteControlConnectionSettings } from '../../data/remote_control_connection'\nimport { deriveAutoConnectSettings } from '../../data/remote_connect_string'\nimport { remoteConnectionService } from '../../services/data/remote_connection_service'\nimport type { RemoteControlStorageService } from '../../services/data/remote_control_storage_service'\nimport { projectSessionService } from '../../services/project/project_session_service'\nimport { requestOpenProjectDialog } from '../project_command_events'\nimport { RemoteConnectDialog } from './remote_connect_dialog'\n\nasync function openRemoteProject(storage: RemoteControlStorageService) {\n    const activeProject = await storage.getActiveProject().catch(() => null)\n    if (!activeProject) {\n        requestOpenProjectDialog('remote')\n\n        return\n    }\n\n    try {\n        const resolution = await projectSessionService.openProject('remote', activeProject, null, storage)\n        if (resolution) requestOpenProjectDialog('remote', activeProject, resolution)\n    } catch {\n        requestOpenProjectDialog('remote', activeProject)\n    }\n}\n\nasync function connectRemoteProject(settings: RemoteControlConnectionSettings) {\n    try {\n        const storage = await remoteConnectionService.connect(settings)\n        await remoteConnectionService.runProjectOpenFlow(() => openRemoteProject(storage))\n\n        return true\n    } catch {\n        return false\n    }\n}\n\n/** Browser toolbar button bound to singleton remote-connection state. */\nexport function RemoteConnectButton() {\n    const connection = useSyncExternalStore(\n===\n            const resolvedConfig = resolveProjectConfigPaths(projectConfig)\n            const project = await storage.createProject(resolution.project, resolvedConfig.workingFolder)\n            await storage.commit({\n                branch: project.branch,\n                files: createDefaultActionFiles(resolvedConfig.actionsFolder),\n                message: 'Add default MD² actions',\n            })\n            await storage.saveProjectConfig(project, projectConfig)\n            configService.loadProjectConfig(projectConfig)\n            await activateProjectSession(storage, resolution.storageType, project)\n            this.setReadOnly(false)\n        })\n    }\n\n    configureRemote(endpoint: string) {\n        this.setError(null)\n        configureRemoteControlConnection({ endpoint })\n    }\n\n    async activateRemoteConnection(storage: StorageService) {\n        await this.withLoading('Remote desktop config load failed', async () => {\n            await activateStorageService('remote', storage)\n        })\n    }\n\n    async switchBranch(branch: string) {\n        await this.withLoading('Branch switch failed', () => dataService.projectLoading.switchBranch(branch))\n    }\n\n    async push() {\n        projectAccessService.requireWritable()\n        this.state = { ...this.state, isPushing: true }\n        this.dispatchChanged()\n\n        try {\n            await this.withLoading('Push failed', async () => {\n                await projectPersistenceService.flushPendingChanges()\n                await dataService.projectLoading.push()\n            })\n        } finally {\n            this.state = { ...this.state, isPushing: false }",
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-31",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01GvEeE5JH9pBmoL1y4xzbP2",
+          "sequence": 31,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:13:29.902Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-32",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKpRT5WSGTEbBnhVNqoQ:thinking:0",
+          "sequence": 32,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:13:32.457Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "desktop/src/shell/local_bridge_dispatch.js:144:        getActiveProject: () => currentLocalProject,\napp/src/services/data/remote_connection_service.test.ts:124:        await expect(first.storage.getActiveProject()).rejects.toThrow('Remote-control connection was replaced')\napp/src/services/data/remote_control_storage_service.node.test.ts:213:        await expect(service.getActiveProject()).rejects.toThrow('Remote-control connection was replaced')\napp/src/services/data/remote_control_storage_service.ts:304:    async getActiveProject(): Promise<ProjectReference | null> {\napp/src/services/data/remote_control_storage_service.ts:305:        return this.request<ProjectReference | null>('getActiveProject', [])",
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-33",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_019dZ1ecBoU2heGw9tG6Ec17",
+          "sequence": 33,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:13:32.973Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "66-        updateCodexCli,\n67-        worktreeService,\n68-    } = dependencies;\n69:    let currentLocalProject = null;\n70-\n71-    function isCurrentProject(project) {\n72:        return !!currentLocalProject\n73:            && currentLocalProject.branch === project.branch\n74:            && currentLocalProject.id === project.id\n75:            && currentLocalProject.rootPath === project.rootPath;\n76-    }\n77-\n78-    async function activateProject(project) {\n79-        if (isCurrentProject(project)) return;\n80-\n81-        const conflictSession = mergeConflictService?.getInternalSession();\n--\n83-            && conflictSession.projectBranch === project.branch\n84-            && conflictSession.projectRoot === project.rootPath;\n85-        if (conflictSession && !sameConflictProject) {\n86:            if (!currentLocalProject || currentLocalProject.rootPath !== conflictSession.projectRoot) {\n87-                const conflictProject = {\n88-                    branch: conflictSession.projectBranch,\n89-                    id: conflictSession.projectId,\n90-                    rootPath: conflictSession.projectRoot,\n91-                };\n92-                await worktreeService.startProject(conflictProject);\n--\n94-            await worktreeService.abortConflict({ sessionId: conflictSession.id });\n95-        }\n96-\n97:        currentLocalProject = project;\n98-        if (actionSchedulerService) await actionSchedulerService.startProject(project);\n99-        await worktreeService.startProject(project);\n100-        // Account usage polls run in this folder: Claude's per-folder trust question blocks a poll\n101-        // started anywhere it has never run, which is why the poll waits for a project at all.\n102-        if (agentRunnerService) {\n103-            const { agentProfiles } = readDesktopConfig(desktopConfigStore);\n--\n121-            const checkedOutProject = await localGitService.checkoutBranch(project, branch);\n122-            await activateProject(checkedOutProject);\n123-\n124:            return currentLocalProject;\n125-        },\n126-        cancelActionSchedule: (project, actionsFolder, scheduleId) => {\n127-            if (actionSchedulerService) return actionSchedulerService.cancelActionSchedule(scheduleId);\n128-\n129-            return localGitService.cancelActionSchedule(project, actionsFolder, scheduleId);\n130-        },\n131-        commit: async (request) => {\n132:            await localGitService.commit(request, currentLocalProject);\n133-\n134-            return [];\n135-        },\n136-        createProject: async (project, workingFolder) => {\n137-            const createdProject = await localGitService.createProject(project, workingFolder);\n138-            await activateProject(createdProject);\n139-\n140:            return currentLocalProject;\n141-        },",
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-34",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_012secFdjHknRz3ijht29oPp",
+          "sequence": 34,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:13:35.131Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-35",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKpRqNCcuT75BBSHTtRZ:thinking:0",
+          "sequence": 35,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:13:41.091Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "import { actionMarkdownDataSource } from '../components/editor/action_markdown_data_source'\nimport { cardMarkdownDataSource } from '../components/editor/card_markdown_data_source'\nimport { readDesktopConfigFromBridge } from './config/config_persistence'\nimport { configService } from './config/config_service'\nimport { actionRunRegistry } from './actions/action_run_registry'\nimport { actionRunSettingsService } from './actions/action_run_settings_service'\nimport { actionService } from './actions/action_service'\nimport { agentCapabilitiesService } from './agents/agent_capabilities_service'\nimport { codexCliUpdateService } from './agents/codex_cli_update_service'\nimport { codexRateLimitService } from './agents/codex_rate_limit_service'\nimport { claudeRateLimitService } from './agents/claude_rate_limit_service'\nimport { dataService } from './data/data_service'\nimport { githubAuthService, initDefaultGithubAuthService } from './github/github_auth_service'\nimport { openFilesService } from './open_files_service'\nimport { isProjectLoadErrorReported } from './project/project_loading'\nimport { projectPersistenceService } from './project/project_persistence_service'\nimport { projectSessionService } from './project/project_session_service'\nimport { register } from './service_injector'\nimport { initDefaultSentryConnectionService, sentryConnectionService } from './sentry/sentry_connection_service'\nimport { sentryImportService } from './sentry/sentry_import_service'\n\nexport type ApplicationStartupPhase = 'ready' | 'starting'\n\nexport interface ApplicationStartupSnapshot {\n    error: string | null\n    phase: ApplicationStartupPhase\n}\n\nexport interface ApplicationStartupDependencies {\n    getGithubAccessToken(): string | null\n    initializeAgentCapabilities(): Promise<void>\n    initializeServices(): void\n    restoreGithubSession(): Promise<void>\n    restoreLastProject(accessToken: string | null): Promise<void>\n}\n\nconst INITIAL_SNAPSHOT: ApplicationStartupSnapshot = { error: null, phase: 'starting' }\n\nfunction initializeServices() {\n    const desktopConfig = readDesktopConfigFromBridge()\n    configService.init({ desktopConfig })\n    initDefaultGithubAuthService(githubAuthService)\n    initDefaultSentryConnectionService(sentryConnectionService)\n    openFilesService.init({ actionService, dataService })\n    projectPersistenceService.init({ actionService, dataService, openFilesService })\n    cardMarkdownDataSource.init(dataService)\n    actionMarkdownDataSource.init(actionService)\n    actionRunRegistry.start()\n    actionRunSettingsService.init(dataService)\n    codexCliUpdateService.start()\n    claudeRateLimitService.start()\n    codexRateLimitService.start()\n    sentryImportService.start()\n}\n\nconst DEFAULT_DEPENDENCIES: ApplicationStartupDependencies = {\n    getGithubAccessToken: () => githubAuthService.getAccessToken(),\n    initializeAgentCapabilities: () => agentCapabilitiesService.initialize(),\n    initializeServices,\n    restoreGithubSession: () => githubAuthService.restoreSession(),\n    restoreLastProject: (accessToken) => projectSessionService.restoreLastProject(accessToken),\n}\n\n/** Initializes renderer services and restores root project data once per application run. */\nexport class ApplicationStartupService extends EventTarget {\n    private readonly dependencies: ApplicationStartupDependencies\n    private snapshot = INITIAL_SNAPSHOT\n    private startupPromise: Promise<void> | null = null\n\n    constructor(dependencies: ApplicationStartupDependencies = DEFAULT_DEPENDENCIES) {\n        super()\n        this.dependencies = dependencies\n        register('applicationStartupService', this)\n    }\n\n    getSnapshot() {\n        return this.snapshot\n    }\n\n    start() {\n        if (!this.startupPromise) this.startupPromise = this.runStartup()\n\n        return this.startupPromise\n    }\n\n    private async runStartup() {\n        try {\n            this.dependencies.initializeServices()\n            await Promise.all([\n                this.dependencies.restoreGithubSession(),\n                this.dependencies.initializeAgentCapabilities(),\n            ])\n            await this.dependencies.restoreLastProject(this.dependencies.getGithubAccessToken())\n            this.setSnapshot({ error: null, phase: 'ready' })\n        } catch (error) {\n            const message = isProjectLoadErrorReported(error)\n                ? null\n                : error instanceof Error ? error.message : 'Startup failed'\n            this.setSnapshot({ error: message, phase: 'ready' })\n        }\n    }\n\n    private setSnapshot(snapshot: ApplicationStartupSnapshot) {\n        this.snapshot = snapshot\n        this.dispatchEvent(new CustomEvent<ApplicationStartupSnapshot>('changed', { detail: snapshot }))\n    }\n}\n\nexport const applicationStartupService = new ApplicationStartupService()",
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-36",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01C5rU9TcDJnmXgqbW7RpGxA",
+          "sequence": 36,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:13:41.310Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-37",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKpSJ5nyxXhCbJXmFbtv:thinking:0",
+          "sequence": 37,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:13:45.211Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "169:        loadProject: async (project, workingFolder, excludedRootFolder) => {\n170-            await activateProject(project);\n171-            if (excludedRootFolder === undefined) return localGitService.loadProject(project, workingFolder);\n172-\n173-            return localGitService.loadProject(project, workingFolder, excludedRootFolder);\n174-        },\n175:        loadProjectConfig: (project) => localGitService.loadProjectConfig(project),\n176:        loadProjectRoot: async (project, workingFolder) => {\n177-            await activateProject(project);\n178-\n179-            return localGitService.loadProjectRoot(project, workingFolder);\n180-        },\n181-        moveFiles: (request) => localGitService.moveFiles(request, currentLocalProject),\n182-        openProjectFolder: async () => {\n--\n279:        resolveProject: async (project) => {\n280-            const resolvedProject = await localGitService.resolveLocalProject(project.rootPath);\n281-            await activateProject(resolvedProject);\n282-\n283-            return resolvedProject;\n284-        },\n285-        saveActionSchedules: (project, actionsFolder, schedules) => localGitService.saveActionSchedules(project, actionsFolder, schedules),",
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-38",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01AW389cZ4pn3Tt86NRqyo8x",
+          "sequence": 38,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:13:46.209Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-39",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKpSfuDXfJRKXbvz7s94:thinking:0",
+          "sequence": 39,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:13:51.167Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "app/src/components/shell/remote_connect_button.tsx:4:import { deriveAutoConnectSettings } from '../../data/remote_connect_string'\napp/src/components/shell/remote_connect_button.tsx:60:        const settings = deriveAutoConnectSettings(window.location.host, window.location.protocol)\napp/src/data/remote_connect_string.ts:28:export function deriveAutoConnectSettings(host: string, protocol: string): RemoteControlConnectionSettings | null {\n===\n}\n\n/** Browser toolbar button bound to singleton remote-connection state. */\nexport function RemoteConnectButton() {\n    const connection = useSyncExternalStore(\n        remoteConnectionService.subscribe,\n        remoteConnectionService.getSnapshot,\n        remoteConnectionService.getSnapshot,\n    )\n    const [isDialogOpen, setIsDialogOpen] = useState(false)\n    const connectedEndpoint = connection.status === 'ready' || connection.status === 'reconnecting'\n        ? connection.endpoint\n        : null\n\n    const handleOpenDialog = () => setIsDialogOpen(true)\n\n    const handleConnect = async (settings: RemoteControlConnectionSettings) => {\n        const connected = await connectRemoteProject(settings)\n        if (connected) setIsDialogOpen(false)\n\n        return connected\n    }\n\n    useEffect(() => {\n        const settings = deriveAutoConnectSettings(window.location.host, window.location.protocol)\n        if (!settings) return\n\n        void connectRemoteProject(settings).then((connected) => {\n            if (!connected) setIsDialogOpen(true)\n        })\n    }, [])\n\n    const handleDisconnect = () => {\n        remoteConnectionService.disconnect()\n        setIsDialogOpen(false)\n    }\n\n    const buttonLabel = connection.status === 'ready'\n        ? 'Connected'\n        : connection.status === 'reconnecting'\n            ? 'Reconnecting'\n            : connection.status === 'connecting'\n                ? 'Connecting'\n                : 'Connect'\n    const tooltip = connection.errorMessage ?? connection.endpoint ?? 'Connect to a remote md2 server'\n\n    return (\n        <>\n            <Tooltip title={tooltip}>\n                <span>\n                    <Button\n                        color={connection.status === 'ready' ? 'success' : 'inherit'}\n                        disabled={connection.status === 'connecting'}\n                        onClick={handleOpenDialog}\n                        size=\"small\"\n                        variant=\"outlined\"\n                    >\n                        {buttonLabel}\n                    </Button>\n                </span>\n            </Tooltip>\n            <RemoteConnectDialog\n                connectedEndpoint={connectedEndpoint}\n                errorMessage={connection.errorMessage}\n                isBusy={connection.status === 'connecting' || connection.status === 'reconnecting'}\n                onClose={() => setIsDialogOpen(false)}\n                onConnect={(settings) => void handleConnect(settings)}\n                onDisconnect={handleDisconnect}\n                open={isDialogOpen}\n            />\n        </>\n    )\n}",
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-40",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01EmpgrTcinx6WKHmWhB8KT3",
+          "sequence": 40,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:13:52.143Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-41",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKpT6KQ1Bq2P42Bvf9aK:thinking:0",
+          "sequence": 41,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:13:55.282Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "import type { RemoteControlConnectionSettings } from '../../data/remote_control_connection'\nimport { configureRemoteControlConnection, readRemoteControlConnection } from '../../data/remote_control_connection'\nimport { setActionBridgeOverride } from '../../data/electron_action_bridge'\nimport { setClaudeRuntimeBridgeOverride } from '../../data/electron_claude_runtime_bridge'\nimport { setCodexRuntimeBridgeOverride } from '../../data/electron_codex_runtime_bridge'\nimport { agentCapabilitiesService } from '../agents/agent_capabilities_service'\nimport { actionRunRegistry } from '../actions/action_run_registry'\nimport { claudeRateLimitService } from '../agents/claude_rate_limit_service'\nimport { codexRateLimitService } from '../agents/codex_rate_limit_service'\nimport { readDesktopConfigFromBridge } from '../config/config_persistence'\nimport { configService } from '../config/config_service'\nimport { setDesktopConfigTransportOverride } from '../config/desktop_config_transport'\nimport { getService, register } from '../service_injector'\nimport {\n    isRemoteControlConnectionError,\n    RemoteControlConnectionError,\n    RemoteControlStorageService,\n} from './remote_control_storage_service'\n\nexport type RemoteConnectionStatus = 'connecting' | 'disconnected' | 'ready' | 'reconnecting'\n\nexport interface RemoteConnectionSnapshot {\n    endpoint: string | null\n    errorMessage: string | null\n    status: RemoteConnectionStatus\n}\n\nexport interface RemoteConnectionServiceDependencies {\n    activate(storage: RemoteControlStorageService): Promise<void>\n    clearActivation(): void\n    createStorage(): RemoteControlStorageService\n    replaceProjectStorage(storage: RemoteControlStorageService): void\n}\n\nconst INITIAL_RECONNECT_DELAY_MS = 1_000\nconst MAX_RECONNECT_DELAY_MS = 30_000\nconst INITIAL_SNAPSHOT: RemoteConnectionSnapshot = { endpoint: null, errorMessage: null, status: 'disconnected' }\n\nasync function activateRemoteStorage(storage: RemoteControlStorageService) {\n    try {\n        const desktopConfig = await storage.loadDesktopConfig()\n        configService.replaceDesktopConfig(desktopConfig)\n        setActionBridgeOverride(storage)\n        setClaudeRuntimeBridgeOverride(storage)\n        setCodexRuntimeBridgeOverride(storage)\n        setDesktopConfigTransportOverride(storage)\n        claudeRateLimitService.start()\n        codexRateLimitService.start()\n        actionRunRegistry.start()\n        await agentCapabilitiesService.reload()\n    } catch (error) {\n        if (isRemoteControlConnectionError(error)) throw error\n        const message = error instanceof Error ? error.message : 'Unknown remote desktop config error'\n        throw new Error(`Remote desktop config load failed: ${message}`, { cause: error })\n    }\n}\n\nfunction clearRemoteActivation() {\n    setActionBridgeOverride(null)\n    setClaudeRuntimeBridgeOverride(null)\n    setCodexRuntimeBridgeOverride(null)\n    setDesktopConfigTransportOverride(null)\n    if (!configService.isInitialized()) return\n\n    const desktopConfig = readDesktopConfigFromBridge()\n    if (desktopConfig) {\n        configService.replaceDesktopConfig(desktopConfig)\n\n        return\n    }\n    if (configService.hasDesktopConfig()) configService.clearDesktopConfig()\n}\n\nconst DEFAULT_DEPENDENCIES: RemoteConnectionServiceDependencies = {\n    activate: activateRemoteStorage,\n    clearActivation: clearRemoteActivation,\n    createStorage: () => new RemoteControlStorageService(),\n    replaceProjectStorage: (storage) => getService<{ replaceRemoteStorage(storage: RemoteControlStorageService): void }>('dataService')\n        .replaceRemoteStorage(storage),\n}\n\nfunction sameSettings(left: RemoteControlConnectionSettings | null, right: RemoteControlConnectionSettings) {\n    return left?.endpoint === right.endpoint\n}\n\n/** Owns browser-to-desktop connection state, activation order, and reconnection. */\nexport class RemoteConnectionService extends EventTarget {\n    private activeStorage: RemoteControlStorageService | null = null\n    private connectingStorage: RemoteControlStorageService | null = null\n    private connectionProm\n[4645 characters omitted]\nge.retire()\n\n                return null\n            }\n\n            this.unsubscribeConnection?.()\n            this.unsubscribeConnection = unsubscribe\n            this.activeStorage = storage\n            if (this.connectingStorage === storage) this.connectingStorage = null\n            this.reconnectDelayMs = INITIAL_RECONNECT_DELAY_MS\n            if (reconnecting && this.projectStorageActive) this.dependencies.replaceProjectStorage(storage)\n            this.publish({ endpoint: settings.endpoint, errorMessage: null, status: 'ready' })\n\n            return storage\n        } catch (error) {\n            if (this.connectingStorage === storage) this.connectingStorage = null\n            unsubscribe()\n            storage.retire()\n            if (lifecycleId !== this.lifecycleId) return null\n            this.dependencies.clearActivation()\n            const errorMessage = error instanceof Error ? error.message : 'Remote-control connection failed'\n            if (!reconnecting) this.publish({ endpoint: settings.endpoint, errorMessage, status: 'disconnected' })\n            throw error\n        }\n    }\n\n    private startReconnecting(lifecycleId: number) {\n        if (lifecycleId !== this.lifecycleId || !this.settings) return\n\n        this.unsubscribeConnection?.()\n        this.unsubscribeConnection = null\n        const staleStorage = this.activeStorage\n        this.activeStorage = null\n        staleStorage?.retire()\n        this.dependencies.clearActivation()\n        this.publish({ endpoint: this.settings.endpoint, errorMessage: null, status: 'reconnecting' })\n        const connectionPromise = this.reconnect(this.settings, lifecycleId)\n        this.connectionPromise = connectionPromise\n        void connectionPromise.finally(() => {\n            if (this.connectionPromise === connectionPromise) this.connectionPromise = null\n        })\n    }\n\n    private async reconnect(\n        settings: RemoteControlConnectionSettings,\n        lifecycleId: number,\n    ): Promise<RemoteControlStorageService | null> {\n        let delayMs = 0\n        while (lifecycleId === this.lifecycleId) {\n            if (delayMs > 0) await this.waitForRetry(delayMs)\n            if (lifecycleId !== this.lifecycleId) return null\n\n            try {\n                return await this.connectOnce(settings, lifecycleId, true)\n            } catch (error) {\n                if (lifecycleId !== this.lifecycleId) return null\n                const errorMessage = error instanceof Error ? error.message : 'Remote-control reconnection failed'\n                this.publish({ endpoint: settings.endpoint, errorMessage, status: 'reconnecting' })\n                delayMs = this.reconnectDelayMs\n                this.reconnectDelayMs = Math.min(this.reconnectDelayMs * 2, MAX_RECONNECT_DELAY_MS)\n            }\n        }\n\n        return null\n    }\n\n    private waitForRetry(delayMs: number) {\n        return new Promise<void>((resolve) => {\n            this.retryResolve = resolve\n            this.retryTimeout = window.setTimeout(() => {\n                this.retryResolve = null\n                this.retryTimeout = null\n                resolve()\n            }, delayMs)\n        })\n    }\n\n    private stopCurrentConnection() {\n        if (this.retryTimeout !== null) window.clearTimeout(this.retryTimeout)\n        this.retryTimeout = null\n        this.retryResolve?.()\n        this.retryResolve = null\n        this.unsubscribeConnection?.()\n        this.unsubscribeConnection = null\n        this.connectingStorage?.retire()\n        this.connectingStorage = null\n        this.activeStorage?.retire()\n        this.activeStorage = null\n        this.connectionPromise = null\n    }\n\n    private publish(snapshot: RemoteConnectionSnapshot) {\n        if (\n            this.snapshot.endpoint === snapshot.endpoint\n            && this.snapshot.errorMessage === snapshot.errorMessage\n            && this.snapshot.status === snapshot.status\n        ) return\n\n        this.snapshot = snapshot\n        this.dispatchEvent(new Event('changed'))\n    }\n}\n\nexport const remoteConnectionService = new RemoteConnectionService()",
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-42",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01U667xKgzZjgQyPAe9WehfT",
+          "sequence": 42,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:13:55.587Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-43",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKpTLzhBj1ZyVyMZRDyC:thinking:0",
+          "sequence": 43,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:14:06.003Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "63:import { readRemoteControlConnection, type RemoteControlConnectionSettings } from '../../data/remote_control_connection'\n64-import type {\n65-    MergeConflictPathRequest,\n66-    MergeConflictSession,\n67-    MergeConflictSessionRequest,\n68-    WorktreeOperationOutcome,\n69-} from '../../data/merge_conflict_types'\n70-import type { DesktopConfigValues } from '../config/config_entries'\n71-import type { DesktopConfigTransport } from '../config/desktop_config_transport'\n--\n241:    init(settings: Partial<RemoteControlConnectionSettings> = {}) {\n242-        const storedSettings = settings.endpoint\n243-            ? settings as RemoteControlConnectionSettings\n244:            : readRemoteControlConnection()\n245-        this.endpoint = storedSettings.endpoint\n246-        this.retired = false\n247-    }\n248-\n249-    async connect(): Promise<void> {\n250-        await this.ensureConnected()\n251-    }\n252-\n===\nexport const REMOTE_CONTROL_ENDPOINT_KEY = 'md2.remoteControl.endpoint'\n\nexport interface RemoteControlConnectionSettings {\n    endpoint: string\n}\n\nexport function configureRemoteControlConnection(settings: RemoteControlConnectionSettings) {\n    window.localStorage.setItem(REMOTE_CONTROL_ENDPOINT_KEY, settings.endpoint)\n}\n\nexport function tryReadRemoteControlConnection(): RemoteControlConnectionSettings | null {\n    const endpoint = window.localStorage.getItem(REMOTE_CONTROL_ENDPOINT_KEY)\n    if (!endpoint) return null\n\n    return { endpoint }\n}\n\nexport function readRemoteControlConnection(): RemoteControlConnectionSettings {\n    const endpoint = window.localStorage.getItem(REMOTE_CONTROL_ENDPOINT_KEY)\n    if (!endpoint) throw new Error('Missing remote-control endpoint')\n\n    return { endpoint }\n}",
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-44",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01W9g2JKUYLWJ3h4dn4iC8Kq",
+          "sequence": 44,
+          "status": "completed",
+          "timestamp": "2026-08-23T14:14:06.838Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-event-45",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeKpUB3SRFNcG4mrSk6tP:thinking:0",
+          "sequence": 45,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-23T14:14:12.236Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Found it. Not the serve/HTTP layer — the browser client restores its **own** last project from `localStorage` before it ever asks the desktop what is open.\n\n**Chain**\n\n1. `app/src/services/application_startup_service.ts:93` — startup calls `restoreLastProject` on page load.\n2. `app/src/services/project/project_session_service.ts:282` — `restoreLastProject` reads `readLastProject()`, i.e. the `md2.lastProject` key in browser localStorage (`app/src/data/project_session.ts:7`, `:67`). That entry was written the first time you opened a project in that browser — md2. It builds its own `RemoteControlStorageService` and activates a session with that **stale stored reference**.\n3. `app/src/services/project/project_session_service.ts:154` — activation calls `remoteConnectionService.setProjectStorageActive(true)`, which also sets `projectFlowHandled = true` (`app/src/services/data/remote_connection_service.ts:169`).\n4. `app/src/components/shell/remote_connect_button.tsx:59-65` — the auto-connect effect then runs `runProjectOpenFlow(() => openRemoteProject(storage))`, the only path that calls `storage.getActiveProject()` (the desktop's real current project). `runProjectOpenFlow` (`remote_connection_service.ts:174`) returns immediately because the flag is already set. So `getActiveProject` is never asked.\n\nResult: the browser always shows the project cached in its localStorage, forever, regardless of what the desktop has open.\n\n**Second, worse effect**: `desktop/src/shell/local_bridge_dispatch.js:169` — `loadProject` calls `activateProject(project)` using the client-supplied reference. So the stale browser ref does not just display md2, it flips the desktop's `currentLocalProject` to md2 too (worktree service, action scheduler, usage pollers all restart on it).\n\n**Quick confirmation**: in the browser devtools run `localStorage.getItem('md2.lastProject')` — it will show the md2 reference. Clearing it makes the next load fall through to the `getActiveProject` path and pick up the desktop's project.\n\n**Fix directions** (not applied — say the word):\n- In `restoreLastProject`, for `storageType === 'remote'`, prefer the server's `getActiveProject()` over the stored reference (fall back to stored only when the server returns null).\n- Or drop the `projectFlowHandled` short-circuit for a restore that came from localStorage, so the auto-connect flow still reconciles against the desktop.\n- Optionally, make the desktop `loadProject` reject a reference that is not the active project instead of silently re-activating it, so a client can never hijack the desktop's project.\n\nWhich one do you want?",
+          "id": "agent-turn-97101300-861a-4d4d-b368-c06adfa69506-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 46,
+          "timestamp": "2026-08-23T14:14:24.674Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-2adb5c92-b0a3-4a75-a7f6-4e0b0696714b",
+      "providerSessions": [],
+      "startedAt": "2026-08-23T14:12:12.269Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-08-23T14:12:12.269Z"
+      },
+      "title": "+",
+      "usage": {
+        "cachedInputTokens": 1216083,
+        "inputTokens": 56,
+        "outputTokens": 6854,
+        "reasoningTokens": 0,
+        "totalTokens": 1222993,
+        "costUsd": 1.381696
+      },
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
@@ -7041,11 +7642,11 @@
         "agent-546a0ba9-8936-4e3e-a871-e6f9b9ab0248"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-85013406-8016-46f2-9999-09a58cca331b",
       "origin": {
@@ -7053,10 +7654,10 @@
       },
       "rootActionId": "6e05571a-e93b-4e56-be1a-520efa28fd3f",
       "rootActionLabel": "merge",
-      "rootConversationId": "agent-546a0ba9-8936-4e3e-a871-e6f9b9ab0248",
       "startedAt": "2026-08-21T12:09:44.040Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-546a0ba9-8936-4e3e-a871-e6f9b9ab0248"
     }
   ],
-  "version": 4
+  "version": 5
 }
