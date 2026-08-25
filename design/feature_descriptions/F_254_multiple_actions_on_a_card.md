@@ -11,6 +11,14 @@ agents:
 policy:
 branch: f_254_multiple_actions_on_a_card
 worktree: 2
+changedFiles:
+  - app/src/components/actions/conversation/action_conversation_picker_owner.tsx
+  - app/src/components/actions/run/popup/action_popup_bottom_row.test.tsx
+  - app/src/components/actions/run/popup/action_popup_bottom_row.tsx
+  - app/src/services/actions/action_prompt_draft_service.node.test.ts
+  - app/src/services/actions/action_prompt_draft_service.ts
+  - app/src/services/actions/action_run_registry.node.test.ts
+  - app/src/services/actions/action_run_registry.ts
 ---
 it appears we restrict the number of actions that can run on a card. if 1 action is running and we try to start another one, it will even try to queue the message.
 
