@@ -5,7 +5,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "c8c6f7ea-f3f2-4666-91f8-85b895a76302",
       "cardPath": "design/feature_descriptions/B_189_cancel_new_card_breaks_input.md",
-      "completedAt": null,
+      "completedAt": "2026-08-25T12:10:58.764Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 101118
@@ -957,17 +957,25 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 69,
-          "timestamp": "2026-08-25T12:10:58.483Z"
+          "timestamp": "2026-08-25T12:10:58.764Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-0e7abca5-7915-4d1d-beb4-0c0df1d72eb9",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a038d1-361c-7322-ba63-51deb3ecd210",
+          "createdAt": "2026-08-25T12:10:58.764Z",
+          "lastUsedAt": "2026-08-25T12:10:58.764Z",
+          "synchronizedThroughMessageId": "agent-turn-1e9d067e-a359-4106-bbb4-b232d569cf04-turn-1-assistant-5"
+        }
+      ],
       "startedAt": "2026-08-25T12:07:09.328Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-25T12:07:09.328Z"
+        "elapsedMs": 229436,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
