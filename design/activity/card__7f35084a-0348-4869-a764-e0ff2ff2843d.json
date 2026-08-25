@@ -5,7 +5,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "7f35084a-0348-4869-a764-e0ff2ff2843d",
       "cardPath": "design/feature_descriptions/J_33_second_instance_strange_behaviour.md",
-      "completedAt": null,
+      "completedAt": "2026-08-25T18:13:42.819Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 119947
@@ -1090,7 +1090,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 89,
-          "timestamp": "2026-08-25T17:54:23.452Z"
+          "timestamp": "2026-08-25T18:13:42.819Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1100,15 +1100,15 @@
           "agent": "codex",
           "conversationId": "01a039a8-1092-75c3-87bb-68944dae5c2a",
           "createdAt": "2026-08-25T16:04:52.719Z",
-          "lastUsedAt": "2026-08-25T17:51:12.189Z",
-          "synchronizedThroughMessageId": "agent-turn-a7fc0d25-68d5-46bf-abfb-1cb3b1701594-turn-7-assistant-1"
+          "lastUsedAt": "2026-08-25T18:13:42.819Z",
+          "synchronizedThroughMessageId": "agent-turn-a7fc0d25-68d5-46bf-abfb-1cb3b1701594-turn-8-assistant-2"
         }
       ],
       "startedAt": "2026-08-25T16:01:50.134Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 389024,
-        "runningStartedAt": "2026-08-25T17:51:58.967Z"
+        "elapsedMs": 533509,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
