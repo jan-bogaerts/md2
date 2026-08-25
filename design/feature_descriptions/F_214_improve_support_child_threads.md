@@ -12,6 +12,11 @@ policy:
 branch: f_214_improve_support_child_threads
 worktree: 1
 after: 9b601eb4-e385-404f-9059-07823b25b6fd
+changedFiles:
+  - app/src/components/actions/conversation/action_conversation_render_groups.ts
+  - app/src/components/actions/conversation/action_conversation_rendering.test.tsx
+  - desktop/src/actions/agent/agent_streaming_adapter.js
+  - desktop/src/actions/agent/agent_streaming_adapter.test.mjs
 ---
 codex can use child threads. currently we either ignore them or print them in the main conversation thread.
 
