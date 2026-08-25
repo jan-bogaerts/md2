@@ -10,94 +10,94 @@ agents:
   - design/activity/card__b7b584ed-ea26-43d0-917c-e75337611846.json
 policy:
 ---
-The action popup performs excessive rendering while an agent streams. Development heap analysis found very large numbers of retained React performance entries, and a production build has reportedly grown to about 6 GB. Do not assume these have one cause: determine which process owns the production memory and why the popup renders so much before selecting a fix.
+The action popup renders excessively during agent streaming, while a production build has reportedly reached about 6 GB. Treat rendering and memory as separate problems until measurements prove otherwise: identify the growing process and popup update cost before choosing fixes.
 
-## Current implementation
+## Baseline
 
-* `desktop/src/actions/agent/agent_streaming_adapter.js` forwards assistant, reasoning, plan, and command-output deltas immediately. There is no presentation-rate coalescing.
-* `app/src/services/actions/action_run_registry.ts` publishes a new run and conversation snapshot for each streamed update.
-* `ActionConversationChat` filters the complete entry list and rebuilds all render groups whenever the conversation reference changes.
-* `ActionUsageSummaryOwner` selects the complete live conversation, so text-only deltas also rerender and recalculate the usage summary.
-* One popup creates many independent `useActionRunSelector` subscriptions. Stable selector results should prevent most React renders, but every store publication still evaluates every selector.
-* F\_138 already memoized individual message and event rows and narrowed earlier broad run subscriptions. Verify that optimization still works; do not repeat its assumptions without profiling the current component tree. Completed-tool and sub-agent groups were added later and may have changed the render shape.
+- `desktop/src/actions/agent/agent_streaming_adapter.js` immediately forwards assistant, reasoning, plan, and command-output deltas; presentation updates are not coalesced.
+- `app/src/services/actions/action_run_registry.ts` publishes new run and conversation snapshots for every streamed update.
+- `ActionConversationChat` refilters all entries and rebuilds every render group whenever the conversation reference changes.
+- `ActionUsageSummaryOwner` selects the complete live conversation, so text-only deltas rerender and recalculate usage.
+- A popup has many independent `useActionRunSelector` subscriptions. Stable results should avoid most React renders, but every publication still evaluates every selector.
+- F\_138 memoized message/event rows and narrowed broad run subscriptions. Profile the current tree to verify it still works; later completed-tool and sub-agent groups may have changed the render shape.
 
-The supplied `Heap-20260825T114629.heaptimeline` was captured from the Vite development renderer. It contains 772,230 native `PerformanceMeasure` entries retained by Blink, but React 19.2 development Performance Tracks create these entries. This explains substantial development-only retention, not a production process reaching 6 GB.
+`Heap-20260825T114629.heaptimeline`, captured from the Vite development renderer, contains 772,230 native `PerformanceMeasure` entries retained by Blink. React 19.2 development Performance Tracks create them, explaining substantial development-only retention but not a production process reaching 6 GB.
 
 ## Goal
 
-Produce a reproducible, measured explanation of the popup's update cost and production memory growth, then implement the smallest fixes supported by the evidence. Preserve streaming order, transcript content, interaction state, scroll behavior, persisted conversations, and terminal updates.
+Reproduce and measure popup update cost and production memory growth, then make the smallest evidence-backed fixes. Preserve streaming order, transcript content, interaction state, scrolling, persisted conversations, and terminal updates.
 
-## Required investigation
+## Investigation
 
-### Reproducible workload
+### Workload
 
-Create or reuse a deterministic recorded agent-event stream so the same workload can be replayed before and after changes without starting an external agent. Include:
+Replay the same deterministic recorded agent-event stream before and after changes, without starting an external agent. Include:
 
-* an open idle popup;
-* steady assistant-text streaming;
-* reasoning and command-output bursts;
-* a transcript with enough completed messages and tool/sub-agent groups to expose scaling behavior;
-* run completion and popup close.
+- an open idle popup;
+- steady assistant-text streaming;
+- reasoning and command-output bursts;
+- enough completed messages and tool/sub-agent groups to expose scaling;
+- run completion and popup close.
 
-Record the event count, total content size, transcript entry count, and test duration. Do not compare profiles from different workloads.
+Record event count, total content size, transcript entry count, and duration. Never compare different workloads.
 
 ### Process attribution
 
-Measure Electron main, renderer, GPU, utility, and spawned agent processes separately. Identify which process reaches the reported memory size. Record private memory or working set per PID at idle, during streaming, after completion, after popup close, and after garbage collection where available. Aggregate Task Manager's application total is not sufficient evidence.
+Measure Electron main, renderer, GPU, utility, and spawned-agent processes separately. Identify which reaches the reported size. Record private memory or working set per PID at idle, during streaming, after completion, after popup close, and after garbage collection where available. Do not use Task Manager's aggregate application total as evidence.
 
-### Performance profiles
+### Performance
 
-A performance profile is required.
+Capture and correlate:
 
-1. Capture a Chrome DevTools Performance profile from the packaged production renderer during a short, representative replay. Enable JavaScript sampling and memory counters. Capture scripting, rendering, layout, paint, garbage collection, and long tasks. Keep screenshots disabled unless they are needed because they add overhead.
-2. Capture a second production profile with a long existing transcript to show whether per-delta work grows with transcript size.
-3. Capture a short React DevTools Profiler recording using the same replay in a development or profiling build. Use it only to attribute commits and "why did this render" results; React development Performance Tracks distort memory and must not be used as the production memory baseline.
-4. Correlate provider notifications, bridge events, `ActionRunStore.update` calls, React commits, chat renders, and active-row renders. Temporary local counters are allowed for investigation but must not remain in production code.
+1. A Chrome DevTools Performance profile of a short, representative replay in the packaged production renderer. Enable JavaScript sampling and memory counters; capture scripting, rendering, layout, paint, garbage collection, and long tasks. Disable screenshots unless needed because they add overhead.
+2. A second production profile with a long existing transcript to test whether per-delta work grows with transcript size.
+3. A short React DevTools Profiler recording of the same replay in a development or profiling build. Use it only for commits and "why did this render" attribution, never as the production memory baseline because development Performance Tracks distort memory.
+4. Provider notifications, bridge events, `ActionRunStore.update` calls, React commits, chat renders, and active-row renders. Investigation counters may be local but must not remain in production code.
 
-Do not commit large `.json`, `.heaptimeline`, or DevTools trace files. Keep the raw profiles as job attachments or external artifacts and summarize their filenames, capture settings, workload, and findings in this document or its activity log.
+Keep large `.json`, `.heaptimeline`, and DevTools traces out of the repository. Store raw profiles as job attachments or external artifacts; summarize filenames, settings, workload, and findings here or in the activity log.
 
 ### Memory profiles
 
-After process attribution, capture heap snapshots for the process that grows: one after warm-up, one after the replay, and one after completion and popup close followed by garbage collection. Compare dominators and retaining paths. Retained growth should be classified as one of:
+After process attribution, capture heap snapshots of the growing process after warm-up, after replay, and after completion plus popup close and garbage collection. Compare dominators and retaining paths. Classify retained growth as:
 
-* canonical transcript data proportional to final transcript content;
-* obsolete snapshots, arrays, strings, React fibers, DOM nodes, or style objects;
-* queued IPC or bridge payloads;
-* Electron/main-process or child-process buffers;
-* development-only profiling data.
+- canonical transcript data proportional to final content;
+- obsolete snapshots, arrays, strings, React fibers, DOM nodes, or style objects;
+- queued IPC or bridge payloads;
+- Electron/main- or child-process buffers;
+- development-only profiling data.
 
-## Questions the evidence must answer
+### Required answers
 
-* How many provider events and store publications occur per second?
-* How many React commits does one provider event cause?
-* Which components render for text-only, reasoning, tool, usage, status, and timer updates?
-* Does work per delta grow with total transcript entries or only with the active entry?
-* Is the dominant time JavaScript, Markdown parsing, render-group construction, React reconciliation, layout, paint, scrolling, or garbage collection?
-* Does memory growth follow final transcript size, number of deltas, number of renders, or elapsed time?
-* Which process and retaining owner account for the production growth?
+- Provider events and store publications per second.
+- React commits per provider event.
+- Components rendered by text-only, reasoning, tool, usage, status, and timer updates.
+- Whether per-delta work grows with all transcript entries or only the active entry.
+- Whether JavaScript, Markdown parsing, render-group construction, React reconciliation, layout, paint, scrolling, or garbage collection dominates.
+- Whether memory follows final transcript size, delta count, render count, or elapsed time.
+- The process and retaining owner responsible for production growth.
 
 ## Fix selection
 
-Choose fixes only after the profiles answer the questions above:
+Choose only profile-supported fixes:
 
-* If event frequency is the cause, coalesce renderer presentation updates while keeping canonical desktop state and persistence complete. Flush immediately for questions, approvals, errors, terminal states, and the final pending delta.
-* If broad snapshots are the cause, expose stable primitive or focused-reference selectors at the smallest rendering boundary. Text-only deltas must not rerender usage, history, selectors, prompt controls, or popup chrome.
-* If transcript rebuilding is the cause, preserve stable render-group references or update only the affected group. Completed historical rows and collapsed groups must not rerender when the active entry changes.
-* If layout or scrolling is the cause, reduce layout reads and scroll writes without changing stick-to-end behavior.
-* If retained memory belongs to another process or buffer, fix that owner instead of adding React memoization.
+- **Event frequency:** coalesce renderer presentation updates while keeping canonical desktop state and persistence complete. Immediately flush questions, approvals, errors, terminal states, and the final pending delta.
+- **Broad snapshots:** expose stable primitive or focused-reference selectors at the smallest rendering boundary. Text-only deltas must not rerender usage, history, selectors, prompt controls, or popup chrome.
+- **Transcript rebuilding:** preserve stable render-group references or update only the affected group. Active-entry changes must not rerender completed historical rows or collapsed groups.
+- **Layout/scrolling:** reduce layout reads and scroll writes without changing stick-to-end behavior.
+- **Another process/buffer:** fix its owner rather than adding React memoization.
 
-Do not add batching flags, compatibility modes, or alternate code paths unless verified call sites require different behavior.
+Add no batching flags, compatibility modes, or alternate paths unless verified call sites need different behavior.
 
 ## Acceptance criteria
 
-* Before-and-after production Performance profiles use the same recorded workload and their findings are summarized with event counts, commit counts, main-thread time, layout/paint time, and peak/retained memory by process.
-* The responsible production process and its dominant retaining path are identified; development `PerformanceMeasure` retention is reported separately.
-* A text-only delta updates the active transcript content but does not rerender usage summary, conversation picker, agent selectors, prompt editor, completed historical messages, or collapsed completed-tool/sub-agent groups.
-* Under a burst, visual transcript commits are bounded by the chosen presentation interval rather than matching every provider delta, if profiling shows event frequency is material.
-* Retained memory after completion is proportional to the final canonical transcript, not the number of deltas or React commits. Closing the popup releases popup-owned render state and observers.
-* Streaming content, ordering, replacements, questions, approvals, usage, errors, completion, scroll anchoring, and persisted conversation output remain unchanged.
-* Add deterministic regression tests for the selected state/publication boundaries and affected UI behavior. Do not add timing-sensitive CI assertions or tests that launch agents, Electron, shells, or external programs.
-* Run affected tests during implementation, then `npm run test:unit`, `npm run typecheck`, and `npm run lint` in `app/`. If desktop streaming behavior changes, also run the affected desktop tests and its full test suite.
+- Before/after production Performance profiles replay the same recording and summarize event and commit counts, main-thread and layout/paint time, and peak/retained memory per process.
+- Identify the responsible production process and dominant retaining path; report development `PerformanceMeasure` retention separately.
+- A text-only delta updates active transcript content without rerendering usage summary, conversation picker, agent selectors, prompt editor, completed historical messages, or collapsed completed-tool/sub-agent groups.
+- If event frequency is material, burst-time visual transcript commits are bounded by the chosen presentation interval rather than provider delta count.
+- After completion, retained memory is proportional to the final canonical transcript, not delta or commit count. Popup close releases popup-owned render state and observers.
+- Streaming content, order, replacements, questions, approvals, usage, errors, completion, scroll anchoring, and persisted conversation output are unchanged.
+- Add deterministic regression tests for the chosen state/publication boundaries and affected UI. Exclude timing-sensitive CI assertions and tests that launch agents, Electron, shells, or external programs.
+- During implementation, run affected tests. Then run `npm run test:unit`, `npm run typecheck`, and `npm run lint` in `app/`; if desktop streaming changes, also run affected desktop tests and its full suite.
 
 ## See also
 
