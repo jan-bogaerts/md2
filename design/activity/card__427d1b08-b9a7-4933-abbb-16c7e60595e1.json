@@ -5888,7 +5888,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 100791
+        "usedTokens": 102689
       },
       "entries": [
         {
@@ -6529,6 +6529,36 @@
           "role": "assistant",
           "sequence": 48,
           "timestamp": "2026-08-25T18:07:30.958Z"
+        },
+        {
+          "content": "1. Wrong solution. Buttons should depend on the conversation, not just the action\n2. Lets keep the preservztion of edited text. Thats a good thing\n3. Not certain. Fix Seems ok\n4. Not certain. Fix Seems ok\n5. Fix ok",
+          "id": "agent-turn-6d3a0a70-8364-4139-9a9d-6e94727c9934-user-48",
+          "kind": "message",
+          "role": "user",
+          "sequence": 49,
+          "timestamp": "2026-08-25T18:20:13.899Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-6d3a0a70-8364-4139-9a9d-6e94727c9934-event-50",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_014f8158b4c1e110016a8ddce359c487d29ca6ef9c4b8eb1ba",
+          "sequence": 50,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-25T18:20:26.558Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Revised findings:\n\n1. **Control selection uses action/session state instead of selected conversation state.**  \nFix: Derive Run, Send, Stop, and Finish controls from the conversation selected by `bindingStore`. New conversation shows Run. A selected live conversation shows controls for that conversation’s run. Remove action-level gating that lets unrelated runs affect buttons.\n\n2. **Removed.** Preserving manually edited New conversation text is intentional and useful.\n\n3. **Keep.** Resolve the bound conversation directly by `boundRunId`, including after terminal cleanup, so picker and displayed content stay aligned.\n\n4. **Keep.** Rebind `subscribeRun` whenever its store is removed or recreated.\n\n5. **Keep.** Delete per-run drafts when the terminal run is fully released and has no consumers.\n\n",
+          "id": "agent-turn-6d3a0a70-8364-4139-9a9d-6e94727c9934-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 51,
+          "timestamp": "2026-08-25T18:20:31.057Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -6543,21 +6573,21 @@
         }
       ],
       "startedAt": "2026-08-25T18:02:54.895Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "elapsedMs": 276063,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-08-25T18:20:13.899Z"
       },
       "title": "review",
       "usage": {
-        "cachedInputTokens": 1480960,
-        "inputTokens": 118988,
-        "outputTokens": 3566,
-        "reasoningTokens": 4059,
-        "totalTokens": 1607573
+        "cachedInputTokens": 1580032,
+        "inputTokens": 122054,
+        "outputTokens": 3733,
+        "reasoningTokens": 4443,
+        "totalTokens": 1710262
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -6676,6 +6706,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "cb951452b296d9fbfef952d225287485603f993f",
           "committedAt": "2026-08-25T20:14:35+02:00",
           "deletions": 344,
@@ -6726,8 +6757,7 @@
             "app/src/services/actions/action_service.node.test.ts"
           ],
           "filesChanged": 44,
-          "insertions": 757,
-          "branch": "dev_main"
+          "insertions": 757
         }
       ],
       "completedAt": "2026-08-25T20:14:35+02:00",
