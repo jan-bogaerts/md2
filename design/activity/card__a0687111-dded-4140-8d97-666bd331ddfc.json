@@ -5,7 +5,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "a0687111-dded-4140-8d97-666bd331ddfc",
       "cardPath": "design/feature_descriptions/B_174_queued_prompt_not_working.md",
-      "completedAt": null,
+      "completedAt": "2026-08-25T16:00:43.127Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 90720
@@ -911,17 +911,25 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 65,
-          "timestamp": "2026-08-25T16:00:42.838Z"
+          "timestamp": "2026-08-25T16:00:43.127Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-e7afe05c-d5d0-409a-971c-e37db963ba28",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a039a3-def8-76c1-9abc-f783a13be9ef",
+          "createdAt": "2026-08-25T16:00:43.127Z",
+          "lastUsedAt": "2026-08-25T16:00:43.127Z",
+          "synchronizedThroughMessageId": "agent-turn-fe5a8bcc-73c7-471e-8b9e-e7a87b151414-turn-1-assistant-4"
+        }
+      ],
       "startedAt": "2026-08-25T15:57:15.197Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-25T15:57:15.197Z"
+        "elapsedMs": 207930,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
