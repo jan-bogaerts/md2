@@ -120,7 +120,15 @@ export const ActionConversationTranscript = memo(function ActionConversationTran
                     return <CompletedToolCallGroup entries={group.entries} key={group.key} />
                 }
                 if (group.kind === 'subAgent') {
-                    return <SubAgentGroup entry={group.entry} groups={group.groups} key={group.key} label={group.label} />
+                    return (
+                        <SubAgentGroup
+                            entry={group.entry}
+                            groups={group.groups}
+                            key={group.key}
+                            label={group.label}
+                            runningCount={group.runningCount}
+                        />
+                    )
                 }
 
                 const { entry } = group

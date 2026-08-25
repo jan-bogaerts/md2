@@ -1,4 +1,4 @@
-const { validateAgentTokenUsage } = require('../../../../shared/agent_usage_math.mjs');
+const { sumAgentTokenUsage, validateAgentTokenUsage } = require('../../../../shared/agent_usage_math.mjs');
 const { appendBoundedAgentResult } = require('../../../../shared/agent_conversations.mjs');
 const { ClaudeStreamingAdapter } = require('./agent_claude_streaming_adapter');
 const { diagnosticEvent, normalizeCodexEvent, systemEvent } = require('./agent_codex_event');
@@ -129,6 +129,39 @@ function availableApprovalDecisions(approval) {
     return CODEX_COMMAND_APPROVAL_DECISIONS;
 }
 
+const DEFAULT_CODEX_SUB_AGENT_LABEL = 'Sub agent';
+
+function createCodexThreadState() {
+    return {
+        activeItems: new Map(),
+        activeTurnId: null,
+        assistantItemOrder: [],
+        assistantStreams: new Map(),
+        completedItemIds: new Set(),
+        turnContextWindowUsage: undefined,
+        turnUsage: null,
+        turnUsageBaseline: null,
+    };
+}
+
+/** Marks an event as owned by the collaboration call whose child thread produced it. */
+function codexOwnedEvent(event, parentItemId) {
+    return parentItemId ? { ...event, parentItemId } : event;
+}
+
+/** Namespaces an id this adapter invents, so a child thread's row cannot collide with a root one. */
+function codexGeneratedEvent(context, event) {
+    if (!context.isChild) return event;
+
+    return { ...event, providerItemId: `${context.threadId}:${event.providerItemId}` };
+}
+
+function codexReceiverThreadIds(item) {
+    if (!Array.isArray(item?.receiverThreadIds)) return [];
+
+    return item.receiverThreadIds.filter((threadId) => typeof threadId === 'string' && threadId.length > 0);
+}
+
 class CodexStreamingAdapter {
     constructor(writeLine, onEvent, rootPath, providerConversationId, onRuntimeEvent) {
         this.writeLine = writeLine;
@@ -136,21 +169,37 @@ class CodexStreamingAdapter {
         this.onRuntimeEvent = onRuntimeEvent;
         this.providerConversationId = providerConversationId;
         this.rootPath = rootPath;
-        this.activeTurnId = null;
-        this.activeItems = new Map();
-        this.assistantItemOrder = [];
-        this.assistantStreams = new Map();
-        this.completedItemIds = new Set();
+        // Child thread id to the collaboration item that started it. Entries live for the run, because a
+        // child thread keeps reporting after that collaboration item has completed.
+        this.childThreads = new Map();
         this.diagnosticSequence = 1;
         this.initialPrompt = null;
         this.nextRequestId = 1;
         this.pendingRequests = new Map();
         this.pendingApprovals = new Map();
         this.pendingQuestions = new Map();
+        this.subAgentLabels = new Map();
+        // One turn record per thread, so a child turn cannot clear the root turn's items or end it early.
+        this.threadStates = new Map();
         this.threadId = null;
-        this.turnContextWindowUsage = undefined;
-        this.turnUsage = null;
-        this.turnUsageBaseline = null;
+    }
+
+    threadState(threadId) {
+        const key = threadId ?? 'root';
+        const current = this.threadStates.get(key);
+        if (current) return current;
+        const created = createCodexThreadState();
+        this.threadStates.set(key, created);
+
+        return created;
+    }
+
+    rootState() {
+        return this.threadState(this.threadId);
+    }
+
+    subAgentLabel(itemId) {
+        return this.subAgentLabels.get(itemId) ?? DEFAULT_CODEX_SUB_AGENT_LABEL;
     }
 
     async start(prompt) {
@@ -164,9 +213,10 @@ class CodexStreamingAdapter {
     async sendMessage(content) {
         const input = codexInput(content);
         if (!this.threadId) throw new Error('Codex streaming thread is not ready');
-        if (this.activeTurnId) {
+        const rootTurnId = this.rootState().activeTurnId;
+        if (rootTurnId) {
             await this.sendRequest('turn/steer', {
-                expectedTurnId: this.activeTurnId,
+                expectedTurnId: rootTurnId,
                 input,
                 threadId: this.threadId,
             });
@@ -265,10 +315,25 @@ class CodexStreamingAdapter {
         const threadId = requireCodexApprovalId(params.threadId, 'thread id');
         const turnId = requireCodexApprovalId(params.turnId, 'turn id');
         const itemId = requireCodexApprovalId(params.itemId, 'item id');
-        if (threadId !== this.threadId) throw new Error(`Mismatched Codex approval thread id: ${threadId}`);
-        if (turnId !== this.activeTurnId) throw new Error(`Mismatched Codex approval turn id: ${turnId}`);
-        const trackedItem = this.activeItems.get(itemId);
-        if (!trackedItem || trackedItem.itemType !== kind || this.completedItemIds.has(itemId)) {
+        const context = this.resolveNotificationContext({ threadId });
+        if (!context) {
+            await this.writeLine({ id: message.id, result: { decision: 'cancel' } });
+            return;
+        }
+        const { parentItemId, state } = context;
+        if (turnId !== state.activeTurnId) {
+            if (context.isChild) {
+                await this.rejectChildApprovalRequest(message, context, kind, itemId);
+                return;
+            }
+            throw new Error(`Mismatched Codex approval turn id: ${turnId}`);
+        }
+        const trackedItem = state.activeItems.get(itemId);
+        if (!trackedItem || trackedItem.itemType !== kind || state.completedItemIds.has(itemId)) {
+            if (context.isChild) {
+                await this.rejectChildApprovalRequest(message, context, kind, itemId);
+                return;
+            }
             throw new Error(`Mismatched Codex approval item id: ${itemId}`);
         }
         const filePaths = kind === 'fileChange'
@@ -276,9 +341,21 @@ class CodexStreamingAdapter {
                 ?.filter(({ path }) => typeof path === 'string' && path.length > 0)
                 .map(({ path }) => path) ?? []
             : [];
-        const approval = { ...params, filePaths, kind, provider: 'codex', requestId: message.id };
+        const approval = {
+            ...params,
+            filePaths,
+            kind,
+            ...(parentItemId ? { parentItemId, subAgentLabel: this.subAgentLabel(parentItemId) } : {}),
+            provider: 'codex',
+            requestId: message.id,
+        };
         this.pendingApprovals.set(message.id, { approval, submitted: false });
         await this.onEvent({ approval, type: 'approval' });
+    }
+
+    async rejectChildApprovalRequest(message, context, kind, itemId) {
+        await this.emitDiagnostic(context, message.method, kind, itemId);
+        await this.writeLine({ id: message.id, result: { decision: 'cancel' } });
     }
 
     async handleResponse(message) {
@@ -334,83 +411,116 @@ class CodexStreamingAdapter {
         }
     }
 
+    /**
+     * Resolves which thread a notification belongs to. The root thread and any thread a tracked
+     * collaboration call started are accepted; every other thread is ignored, so unrelated traffic
+     * cannot inject transcript rows.
+     */
+    resolveNotificationContext(params) {
+        const notificationThreadId = typeof params.threadId === 'string' ? params.threadId : null;
+        if (!this.threadId || !notificationThreadId || notificationThreadId === this.threadId) {
+            const threadId = notificationThreadId ?? this.threadId;
+
+            return { isChild: false, parentItemId: null, state: this.threadState(threadId), threadId };
+        }
+        const parentItemId = this.childThreads.get(notificationThreadId);
+        if (!parentItemId) return null;
+
+        return {
+            isChild: true,
+            parentItemId,
+            state: this.threadState(notificationThreadId),
+            threadId: notificationThreadId,
+        };
+    }
+
+    /** A new root turn restarts usage accounting for every thread, so child growth is never counted twice. */
+    resetRootTurnState() {
+        const rootKey = this.threadId ?? 'root';
+        for (const key of [...this.threadStates.keys()]) {
+            if (key !== rootKey) this.threadStates.delete(key);
+        }
+        const rootState = this.threadState(this.threadId);
+        rootState.turnContextWindowUsage = undefined;
+        rootState.turnUsage = null;
+        rootState.turnUsageBaseline = null;
+    }
+
     async handleNotification(method, params) {
-        if (this.threadId && params.threadId !== undefined && params.threadId !== this.threadId) return;
+        const context = this.resolveNotificationContext(params);
+        if (!context) return;
+        const { isChild, state } = context;
 
         if (method === 'turn/started') {
-            this.activeItems.clear();
-            this.assistantItemOrder = [];
-            this.assistantStreams.clear();
-            this.completedItemIds.clear();
-            this.turnContextWindowUsage = undefined;
-            this.turnUsage = null;
-            this.turnUsageBaseline = null;
-            this.activeTurnId = params.turn?.id ?? params.turnId;
-            await this.onEvent({ turnId: this.activeTurnId, type: 'turnStarted' });
+            const turnId = params.turn?.id ?? params.turnId;
+            if (!isChild) this.resetRootTurnState();
+            state.activeItems.clear();
+            state.assistantItemOrder = [];
+            state.assistantStreams.clear();
+            state.completedItemIds.clear();
+            state.activeTurnId = turnId;
+            if (isChild) return;
+            await this.onEvent({ turnId, type: 'turnStarted' });
             return;
         }
         if (method === 'serverRequest/resolved') {
-            await this.handleApprovalResolved(params);
+            await this.handleApprovalResolved(context, params);
             return;
         }
         if (method === 'item/started') {
-            await this.handleItemStarted(method, params.item);
+            await this.handleItemStarted(context, method, params.item);
             return;
         }
         if (method === 'item/agentMessage/delta') {
-            const trackedItem = await this.requireActiveItem(method, params.itemId, 'agentMessage');
+            const trackedItem = await this.requireActiveItem(context, method, params.itemId, 'agentMessage');
             if (!trackedItem) return;
+            if (isChild) {
+                trackedItem.childText += params.delta;
+                trackedItem.event = { ...trackedItem.event, content: trackedItem.childText };
+                await this.emitEvent(context, trackedItem.event);
+                return;
+            }
             trackedItem.assistantText = trackedItem.assistantText || params.delta.length > 0;
             trackedItem.bufferedAssistantText += params.delta;
-            await this.flushAssistantStreams();
+            await this.flushAssistantStreams(state);
             return;
         }
         if (method === 'item/reasoning/summaryTextDelta') {
-            await this.handleReasoningDelta(method, params, 'summary', params.summaryIndex);
+            await this.handleReasoningDelta(context, method, params, 'summary', params.summaryIndex);
             return;
         }
         if (method === 'item/reasoning/summaryPartAdded') {
-            const trackedItem = await this.requireActiveItem(method, params.itemId, 'reasoning');
+            const trackedItem = await this.requireActiveItem(context, method, params.itemId, 'reasoning');
             if (!trackedItem) return;
             trackedItem.event = {
                 ...trackedItem.event,
                 summary: eventTextParts(trackedItem.event, 'summary', params.summaryIndex),
             };
-            await this.emitEvent(trackedItem.event);
+            await this.emitEvent(context, trackedItem.event);
             return;
         }
         if (method === 'item/reasoning/textDelta') {
-            await this.handleReasoningDelta(method, params, 'details', params.contentIndex);
+            await this.handleReasoningDelta(context, method, params, 'details', params.contentIndex);
             return;
         }
         if (method === 'item/commandExecution/outputDelta') {
-            const trackedItem = await this.requireActiveItem(method, params.itemId, 'commandExecution');
+            const trackedItem = await this.requireActiveItem(context, method, params.itemId, 'commandExecution');
             if (!trackedItem) return;
             const bounded = appendBoundedAgentResult(trackedItem.resultState, params.delta);
             trackedItem.resultState = bounded.state;
             trackedItem.event = { ...trackedItem.event, content: bounded.value };
-            await this.emitEvent(trackedItem.event);
+            await this.emitEvent(context, trackedItem.event);
             return;
         }
         if (method === 'item/plan/delta') {
-            const trackedItem = await this.requireActiveItem(method, params.itemId, 'plan');
+            const trackedItem = await this.requireActiveItem(context, method, params.itemId, 'plan');
             if (!trackedItem) return;
             trackedItem.event = { ...trackedItem.event, content: `${trackedItem.event.content}${params.delta}` };
-            await this.emitEvent(trackedItem.event);
+            await this.emitEvent(context, trackedItem.event);
             return;
         }
         if (method === 'thread/tokenUsage/updated') {
-            if (isCodexContextOnlyTokenUsage(params)) {
-                this.turnContextWindowUsage = codexContextWindowUsage(params);
-                return;
-            }
-            const counters = codexTurnCounters(params);
-            if (!counters) return;
-            this.turnUsageBaseline ??= counters.baseline;
-            const usage = codexUsage(codexUsageGrowth(counters.totals, this.turnUsageBaseline));
-            this.turnContextWindowUsage = codexContextWindowUsage(params);
-            this.turnUsage = usage;
-            await this.onEvent({ contextWindowUsage: this.turnContextWindowUsage, type: 'usage', usage });
+            await this.handleTokenUsage(context, params);
             return;
         }
         if (method === 'account/rateLimits/updated') {
@@ -418,88 +528,161 @@ class CodexStreamingAdapter {
             return;
         }
         if (method === 'item/completed') {
-            await this.handleItemCompleted(method, params.item);
+            await this.handleItemCompleted(context, method, params.item);
             return;
         }
         const normalizedSystemEvent = systemEvent(method, params);
         if (normalizedSystemEvent) {
-            await this.emitEvent(normalizedSystemEvent);
+            await this.emitEvent(context, codexGeneratedEvent(context, normalizedSystemEvent));
             return;
         }
         if (method === 'error') {
             const content = params.error?.message ?? 'Codex turn failed';
-            await this.emitEvent({
+            await this.emitEvent(context, codexGeneratedEvent(context, {
                 content,
                 label: 'Turn failure',
-                providerItemId: `system:${this.activeTurnId ?? 'unknown-turn'}:error`,
+                providerItemId: `system:${state.activeTurnId ?? 'unknown-turn'}:error`,
                 status: 'failed',
                 type: 'system',
-            });
+            }));
+            // A child thread's failure is reported inside its group; failing the run would kill the process tree.
+            if (isChild) return;
             await this.onEvent({ content, type: 'fatal' });
             return;
         }
         if (method === 'turn/completed') {
-            const error = params.turn?.status === 'failed'
-                ? params.turn.error?.message ?? 'Codex turn failed'
-                : null;
-            if (error) {
-                await this.emitEvent({
-                    content: error,
-                    label: 'Turn failure',
-                    providerItemId: `system:${params.turn?.id ?? this.activeTurnId ?? 'unknown-turn'}:turn/completed`,
-                    status: 'failed',
-                    type: 'system',
-                });
-            }
-            const completedTurnId = params.turn?.id ?? this.activeTurnId;
-            await this.resolveApprovalsForTurn(completedTurnId);
-            this.pendingQuestions.clear();
-            this.activeTurnId = null;
-            const contextWindowUsage = this.turnContextWindowUsage;
-            await this.onEvent({
-                ...(contextWindowUsage !== undefined ? { contextWindowUsage } : {}),
-                error,
-                type: 'turnCompleted',
-                usage: this.turnUsage,
-            });
-            this.turnContextWindowUsage = undefined;
-            this.turnUsage = null;
-            this.turnUsageBaseline = null;
+            await this.handleTurnCompleted(context, params);
             return;
         }
         if (method?.startsWith('item/') && typeof params.itemId === 'string') {
-            await this.emitDiagnostic(method, null, params.itemId);
+            await this.emitDiagnostic(context, method, null, params.itemId);
         }
     }
 
-    async handleApprovalResolved(params) {
+    /**
+     * Codex reports cumulative totals per thread, so every thread keeps its own baseline and the turn's
+     * usage is the sum of each thread's growth. The context window describes a single thread's context,
+     * so only the root thread's figure is reported.
+     */
+    async handleTokenUsage(context, params) {
+        const { isChild, state } = context;
+        if (isCodexContextOnlyTokenUsage(params)) {
+            if (!isChild) state.turnContextWindowUsage = codexContextWindowUsage(params);
+            return;
+        }
+        const counters = codexTurnCounters(params);
+        if (!counters) return;
+        state.turnUsageBaseline ??= counters.baseline;
+        state.turnUsage = codexUsage(codexUsageGrowth(counters.totals, state.turnUsageBaseline));
+        if (!isChild) state.turnContextWindowUsage = codexContextWindowUsage(params);
+        await this.onEvent({
+            contextWindowUsage: this.rootState().turnContextWindowUsage,
+            type: 'usage',
+            usage: this.turnUsageTotal(),
+        });
+    }
+
+    turnUsageTotal() {
+        const usages = [...this.threadStates.values()]
+            .map(({ turnUsage }) => turnUsage)
+            .filter((turnUsage) => turnUsage !== null && turnUsage !== undefined);
+        if (usages.length === 0) return null;
+
+        return sumAgentTokenUsage(usages);
+    }
+
+    /** Only the root thread's completion ends the turn; a child completion closes just that child's record. */
+    async handleTurnCompleted(context, params) {
+        const { isChild, state } = context;
+        const error = params.turn?.status === 'failed'
+            ? params.turn.error?.message ?? 'Codex turn failed'
+            : null;
+        if (error) {
+            await this.emitEvent(context, codexGeneratedEvent(context, {
+                content: error,
+                label: 'Turn failure',
+                providerItemId: `system:${params.turn?.id ?? state.activeTurnId ?? 'unknown-turn'}:turn/completed`,
+                status: 'failed',
+                type: 'system',
+            }));
+        }
+        const completedTurnId = params.turn?.id ?? state.activeTurnId;
+        await this.resolveApprovalsForTurn(context.threadId, completedTurnId);
+        state.activeTurnId = null;
+        if (isChild) return;
+        this.pendingQuestions.clear();
+        const contextWindowUsage = state.turnContextWindowUsage;
+        const usage = this.turnUsageTotal();
+        await this.onEvent({
+            ...(contextWindowUsage !== undefined ? { contextWindowUsage } : {}),
+            error,
+            type: 'turnCompleted',
+            usage,
+        });
+        this.resetRootTurnState();
+    }
+
+    async handleApprovalResolved(context, params) {
         const pendingApproval = this.pendingApprovals.get(params.requestId);
         if (!pendingApproval) return;
         if (params.threadId !== pendingApproval.approval.threadId) {
-            throw new Error(`Mismatched Codex approval resolution thread id: ${params.threadId}`);
+            await this.emitDiagnostic(context, 'serverRequest/resolved', pendingApproval.approval.kind, String(params.requestId));
+            return;
         }
         this.pendingApprovals.delete(params.requestId);
         await this.onEvent({ requestId: params.requestId, type: 'approvalResolved' });
     }
 
-    async resolveApprovalsForTurn(turnId) {
+    async resolveApprovalsForTurn(threadId, turnId) {
         for (const [requestId, pendingApproval] of this.pendingApprovals) {
+            if (pendingApproval.approval.threadId !== threadId) continue;
             if (pendingApproval.approval.turnId !== turnId) continue;
             this.pendingApprovals.delete(requestId);
             await this.onEvent({ requestId, type: 'approvalResolved' });
         }
     }
 
-    async handleItemStarted(method, item) {
+    /**
+     * Remembers the threads a collaboration call started so their notifications are accepted and tagged
+     * with that call. A collaboration call made inside a child thread registers against its own item id,
+     * which makes ownership recursive.
+     */
+    registerChildThreads(item) {
+        if (item?.type !== 'collabAgentToolCall' || typeof item.id !== 'string') return;
+        const label = typeof item.tool === 'string' && item.tool.length > 0 ? item.tool : DEFAULT_CODEX_SUB_AGENT_LABEL;
+        this.subAgentLabels.set(item.id, label);
+        for (const threadId of codexReceiverThreadIds(item)) {
+            if (threadId !== this.threadId) this.childThreads.set(threadId, item.id);
+        }
+    }
+
+    /** Child assistant text is a labelled event, never main-agent message content, so resume stays clean. */
+    subAgentMessageEvent(context, providerItemId, content, status) {
+        return {
+            content,
+            label: this.subAgentLabel(context.parentItemId),
+            providerItemId,
+            status,
+            type: 'agentMessage',
+        };
+    }
+
+    async handleItemStarted(context, method, item) {
+        const { isChild, state } = context;
         if (!item || typeof item.id !== 'string' || typeof item.type !== 'string') {
-            await this.emitDiagnostic(method, item?.type, item?.id);
+            await this.emitDiagnostic(context, method, item?.type, item?.id);
             return;
         }
-        if (this.activeItems.has(item.id) || this.completedItemIds.has(item.id)) {
-            await this.emitDiagnostic(method, item.type, item.id);
+        if (state.activeItems.has(item.id) || state.completedItemIds.has(item.id)) {
+            await this.emitDiagnostic(context, method, item.type, item.id);
             return;
         }
-        const event = normalizeCodexEvent(item, 'inProgress');
+        this.registerChildThreads(item);
+        const isSubAgentMessage = isChild && item.type === 'agentMessage';
+        const startedText = typeof item.text === 'string' ? item.text : '';
+        const event = isSubAgentMessage
+            ? this.subAgentMessageEvent(context, item.id, startedText, 'inProgress')
+            : normalizeCodexEvent(item, 'inProgress');
         const initialResult = item.type === 'commandExecution'
             ? appendBoundedAgentResult(null, event?.content ?? '')
             : null;
@@ -509,55 +692,66 @@ class CodexStreamingAdapter {
             assistantCompleted: false,
             assistantText: false,
             bufferedAssistantText: '',
+            childText: isSubAgentMessage ? startedText : '',
             item,
             itemType: item.type,
             resultState: initialResult?.state ?? null,
         };
-        this.activeItems.set(item.id, trackedItem);
-        if (item.type === 'agentMessage') {
-            this.assistantItemOrder.push(item.id);
-            this.assistantStreams.set(item.id, trackedItem);
+        state.activeItems.set(item.id, trackedItem);
+        if (item.type === 'agentMessage' && !isChild) {
+            state.assistantItemOrder.push(item.id);
+            state.assistantStreams.set(item.id, trackedItem);
             await this.onEvent({ itemId: item.id, type: 'assistantStarted' });
         }
         if (event) {
-            await this.emitEvent(event);
+            await this.emitEvent(context, event);
             return;
         }
-        if (!knownNonEvent) await this.emitDiagnostic(method, item.type, item.id);
+        if (!knownNonEvent) await this.emitDiagnostic(context, method, item.type, item.id);
     }
 
-    async handleItemCompleted(method, item) {
+    async handleItemCompleted(context, method, item) {
+        const { isChild, state } = context;
         if (!item || typeof item.id !== 'string' || typeof item.type !== 'string') {
-            await this.emitDiagnostic(method, item?.type, item?.id);
+            await this.emitDiagnostic(context, method, item?.type, item?.id);
             return;
         }
-        if (this.completedItemIds.has(item.id)) {
-            await this.emitDiagnostic(method, item.type, item.id);
+        if (state.completedItemIds.has(item.id)) {
+            await this.emitDiagnostic(context, method, item.type, item.id);
             return;
         }
-        const trackedItem = this.activeItems.get(item.id);
-        if (!trackedItem) await this.emitDiagnostic(method, item.type, item.id);
+        const trackedItem = state.activeItems.get(item.id);
+        if (!trackedItem) await this.emitDiagnostic(context, method, item.type, item.id);
         if (trackedItem && trackedItem.itemType !== item.type) {
-            await this.emitDiagnostic(method, item.type, item.id);
+            await this.emitDiagnostic(context, method, item.type, item.id);
             return;
         }
-        if (item.type === 'agentMessage' && trackedItem) {
+        this.registerChildThreads(item);
+        if (item.type === 'agentMessage' && trackedItem && !isChild) {
             trackedItem.assistantCompleted = true;
-            await this.flushAssistantStreams();
+            await this.flushAssistantStreams(state);
         }
-        const event = normalizeCodexEvent(item, 'completed', this.rootPath);
-        if (event) await this.emitEvent(event);
+        const event = isChild && item.type === 'agentMessage'
+            ? this.subAgentMessageEvent(
+                context,
+                item.id,
+                typeof item.text === 'string' ? item.text : trackedItem?.childText ?? '',
+                'completed',
+            )
+            : normalizeCodexEvent(item, 'completed', this.rootPath);
+        if (event) await this.emitEvent(context, event);
         if (!event && !CODEX_NON_EVENT_ITEM_TYPES.has(item.type) && trackedItem) {
-            await this.emitDiagnostic(method, item.type, item.id);
+            await this.emitDiagnostic(context, method, item.type, item.id);
         }
-        this.activeItems.delete(item.id);
-        this.completedItemIds.add(item.id);
+        state.activeItems.delete(item.id);
+        state.completedItemIds.add(item.id);
     }
 
-    async requireActiveItem(method, itemId, expectedType) {
-        const trackedItem = this.activeItems.get(itemId);
-        if (!trackedItem || trackedItem.itemType !== expectedType || this.completedItemIds.has(itemId)) {
-            await this.emitDiagnostic(method, expectedType, itemId);
+    async requireActiveItem(context, method, itemId, expectedType) {
+        const { state } = context;
+        const trackedItem = state.activeItems.get(itemId);
+        if (!trackedItem || trackedItem.itemType !== expectedType || state.completedItemIds.has(itemId)) {
+            await this.emitDiagnostic(context, method, expectedType, itemId);
 
             return null;
         }
@@ -565,10 +759,10 @@ class CodexStreamingAdapter {
         return trackedItem;
     }
 
-    async handleReasoningDelta(method, params, field, index) {
-        const trackedItem = await this.requireActiveItem(method, params.itemId, 'reasoning');
+    async handleReasoningDelta(context, method, params, field, index) {
+        const trackedItem = await this.requireActiveItem(context, method, params.itemId, 'reasoning');
         if (!trackedItem || !Number.isSafeInteger(index) || index < 0) {
-            if (trackedItem) await this.emitDiagnostic(method, 'reasoning', params.itemId);
+            if (trackedItem) await this.emitDiagnostic(context, method, 'reasoning', params.itemId);
             return;
         }
         const parts = eventTextParts(trackedItem.event, field, index);
@@ -578,15 +772,15 @@ class CodexStreamingAdapter {
             ...event,
             content: event.summary.length > 0 ? event.summary.join('\n\n') : event.details.join('\n\n'),
         };
-        await this.emitEvent(trackedItem.event);
+        await this.emitEvent(context, trackedItem.event);
     }
 
-    async flushAssistantStreams() {
-        while (this.assistantItemOrder.length > 0) {
-            const itemId = this.assistantItemOrder[0];
-            const stream = this.assistantStreams.get(itemId);
+    async flushAssistantStreams(state) {
+        while (state.assistantItemOrder.length > 0) {
+            const itemId = state.assistantItemOrder[0];
+            const stream = state.assistantStreams.get(itemId);
             if (!stream) {
-                this.assistantItemOrder.shift();
+                state.assistantItemOrder.shift();
                 continue;
             }
             if (stream.bufferedAssistantText.length > 0) {
@@ -596,19 +790,19 @@ class CodexStreamingAdapter {
             }
             if (!stream.assistantCompleted) return;
             if (stream.assistantText) await this.onEvent({ content: '\n\n', itemId, type: 'assistant' });
-            this.assistantStreams.delete(itemId);
-            this.assistantItemOrder.shift();
+            state.assistantStreams.delete(itemId);
+            state.assistantItemOrder.shift();
         }
     }
 
-    async emitEvent(event) {
-        await this.onEvent({ event, type: 'event' });
+    async emitEvent(context, event) {
+        await this.onEvent({ event: codexOwnedEvent(event, context.parentItemId), type: 'event' });
     }
 
-    async emitDiagnostic(method, itemType, itemId) {
+    async emitDiagnostic(context, method, itemType, itemId) {
         const event = diagnosticEvent(method, itemType, itemId, this.diagnosticSequence);
         this.diagnosticSequence += 1;
-        await this.emitEvent(event);
+        await this.emitEvent(context, codexGeneratedEvent(context, event));
     }
 }
 

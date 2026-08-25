@@ -29,6 +29,7 @@ export type ActionConversationRenderGroup = {
     key: string
     kind: 'subAgent'
     label: string
+    runningCount: number
 }
 
 function isToolCall(entry: AgentConversationEventEntry) {
@@ -65,10 +66,23 @@ function parsedToolInput(content: string) {
 }
 
 /**
+ * Claude's `Agent` call and Codex's `collabAgentToolCall` both spawn sub agents whose entries name them
+ * through `parentItemId`.
+ */
+function isSpawningCall(entry: AgentConversationEntry): entry is AgentConversationEventEntry {
+    if (entry.kind !== 'event' || !entry.providerItemId) return false
+
+    return entry.type === 'tool.Agent' || entry.type === 'collabAgentToolCall'
+}
+
+/**
  * The spawning `Agent` call names the sub agent in its input, but that input is still partial JSON
  * while the call streams, so a label already carried by the sub agent's own entries is the fallback.
+ * A Codex collaboration call already carries `Collaboration: <tool>` as its label, so its content, which
+ * holds the prompt rather than tool input, is never parsed.
  */
 function subAgentLabel(entry: AgentConversationEventEntry, children: AgentConversationEventEntry[]) {
+    if (entry.type === 'collabAgentToolCall') return entry.label ?? DEFAULT_SUB_AGENT_LABEL
     const input = parsedToolInput(entry.content)
     const subagentType = input?.subagent_type
     if (typeof subagentType === 'string' && subagentType.length > 0) return subagentType
@@ -83,23 +97,16 @@ function subAgentLabel(entry: AgentConversationEventEntry, children: AgentConver
 
 function agentCallsByProviderId(entries: AgentConversationEntry[]) {
     return new Map(entries
-        .filter((entry): entry is AgentConversationEventEntry => (
-            entry.kind === 'event' && entry.type === 'tool.Agent' && !!entry.providerItemId
-        ))
+        .filter(isSpawningCall)
         .map((entry) => [entry.providerItemId as string, entry]))
 }
 
-function isDescendantOf(
-    entry: AgentConversationEntry,
-    ancestorId: string,
-    agentCalls: Map<string, AgentConversationEventEntry>,
-) {
-    if (entry.kind !== 'event') return false
+function hasOwnershipCycle(entry: AgentConversationEventEntry, agentCalls: Map<string, AgentConversationEventEntry>) {
+    if (!entry.providerItemId) return false
     const visitedParentIds = new Set<string>()
     let parentItemId = entry.parentItemId
     while (parentItemId) {
-        if (parentItemId === ancestorId) return true
-        if (visitedParentIds.has(parentItemId)) return false
+        if (parentItemId === entry.providerItemId || visitedParentIds.has(parentItemId)) return true
         visitedParentIds.add(parentItemId)
         parentItemId = agentCalls.get(parentItemId)?.parentItemId
     }
@@ -107,13 +114,42 @@ function isDescendantOf(
     return false
 }
 
-function buildGroups(entries: AgentConversationEntry[], agentCalls: Map<string, AgentConversationEventEntry>) {
+function childEntriesByParentId(
+    entries: AgentConversationEntry[],
+    agentCalls: Map<string, AgentConversationEventEntry>,
+) {
+    const childEntries = new Map<string, AgentConversationEventEntry[]>()
+    const ownedEntries = new Set<AgentConversationEventEntry>()
+    for (const entry of entries) {
+        if (entry.kind !== 'event' || !entry.parentItemId || !agentCalls.has(entry.parentItemId)) continue
+        if (hasOwnershipCycle(entry, agentCalls)) continue
+        const children = childEntries.get(entry.parentItemId) ?? []
+        children.push(entry)
+        childEntries.set(entry.parentItemId, children)
+        ownedEntries.add(entry)
+    }
+
+    return { childEntries, ownedEntries }
+}
+
+function shouldRenderSubAgentGroup(entry: AgentConversationEventEntry, descendants: AgentConversationEventEntry[]) {
+    if (descendants.length > 0) return true
+
+    return entry.type === 'collabAgentToolCall'
+        && (entry.status !== 'completed' || (entry.runningSubThreads ?? 0) > 0)
+}
+
+function buildGroups(
+    entries: AgentConversationEntry[],
+    agentCalls: Map<string, AgentConversationEventEntry>,
+    childEntries: Map<string, AgentConversationEventEntry[]>,
+) {
     const groups: ActionConversationRenderGroup[] = []
     let completedToolCalls: AgentConversationEventEntry[] = []
 
-    for (let index = 0; index < entries.length; index += 1) {
-        const entry = entries[index]
-        const isAgentCall = entry.kind === 'event' && entry.type === 'tool.Agent' && !!entry.providerItemId
+    for (const entry of entries) {
+        const descendants = isSpawningCall(entry) ? childEntries.get(entry.providerItemId as string) ?? [] : []
+        const isAgentCall = isSpawningCall(entry) && shouldRenderSubAgentGroup(entry, descendants)
         if (entry.kind === 'event' && !isAgentCall && isCompletedToolCall(entry)) {
             completedToolCalls.push(entry)
             continue
@@ -122,21 +158,13 @@ function buildGroups(entries: AgentConversationEntry[], agentCalls: Map<string, 
         appendCompletedToolCallRun(groups, completedToolCalls)
         completedToolCalls = []
         if (isAgentCall) {
-            const descendants: AgentConversationEventEntry[] = []
-            while (index + 1 < entries.length && isDescendantOf(entries[index + 1], entry.providerItemId as string, agentCalls)) {
-                index += 1
-                descendants.push(entries[index] as AgentConversationEventEntry)
-            }
-            if (descendants.length === 0) {
-                groups.push({ entry, key: eventIdentity(entry), kind: 'entry' })
-                continue
-            }
             groups.push({
                 entry,
-                groups: buildGroups(descendants, agentCalls),
+                groups: buildGroups(descendants, agentCalls, childEntries),
                 key: eventIdentity(entry),
                 kind: 'subAgent',
                 label: subAgentLabel(entry, descendants),
+                runningCount: entry.runningSubThreads ?? 0,
             })
             continue
         }
@@ -151,5 +179,9 @@ function buildGroups(entries: AgentConversationEntry[], agentCalls: Map<string, 
 
 /** Builds UI-only groups without changing canonical conversation entries. */
 export function buildActionConversationRenderGroups(entries: AgentConversationEntry[]) {
-    return buildGroups(entries, agentCallsByProviderId(entries))
+    const agentCalls = agentCallsByProviderId(entries)
+    const { childEntries, ownedEntries } = childEntriesByParentId(entries, agentCalls)
+    const rootEntries = entries.filter((entry) => entry.kind !== 'event' || !ownedEntries.has(entry))
+
+    return buildGroups(rootEntries, agentCalls, childEntries)
 }

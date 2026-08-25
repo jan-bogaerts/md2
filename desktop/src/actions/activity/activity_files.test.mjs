@@ -91,6 +91,38 @@ describe('project activity conversations', () => {
         }
     });
 
+    it('round-trips Codex sub-agent ownership through the activity file', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-activity-sub-agent-'));
+        const project = { branch: 'main', id: 'local', rootPath };
+        const origin = { cardInternalId: 'card-1', kind: 'card' };
+        const collaborationCall = {
+            content: 'investigate', id: 'event-1', kind: 'event', label: 'Collaboration: wait',
+            providerItemId: 'wait-1', runningSubThreads: 2, status: 'inProgress',
+            timestamp: '2026-08-04T10:02:00.000Z', type: 'collabAgentToolCall',
+        };
+        const childMessage = {
+            content: 'found it', id: 'event-2', kind: 'event', label: 'wait', parentItemId: 'wait-1',
+            providerItemId: 'child-message', status: 'completed',
+            timestamp: '2026-08-04T10:03:00.000Z', type: 'agentMessage',
+        };
+        try {
+            await mkdir(join(rootPath, '.git'));
+            const activityPath = await ensureActivityFile(project, 'design', origin);
+            const conversation = {
+                ...waitingConversation(),
+                cardInternalId: 'card-1',
+                entries: [collaborationCall, childMessage],
+            };
+            await upsertActivityConversation(project, 'design', origin, conversation);
+
+            const [loaded] = await loadActivityConversations(project, activityPath);
+
+            expect(loaded.entries).toEqual([collaborationCall, childMessage]);
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
     it('rejects unsafe activity-file paths', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-activity-unsafe-'));
         const project = { branch: 'main', id: 'local', rootPath };

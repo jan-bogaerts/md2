@@ -293,6 +293,7 @@ export interface AgentConversationEvent {
     paths?: string[]
     parentItemId?: string
     providerItemId?: string
+    runningSubThreads?: number
     sequence?: number
     status?: string
     summary?: string[]

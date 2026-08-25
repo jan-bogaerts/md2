@@ -11,6 +11,7 @@ interface SubAgentGroupProps {
     entry: AgentConversationEventEntry
     groups: ActionConversationRenderGroup[]
     label: string
+    runningCount?: number
 }
 
 function groupEntryCount(groups: ActionConversationRenderGroup[]): number {
@@ -23,7 +24,7 @@ function groupEntryCount(groups: ActionConversationRenderGroup[]): number {
 }
 
 /** Shows one sub agent's text, thinking and tool calls under the `Agent` call that spawned it. */
-export function SubAgentGroup({ entry, groups, label }: SubAgentGroupProps) {
+export function SubAgentGroup({ entry, groups, label, runningCount = 0 }: SubAgentGroupProps) {
     const [expanded, setExpanded] = useState(false)
     const toggleExpanded = () => {
         setExpanded((current) => !current)
@@ -44,14 +45,24 @@ export function SubAgentGroup({ entry, groups, label }: SubAgentGroupProps) {
                 onClick={toggleExpanded}
                 sx={{ color: 'text.secondary', justifyContent: 'space-between', minWidth: 0, px: 1, py: 0.75, textAlign: 'left' }}
             >
-                <Typography noWrap sx={{ minWidth: 0 }} variant="caption">{label} ({groupEntryCount(groups)})</Typography>
+                <Typography noWrap sx={{ minWidth: 0 }} variant="caption">
+                    {label} ({groupEntryCount(groups)}){runningCount > 0 ? ` — ${runningCount} running` : ''}
+                </Typography>
             </Button>
             {expanded ? groups.map((group) => {
                 if (group.kind === 'completedToolCalls') {
                     return <CompletedToolCallGroup entries={group.entries} key={group.key} />
                 }
                 if (group.kind === 'subAgent') {
-                    return <SubAgentGroup entry={group.entry} groups={group.groups} key={group.key} label={group.label} />
+                    return (
+                        <SubAgentGroup
+                            entry={group.entry}
+                            groups={group.groups}
+                            key={group.key}
+                            label={group.label}
+                            runningCount={group.runningCount}
+                        />
+                    )
                 }
                 if (group.entry.kind !== 'event') return null
 

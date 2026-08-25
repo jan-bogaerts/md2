@@ -254,12 +254,29 @@ function dynamicToolEvent(item, lifecycleStatus) {
     };
 }
 
+const TERMINAL_COLLAB_AGENT_STATES = new Set(['aborted', 'cancelled', 'completed', 'declined', 'failed']);
+
+/**
+ * Counts the child threads a collaboration call is still waiting on, so a collapsed sub-agent group can
+ * say how many are working. A completed call is waiting on nobody, whatever its last states reported.
+ */
+function runningSubThreads(item, status) {
+    const states = item.agentsStates;
+    if (status === 'completed' || !states || typeof states !== 'object' || Array.isArray(states)) return 0;
+
+    return Object.values(states)
+        .filter((state) => !TERMINAL_COLLAB_AGENT_STATES.has(state?.status))
+        .length;
+}
+
 function collaborationEvent(item, lifecycleStatus) {
     const toolLabel = typeof item.tool === 'string' && item.tool.length > 0 ? item.tool : 'Agent tool';
+    const base = eventBase(item, lifecycleStatus, `Collaboration: ${toolLabel}`);
 
     return {
-        ...eventBase(item, lifecycleStatus, `Collaboration: ${toolLabel}`),
+        ...base,
         content: item.prompt ?? '',
+        runningSubThreads: runningSubThreads(item, base.status),
         output: boundedAgentResult(selectedEventContent({
             agentsStates: item.agentsStates,
             receiverThreadIds: item.receiverThreadIds,

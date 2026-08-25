@@ -55,6 +55,9 @@ function createProviderEventEntry(providerEvent, id, timestamp, sequence) {
     if (typeof providerEvent.parentItemId === 'string' && providerEvent.parentItemId.length > 0) {
         event.parentItemId = providerEvent.parentItemId;
     }
+    if (Number.isSafeInteger(providerEvent.runningSubThreads) && providerEvent.runningSubThreads >= 0) {
+        event.runningSubThreads = providerEvent.runningSubThreads;
+    }
     if (Array.isArray(providerEvent.summary)) event.summary = [...providerEvent.summary];
     if (typeof providerEvent.workingDirectory === 'string') event.workingDirectory = providerEvent.workingDirectory;
 

@@ -39,6 +39,40 @@ function codexTokenUsage(last, total) {
     };
 }
 
+const ROOT_COLLABORATION_ITEM = {
+    agentsStates: { 'thread-child': { status: 'running' } },
+    id: 'wait-1',
+    prompt: 'investigate',
+    receiverThreadIds: ['thread-child'],
+    status: 'inProgress',
+    tool: 'wait',
+    type: 'collabAgentToolCall',
+};
+
+/** Brings a Codex adapter to a running root turn whose collaboration call has started one child thread. */
+async function startCodexCollaboration() {
+    const started = harness('codex');
+    const { adapter } = started;
+
+    await adapter.start('plan');
+    await adapter.handleMessage({ id: 1, result: {} });
+    await adapter.handleMessage({ id: 3, result: { thread: { id: 'thread-root' } } });
+    await adapter.handleMessage({
+        method: 'turn/started',
+        params: { threadId: 'thread-root', turn: { id: 'turn-root' }, turnId: 'turn-root' },
+    });
+    await adapter.handleMessage({
+        method: 'item/started',
+        params: { item: ROOT_COLLABORATION_ITEM, threadId: 'thread-root', turnId: 'turn-root' },
+    });
+    await adapter.handleMessage({
+        method: 'turn/started',
+        params: { threadId: 'thread-child', turn: { id: 'turn-child' }, turnId: 'turn-child' },
+    });
+
+    return started;
+}
+
 const SUB_AGENT_TOOL_USE_ID = 'tool-sub-agent';
 
 function claudeStreamEvent(event, parentToolUseId = null) {
@@ -970,33 +1004,24 @@ describe('CodexStreamingAdapter', () => {
         expect(unavailable.events).toEqual([]);
     });
 
-    it('ignores child-thread notifications while preserving root collaboration and completion', async () => {
-        const { adapter, events, runtimeEvents, writes } = harness('codex');
-        const rootCollaborationItem = {
-            agentsStates: { 'thread-child': { status: 'running' } },
-            id: 'wait-1',
-            prompt: '',
-            receiverThreadIds: ['thread-child'],
-            status: 'inProgress',
-            tool: 'wait',
-            type: 'collabAgentToolCall',
-        };
+    it('nests child-thread tool calls and assistant text under the collaboration call', async () => {
+        const { adapter, events } = await startCodexCollaboration();
 
-        await adapter.start('plan');
-        await adapter.handleMessage({ id: 1, result: {} });
-        await adapter.handleMessage({ id: 3, result: { thread: { id: 'thread-root' } } });
-        await adapter.handleMessage({
-            method: 'turn/started',
-            params: { threadId: 'thread-root', turn: { id: 'turn-root' }, turnId: 'turn-root' },
-        });
         await adapter.handleMessage({
             method: 'item/started',
-            params: { item: rootCollaborationItem, threadId: 'thread-root', turnId: 'turn-root' },
+            params: {
+                item: { command: 'ls', id: 'child-command', status: 'inProgress', type: 'commandExecution' },
+                threadId: 'thread-child',
+                turnId: 'turn-child',
+            },
         });
-        const eventCountBeforeChildNotifications = events.length;
         await adapter.handleMessage({
-            method: 'turn/started',
-            params: { threadId: 'thread-child', turn: { id: 'turn-child' }, turnId: 'turn-child' },
+            method: 'item/completed',
+            params: {
+                item: { aggregatedOutput: 'files', command: 'ls', exitCode: 0, id: 'child-command', status: 'completed', type: 'commandExecution' },
+                threadId: 'thread-child',
+                turnId: 'turn-child',
+            },
         });
         await adapter.handleMessage({
             method: 'item/started',
@@ -1007,63 +1032,368 @@ describe('CodexStreamingAdapter', () => {
             },
         });
         await adapter.handleMessage({
-            method: 'thread/tokenUsage/updated',
-            params: {
-                threadId: 'thread-child',
-                tokenUsage: {
-                    last: { cachedInputTokens: 0, inputTokens: 10, outputTokens: 2, totalTokens: 12 },
-                    modelContextWindow: 100_000,
-                },
-                turnId: 'turn-child',
-            },
+            method: 'item/agentMessage/delta',
+            params: { delta: 'found it', itemId: 'child-message', threadId: 'thread-child', turnId: 'turn-child' },
         });
         await adapter.handleMessage({
-            method: 'turn/completed',
+            method: 'item/completed',
             params: {
+                item: { id: 'child-message', phase: null, text: 'found it', type: 'agentMessage' },
                 threadId: 'thread-child',
-                turn: { id: 'turn-child', status: 'completed' },
                 turnId: 'turn-child',
             },
         });
 
-        expect(events).toHaveLength(eventCountBeforeChildNotifications);
+        expect(events.filter(({ event }) => event?.parentItemId === 'wait-1').map(({ event }) => event)).toEqual([
+            expect.objectContaining({ providerItemId: 'child-command', status: 'inProgress', type: 'commandExecution' }),
+            expect.objectContaining({ providerItemId: 'child-command', status: 'completed', type: 'commandExecution' }),
+            expect.objectContaining({ content: '', label: 'wait', providerItemId: 'child-message', status: 'inProgress', type: 'agentMessage' }),
+            expect.objectContaining({ content: 'found it', label: 'wait', status: 'inProgress', type: 'agentMessage' }),
+            expect.objectContaining({ content: 'found it', label: 'wait', status: 'completed', type: 'agentMessage' }),
+        ]);
+        expect(events.filter(({ type }) => type === 'assistant' || type === 'assistantStarted')).toEqual([]);
+    });
+
+    it('keeps root assistant text on the main stream while a child thread interleaves its own', async () => {
+        const { adapter, events } = await startCodexCollaboration();
+
+        await adapter.handleMessage({
+            method: 'item/started',
+            params: {
+                item: { id: 'root-message', phase: null, text: '', type: 'agentMessage' },
+                threadId: 'thread-root',
+                turnId: 'turn-root',
+            },
+        });
+        await adapter.handleMessage({
+            method: 'item/started',
+            params: {
+                item: { id: 'child-message', phase: null, text: '', type: 'agentMessage' },
+                threadId: 'thread-child',
+                turnId: 'turn-child',
+            },
+        });
+        await adapter.handleMessage({
+            method: 'item/agentMessage/delta',
+            params: { delta: 'child text', itemId: 'child-message', threadId: 'thread-child', turnId: 'turn-child' },
+        });
+        await adapter.handleMessage({
+            method: 'item/agentMessage/delta',
+            params: { delta: 'root text', itemId: 'root-message', threadId: 'thread-root', turnId: 'turn-root' },
+        });
+
+        expect(events.filter(({ type }) => type === 'assistantStarted')).toEqual([{ itemId: 'root-message', type: 'assistantStarted' }]);
+        expect(events.filter(({ type }) => type === 'assistant')).toEqual([{ content: 'root text', itemId: 'root-message', type: 'assistant' }]);
+    });
+
+    it('ends the root turn only on the root thread completion and keeps steering it', async () => {
+        const { adapter, events, writes } = await startCodexCollaboration();
+
+        await adapter.handleMessage({
+            method: 'turn/completed',
+            params: { threadId: 'thread-child', turn: { id: 'turn-child', status: 'completed' }, turnId: 'turn-child' },
+        });
+
+        expect(events.filter(({ type }) => type === 'turnCompleted')).toHaveLength(0);
+
         await adapter.sendMessage('root still running');
+
         expect(writes.at(-1)).toMatchObject({
             method: 'turn/steer',
             params: { expectedTurnId: 'turn-root', threadId: 'thread-root' },
         });
 
         await adapter.handleMessage({
-            method: 'account/rateLimits/updated',
-            params: { rateLimits: { primary: { usedPercent: 20 } } },
-        });
-        await adapter.handleMessage({
             method: 'item/completed',
             params: {
-                item: { ...rootCollaborationItem, agentsStates: { 'thread-child': { status: 'completed' } }, status: 'completed' },
+                item: {
+                    ...ROOT_COLLABORATION_ITEM,
+                    agentsStates: { 'thread-child': { status: 'completed' } },
+                    status: 'completed',
+                },
                 threadId: 'thread-root',
                 turnId: 'turn-root',
             },
         });
         await adapter.handleMessage({
             method: 'turn/completed',
+            params: { threadId: 'thread-root', turn: { id: 'turn-root', status: 'completed' }, turnId: 'turn-root' },
+        });
+
+        expect(events.filter(({ event }) => event?.providerItemId === 'wait-1').map(({ event }) => event)).toEqual([
+            expect.objectContaining({ label: 'Collaboration: wait', runningSubThreads: 1, status: 'inProgress' }),
+            expect.objectContaining({ label: 'Collaboration: wait', runningSubThreads: 0, status: 'completed' }),
+        ]);
+        expect(events.filter(({ type }) => type === 'turnCompleted')).toHaveLength(1);
+    });
+
+    it('routes a child-thread approval to the user and resolves it without failing the run', async () => {
+        const { adapter, events, writes } = await startCodexCollaboration();
+
+        await adapter.handleMessage({
+            method: 'item/started',
             params: {
+                item: { command: 'rm -rf tmp', id: 'child-command', status: 'inProgress', type: 'commandExecution' },
+                threadId: 'thread-child',
+                turnId: 'turn-child',
+            },
+        });
+        await adapter.handleMessage({
+            id: 77,
+            method: 'item/commandExecution/requestApproval',
+            params: { itemId: 'child-command', threadId: 'thread-child', turnId: 'turn-child' },
+        });
+
+        expect(events.findLast(({ type }) => type === 'approval').approval).toMatchObject({
+            kind: 'commandExecution',
+            parentItemId: 'wait-1',
+            provider: 'codex',
+            requestId: 77,
+            subAgentLabel: 'wait',
+        });
+
+        await adapter.answerApproval(77, 'accept');
+
+        expect(writes.at(-1)).toEqual({ id: 77, result: { decision: 'accept' } });
+
+        await adapter.handleMessage({ method: 'serverRequest/resolved', params: { requestId: 77, threadId: 'thread-child' } });
+
+        expect(events.at(-1)).toEqual({ requestId: 77, type: 'approvalResolved' });
+        expect(events.some(({ type }) => type === 'fatal')).toBe(false);
+    });
+
+    it('cancels an out-of-order child-thread approval without failing the run', async () => {
+        const { adapter, events, writes } = await startCodexCollaboration();
+
+        await adapter.handleMessage({
+            id: 77,
+            method: 'item/commandExecution/requestApproval',
+            params: { itemId: 'missing-command', threadId: 'thread-child', turnId: 'turn-child' },
+        });
+
+        expect(writes.at(-1)).toEqual({ id: 77, result: { decision: 'cancel' } });
+        expect(events.at(-1).event).toMatchObject({
+            parentItemId: 'wait-1',
+            status: 'completed',
+            type: 'diagnostic',
+        });
+        expect(events.some(({ type }) => type === 'fatal')).toBe(false);
+    });
+
+    it('ignores a mismatched child-thread approval resolution without failing the run', async () => {
+        const { adapter, events } = await startCodexCollaboration();
+
+        await adapter.handleMessage({
+            method: 'item/started',
+            params: {
+                item: { command: 'git status', id: 'child-command', status: 'inProgress', type: 'commandExecution' },
+                threadId: 'thread-child',
+                turnId: 'turn-child',
+            },
+        });
+        await adapter.handleMessage({
+            id: 77,
+            method: 'item/commandExecution/requestApproval',
+            params: { itemId: 'child-command', threadId: 'thread-child', turnId: 'turn-child' },
+        });
+        await adapter.handleMessage({ method: 'serverRequest/resolved', params: { requestId: 77, threadId: 'thread-root' } });
+
+        expect(events.filter(({ type }) => type === 'approvalResolved')).toHaveLength(0);
+        expect(events.at(-1).event).toMatchObject({ status: 'completed', type: 'diagnostic' });
+        expect(events.some(({ type }) => type === 'fatal')).toBe(false);
+
+        await adapter.handleMessage({ method: 'serverRequest/resolved', params: { requestId: 77, threadId: 'thread-child' } });
+
+        expect(events.at(-1)).toEqual({ requestId: 77, type: 'approvalResolved' });
+    });
+
+    it('resolves only the finishing child thread approvals and leaves the root turn pending', async () => {
+        const { adapter, events } = await startCodexCollaboration();
+
+        await adapter.handleMessage({
+            method: 'item/started',
+            params: {
+                item: { command: 'git status', id: 'root-command', status: 'inProgress', type: 'commandExecution' },
                 threadId: 'thread-root',
-                turn: { id: 'turn-root', status: 'completed' },
                 turnId: 'turn-root',
             },
         });
+        await adapter.handleMessage({
+            id: 88,
+            method: 'item/commandExecution/requestApproval',
+            params: { itemId: 'root-command', threadId: 'thread-root', turnId: 'turn-root' },
+        });
+        await adapter.handleMessage({
+            method: 'item/started',
+            params: {
+                item: { command: 'rm -rf tmp', id: 'child-command', status: 'inProgress', type: 'commandExecution' },
+                threadId: 'thread-child',
+                turnId: 'turn-child',
+            },
+        });
+        await adapter.handleMessage({
+            id: 77,
+            method: 'item/commandExecution/requestApproval',
+            params: { itemId: 'child-command', threadId: 'thread-child', turnId: 'turn-child' },
+        });
+        await adapter.handleMessage({
+            method: 'turn/completed',
+            params: { threadId: 'thread-child', turn: { id: 'turn-child', status: 'completed' }, turnId: 'turn-child' },
+        });
 
-        const collaborationEvents = events
-            .filter(({ event }) => event?.providerItemId === 'wait-1')
-            .map(({ event }) => event);
-        expect(collaborationEvents).toEqual([
-            expect.objectContaining({ label: 'Collaboration: wait', status: 'inProgress' }),
-            expect.objectContaining({ label: 'Collaboration: wait', status: 'completed' }),
+        expect(events.filter(({ type }) => type === 'approvalResolved')).toEqual([{ requestId: 77, type: 'approvalResolved' }]);
+        expect(events.filter(({ type }) => type === 'turnCompleted')).toHaveLength(0);
+
+        await adapter.handleMessage({
+            method: 'turn/completed',
+            params: { threadId: 'thread-root', turn: { id: 'turn-root', status: 'completed' }, turnId: 'turn-root' },
+        });
+
+        expect(events.filter(({ type }) => type === 'approvalResolved')).toEqual([
+            { requestId: 77, type: 'approvalResolved' },
+            { requestId: 88, type: 'approvalResolved' },
         ]);
-        expect(events.filter(({ type }) => type === 'turnCompleted')).toHaveLength(1);
-        expect(events.filter(({ type }) => type === 'usage')).toHaveLength(0);
-        expect(runtimeEvents).toEqual([expect.objectContaining({ kind: 'update' })]);
+    });
+
+    it('sums turn usage across threads and reports the root context window only', async () => {
+        const { adapter, events } = await startCodexCollaboration();
+
+        await adapter.handleMessage({
+            method: 'thread/tokenUsage/updated',
+            params: {
+                threadId: 'thread-root',
+                tokenUsage: {
+                    last: codexBreakdown(0, 10, 4, 1),
+                    modelContextWindow: 100_000,
+                    total: codexBreakdown(0, 10, 4, 1),
+                },
+                turnId: 'turn-root',
+            },
+        });
+        await adapter.handleMessage({
+            method: 'thread/tokenUsage/updated',
+            params: {
+                threadId: 'thread-child',
+                tokenUsage: {
+                    last: codexBreakdown(0, 6, 2, 0),
+                    modelContextWindow: 400_000,
+                    total: codexBreakdown(0, 6, 2, 0),
+                },
+                turnId: 'turn-child',
+            },
+        });
+
+        expect(events.at(-1)).toEqual({
+            contextWindowUsage: { capacityTokens: 100_000, usedTokens: 14 },
+            type: 'usage',
+            usage: { cachedInputTokens: 0, inputTokens: 16, outputTokens: 5, reasoningTokens: 1, totalTokens: 22 },
+        });
+
+        await adapter.handleMessage({
+            method: 'thread/tokenUsage/updated',
+            params: {
+                threadId: 'thread-root',
+                tokenUsage: {
+                    last: codexBreakdown(0, 10, 5, 1),
+                    modelContextWindow: 100_000,
+                    total: codexBreakdown(0, 20, 9, 2),
+                },
+                turnId: 'turn-root',
+            },
+        });
+        await adapter.handleMessage({
+            method: 'turn/completed',
+            params: { threadId: 'thread-root', turn: { id: 'turn-root', status: 'completed' }, turnId: 'turn-root' },
+        });
+
+        expect(events.at(-1)).toEqual({
+            contextWindowUsage: { capacityTokens: 100_000, usedTokens: 15 },
+            error: null,
+            type: 'turnCompleted',
+            usage: { cachedInputTokens: 0, inputTokens: 26, outputTokens: 9, reasoningTokens: 2, totalTokens: 37 },
+        });
+    });
+
+    it('nests a collaboration call made inside a child thread under that child entry', async () => {
+        const { adapter, events } = await startCodexCollaboration();
+        const nestedCollaborationItem = {
+            agentsStates: { 'thread-grandchild': { status: 'running' } },
+            id: 'wait-2',
+            prompt: '',
+            receiverThreadIds: ['thread-grandchild'],
+            status: 'inProgress',
+            tool: 'ask',
+            type: 'collabAgentToolCall',
+        };
+
+        await adapter.handleMessage({
+            method: 'item/started',
+            params: { item: nestedCollaborationItem, threadId: 'thread-child', turnId: 'turn-child' },
+        });
+        await adapter.handleMessage({
+            method: 'turn/started',
+            params: { threadId: 'thread-grandchild', turn: { id: 'turn-grandchild' }, turnId: 'turn-grandchild' },
+        });
+        await adapter.handleMessage({
+            method: 'item/started',
+            params: {
+                item: { id: 'grandchild-message', phase: null, text: 'deep', type: 'agentMessage' },
+                threadId: 'thread-grandchild',
+                turnId: 'turn-grandchild',
+            },
+        });
+
+        expect(events.find(({ event }) => event?.providerItemId === 'wait-2').event).toMatchObject({
+            label: 'Collaboration: ask',
+            parentItemId: 'wait-1',
+        });
+        expect(events.find(({ event }) => event?.providerItemId === 'grandchild-message').event).toMatchObject({
+            content: 'deep',
+            label: 'ask',
+            parentItemId: 'wait-2',
+        });
+    });
+
+    it('reports a child-thread failure inside its group without failing the run', async () => {
+        const { adapter, events } = await startCodexCollaboration();
+
+        await adapter.handleMessage({
+            method: 'error',
+            params: { error: { message: 'sub agent exploded' }, threadId: 'thread-child', turnId: 'turn-child' },
+        });
+
+        expect(events.at(-1).event).toMatchObject({
+            content: 'sub agent exploded',
+            label: 'Turn failure',
+            parentItemId: 'wait-1',
+            providerItemId: 'thread-child:system:turn-child:error',
+            status: 'failed',
+        });
+        expect(events.some(({ type }) => type === 'fatal')).toBe(false);
+    });
+
+    it('ignores notifications from a thread no collaboration call started', async () => {
+        const { adapter, events } = await startCodexCollaboration();
+        const eventCountBeforeUnknownThread = events.length;
+
+        await adapter.handleMessage({
+            method: 'turn/started',
+            params: { threadId: 'thread-unknown', turn: { id: 'turn-unknown' }, turnId: 'turn-unknown' },
+        });
+        await adapter.handleMessage({
+            method: 'item/started',
+            params: {
+                item: { command: 'ls', id: 'stray-command', status: 'inProgress', type: 'commandExecution' },
+                threadId: 'thread-unknown',
+                turnId: 'turn-unknown',
+            },
+        });
+        await adapter.handleMessage({
+            method: 'turn/completed',
+            params: { threadId: 'thread-unknown', turn: { id: 'turn-unknown', status: 'completed' }, turnId: 'turn-unknown' },
+        });
+
+        expect(events).toHaveLength(eventCountBeforeUnknownThread);
     });
 
     it('maps deltas, usage, file changes, questions, and turn completion', async () => {
