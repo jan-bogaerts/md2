@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 88717
+        "usedTokens": 90419
       },
       "entries": [
         {
@@ -590,6 +590,73 @@
           "role": "assistant",
           "sequence": 47,
           "timestamp": "2026-08-25T17:44:31.053Z"
+        },
+        {
+          "content": "It is not a problem when 1 is production, the other dec",
+          "id": "agent-turn-a7fc0d25-68d5-46bf-abfb-1cb3b1701594-user-47",
+          "kind": "message",
+          "role": "user",
+          "sequence": 48,
+          "timestamp": "2026-08-25T17:46:17.035Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-a7fc0d25-68d5-46bf-abfb-1cb3b1701594-event-49",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0e103d18081b61f4016a8dd4edb71087d2a646e8fd0ae1e930",
+          "sequence": 49,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-25T17:46:22.344Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "That comparison isolates profile identity: production and development likely use different application names, therefore different `userData` / `sessionData` directories. Checking builder identity to confirm exact paths.\n\n",
+          "id": "agent-turn-a7fc0d25-68d5-46bf-abfb-1cb3b1701594-turn-4-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 50,
+          "timestamp": "2026-08-25T17:46:22.974Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'desktop\\\\packaging\\\\builder_config.js'; rg -n 'productName|appId|artifactName|name' package.json desktop\\\\package.json desktop\\\\packaging\\\\builder_config.js\"",
+          "content": "",
+          "durationMs": 3,
+          "exitCode": 0,
+          "id": "agent-turn-a7fc0d25-68d5-46bf-abfb-1cb3b1701594-event-51",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'desktop\\\\packaging\\\\builder_config.js'; rg -n 'productName|appId|artifactName|name' package.json desktop\\\\package.json desktop\\\\packaging\\\\builder_config.js\"",
+          "providerItemId": "exec-e68556c3-b3da-4434-a961-8a2b0fa44d3e",
+          "sequence": 51,
+          "status": "completed",
+          "timestamp": "2026-08-25T17:46:25.031Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-a7fc0d25-68d5-46bf-abfb-1cb3b1701594-event-52",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0e103d18081b61f4016a8dd4f491d087d2a7a476f5c859f95e",
+          "sequence": 52,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-25T17:46:30.911Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "That strongly supports shared-profile contention.\n\nDevelopment identity is `desktop`; packaged identity is `MD²`. They therefore use different default `userData` directories. Production plus development works because Chromium opens different Local Storage databases.\n\nTwo development instances both use development profile. Two production instances both use production profile. Collision depends on profile path, not amount stored in `localStorage`.\n\nFast confirmation: launch second development instance with unique `--user-data-dir`. If delay and empty state disappear, shared Chromium profile is cause. Document still needs correction; single-instance solution must be removed.\n\n",
+          "id": "agent-turn-a7fc0d25-68d5-46bf-abfb-1cb3b1701594-turn-4-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 53,
+          "timestamp": "2026-08-25T17:46:33.434Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -599,23 +666,23 @@
           "agent": "codex",
           "conversationId": "01a039a8-1092-75c3-87bb-68944dae5c2a",
           "createdAt": "2026-08-25T16:04:52.719Z",
-          "lastUsedAt": "2026-08-25T17:41:45.273Z",
-          "synchronizedThroughMessageId": "agent-turn-a7fc0d25-68d5-46bf-abfb-1cb3b1701594-turn-2-assistant-2"
+          "lastUsedAt": "2026-08-25T17:44:31.053Z",
+          "synchronizedThroughMessageId": "agent-turn-a7fc0d25-68d5-46bf-abfb-1cb3b1701594-turn-3-assistant-2"
         }
       ],
       "startedAt": "2026-08-25T16:01:50.134Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 232411,
-        "runningStartedAt": "2026-08-25T17:43:55.942Z"
+        "elapsedMs": 267522,
+        "runningStartedAt": "2026-08-25T17:46:17.035Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 855808,
-        "inputTokens": 151036,
-        "outputTokens": 3116,
-        "reasoningTokens": 5591,
-        "totalTokens": 1015551
+        "cachedInputTokens": 1031424,
+        "inputTokens": 154211,
+        "outputTokens": 3380,
+        "reasoningTokens": 5988,
+        "totalTokens": 1195003
       },
       "usageSchemaVersion": 1,
       "viewed": true
