@@ -4136,15 +4136,15 @@
           "agent": "codex",
           "conversationId": "01a039a6-4fb4-7892-845b-07b59e15132b",
           "createdAt": "2026-08-25T16:02:28.884Z",
-          "lastUsedAt": "2026-08-25T18:02:03.717Z",
-          "synchronizedThroughMessageId": "agent-turn-86763221-5fd6-410f-bb09-f7a99c94db39-turn-1-assistant-1"
+          "lastUsedAt": "2026-08-25T18:14:35.325Z",
+          "synchronizedThroughMessageId": "agent-turn-86763221-5fd6-410f-bb09-f7a99c94db39-turn-2-assistant-2"
         }
       ],
       "startedAt": "2026-08-25T15:59:55.164Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
-        "elapsedMs": 242944,
-        "runningStartedAt": "2026-08-25T18:12:57.103Z"
+        "elapsedMs": 341166,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
@@ -4155,7 +4155,7 @@
         "totalTokens": 770121
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
