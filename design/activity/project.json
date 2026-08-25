@@ -8619,7 +8619,7 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": null,
       "cardPath": null,
-      "completedAt": null,
+      "completedAt": "2026-08-25T12:59:23.275Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 131834
@@ -9569,16 +9569,82 @@
           "role": "assistant",
           "sequence": 71,
           "timestamp": "2026-08-25T12:56:16.375Z"
+        },
+        {
+          "content": "perhaps, but a production build's mem usage grows to 6GB, unnormally large",
+          "id": "agent-turn-fde73578-b882-4ac2-924b-67f96bbec365-user-71",
+          "kind": "message",
+          "role": "user",
+          "sequence": 72,
+          "timestamp": "2026-08-25T12:59:03.152Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-fde73578-b882-4ac2-924b-67f96bbec365-event-73",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_01f8227dbd96ca7d016a8d919cab1887d2839c70e4518dd7d9",
+          "sequence": 73,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-25T12:59:14.251Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Agreed. A production process reaching 6 GB means the React development measures are only noise in this capture, not the root explanation. I’ll trace production-retained agent data across the desktop runner, IPC bridge, renderer registry, and transcript rendering, paying particular attention to unbounded buffers and repeated full-conversation copies.\n\n",
+          "id": "agent-turn-fde73578-b882-4ac2-924b-67f96bbec365-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 74,
+          "timestamp": "2026-08-25T12:59:23.275Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-fde73578-b882-4ac2-924b-67f96bbec365-event-75",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_01f8227dbd96ca7d016a8d91a650b087d2a71dd44d8e1ffd93",
+          "sequence": 75,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-25T12:59:17.555Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"onActionRun|actionRun|publish\\\\(|callback\\\\(|emitRunEvent|recovery|conversation.entries|stdout|stderr|buffer\\\" desktop/src/actions desktop/src/shell app/src/data app/src/services/actions | Select-Object -First 500\"",
+          "content": "app/src/services/actions\\action_run_registry.ts:647:                    stdout: '',\r\napp/src/services/actions\\action_run_registry.ts:682:        if (this.recoveryEvents) {\r\napp/src/services/actions\\action_run_registry.ts:683:            this.recoveryEvents.push(event)\r\napp/src/services/actions\\action_run_registry.ts:781:                    entries: upsertAgentEvent(next.conversation.entries, event.update.event),\r\napp/src/services/actions\\action_run_registry.ts:829:                    entries: [...next.conversation.entries, event.update.event],\r\napp/src/services/actions\\action_run_registry.ts:871:                    entries: [...next.conversation.entries, event.update.userMessage],\r\napp/src/services/actions\\action_run_registry.ts:883:                    entries: [...next.conversation.entries, event.update.userMessage],\r\napp/src/services/actions\\action_run_registry.ts:1006:export const actionRunRegistry = new ActionRunRegistry()\r\napp/src/data\\electron_action_bridge.ts:166:    onActionRun(callback: (event: ActionRunEvent) => void): () => void\r\napp/src/data\\electron_action_bridge.node.test.ts:11:        onActionRun: vi.fn(() => () => {}),\r\napp/src/data\\project_session.test.ts:13:        onActionRun: vi.fn(() => () => {}),\r\napp/src/data\\action_run_types.ts:241:    stderr: string\r\napp/src/data\\action_run_types.ts:242:    stdout: string\r\ndesktop/src/actions\\agent\\agent_executable_availability.test.mjs:17:            return { stdout: 'C:\\\\Tools\\\\codex.CMD\\r\\n' };\r\ndesktop/src/actions\\agent\\agent_executable_availability.test.mjs:31:        const execFileAsync = vi.fn(async () => ({ stdout: 'C:\\\\Tools\\\\codex.CMD\\r\\n' }));\r\ndesktop/src/actions\\agent\\agent_executable_availability.test.mjs:41:        const execFileAsync = vi.fn(async () => ({stdout: 'C:\\\\Tools\\\\codex\\r\\nC:\\\\Tools\\\\codex.CMD\\r\\nC:\\\\Other\\\\codex.EXE\\r\\n'}));\r\ndesktop/src/actions\\action\\action_worktree_run_service.test.mjs:13:    return { command: 'test', exitCode: 0, stderr: '', stdout: '' };\r\ndesktop/src/actions\\action\\action_run_history.js:5:    return `${result.stdout}${result.stderr}`;\r\ndesktop/src/actions\\action\\action_run_history.js:33:        const reportedCandidates = extractAgentCommitIds(input.result.stdout)\r\ndesktop/src/actions\\agent\\agent_executable_availability.js:13:function selectLocatedExecutable(stdout, executable, platform, env) {\r\ndesktop/src/actions\\agent\\agent_executable_availability.js:14:    const candidates = String(stdout).split(/\\r?\\n/u).map((candidate) => candidate.trim()).filter((candidate) => candidate.length > 0);\r\ndesktop/src/actions\\agent\\agent_executable_availability.js:61:            const { stdout } = await this.execFileAsync(locator, [executable], { cwd, env });\r\ndesktop/src/actions\\agent\\agent_executable_availability.js:63:            return selectLocatedExecutable(stdout, executable, this.platform, env);\r\ndesktop/src/actions\\action\\action_run.js:193:        this.publish(this.activeAction, this.activeActionPhase, 'running', {\r\ndesktop/src/actions\\action\\action_run.js:263:        this.publish(this.rootAction, 'main', 'running', { type: 'run' });\r\ndesktop/src/actions\\action\\action_run.js:267:            const onQueued = () => this.publish(this.rootAction, 'main', 'queued', { type: 'action' });\r\ndesktop/src/actions\\action\\action_run.js:291:            this.publish(this.rootAction, 'main', 'failed', { message, type: 'action' });\r\ndesktop/src/actions\\action\\action_run.js:300:        this.publish(this.rootAction, 'main', status, {\r\ndesktop/src/actions\\action\\action_run.js:335:                this.publish(action, phase, 'cancelled', {\r\ndesktop/src/actions\\action\\action_run.js:352:            this.publish(action, phase, status, {\r\ndesktop/src/actions\\action\\action_run.js:369:                if (!error?.terminalEventEmitted) this.publish(action, phase, 'cancelled', { message: 'Action cancelled', type: 'action' });\r\ndesktop/src/actions\\action\\action_run.js:375:            this.publish(action, phase, 'failed', { message, type: 'action' });\r\ndesktop/src/actions\\action\\action_run.js:403:            this.publish(action, phase, 'runn\n[34526 characters omitted]\n         run.stderrBuffer = filtered.remainder;\r\ndesktop/src/actions\\agent\\agent_runner_service.js:493:                this.recordOutput(run.id, 'stderr', `${line}${delimiter}`);\r\ndesktop/src/actions\\agent\\agent_runner_service.js:498:            const diagnostic = run.stderrHandling.then(async () => {\r\ndesktop/src/actions\\agent\\agent_runner_service.js:500:                this.recordOutput(run.id, 'stderr', `${result.message}\\n`);\r\ndesktop/src/actions\\agent\\agent_runner_service.js:505:            run.stderrHandling = diagnostic.catch(() => {\r\ndesktop/src/actions\\agent\\agent_runner_service.js:506:                this.recordOutput(run.id, 'stderr', `${line}${delimiter}`);\r\ndesktop/src/actions\\agent\\agent_runner_service.js:535:        if (channel === 'stdout') {\r\ndesktop/src/actions\\agent\\agent_runner_service.js:538:            emitRunEvent(run, { content: segment, type: 'output' });\r\ndesktop/src/actions\\agent\\agent_runner_service.js:541:        run.stderr += safeContent;\r\ndesktop/src/actions\\agent\\agent_runner_service.js:543:            emitRunEvent(run, { content: safeContent, type: 'error' });\r\ndesktop/src/actions\\agent\\agent_runner_service.js:546:        run.conversation.entries.push(createEventEntry(\r\ndesktop/src/actions\\agent\\agent_runner_service.js:547:            `${runId}-error-${run.conversation.entries.length}`,\r\ndesktop/src/actions\\agent\\agent_runner_service.js:553:        emitRunEvent(run, { content: safeContent, type: 'error' });\r\ndesktop/src/actions\\agent\\agent_runner_service.js:558:        if (!run || run.stderrBuffer.length === 0) return;\r\ndesktop/src/actions\\agent\\agent_runner_service.js:560:        const content = run.stderrBuffer;\r\ndesktop/src/actions\\agent\\agent_runner_service.js:561:        run.stderrBuffer = '';\r\ndesktop/src/actions\\agent\\agent_runner_service.js:576:            run.conversation.entries.push(createEventEntry(\r\ndesktop/src/actions\\agent\\agent_runner_service.js:577:                `${runId}-provider-${run.conversation.entries.length}`,\r\ndesktop/src/actions\\agent\\agent_runner_service.js:586:            if (segment.length > 0) emitRunEvent(run, { content: segment, type: 'output' });\r\ndesktop/src/actions\\agent\\agent_runner_service.js:588:            const separator = run.stderr.length > 0 && !run.stderr.endsWith('\\n') ? '\\n' : '';\r\ndesktop/src/actions\\agent\\agent_runner_service.js:590:            run.stderr += `${separator}${providerEvent.errorText}`;\r\ndesktop/src/actions\\agent\\agent_runner_service.js:591:            run.conversation.entries.push(createEventEntry(\r\ndesktop/src/actions\\agent\\agent_runner_service.js:592:                `${runId}-error-${run.conversation.entries.length}`,\r\ndesktop/src/actions\\agent\\agent_runner_service.js:598:            emitRunEvent(run, { content: providerEvent.errorText, type: 'error' });\r\ndesktop/src/actions\\agent\\agent_runner_service.js:619:            run.conversation.entries.push(createEventEntry(\r\ndesktop/src/actions\\agent\\agent_runner_service.js:620:                `${runId}-malformed-${run.conversation.entries.length}`,\r\ndesktop/src/actions\\agent\\agent_runner_service.js:641:        run.stderr += message;\r\ndesktop/src/actions\\agent\\agent_runner_service.js:642:        run.conversation.entries.push(createEventEntry(\r\ndesktop/src/actions\\agent\\agent_runner_service.js:643:            `${runId}-error-${run.conversation.entries.length}`,\r\ndesktop/src/actions\\agent\\agent_runner_service.js:649:        emitRunEvent(run, { content: message, type: 'error' });\r\ndesktop/src/actions\\agent\\agent_runner_service.js:663:        const separator = run.stderr.length > 0 && !run.stderr.endsWith('\\n') ? '\\n' : '';\r\ndesktop/src/actions\\agent\\agent_runner_service.js:664:        run.stderr += `${separator}${message}`;\r\ndesktop/src/actions\\agent\\agent_runner_service.js:665:        run.conversation.entries.push(createEventEntry(\r\ndesktop/src/actions\\agent\\agent_runner_service.js:666:            `${run.id}-error-${run.conversation.entries.length}`,\r\ndesktop/src/actions\\agent\\agent_runner_service.js:672:        emitRunEvent(run, { content: message, type: 'error' });\r\n",
+          "durationMs": 44,
+          "exitCode": 0,
+          "id": "agent-turn-fde73578-b882-4ac2-924b-67f96bbec365-event-76",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"onActionRun|actionRun|publish\\\\(|callback\\\\(|emitRunEvent|recovery|conversation.entries|stdout|stderr|buffer\\\" desktop/src/actions desktop/src/shell app/src/data app/src/services/actions | Select-Object -First 500\"",
+          "providerItemId": "exec-527dadca-58ad-43bc-a833-2ee5fa8de656",
+          "sequence": 76,
+          "status": "completed",
+          "timestamp": "2026-08-25T12:59:20.185Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-bcdd9313-f319-4c71-a66b-90a8467e89da",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a038f7-f116-7310-8671-ce5bd2d2bc00",
+          "createdAt": "2026-08-25T12:56:16.375Z",
+          "lastUsedAt": "2026-08-25T12:56:16.375Z",
+          "synchronizedThroughMessageId": "agent-turn-fde73578-b882-4ac2-924b-67f96bbec365-turn-1-assistant-5"
+        }
+      ],
       "startedAt": "2026-08-25T12:49:27.642Z",
-      "status": "running",
+      "status": "cancelled",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-25T12:49:27.642Z"
+        "elapsedMs": 428724,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
