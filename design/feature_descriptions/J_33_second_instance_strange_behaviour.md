@@ -3,7 +3,7 @@ author:
 id: J_33
 internalId: 7f35084a-0348-4869-a764-e0ff2ff2843d
 title: second instance strange behaviour
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,31 @@ policy:
 after: db4400c0-0d7f-4265-8939-8b4e493c7208
 branch: j_33_second_instance_strange_behaviour
 worktree: 3
+changedFiles:
+  - app/src/components/actions/agent/action_agent_prompt.tsx
+  - app/src/components/resizable_popover.tsx
+  - app/src/components/resizable_popper.tsx
+  - app/src/components/shell/project/use_project_toolbar_menu_actions.ts
+  - app/src/components/shell/split_layout.tsx
+  - app/src/data/project_session.ts
+  - app/src/data/recent_local_repositories.test.ts
+  - app/src/data/recent_local_repositories.ts
+  - app/src/data/remote_control_connection.ts
+  - app/src/main.tsx
+  - app/src/services/config/config_persistence.ts
+  - app/src/services/github/github_auth_service.ts
+  - app/src/services/github/github_storage_context.ts
+  - app/src/services/sentry/sentry_connection_service.ts
+  - app/src/services/storage/application_storage.test.ts
+  - app/src/services/storage/application_storage.ts
+  - app/src/services/storage/electron_application_state_bridge.ts
+  - app/src/theme/use_theme_settings.ts
+  - desktop/main.js
+  - desktop/src/shell/application_state_store.js
+  - desktop/src/shell/application_state_store.test.mjs
+  - desktop/src/shell/ipc_channels.js
+  - desktop/src/shell/preload.js
+  - desktop/src/shell/preload.test.mjs
 ---
 When a second instance is started, the app behaves a little strange at startup:
 
