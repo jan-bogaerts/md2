@@ -1,0 +1,411 @@
+{
+  "actionSettings": {
+    "5b88355d-f964-459a-bc67-6618650866ba": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
+    }
+  },
+  "conversations": [
+    {
+      "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "cardInternalId": "db4400c0-0d7f-4265-8939-8b4e493c7208",
+      "cardPath": "design/feature_descriptions/F_240_action_popup_card_id_add_tooltip.md",
+      "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 1000000,
+        "usedTokens": 51840
+      },
+      "entries": [
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/F_240_action_popup_card_id_add_tooltip.md`.&#x20;\nupdate the field `status` in the markdown feature description file to `ready for implementation`.\n\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill.\n\nDo not stage or commit changes. You have no need for get at this time.",
+          "id": "agent-turn-79fcb9c1-77ac-4e6b-8131-1589de30a8e9-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-08-25T16:02:38.123Z"
+        },
+        {
+          "agent": "claude",
+          "content": "I'll read the feature doc first.",
+          "id": "agent-turn-79fcb9c1-77ac-4e6b-8131-1589de30a8e9-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 2,
+          "timestamp": "2026-08-25T16:02:41.093Z"
+        },
+        {
+          "content": "---\nauthor: \nid: F_240\ninternalId: db4400c0-0d7f-4265-8939-8b4e493c7208\ntitle: action popup card id add tooltip\nstatus: design\nowner: \naffects:\nagents:\n  - design/activity/card__db4400c0-0d7f-4265-8939-8b4e493c7208.json\npolicy:\n---\n\non the action popup, in the upper left corner, we show the id of the card (if any). we should add a tooltip to that shows the title of the card.\n\nbe careful: I think the component currently doesn't capture mouse events cause it shows a drag icon to move the popup around",
+          "id": "agent-turn-79fcb9c1-77ac-4e6b-8131-1589de30a8e9-event-3",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01GptYK86fqwGNKG4dFGCm1L",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-08-25T16:02:42.772Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-79fcb9c1-77ac-4e6b-8131-1589de30a8e9-event-4",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CePkNNPhLfq4HFHamXqVA:thinking:0",
+          "sequence": 4,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-25T16:02:44.504Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "---\nLICENSE\nREADME.md\nagents.md\napp\ndesign\ndesktop\ndocs\nmd2.config.json\nnode_modules\npackage-lock.json\npackage.json\nrelease\nscreenshots\nshared\ntemp.jpg",
+          "id": "agent-turn-79fcb9c1-77ac-4e6b-8131-1589de30a8e9-event-5",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01XtJfP5mnDPBA9UeU4zJvVq",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-08-25T16:02:45.372Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "app/dist/assets/index-BocO97kF.js\napp/src/components/actions/agent/action_agent_preset_name_owner.tsx\napp/src/components/actions/agent/action_agent_prompt_owner.tsx\napp/src/components/actions/run/popup/action_agent_interaction.tsx\napp/src/components/actions/run/popup/action_popup.test.tsx\napp/src/components/actions/run/popup/action_popup.tsx\napp/src/components/actions/run/popup/action_popup_bottom_row.test.tsx\napp/src/components/actions/run/popup/action_popup_bottom_row.tsx\napp/src/components/actions/run/popup/action_popup_content.tsx\napp/src/components/actions/run/popup/action_popup_finish_button.tsx\napp/src/components/actions/run/popup/action_popup_frame.tsx\napp/src/components/actions/run/popup/action_popup_operations.node.test.ts\napp/src/components/actions/run/popup/action_popup_operations.ts\napp/src/components/actions/run/popup/action_popup_runtime.ts\napp/src/components/actions/run/popup/action_popup_run_disabled.ts\napp/src/components/actions/run/popup/action_popup_types.ts\napp/src/components/actions/run/popup/agent_action.tsx\napp/src/components/actions/run/popup/card_action_popup_host.tsx\napp/src/components/actions/run/popup/card_action_popup_host_entry.tsx\napp/src/components/actions/run/popup/command_action.tsx\napp/src/components/actions/run/trigger/action_entry_points.tsx\napp/src/components/actions/run/trigger/card_run_button.test.tsx\napp/src/components/agents/agent_chat_fab.tsx\napp/src/components/card_view/card_view.tsx.bak\napp/src/components/card_view/mobile_card_view.test.tsx\napp/src/components/merge_conflict_dialog.test.tsx\napp/src/components/merge_conflict_dialog.tsx\napp/src/components/project_workspace.tsx\napp/src/components/shell/search/search_panel.tsx\napp/src/services/card_popup_service.ts",
+          "id": "agent-turn-79fcb9c1-77ac-4e6b-8131-1589de30a8e9-event-6",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01DYXZHGeq8bjJKxy5auvRQi",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-08-25T16:03:26.598Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "import { Box, IconButton, Tooltip, Typography, useMediaQuery, useTheme } from '@mui/material'\nimport ArrowCollapseVertical from 'mdi-material-ui/ArrowCollapseVertical'\nimport ArrowExpandVertical from 'mdi-material-ui/ArrowExpandVertical'\nimport Close from 'mdi-material-ui/Close'\nimport type { ReactNode } from 'react'\nimport type { ActionContext } from '../../../../data/action_context'\nimport { ResizablePopper } from '../../../resizable_popper'\nimport type { WorktreeAssignmentTarget } from '../../../worktree_selector'\nimport { MarkdownTypeaheadLayerProvider } from '../../../editor/markdown_typeahead_layer_provider'\nimport { ActionConversationPickerOwner } from '../../conversation/action_conversation_picker_owner'\nimport type { ActionConversationStore } from '../../conversation/action_conversation_store'\nimport { ActionSelector } from './action_selector'\nimport type { ActionPopupContentProps } from './action_popup_types'\nimport { ActionWorktreeSelectorOwner } from './action_worktree_selector_owner'\n\nexport const CARD_RUN_POPUP_SIZE_STORAGE_KEY = 'md2.cardRunPopupSize'\nexport const PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY = 'md2.projectAgentPopupSize'\n\ninterface ActionPopupFrameProps {\n    children: ReactNode\n    contentProps: ActionPopupContentProps\n    conversationStore: ActionConversationStore\n}\n\nfunction worktreeAssignmentTarget(context: ActionContext): WorktreeAssignmentTarget | null {\n    if (context.kind === 'project') return { kind: 'project' }\n    if ((context.kind === 'card' || context.kind === 'file') && context.file && context.cardInternalId) {\n        return { cardInternalId: context.cardInternalId, kind: 'card', path: context.file }\n    }\n\n    return null\n}\n\n/** Shared popup surface, toolbar, and action selector. */\nexport function ActionPopupFrame({ children, contentProps, conversationStore }: ActionPopupFrameProps) {\n    const {\n        action, actions, anchorElement, assignmentContext, baseContext, draggable, fullHeight, onActivate,\n        onClose, onSelectAction, onToggleFullHeight, open, primaryPath, readOnlyMessage, stackPosition,\n        target, titleId,\n    } = contentProps\n    const theme = useTheme()\n    const isMobile = useMediaQuery(theme.breakpoints.down('md'))\n    const sizeStorageKey = baseContext.kind === 'project'\n        ? PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY\n        : CARD_RUN_POPUP_SIZE_STORAGE_KEY\n    const parsedWorktree = assignmentContext.worktree && /^[1-9]\\d*$/u.test(assignmentContext.worktree)\n        ? Number.parseInt(assignmentContext.worktree, 10)\n        : null\n    const worktreeAssignment = {\n        worktree: parsedWorktree,\n        worktreeError: assignmentContext.worktreeError ?? null,\n        worktreeValue: assignmentContext.worktree ?? null,\n    }\n    const assignmentTarget = baseContext.kind === 'card' || baseContext.kind === 'file' || baseContext.kind === 'project'\n        ? worktreeAssignmentTarget(baseContext)\n        : null\n\n    return (\n        <ResizablePopper\n            anchorElement={anchorElement}\n            draggable={isMobile ? false : draggable}\n            fullHeight={isMobile || fullHeight}\n            initialSize={{ height: 450, width: 400 }}\n            labelId={titleId}\n            onActivate={onActivate}\n            onClose={onClose}\n            open={open}\n            paperSx={{\n                bgcolor: 'background.paper',\n                border: 1,\n                borderColor: 'divider',\n                borderRadius: isMobile ? 0 : '14px',\n                boxShadow: '0 24px 60px rgba(16,24,40,0.28)',\n                flexDirection: 'column',\n                height: isMobile ? '100dvh !important' : undefined,\n                left: isMobile ? '0 !important' : undefined,\n                margin: isMobile ? '0 !important' : undefined,\n                maxHeight: isMobile ? 'none' : undefined,\n                maxWidth: isMobile ? 'none' : undefined,\n                top: isMobile ? '0 !important' : undefined,\n                transform: isMobile ? 'none !important' : undefined,\n                width: isMobile ? '100vw !important' : undefined,\n        \n[127 characters omitted]\naction popup\"\n            stackPosition={stackPosition}\n            storageKey={isMobile ? undefined : sizeStorageKey}\n        >\n            <MarkdownTypeaheadLayerProvider stackPosition={stackPosition ?? 0}>\n                <Typography\n                    id={titleId}\n                    sx={{ clip: 'rect(0 0 0 0)', clipPath: 'inset(50%)', height: 1, overflow: 'hidden', position: 'absolute', whiteSpace: 'nowrap', width: 1 }}\n                >\n                    {target ? `Run actions for ${target}` : 'Run actions'}\n                </Typography>\n                <Box\n                    data-drag-handle={!isMobile && draggable ? 'true' : undefined}\n                    sx={{\n                        borderBottom: 1, borderColor: 'divider', cursor: !isMobile && draggable ? 'move' : undefined,\n                        display: 'flex', flexDirection: 'column', flexShrink: 0, gap: 1, px: 1.5, py: 1.5,\n                    }}\n                >\n                    <Box data-testid=\"action-popup-toolbar\" sx={{ alignItems: 'center', display: 'flex', gap: 1 }}>\n                        {target ? (\n                            <Box\n                                component=\"span\"\n                                sx={{\n                                    bgcolor: 'custom.primaryBg', borderRadius: '5px', color: 'primary.main', flexShrink: 0,\n                                    fontFamily: '\"Roboto Mono\", ui-monospace, monospace', fontSize: 11.5, fontWeight: 600,\n                                    px: 0.875, py: 0.25,\n                                }}\n                            >\n                                {target}\n                            </Box>\n                        ) : null}\n                        {assignmentTarget && !readOnlyMessage ? (\n                            <ActionWorktreeSelectorOwner\n                                actionId={action.id}\n                                assignment={worktreeAssignment}\n                                assignmentTarget={assignmentTarget}\n                                context={assignmentContext}\n                                primaryPath={primaryPath}\n                            />\n                        ) : null}\n                        {action.type === 'agent' ? (\n                            <ActionConversationPickerOwner\n                                actionId={action.id}\n                                context={assignmentContext}\n                                store={conversationStore}\n                            />\n                        ) : null}\n                        <Box sx={{ flex: 1 }} />\n                        {!isMobile ? (\n                            <Tooltip title={fullHeight ? 'Collapse downward' : 'Expand upward'}>\n                                <IconButton\n                                    aria-label={fullHeight ? 'Collapse downward' : 'Expand upward'}\n                                    onClick={onToggleFullHeight}\n                                    size=\"small\"\n                                    sx={{ flexShrink: 0, height: 30, width: 30 }}\n                                >\n                                    {fullHeight\n                                        ? <ArrowCollapseVertical sx={{ fontSize: 18 }} />\n                                        : <ArrowExpandVertical sx={{ fontSize: 18 }} />}\n                                </IconButton>\n                            </Tooltip>\n                        ) : null}\n                        <IconButton aria-label=\"Close\" onClick={onClose} size=\"small\" sx={{ flexShrink: 0, height: 30, width: 30 }}>\n                            <Close sx={{ fontSize: 18 }} />\n                        </IconButton>\n                    </Box>\n                    <ActionSelector\n                        actions={actions}\n                        context={assignmentContext}\n                        onSelect={onSelectAction}\n                        selectedAction={action}\n                    />\n                </Box>\n                {children}\n            </MarkdownTypeaheadLayerProvider>\n        </ResizablePopper>\n    )\n}",
+          "id": "agent-turn-79fcb9c1-77ac-4e6b-8131-1589de30a8e9-event-7",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01N43vVcpb2ss9YGNupdNc57",
+          "sequence": 7,
+          "status": "completed",
+          "timestamp": "2026-08-25T16:03:28.389Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-79fcb9c1-77ac-4e6b-8131-1589de30a8e9-event-8",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CePkRjSojya7hwHGyKxkE:thinking:0",
+          "sequence": 8,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-25T16:03:30.875Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "import type { ActionContext } from '../../../../data/action_context'\nimport type { ActionDefinition } from '../../../../data/action_types'\nimport type { ActionRunSettingsStore } from '../../../../services/actions/action_run_settings_service'\nimport type { ActionConversationStore } from '../../conversation/action_conversation_store'\nimport type { ActionScheduleStore } from '../schedule/action_schedule_store'\nimport type { ActionHistoryStore } from '../state/action_history_store'\nimport type { ActionRunInputStore } from '../state/action_run_input_store'\nimport type { ActionRunResultStore } from '../state/action_run_result_store'\nimport type { ActionUsageScopeStore } from './action_usage_scope_store'\n\nexport interface ActionPopupContentProps {\n    action: ActionDefinition\n    actions: ActionDefinition[]\n    anchorElement: HTMLElement | null\n    assignmentContext: ActionContext\n    baseContext: ActionContext\n    draggable?: boolean\n    fullHeight: boolean\n    onActivate?: () => void\n    onClose: () => void\n    onSelectAction: (actionId: string) => void\n    onToggleFullHeight: () => void\n    open: boolean\n    popupEntryId?: string\n    primaryPath: string | null\n    readOnlyMessage: string | null\n    stackPosition?: number\n    target: string | null\n    titleId: string\n}\n\nexport interface ActionPopupRuntime {\n    conversationStore: ActionConversationStore\n    historyStore: ActionHistoryStore\n    inputStore: ActionRunInputStore\n    resultStore: ActionRunResultStore\n    runValidationError: string | null\n    scheduleStore: ActionScheduleStore\n    settingsStore: ActionRunSettingsStore\n    usageScopeStore: ActionUsageScopeStore\n}\n=== ACTION_CONTEXT ===\nimport { ACTION_APPLIES_TO_FIELDS, CUSTOM_PROMPT_ACTION_ID } from './action_types'\nimport type { ActionAppliesToField, ActionDefinition } from './action_types'\nimport type { Card, CardHeader, CardTypeConfig } from './data_types'\nimport { getCardIdPrefix } from './card_identifiers'\n\n/** The kind of item an action entry point is attached to. */\nexport type ActionContextKind = 'card' | 'file' | 'folder' | 'merge-conflict' | 'project'\n\nexport type ActionContextFilterValueSource =\n    'kind' | 'type' | 'state' | 'file' | 'folder' | 'worktree' | 'text'\n\nexport interface ActionContextFilterDescriptor {\n    key: ActionAppliesToField\n    label: string\n    supportedContextKinds: ActionContextKind[]\n    valueSource: ActionContextFilterValueSource\n    validate: (value: string) => string | null\n}\n\n/**\n * The selected item an action is evaluated against. `appliesTo` keys are matched\n * field-by-field against this object, so every matchable property is a string.\n */\nexport interface ActionContext {\n    /** Stable card identity used for activity ownership. */\n    cardInternalId?: string\n    /** Title of the selected card, used for placeholder resolution. */\n    title?: string\n    /** Card/file type derived from the id prefix, e.g. `feature`. */\n    type?: string\n    /** Card state / status, e.g. `design`. */\n    state?: string\n    /** Path to the markdown file, used for placeholder resolution. */\n    file?: string\n    /** Folder name for folder contexts. */\n    folder?: string\n    /** Selected conflicted repository-relative path. */\n    conflictFile?: string\n    /** Newline-separated conflicted repository-relative paths. */\n    conflictFiles?: string\n    /** Active desktop conflict session binding. */\n    conflictSessionId?: string\n    kind: ActionContextKind\n    worktree?: string\n    worktreeError?: string\n    [key: string]: string | undefined\n}\n\n/**\n * Stable identity of the item an action runs against, used to match a popup to its\n * execution and conversation history. Mutable header fields (title, state, worktree)\n * are excluded on purpose: a run that edits its own card must keep the same identity.\n */\nexport function actionContextIdentity(context: ActionContext): string {\n    if (context.kind === 'project') return 'project'\n    if (context.kind === 'folder') return `folder\u0000${context.folder ?? ''}`\n    if (context.kind === 'merge-conflict') {\n        return `merge-conflict\u0000${context\n[1700 characters omitted]\n..ACTION_CONTEXT_FILTER_METADATA[key],\n}))\n\n/** Resolve the configured card type for a card id via its prefix (e.g. `F-005` → `feature`). */\nexport function getCardType(cardTypes: CardTypeConfig[], id: string): string | undefined {\n    const prefix = getCardIdPrefix(id)\n\n    return cardTypes.find((cardType) => cardType.idPrefix === prefix)?.type\n}\n\ntype MarkdownContextCard = Pick<Card, 'path'> & {\n    header: Pick<CardHeader, 'id' | 'internalId' | 'status' | 'title' | 'worktreeError' | 'worktreeValue'>\n}\n\nfunction markdownContext(card: MarkdownContextCard, cardTypes: CardTypeConfig[], kind: ActionContextKind): ActionContext {\n    const context: ActionContext = { file: card.path, kind, title: card.header.title }\n    const type = getCardType(cardTypes, card.header.id)\n    if (card.header.internalId) context.cardInternalId = card.header.internalId\n    if (type) context.type = type\n    if (card.header.status) context.state = card.header.status\n    if (card.header.worktreeValue) context.worktree = card.header.worktreeValue\n    if (card.header.worktreeError) context.worktreeError = card.header.worktreeError\n\n    return context\n}\n\n/** Build the action context for a card shown in card view. */\nexport function cardContext(card: MarkdownContextCard, cardTypes: CardTypeConfig[]): ActionContext {\n    if (!card.header.internalId) throw new Error(`Cannot build action context without an internal ID: ${card.path}`)\n\n    return markdownContext(card, cardTypes, 'card')\n}\n\n/**\n * Build the action context for a markdown file in the tree/text view. Regular markdown files\n * are not cards and carry no internal ID, so the context stays without card identity.\n */\nexport function fileContext(card: Card, cardTypes: CardTypeConfig[]): ActionContext {\n    return markdownContext(card, cardTypes, 'file')\n}\n\n/** Build the action context for a folder node in the tree. */\nexport function folderContext(folder: string, isSpecial = false): ActionContext {\n    const context: ActionContext = { folder, kind: 'folder' }\n    if (isSpecial) context.type = folder\n\n    return context\n}\n\n/** Build context for actions that run against the opened project rather than a card or file. */\nexport function projectContext(): ActionContext {\n    return { kind: 'project' }\n}\n\n/** Add or remove the session assignment used by project-wide popup actions. */\nexport function projectContextWithWorktree(context: ActionContext, worktree: number | null): ActionContext {\n    if (context.kind !== 'project') return context\n    if (worktree === null) {\n        const unassignedContext = { ...context }\n        delete unassignedContext.worktree\n\n        return unassignedContext\n    }\n\n    return { ...context, worktree: String(worktree) }\n}\n\n/**\n * True when the action is allowed in the given context. An action with no\n * `appliesTo` (like the built-in custom prompt) matches every context; otherwise\n * every `appliesTo` key must equal the same field on the context.\n */\nexport function actionMatchesContext(action: ActionDefinition, context: ActionContext): boolean {\n    if (!action.appliesTo) return true\n\n    return ACTION_APPLIES_TO_FIELDS.every((key) => action.appliesTo?.[key] === undefined || context[key] === action.appliesTo[key])\n}\n\n/** All actions that should be shown for a context, preserving load order. */\nexport function actionsForContext(actions: ActionDefinition[], context: ActionContext): ActionDefinition[] {\n    return actions.filter((action) => (!action.builtin || action.id === CUSTOM_PROMPT_ACTION_ID) && actionMatchesContext(action, context))\n}\n\n/** Context actions in selector order, with the built-in custom prompt last. */\nexport function displayActionsForContext(actions: ActionDefinition[], context: ActionContext): ActionDefinition[] {\n    const contextActions = actionsForContext(actions, context)\n    const customPrompt = contextActions.find(({ id }) => id === CUSTOM_PROMPT_ACTION_ID)\n    const configuredActions = contextActions.filter(({ id }) => id !== CUSTOM_PROMPT_ACTION_ID)\n\n    return customPrompt ? [...configuredActions, customPrompt] : configuredActions\n}",
+          "id": "agent-turn-79fcb9c1-77ac-4e6b-8131-1589de30a8e9-event-9",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01TQfpEC8HmDUee3M7zUZCph",
+          "sequence": 9,
+          "status": "completed",
+          "timestamp": "2026-08-25T16:03:31.774Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-79fcb9c1-77ac-4e6b-8131-1589de30a8e9-event-10",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CePkS13AucvccjHSsEJdj:thinking:0",
+          "sequence": 10,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-25T16:03:33.804Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "app/src/components/actions/run/popup/action_popup.tsx:88:    const target = resolvePopupTarget(context, snapshot)\napp/src/components/actions/run/popup/action_popup.tsx:115:            target={target}",
+          "id": "agent-turn-79fcb9c1-77ac-4e6b-8131-1589de30a8e9-event-11",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01XwFr3GT66DbVKPB1bXUUUr",
+          "sequence": 11,
+          "status": "completed",
+          "timestamp": "2026-08-25T16:03:35.196Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "import { useId, useMemo, useState } from 'react'\nimport { displayActionsForContext, projectContextWithWorktree, type ActionContext } from '../../../../data/action_context'\nimport { dataService } from '../../../../services/data/data_service'\nimport { actionRunRegistry } from '../../../../services/actions/action_run_registry'\nimport { cardAgentState } from '../../../../services/agents/card_agent_state'\nimport { isReleasedCardActionContext, RELEASED_CARD_RUN_MESSAGE } from '../../../../../../shared/released_card_actions.mjs'\nimport { useActions } from '../../../hooks/use_actions'\nimport { useProjectState } from '../../../hooks/use_project_state'\nimport { useProjectActionWorktree } from '../../../hooks/use_worktrees'\nimport { ActionPopupContent } from './action_popup_content'\nimport { resolveInitialActionId, type PersistedActionStates } from './action_popup_initial_action'\n\nexport { CARD_RUN_POPUP_SIZE_STORAGE_KEY, PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY } from './action_popup_content'\n\nfunction resolvePopupTarget(context: ActionContext, snapshot: ReturnType<typeof useProjectState>['snapshot']) {\n    if (context.kind === 'project') return 'Project'\n    if (context.kind !== 'card') return null\n\n    const cards = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]\n\n    return cards.find(({ header }) => header.internalId === context.cardInternalId)?.header.id ?? null\n}\n\nfunction resolveCardInternalId(context: ActionContext, snapshot: ReturnType<typeof useProjectState>['snapshot']) {\n    const cards = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]\n    const card = context.cardInternalId\n        ? cards.find(({ header }) => header.internalId === context.cardInternalId)\n        : cards.find(({ path }) => path === context.file)\n\n    return card?.header.internalId ?? context.cardInternalId ?? null\n}\n\nfunction persistedActionStates(\n    actions: ReturnType<typeof displayActionsForContext>,\n    context: ActionContext,\n    snapshot: ReturnType<typeof useProjectState>['snapshot'],\n) {\n    const cardInternalId = resolveCardInternalId(context, snapshot)\n    if (!cardInternalId) return {}\n\n    const conversations = dataService.agents.getAgentConversations(cardInternalId)\n\n    return Object.fromEntries(actions.map(({ id }) => [\n        id,\n        cardAgentState(conversations.filter((conversation) => conversation.actionId === id)),\n    ])) as PersistedActionStates\n}\n\ninterface ActionPopupProps {\n    anchorElement: HTMLElement | null\n    context: ActionContext\n    draggable?: boolean\n    initialActionId?: string\n    onActivate?: () => void\n    onClose: () => void\n    open?: boolean\n    popupEntryId?: string\n    stackPosition?: number\n}\n\n/** Universal action selector and run popup for the supplied context. */\nexport function ActionPopup(props: ActionPopupProps) {\n    const { anchorElement, context, initialActionId, open } = props\n    const { actions: loadedActions } = useActions()\n    const { project, snapshot } = useProjectState()\n    const projectActionWorktree = useProjectActionWorktree()\n    const effectiveContext = useMemo(\n        () => projectContextWithWorktree(context, projectActionWorktree),\n        [context, projectActionWorktree],\n    )\n    const actions = useMemo(() => displayActionsForContext(loadedActions, effectiveContext), [effectiveContext, loadedActions])\n    const [selectedActionId, setSelectedActionId] = useState<string | null>(() => resolveInitialActionId(\n        actions,\n        initialActionId,\n        actionRunRegistry.getContextActiveSnapshot(effectiveContext),\n        persistedActionStates(actions, effectiveContext, snapshot),\n    ))\n    const [fullHeight, setFullHeight] = useState(false)\n    const titleId = useId()\n    // A run that edits its own card changes the context (state, title, worktree), so the\n    // selected action can drop out of the filtered list mid-run. Keep it selectable instead\n    // of closing the popup or silently switching to another action.\n    const retainedAction = selectedActionId ? loadedActions.find(({ id }) => id === selectedActionId) ?? null : null\n    const selectedAction = actions.find(({ id }) => id === selectedActionId) ?? retainedAction ?? actions[0] ?? null\n    const selectableActions = selectedAction && !actions.some(({ id }) => id === selectedAction.id)\n        ? [...actions, selectedAction]\n        : actions\n    const target = resolvePopupTarget(context, snapshot)\n    const releasesFolder = dataService.getConfig()?.releasesFolder\n    const readOnlyMessage = releasesFolder && isReleasedCardActionContext(effectiveContext, releasesFolder)\n        ? RELEASED_CARD_RUN_MESSAGE\n        : null\n\n    const handleSelectAction = (actionId: string) => {\n        setSelectedActionId(actionId)\n    }\n\n    const handleToggleFullHeight = () => setFullHeight((current) => !current)\n\n    if (!selectedAction) return null\n\n    return (\n        <ActionPopupContent\n            {...props}\n            action={selectedAction}\n            actions={selectableActions}\n            assignmentContext={effectiveContext}\n            baseContext={context}\n            fullHeight={fullHeight}\n            onSelectAction={handleSelectAction}\n            onToggleFullHeight={handleToggleFullHeight}\n            open={open ?? !!anchorElement}\n            primaryPath={project?.rootPath ?? project?.id ?? null}\n            readOnlyMessage={readOnlyMessage}\n            target={target}\n            titleId={titleId}\n        />\n    )\n}\n=== resolvePopupTarget ===\napp/src/components/actions/run/popup/action_popup.tsx:15:function resolvePopupTarget(context: ActionContext, snapshot: ReturnType<typeof useProjectState>['snapshot']) {\napp/src/components/actions/run/popup/action_popup.tsx:88:    const target = resolvePopupTarget(context, snapshot)",
+          "id": "agent-turn-79fcb9c1-77ac-4e6b-8131-1589de30a8e9-event-12",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01KhWk4rb49izWVLHoFBcXqE",
+          "sequence": 12,
+          "status": "completed",
+          "timestamp": "2026-08-25T16:03:38.087Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-79fcb9c1-77ac-4e6b-8131-1589de30a8e9-event-13",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CePkSSvfD91H9hgPGLj3w:thinking:0",
+          "sequence": 13,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-25T16:03:42.221Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "app/src/components/resizable_popper.test.tsx\napp/src/components/resizable_popper.tsx\napp/src/components/actions/run/popup/action_popup_frame.tsx:98:                    data-drag-handle={!isMobile && draggable ? 'true' : undefined}\napp/src/components/card_view/card_body_popover.tsx:307:                                data-drag-handle={!isMobile && !isFullscreen ? 'true' : undefined}\napp/src/components/card_view/card_body_popover_commit.test.tsx:192:        expect(dialog.querySelector('[data-drag-handle=\"true\"]')).toBeNull()\napp/src/components/card_view/card_body_popover_commit.test.tsx:223:        expect(dialog.querySelector('[data-drag-handle=\"true\"]')).not.toBeNull()\napp/src/components/resizable_popper.test.tsx:177:                <div data-drag-handle=\"true\"><h2 id=\"popper-title\">Draggable popper</h2></div>\napp/src/components/resizable_popper.test.tsx:218:                <div data-drag-handle=\"true\"><h2 id=\"popper-title\">Anchored popper</h2></div>\napp/src/components/resizable_popper.test.tsx:249:                <div data-drag-handle=\"true\">\napp/src/components/resizable_popper.tsx:275:            if (!(target instanceof Element) || !target.closest('[data-drag-handle=\"true\"]')) return",
+          "id": "agent-turn-79fcb9c1-77ac-4e6b-8131-1589de30a8e9-event-14",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01XQ5jG9Jhe3PcmFxaYKUQk2",
+          "sequence": 14,
+          "status": "completed",
+          "timestamp": "2026-08-25T16:03:43.492Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "    const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {\n        if (event.key !== 'Escape' || !closeOnEscape) return\n\n        resizeRef.current?.abort()\n        onClose?.()\n    }\n\n    const handlePaperClickCapture = () => {\n        if (fullHeight || !paperRef.current) return\n\n        anchoredLeftRef.current = paperRef.current.getBoundingClientRect().left\n    }\n\n    const startDrag = (event: ReactPointerEvent) => {\n        onActivate?.()\n\n        try {\n            if (!draggable || fullHeight) return\n\n            const target = event.target\n            if (!(target instanceof Element) || !target.closest('[data-drag-handle=\"true\"]')) return\n            if (target.closest(INTERACTIVE_SELECTOR)) return\n\n            event.preventDefault()\n            resizeRef.current?.abort()\n            if (!paperRef.current) throw new Error('Missing draggable popper paper element')\n\n            const controller = new AbortController()\n            const bounds = paperRef.current.getBoundingClientRect()\n            const start = { left: bounds.left, top: bounds.top, x: event.clientX, y: event.clientY }\n            resizeRef.current = controller\n\n            window.addEventListener('pointermove', (move: PointerEvent) => {\n                const width = size.width ?? bounds.width\n                const height = size.height ?? bounds.height\n                setPosition({\n                    left: clampDetachedLeft(start.left + move.clientX - start.x, width),\n                    top: clampDetachedTop(start.top + move.clientY - start.y, height),\n                })\n            }, { signal: controller.signal })\n            window.addEventListener('pointerup', () => controller.abort(), { signal: controller.signal })\n        } catch (error) {\n            resizeRef.current?.abort()\n            dialogService.error(error, { fallbackMessage: 'Popup drag could not be started' })\n        }\n    }\n\n    const startResize = (event: ReactPointerEvent) => {\n        try {\n            event.preventDefault()\n            resizeRef.current?.abort()\n\n            if (!paperRef.current) throw new Error('Missing resizable popper paper element')\n\n            const direction = event.currentTarget.getAttribute('data-direction') as ResizeDirection | null\n            const controller = new AbortController()\n            const bounds = paperRef.current.getBoundingClientRect()\n            const start = {\n                height: size.height ?? bounds.height,\n                left: bounds.left,\n                top: bounds.top,\n                width: size.width ?? bounds.width,\n                x: event.clientX,\n                y: event.clientY,\n            }\n            let completedSize = { height: start.height, width: start.width }",
+          "id": "agent-turn-79fcb9c1-77ac-4e6b-8131-1589de30a8e9-event-15",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_013hYx222yCnfD8LmTUbVUjH",
+          "sequence": 15,
+          "status": "completed",
+          "timestamp": "2026-08-25T16:03:45.410Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "56:const INTERACTIVE_SELECTOR = [\n57-    'button', 'input', 'select', 'textarea', 'a', 'label',\n58-    '[role=\"button\"]', '[role=\"combobox\"]', '[role=\"option\"]', '[role=\"listbox\"]', '[role=\"tab\"]', '[role=\"switch\"]',\n59-    '[contenteditable=\"true\"]',\n60-].join(', ')\n61-const MIN_WIDTH = 280\n62-const MIN_HEIGHT = 200\n63-const HANDLE_SIZE = 16\n64-const EDGE_HANDLE_SIZE = 6\n--\n276:            if (target.closest(INTERACTIVE_SELECTOR)) return\n277-\n278-            event.preventDefault()\n279-            resizeRef.current?.abort()\n280-            if (!paperRef.current) throw new Error('Missing draggable popper paper element')\n281-\n282-            const controller = new AbortController()\n283-            const bounds = paperRef.current.getBoundingClientRect()\n284-            const start = { left: bounds.left, top: bounds.top, x: event.clientX, y: event.clientY }",
+          "id": "agent-turn-79fcb9c1-77ac-4e6b-8131-1589de30a8e9-event-16",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_0154MwQHSDrbTkS7SW2nY2k2",
+          "sequence": 16,
+          "status": "completed",
+          "timestamp": "2026-08-25T16:03:47.467Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-79fcb9c1-77ac-4e6b-8131-1589de30a8e9-event-17",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CePkT8sEjNSmCPNKMWTKg:thinking:0",
+          "sequence": 17,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-25T16:03:54.189Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "435:        fireEvent.change(prompt, { target: { value: 'Draft' } })\n664:        fireEvent.change(prompt, { target: { value: 'Explain this change' } })\n711:        fireEvent.change(prompt, { target: { value: 'Run custom agent' } })\n825:        fireEvent.change(prompt, { target: { value: 'Editable draft' } })\n875:        fireEvent.change(prompt, { target: { value: 'Start first run' } })\n889:        fireEvent.change(prompt, { target: { value: 'Start second run' } })\n900:        fireEvent.change(prompt, { target: { value: 'Type while running' } })\n904:        fireEvent.change(prompt, { target: { value: 'Type while waiting' } })\n1333:        fireEvent.change(promptBox, { target: { value: typedPrompt } })\n1377:        fireEvent.change(prompt, { target: { value: 'Steer while running' } })\n1385:        fireEvent.change(prompt, { target: { value: 'Continue manually' } })\n1424:        fireEvent.change(prompt, { target: { value: 'Keep this draft' } })\n1459:        fireEvent.change(prompt, { target: { value: 'Draft while blocked' } })\n1467:        fireEvent.change(prompt, { target: { value: 'Draft without backend' } })\n1512:        fireEvent.change(prompt, { target: { value: 'Draft before decisions' } })\n1763:        fireEvent.change(prompt, { target: { value: 'Continue persisted work' } })\n2289:        fireEvent.change(prompt, { target: { value: 'Queued draft' } })\n=== content ===\nimport { useMemo } from 'react'\nimport { actionContextIdentity } from '../../../../data/action_context'\nimport {\n    actionRunSettingsService,\n} from '../../../../services/actions/action_run_settings_service'\nimport { AgentAction } from './agent_action'\nimport { ActionPopupFrame } from './action_popup_frame'\nimport { CommandAction } from './command_action'\nimport { createActionPopupBindings, worktreeValidationMessage } from './action_popup_runtime'\nimport type { ActionPopupContentProps, ActionPopupRuntime } from './action_popup_types'\n\nexport { CARD_RUN_POPUP_SIZE_STORAGE_KEY, PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY } from './action_popup_frame'\n\n/** Selects the action-specific popup content while preserving its runtime for the selected action. */\nexport function ActionPopupContent(props: ActionPopupContentProps) {\n    const { action, assignmentContext } = props\n    const settingsContextIdentity = actionContextIdentity(assignmentContext)\n    const settingsStore = useMemo(\n        () => assignmentContext.cardInternalId\n            ? actionRunSettingsService.getCardStore(assignmentContext.cardInternalId, action.id)\n            : actionRunSettingsService.getSessionStore(action.id, settingsContextIdentity),\n        [action.id, assignmentContext.cardInternalId, settingsContextIdentity],\n    )\n    const bindings = useMemo(\n        () => createActionPopupBindings(action, assignmentContext),\n        [action, assignmentContext],\n    )\n    const runtime: ActionPopupRuntime = {\n        ...bindings,\n        runValidationError: worktreeValidationMessage(action, assignmentContext),\n        settingsStore,\n    }\n\n    return (\n        <ActionPopupFrame contentProps={props} conversationStore={bindings.conversationStore}>\n            {action.type === 'agent'\n                ? (\n                    <AgentAction\n                        action={action}\n                        assignmentContext={assignmentContext}\n                        baseContext={props.baseContext}\n                        popupEntryId={props.popupEntryId}\n                        readOnlyMessage={props.readOnlyMessage}\n                        runtime={runtime}\n                    />\n                ) : (\n                    <CommandAction\n                        action={action}\n                        assignmentContext={assignmentContext}\n                        baseContext={props.baseContext}\n                        readOnlyMessage={props.readOnlyMessage}\n                        runtime={runtime}\n                    />\n                )}\n        </ActionPopupFrame>\n    )\n}",
+          "id": "agent-turn-79fcb9c1-77ac-4e6b-8131-1589de30a8e9-event-18",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01JShbSQnLWVwPZUmf7UFRUK",
+          "sequence": 18,
+          "status": "completed",
+          "timestamp": "2026-08-25T16:03:55.358Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-79fcb9c1-77ac-4e6b-8131-1589de30a8e9-event-19",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CePkTjAFR5BTUaauKmsod:thinking:0",
+          "sequence": 19,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-25T16:03:58.544Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "F_245_add_support_for_api_pricing_calculation.md\nF_246_add_action_diagram_target.md\nF_247_open_project_click_on_previous_selects.md\nF_248_add_chatlog_item_commands.md\nF_249_add_support_to_compact.md\nF_250_add_tooltips_to_button_in_action_popup.md\nF_251_action_popup_height_and_location.md\nF_252_add_support_to_insert_special_chars_like_emojis.md\nF_253_click_on_search_selects_and_focuses_card.md\nF_254_multiple_actions_on_a_card.md\nF_255_make_diagrams_editable.md\nF_256_action_phrases_are_appended_instead_of_replacements.md\nF_257_size_of_usage_metrics_csv.md\nF_94_no_prefill_prompt_running_conv.md.bak\nJ_28_finishing_action_very_slow.md\nJ_31_refactor_project_stats_service.md\nJ_33_second_instance_strange_behaviour.md\nJ_34_finish_agent_selection_hardening.md\nJ_35_served_browser_app_always_loads_same_project.md\nJ_36_investigate_action_popup_render_intensity.md",
+          "id": "agent-turn-79fcb9c1-77ac-4e6b-8131-1589de30a8e9-event-20",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01PEYmaXqHLsBZzjqom2F76D",
+          "sequence": 20,
+          "status": "completed",
+          "timestamp": "2026-08-25T16:03:59.521Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "---\nauthor: \nid: F_250\ninternalId: b46b8f66-e2f3-469f-ac38-48b26dedccab\ntitle: add tooltips to button in action popup\nstatus: new\nowner: \naffects:\nagents:\npolicy:\nafter: 25184e4d-b340-439f-bf0a-dd54afd466b2\n---\n\nsend: ctrl+ enter.\n\nfor the rest we still need to come up with shortcuts",
+          "id": "agent-turn-79fcb9c1-77ac-4e6b-8131-1589de30a8e9-event-21",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01Rkd3jNxUvAXYeTg9a8SH7a",
+          "sequence": 21,
+          "status": "completed",
+          "timestamp": "2026-08-25T16:04:01.423Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "design/feature_descriptions/B_143_links_in_new_card_popup.md\ndesign/feature_descriptions/B_152_disbabled_input_while_running_agent.md\ndesign/feature_descriptions/B_154_conversation_selector_disabled_while_conversation_is_running.md\ndesign/feature_descriptions/B_161_unknown.md\ndesign/feature_descriptions/B_162_project_root_files_are_loaded_twice_on_project_open.md",
+          "id": "agent-turn-79fcb9c1-77ac-4e6b-8131-1589de30a8e9-event-22",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01LmPSLSaGu9v2rwMABdDAAm",
+          "sequence": 22,
+          "status": "completed",
+          "timestamp": "2026-08-25T16:04:03.434Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "---\nauthor: \nid: B_154\ninternalId: 8c0611fd-44e8-4f65-bc86-11c26afacc8e\ntitle: conversation selector disabled while conversation is running\nstatus: ready\nowner: \naffects:\nagents:\n  - design/activity/card__8c0611fd-44e8-4f65-bc86-11c26afacc8e.json\npolicy:\nafter: b7885271-1cd8-4927-9f68-661c0d87a61f\n---\n\nI don't understand why we are doing this. so first we need to investigate if there is a `functional` reason for this. if not, we should allow changing conversations on an action while the action is running. the other conversations are simply not in progress.\n\n## Current state\n\nThere is no backend or domain restriction that prevents reading a historical conversation while another conversation for the same action is running. The selector is disabled because the renderer currently assumes that the displayed conversation is always the live conversation during an active run:\n\n- The picker is disabled while the run is `queued`, `running`, or `waitingForInput`, and its value is forced to the live conversation path.\n- Chat and usage rendering prefer the live conversation over the selected historical conversation.\n- Selecting a conversation clears the action prompt draft. During an active run this would clear the active run's remembered prompt.\n- Stop, Send, and Finish operate on the active run, independently of the conversation selected in the history store.\n\nThe disablement is therefore a UI consistency guard, not a functional requirement.\n\n## Required behavior\n\n- Keep the conversation selector enabled while a conversation is queued, running, or waiting for input.\n- Continue displaying the live conversation by default. Allow the user to select and view another conversation without affecting the live run.\n- Treat a selected conversation whose path differs from the live conversation path as historical browsing. Chat, conversation usage, and viewed-state acknowledgement must follow the displayed historical conversation rather than the live conversation.\n- While browsing a historical conversation during an active run, Stop, Send, and Finish are unavailable. Selecting the live conversation restores the controls according to the existing run state.\n- Keep the prompt editor editable while browsing history. Selecting a conversation must not clear, replace, or otherwise change the active run's prompt draft. User edits made while browsing history remain part of that same active-run draft.\n- The active conversation continues receiving runtime updates while it is not displayed. Returning to it shows its current transcript and the unchanged prompt draft.\n\n## Implementation details\n\n- Separate the displayed conversation selection from the active run. Do not unconditionally resolve the picker, chat, or usage display to the live conversation.\n- When the selected path is the live conversation path, use the live run snapshot so streaming updates remain visible instead of loading a stale persisted copy.\n- Keep run routing independent from display selection. Existing active-run operations and prompt-draft binding remain scoped to the live run.\n- Do not clear the prompt draft when selection changes during an active run. Preserve the existing idle behavior when selecting or clearing a conversation outside an active run.\n- Derive whether the popup is browsing history from the selected and live conversation identities. Use that state both to render the three controls as unavailable and to guard their handlers.\n- No desktop bridge, conversation persistence, or agent-process change is required.\n\n## Edge cases\n\n- Selecting the empty **Conversations** option returns the popup to its live/default display state.\n- A queued run may not have a conversation yet. Historical browsing must not alter or cancel that run, and returning to the default display must remain possible.\n- If the active run completes while history is displayed, the historical selection remains displayed. Subsequent controls follow the existing behavior for that selected persisted conversation.\n- Viewing a historical conversation must not mark the hidden live conversation as viewed.\n\n## Acceptance criteria\n\n- The conversation selector remains enabled throughout queued, running, and waiting-for-input states.\n- Selecting a historical conversation displays its chat and usage while the live conversation continues in the background.\n- Stop, Send, and Finish cannot be invoked while a historical conversation is displayed during an active run.\n- Returning to the live conversation restores its current transcript and the controls appropriate to its run state.\n- Conversation selection does not change or clear the prompt. The prompt remains editable, and edits made while browsing history are still present after returning to the live conversation.\n- Historical selection and viewed-state acknowledgement do not affect the hidden live conversation.\n- Existing continuation, orphaned waiting-conversation, and idle historical-conversation behavior remain unchanged.\n\n## Testing\n\n- Cover selection of history during queued, running, and waiting-for-input states.\n- Verify chat, usage, picker value, and viewed-state acknowledgement follow the displayed conversation.\n- Verify Stop, Send, and Finish are unavailable and guarded while history is displayed, then recover when the live conversation is selected.\n- Verify the active prompt draft is unchanged by selection, remains editable, and preserves user edits across switching away from and back to the live conversation.\n- Verify live transcript updates accumulated while hidden appear when the live conversation is selected again.",
+          "id": "agent-turn-79fcb9c1-77ac-4e6b-8131-1589de30a8e9-event-23",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01Na7FUE39ZvH4XxnzYmNqZd",
+          "sequence": 23,
+          "status": "completed",
+          "timestamp": "2026-08-25T16:04:05.388Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-79fcb9c1-77ac-4e6b-8131-1589de30a8e9-event-24",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CePkUTkKp1mFi2Yf2MFEu:thinking:0",
+          "sequence": 24,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-25T16:04:14.161Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nRead the popup frame, popper drag logic, and context model. Writing sections now.",
+          "id": "agent-turn-79fcb9c1-77ac-4e6b-8131-1589de30a8e9-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 25,
+          "timestamp": "2026-08-25T16:04:14.161Z"
+        },
+        {
+          "content": "---\nauthor: \nid: F_240\ninternalId: db4400c0-0d7f-4265-8939-8b4e493c7208\ntitle: action popup card id add tooltip\nstatus: ready for implementation\nowner: \naffects:",
+          "id": "agent-turn-79fcb9c1-77ac-4e6b-8131-1589de30a8e9-event-26",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01QNo6wabGzq45MoUbyEiiMr",
+          "sequence": 26,
+          "status": "completed",
+          "timestamp": "2026-08-25T16:04:39.216Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-79fcb9c1-77ac-4e6b-8131-1589de30a8e9-event-27",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CePkWxV276g93dqmhgorU:thinking:0",
+          "sequence": 27,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-25T16:04:41.295Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "on the action popup, in the upper left corner, we show the id of the card (if any). we should add a tooltip to that shows the title of the card.\n\nbe careful: I think the component currently doesn't capture mouse events cause it shows a drag icon to move the popup around\n## Current state\n\nThe card id badge lives in the action popup toolbar in `app/src/components/actions/run/popup/action_popup_frame.tsx`. It renders as a plain `Box component=\"span\"` holding `contentProps.target`, with no tooltip, no accessible name beyond its text, and no focusability.",
+          "id": "agent-turn-79fcb9c1-77ac-4e6b-8131-1589de30a8e9-event-28",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01Jwk7QcsFDD3CyeQaXCaJsq",
+          "sequence": 28,
+          "status": "completed",
+          "timestamp": "2026-08-25T16:04:44.684Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "be careful: I think the component currently doesn't capture mouse events cause it shows a drag icon to move the popup around\n\n## Current state",
+          "id": "agent-turn-79fcb9c1-77ac-4e6b-8131-1589de30a8e9-event-29",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_012iFYTn6vBQHgw9h52brKnG",
+          "sequence": 29,
+          "status": "completed",
+          "timestamp": "2026-08-25T16:04:49.952Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nDoc updated. `status: ready for implementation`. Sections added: Current state, Implementation details, Acceptance criteria, Testing.\n\nKey findings from reading code:\n\n- **Badge**: plain `span` in `app/src/components/actions/run/popup/action_popup_frame.tsx`, shows `contentProps.target`. `target` comes from `resolvePopupTarget` in `action_popup.tsx:15` — card id from snapshot lookup, or literal `Project`, else `null`.\n- **Drag worry unfounded**: `ResizablePopper.startDrag` (`app/src/components/resizable_popper.tsx:269`) only handles **pointerdown**. Tooltips trigger on `mouseenter`/`focus`, so hover works today. Caveat: badge must not become a `button` or gain `role=\"button\"` — those match `INTERACTIVE_SELECTOR` and would disable drag from the corner. `tabIndex` is safe, so keyboard focus trigger costs nothing.\n- Same toolbar already uses MUI `Tooltip` on expand/close buttons, so tooltips render fine inside the popper.\n\nTwo judgment calls I made, flagging in case you want otherwise:\n\n1. **Title source**: live `header.title` from the snapshot (follows a title changed mid-run), falling back to `baseContext.title`. Alternative was the frozen context title.\n2. **Project badge**: no tooltip — no card behind it.\n\nNothing staged or committed.",
+          "id": "agent-turn-79fcb9c1-77ac-4e6b-8131-1589de30a8e9-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 30,
+          "timestamp": "2026-08-25T16:04:58.682Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-00150662-e6c9-4b23-b58a-2c30937bd764",
+      "providerSessions": [],
+      "startedAt": "2026-08-25T16:02:38.123Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-08-25T16:02:38.123Z"
+      },
+      "title": "complete",
+      "usage": {
+        "cachedInputTokens": 758286,
+        "inputTokens": 38,
+        "outputTokens": 5926,
+        "reasoningTokens": 0,
+        "totalTokens": 764250,
+        "costUsd": 0.8795435
+      },
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "db4400c0-0d7f-4265-8939-8b4e493c7208",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
