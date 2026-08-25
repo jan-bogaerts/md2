@@ -12,7 +12,6 @@ policy:
 branch: f_254_multiple_actions_on_a_card
 worktree: 2
 ---
-
 it appears we restrict the number of actions that can run on a card. if 1 action is running and we try to start another one, it will even try to queue the message.
 
 this is all super over engineered, nothing of this is needed, all of these restrictions need to be removed: use should be able to run multiple actions at the same time, even of the same type. keep it simple
@@ -54,10 +53,10 @@ Concurrent runs of *different* actions on one card already work, because the reg
 
 Two existing behaviours stay, by decision, and are **not** restrictions this feature removes:
 
-- The mid-turn prompt queue (`promptQueue` in `desktop/src/services/actions/action/action_run.js`, the
+* The mid-turn prompt queue (`promptQueue` in `desktop/src/services/actions/action/action_run.js`, the
   enqueue/edit/delete IPC, and the queued-prompt rows in `action_queued_prompt.tsx`) remains the way to add a
   follow-up message to a conversation whose agent is still working on its current turn.
-- The worktree preparation guard in `app/src/services/project/worktree_service.ts:188` remains. It protects one
+* The worktree preparation guard in `app/src/services/project/worktree_service.ts:188` remains. It protects one
   filesystem operation from running twice at the same time; it is not an action-count restriction. Two
   concurrent runs on one card do share the same prepared worktree folder, and that is accepted.
 
