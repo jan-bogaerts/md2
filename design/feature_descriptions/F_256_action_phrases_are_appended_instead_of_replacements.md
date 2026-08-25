@@ -3,7 +3,7 @@ author:
 id: F_256
 internalId: cd9535f0-5c2f-4544-a485-c37091c9b3f0
 title: action phrases are appended instead of replacements
-status: new
+status: design
 owner: 
 affects:
 agents:
