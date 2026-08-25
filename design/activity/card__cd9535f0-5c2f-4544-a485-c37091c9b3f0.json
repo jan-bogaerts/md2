@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 72307
+        "usedTokens": 75565
       },
       "entries": [
         {
@@ -695,24 +695,140 @@
           "role": "assistant",
           "sequence": 50,
           "timestamp": "2026-08-25T16:00:31.272Z"
+        },
+        {
+          "content": "changes got lost, can you apply again",
+          "id": "agent-turn-b5084134-b7cd-49fc-b46a-e2ac57d02c02-user-50",
+          "kind": "message",
+          "role": "user",
+          "sequence": 51,
+          "timestamp": "2026-08-25T16:00:56.627Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-b5084134-b7cd-49fc-b46a-e2ac57d02c02-event-52",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_07cb0fc9900ef214016a8dbc3c0b5487d2812398e846712070",
+          "sequence": 52,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-25T16:00:58.325Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Checking file, then restoring only requested documentation changes. No staging or commit.\n\n",
+          "id": "agent-turn-b5084134-b7cd-49fc-b46a-e2ac57d02c02-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 53,
+          "timestamp": "2026-08-25T16:00:58.911Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\feature_descriptions\\\\F_256_action_phrases_are_appended_instead_of_replacements.md'\"",
+          "content": "---\nauthor: \nid: F_256\ninternalId: cd9535f0-5c2f-4544-a485-c37091c9b3f0\ntitle: action phrases are appended instead of replacements\nstatus: design\nowner: \naffects:\nagents:\n  - design/activity/card__cd9535f0-5c2f-4544-a485-c37091c9b3f0.json\npolicy:\nafter: 7f35084a-0348-4869-a764-e0ff2ff2843d\n---\n\nwhen a user clicks on a predefined phrase to use in a prompt for an action, the input prompt is completely replaced with the phrase. this way, the user can not first type something.\n\nbetter is to append the phrase, from the current cursor position. if there is no cursor position, a full replace is still allowed\r\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-b5084134-b7cd-49fc-b46a-e2ac57d02c02-event-54",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\feature_descriptions\\\\F_256_action_phrases_are_appended_instead_of_replacements.md'\"",
+          "providerItemId": "exec-0ed1fd21-3f2f-49a2-98bf-5094d415949c",
+          "sequence": 54,
+          "status": "completed",
+          "timestamp": "2026-08-25T16:01:00.686Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-b5084134-b7cd-49fc-b46a-e2ac57d02c02-event-55",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_07cb0fc9900ef214016a8dbc40ccd887d29cca1070763e43a0",
+          "sequence": 55,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-25T16:01:03.094Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_256_action_phrases_are_appended_instead_of_replacements.md",
+          "deletions": 2,
+          "id": "agent-turn-b5084134-b7cd-49fc-b46a-e2ac57d02c02-event-56",
+          "insertions": 29,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-ecdd372e-6442-472c-8f17-1c91f4d403a8",
+          "sequence": 56,
+          "status": "completed",
+          "timestamp": "2026-08-25T16:01:16.230Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-b5084134-b7cd-49fc-b46a-e2ac57d02c02-event-57",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_07cb0fc9900ef214016a8dbc5044d887d294d53ecb984792e1",
+          "sequence": 57,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-25T16:01:18.418Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\feature_descriptions\\\\F_256_action_phrases_are_appended_instead_of_replacements.md'\"",
+          "content": "---\nauthor: \nid: F_256\ninternalId: cd9535f0-5c2f-4544-a485-c37091c9b3f0\ntitle: action phrases are appended instead of replacements\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__cd9535f0-5c2f-4544-a485-c37091c9b3f0.json\npolicy:\nafter: 7f35084a-0348-4869-a764-e0ff2ff2843d\n---\n\nwhen a user clicks on a predefined phrase to use in a prompt for an action, the input prompt is completely replaced with the phrase. this way, the user can not first type something.\n\nbetter is to append the phrase, from the current cursor position. if there is no cursor position, a full replace is still allowed\n\n## Current state\n\n`ActionPhraseButtonsOwner.handleSelect` gets current action prompt draft and calls `replace(text)`. This external replacement resets mounted Markdown editor to phrase text, so earlier user input is lost. Double-click uses same selection path before submitting prompt.\n\nPrompt draft already exposes `requestInsertion(markdown)`. Mounted `MarkdownEditor` handles request through `MarkdownDraft`, inserts at current caret, and updates same service-owned draft. Here, **caret** means collapsed text selection: single point where typed text appears. If editor has no saved selection, existing editor behavior inserts at document end. Existing Markdown editor tests cover caret insertion, selected-text replacement, and document-end fallback; popup phrase tests currently assert full replacement.\n\n## implementation details\n\n* Change phrase selection to request insertion of phrase text through current `ActionPromptDraft`; do not build prompt string in React or add separate cursor state.\n* Insert phrase text verbatim. Do not add spaces or line breaks. At a caret, phrase goes before text after caret. For selected text, existing Markdown editor insertion replaces selection.\n* Keep document-end insertion when no saved selection exists. Full replacement remains allowed by requirement but is unnecessary while mounted editor can handle insertion; report genuine insertion failures through `dialogService`.\n* Clear existing conversion message after successful phrase insertion, as current selection does.\n* Preserve double-click submit behavior without inserting phrase more than once. First click inserts phrase; second click from same double-click sequence must not insert again; submit waits for insertion and editor flush before reading draft.\n* Update focused phrase/popup tests for empty prompt, insertion into middle of typed prompt, document-end fallback, selected text, one-time double-click insertion and submission, and insertion failure. Use realistic click/double-click event sequence where event order matters.\n* Keep phrase visibility, approval gating, prompt preparation, Send rules, run continuation, successful-send clearing, and action definitions unchanged.\n\n## acceptance criteria\n\n* Clicking predefined phrase in non-empty prompt preserves existing text and inserts phrase exactly at current caret.\n* Clicking phrase with selected prompt text replaces only selection, using existing editor insertion behavior.\n* Clicking phrase when editor has no saved selection inserts phrase at document end; existing text is not discarded.\n* Clicking phrase in empty prompt produces phrase text.\n* Phrase text gains no implicit whitespace or line breaks.\n* Double-click inserts phrase once, then submits complete resulting prompt once. Submission waits until inserted text is present in draft.\n* Insertion failure shows existing predefined-phrase error path and does not silently discard typed prompt.\n* Phrase visibility, approval gating, continuation behavior, prompt clearing after successful send, and manual Send behavior remain unchanged.\n\r\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-b5084134-b7cd-49fc-b46a-e2ac57d02c02-event-58",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\feature_descriptions\\\\F_256_action_phrases_are_appended_instead_of_replacements.md'\"",
+          "providerItemId": "exec-bfb9a2d9-a278-4dbd-98ef-ed591aec4fa8",
+          "sequence": 58,
+          "status": "completed",
+          "timestamp": "2026-08-25T16:01:20.537Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "agent": "codex",
+          "content": "Reapplied changes to [F_256](C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_256_action_phrases_are_appended_instead_of_replacements.md). Preserved new `after` field. Nothing staged or committed.\n\n",
+          "id": "agent-turn-b5084134-b7cd-49fc-b46a-e2ac57d02c02-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 59,
+          "timestamp": "2026-08-25T16:01:24.154Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-c4b58ebc-be7d-4ceb-9870-b38cb34a912c",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a039a3-fe4d-73c2-bc63-9b2ec1ed8145",
+          "createdAt": "2026-08-25T16:00:31.272Z",
+          "lastUsedAt": "2026-08-25T16:00:31.272Z",
+          "synchronizedThroughMessageId": "agent-turn-b5084134-b7cd-49fc-b46a-e2ac57d02c02-turn-1-assistant-4"
+        }
+      ],
       "startedAt": "2026-08-25T15:57:23.698Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-25T15:57:23.698Z"
+        "elapsedMs": 187574,
+        "runningStartedAt": "2026-08-25T16:00:56.627Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 699648,
-        "inputTokens": 70445,
-        "outputTokens": 2637,
-        "reasoningTokens": 2940,
-        "totalTokens": 775670
+        "cachedInputTokens": 992512,
+        "inputTokens": 75266,
+        "outputTokens": 3596,
+        "reasoningTokens": 2981,
+        "totalTokens": 1074355
       },
       "usageSchemaVersion": 1,
       "viewed": true
