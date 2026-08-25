@@ -20,7 +20,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "db4400c0-0d7f-4265-8939-8b4e493c7208",
       "cardPath": "design/feature_descriptions/F_240_action_popup_card_id_add_tooltip.md",
-      "completedAt": null,
+      "completedAt": "2026-08-25T16:04:59.191Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 51840
@@ -377,17 +377,25 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 30,
-          "timestamp": "2026-08-25T16:04:58.682Z"
+          "timestamp": "2026-08-25T16:04:59.191Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-00150662-e6c9-4b23-b58a-2c30937bd764",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "claude",
+          "conversationId": "37284f45-0874-44de-a99f-c03f2e179ce1",
+          "createdAt": "2026-08-25T16:04:59.191Z",
+          "lastUsedAt": "2026-08-25T16:04:59.191Z",
+          "synchronizedThroughMessageId": "agent-turn-79fcb9c1-77ac-4e6b-8131-1589de30a8e9-turn-1-assistant-3"
+        }
+      ],
       "startedAt": "2026-08-25T16:02:38.123Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-25T16:02:38.123Z"
+        "elapsedMs": 141068,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
