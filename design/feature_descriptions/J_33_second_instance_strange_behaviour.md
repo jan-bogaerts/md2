@@ -21,26 +21,32 @@ we need to investigate what the problem here is
 
 ## Current state
 
-`desktop/main.js` does not call Electron's `app.requestSingleInstanceLock()`. A single-instance lock is operating-system coordination that selects one primary app process and redirects later launches to it. Today every launch instead creates its own `electron-store`, desktop services, IPC handlers and `BrowserWindow` against the same Electron user-data directory.
+Every launch creates a separate Electron main process, renderer, service graph and `BrowserWindow`. Multiple instances are supported; this feature must not replace them with one primary process.
 
-Each renderer starts `ApplicationStartupService` before React renders (`app/src/main.tsx`). Startup initializes services, restores authentication and then restores the last project from `md2.lastProject` (`app/src/services/application_startup_service.ts`, `app/src/data/project_session.ts`). Until that work finishes, `App` shows the startup splash or renders no main window content when the splash preference is disabled (`app/src/app.tsx`). Concurrent startup against one Chromium profile explains the long blank state and the second renderer reaching the ready phase without a project.
+Two instances of the same build still use the same default Chromium profile on disk. Electron's persistent default session stores `localStorage` under `sessionData`, which defaults to the app's `userData` directory. Development uses package name `desktop`, while the packaged app uses product name `MD²`; therefore one development and one packaged instance use different profiles and do not reproduce the problem. Two development instances or two packaged instances use the same profile and do reproduce it.
 
-Recent local folders are also renderer-profile data. `app/src/data/recent_local_repositories.ts` stores them in `window.localStorage` under `md2.recentLocalRepositories`; it removes that key only when stored JSON is malformed. No project-open path intentionally clears valid history. Loss seen after a second launch therefore occurs while two Electron processes access the same profile, not through normal recent-folder handling.
+Application startup reads durable app state from `window.localStorage` before rendering (`app/src/main.tsx`, `app/src/services/application_startup_service.ts`). This includes the last project in `app/src/data/project_session.ts` and recent folders in `app/src/data/recent_local_repositories.ts`. Theme, React config, authentication, remote connection, Sentry connection, GitHub pending heads and UI sizes also use `window.localStorage`. Two main processes therefore open the same Chromium Local Storage database. Contention delays the second renderer and can make its startup reads return no last project or recent folders.
+
+The desktop main process already uses JSON-backed `electron-store` for desktop configuration (`desktop/main.js`). It is app-owned persistence and does not require both Chromium processes to open one browser-storage database.
 
 ## Implementation details
 
-* Acquire `app.requestSingleInstanceLock()` at the start of `desktop/main.js`, before constructing stores, services, telemetry, IPC handlers or a window. If acquisition fails, call `app.quit()` and skip every remaining startup side effect. Secondary process must never load renderer or touch project-session storage.
-* In primary process, register Electron's `second-instance` event. Find existing main window through `BrowserWindow.getAllWindows()`. Restore it when minimized, show it when hidden, then focus it. If primary window no longer exists, create one through existing `createWindow()` path.
-* Keep first-instance `app.whenReady()`, `activate`, update, close-coordination and telemetry behavior unchanged. Do not move `md2.lastProject` or `md2.recentLocalRepositories` to `electron-store`; preventing concurrent renderers removes shared-profile race without changing persistence ownership.
-* Put testable single-instance window activation logic in a plain shell helper under `desktop/src/shell/`, not a service class. Add focused Vitest coverage for minimized, hidden, focused and missing-window cases. Keep lock acquisition in entry point so it runs before startup dependencies.
-* Verify both development launch and packaged Windows launch. Lock identity and handoff must work for either launch path, and normal relaunch must work after primary process exits and releases lock.
+* Keep each launch as an independent Electron main process. Do not call `app.requestSingleInstanceLock()` and do not focus or reuse another instance's window.
+* Add a separate `electron-store` JSON file for renderer application state. Keep existing desktop configuration keys in their current store.
+* Add preload IPC methods to read, write and remove application-state values. Expose only this storage bridge through `contextBridge`; renderer code must not import `electron-store` or gain Node access.
+* Add one renderer storage abstraction. In desktop mode it uses the preload bridge; in browser-only mode it keeps using `window.localStorage`. Replace direct `window.localStorage` access in project session, recent repositories, React config, theme, GitHub authentication and pending heads, remote connection, Sentry connection and persisted UI sizes.
+* Load desktop application-state JSON before `ApplicationStartupService` restores authentication and the last project. Reads needed during initial React render, such as theme and startup-splash preference, must come from the already loaded storage snapshot rather than asynchronous reads during rendering.
+* Preserve existing keys and serialized value shapes. On first upgraded desktop launch, import known keys from `localStorage` into `electron-store`; after successful import, record a migration marker and stop reading those keys from `localStorage`. Invalid values keep their current validation and discard behavior.
+* `electron-store` performs atomic JSON-file replacement. When two instances write the same key concurrently, latest completed write wins. Recent-folder recording must read current stored history immediately before writing its updated five-item list; no cross-instance live UI refresh is required.
+* Update existing storage tests to run against the abstraction, add preload/main bridge tests, and add migration coverage. Browser-only tests must retain `localStorage` behavior.
 
 ## Acceptance criteria
 
-* First launch creates one window and restores last project through existing startup flow.
-* Starting app again while primary process runs creates no second window or renderer and starts no secondary desktop services.
-* Second launch restores, shows and focuses primary window; already visible window is focused without creating another window.
-* When primary window is absent but primary process still owns lock, second launch creates exactly one replacement window.
-* `md2.lastProject` and `md2.recentLocalRepositories` remain unchanged after repeated second-launch attempts; loaded project and recent-folder list remain visible.
-* After primary process exits, next launch acquires lock and starts normally.
-* New single-instance helper tests pass, and desktop lint passes.
+* Two development instances and two packaged instances each create their own main process, renderer and window without a long blank startup.
+* Each instance restores the last project from shared `electron-store` application state.
+* Recent local folders remain present and valid after either instance opens a project; starting or closing another instance does not clear them.
+* Desktop renderer performs no direct `window.localStorage` reads or writes after migration.
+* Existing desktop values migrate once without changing keys or value shapes. Invalid legacy values retain current fallback behavior.
+* Browser-only mode continues persisting through `window.localStorage`.
+* Simultaneous writes never produce partial or invalid JSON. Writes to the same key use latest-completed-write-wins behavior.
+* Existing project-session, recent-repository, config, theme, authentication, connection and persisted-size tests pass through the new storage abstraction. New desktop storage bridge and migration tests pass, and app and desktop lint pass.
