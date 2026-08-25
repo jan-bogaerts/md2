@@ -3056,7 +3056,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 78464
+        "usedTokens": 81955
       },
       "entries": [
         {
@@ -3851,6 +3851,88 @@
           "role": "assistant",
           "sequence": 56,
           "timestamp": "2026-08-25T17:02:34.149Z"
+        },
+        {
+          "content": "Forget about mem. Focus only on high update cost. Propose fixes",
+          "id": "agent-turn-86763221-5fd6-410f-bb09-f7a99c94db39-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 57,
+          "timestamp": "2026-08-25T18:00:34.493Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-86763221-5fd6-410f-bb09-f7a99c94db39-event-58",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_069992168f8528a4016a8dd84998e087d2aa1f484c22aa8322",
+          "sequence": 58,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-25T18:00:53.793Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-86763221-5fd6-410f-bb09-f7a99c94db39-event-59",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_069992168f8528a4016a8dd85835bc87d2a1a2f3f63dd0c7d5",
+          "sequence": 59,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-25T18:01:09.265Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-86763221-5fd6-410f-bb09-f7a99c94db39-event-60",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_069992168f8528a4016a8dd86752bc87d299cae9d4d4283b98",
+          "sequence": 60,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-25T18:01:21.505Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-86763221-5fd6-410f-bb09-f7a99c94db39-event-61",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_069992168f8528a4016a8dd873ec3087d2b49c3bc8576bb1a3",
+          "sequence": 61,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-25T18:01:35.917Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-86763221-5fd6-410f-bb09-f7a99c94db39-event-62",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_069992168f8528a4016a8dd8824dd487d292a740039cdcee13",
+          "sequence": 62,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-25T18:01:40.370Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "The best fix is to treat the transcript as a stable completed history plus a small mutable tail, and bound how often that tail is published to React.\n\n## Recommended fixes\n\n1. Coalesce renderer notifications to one per animation frame\n\nLet every incoming event update the latest `ActionRunStore` snapshot, but notify React subscribers at most once per animation frame.\n\n- Do not discard or reorder events.\n- Immediately flush questions, approvals, errors, terminal states, and newly added structural entries.\n- Desktop persistence remains unchanged.\n- React sees the latest accumulated text instead of every provider token.\n\nThis change belongs around [ActionRunStore.update](</C:/Users/janbo/Documents/dev/md2/app/src/services/actions/action_run_registry.ts:336>), after verifying that its subscribers are presentation consumers. It gives the largest immediate reduction because Markdown parsing, grouping, reconciliation, and scrolling become frame-bounded rather than delta-bounded.\n\n2. Split completed history from the mutable tail\n\nCreate a transcript projection with two stable portions:\n\n```text\ncompletedGroups: stable reference; changes only when an entry becomes completed\nactiveGroups: rebuilt from the few entries still streaming\n```\n\nRender them through separate components:\n\n```tsx\n<CompletedConversationHistory groups={completedGroups} />\n<ActiveConversationTail groups={activeGroups} />\n```\n\n`CompletedConversationHistory` should be memoized and receive the same `groups` reference while only active content changes. When an entry completes, append/seal its group once.\n\nThis replaces the full filtering and regrouping currently performed on every render in [action_conversation_transcript.tsx](</C:/Users/janbo/Documents/dev/md2/app/src/components/actions/conversation/action_conversation_transcript.tsx:49>) and [action_conversation_render_groups.ts](</C:/Users/janbo/Documents/dev/md2/app/src/components/actions/conversation/action_conversation_render_groups.ts:110>).\n\nThe boundary should be based on completed render groups, not simply “all entries except the last one,” because multiple reasoning, tool, assistant, and sub-agent entries may be active simultaneously.\n\n3. Memoize historical group components\n\nWrap `CompletedToolCallGroup` and `SubAgentGroup` in `React.memo`, but only after giving them stable group/entry arrays.\n\nCurrently they receive freshly constructed arrays and rerender despite containing unchanged historical data:\n\n- [completed_tool_call_group.tsx](</C:/Users/janbo/Documents/dev/md2/app/src/components/actions/conversation/completed_tool_call_group.tsx:14>)\n- [sub_agent_group.tsx](</C:/Users/janbo/Documents/dev/md2/app/src/components/actions/conversation/sub_agent_group.tsx:26>)\n\nMemoization alone is insufficient because comparing newly reconstructed arrays still requires walking them. Stable projection references are the important part.\n\n4. Make reservation tracking incremental\n\nThe reservation code currently maps every group and serializes all keys on every transcript update in [action_conversation_reservation.ts](</C:/Users/janbo/Documents/dev/md2/app/src/components/actions/conversation/action_conversation_reservation.ts:32>).\n\nChange its input to only lifecycle changes:\n\n- active group added;\n- active group completed;\n- conversation changed;\n- run became terminal.\n\nIt should not inspect every completed historical group merely because the active message gained text.\n\n5. Bound scrolling work to the presentation frame\n\nThe transcript currently reads `scrollHeight` and writes `scrollTop` after every transcript render in [action_conversation_transcript.tsx](</C:/Users/janbo/Documents/dev/md2/app/src/components/actions/conversation/action_conversation_transcript.tsx:91>).\n\nCombine scrolling with the coalesced presentation update:\n\n- Perform at most one scroll adjustment per animation frame.\n- Preserve the existing `stuckToEndRef` behavior.\n- Do nothing when the user has scrolled away from the end.\n- Trigger it from tail growth or structural changes, not unrelated transcript metadata.\n\nThis should substantially reduce forced layout during rapid streaming.\n\n6. Remove text deltas from usage-summary inputs\n\n`ActionUsageSummaryOwner` should subscribe to a stable usage projection instead of the complete conversation object:\n\n```ts\n{\n    conversationId,\n    path,\n    tokenUsage,\n    fileChangeUsage\n}\n```\n\nText and reasoning content must not change that projection. File-change totals should be updated when a file-change event completes rather than rescanned from the transcript.\n\nThis removes the independent usage rerender and repeated entry scans caused by [action_usage_summary_owner.tsx](</C:/Users/janbo/Documents/dev/md2/app/src/components/actions/run/popup/action_usage_summary_owner.tsx:21>) and [agent_usage.ts](</C:/Users/janbo/Documents/dev/md2/app/src/services/agents/agent_usage.ts:40>).\n\n7. Optimize entry lookup only if reducer cost remains material\n\nThe renderer currently searches the entire entry array several times for each assistant delta in [action_run_registry.ts](</C:/Users/janbo/Documents/dev/md2/app/src/services/actions/action_run_registry.ts:199>).\n\nA per-run identity-to-index map would remove the searches for:\n\n- assistant message IDs;\n- provider event IDs;\n- active user/assistant positions.\n\nThe immutable entries array would still need copying, so this is a secondary optimization. I would avoid normalizing the entire transcript unless measurement shows array copying itself is significant.\n\n## Suggested implementation order\n\n1. Frame-bound store publication.\n2. Narrow the usage-summary subscription.\n3. Stable completed-history/active-tail projection.\n4. Incremental reservation and frame-bound scrolling.\n5. Indexed reducer lookups if still needed.\n\nThe first two are relatively contained. The stable history/tail split addresses the central scaling defect: the amount of work per streamed update should depend on the number and size of active entries, not the total historical transcript length.\n\nI would not start with virtualization or additional `useMemo` calls. `useMemo` over `conversation.entries` will miss on every delta, and virtualization introduces scroll and variable-height complexity before eliminating the unnecessary full-log computation.\n\n",
+          "id": "agent-turn-86763221-5fd6-410f-bb09-f7a99c94db39-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 63,
+          "timestamp": "2026-08-25T18:02:03.717Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -3865,21 +3947,21 @@
         }
       ],
       "startedAt": "2026-08-25T15:59:55.164Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "elapsedMs": 153720,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-08-25T18:00:34.493Z"
       },
       "title": "+",
       "usage": {
-        "cachedInputTokens": 432640,
-        "inputTokens": 71588,
-        "outputTokens": 3492,
-        "reasoningTokens": 2098,
-        "totalTokens": 509818
+        "cachedInputTokens": 443648,
+        "inputTokens": 139064,
+        "outputTokens": 4726,
+        "reasoningTokens": 4335,
+        "totalTokens": 591773
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -4002,11 +4084,11 @@
         "agent-b69e9ea5-6af2-4106-8c8f-ff5551bdf205"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-4b50d66a-b8a9-43cc-8a75-1f5c32f16c14",
       "origin": {
@@ -4015,9 +4097,9 @@
       },
       "rootActionId": "md2.custom-prompt",
       "rootActionLabel": "+",
-      "rootConversationId": "agent-b69e9ea5-6af2-4106-8c8f-ff5551bdf205",
       "startedAt": "2026-08-25T15:59:55.164Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-b69e9ea5-6af2-4106-8c8f-ff5551bdf205"
     }
   ],
   "version": 5
