@@ -5885,7 +5885,7 @@
       "actionId": "32eceaf6-37d1-48b4-9bc1-c3f051eb7d8e",
       "cardInternalId": "427d1b08-b9a7-4933-abbb-16c7e60595e1",
       "cardPath": "design/feature_descriptions/F_254_multiple_actions_on_a_card.md",
-      "completedAt": null,
+      "completedAt": "2026-08-25T18:40:02.294Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 136141
@@ -7276,7 +7276,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 106,
-          "timestamp": "2026-08-25T18:29:11.531Z"
+          "timestamp": "2026-08-25T18:40:02.294Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -7286,15 +7286,15 @@
           "agent": "codex",
           "conversationId": "01a03a16-e93f-7bd0-adb3-891f4884927e",
           "createdAt": "2026-08-25T18:07:30.958Z",
-          "lastUsedAt": "2026-08-25T18:20:31.057Z",
-          "synchronizedThroughMessageId": "agent-turn-6d3a0a70-8364-4139-9a9d-6e94727c9934-turn-2-assistant-1"
+          "lastUsedAt": "2026-08-25T18:40:02.294Z",
+          "synchronizedThroughMessageId": "agent-turn-6d3a0a70-8364-4139-9a9d-6e94727c9934-turn-3-assistant-6"
         }
       ],
       "startedAt": "2026-08-25T18:02:54.895Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 293221,
-        "runningStartedAt": "2026-08-25T18:22:13.355Z"
+        "elapsedMs": 711397,
+        "runningStartedAt": null
       },
       "title": "review",
       "usage": {
