@@ -10,8 +10,6 @@ agents:
   - design/activity/card__a0687111-dded-4140-8d97-666bd331ddfc.json
 policy:
 after: cd9535f0-5c2f-4544-a485-c37091c9b3f0
-branch: b_174_queued_prompt_not_working
-worktree: 3
 changedFiles:
   - desktop/src/actions/action/action_run.js
   - desktop/src/actions/action/action_run.test.mjs

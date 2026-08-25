@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__427d1b08-b9a7-4933-abbb-16c7e60595e1.json
 policy:
+branch: f_254_multiple_actions_on_a_card
+worktree: 2
 ---
 it appears we restrict the number of actions that can run on a card. if 1 action is running and we try to start another one, it will even try to queue the message.
 
