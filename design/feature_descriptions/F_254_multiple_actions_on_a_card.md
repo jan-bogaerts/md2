@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__427d1b08-b9a7-4933-abbb-16c7e60595e1.json
 policy:
-branch: f_254_multiple_actions_on_a_card
-worktree: 2
 changedFiles:
   - app/src/components/actions/conversation/action_conversation_picker_owner.tsx
   - app/src/components/actions/run/popup/action_popup_bottom_row.test.tsx
