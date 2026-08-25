@@ -20,10 +20,10 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "427d1b08-b9a7-4933-abbb-16c7e60595e1",
       "cardPath": "design/feature_descriptions/F_254_multiple_actions_on_a_card.md",
-      "completedAt": "2026-08-25T14:56:24.059Z",
+      "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 95733
+        "usedTokens": 100653
       },
       "entries": [
         {
@@ -812,6 +812,64 @@
           "role": "assistant",
           "sequence": 66,
           "timestamp": "2026-08-25T14:56:24.059Z"
+        },
+        {
+          "content": "`binds exactly one run store per action + context, so a second run of the same action steals the popup binding from the first.`\ni don't understand this. please explain:\n\n* why is action\\_run\\_registry keeping track of popup - action relationship?\n* what is a run store?\n* lets be careful with prompt drafts here. we already made changes to this recently. but we probably need to keep a dirty prompt per conversation, yes\n* `Touch surface is wide: 14 popup components move from useActionRunSelector(actionId, context) to a runId-based hook.` then how did we make a distinction between different conversations previously? there can always be only 1 visible conversation or run\n* `Statusline badge for caveman mode is not configured` what does this mean? who says anything about a stautsline and caveman mode?",
+          "id": "agent-turn-39702841-fe90-4464-9c56-dcfc1d6e5641-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 67,
+          "timestamp": "2026-08-25T15:33:00.619Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-39702841-fe90-4464-9c56-dcfc1d6e5641-event-68",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CePi77Qe7yAmxTULnyjFc:thinking:0",
+          "sequence": 68,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-25T15:33:15.201Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "635b95e8 Integrate into project\n2f391e23 Integrate into project\n2ef6a980 Integrate into project\ncba390fd Integrate into project\n2cbfef4a Save project changes before worktree synchronization\n440c8e96 Save project changes before worktree synchronization\n===\nimport { actionContextIdentity, type ActionContext } from '../../data/action_context'\nimport { isRemoteControlConnectionError } from '../data/remote_control_storage_service'\nimport { register } from '../service_injector'\nimport { MarkdownDraft } from '../markdown/markdown_draft'\n\nconst DRAFT_KEY_SEPARATOR = String.fromCharCode(0)\n\nexport type ActionPromptPreparationStatus = 'failed' | 'loading' | 'ready'\n\ninterface ActionPromptDraftEditorSnapshot {\n    preparationStatus: ActionPromptPreparationStatus\n    replacementRevision: number\n}\n\ninterface ActionPromptDraftOptions {\n    initialValue?: string\n    prepare: boolean\n}\n\nfunction promptDraftKey(actionId: string, context: ActionContext) {\n    return `${actionId}${DRAFT_KEY_SEPARATOR}${actionContextIdentity(context)}`\n}\n\n/** Stable prompt state shared by editor and prompt-dependent leaf controls. */\nexport class ActionPromptDraft {\n    private editorSnapshot: ActionPromptDraftEditorSnapshot\n    private locallyEdited = false\n    readonly markdownDraft: MarkdownDraft\n    private preparationRequired: boolean\n    private preparationStarted = false\n    private revision = 0\n\n    constructor(initialValue: string, preparationRequired: boolean) {\n        this.editorSnapshot = {\n            preparationStatus: preparationRequired ? 'loading' : 'ready',\n            replacementRevision: 0,\n        }\n        this.markdownDraft = new MarkdownDraft(initialValue)\n        this.preparationRequired = preparationRequired\n    }\nShell cwd was reset to C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2",
+          "id": "agent-turn-39702841-fe90-4464-9c56-dcfc1d6e5641-event-69",
+          "kind": "event",
+          "label": "Bash",
+          "providerItemId": "toolu_01FFHwkXLm7YGyFMwZwyJbX3",
+          "sequence": 69,
+          "status": "completed",
+          "timestamp": "2026-08-25T15:33:19.001Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-39702841-fe90-4464-9c56-dcfc1d6e5641-event-70",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CePi8Mqq5jVvKzkS7Bg8y:thinking:0",
+          "sequence": 70,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-25T15:33:23.250Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Answers, in order.\n\n**1. Registry doesn't know about popups.** Bad phrasing on my part. `ActionRunRegistry` keeps an *index*: `(rootActionId, contextKey) → run store` (`actionContextStores`, `action_run_registry.ts:383`). It exists because a caller that only knows \"action A, card C\" needs to find the matching run without knowing the runId. The popup is the main such caller — when you open it, it has an action and a card, not a runId. So the coupling is \"action+card → run\", and the popup is a consumer of that index, not something the registry tracks.\n\n**2. Run store = `ActionRunStore`** (`action_run_registry.ts`, class near line 300). One instance per runId, held in the `runs` map. It holds a single immutable `ActionRun` snapshot — `status`, `logs`, `conversation`, `approvals`, `question`, `queuedPrompts`, `changedPaths`, `context` — plus a listener set. Bridge events from the desktop process arrive in `handleEvent`, which builds the next snapshot and calls `store.update()`; React components read it through `useSyncExternalStore`. So \"run store\" = the renderer's live mirror of one desktop run.\n\n**3. Prompt drafts — agreed, per conversation.** Current key is `actionId + contextIdentity` (`action_prompt_draft_service.ts:20`). Your framing is better than mine: key by conversation, not by runId. A conversation survives its run, so \"dirty prompt on conversation X\" keeps working after X's run ends, and **New conversation** gets its own empty draft. Consequence to watch: the draft owns a `MarkdownDraft` that the prompt editor is bound to, so switching the combobox swaps the draft object under the editor. The editor must re-bind on that switch instead of assuming one stable draft for the popup's lifetime. Given the recent work here, I'd rather show you the exact call sites and the re-bind path before touching it.\n\n**4. You're right that only one conversation is ever visible — that's exactly why runId never appeared.** Previously \"action + card\" resolved to at most one live run, so the popup could ask for \"the run of this action on this card\" and get an unambiguous answer. The picker's job was only to swap what's *rendered*: a historical conversation is read from `ActionConversationStore` (persisted JSON, read-only), while the live one comes from the run store. Two sources, one visible pane.\n\nThe moment two runs of action A exist on card C, the question \"the run of A on C\" has two answers, and nothing in the current lookup says which. Something must carry the discriminator. Still one visible conversation — the change is *which run each component reads*, not how many are shown.\n\nThe 14-file number is avoidable. Instead of prop-drilling a runId, put the bound run in a small React context at the popup root and let each child call `useBoundRun(selector)`. Each file is then a one-line hook swap, and the popup root is the only place that decides which run is bound. I'd rewrite implementation detail 3 that way — cheaper and closer to \"keep it simple\". Say the word and I'll update the doc.\n\n**5. The statusline line was noise from a plugin, not from you.** The caveman skill's session-start hook printed a message telling me to offer statusline setup. It has nothing to do with your feature. Ignore it; I won't repeat it.",
+          "id": "agent-turn-39702841-fe90-4464-9c56-dcfc1d6e5641-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 71,
+          "timestamp": "2026-08-25T15:33:40.139Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -826,22 +884,22 @@
         }
       ],
       "startedAt": "2026-08-25T14:48:05.836Z",
-      "status": "completed",
+      "status": "running",
       "timer": {
         "elapsedMs": 306015,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-08-25T15:33:00.619Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 1051759,
-        "inputTokens": 26,
-        "outputTokens": 16043,
+        "cachedInputTokens": 1251430,
+        "inputTokens": 30,
+        "outputTokens": 18188,
         "reasoningTokens": 0,
-        "totalTokens": 1067828,
-        "costUsd": 1.6961285000000001
+        "totalTokens": 1269648,
+        "costUsd": 2.665393
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -892,11 +950,11 @@
         "agent-18fd26b7-e66b-4dbf-92d7-ccf468142b14"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-3c7de195-b677-4382-91a8-c7a5687fa729",
       "origin": {
@@ -905,9 +963,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-18fd26b7-e66b-4dbf-92d7-ccf468142b14",
       "startedAt": "2026-08-25T14:51:47.023Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-18fd26b7-e66b-4dbf-92d7-ccf468142b14"
     }
   ],
   "version": 5
