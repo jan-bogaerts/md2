@@ -491,16 +491,17 @@ export class ActionRunRegistry extends EventTarget {
 
     subscribeRun(runId: string, listener: StoreListener) {
         let unsubscribeStore = this.runs.get(runId)?.subscribe(listener) ?? null
-        const handleStoreCreated = () => {
-            if (!unsubscribeStore) unsubscribeStore = this.runs.get(runId)?.subscribe(listener) ?? null
+        const handleStoreChanged = () => {
+            unsubscribeStore?.()
+            unsubscribeStore = this.runs.get(runId)?.subscribe(listener) ?? null
             listener()
         }
         const eventType = runEventType(runId)
-        this.addEventListener(eventType, handleStoreCreated)
+        this.addEventListener(eventType, handleStoreChanged)
         this.start()
 
         return () => {
-            this.removeEventListener(eventType, handleStoreCreated)
+            this.removeEventListener(eventType, handleStoreChanged)
             unsubscribeStore?.()
         }
     }
@@ -1032,6 +1033,7 @@ export class ActionRunRegistry extends EventTarget {
         this.runs.delete(runId)
         this.runContexts.delete(runId)
         this.eventSequences.delete(runId)
+        actionPromptDraftService.deleteUneditedDraft(run.rootActionId, run.context, runId)
         this.dispatchEvent(new Event(runEventType(runId)))
     }
 

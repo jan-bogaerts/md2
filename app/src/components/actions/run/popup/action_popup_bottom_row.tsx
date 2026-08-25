@@ -92,13 +92,15 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
     const running = runStatus === 'queued' || runStatus === 'running'
     const waitingForAgentInput = (runStatus === 'waitingForInput' && agentActive) || orphanWaiting
     const promptHasText = prompt.trim().length > 0
+    const hasDisplayedConversation = !!liveConversationPath || !!conversationSnapshot.selectedConversation
     const showStop = running || (runStatus === 'waitingForInput' && !agentActive)
     const showFinish = waitingForAgentInput
     const showSchedule = (!sessionActive && !orphanWaiting) || (waitingForAgentInput && promptHasText)
     const showAgentSend = (!sessionActive && !orphanWaiting && action.type === 'agent')
         || (waitingForAgentInput && promptHasText)
         || (agentActive && interactionReady && promptHasText)
-    const showCommandRun = !sessionActive && !orphanWaiting && action.type === 'command'
+    const showCommandRun = !orphanWaiting && !hasDisplayedConversation && action.type === 'command'
+    const showStopControl = showStop && !showAgentSend
     const runState = {
         agentActive,
         interactionReady,
@@ -216,6 +218,20 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
                             </span>
                         </Tooltip>
                     ) : null}
+                    {showStopControl ? (
+                        <Tooltip title="Stop">
+                            <span>
+                                <IconButton
+                                    aria-label="Stop"
+                                    disabled={browsingHistory || !settings.backendAvailable}
+                                    onClick={handleCancel}
+                                    size="small"
+                                >
+                                    <StopOutlined sx={{ fontSize: 18 }} />
+                                </IconButton>
+                            </span>
+                        </Tooltip>
+                    ) : null}
                     {showAgentSend ? (
                         <Tooltip title="Send">
                             <span>
@@ -236,19 +252,6 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
                             >
                                 Run
                             </Button>
-                        </Tooltip>
-                    ) : showStop ? (
-                        <Tooltip title="Stop">
-                            <span>
-                                <IconButton
-                                    aria-label="Stop"
-                                    disabled={browsingHistory || !settings.backendAvailable}
-                                    onClick={handleCancel}
-                                    size="small"
-                                >
-                                    <StopOutlined sx={{ fontSize: 18 }} />
-                                </IconButton>
-                            </span>
                         </Tooltip>
                     ) : null}
                 </Box>

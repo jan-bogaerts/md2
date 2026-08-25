@@ -162,6 +162,44 @@ describe('ActionRunRegistry', () => {
         service.stop()
     })
 
+    it('resubscribes to a recreated run store after registry restart', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        service.start()
+        emit(runEvent('running'))
+        const listener = vi.fn()
+        const unsubscribe = service.subscribeRun('run-1', listener)
+
+        service.stop()
+        service.start()
+        emit(runEvent('running'))
+        emit({
+            actionId: 'build', command: 'npm test', context, runId: 'run-1', phase: 'main', rootActionId: 'build',
+            status: 'running', type: 'action',
+        })
+
+        expect(listener).toHaveBeenCalledTimes(3)
+        expect(getRun(service).logs).toHaveLength(1)
+        unsubscribe()
+        service.stop()
+    })
+
+    it('deletes a run draft when its terminal store is released', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        const draft = actionPromptDraftService.getDraft('build', context, 'run-1', { prepare: false })
+        service.start()
+
+        emit(runEvent('running'))
+        emit(runEvent('completed'))
+
+        expect(actionPromptDraftService.getDraft('build', context, 'run-1', { prepare: false })).not.toBe(draft)
+        actionPromptDraftService.clearAll()
+        service.stop()
+    })
+
     it('keeps more than 100 simultaneous active runs without eviction', () => {
         const { bridge, emit } = bridgeWithEvents()
         setActionBridgeOverride(bridge)

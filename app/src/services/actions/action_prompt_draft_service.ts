@@ -183,6 +183,16 @@ export class ActionPromptDraftService {
         draft.clear()
     }
 
+    /** Removes released run state unless it contains text the user edited. */
+    deleteUneditedDraft(actionId: string, context: ActionContext, runId: string | null) {
+        const key = promptDraftKey(actionId, context, runId)
+        const draft = this.drafts.get(key)
+        if (!draft) return
+
+        draft.requestFlush()
+        if (!draft.hasLocalEdits()) this.drafts.delete(key)
+    }
+
     clearAction(actionId: string) {
         const prefix = `${actionId}${DRAFT_KEY_SEPARATOR}`
         for (const key of this.drafts.keys()) {

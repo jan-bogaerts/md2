@@ -132,6 +132,19 @@ describe('ActionPromptDraftService', () => {
         expect(service.getDraft('review', context, null, { prepare: false })).toBe(draft)
     })
 
+    it('deletes only unedited drafts during terminal cleanup', () => {
+        const service = new ActionPromptDraftService()
+        const unedited = service.getDraft('review', context, 'run-1', { prepare: false })
+        const edited = service.getDraft('review', context, 'run-2', { prepare: false })
+        edited.edit('Keep this text')
+
+        service.deleteUneditedDraft('review', context, 'run-1')
+        service.deleteUneditedDraft('review', context, 'run-2')
+
+        expect(service.getDraft('review', context, 'run-1', { prepare: false })).not.toBe(unedited)
+        expect(service.getDraft('review', context, 'run-2', { prepare: false })).toBe(edited)
+    })
+
     it('discards an unedited prepared default and keeps user-edited text', async () => {
         const service = new ActionPromptDraftService()
         const prepared = service.getDraft('review', context, null, { prepare: true })

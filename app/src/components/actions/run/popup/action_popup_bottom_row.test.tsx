@@ -320,6 +320,36 @@ describe('ActionPopupBottomRow', () => {
         expect(await screen.findByText('Run', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()
     })
 
+    it('offers Run and Stop when a bound command has no conversation', () => {
+        let listener: ((event: ActionRunEvent) => void) | null = null
+        window.md2Actions = {
+            onActionRun: vi.fn((nextListener) => {
+                listener = nextListener
+
+                return vi.fn()
+            }),
+        } as unknown as typeof window.md2Actions
+        actionRunRegistry.start()
+        if (!listener) throw new Error('Missing action run listener')
+        const emit = listener as (event: ActionRunEvent) => void
+        const commandAction = { ...action, id: 'command', label: 'Command', type: 'command' as const }
+        emit({
+            actionId: commandAction.id,
+            actionType: 'command',
+            context,
+            phase: 'main',
+            rootActionId: commandAction.id,
+            runId: 'run-1',
+            status: 'running',
+            type: 'run',
+        })
+
+        renderBottomRow(commandAction)
+
+        expect(screen.getByRole('button', { name: 'Run' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Stop' })).toBeInTheDocument()
+    })
+
     it('finishes a persisted waiting conversation on normal Finish click', async () => {
         const source = waitingConversation(action.id)
         const updated = { ...source, completedAt: '2026-08-04T10:30:00.000Z', status: 'completed' as const }
