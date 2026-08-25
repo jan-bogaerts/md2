@@ -940,13 +940,50 @@
         "totalTokens": 1390298
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
     "cardInternalId": "a0687111-dded-4140-8d97-666bd331ddfc",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "245861848dc7a4ee262abf45d2a777fe6e8aaa06",
+          "committedAt": "2026-08-25T18:00:43+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/B_174_queued_prompt_not_working.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 29
+        }
+      ],
+      "completedAt": "2026-08-25T16:00:43.743Z",
+      "conversationIds": [
+        "agent-e7afe05c-d5d0-409a-971c-e37db963ba28"
+      ],
+      "details": {
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-52645503-a2d9-4a85-bab7-269fab00c226",
+      "origin": {
+        "cardInternalId": "a0687111-dded-4140-8d97-666bd331ddfc",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-e7afe05c-d5d0-409a-971c-e37db963ba28",
+      "startedAt": "2026-08-25T15:57:15.196Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
