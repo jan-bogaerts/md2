@@ -29,19 +29,19 @@ Send button uses separate decision mechanism. It requires prepared draft, availa
 
 ## implementation details
 
-- Make `ActionAgentPromptOwner` sole owner of prompt preparation. It keeps current idle-draft preparation rule.
-- Change `ActionPopupBottomRow` to acquire draft with `prepare: false`. Bottom row reads draft and editor snapshots but must not initialize preparation state.
-- Keep other call sites unchanged: preset name, phrase buttons, send operations, prompt restoration, and conversion already request `prepare: false`.
-- Keep editor read-only during real idle prompt preparation. Do not tie editability to run status, streaming mode, queue contents, Send readiness, questions, approvals, or backend availability.
-- Add popup regression test covering Stop, terminal transition, new streaming run, post-start draft clearing, and bottom-row-first reacquisition. Verify editor accepts typing while new run is running and later waiting for input.
-- Keep desktop runner, streaming flag, queue dispatch, continuation, Finish, and Send rules unchanged.
+* Make `ActionAgentPromptOwner` sole owner of prompt preparation. It keeps current idle-draft preparation rule.
+* Change `ActionPopupBottomRow` to acquire draft with `prepare: false`. Bottom row reads draft and editor snapshots but must not initialize preparation state.
+* Keep other call sites unchanged: preset name, phrase buttons, send operations, prompt restoration, and conversion already request `prepare: false`.
+* Keep editor read-only during real idle prompt preparation. Do not tie editability to run status, streaming mode, queue contents, Send readiness, questions, approvals, or backend availability.
+* Add popup regression test covering Stop, terminal transition, new streaming run, post-start draft clearing, and bottom-row-first reacquisition. Verify editor accepts typing while new run is running and later waiting for input.
+* Keep desktop runner, streaming flag, queue dispatch, continuation, Finish, and Send rules unchanged.
 
 ## acceptance criteria
 
-- After user presses Stop, starts same streaming action again, and run starts, prompt editor accepts typing without waiting for Finish.
-- After popup reopen or app restart, persisted waiting conversation accepts input; starting its continuation does not recreate run-scoped draft as `loading`.
-- Active run draft always starts ready; only idle draft awaiting prepared default is read-only.
-- Finish still clears active draft and ends streaming conversation through existing flow.
-- Streaming action remains streaming; fix does not convert it to one-shot execution or change queue dispatch.
-- Send enablement and visibility retain existing backend, settings, prompt, interaction-readiness, history, and run-state rules.
-- Regression test reproduces prior draft-creation order and fails before fix.
+* After user presses Stop, starts same streaming action again, and run starts, prompt editor accepts typing without waiting for Finish.
+* After popup reopen or app restart, persisted waiting conversation accepts input; starting its continuation does not recreate run-scoped draft as `loading`.
+* Active run draft always starts ready; only idle draft awaiting prepared default is read-only.
+* Finish still clears active draft and ends streaming conversation through existing flow.
+* Streaming action remains streaming; fix does not convert it to one-shot execution or change queue dispatch.
+* Send enablement and visibility retain existing backend, settings, prompt, interaction-readiness, history, and run-state rules.
+* Regression test reproduces prior draft-creation order and fails before fix.
