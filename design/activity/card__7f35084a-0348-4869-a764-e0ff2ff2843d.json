@@ -1119,7 +1119,7 @@
         "totalTokens": 2364850
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     },
     {
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
@@ -2281,16 +2281,32 @@
           "role": "assistant",
           "sequence": 82,
           "timestamp": "2026-08-25T18:31:30.219Z"
+        },
+        {
+          "content": "go",
+          "id": "agent-turn-fe64629c-6c8b-43b7-a2d9-6322e3ead38a-user-82",
+          "kind": "message",
+          "role": "user",
+          "sequence": 83,
+          "timestamp": "2026-08-25T18:31:54.484Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-00850ae9-dc1b-457d-848a-84f85f6c4922",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a03a2e-1b0e-7a70-b689-1807c29cdcc5",
+          "createdAt": "2026-08-25T18:31:30.219Z",
+          "lastUsedAt": "2026-08-25T18:31:30.219Z",
+          "synchronizedThroughMessageId": "agent-turn-fe64629c-6c8b-43b7-a2d9-6322e3ead38a-turn-1-assistant-4"
+        }
+      ],
       "startedAt": "2026-08-25T18:28:14.940Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-25T18:28:14.940Z"
+        "elapsedMs": 195279,
+        "runningStartedAt": "2026-08-25T18:31:54.484Z"
       },
       "title": "implement",
       "usage": {
@@ -2301,7 +2317,7 @@
         "totalTokens": 1641659
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
