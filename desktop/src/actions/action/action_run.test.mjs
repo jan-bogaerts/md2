@@ -606,6 +606,149 @@ describe('ActionRun', () => {
             .toEqual(['Edited second', 'Third']);
     });
 
+    it('drains prompts queued before streaming completion through ordered continuations', async () => {
+        const firstCompletion = deferred();
+        const firstStarted = deferred();
+        const finalCompletion = deferred();
+        const finalStarted = deferred();
+        const firstResult = {
+            agent: 'claude', changedPaths: ['first.ts'], conversationId: 'conversation', exitCode: 0,
+            model: 'claude', prompt: 'run', reference: 'first.json', stderr: 'first error', stdout: 'first output',
+            thinkingLevel: 'none',
+        };
+        const secondResult = {
+            ...firstResult,
+            changedPaths: ['second.ts'],
+            prompt: 'First follow-up',
+            reference: 'second.json',
+            stderr: 'second error',
+            stdout: 'second output',
+        };
+        const finalResult = {
+            ...firstResult,
+            changedPaths: ['final.ts'],
+            prompt: 'Second follow-up',
+            reference: 'final.json',
+            stderr: 'final error',
+            stdout: 'final output',
+        };
+        let firstInput;
+        const agentExecutor = {
+            execute: vi.fn()
+                .mockImplementationOnce(async (input) => {
+                    firstInput = input;
+                    input.onActiveRunChange('agent-run-1');
+                    firstStarted.resolve();
+                    await firstCompletion.promise;
+                    input.onActiveRunChange(null);
+
+                    return firstResult;
+                })
+                .mockImplementationOnce(async (input) => {
+                    input.onActiveRunChange('agent-run-2');
+                    input.onActiveRunChange(null);
+
+                    return secondResult;
+                })
+                .mockImplementationOnce(async (input) => {
+                    input.onActiveRunChange('agent-run-3');
+                    finalStarted.resolve();
+                    await finalCompletion.promise;
+                    input.onActiveRunChange(null);
+
+                    return finalResult;
+                }),
+        };
+        const agentRunnerService = { sendMessage: vi.fn(), stop: vi.fn() };
+        const rootAction = action('main', { agent: 'claude', model: 'claude', prompt: 'run', streaming: true, type: 'agent' });
+        const { events, run } = createRun(rootAction, { agentExecutor, agentRunnerService });
+        await firstStarted.promise;
+        firstInput.onEvent({ approval: { requestId: 41 }, type: 'approval' });
+        const firstEntryPromise = run.enqueueAgentPrompt('First follow-up');
+        const secondEntryPromise = run.enqueueAgentPrompt('Second follow-up');
+        firstCompletion.resolve();
+        const [firstEntry, secondEntry] = await Promise.all([firstEntryPromise, secondEntryPromise]);
+        await finalStarted.promise;
+
+        expect(agentExecutor.execute).toHaveBeenCalledTimes(3);
+        expect(agentExecutor.execute.mock.calls.slice(1).map(([input]) => input.runInput)).toMatchObject([
+            { continueFrom: 'first.json', prompt: 'First follow-up' },
+            { continueFrom: 'second.json', prompt: 'Second follow-up' },
+        ]);
+        expect(agentRunnerService.sendMessage).not.toHaveBeenCalled();
+        const removedPromptIds = events
+            .filter(({ update }) => update?.kind === 'agentPromptRemoved')
+            .map(({ update }) => update.promptId);
+        expect(removedPromptIds).toEqual([firstEntry.id, secondEntry.id]);
+        expect(events).not.toContainEqual(expect.objectContaining({ status: 'completed', type: 'action' }));
+        expect(events).not.toContainEqual(expect.objectContaining({ status: 'completed', type: 'run' }));
+
+        finalCompletion.resolve();
+        await expect(run.completion).resolves.toMatchObject({ status: 'completed' });
+
+        const lastRemovalIndex = events.findLastIndex(({ update }) => update?.kind === 'agentPromptRemoved');
+        const actionCompletionIndex = events.findIndex(({ status, type }) => status === 'completed' && type === 'action');
+        const runCompletionIndex = events.findIndex(({ status, type }) => status === 'completed' && type === 'run');
+        expect(actionCompletionIndex).toBeGreaterThan(lastRemovalIndex);
+        expect(runCompletionIndex).toBeGreaterThan(actionCompletionIndex);
+        await expect(run.enqueueAgentPrompt('Too late')).rejects.toThrow('no longer accepts');
+    });
+
+    it('fails a streaming queued continuation once and discards later prompts', async () => {
+        const firstCompletion = deferred();
+        const firstStarted = deferred();
+        const followUpCompletion = deferred();
+        const followUpStarted = deferred();
+        const firstResult = {
+            agent: 'claude', conversationId: 'conversation', exitCode: 0, model: 'claude', prompt: 'run',
+            reference: 'first.json', stderr: '', stdout: '', thinkingLevel: 'none',
+        };
+        let firstInput;
+        const agentExecutor = {
+            execute: vi.fn()
+                .mockImplementationOnce(async (input) => {
+                    firstInput = input;
+                    input.onActiveRunChange('agent-run-1');
+                    firstStarted.resolve();
+                    await firstCompletion.promise;
+                    input.onActiveRunChange(null);
+
+                    return firstResult;
+                })
+                .mockImplementationOnce(async (input) => {
+                    input.onActiveRunChange('agent-run-2');
+                    followUpStarted.resolve();
+                    await followUpCompletion.promise;
+                    input.onActiveRunChange(null);
+
+                    return { ...firstResult, exitCode: 1, prompt: 'First follow-up', stderr: 'failed' };
+                }),
+        };
+        const agentRunnerService = { sendMessage: vi.fn(), stop: vi.fn() };
+        const rootAction = action('main', { agent: 'claude', model: 'claude', prompt: 'run', streaming: true, type: 'agent' });
+        const { events, run } = createRun(rootAction, { agentExecutor, agentRunnerService });
+        await firstStarted.promise;
+        firstInput.onEvent({ approval: { requestId: 41 }, type: 'approval' });
+        const firstEntry = await run.enqueueAgentPrompt('First follow-up');
+        const laterEntry = await run.enqueueAgentPrompt('Later follow-up');
+        firstCompletion.resolve();
+        await followUpStarted.promise;
+
+        expect(events.filter(({ update }) => update?.kind === 'agentPromptRemoved'))
+            .toEqual([expect.objectContaining({ update: expect.objectContaining({ promptId: firstEntry.id }) })]);
+        followUpCompletion.resolve();
+        await expect(run.completion).resolves.toMatchObject({ status: 'failed' });
+
+        expect(agentExecutor.execute).toHaveBeenCalledTimes(2);
+        expect(agentExecutor.execute.mock.calls[1][0].runInput).toMatchObject({
+            continueFrom: 'first.json',
+            prompt: 'First follow-up',
+        });
+        expect(agentRunnerService.sendMessage).not.toHaveBeenCalled();
+        expect(events.filter(({ update }) => update?.kind === 'agentPromptRemoved').map(({ update }) => update.promptId))
+            .toEqual([firstEntry.id, laterEntry.id]);
+    });
+
     it('delays streaming queue dispatch for approval and sends one prompt per permitted turn', async () => {
         const agentCompletion = deferred();
         const agentStarted = deferred();

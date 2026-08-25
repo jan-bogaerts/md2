@@ -226,10 +226,14 @@ class ActionRun {
         });
     }
 
-    takeNextOneShotPrompt() {
+    claimNextQueuedPromptOrCloseQueue() {
         return this.queuePromptOperation(() => {
             const entry = this.promptQueue.find(({ dispatchState }) => dispatchState === 'queued');
-            if (!entry) return null;
+            if (!entry) {
+                this.promptQueueClosed = true;
+
+                return null;
+            }
 
             entry.dispatchState = 'dispatching';
             this.promptQueue = this.promptQueue.filter(({ id }) => id !== entry.id);
@@ -528,10 +532,11 @@ class ActionRun {
     async executeAgentAction(action, phase, isRoot, project) {
         this.activeAgentProject = project;
         this.promptQueueClosed = false;
+        let agentExecutionStartsWithQueuedPrompt = false;
         const onActiveRunChange = (runId) => {
             this.activeAgentRunId = runId;
             if (runId) {
-                this.activeAgentDispatchAvailable = !!action.streaming;
+                this.activeAgentDispatchAvailable = !!action.streaming && !agentExecutionStartsWithQueuedPrompt;
                 this.publish(action, phase, 'running', { interactionReady: true, type: 'agentState' });
                 void this.dispatchStreamingPrompt().catch(() => undefined);
                 if (this.autoFinishPending) {
@@ -685,10 +690,11 @@ class ActionRun {
         const changedPaths = new Set(result.changedPaths ?? []);
         let stderr = result.stderr ?? '';
         let stdout = result.stdout ?? '';
-        let queuedPrompt = result.exitCode === 0 && !action.streaming
-            ? await this.takeNextOneShotPrompt()
+        let queuedPrompt = result.exitCode === 0
+            ? await this.claimNextQueuedPromptOrCloseQueue()
             : null;
         while (result.exitCode === 0 && queuedPrompt) {
+            agentExecutionStartsWithQueuedPrompt = true;
             result = await this.agentExecutor.execute({
                 ...input,
                 runInput: {
@@ -697,10 +703,11 @@ class ActionRun {
                     prompt: queuedPrompt,
                 },
             });
+            agentExecutionStartsWithQueuedPrompt = false;
             for (const changedPath of result.changedPaths ?? []) changedPaths.add(changedPath);
             stderr += result.stderr ?? '';
             stdout += result.stdout ?? '';
-            queuedPrompt = result.exitCode === 0 ? await this.takeNextOneShotPrompt() : null;
+            queuedPrompt = result.exitCode === 0 ? await this.claimNextQueuedPromptOrCloseQueue() : null;
         }
 
         return { ...result, changedPaths: [...changedPaths], stderr, stdout };
