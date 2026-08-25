@@ -4874,6 +4874,39 @@
       "startedAt": "2026-08-25T18:03:33.425Z",
       "status": "completed",
       "rootConversationId": "agent-a151c2e9-75a5-4b6e-b0f1-89f13c13d153"
+    },
+    {
+      "commits": [
+        {
+          "commit": "829fc21ea68ead906943f7a932e9299bf1952918",
+          "committedAt": "2026-08-25T20:45:04+02:00",
+          "deletions": 215,
+          "filePaths": [
+            "app/src/components/actions/conversation/action_conversation_render_groups.ts",
+            "app/src/components/actions/conversation/action_conversation_rendering.test.tsx",
+            "app/src/components/actions/conversation/action_conversation_transcript.tsx",
+            "app/src/components/actions/conversation/sub_agent_group.tsx",
+            "app/src/data/data_types.ts",
+            "desktop/src/actions/activity/activity_files.test.mjs",
+            "desktop/src/actions/agent/agent_codex_event.js",
+            "desktop/src/actions/agent/agent_codex_event.test.mjs",
+            "desktop/src/actions/agent/agent_conversation.js",
+            "desktop/src/actions/agent/agent_streaming_adapter.js",
+            "desktop/src/actions/agent/agent_streaming_adapter.test.mjs",
+            "shared/agent_conversations.mjs"
+          ],
+          "filesChanged": 12,
+          "insertions": 1025,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-25T20:45:04+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "10a50270-fcab-4661-9d29-d966aa99eb1e",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
