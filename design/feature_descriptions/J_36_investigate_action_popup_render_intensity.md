@@ -7,6 +7,7 @@ status: design
 owner:
 affects:
 agents:
+  - design/activity/card__b7b584ed-ea26-43d0-917c-e75337611846.json
 policy:
 ---
 The action popup performs excessive rendering while an agent streams. Development heap analysis found very large numbers of retained React performance entries, and a production build has reportedly grown to about 6 GB. Do not assume these have one cause: determine which process owns the production memory and why the popup renders so much before selecting a fix.
