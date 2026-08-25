@@ -3,7 +3,7 @@ author:
 id: J_36
 internalId: b7b584ed-ea26-43d0-917c-e75337611846
 title: investigate action popup render intensity
-status: design
+status: ready for implementation
 owner:
 affects:
 agents:

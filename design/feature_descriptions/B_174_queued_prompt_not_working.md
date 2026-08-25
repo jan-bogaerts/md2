@@ -8,6 +8,5 @@ owner:
 affects:
 agents:
 policy:
-after: b7b584ed-ea26-43d0-917c-e75337611846
 ---
 claude agent was running. I needed to steer, so entered a new prompt. this got queued and showed up ok on the screen. but as soon as the agent was done and it's output was written, our queued prompt disappeared and the conversation remains in the `completed` state. I don't think our prompt was sent. something appears to be going wrong in the sequence
