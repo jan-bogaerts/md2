@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 526d5eb3-f1f1-4d3e-a65f-a5721d69a23c
 ---
 
 When user clicks on the result of a global search query and he is on the boards view, one of these things should happen:
