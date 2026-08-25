@@ -15,7 +15,7 @@ import { dialogService } from '../../../services/dialog_service'
 import { AppThemeProvider } from '../../../theme/theme_provider'
 import { AppThemeContext } from '../../../theme/theme_context'
 import { useAppTheme } from '../../../theme/use_app_theme'
-import { ActionConversationChat } from './action_conversation_chat'
+import { ActionConversationTranscript as ActionConversationChat } from './action_conversation_transcript'
 
 let clientHeight = 100
 let scrollHeight = 300
@@ -229,71 +229,6 @@ describe('ActionConversationChat', () => {
         reportViewportResize()
 
         expect(viewport.scrollTop).toBe(220)
-    })
-
-    it('keeps duration and context usage indicator as the final row inside the scrollable transcript', async () => {
-        const value = conversation('first.json', [message('message-1', 'First')])
-        value.contextWindowUsage = { capacityTokens: 258_400, usedTokens: 42_000 }
-        renderChat(value)
-
-        const viewport = screen.getByLabelText('Conversation chat')
-        const metadata = screen.getByLabelText('Conversation metadata')
-        const progress = screen.getByRole('progressbar', { name: 'Context usage' })
-        expect(viewport).toContainElement(metadata)
-        expect(viewport.lastElementChild).toBe(metadata)
-        expect(metadata).toContainElement(screen.getByLabelText('Elapsed time'))
-        expect(metadata).toContainElement(progress)
-        expect(progress).toHaveAttribute('aria-valuenow', '16')
-        expect(screen.queryByText('context: 16%')).not.toBeInTheDocument()
-        expect(metadata).toHaveStyle({ alignItems: 'baseline' })
-
-        expect(screen.getAllByRole('progressbar')).toHaveLength(1)
-        const track = progress.parentElement?.querySelector('[aria-hidden="true"]')
-        expect(track).toBeInTheDocument()
-        expect(track).toHaveAttribute('aria-valuenow', '100')
-
-        fireEvent.mouseOver(progress)
-        expect(await screen.findByText('Context usage: 16%', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()
-        fireEvent.mouseLeave(progress)
-        await waitFor(() => expect(screen.queryByText('Context usage: 16%', {selector: '.MuiTooltip-tooltip'})).not.toBeInTheDocument())
-        fireEvent.touchStart(progress)
-        expect(await screen.findByText('Context usage: 16%', { selector: '.MuiTooltip-tooltip' }, {timeout: 1_500})).toBeInTheDocument()
-
-        viewport.scrollTop = 40
-        fireEvent.scroll(viewport)
-
-        expect(viewport.scrollTop).toBe(40)
-    })
-
-    it('caps context occupancy and hides unavailable context without hiding duration', async () => {
-        const value = conversation('first.json', [])
-        value.contextWindowUsage = { capacityTokens: 100, usedTokens: 125 }
-        const { rerender } = renderChat(value)
-
-        const progress = screen.getByRole('progressbar', { name: 'Context usage' })
-        expect(progress).toHaveAttribute('aria-valuenow', '100')
-        fireEvent.mouseOver(progress)
-        expect(await screen.findByText('Context usage: 100%', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()
-
-        rerender(
-            <AppThemeProvider>
-                <ActionConversationChat
-                    conversation={{ ...value, contextWindowUsage: { capacityTokens: 0, usedTokens: 1 } }}
-                    status="idle"
-                />
-            </AppThemeProvider>,
-        )
-
-        expect(screen.queryByRole('progressbar', { name: 'Context usage' })).not.toBeInTheDocument()
-        await waitFor(() => expect(screen.queryByText(/Context usage:/u, {selector: '.MuiTooltip-tooltip'})).not.toBeInTheDocument())
-        expect(screen.getByLabelText('Elapsed time')).toBeInTheDocument()
-    })
-
-    it('hides idle status while keeping duration visible', () => {
-        renderChat(conversation('completed.json', []))
-
-        expect(screen.queryByRole('status')).not.toBeInTheDocument()
-        expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('1:00')
     })
 
     it('uses the derived Markdown style provided by the app theme', () => {

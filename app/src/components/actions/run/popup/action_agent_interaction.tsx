@@ -5,7 +5,7 @@ import { useActionRunSelector } from '../../../hooks/use_action_runs'
 import { ActionAgentApprovals } from '../../agent/action_agent_approvals'
 import { ActionAgentPromptOwner } from '../../agent/action_agent_prompt_owner'
 import { ActionAgentQuestionOwner } from '../../agent/action_agent_question_owner'
-import { ActionConversationChatOwner } from '../../conversation/action_conversation_chat_owner'
+import { ActionConversationChat } from '../../conversation/action_conversation_chat'
 import { ActionLogErrorOwner } from '../../conversation/action_log_error_owner'
 import type { ActionPopupRuntime } from './action_popup_types'
 
@@ -30,7 +30,7 @@ export function ActionAgentInteraction(props: ActionAgentInteractionProps) {
         <Stack sx={{ display: visible ? 'contents' : 'none' }}>
             <Stack spacing={1} sx={{ flex: 1, minHeight: 0 }}>
                 <ActionLogErrorOwner actionId={action.id} context={assignmentContext} resultStore={resultStore} />
-                <ActionConversationChatOwner
+                <ActionConversationChat
                     actionId={action.id}
                     context={assignmentContext}
                     popupEntryId={popupEntryId}

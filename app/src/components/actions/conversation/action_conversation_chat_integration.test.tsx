@@ -7,7 +7,7 @@ import { actionRunRegistry } from '../../../services/actions/action_run_registry
 import { cardPopupService } from '../../../services/card_popup_service'
 import { agentAcknowledgementService } from '../../../services/agents/agent_acknowledgement_service'
 import { AppThemeProvider } from '../../../theme/theme_provider'
-import { ActionConversationChatOwner } from './action_conversation_chat_owner'
+import { ActionConversationChat } from './action_conversation_chat'
 import type { ActionConversationStore } from './action_conversation_store'
 
 const context = { cardInternalId: 'card-1', file: 'design/F-138.md', kind: 'card' as const }
@@ -16,6 +16,13 @@ const store = {
     getSnapshot: () => snapshot,
     subscribe: () => () => undefined,
 } as unknown as ActionConversationStore
+const chatRenderProbe = vi.fn()
+
+function ActionConversationChatRenderProbe(props: Parameters<typeof ActionConversationChat>[0]) {
+    chatRenderProbe()
+
+    return ActionConversationChat(props)
+}
 
 function conversation(
     id: string,
@@ -63,13 +70,69 @@ function createConversationStore(initialConversation: AgentConversation) {
     return { selectConversation, store: selectableStore }
 }
 
-describe('ActionConversationChatOwner', () => {
+describe('ActionConversationChat integration', () => {
     afterEach(() => {
         cleanup()
         actionRunRegistry.stop()
         cardPopupService.clear()
         agentAcknowledgementService.reset()
         setActionBridgeOverride(null)
+        chatRenderProbe.mockClear()
+    })
+
+    it('does not re-render for a log-only update', () => {
+        let listener: ((event: ActionRunEvent) => void) | null = null
+        setActionBridgeOverride({
+            onActionRun: vi.fn((nextListener) => {
+                listener = nextListener
+
+                return vi.fn()
+            }),
+        } as unknown as ElectronActionBridge)
+        actionRunRegistry.start()
+        render(
+            <AppThemeProvider>
+                <ActionConversationChatRenderProbe actionId="review" context={context} store={store} />
+            </AppThemeProvider>,
+        )
+        if (!listener) throw new Error('Missing run listener')
+        const emit = listener as (event: ActionRunEvent) => void
+        const event = { actionId: 'review', context, phase: 'main' as const, rootActionId: 'review', runId: 'run-1', status: 'running' as const }
+
+        act(() => {
+            emit({ ...event, type: 'run' })
+            emit({
+                ...event,
+                type: 'update',
+                update: {
+                    conversation: {
+                        actionId: 'review',
+                        cardInternalId: null,
+                        cardPath: context.file,
+                        completedAt: null,
+                        entries: [],
+                        hasExplicitTitle: false,
+                        id: 'conversation-1',
+                        path: 'conversation.json',
+                        providerSessions: [],
+                        startedAt: '2026-08-04T10:00:00.000Z',
+                        status: 'running',
+                        title: 'Review',
+                        viewed: true,
+                    },
+                    kind: 'agentStarted',
+                },
+            })
+        })
+        chatRenderProbe.mockClear()
+
+        act(() => emit({
+            ...event,
+            type: 'update',
+            update: { content: 'diagnostic failure', kind: 'error', sequence: 1 },
+        }))
+
+        expect(chatRenderProbe).not.toHaveBeenCalled()
     })
 
     it('renders streamed output and live context usage from its conversation selector', async () => {
@@ -85,7 +148,7 @@ describe('ActionConversationChatOwner', () => {
         actionRunRegistry.start()
         render(
             <AppThemeProvider>
-                <ActionConversationChatOwner actionId="review" context={context} store={store} />
+                <ActionConversationChat actionId="review" context={context} store={store} />
             </AppThemeProvider>,
         )
         if (!listener) throw new Error('Missing run listener')
@@ -158,9 +221,14 @@ describe('ActionConversationChatOwner', () => {
 
         render(
             <AppThemeProvider>
-                <ActionConversationChatOwner actionId="review" context={context} store={selectableStore} />
+                <ActionConversationChat actionId="review" context={context} store={selectableStore} />
             </AppThemeProvider>,
         )
+        const viewport = screen.getByLabelText('Conversation chat')
+        const metadata = screen.getByLabelText('Conversation metadata')
+        expect(viewport).not.toContainElement(metadata)
+        expect(viewport.parentElement?.lastElementChild).toBe(metadata)
+        expect(screen.queryByRole('status')).not.toBeInTheDocument()
         expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('1:00')
         const firstProgress = screen.getByRole('progressbar', { name: 'Context usage' })
         expect(firstProgress).toHaveAttribute('aria-valuenow', '16')
@@ -215,7 +283,7 @@ describe('ActionConversationChatOwner', () => {
 
         render(
             <AppThemeProvider>
-                <ActionConversationChatOwner
+                <ActionConversationChat
                     actionId="review"
                     context={context}
                     popupEntryId={popupEntry.id}
@@ -277,7 +345,7 @@ describe('ActionConversationChatOwner', () => {
 
         render(
             <AppThemeProvider>
-                <ActionConversationChatOwner
+                <ActionConversationChat
                     actionId="review"
                     context={context}
                     popupEntryId={firstEntry.id}
@@ -308,7 +376,7 @@ describe('ActionConversationChatOwner', () => {
 
         render(
             <AppThemeProvider>
-                <ActionConversationChatOwner actionId="review" context={context} popupEntryId={entry.id} store={store} />
+                <ActionConversationChat actionId="review" context={context} popupEntryId={entry.id} store={store} />
             </AppThemeProvider>,
         )
 

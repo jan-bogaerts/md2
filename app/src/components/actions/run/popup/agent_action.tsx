@@ -1,7 +1,7 @@
 import { Stack, Typography } from '@mui/material'
 import type { ActionContext } from '../../../../data/action_context'
 import type { ActionDefinition } from '../../../../data/action_types'
-import { ActionConversationChatOwner } from '../../conversation/action_conversation_chat_owner'
+import { ActionConversationChat } from '../../conversation/action_conversation_chat'
 import { ActionScheduleOwner } from '../schedule/action_schedule_owner'
 import { ActionAgentInteraction } from './action_agent_interaction'
 import { ActionRunDisabledMessage } from './action_run_disabled_message'
@@ -24,7 +24,7 @@ export function AgentAction(props: AgentActionProps) {
     if (readOnlyMessage) {
         return (
             <Stack data-testid="action-popup-scroll-body" spacing={2} sx={{ flex: 1, minHeight: 0, overflow: 'auto', px: 1.5, py: 1 }}>
-                <ActionConversationChatOwner
+                <ActionConversationChat
                     actionId={action.id}
                     context={assignmentContext}
                     popupEntryId={popupEntryId}

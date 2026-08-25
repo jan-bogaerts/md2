@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AgentConversation, AgentConversationEntry } from '../../../data/data_types'
 import { AppThemeProvider } from '../../../theme/theme_provider'
-import { ActionConversationChat } from './action_conversation_chat'
+import { ActionConversationTranscript as ActionConversationChat } from './action_conversation_transcript'
 
 const renderProbes = vi.hoisted(() => ({ event: vi.fn(), markdown: vi.fn() }))
 
