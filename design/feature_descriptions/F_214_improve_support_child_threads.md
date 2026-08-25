@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__10a50270-fcab-4661-9d29-d966aa99eb1e.json
 policy:
-branch: f_214_improve_support_child_threads
-worktree: 1
 after: 9b601eb4-e385-404f-9059-07823b25b6fd
 changedFiles:
   - app/src/components/actions/conversation/action_conversation_render_groups.ts

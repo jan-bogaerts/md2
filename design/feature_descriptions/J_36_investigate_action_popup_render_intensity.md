@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__b7b584ed-ea26-43d0-917c-e75337611846.json
 policy:
+branch: j_36_reduce_action_popup_update_cost
+worktree: 1
 ---
 
 The action popup performs work proportional to the complete conversation for each streamed update, although previous turns and completed groups are immutable. Keep every provider update immediate. Reduce the work per update so it depends on the entries that can still change, not the length of the chat history.
