@@ -19,6 +19,8 @@ import { workspaceViewService } from '../../services/project/workspace_view_serv
 import { cardDragDropService } from './card_drag_drop_service'
 import { CardDragOverlay } from './card_drag_overlay'
 import { attachmentChoiceService } from '../../services/attachments/attachment_choice_service'
+import { projectAccessService } from '../../services/project/project_access_service'
+import { cardPopupService } from '../../services/card_popup_service'
 
 const dragContextHandlers = vi.hoisted(() => ({
     onDragCancel: null as DndContextProps['onDragCancel'] | null,
@@ -83,6 +85,7 @@ function actionFile(definition: unknown): ActionFile {
 
 function createColumnHandlers() {
     return {
+        onArchiveCard: vi.fn(async () => undefined),
         onDeleteCard: vi.fn(async () => undefined),
         onOpenInFileMode: vi.fn(),
         onTitleChange: vi.fn(),
@@ -114,6 +117,7 @@ function renderCardView(
 
 describe('CardView', () => {
     beforeEach(() => {
+        projectAccessService.setReadOnly(false)
         workspaceViewService.setViewMode('cards')
         cardDragDropService.endDrag()
         vi.spyOn(dataService, 'getState')
@@ -494,6 +498,72 @@ describe('CardView', () => {
         fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
 
         expect(dataService.cards.deleteCard).not.toHaveBeenCalled()
+    })
+
+    it('offers Archive directly above Delete from both card menu entry points', () => {
+        renderCardView()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-1' }))
+        const dotsItems = screen.getAllByRole('menuitem').map((item) => item.textContent)
+        expect(dotsItems.slice(-2)).toEqual(['Archive', 'Delete'])
+        fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' })
+
+        fireEvent.contextMenu(screen.getByText('First'))
+        const contextItems = screen.getAllByRole('menuitem').map((item) => item.textContent)
+        expect(contextItems.slice(-2)).toEqual(['Archive', 'Delete'])
+    })
+
+    it('disables Archive on a read-only project', () => {
+        projectAccessService.setReadOnly(true)
+        renderCardView()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-1' }))
+
+        expect(screen.getByRole('menuitem', { name: 'Archive' })).toHaveAttribute('aria-disabled', 'true')
+    })
+
+    it('does not archive from the card actions menu when confirmation is cancelled', () => {
+        renderCardView()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-1' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Archive' }))
+        const dialog = screen.getByRole('dialog', { name: 'Archive card' })
+        expect(within(dialog).getByText(/design\/F-1\.md/u)).toBeInTheDocument()
+        fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+
+        expect(dataService.cards.moveCard).not.toHaveBeenCalled()
+        expect(dataService.cards.deleteCard).not.toHaveBeenCalled()
+    })
+
+    it('archives the card and closes its details popup when confirmed', async () => {
+        renderCardView()
+        fireEvent.click(screen.getByRole('button', { name: 'Drag F-1' }))
+        expect(cardPopupService.getSnapshot().some((entry) => entry.kind === 'card-details')).toBe(true)
+
+        fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-1' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Archive' }))
+        fireEvent.click(within(screen.getByRole('dialog', { name: 'Archive card' })).getByRole('button', { name: 'Archive' }))
+
+        await waitFor(() => expect(dataService.cards.moveCard).toHaveBeenCalledWith('design/F-1.md', 'archived', 0))
+        await waitFor(() => expect(cardPopupService.getSnapshot()).toHaveLength(0))
+        expect(workspaceViewService.getSnapshot().selectedPath).not.toBe('design/F-1.md')
+    })
+
+    it('reports a failed archive and leaves the card on the board', async () => {
+        const archiveError = new Error('Archive target already exists')
+        const reportError = vi.spyOn(dialogService, 'error')
+        vi.mocked(dataService.cards.moveCard).mockRejectedValue(archiveError)
+        renderCardView()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-1' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Archive' }))
+        fireEvent.click(within(screen.getByRole('dialog', { name: 'Archive card' })).getByRole('button', { name: 'Archive' }))
+
+        await waitFor(() => expect(reportError).toHaveBeenCalledWith(
+            archiveError,
+            { fallbackMessage: 'Card archive failed: design/F-1.md' },
+        ))
+        expect(screen.getByText('First')).toBeInTheDocument()
     })
 
     it('shows only Run inline and opens matching actions from the card context menu', () => {

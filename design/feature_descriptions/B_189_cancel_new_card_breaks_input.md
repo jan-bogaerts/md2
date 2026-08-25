@@ -3,7 +3,7 @@ author:
 id: B_189
 internalId: c8c6f7ea-f3f2-4666-91f8-85b895a76302
 title: cancel new card breaks input
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

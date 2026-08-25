@@ -3,7 +3,7 @@ author:
 id: F_214
 internalId: 10a50270-fcab-4661-9d29-d966aa99eb1e
 title: improve support child threads
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

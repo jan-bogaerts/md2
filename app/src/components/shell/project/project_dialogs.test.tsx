@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import type { ComponentProps } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
@@ -13,6 +14,8 @@ import {
     REMOTE_CONTROL_ENDPOINT_KEY,
 } from '../../../data/remote_control_connection'
 import { AppThemeProvider } from '../../../theme/theme_provider'
+import { dialogService } from '../../../services/dialog_service'
+import { projectSessionService } from '../../../services/project/project_session_service'
 import { BranchSwitchDialog } from './branch_switch_dialog'
 import { CompleteReleaseDialog } from './complete_release_dialog'
 import { NewCardDialog } from './new_card_dialog'
@@ -70,6 +73,15 @@ function mockMatchMedia(matches: boolean) {
 
 function getDescriptionEditor() {
     return within(screen.getByRole('group', { name: 'Description' })).getByRole('textbox')
+}
+
+function dismissThroughBackdrop() {
+    const dialog = screen.getByRole('dialog', { name: 'New card' })
+    const backdrop = dialog.closest('.MuiDialog-root')?.querySelector('.MuiBackdrop-root')
+    if (!backdrop) throw new Error('Missing new-card dialog backdrop')
+
+    fireEvent.mouseDown(backdrop)
+    fireEvent.click(backdrop)
 }
 
 function insertEditorNewline(event: Event) {
@@ -809,10 +821,9 @@ describe('project dialog components', () => {
         expect(description).toHaveStyle({ height: '270px', minHeight: '270px', resize: 'vertical' })
     })
 
-    it('submits with Ctrl+Enter and confirms dirty Escape cancellation', async () => {
+    it('submits with Ctrl+Enter after keeping a dirty Escape draft', async () => {
         const createCard = vi.fn(async () => undefined)
         const close = vi.fn()
-        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
 
         render(
             <NewCardDialog
@@ -831,8 +842,10 @@ describe('project dialog components', () => {
         const title = screen.getByRole('textbox', { name: 'Title' })
         fireEvent.change(title, { target: { value: 'Keyboard card' } })
         fireEvent.keyDown(title, { key: 'Escape' })
-        expect(confirm).toHaveBeenCalledWith('Discard this new card draft?')
+        expect(screen.getByRole('dialog', { name: 'Discard this new card draft?' })).toBeInTheDocument()
         expect(close).not.toHaveBeenCalled()
+        fireEvent.click(screen.getByRole('button', { name: 'Keep editing' }))
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Discard this new card draft?' })).not.toBeInTheDocument())
 
         fireEvent.change(title, { target: { value: '' } })
         const description = getDescriptionEditor()
@@ -859,9 +872,8 @@ describe('project dialog components', () => {
         }, 'new'))
     })
 
-    it('confirms cancellation for description-only edits', () => {
+    it('opens in-app confirmation for description-only edits', () => {
         const close = vi.fn()
-        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
 
         render(
             <NewCardDialog
@@ -880,8 +892,180 @@ describe('project dialog components', () => {
         fireEvent.change(getDescriptionEditor(), { target: { value: 'Description only' } })
         fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
 
-        expect(confirm).toHaveBeenCalledWith('Discard this new card draft?')
+        expect(screen.getByRole('dialog', { name: 'Discard this new card draft?' })).toBeInTheDocument()
         expect(close).not.toHaveBeenCalled()
+    })
+
+    it('keeps every desktop draft field and restores real title and Markdown typing after backdrop dismissal', async () => {
+        const user = userEvent.setup()
+        const discardImages = vi.spyOn(projectSessionService, 'discardNewCardDraftImages').mockResolvedValue()
+        vi.spyOn(projectSessionService, 'hasNewCardDraftImages').mockReturnValue(true)
+        render(
+            <NewCardDialog
+                cardTypes={DEFAULT_CARD_TYPES}
+                initialTargetStatus="new"
+                isLoading={false}
+                isProjectOpen
+                onClose={vi.fn()}
+                onCreateCard={vi.fn(async () => undefined)}
+                open
+                states={DEFAULT_STATES}
+            />,
+            { wrapper: AppThemeProvider },
+        )
+
+        const title = screen.getByRole('textbox', { name: 'Title' })
+        const description = getDescriptionEditor()
+        await user.type(title, 'Draft title')
+        await user.type(description, 'Draft body')
+        await user.click(screen.getByRole('radio', { name: 'Bug' }))
+        await user.click(screen.getByRole('combobox', { name: 'Target column' }))
+        await user.click(await screen.findByRole('option', { name: 'design' }))
+
+        dismissThroughBackdrop()
+        expect(screen.getAllByRole('dialog', { hidden: true })).toHaveLength(2)
+        await user.click(screen.getByRole('button', { name: 'Keep editing' }))
+
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Discard this new card draft?' })).not.toBeInTheDocument())
+        const draftDialog = screen.getByRole('dialog', { name: 'New card' })
+        await waitFor(() => expect(draftDialog).toContainElement(document.activeElement as HTMLElement))
+        expect(title).toHaveValue('Draft title')
+        expect(description).toHaveValue('Draft body')
+        expect(screen.getByRole('radio', { name: 'Bug' })).toHaveAttribute('aria-checked', 'true')
+        expect(screen.getByRole('combobox', { name: 'Target column' })).toHaveTextContent('design')
+        expect(projectSessionService.hasNewCardDraftImages()).toBe(true)
+        await user.click(title)
+        await user.type(title, ' continued')
+        await user.click(description)
+        await user.type(description, ' continued')
+        expect(title).toHaveValue('Draft title continued')
+        expect(description).toHaveValue('Draft body continued')
+        expect(discardImages).not.toHaveBeenCalled()
+    })
+
+    it.each(['Cancel', 'Close'])('routes desktop %s through the same discard confirmation', async (buttonName) => {
+        const user = userEvent.setup()
+        render(
+            <NewCardDialog
+                cardTypes={DEFAULT_CARD_TYPES}
+                initialTargetStatus="new"
+                isLoading={false}
+                isProjectOpen
+                onClose={vi.fn()}
+                onCreateCard={vi.fn(async () => undefined)}
+                open
+                states={DEFAULT_STATES}
+            />,
+            { wrapper: AppThemeProvider },
+        )
+
+        await user.type(screen.getByRole('textbox', { name: 'Title' }), 'Dirty')
+        await user.click(screen.getByRole('button', { name: buttonName }))
+
+        expect(screen.getByRole('dialog', { name: 'Discard this new card draft?' })).toBeInTheDocument()
+    })
+
+    it('discards once and closes once while repeated dismissal occurs during cleanup', async () => {
+        const user = userEvent.setup()
+        const close = vi.fn()
+        let resolveCleanup: (() => void) | null = null
+        const discardImages = vi.spyOn(projectSessionService, 'discardNewCardDraftImages').mockImplementation(async () => {
+            await new Promise<void>((resolve) => {
+                resolveCleanup = resolve
+            })
+        })
+        render(
+            <NewCardDialog
+                cardTypes={DEFAULT_CARD_TYPES}
+                initialTargetStatus="new"
+                isLoading={false}
+                isProjectOpen
+                onClose={close}
+                onCreateCard={vi.fn(async () => undefined)}
+                open
+                states={DEFAULT_STATES}
+            />,
+            { wrapper: AppThemeProvider },
+        )
+
+        await user.type(screen.getByRole('textbox', { name: 'Title' }), 'Discard me')
+        await user.click(screen.getByRole('button', { name: 'Cancel' }))
+        const discard = screen.getByRole('button', { name: 'Discard' })
+        fireEvent.click(discard)
+        fireEvent.click(discard)
+        fireEvent.keyDown(document, { key: 'Escape' })
+
+        expect(discardImages).toHaveBeenCalledOnce()
+        expect(close).not.toHaveBeenCalled()
+        if (!resolveCleanup) throw new Error('Draft cleanup did not start')
+        resolveCleanup()
+        await waitFor(() => expect(close).toHaveBeenCalledOnce())
+        expect(discardImages).toHaveBeenCalledOnce()
+    })
+
+    it('reports cleanup failure, preserves draft, and restores usable inputs', async () => {
+        const user = userEvent.setup()
+        const close = vi.fn()
+        const cleanupError = new Error('cleanup failed')
+        vi.spyOn(projectSessionService, 'discardNewCardDraftImages').mockRejectedValue(cleanupError)
+        const reportError = vi.spyOn(dialogService, 'error').mockImplementation(() => undefined)
+        render(
+            <NewCardDialog
+                cardTypes={DEFAULT_CARD_TYPES}
+                initialTargetStatus="new"
+                isLoading={false}
+                isProjectOpen
+                onClose={close}
+                onCreateCard={vi.fn(async () => undefined)}
+                open
+                states={DEFAULT_STATES}
+            />,
+            { wrapper: AppThemeProvider },
+        )
+
+        const title = screen.getByRole('textbox', { name: 'Title' })
+        const description = getDescriptionEditor()
+        await user.type(title, 'Preserved')
+        await user.type(description, 'Body')
+        await user.click(screen.getByRole('button', { name: 'Cancel' }))
+        await user.click(screen.getByRole('button', { name: 'Discard' }))
+
+        await waitFor(() => expect(reportError).toHaveBeenCalledWith(cleanupError, {fallbackMessage: 'Pasted draft images could not be removed'}))
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Discard this new card draft?' })).not.toBeInTheDocument())
+        expect(close).not.toHaveBeenCalled()
+        expect(title).toHaveValue('Preserved')
+        expect(description).toHaveValue('Body')
+        await user.click(title)
+        await user.type(title, ' title')
+        await user.click(description)
+        await user.type(description, ' text')
+        expect(title).toHaveValue('Preserved title')
+        expect(description).toHaveValue('Body text')
+    })
+
+    it.each(['Cancel', 'Escape'])('opens one mobile discard confirmation through %s', async (route) => {
+        mockMatchMedia(true)
+        const user = userEvent.setup()
+        render(
+            <NewCardDialog
+                cardTypes={DEFAULT_CARD_TYPES}
+                initialTargetStatus="new"
+                isLoading={false}
+                isProjectOpen
+                onClose={vi.fn()}
+                onCreateCard={vi.fn(async () => undefined)}
+                open
+                states={DEFAULT_STATES}
+            />,
+            { wrapper: AppThemeProvider },
+        )
+
+        const title = screen.getByRole('textbox', { name: 'Title' })
+        await user.type(title, 'Mobile draft')
+        if (route === 'Cancel') await user.click(screen.getByRole('button', { name: 'Cancel' }))
+        else await user.keyboard('{Escape}')
+
+        expect(screen.getAllByRole('dialog', { name: 'Discard this new card draft?' })).toHaveLength(1)
     })
 
     it('resets the draft after successful creation and project closure', async () => {

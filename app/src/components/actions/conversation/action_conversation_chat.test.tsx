@@ -585,6 +585,24 @@ describe('ActionConversationChat', () => {
             .toHaveAttribute('href', 'C:%5Crepo%5Cdesign%5CF_89_links.md')
     })
 
+    it('opens slash-prefixed absolute Windows links without browser navigation', async () => {
+        vi.spyOn(dataService, 'getState').mockReturnValue({
+            project: { branch: 'main', id: 'local', rootPath: 'C:/repo' },
+            runningAgents: [],
+            snapshot: { activeCards: [], backgroundCards: [], repositoryFiles: [], workingFolder: 'design' },
+        })
+        const openInEditor = vi.fn(async () => undefined)
+        setActionBridgeOverride({ openInEditor } as unknown as ElectronActionBridge)
+        const path = '/C:/repo/src/services/analysis/engine/event_engine.js:33'
+        renderChat(conversation('links.json', [message('message-1', `[event_engine.js:33](${path})`)]))
+
+        expect(fireEvent.click(screen.getByRole('link', { name: 'event_engine.js:33' }))).toBe(false)
+        await waitFor(() => expect(openInEditor).toHaveBeenCalledWith({
+            path: 'C:/repo/src/services/analysis/engine/event_engine.js:33',
+            repositoryRoot: 'C:/repo',
+        }))
+    })
+
     it('reports invalid local file links without browser navigation', async () => {
         vi.spyOn(dataService, 'getState').mockReturnValue({
             project: { branch: 'main', id: 'local', rootPath: 'C:/repo' },

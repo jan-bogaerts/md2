@@ -63,9 +63,11 @@ export function NewCardDialog(props: NewCardDialogProps) {
     const { isCreatingCard } = useCardCreationState()
     const theme = useTheme()
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
-    const cancellationInProgressRef = useRef(false)
+    const dismissalPhaseRef = useRef<'cleanup' | 'confirmation' | 'idle'>('idle')
     const wasOpenRef = useRef(false)
+    const [discardConfirmationOpen, setDiscardConfirmationOpen] = useState(false)
     const [editorOverlayContainer, setEditorOverlayContainer] = useState<HTMLElement | null>(null)
+    const [isDiscarding, setIsDiscarding] = useState(false)
     const [targetStatus, setTargetStatus] = useState('')
     const [title, setTitle] = useState('')
     const [type, setType] = useState('')
@@ -90,37 +92,57 @@ export function NewCardDialog(props: NewCardDialogProps) {
             setTitle('')
             setType(defaultType)
         }
+        if (!open || !isProjectOpen) dismissalPhaseRef.current = 'idle'
         wasOpenRef.current = open && isProjectOpen
     }, [defaultType, initialTargetStatus, isProjectOpen, open])
 
-    const closeDialog = async () => {
-        if (cancellationInProgressRef.current) return
-
-        cancellationInProgressRef.current = true
+    const discardDraftAndClose = async () => {
+        setIsDiscarding(true)
         try {
-            const body = projectSessionService.newCardMarkdownDraft.getSnapshot()
-            const isDirty = title.length > 0
-                || body.length > 0
-                || selectedType !== defaultType
-                || selectedStatus !== initialTargetStatus
-                || projectSessionService.hasNewCardDraftImages()
-            if (isDirty && !window.confirm(DISCARD_CARD_MESSAGE)) return
-
-            try {
-                await projectSessionService.discardNewCardDraftImages()
-            } catch (error) {
-                dialogService.error(error, { fallbackMessage: 'Pasted draft images could not be removed' })
-                return
-            }
+            await projectSessionService.discardNewCardDraftImages()
             resetForm()
+            setDiscardConfirmationOpen(false)
             onClose()
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Pasted draft images could not be removed' })
+            setDiscardConfirmationOpen(false)
         } finally {
-            cancellationInProgressRef.current = false
+            dismissalPhaseRef.current = 'idle'
+            setIsDiscarding(false)
         }
     }
 
     const handleDialogClose = () => {
-        void closeDialog()
+        if (dismissalPhaseRef.current !== 'idle') return
+
+        const body = projectSessionService.newCardMarkdownDraft.getSnapshot()
+        const isDirty = title.length > 0
+            || body.length > 0
+            || selectedType !== defaultType
+            || selectedStatus !== initialTargetStatus
+            || projectSessionService.hasNewCardDraftImages()
+        if (isDirty) {
+            dismissalPhaseRef.current = 'confirmation'
+            setDiscardConfirmationOpen(true)
+            return
+        }
+
+        dismissalPhaseRef.current = 'cleanup'
+        void discardDraftAndClose()
+    }
+
+    const handleKeepEditing = () => {
+        if (dismissalPhaseRef.current !== 'confirmation') return
+
+        dismissalPhaseRef.current = 'idle'
+        setDiscardConfirmationOpen(false)
+    }
+
+    const handleDiscard = () => {
+        if (dismissalPhaseRef.current !== 'confirmation') return
+
+        dismissalPhaseRef.current = 'cleanup'
+        void discardDraftAndClose()
     }
 
     const handleTitleChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -142,6 +164,8 @@ export function NewCardDialog(props: NewCardDialogProps) {
         } catch {
             return
         }
+        dismissalPhaseRef.current = 'idle'
+        setDiscardConfirmationOpen(false)
         resetForm()
     }
 
@@ -183,224 +207,244 @@ export function NewCardDialog(props: NewCardDialogProps) {
     )
 
     return (
-        <Dialog
-            aria-labelledby="new-card-dialog-heading"
-            fullScreen={isMobile}
-            maxWidth={false}
-            onClose={handleDialogClose}
-            open={open}
-            slotProps={{
-                backdrop: { sx: { backdropFilter: 'blur(2px)', backgroundColor: 'rgba(16, 24, 40, 0.45)' } },
-                paper: {
-                    sx: {
-                        border: isMobile ? 0 : 1,
-                        borderColor: 'divider',
-                        borderRadius: isMobile ? 0 : '14px',
-                        boxShadow: isMobile ? 'none' : '0 24px 60px rgba(16,24,40,0.28)',
-                        height: isMobile ? '100dvh' : 'auto',
-                        maxHeight: isMobile ? '100dvh' : 'calc(100dvh - 32px)',
-                        maxWidth: isMobile ? '100%' : 'calc(100% - 32px)',
-                        overflow: 'hidden',
-                        width: isMobile ? '100%' : DIALOG_WIDTH,
+        <>
+            <Dialog
+                aria-labelledby="new-card-dialog-heading"
+                fullScreen={isMobile}
+                maxWidth={false}
+                onClose={handleDialogClose}
+                open={open}
+                slotProps={{
+                    backdrop: { sx: { backdropFilter: 'blur(2px)', backgroundColor: 'rgba(16, 24, 40, 0.45)' } },
+                    paper: {
+                        sx: {
+                            border: isMobile ? 0 : 1,
+                            borderColor: 'divider',
+                            borderRadius: isMobile ? 0 : '14px',
+                            boxShadow: isMobile ? 'none' : '0 24px 60px rgba(16,24,40,0.28)',
+                            height: isMobile ? '100dvh' : 'auto',
+                            maxHeight: isMobile ? '100dvh' : 'calc(100dvh - 32px)',
+                            maxWidth: isMobile ? '100%' : 'calc(100% - 32px)',
+                            overflow: 'hidden',
+                            width: isMobile ? '100%' : DIALOG_WIDTH,
+                        },
                     },
-                },
-            }}
-        >
-            <Box
-                component="form"
-                onKeyDownCapture={handleFormKeyDownCapture}
-                onSubmit={handleSubmit}
-                sx={{ display: 'flex', flexDirection: 'column', height: isMobile ? '100%' : 'auto', maxHeight: '100dvh', minHeight: 0 }}
+                }}
             >
-                <DialogTitle
-                    component="div"
-                    id="new-card-dialog-header"
-                    sx={{
-                        alignItems: 'center',
-                        borderBottom: 1,
-                        borderColor: 'divider',
-                        display: 'flex',
-                        flexShrink: 0,
-                        gap: 1.25,
-                        minHeight: isMobile ? 56 : 62,
-                        px: isMobile ? 1 : 2.25,
-                        py: 1,
-                    }}
+                <Box
+                    component="form"
+                    onKeyDownCapture={handleFormKeyDownCapture}
+                    onSubmit={handleSubmit}
+                    sx={{ display: 'flex', flexDirection: 'column', height: isMobile ? '100%' : 'auto', maxHeight: '100dvh', minHeight: 0 }}
                 >
-                    {isMobile ? (
-                        <Button onClick={handleDialogClose} sx={{ minHeight: 44, minWidth: 72 }} type="button" variant="text">
+                    <DialogTitle
+                        component="div"
+                        id="new-card-dialog-header"
+                        sx={{
+                            alignItems: 'center',
+                            borderBottom: 1,
+                            borderColor: 'divider',
+                            display: 'flex',
+                            flexShrink: 0,
+                            gap: 1.25,
+                            minHeight: isMobile ? 56 : 62,
+                            px: isMobile ? 1 : 2.25,
+                            py: 1,
+                        }}
+                    >
+                        {isMobile ? (
+                            <Button onClick={handleDialogClose} sx={{ minHeight: 44, minWidth: 72 }} type="button" variant="text">
                             Cancel
-                        </Button>
-                    ) : (
-                        <Box
-                            sx={{
-                                alignItems: 'center',
-                                bgcolor: 'custom.primaryBg',
-                                borderRadius: 1,
-                                color: 'primary.main',
-                                display: 'flex',
-                                height: 30,
-                                justifyContent: 'center',
-                                width: 30,
-                            }}
-                        >
-                            <Plus sx={{ fontSize: 18 }} />
-                        </Box>
-                    )}
-                    <Typography
-                        component="h2"
-                        id="new-card-dialog-heading"
-                        sx={{
-                            flex: 1,
-                            fontSize: isMobile ? 16 : 15.5,
-                            fontWeight: 700,
-                            textAlign: isMobile ? 'center' : 'left',
-                        }}
-                    >
-                        New card
-                    </Typography>
-                    {isMobile ? (
-                        <Button disabled={isSubmitDisabled} sx={{ minHeight: 44, minWidth: 72 }} type="submit" variant="text">
-                            Create
-                        </Button>
-                    ) : (
-                        <Tooltip title="Close">
-                            <IconButton aria-label="Close" onClick={handleDialogClose} size="small" sx={{ height: 30, width: 30 }}>
-                                <Close sx={{ fontSize: 17 }} />
-                            </IconButton>
-                        </Tooltip>
-                    )}
-                </DialogTitle>
-                <DialogContent
-                    data-testid="new-card-dialog-content"
-                    sx={{
-                        display: 'flex',
-                        flex: 1,
-                        flexDirection: 'column',
-                        gap: isMobile ? 2.25 : 2,
-                        minHeight: 0,
-                        overflowY: 'auto',
-                        px: isMobile ? 2 : 2.25,
-                        py: isMobile ? 2.25 : 2.25,
-                    }}
-                >
-                    <TextField
-                        autoFocus
-                        fullWidth
-                        id="new-card-title"
-                        onChange={handleTitleChange}
-                        placeholder="Card title…"
-                        slotProps={{ htmlInput: { 'aria-label': 'Title' } }}
-                        sx={{
-                            '& .MuiOutlinedInput-root': {
-                                borderRadius: isMobile ? '11px' : '9px',
-                                mt: 1,
-                                height: isMobile ? 48 : 46,
-                                '&.Mui-focused': { boxShadow: (currentTheme) => `0 0 0 3px ${currentTheme.palette.custom.primaryBg}` },
-                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderWidth: 1 },
-                                '& .MuiOutlinedInput-notchedOutline': { borderColor: 'custom.borderStrong' },
-                            },
-                            '& input': {
-                                fontSize: isMobile ? 18 : 17,
-                                fontWeight: 600,
-                            },
-                        }}
-                        value={title}
-                        variant="outlined"
-                    />
-                    <CardTypePillGroup
-                        cardTypes={cardTypes}
-                        isMobile={isMobile}
-                        onChange={setType}
-                        selectedType={selectedType}
-                    />
-                    <Stack spacing={isMobile ? 1.125 : 0.875} sx={isMobile ? { flexGrow: 1, minHeight: 0 } : undefined}>
-                        {!isMobile ? (
-                            <Typography color="custom.text3" sx={{ fontSize: 11.5 }}>
-                                Markdown
-                            </Typography>
-                        ) : null}
-                        <Box
-                            aria-label="Description"
-                            data-testid="new-card-description"
-                            ref={setEditorOverlayContainer}
-                            role="group"
-                            sx={{
-                                bgcolor: 'background.paper',
-                                border: 1,
-                                borderColor: 'custom.borderStrong',
-                                borderRadius: isMobile ? '11px' : '9px',
-                                boxSizing: 'border-box',
-                                color: 'text.primary',
-                                flex: isMobile ? 1 : undefined,
-                                height: isMobile ? undefined : 270,
-                                minHeight: isMobile ? 0 : 270,
-                                outline: 'none',
-                                overflow: 'auto',
-                                resize: isMobile ? 'none' : 'vertical',
-                                width: '100%',
-                                '&:focus-within': {
-                                    borderColor: 'primary.main',
-                                    boxShadow: (currentTheme) => `0 0 0 3px ${currentTheme.palette.custom.primaryBg}`,
-                                },
-                                '&:hover:not(:focus-within)': { borderColor: 'custom.borderHover' },
-                                '& > [data-sticky-toolbar]': { minHeight: '100%' },
-                                '& .light-theme, & .dark-theme': { minHeight: '100%' },
-                                '& [data-radix-popper-content-wrapper]': {zIndex: (currentTheme) => `${currentTheme.zIndex.modal + LINK_POPUP_LAYER_OFFSET} !important`},
-                                '& .mdxeditor-content': {
-                                    boxSizing: 'border-box',
-                                    minHeight: isMobile ? '100%' : 268,
-                                    p: 1.625,
-                                },
-                            }}
-                        >
-                            <NewCardMarkdownEditor
-                                draft={projectSessionService.newCardMarkdownDraft}
-                                overlayContainer={editorOverlayContainer}
-                            />
-                        </Box>
-                    </Stack>
-                </DialogContent>
-                <DialogActions
-                    sx={{
-                        alignItems: 'stretch',
-                        bgcolor: 'background.default',
-                        borderTop: 1,
-                        borderColor: 'divider',
-                        flexDirection: isMobile ? 'column' : 'row',
-                        flexShrink: 0,
-                        gap: isMobile ? 1.5 : 1,
-                        justifyContent: 'space-between',
-                        m: 0,
-                        px: isMobile ? 2 : 2.25,
-                        py: isMobile ? 1.5 : 1.5,
-                        pb: isMobile ? 'max(12px, env(safe-area-inset-bottom))' : 1.5,
-                    }}
-                >
-                    <Stack
-                        data-testid="new-card-footer-start"
-                        direction="row"
-                        spacing={1}
-                        sx={{ alignItems: 'center', minWidth: 0, width: isMobile ? '100%' : 'auto' }}
-                    >
-                        <MarkdownAttachmentControl disabled={false} onFiles={attachFilesToNewCardDraft} />
-                        <NewCardColumnPicker
-                            isMobile={isMobile}
-                            onChange={setTargetStatus}
-                            selectedStatus={selectedStatus}
-                            states={states}
-                        />
-                    </Stack>
-                    {!isMobile ? (
-                        <Stack direction="row" spacing={1}>
-                            <Button onClick={handleDialogClose} type="button" variant="outlined">
-                                Cancel
                             </Button>
-                            {createButton}
+                        ) : (
+                            <Box
+                                sx={{
+                                    alignItems: 'center',
+                                    bgcolor: 'custom.primaryBg',
+                                    borderRadius: 1,
+                                    color: 'primary.main',
+                                    display: 'flex',
+                                    height: 30,
+                                    justifyContent: 'center',
+                                    width: 30,
+                                }}
+                            >
+                                <Plus sx={{ fontSize: 18 }} />
+                            </Box>
+                        )}
+                        <Typography
+                            component="h2"
+                            id="new-card-dialog-heading"
+                            sx={{
+                                flex: 1,
+                                fontSize: isMobile ? 16 : 15.5,
+                                fontWeight: 700,
+                                textAlign: isMobile ? 'center' : 'left',
+                            }}
+                        >
+                        New card
+                        </Typography>
+                        {isMobile ? (
+                            <Button disabled={isSubmitDisabled} sx={{ minHeight: 44, minWidth: 72 }} type="submit" variant="text">
+                            Create
+                            </Button>
+                        ) : (
+                            <Tooltip title="Close">
+                                <IconButton aria-label="Close" onClick={handleDialogClose} size="small" sx={{ height: 30, width: 30 }}>
+                                    <Close sx={{ fontSize: 17 }} />
+                                </IconButton>
+                            </Tooltip>
+                        )}
+                    </DialogTitle>
+                    <DialogContent
+                        data-testid="new-card-dialog-content"
+                        sx={{
+                            display: 'flex',
+                            flex: 1,
+                            flexDirection: 'column',
+                            gap: isMobile ? 2.25 : 2,
+                            minHeight: 0,
+                            overflowY: 'auto',
+                            px: isMobile ? 2 : 2.25,
+                            py: isMobile ? 2.25 : 2.25,
+                        }}
+                    >
+                        <TextField
+                            autoFocus
+                            fullWidth
+                            id="new-card-title"
+                            onChange={handleTitleChange}
+                            placeholder="Card title…"
+                            slotProps={{ htmlInput: { 'aria-label': 'Title' } }}
+                            sx={{
+                                '& .MuiOutlinedInput-root': {
+                                    borderRadius: isMobile ? '11px' : '9px',
+                                    mt: 1,
+                                    height: isMobile ? 48 : 46,
+                                    '&.Mui-focused': { boxShadow: (currentTheme) => `0 0 0 3px ${currentTheme.palette.custom.primaryBg}` },
+                                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderWidth: 1 },
+                                    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'custom.borderStrong' },
+                                },
+                                '& input': {
+                                    fontSize: isMobile ? 18 : 17,
+                                    fontWeight: 600,
+                                },
+                            }}
+                            value={title}
+                            variant="outlined"
+                        />
+                        <CardTypePillGroup
+                            cardTypes={cardTypes}
+                            isMobile={isMobile}
+                            onChange={setType}
+                            selectedType={selectedType}
+                        />
+                        <Stack spacing={isMobile ? 1.125 : 0.875} sx={isMobile ? { flexGrow: 1, minHeight: 0 } : undefined}>
+                            {!isMobile ? (
+                                <Typography color="custom.text3" sx={{ fontSize: 11.5 }}>
+                                Markdown
+                                </Typography>
+                            ) : null}
+                            <Box
+                                aria-label="Description"
+                                data-testid="new-card-description"
+                                ref={setEditorOverlayContainer}
+                                role="group"
+                                sx={{
+                                    bgcolor: 'background.paper',
+                                    border: 1,
+                                    borderColor: 'custom.borderStrong',
+                                    borderRadius: isMobile ? '11px' : '9px',
+                                    boxSizing: 'border-box',
+                                    color: 'text.primary',
+                                    flex: isMobile ? 1 : undefined,
+                                    height: isMobile ? undefined : 270,
+                                    minHeight: isMobile ? 0 : 270,
+                                    outline: 'none',
+                                    overflow: 'auto',
+                                    resize: isMobile ? 'none' : 'vertical',
+                                    width: '100%',
+                                    '&:focus-within': {
+                                        borderColor: 'primary.main',
+                                        boxShadow: (currentTheme) => `0 0 0 3px ${currentTheme.palette.custom.primaryBg}`,
+                                    },
+                                    '&:hover:not(:focus-within)': { borderColor: 'custom.borderHover' },
+                                    '& > [data-sticky-toolbar]': { minHeight: '100%' },
+                                    '& .light-theme, & .dark-theme': { minHeight: '100%' },
+                                    '& [data-radix-popper-content-wrapper]': {zIndex: (currentTheme) => `${currentTheme.zIndex.modal + LINK_POPUP_LAYER_OFFSET} !important`},
+                                    '& .mdxeditor-content': {
+                                        boxSizing: 'border-box',
+                                        minHeight: isMobile ? '100%' : 268,
+                                        p: 1.625,
+                                    },
+                                }}
+                            >
+                                <NewCardMarkdownEditor
+                                    draft={projectSessionService.newCardMarkdownDraft}
+                                    overlayContainer={editorOverlayContainer}
+                                />
+                            </Box>
                         </Stack>
-                    ) : null}
+                    </DialogContent>
+                    <DialogActions
+                        sx={{
+                            alignItems: 'stretch',
+                            bgcolor: 'background.default',
+                            borderTop: 1,
+                            borderColor: 'divider',
+                            flexDirection: isMobile ? 'column' : 'row',
+                            flexShrink: 0,
+                            gap: isMobile ? 1.5 : 1,
+                            justifyContent: 'space-between',
+                            m: 0,
+                            px: isMobile ? 2 : 2.25,
+                            py: isMobile ? 1.5 : 1.5,
+                            pb: isMobile ? 'max(12px, env(safe-area-inset-bottom))' : 1.5,
+                        }}
+                    >
+                        <Stack
+                            data-testid="new-card-footer-start"
+                            direction="row"
+                            spacing={1}
+                            sx={{ alignItems: 'center', minWidth: 0, width: isMobile ? '100%' : 'auto' }}
+                        >
+                            <MarkdownAttachmentControl disabled={false} onFiles={attachFilesToNewCardDraft} />
+                            <NewCardColumnPicker
+                                isMobile={isMobile}
+                                onChange={setTargetStatus}
+                                selectedStatus={selectedStatus}
+                                states={states}
+                            />
+                        </Stack>
+                        {!isMobile ? (
+                            <Stack direction="row" spacing={1}>
+                                <Button onClick={handleDialogClose} type="button" variant="outlined">
+                                Cancel
+                                </Button>
+                                {createButton}
+                            </Stack>
+                        ) : null}
+                    </DialogActions>
+                </Box>
+            </Dialog>
+            <Dialog
+                aria-labelledby="discard-new-card-dialog-heading"
+                onClose={handleKeepEditing}
+                open={open && discardConfirmationOpen}
+            >
+                <DialogTitle id="discard-new-card-dialog-heading">{DISCARD_CARD_MESSAGE}</DialogTitle>
+                <DialogContent>
+                    <Typography>Your draft and pasted images will be removed.</Typography>
+                </DialogContent>
+                <DialogActions>
+                    <Button disabled={isDiscarding} onClick={handleKeepEditing} type="button" variant="outlined">
+                        Keep editing
+                    </Button>
+                    <Button color="error" disabled={isDiscarding} onClick={handleDiscard} type="button" variant="contained">
+                        Discard
+                    </Button>
                 </DialogActions>
-            </Box>
-        </Dialog>
+            </Dialog>
+        </>
     )
 }

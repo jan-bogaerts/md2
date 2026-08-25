@@ -2483,7 +2483,7 @@
         "totalTokens": 3733663
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -2566,6 +2566,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "eb8a662dca03aaa06d26c64964960c9d5b777bdd",
           "committedAt": "2026-08-23T16:50:49+02:00",
           "deletions": 15,
@@ -2584,8 +2585,7 @@
             "app/src/test/setup.ts"
           ],
           "filesChanged": 12,
-          "insertions": 426,
-          "branch": "dev_main"
+          "insertions": 426
         }
       ],
       "completedAt": "2026-08-23T16:50:49+02:00",

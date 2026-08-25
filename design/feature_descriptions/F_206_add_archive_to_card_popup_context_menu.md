@@ -3,7 +3,7 @@ author:
 id: F_206
 internalId: a992c823-0635-450a-9f89-af756fdac964
 title: Add archive to card popup context menu
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

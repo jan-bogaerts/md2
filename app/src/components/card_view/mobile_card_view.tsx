@@ -119,6 +119,22 @@ export function MobileCardView(props: MobileCardViewProps) {
         telemetryService.trackEvent('navigation')
     }
 
+    const handleArchiveCard = async (path: string) => {
+        try {
+            const activeCards = dataService.getState().snapshot?.activeCards ?? []
+            const card = activeCards.find((candidate) => candidate.path === path)
+            if (!card?.header.internalId) throw new Error(`Cannot archive card without an internal ID: ${path}`)
+            const targetIndex = activeCards.filter((candidate) => candidate.header.status === 'archived').length
+            await dataService.cards.moveCard(path, 'archived', targetIndex)
+            workspaceViewService.clearSelectedPath(path)
+            cardPopupService.closeCardDetailsByInternalId(card.header.internalId)
+            if (openAffectsPath === path) setOpenAffectsPath(null)
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: `Card archive failed: ${path}` })
+            throw error
+        }
+    }
+
     const handleDeleteCard = async (path: string) => {
         try {
             const card = dataService.getState().snapshot?.activeCards.find((candidate) => candidate.path === path)
@@ -167,6 +183,7 @@ export function MobileCardView(props: MobileCardViewProps) {
                             cardTypes={cardTypes}
                             column={selectedColumn}
                             isMobile
+                            onArchiveCard={handleArchiveCard}
                             onDeleteCard={handleDeleteCard}
                             onOpenInFileMode={handleOpenInFileMode}
                             onTitleChange={handleTitleChange}

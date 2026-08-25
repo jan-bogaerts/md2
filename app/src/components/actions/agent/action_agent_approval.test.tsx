@@ -157,26 +157,110 @@ describe('ActionAgentApproval', () => {
         expect(screen.getByText('desktop/main.js')).toBeInTheDocument()
     })
 
-    it('shows tool input and provider permission suggestions without provider or environment', () => {
+    it('collapses tool input, hides permission suggestions, and keeps the session decision', async () => {
+        const input = {
+            command: 'npm test -- src/actions/agent/claude_usage\n--runInBand',
+            description: 'Run claude usage tests',
+            timeout: 300000,
+        }
+        const onDecision = vi.fn(async () => undefined)
         render(<ActionAgentApproval approval={{
             ...approval,
             availableDecisions: ['accept', 'acceptForSession', 'decline', 'cancel'],
             command: 'npm test',
             environmentId: 'local',
-            input: { command: 'npm test' },
+            input,
             permissionSuggestions: [{ behavior: 'allow', destination: 'session', tool: 'Bash' }],
             provider: 'claude',
             requestId: 'request-1',
             toolName: 'Bash',
-        }} onDecision={vi.fn()} />)
+        }} onDecision={onDecision} />)
+        const inputButton = screen.getByRole('button', { name: 'Toggle full input' })
 
         expect(screen.queryByText('Provider')).not.toBeInTheDocument()
         expect(screen.queryByText('claude')).not.toBeInTheDocument()
         expect(screen.queryByText('Environment')).not.toBeInTheDocument()
         expect(screen.queryByText('local')).not.toBeInTheDocument()
         expect(screen.getByText('Bash')).toBeInTheDocument()
-        expect(screen.getByText(/"command": "npm test"/u)).toBeInTheDocument()
-        expect(screen.getByText(/"destination": "session"/u)).toBeInTheDocument()
+        expect(screen.queryByText('Session permission suggestions')).not.toBeInTheDocument()
+        expect(screen.queryByText(/"destination": "session"/u)).not.toBeInTheDocument()
+        expect(inputButton).toHaveAttribute('aria-expanded', 'false')
+        expect(inputButton).toHaveStyle({ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' })
+        expect(inputButton.textContent).toBe(input.command)
+
+        fireEvent.click(inputButton)
+
+        expect(inputButton).toHaveAttribute('aria-expanded', 'true')
+        expect(inputButton).toHaveStyle({ overflowWrap: 'anywhere', textOverflow: 'clip', whiteSpace: 'pre-wrap' })
+        expect(inputButton.textContent).toBe(JSON.stringify(input, null, 2))
+
+        fireEvent.click(inputButton)
+        fireEvent.click(screen.getByRole('button', { name: 'Allow for session' }))
+
+        expect(inputButton).toHaveAttribute('aria-expanded', 'false')
+        await waitFor(() => expect(onDecision).toHaveBeenCalledWith('request-1', 'acceptForSession'))
+    })
+
+    it('uses compact JSON for a non-string first input field and an empty line for an empty input', () => {
+        const { rerender } = render(<ActionAgentApproval
+            approval={{ ...approval, input: { options: ['unit', 'ui'], timeout: 300000 }, requestId: 'request-1' }}
+            key="request-1"
+            onDecision={vi.fn()}
+        />)
+
+        expect(screen.getByRole('button', { name: 'Toggle full input' }).textContent).toBe('["unit","ui"]')
+
+        rerender(<ActionAgentApproval
+            approval={{ ...approval, input: {}, requestId: 'request-2' }}
+            key="request-2"
+            onDecision={vi.fn()}
+        />)
+
+        expect(screen.getByRole('button', { name: 'Toggle full input' }).textContent).toBe('')
+    })
+
+    it('keeps collapsible rows independent and resets them for a new approval', () => {
+        const firstApproval = {
+            ...approval,
+            command: 'combined command',
+            commandActions: [{ command: 'first action', type: 'unknown' as const }],
+            input: { command: 'input command', timeout: 300000 },
+            requestId: 'request-1',
+        }
+        const { rerender } = render(<ActionAgentApproval approval={firstApproval} key="request-1" onDecision={vi.fn()} />)
+        const inputButton = screen.getByRole('button', { name: 'Toggle full input' })
+
+        fireEvent.click(inputButton)
+
+        expect(inputButton).toHaveAttribute('aria-expanded', 'true')
+        expect(screen.getByRole('button', { name: 'Toggle full command' })).toHaveAttribute('aria-expanded', 'false')
+        expect(screen.getByRole('button', { name: 'Toggle full actions' })).toHaveAttribute('aria-expanded', 'false')
+
+        rerender(<ActionAgentApproval
+            approval={{ ...firstApproval, requestId: 'request-2' }}
+            key="request-2"
+            onDecision={vi.fn()}
+        />)
+
+        expect(screen.getByRole('button', { name: 'Toggle full input' })).toHaveAttribute('aria-expanded', 'false')
+        expect(screen.getByRole('button', { name: 'Toggle full command' })).toHaveAttribute('aria-expanded', 'false')
+        expect(screen.getByRole('button', { name: 'Toggle full actions' })).toHaveAttribute('aria-expanded', 'false')
+    })
+
+    it('renders a Codex approval without an input row or empty input toggle', () => {
+        render(<ActionAgentApproval approval={{
+            ...approval,
+            command: 'combined command',
+            commandActions: [{ command: 'Get-ChildItem C:\\repo', type: 'unknown' }],
+            input: null,
+            permissionSuggestions: null,
+            provider: 'codex',
+        }} onDecision={vi.fn()} />)
+
+        expect(screen.queryByText('Input')).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Toggle full input' })).not.toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Toggle full command' })).toHaveAttribute('aria-expanded', 'false')
+        expect(screen.getByRole('button', { name: 'Toggle full actions' })).toHaveAttribute('aria-expanded', 'false')
     })
 
     it('names the sub agent requesting approval', () => {

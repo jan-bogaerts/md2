@@ -1,10 +1,14 @@
 {
   "actionSettings": {
     "47dafdc7-0be7-4d56-bb5a-07c813906416": {
-      "agent": "claude",
-      "model": "opus",
+      "activeAgent": "claude",
       "permissionMode": "approve-for-me",
-      "thinkingLevel": "medium"
+      "settingsByAgent": {
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
     }
   },
   "conversations": [
@@ -941,7 +945,7 @@
         "costUsd": 1.4116655000000002
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -992,11 +996,11 @@
         "agent-023e8bb9-8d51-42ba-badb-9c4b50446e87"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-8d6a313d-6bb2-443f-8f01-7d92837192ba",
       "origin": {
@@ -1005,10 +1009,10 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-023e8bb9-8d51-42ba-badb-9c4b50446e87",
       "startedAt": "2026-08-20T17:56:23.487Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-023e8bb9-8d51-42ba-badb-9c4b50446e87"
     }
   ],
-  "version": 4
+  "version": 5
 }

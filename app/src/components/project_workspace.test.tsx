@@ -1,4 +1,5 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { UseGithubAuthResult } from '../auth/use_github_auth'
 import type { ActionFile } from '../data/action_types'
@@ -197,6 +198,15 @@ async function openLocalProject() {
 
 async function findRootCard() {
     return within(await screen.findByLabelText('Card columns')).findByText('Root')
+}
+
+function dismissNewCardThroughBackdrop() {
+    const dialog = screen.getByRole('dialog', { name: 'New card' })
+    const backdrop = dialog.closest('.MuiDialog-root')?.querySelector('.MuiBackdrop-root')
+    if (!backdrop) throw new Error('Missing new-card dialog backdrop')
+
+    fireEvent.mouseDown(backdrop)
+    fireEvent.click(backdrop)
 }
 
 function mockGithubFetch() {
@@ -660,6 +670,54 @@ describe('ProjectWorkspace', () => {
 
         expect(await screen.findByText('commit failed')).toBeInTheDocument()
         expect(screen.getByRole('dialog', { name: 'New card' })).toBeInTheDocument()
+    })
+
+    it('keeps existing-card title and Markdown input usable after keeping and creating a dismissed draft', async () => {
+        const user = userEvent.setup()
+        const bridge = createBridge()
+        window.md2Data = bridge
+
+        renderProjectSurface()
+        await openLocalProject()
+        await findRootCard()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Project' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'New card...' }))
+        const newCardTitle = await screen.findByRole('textbox', { name: 'Title' })
+        const newCardBody = within(screen.getByRole('group', { name: 'Description' })).getByRole('textbox')
+        await user.type(newCardTitle, 'New card')
+        await user.type(newCardBody, 'Draft body')
+
+        dismissNewCardThroughBackdrop()
+        await user.click(await screen.findByRole('button', { name: 'Keep editing' }))
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Discard this new card draft?' })).not.toBeInTheDocument())
+        await user.click(newCardTitle)
+        await user.type(newCardTitle, ' finished')
+        await user.click(newCardBody)
+        await user.type(newCardBody, ' finished')
+        await user.click(screen.getByRole('button', { name: 'Create card' }))
+
+        await waitFor(() => expect(screen.queryByRole('dialog', { hidden: true, name: 'New card' })).not.toBeInTheDocument())
+        expect(screen.queryByRole('dialog', { hidden: true, name: 'Discard this new card draft?' })).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Drag F-1' }))
+        const cardDialog = await screen.findByRole('dialog', { name: 'F-1 card details' })
+        const cardTitle = within(cardDialog).getByRole('textbox', { name: 'Card title' })
+        const cardBody = within(cardDialog).getByDisplayValue(/# Root/u)
+        const commitCountBeforeExistingCardEdit = vi.mocked(bridge.commit).mock.calls.length
+        await user.click(cardTitle)
+        await user.type(cardTitle, ' typed')
+        expect(cardTitle).toHaveFocus()
+        expect(cardTitle).toHaveValue('Root typed')
+        await user.click(cardBody)
+        await user.type(cardBody, ' typed')
+
+        expect(cardBody).toHaveFocus()
+        expect((cardBody as HTMLTextAreaElement).value).toContain('typed')
+        await waitFor(() => expect(vi.mocked(bridge.commit).mock.calls.length).toBeGreaterThan(commitCountBeforeExistingCardEdit))
+        await user.click(within(cardDialog).getByRole('button', { name: 'Close card details' }))
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'F-1 card details' })).not.toBeInTheDocument())
+        await projectPersistenceService.flushPendingChanges()
     })
 
     it('lists custom configured card types and uses their prefix', async () => {
