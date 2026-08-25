@@ -16,6 +16,7 @@ import {
 import { AppThemeProvider } from '../../../theme/theme_provider'
 import { dialogService } from '../../../services/dialog_service'
 import { projectSessionService } from '../../../services/project/project_session_service'
+import { createDeferred } from '../../../services/test_support/data_service_test_support'
 import { BranchSwitchDialog } from './branch_switch_dialog'
 import { CompleteReleaseDialog } from './complete_release_dialog'
 import { NewCardDialog } from './new_card_dialog'
@@ -968,12 +969,8 @@ describe('project dialog components', () => {
     it('discards once and closes once while repeated dismissal occurs during cleanup', async () => {
         const user = userEvent.setup()
         const close = vi.fn()
-        let resolveCleanup: (() => void) | null = null
-        const discardImages = vi.spyOn(projectSessionService, 'discardNewCardDraftImages').mockImplementation(async () => {
-            await new Promise<void>((resolve) => {
-                resolveCleanup = resolve
-            })
-        })
+        const cleanup = createDeferred<void>()
+        const discardImages = vi.spyOn(projectSessionService, 'discardNewCardDraftImages').mockReturnValue(cleanup.promise)
         render(
             <NewCardDialog
                 cardTypes={DEFAULT_CARD_TYPES}
@@ -997,8 +994,7 @@ describe('project dialog components', () => {
 
         expect(discardImages).toHaveBeenCalledOnce()
         expect(close).not.toHaveBeenCalled()
-        if (!resolveCleanup) throw new Error('Draft cleanup did not start')
-        resolveCleanup()
+        cleanup.resolve()
         await waitFor(() => expect(close).toHaveBeenCalledOnce())
         expect(discardImages).toHaveBeenCalledOnce()
     })
@@ -1008,7 +1004,7 @@ describe('project dialog components', () => {
         const close = vi.fn()
         const cleanupError = new Error('cleanup failed')
         vi.spyOn(projectSessionService, 'discardNewCardDraftImages').mockRejectedValue(cleanupError)
-        const reportError = vi.spyOn(dialogService, 'error').mockImplementation(() => undefined)
+        const reportError = vi.spyOn(dialogService, 'error')
         render(
             <NewCardDialog
                 cardTypes={DEFAULT_CARD_TYPES}

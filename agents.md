@@ -134,9 +134,7 @@ you must:
    - Bug fixes (a regression test that would fail before the fix).
 3. **Run tests in proportion to the change**:
    - During implementation, run test files directly with `npm run test -- <test paths>`. In `app/`, `npm run test:related -- <source paths>` can find ESM dependents when the affected set is useful.
-   - Before submitting, run `npm run test:unit` in `app/` plus the directly affected UI or desktop tests.
-   - Run `npm run test:full` in each affected subproject for cross-cutting changes, shared infrastructure changes, releases, and changes whose impact cannot be isolated confidently.
-   - Full suites also run in merge, scheduled, and release CI; they are not required after every local edit.
+   - you do not need to run full tests. you should not decide upon yourself to run the full test suite. you should only do so when instructed to.
    - A selectively run test file must pass independently. Treat order-dependent failures, leaked asynchronous work, and shared-state contamination as test defects.
 4. **Keep only tests for stable behavior**
   Temporary tests must be removed before finishing when they:

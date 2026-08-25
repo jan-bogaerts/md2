@@ -3,7 +3,7 @@ author:
 id: F_254
 internalId: 427d1b08-b9a7-4933-abbb-16c7e60595e1
 title: multiple actions on a card
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
