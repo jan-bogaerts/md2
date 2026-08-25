@@ -3599,6 +3599,51 @@
       "startedAt": "2026-08-25T18:28:14.939Z",
       "status": "completed",
       "rootConversationId": "agent-00850ae9-dc1b-457d-848a-84f85f6c4922"
+    },
+    {
+      "commits": [
+        {
+          "commit": "f48d8670f04fd3157bc7209eda53f8f9cbd505d4",
+          "committedAt": "2026-08-25T20:46:48+02:00",
+          "deletions": 67,
+          "filePaths": [
+            "app/src/components/actions/agent/action_agent_prompt.tsx",
+            "app/src/components/resizable_popover.tsx",
+            "app/src/components/resizable_popper.tsx",
+            "app/src/components/shell/project/use_project_toolbar_menu_actions.ts",
+            "app/src/components/shell/split_layout.tsx",
+            "app/src/data/project_session.ts",
+            "app/src/data/recent_local_repositories.test.ts",
+            "app/src/data/recent_local_repositories.ts",
+            "app/src/data/remote_control_connection.ts",
+            "app/src/main.tsx",
+            "app/src/services/config/config_persistence.ts",
+            "app/src/services/github/github_auth_service.ts",
+            "app/src/services/github/github_storage_context.ts",
+            "app/src/services/sentry/sentry_connection_service.ts",
+            "app/src/services/storage/application_storage.test.ts",
+            "app/src/services/storage/application_storage.ts",
+            "app/src/services/storage/electron_application_state_bridge.ts",
+            "app/src/theme/use_theme_settings.ts",
+            "desktop/main.js",
+            "desktop/src/shell/application_state_store.js",
+            "desktop/src/shell/application_state_store.test.mjs",
+            "desktop/src/shell/ipc_channels.js",
+            "desktop/src/shell/preload.js",
+            "desktop/src/shell/preload.test.mjs"
+          ],
+          "filesChanged": 24,
+          "insertions": 595,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-25T20:46:48+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "7f35084a-0348-4869-a764-e0ff2ff2843d",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
