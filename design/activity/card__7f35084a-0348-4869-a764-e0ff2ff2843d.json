@@ -5,10 +5,10 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "7f35084a-0348-4869-a764-e0ff2ff2843d",
       "cardPath": "design/feature_descriptions/J_33_second_instance_strange_behaviour.md",
-      "completedAt": "2026-08-25T16:04:52.719Z",
+      "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 75037
+        "usedTokens": 75178
       },
       "entries": [
         {
@@ -416,6 +416,36 @@
           "role": "assistant",
           "sequence": 31,
           "timestamp": "2026-08-25T16:04:52.719Z"
+        },
+        {
+          "content": "Your solution is to only allow 1 instance?",
+          "id": "agent-turn-a7fc0d25-68d5-46bf-abfb-1cb3b1701594-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 32,
+          "timestamp": "2026-08-25T17:37:54.850Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-a7fc0d25-68d5-46bf-abfb-1cb3b1701594-event-33",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0e103d18081b61f4016a8dd2f954b887d29ac4c8c5048938d1",
+          "sequence": 33,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-25T17:38:00.059Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Yes. Draft assumes single-instance desktop app: second launch restores and focuses existing window.\n\nIf multiple independent instances must be supported, solution must change substantially: separate renderer storage, backend services, ports, watchers, and project sessions per instance.\n\nShould app permit only one instance, or support multiple independent instances?\n\n",
+          "id": "agent-turn-a7fc0d25-68d5-46bf-abfb-1cb3b1701594-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 34,
+          "timestamp": "2026-08-25T17:38:01.613Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -430,21 +460,21 @@
         }
       ],
       "startedAt": "2026-08-25T16:01:50.134Z",
-      "status": "completed",
+      "status": "running",
       "timer": {
         "elapsedMs": 182585,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-08-25T17:37:54.850Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 539648,
-        "inputTokens": 71387,
-        "outputTokens": 2332,
-        "reasoningTokens": 3257,
-        "totalTokens": 616624
+        "cachedInputTokens": 550656,
+        "inputTokens": 135432,
+        "outputTokens": 2398,
+        "reasoningTokens": 3316,
+        "totalTokens": 691802
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -471,11 +501,11 @@
         "agent-9beac052-cd8f-4667-b6c8-48f66090534b"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-bbafd9ce-04d6-4582-ad0b-6b7f7317a46b",
       "origin": {
@@ -484,9 +514,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-9beac052-cd8f-4667-b6c8-48f66090534b",
       "startedAt": "2026-08-25T16:01:50.133Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-9beac052-cd8f-4667-b6c8-48f66090534b"
     }
   ],
   "version": 5
