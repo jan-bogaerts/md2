@@ -3,12 +3,11 @@ author:
 id: F_240
 internalId: db4400c0-0d7f-4265-8939-8b4e493c7208
 title: action popup card id add tooltip
-status: new
+status: design
 owner: 
 affects:
 agents:
 policy:
-after: 97733177-b4c8-47c3-af3d-64c31d4eca93
 ---
 
 on the action popup, in the upper left corner, we show the id of the card (if any). we should add a tooltip to that shows the title of the card.

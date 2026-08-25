@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__7f35084a-0348-4869-a764-e0ff2ff2843d.json
 policy:
+after: db4400c0-0d7f-4265-8939-8b4e493c7208
 ---
 
 When a second instance is started, the app behaves a little strange at startup:
