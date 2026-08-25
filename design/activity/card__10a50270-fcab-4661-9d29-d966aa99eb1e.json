@@ -4682,15 +4682,15 @@
           "agent": "codex",
           "conversationId": "01a03a17-810e-7171-b0f3-6a4d3e8b820d",
           "createdAt": "2026-08-25T18:07:16.257Z",
-          "lastUsedAt": "2026-08-25T18:07:16.257Z",
-          "synchronizedThroughMessageId": "agent-turn-5fbbc56e-7ba4-4501-a380-1867a435b636-turn-1-assistant-4"
+          "lastUsedAt": "2026-08-25T18:27:47.516Z",
+          "synchronizedThroughMessageId": "agent-turn-5fbbc56e-7ba4-4501-a380-1867a435b636-turn-2-assistant-4"
         }
       ],
       "startedAt": "2026-08-25T18:03:33.426Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
-        "elapsedMs": 222831,
-        "runningStartedAt": "2026-08-25T18:21:22.918Z"
+        "elapsedMs": 607429,
+        "runningStartedAt": null
       },
       "title": "review",
       "usage": {
@@ -4701,7 +4701,7 @@
         "totalTokens": 4583818
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {

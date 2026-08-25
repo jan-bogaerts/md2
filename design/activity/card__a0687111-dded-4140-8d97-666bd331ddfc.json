@@ -1839,7 +1839,7 @@
         "totalTokens": 1554826
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -1910,6 +1910,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "ccb51677e636d4914404efaea569d0d786ae3c84",
           "committedAt": "2026-08-25T20:14:45+02:00",
           "deletions": 6,
@@ -1918,8 +1919,7 @@
             "desktop/src/actions/action/action_run.test.mjs"
           ],
           "filesChanged": 2,
-          "insertions": 156,
-          "branch": "dev_main"
+          "insertions": 156
         }
       ],
       "completedAt": "2026-08-25T20:14:45+02:00",
