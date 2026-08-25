@@ -6672,6 +6672,71 @@
       "startedAt": "2026-08-25T15:42:13.717Z",
       "status": "completed",
       "rootConversationId": "agent-c6a400e4-56b0-43ea-b298-50695d438cd5"
+    },
+    {
+      "commits": [
+        {
+          "commit": "cb951452b296d9fbfef952d225287485603f993f",
+          "committedAt": "2026-08-25T20:14:35+02:00",
+          "deletions": 344,
+          "filePaths": [
+            "app/src/components/actions/agent/action_agent_approvals.tsx",
+            "app/src/components/actions/agent/action_agent_preset_name_owner.tsx",
+            "app/src/components/actions/agent/action_agent_prompt_owner.tsx",
+            "app/src/components/actions/agent/action_agent_question_owner.tsx",
+            "app/src/components/actions/agent/action_agent_selectors.test.tsx",
+            "app/src/components/actions/agent/action_agent_selectors.tsx",
+            "app/src/components/actions/conversation/action_conversation_chat.tsx",
+            "app/src/components/actions/conversation/action_conversation_chat_integration.test.tsx",
+            "app/src/components/actions/conversation/action_conversation_picker.test.tsx",
+            "app/src/components/actions/conversation/action_conversation_picker.tsx",
+            "app/src/components/actions/conversation/action_conversation_picker_owner.tsx",
+            "app/src/components/actions/conversation/action_conversation_store.node.test.ts",
+            "app/src/components/actions/conversation/action_conversation_store.ts",
+            "app/src/components/actions/conversation/action_log_error_owner.tsx",
+            "app/src/components/actions/conversation/conversation_context_usage.tsx",
+            "app/src/components/actions/conversation/conversation_meta_info.tsx",
+            "app/src/components/actions/editor/action_phrase_buttons_owner.tsx",
+            "app/src/components/actions/run/popup/action_agent_interaction.tsx",
+            "app/src/components/actions/run/popup/action_popup.test.tsx",
+            "app/src/components/actions/run/popup/action_popup_bottom_row.test.tsx",
+            "app/src/components/actions/run/popup/action_popup_bottom_row.tsx",
+            "app/src/components/actions/run/popup/action_popup_content.tsx",
+            "app/src/components/actions/run/popup/action_popup_frame.tsx",
+            "app/src/components/actions/run/popup/action_popup_operations.node.test.ts",
+            "app/src/components/actions/run/popup/action_popup_operations.ts",
+            "app/src/components/actions/run/popup/action_popup_run_disabled.ts",
+            "app/src/components/actions/run/popup/action_popup_runtime.ts",
+            "app/src/components/actions/run/popup/action_popup_types.ts",
+            "app/src/components/actions/run/popup/action_usage_summary_owner.test.tsx",
+            "app/src/components/actions/run/popup/action_usage_summary_owner.tsx",
+            "app/src/components/actions/run/popup/action_worktree_selector_owner.tsx",
+            "app/src/components/actions/run/popup/agent_action.tsx",
+            "app/src/components/actions/run/popup/command_action.tsx",
+            "app/src/components/actions/run/state/action_run_binding_store.node.test.ts",
+            "app/src/components/actions/run/state/action_run_binding_store.ts",
+            "app/src/components/actions/run/state/action_run_status_owner.tsx",
+            "app/src/components/actions/run/trigger/card_run_button.test.tsx",
+            "app/src/components/hooks/use_action_runs.test.tsx",
+            "app/src/components/hooks/use_action_runs.ts",
+            "app/src/services/actions/action_prompt_draft_service.node.test.ts",
+            "app/src/services/actions/action_prompt_draft_service.ts",
+            "app/src/services/actions/action_run_registry.node.test.ts",
+            "app/src/services/actions/action_run_registry.ts",
+            "app/src/services/actions/action_service.node.test.ts"
+          ],
+          "filesChanged": 44,
+          "insertions": 757,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-25T20:14:35+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "427d1b08-b9a7-4933-abbb-16c7e60595e1",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
