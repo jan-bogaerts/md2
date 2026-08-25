@@ -3,6 +3,7 @@ import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerE
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { dialogService } from '../../services/dialog_service'
 import { workspaceViewService } from '../../services/project/workspace_view_service'
+import { applicationStorage } from '../../services/storage/application_storage'
 
 export const SPLIT_WIDTH_STORAGE_KEY = 'md2.splitWidth'
 const MIN_LEFT_WIDTH = 160
@@ -17,7 +18,7 @@ interface SplitLayoutProps {
 }
 
 function readStoredWidth(): number {
-    const storedValue = window.localStorage.getItem(SPLIT_WIDTH_STORAGE_KEY)
+    const storedValue = applicationStorage.getItem(SPLIT_WIDTH_STORAGE_KEY)
     const parsedValue = storedValue ? Number.parseInt(storedValue, 10) : Number.NaN
     return Number.isNaN(parsedValue) ? DEFAULT_LEFT_WIDTH : parsedValue
 }
@@ -82,7 +83,7 @@ export function SplitLayout(props: SplitLayoutProps) {
         setIsDragging(false)
         event.currentTarget.releasePointerCapture?.(event.pointerId)
         setLeftWidth((currentWidth) => {
-            window.localStorage.setItem(SPLIT_WIDTH_STORAGE_KEY, String(Math.round(currentWidth)))
+            applicationStorage.setItem(SPLIT_WIDTH_STORAGE_KEY, String(Math.round(currentWidth)))
             return currentWidth
         })
     }, [isDragging])
@@ -104,7 +105,7 @@ export function SplitLayout(props: SplitLayoutProps) {
         event.preventDefault()
         const clampedWidth = clampWidth(nextWidth, bounds.width)
         setLeftWidth(clampedWidth)
-        window.localStorage.setItem(SPLIT_WIDTH_STORAGE_KEY, String(Math.round(clampedWidth)))
+        applicationStorage.setItem(SPLIT_WIDTH_STORAGE_KEY, String(Math.round(clampedWidth)))
     }, [leftWidth])
 
     return (

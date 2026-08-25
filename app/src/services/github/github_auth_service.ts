@@ -6,6 +6,7 @@ import {
     type GithubUser,
 } from '../../auth/github_auth_types'
 import { register } from '../service_injector'
+import { applicationStorage } from '../storage/application_storage'
 
 export interface GithubAuthServiceDependencies {
     fetchUser: (accessToken: string) => Promise<GithubUser>
@@ -189,7 +190,7 @@ export function createGithubAuthService() {
 export function initDefaultGithubAuthService(service: GithubAuthService) {
     service.init({
         fetchUser: fetchGithubUser,
-        storage: window.localStorage,
+        storage: applicationStorage,
     })
 
     return service

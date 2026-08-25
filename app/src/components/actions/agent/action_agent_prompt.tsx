@@ -5,6 +5,7 @@ import {
 } from 'react'
 import { ACTION_PROMPT_PLACEHOLDERS } from '../../../data/action_placeholders'
 import type { ActionPromptDraft } from '../../../services/actions/action_prompt_draft_service'
+import { applicationStorage } from '../../../services/storage/application_storage'
 import { MarkdownEditor, type MarkdownEditorHandle } from '../../editor/markdown_editor'
 
 const MIN_PROMPT_HEIGHT = 72
@@ -15,14 +16,14 @@ const PROMPT_RESIZE_STEP = 24
 const PROMPT_HEIGHT_STORAGE_KEY = 'md2.actionPromptHeight'
 
 function readStoredPromptHeight(): number {
-    const storedValue = window.localStorage.getItem(PROMPT_HEIGHT_STORAGE_KEY)
+    const storedValue = applicationStorage.getItem(PROMPT_HEIGHT_STORAGE_KEY)
     const parsedValue = storedValue ? Number.parseInt(storedValue, 10) : Number.NaN
 
     return Number.isNaN(parsedValue) ? DEFAULT_PROMPT_HEIGHT : parsedValue
 }
 
 function persistPromptHeight(height: number) {
-    window.localStorage.setItem(PROMPT_HEIGHT_STORAGE_KEY, String(Math.round(height)))
+    applicationStorage.setItem(PROMPT_HEIGHT_STORAGE_KEY, String(Math.round(height)))
 }
 
 interface ActionAgentPromptProps {

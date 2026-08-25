@@ -101,8 +101,8 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         }
     }, [accessToken, closeDialog, onOpenDialog])
 
-    const recordOpenedLocalProject = useCallback((rootPath: string) => {
-        setRecentLocalRepositories(recordRecentLocalRepository(rootPath))
+    const recordOpenedLocalProject = useCallback(async (rootPath: string) => {
+        setRecentLocalRepositories(await recordRecentLocalRepository(rootPath))
         setPendingLocalRootPath(null)
     }, [])
 
@@ -110,7 +110,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         if (!nextProject.rootPath) throw new Error('Resolved local repository has no root path')
 
         const result = await openProject('local', nextProject)
-        if (result === 'opened') recordOpenedLocalProject(nextProject.rootPath)
+        if (result === 'opened') await recordOpenedLocalProject(nextProject.rootPath)
         if (result === 'resolution') setPendingLocalRootPath(nextProject.rootPath)
     }, [openProject, recordOpenedLocalProject])
 
@@ -298,7 +298,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
 
         try {
             await projectSessionService.openWorkingFolder(projectOpenResolution, folder, accessToken)
-            if (pendingLocalRootPath) recordOpenedLocalProject(pendingLocalRootPath)
+            if (pendingLocalRootPath) await recordOpenedLocalProject(pendingLocalRootPath)
             closeDialog()
         } catch {
             // ProjectSessionService emits the user-visible error.
@@ -310,7 +310,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
 
         try {
             await projectSessionService.createWorkingFolder(projectOpenResolution, accessToken)
-            if (pendingLocalRootPath) recordOpenedLocalProject(pendingLocalRootPath)
+            if (pendingLocalRootPath) await recordOpenedLocalProject(pendingLocalRootPath)
             closeDialog()
         } catch {
             // ProjectSessionService emits the user-visible error.
@@ -322,7 +322,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
 
         try {
             await projectSessionService.createProjectFolders(projectOpenResolution, projectFolder, accessToken)
-            if (pendingLocalRootPath) recordOpenedLocalProject(pendingLocalRootPath)
+            if (pendingLocalRootPath) await recordOpenedLocalProject(pendingLocalRootPath)
             closeDialog()
         } catch {
             // ProjectSessionService emits the user-visible error.

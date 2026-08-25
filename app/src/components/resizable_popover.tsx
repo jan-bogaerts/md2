@@ -3,6 +3,7 @@ import type { PopoverOrigin, SxProps, Theme } from '@mui/material'
 import { useEffect, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import { dialogService } from '../services/dialog_service'
+import { applicationStorage } from '../services/storage/application_storage'
 
 export type ResizeCorner = 'lower-left' | 'lower-right'
 
@@ -24,7 +25,7 @@ interface ResizablePopoverProps {
     resizeCorner?: ResizeCorner
     resizeFromAllSides?: boolean
     resizeLabel: string
-    /** When set, the last dragged size is remembered in localStorage under this key. */
+    /** When set, the last dragged size is remembered in application storage under this key. */
     sizeStorageKey?: string
     transformOrigin?: PopoverOrigin
 }
@@ -42,7 +43,7 @@ type ResizeDirection = typeof ALL_RESIZE_DIRECTIONS[number]
 function readStoredSize(storageKey: string | undefined): PopoverSize | null {
     if (!storageKey) return null
 
-    const stored = window.localStorage.getItem(storageKey)
+    const stored = applicationStorage.getItem(storageKey)
     if (!stored) return null
 
     const parsed = JSON.parse(stored) as PopoverSize
@@ -150,7 +151,7 @@ export function ResizablePopover(props: ResizablePopoverProps) {
                 controller.abort()
                 if (sizeStorageKey && paperRef.current) {
                     const paperBounds = paperRef.current.getBoundingClientRect()
-                    window.localStorage.setItem(sizeStorageKey, JSON.stringify({ height: paperBounds.height, width: paperBounds.width }))
+                    applicationStorage.setItem(sizeStorageKey, JSON.stringify({ height: paperBounds.height, width: paperBounds.width }))
                 }
             }, { signal: controller.signal })
         } catch (error) {

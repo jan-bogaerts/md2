@@ -1,5 +1,8 @@
 const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
+const APPLICATION_STATE_READ_CHANNEL = 'md2-application-state:read';
+const APPLICATION_STATE_REMOVE_CHANNEL = 'md2-application-state:remove';
+const APPLICATION_STATE_WRITE_CHANNEL = 'md2-application-state:write';
 const CLIPBOARD_COPY_AS_TEXT_CHANNEL = 'md2-clipboard:copy-as-text';
 const CONFIG_SET_DESKTOP_CHANNEL = 'md2-config:set-desktop';
 const LIFECYCLE_FLUSH_RESULT_CHANNEL = 'md2-lifecycle:flush-pending-commits-result';
@@ -214,6 +217,11 @@ function isAllowedOrigin() {
 if (!isAllowedOrigin()) {
     exposeWarning(`MD² desktop bridges blocked for origin: ${window.location.origin}`);
 } else {
+    const applicationStateBridge = {
+        read: (key = null) => ipcRenderer.invoke(APPLICATION_STATE_READ_CHANNEL, key),
+        remove: (key) => ipcRenderer.invoke(APPLICATION_STATE_REMOVE_CHANNEL, key),
+        write: (key, value) => ipcRenderer.invoke(APPLICATION_STATE_WRITE_CHANNEL, key, value),
+    };
     const themeBridge = { setThemeMode: (mode) => ipcRenderer.send(THEME_SET_MODE_CHANNEL, mode) };
     const lifecycleBridge = {
         reportFlushResult: (result) => ipcRenderer.send(LIFECYCLE_FLUSH_RESULT_CHANNEL, result),
@@ -294,6 +302,7 @@ if (!isAllowedOrigin()) {
         },
     };
 
+    contextBridge.exposeInMainWorld('md2ApplicationState', applicationStateBridge);
     contextBridge.exposeInMainWorld('md2Theme', themeBridge);
     contextBridge.exposeInMainWorld('md2Lifecycle', lifecycleBridge);
     contextBridge.exposeInMainWorld('md2Clipboard', clipboardBridge);

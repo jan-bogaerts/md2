@@ -10,6 +10,10 @@ if (existsSync(desktopEnvironmentPath)) process.loadEnvFile(desktopEnvironmentPa
 
 const Store = require('electron-store');
 const windowStateKeeper = require('electron-window-state');
+const {
+    createApplicationStateStore,
+    registerApplicationStateBridge,
+} = require('./src/shell/application_state_store');
 const { readDesktopConfig, resolveBridgeAllowedOrigins, saveDesktopConfig } = require('./src/shell/config');
 const { AgentRunnerService } = require('./src/actions/agent/agent_runner_service');
 const { CodexRuntimeService } = require('./src/actions/agent/codex_runtime_service');
@@ -74,6 +78,7 @@ const SUBSCRIPTION_METHODS = new Set([
 ]);
 
 const store = new Store();
+const applicationStateStore = createApplicationStateStore(Store);
 Store.initRenderer();
 const agentExecutableResolver = new AgentExecutableResolver();
 const claudeRuntimeService = new ClaudeRuntimeService();
@@ -342,6 +347,7 @@ async function stopAndQuit() {
 
 app.whenReady().then(async () => {
     await electronTelemetryStarted;
+    registerApplicationStateBridge(ipcMain, applicationStateStore);
     registerConfigBridge();
     registerLocalBridge();
     registerRemarkableBridge();

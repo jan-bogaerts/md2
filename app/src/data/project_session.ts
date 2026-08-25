@@ -2,6 +2,7 @@ import { GithubStorageService } from '../services/github/github_storage_service'
 import { githubAuthService } from '../services/github/github_auth_service'
 import { LocalGitStorageService } from '../services/data/local_git_storage_service'
 import { RemoteControlStorageService } from '../services/data/remote_control_storage_service'
+import { applicationStorage } from '../services/storage/application_storage'
 import type { ProjectReference, StorageService } from './data_types'
 
 export const LAST_PROJECT_STORAGE_KEY = 'md2.lastProject'
@@ -36,7 +37,7 @@ function isLastProject(value: unknown): value is LastProject {
 }
 
 function discardLastProject() {
-    window.localStorage.removeItem(LAST_PROJECT_STORAGE_KEY)
+    applicationStorage.removeItem(LAST_PROJECT_STORAGE_KEY)
 }
 
 /** Create only the storage backend for the chosen source. GitHub requires an access token. */
@@ -65,7 +66,7 @@ export function createStorageService(storageType: StorageType, accessToken: stri
 }
 
 export function readLastProject(): LastProject | null {
-    const storedValue = window.localStorage.getItem(LAST_PROJECT_STORAGE_KEY)
+    const storedValue = applicationStorage.getItem(LAST_PROJECT_STORAGE_KEY)
     if (!storedValue) return null
 
     let parsedValue: unknown
@@ -85,5 +86,5 @@ export function readLastProject(): LastProject | null {
 }
 
 export function writeLastProject(storageType: StorageType, project: ProjectReference) {
-    window.localStorage.setItem(LAST_PROJECT_STORAGE_KEY, JSON.stringify({ project, storageType }))
+    applicationStorage.setItem(LAST_PROJECT_STORAGE_KEY, JSON.stringify({ project, storageType }))
 }

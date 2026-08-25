@@ -3,6 +3,7 @@ import type { PopperPlacementType, PopperProps, SxProps, Theme } from '@mui/mate
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import { dialogService } from '../services/dialog_service'
+import { applicationStorage } from '../services/storage/application_storage'
 import type { ResizeCorner } from './resizable_popover'
 
 interface PopperSize {
@@ -96,7 +97,7 @@ function loadSize(
 ): PopperSize {
     if (!storageKey) return initialSize
 
-    const storedValue = window.localStorage.getItem(storageKey)
+    const storedValue = applicationStorage.getItem(storageKey)
     if (!storedValue) return initialSize
 
     try {
@@ -212,7 +213,7 @@ export function ResizablePopper(props: ResizablePopperProps) {
     useEffect(() => {
         if (!storageKey || persistSizeOnResizeEndOnly) return
 
-        window.localStorage.setItem(storageKey, JSON.stringify(size))
+        applicationStorage.setItem(storageKey, JSON.stringify(size))
     }, [persistSizeOnResizeEndOnly, size, storageKey])
     useLayoutEffect(() => {
         if (!fullHeight) {
@@ -365,7 +366,7 @@ export function ResizablePopper(props: ResizablePopperProps) {
             }, { signal: controller.signal })
             window.addEventListener('pointerup', () => {
                 if (storageKey && persistSizeOnResizeEndOnly) {
-                    window.localStorage.setItem(storageKey, JSON.stringify(completedSize))
+                    applicationStorage.setItem(storageKey, JSON.stringify(completedSize))
                 }
                 controller.abort()
             }, { signal: controller.signal })
