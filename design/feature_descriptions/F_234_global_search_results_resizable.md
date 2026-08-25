@@ -11,7 +11,6 @@ agents:
 policy:
 after: 902e08a9-8b29-4037-ab3d-92d53aef4fc8
 ---
-
 the global search results popup is currently not resizable. it should be. we already have a couple of resizable popup that all use the same base component. perhaps we can use this again?
 
 ## Current state
@@ -24,25 +23,25 @@ Elsewhere in the app, resizable popups already exist and share one base componen
 
 Replace the plain `Paper` dropdown in `SearchPanel` with `ResizablePopper`:
 
-- `anchorElement`: the existing `controlElement` (the search box wrapper), so the popper still anchors under the input the way the current `Paper` does.
-- `open`: the existing `isDropdownOpen` condition.
-- `draggable`: `false` — the dropdown stays anchored under the search box; only resizing is needed, not moving.
-- `resizeCorner`: `'lower-right'` (the default), giving a single corner resize handle, consistent with the plain (non-`resizeFromAllSides`) usages elsewhere.
-- `initialSize`: `{ width: RESULTS_WIDTH, height: RESULTS_MAX_HEIGHT }`, keeping today's default dimensions unchanged.
-- `minimumSize`: a sensible floor so the results list and the option toggles (RegExp mode, background-body search, actions search, ask-agent) stay usable — e.g. the component's own default (280×200) is likely enough, but should be checked against the options row's minimum width.
-- `constrainSizeToViewport`: `true`, so the dropdown cannot be resized past the visible window.
-- `storageKey`: a new key (e.g. `'search-panel-results-size'`) so the user's chosen size is remembered across searches and app restarts, matching the pattern used by other resizable popups.
-- `labelId` / `resizeLabel`: labels analogous to the existing `aria-label="Search dropdown"` on the current `Paper`.
-- `onClose`: since the panel currently closes via the `onBlur` handler on the outer `Box` (`handleControlBlur`) rather than via the popper itself, `closeOnEscape` should be set to `false` so `ResizablePopper` does not require or duplicate its own close handling; blur-to-close behavior on the outer `Box` is unaffected because that listener stays on the wrapping `Box`, not on the popper.
-- The search options row (`Box aria-label="Search options"`) and the `SearchResults` component become the `children` of `ResizablePopper`, unchanged internally.
+* `anchorElement`: the existing `controlElement` (the search box wrapper), so the popper still anchors under the input the way the current `Paper` does.
+* `open`: the existing `isDropdownOpen` condition.
+* `draggable`: `false` — the dropdown stays anchored under the search box; only resizing is needed, not moving.
+* `resizeCorner`: `'lower-right'` (the default), giving a single corner resize handle, consistent with the plain (non-`resizeFromAllSides`) usages elsewhere.
+* `initialSize`: `{ width: RESULTS_WIDTH, height: RESULTS_MAX_HEIGHT }`, keeping today's default dimensions unchanged.
+* `minimumSize`: a sensible floor so the results list and the option toggles (RegExp mode, background-body search, actions search, ask-agent) stay usable — e.g. the component's own default (280×200) is likely enough, but should be checked against the options row's minimum width.
+* `constrainSizeToViewport`: `true`, so the dropdown cannot be resized past the visible window.
+* `storageKey`: a new key (e.g. `'search-panel-results-size'`) so the user's chosen size is remembered across searches and app restarts, matching the pattern used by other resizable popups.
+* `labelId` / `resizeLabel`: labels analogous to the existing `aria-label="Search dropdown"` on the current `Paper`.
+* `onClose`: since the panel currently closes via the `onBlur` handler on the outer `Box` (`handleControlBlur`) rather than via the popper itself, `closeOnEscape` should be set to `false` so `ResizablePopper` does not require or duplicate its own close handling; blur-to-close behavior on the outer `Box` is unaffected because that listener stays on the wrapping `Box`, not on the popper.
+* The search options row (`Box aria-label="Search options"`) and the `SearchResults` component become the `children` of `ResizablePopper`, unchanged internally.
 
 No changes are needed in `search_results.tsx` or the search services — this is a container/layout swap only.
 
 ## Acceptance criteria
 
-- The global search results dropdown can be resized by dragging a handle at its lower-right corner.
-- Resizing respects a minimum size that keeps the option toggles and at least one result row visible/usable.
-- Resizing cannot grow the popup beyond the visible viewport.
-- The chosen size persists across closing/reopening the dropdown and across app restarts (stored in `localStorage`).
-- Default size (when no stored size exists) matches today's dimensions (460×420).
-- Existing behavior is unchanged: clicking outside still closes the dropdown, selecting a result still navigates and closes it, and the RegExp/background-body/actions toggles and "ask agent" button keep working.
+* The global search results dropdown can be resized by dragging a handle at its lower-right corner.
+* Resizing respects a minimum size that keeps the option toggles and at least one result row visible/usable.
+* Resizing cannot grow the popup beyond the visible viewport.
+* The chosen size persists across closing/reopening the dropdown and across app restarts (stored in `localStorage`).
+* Default size (when no stored size exists) matches today's dimensions (460×420).
+* Existing behavior is unchanged: clicking outside still closes the dropdown, selecting a result still navigates and closes it, and the RegExp/background-body/actions toggles and "ask agent" button keep working.
