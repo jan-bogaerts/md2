@@ -10,7 +10,6 @@ import {
 } from '@mui/material'
 import ChevronRight from 'mdi-material-ui/ChevronRight'
 import { useState, type KeyboardEvent, type MouseEvent } from 'react'
-import type { ActionContext } from '../../../data/action_context'
 import type { ActionDefinition } from '../../../data/action_types'
 import {
     PERMISSION_MODE_OPTIONS,
@@ -29,12 +28,13 @@ import {
 } from '../../../data/agent_selection'
 import type { ActionRun } from '../../../services/actions/action_run_registry'
 import type { ActionRunSettingsStore } from '../../../services/actions/action_run_settings_service'
-import { useActionRunSelector } from '../../hooks/use_action_runs'
+import { useBoundRunId, useRunSelector } from '../../hooks/use_action_runs'
 import { useActionRunSettings } from '../shared/use_action_run_settings'
+import type { ActionRunBindingStore } from '../run/state/action_run_binding_store'
 
 interface ActionAgentSelectorsProps {
     action: ActionDefinition
-    context: ActionContext
+    bindingStore: ActionRunBindingStore
     settingsStore: ActionRunSettingsStore
 }
 
@@ -60,12 +60,13 @@ function selectRunStatus(run: ActionRun | null) {
 
 /** Agent run settings exposed as compact model and security menus. */
 export function ActionAgentSelectors(props: ActionAgentSelectorsProps) {
-    const { action, context, settingsStore } = props
+    const { action, bindingStore, settingsStore } = props
     const [modelMenuAnchor, setModelMenuAnchor] = useState<HTMLElement | null>(null)
     const [submenuAnchor, setSubmenuAnchor] = useState<HTMLElement | null>(null)
     const [submenu, setSubmenu] = useState<AgentSettingsSubmenu | null>(null)
     const [securityMenuAnchor, setSecurityMenuAnchor] = useState<HTMLElement | null>(null)
-    const runStatus = useActionRunSelector(action.id, context, selectRunStatus)
+    const boundRunId = useBoundRunId(bindingStore)
+    const runStatus = useRunSelector(boundRunId, selectRunStatus)
     const settings = useActionRunSettings(action, settingsStore)
     const disabled = !settings.desktopConfigAvailable
         || settings.availabilityLoading

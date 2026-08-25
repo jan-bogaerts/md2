@@ -33,6 +33,7 @@ import type { DataService } from '../data/data_service'
 const TERMINAL_STATUSES = new Set<ActionRunTerminalStatus>(['cancelled', 'completed', 'failed', 'okButNotAfter'])
 const ACTIVE_STATUSES = new Set<ActionRunStatus>(['queued', 'running', 'waitingForInput'])
 const EMPTY_ACTIVE_RUNS: ActiveActionRun[] = []
+const EMPTY_ACTION_RUN_STORES: ActionRunStore[] = []
 const LOST_DURING_RECONNECTION_FAILURE = 'Action run state was lost during reconnection'
 
 export interface ActionRun {
@@ -343,6 +344,10 @@ function actionContextKey(actionId: string, context: ActionContext) {
     return `${actionId}\u0000${contextKey(context)}`
 }
 
+function runEventType(runId: string) {
+    return `run:${runId}`
+}
+
 function activeRun(run: ActionRun): ActiveActionRun {
     return { rootActionId: run.rootActionId, runId: run.runId, status: run.status }
 }
@@ -351,6 +356,16 @@ function sameActiveRuns(first: ActiveActionRun[], second: ActiveActionRun[]) {
     return first.length === second.length && first.every(({ runId, status }, index) => (
         second[index]?.runId === runId && second[index]?.status === status
     ))
+}
+
+function conversationPickerMetadataChanged(previous: ActionRun['conversation'], current: ActionRun['conversation']) {
+    return previous?.actionId !== current?.actionId
+        || previous?.cardInternalId !== current?.cardInternalId
+        || previous?.hasExplicitTitle !== current?.hasExplicitTitle
+        || previous?.id !== current?.id
+        || previous?.path !== current?.path
+        || previous?.startedAt !== current?.startedAt
+        || previous?.title !== current?.title
 }
 
 function publishKey(map: Map<string, Set<StoreListener>>, key: string) {
@@ -380,7 +395,7 @@ function byRunSequence(events: ActionRunEvent[]) {
 /** Owns one renderer-wide bridge subscription and routes events to scoped run stores. */
 export class ActionRunRegistry extends EventTarget {
     private readonly actionContextListeners = new Map<string, Set<StoreListener>>()
-    private readonly actionContextStores = new Map<string, ActionRunStore>()
+    private readonly actionContextStores = new Map<string, ActionRunStore[]>()
     private readonly activeRunEventListeners = new Set<EventListener>()
     private readonly contextActiveListeners = new Map<string, Set<StoreListener>>()
     private readonly contextActiveSnapshots = new Map<string, ActiveActionRun[]>()
@@ -419,6 +434,7 @@ export class ActionRunRegistry extends EventTarget {
     }
 
     stop() {
+        const runIds = [...this.runs.keys()]
         this.unsubscribeBridge?.()
         this.subscribedBridge = null
         this.unsubscribeBridge = null
@@ -431,6 +447,7 @@ export class ActionRunRegistry extends EventTarget {
         this.publishGlobalActive([])
         publishListeners(this.actionContextListeners)
         publishListeners(this.contextActiveListeners)
+        for (const runId of runIds) this.dispatchEvent(new Event(runEventType(runId)))
     }
 
     getRunStore(runId: string) {
@@ -442,7 +459,15 @@ export class ActionRunRegistry extends EventTarget {
     }
 
     getActionRunStoreByKey(actionId: string, contextIdentity: string) {
-        return this.actionContextStores.get(`${actionId}\u0000${contextIdentity}`) ?? null
+        return this.actionContextStores.get(`${actionId}\u0000${contextIdentity}`)?.at(-1) ?? null
+    }
+
+    getActionRunStores(actionId: string, context: ActionContext) {
+        return this.getActionRunStoresByKey(actionId, contextKey(context))
+    }
+
+    getActionRunStoresByKey(actionId: string, contextIdentity: string) {
+        return this.actionContextStores.get(`${actionId}\u0000${contextIdentity}`) ?? EMPTY_ACTION_RUN_STORES
     }
 
     getContextActiveSnapshot(context: ActionContext) {
@@ -461,12 +486,22 @@ export class ActionRunRegistry extends EventTarget {
 
     subscribeActionRunByKey(actionId: string, contextIdentity: string, listener: StoreListener) {
         const key = `${actionId}\u0000${contextIdentity}`
-        const unsubscribe = this.subscribeMap(this.actionContextListeners, key, listener)
+        return this.subscribeMap(this.actionContextListeners, key, listener)
+    }
+
+    subscribeRun(runId: string, listener: StoreListener) {
+        let unsubscribeStore = this.runs.get(runId)?.subscribe(listener) ?? null
+        const handleStoreCreated = () => {
+            if (!unsubscribeStore) unsubscribeStore = this.runs.get(runId)?.subscribe(listener) ?? null
+            listener()
+        }
+        const eventType = runEventType(runId)
+        this.addEventListener(eventType, handleStoreCreated)
+        this.start()
 
         return () => {
-            unsubscribe()
-            const store = this.actionContextStores.get(key)
-            if (store) this.releaseTerminalRun(store.getSnapshot().runId)
+            this.removeEventListener(eventType, handleStoreCreated)
+            unsubscribeStore?.()
         }
     }
 
@@ -552,6 +587,7 @@ export class ActionRunRegistry extends EventTarget {
         const terminalResult = this.terminalResults.get(runId)
         if (terminalResult) {
             this.terminalResults.delete(runId)
+            this.releaseTerminalRun(runId)
 
             return Promise.resolve(terminalResult)
         }
@@ -666,7 +702,7 @@ export class ActionRunRegistry extends EventTarget {
                 status: result.status,
             }
             store.update(next)
-            actionPromptDraftService.discardUneditedDraft(next.rootActionId, next.context)
+            actionPromptDraftService.discardUneditedDraft(next.rootActionId, next.context, next.runId)
             this.publishActiveIndexes(contextKey(current.context), contextKey(next.context))
         }
 
@@ -728,7 +764,7 @@ export class ActionRunRegistry extends EventTarget {
         }
         if (event.type === 'run' && TERMINAL_STATUSES.has(event.status as ActionRunTerminalStatus)) {
             next = { ...next, approvals: [], question: null, queuedPrompts: [] }
-            actionPromptDraftService.discardUneditedDraft(next.rootActionId, next.context)
+            actionPromptDraftService.discardUneditedDraft(next.rootActionId, next.context, next.runId)
         }
         if (event.type === 'agentState') next = { ...next, status: event.status }
         if (event.type === 'action') {
@@ -745,7 +781,7 @@ export class ActionRunRegistry extends EventTarget {
                 reference: event.reference ?? next.reference,
             }
             if (active) next.status = event.status
-            if (!active) actionPromptDraftService.discardUneditedDraft(next.rootActionId, next.context)
+            if (!active) actionPromptDraftService.discardUneditedDraft(next.rootActionId, next.context, next.runId)
         }
         if (event.type === 'agentState') {
             next = {
@@ -768,7 +804,7 @@ export class ActionRunRegistry extends EventTarget {
         if (event.type === 'update' && event.update.kind === 'agentStarted') {
             const { continued } = event.update
             next = { ...next, conversation: event.update.conversation }
-            if (continued) actionPromptDraftService.discardUneditedDraft(next.rootActionId, next.context)
+            if (continued) actionPromptDraftService.discardUneditedDraft(next.rootActionId, next.context, next.runId)
         }
         if (event.type === 'update' && event.update.kind === 'agentClosed') {
             next = { ...next, conversation: event.update.conversation }
@@ -911,9 +947,19 @@ export class ActionRunRegistry extends EventTarget {
         if (!store) {
             this.runs.set(event.runId, nextStore)
             const bindingKey = actionContextKey(event.rootActionId, event.context)
-            this.actionContextStores.set(bindingKey, nextStore)
+            const stores = this.actionContextStores.get(bindingKey) ?? []
+            this.actionContextStores.set(bindingKey, [...stores, nextStore])
             publishKey(this.actionContextListeners, bindingKey)
-        } else nextStore.update(next)
+            this.dispatchEvent(new Event(runEventType(event.runId)))
+        } else {
+            nextStore.update(next)
+            const bindingKey = actionContextKey(next.rootActionId, next.context)
+            const stores = this.actionContextStores.get(bindingKey)
+            if (stores?.includes(nextStore) && conversationPickerMetadataChanged(current.conversation, next.conversation)) {
+                this.actionContextStores.set(bindingKey, [...stores])
+                publishKey(this.actionContextListeners, bindingKey)
+            }
+        }
 
         this.publishActiveIndexes(contextKey(current.context), contextKey(next.context))
         this.publishScopedEvents(event)
@@ -970,19 +1016,23 @@ export class ActionRunRegistry extends EventTarget {
 
     private releaseTerminalRun(runId: string) {
         const store = this.runs.get(runId)
-        if (!store || store.hasConsumers() || this.waiters.has(runId)) return
+        if (!store) return
 
         const run = store.getSnapshot()
         const bindingKey = actionContextKey(run.rootActionId, run.context)
-        if ((this.actionContextListeners.get(bindingKey)?.size ?? 0) > 0) return
+        const stores = this.actionContextStores.get(bindingKey) ?? []
+        const remainingStores = stores.filter((current) => current !== store)
+        if (remainingStores.length !== stores.length) {
+            if (remainingStores.length > 0) this.actionContextStores.set(bindingKey, remainingStores)
+            else this.actionContextStores.delete(bindingKey)
+            publishKey(this.actionContextListeners, bindingKey)
+        }
+        if (store.hasConsumers() || this.waiters.has(runId) || this.terminalResults.has(runId)) return
 
         this.runs.delete(runId)
         this.runContexts.delete(runId)
         this.eventSequences.delete(runId)
-        if (this.actionContextStores.get(bindingKey) === store) {
-            this.actionContextStores.delete(bindingKey)
-            publishKey(this.actionContextListeners, bindingKey)
-        }
+        this.dispatchEvent(new Event(runEventType(runId)))
     }
 
     private subscribeMap<T>(map: Map<string, Set<T>>, key: string, listener: T) {

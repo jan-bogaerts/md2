@@ -1,9 +1,11 @@
 import type { ActionContext } from '../../../../data/action_context'
 import type { ActionDefinition } from '../../../../data/action_types'
+import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
 import { worktreeService } from '../../../../services/project/worktree_service'
 import { ActionConversationStore } from '../../conversation/action_conversation_store'
 import { ActionScheduleStore } from '../schedule/action_schedule_store'
 import { ActionHistoryStore } from '../state/action_history_store'
+import { ActionRunBindingStore } from '../state/action_run_binding_store'
 import { ActionRunInputStore } from '../state/action_run_input_store'
 import { ActionRunResultStore } from '../state/action_run_result_store'
 import { ActionUsageScopeStore } from './action_usage_scope_store'
@@ -13,8 +15,13 @@ type ActionPopupBindings = Omit<ActionPopupRuntime, 'runValidationError' | 'sett
 
 /** Creates the stores whose lifecycle follows one selected popup action and assignment context. */
 export function createActionPopupBindings(action: ActionDefinition, context: ActionContext): ActionPopupBindings {
+    const initialRunId = actionRunRegistry.getActionRunStore(action.id, context)?.getSnapshot().runId ?? null
+    const bindingStore = new ActionRunBindingStore(initialRunId)
+    bindingStore.trackInitialRun(action.id, context)
+
     return {
-        conversationStore: new ActionConversationStore(action.id, context),
+        bindingStore,
+        conversationStore: new ActionConversationStore(action.id, context, bindingStore),
         historyStore: new ActionHistoryStore(action, context),
         inputStore: new ActionRunInputStore(),
         resultStore: new ActionRunResultStore(),

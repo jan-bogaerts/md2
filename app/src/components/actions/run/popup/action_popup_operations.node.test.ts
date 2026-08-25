@@ -17,6 +17,7 @@ import {
     type ActionPopupOperationInput,
 } from './action_popup_operations'
 import { ActionRunInputStore } from '../state/action_run_input_store'
+import { ActionRunBindingStore } from '../state/action_run_binding_store'
 
 const action = { id: 'stream', label: 'Stream', streaming: true, type: 'agent' } as ActionDefinition
 const context: ActionContext = { file: 'design/F-1.md', kind: 'card', worktree: '3' }
@@ -47,8 +48,11 @@ function operationInput(
         load: vi.fn(async () => undefined),
     },
 ): ActionPopupOperationInput {
+    const runId = actionRunRegistry.getActionRunStore(action.id, context)?.getSnapshot().runId ?? null
+
     return {
         action,
+        bindingStore: new ActionRunBindingStore(runId),
         context,
         conversationStore,
         historyStore: { load: vi.fn(async () => undefined) },
@@ -136,7 +140,7 @@ describe('runPopupAction waiting follow-up', () => {
 
     it('sends follow-up through same live process and assigned worktree', async () => {
         const inputStore = new ActionRunInputStore()
-        actionPromptDraftService.getDraft(action.id, context, { prepare: false }).edit('Next request')
+        actionPromptDraftService.getDraft(action.id, context, 'run-1', { prepare: false }).edit('Next request')
 
         await runPopupAction(operationInput(inputStore))
 
@@ -152,7 +156,7 @@ describe('runPopupAction waiting follow-up', () => {
 
             return { content, dispatchState: 'queued' as const, id: 'prompt-1', revision: 0 }
         })
-        const draft = actionPromptDraftService.getDraft(action.id, context, { prepare: false })
+        const draft = actionPromptDraftService.getDraft(action.id, context, 'run-1', { prepare: false })
         draft.edit('Next request')
 
         const send = runPopupAction(operationInput(new ActionRunInputStore()))
@@ -170,7 +174,7 @@ describe('runPopupAction waiting follow-up', () => {
 
             return { content, dispatchState: 'queued' as const, id: 'prompt-1', revision: 0 }
         })
-        const draft = actionPromptDraftService.getDraft(action.id, context, { prepare: false })
+        const draft = actionPromptDraftService.getDraft(action.id, context, 'run-1', { prepare: false })
         draft.edit('Accepted text')
 
         const send = runPopupAction(operationInput(new ActionRunInputStore()))
@@ -186,7 +190,7 @@ describe('runPopupAction waiting follow-up', () => {
             throw new Error('Queue unavailable')
         })
         const reportError = vi.spyOn(dialogService, 'error')
-        const draft = actionPromptDraftService.getDraft(action.id, context, { prepare: false })
+        const draft = actionPromptDraftService.getDraft(action.id, context, 'run-1', { prepare: false })
         draft.edit('Do not lose this')
 
         await runPopupAction(operationInput(new ActionRunInputStore()))
@@ -208,8 +212,8 @@ describe('runPopupAction waiting follow-up', () => {
         const input = operationInput(new ActionRunInputStore(), undefined, conversationStore)
 
         await runPopupAction(input)
-        await cancelPopupAction(action, context, conversationStore)
-        await finishPopupAction(action, context, conversationStore)
+        await cancelPopupAction(action, input.bindingStore, context, conversationStore)
+        await finishPopupAction(action, input.bindingStore, context, conversationStore)
 
         expect(bridge.enqueueActionPrompt).not.toHaveBeenCalled()
         expect(bridge.cancelActionRun).not.toHaveBeenCalled()
@@ -220,7 +224,7 @@ describe('runPopupAction waiting follow-up', () => {
         const inputStore = new ActionRunInputStore()
         const settingsStore = new ActionRunSettingsStore(action.id, null)
         settingsStore.setSettings(selectModel(defaultSelection, 'gpt-5.6'), true)
-        actionPromptDraftService.getDraft(action.id, context, { prepare: false }).edit('Next request')
+        actionPromptDraftService.getDraft(action.id, context, 'run-1', { prepare: false }).edit('Next request')
         restartAction.mockImplementation(async (_runId, _action, _context, _runInput, onStarted) => {
             onStarted('run-2')
             return { changedPaths: [], logs: [], status: 'completed' }
@@ -241,7 +245,7 @@ describe('runPopupAction waiting follow-up', () => {
         const inputStore = new ActionRunInputStore()
         const settingsStore = new ActionRunSettingsStore(action.id, null)
         settingsStore.setSettings(defaultSelection, true)
-        const draft = actionPromptDraftService.getDraft(action.id, context, { prepare: false })
+        const draft = actionPromptDraftService.getDraft(action.id, context, 'run-1', { prepare: false })
         draft.edit('Keep request')
         restartAction.mockImplementation(async () => {
             throw new Error('restart failed')
@@ -251,7 +255,7 @@ describe('runPopupAction waiting follow-up', () => {
         await runPopupAction(operationInput(inputStore, settingsStore))
 
         expect(draft.getSnapshot()).toBe('Keep request')
-        expect(currentActionPromptDraft(action, context, false)).toBe(draft)
+        expect(currentActionPromptDraft(action, context, new ActionRunBindingStore('run-1'), false)).toBe(draft)
         expect(reportError).toHaveBeenCalledWith(
             expect.objectContaining({ message: 'restart failed' }),
             { fallbackMessage: 'Action run failed' },
@@ -269,7 +273,7 @@ describe('runPopupAction waiting follow-up', () => {
             load: vi.fn(async () => undefined),
         }
         const operation = operationInput(inputStore, settingsStore, conversationStore)
-        actionPromptDraftService.getDraft(action.id, context, { prepare: false }).edit('Keep request')
+        actionPromptDraftService.getDraft(action.id, context, 'run-1', { prepare: false }).edit('Keep request')
         restartAction.mockImplementation(async (_runId, _action, _context, _runInput, onStarted) => {
             onStarted('run-2')
             return {
@@ -289,7 +293,7 @@ describe('runPopupAction waiting follow-up', () => {
 
         await runPopupAction(operation)
 
-        expect(currentActionPromptDraft(action, context, false).getSnapshot()).toBe('Keep request')
+        expect(currentActionPromptDraft(action, context, operation.bindingStore, false).getSnapshot()).toBe('Keep request')
         expect(operation.resultStore.setResult).toHaveBeenCalledWith(expect.objectContaining({
             logs: [expect.objectContaining({ message: 'Codex executable could not start' })],
             status: 'failed',
@@ -314,14 +318,15 @@ describe('runPopupAction waiting follow-up', () => {
             getSnapshot: () => ({ conversations: [selectedConversation], loading: false, selectedConversation }),
             load: vi.fn(async () => { selectedConversation = failedConversation }),
         }
-        actionPromptDraftService.getDraft(action.id, context, { prepare: false }).edit('Sent request')
+        actionPromptDraftService.getDraft(action.id, context, 'run-1', { prepare: false }).edit('Sent request')
         restartAction.mockImplementation(async (_runId, _action, _context, _runInput, onStarted) => {
             onStarted('run-2')
             return { changedPaths: [], logs: [], status: 'failed' }
         })
 
-        await runPopupAction(operationInput(inputStore, settingsStore, conversationStore))
+        const operation = operationInput(inputStore, settingsStore, conversationStore)
+        await runPopupAction(operation)
 
-        expect(currentActionPromptDraft(action, context, false).getSnapshot()).toBe('')
+        expect(currentActionPromptDraft(action, context, operation.bindingStore, false).getSnapshot()).toBe('')
     })
 })

@@ -5,7 +5,7 @@ import type { ActionRun } from '../../../services/actions/action_run_registry'
 import type { ActionRunSettingsStore } from '../../../services/actions/action_run_settings_service'
 import { dialogService } from '../../../services/dialog_service'
 import { remoteConnectionService } from '../../../services/data/remote_connection_service'
-import { useActionRunSelector } from '../../hooks/use_action_runs'
+import { useBoundRunId, useRunSelector } from '../../hooks/use_action_runs'
 import { ActionAgentPrompt } from './action_agent_prompt'
 import type { ActionConversationStore } from '../conversation/action_conversation_store'
 import type { ActionHistoryStore } from '../run/state/action_history_store'
@@ -19,9 +19,11 @@ import { ActionPopupBottomRow } from '../run/popup/action_popup_bottom_row'
 import type { ActionUsageScopeStore } from '../run/popup/action_usage_scope_store'
 import { useActionRunSettings } from '../shared/use_action_run_settings'
 import { ActionPhraseButtonsOwner } from '../editor/action_phrase_buttons_owner'
+import type { ActionRunBindingStore } from '../run/state/action_run_binding_store'
 
 interface ActionAgentPromptOwnerProps {
     action: ActionDefinition
+    bindingStore: ActionRunBindingStore
     context: ActionContext
     conversationStore: ActionConversationStore
     historyStore: ActionHistoryStore
@@ -40,13 +42,14 @@ function selectSessionActive(run: ActionRun | null) {
 /** Owns prompt draft binding, preparation, and keyboard-run behavior. */
 export function ActionAgentPromptOwner(props: ActionAgentPromptOwnerProps) {
     const {
-        action, context, conversationStore, historyStore, inputStore, resultStore, runValidationError,
+        action, bindingStore, context, conversationStore, historyStore, inputStore, resultStore, runValidationError,
         scheduleStore, settingsStore, usageScopeStore,
     } = props
-    const sessionActive = useActionRunSelector(action.id, context, selectSessionActive)
-    const activeActionType = useActionRunSelector(action.id, context, (run) => run?.activeActionType ?? null)
-    const interactionReady = useActionRunSelector(action.id, context, (run) => !!run?.interactionReady)
-    const runStatus = useActionRunSelector(action.id, context, (run) => run?.status ?? 'idle')
+    const boundRunId = useBoundRunId(bindingStore)
+    const sessionActive = useRunSelector(boundRunId, selectSessionActive)
+    const activeActionType = useRunSelector(boundRunId, (run) => run?.activeActionType ?? null)
+    const interactionReady = useRunSelector(boundRunId, (run) => !!run?.interactionReady)
+    const runStatus = useRunSelector(boundRunId, (run) => run?.status ?? 'idle')
     const conversationSnapshot = useSyncExternalStore(
         conversationStore.subscribe,
         conversationStore.getSnapshot,
@@ -63,7 +66,7 @@ export function ActionAgentPromptOwner(props: ActionAgentPromptOwnerProps) {
         && !sessionActive
         && runStatus !== 'completed'
         && conversationSnapshot.selectedConversation === null
-    const promptDraft = currentActionPromptDraft(action, context, prepare)
+    const promptDraft = currentActionPromptDraft(action, context, bindingStore, prepare)
     const handleAttachments = useCallback(async (files: File[], insertMarkdown: (markdown: string) => void) => {
         const attachmentWorkflow = await import('../../../services/attachments/attachment_workflow')
         if (context.file) {
@@ -101,6 +104,7 @@ export function ActionAgentPromptOwner(props: ActionAgentPromptOwnerProps) {
 
         const operationInput = {
             action,
+            bindingStore,
             context,
             conversationStore,
             historyStore,
@@ -120,6 +124,7 @@ export function ActionAgentPromptOwner(props: ActionAgentPromptOwnerProps) {
                 <ActionPopupBottomRow
                     action={action}
                     assignmentContext={context}
+                    bindingStore={bindingStore}
                     conversationStore={conversationStore}
                     embedded
                     historyStore={historyStore}
@@ -137,6 +142,7 @@ export function ActionAgentPromptOwner(props: ActionAgentPromptOwnerProps) {
             responsePrompts={(
                 <ActionPhraseButtonsOwner
                     action={action}
+                    bindingStore={bindingStore}
                     context={context}
                     conversationStore={conversationStore}
                     historyStore={historyStore}

@@ -4,6 +4,7 @@ import type { ActionRunSettingsStore } from '../../../../services/actions/action
 import type { ActionConversationStore } from '../../conversation/action_conversation_store'
 import type { ActionScheduleStore } from '../schedule/action_schedule_store'
 import type { ActionHistoryStore } from '../state/action_history_store'
+import type { ActionRunBindingStore } from '../state/action_run_binding_store'
 import type { ActionRunInputStore } from '../state/action_run_input_store'
 import type { ActionRunResultStore } from '../state/action_run_result_store'
 import type { ActionUsageScopeStore } from './action_usage_scope_store'
@@ -30,6 +31,7 @@ export interface ActionPopupContentProps {
 }
 
 export interface ActionPopupRuntime {
+    bindingStore: ActionRunBindingStore
     conversationStore: ActionConversationStore
     historyStore: ActionHistoryStore
     inputStore: ActionRunInputStore

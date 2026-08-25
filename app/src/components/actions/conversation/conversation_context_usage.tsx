@@ -1,24 +1,22 @@
 import { Box, CircularProgress, Tooltip } from '@mui/material'
 import { memo, useSyncExternalStore } from 'react'
-import type { ActionContext } from '../../../data/action_context'
-import { useActionRunSelector } from '../../hooks/use_action_runs'
+import { useBoundRunId, useRunSelector } from '../../hooks/use_action_runs'
 import type { ActionConversationStore } from './action_conversation_store'
 import { contextWindowUsedPercent } from './conversation_context_window'
+import type { ActionRunBindingStore } from '../run/state/action_run_binding_store'
 
 interface ConversationContextUsageProps {
-    actionId: string
-    context: ActionContext
+    bindingStore: ActionRunBindingStore
     store: ActionConversationStore
 }
 
 /** Tracks and renders context-window usage without routing its value through the chat. */
 export const ConversationContextUsage = memo(function ConversationContextUsage(
-    { actionId, context, store }: ConversationContextUsageProps,
+    { bindingStore, store }: ConversationContextUsageProps,
 ) {
-    const liveConversationPath = useActionRunSelector(actionId, context, (run) => run?.conversation?.path ?? null)
-    const liveContextWindowUsage = useActionRunSelector(
-        actionId, context, (run) => run?.conversation?.contextWindowUsage ?? null,
-    )
+    const boundRunId = useBoundRunId(bindingStore)
+    const liveConversationPath = useRunSelector(boundRunId, (run) => run?.conversation?.path ?? null)
+    const liveContextWindowUsage = useRunSelector(boundRunId, (run) => run?.conversation?.contextWindowUsage ?? null)
     const { selectedConversation } = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot)
     const contextWindowUsage = selectedConversation && selectedConversation.path !== liveConversationPath
         ? selectedConversation.contextWindowUsage

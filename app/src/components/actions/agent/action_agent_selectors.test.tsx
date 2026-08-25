@@ -7,6 +7,7 @@ import type { ActionRunSettingsStore } from '../../../services/actions/action_ru
 import { createAppTheme } from '../../../theme/app_theme'
 import { AppThemeProvider } from '../../../theme/theme_provider'
 import { ActionAgentSelectors } from './action_agent_selectors'
+import { ActionRunBindingStore } from '../run/state/action_run_binding_store'
 
 const selectorState = vi.hoisted(() => ({
     runStatus: null as string | null,
@@ -33,18 +34,21 @@ const selectorState = vi.hoisted(() => ({
     },
 }))
 
-vi.mock('../../hooks/use_action_runs', () => ({useActionRunSelector: () => selectorState.runStatus}))
+vi.mock('../../hooks/use_action_runs', () => ({
+    useBoundRunId: () => 'run-1',
+    useRunSelector: () => selectorState.runStatus,
+}))
 
 vi.mock('../shared/use_action_run_settings', () => ({useActionRunSettings: () => selectorState.settings}))
 
 const action = {description: 'Review', id: 'review', label: 'Review', prompt: 'Review project', type: 'agent'} as ActionDefinition
-const context = { kind: 'project' as const }
+const bindingStore = new ActionRunBindingStore('run-1')
 
 function renderSelectors(setSettings = vi.fn()) {
     const settingsStore = { setSettings } as unknown as ActionRunSettingsStore
     const rendered = render(
         <AppThemeProvider>
-            <ActionAgentSelectors action={action} context={context} settingsStore={settingsStore} />
+            <ActionAgentSelectors action={action} bindingStore={bindingStore} settingsStore={settingsStore} />
         </AppThemeProvider>,
     )
 
@@ -138,7 +142,7 @@ describe('ActionAgentSelectors', () => {
         const settingsStore = { setSettings: vi.fn() } as unknown as ActionRunSettingsStore
         rerender(
             <AppThemeProvider>
-                <ActionAgentSelectors action={action} context={context} settingsStore={settingsStore} />
+                <ActionAgentSelectors action={action} bindingStore={bindingStore} settingsStore={settingsStore} />
             </AppThemeProvider>,
         )
 
@@ -195,7 +199,7 @@ describe('ActionAgentSelectors', () => {
         const settingsStore = { setSettings: vi.fn() } as unknown as ActionRunSettingsStore
         rerender(
             <AppThemeProvider>
-                <ActionAgentSelectors action={action} context={context} settingsStore={settingsStore} />
+                <ActionAgentSelectors action={action} bindingStore={bindingStore} settingsStore={settingsStore} />
             </AppThemeProvider>,
         )
         openSubmenu('Model')

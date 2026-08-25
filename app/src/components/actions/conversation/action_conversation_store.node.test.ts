@@ -7,6 +7,7 @@ import { actionPromptDraftService } from '../../../services/actions/action_promp
 import { actionRunRegistry } from '../../../services/actions/action_run_registry'
 import { dataService } from '../../../services/data/data_service'
 import { dialogService } from '../../../services/dialog_service'
+import { ActionRunBindingStore } from '../run/state/action_run_binding_store'
 import {
     ActionConversationStore,
     isBrowsingHistoricalConversation,
@@ -36,6 +37,13 @@ function conversation(path: string): AgentConversation {
         title: 'Implementation',
         viewed: true,
     }
+}
+
+function createConversationStore(actionId = 'implement', storeContext: ActionContext = context) {
+    const runId = actionRunRegistry.getActionRunStore(actionId, storeContext)?.getSnapshot().runId ?? null
+    const bindingStore = new ActionRunBindingStore(runId)
+
+    return { bindingStore, store: new ActionConversationStore(actionId, storeContext, bindingStore) }
 }
 
 describe('ActionConversationStore', () => {
@@ -80,11 +88,11 @@ describe('ActionConversationStore', () => {
             }
             emit({ ...eventBase, status: status === 'waitingForInput' ? 'running' : status, type: 'run' })
             if (status === 'waitingForInput') emit({ ...eventBase, status, type: 'agentState' })
-            const draft = actionPromptDraftService.getDraft('implement', context, { prepare: false })
+            const draft = actionPromptDraftService.getDraft('implement', context, 'run-1', { prepare: false })
             draft.edit('Keep active prompt')
             const historicalConversation = conversation('conversation-history.json')
             vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(historicalConversation)
-            const store = new ActionConversationStore('implement', context)
+            const { store } = createConversationStore()
 
             await store.select(historicalConversation.path)
             draft.edit('Edited while browsing')
@@ -98,7 +106,7 @@ describe('ActionConversationStore', () => {
         const unseenConversation = conversation('conversation-newest.json')
         vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([unseenConversation])
         const loadConversation = vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(unseenConversation)
-        const store = new ActionConversationStore('implement', context)
+        const { store } = createConversationStore()
         store.configureInitialSelection(unseenConversation.path)
 
         await store.load()
@@ -113,7 +121,7 @@ describe('ActionConversationStore', () => {
         vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([unseenConversation])
         vi.spyOn(dataService, 'loadAgentConversation').mockRejectedValue(loadError)
         const reportError = vi.spyOn(dialogService, 'error')
-        const store = new ActionConversationStore('implement', context)
+        const { store } = createConversationStore()
         store.configureInitialSelection(unseenConversation.path)
 
         await store.load()
@@ -126,7 +134,7 @@ describe('ActionConversationStore', () => {
         const historicalConversation = conversation('conversation-old.json')
         vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([historicalConversation])
         const loadConversation = vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(historicalConversation)
-        const store = new ActionConversationStore('implement', context)
+        const { store } = createConversationStore()
         store.configureInitialSelection(null)
 
         await store.load()
@@ -155,7 +163,7 @@ describe('ActionConversationStore', () => {
             .mockResolvedValueOnce([originalConversation])
             .mockResolvedValueOnce([continuedConversation])
         vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(originalConversation)
-        const store = new ActionConversationStore('implement', context)
+        const { store } = createConversationStore()
         store.configureInitialSelection(originalConversation.path)
         await store.load()
 
@@ -167,9 +175,9 @@ describe('ActionConversationStore', () => {
     it('keeps user-edited prompt text when a finished run reconciles history', async () => {
         const waitingConversation = { ...conversation('conversation-waiting.json'), status: 'waitingForInput' as const }
         vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([waitingConversation])
-        const draft = actionPromptDraftService.getDraft('implement', context, { prepare: false })
+        const draft = actionPromptDraftService.getDraft('implement', context, null, { prepare: false })
         draft.edit('Typed while the agent was finishing')
-        const store = new ActionConversationStore('implement', context)
+        const { store } = createConversationStore()
 
         await store.load()
 
@@ -180,9 +188,9 @@ describe('ActionConversationStore', () => {
     it('drops an untouched prepared default when a finished run reconciles history', async () => {
         const waitingConversation = { ...conversation('conversation-waiting.json'), status: 'waitingForInput' as const }
         vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([waitingConversation])
-        const draft = actionPromptDraftService.getDraft('implement', context, { prepare: true })
+        const draft = actionPromptDraftService.getDraft('implement', context, null, { prepare: true })
         await draft.prepare(async () => 'Prepared default')
-        const store = new ActionConversationStore('implement', context)
+        const { store } = createConversationStore()
 
         await store.load()
 
@@ -192,7 +200,7 @@ describe('ActionConversationStore', () => {
     it('reconciles a loaded list without publishing a loading state', async () => {
         const listed = conversation('conversation.json')
         vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([listed])
-        const store = new ActionConversationStore('implement', context)
+        const { store } = createConversationStore()
         await store.load()
         const loadingStates: boolean[] = []
         store.subscribe(() => loadingStates.push(store.getSnapshot().loading))
@@ -207,11 +215,11 @@ describe('ActionConversationStore', () => {
         vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([projectOrigin])
         vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(projectOrigin)
         const reportError = vi.spyOn(dialogService, 'error')
-        const store = new ActionConversationStore('resolve-conflict', mergeConflictContext)
+        const { store } = createConversationStore('resolve-conflict', mergeConflictContext)
 
         await store.load()
 
-        expect(store.conversationOptions(null)).toEqual([projectOrigin])
+        expect(store.conversationOptions([])).toEqual([projectOrigin])
 
         await store.select(projectOrigin.path)
 

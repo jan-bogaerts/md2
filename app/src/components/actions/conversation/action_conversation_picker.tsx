@@ -10,14 +10,13 @@ interface ActionConversationPickerProps {
     selectedPath: string
 }
 
-/** Selects one persisted conversation for popup display and continuation. */
+/** Selects New conversation or one persisted/live conversation for popup display. */
 export function ActionConversationPicker(props: ActionConversationPickerProps) {
     const { conversations, disabled, loading, onChange, selectedPath } = props
-    const hasConversations = conversations.length > 0
 
     return (
         <TextField
-            disabled={disabled || loading || !hasConversations}
+            disabled={disabled || loading}
             onChange={onChange}
             select
             slotProps={{ select: { displayEmpty: true, inputProps: { 'aria-label': 'Conversation history' } } }}
@@ -30,7 +29,7 @@ export function ActionConversationPicker(props: ActionConversationPickerProps) {
             value={selectedPath}
             variant="standard"
         >
-            <MenuItem value="">Conversations</MenuItem>
+            <MenuItem value="">New conversation</MenuItem>
             {conversations.map((conversation) => (
                 <MenuItem key={conversation.path} value={conversation.path}>{conversationPickerLabel(conversation)}</MenuItem>
             ))}

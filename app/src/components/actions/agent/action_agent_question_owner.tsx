@@ -1,31 +1,29 @@
-import type { ActionContext } from '../../../data/action_context'
-import { actionRunRegistry, answerActionQuestion, dismissActionQuestions } from '../../../services/actions/action_run_registry'
-import { useActionRunSelector } from '../../hooks/use_action_runs'
+import { answerActionQuestion, dismissActionQuestions } from '../../../services/actions/action_run_registry'
+import { useBoundRunId, useRunSelector } from '../../hooks/use_action_runs'
 import { ActionAgentQuestion } from './action_agent_question'
+import type { ActionRunBindingStore } from '../run/state/action_run_binding_store'
 
 interface ActionAgentQuestionOwnerProps {
-    actionId: string
-    context: ActionContext
+    bindingStore: ActionRunBindingStore
 }
 
 /** Subscribes structured-question UI only to its bound run. */
-export function ActionAgentQuestionOwner({ actionId, context }: ActionAgentQuestionOwnerProps) {
-    const question = useActionRunSelector(actionId, context, (run) => run?.question ?? null)
+export function ActionAgentQuestionOwner({ bindingStore }: ActionAgentQuestionOwnerProps) {
+    const boundRunId = useBoundRunId(bindingStore)
+    const question = useRunSelector(boundRunId, (run) => run?.question ?? null)
 
     const handleAnswer = async (answers: Record<string, string[]>) => {
-        const currentRunId = actionRunRegistry.getActionRunStore(actionId, context)?.getSnapshot().runId
-        if (!currentRunId) throw new Error('Missing active action run for question answer')
+        if (!boundRunId) throw new Error('Missing active action run for question answer')
         if (!question) throw new Error('Missing pending agent question for answer')
 
-        await answerActionQuestion(currentRunId, question.requestId, answers)
+        await answerActionQuestion(boundRunId, question.requestId, answers)
     }
 
     const handleDismiss = async () => {
-        const currentRunId = actionRunRegistry.getActionRunStore(actionId, context)?.getSnapshot().runId
-        if (!currentRunId) throw new Error('Missing active action run for question dismissal')
+        if (!boundRunId) throw new Error('Missing active action run for question dismissal')
         if (!question) throw new Error('Missing pending agent question for dismissal')
 
-        await dismissActionQuestions(currentRunId, question.requestId)
+        await dismissActionQuestions(boundRunId, question.requestId)
     }
 
     return question

@@ -10,9 +10,11 @@ import type { ActionConversationStore } from '../../conversation/action_conversa
 import type { ActionHistoryStore } from '../state/action_history_store'
 import { ActionUsageScopeStore } from './action_usage_scope_store'
 import { ActionUsageSummaryOwner } from './action_usage_summary_owner'
+import { ActionRunBindingStore } from '../state/action_run_binding_store'
 
 const action = { id: 'implement', type: 'agent' } as ActionDefinition
 const context = { cardInternalId: 'card-1', file: 'design/F-114.md', kind: 'card' as const }
+const bindingStore = new ActionRunBindingStore('run-1')
 
 function conversation(id: string, insertions: number, deletions: number): AgentConversation {
     return {
@@ -43,10 +45,10 @@ function createConversationStore(selectedConversation: AgentConversation | null)
         selectedConversation,
     }
     const store = {
-        conversationOptions: (liveConversation: AgentConversation | null) => {
+        conversationOptions: (liveConversations: AgentConversation[]) => {
             const byId = new Map(snapshot.conversations.map((item) => [item.id, item]))
             if (snapshot.selectedConversation) byId.set(snapshot.selectedConversation.id, snapshot.selectedConversation)
-            if (liveConversation) byId.set(liveConversation.id, liveConversation)
+            for (const liveConversation of liveConversations) byId.set(liveConversation.id, liveConversation)
 
             return [...byId.values()]
         },
@@ -88,6 +90,7 @@ function renderOwner(
         <AppThemeProvider>
             <ActionUsageSummaryOwner
                 action={action}
+                bindingStore={bindingStore}
                 context={context}
                 conversationStore={conversationStore}
                 historyStore={historyStore}

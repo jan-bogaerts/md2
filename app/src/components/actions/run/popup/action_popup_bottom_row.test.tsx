@@ -20,6 +20,7 @@ import { configService } from '../../../../services/config/config_service'
 import { BUILTIN_AGENT_PROFILES } from '../../../../data/agent_profiles'
 import type { ActionContext } from '../../../../data/action_context'
 import type { ActionRunEvent } from '../../../../data/action_run_types'
+import { ActionRunBindingStore } from '../state/action_run_binding_store'
 
 const context = { kind: 'project' as const }
 const cardContext = { cardInternalId: 'card-1', file: 'design/F-1.md', kind: 'card' as const }
@@ -64,13 +65,20 @@ function waitingConversation(actionId: string): AgentConversation {
     }
 }
 
+function createConversationStore(actionId: string, storeContext: ActionContext) {
+    const runId = actionRunRegistry.getActionRunStore(actionId, storeContext)?.getSnapshot().runId ?? null
+    const bindingStore = new ActionRunBindingStore(runId)
+
+    return new ActionConversationStore(actionId, storeContext, bindingStore)
+}
+
 function renderBottomRow(
     actionOverride = action,
     conversationStore?: ActionConversationStore,
     embedded = false,
     contextOverride: ActionContext = context,
 ) {
-    const activeConversationStore = conversationStore ?? new ActionConversationStore(actionOverride.id, contextOverride)
+    const activeConversationStore = conversationStore ?? createConversationStore(actionOverride.id, contextOverride)
     const historyStore = new ActionHistoryStore(actionOverride, contextOverride)
     const inputStore = new ActionRunInputStore()
     const resultStore = new ActionRunResultStore()
@@ -91,6 +99,7 @@ function renderBottomRow(
             <ActionPopupBottomRow
                 action={actionOverride}
                 assignmentContext={contextOverride}
+                bindingStore={activeConversationStore.bindingStore}
                 conversationStore={activeConversationStore}
                 embedded={embedded}
                 historyStore={historyStore}
@@ -188,8 +197,8 @@ describe('ActionPopupBottomRow', () => {
     })
 
     it('marks the row as embedded without changing agent control behavior', () => {
-        actionPromptDraftService.getDraft(action.id, context, { prepare: false }).edit('Plan')
-        renderBottomRow(action, new ActionConversationStore(action.id, context), true)
+        actionPromptDraftService.getDraft(action.id, context, null, { prepare: false }).edit('Plan')
+        renderBottomRow(action, createConversationStore(action.id, context), true)
         const bottomRow = screen.getByTestId('action-popup-bottom-row')
 
         expect(bottomRow).toHaveAttribute('data-embedded', 'true')
@@ -198,7 +207,7 @@ describe('ActionPopupBottomRow', () => {
     })
 
     it('enables Send from first live prompt change without rendering unrelated content', () => {
-        const promptDraft = actionPromptDraftService.getDraft(action.id, context, { prepare: false })
+        const promptDraft = actionPromptDraftService.getDraft(action.id, context, null, { prepare: false })
         const { unrelatedRender } = renderBottomRow()
         const send = screen.getByRole('button', { name: 'Send' })
         expect(send).toBeDisabled()
@@ -210,7 +219,7 @@ describe('ActionPopupBottomRow', () => {
     })
 
     it('disables Send when live prompt is cleared', () => {
-        const promptDraft = actionPromptDraftService.getDraft(action.id, context, { prepare: false })
+        const promptDraft = actionPromptDraftService.getDraft(action.id, context, null, { prepare: false })
         promptDraft.edit('Plan')
         renderBottomRow()
         const send = screen.getByRole('button', { name: 'Send' })
@@ -229,9 +238,9 @@ describe('ActionPopupBottomRow', () => {
             onActionRun: vi.fn(() => vi.fn()),
         } as unknown as typeof window.md2Actions
         vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([source])
-        const conversationStore = new ActionConversationStore(action.id, context)
+        const conversationStore = createConversationStore(action.id, context)
         await conversationStore.load()
-        const promptDraft = actionPromptDraftService.getDraft(action.id, context, { prepare: false })
+        const promptDraft = actionPromptDraftService.getDraft(action.id, context, null, { prepare: false })
         const { unrelatedRender } = renderBottomRow(action, conversationStore)
 
         expect(screen.getByRole('button', { name: 'Finish' })).toBeInTheDocument()
@@ -250,11 +259,7 @@ describe('ActionPopupBottomRow', () => {
         expect(screen.queryByRole('button', { name: 'Send' })).not.toBeInTheDocument()
     })
 
-    it.each([
-        { controls: ['Stop'], status: 'queued' as const },
-        { controls: ['Stop'], status: 'running' as const },
-        { controls: ['Finish', 'Send'], status: 'waitingForInput' as const },
-    ])('disables $controls while historical conversation is displayed during $status', async ({ controls, status }) => {
+    it('keeps a live run and its draft untouched while historical conversation is selected', async () => {
         let listener: ((event: ActionRunEvent) => void) | null = null
         window.md2Actions = {
             onActionRun: vi.fn((nextListener) => {
@@ -270,21 +275,25 @@ describe('ActionPopupBottomRow', () => {
             actionId: action.id, actionType: 'agent' as const, autoFinish: null, context, interactionReady: true,
             phase: 'main' as const, rootActionId: action.id, runId: 'run-1', streaming: true,
         }
-        emit({ ...eventBase, status: status === 'waitingForInput' ? 'running' : status, type: 'run' })
-        if (status === 'waitingForInput') emit({ ...eventBase, status, type: 'agentState' })
-        actionPromptDraftService.getDraft(action.id, context, { prepare: false }).edit('Keep draft')
+        emit({ ...eventBase, status: 'running', type: 'run' })
+        const liveDraft = actionPromptDraftService.getDraft(action.id, context, 'run-1', { prepare: false })
+        liveDraft.edit('Keep draft')
         const historicalConversation = { ...waitingConversation(action.id), path: 'history.json', status: 'completed' as const }
         vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(historicalConversation)
-        const conversationStore = new ActionConversationStore(action.id, context)
+        const conversationStore = createConversationStore(action.id, context)
         await conversationStore.select(historicalConversation.path)
 
         renderBottomRow(action, conversationStore)
 
-        for (const control of controls) expect(screen.getByRole('button', { name: control })).toBeDisabled()
+        expect(conversationStore.bindingStore.getSnapshot()).toBeNull()
+        expect(actionRunRegistry.getRunStore('run-1')?.getSnapshot().status).toBe('running')
+        expect(liveDraft.getSnapshot()).toBe('Keep draft')
+        expect(screen.queryByRole('button', { name: 'Stop' })).not.toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled()
     })
 
     it('renders icon-only Schedule and exposes descriptive tooltips for idle controls', async () => {
-        actionPromptDraftService.getDraft(action.id, context, { prepare: false }).edit('Plan')
+        actionPromptDraftService.getDraft(action.id, context, null, { prepare: false }).edit('Plan')
         renderBottomRow()
         const schedule = screen.getByRole('button', { name: 'Schedule' })
 
@@ -321,7 +330,7 @@ describe('ActionPopupBottomRow', () => {
         } as unknown as typeof window.md2Actions
         const updateCardConversation = vi.spyOn(dataService.agents, 'updateAgentConversation').mockImplementation(() => undefined)
         vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([source])
-        const conversationStore = new ActionConversationStore(action.id, context)
+        const conversationStore = createConversationStore(action.id, context)
         await conversationStore.load()
         renderBottomRow(action, conversationStore)
 
@@ -345,7 +354,7 @@ describe('ActionPopupBottomRow', () => {
         } as unknown as typeof window.md2Actions
         vi.spyOn(dataService.agents, 'updateAgentConversation').mockImplementation(() => undefined)
         vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([source])
-        const conversationStore = new ActionConversationStore(action.id, context)
+        const conversationStore = createConversationStore(action.id, context)
         await conversationStore.load()
         renderBottomRow(action, conversationStore)
 
@@ -369,7 +378,7 @@ describe('ActionPopupBottomRow', () => {
             onActionRun: vi.fn(() => vi.fn()),
         } as unknown as typeof window.md2Actions
         vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([source])
-        const conversationStore = new ActionConversationStore(action.id, context)
+        const conversationStore = createConversationStore(action.id, context)
         await conversationStore.load()
         renderBottomRow(action, conversationStore)
         vi.useFakeTimers()
@@ -392,7 +401,7 @@ describe('ActionPopupBottomRow', () => {
             onActionRun: vi.fn(() => vi.fn()),
         } as unknown as typeof window.md2Actions
         vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([source])
-        const conversationStore = new ActionConversationStore(action.id, context)
+        const conversationStore = createConversationStore(action.id, context)
         await conversationStore.load()
         renderBottomRow(action, conversationStore)
         vi.useFakeTimers()
@@ -422,9 +431,9 @@ describe('ActionPopupBottomRow', () => {
             title: 'Error',
         })
         vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([source])
-        const conversationStore = new ActionConversationStore(action.id, context)
+        const conversationStore = createConversationStore(action.id, context)
         await conversationStore.load()
-        actionPromptDraftService.getDraft(action.id, context, { prepare: false }).edit('Continue')
+        actionPromptDraftService.getDraft(action.id, context, null, { prepare: false }).edit('Continue')
         renderBottomRow(action, conversationStore)
 
         fireEvent.click(screen.getByRole('button', { name: 'Finish' }))

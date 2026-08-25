@@ -9,6 +9,7 @@ import { agentAcknowledgementService } from '../../../services/agents/agent_ackn
 import { AppThemeProvider } from '../../../theme/theme_provider'
 import { ActionConversationChat } from './action_conversation_chat'
 import type { ActionConversationStore } from './action_conversation_store'
+import { ActionRunBindingStore } from '../run/state/action_run_binding_store'
 
 const context = { cardInternalId: 'card-1', file: 'design/F-138.md', kind: 'card' as const }
 const snapshot = { conversations: [], loading: false, selectedConversation: null }
@@ -16,6 +17,7 @@ const store = {
     getSnapshot: () => snapshot,
     subscribe: () => () => undefined,
 } as unknown as ActionConversationStore
+const bindingStore = new ActionRunBindingStore('run-1')
 const chatRenderProbe = vi.fn()
 
 function ActionConversationChatRenderProbe(props: Parameters<typeof ActionConversationChat>[0]) {
@@ -92,7 +94,7 @@ describe('ActionConversationChat integration', () => {
         actionRunRegistry.start()
         render(
             <AppThemeProvider>
-                <ActionConversationChatRenderProbe actionId="review" context={context} store={store} />
+                <ActionConversationChatRenderProbe actionId="review" bindingStore={bindingStore} context={context} store={store} />
             </AppThemeProvider>,
         )
         if (!listener) throw new Error('Missing run listener')
@@ -148,7 +150,7 @@ describe('ActionConversationChat integration', () => {
         actionRunRegistry.start()
         render(
             <AppThemeProvider>
-                <ActionConversationChat actionId="review" context={context} store={store} />
+                <ActionConversationChat actionId="review" bindingStore={bindingStore} context={context} store={store} />
             </AppThemeProvider>,
         )
         if (!listener) throw new Error('Missing run listener')
@@ -221,7 +223,7 @@ describe('ActionConversationChat integration', () => {
 
         render(
             <AppThemeProvider>
-                <ActionConversationChat actionId="review" context={context} store={selectableStore} />
+                <ActionConversationChat actionId="review" bindingStore={bindingStore} context={context} store={selectableStore} />
             </AppThemeProvider>,
         )
         const viewport = screen.getByLabelText('Conversation chat')
@@ -285,6 +287,7 @@ describe('ActionConversationChat integration', () => {
             <AppThemeProvider>
                 <ActionConversationChat
                     actionId="review"
+                    bindingStore={bindingStore}
                     context={context}
                     popupEntryId={popupEntry.id}
                     store={selectableStore}
@@ -347,6 +350,7 @@ describe('ActionConversationChat integration', () => {
             <AppThemeProvider>
                 <ActionConversationChat
                     actionId="review"
+                    bindingStore={bindingStore}
                     context={context}
                     popupEntryId={firstEntry.id}
                     store={selectedStore}
@@ -376,7 +380,13 @@ describe('ActionConversationChat integration', () => {
 
         render(
             <AppThemeProvider>
-                <ActionConversationChat actionId="review" context={context} popupEntryId={entry.id} store={store} />
+                <ActionConversationChat
+                    actionId="review"
+                    bindingStore={bindingStore}
+                    context={context}
+                    popupEntryId={entry.id}
+                    store={store}
+                />
             </AppThemeProvider>,
         )
 

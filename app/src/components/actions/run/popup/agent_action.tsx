@@ -19,13 +19,14 @@ interface AgentActionProps {
 /** Agent conversation, prompt, interaction, and scheduling content. */
 export function AgentAction(props: AgentActionProps) {
     const { action, assignmentContext, baseContext, popupEntryId, readOnlyMessage, runtime } = props
-    const { conversationStore, runValidationError, scheduleStore, settingsStore } = runtime
+    const { bindingStore, conversationStore, runValidationError, scheduleStore, settingsStore } = runtime
 
     if (readOnlyMessage) {
         return (
             <Stack data-testid="action-popup-scroll-body" spacing={2} sx={{ flex: 1, minHeight: 0, overflow: 'auto', px: 1.5, py: 1 }}>
                 <ActionConversationChat
                     actionId={action.id}
+                    bindingStore={bindingStore}
                     context={assignmentContext}
                     popupEntryId={popupEntryId}
                     store={conversationStore}

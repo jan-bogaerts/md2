@@ -1,26 +1,26 @@
 import { Box, Stack, Typography } from '@mui/material'
 import { memo, useSyncExternalStore } from 'react'
-import type { ActionContext } from '../../../data/action_context'
-import { useActionRunSelector } from '../../hooks/use_action_runs'
+import { useBoundRunId, useRunSelector } from '../../hooks/use_action_runs'
 import type { PopupRunStatus } from '../run/popup/action_popup_defaults'
 import { actionStatusLabel } from '../shared/action_status'
 import type { ActionConversationStore } from './action_conversation_store'
 import { ConversationContextUsage } from './conversation_context_usage'
 import { ConversationTimer } from './conversation_timer'
+import type { ActionRunBindingStore } from '../run/state/action_run_binding_store'
 
 interface ConversationMetaInfoProps {
-    actionId: string
-    context: ActionContext
+    bindingStore: ActionRunBindingStore
     store: ActionConversationStore
 }
 
 /** Bottom metadata row that owns timer, status, and context-usage subscriptions. */
 export const ConversationMetaInfo = memo(function ConversationMetaInfo(
-    { actionId, context, store }: ConversationMetaInfoProps,
+    { bindingStore, store }: ConversationMetaInfoProps,
 ) {
-    const liveConversationPath = useActionRunSelector(actionId, context, (run) => run?.conversation?.path ?? null)
-    const liveTimer = useActionRunSelector(actionId, context, (run) => run?.conversation?.timer)
-    const runStatus = useActionRunSelector(actionId, context, (run) => run?.status ?? 'idle')
+    const boundRunId = useBoundRunId(bindingStore)
+    const liveConversationPath = useRunSelector(boundRunId, (run) => run?.conversation?.path ?? null)
+    const liveTimer = useRunSelector(boundRunId, (run) => run?.conversation?.timer)
+    const runStatus = useRunSelector(boundRunId, (run) => run?.status ?? 'idle')
     const { selectedConversation } = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot)
     const displayingHistoricalConversation = !!selectedConversation && selectedConversation.path !== liveConversationPath
     const conversationExists = displayingHistoricalConversation ? true : !!liveConversationPath || !!selectedConversation
@@ -41,7 +41,7 @@ export const ConversationMetaInfo = memo(function ConversationMetaInfo(
             ) : null}
             {conversationExists ? <ConversationTimer status={status} timer={timer} /> : null}
             <Box sx={{ flex: 1 }} />
-            <ConversationContextUsage actionId={actionId} context={context} store={store} />
+            <ConversationContextUsage bindingStore={bindingStore} store={store} />
         </Stack>
     )
 })

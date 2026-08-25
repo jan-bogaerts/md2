@@ -10,9 +10,11 @@ import type { ActionRunInputStore } from '../run/state/action_run_input_store'
 import type { ActionRunResultStore } from '../run/state/action_run_result_store'
 import { ActionAgentPresetName } from './action_agent_preset_name'
 import { useActionRunSettings } from '../shared/use_action_run_settings'
+import type { ActionRunBindingStore } from '../run/state/action_run_binding_store'
 
 interface ActionAgentPresetNameOwnerProps {
     action: ActionDefinition
+    bindingStore: ActionRunBindingStore
     context: ActionContext
     conversationStore: ActionConversationStore
     historyStore: ActionHistoryStore
@@ -24,15 +26,18 @@ interface ActionAgentPresetNameOwnerProps {
 
 /** Owns preset-name edits at preset field boundary. */
 export function ActionAgentPresetNameOwner(props: ActionAgentPresetNameOwnerProps) {
-    const { action, context, conversationStore, historyStore, inputStore, resultStore, runValidationError, settingsStore } = props
+    const {
+        action, bindingStore, context, conversationStore, historyStore, inputStore, resultStore,
+        runValidationError, settingsStore,
+    } = props
     const { actionLabel } = useSyncExternalStore(inputStore.subscribe, inputStore.getSnapshot, inputStore.getSnapshot)
     const settings = useActionRunSettings(action, settingsStore)
     const handleActionLabelChange = (event: ChangeEvent<HTMLInputElement>) => inputStore.setActionLabel(event.target.value)
     const handleRunShortcut = () => {
-        const run = currentActionRun(action, context)
+        const run = currentActionRun(bindingStore)
         const runStatus = run?.status ?? 'idle'
         const sessionActive = runStatus === 'queued' || runStatus === 'running' || runStatus === 'waitingForInput'
-        const promptDraft = currentActionPromptDraft(action, context, false)
+        const promptDraft = currentActionPromptDraft(action, context, bindingStore, false)
         const runState = {
             agentActive: sessionActive && run?.activeActionType === 'agent',
             hasApprovals: !!run?.approvals.length,
@@ -51,6 +56,7 @@ export function ActionAgentPresetNameOwner(props: ActionAgentPresetNameOwnerProp
 
         void saveAndRunPopupAction({
             action,
+            bindingStore,
             context,
             conversationStore,
             historyStore,

@@ -28,7 +28,7 @@ function conversation(overrides: Partial<AgentConversation> = {}): AgentConversa
 describe('conversation picker data', () => {
     afterEach(cleanup)
 
-    it('allows selecting empty conversation after history is selected', () => {
+    it('always allows selecting New conversation', () => {
         const onChange = vi.fn()
         const selectedConversation = conversation()
         render(
@@ -43,7 +43,7 @@ describe('conversation picker data', () => {
 
         fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Conversation history' }))
         const options = within(screen.getByRole('listbox'))
-        const emptyConversation = options.getByRole('option', { name: 'Conversations' })
+        const emptyConversation = options.getByRole('option', { name: 'New conversation' })
         expect(emptyConversation).not.toHaveAttribute('aria-disabled', 'true')
         fireEvent.click(emptyConversation)
 
@@ -67,16 +67,17 @@ describe('conversation picker data', () => {
         const otherCard = conversation({ cardInternalId: 'card-2', cardPath: 'design/F-2.md', id: 'other', path: 'other.json' })
         const liveNewest = conversation({ entries: [{ content: 'live', id: 'm1', kind: 'message', role: 'assistant', timestamp: 'now' }], id: 'newest', path: 'live-newest.json' })
 
-        const result = conversationOptions([older, newest, otherAction, otherCard], 'action-review', context, liveNewest)
+        const secondLive = conversation({ id: 'live-second', path: 'live-second.json', startedAt: '2026-07-16T10:00:00.000Z' })
+        const result = conversationOptions([older, newest, otherAction, otherCard], 'action-review', context, [liveNewest, secondLive])
 
-        expect(result.map(({ id }) => id)).toEqual(['newest', 'older'])
-        expect(result[0].entries[0].content).toBe('live')
+        expect(result.map(({ id }) => id)).toEqual(['live-second', 'newest', 'older'])
+        expect(result[1].entries[0].content).toBe('live')
     })
 
     it('keeps project conversations separate from card conversations', () => {
         const projectConversation = conversation({ cardInternalId: null, cardPath: null, id: 'project', path: 'project.json' })
 
-        expect(conversationOptions([conversation(), projectConversation], 'action-review', { kind: 'project' }, null))
+        expect(conversationOptions([conversation(), projectConversation], 'action-review', { kind: 'project' }, []))
             .toEqual([projectConversation])
     })
 })

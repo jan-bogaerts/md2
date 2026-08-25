@@ -17,12 +17,13 @@ interface ActionPromptDraftOptions {
     prepare: boolean
 }
 
-function promptDraftKey(actionId: string, context: ActionContext) {
-    return `${actionId}${DRAFT_KEY_SEPARATOR}${actionContextIdentity(context)}`
+function promptDraftKey(actionId: string, context: ActionContext, runId: string | null) {
+    return `${actionId}${DRAFT_KEY_SEPARATOR}${actionContextIdentity(context)}${DRAFT_KEY_SEPARATOR}${runId ?? 'new'}`
 }
 
 /** Stable prompt state shared by editor and prompt-dependent leaf controls. */
 export class ActionPromptDraft {
+    private applyingExternalValue = false
     private editorSnapshot: ActionPromptDraftEditorSnapshot
     private locallyEdited = false
     readonly markdownDraft: MarkdownDraft
@@ -36,6 +37,7 @@ export class ActionPromptDraft {
             replacementRevision: 0,
         }
         this.markdownDraft = new MarkdownDraft(initialValue)
+        this.markdownDraft.subscribe(this.handleMarkdownEdit)
         this.preparationRequired = preparationRequired
     }
 
@@ -55,10 +57,6 @@ export class ActionPromptDraft {
 
     /** Record an editor-local value without starting asynchronous synchronization. */
     readonly edit = (value: string) => {
-        this.revision += 1
-        this.locallyEdited = true
-        this.preparationRequired = false
-        this.setPreparationStatus('ready')
         this.markdownDraft.edit(value)
     }
 
@@ -67,7 +65,12 @@ export class ActionPromptDraft {
         this.revision += 1
         this.locallyEdited = false
         this.preparationRequired = false
-        this.markdownDraft.replace(value)
+        this.applyingExternalValue = true
+        try {
+            this.markdownDraft.replace(value)
+        } finally {
+            this.applyingExternalValue = false
+        }
         this.editorSnapshot = {
             preparationStatus: 'ready',
             replacementRevision: this.editorSnapshot.replacementRevision + 1,
@@ -124,6 +127,15 @@ export class ActionPromptDraft {
         this.markdownDraft.requestFlush()
     }
 
+    private readonly handleMarkdownEdit = () => {
+        if (this.applyingExternalValue) return
+
+        this.revision += 1
+        this.locallyEdited = true
+        this.preparationRequired = false
+        this.setPreparationStatus('ready')
+    }
+
     private setPreparationStatus(preparationStatus: ActionPromptPreparationStatus) {
         if (this.editorSnapshot.preparationStatus === preparationStatus) return
 
@@ -144,8 +156,8 @@ export class ActionPromptDraftService {
         register('actionPromptDraftService', this)
     }
 
-    getDraft(actionId: string, context: ActionContext, options: ActionPromptDraftOptions) {
-        const key = promptDraftKey(actionId, context)
+    getDraft(actionId: string, context: ActionContext, runId: string | null, options: ActionPromptDraftOptions) {
+        const key = promptDraftKey(actionId, context, runId)
         const current = this.drafts.get(key)
         if (current) return current
 
@@ -156,13 +168,13 @@ export class ActionPromptDraftService {
     }
 
     /** Empties the editor while keeping the draft object the editor is bound to. */
-    clearDraft(actionId: string, context: ActionContext) {
-        this.drafts.get(promptDraftKey(actionId, context))?.clear()
+    clearDraft(actionId: string, context: ActionContext, runId: string | null) {
+        this.drafts.get(promptDraftKey(actionId, context, runId))?.clear()
     }
 
     /** Drops a prepared default the user never touched and keeps every typed character. */
-    discardUneditedDraft(actionId: string, context: ActionContext) {
-        const draft = this.drafts.get(promptDraftKey(actionId, context))
+    discardUneditedDraft(actionId: string, context: ActionContext, runId: string | null) {
+        const draft = this.drafts.get(promptDraftKey(actionId, context, runId))
         if (!draft) return
 
         draft.requestFlush()

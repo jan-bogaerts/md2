@@ -208,8 +208,9 @@ describe('CardRunButton', () => {
         fireEvent.click(runButton)
 
         expect(screen.getByRole('dialog')).toBeInTheDocument()
-        expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Create branch' })).toHaveAttribute('aria-pressed', 'true')
-        expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Implement — Agent is running' })).toBeInTheDocument()
+        expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Create branch' })).toHaveAttribute('aria-pressed', 'false')
+        expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Implement — Agent is running' }))
+            .toHaveAttribute('aria-pressed', 'true')
     })
 
     it('prefers live waiting and resumed states over persisted conversation state', () => {

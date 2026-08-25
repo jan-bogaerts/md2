@@ -3,12 +3,15 @@ import type { ActionContext } from '../../../../data/action_context'
 import type { ActionDefinition } from '../../../../data/action_types'
 import { resolveDisplayedConversation, type ActionConversationStore } from '../../conversation/action_conversation_store'
 import type { ActionHistoryStore } from '../state/action_history_store'
-import { useActionRunSelector } from '../../../hooks/use_action_runs'
 import { ActionUsageSummary } from './action_usage_summary'
 import type { ActionUsageScopeStore } from './action_usage_scope_store'
+import type { ActionRunBindingStore } from '../state/action_run_binding_store'
+import { useActionRunStores, useBoundRunId, useRunSelector } from '../../../hooks/use_action_runs'
+import type { AgentConversation } from '../../../../data/data_types'
 
 interface ActionUsageSummaryOwnerProps {
     action: ActionDefinition
+    bindingStore: ActionRunBindingStore
     context: ActionContext
     conversationStore: ActionConversationStore
     historyStore: ActionHistoryStore
@@ -17,8 +20,12 @@ interface ActionUsageSummaryOwnerProps {
 
 /** Subscribes usage summary to conversation and history data only. */
 export function ActionUsageSummaryOwner(props: ActionUsageSummaryOwnerProps) {
-    const { action, context, conversationStore, historyStore, scopeStore } = props
-    const liveConversation = useActionRunSelector(action.id, context, (run) => run?.conversation ?? null)
+    const { action, bindingStore, context, conversationStore, historyStore, scopeStore } = props
+    const boundRunId = useBoundRunId(bindingStore)
+    const liveConversation = useRunSelector(boundRunId, (run) => run?.conversation ?? null)
+    const liveConversations = useActionRunStores(action.id, context)
+        .map(({ getSnapshot }) => getSnapshot().conversation)
+        .filter((conversation): conversation is AgentConversation => !!conversation)
     const conversationSnapshot = useSyncExternalStore(
         conversationStore.subscribe,
         conversationStore.getSnapshot,
@@ -46,7 +53,7 @@ export function ActionUsageSummaryOwner(props: ActionUsageSummaryOwnerProps) {
             actionId={action.id}
             cardInternalId={context.cardInternalId}
             conversation={displayedConversation}
-            conversations={conversationStore.conversationOptions(liveConversation)}
+            conversations={conversationStore.conversationOptions(liveConversations)}
             history={historySnapshot.entries}
             liveConversation={liveConversation}
             onToggleScope={handleToggleScope}

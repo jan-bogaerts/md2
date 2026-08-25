@@ -24,6 +24,7 @@ import {
 import type { ActionHistoryStore } from '../state/action_history_store'
 import type { ActionRunInputStore } from '../state/action_run_input_store'
 import type { ActionRunResultStore } from '../state/action_run_result_store'
+import type { ActionRunBindingStore } from '../state/action_run_binding_store'
 
 const DEFAULT_CONVERT_LABEL_LENGTH = 40
 
@@ -42,8 +43,8 @@ function hasPersistedSubmittedMessage(
         && !previousEntryIds.has(entry.id))
 }
 
-function restorePrompt(action: ActionDefinition, context: ActionContext, prompt: string) {
-    actionPromptDraftService.getDraft(action.id, context, { prepare: false }).edit(prompt)
+function restorePrompt(action: ActionDefinition, context: ActionContext, runId: string | null, prompt: string) {
+    actionPromptDraftService.getDraft(action.id, context, runId, { prepare: false }).edit(prompt)
 }
 
 async function enqueueActionPrompt(runId: string, content: string) {
@@ -55,6 +56,7 @@ async function enqueueActionPrompt(runId: string, content: string) {
 
 export interface ActionPopupOperationInput {
     action: ActionDefinition
+    bindingStore: ActionRunBindingStore
     context: ActionContext
     conversationStore: ActionConversationStore
     historyStore: ActionHistoryStore
@@ -65,12 +67,19 @@ export interface ActionPopupOperationInput {
     settingsStore: ActionRunSettingsStore
 }
 
-export function currentActionRun(action: ActionDefinition, context: ActionContext) {
-    return actionRunRegistry.getActionRunStore(action.id, context)?.getSnapshot() ?? null
+export function currentActionRun(bindingStore: ActionRunBindingStore) {
+    const runId = bindingStore.getSnapshot()
+
+    return runId ? actionRunRegistry.getRunStore(runId)?.getSnapshot() ?? null : null
 }
 
-export function currentActionPromptDraft(action: ActionDefinition, context: ActionContext, prepare: boolean) {
-    return actionPromptDraftService.getDraft(action.id, context, { prepare })
+export function currentActionPromptDraft(
+    action: ActionDefinition,
+    context: ActionContext,
+    bindingStore: ActionRunBindingStore,
+    prepare: boolean,
+) {
+    return actionPromptDraftService.getDraft(action.id, context, bindingStore.getSnapshot(), { prepare })
 }
 
 function activeRunHasHistoricalDisplay(
@@ -88,14 +97,14 @@ function activeRunHasHistoricalDisplay(
 
 async function runWithPrompt(input: ActionPopupOperationInput, prompt: string, previousRunId: string | null = null) {
     const {
-        action, context, conversationStore, historyStore, resultStore, runValidationError, settings,
+        action, bindingStore, context, conversationStore, historyStore, resultStore, runValidationError, settings,
         settingsStore,
     } = input
     resultStore.setRunning()
     try {
         if (runValidationError) throw new Error(runValidationError)
 
-        const liveConversation = currentActionRun(action, context)?.conversation ?? null
+        const liveConversation = currentActionRun(bindingStore)?.conversation ?? null
         const previousConversation = liveConversation ?? conversationStore.getSnapshot().selectedConversation
         const continuationPath = conversationStore.continuationPath(liveConversation)
         const runInput = action.type === 'agent'
@@ -109,9 +118,10 @@ async function runWithPrompt(input: ActionPopupOperationInput, prompt: string, p
             }
             : { extraPrompt: prompt }
         const handleStarted = (runId: string) => {
+            actionPromptDraftService.clearDraft(action.id, context, bindingStore.getSnapshot())
+            bindingStore.setRunId(runId)
             resultStore.setRunId(runId)
             settingsStore.markSettingsApplied()
-            actionPromptDraftService.clearDraft(action.id, context)
         }
         const result = previousRunId
             ? await defaultRestartAction(previousRunId, action, context, runInput, handleStarted)
@@ -128,11 +138,11 @@ async function runWithPrompt(input: ActionPopupOperationInput, prompt: string, p
                     conversationStore.getSnapshot().selectedConversation,
                     prompt,
                 )) {
-                restorePrompt(action, context, prompt)
+                restorePrompt(action, context, bindingStore.getSnapshot(), prompt)
             }
         }
     } catch (error) {
-        if (previousRunId) restorePrompt(action, context, prompt)
+        if (previousRunId) restorePrompt(action, context, bindingStore.getSnapshot(), prompt)
         const message = error instanceof Error ? error.message : 'Action run failed'
         resultStore.setResult({
             changedPaths: [],
@@ -153,11 +163,11 @@ async function runWithPrompt(input: ActionPopupOperationInput, prompt: string, p
 }
 
 export async function runPopupAction(input: ActionPopupOperationInput) {
-    const { action, context, conversationStore, settingsStore } = input
-    const run = currentActionRun(action, context)
+    const { action, bindingStore, context, conversationStore, settingsStore } = input
+    const run = currentActionRun(bindingStore)
     if (activeRunHasHistoricalDisplay(run, conversationStore)) return
 
-    const promptDraft = actionPromptDraftService.getDraft(action.id, context, { prepare: false })
+    const promptDraft = actionPromptDraftService.getDraft(action.id, context, bindingStore.getSnapshot(), { prepare: false })
     const prompt = promptDraft.getSnapshot()
     const sessionActive = run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'
     const agentActive = sessionActive && run?.activeActionType === 'agent'
@@ -178,7 +188,9 @@ export async function runPopupAction(input: ActionPopupOperationInput) {
 
             const revision = promptDraft.getRevision()
             await enqueueActionPrompt(run.runId, prompt)
-            if (promptDraft.getRevision() === revision) actionPromptDraftService.clearDraft(action.id, context)
+            if (promptDraft.getRevision() === revision) {
+                actionPromptDraftService.clearDraft(action.id, context, bindingStore.getSnapshot())
+            }
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Could not send agent message' })
         }
@@ -189,8 +201,8 @@ export async function runPopupAction(input: ActionPopupOperationInput) {
 }
 
 export async function convertPromptToAction(input: ActionPopupOperationInput) {
-    const { action, context, inputStore, settings } = input
-    const prompt = currentActionPromptDraft(action, context, false).getSnapshot()
+    const { action, bindingStore, context, inputStore, settings } = input
+    const prompt = currentActionPromptDraft(action, context, bindingStore, false).getSnapshot()
     const { actionLabel } = inputStore.getSnapshot()
     inputStore.setConvertMessage(null)
     try {
@@ -222,6 +234,7 @@ export async function saveAndRunPopupAction(input: ActionPopupOperationInput) {
 
 async function closeWaitingConversation(
     action: ActionDefinition,
+    bindingStore: ActionRunBindingStore,
     context: ActionContext,
     conversationStore: ActionConversationStore,
     status: 'cancelled' | 'completed',
@@ -233,21 +246,22 @@ async function closeWaitingConversation(
     const updatedConversation = await defaultCloseWaitingConversation(conversation.path, status)
     conversationStore.updateConversation(updatedConversation)
     dataService.agents.updateAgentConversation(updatedConversation)
-    actionPromptDraftService.clearDraft(action.id, context)
+    actionPromptDraftService.clearDraft(action.id, context, bindingStore.getSnapshot())
 }
 
 export async function cancelPopupAction(
     action: ActionDefinition,
+    bindingStore: ActionRunBindingStore,
     context: ActionContext,
     conversationStore: ActionConversationStore,
 ) {
-    const run = currentActionRun(action, context)
+    const run = currentActionRun(bindingStore)
     if (activeRunHasHistoricalDisplay(run, conversationStore)) return
 
     const sessionActive = run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'
     if (!run || !sessionActive) {
         try {
-            await closeWaitingConversation(action, context, conversationStore, 'cancelled')
+            await closeWaitingConversation(action, bindingStore, context, conversationStore, 'cancelled')
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Could not stop waiting agent conversation' })
         }
@@ -255,21 +269,22 @@ export async function cancelPopupAction(
     }
 
     await defaultCancelAction(run.runId)
-    actionPromptDraftService.clearDraft(action.id, context)
+    actionPromptDraftService.clearDraft(action.id, context, bindingStore.getSnapshot())
 }
 
 export async function finishPopupAction(
     action: ActionDefinition,
+    bindingStore: ActionRunBindingStore,
     context: ActionContext,
     conversationStore: ActionConversationStore,
 ) {
-    const run = currentActionRun(action, context)
+    const run = currentActionRun(bindingStore)
     if (activeRunHasHistoricalDisplay(run, conversationStore)) return
 
     const sessionActive = run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'
     if (!run || !sessionActive) {
         try {
-            await closeWaitingConversation(action, context, conversationStore, 'completed')
+            await closeWaitingConversation(action, bindingStore, context, conversationStore, 'completed')
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Could not finish waiting agent conversation' })
         }
@@ -278,7 +293,7 @@ export async function finishPopupAction(
 
     try {
         await defaultFinishAction(run.runId)
-        actionPromptDraftService.clearDraft(action.id, context)
+        actionPromptDraftService.clearDraft(action.id, context, bindingStore.getSnapshot())
     } catch (error) {
         dialogService.error(error, { fallbackMessage: 'Could not finish agent session' })
     }

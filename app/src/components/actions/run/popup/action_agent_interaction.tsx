@@ -1,7 +1,7 @@
 import { Stack } from '@mui/material'
 import type { ActionContext } from '../../../../data/action_context'
 import type { ActionDefinition } from '../../../../data/action_types'
-import { useActionRunSelector } from '../../../hooks/use_action_runs'
+import { useBoundRunId, useRunSelector } from '../../../hooks/use_action_runs'
 import { ActionAgentApprovals } from '../../agent/action_agent_approvals'
 import { ActionAgentPromptOwner } from '../../agent/action_agent_prompt_owner'
 import { ActionAgentQuestionOwner } from '../../agent/action_agent_question_owner'
@@ -20,24 +20,27 @@ interface ActionAgentInteractionProps {
 export function ActionAgentInteraction(props: ActionAgentInteractionProps) {
     const { action, assignmentContext, popupEntryId, runtime } = props
     const {
-        conversationStore, historyStore, inputStore, resultStore, runValidationError, scheduleStore,
+        bindingStore, conversationStore, historyStore, inputStore, resultStore, runValidationError, scheduleStore,
         settingsStore, usageScopeStore,
     } = runtime
-    const activeActionType = useActionRunSelector(action.id, assignmentContext, (run) => run?.activeActionType ?? null)
+    const boundRunId = useBoundRunId(bindingStore)
+    const activeActionType = useRunSelector(boundRunId, (run) => run?.activeActionType ?? null)
     const visible = action.type === 'agent' || activeActionType === 'agent'
 
     return (
         <Stack sx={{ display: visible ? 'contents' : 'none' }}>
             <Stack spacing={1} sx={{ flex: 1, minHeight: 0 }}>
-                <ActionLogErrorOwner actionId={action.id} context={assignmentContext} resultStore={resultStore} />
+                <ActionLogErrorOwner bindingStore={bindingStore} resultStore={resultStore} />
                 <ActionConversationChat
                     actionId={action.id}
+                    bindingStore={bindingStore}
                     context={assignmentContext}
                     popupEntryId={popupEntryId}
                     store={conversationStore}
                 />
                 <ActionAgentPromptOwner
                     action={action}
+                    bindingStore={bindingStore}
                     context={assignmentContext}
                     conversationStore={conversationStore}
                     historyStore={historyStore}
@@ -48,8 +51,8 @@ export function ActionAgentInteraction(props: ActionAgentInteractionProps) {
                     scheduleStore={scheduleStore}
                     usageScopeStore={usageScopeStore}
                 />
-                <ActionAgentApprovals actionId={action.id} context={assignmentContext} />
-                <ActionAgentQuestionOwner actionId={action.id} context={assignmentContext} />
+                <ActionAgentApprovals bindingStore={bindingStore} />
+                <ActionAgentQuestionOwner bindingStore={bindingStore} />
             </Stack>
         </Stack>
     )

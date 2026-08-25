@@ -178,6 +178,30 @@ describe('ActionRunRegistry', () => {
         service.stop()
     })
 
+    it('retains concurrent stores for one action and removes only the terminal run', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        service.start()
+
+        emit(runEvent('running'))
+        emit({ ...runEvent('running'), runId: 'run-2' })
+
+        expect(service.getActionRunStores('build', context).map(({ getSnapshot }) => getSnapshot().runId))
+            .toEqual(['run-1', 'run-2'])
+        expect(service.getActionRunStore('build', context)?.getSnapshot().runId).toBe('run-2')
+        expect(service.getRunStore('run-1')?.getSnapshot().status).toBe('running')
+
+        emit(runEvent('completed'))
+
+        expect(service.getActionRunStores('build', context).map(({ getSnapshot }) => getSnapshot().runId))
+            .toEqual(['run-2'])
+        expect(service.getActionRunStore('build', context)?.getSnapshot().runId).toBe('run-2')
+        expect(service.getRunStore('run-1')).toBeNull()
+        expect(service.getRunStore('run-2')?.getSnapshot().status).toBe('running')
+        service.stop()
+    })
+
     it('tracks a queued action as active and replaces its queued log when it starts', () => {
         const { bridge, emit } = bridgeWithEvents()
         setActionBridgeOverride(bridge)
@@ -860,18 +884,18 @@ describe('ActionRunRegistry prompt drafts', () => {
 
     it.each(endings)('keeps user-edited prompt text after %s', (_name, endingEvent) => {
         const { emit } = startAgentRun()
-        const draft = actionPromptDraftService.getDraft('build', context, { prepare: false })
+        const draft = actionPromptDraftService.getDraft('build', context, 'run-1', { prepare: false })
         draft.edit('Typed while the agent was finishing')
 
         emit(endingEvent)
 
         expect(draft.getSnapshot()).toBe('Typed while the agent was finishing')
-        expect(actionPromptDraftService.getDraft('build', context, { prepare: false })).toBe(draft)
+        expect(actionPromptDraftService.getDraft('build', context, 'run-1', { prepare: false })).toBe(draft)
     })
 
     it.each(endings)('drops an untouched prepared default after %s', async (_name, endingEvent) => {
         const { emit } = startAgentRun()
-        const draft = actionPromptDraftService.getDraft('build', context, { prepare: true })
+        const draft = actionPromptDraftService.getDraft('build', context, 'run-1', { prepare: true })
         await draft.prepare(async () => 'Prepared default')
 
         emit(endingEvent)
@@ -881,7 +905,7 @@ describe('ActionRunRegistry prompt drafts', () => {
 
     it('keeps text still buffered by the editor when a run ends', () => {
         const { emit } = startAgentRun()
-        const draft = actionPromptDraftService.getDraft('build', context, { prepare: false })
+        const draft = actionPromptDraftService.getDraft('build', context, 'run-1', { prepare: false })
         draft.markdownDraft.addEventListener('flushRequested', () => draft.edit('Buffered keystrokes'))
 
         emit(runEvent('completed'))

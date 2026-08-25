@@ -840,6 +840,68 @@ describe('ActionPopup', () => {
         expect(screen.getByRole('button', { name: 'Stream' })).toBeInTheDocument()
     })
 
+    it('starts a second run from New conversation instead of queueing into the live run', async () => {
+        actionRunRegistry.stop()
+        const projectContext: ActionContext = { kind: 'project' }
+        let runListener: ((event: ActionRunEvent) => void) | null = null
+        const enqueueActionPrompt = vi.fn()
+        const startAction = vi.fn(async (request: ActionStartRequest) => {
+            void request
+
+            return 'run-2'
+        })
+        window.md2Actions = {
+            enqueueActionPrompt,
+            loadActionRunHistory: vi.fn(async () => []),
+            onActionRun: vi.fn((listener) => {
+                runListener = listener
+
+                return vi.fn()
+            }),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
+            startAction,
+        } as unknown as typeof window.md2Actions
+        mockCodexAvailable()
+        actionRunRegistry.start()
+        actionService.loadFromFiles([file(agentDefinition('stream', { label: 'Stream', streaming: true }))])
+        if (!runListener) throw new Error('Missing action run listener')
+        const firstConversation = agentConversation({ actionId: 'stream', cardInternalId: null, cardPath: null, path: 'first.json' })
+        const firstRun = {
+            actionId: 'stream', actionType: 'agent' as const, autoFinish: null, context: projectContext,
+            interactionReady: true, phase: 'main' as const, rootActionId: 'stream', runId: 'run-1', streaming: true,
+        }
+        act(() => {
+            runListener?.({ ...firstRun, status: 'running', type: 'run' })
+            runListener?.({
+                ...firstRun,
+                status: 'running',
+                type: 'update',
+                update: { continued: false, conversation: firstConversation, kind: 'agentStarted' },
+            })
+            runListener?.({ ...firstRun, status: 'running', type: 'agentState' })
+        })
+        renderPopup(projectContext)
+
+        const conversationPicker = await screen.findByRole('combobox', { name: 'Conversation history' })
+        fireEvent.mouseDown(conversationPicker)
+        fireEvent.click(await screen.findByRole('option', { name: 'New conversation' }))
+        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
+        fireEvent.change(prompt, { target: { value: 'Independent request' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+
+        await waitFor(() => expect(startAction).toHaveBeenCalledWith(expect.objectContaining({
+            actionId: 'stream',
+            runInput: expect.objectContaining({ prompt: 'Independent request' }),
+        })))
+        const startRequest = startAction.mock.calls[0]?.[0]
+        if (!startRequest) throw new Error('Missing second action start request')
+        expect(startRequest.runInput).not.toHaveProperty('continueFrom')
+        expect(enqueueActionPrompt).not.toHaveBeenCalled()
+
+        act(() => runListener?.({ ...firstRun, runId: 'run-2', status: 'running', type: 'run' }))
+        expect(actionRunRegistry.getActionRunStores('stream', projectContext)).toHaveLength(2)
+    })
+
     it('keeps a post-start streaming draft editable when the bottom row reacquires it first', async () => {
         actionRunRegistry.stop()
         const streamingContext: ActionContext = { kind: 'project' }
@@ -927,7 +989,7 @@ describe('ActionPopup', () => {
         expect(prepareActionPrompt).toHaveBeenCalledOnce()
         await waitFor(() => expect(runListener).not.toBeNull())
 
-        act(() => actionPromptDraftService.clearDraft('stream', context))
+        act(() => actionPromptDraftService.clearDraft('stream', context, null))
         act(() => {
             runListener?.({
                 actionId: 'stream', context, runId: 'run-1', phase: 'main', rootActionId: 'stream',
@@ -987,6 +1049,7 @@ describe('ActionPopup', () => {
         const promptDraft = actionPromptDraftService.getDraft(
             'review',
             { ...context, cardInternalId: 'card-1' },
+            null,
             { prepare: true },
         )
         expect(promptDraft.getEditorSnapshot().preparationStatus).toBe('loading')
@@ -1170,7 +1233,7 @@ describe('ActionPopup', () => {
         await waitFor(() => expect(within(screen.getByLabelText('Prompt')).getByRole('textbox')).toHaveValue(''))
         const activeRun = actionRunRegistry.getActionRunStore('active', context)?.getSnapshot()
         if (!activeRun) throw new Error('Missing active run')
-        act(() => actionPromptDraftService.getDraft('active', context, { prepare: false }).edit('Keep active draft'))
+        act(() => actionPromptDraftService.getDraft('active', context, activeRun.runId, { prepare: false }).edit('Keep active draft'))
         cleanup()
         renderPopup()
         fireEvent.click(within(screen.getByRole('group', { name: 'Actions' })).getByRole('button', { name: /Active action/u }))
@@ -1290,7 +1353,7 @@ describe('ActionPopup', () => {
 
         const activeRun = actionRunRegistry.getActionRunStore('stream', context)?.getSnapshot()
         if (!activeRun) throw new Error('Expected active stream run')
-        act(() => actionPromptDraftService.getDraft('stream', context, { prepare: false }).edit('Continue'))
+        act(() => actionPromptDraftService.getDraft('stream', context, activeRun.runId, { prepare: false }).edit('Continue'))
         expect(screen.getByRole('button', { name: 'Schedule' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Finish' }))
@@ -1331,15 +1394,17 @@ describe('ActionPopup', () => {
         const typedPrompt = 'Typed while the agent was finishing'
         const promptBox = within(screen.getByLabelText('Prompt')).getByRole('textbox')
         fireEvent.change(promptBox, { target: { value: typedPrompt } })
-        const draft = actionPromptDraftService.getDraft('stream', context, { prepare: false })
+        const draft = actionPromptDraftService.getDraft('stream', context, 'run-1', { prepare: false })
+        expect(draft.getSnapshot()).toBe(typedPrompt)
 
         act(() => runListener?.({ ...eventBase, interactionReady: false, status: 'waitingForInput', type: 'action' }))
+        expect(draft.getSnapshot()).toBe(typedPrompt)
         expect(within(screen.getByLabelText('Prompt')).getByRole('textbox')).toHaveValue(typedPrompt)
 
         act(() => runListener?.({ ...eventBase, status: 'completed', type: 'run' }))
 
         expect(within(screen.getByLabelText('Prompt')).getByRole('textbox')).toHaveValue(typedPrompt)
-        expect(actionPromptDraftService.getDraft('stream', context, { prepare: false })).toBe(draft)
+        expect(actionPromptDraftService.getDraft('stream', context, 'run-1', { prepare: false })).toBe(draft)
     })
 
     it('accepts Send while running and Ctrl+Enter while waiting through the same live run', async () => {
@@ -1957,7 +2022,7 @@ describe('ActionPopup', () => {
         fireEvent.click(await screen.findByRole('menuitem', { name: 'claude' }))
         const activeRun = actionRunRegistry.getActionRunStore('stream', projectContext)?.getSnapshot()
         if (!activeRun) throw new Error('Expected active stream run')
-        act(() => actionPromptDraftService.getDraft('stream', projectContext, { prepare: false }).edit('Continue with Claude'))
+        act(() => actionPromptDraftService.getDraft('stream', projectContext, activeRun.runId, { prepare: false }).edit('Continue with Claude'))
         fireEvent.click(screen.getByRole('button', { name: 'Send' }))
 
         await waitFor(() => expect(restartActionRun).toHaveBeenCalledWith(
@@ -2287,18 +2352,8 @@ describe('ActionPopup', () => {
         await waitFor(() => expect(conversationPicker).toBeEnabled())
         const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
         fireEvent.change(prompt, { target: { value: 'Queued draft' } })
-        fireEvent.mouseDown(conversationPicker)
-        fireEvent.click(await screen.findByRole('option', { name: /Historical run/u }))
-
-        await screen.findByText('Historical answer')
         expect(prompt).toHaveValue('Queued draft')
         const stopButton = screen.getByRole('button', { name: 'Stop' })
-        expect(stopButton).toBeDisabled()
-        fireEvent.mouseDown(conversationPicker)
-        fireEvent.click(screen.getByRole('option', { name: 'Conversations' }))
-
-        await waitFor(() => expect(stopButton).toBeEnabled())
-        expect(prompt).toHaveValue('Queued draft')
         expect(stopButton).toBeEnabled()
         fireEvent.mouseOver(stopButton)
         expect(await screen.findByText('Stop', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()

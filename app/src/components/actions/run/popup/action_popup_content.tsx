@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { actionContextIdentity } from '../../../../data/action_context'
 import {
     actionRunSettingsService,
@@ -25,6 +25,7 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
         () => createActionPopupBindings(action, assignmentContext),
         [action, assignmentContext],
     )
+    useEffect(() => () => bindings.bindingStore.dispose(), [bindings.bindingStore])
     const runtime: ActionPopupRuntime = {
         ...bindings,
         runValidationError: worktreeValidationMessage(action, assignmentContext),
@@ -32,7 +33,11 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
     }
 
     return (
-        <ActionPopupFrame contentProps={props} conversationStore={bindings.conversationStore}>
+        <ActionPopupFrame
+            bindingStore={bindings.bindingStore}
+            contentProps={props}
+            conversationStore={bindings.conversationStore}
+        >
             {action.type === 'agent'
                 ? (
                     <AgentAction

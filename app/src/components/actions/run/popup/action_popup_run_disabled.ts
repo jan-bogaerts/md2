@@ -15,10 +15,6 @@ export function actionPopupRunDisabled(
     prompt: string,
     preparationStatus: ActionPromptPreparationStatus,
 ) {
-    const sessionActive = runState.runStatus === 'queued'
-        || runState.runStatus === 'running'
-        || runState.runStatus === 'waitingForInput'
-
     return !!runState.runDisabledMessage
         || preparationStatus !== 'ready'
         || (action.id === CUSTOM_PROMPT_ACTION_ID && prompt.trim().length === 0)
@@ -26,5 +22,4 @@ export function actionPopupRunDisabled(
             !runState.interactionReady
             || prompt.trim().length === 0
         ))
-        || (sessionActive && !runState.agentActive)
 }

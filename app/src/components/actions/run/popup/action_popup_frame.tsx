@@ -9,6 +9,7 @@ import type { WorktreeAssignmentTarget } from '../../../worktree_selector'
 import { MarkdownTypeaheadLayerProvider } from '../../../editor/markdown_typeahead_layer_provider'
 import { ActionConversationPickerOwner } from '../../conversation/action_conversation_picker_owner'
 import type { ActionConversationStore } from '../../conversation/action_conversation_store'
+import type { ActionRunBindingStore } from '../state/action_run_binding_store'
 import { ActionSelector } from './action_selector'
 import type { ActionPopupContentProps } from './action_popup_types'
 import { ActionWorktreeSelectorOwner } from './action_worktree_selector_owner'
@@ -17,6 +18,7 @@ export const CARD_RUN_POPUP_SIZE_STORAGE_KEY = 'md2.cardRunPopupSize'
 export const PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY = 'md2.projectAgentPopupSize'
 
 interface ActionPopupFrameProps {
+    bindingStore: ActionRunBindingStore
     children: ReactNode
     contentProps: ActionPopupContentProps
     conversationStore: ActionConversationStore
@@ -32,7 +34,7 @@ function worktreeAssignmentTarget(context: ActionContext): WorktreeAssignmentTar
 }
 
 /** Shared popup surface, toolbar, and action selector. */
-export function ActionPopupFrame({ children, contentProps, conversationStore }: ActionPopupFrameProps) {
+export function ActionPopupFrame({ bindingStore, children, contentProps, conversationStore }: ActionPopupFrameProps) {
     const {
         action, actions, anchorElement, assignmentContext, baseContext, draggable, fullHeight, onActivate,
         onClose, onSelectAction, onToggleFullHeight, open, primaryPath, readOnlyMessage, stackPosition,
@@ -116,16 +118,16 @@ export function ActionPopupFrame({ children, contentProps, conversationStore }: 
                         ) : null}
                         {assignmentTarget && !readOnlyMessage ? (
                             <ActionWorktreeSelectorOwner
-                                actionId={action.id}
                                 assignment={worktreeAssignment}
                                 assignmentTarget={assignmentTarget}
-                                context={assignmentContext}
+                                bindingStore={bindingStore}
                                 primaryPath={primaryPath}
                             />
                         ) : null}
                         {action.type === 'agent' ? (
                             <ActionConversationPickerOwner
                                 actionId={action.id}
+                                bindingStore={bindingStore}
                                 context={assignmentContext}
                                 store={conversationStore}
                             />

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useSyncExternalStore } from 'react'
 import type { ActionContext } from '../../../data/action_context'
 import { agentAcknowledgementService } from '../../../services/agents/agent_acknowledgement_service'
 import { cardPopupService, subscribeCardPopups } from '../../../services/card_popup_service'
-import { useActionRunSelector } from '../../hooks/use_action_runs'
+import { useBoundRunId, useRunSelector } from '../../hooks/use_action_runs'
 import type { PopupRunStatus } from '../run/popup/action_popup_defaults'
 import {
     ActionConversationTranscript,
@@ -15,25 +15,28 @@ import {
 } from './action_conversation_chat_selectors'
 import { resolveDisplayedConversation, type ActionConversationStore } from './action_conversation_store'
 import { ConversationMetaInfo } from './conversation_meta_info'
+import type { ActionRunBindingStore } from '../run/state/action_run_binding_store'
 
 const EMPTY_QUEUED_PROMPTS: never[] = []
 
 interface ActionConversationChatProps {
     actionId: string
+    bindingStore: ActionRunBindingStore
     context: ActionContext
     popupEntryId?: string
     store: ActionConversationStore
 }
 
 /** Conversation surface; owns selection, live-run, visibility, and acknowledgement subscriptions. */
-export function ActionConversationChat({ actionId, context, popupEntryId, store }: ActionConversationChatProps) {
+export function ActionConversationChat({ actionId, bindingStore, context, popupEntryId, store }: ActionConversationChatProps) {
     const selectLiveTranscript = useMemo(() => createConversationTranscriptSelector(), [])
     const selectAcknowledgementConversation = useMemo(() => createAcknowledgementConversationSelector(), [])
-    const liveConversation = useActionRunSelector(actionId, context, selectAcknowledgementConversation)
-    const liveTranscript = useActionRunSelector(actionId, context, selectLiveTranscript)
-    const runStatus = useActionRunSelector(actionId, context, (run) => run?.status ?? 'idle')
-    const runId = useActionRunSelector(actionId, context, (run) => run?.runId ?? null)
-    const queuedPrompts = useActionRunSelector(actionId, context, (run) => run?.queuedPrompts ?? EMPTY_QUEUED_PROMPTS)
+    const boundRunId = useBoundRunId(bindingStore)
+    const liveConversation = useRunSelector(boundRunId, selectAcknowledgementConversation)
+    const liveTranscript = useRunSelector(boundRunId, selectLiveTranscript)
+    const runStatus = useRunSelector(boundRunId, (run) => run?.status ?? 'idle')
+    const runId = useRunSelector(boundRunId, (run) => run?.runId ?? null)
+    const queuedPrompts = useRunSelector(boundRunId, (run) => run?.queuedPrompts ?? EMPTY_QUEUED_PROMPTS)
     const { selectedConversation } = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot)
     const popupEntries = useSyncExternalStore(
         subscribeCardPopups,
@@ -71,7 +74,7 @@ export function ActionConversationChat({ actionId, context, popupEntryId, store 
                 runId={displayingLiveConversation ? runId : null}
                 status={status}
             />
-            <ConversationMetaInfo actionId={actionId} context={context} store={store} />
+            <ConversationMetaInfo bindingStore={bindingStore} store={store} />
         </Stack>
     )
 }

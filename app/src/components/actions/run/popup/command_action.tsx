@@ -1,7 +1,7 @@
 import { Stack, Typography } from '@mui/material'
 import type { ActionContext } from '../../../../data/action_context'
 import type { ActionDefinition } from '../../../../data/action_types'
-import { useActionRunSelector } from '../../../hooks/use_action_runs'
+import { useBoundRunId, useRunSelector } from '../../../hooks/use_action_runs'
 import { ActionScheduleOwner } from '../schedule/action_schedule_owner'
 import { ActionRunHistoryOwner } from '../state/action_run_history_owner'
 import { ActionRunStatusOwner } from '../state/action_run_status_owner'
@@ -22,10 +22,11 @@ interface CommandActionProps {
 export function CommandAction(props: CommandActionProps) {
     const { action, assignmentContext, baseContext, readOnlyMessage, runtime } = props
     const {
-        conversationStore, historyStore, inputStore, resultStore, runValidationError, scheduleStore,
+        bindingStore, conversationStore, historyStore, inputStore, resultStore, runValidationError, scheduleStore,
         settingsStore, usageScopeStore,
     } = runtime
-    const activeActionType = useActionRunSelector(action.id, assignmentContext, (run) => run?.activeActionType ?? null)
+    const boundRunId = useBoundRunId(bindingStore)
+    const activeActionType = useRunSelector(boundRunId, (run) => run?.activeActionType ?? null)
     const showBottomRow = activeActionType !== 'agent'
 
     if (readOnlyMessage) {
@@ -41,7 +42,7 @@ export function CommandAction(props: CommandActionProps) {
             <Stack data-testid="action-popup-scroll-body" spacing={2} sx={{ flex: 1, minHeight: 0, overflow: 'auto', px: 1.5, py: 1 }}>
                 <ActionAgentInteraction action={action} assignmentContext={assignmentContext} runtime={runtime} />
                 <ActionScheduleOwner action={action} context={baseContext} store={scheduleStore} />
-                <ActionRunStatusOwner actionId={action.id} context={assignmentContext} resultStore={resultStore} />
+                <ActionRunStatusOwner bindingStore={bindingStore} resultStore={resultStore} />
                 <ActionRunDisabledMessage action={action} settingsStore={settingsStore} />
                 {runValidationError ? (
                     <Typography color="error.main" role="alert" variant="caption">
@@ -54,6 +55,7 @@ export function CommandAction(props: CommandActionProps) {
                 <ActionPopupBottomRow
                     action={action}
                     assignmentContext={assignmentContext}
+                    bindingStore={bindingStore}
                     conversationStore={conversationStore}
                     historyStore={historyStore}
                     inputStore={inputStore}
