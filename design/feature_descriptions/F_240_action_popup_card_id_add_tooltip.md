@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__db4400c0-0d7f-4265-8939-8b4e493c7208.json
 policy:
+branch: f_240_action_popup_card_id_add_tooltip
+worktree: 3
 ---
 on the action popup, in the upper left corner, we show the id of the card (if any). we should add a tooltip to that shows the title of the card.
 
