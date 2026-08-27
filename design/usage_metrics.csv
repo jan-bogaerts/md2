@@ -1840,3 +1840,8 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-08-27T15:25:15.766Z,account_usage,claude,default,weekly,10080,2026-08-30T16:59:00.000Z,,,,,,3,0
 2026-08-27T15:27:15.781Z,account_usage,claude,default,weekly,10080,2026-08-30T17:00:00.000Z,,,,,,3,0
 2026-08-27T15:29:15.784Z,account_usage,claude,default,weekly,10080,2026-08-30T16:59:00.000Z,,,,,,3,0
+2026-08-27T16:22:54.891Z,account_usage,claude,default,weekly,10080,2026-08-30T17:00:00.000Z,,,,,,3,0
+2026-08-27T16:24:54.909Z,account_usage,claude,default,weekly,10080,2026-08-30T16:59:00.000Z,,,,,,3,0
+2026-08-27T16:50:55.134Z,account_usage,claude,default,weekly,10080,2026-08-30T17:00:00.000Z,,,,,,3,0
+2026-08-27T17:19:35.423Z,account_usage,claude,default,weekly,10080,2026-08-30T16:59:00.000Z,,,,,,3,0
+2026-08-27T17:23:06.384Z,account_usage,codex,codex,primary,10080,2026-09-03T17:23:07.000Z,,,,,,0,0
