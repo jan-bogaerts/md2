@@ -131,7 +131,7 @@ describe('ActionConversationChat integration', () => {
         act(() => emit({
             ...event,
             type: 'update',
-            update: { content: 'diagnostic failure', kind: 'error', sequence: 1 },
+            update: { content: 'diagnostic failure', kind: 'error' },
         }))
 
         expect(chatRenderProbe).not.toHaveBeenCalled()
@@ -186,7 +186,7 @@ describe('ActionConversationChat integration', () => {
         act(() => emit({
             ...event,
             type: 'update',
-            update: { content: 'streamed', kind: 'output', messageId: 'assistant-1', sequence: 1 },
+            update: { content: 'streamed', entryIndex: 0, kind: 'agentOutput', messageId: 'assistant-1', sequence: 1 },
         }))
 
         expect(screen.getByText('streamed')).toBeInTheDocument()
@@ -332,7 +332,7 @@ describe('ActionConversationChat integration', () => {
         act(() => emit({
             ...eventBase,
             type: 'update',
-            update: { content: 'Hidden live answer', kind: 'output', messageId: 'live-message', sequence: 1 },
+            update: { content: 'Hidden live answer', entryIndex: 0, kind: 'agentOutput', messageId: 'live-message', sequence: 1 },
         }))
         expect(screen.queryByText('Hidden live answer')).not.toBeInTheDocument()
 

@@ -642,7 +642,7 @@ class ActionRun {
                 return;
             }
             if (agentEvent.type === 'agentEvent') {
-                const update = { event: agentEvent.event, kind: 'agentEvent' };
+                const update = { entryIndex: agentEvent.entryIndex, event: agentEvent.event, kind: 'agentEvent' };
                 this.publish(action, phase, 'running', { type: 'update', update });
                 return;
             }
@@ -658,14 +658,17 @@ class ActionRun {
                 return;
             }
 
-            const update = {
-                content: agentEvent.content,
-                kind: agentEvent.type,
-                ...(agentEvent.messageId !== undefined ? { messageId: agentEvent.messageId } : {}),
-                ...(agentEvent.previousContent !== undefined ? { previousContent: agentEvent.previousContent } : {}),
-                ...(agentEvent.replace !== undefined ? { replace: agentEvent.replace } : {}),
-                ...(agentEvent.sequence !== undefined ? { sequence: agentEvent.sequence } : {}),
-            };
+            const update = agentEvent.type === 'output'
+                ? {
+                    content: agentEvent.content,
+                    entryIndex: agentEvent.entryIndex,
+                    kind: 'agentOutput',
+                    messageId: agentEvent.messageId,
+                    ...(agentEvent.previousContent !== undefined ? { previousContent: agentEvent.previousContent } : {}),
+                    ...(agentEvent.replace !== undefined ? { replace: agentEvent.replace } : {}),
+                    sequence: agentEvent.sequence,
+                }
+                : { content: agentEvent.content, kind: 'error' };
             this.publish(action, phase, 'running', { type: 'update', update });
         };
         const runInput = isRoot ? this.runInput : { extraPrompt: '' };

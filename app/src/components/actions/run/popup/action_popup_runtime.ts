@@ -9,6 +9,7 @@ import { ActionRunBindingStore } from '../state/action_run_binding_store'
 import { ActionRunInputStore } from '../state/action_run_input_store'
 import { ActionRunResultStore } from '../state/action_run_result_store'
 import { ActionUsageScopeStore } from './action_usage_scope_store'
+import { ActionUsageValuesService } from './action_usage_values_service'
 import type { ActionPopupRuntime } from './action_popup_types'
 
 type ActionPopupBindings = Omit<ActionPopupRuntime, 'runValidationError' | 'settingsStore'>
@@ -18,15 +19,26 @@ export function createActionPopupBindings(action: ActionDefinition, context: Act
     const initialRunId = actionRunRegistry.getActionRunStore(action.id, context)?.getSnapshot().runId ?? null
     const bindingStore = new ActionRunBindingStore(initialRunId)
     bindingStore.trackInitialRun(action.id, context)
+    const conversationStore = new ActionConversationStore(action.id, context, bindingStore)
+    const historyStore = new ActionHistoryStore(action, context)
+    const usageScopeStore = new ActionUsageScopeStore()
+    const usageValuesService = new ActionUsageValuesService({
+        action,
+        bindingStore,
+        context,
+        conversationStore,
+        historyStore,
+        scopeStore: usageScopeStore,
+    })
 
     return {
         bindingStore,
-        conversationStore: new ActionConversationStore(action.id, context, bindingStore),
-        historyStore: new ActionHistoryStore(action, context),
+        conversationStore,
+        historyStore,
         inputStore: new ActionRunInputStore(),
         resultStore: new ActionRunResultStore(),
         scheduleStore: new ActionScheduleStore(),
-        usageScopeStore: new ActionUsageScopeStore(),
+        usageValuesService,
     }
 }
 

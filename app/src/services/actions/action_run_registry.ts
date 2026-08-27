@@ -43,6 +43,7 @@ export interface ActionRun {
     activeActionType: ActionDefinition['type'] | null
     changedPaths: string[]
     conversation: AgentConversation | null
+    conversationChange: ActionConversationChange | null
     context: ActionContext
     runId: string
     logs: ActionRunLogEntry[]
@@ -53,6 +54,13 @@ export interface ActionRun {
     reference: string | null
     rootActionId: string
     status: ActionRunStatus
+}
+
+export type ActionConversationChange = {
+    entryIndex: number
+    kind: 'entry'
+} | {
+    kind: 'replace'
 }
 
 export interface LiveAgentApproval extends AgentApproval {
@@ -120,7 +128,7 @@ function runningLogIndex(logs: ActionRunLogEntry[], event: ActionRunEvent) {
 }
 
 type AgentOutputUpdate = Pick<
-    Extract<ActionRunUpdate, { kind: 'error' | 'output' }>,
+    Extract<ActionRunUpdate, { kind: 'agentOutput' }>,
     'content' | 'previousContent' | 'replace'
 >
 
@@ -152,7 +160,7 @@ function updateActionLogs(logs: ActionRunLogEntry[], event: Extract<ActionRunEve
 function updateOutputLogs(
     logs: ActionRunLogEntry[],
     event: Extract<ActionRunEvent, { type: 'update' }>,
-    update: Extract<ActionRunUpdate, { kind: 'error' | 'output' }>,
+    update: Extract<ActionRunUpdate, { kind: 'agentOutput' | 'error' | 'output' }>,
 ) {
     const currentIndex = logs.findLastIndex((log) => (
         log.actionId === event.actionId && log.phase === event.phase && log.status === 'running'
@@ -160,9 +168,11 @@ function updateOutputLogs(
     const current = currentIndex >= 0 ? logs[currentIndex] : createLog(event)
     const updated = {
         ...current,
-        command: update.command ?? current.command,
+        command: ('command' in update ? update.command : undefined) ?? current.command,
         stderr: update.kind === 'error' ? `${current.stderr}${update.content}` : current.stderr,
-        stdout: update.kind === 'output' ? updatedStdout(current.stdout, update) : current.stdout,
+        stdout: update.kind === 'agentOutput' || update.kind === 'output'
+            ? updatedStdout(current.stdout, update)
+            : current.stdout,
     }
     if (currentIndex < 0) return [...logs, updated]
     const next = [...logs]
@@ -175,14 +185,26 @@ function eventIdentity(event: AgentConversationEventEntry) {
     return event.providerItemId ?? event.id
 }
 
-function upsertAgentEvent(entries: AgentConversationEntry[], event: AgentConversationEventEntry) {
-    const identity = eventIdentity(event)
-    const currentIndex = entries.findIndex((entry) => entry.kind === 'event' && eventIdentity(entry) === identity)
-    if (currentIndex < 0) return [...entries, event]
+function requireEntryIndex(entryIndex: number, entries: AgentConversationEntry[], allowAppend: boolean) {
+    if (!Number.isSafeInteger(entryIndex) || entryIndex < 0) throw new Error(`Invalid conversation entry index: ${entryIndex}`)
+    const maximumIndex = allowAppend ? entries.length : entries.length - 1
+    if (entryIndex > maximumIndex) throw new Error(`Conversation entry index out of range: ${entryIndex}`)
+}
 
-    const current = entries[currentIndex]
+function updateAgentEventAtIndex(
+    entries: AgentConversationEntry[],
+    entryIndex: number,
+    event: AgentConversationEventEntry,
+) {
+    requireEntryIndex(entryIndex, entries, true)
+    if (entryIndex === entries.length) return [...entries, event]
+
+    const current = entries[entryIndex]
+    if (current.kind !== 'event' || eventIdentity(current) !== eventIdentity(event)) {
+        throw new Error(`Provider event identity mismatch at conversation entry index ${entryIndex}`)
+    }
     const next = [...entries]
-    next[currentIndex] = {
+    next[entryIndex] = {
         ...event,
         ...(event.sequence === undefined && current.sequence !== undefined ? { sequence: current.sequence } : {}),
     }
@@ -221,6 +243,40 @@ function appendAssistantMessage(
         : conversation.entries.map((entry, index) => index === currentIndex
             ? { ...entry, content: update.replace ? update.content : `${entry.content}${update.content}` }
             : entry)
+
+    return { conversation: { ...conversation, entries }, entryIndex: currentIndex < 0 ? entries.length - 1 : currentIndex }
+}
+
+function updateAgentOutputAtIndex(
+    conversation: AgentConversation,
+    update: Extract<ActionRunUpdate, { kind: 'agentOutput' }>,
+) {
+    requireEntryIndex(update.entryIndex, conversation.entries, true)
+    if (update.entryIndex === conversation.entries.length) {
+        const message: AgentConversationEntry = {
+            content: update.content,
+            id: update.messageId,
+            kind: 'message',
+            role: 'assistant',
+            sequence: update.sequence,
+            timestamp: conversation.startedAt,
+        }
+
+        return { ...conversation, entries: [...conversation.entries, message] }
+    }
+
+    const current = conversation.entries[update.entryIndex]
+    if (current.kind !== 'message' || current.id !== update.messageId) {
+        throw new Error(`Assistant message identity mismatch at conversation entry index ${update.entryIndex}`)
+    }
+    if (current.sequence !== undefined && current.sequence !== update.sequence) {
+        throw new Error(`Assistant message sequence mismatch at conversation entry index ${update.entryIndex}`)
+    }
+    const entries = [...conversation.entries]
+    entries[update.entryIndex] = {
+        ...current,
+        content: update.replace ? update.content : `${current.content}${update.content}`,
+    }
 
     return { ...conversation, entries }
 }
@@ -744,6 +800,7 @@ export class ActionRunRegistry extends EventTarget {
             activeActionType: null,
             changedPaths: [],
             conversation: null,
+            conversationChange: null,
             approvals: [],
             context: event.context,
             runId: event.runId,
@@ -804,19 +861,24 @@ export class ActionRunRegistry extends EventTarget {
         }
         if (event.type === 'update' && event.update.kind === 'agentStarted') {
             const { continued } = event.update
-            next = { ...next, conversation: event.update.conversation }
+            next = { ...next, conversation: event.update.conversation, conversationChange: { kind: 'replace' } }
             if (continued) actionPromptDraftService.discardUneditedDraft(next.rootActionId, next.context, next.runId)
         }
         if (event.type === 'update' && event.update.kind === 'agentClosed') {
-            next = { ...next, conversation: event.update.conversation }
+            next = { ...next, conversation: event.update.conversation, conversationChange: { kind: 'replace' } }
         }
         if (event.type === 'update' && event.update.kind === 'agentEvent' && next.conversation) {
             next = {
                 ...next,
                 conversation: {
                     ...next.conversation,
-                    entries: upsertAgentEvent(next.conversation.entries, event.update.event),
+                    entries: updateAgentEventAtIndex(
+                        next.conversation.entries,
+                        event.update.entryIndex,
+                        event.update.event,
+                    ),
                 },
+                conversationChange: { entryIndex: event.update.entryIndex, kind: 'entry' },
             }
         }
         if (event.type === 'update' && event.update.kind === 'agentUsage' && next.conversation) {
@@ -865,6 +927,7 @@ export class ActionRunRegistry extends EventTarget {
                     ...next.conversation,
                     entries: [...next.conversation.entries, event.update.event],
                 },
+                conversationChange: { entryIndex: next.conversation.entries.length, kind: 'entry' },
                 question: matchingQuestion ? null : next.question,
                 status: matchingQuestion && next.approvals.length === 0 ? event.status : next.status,
             }
@@ -908,6 +971,7 @@ export class ActionRunRegistry extends EventTarget {
                     entries: [...next.conversation.entries, event.update.userMessage],
                     status: conversationStatus(next.question || next.approvals.length > 0 ? 'waitingForInput' : event.status),
                 },
+                conversationChange: { entryIndex: next.conversation.entries.length, kind: 'entry' },
                 status: next.question || next.approvals.length > 0 ? 'waitingForInput' : event.status,
             }
         }
@@ -919,15 +983,32 @@ export class ActionRunRegistry extends EventTarget {
                     ...next.conversation,
                     entries: [...next.conversation.entries, event.update.userMessage],
                 },
+                conversationChange: { entryIndex: next.conversation.entries.length, kind: 'entry' },
                 question: matchingQuestion ? null : next.question,
                 status: matchingQuestion && next.approvals.length === 0 ? event.status : next.status,
             }
         }
-        if (event.type === 'update' && (event.update.kind === 'output' || event.update.kind === 'error')) {
-            const conversation = event.update.kind === 'output' && next.conversation
-                ? appendAssistantMessage(next.conversation, event.update)
+        if (event.type === 'update' && event.update.kind === 'agentOutput') {
+            const conversation = next.conversation
+                ? updateAgentOutputAtIndex(next.conversation, event.update)
                 : next.conversation
-            next = { ...next, conversation, logs: updateOutputLogs(next.logs, event, event.update) }
+            next = {
+                ...next,
+                conversation,
+                conversationChange: { entryIndex: event.update.entryIndex, kind: 'entry' },
+                logs: updateOutputLogs(next.logs, event, event.update),
+            }
+        }
+        if (event.type === 'update' && (event.update.kind === 'output' || event.update.kind === 'error')) {
+            const output = event.update.kind === 'output' && next.conversation
+                ? appendAssistantMessage(next.conversation, event.update)
+                : null
+            next = {
+                ...next,
+                conversation: output?.conversation ?? next.conversation,
+                ...(output ? { conversationChange: { entryIndex: output.entryIndex, kind: 'entry' as const } } : {}),
+                logs: updateOutputLogs(next.logs, event, event.update),
+            }
         }
         if (
             event.type === 'update'

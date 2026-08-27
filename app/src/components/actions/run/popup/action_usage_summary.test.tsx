@@ -6,6 +6,7 @@ import { createAppTheme } from '../../../../theme/app_theme'
 import { AppThemeProvider } from '../../../../theme/theme_provider'
 import { ActionUsageSummary } from './action_usage_summary'
 import type { ActionUsageScope } from './action_usage_scope_store'
+import { scopedActionUsage } from './action_usage_summary_data'
 
 afterEach(cleanup)
 
@@ -80,18 +81,22 @@ function renderSummary(options: RenderSummaryOptions = {}) {
     const displayedConversation = options.conversation === undefined
         ? conversation('conversation-1', 12, 2, 1)
         : options.conversation
+    const usage = scopedActionUsage(
+        options.conversations ?? (displayedConversation ? [displayedConversation] : []),
+        null,
+        displayedConversation,
+        options.history ?? [],
+        'implement',
+        'card-1',
+    )
+    const requestedScope = options.scope ?? 'actionCard'
+    const activeScope = requestedScope === 'conversation' && usage.conversation ? 'conversation' : 'actionCard'
 
     return render(
         <AppThemeProvider>
             <ActionUsageSummary
-                actionId="implement"
-                cardInternalId="card-1"
-                conversation={displayedConversation}
-                conversations={options.conversations ?? (displayedConversation ? [displayedConversation] : [])}
-                history={options.history ?? []}
-                liveConversation={null}
                 onToggleScope={options.onToggleScope ?? vi.fn()}
-                scope={options.scope ?? 'actionCard'}
+                snapshot={{ ...usage, activeScope, conversationAvailable: !!displayedConversation }}
             />
         </AppThemeProvider>,
     )

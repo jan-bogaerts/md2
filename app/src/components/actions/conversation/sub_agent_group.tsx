@@ -1,16 +1,19 @@
 import ExpandLessOutlined from '@mui/icons-material/ExpandLessOutlined'
 import ExpandMoreOutlined from '@mui/icons-material/ExpandMoreOutlined'
 import { Box, Button, Typography } from '@mui/material'
-import { useState } from 'react'
+import { memo, useCallback, useSyncExternalStore } from 'react'
 import type { AgentConversationEventEntry } from '../../../data/data_types'
 import { ActionConversationEventRow } from './action_conversation_event_row'
 import { CompletedToolCallGroup } from './completed_tool_call_group'
 import type { ActionConversationRenderGroup } from './action_conversation_render_groups'
+import type { ActionConversationRenderProjection } from './action_conversation_render_projection'
 
 interface SubAgentGroupProps {
     entry: AgentConversationEventEntry
+    groupKey: string
     groups: ActionConversationRenderGroup[]
     label: string
+    projection: ActionConversationRenderProjection
     runningCount?: number
 }
 
@@ -24,10 +27,17 @@ function groupEntryCount(groups: ActionConversationRenderGroup[]): number {
 }
 
 /** Shows one sub agent's text, thinking and tool calls under the `Agent` call that spawned it. */
-export function SubAgentGroup({ entry, groups, label, runningCount = 0 }: SubAgentGroupProps) {
-    const [expanded, setExpanded] = useState(false)
+export const SubAgentGroup = memo(function SubAgentGroup(
+    { entry, groupKey, groups, label, projection, runningCount = 0 }: SubAgentGroupProps,
+) {
+    const subscribe = useCallback(
+        (listener: () => void) => projection.subscribeExpansion(groupKey, listener),
+        [groupKey, projection],
+    )
+    const getSnapshot = useCallback(() => projection.groupIsExpanded(groupKey), [groupKey, projection])
+    const expanded = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
     const toggleExpanded = () => {
-        setExpanded((current) => !current)
+        projection.toggleExpansion(groupKey)
     }
 
     return (
@@ -51,15 +61,24 @@ export function SubAgentGroup({ entry, groups, label, runningCount = 0 }: SubAge
             </Button>
             {expanded ? groups.map((group) => {
                 if (group.kind === 'completedToolCalls') {
-                    return <CompletedToolCallGroup entries={group.entries} key={group.key} />
+                    return (
+                        <CompletedToolCallGroup
+                            entries={group.entries}
+                            groupKey={group.key}
+                            key={group.key}
+                            projection={projection}
+                        />
+                    )
                 }
                 if (group.kind === 'subAgent') {
                     return (
                         <SubAgentGroup
                             entry={group.entry}
+                            groupKey={group.key}
                             groups={group.groups}
                             key={group.key}
                             label={group.label}
+                            projection={projection}
                             runningCount={group.runningCount}
                         />
                     )
@@ -74,4 +93,4 @@ export function SubAgentGroup({ entry, groups, label, runningCount = 0 }: SubAge
             }) : null}
         </Box>
     )
-}
+})

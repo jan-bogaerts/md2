@@ -25,7 +25,14 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
         () => createActionPopupBindings(action, assignmentContext),
         [action, assignmentContext],
     )
-    useEffect(() => () => bindings.bindingStore.dispose(), [bindings.bindingStore])
+    useEffect(() => {
+        bindings.usageValuesService.start()
+
+        return () => {
+            bindings.usageValuesService.stop()
+            bindings.bindingStore.dispose()
+        }
+    }, [bindings])
     const runtime: ActionPopupRuntime = {
         ...bindings,
         runValidationError: worktreeValidationMessage(action, assignmentContext),

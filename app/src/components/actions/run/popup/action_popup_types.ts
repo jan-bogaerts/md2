@@ -7,7 +7,7 @@ import type { ActionHistoryStore } from '../state/action_history_store'
 import type { ActionRunBindingStore } from '../state/action_run_binding_store'
 import type { ActionRunInputStore } from '../state/action_run_input_store'
 import type { ActionRunResultStore } from '../state/action_run_result_store'
-import type { ActionUsageScopeStore } from './action_usage_scope_store'
+import type { ActionUsageValuesService } from './action_usage_values_service'
 
 export interface ActionPopupContentProps {
     action: ActionDefinition
@@ -39,5 +39,5 @@ export interface ActionPopupRuntime {
     runValidationError: string | null
     scheduleStore: ActionScheduleStore
     settingsStore: ActionRunSettingsStore
-    usageScopeStore: ActionUsageScopeStore
+    usageValuesService: ActionUsageValuesService
 }

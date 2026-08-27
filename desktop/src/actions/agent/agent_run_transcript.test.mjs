@@ -1,5 +1,5 @@
 import { createRequire } from 'node:module';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
 const {
@@ -104,12 +104,15 @@ describe('agent run transcript assistant output', () => {
 
     it('gives each streaming assistant item its own message', () => {
         const run = createTestRun({ streaming: true });
-        startAssistantItem(run, 'item-1', TIMESTAMP);
-        startAssistantItem(run, 'item-2', TIMESTAMP);
+        const firstItem = startAssistantItem(run, 'item-1', TIMESTAMP);
+        const secondItem = startAssistantItem(run, 'item-2', TIMESTAMP);
+        run.conversation.entries.findIndex = vi.fn(() => { throw new Error('conversation history was scanned'); });
 
         appendAssistantOutput(run, 'one', TIMESTAMP, 'item-1');
         appendAssistantOutput(run, 'two', TIMESTAMP, 'item-2');
 
+        expect([firstItem.entryIndex, secondItem.entryIndex]).toEqual([0, 1]);
+        expect(run.conversation.entries.findIndex).not.toHaveBeenCalled();
         expect(run.conversation.entries.map(({ content, id }) => [id, content])).toEqual([
             ['run-1-turn-1-assistant-1', 'one'],
             ['run-1-turn-1-assistant-2', 'two'],

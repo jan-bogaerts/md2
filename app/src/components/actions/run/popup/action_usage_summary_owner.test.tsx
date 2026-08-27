@@ -11,10 +11,12 @@ import type { ActionHistoryStore } from '../state/action_history_store'
 import { ActionUsageScopeStore } from './action_usage_scope_store'
 import { ActionUsageSummaryOwner } from './action_usage_summary_owner'
 import { ActionRunBindingStore } from '../state/action_run_binding_store'
+import { ActionUsageValuesService } from './action_usage_values_service'
 
 const action = { id: 'implement', type: 'agent' } as ActionDefinition
 const context = { cardInternalId: 'card-1', file: 'design/F-114.md', kind: 'card' as const }
 const bindingStore = new ActionRunBindingStore('run-1')
+const services: ActionUsageValuesService[] = []
 
 function conversation(id: string, insertions: number, deletions: number): AgentConversation {
     return {
@@ -86,22 +88,29 @@ function renderOwner(
     scopeStore: ActionUsageScopeStore,
     historyStore = createHistoryStore(),
 ) {
-    return render(
+    const service = new ActionUsageValuesService({
+        action,
+        bindingStore,
+        context,
+        conversationStore,
+        historyStore,
+        scopeStore,
+    })
+    services.push(service)
+    service.start()
+
+    const rendered = render(
         <AppThemeProvider>
-            <ActionUsageSummaryOwner
-                action={action}
-                bindingStore={bindingStore}
-                context={context}
-                conversationStore={conversationStore}
-                historyStore={historyStore}
-                scopeStore={scopeStore}
-            />
+            <ActionUsageSummaryOwner service={service} />
         </AppThemeProvider>,
     )
+
+    return { ...rendered, service }
 }
 
 describe('ActionUsageSummaryOwner', () => {
     afterEach(() => {
+        for (const service of services.splice(0)) service.stop()
         cleanup()
         actionRunRegistry.stop()
         setActionBridgeOverride(null)
@@ -226,5 +235,81 @@ describe('ActionUsageSummaryOwner', () => {
         expect(screen.getByRole('button', { name: 'Tokens, Action/card scope' })).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Tokens, Action/card scope' }))
         expect(scopeStore.getSnapshot()).toBe('actionCard')
+    })
+
+    it('keeps snapshot identity for text updates and publishes token and completed file changes immediately', () => {
+        let listener: ((event: ActionRunEvent) => void) | null = null
+        setActionBridgeOverride({
+            onActionRun: vi.fn((nextListener) => {
+                listener = nextListener
+
+                return vi.fn()
+            }),
+        } as unknown as ElectronActionBridge)
+        actionRunRegistry.start()
+        const { store } = createConversationStore(null)
+        const { service } = renderOwner(store, new ActionUsageScopeStore())
+        if (!listener) throw new Error('Missing run listener')
+        const emit = listener as (event: ActionRunEvent) => void
+        const run = {
+            actionId: action.id, context, phase: 'main' as const, rootActionId: action.id,
+            runId: 'run-1', status: 'running' as const,
+        }
+
+        act(() => {
+            emit({ ...run, type: 'run' })
+            emit({
+                ...run,
+                type: 'update',
+                update: { conversation: { ...conversation('live', 0, 0), entries: [] }, kind: 'agentStarted' },
+            })
+        })
+        const initialSnapshot = service.getSnapshot()
+
+        act(() => emit({
+            ...run,
+            type: 'update',
+            update: { content: 'answer', entryIndex: 0, kind: 'agentOutput', messageId: 'assistant-1', sequence: 1 },
+        }))
+        expect(service.getSnapshot()).toBe(initialSnapshot)
+
+        act(() => emit({
+            ...run,
+            type: 'update',
+            update: {
+                entryIndex: 1,
+                event: {
+                    content: 'thinking', id: 'reasoning-1', kind: 'event', providerItemId: 'reasoning-1',
+                    status: 'inProgress', timestamp: 'now', type: 'reasoning',
+                },
+                kind: 'agentEvent',
+            },
+        }))
+        expect(service.getSnapshot()).toBe(initialSnapshot)
+
+        act(() => emit({
+            ...run,
+            type: 'update',
+            update: {
+                kind: 'agentUsage',
+                usage: { cachedInputTokens: 0, inputTokens: 8, outputTokens: 5, reasoningTokens: 0, totalTokens: 13 },
+            },
+        }))
+        expect(service.getSnapshot()).not.toBe(initialSnapshot)
+        expect(screen.getByRole('button', { name: 'Tokens, Action/card scope' })).toHaveTextContent('tokens: 13')
+
+        act(() => emit({
+            ...run,
+            type: 'update',
+            update: {
+                entryIndex: 2,
+                event: {
+                    content: 'updated', deletions: 2, id: 'file-1', insertions: 4, kind: 'event',
+                    providerItemId: 'file-1', status: 'completed', timestamp: 'now', type: 'fileChange',
+                },
+                kind: 'agentEvent',
+            },
+        }))
+        expect(screen.getByRole('button', { name: 'Changes, Action/card scope' })).toHaveTextContent('changes: +4 / -2')
     })
 })

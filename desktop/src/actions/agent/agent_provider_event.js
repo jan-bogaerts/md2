@@ -29,7 +29,8 @@ function recordProviderEvent(run, providerEvent, timestamp) {
             run.conversation.entries.push(eventEntry);
         }
     }
-    emitRunEvent(run, { event: eventEntry, type: 'agentEvent' });
+    const entryIndex = currentIndex ?? run.conversation.entries.length - 1;
+    emitRunEvent(run, { entryIndex, event: eventEntry, type: 'agentEvent' });
 }
 
 module.exports = { recordProviderEvent };

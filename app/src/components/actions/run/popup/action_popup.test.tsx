@@ -621,7 +621,7 @@ describe('ActionPopup', () => {
         act(() => runListener?.({
             ...event,
             type: 'update',
-            update: { content: 'streamed', kind: 'output', messageId: 'assistant-1', sequence: 1 },
+            update: { content: 'streamed', entryIndex: 0, kind: 'agentOutput', messageId: 'assistant-1', sequence: 1 },
         }))
 
         expect(renderProbes.popup).not.toHaveBeenCalled()

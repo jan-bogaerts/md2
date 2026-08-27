@@ -5,18 +5,21 @@ import type { ConversationTranscript } from './action_conversation_transcript'
 function transcriptConversation(conversation: AgentConversation): ConversationTranscript {
     const { cardInternalId, entries, path, providerSessions } = conversation
 
-    return { cardInternalId, entries, path, providerSessions }
+    return { cardInternalId, change: { kind: 'replace' }, entries, path, providerSessions }
 }
 
 /** Builds a selector whose result changes only when transcript fields change. */
 export function createConversationTranscriptSelector() {
     let selectedConversation: AgentConversation | null = null
+    let selectedChange: ActionRun['conversationChange'] = null
     let selectedTranscript: ConversationTranscript | null = null
 
     return (run: ActionRun | null) => {
         const conversation = run?.conversation ?? null
+        const change = run?.conversationChange ?? null
         if (!conversation) {
             selectedConversation = null
+            selectedChange = null
             selectedTranscript = null
             return null
         }
@@ -27,10 +30,12 @@ export function createConversationTranscriptSelector() {
             && previousConversation.entries === conversation.entries
             && previousConversation.path === conversation.path
             && previousConversation.providerSessions === conversation.providerSessions
+            && selectedChange === change
         ) return selectedTranscript
 
         selectedConversation = conversation
-        selectedTranscript = transcriptConversation(conversation)
+        selectedChange = change
+        selectedTranscript = { ...transcriptConversation(conversation), change: change ?? { kind: 'replace' } }
         return selectedTranscript
     }
 }

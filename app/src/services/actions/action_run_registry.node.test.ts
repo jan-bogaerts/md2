@@ -288,7 +288,7 @@ describe('ActionRunRegistry', () => {
         })
         emit({
             actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
-            update: { content: '', kind: 'output', messageId: 'assistant-1', sequence: 2 },
+            update: { content: '', entryIndex: 1, kind: 'agentOutput', messageId: 'assistant-1', sequence: 2 },
         })
         emit({
             actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
@@ -326,11 +326,12 @@ describe('ActionRunRegistry', () => {
         })
         emit({
             actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
-            update: { content: '', kind: 'output', messageId: 'assistant-1', sequence: 2 },
+            update: { content: '', entryIndex: 1, kind: 'agentOutput', messageId: 'assistant-1', sequence: 2 },
         })
         emit({
             actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
             update: {
+                entryIndex: 2,
                 event: {
                     content: 'update: app/main.ts',
                     id: 'activity-started',
@@ -346,19 +347,23 @@ describe('ActionRunRegistry', () => {
         })
         emit({
             actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
-            update: { content: 'Testing', kind: 'output', messageId: 'assistant-1', sequence: 2 },
+            update: { content: 'Testing', entryIndex: 1, kind: 'agentOutput', messageId: 'assistant-1', sequence: 2 },
         })
         emit({
             actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
-            update: { content: '...', kind: 'output', messageId: 'assistant-1', sequence: 2 },
-        })
-        emit({
-            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
-            update: { content: 'Testing passed', kind: 'output', messageId: 'assistant-1', previousContent: 'Testing...', replace: true, sequence: 2 },
+            update: { content: '...', entryIndex: 1, kind: 'agentOutput', messageId: 'assistant-1', sequence: 2 },
         })
         emit({
             actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
             update: {
+                content: 'Testing passed', entryIndex: 1, kind: 'agentOutput', messageId: 'assistant-1',
+                previousContent: 'Testing...', replace: true, sequence: 2,
+            },
+        })
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: {
+                entryIndex: 2,
                 event: {
                     content: 'update: app/main.ts',
                     deletions: 2,
@@ -375,7 +380,7 @@ describe('ActionRunRegistry', () => {
         })
         emit({
             actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
-            update: { content: 'Done', kind: 'output', messageId: 'assistant-2', sequence: 4 },
+            update: { content: 'Done', entryIndex: 3, kind: 'agentOutput', messageId: 'assistant-2', sequence: 4 },
         })
 
         expect(getRun(service).conversation).toMatchObject({
@@ -390,6 +395,93 @@ describe('ActionRunRegistry', () => {
             ],
         })
         expect(getRun(service).logs.at(-1)?.stdout).toBe('Testing passedDone')
+        service.stop()
+    })
+
+    it('replaces keyed assistant and provider entries at supplied indexes without searching history', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        service.start()
+        const assistant = {
+            content: 'draft', id: 'assistant-1', kind: 'message' as const, role: 'assistant' as const,
+            sequence: 2, timestamp: 'now',
+        }
+        const providerEvent = {
+            content: 'running', id: 'event-1', kind: 'event' as const, providerItemId: 'tool-1',
+            sequence: 3, status: 'inProgress', timestamp: 'now', type: 'commandExecution',
+        }
+        const entries = [
+            { content: 'prompt', id: 'user-1', kind: 'message' as const, role: 'user' as const, sequence: 1, timestamp: 'now' },
+            assistant,
+            providerEvent,
+        ]
+        entries.findIndex = vi.fn(() => { throw new Error('conversation history was scanned') })
+
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { conversation: agentConversation(entries), kind: 'agentStarted' },
+        })
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { content: ' complete', entryIndex: 1, kind: 'agentOutput', messageId: 'assistant-1', sequence: 2 },
+        })
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: {
+                entryIndex: 2,
+                event: { ...providerEvent, content: 'completed', status: 'completed' },
+                kind: 'agentEvent',
+            },
+        })
+
+        expect(entries.findIndex).not.toHaveBeenCalled()
+        expect(getRun(service).conversation?.entries[1]).toMatchObject({ content: 'draft complete', id: 'assistant-1' })
+        expect(getRun(service).conversation?.entries[2]).toMatchObject({ content: 'completed', providerItemId: 'tool-1' })
+        service.stop()
+    })
+
+    it('rejects malformed indexed transcript updates clearly', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        service.start()
+        const assistant = {
+            content: 'draft', id: 'assistant-1', kind: 'message' as const, role: 'assistant' as const,
+            sequence: 1, timestamp: 'now',
+        }
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { conversation: agentConversation([assistant]), kind: 'agentStarted' },
+        })
+        const base = {
+            actionId: 'review', context, runId: 'run-1', phase: 'main' as const, rootActionId: 'review',
+            status: 'running' as const, type: 'update' as const,
+        }
+
+        expect(() => emit({
+            ...base,
+            update: { content: 'x', kind: 'agentOutput', messageId: 'assistant-1', sequence: 1 },
+        } as unknown as ActionRunEvent)).toThrow('Invalid conversation entry index: undefined')
+        expect(() => emit({
+            ...base,
+            update: { content: 'x', entryIndex: 4, kind: 'agentOutput', messageId: 'assistant-1', sequence: 1 },
+        })).toThrow('Conversation entry index out of range: 4')
+        expect(() => emit({
+            ...base,
+            update: { content: 'x', entryIndex: 0, kind: 'agentOutput', messageId: 'wrong', sequence: 1 },
+        })).toThrow('Assistant message identity mismatch at conversation entry index 0')
+        expect(() => emit({
+            ...base,
+            update: {
+                entryIndex: 0,
+                event: {
+                    content: '', id: 'event-1', kind: 'event', providerItemId: 'tool-1',
+                    status: 'completed', timestamp: 'now', type: 'commandExecution',
+                },
+                kind: 'agentEvent',
+            },
+        })).toThrow('Provider event identity mismatch at conversation entry index 0')
         service.stop()
     })
 

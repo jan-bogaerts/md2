@@ -64,7 +64,7 @@ describe('ActionConversationChat rendering', () => {
         const firstConversation = conversation([historicalMessage, toolEvent, streamingMessage])
         const { rerender } = render(
             <AppThemeProvider>
-                <ActionConversationChat conversation={firstConversation} status="running" />
+                <ActionConversationChat conversation={{ ...firstConversation, change: { kind: 'replace' } }} status="running" />
             </AppThemeProvider>,
         )
         renderProbes.markdown.mockClear()
@@ -75,6 +75,7 @@ describe('ActionConversationChat rendering', () => {
                 <ActionConversationChat
                     conversation={{
                         ...firstConversation,
+                        change: { entryIndex: 2, kind: 'entry' },
                         entries: [historicalMessage, toolEvent, { ...streamingMessage, content: 'Live update' }],
                     }}
                     status="running"
@@ -101,7 +102,7 @@ describe('ActionConversationChat rendering', () => {
         const firstConversation = conversation([historicalMessage, firstTool, secondTool, streamingMessage])
         const { rerender } = render(
             <AppThemeProvider>
-                <ActionConversationChat conversation={firstConversation} status="running" />
+                <ActionConversationChat conversation={{ ...firstConversation, change: { kind: 'replace' } }} status="running" />
             </AppThemeProvider>,
         )
         renderProbes.markdown.mockClear()
@@ -112,6 +113,7 @@ describe('ActionConversationChat rendering', () => {
                 <ActionConversationChat
                     conversation={{
                         ...firstConversation,
+                        change: { entryIndex: 3, kind: 'entry' },
                         entries: [historicalMessage, firstTool, secondTool, { ...streamingMessage, content: 'Live update' }],
                     }}
                     status="running"

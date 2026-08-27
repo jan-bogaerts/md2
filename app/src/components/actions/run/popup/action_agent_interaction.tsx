@@ -22,7 +22,7 @@ export function ActionAgentInteraction(props: ActionAgentInteractionProps) {
     const { action, assignmentContext, popupEntryId, runtime } = props
     const {
         bindingStore, conversationStore, historyStore, inputStore, resultStore, runValidationError, scheduleStore,
-        settingsStore, usageScopeStore,
+        settingsStore, usageValuesService,
     } = runtime
     const boundRunId = useBoundRunId(bindingStore)
     const activeActionType = useRunSelector(boundRunId, (run) => run?.activeActionType ?? null)
@@ -32,14 +32,7 @@ export function ActionAgentInteraction(props: ActionAgentInteractionProps) {
         && !!assignmentContext.file
         && !!assignmentContext.cardInternalId
         ? (
-            <ActionUsageSummaryOwner
-                action={action}
-                bindingStore={bindingStore}
-                context={assignmentContext}
-                conversationStore={conversationStore}
-                historyStore={historyStore}
-                scopeStore={usageScopeStore}
-            />
+            <ActionUsageSummaryOwner service={usageValuesService} />
         )
         : undefined
 

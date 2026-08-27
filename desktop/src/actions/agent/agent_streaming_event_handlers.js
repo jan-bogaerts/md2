@@ -24,6 +24,7 @@ function handleSessionStarted(service, run, event) {
 function handleTurnStarted(service, run) {
     run.assistantItemIndex = 0;
     run.assistantItems.clear();
+    run.currentAssistantEntryIndex = null;
     run.currentAssistantMessageId = null;
     run.liveTurnUsage = null;
     run.turnStarted = true;
@@ -41,7 +42,7 @@ function handleUsage(service, run, event) {
 
 function handleAssistantStarted(service, run, event, timestamp) {
     const item = startAssistantItem(run, requireString(event.itemId, 'assistant item id'), timestamp);
-    emitRunEvent(run, { content: '', messageId: item.messageId, sequence: item.sequence, type: 'output' });
+    emitRunEvent(run, {content: '', entryIndex: item.entryIndex, messageId: item.messageId, sequence: item.sequence, type: 'output'});
 }
 
 function handleAssistant(service, run, event, timestamp) {
@@ -49,20 +50,21 @@ function handleAssistant(service, run, event, timestamp) {
     const itemId = run.agent === 'codex'
         ? requireString(event.itemId, 'assistant item id')
         : event.itemId;
-    const { message, segment } = appendAssistantOutput(run, safeContent, timestamp, itemId);
+    const { entryIndex, message, segment } = appendAssistantOutput(run, safeContent, timestamp, itemId);
     if (segment.length > 0) {
-        emitRunEvent(run, { content: segment, messageId: message.id, sequence: message.sequence, type: 'output' });
+        emitRunEvent(run, { content: segment, entryIndex, messageId: message.id, sequence: message.sequence, type: 'output' });
     }
 }
 
 function handleAssistantCompleted(service, run, event, timestamp) {
     const safeContent = redactSecrets(event.content, run.secretValues);
     const itemId = requireString(event.itemId, 'assistant item id');
-    const { message, previousContent, replaced } = replaceAssistantOutput(run, safeContent, timestamp, itemId);
+    const { entryIndex, message, previousContent, replaced } = replaceAssistantOutput(run, safeContent, timestamp, itemId);
     if (!replaced) return;
 
     emitRunEvent(run, {
         content: safeContent,
+        entryIndex,
         messageId: message.id,
         previousContent,
         replace: true,

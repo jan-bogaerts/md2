@@ -963,13 +963,14 @@ describe('ActionRun', () => {
                     timer: { elapsedMs: 10_000, runningStartedAt: null },
                     type: 'state',
                 });
-                input.onEvent({ content: 'chunk', messageId: 'assistant-1', sequence: 2, type: 'output' });
+                input.onEvent({ content: 'chunk', entryIndex: 0, messageId: 'assistant-1', sequence: 2, type: 'output' });
                 input.onEvent({
                     contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 },
                     type: 'usage',
                     usage: { cachedInputTokens: 1, inputTokens: 2, outputTokens: 3, reasoningTokens: 4, totalTokens: 10 },
                 });
                 input.onEvent({
+                    entryIndex: 1,
                     event: {
                         content: 'running', id: 'activity-1', label: 'Command', providerItemId: 'command-1',
                         sequence: 3, status: 'inProgress', timestamp: 'now', type: 'commandExecution',
@@ -1002,7 +1003,7 @@ describe('ActionRun', () => {
         expect(events).toContainEqual(expect.objectContaining({
             status: 'running',
             type: 'update',
-            update: { content: 'chunk', kind: 'output', messageId: 'assistant-1', sequence: 2 },
+            update: { content: 'chunk', entryIndex: 0, kind: 'agentOutput', messageId: 'assistant-1', sequence: 2 },
         }));
         expect(events).toContainEqual(expect.objectContaining({
             status: 'running',
@@ -1022,6 +1023,7 @@ describe('ActionRun', () => {
             status: 'running',
             type: 'update',
             update: {
+                entryIndex: 1,
                 event: expect.objectContaining({ providerItemId: 'command-1', sequence: 3 }),
                 kind: 'agentEvent',
             },

@@ -176,6 +176,7 @@ export type ActionRunUpdate =
         userMessage: AgentConversationMessageEntry
     }
     | {
+        entryIndex: number
         event: AgentConversationEventEntry
         kind: 'agentEvent'
     }
@@ -197,10 +198,15 @@ export type ActionRunUpdate =
         command?: string
         content: string
         kind: 'error' | 'output'
-        messageId?: string
+    }
+    | {
+        content: string
+        entryIndex: number
+        kind: 'agentOutput'
+        messageId: string
         previousContent?: string
         replace?: boolean
-        sequence?: number
+        sequence: number
     }
 
 export type ActionRunEvent =

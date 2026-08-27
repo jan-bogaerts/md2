@@ -499,6 +499,32 @@ describe('AgentRunnerService state handling', () => {
         expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }));
     });
 
+    it('publishes one-shot assistant output with its canonical entry identity', () => {
+        const service = new AgentRunnerService();
+        const run = {
+            agent: 'claude',
+            conversation: { entries: [] },
+            id: 'run-1',
+            nextSequence: 1,
+            onEvent: vi.fn(),
+            secretValues: new Set(),
+            stdout: '',
+            streaming: false,
+            turnIndex: 1,
+        };
+        service.processes.set('run-1', run);
+
+        service.recordOutput('run-1', 'stdout', 'answer');
+
+        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({
+            content: 'answer',
+            entryIndex: 0,
+            messageId: 'run-1-assistant',
+            sequence: 1,
+            type: 'output',
+        }));
+    });
+
     it('waits for close processing after terminating every run', async () => {
         const { promise: closed, resolve: resolveClosed } = Promise.withResolvers();
         const service = new AgentRunnerService({ terminateProcessTree: vi.fn(async () => undefined) });
@@ -1182,6 +1208,7 @@ describe('AgentRunnerService state handling', () => {
         expect(run.conversation.entries).toEqual([expect.objectContaining({ content: 'draft', sequence: 1 })]);
         expect(run.onEvent).toHaveBeenLastCalledWith(expect.objectContaining({
             content: 'draft',
+            entryIndex: 0,
             previousContent: 'dra',
             replace: true,
             type: 'output',
@@ -1238,6 +1265,7 @@ describe('AgentRunnerService state handling', () => {
             status: 'completed',
         });
         expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({
+            entryIndex: 1,
             event: expect.objectContaining({ content: 'Completed', id: 'activity-1' }),
             type: 'agentEvent',
         }));

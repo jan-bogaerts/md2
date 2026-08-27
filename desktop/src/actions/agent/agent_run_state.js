@@ -61,6 +61,7 @@ function createRun({
         closed,
         conversation,
         codexCacheErrorReported: false,
+        currentAssistantEntryIndex: null,
         currentAssistantMessageId: null,
         environment,
         executable,

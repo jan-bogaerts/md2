@@ -533,9 +533,15 @@ class AgentRunnerService {
         const timestamp = new Date().toISOString();
         const safeContent = redactSecrets(content, run.secretValues);
         if (channel === 'stdout') {
-            const { segment } = appendAssistantOutput(run, safeContent, timestamp);
+            const { entryIndex, message, segment } = appendAssistantOutput(run, safeContent, timestamp);
             if (segment.length === 0) return;
-            emitRunEvent(run, { content: segment, type: 'output' });
+            emitRunEvent(run, {
+                content: segment,
+                entryIndex,
+                messageId: message.id,
+                sequence: message.sequence,
+                type: 'output',
+            });
             return;
         }
         run.stderr += safeContent;
@@ -582,8 +588,16 @@ class AgentRunnerService {
             ));
         }
         if (providerEvent.assistantText.length > 0) {
-            const { segment } = appendAssistantOutput(run, providerEvent.assistantText, timestamp);
-            if (segment.length > 0) emitRunEvent(run, { content: segment, type: 'output' });
+            const { entryIndex, message, segment } = appendAssistantOutput(run, providerEvent.assistantText, timestamp);
+            if (segment.length > 0) {
+                emitRunEvent(run, {
+                    content: segment,
+                    entryIndex,
+                    messageId: message.id,
+                    sequence: message.sequence,
+                    type: 'output',
+                });
+            }
         } else if (providerEvent.errorText.length > 0 && !run.reportedProviderErrors.has(providerEvent.errorText)) {
             const separator = run.stderr.length > 0 && !run.stderr.endsWith('\n') ? '\n' : '';
             run.reportedProviderErrors.add(providerEvent.errorText);
