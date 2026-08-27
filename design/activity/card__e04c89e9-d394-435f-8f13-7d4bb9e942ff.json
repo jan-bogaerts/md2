@@ -5,7 +5,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "e04c89e9-d394-435f-8f13-7d4bb9e942ff",
       "cardPath": "design/feature_descriptions/F_221_move_token_and_change_count_to_bottom_of_chat.md",
-      "completedAt": null,
+      "completedAt": "2026-08-27T17:59:15.714Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 80934
@@ -480,17 +480,25 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 36,
-          "timestamp": "2026-08-27T17:59:15.313Z"
+          "timestamp": "2026-08-27T17:59:15.714Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-28ff6e7d-1bea-4e1d-89cb-d63491f267bd",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a0445d-e134-7202-a0b9-d78de3de3eec",
+          "createdAt": "2026-08-27T17:59:15.714Z",
+          "lastUsedAt": "2026-08-27T17:59:15.714Z",
+          "synchronizedThroughMessageId": "agent-turn-6d96da91-db84-4674-8eca-469e66756e10-turn-1-assistant-4"
+        }
+      ],
       "startedAt": "2026-08-27T17:56:38.118Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-27T17:56:38.118Z"
+        "elapsedMs": 157596,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
