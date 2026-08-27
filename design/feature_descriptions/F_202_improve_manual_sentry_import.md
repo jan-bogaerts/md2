@@ -10,7 +10,6 @@ agents:
 policy:
 after: f5e9bc66-ebde-41f7-ae6e-503e9e8e284a
 ---
-
 currently:
 
 > Manual import exists only in config page:
@@ -24,3 +23,5 @@ currently:
 > Project is writable.
 > No import currently runs.
 > No menu, toolbar, command palette, or project-level action exists elsewhere. So discoverability is poor; user must reopen Sentry config to import manually.
+
+We should add a button to the run menu for importing bugs
