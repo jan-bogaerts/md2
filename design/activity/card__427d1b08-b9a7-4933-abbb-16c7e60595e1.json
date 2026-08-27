@@ -5888,7 +5888,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 177894
+        "usedTokens": 197026
       },
       "entries": [
         {
@@ -7637,6 +7637,164 @@
           "role": "assistant",
           "sequence": 134,
           "timestamp": "2026-08-27T13:17:36.437Z"
+        },
+        {
+          "content": "forget about command actions, they are not involved, we don't have any, only agent actions",
+          "id": "agent-turn-9c4a9f35-1607-4fe0-9508-ebf1beb70b62-user-134",
+          "kind": "message",
+          "role": "user",
+          "sequence": 135,
+          "timestamp": "2026-08-27T13:22:11.790Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-9c4a9f35-1607-4fe0-9508-ebf1beb70b62-event-136",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_09bad16f60ca5014016a903a0738f887d298ccaed4d2b0bb1b",
+          "sequence": 136,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-27T13:22:18.007Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Command branch eliminated. Next suspect is editor reuse during agent-to-agent switching: old editor callbacks can touch the new action draft before `prepare()` starts, marking it locally edited and suppressing prefill. I’ll trace existing switching coverage and exact effect order; no edits yet.\n\n",
+          "id": "agent-turn-9c4a9f35-1607-4fe0-9508-ebf1beb70b62-turn-3-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 137,
+          "timestamp": "2026-08-27T13:22:20.114Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -C 8 \\\"switch.*action|select.*action|prefill|prepareActionPrompt|Prepared prompt|prepare.*prompt\\\" app/src/components/actions/run/popup/action_popup.test.tsx app/src/components/actions/agent app/src/services/actions --glob '*.test.*'; git log --oneline -12; git status --short\"",
+          "content": "fe383ab9 Update card activity\nc2c3e13d Update card activity\nae85ad16 Record implement activity\n5a9ec4e7 Update card activity\n2305bf04 Update card activity\na66e7c2a Update design/feature_descriptions/J_33_second_instance_strange_behaviour.md\ndd94a8ac Record Integrate into project activity\nf48d8670 Integrate into project\n0291edb8 Save project changes before worktree synchronization\n81d5a6d5 Record + activity\n7c099ea3 Update card activity\n89f52f19 Save project changes before worktree synchronization\nwarning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\nwarning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\n M design/activity/card__427d1b08-b9a7-4933-abbb-16c7e60595e1.json\n M design/usage_metrics.csv\n?? .claude/\n",
+          "durationMs": 50,
+          "exitCode": 0,
+          "id": "agent-turn-9c4a9f35-1607-4fe0-9508-ebf1beb70b62-event-138",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -C 8 \\\"switch.*action|select.*action|prefill|prepareActionPrompt|Prepared prompt|prepare.*prompt\\\" app/src/components/actions/run/popup/action_popup.test.tsx app/src/components/actions/agent app/src/services/actions --glob '*.test.*'; git log --oneline -12; git status --short\"",
+          "providerItemId": "exec-c4f4603d-6bbd-4d55-b717-d5861646ad65",
+          "sequence": 138,
+          "status": "completed",
+          "timestamp": "2026-08-27T13:22:22.550Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-9c4a9f35-1607-4fe0-9508-ebf1beb70b62-event-139",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_09bad16f60ca5014016a903a10592887d2a7ddbaa75e7d1213",
+          "sequence": 139,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-27T13:22:25.990Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -C 12 \\\"agentDefinition\\\\('first|agentDefinition\\\\('second|First agent|Second agent|Third agent|prepareActionPrompt.*mockImplementation|mockResolvedValueOnce\\\" app/src/components/actions/run/popup/action_popup.test.tsx\"",
+          "content": "1065-        const firstPreparation = rejectableDeferred<never>()\n1066-        const connectionListeners: Array<(connected: boolean) => void> = []\n1067-        vi.spyOn(RemoteControlStorageService.prototype, 'connect').mockResolvedValue()\n1068-        vi.spyOn(RemoteControlStorageService.prototype, 'loadDesktopConfig').mockResolvedValue(configService.getDesktopValues())\n1069-        vi.spyOn(RemoteControlStorageService.prototype, 'loadAgentAvailability').mockResolvedValue({})\n1070-        vi.spyOn(RemoteControlStorageService.prototype, 'getCodexRateLimits').mockResolvedValue(null)\n1071-        vi.spyOn(RemoteControlStorageService.prototype, 'loadActionRunRecoverySnapshot')\n1072-            .mockResolvedValue({ activeRunEvents: [], terminalResults: [] })\n1073-        vi.spyOn(RemoteControlStorageService.prototype, 'onActionRun').mockReturnValue(() => undefined)\n1074-        vi.spyOn(RemoteControlStorageService.prototype, 'onCodexRateLimits').mockReturnValue(() => undefined)\n1075-        const prepareActionPrompt = vi.spyOn(RemoteControlStorageService.prototype, 'prepareActionPrompt')\n1076-            .mockReturnValueOnce(firstPreparation.promise)\n1077:            .mockResolvedValueOnce({ prompt: 'Reconnected prompt' })\n1078-        const firstStorage = new RemoteControlStorageService()\n1079-        firstStorage.init({ endpoint: 'ws://desktop:1234' })\n1080-        vi.spyOn(firstStorage, 'onConnectionChanged').mockImplementation((listener) => {\n1081-            connectionListeners.push(listener)\n1082-\n1083-            return () => true\n1084-        })\n1085-        delete window.md2Actions\n1086-        await remoteConnectionService.connectExisting(firstStorage)\n1087-        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([])\n1088-        actionService.loadFromFiles([file(agentDefinition('review', { label: 'Review' }))])\n1089-        renderPopup({ ...context, cardInternalId: 'card-1' })\n--\n2158-        window.md2Actions = {\n2159-            loadCardActivity: vi.fn(async () => ({actionSettings: {}, conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 5})),\n2160-            onActionRun: vi.fn(() => vi.fn()),\n2161-            prepareActionPrompt: vi.fn(async () => ({ prompt: 'Plan' })),\n2162-            updateCardActionSettings,\n2163-        } as unknown as typeof window.md2Actions\n2164-        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({\n2165-            availability: { error: null, loading: false, values: { codex: { available: true, error: null } } },\n2166-            models: { error: null, loading: false, values: [] },\n2167-            thinkingLevels: { error: null, loading: false, values: [] },\n2168-        })\n2169-        actionService.loadFromFiles([\n2170:            file(agentDefinition('first-agent', { agent: 'codex', label: 'First agent' })),\n2171:            file(agentDefinition('second-agent', { agent: 'codex', label: 'Second agent' })),\n2172-        ])\n2173-        renderPopup(cardContext)\n2174-        await waitFor(() => expect(screen.getByLabelText('Model')).toBeEnabled())\n2175-\n2176-        fireEvent.click(screen.getByLabelText('Model'))\n2177-        fireEvent.click(screen.getByRole('menuitem', { name: 'Model' }))\n2178-        fireEvent.click(screen.getByRole('menuitem', { name: 'gpt-5.6-sol' }))\n2179:        fireEvent.click(screen.getByRole('button', { name: 'Second agent' }))\n2180-        await waitFor(() => expect(screen.getByLabelText('Model')).toHaveTextContent('gpt-5.5'))\n2181-        fireEvent.click(screen.getByLabelText('Model'))\n2182-        fireEvent.click(screen.getByRole('menuitem', { name: 'Model' }))\n2183-        fireEvent.click(screen.getByRole('menuitem', { name: 'gpt-5.6-terra' }))\n2184-\n2185:        fireEvent.click(screen.getByRole('button', { name: 'First agent' }))\n2186-        await waitFor(() => expect(screen.getByLabelText('Model')).toHaveTextContent('gpt-5.6-sol'))\n2187-        expect(updateCardActionSettings.mock.calls.map(([request]) => request.actionId)).toEqual(['first-agent', 'second-agent'])\n2188-    })\n2189-\n2190-    it('keeps unavailable saved configuration visible without overwriting persistence', async () => {\n2191-        const cardContext = { ...context, cardInternalId: 'card-1' }\n2192-        const unavailableSettings: AgentSelectionState = {\n2193-            activeAgent: 'removed-agent', permissionMode: 'ask-for-approval',\n2194-            settingsByAgent: { 'removed-agent': { model: 'removed-model', thinkingLevel: 'high' } },\n2195-        }\n2196-        const updateCardActionSettings = vi.fn(async () => undefined)\n2197-        window.md2Actions = {\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-9c4a9f35-1607-4fe0-9508-ebf1beb70b62-event-140",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -C 12 \\\"agentDefinition\\\\('first|agentDefinition\\\\('second|First agent|Second agent|Third agent|prepareActionPrompt.*mockImplementation|mockResolvedValueOnce\\\" app/src/components/actions/run/popup/action_popup.test.tsx\"",
+          "providerItemId": "exec-b3d7c550-f4f6-4fa8-9b52-ca26c3aac01e",
+          "sequence": 140,
+          "status": "completed",
+          "timestamp": "2026-08-27T13:22:28.450Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-9c4a9f35-1607-4fe0-9508-ebf1beb70b62-event-141",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_09bad16f60ca5014016a903a16008487d2bec8e187da5f4a67",
+          "sequence": 141,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-27T13:22:45.152Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-9c4a9f35-1607-4fe0-9508-ebf1beb70b62-event-142",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_09bad16f60ca5014016a903a25535087d281fd87ac3097df62",
+          "sequence": 142,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-27T13:22:49.732Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "All-agent path has one concrete cancellation gate: `promptDraft.hasLocalEdits()` is checked before preparation. Editor is reused across actions, and child draft-switch effect runs before parent preparation effect. If editor writes during that switch, new draft becomes “locally edited” and preparation is skipped. I’m checking the implementation commit to identify which recent change enabled that path.\n\n",
+          "id": "agent-turn-9c4a9f35-1607-4fe0-9508-ebf1beb70b62-turn-3-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 143,
+          "timestamp": "2026-08-27T13:22:52.661Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git show --stat --oneline ae85ad16; git show ae85ad16 -- app/src/services/actions/action_prompt_draft_service.ts app/src/components/actions/agent/action_agent_prompt_owner.tsx app/src/components/editor/use_markdown_draft.ts app/src/components/editor/markdown_editor.tsx; git log -p -5 -- app/src/services/actions/action_prompt_draft_service.ts'",
+          "content": "commit 2d3fe6cee73dd2bbc50a7c717e620398d8b86afa\nAuthor: Jan Bogaerts <jb@elastetic.com>\nDate:   Tue Aug 25 20:40:14 2026 +0200\n\n    Integrate into project\n\ndiff --git a/app/src/services/actions/action_prompt_draft_service.ts b/app/src/services/actions/action_prompt_draft_service.ts\nindex ad831c0b..427d47e0 100644\n--- a/app/src/services/actions/action_prompt_draft_service.ts\n+++ b/app/src/services/actions/action_prompt_draft_service.ts\n@@ -183,6 +183,16 @@ export class ActionPromptDraftService {\n         draft.clear()\n     }\n \n+    /** Removes released run state unless it contains text the user edited. */\n+    deleteUneditedDraft(actionId: string, context: ActionContext, runId: string | null) {\n+        const key = promptDraftKey(actionId, context, runId)\n+        const draft = this.drafts.get(key)\n+        if (!draft) return\n+\n+        draft.requestFlush()\n+        if (!draft.hasLocalEdits()) this.drafts.delete(key)\n+    }\n+\n     clearAction(actionId: string) {\n         const prefix = `${actionId}${DRAFT_KEY_SEPARATOR}`\n         for (const key of this.drafts.keys()) {\n\ncommit cb951452b296d9fbfef952d225287485603f993f\nAuthor: Jan Bogaerts <jb@elastetic.com>\nDate:   Tue Aug 25 20:14:35 2026 +0200\n\n    Integrate into project\n\ndiff --git a/app/src/services/actions/action_prompt_draft_service.ts b/app/src/services/actions/action_prompt_draft_service.ts\nindex 8198c294..ad831c0b 100644\n--- a/app/src/services/actions/action_prompt_draft_service.ts\n+++ b/app/src/services/actions/action_prompt_draft_service.ts\n@@ -17,12 +17,13 @@ interface ActionPromptDraftOptions {\n     prepare: boolean\n }\n \n-function promptDraftKey(actionId: string, context: ActionContext) {\n-    return `${actionId}${DRAFT_KEY_SEPARATOR}${actionContextIdentity(context)}`\n+function promptDraftKey(actionId: string, context: ActionContext, runId: string | null) {\n+    return `${actionId}${DRAFT_KEY_SEPARATOR}${actionContextIdentity(context)}${DRAFT_KEY_SEPARATOR}${runId ?? 'new'}`\n }\n \n /** Stable prompt state shared by editor and prompt-dependent leaf controls. */\n export class ActionPromptDraft {\n+    private applyingExternalValue = false\n     private editorSnapshot: ActionPromptDraftEditorSnapshot\n     private locallyEdited = false\n     readonly markdownDraft: MarkdownDraft\n@@ -36,6 +37,7 @@ export class ActionPromptDraft {\n             replacementRevision: 0,\n         }\n         this.markdownDraft = new MarkdownDraft(initialValue)\n+        this.markdownDraft.subscribe(this.handleMarkdownEdit)\n         this.preparationRequired = preparationRequired\n     }\n \n@@ -55,10 +57,6 @@ export class ActionPromptDraft {\n \n     /** Record an editor-local value without starting asynchronous synchronization. */\n     readonly edit = (value: string) => {\n-        this.revision += 1\n-        this.locallyEdited = true\n-        this.preparationRequired = false\n-        this.setPreparationStatus('ready')\n         this.markdownDraft.edit(value)\n     }\n \n@@ -67,7 +65,12 @@ export class ActionPromptDraft {\n         this.revision += 1\n         this.locallyEdited = false\n         this.preparationRequired = false\n-        this.markdownDraft.replace(value)\n+        this.applyingExternalValue = true\n+        try {\n+            this.markdownDraft.replace(value)\n+        } finally {\n+            this.applyingExternalValue = false\n+        }\n         this.editorSnapshot = {\n             preparationStatus: 'ready',\n             replacementRevision: this.editorSnapshot.replacementRevision + 1,\n@@ -124,6 +127,15 @@ export class ActionPromptDraft {\n         this.markdownDraft.requestFlush()\n     }\n \n+    private readonly handleMarkdownEdit = () => {\n+        if (this.applyingExternalValue) return\n+\n+        this.revision += 1\n+        this.locallyEdited = true\n+        this.preparationRequired = false\n+        this.setPreparationStatus('ready')\n+    }\n+\n     private setPreparationStatus(preparationStatus: ActionPromptPreparationStatus) {\n         if (this.editorSnapshot.preparationStatus === preparationStatus) return\n \n@@ -144,8 +156,8 @@ export class ActionPromptDraftService {\n      \n[16771 characters omitted]\nready',\n             replacementRevision: 0,\n         }\n+        this.markdownDraft = new MarkdownDraft(initialValue)\n         this.run = run\n         this.preparationRequired = preparationRequired\n-        this.value = initialValue\n     }\n \n-    readonly getSnapshot = () => this.value\n+    readonly getSnapshot = () => this.markdownDraft.getSnapshot()\n \n     readonly getEditorSnapshot = () => this.editorSnapshot\n \n-    readonly subscribe = (listener: ActionPromptDraftListener) => {\n-        this.valueListeners.add(listener)\n+    readonly requestInsertion = (markdown: string) => this.markdownDraft.requestInsertion(markdown)\n \n-        return () => this.valueListeners.delete(listener)\n-    }\n+    readonly subscribe = (listener: () => void) => this.markdownDraft.subscribe(listener)\n \n-    readonly subscribeEditor = (listener: ActionPromptDraftListener) => {\n-        this.editorListeners.add(listener)\n+    readonly subscribeEditor = (listener: () => void) => {\n+        this.markdownDraft.addEventListener('actionEditorChanged', listener)\n \n-        return () => this.editorListeners.delete(listener)\n+        return () => this.markdownDraft.removeEventListener('actionEditorChanged', listener)\n     }\n \n     bindRun(run: ActionPromptRunBinding | null) {\n@@ -111,7 +106,7 @@ export class ActionPromptDraft {\n         this.locallyEdited = true\n         this.preparationRequired = false\n         this.setPreparationStatus('ready')\n-        this.setValue(value)\n+        this.markdownDraft.edit(value)\n     }\n \n     /** Replace editor content from an external source and notify editor exactly once. */\n@@ -119,7 +114,7 @@ export class ActionPromptDraft {\n         this.revision += 1\n         this.locallyEdited = false\n         this.preparationRequired = false\n-        this.setValue(value)\n+        this.markdownDraft.replace(value)\n         this.editorSnapshot = {\n             preparationStatus: 'ready',\n             replacementRevision: this.editorSnapshot.replacementRevision + 1,\n@@ -128,7 +123,7 @@ export class ActionPromptDraft {\n     }\n \n     clear() {\n-        if (this.value.length === 0 && this.editorSnapshot.preparationStatus === 'ready') return\n+        if (this.getSnapshot().length === 0 && this.editorSnapshot.preparationStatus === 'ready') return\n \n         this.replace('')\n     }\n@@ -167,7 +162,7 @@ export class ActionPromptDraft {\n         const run = this.run\n         if (!run?.interactionReady || run.activeActionType !== 'agent' || !run.activeActionId) return\n \n-        const value = this.value\n+        const value = this.getSnapshot()\n         const revision = this.revision\n         const pendingWrite = this.pendingWrite.catch(() => undefined).then(async () => {\n             const sessionId = await this.getPromptSession(run.runId)\n@@ -186,10 +181,10 @@ export class ActionPromptDraft {\n     async send() {\n         const run = this.run\n         if (!run?.activeActionId) throw new Error('Action run has no active agent')\n-        if (this.value.trim().length === 0) throw new Error('Queued agent prompt is empty')\n+        if (this.getSnapshot().trim().length === 0) throw new Error('Queued agent prompt is empty')\n \n         await this.pendingWrite\n-        const value = this.value\n+        const value = this.getSnapshot()\n         const revision = this.revision\n         const sessionId = await this.getPromptSession(run.runId)\n         try {\n@@ -214,13 +209,6 @@ export class ActionPromptDraft {\n         return promptSession\n     }\n \n-    private setValue(value: string) {\n-        if (this.value === value) return\n-\n-        this.value = value\n-        for (const listener of this.valueListeners) listener()\n-    }\n-\n     private setPreparationStatus(preparationStatus: ActionPromptPreparationStatus) {\n         if (this.editorSnapshot.preparationStatus === preparationStatus) return\n \n@@ -229,7 +217,7 @@ export class ActionPromptDraft {\n     }\n \n     private publishEditor() {\n-        for (const listener of this.editorListeners) listener()\n+        this.markdownDraft.dispatchEvent(new Event('actionEditorChanged'))\n     }\n }\n \n",
+          "durationMs": 232,
+          "exitCode": 0,
+          "id": "agent-turn-9c4a9f35-1607-4fe0-9508-ebf1beb70b62-event-144",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git show --stat --oneline ae85ad16; git show ae85ad16 -- app/src/services/actions/action_prompt_draft_service.ts app/src/components/actions/agent/action_agent_prompt_owner.tsx app/src/components/editor/use_markdown_draft.ts app/src/components/editor/markdown_editor.tsx; git log -p -5 -- app/src/services/actions/action_prompt_draft_service.ts'",
+          "providerItemId": "exec-94dfcd17-50b7-48e6-bbbb-281d73766874",
+          "sequence": 144,
+          "status": "completed",
+          "timestamp": "2026-08-27T13:22:55.578Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-9c4a9f35-1607-4fe0-9508-ebf1beb70b62-event-145",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_09bad16f60ca5014016a903a31bc6c87d2ae80eeb817d8db9a",
+          "sequence": 145,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-27T13:23:12.505Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-9c4a9f35-1607-4fe0-9508-ebf1beb70b62-event-146",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_09bad16f60ca5014016a903a40acac87d281404668a420d02b",
+          "sequence": 146,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-27T13:23:30.633Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Corrected agent-only sequence:\n\n1. Selection changes action.\n2. New action gets its own empty `ActionPromptDraft`.\n3. Existing `MarkdownEditor` instance is reused.\n4. Editor receives new draft prop but can still emit a delayed change from previous draft.\n5. `handleEditorChange` writes that event into new draft.\n6. Recent `markdownDraft.subscribe(handleMarkdownEdit)` treats every value change as user input.\n7. New draft becomes `locallyEdited`; `preparationRequired` becomes `false`.\n8. Parent prefill effect then skips:\n\n```ts\nif (!prepare || promptDraft.hasLocalEdits()) return\n```\n\n9. Result: previous text disappears, new prompt preparation never starts, editor stays empty.\n\nWorking switches avoid delayed editor event; broken switches receive it. This explains alternating behavior and actual race.\n\nLikely regression came from changing local-edit tracking from explicit `ActionPromptDraft.edit()` calls to every `MarkdownDraft` value event.\n\nNext useful step: add temporary tracing at draft creation, editor change, preparation guard, preparation start, and replacement, including `actionId`, draft identity, value, revision, and `hasLocalEdits`.\n\n",
+          "id": "agent-turn-9c4a9f35-1607-4fe0-9508-ebf1beb70b62-turn-3-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 147,
+          "timestamp": "2026-08-27T13:23:37.646Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -7646,23 +7804,23 @@
           "agent": "codex",
           "conversationId": "01a03a16-e93f-7bd0-adb3-891f4884927e",
           "createdAt": "2026-08-25T18:07:30.958Z",
-          "lastUsedAt": "2026-08-27T13:11:45.584Z",
-          "synchronizedThroughMessageId": "agent-turn-9c4a9f35-1607-4fe0-9508-ebf1beb70b62-turn-1-assistant-1"
+          "lastUsedAt": "2026-08-27T13:17:36.437Z",
+          "synchronizedThroughMessageId": "agent-turn-9c4a9f35-1607-4fe0-9508-ebf1beb70b62-turn-2-assistant-3"
         }
       ],
       "startedAt": "2026-08-25T18:02:54.895Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 718326,
-        "runningStartedAt": "2026-08-27T13:15:15.718Z"
+        "elapsedMs": 859045,
+        "runningStartedAt": "2026-08-27T13:22:11.790Z"
       },
       "title": "review",
       "usage": {
-        "cachedInputTokens": 6720768,
-        "inputTokens": 347440,
-        "outputTokens": 12767,
-        "reasoningTokens": 10200,
-        "totalTokens": 7091175
+        "cachedInputTokens": 7448832,
+        "inputTokens": 369430,
+        "outputTokens": 13531,
+        "reasoningTokens": 12061,
+        "totalTokens": 7843854
       },
       "usageSchemaVersion": 1,
       "viewed": true
