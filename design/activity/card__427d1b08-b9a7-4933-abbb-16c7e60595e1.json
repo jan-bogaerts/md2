@@ -5888,7 +5888,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 178044
+        "usedTokens": 179630
       },
       "entries": [
         {
@@ -10796,6 +10796,36 @@
           "role": "assistant",
           "sequence": 374,
           "timestamp": "2026-08-27T17:35:38.060Z"
+        },
+        {
+          "content": "What do we use the onchange event handler for",
+          "id": "agent-turn-9d385b5a-6445-4f5f-a8ea-110c151104bb-user-374",
+          "kind": "message",
+          "role": "user",
+          "sequence": 375,
+          "timestamp": "2026-08-27T17:41:13.999Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-9d385b5a-6445-4f5f-a8ea-110c151104bb-event-376",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_000d85e9e868a184016a9076bcef5487d297cc0365ed27d1a9",
+          "sequence": 376,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-27T17:41:18.939Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "`MDXEditor.onChange` calls `handleEditorChange`. We use it to mirror editor content into application state.\n\nIt performs:\n\n1. Ignore known programmatic replacements and unchanged values.\n2. Update editor’s latest Markdown buffer.\n3. Mark editor dirty.\n4. Notify `onLiveChange`.\n5. In draft mode, call active draft’s `edit(markdown)`.\n6. In data-source mode, update active data-source buffer.\n\nIt does not directly persist files or start actions. Persistence/commit happens during `flush()`.\n\nFor action prompts, important part is step 5: it copies visible editor text into `ActionPromptDraft`. Problem was MDXEditor also calls `onChange` for some programmatic editor updates, without saying whether user or `setMarkdown()` caused them.\n\n",
+          "id": "agent-turn-9d385b5a-6445-4f5f-a8ea-110c151104bb-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 377,
+          "timestamp": "2026-08-27T17:41:22.193Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -10805,23 +10835,23 @@
           "agent": "codex",
           "conversationId": "01a03a16-e93f-7bd0-adb3-891f4884927e",
           "createdAt": "2026-08-25T18:07:30.958Z",
-          "lastUsedAt": "2026-08-27T17:32:39.803Z",
-          "synchronizedThroughMessageId": "agent-turn-b911f2a5-c908-4af5-af5a-55a5e2fd6036-turn-2-assistant-5"
+          "lastUsedAt": "2026-08-27T17:35:38.060Z",
+          "synchronizedThroughMessageId": "agent-turn-9d385b5a-6445-4f5f-a8ea-110c151104bb-turn-1-assistant-1"
         }
       ],
       "startedAt": "2026-08-25T18:02:54.895Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 2346779,
-        "runningStartedAt": "2026-08-27T17:35:12.900Z"
+        "elapsedMs": 2371939,
+        "runningStartedAt": "2026-08-27T17:41:13.999Z"
       },
       "title": "review",
       "usage": {
-        "cachedInputTokens": 18636288,
-        "inputTokens": 696090,
-        "outputTokens": 31490,
-        "reasoningTokens": 27896,
-        "totalTokens": 19391764
+        "cachedInputTokens": 18813184,
+        "inputTokens": 698523,
+        "outputTokens": 31657,
+        "reasoningTokens": 28030,
+        "totalTokens": 19571394
       },
       "usageSchemaVersion": 1,
       "viewed": true
