@@ -10,7 +10,10 @@ agents:
   - design/activity/card__427d1b08-b9a7-4933-abbb-16c7e60595e1.json
 policy:
 changedFiles:
+  - app/src/components/actions/agent/action_agent_prompt.test.tsx
+  - app/src/components/actions/agent/action_agent_prompt.tsx
   - app/src/components/actions/conversation/action_conversation_picker_owner.tsx
+  - app/src/components/actions/run/popup/action_popup.test.tsx
   - app/src/components/actions/run/popup/action_popup_bottom_row.test.tsx
   - app/src/components/actions/run/popup/action_popup_bottom_row.tsx
   - app/src/components/editor/markdown_editor.test.tsx
@@ -20,6 +23,7 @@ changedFiles:
   - app/src/services/actions/action_prompt_draft_service.ts
   - app/src/services/actions/action_run_registry.node.test.ts
   - app/src/services/actions/action_run_registry.ts
+  - app/src/services/markdown/markdown_draft.ts
 ---
 it appears we restrict the number of actions that can run on a card. if 1 action is running and we try to start another one, it will even try to queue the message.
 
