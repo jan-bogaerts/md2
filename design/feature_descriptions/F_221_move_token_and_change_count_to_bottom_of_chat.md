@@ -10,8 +10,9 @@ agents:
   - design/activity/card__e04c89e9-d394-435f-8f13-7d4bb9e942ff.json
 policy:
 after: 47a847c9-cf6e-4a8a-823c-6a6b012bb21a
+branch: f_221_move_token_and_change_count_to_bottom_of_chat
+worktree: 2
 ---
-
 The bottom row of the action popup is too full. Move token usage and line-change counts to the bottom of the chat log, between the timer and context-window usage.
 
 ## Current state
@@ -24,22 +25,22 @@ The bottom row of the action popup is too full. Move token usage and line-change
 
 ## implementation details
 
-- Remove `ActionUsageSummaryOwner` and its dedicated layout slot from `ActionPopupBottomRow`. Keep attachment, agent-selector, scheduling, stop, finish, send, and run behavior unchanged.
-- Compose the existing usage owner with `ActionConversationChat` for the same card-scoped agent interactions that show it today. Pass it as named metadata content to `ConversationMetaInfo`; do not move usage aggregation or scope state into the chat component.
-- Render usage immediately after `ConversationTimer` and before the flexible spacer and `ConversationContextUsage`. Status remains before the timer.
-- Keep the metadata row present when usage exists but no conversation or active status exists, so cumulative action/card token usage does not disappear before a conversation is selected.
-- Give the metadata row an inline-size query container. Preserve current narrow-width behavior: token and change labels may hide while numeric values, controls, and tooltips remain available.
-- Reuse `ActionUsageSummary`, `ActionUsageSummaryOwner`, `ActionUsageScopeStore`, and current history/conversation subscriptions. Preserve conversation/action-card switching, live-run updates, historical selection, number formatting, tooltip definitions, and Git fallback behavior.
-- Keep current eligibility unchanged: command actions, project context, and read-only agent popups do not gain a usage summary.
-- Update focused popup-bottom-row and conversation integration tests. Assert usage removal from prompt footer, metadata order, live and historical updates, shared scope switching, narrow layout behavior, and unchanged absence rules.
+* Remove `ActionUsageSummaryOwner` and its dedicated layout slot from `ActionPopupBottomRow`. Keep attachment, agent-selector, scheduling, stop, finish, send, and run behavior unchanged.
+* Compose the existing usage owner with `ActionConversationChat` for the same card-scoped agent interactions that show it today. Pass it as named metadata content to `ConversationMetaInfo`; do not move usage aggregation or scope state into the chat component.
+* Render usage immediately after `ConversationTimer` and before the flexible spacer and `ConversationContextUsage`. Status remains before the timer.
+* Keep the metadata row present when usage exists but no conversation or active status exists, so cumulative action/card token usage does not disappear before a conversation is selected.
+* Give the metadata row an inline-size query container. Preserve current narrow-width behavior: token and change labels may hide while numeric values, controls, and tooltips remain available.
+* Reuse `ActionUsageSummary`, `ActionUsageSummaryOwner`, `ActionUsageScopeStore`, and current history/conversation subscriptions. Preserve conversation/action-card switching, live-run updates, historical selection, number formatting, tooltip definitions, and Git fallback behavior.
+* Keep current eligibility unchanged: command actions, project context, and read-only agent popups do not gain a usage summary.
+* Update focused popup-bottom-row and conversation integration tests. Assert usage removal from prompt footer, metadata order, live and historical updates, shared scope switching, narrow layout behavior, and unchanged absence rules.
 
 ## acceptance criteria
 
-- In a writable card-scoped agent popup, token usage and available insertion/deletion counts appear below the chat transcript, after elapsed timer and before context-window indicator.
-- Prompt bottom row no longer contains token or line-change usage. Agent selectors, attachments, scheduling, finish, stop, send, and run controls behave as before.
-- Token and change values match existing calculations for both conversation and action/card scopes. Clicking either metric switches both metrics to the other scope.
-- Selecting a historical conversation updates timer, token usage, line changes, and context-window usage to that displayed conversation without changing selected scope.
-- Live provider usage and file-change events update displayed values without reload. When provider file-change data is absent, captured Git commit totals remain fallback; when neither source has changes, change control remains hidden.
-- Before a conversation is selected, available cumulative action/card usage remains visible. Command actions, project context, and read-only agent popups retain current absence of usage summary.
-- At narrow popup widths, metadata stays usable without forcing chat wider: labels may collapse, numeric values remain visible, and both controls remain keyboard accessible with existing tooltips.
-- Focused action popup and conversation tests pass; app lint passes.
+* In a writable card-scoped agent popup, token usage and available insertion/deletion counts appear below the chat transcript, after elapsed timer and before context-window indicator.
+* Prompt bottom row no longer contains token or line-change usage. Agent selectors, attachments, scheduling, finish, stop, send, and run controls behave as before.
+* Token and change values match existing calculations for both conversation and action/card scopes. Clicking either metric switches both metrics to the other scope.
+* Selecting a historical conversation updates timer, token usage, line changes, and context-window usage to that displayed conversation without changing selected scope.
+* Live provider usage and file-change events update displayed values without reload. When provider file-change data is absent, captured Git commit totals remain fallback; when neither source has changes, change control remains hidden.
+* Before a conversation is selected, available cumulative action/card usage remains visible. Command actions, project context, and read-only agent popups retain current absence of usage summary.
+* At narrow popup widths, metadata stays usable without forcing chat wider: labels may collapse, numeric values remain visible, and both controls remain keyboard accessible with existing tooltips.
+* Focused action popup and conversation tests pass; app lint passes.
