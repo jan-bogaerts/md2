@@ -13,6 +13,20 @@
           "thinkingLevel": "medium"
         }
       }
+    },
+    "47dafdc7-0be7-4d56-bb5a-07c813906416": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
     }
   },
   "conversations": [
@@ -408,6 +422,154 @@
       },
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
+      "cardInternalId": "db4400c0-0d7f-4265-8939-8b4e493c7208",
+      "cardPath": "design/feature_descriptions/F_240_action_popup_card_id_add_tooltip.md",
+      "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 1000000,
+        "usedTokens": 32420
+      },
+      "entries": [
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/F_240_action_popup_card_id_add_tooltip.md`.&#x20;\nupdate the field `status` in the markdown feature description file to `ready for implementation`.\n\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill.\n\nDo not stage or commit changes. You have no need for get at this time.",
+          "id": "agent-turn-37b5ffe5-f057-4f87-a704-9565da56b31e-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-08-27T17:54:10.803Z"
+        },
+        {
+          "agent": "claude",
+          "content": "I'll read the feature file first.",
+          "id": "agent-turn-37b5ffe5-f057-4f87-a704-9565da56b31e-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 2,
+          "timestamp": "2026-08-27T17:54:13.939Z"
+        },
+        {
+          "command": "cat \"C:/Users/janbo/Documents/dev/md2_workers/dev3/design/feature_descriptions/F_240_action_popup_card_id_add_tooltip.md\"",
+          "content": "---\r\nauthor: \r\nid: F_240\r\ninternalId: db4400c0-0d7f-4265-8939-8b4e493c7208\r\ntitle: action popup card id add tooltip\r\nstatus: ready for implementation\r\nowner: \r\naffects:\r\nagents:\r\n  - design/activity/card__db4400c0-0d7f-4265-8939-8b4e493c7208.json\r\npolicy:\r\nbranch: f_240_action_popup_card_id_add_tooltip\r\nworktree: 3\r\n---\r\non the action popup, in the upper left corner, we show the id of the card (if any). we should add a tooltip to that shows the title of the card.\n\nbe careful: I think the component currently doesn't capture mouse events cause it shows a drag icon to move the popup around\n\n## Current state\n\nThe card id badge lives in the action popup toolbar in `app/src/components/actions/run/popup/action_popup_frame.tsx`. It renders as a plain `Box component=\"span\"` holding `contentProps.target`, with no tooltip, no accessible name beyond its text, and no focusability.\n\n`target` is resolved in `app/src/components/actions/run/popup/action_popup.tsx` by `resolvePopupTarget`: for a `project` context it is the literal string `Project`; for a `card` context it looks up the card in `snapshot.activeCards` + `snapshot.backgroundCards` by `cardInternalId` and returns `header.id`; every other context kind yields `null`, so no badge is drawn.\n\nDrag concern from the description — checked, it does not block hover. The badge sits inside the `Box` carrying `data-drag-handle=\"true\"`, and `ResizablePopper.startDrag` (`app/src/components/resizable_popper.tsx:269`) reacts to **pointerdown** only: it walks up from the event target, ignores anything matching `INTERACTIVE_SELECTOR` (`button, input, select, textarea, a, label, [role=...], [contenteditable]`), then calls `event.preventDefault()` and attaches window pointermove/pointerup listeners. Tooltips open on `mouseenter`/`focus`, which drag start never intercepts or suppresses. Two consequences follow: a tooltip on the badge will open on hover as-is, and the badge must stay outside `INTERACTIVE_SELECTOR` (no `<button>`, no `role=\"button\"`) or dragging the popup by its upper-left corner stops working.\n\nThe same toolbar already renders MUI `Tooltip` on the expand/collapse and close buttons, so tooltip rendering inside the popper stack is proven to work.\n\nThe card title is available two ways: `contentProps.baseContext.title` (captured when the context was built, may be stale after a run edits its own card) and the live card header found by the same snapshot lookup `resolvePopupTarget` already performs.\n\n## Implementation details\n\n* In `action_popup.tsx`, extend the target resolution so it returns both the displayed id and the card title from the same snapshot lookup, e.g. `resolvePopupTarget` returning `{ id, title }` or a sibling `resolvePopupTargetTitle`. Use the live `header.title` from the snapshot so the tooltip follows a title changed mid-run; fall back to `context.title` when the card is not in the snapshot. Pass the title to `ActionPopupContent` as a new optional `targetTitle: string | null` field on `ActionPopupContentProps` (`action_popup_types.ts`), alongside the existing `target`.\n* In `action_popup_frame.tsx`, wrap the id badge in MUI `Tooltip` with `title={targetTitle}` when a title exists. MUI renders no tooltip for an empty title, so an absent title needs no branch beyond passing `''`/`null`.\n* Keep the badge element a `span`. Do not convert it to a button or add `role=\"button\"`; that would put it in `INTERACTIVE_SELECTOR` and break drag from the badge.\n* For keyboard and screen-reader reach, give the badge `tabIndex={0}`. `[tabindex]` is not part of `INTERACTIVE_SELECTOR`, so drag from the badge is preserved while `Tooltip` gains its focus trigger.\n* Project context: `target` is `Project` and there is no card, so `targetTitle` stays `null` and no tooltip appears.\n* No desktop bridge, service, or data-model change is required; this is renderer-only and derives from state already loaded.\n\n## Acceptance criteria\n\n* Hovering the id badge in the action popup toolbar shows a tooltip containing the title of that card.\n* The tooltip text matches the card's current title, including after a run has changed the title while the popup stayed open.\n* Focusing the badge with the keyboard shows the same tooltip.\n* Dragging the popup by pressing and moving on the id badge still moves the popup, exactly as before.\n* No tooltip is shown for the `Project` badge, and popups with no badge (`file`, `folder`, `merge-conflict` contexts) are unchanged.\n* A card whose title is empty or that is absent from the snapshot shows the badge with no tooltip rather than an empty tooltip box.\n* Existing toolbar tooltips (expand/collapse, close), the worktree selector, and the conversation picker are unaffected.\n\n## Testing\n\n* Cover the card case: render the popup for a card context, hover the badge, assert the tooltip shows the card title.\n* Cover the live-title case: change the card title in the snapshot while the popup is open, assert the tooltip follows.\n* Cover the drag case: pointerdown + pointermove on the badge still repositions the popper.\n* Cover the project case and the empty-title case: no tooltip.",
+          "id": "agent-turn-37b5ffe5-f057-4f87-a704-9565da56b31e-event-3",
+          "kind": "event",
+          "label": "cat \"C:/Users/janbo/Documents/dev/md2_workers/dev3/design/feature_descriptions/F_240_action_popup_card_id_add_tooltip.md\"",
+          "providerItemId": "toolu_012Xe4QcFXrZRMhYzsjvEQnX",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-08-27T17:54:16.732Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-37b5ffe5-f057-4f87-a704-9565da56b31e-event-4",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeTgVZM1AU79AB2DJB1EJ:thinking:0",
+          "sequence": 4,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-27T17:54:18.732Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nFile already contains all requested sections and status. Verifying claims against code before reporting done.",
+          "id": "agent-turn-37b5ffe5-f057-4f87-a704-9565da56b31e-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 5,
+          "timestamp": "2026-08-27T17:54:19.434Z"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2_workers/dev3\" && ls app/src/components/actions/run/popup/ && echo \"--- frame badge ---\" && grep -n \"target\\|drag-handle\\|Tooltip\\|component=\\\"span\\\"\" app/src/components/actions/run/popup/action_popup_frame.tsx | head -40 && echo \"--- resolvePopupTarget ---\" && grep -n \"resolvePopupTarget\" -A 25 app/src/components/actions/run/popup/action_popup.tsx | head -50",
+          "content": "action_agent_interaction.tsx\naction_commit_dropdown.tsx\naction_popup.test.tsx\naction_popup.tsx\naction_popup_bottom_row.test.tsx\naction_popup_bottom_row.tsx\naction_popup_content.tsx\naction_popup_defaults.node.test.ts\naction_popup_defaults.ts\naction_popup_finish_button.tsx\naction_popup_frame.tsx\naction_popup_initial_action.node.test.ts\naction_popup_initial_action.ts\naction_popup_operations.node.test.ts\naction_popup_operations.ts\naction_popup_run_disabled.ts\naction_popup_runtime.ts\naction_popup_types.ts\naction_run_disabled_message.tsx\naction_selector.test.tsx\naction_selector.tsx\naction_selector_button.tsx\naction_usage_scope_store.node.test.ts\naction_usage_scope_store.ts\naction_usage_summary.test.tsx\naction_usage_summary.tsx\naction_usage_summary_data.node.test.ts\naction_usage_summary_data.ts\naction_usage_summary_owner.test.tsx\naction_usage_summary_owner.tsx\naction_worktree_selector_owner.tsx\nagent_action.tsx\ncard_action_popup_host.tsx\ncard_action_popup_host_entry.tsx\ncommand_action.tsx\n--- frame badge ---\n1:import { Box, IconButton, Tooltip, Typography, useMediaQuery, useTheme } from '@mui/material'\n41:        target, titleId,\n97:                    {target ? `Run actions for ${target}` : 'Run actions'}\n100:                    data-drag-handle={!isMobile && draggable ? 'true' : undefined}\n107:                        {target ? (\n109:                                component=\"span\"\n116:                                {target}\n137:                            <Tooltip title={fullHeight ? 'Collapse downward' : 'Expand upward'}>\n148:                            </Tooltip>\n--- resolvePopupTarget ---\n15:function resolvePopupTarget(context: ActionContext, snapshot: ReturnType<typeof useProjectState>['snapshot']) {\n16-    if (context.kind === 'project') return 'Project'\n17-    if (context.kind !== 'card') return null\n18-\n19-    const cards = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]\n20-\n21-    return cards.find(({ header }) => header.internalId === context.cardInternalId)?.header.id ?? null\n22-}\n23-\n24-function resolveCardInternalId(context: ActionContext, snapshot: ReturnType<typeof useProjectState>['snapshot']) {\n25-    const cards = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]\n26-    const card = context.cardInternalId\n27-        ? cards.find(({ header }) => header.internalId === context.cardInternalId)\n28-        : cards.find(({ path }) => path === context.file)\n29-\n30-    return card?.header.internalId ?? context.cardInternalId ?? null\n31-}\n32-\n33-function persistedActionStates(\n34-    actions: ReturnType<typeof displayActionsForContext>,\n35-    context: ActionContext,\n36-    snapshot: ReturnType<typeof useProjectState>['snapshot'],\n37-) {\n38-    const cardInternalId = resolveCardInternalId(context, snapshot)\n39-    if (!cardInternalId) return {}\n40-\n--\n88:    const target = resolvePopupTarget(context, snapshot)\n89-    const releasesFolder = dataService.getConfig()?.releasesFolder\n90-    const readOnlyMessage = releasesFolder && isReleasedCardActionContext(effectiveContext, releasesFolder)\n91-        ? RELEASED_CARD_RUN_MESSAGE\n92-        : null\n93-\n94-    const handleSelectAction = (actionId: string) => {\n95-        setSelectedActionId(actionId)\n96-    }\n97-\n98-    const handleToggleFullHeight = () => setFullHeight((current) => !current)\n99-\n100-    if (!selectedAction) return null\n101-\n102-    return (\n103-        <ActionPopupContent\n104-            {...props}\n105-            action={selectedAction}\n106-            actions={selectableActions}\n107-            assignmentContext={effectiveContext}\n108-            baseContext={context}\n109-            fullHeight={fullHeight}\n110-            onSelectAction={handleSelectAction}",
+          "id": "agent-turn-37b5ffe5-f057-4f87-a704-9565da56b31e-event-6",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2_workers/dev3\" && ls app/src/components/actions/run/popup/ && echo \"--- frame badge ---\" && grep -n \"target\\|drag-handle\\|Tooltip\\|component=\\\"span\\\"\" app/src/components/actions/run/popup/action_popup_frame.tsx | head -40 && echo \"--- resolvePopupTarget ---\" && grep -n \"resolvePopupTarget\" -A 25 app/src/components/actions/run/popup/action_popup.tsx | head -50",
+          "providerItemId": "toolu_01CUHzcivG3TMV4dGDUpg2Ac",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-08-27T17:54:22.237Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-37b5ffe5-f057-4f87-a704-9565da56b31e-event-7",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeTgVxV3DLwRrqQJakst6:thinking:0",
+          "sequence": 7,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-27T17:54:24.624Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2_workers/dev3\" && grep -n \"INTERACTIVE_SELECTOR\" -A 6 app/src/components/resizable_popper.tsx | head -30 && echo \"--- startDrag ---\" && sed -n '260,285p' app/src/components/resizable_popper.tsx",
+          "content": "57:const INTERACTIVE_SELECTOR = [\n58-    'button', 'input', 'select', 'textarea', 'a', 'label',\n59-    '[role=\"button\"]', '[role=\"combobox\"]', '[role=\"option\"]', '[role=\"listbox\"]', '[role=\"tab\"]', '[role=\"switch\"]',\n60-    '[contenteditable=\"true\"]',\n61-].join(', ')\n62-const MIN_WIDTH = 280\n63-const MIN_HEIGHT = 200\n--\n277:            if (target.closest(INTERACTIVE_SELECTOR)) return\n278-\n279-            event.preventDefault()\n280-            resizeRef.current?.abort()\n281-            if (!paperRef.current) throw new Error('Missing draggable popper paper element')\n282-\n283-            const controller = new AbortController()\n--- startDrag ---\n        onClose?.()\n    }\n\n    const handlePaperClickCapture = () => {\n        if (fullHeight || !paperRef.current) return\n\n        anchoredLeftRef.current = paperRef.current.getBoundingClientRect().left\n    }\n\n    const startDrag = (event: ReactPointerEvent) => {\n        onActivate?.()\n\n        try {\n            if (!draggable || fullHeight) return\n\n            const target = event.target\n            if (!(target instanceof Element) || !target.closest('[data-drag-handle=\"true\"]')) return\n            if (target.closest(INTERACTIVE_SELECTOR)) return\n\n            event.preventDefault()\n            resizeRef.current?.abort()\n            if (!paperRef.current) throw new Error('Missing draggable popper paper element')\n\n            const controller = new AbortController()\n            const bounds = paperRef.current.getBoundingClientRect()\n            const start = { left: bounds.left, top: bounds.top, x: event.clientX, y: event.clientY }",
+          "id": "agent-turn-37b5ffe5-f057-4f87-a704-9565da56b31e-event-8",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2_workers/dev3\" && grep -n \"INTERACTIVE_SELECTOR\" -A 6 app/src/components/resizable_popper.tsx | head -30 && echo \"--- startDrag ---\" && sed -n '260,285p' app/src/components/resizable_popper.tsx",
+          "providerItemId": "toolu_01Ejxk8p7b3CszopGzq5NH89",
+          "sequence": 8,
+          "status": "completed",
+          "timestamp": "2026-08-27T17:54:26.200Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-37b5ffe5-f057-4f87-a704-9565da56b31e-event-9",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeTgWFQH3Jm5smtEuGHFD:thinking:0",
+          "sequence": 9,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-27T17:54:29.231Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nFile already done. Verified all claims against code, no edits needed.\n\n**State of `design/feature_descriptions/F_240_action_popup_card_id_add_tooltip.md`:**\n- `status: ready for implementation` — already set (frontmatter line 6).\n- `## Current state`, `## Implementation details`, `## Acceptance criteria` (plus `## Testing`) — all present.\n\n**Verification against source:**\n- Badge is `Box component=\"span\"` holding `target`, no tooltip — `app/src/components/actions/run/popup/action_popup_frame.tsx:107-116`. Confirmed.\n- `resolvePopupTarget` returns `'Project'` for project, `header.id` from `activeCards`+`backgroundCards` for card, `null` otherwise — `action_popup.tsx:15-22`. Confirmed.\n- Drag concern in description is a non-issue: `startDrag` fires on **pointerdown** and bails on `INTERACTIVE_SELECTOR` (`resizable_popper.tsx:57-61`, `:269-279`). Tooltips trigger on mouseenter/focus, so hover is unaffected. `[tabindex]` absent from that selector, so `tabIndex={0}` on the badge keeps drag working. Confirmed — the doc's caveat about not using `<button>`/`role=\"button\"` is correct.\n- Toolbar already uses MUI `Tooltip` on expand/collapse (`action_popup_frame.tsx:137`). Confirmed.\n\nNothing staged or committed.\n\nSide note: caveman plugin statusline badge not configured. Want me to add the `statusLine` entry to `~/.claude/settings.json`?",
+          "id": "agent-turn-37b5ffe5-f057-4f87-a704-9565da56b31e-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 10,
+          "timestamp": "2026-08-27T17:54:36.807Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-acc79a3a-463c-4297-9e5e-39576bac2016",
+      "providerSessions": [],
+      "startedAt": "2026-08-27T17:54:10.803Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-08-27T17:54:10.803Z"
+      },
+      "title": "implement",
+      "usage": {
+        "cachedInputTokens": 121153,
+        "inputTokens": 8,
+        "outputTokens": 1391,
+        "reasoningTokens": 0,
+        "totalTokens": 122552,
+        "costUsd": 0.262962
+      },
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
@@ -422,11 +584,11 @@
         "agent-00150662-e6c9-4b23-b58a-2c30937bd764"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-fd396c21-8f8a-448d-bb31-0405c1836cf5",
       "origin": {
@@ -435,9 +597,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-00150662-e6c9-4b23-b58a-2c30937bd764",
       "startedAt": "2026-08-25T16:02:38.123Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-00150662-e6c9-4b23-b58a-2c30937bd764"
     }
   ],
   "version": 5
