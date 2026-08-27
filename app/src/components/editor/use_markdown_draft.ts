@@ -12,14 +12,20 @@ export function useMarkdownDraft(
     insertMarkdown: (markdown: string) => void,
     replaceMarkdown: (markdown: string) => void,
     flush: () => boolean,
+    bindDraft: (draft: MarkdownDraft | undefined) => void,
 ) {
     useEffect(() => {
-        if (!draft) return undefined
+        if (!draft) {
+            bindDraft(undefined)
+
+            return undefined
+        }
 
         replaceMarkdown(draft.getSnapshot())
+        bindDraft(draft)
 
         return draft.subscribeEditor(() => replaceMarkdown(draft.getSnapshot()))
-    }, [draft, replaceMarkdown])
+    }, [bindDraft, draft, replaceMarkdown])
 
     useEffect(() => {
         if (!draft) return undefined

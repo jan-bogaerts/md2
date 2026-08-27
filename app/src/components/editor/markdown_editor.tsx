@@ -143,6 +143,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     const initialDocumentSnapshot = initialDocumentRef.current
     const { markdownContentSx, mode } = useAppTheme()
     const editorRef = useRef<MDXEditorMethods>(null)
+    const activeDraftRef = useRef(draft)
     const activeTargetRef = useRef(initialDocumentSnapshot.target)
     const latestMarkdownRef = useRef(initialDocumentSnapshot.markdown)
     const lastEmittedMarkdownRef = useRef(initialDocumentSnapshot.markdown)
@@ -162,11 +163,12 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     }, [])
 
     const flush = useCallback(() => {
-        if (draft) {
+        const activeDraft = activeDraftRef.current
+        if (activeDraft) {
             const editorMarkdown = editorRef.current?.getMarkdown()
             if (editorMarkdown !== undefined && editorMarkdown !== latestMarkdownRef.current) {
                 latestMarkdownRef.current = editorMarkdown
-                draft.edit(editorMarkdown)
+                activeDraft.edit(editorMarkdown)
             }
         }
         if (latestMarkdownRef.current === lastEmittedMarkdownRef.current) return true
@@ -184,7 +186,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         queueMicrotask(() => applyPendingDocumentChangeRef.current())
 
         return true
-    }, [binding, dataSource, draft, setDirty])
+    }, [binding, dataSource, setDirty])
 
     const prepareDocumentSwitch = useCallback((detail: ActiveMarkdownDocumentChangedDetail, nextMarkdown: string) => {
         if (detail.discard) lastEmittedMarkdownRef.current = latestMarkdownRef.current
@@ -222,6 +224,10 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
 
     const setPendingDocumentChangeRetry = useCallback((retry: () => void) => {
         applyPendingDocumentChangeRef.current = retry
+    }, [])
+
+    const bindDraft = useCallback((nextDraft: MarkdownDraft | undefined) => {
+        activeDraftRef.current = nextDraft
     }, [])
 
     const historyPluginConfig = useMemo(() => historyStore && binding && dataSource
@@ -292,10 +298,10 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         if (!dirtyBaselineEstablishedRef.current) return
         setDirty(markdown !== lastEmittedMarkdownRef.current)
         onLiveChangeRef.current?.(markdown)
-        draft?.edit(markdown)
+        activeDraftRef.current?.edit(markdown)
         const activeTarget = activeTargetRef.current
         if (dataSource && binding && activeTarget) dataSource.edit(binding, activeTarget, markdown)
-    }, [binding, dataSource, draft, setDirty])
+    }, [binding, dataSource, setDirty])
 
     const handleEditorError = useCallback(({ error }: MarkdownProcessingError) => {
         dialogService.error(new Error(error), { fallbackMessage: 'Markdown could not be parsed' })
@@ -315,7 +321,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
 
     const getSelectionMarkdown = useCallback(() => editorRef.current?.getSelectionMarkdown() ?? '', [])
 
-    useMarkdownDraft(draft, insertMarkdown, replaceDraftMarkdown, flush)
+    useMarkdownDraft(draft, insertMarkdown, replaceDraftMarkdown, flush, bindDraft)
 
     const attachFiles = useCallback((files: File[]) => {
         if (!attachmentHandler || readOnly || files.length === 0) return

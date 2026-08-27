@@ -848,6 +848,26 @@ describe('MarkdownEditor', () => {
         await waitFor(() => expect(screen.getByRole('textbox')).toHaveValue('Second'))
     })
 
+    it('does not write mounted editor content into a newly bound empty draft', async () => {
+        const firstDraft = new MarkdownDraft('First')
+        const secondDraft = new MarkdownDraft('')
+        const view = render(
+            <AppThemeProvider>
+                <MarkdownEditor draft={firstDraft} hideToolbar />
+            </AppThemeProvider>,
+        )
+
+        view.rerender(
+            <AppThemeProvider>
+                <MarkdownEditor draft={secondDraft} hideToolbar />
+            </AppThemeProvider>,
+        )
+
+        await waitFor(() => expect(screen.getByRole('textbox')).toHaveValue(''))
+        expect(firstDraft.getSnapshot()).toBe('First')
+        expect(secondDraft.getSnapshot()).toBe('')
+    })
+
     it('rejects attachment controls and drops while read-only', () => {
         const attachmentHandler = vi.fn(async () => undefined)
         render(
