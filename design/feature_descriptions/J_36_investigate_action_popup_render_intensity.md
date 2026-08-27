@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__b7b584ed-ea26-43d0-917c-e75337611846.json
 policy:
-branch: j_36_reduce_action_popup_update_cost
-worktree: 1
 changedFiles:
   - app/src/components/actions/agent/action_agent_prompt_owner.tsx
   - app/src/components/actions/conversation/action_conversation_chat_integration.test.tsx
