@@ -1703,6 +1703,30 @@
       "startedAt": "2026-08-27T17:23:51.129Z",
       "status": "completed",
       "rootConversationId": "agent-98164a36-4612-486d-9b14-18fa24b0f0b9"
+    },
+    {
+      "commits": [
+        {
+          "commit": "681173a429505eb5bd964c450b8aca6b6482e50e",
+          "committedAt": "2026-08-27T20:05:05+02:00",
+          "deletions": 17,
+          "filePaths": [
+            "app/src/components/actions/editor/action_phrase_buttons.tsx",
+            "app/src/components/actions/editor/action_phrase_buttons_owner.tsx",
+            "app/src/components/actions/run/popup/action_popup.test.tsx"
+          ],
+          "filesChanged": 3,
+          "insertions": 129,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-27T20:05:05+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "cd9535f0-5c2f-4544-a485-c37091c9b3f0",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
