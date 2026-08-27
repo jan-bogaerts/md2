@@ -47,6 +47,7 @@ changedFiles:
   - desktop/src/actions/agent/agent_run_state.js
   - desktop/src/actions/agent/agent_run_transcript.js
   - desktop/src/actions/agent/agent_run_transcript.test.mjs
+  - desktop/src/actions/agent/agent_runner_service.js
   - desktop/src/actions/agent/agent_runner_state.test.mjs
   - desktop/src/actions/agent/agent_streaming_event_handlers.js
 ---

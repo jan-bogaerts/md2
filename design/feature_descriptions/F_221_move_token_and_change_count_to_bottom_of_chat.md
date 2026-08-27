@@ -10,8 +10,6 @@ agents:
   - design/activity/card__e04c89e9-d394-435f-8f13-7d4bb9e942ff.json
 policy:
 after: 47a847c9-cf6e-4a8a-823c-6a6b012bb21a
-branch: f_221_move_token_and_change_count_to_bottom_of_chat
-worktree: 2
 changedFiles:
   - app/src/components/actions/agent/action_agent_prompt_owner.tsx
   - app/src/components/actions/conversation/action_conversation_chat.tsx
