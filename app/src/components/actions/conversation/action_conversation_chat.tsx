@@ -1,5 +1,5 @@
 import { Stack } from '@mui/material'
-import { useEffect, useMemo, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useSyncExternalStore, type ReactNode } from 'react'
 import type { ActionContext } from '../../../data/action_context'
 import { agentAcknowledgementService } from '../../../services/agents/agent_acknowledgement_service'
 import { cardPopupService, subscribeCardPopups } from '../../../services/card_popup_service'
@@ -23,12 +23,15 @@ interface ActionConversationChatProps {
     actionId: string
     bindingStore: ActionRunBindingStore
     context: ActionContext
+    metadataContent?: ReactNode
     popupEntryId?: string
     store: ActionConversationStore
 }
 
 /** Conversation surface; owns selection, live-run, visibility, and acknowledgement subscriptions. */
-export function ActionConversationChat({ actionId, bindingStore, context, popupEntryId, store }: ActionConversationChatProps) {
+export function ActionConversationChat(
+    { actionId, bindingStore, context, metadataContent, popupEntryId, store }: ActionConversationChatProps,
+) {
     const selectLiveTranscript = useMemo(() => createConversationTranscriptSelector(), [])
     const selectAcknowledgementConversation = useMemo(() => createAcknowledgementConversationSelector(), [])
     const boundRunId = useBoundRunId(bindingStore)
@@ -74,7 +77,7 @@ export function ActionConversationChat({ actionId, bindingStore, context, popupE
                 runId={displayingLiveConversation ? runId : null}
                 status={status}
             />
-            <ConversationMetaInfo bindingStore={bindingStore} store={store} />
+            <ConversationMetaInfo bindingStore={bindingStore} metadataContent={metadataContent} store={store} />
         </Stack>
     )
 }

@@ -16,7 +16,6 @@ import type { ActionRunResultStore } from '../run/state/action_run_result_store'
 import type { ActionScheduleStore } from '../run/schedule/action_schedule_store'
 import { defaultPreparePrompt } from '../run/popup/action_popup_defaults'
 import { ActionPopupBottomRow } from '../run/popup/action_popup_bottom_row'
-import type { ActionUsageScopeStore } from '../run/popup/action_usage_scope_store'
 import { useActionRunSettings } from '../shared/use_action_run_settings'
 import { ActionPhraseButtonsOwner } from '../editor/action_phrase_buttons_owner'
 import type { ActionRunBindingStore } from '../run/state/action_run_binding_store'
@@ -32,7 +31,6 @@ interface ActionAgentPromptOwnerProps {
     runValidationError: string | null
     scheduleStore: ActionScheduleStore
     settingsStore: ActionRunSettingsStore
-    usageScopeStore: ActionUsageScopeStore
 }
 
 function selectSessionActive(run: ActionRun | null) {
@@ -43,7 +41,7 @@ function selectSessionActive(run: ActionRun | null) {
 export function ActionAgentPromptOwner(props: ActionAgentPromptOwnerProps) {
     const {
         action, bindingStore, context, conversationStore, historyStore, inputStore, resultStore, runValidationError,
-        scheduleStore, settingsStore, usageScopeStore,
+        scheduleStore, settingsStore,
     } = props
     const boundRunId = useBoundRunId(bindingStore)
     const sessionActive = useRunSelector(boundRunId, selectSessionActive)
@@ -133,7 +131,6 @@ export function ActionAgentPromptOwner(props: ActionAgentPromptOwnerProps) {
                     runValidationError={runValidationError}
                     scheduleStore={scheduleStore}
                     settingsStore={settingsStore}
-                    usageScopeStore={usageScopeStore}
                 />
             ) : undefined}
             convertMessage={inputSnapshot.convertMessage}

@@ -12,7 +12,6 @@ import { AppThemeProvider } from '../../../../theme/theme_provider'
 import { ActionConversationStore } from '../../conversation/action_conversation_store'
 import { ActionHistoryStore } from '../state/action_history_store'
 import { ActionPopupBottomRow } from './action_popup_bottom_row'
-import { ActionUsageScopeStore } from './action_usage_scope_store'
 import { ActionRunInputStore } from '../state/action_run_input_store'
 import { ActionRunResultStore } from '../state/action_run_result_store'
 import { ActionScheduleStore } from '../schedule/action_schedule_store'
@@ -84,7 +83,6 @@ function renderBottomRow(
     const resultStore = new ActionRunResultStore()
     const scheduleStore = new ActionScheduleStore()
     const settingsStore = new ActionRunSettingsStore(actionOverride.id, null)
-    const usageScopeStore = new ActionUsageScopeStore()
     const unrelatedRender = vi.fn()
 
     function UnrelatedContent() {
@@ -108,7 +106,6 @@ function renderBottomRow(
                 runValidationError={null}
                 scheduleStore={scheduleStore}
                 settingsStore={settingsStore}
-                usageScopeStore={usageScopeStore}
             />
         </AppThemeProvider>,
     )
@@ -144,12 +141,11 @@ describe('ActionPopupBottomRow', () => {
         vi.restoreAllMocks()
     })
 
-    it('uses an outer size container and an inner overflow-safe single row', () => {
+    it('uses an outer size container and keeps usage out of the overflow-safe control row', () => {
         renderBottomRow()
         const bottomRow = screen.getByTestId('action-popup-bottom-row')
         const layout = bottomRow.firstElementChild as HTMLElement
         const selectors = layout.querySelector('[data-footer-selectors]') as HTMLElement
-        const usage = layout.querySelector('[data-footer-usage]') as HTMLElement
         const controls = layout.querySelector('[data-footer-controls]') as HTMLElement
 
         expect(bottomRow).toHaveStyle({containerType: 'inline-size'})
@@ -160,8 +156,9 @@ describe('ActionPopupBottomRow', () => {
         expect(selectors).toHaveAttribute('data-footer-selectors')
         expect(selectors).toHaveStyle({ flexShrink: '1', minWidth: '158px', overflow: 'hidden' })
         expect(within(selectors as HTMLElement).getByRole('group', { name: 'Agent settings' })).toBeInTheDocument()
-        expect(usage).toHaveAttribute('data-footer-usage')
-        expect(usage).toHaveStyle({ display: 'flex', flexShrink: '1', minWidth: '235px', overflow: 'hidden' })
+        expect(layout.querySelector('[data-footer-usage]')).not.toBeInTheDocument()
+        expect(within(layout).queryByRole('button', { name: /^Tokens,/u })).not.toBeInTheDocument()
+        expect(within(layout).queryByRole('button', { name: /^Changes,/u })).not.toBeInTheDocument()
         expect(controls).toHaveAttribute('data-footer-controls')
         expect(controls).toHaveStyle({ flexShrink: '0', justifyContent: 'flex-end' })
         expect(within(controls as HTMLElement).getByRole('button', { name: 'Send' })).toBeInTheDocument()

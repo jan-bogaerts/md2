@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ActionRunEvent } from '../../../data/action_run_types'
 import type { AgentConversation } from '../../../data/data_types'
@@ -223,16 +223,27 @@ describe('ActionConversationChat integration', () => {
 
         render(
             <AppThemeProvider>
-                <ActionConversationChat actionId="review" bindingStore={bindingStore} context={context} store={selectableStore} />
+                <ActionConversationChat
+                    actionId="review"
+                    bindingStore={bindingStore}
+                    context={context}
+                    metadataContent={<button type="button">Usage summary</button>}
+                    store={selectableStore}
+                />
             </AppThemeProvider>,
         )
         const viewport = screen.getByLabelText('Conversation chat')
         const metadata = screen.getByLabelText('Conversation metadata')
+        const timer = screen.getByLabelText('Elapsed time')
+        const usage = screen.getByRole('button', { name: 'Usage summary' })
         expect(viewport).not.toContainElement(metadata)
         expect(viewport.parentElement?.lastElementChild).toBe(metadata)
+        expect(metadata).toHaveStyle({ containerType: 'inline-size' })
         expect(screen.queryByRole('status')).not.toBeInTheDocument()
-        expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('1:00')
+        expect(timer).toHaveTextContent('1:00')
         const firstProgress = screen.getByRole('progressbar', { name: 'Context usage' })
+        expect(timer.compareDocumentPosition(usage) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
+        expect(usage.compareDocumentPosition(firstProgress) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
         expect(firstProgress).toHaveAttribute('aria-valuenow', '16')
         fireEvent.mouseOver(firstProgress)
         expect(await screen.findByText('Context usage: 16%', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()
@@ -242,6 +253,27 @@ describe('ActionConversationChat integration', () => {
         expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('2:30')
         expect(screen.getByRole('progressbar', { name: 'Context usage' })).toHaveAttribute('aria-valuenow', '50')
         expect(await screen.findByText('Context usage: 50%', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()
+    })
+
+    it('keeps metadata content visible before a conversation exists', () => {
+        render(
+            <AppThemeProvider>
+                <ActionConversationChat
+                    actionId="review"
+                    bindingStore={bindingStore}
+                    context={context}
+                    metadataContent={<button type="button">Usage summary</button>}
+                    store={store}
+                />
+            </AppThemeProvider>,
+        )
+
+        const metadata = screen.getByLabelText('Conversation metadata')
+        expect(metadata).toHaveStyle({ containerType: 'inline-size' })
+        expect(within(metadata).getByRole('button', { name: 'Usage summary' })).toBeInTheDocument()
+        expect(within(metadata).queryByRole('status')).not.toBeInTheDocument()
+        expect(within(metadata).queryByLabelText('Elapsed time')).not.toBeInTheDocument()
+        expect(within(metadata).queryByRole('progressbar', { name: 'Context usage' })).not.toBeInTheDocument()
     })
 
     it('shows and acknowledges selected history while hidden live updates accumulate', async () => {

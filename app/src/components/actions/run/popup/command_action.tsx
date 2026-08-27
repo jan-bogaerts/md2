@@ -23,7 +23,7 @@ export function CommandAction(props: CommandActionProps) {
     const { action, assignmentContext, baseContext, readOnlyMessage, runtime } = props
     const {
         bindingStore, conversationStore, historyStore, inputStore, resultStore, runValidationError, scheduleStore,
-        settingsStore, usageScopeStore,
+        settingsStore,
     } = runtime
     const boundRunId = useBoundRunId(bindingStore)
     const activeActionType = useRunSelector(boundRunId, (run) => run?.activeActionType ?? null)
@@ -63,7 +63,6 @@ export function CommandAction(props: CommandActionProps) {
                     resultStore={resultStore}
                     runValidationError={runValidationError}
                     scheduleStore={scheduleStore}
-                    usageScopeStore={usageScopeStore}
                 />
             ) : null}
         </>

@@ -23,10 +23,8 @@ import { actionPopupRunDisabled } from './action_popup_run_disabled'
 import type { ActionRunInputStore } from '../state/action_run_input_store'
 import type { ActionRunResultStore } from '../state/action_run_result_store'
 import type { ActionScheduleStore } from '../schedule/action_schedule_store'
-import { ActionUsageSummaryOwner } from './action_usage_summary_owner'
 import { useActionRunSettings } from '../../shared/use_action_run_settings'
 import { ActionPopupFinishButton } from './action_popup_finish_button'
-import type { ActionUsageScopeStore } from './action_usage_scope_store'
 import { ActionAgentSelectors } from '../../agent/action_agent_selectors'
 import { MarkdownAttachmentControl } from '../../../editor/markdown_attachment_control'
 import {
@@ -49,14 +47,13 @@ interface ActionPopupBottomRowProps {
     runValidationError: string | null
     scheduleStore: ActionScheduleStore
     settingsStore: ActionRunSettingsStore
-    usageScopeStore: ActionUsageScopeStore
 }
 
-/** Agent settings, usage, and run controls for the popup footer. */
+/** Agent settings and run controls for the popup footer. */
 export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
     const {
         action, assignmentContext, bindingStore, conversationStore, embedded = false, historyStore, inputStore, resultStore,
-        runValidationError, scheduleStore, settingsStore, usageScopeStore,
+        runValidationError, scheduleStore, settingsStore,
     } = props
     const theme = useTheme()
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
@@ -166,10 +163,7 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
                 data-footer-layout
                 sx={{
                     alignItems: 'center', display: 'flex', gap: 1, justifyContent: 'space-between', minWidth: 0, width: '100%',
-                    '@container (max-width: 420px)': {
-                        '& [data-footer-selectors]': { minWidth: 0 },
-                        '& [data-footer-usage]': { minWidth: 0 },
-                    },
+                    '@container (max-width: 420px)': { '& [data-footer-selectors]': { minWidth: 0 } },
                 }}
             >
                 {action.type === 'agent' && !isMobile ? (
@@ -182,16 +176,6 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
                     {action.type === 'agent' ? (
                         <ActionAgentSelectors action={action} bindingStore={bindingStore} settingsStore={settingsStore} />
                     ) : null}
-                </Box>
-                <Box data-footer-usage sx={{ display: 'flex', flexShrink: 1, justifyContent: 'center', minWidth: 235, overflow: 'hidden' }}>
-                    <ActionUsageSummaryOwner
-                        action={action}
-                        bindingStore={bindingStore}
-                        context={assignmentContext}
-                        conversationStore={conversationStore}
-                        historyStore={historyStore}
-                        scopeStore={usageScopeStore}
-                    />
                 </Box>
                 <Box
                     data-footer-controls

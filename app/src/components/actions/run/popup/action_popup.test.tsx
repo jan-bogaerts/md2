@@ -389,6 +389,7 @@ describe('ActionPopup', () => {
         expect(dialog.queryByRole('button', { name: 'Send' })).not.toBeInTheDocument()
         expect(dialog.queryByRole('button', { name: 'Schedule' })).not.toBeInTheDocument()
         expect(dialog.queryByRole('button', { name: 'Add action' })).not.toBeInTheDocument()
+        expect(dialog.queryByRole('button', { name: /^Tokens,/u })).not.toBeInTheDocument()
     })
 
     it('provides its stack position to Markdown typeahead menus', () => {
@@ -418,6 +419,44 @@ describe('ActionPopup', () => {
         expect(screen.getAllByTestId('action-popup-bottom-row')).toHaveLength(1)
     })
 
+    it('renders card-agent usage in chat metadata before a conversation is selected', async () => {
+        window.md2Actions = {
+            loadActionRunHistory: vi.fn(async () => []),
+            onActionRun: vi.fn(() => vi.fn()),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
+        } as unknown as typeof window.md2Actions
+        actionService.loadFromFiles([file(agentDefinition('review', { label: 'Review' }))])
+
+        renderPopup({ ...context, cardInternalId: 'card-1' })
+
+        const metadata = screen.getByLabelText('Conversation metadata')
+        const bottomRow = screen.getByTestId('action-popup-bottom-row')
+        const tokens = within(metadata).getByRole('button', { name: 'Tokens, Action/card scope' })
+        expect(metadata).toHaveStyle({ containerType: 'inline-size' })
+        expect(tokens).toHaveTextContent('tokens: 0')
+        expect(within(metadata).queryByLabelText('Elapsed time')).not.toBeInTheDocument()
+        expect(within(metadata).queryByRole('progressbar', { name: 'Context usage' })).not.toBeInTheDocument()
+        expect(within(bottomRow).queryByRole('button', { name: /^Tokens,/u })).not.toBeInTheDocument()
+        expect(within(bottomRow).queryByRole('button', { name: /^Changes,/u })).not.toBeInTheDocument()
+        tokens.focus()
+        expect(tokens).toHaveFocus()
+        fireEvent.mouseOver(tokens)
+        expect(await screen.findByText('Tokens are cumulative provider token usage.', { selector: '.MuiTooltip-tooltip *' }))
+            .toBeInTheDocument()
+    })
+
+    it('keeps usage absent from project-scoped agent popups', () => {
+        actionService.loadFromFiles([file(agentDefinition('review', {
+            appliesTo: { kind: 'project' },
+            label: 'Review project',
+        }))])
+
+        renderPopup({ kind: 'project' })
+
+        expect(screen.queryByRole('button', { name: /^Tokens,/u })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /^Changes,/u })).not.toBeInTheDocument()
+    })
+
     it('shows Project in the project popup header and accessible title', () => {
         renderPopup({ kind: 'project' })
 
@@ -426,9 +465,7 @@ describe('ActionPopup', () => {
     })
 
     it('does not render popup content while typing or flushing a prompt', async () => {
-        const loadActionRunHistory = vi.fn(async () => [])
         window.md2Actions = {
-            loadActionRunHistory,
             onActionRun: vi.fn(() => vi.fn()),
             prepareActionPrompt: vi.fn(async () => ({ prompt: 'Plan' })),
         } as unknown as typeof window.md2Actions
@@ -436,7 +473,6 @@ describe('ActionPopup', () => {
         renderPopup()
         const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
         await waitFor(() => expect(prompt).toHaveValue('Plan'))
-        await waitFor(() => expect(loadActionRunHistory).toHaveBeenCalled())
         Object.values(renderProbes).forEach((probe) => probe.mockClear())
 
         fireEvent.change(prompt, { target: { value: 'Draft' } })
