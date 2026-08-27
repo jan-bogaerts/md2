@@ -10496,6 +10496,61 @@
       "startedAt": "2026-08-27T17:52:17.224Z",
       "status": "completed",
       "rootConversationId": "agent-1cf9b3c5-2d68-41fe-aba2-bb35c93bb8a0"
+    },
+    {
+      "commits": [
+        {
+          "commit": "11e1c107aebe548e4071ef9acba33645d2e4f183",
+          "committedAt": "2026-08-27T20:24:12+02:00",
+          "deletions": 312,
+          "filePaths": [
+            "app/src/components/actions/conversation/action_conversation_chat_integration.test.tsx",
+            "app/src/components/actions/conversation/action_conversation_chat_selectors.ts",
+            "app/src/components/actions/conversation/action_conversation_group_list.tsx",
+            "app/src/components/actions/conversation/action_conversation_history.tsx",
+            "app/src/components/actions/conversation/action_conversation_render_projection.node.test.ts",
+            "app/src/components/actions/conversation/action_conversation_render_projection.ts",
+            "app/src/components/actions/conversation/action_conversation_rendering.test.tsx",
+            "app/src/components/actions/conversation/action_conversation_reservation.node.test.ts",
+            "app/src/components/actions/conversation/action_conversation_reservation.ts",
+            "app/src/components/actions/conversation/action_conversation_transcript.tsx",
+            "app/src/components/actions/conversation/completed_tool_call_group.tsx",
+            "app/src/components/actions/conversation/sub_agent_group.tsx",
+            "app/src/components/actions/run/popup/action_agent_interaction.tsx",
+            "app/src/components/actions/run/popup/action_popup.test.tsx",
+            "app/src/components/actions/run/popup/action_popup_content.tsx",
+            "app/src/components/actions/run/popup/action_popup_runtime.ts",
+            "app/src/components/actions/run/popup/action_popup_types.ts",
+            "app/src/components/actions/run/popup/action_usage_summary.test.tsx",
+            "app/src/components/actions/run/popup/action_usage_summary.tsx",
+            "app/src/components/actions/run/popup/action_usage_summary_owner.test.tsx",
+            "app/src/components/actions/run/popup/action_usage_summary_owner.tsx",
+            "app/src/components/actions/run/popup/action_usage_values_service.ts",
+            "app/src/data/action_run_types.ts",
+            "app/src/services/actions/action_run_registry.node.test.ts",
+            "app/src/services/actions/action_run_registry.ts",
+            "desktop/src/actions/action/action_run.js",
+            "desktop/src/actions/action/action_run.test.mjs",
+            "desktop/src/actions/agent/agent_provider_event.js",
+            "desktop/src/actions/agent/agent_run_state.js",
+            "desktop/src/actions/agent/agent_run_transcript.js",
+            "desktop/src/actions/agent/agent_run_transcript.test.mjs",
+            "desktop/src/actions/agent/agent_runner_service.js",
+            "desktop/src/actions/agent/agent_runner_state.test.mjs",
+            "desktop/src/actions/agent/agent_streaming_event_handlers.js"
+          ],
+          "filesChanged": 34,
+          "insertions": 1316,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-27T20:24:12+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "b7b584ed-ea26-43d0-917c-e75337611846",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
