@@ -3,13 +3,23 @@ author:
 id: F_253
 internalId: feaf009d-ccf1-489b-bc6f-b3eca1746831
 title: click on search selects and focuses card
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__feaf009d-ccf1-489b-bc6f-b3eca1746831.json
 policy:
 after: 526d5eb3-f1f1-4d3e-a65f-a5721d69a23c
+changedFiles:
+  - app/src/components/project_workspace.test.tsx
+  - app/src/components/project_workspace.tsx
+  - app/src/components/shell/search/search_card_preview_dialog.test.tsx
+  - app/src/components/shell/search/search_card_preview_dialog.tsx
+  - app/src/components/shell/search/search_control.test.tsx
+  - app/src/components/shell/search/search_panel.tsx
+  - app/src/components/shell/search/search_results.tsx
+  - app/src/services/project/workspace_navigation_service.node.test.ts
+  - app/src/services/project/workspace_navigation_service.ts
 ---
 
 When user clicks on the result of a global search query and he is on the boards view, one of these things should happen:
