@@ -50,7 +50,6 @@ changedFiles:
   - desktop/src/actions/agent/agent_runner_state.test.mjs
   - desktop/src/actions/agent/agent_streaming_event_handlers.js
 ---
-
 The action popup performs work proportional to the complete conversation for each streamed update, although previous turns and completed groups are immutable. Keep every provider update immediate. Reduce the work per update so it depends on the entries that can still change, not the length of the chat history.
 
 ## Current behavior
@@ -68,7 +67,7 @@ The action popup performs work proportional to the complete conversation for eac
 * maps all groups into React elements;
 * maps and serializes all group keys for reservation tracking.
 
-F_138 still prevents unchanged `ActionConversationMessage` and `ActionConversationEventRow` bodies from rendering because their entry references remain stable. That does not protect the transcript projection or group wrappers. `CompletedToolCallGroup` and `SubAgentGroup` are not memoized and receive newly allocated group arrays, so unchanged historical wrappers render again.
+F\_138 still prevents unchanged `ActionConversationMessage` and `ActionConversationEventRow` bodies from rendering because their entry references remain stable. That does not protect the transcript projection or group wrappers. `CompletedToolCallGroup` and `SubAgentGroup` are not memoized and receive newly allocated group arrays, so unchanged historical wrappers render again.
 
 ### Entry lookup
 
