@@ -13,6 +13,9 @@ changedFiles:
   - app/src/components/actions/conversation/action_conversation_picker_owner.tsx
   - app/src/components/actions/run/popup/action_popup_bottom_row.test.tsx
   - app/src/components/actions/run/popup/action_popup_bottom_row.tsx
+  - app/src/components/editor/markdown_editor.test.tsx
+  - app/src/components/editor/markdown_editor.tsx
+  - app/src/components/editor/use_markdown_draft.ts
   - app/src/services/actions/action_prompt_draft_service.node.test.ts
   - app/src/services/actions/action_prompt_draft_service.ts
   - app/src/services/actions/action_run_registry.node.test.ts
