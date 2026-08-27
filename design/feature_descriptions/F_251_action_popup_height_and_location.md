@@ -10,7 +10,8 @@ agents:
 policy:
 after: b46b8f66-e2f3-469f-ac38-48b26dedccab
 ---
-
 when the height of the action popup wants to be bigger than the height of the app, it sort of shows up as max height, but the popup tries to leave some room at the bottom of the popup and perhaps also a little bit at the top.&#x20;
 
 At the bottom, we don't need to do this, it can be at the edge of the bottom (not below), but it should remain a little more below the edge at the top, cause the close button in the upper right corner of the action popup can no longer be clicked on when it is behind the drag area of the main window (to move the window around), which is annoying.
+
+Also when the action popup is fully expanded and on large screen (not mobile), then we also need to leave some room at the top.
