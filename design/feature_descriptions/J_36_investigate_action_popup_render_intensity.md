@@ -3,7 +3,7 @@ author:
 id: J_36
 internalId: b7b584ed-ea26-43d0-917c-e75337611846
 title: reduce action popup update cost
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
@@ -11,6 +11,44 @@ agents:
 policy:
 branch: j_36_reduce_action_popup_update_cost
 worktree: 1
+changedFiles:
+  - app/src/components/actions/agent/action_agent_prompt_owner.tsx
+  - app/src/components/actions/conversation/action_conversation_chat_integration.test.tsx
+  - app/src/components/actions/conversation/action_conversation_chat_selectors.ts
+  - app/src/components/actions/conversation/action_conversation_group_list.tsx
+  - app/src/components/actions/conversation/action_conversation_history.tsx
+  - app/src/components/actions/conversation/action_conversation_render_projection.node.test.ts
+  - app/src/components/actions/conversation/action_conversation_render_projection.ts
+  - app/src/components/actions/conversation/action_conversation_rendering.test.tsx
+  - app/src/components/actions/conversation/action_conversation_reservation.node.test.ts
+  - app/src/components/actions/conversation/action_conversation_reservation.ts
+  - app/src/components/actions/conversation/action_conversation_transcript.tsx
+  - app/src/components/actions/conversation/completed_tool_call_group.tsx
+  - app/src/components/actions/conversation/sub_agent_group.tsx
+  - app/src/components/actions/run/popup/action_agent_interaction.tsx
+  - app/src/components/actions/run/popup/action_popup.test.tsx
+  - app/src/components/actions/run/popup/action_popup_bottom_row.test.tsx
+  - app/src/components/actions/run/popup/action_popup_bottom_row.tsx
+  - app/src/components/actions/run/popup/action_popup_content.tsx
+  - app/src/components/actions/run/popup/action_popup_runtime.ts
+  - app/src/components/actions/run/popup/action_popup_types.ts
+  - app/src/components/actions/run/popup/action_usage_summary.test.tsx
+  - app/src/components/actions/run/popup/action_usage_summary.tsx
+  - app/src/components/actions/run/popup/action_usage_summary_owner.test.tsx
+  - app/src/components/actions/run/popup/action_usage_summary_owner.tsx
+  - app/src/components/actions/run/popup/action_usage_values_service.ts
+  - app/src/components/actions/run/popup/command_action.tsx
+  - app/src/data/action_run_types.ts
+  - app/src/services/actions/action_run_registry.node.test.ts
+  - app/src/services/actions/action_run_registry.ts
+  - desktop/src/actions/action/action_run.js
+  - desktop/src/actions/action/action_run.test.mjs
+  - desktop/src/actions/agent/agent_provider_event.js
+  - desktop/src/actions/agent/agent_run_state.js
+  - desktop/src/actions/agent/agent_run_transcript.js
+  - desktop/src/actions/agent/agent_run_transcript.test.mjs
+  - desktop/src/actions/agent/agent_runner_state.test.mjs
+  - desktop/src/actions/agent/agent_streaming_event_handlers.js
 ---
 
 The action popup performs work proportional to the complete conversation for each streamed update, although previous turns and completed groups are immutable. Keep every provider update immediate. Reduce the work per update so it depends on the entries that can still change, not the length of the chat history.
