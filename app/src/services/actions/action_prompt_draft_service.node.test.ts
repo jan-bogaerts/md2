@@ -74,6 +74,22 @@ describe('ActionPromptDraftService', () => {
         expect(draft.getEditorSnapshot().preparationStatus).toBe('ready')
     })
 
+    it('ignores editor synchronization while prompt preparation is loading', async () => {
+        const service = new ActionPromptDraftService()
+        const draft = service.getDraft('review', context, null, { prepare: true })
+        let resolvePreparation: (value: string) => void = () => undefined
+        const preparation = draft.prepare(() => new Promise((resolve) => {
+            resolvePreparation = resolve
+        }))
+
+        draft.editorDraft.edit('Previous action prompt')
+        resolvePreparation('Prepared draft')
+        await preparation
+
+        expect(draft.getSnapshot()).toBe('Prepared draft')
+        expect(draft.hasLocalEdits()).toBe(false)
+    })
+
     it('keeps connection-loss preparation loading and retries after readiness returns', async () => {
         const service = new ActionPromptDraftService()
         const draft = service.getDraft('review', context, null, { prepare: true })

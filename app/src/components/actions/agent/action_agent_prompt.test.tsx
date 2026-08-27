@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ActionAgentPrompt } from './action_agent_prompt'
 import { ACTION_PROMPT_PLACEHOLDERS } from '../../../data/action_placeholders'
 import { ActionPromptDraft } from '../../../services/actions/action_prompt_draft_service'
-import type { MarkdownDraft } from '../../../services/markdown/markdown_draft'
+import type { MarkdownDraftBinding } from '../../../services/markdown/markdown_draft'
 
 vi.mock('../../editor/markdown_editor', async () => {
     const { forwardRef, useEffect, useImperativeHandle, useRef, useState } = await import('react')
@@ -11,7 +11,7 @@ vi.mock('../../editor/markdown_editor', async () => {
     return {
         MarkdownEditor: forwardRef(function MarkdownEditorMock(props: {
             attachmentHandler?: (files: File[], insertMarkdown: (markdown: string) => void) => Promise<void>
-            draft: MarkdownDraft
+            draft: MarkdownDraftBinding
             flushOnBlur?: boolean
             hideAttachmentControl?: boolean
             imagePasteHandler?: (file: File, insertMarkdown: (markdown: string) => void) => Promise<void>

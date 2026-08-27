@@ -32,7 +32,7 @@ import type {
 } from './markdown_data_source'
 import { MarkdownAttachmentControl } from './markdown_attachment_control'
 import type { AttachmentMarkdownInserter } from '../../services/attachments/attachment_workflow'
-import type { MarkdownDraft } from '../../services/markdown/markdown_draft'
+import type { MarkdownDraftBinding } from '../../services/markdown/markdown_draft'
 import { useMarkdownDraft } from './use_markdown_draft'
 
 const DEFAULT_CODE_LANGUAGE = ''
@@ -89,7 +89,7 @@ interface MarkdownEditorLocalProps extends MarkdownEditorPresentationProps {
 interface MarkdownEditorDraftProps extends MarkdownEditorPresentationProps {
     binding?: never
     dataSource?: never
-    draft: MarkdownDraft
+    draft: MarkdownDraftBinding
     historyStore?: never
     markdown?: never
     onChange?: (markdown: string) => void
@@ -226,7 +226,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         applyPendingDocumentChangeRef.current = retry
     }, [])
 
-    const bindDraft = useCallback((nextDraft: MarkdownDraft | undefined) => {
+    const bindDraft = useCallback((nextDraft: MarkdownDraftBinding | undefined) => {
         activeDraftRef.current = nextDraft
     }, [])
 

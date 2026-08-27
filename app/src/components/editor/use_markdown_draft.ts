@@ -2,17 +2,17 @@ import { useEffect } from 'react'
 import {
     MARKDOWN_FLUSH_REQUESTED_EVENT,
     MARKDOWN_INSERTION_REQUESTED_EVENT,
-    type MarkdownDraft,
+    type MarkdownDraftBinding,
     type MarkdownInsertionRequest,
 } from '../../services/markdown/markdown_draft'
 
 /** Applies external replacements and insertion requests from one Markdown draft to its mounted editor. */
 export function useMarkdownDraft(
-    draft: MarkdownDraft | undefined,
+    draft: MarkdownDraftBinding | undefined,
     insertMarkdown: (markdown: string) => void,
     replaceMarkdown: (markdown: string) => void,
     flush: () => boolean,
-    bindDraft: (draft: MarkdownDraft | undefined) => void,
+    bindDraft: (draft: MarkdownDraftBinding | undefined) => void,
 ) {
     useEffect(() => {
         if (!draft) {

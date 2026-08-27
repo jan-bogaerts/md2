@@ -9399,15 +9399,15 @@
           "agent": "codex",
           "conversationId": "01a04459-e83d-7b00-b40d-a4f1697f2e26",
           "createdAt": "2026-08-27T17:57:35.068Z",
-          "lastUsedAt": "2026-08-27T17:57:35.068Z",
-          "synchronizedThroughMessageId": "agent-turn-415e4b65-5ce6-4efb-b2d9-3ce21dcce08a-turn-1-assistant-4"
+          "lastUsedAt": "2026-08-27T18:04:58.941Z",
+          "synchronizedThroughMessageId": "agent-turn-415e4b65-5ce6-4efb-b2d9-3ce21dcce08a-turn-2-assistant-1"
         }
       ],
       "startedAt": "2026-08-27T17:52:17.226Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
-        "elapsedMs": 317842,
-        "runningStartedAt": "2026-08-27T18:04:42.363Z"
+        "elapsedMs": 334420,
+        "runningStartedAt": null
       },
       "title": "review",
       "usage": {
@@ -9418,7 +9418,7 @@
         "totalTokens": 1750560
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {

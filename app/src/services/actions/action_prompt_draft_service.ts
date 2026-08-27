@@ -1,7 +1,7 @@
 import { actionContextIdentity, type ActionContext } from '../../data/action_context'
 import { isRemoteControlConnectionError } from '../data/remote_control_storage_service'
 import { register } from '../service_injector'
-import { MarkdownDraft } from '../markdown/markdown_draft'
+import { MarkdownDraft, type MarkdownDraftBinding } from '../markdown/markdown_draft'
 
 const DRAFT_KEY_SEPARATOR = String.fromCharCode(0)
 
@@ -24,6 +24,7 @@ function promptDraftKey(actionId: string, context: ActionContext, runId: string 
 /** Stable prompt state shared by editor and prompt-dependent leaf controls. */
 export class ActionPromptDraft {
     private applyingExternalValue = false
+    readonly editorDraft: MarkdownDraftBinding
     private editorSnapshot: ActionPromptDraftEditorSnapshot
     private locallyEdited = false
     readonly markdownDraft: MarkdownDraft
@@ -37,6 +38,13 @@ export class ActionPromptDraft {
             replacementRevision: 0,
         }
         this.markdownDraft = new MarkdownDraft(initialValue)
+        this.editorDraft = {
+            addEventListener: (type, listener) => this.markdownDraft.addEventListener(type, listener),
+            edit: this.handleEditorDraftEdit,
+            getSnapshot: this.markdownDraft.getSnapshot,
+            removeEventListener: (type, listener) => this.markdownDraft.removeEventListener(type, listener),
+            subscribeEditor: this.markdownDraft.subscribeEditor,
+        }
         this.markdownDraft.subscribe(this.handleMarkdownEdit)
         this.preparationRequired = preparationRequired
     }
@@ -55,7 +63,7 @@ export class ActionPromptDraft {
         return () => this.markdownDraft.removeEventListener('actionEditorChanged', listener)
     }
 
-    /** Record an editor-local value without starting asynchronous synchronization. */
+    /** Record an intentional local value without starting asynchronous synchronization. */
     readonly edit = (value: string) => {
         this.markdownDraft.edit(value)
     }
@@ -125,6 +133,12 @@ export class ActionPromptDraft {
     /** Asks a mounted editor to commit its debounced buffer before this value is inspected. */
     requestFlush() {
         this.markdownDraft.requestFlush()
+    }
+
+    private readonly handleEditorDraftEdit = (value: string) => {
+        if (this.editorSnapshot.preparationStatus !== 'ready') return
+
+        this.edit(value)
     }
 
     private readonly handleMarkdownEdit = () => {

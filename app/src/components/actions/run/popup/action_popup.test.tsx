@@ -601,6 +601,28 @@ describe('ActionPopup', () => {
         expect(actionGroup.getByRole('button', { name: 'Second action' })).toHaveAttribute('aria-pressed', 'true')
     })
 
+    it('prefills every new agent draft while switching actions', async () => {
+        window.md2Actions = {
+            onActionRun: vi.fn(() => vi.fn()),
+            prepareActionPrompt: vi.fn(async ({ actionId }: { actionId: string }) => ({ prompt: `${actionId} prompt` })),
+        } as unknown as typeof window.md2Actions
+        mockCodexAvailable()
+        actionService.loadFromFiles([
+            file(agentDefinition('prefill-first', { label: 'First agent' })),
+            file(agentDefinition('prefill-second', { label: 'Second agent' })),
+            file(agentDefinition('prefill-third', { label: 'Third agent' })),
+        ])
+        renderPopup()
+        const actionGroup = within(screen.getByRole('group', { name: 'Actions' }))
+        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
+
+        await waitFor(() => expect(prompt).toHaveValue('prefill-first prompt'))
+        fireEvent.click(actionGroup.getByRole('button', { name: 'Second agent' }))
+        await waitFor(() => expect(prompt).toHaveValue('prefill-second prompt'))
+        fireEvent.click(actionGroup.getByRole('button', { name: 'Third agent' }))
+        await waitFor(() => expect(prompt).toHaveValue('prefill-third prompt'))
+    })
+
     it('selects one custom-prompt plus without conversion controls', async () => {
         renderPopup()
         const dialog = within(screen.getByRole('dialog', { name: 'Run actions' }))
@@ -886,6 +908,7 @@ describe('ActionPopup', () => {
         fireEvent.mouseDown(conversationPicker)
         fireEvent.click(await screen.findByRole('option', { name: 'New conversation' }))
         const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
+        await waitFor(() => expect(prompt).not.toHaveAttribute('readonly'))
         fireEvent.change(prompt, { target: { value: 'Independent request' } })
         fireEvent.click(screen.getByRole('button', { name: 'Send' }))
 

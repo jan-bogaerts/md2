@@ -11,8 +11,17 @@ export interface MarkdownInsertionRequest {
     reject(error: unknown): void
 }
 
+/** Contract used by one mounted editor to read and update its active draft. */
+export interface MarkdownDraftBinding {
+    addEventListener(type: string, callback: EventListenerOrEventListenerObject | null): void
+    edit(value: string): void
+    getSnapshot(): string
+    removeEventListener(type: string, callback: EventListenerOrEventListenerObject | null): void
+    subscribeEditor(listener: MarkdownDraftListener): () => void
+}
+
 /** Service-owned Markdown value with external replacement and acknowledged insertion requests. */
-export class MarkdownDraft extends EventTarget {
+export class MarkdownDraft extends EventTarget implements MarkdownDraftBinding {
     private editorSnapshot = { replacementRevision: 0 }
     private value: string
 

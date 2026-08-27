@@ -577,7 +577,7 @@
         "costUsd": 0.262962
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
@@ -616,11 +616,11 @@
         "agent-acc79a3a-463c-4297-9e5e-39576bac2016"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-b53e8987-3bb9-41da-bf02-4cb1b8bc2bf3",
       "origin": {
@@ -629,9 +629,9 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-acc79a3a-463c-4297-9e5e-39576bac2016",
       "startedAt": "2026-08-27T17:54:10.800Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-acc79a3a-463c-4297-9e5e-39576bac2016"
     }
   ],
   "version": 5

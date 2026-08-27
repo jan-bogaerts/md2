@@ -191,7 +191,7 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
                 >
                     <MarkdownEditor
                         attachmentHandler={attachmentHandler}
-                        draft={promptDraft.markdownDraft}
+                        draft={promptDraft.editorDraft}
                         flushOnBlur
                         hideAttachmentControl
                         hideToolbar
