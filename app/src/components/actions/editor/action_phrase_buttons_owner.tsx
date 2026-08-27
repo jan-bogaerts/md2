@@ -1,5 +1,5 @@
 import { Paper, Slide, useMediaQuery } from '@mui/material'
-import { useSyncExternalStore } from 'react'
+import { useRef, useSyncExternalStore } from 'react'
 import type { ActionContext } from '../../../data/action_context'
 import type { ActionDefinition } from '../../../data/action_types'
 import type { ActionRun } from '../../../services/actions/action_run_registry'
@@ -38,6 +38,7 @@ export function ActionPhraseButtonsOwner(props: ActionPhraseButtonsOwnerProps) {
         action, bindingStore, context, conversationStore, historyStore, inputStore, resultStore,
         runValidationError, settingsStore,
     } = props
+    const pendingInsertionRef = useRef<Promise<void> | null>(null)
     const boundRunId = useBoundRunId(bindingStore)
     const activeRunStatus = useRunSelector(boundRunId, selectActiveRunStatus)
     const hasUnresolvedApprovals = useRunSelector(boundRunId, (run) => !!run?.approvals.length)
@@ -54,14 +55,23 @@ export function ActionPhraseButtonsOwner(props: ActionPhraseButtonsOwnerProps) {
             && conversationSnapshot.selectedConversation?.status === 'waitingForInput')
     if (action.type !== 'agent' || action.phrases.length === 0) return null
 
-    const handleSelect = (text: string) => {
+    const handleSelect = async (text: string) => {
         const promptDraft = currentActionPromptDraft(action, context, bindingStore, false)
-        promptDraft.replace(text)
+        const insertion = promptDraft.requestInsertion(text)
+        pendingInsertionRef.current = insertion
+        await insertion
         inputStore.setConvertMessage(null)
     }
-    const handleDoubleClick = (text: string) => {
-        handleSelect(text)
-        void runPopupAction({
+    const handleDoubleClick = async () => {
+        try {
+            await pendingInsertionRef.current
+        } catch {
+            return
+        }
+
+        const promptDraft = currentActionPromptDraft(action, context, bindingStore, false)
+        promptDraft.requestFlush()
+        await runPopupAction({
             action,
             bindingStore,
             context,

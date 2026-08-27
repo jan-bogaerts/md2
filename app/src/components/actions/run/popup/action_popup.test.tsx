@@ -1,4 +1,5 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ActionContext } from '../../../../data/action_context'
 import type { ActionRunEvent, ActionStartRequest } from '../../../../data/action_run_types'
@@ -249,6 +250,12 @@ function emitActionRunEvent(listener: ((event: ActionRunEvent) => void) | null, 
     if (!listener) throw new Error('Action run listener is not registered')
 
     listener(event)
+}
+
+function selectPromptText(textbox: HTMLTextAreaElement, start: number, end: number) {
+    textbox.focus()
+    textbox.setSelectionRange(start, end)
+    fireEvent.select(textbox)
 }
 
 describe('ActionPopup', () => {
@@ -1672,18 +1679,111 @@ describe('ActionPopup', () => {
         const phraseGroup = await within(promptSurface).findByRole('group', { name: 'Predefined phrases' })
         const bottomRow = within(promptSurface).getByTestId('action-popup-bottom-row')
         const phraseButton = within(phraseGroup).getByRole('button', { name: 'Continue' })
+        const user = userEvent.setup()
         expect(promptSurface.lastElementChild).toBe(bottomRow)
 
-        fireEvent.click(phraseButton)
-        await waitFor(() => expect(within(promptSurface).getByRole('textbox')).toHaveValue('Continue with tests'))
-        expect(enqueueActionPrompt).not.toHaveBeenCalled()
-
-        fireEvent.doubleClick(phraseButton)
+        await user.dblClick(phraseButton)
         await waitFor(() => expect(enqueueActionPrompt).toHaveBeenCalledWith('run-1', 'Continue with tests'))
+        expect(enqueueActionPrompt).toHaveBeenCalledTimes(1)
 
         act(() => runListener?.({ ...eventBase, status: 'completed', type: 'run' }))
         expect(screen.getByRole('group', { name: 'Predefined phrases' })).toBeInTheDocument()
         await waitFor(() => expect(screen.queryByRole('group', { name: 'Predefined phrases' })).not.toBeInTheDocument())
+    })
+
+    it('inserts response phrases verbatim at editor selection or document end', async () => {
+        actionRunRegistry.stop()
+        let runListener: ((event: ActionRunEvent) => void) | null = null
+        window.md2Actions = {
+            loadActionRunHistory: vi.fn(async () => []),
+            onActionRun: vi.fn((listener) => {
+                runListener = listener
+                return vi.fn()
+            }),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
+        } as unknown as typeof window.md2Actions
+        actionRunRegistry.start()
+        actionService.loadFromFiles([
+            file(agentDefinition('respond', {
+                label: 'Respond',
+                phrases: [{ text: 'Continue with tests', title: 'Continue' }],
+                streaming: true,
+            })),
+        ])
+        renderPopup()
+        await waitFor(() => expect(runListener).not.toBeNull())
+        const eventBase = {
+            actionId: 'respond', actionType: 'agent' as const, autoFinish: null, context, interactionReady: true,
+            phase: 'main' as const, rootActionId: 'respond', runId: 'run-1', streaming: true,
+        }
+        act(() => runListener?.({ ...eventBase, status: 'waitingForInput', type: 'agentState' }))
+        const promptSurface = screen.getByLabelText('Prompt')
+        const textbox = within(promptSurface).getByRole('textbox') as HTMLTextAreaElement
+        const phraseButton = await within(promptSurface).findByRole('button', { name: 'Continue' })
+        const promptDraft = actionPromptDraftService.getDraft('respond', context, 'run-1', { prepare: false })
+
+        act(() => promptDraft.replace('Existing prompt'))
+        fireEvent.click(phraseButton)
+        await waitFor(() => expect(textbox).toHaveValue('Existing promptContinue with tests'))
+
+        act(() => promptDraft.replace(''))
+        fireEvent.click(phraseButton)
+        await waitFor(() => expect(textbox).toHaveValue('Continue with tests'))
+
+        act(() => promptDraft.replace('AlphaOmega'))
+        selectPromptText(textbox, 5, 5)
+        fireEvent.click(phraseButton)
+        await waitFor(() => expect(textbox).toHaveValue('AlphaContinue with testsOmega'))
+
+        act(() => promptDraft.replace('AlphaREMOVEOmega'))
+        selectPromptText(textbox, 5, 11)
+        fireEvent.click(phraseButton)
+        await waitFor(() => expect(textbox).toHaveValue('AlphaContinue with testsOmega'))
+    })
+
+    it('reports phrase insertion failure without discarding typed prompt', async () => {
+        actionRunRegistry.stop()
+        let runListener: ((event: ActionRunEvent) => void) | null = null
+        window.md2Actions = {
+            loadActionRunHistory: vi.fn(async () => []),
+            onActionRun: vi.fn((listener) => {
+                runListener = listener
+                return vi.fn()
+            }),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
+        } as unknown as typeof window.md2Actions
+        actionRunRegistry.start()
+        actionService.loadFromFiles([
+            file(agentDefinition('respond', {
+                label: 'Respond',
+                phrases: [{ text: 'Continue with tests', title: 'Continue' }],
+                streaming: true,
+            })),
+        ])
+        renderPopup()
+        await waitFor(() => expect(runListener).not.toBeNull())
+        const eventBase = {
+            actionId: 'respond', actionType: 'agent' as const, autoFinish: null, context, interactionReady: true,
+            phase: 'main' as const, rootActionId: 'respond', runId: 'run-1', streaming: true,
+        }
+        act(() => runListener?.({ ...eventBase, status: 'waitingForInput', type: 'agentState' }))
+        const promptSurface = screen.getByLabelText('Prompt')
+        const textbox = within(promptSurface).getByRole('textbox') as HTMLTextAreaElement
+        const phraseButton = await within(promptSurface).findByRole('button', { name: 'Continue' })
+        const promptDraft = actionPromptDraftService.getDraft('respond', context, 'run-1', { prepare: false })
+        const insertionError = new Error('Insertion failed')
+        const reportError = vi.spyOn(dialogService, 'error')
+        act(() => promptDraft.replace('Keep typed prompt'))
+        vi.spyOn(promptDraft, 'requestInsertion').mockRejectedValue(insertionError)
+
+        fireEvent.click(phraseButton)
+
+        await waitFor(() => expect(reportError).toHaveBeenCalledWith(
+            insertionError,
+            { fallbackMessage: 'Predefined phrase could not be selected' },
+        ))
+        expect(textbox).toHaveValue('Keep typed prompt')
+        expect(promptDraft.getSnapshot()).toBe('Keep typed prompt')
     })
 
     it('hides response prompts until all scoped approvals resolve', async () => {
