@@ -5885,10 +5885,10 @@
       "actionId": "32eceaf6-37d1-48b4-9bc1-c3f051eb7d8e",
       "cardInternalId": "427d1b08-b9a7-4933-abbb-16c7e60595e1",
       "cardPath": "design/feature_descriptions/F_254_multiple_actions_on_a_card.md",
-      "completedAt": "2026-08-27T15:29:27.442Z",
+      "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 114859
+        "usedTokens": 115914
       },
       "entries": [
         {
@@ -9907,6 +9907,23 @@
           "role": "assistant",
           "sequence": 305,
           "timestamp": "2026-08-27T15:29:27.442Z"
+        },
+        {
+          "content": "/compact",
+          "id": "agent-turn-b911f2a5-c908-4af5-af5a-55a5e2fd6036-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 306,
+          "timestamp": "2026-08-27T17:26:59.503Z"
+        },
+        {
+          "agent": "codex",
+          "content": "Context compacted.\n\n",
+          "id": "agent-turn-b911f2a5-c908-4af5-af5a-55a5e2fd6036-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 307,
+          "timestamp": "2026-08-27T17:27:05.664Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -9921,18 +9938,18 @@
         }
       ],
       "startedAt": "2026-08-25T18:02:54.895Z",
-      "status": "completed",
+      "status": "running",
       "timer": {
         "elapsedMs": 2000208,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-08-27T17:26:59.503Z"
       },
       "title": "review",
       "usage": {
-        "cachedInputTokens": 15115520,
-        "inputTokens": 537676,
-        "outputTokens": 26451,
+        "cachedInputTokens": 15126528,
+        "inputTokens": 642574,
+        "outputTokens": 26459,
         "reasoningTokens": 23511,
-        "totalTokens": 15703158
+        "totalTokens": 15819072
       },
       "usageSchemaVersion": 1,
       "viewed": true
@@ -10199,11 +10216,11 @@
         "agent-2273be0a-322b-47c3-bfd9-b1917d2109b9"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-f24c38f7-d800-471b-82c5-ff1767ca7ca8",
       "origin": {
@@ -10212,9 +10229,9 @@
       },
       "rootActionId": "32eceaf6-37d1-48b4-9bc1-c3f051eb7d8e",
       "rootActionLabel": "review",
-      "rootConversationId": "agent-2273be0a-322b-47c3-bfd9-b1917d2109b9",
       "startedAt": "2026-08-27T14:57:28.188Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-2273be0a-322b-47c3-bfd9-b1917d2109b9"
     }
   ],
   "version": 5
