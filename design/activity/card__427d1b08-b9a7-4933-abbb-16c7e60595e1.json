@@ -5888,7 +5888,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 179630
+        "usedTokens": 180070
       },
       "entries": [
         {
@@ -10826,6 +10826,36 @@
           "role": "assistant",
           "sequence": 377,
           "timestamp": "2026-08-27T17:41:22.193Z"
+        },
+        {
+          "content": "´Ignore known programmatic replacements´ which ones and how do we know that this was the cause of the change",
+          "id": "agent-turn-9d385b5a-6445-4f5f-a8ea-110c151104bb-user-377",
+          "kind": "message",
+          "role": "user",
+          "sequence": 378,
+          "timestamp": "2026-08-27T17:44:04.867Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-9d385b5a-6445-4f5f-a8ea-110c151104bb-event-379",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_000d85e9e868a184016a907768301887d2a95e633d6c06c02f",
+          "sequence": 379,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-27T17:44:10.803Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "We only “know” for synchronous calls made through our own `replaceMarkdown()`:\n\n```ts\nreplacingMarkdownRef.current = true\neditorRef.current?.setMarkdown(markdown)\nreplacingMarkdownRef.current = false\n```\n\nKnown programmatic replacements include:\n\n- Binding a different draft.\n- `ActionPromptDraft.replace()` after backend preparation.\n- Clearing a draft.\n- External draft replacement.\n- History/document switching through `setMarkdown()`.\n- Imperative `MarkdownEditor.setMarkdown()` calls.\n\nIf MDXEditor calls `onChange` while `setMarkdown()` is still executing, `replacingMarkdownRef` is `true`, so callback is ignored.\n\nIf callback arrives later, we do not know its cause. Flag is already `false`, and callback contains only Markdown text. It then looks identical to user input.\n\n`latestMarkdownRef.current === markdown` provides another filter, but only says value is unchanged. It does not identify cause.\n\nSo “ignore known programmatic replacements” means “ignore synchronous callbacks occurring inside our own `setMarkdown()` call.” It is not reliable origin tracking for asynchronous callbacks.\n\n",
+          "id": "agent-turn-9d385b5a-6445-4f5f-a8ea-110c151104bb-turn-3-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 380,
+          "timestamp": "2026-08-27T17:44:14.907Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -10835,23 +10865,23 @@
           "agent": "codex",
           "conversationId": "01a03a16-e93f-7bd0-adb3-891f4884927e",
           "createdAt": "2026-08-25T18:07:30.958Z",
-          "lastUsedAt": "2026-08-27T17:35:38.060Z",
-          "synchronizedThroughMessageId": "agent-turn-9d385b5a-6445-4f5f-a8ea-110c151104bb-turn-1-assistant-1"
+          "lastUsedAt": "2026-08-27T17:41:22.193Z",
+          "synchronizedThroughMessageId": "agent-turn-9d385b5a-6445-4f5f-a8ea-110c151104bb-turn-2-assistant-1"
         }
       ],
       "startedAt": "2026-08-25T18:02:54.895Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 2371939,
-        "runningStartedAt": "2026-08-27T17:41:13.999Z"
+        "elapsedMs": 2380133,
+        "runningStartedAt": "2026-08-27T17:44:04.867Z"
       },
       "title": "review",
       "usage": {
-        "cachedInputTokens": 18813184,
-        "inputTokens": 698523,
-        "outputTokens": 31657,
-        "reasoningTokens": 28030,
-        "totalTokens": 19571394
+        "cachedInputTokens": 18992128,
+        "inputTokens": 699237,
+        "outputTokens": 31888,
+        "reasoningTokens": 28211,
+        "totalTokens": 19751464
       },
       "usageSchemaVersion": 1,
       "viewed": true
