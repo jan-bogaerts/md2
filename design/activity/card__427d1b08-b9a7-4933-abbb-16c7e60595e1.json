@@ -5888,7 +5888,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 180070
+        "usedTokens": 180873
       },
       "entries": [
         {
@@ -10856,6 +10856,36 @@
           "role": "assistant",
           "sequence": 380,
           "timestamp": "2026-08-27T17:44:14.907Z"
+        },
+        {
+          "content": "But we can only have user input in a number of specific situations, right?\n\n* Draft prompt must already have been loaded\n* Either input has focus and key was pressed\n* Or a function was called to insert or append some text\n\nBUt we can see when the prompt is fully loaded, right? And we can see when there is no prompt. Shouldnt that be enough?",
+          "id": "agent-turn-9d385b5a-6445-4f5f-a8ea-110c151104bb-user-380",
+          "kind": "message",
+          "role": "user",
+          "sequence": 381,
+          "timestamp": "2026-08-27T17:49:12.565Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-9d385b5a-6445-4f5f-a8ea-110c151104bb-event-382",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_000d85e9e868a184016a90789b80f087d295f7deca118852e1",
+          "sequence": 382,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-27T17:49:27.651Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Yes. `preparationStatus` is enough for this specific race.\n\nWhile status is `loading`:\n\n- Prompt has not finished loading.\n- Editor is read-only.\n- Attachment insertion is disabled.\n- No legitimate editor-origin edit can exist.\n- Therefore every `editorDraft.edit()` call must be ignored.\n\nThat is what guarded `ActionPromptDraft.editorDraft` now does.\n\nOnce status is `ready`, editor changes are accepted as local edits.\n\nFocus plus keypress should not be required because valid input also includes:\n\n- Paste, cut, and drop.\n- IME composition.\n- Undo and redo.\n- Toolbar formatting.\n- Accessibility input.\n- Placeholder/autocomplete insertion.\n- Attachment insertion.\n\nEmpty text cannot identify origin either. Empty may mean:\n\n- New draft awaiting preparation.\n- Programmatic clearing.\n- User deleted everything.\n- Backend supplied an empty prompt.\n\nCorrect discriminator is readiness, not text value:\n\n```text\nloading: reject editor-origin changes\nready: accept editor-origin changes\nfailed: reject because editor remains read-only\n```\n\nExplicit application operations such as phrase replacement or intentional `ActionPromptDraft.edit()` remain separate and can update draft without pretending to be editor input.\n\n",
+          "id": "agent-turn-9d385b5a-6445-4f5f-a8ea-110c151104bb-turn-4-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 383,
+          "timestamp": "2026-08-27T17:49:33.372Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -10865,23 +10895,23 @@
           "agent": "codex",
           "conversationId": "01a03a16-e93f-7bd0-adb3-891f4884927e",
           "createdAt": "2026-08-25T18:07:30.958Z",
-          "lastUsedAt": "2026-08-27T17:41:22.193Z",
-          "synchronizedThroughMessageId": "agent-turn-9d385b5a-6445-4f5f-a8ea-110c151104bb-turn-2-assistant-1"
+          "lastUsedAt": "2026-08-27T17:44:14.907Z",
+          "synchronizedThroughMessageId": "agent-turn-9d385b5a-6445-4f5f-a8ea-110c151104bb-turn-3-assistant-1"
         }
       ],
       "startedAt": "2026-08-25T18:02:54.895Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 2380133,
-        "runningStartedAt": "2026-08-27T17:44:04.867Z"
+        "elapsedMs": 2390173,
+        "runningStartedAt": "2026-08-27T17:49:12.565Z"
       },
       "title": "review",
       "usage": {
-        "cachedInputTokens": 18992128,
-        "inputTokens": 699237,
-        "outputTokens": 31888,
-        "reasoningTokens": 28211,
-        "totalTokens": 19751464
+        "cachedInputTokens": 19171072,
+        "inputTokens": 700447,
+        "outputTokens": 32133,
+        "reasoningTokens": 28685,
+        "totalTokens": 19932337
       },
       "usageSchemaVersion": 1,
       "viewed": true
