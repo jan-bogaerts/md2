@@ -837,7 +837,7 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "cd9535f0-5c2f-4544-a485-c37091c9b3f0",
       "cardPath": "design/feature_descriptions/F_256_action_phrases_are_appended_instead_of_replacements.md",
-      "completedAt": null,
+      "completedAt": "2026-08-27T17:56:59.651Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 79795
@@ -1607,7 +1607,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 60,
-          "timestamp": "2026-08-27T17:56:59.259Z"
+          "timestamp": "2026-08-27T17:56:59.651Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1617,15 +1617,15 @@
           "agent": "codex",
           "conversationId": "01a0443f-df46-77f3-b476-190679203a06",
           "createdAt": "2026-08-27T17:25:49.250Z",
-          "lastUsedAt": "2026-08-27T17:25:49.250Z",
-          "synchronizedThroughMessageId": "agent-turn-14f60af8-8e7b-447b-aa44-a9a49618a5ac-turn-1-assistant-3"
+          "lastUsedAt": "2026-08-27T17:56:59.651Z",
+          "synchronizedThroughMessageId": "agent-turn-14f60af8-8e7b-447b-aa44-a9a49618a5ac-turn-2-assistant-6"
         }
       ],
       "startedAt": "2026-08-27T17:23:51.130Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 118120,
-        "runningStartedAt": "2026-08-27T17:52:46.808Z"
+        "elapsedMs": 370963,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usage": {
