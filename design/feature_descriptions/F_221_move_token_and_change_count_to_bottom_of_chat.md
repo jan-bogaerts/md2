@@ -3,7 +3,7 @@ author:
 id: F_221
 internalId: e04c89e9-d394-435f-8f13-7d4bb9e942ff
 title: Move token and change count to bottom of chat
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,16 @@ policy:
 after: 47a847c9-cf6e-4a8a-823c-6a6b012bb21a
 branch: f_221_move_token_and_change_count_to_bottom_of_chat
 worktree: 2
+changedFiles:
+  - app/src/components/actions/agent/action_agent_prompt_owner.tsx
+  - app/src/components/actions/conversation/action_conversation_chat.tsx
+  - app/src/components/actions/conversation/action_conversation_chat_integration.test.tsx
+  - app/src/components/actions/conversation/conversation_meta_info.tsx
+  - app/src/components/actions/run/popup/action_agent_interaction.tsx
+  - app/src/components/actions/run/popup/action_popup.test.tsx
+  - app/src/components/actions/run/popup/action_popup_bottom_row.test.tsx
+  - app/src/components/actions/run/popup/action_popup_bottom_row.tsx
+  - app/src/components/actions/run/popup/command_action.tsx
 ---
 The bottom row of the action popup is too full. Move token usage and line-change counts to the bottom of the chat log, between the timer and context-window usage.
 
