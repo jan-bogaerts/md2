@@ -5885,10 +5885,10 @@
       "actionId": "32eceaf6-37d1-48b4-9bc1-c3f051eb7d8e",
       "cardInternalId": "427d1b08-b9a7-4933-abbb-16c7e60595e1",
       "cardPath": "design/feature_descriptions/F_254_multiple_actions_on_a_card.md",
-      "completedAt": "2026-08-27T17:33:10.801Z",
+      "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 148928
+        "usedTokens": 178044
       },
       "entries": [
         {
@@ -10766,6 +10766,36 @@
           "summary": [],
           "timestamp": "2026-08-27T17:33:10.172Z",
           "type": "reasoning"
+        },
+        {
+          "content": "Start by explaining:\n\n* Which editor receives what draft from who and why\n* How come the editor cant see the difference between what comes from backend and what from ui",
+          "id": "agent-turn-9d385b5a-6445-4f5f-a8ea-110c151104bb-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 372,
+          "timestamp": "2026-08-27T17:35:12.900Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-9d385b5a-6445-4f5f-a8ea-110c151104bb-event-373",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_000d85e9e868a184016a90755795dc87d2bb3cff35fbb2010d",
+          "sequence": 373,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-27T17:35:27.393Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "### Which editor receives which draft?\n\nThere is one reused `MarkdownEditor` instance inside `ActionAgentPrompt`.\n\nFor selected action:\n\n1. `ActionAgentPromptOwner` obtains an `ActionPromptDraft` from `ActionPromptDraftService`.\n2. Draft key is:\n   `actionId + context + runId`\n3. `ActionAgentPrompt` receives that `ActionPromptDraft`.\n4. It passes `promptDraft.editorDraft` to `MarkdownEditor`.\n\n`editorDraft` is a guarded view of internal `MarkdownDraft`. It exposes only operations editor needs:\n\n- Read current text.\n- Receive external replacements.\n- Report editor changes.\n- Handle insertion and flush requests.\n\nBackend never sends a draft to editor. Backend returns a prompt string. `ActionPromptDraft.prepare()` receives that string and calls `replace()`. Internal `MarkdownDraft` then tells mounted editor to replace displayed content.\n\nWhen action changes, editor component stays mounted. Only supplied `editorDraft` binding changes.\n\n### Why can editor not identify backend versus UI changes?\n\nAt application boundary, direction is known:\n\n- UI typing calls `MarkdownEditor.handleEditorChange()`, then `editorDraft.edit()`.\n- Backend preparation calls `ActionPromptDraft.replace()`, then `MarkdownDraft.replace()`, then `MarkdownEditor.setMarkdown()`.\n\nProblem occurs inside MDXEditor/Lexical. Calling `setMarkdown()` causes internal editor state updates and normalization. Some updates complete asynchronously. MDXEditor can later invoke `onChange(markdown)`.\n\nThat callback contains only Markdown text. It does not say:\n\n- “User typed this.”\n- “This came from `setMarkdown()`.”\n- “This is normalization of externally supplied text.”\n\n`replacingMarkdownRef` catches callbacks occurring synchronously inside `setMarkdown()`. It cannot catch callbacks delivered later, after `setMarkdown()` returned and flag was cleared.\n\nTherefore delayed backend synchronization can return through same `onChange` path as user typing.\n\nNew `editorDraft` guard handles this using domain state: while prompt preparation is `loading`, editor is read-only, so editor-originated changes cannot be legitimate user edits and are rejected. Explicit `ActionPromptDraft.edit()` remains available for intentional edits.\n\n",
+          "id": "agent-turn-9d385b5a-6445-4f5f-a8ea-110c151104bb-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 374,
+          "timestamp": "2026-08-27T17:35:38.060Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -10780,21 +10810,21 @@
         }
       ],
       "startedAt": "2026-08-25T18:02:54.895Z",
-      "status": "cancelled",
+      "status": "running",
       "timer": {
         "elapsedMs": 2346779,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-08-27T17:35:12.900Z"
       },
       "title": "review",
       "usage": {
-        "cachedInputTokens": 18467584,
-        "inputTokens": 687584,
-        "outputTokens": 31041,
-        "reasoningTokens": 27511,
-        "totalTokens": 19213720
+        "cachedInputTokens": 18636288,
+        "inputTokens": 696090,
+        "outputTokens": 31490,
+        "reasoningTokens": 27896,
+        "totalTokens": 19391764
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -11082,11 +11112,11 @@
         "agent-2273be0a-322b-47c3-bfd9-b1917d2109b9"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-b4b9964d-e9de-4ccd-a1df-185b746e3e87",
       "origin": {
@@ -11095,9 +11125,9 @@
       },
       "rootActionId": "32eceaf6-37d1-48b4-9bc1-c3f051eb7d8e",
       "rootActionLabel": "review",
-      "rootConversationId": "agent-2273be0a-322b-47c3-bfd9-b1917d2109b9",
       "startedAt": "2026-08-27T17:26:59.494Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-2273be0a-322b-47c3-bfd9-b1917d2109b9"
     }
   ],
   "version": 5
