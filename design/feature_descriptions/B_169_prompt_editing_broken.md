@@ -12,7 +12,6 @@ policy:
 after: 2809caf7-2f00-4484-ba68-18306e01f965
 branch: b_169_prompt_editing_broken
 ---
-
 this is a critical bug that occurred recently. we did not change anything to it directly, so something else broke this. perhaps because of the component upgrade we did?
 
 when we open an action in the list editor and go to the prompt, it is empty.
@@ -46,14 +45,14 @@ Here, **target reconciliation** means comparing the editor's bound target with t
 
 ## Acceptance criteria
 
-- Opening an agent action and selecting Prompt displays that action's complete stored prompt, including multiline Markdown and `{{...}}` placeholders.
-- Prompt loads when Prompt is selected immediately after opening, after editor initialization, or restored from persisted editor state.
-- Switching between two actions always displays the selected action's prompt; no empty or previous-action content flashes or remains.
-- Switching among Definition, Prompt, and predefined phrases preserves each section's content and independent undo/redo history.
-- Editing a prompt updates only that action's `prompt`; blur or document switch commits it through existing action-draft persistence.
-- Dirty outgoing prompt text is flushed before another prompt or phrase loads. It cannot overwrite incoming section content.
-- Command actions remain unchanged and show no Prompt tab or prompt editor.
-- List-card and board-card Markdown editors keep their existing content, dirty-state, switching, and history behavior.
-- No polling, timeout-based synchronization, editor remount, duplicate React prompt state, compatibility flag, or silent empty fallback is added.
-- Regression coverage exercises the installed MDXEditor for startup timing; stub-only tests are insufficient for this bug.
-- Focused tests, app unit tests, and app lint pass.
+* Opening an agent action and selecting Prompt displays that action's complete stored prompt, including multiline Markdown and `{{...}}` placeholders.
+* Prompt loads when Prompt is selected immediately after opening, after editor initialization, or restored from persisted editor state.
+* Switching between two actions always displays the selected action's prompt; no empty or previous-action content flashes or remains.
+* Switching among Definition, Prompt, and predefined phrases preserves each section's content and independent undo/redo history.
+* Editing a prompt updates only that action's `prompt`; blur or document switch commits it through existing action-draft persistence.
+* Dirty outgoing prompt text is flushed before another prompt or phrase loads. It cannot overwrite incoming section content.
+* Command actions remain unchanged and show no Prompt tab or prompt editor.
+* List-card and board-card Markdown editors keep their existing content, dirty-state, switching, and history behavior.
+* No polling, timeout-based synchronization, editor remount, duplicate React prompt state, compatibility flag, or silent empty fallback is added.
+* Regression coverage exercises the installed MDXEditor for startup timing; stub-only tests are insufficient for this bug.
+* Focused tests, app unit tests, and app lint pass.
