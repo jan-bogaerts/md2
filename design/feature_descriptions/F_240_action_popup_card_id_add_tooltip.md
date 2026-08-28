@@ -11,6 +11,7 @@ agents:
 policy:
 branch: f_240_action_popup_card_id_add_tooltip
 worktree: 3
+after: 2bdcda91-18c2-42ea-8ebb-1208250a4d42
 ---
 on the action popup, in the upper left corner, we show the id of the card (if any). we should add a tooltip to that shows the title of the card.
 
