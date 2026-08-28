@@ -203,7 +203,7 @@ describe('runPopupAction waiting follow-up', () => {
     })
 
     it('guards Send, Stop, and Finish while active run has historical display', async () => {
-        const historicalConversation = { ...storedConversation([]), path: 'history.json' }
+        const historicalConversation = { ...storedConversation([]), id: 'historical-conversation', path: 'history.json' }
         const conversationStore = {
             continuationPath: () => historicalConversation.path,
             getSnapshot: () => ({ conversations: [historicalConversation], loading: false, selectedConversation: historicalConversation }),

@@ -135,11 +135,15 @@ describe('ActionConversationChatlogTracker', () => {
     it('registers every source listener on load and removes them on unload', () => {
         const value = conversation('conversation-1', [message('user-1', 'user')])
         const { bindingStore, conversationStore, registry, tracker } = setup(run('run-1', value))
+        const addBinding = vi.spyOn(bindingStore, 'addEventListener')
+        const addConversation = vi.spyOn(conversationStore, 'addEventListener')
         const removeBinding = vi.spyOn(bindingStore, 'removeEventListener')
         const removeConversation = vi.spyOn(conversationStore, 'removeEventListener')
 
         tracker.load()
 
+        expect(addBinding).toHaveBeenCalledOnce()
+        expect(addConversation).toHaveBeenCalledOnce()
         expect(registry.subscriptions.get('run-1')?.size).toBe(1)
         tracker.unload()
         expect(registry.subscriptions.get('run-1')?.size).toBe(0)
@@ -171,6 +175,33 @@ describe('ActionConversationChatlogTracker', () => {
         expect(evolvingListener).toHaveBeenCalledOnce()
     })
 
+    it('does not rebuild stable grouping for an evolving entry update', () => {
+        const firstUser = message('user-1', 'user')
+        const stableAssistant = message('assistant-1', 'assistant')
+        const currentUser = message('user-2', 'user')
+        const evolvingAssistant = message('assistant-2', 'assistant', 'draft')
+        const value = conversation('conversation-1', [firstUser, stableAssistant, currentUser, evolvingAssistant])
+        const { registry, tracker } = setup(run('run-1', value))
+        tracker.load()
+        const protectedStableAssistant = new Proxy(stableAssistant, {
+            get(target, property, receiver) {
+                if (property === 'id') throw new Error('Stable grouping was rebuilt')
+
+                return Reflect.get(target, property, receiver)
+            },
+        })
+
+        registry.setRun({
+            ...run('run-1', {
+                ...value,
+                entries: [firstUser, protectedStableAssistant, currentUser, { ...evolvingAssistant, content: 'updated' }],
+            }),
+            conversationChange: { entryIndex: 3, kind: 'entry' },
+        })
+
+        expect(tracker.getEvolvingGroups()[1]).toEqual(expect.objectContaining({entry: expect.objectContaining({ content: 'updated' })}))
+    })
+
     it('updates a stable entry and publishes only a new stable list', () => {
         const firstUser = message('user-1', 'user')
         const firstAssistant = message('assistant-1', 'assistant')
@@ -188,8 +219,28 @@ describe('ActionConversationChatlogTracker', () => {
 
         expect(tracker.getStableGroups()).not.toBe(stableGroups)
         expect(tracker.getEvolvingGroups()).toBe(evolvingGroups)
-        expect(tracker.getStableGroups()[1]).toEqual(expect.objectContaining({
-            entry: expect.objectContaining({ content: 'late' }),
+        expect(tracker.getStableGroups()[1]).toEqual(expect.objectContaining({entry: expect.objectContaining({ content: 'late' })}))
+    })
+
+    it('preserves a sub-agent group whose entries cross the stable boundary', () => {
+        const firstUser = message('user-1', 'user')
+        const agentCall = event('agent-1', 'tool.Agent', { status: 'running' })
+        const currentUser = message('user-2', 'user')
+        const child = event('child-1', 'agentMessage', { label: 'Explore', parentItemId: 'agent-1' })
+        const value = conversation('conversation-1', [firstUser, agentCall, currentUser, child])
+        const { registry, tracker } = setup(run('run-1', value))
+        tracker.load()
+        const stableGroups = tracker.getStableGroups()
+
+        registry.setRun({
+            ...run('run-1', { ...value, entries: [firstUser, agentCall, currentUser, { ...child, content: 'updated' }] }),
+            conversationChange: { entryIndex: 3, kind: 'entry' },
+        })
+
+        expect(tracker.getStableGroups()).toBe(stableGroups)
+        expect(tracker.getEvolvingGroups()[0]).toEqual(expect.objectContaining({
+            groups: [expect.objectContaining({ entry: expect.objectContaining({ content: 'updated' }) })],
+            kind: 'subAgent',
         }))
     })
 
@@ -208,9 +259,7 @@ describe('ActionConversationChatlogTracker', () => {
             ...run('run-1', { ...value, entries: [user, { ...assistant, content: 'recovered' }], status: 'completed' }, 'completed'),
             conversationChange: { entryIndex: 1, kind: 'entry' },
         })
-        expect(tracker.getStableGroups()[1]).toEqual(expect.objectContaining({
-            entry: expect.objectContaining({ content: 'recovered' }),
-        }))
+        expect(tracker.getStableGroups()[1]).toEqual(expect.objectContaining({entry: expect.objectContaining({ content: 'recovered' })}))
     })
 
     it('rebuilds both lists for a same-conversation replacement', () => {
@@ -221,12 +270,30 @@ describe('ActionConversationChatlogTracker', () => {
         tracker.load()
         const stableGroups = tracker.getStableGroups()
         const evolvingGroups = tracker.getEvolvingGroups()
-        const replacement = { ...initial, entries: [firstUser, message('assistant-1', 'assistant', 'recovered'), secondUser] }
+        const replacement = {
+            ...initial,
+            entries: [firstUser, message('assistant-1', 'assistant', 'recovered'), { ...secondUser, content: 'restored' }],
+        }
 
         registry.setRun(run('run-1', replacement))
 
         expect(tracker.getStableGroups()).not.toBe(stableGroups)
-        expect(tracker.getEvolvingGroups()).toBe(evolvingGroups)
+        expect(tracker.getEvolvingGroups()).not.toBe(evolvingGroups)
+    })
+
+    it('rebuilds an untracked replacement and restores provider-event visibility', () => {
+        const firstUser = { ...message('user-1', 'user'), agent: 'claude' }
+        const initial = conversation('conversation-1', [firstUser])
+        const { registry, tracker } = setup(run('run-1', initial))
+        tracker.load()
+        const providerEvent = event('tool-1', 'webSearch')
+
+        registry.setRun({
+            ...run('run-1', { ...initial, entries: [firstUser, providerEvent] }),
+            conversationChange: null,
+        })
+
+        expect(tracker.getEvolvingGroups().map(({ key }) => key)).toEqual(['user-1', 'tool-1'])
     })
 
     it('keeps conversation state while binding a continuation run with same identity', () => {
@@ -248,10 +315,40 @@ describe('ActionConversationChatlogTracker', () => {
         expect(registry.subscriptions.get('run-2')?.size).toBe(1)
     })
 
+    it('keeps the current conversation while a continuation run awaits its first snapshot', () => {
+        const value = conversation('conversation-1', [message('user-1', 'user')])
+        const { bindingStore, registry, tracker } = setup(run('run-1', value))
+        tracker.load()
+        const evolvingGroups = tracker.getEvolvingGroups()
+
+        bindingStore.setRunId('run-2')
+
+        expect(tracker.getConversationIdentity()).toBe('conversation-1')
+        expect(tracker.getEvolvingGroups()).toBe(evolvingGroups)
+        expect(registry.subscriptions.get('run-1')?.size).toBe(0)
+        expect(registry.subscriptions.get('run-2')?.size).toBe(1)
+    })
+
+    it('uses a live snapshot with the same conversation identity after its path changes', () => {
+        const persisted = conversation('conversation-1', [message('persisted-user', 'user')], 'completed')
+        const live = {
+            ...persisted,
+            entries: [message('live-user', 'user')],
+            path: 'moved-conversation.json',
+            status: 'running' as const,
+        }
+        const { conversationStore, registry, tracker } = setup(run('run-1', live))
+        conversationStore.select(persisted)
+        tracker.load()
+
+        expect(tracker.getEvolvingGroups().map(({ key }) => key)).toEqual(['live-user'])
+        expect(registry.subscriptions.get('run-1')?.size).toBe(1)
+    })
+
     it('resets expansion and render state when selection changes conversation identity', () => {
         const live = conversation('conversation-1', [message('user-1', 'user')])
         const historical = conversation('conversation-2', [message('history-user', 'user')], 'completed')
-        const { conversationStore, tracker } = setup(run('run-1', live))
+        const { conversationStore, registry, tracker } = setup(run('run-1', live))
         tracker.load()
         tracker.toggleExpansion('user-1')
 
@@ -261,6 +358,7 @@ describe('ActionConversationChatlogTracker', () => {
         expect(tracker.groupIsExpanded('user-1')).toBe(false)
         expect(tracker.getStableGroups().map(({ key }) => key)).toEqual(['history-user'])
         expect(tracker.getEvolvingGroups()).toHaveLength(0)
+        expect(registry.subscriptions.get('run-1')?.size).toBe(1)
     })
 
     it('preserves nested grouping, provider visibility, expansion, and reservations', () => {

@@ -56,7 +56,7 @@ describe('ActionConversationStore', () => {
 
     it('resolves explicit history while retaining matching live snapshots', () => {
         const liveConversation = conversation('conversation-live.json')
-        const persistedLiveConversation = { ...liveConversation, title: 'Persisted live' }
+        const persistedLiveConversation = { ...liveConversation, path: 'moved-conversation-live.json', title: 'Persisted live' }
         const historicalConversation = conversation('conversation-history.json')
 
         expect(resolveDisplayedConversation(liveConversation, null)).toBe(liveConversation)

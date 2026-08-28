@@ -8,6 +8,8 @@ import type {
     AgentConversationEventEntry,
     AgentConversationMessageEntry,
 } from '../../../data/data_types'
+import type { ActionQueuedPrompt } from '../../../data/action_run_types'
+import type { ActionConversationChange, ActionRun, ActionRunRegistry } from '../../../services/actions/action_run_registry'
 import type { PopupRunStatus } from '../run/popup/action_popup_defaults'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../../data/electron_action_bridge'
 import { dataService } from '../../../services/data/data_service'
@@ -15,9 +17,10 @@ import { dialogService } from '../../../services/dialog_service'
 import { AppThemeProvider } from '../../../theme/theme_provider'
 import { AppThemeContext } from '../../../theme/theme_context'
 import { useAppTheme } from '../../../theme/use_app_theme'
-import { ActionRunBindingStore } from '../run/state/action_run_binding_store'
+import type { ActionRunBindingStore } from '../run/state/action_run_binding_store'
 import type { ActionConversationStore } from './action_conversation_store'
 import { ActionConversationTranscript } from './action_conversation_transcript'
+import { ActionConversationChatlogTracker } from './action_conversation_chatlog_tracker'
 
 let clientHeight = 100
 let scrollHeight = 300
@@ -124,50 +127,125 @@ function conversation(
 }
 
 class TranscriptTestConversationStore extends EventTarget {
-    private selectedConversation: AgentConversation | null
+    private readonly snapshot = { conversations: [], loading: false, selectedConversation: null }
 
-    constructor(selectedConversation: AgentConversation | null) {
-        super()
-        this.selectedConversation = selectedConversation
-    }
-
-    readonly getSnapshot = () => ({ conversations: [], loading: false, selectedConversation: this.selectedConversation })
+    readonly getSnapshot = () => this.snapshot
 
     readonly subscribe = (listener: () => void) => {
         this.addEventListener('changed', listener)
 
         return () => this.removeEventListener('changed', listener)
     }
+}
 
-    setConversation(selectedConversation: AgentConversation | null) {
-        this.selectedConversation = selectedConversation
-        this.dispatchEvent(new Event('changed'))
+class TranscriptTestBindingStore {
+    private readonly listeners = new Set<() => void>()
+    private readonly runId: string
+
+    constructor(runId: string) {
+        this.runId = runId
+    }
+
+    readonly getSnapshot = () => this.runId
+    readonly subscribe = (listener: () => void) => {
+        this.listeners.add(listener)
+
+        return () => this.listeners.delete(listener)
     }
 }
 
+class TranscriptTestRunRegistry {
+    private readonly listeners = new Set<() => void>()
+    private snapshot: ActionRun
+
+    constructor(snapshot: ActionRun) {
+        this.snapshot = snapshot
+    }
+
+    getRunStore() {
+        return { getSnapshot: () => this.snapshot }
+    }
+
+    subscribeRun(_runId: string, listener: () => void) {
+        this.listeners.add(listener)
+
+        return () => this.listeners.delete(listener)
+    }
+
+    update(snapshot: ActionRun) {
+        this.snapshot = snapshot
+        for (const listener of this.listeners) listener()
+    }
+
+    updateConversation(
+        conversationValue: TranscriptTestConversation | null,
+        queuedPrompts: ActionQueuedPrompt[],
+        runId: string,
+        status: PopupRunStatus,
+    ) {
+        const previousConversation = this.snapshot.conversation
+        const changedEntryIndex = conversationValue?.entries.findIndex(
+            (entry, index) => entry !== previousConversation?.entries[index],
+        ) ?? -1
+        const conversationChange = conversationValue?.change
+            ?? (previousConversation?.id === conversationValue?.id && changedEntryIndex >= 0
+                ? { entryIndex: changedEntryIndex, kind: 'entry' as const }
+                : previousConversation === conversationValue ? null : { kind: 'replace' as const })
+        this.update({
+            ...transcriptTestRun(conversationValue, queuedPrompts, runId, status),
+            conversationChange,
+        })
+    }
+}
+
+type TranscriptTestConversation = AgentConversation & { change?: ActionConversationChange }
+
 interface TranscriptTestProps {
-    conversation: AgentConversation | null
-    queuedPrompts?: never[]
+    conversation: TranscriptTestConversation | null
+    queuedPrompts?: ActionQueuedPrompt[]
     runId?: string | null
     status: PopupRunStatus
 }
 
-function ActionConversationChat({ conversation: value, status }: TranscriptTestProps) {
-    const displayedConversation = value ? {
-        ...value,
-        status: status === 'queued' || status === 'running' || status === 'waitingForInput'
-            ? 'waitingForInput' as const
-            : 'completed' as const,
-    } : null
-    const [bindingStore] = useState(() => new ActionRunBindingStore(null))
-    const [store] = useState(() => new TranscriptTestConversationStore(displayedConversation))
+function transcriptTestRun(
+    conversationValue: TranscriptTestConversation | null,
+    queuedPrompts: ActionQueuedPrompt[],
+    runId: string,
+    status: PopupRunStatus,
+) {
+    return {
+        conversation: conversationValue,
+        conversationChange: conversationValue?.change ?? { kind: 'replace' },
+        queuedPrompts,
+        runId,
+        status: status === 'idle' ? 'completed' : status,
+    } as unknown as ActionRun
+}
+
+function ActionConversationChat({ conversation: value, queuedPrompts = [], runId, status }: TranscriptTestProps) {
+    const testRunId = runId ?? 'transcript-test-run'
+    const [runtime] = useState(() => {
+        const registry = new TranscriptTestRunRegistry(transcriptTestRun(value, queuedPrompts, testRunId, status))
+        const bindingStore = new TranscriptTestBindingStore(testRunId)
+        const store = new TranscriptTestConversationStore()
+        const trackerFactory = (nextBindingStore: ActionRunBindingStore, nextStore: ActionConversationStore) => (
+            new ActionConversationChatlogTracker(
+                nextBindingStore,
+                nextStore,
+                registry as unknown as ActionRunRegistry,
+            )
+        )
+
+        return { bindingStore, registry, store, trackerFactory }
+    })
     useLayoutEffect(() => {
-        store.setConversation(displayedConversation)
-    }, [displayedConversation, store])
+        runtime.registry.updateConversation(value, queuedPrompts, testRunId, status)
+    }, [queuedPrompts, runtime, status, testRunId, value])
 
     return <ActionConversationTranscript
-        bindingStore={bindingStore}
-        store={store as unknown as ActionConversationStore}
+        bindingStore={runtime.bindingStore as unknown as ActionRunBindingStore}
+        store={runtime.store as unknown as ActionConversationStore}
+        trackerFactory={runtime.trackerFactory}
     />
 }
 
@@ -236,6 +314,32 @@ describe('ActionConversationChat', () => {
         restoreProperty('clientHeight', originalClientHeight)
         restoreProperty('scrollHeight', originalScrollHeight)
         restoreProperty('scrollTop', originalScrollTop)
+    })
+
+    it('loads tracker after render and unloads it during cleanup', () => {
+        const load = vi.spyOn(ActionConversationChatlogTracker.prototype, 'load')
+        const unload = vi.spyOn(ActionConversationChatlogTracker.prototype, 'unload')
+        const { unmount } = renderChat(conversation('first.json', [message('message-1', 'First')]))
+
+        expect(load).toHaveBeenCalledOnce()
+        unmount()
+        expect(unload).toHaveBeenCalledOnce()
+    })
+
+    it('reports tracker load failure from effect and renders an empty chatlog', () => {
+        const failure = new Error('load failed')
+        vi.spyOn(ActionConversationChatlogTracker.prototype, 'load').mockImplementationOnce(() => { throw failure })
+        const reportError = vi.spyOn(dialogService, 'error').mockReturnValue({
+            critical: false,
+            id: 1,
+            message: failure.message,
+            severity: 'error',
+            title: 'Error',
+        })
+
+        expect(() => renderChat(conversation('first.json', [message('message-1', 'First')]))).not.toThrow()
+        expect(reportError).toHaveBeenCalledWith(failure, { fallbackMessage: 'Could not load conversation chatlog' })
+        expect(screen.getByLabelText('Conversation chat')).toBeEmptyDOMElement()
     })
 
     it('starts at the end when a conversation loads', () => {

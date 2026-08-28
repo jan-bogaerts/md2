@@ -89,17 +89,22 @@ export class ActionPromptDraft {
     clear() {
         if (this.getSnapshot().length === 0 && this.editorSnapshot.preparationStatus === 'ready') {
             this.locallyEdited = false
+            this.preparationRequired = true
+            this.preparationStarted = false
 
             return
         }
 
         this.replace('')
+        this.preparationRequired = true
+        this.preparationStarted = false
     }
 
     async prepare(load: () => Promise<string>) {
         if (!this.preparationRequired || this.preparationStarted) return
 
         this.preparationStarted = true
+        this.setPreparationStatus('loading')
         const preparationRevision = this.revision
         try {
             const value = await load()
@@ -127,7 +132,7 @@ export class ActionPromptDraft {
     }
 
     hasLocalEdits() {
-        return this.locallyEdited
+        return this.locallyEdited && this.getSnapshot().length > 0
     }
 
     /** Asks a mounted editor to commit its debounced buffer before this value is inspected. */
@@ -144,9 +149,11 @@ export class ActionPromptDraft {
     private readonly handleMarkdownEdit = () => {
         if (this.applyingExternalValue) return
 
+        const empty = this.getSnapshot().length === 0
         this.revision += 1
-        this.locallyEdited = true
-        this.preparationRequired = false
+        this.locallyEdited = !empty
+        this.preparationRequired = empty
+        if (empty) this.preparationStarted = false
         this.setPreparationStatus('ready')
     }
 
@@ -205,6 +212,14 @@ export class ActionPromptDraftService {
 
         draft.requestFlush()
         if (!draft.hasLocalEdits()) this.drafts.delete(key)
+    }
+
+    /** Flushes editor buffers, then removes every exact-empty prompt draft. */
+    deleteEmptyDrafts() {
+        for (const [key, draft] of this.drafts) {
+            draft.requestFlush()
+            if (draft.getSnapshot().length === 0) this.drafts.delete(key)
+        }
     }
 
     clearAction(actionId: string) {

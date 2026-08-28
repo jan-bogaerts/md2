@@ -15,6 +15,14 @@ const MIN_CHAT_HEIGHT = 96
 interface ActionConversationTranscriptProps {
     bindingStore: ActionRunBindingStore
     store: ActionConversationStore
+    trackerFactory?: (
+        bindingStore: ActionRunBindingStore,
+        store: ActionConversationStore,
+    ) => ActionConversationChatlogTracker
+}
+
+function createChatlogTracker(bindingStore: ActionRunBindingStore, store: ActionConversationStore) {
+    return new ActionConversationChatlogTracker(bindingStore, store)
 }
 
 function viewportIsAtEnd(viewport: HTMLDivElement) {
@@ -23,7 +31,7 @@ function viewportIsAtEnd(viewport: HTMLDivElement) {
 
 /** Owns tracker lifecycle and renders subscribed transcript leaves. */
 export const ActionConversationTranscript = memo(function ActionConversationTranscript(
-    { bindingStore, store }: ActionConversationTranscriptProps,
+    { bindingStore, store, trackerFactory = createChatlogTracker }: ActionConversationTranscriptProps,
 ) {
     const [tracker, setTracker] = useState<ActionConversationChatlogTracker | null>(null)
     const viewportRef = useRef<HTMLDivElement>(null)
@@ -55,7 +63,7 @@ export const ActionConversationTranscript = memo(function ActionConversationTran
     }, [scrollToEnd])
 
     useEffect(() => {
-        const nextTracker = new ActionConversationChatlogTracker(bindingStore, store)
+        const nextTracker = trackerFactory(bindingStore, store)
         setTracker(null)
         try {
             nextTracker.load()
@@ -65,12 +73,13 @@ export const ActionConversationTranscript = memo(function ActionConversationTran
         }
 
         return () => nextTracker.unload()
-    }, [bindingStore, store])
+    }, [bindingStore, store, trackerFactory])
 
     useEffect(() => {
         if (!tracker) return undefined
 
         const handleContentChange = () => {
+            scrollToEnd()
             queueMicrotask(scrollToEnd)
         }
         const handleConversationChange = () => {

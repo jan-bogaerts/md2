@@ -66,7 +66,7 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
         return !!active && run?.activeActionType === 'agent'
     })
     const interactionReady = useRunSelector(boundRunId, (run) => !!run?.interactionReady)
-    const liveConversationPath = useRunSelector(boundRunId, (run) => run?.conversation?.path ?? null)
+    const liveConversationId = useRunSelector(boundRunId, (run) => run?.conversation?.id ?? null)
     const promptDraft = currentActionPromptDraft(action, assignmentContext, bindingStore, false)
     const prompt = useSyncExternalStore(promptDraft.subscribe, promptDraft.getSnapshot, promptDraft.getSnapshot)
     const editorSnapshot = useSyncExternalStore(
@@ -81,7 +81,7 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
     )
     const sessionActive = runStatus === 'queued' || runStatus === 'running' || runStatus === 'waitingForInput'
     const browsingHistory = isBrowsingHistoricalConversation(
-        liveConversationPath ? { path: liveConversationPath } : null,
+        liveConversationId ? { id: liveConversationId } : null,
         conversationSnapshot.selectedConversation,
         sessionActive,
     )
@@ -89,7 +89,7 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
     const running = runStatus === 'queued' || runStatus === 'running'
     const waitingForAgentInput = (runStatus === 'waitingForInput' && agentActive) || orphanWaiting
     const promptHasText = prompt.trim().length > 0
-    const hasDisplayedConversation = !!liveConversationPath || !!conversationSnapshot.selectedConversation
+    const hasDisplayedConversation = !!liveConversationId || !!conversationSnapshot.selectedConversation
     const showStop = running || (runStatus === 'waitingForInput' && !agentActive)
     const showFinish = waitingForAgentInput
     const showSchedule = (!sessionActive && !orphanWaiting) || (waitingForAgentInput && promptHasText)

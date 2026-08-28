@@ -2,11 +2,13 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { useLayoutEffect, useState, type ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AgentConversation, AgentConversationEntry } from '../../../data/data_types'
+import type { ActionConversationChange, ActionRun, ActionRunRegistry } from '../../../services/actions/action_run_registry'
 import { AppThemeProvider } from '../../../theme/theme_provider'
-import { ActionRunBindingStore } from '../run/state/action_run_binding_store'
+import type { ActionRunBindingStore } from '../run/state/action_run_binding_store'
 import type { PopupRunStatus } from '../run/popup/action_popup_defaults'
 import type { ActionConversationStore } from './action_conversation_store'
 import { ActionConversationTranscript } from './action_conversation_transcript'
+import { ActionConversationChatlogTracker } from './action_conversation_chatlog_tracker'
 
 const renderProbes = vi.hoisted(() => ({ event: vi.fn(), markdown: vi.fn() }))
 
@@ -52,48 +54,109 @@ function conversation(entries: AgentConversationEntry[]): AgentConversation {
 }
 
 class TranscriptTestConversationStore extends EventTarget {
-    private selectedConversation: AgentConversation | null
+    private readonly snapshot = { conversations: [], loading: false, selectedConversation: null }
 
-    constructor(selectedConversation: AgentConversation | null) {
-        super()
-        this.selectedConversation = selectedConversation
-    }
-
-    readonly getSnapshot = () => ({ conversations: [], loading: false, selectedConversation: this.selectedConversation })
+    readonly getSnapshot = () => this.snapshot
 
     readonly subscribe = (listener: () => void) => {
         this.addEventListener('changed', listener)
 
         return () => this.removeEventListener('changed', listener)
     }
+}
 
-    setConversation(selectedConversation: AgentConversation | null) {
-        this.selectedConversation = selectedConversation
-        this.dispatchEvent(new Event('changed'))
+class TranscriptTestBindingStore {
+    private readonly listeners = new Set<() => void>()
+    private readonly runId: string
+
+    constructor(runId: string) {
+        this.runId = runId
+    }
+
+    readonly getSnapshot = () => this.runId
+    readonly subscribe = (listener: () => void) => {
+        this.listeners.add(listener)
+
+        return () => this.listeners.delete(listener)
     }
 }
 
+class TranscriptTestRunRegistry {
+    private readonly listeners = new Set<() => void>()
+    private snapshot: ActionRun
+
+    constructor(snapshot: ActionRun) {
+        this.snapshot = snapshot
+    }
+
+    getRunStore() {
+        return { getSnapshot: () => this.snapshot }
+    }
+
+    subscribeRun(_runId: string, listener: () => void) {
+        this.listeners.add(listener)
+
+        return () => this.listeners.delete(listener)
+    }
+
+    update(snapshot: ActionRun) {
+        this.snapshot = snapshot
+        for (const listener of this.listeners) listener()
+    }
+
+    updateConversation(conversationValue: TranscriptTestConversation | null, status: PopupRunStatus) {
+        const previousConversation = this.snapshot.conversation
+        const changedEntryIndex = conversationValue?.entries.findIndex(
+            (entry, index) => entry !== previousConversation?.entries[index],
+        ) ?? -1
+        const conversationChange = conversationValue?.change
+            ?? (previousConversation?.id === conversationValue?.id && changedEntryIndex >= 0
+                ? { entryIndex: changedEntryIndex, kind: 'entry' as const }
+                : previousConversation === conversationValue ? null : { kind: 'replace' as const })
+        this.update({ ...transcriptTestRun(conversationValue, status), conversationChange })
+    }
+}
+
+type TranscriptTestConversation = AgentConversation & { change?: ActionConversationChange }
+
 interface TranscriptTestProps {
-    conversation: AgentConversation | null
+    conversation: TranscriptTestConversation | null
     status: PopupRunStatus
 }
 
+function transcriptTestRun(conversationValue: TranscriptTestConversation | null, status: PopupRunStatus) {
+    return {
+        conversation: conversationValue,
+        conversationChange: conversationValue?.change ?? { kind: 'replace' },
+        queuedPrompts: [],
+        runId: 'transcript-test-run',
+        status: status === 'idle' ? 'completed' : status,
+    } as unknown as ActionRun
+}
+
 function ActionConversationChat({ conversation: value, status }: TranscriptTestProps) {
-    const displayedConversation = value ? {
-        ...value,
-        status: status === 'queued' || status === 'running' || status === 'waitingForInput'
-            ? 'waitingForInput' as const
-            : 'completed' as const,
-    } : null
-    const [bindingStore] = useState(() => new ActionRunBindingStore(null))
-    const [store] = useState(() => new TranscriptTestConversationStore(displayedConversation))
+    const [runtime] = useState(() => {
+        const registry = new TranscriptTestRunRegistry(transcriptTestRun(value, status))
+        const bindingStore = new TranscriptTestBindingStore('transcript-test-run')
+        const store = new TranscriptTestConversationStore()
+        const trackerFactory = (nextBindingStore: ActionRunBindingStore, nextStore: ActionConversationStore) => (
+            new ActionConversationChatlogTracker(
+                nextBindingStore,
+                nextStore,
+                registry as unknown as ActionRunRegistry,
+            )
+        )
+
+        return { bindingStore, registry, store, trackerFactory }
+    })
     useLayoutEffect(() => {
-        store.setConversation(displayedConversation)
-    }, [displayedConversation, store])
+        runtime.registry.updateConversation(value, status)
+    }, [runtime, status, value])
 
     return <ActionConversationTranscript
-        bindingStore={bindingStore}
-        store={store as unknown as ActionConversationStore}
+        bindingStore={runtime.bindingStore as unknown as ActionRunBindingStore}
+        store={runtime.store as unknown as ActionConversationStore}
+        trackerFactory={runtime.trackerFactory}
     />
 }
 
@@ -101,6 +164,31 @@ describe('ActionConversationChat rendering', () => {
     afterEach(() => {
         cleanup()
         vi.clearAllMocks()
+    })
+
+    it('updates a stable entry after terminal rendering without throwing', () => {
+        const user = {content: 'Question', id: 'message-1', kind: 'message' as const, role: 'user' as const, timestamp: 'now'}
+        const assistant = {content: 'Initial', id: 'message-2', kind: 'message' as const, role: 'assistant' as const, timestamp: 'now'}
+        const initialConversation = { ...conversation([user, assistant]), status: 'completed' as const }
+        const { rerender } = render(
+            <AppThemeProvider>
+                <ActionConversationChat conversation={initialConversation} status="completed" />
+            </AppThemeProvider>,
+        )
+
+        expect(() => rerender(
+            <AppThemeProvider>
+                <ActionConversationChat
+                    conversation={{
+                        ...initialConversation,
+                        change: { entryIndex: 1, kind: 'entry' },
+                        entries: [user, { ...assistant, content: 'Recovered' }],
+                    }}
+                    status="completed"
+                />
+            </AppThemeProvider>,
+        )).not.toThrow()
+        expect(screen.getByText('Recovered')).toBeInTheDocument()
     })
 
     it('rerenders only changed entries while assistant output streams', () => {

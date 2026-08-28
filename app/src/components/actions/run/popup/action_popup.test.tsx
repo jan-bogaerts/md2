@@ -1215,7 +1215,7 @@ describe('ActionPopup', () => {
         expect(prepareActionPrompt).toHaveBeenCalledOnce()
     })
 
-    it('keeps the prompt empty when selecting a completed historical conversation', async () => {
+    it('clears the prompt for history and restores the stored prompt for New conversation', async () => {
         const historicalContext = { ...context, cardInternalId: 'card-1' }
         const historicalConversation: AgentConversation = {
             actionId: 'review',
@@ -1250,7 +1250,11 @@ describe('ActionPopup', () => {
         fireEvent.click(screen.getByRole('option', { name: /Historical review/u }))
 
         await waitFor(() => expect(prompt).toHaveValue(''))
-        expect(prepareActionPrompt).toHaveBeenCalledOnce()
+        fireEvent.mouseDown(conversationPicker)
+        fireEvent.click(await screen.findByRole('option', { name: 'New conversation' }))
+
+        await waitFor(() => expect(prompt).toHaveValue('Stored prompt'))
+        expect(prepareActionPrompt).toHaveBeenCalledTimes(2)
     })
 
     it('clears stored prefill when switching to an active action and restores its draft after reopen', async () => {
@@ -1307,12 +1311,17 @@ describe('ActionPopup', () => {
         await waitFor(() => expect(within(screen.getByLabelText('Prompt')).getByRole('textbox')).toHaveValue('Keep active draft'))
     })
 
-    it('closes from the popup header', () => {
+    it('closes from the popup header and deletes only empty prompt drafts', () => {
+        const emptyDraft = actionPromptDraftService.getDraft('empty', context, null, { prepare: false })
+        const preservedDraft = actionPromptDraftService.getDraft('preserved', context, null, { prepare: false })
+        preservedDraft.edit('Keep')
         const { onClose } = renderPopup()
 
         fireEvent.click(screen.getByRole('button', { name: 'Close' }))
 
         expect(onClose).toHaveBeenCalledOnce()
+        expect(actionPromptDraftService.getDraft('empty', context, null, { prepare: false })).not.toBe(emptyDraft)
+        expect(actionPromptDraftService.getDraft('preserved', context, null, { prepare: false })).toBe(preservedDraft)
     })
 
     it('places accessible worktree and window controls above the action selector', () => {

@@ -7,6 +7,10 @@ ex: instruction is to split up feature descriptions, nothing is mentioned about 
 - app: react-front end
 - desktop: electron desktop-host / backend app
 
+## domain identity
+- Use `Card.header.internalId` / `cardInternalId` as canonical card identity and `AgentConversation.id` as canonical conversation identity.
+- Paths identify persistence locations. Use them for loading, saving, selection references, and continuation inputs, never as domain identity.
+
 ## system info
 - we are running on windows
 - the shell is Windows PowerShell 5.x, not PowerShell 7 (`pwsh`)

@@ -14,7 +14,7 @@ interface ActionConversationSnapshot {
 }
 
 interface ConversationIdentity {
-    path: string
+    id: string
 }
 
 type Listener = () => void
@@ -33,7 +33,7 @@ function conversationTimestamp(conversation: ConversationPickerConversation) {
 
 /** Resolves explicit history selection without replacing matching live data with persisted data. */
 export function resolveDisplayedConversation<T extends ConversationIdentity>(liveConversation: T | null, selectedConversation: T | null) {
-    if (!selectedConversation || selectedConversation.path === liveConversation?.path) return liveConversation ?? selectedConversation
+    if (!selectedConversation || selectedConversation.id === liveConversation?.id) return liveConversation ?? selectedConversation
 
     return selectedConversation
 }
@@ -44,7 +44,7 @@ export function isBrowsingHistoricalConversation(
     selectedConversation: ConversationIdentity | null,
     sessionActive: boolean,
 ) {
-    return sessionActive && !!selectedConversation && selectedConversation.path !== liveConversation?.path
+    return sessionActive && !!selectedConversation && selectedConversation.id !== liveConversation?.id
 }
 
 export function conversationOptions<T extends ConversationPickerConversation>(

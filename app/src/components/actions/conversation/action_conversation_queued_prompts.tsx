@@ -13,7 +13,11 @@ export function ActionConversationQueuedPrompts({ tracker }: ActionConversationQ
         tracker.getQueuedPrompts,
         tracker.getQueuedPrompts,
     )
-    const runId = tracker.getRunId()
+    const runId = useSyncExternalStore(
+        tracker.subscribeQueuedPrompts,
+        tracker.getRunId,
+        tracker.getRunId,
+    )
     if (!runId) return null
 
     return queuedPrompts.map((entry) => <ActionQueuedPromptRow entry={entry} key={entry.id} runId={runId} />)

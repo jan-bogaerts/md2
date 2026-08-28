@@ -176,6 +176,43 @@ describe('ActionPromptDraftService', () => {
         expect(service.getDraft('review', context, null, { prepare: false })).toBe(prepared)
     })
 
+    it('prepares again after an unedited prompt is cleared', async () => {
+        const service = new ActionPromptDraftService()
+        const draft = service.getDraft('review', context, null, { prepare: true })
+        await draft.prepare(async () => 'First prepared prompt')
+        service.discardUneditedDraft('review', context, null)
+
+        await draft.prepare(async () => 'Prepared again')
+
+        expect(draft.getSnapshot()).toBe('Prepared again')
+        expect(draft.hasLocalEdits()).toBe(false)
+    })
+
+    it('treats exact-empty local input as unedited and prepares it again', async () => {
+        const service = new ActionPromptDraftService()
+        const draft = service.getDraft('review', context, null, { prepare: true })
+        await draft.prepare(async () => 'Prepared prompt')
+        draft.edit('')
+
+        await draft.prepare(async () => 'Restored prompt')
+
+        expect(draft.getSnapshot()).toBe('Restored prompt')
+        expect(draft.hasLocalEdits()).toBe(false)
+    })
+
+    it('deletes exact-empty drafts while preserving non-empty user drafts', () => {
+        const service = new ActionPromptDraftService()
+        const empty = service.getDraft('review', context, null, { prepare: false })
+        const preservedContext = { ...context, cardInternalId: 'card-2' }
+        const preserved = service.getDraft('review', preservedContext, null, { prepare: false })
+        preserved.edit('Keep')
+
+        service.deleteEmptyDrafts()
+
+        expect(service.getDraft('review', context, null, { prepare: false })).not.toBe(empty)
+        expect(service.getDraft('review', preservedContext, null, { prepare: false })).toBe(preserved)
+    })
+
     it('flushes the mounted editor before judging a draft as unedited', () => {
         const service = new ActionPromptDraftService()
         const draft = service.getDraft('review', context, null, { prepare: false })

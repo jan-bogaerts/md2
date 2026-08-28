@@ -2,6 +2,7 @@ import { useId, useMemo, useState } from 'react'
 import { displayActionsForContext, projectContextWithWorktree, type ActionContext } from '../../../../data/action_context'
 import { dataService } from '../../../../services/data/data_service'
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
+import { actionPromptDraftService } from '../../../../services/actions/action_prompt_draft_service'
 import { cardAgentState } from '../../../../services/agents/card_agent_state'
 import { isReleasedCardActionContext, RELEASED_CARD_RUN_MESSAGE } from '../../../../../../shared/released_card_actions.mjs'
 import { useActions } from '../../../hooks/use_actions'
@@ -60,7 +61,7 @@ interface ActionPopupProps {
 
 /** Universal action selector and run popup for the supplied context. */
 export function ActionPopup(props: ActionPopupProps) {
-    const { anchorElement, context, initialActionId, open } = props
+    const { anchorElement, context, initialActionId, onClose, open } = props
     const { actions: loadedActions } = useActions()
     const { project, snapshot } = useProjectState()
     const projectActionWorktree = useProjectActionWorktree()
@@ -95,6 +96,11 @@ export function ActionPopup(props: ActionPopupProps) {
         setSelectedActionId(actionId)
     }
 
+    const handleClose = () => {
+        actionPromptDraftService.deleteEmptyDrafts()
+        onClose()
+    }
+
     const handleToggleFullHeight = () => setFullHeight((current) => !current)
 
     if (!selectedAction) return null
@@ -107,6 +113,7 @@ export function ActionPopup(props: ActionPopupProps) {
             assignmentContext={effectiveContext}
             baseContext={context}
             fullHeight={fullHeight}
+            onClose={handleClose}
             onSelectAction={handleSelectAction}
             onToggleFullHeight={handleToggleFullHeight}
             open={open ?? !!anchorElement}
