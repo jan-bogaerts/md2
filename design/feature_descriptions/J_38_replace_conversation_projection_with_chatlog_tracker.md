@@ -3,13 +3,33 @@ author:
 id: J_38
 internalId: 4f01cff9-f2ba-40da-a98f-e72d31e60431
 title: replace conversation projection with chatlog tracker
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
   - design/activity/card__4f01cff9-f2ba-40da-a98f-e72d31e60431.json
 policy:
 after: db4400c0-0d7f-4265-8939-8b4e493c7208
+changedFiles:
+  - app/src/components/actions/conversation/action_conversation_chat.test.tsx
+  - app/src/components/actions/conversation/action_conversation_chat.tsx
+  - app/src/components/actions/conversation/action_conversation_chat_selectors.node.test.ts
+  - app/src/components/actions/conversation/action_conversation_chat_selectors.ts
+  - app/src/components/actions/conversation/action_conversation_chatlog_tracker.node.test.ts
+  - app/src/components/actions/conversation/action_conversation_chatlog_tracker.ts
+  - app/src/components/actions/conversation/action_conversation_evolving_groups.tsx
+  - app/src/components/actions/conversation/action_conversation_group_list.tsx
+  - app/src/components/actions/conversation/action_conversation_history.tsx
+  - app/src/components/actions/conversation/action_conversation_queued_prompts.tsx
+  - app/src/components/actions/conversation/action_conversation_render_projection.node.test.ts
+  - app/src/components/actions/conversation/action_conversation_render_projection.ts
+  - app/src/components/actions/conversation/action_conversation_rendering.test.tsx
+  - app/src/components/actions/conversation/action_conversation_reservation.node.test.ts
+  - app/src/components/actions/conversation/action_conversation_reservation.ts
+  - app/src/components/actions/conversation/action_conversation_reserved_blocks.tsx
+  - app/src/components/actions/conversation/action_conversation_transcript.tsx
+  - app/src/components/actions/conversation/completed_tool_call_group.tsx
+  - app/src/components/actions/conversation/sub_agent_group.tsx
 ---
 
 The conversation chatlog currently mutates a render projection while React renders. That projection treats older entries as sealed and crashes when a valid later update targets one of them. Replace this design with one class instance per mounted chatlog. The instance receives conversation changes, owns the derived chatlog view data, and publishes read-only lists for React to render.
