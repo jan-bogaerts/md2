@@ -13,7 +13,6 @@ sentryIssueId: 142420637
 sentryOrganization: elastetic
 after: ebd9a3ff-1cae-46a9-b6f2-5527b8a0a21d
 ---
-
 ## Sentry issue
 
 **Title:** Error: Primary worktree cannot be added as a linked worktree
@@ -38,5 +37,5 @@ after: ebd9a3ff-1cae-46a9-b6f2-5527b8a0a21d
 
 ### Application stack frames
 
-- `/C:/Users/tvorstenburg/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-DBkJOzlp.js:631:65516` — async o
-- `/C:/Users/tvorstenburg/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-DBkJOzlp.js:45:29208` — EventTarget.selectDraftAddition
+* `/C:/Users/tvorstenburg/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-DBkJOzlp.js:631:65516` — async o
+* `/C:/Users/tvorstenburg/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-DBkJOzlp.js:45:29208` — EventTarget.selectDraftAddition

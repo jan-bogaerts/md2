@@ -13,10 +13,9 @@ sentryIssueId: 142417859
 sentryOrganization: elastetic
 after: 1fbd0445-1242-4578-b231-6b4eab1fab01
 ---
-
 ## Sentry issue
 
-**Title:** Error: Error invoking remote method 'md2-local-bridge:invoke': Error: Working folder is missing: design/feature_descriptions
+**Title:** Error: Error invoking remote method 'md2-local-bridge:invoke': Error: Working folder is missing: design/feature\_descriptions
 
 **Message:** Not provided
 
@@ -38,4 +37,4 @@ after: 1fbd0445-1242-4578-b231-6b4eab1fab01
 
 ### Application stack frames
 
-- No application stack frames provided.
+* No application stack frames provided.

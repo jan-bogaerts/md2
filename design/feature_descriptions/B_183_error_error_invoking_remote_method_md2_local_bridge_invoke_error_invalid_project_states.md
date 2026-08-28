@@ -13,7 +13,6 @@ sentryIssueId: 142419691
 sentryOrganization: elastetic
 after: 688bcbce-4fe9-4a08-bb5b-842804abd178
 ---
-
 ## Sentry issue
 
 **Title:** Error: Error invoking remote method 'md2-local-bridge:invoke': Error: Invalid project states
@@ -38,4 +37,4 @@ after: 688bcbce-4fe9-4a08-bb5b-842804abd178
 
 ### Application stack frames
 
-- No application stack frames provided.
+* No application stack frames provided.
