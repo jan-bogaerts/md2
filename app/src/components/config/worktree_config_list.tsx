@@ -4,6 +4,7 @@ import { useState } from 'react'
 import type { WorktreeRecord } from '../../data/data_types'
 import { useWorktreeAdding, useWorktreeDraft } from '../hooks/use_worktrees'
 import { dialogService } from '../../services/dialog_service'
+import { PrimaryWorktreeSelectionError } from '../../services/project/worktree_errors'
 import { worktreeService } from '../../services/project/worktree_service'
 import { WorktreeConfigRow } from './worktree_config_row'
 import { WorktreeRemoveDialog } from './worktree_remove_dialog'
@@ -19,6 +20,10 @@ export function WorktreeConfigList() {
         try {
             await worktreeService.selectDraftAddition()
         } catch (error) {
+            if (error instanceof PrimaryWorktreeSelectionError) {
+                dialogService.displayError(error.message, { title: 'Linked worktree not added' })
+                return
+            }
             dialogService.error(error, { fallbackMessage: 'Worktree creation failed' })
         }
     }

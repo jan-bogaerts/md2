@@ -11,6 +11,7 @@ import type {
     WorktreeStatus,
 } from '../../data/data_types'
 import { register } from '../service_injector'
+import { PrimaryWorktreeSelectionError } from './worktree_errors'
 
 interface WorktreeServiceDependencies {
     assignCardWorktree: (path: string, worktree: number, branch: string) => void
@@ -377,7 +378,7 @@ export class WorktreeService extends EventTarget {
             const pathKey = worktreePathKey(folderPath)
             const currentDraft = this.requireDraft()
             if (typeof project.rootPath !== 'string' || project.rootPath.length === 0) throw new Error('Missing primary project rootPath')
-            if (pathKey === worktreePathKey(project.rootPath)) throw new Error('Primary worktree cannot be added as a linked worktree')
+            if (pathKey === worktreePathKey(project.rootPath)) throw new PrimaryWorktreeSelectionError()
             if (currentDraft.records.some(({ path }) => worktreePathKey(path) === pathKey)) throw new Error('Folder is already a linked worktree')
             if (currentDraft.additions.some((path) => worktreePathKey(path) === pathKey)) throw new Error('Folder is already pending addition')
 

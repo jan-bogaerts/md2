@@ -3,7 +3,7 @@ author:
 id: F_240
 internalId: db4400c0-0d7f-4265-8939-8b4e493c7208
 title: action popup card id add tooltip
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

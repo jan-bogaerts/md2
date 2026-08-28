@@ -736,11 +736,11 @@
         "agent-554eba34-426f-4e5a-9bde-d008eb6e4e90"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-b87b96b9-a223-4233-880d-f7e6cc8094b0",
       "origin": {
@@ -749,9 +749,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-554eba34-426f-4e5a-9bde-d008eb6e4e90",
       "startedAt": "2026-08-28T17:19:57.560Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-554eba34-426f-4e5a-9bde-d008eb6e4e90"
     }
   ],
   "version": 5

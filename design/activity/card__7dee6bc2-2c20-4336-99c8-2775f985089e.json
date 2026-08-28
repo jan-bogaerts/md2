@@ -850,11 +850,11 @@
         "agent-1ac4161c-171a-4ea8-ad1c-cf4fa66421b4"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-25306a62-c383-433b-aa61-708eabd6d60c",
       "origin": {
@@ -863,9 +863,9 @@
       },
       "rootActionId": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
       "rootActionLabel": "fix bug",
-      "rootConversationId": "agent-1ac4161c-171a-4ea8-ad1c-cf4fa66421b4",
       "startedAt": "2026-08-28T16:08:32.137Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-1ac4161c-171a-4ea8-ad1c-cf4fa66421b4"
     }
   ],
   "version": 5

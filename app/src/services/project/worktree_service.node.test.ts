@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Card, ProjectReference, ProjectSnapshot, StorageService, WorktreeRecord, WorktreeState } from '../../data/data_types'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge'
 import { createDeferred } from '../test_support/data_service_test_support'
+import { PrimaryWorktreeSelectionError } from './worktree_errors'
 import { WorktreeService } from './worktree_service'
 
 const project: ProjectReference = { branch: 'main', id: 'project', rootPath: 'C:\\project' }
@@ -153,15 +154,26 @@ describe('WorktreeService', () => {
         expect(service.getDraft()).toMatchObject({ additions: [], records: [first], removals: [] })
     })
 
-    it('rejects primary, existing, and pending worktree paths', async () => {
+    it('rejects primary project folder as expected user input without changing draft', async () => {
+        const { emit, storage } = createStorage()
+        storage.selectWorktreeFolder = vi.fn(async () => 'c:/PROJECT/')
+        const service = new WorktreeService()
+        initService(service, storage)
+        emit(project, [first])
+        service.startDraft()
+
+        await expect(service.selectDraftAddition()).rejects.toBeInstanceOf(PrimaryWorktreeSelectionError)
+
+        expect(service.getDraft()).toMatchObject({ additions: [], selecting: false })
+    })
+
+    it('rejects existing and pending worktree paths', async () => {
         const { emit, storage } = createStorage()
         const service = new WorktreeService()
         initService(service, storage)
         emit(project, [first])
         service.startDraft()
 
-        storage.selectWorktreeFolder = vi.fn(async () => 'c:/PROJECT/')
-        await expect(service.selectDraftAddition()).rejects.toThrow('Primary worktree cannot be added')
         storage.selectWorktreeFolder = vi.fn(async () => 'c:/FEATURE')
         await expect(service.selectDraftAddition()).rejects.toThrow('Folder is already a linked worktree')
         storage.selectWorktreeFolder = vi.fn(async () => 'C:\\new')
