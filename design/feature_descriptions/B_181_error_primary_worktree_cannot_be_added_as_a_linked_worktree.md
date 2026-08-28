@@ -3,7 +3,7 @@ author:
 id: B_181
 internalId: 7dee6bc2-2c20-4336-99c8-2775f985089e
 title: Error: Primary worktree cannot be added as a linked worktree
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
@@ -11,6 +11,7 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 142420637
 sentryOrganization: elastetic
+after: 4f01cff9-f2ba-40da-a98f-e72d31e60431
 ---
 ## Sentry issue
 
@@ -38,3 +39,7 @@ sentryOrganization: elastetic
 
 * `/C:/Users/tvorstenburg/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-DBkJOzlp.js:631:65516` — async o
 * `/C:/Users/tvorstenburg/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-DBkJOzlp.js:45:29208` — EventTarget.selectDraftAddition
+
+This is an error triggered by a real user. I think he was trying to add the main project folder as a worktree in the config dialog.
+
+we can perhaps show a user friendly message when we see that the user is entering the same folder as the currently open repository folder.
