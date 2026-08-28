@@ -24,3 +24,6 @@ policy:
 * This json is loaded first time diagram view  is opened
 * Last location (breadcrumb path) is saved in json and restored
 * First breadcrumb represents root, next are the labels that user clicked on, which become input for the child diagram actions
+* Action popup is like project popup, with floating fab button
+  * Closes automatically when diagram is ready.&#x20;
+  * If existing diagram can be loaded in breadcrumb, by clicking on svg and upon load, action popup remains closed
