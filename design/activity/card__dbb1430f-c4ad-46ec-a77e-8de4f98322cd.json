@@ -1197,7 +1197,7 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "dbb1430f-c4ad-46ec-a77e-8de4f98322cd",
       "cardPath": "design/feature_descriptions/B_169_prompt_editing_broken.md",
-      "completedAt": "2026-08-21T18:17:49.909Z",
+      "completedAt": "2026-08-28T15:23:24.063Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 90866
@@ -6347,6 +6347,51 @@
           "role": "assistant",
           "sequence": 390,
           "timestamp": "2026-08-21T18:09:43.456Z"
+        },
+        {
+          "content": "I think we still have a problem:\n\n* we open the action popup, go to an action which has a prompt, there are no open conversations so the action-popup goes to a 'new conversation' and shows the prompt. this is good.\n* the action already has a previous conversation, so we open that. the prompt is made empty. good\n* we go back to the 'new conversation' but now the prompt is no longer filled in automatically. instead, the input remains empty.\n* from then on, I can close the popup, open it again and go to the action we picked before. it still goes to the 'new conversation', this is good, but the input remains empty, the action-prompt is not auto filled. this is bad\n\n\n\nit's as if this 'empty' input is considered a custom input. this should not be the case. in fact, when the action popup closes, we should remove all 'empty' inputs from the prompt draft service. also, when we go to a 'new conversation' and there is an 'empty' draft, then we should still fill in the markdown editor with the action-prompt.\n\nplease fix",
+          "id": "agent-turn-2063a69c-b840-4cdf-8340-17c6b843a042-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 391,
+          "timestamp": "2026-08-28T15:23:14.291Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-2063a69c-b840-4cdf-8340-17c6b843a042-event-392",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_053a29ce448eaff5016a91a7e81b9087d2a54d42155a599359",
+          "sequence": 392,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T15:23:20.249Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Using `caveman` for terse updates. I’ll trace prompt-draft ownership, popup close cleanup, and new-conversation initialization before editing.\n\n",
+          "id": "agent-turn-2063a69c-b840-4cdf-8340-17c6b843a042-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 393,
+          "timestamp": "2026-08-28T15:23:24.063Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content .agents/skills/caveman/SKILL.md; rg -n \"actionPromptDraftService|prompt draft|New conversation|new conversation|ActionPrompt\" app/src -g \"*.ts\" -g \"*.tsx\"'",
+          "content": "---\r\nname: caveman\r\ndescription: >\r\n  Ultra-compressed communication mode. Cuts output tokens 65% (measured) by speaking like caveman\r\n  while keeping full technical accuracy. Supports intensity levels: lite, full (default), ultra,\r\n  wenyan-lite, wenyan-full, wenyan-ultra.\r\n  Use when user says \"caveman mode\", \"talk like caveman\", \"use caveman\", \"less tokens\",\r\n  \"be brief\", or invokes /caveman. Also auto-triggers when token efficiency is requested.\r\n---\r\n\r\nRespond terse like smart caveman. All technical substance stay. Only fluff die.\r\n\r\n## Persistence\r\n\r\nACTIVE EVERY RESPONSE. No revert after many turns. No filler drift. Still active if unsure. Off only: \"stop caveman\" / \"normal mode\".\r\n\r\nDefault: **full**. Switch: `/caveman lite|full|ultra`.\r\n\r\n## Rules\r\n\r\nDrop: articles (a/an/the), filler (just/really/basically/actually/simply), pleasantries (sure/certainly/of course/happy to), hedging. Fragments OK. Short synonyms (big not extensive, fix not \"implement a solution for\"). No tool-call narration, no decorative tables/emoji, no dumping long raw error logs unless asked â€” quote shortest decisive line. Standard well-known tech acronyms OK (DB/API/HTTP); never invent new abbreviations (cfg/impl/req/res/fn) â€” tokenizer split them same as full word: zero token saved, reader still decode. Full word cheaper AND clearer. No causal arrows (â†’) either â€” own token, save nothing. Technical terms exact. Code blocks unchanged. Errors quoted exact.\r\n\r\nPreserve user's dominant language. User write Portuguese â†’ reply Portuguese caveman. User write Spanish â†’ reply Spanish caveman. Compress the style, not the language. No forced English openings or status phrases. ALWAYS keep technical terms, code, API names, CLI commands, commit-type keywords (feat/fix/...), and exact error strings verbatim â€” unless user explicitly ask for translation.\r\n\r\nNo self-reference. Never name or announce the style. No \"caveman mode on\", \"me caveman think\", no third-person caveman tags. Output caveman-only â€” never normal answer plus \"Caveman:\" recap. Exception: user explicitly ask what the mode is.\r\n\r\nPattern: `[thing] [action] [reason]. [next step].`\r\n\r\nNot: \"Sure! I'd be happy to help you with that. The issue you're experiencing is likely caused by...\"\r\nYes: \"Bug in auth middleware. Token expiry check use `<` not `<=`. Fix:\"\r\n\r\n## Intensity\r\n\r\n| Level | What change |\r\n|-------|------------|\r\n| **lite** | No filler/hedging. Keep articles + full sentences. Professional but tight |\r\n| **full** | Drop articles, fragments OK, short synonyms. Classic caveman. No tool-call narration, no decorative tables/emoji, no long raw error-log dumps unless asked. Standard acronyms OK; no invented abbreviations |\r\n| **ultra** | Strip conjunctions when cause-then-effect stay unambiguous. One word when one word enough. State each fact once. NO prose abbreviations (cfg/impl/req/res/fn/auth), NO arrows (X â†’ Y) â€” measured zero token saving under tokenizer, cost decode clarity. Code symbols, function names, API names, error strings: never touch |\r\n| **wenyan-lite** | Semi-classical. Drop filler/hedging but keep grammar structure, classical register |\r\n| **wenyan-full** | Maximum classical terseness. Fully æ–‡è¨€æ–‡. 80-90% character reduction. Classical sentence patterns, verbs precede objects, subjects often omitted, classical particles (ä¹‹/ä¹ƒ/ç‚º/å…¶) |\r\n| **wenyan-ultra** | Extreme abbreviation while keeping classical Chinese feel. Maximum compression, ultra terse |\r\n\r\nExample â€” \"Why React component re-render?\"\r\n- lite: \"Your component re-renders because you create a new object reference each render. Wrap it in `useMemo`.\"\r\n- full: \"New object ref each render. Inline object prop = new ref = re-render. Wrap in `useMemo`.\"\r\n- ultra: \"Inline obj prop, new ref, re-render. `useMemo`.\"\r\n- wenyan-lite: \"çµ„ä»¶é »é‡ç¹ªï¼Œä»¥æ¯ç¹ªæ–°ç”Ÿå°è±¡åƒç…§æ•…ã€‚ä»¥ useMemo åŒ…ä¹‹ã€‚\"\r\n- wenyan-full: \"æ¯ç¹ªæ–°ç”Ÿå°è±¡åƒç…§ï¼Œæ•…é‡ç¹ªï¼›ä»¥ useMemo åŒ…ä¹‹å‰‡å…ã€‚\"\r\n- wenyan-ultra: \"æ–°åƒç…§å‰‡é‡ç¹ªã€‚useMemo åŒ…ä¹‹ã€‚\"\r\n\r\nExample â€” \"Explain database conn\n[34355 characters omitted]\ntDraft(action.id, context, 'run-1', { prepare: false })\napp/src\\components\\actions\\run\\popup\\action_popup_bottom_row.test.tsx:293:        actionPromptDraftService.getDraft(action.id, context, null, { prepare: false }).edit('Plan')\napp/src\\components\\actions\\run\\popup\\action_popup_bottom_row.test.tsx:463:        actionPromptDraftService.getDraft(action.id, context, null, { prepare: false }).edit('Continue')\napp/src\\components\\actions\\agent\\action_agent_preset_name_owner.tsx:7:import { currentActionPromptDraft, currentActionRun, saveAndRunPopupAction } from '../run/popup/action_popup_operations'\napp/src\\components\\actions\\agent\\action_agent_preset_name_owner.tsx:40:        const promptDraft = currentActionPromptDraft(action, context, bindingStore, false)\napp/src\\components\\actions\\agent\\action_agent_prompt_owner.tsx:12:import { currentActionPromptDraft, runPopupAction } from '../run/popup/action_popup_operations'\napp/src\\components\\actions\\agent\\action_agent_prompt_owner.tsx:40:/** Owns prompt draft binding, preparation, and keyboard-run behavior. */\napp/src\\components\\actions\\agent\\action_agent_prompt_owner.tsx:67:    const promptDraft = currentActionPromptDraft(action, context, bindingStore, prepare)\napp/src\\components\\actions\\agent\\action_agent_prompt.test.tsx:5:import { ActionPromptDraft } from '../../../services/actions/action_prompt_draft_service'\napp/src\\components\\actions\\agent\\action_agent_prompt.test.tsx:100:        const promptDraft = new ActionPromptDraft('', true)\napp/src\\components\\actions\\agent\\action_agent_prompt.test.tsx:113:        const promptDraft = new ActionPromptDraft('', false)\napp/src\\components\\actions\\agent\\action_agent_prompt.test.tsx:127:        const promptDraft = new ActionPromptDraft('', false)\napp/src\\components\\actions\\agent\\action_agent_prompt.test.tsx:146:        const promptDraft = new ActionPromptDraft('', false)\napp/src\\components\\actions\\agent\\action_agent_prompt.test.tsx:170:        const promptDraft = new ActionPromptDraft('', false)\napp/src\\components\\actions\\agent\\action_agent_prompt.test.tsx:189:        const promptDraft = new ActionPromptDraft('Line', false)\napp/src\\components\\actions\\agent\\action_agent_prompt.test.tsx:207:        const promptDraft = new ActionPromptDraft('Line', false)\napp/src\\components\\actions\\agent\\action_agent_prompt.test.tsx:223:        const promptDraft = new ActionPromptDraft('Initial', false)\napp/src\\components\\actions\\agent\\action_agent_prompt.test.tsx:236:        const promptDraft = new ActionPromptDraft(value, false)\napp/src\\components\\actions\\agent\\action_agent_prompt.test.tsx:254:        const promptDraft = new ActionPromptDraft('', false)\napp/src\\components\\actions\\agent\\action_agent_prompt.test.tsx:272:        const promptDraft = new ActionPromptDraft('', false)\napp/src\\components\\actions\\agent\\action_agent_prompt.test.tsx:293:        const promptDraft = new ActionPromptDraft('', false)\napp/src\\components\\actions\\agent\\action_agent_prompt.test.tsx:305:        const promptDraft = new ActionPromptDraft('Plan', false)\napp/src\\components\\actions\\run\\popup\\action_popup_run_disabled.ts:2:import type { ActionPromptPreparationStatus } from '../../../../services/actions/action_prompt_draft_service'\napp/src\\components\\actions\\run\\popup\\action_popup_run_disabled.ts:16:    preparationStatus: ActionPromptPreparationStatus,\napp/src\\components\\actions\\run\\popup\\action_popup_defaults.ts:104:    const result = await bridge.prepareActionPrompt({ actionId: action.id, context })\napp/src\\components\\actions\\run\\popup\\action_popup_defaults.node.test.ts:22:            prepareActionPrompt: vi.fn(async () => {\napp/src\\components\\actions\\run\\popup\\action_popup_defaults.node.test.ts:36:        const prepareActionPrompt = vi.fn(async () => ({ prompt: 'Stale prompt' }))\napp/src\\components\\actions\\run\\popup\\action_popup_defaults.node.test.ts:37:        window.md2Actions = { prepareActionPrompt } as unknown as ElectronActionBridge\napp/src\\components\\actions\\run\\popup\\action_popup_defaults.node.test.ts:41:        expect(prepareActionPrompt).not.toHaveBeenCalled()\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-2063a69c-b840-4cdf-8340-17c6b843a042-event-394",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content .agents/skills/caveman/SKILL.md; rg -n \"actionPromptDraftService|prompt draft|New conversation|new conversation|ActionPrompt\" app/src -g \"*.ts\" -g \"*.tsx\"'",
+          "providerItemId": "exec-e9044e01-ddd1-4766-8da0-a7ec092ef2cb",
+          "sequence": 394,
+          "status": "completed",
+          "timestamp": "2026-08-28T15:23:23.508Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
         }
       ],
       "hasExplicitTitle": true,
@@ -6361,9 +6406,9 @@
         }
       ],
       "startedAt": "2026-08-21T16:06:36.003Z",
-      "status": "completed",
+      "status": "cancelled",
       "timer": {
-        "elapsedMs": 2035750,
+        "elapsedMs": 2045399,
         "runningStartedAt": null
       },
       "title": "implement",
