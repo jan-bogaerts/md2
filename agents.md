@@ -97,12 +97,22 @@ Keep analysis and documentation **short, precise, and to the point**. Avoid verb
 - Signal state changes with granular, scoped events (e.g. one event type per card or per card+action). Never republish or refresh a whole object (card, snapshot) to announce a change to one of its fields: every component watching that object would repaint.
 - In React, subscribe with `useSyncExternalStore`. `getSnapshot` must return a value derived from the actual service data (a primitive or stable reference), not a revision counter.
 
+## State ownership and data flow
+
+- Services own model data and view data. Components only subscribe and render.
+- Model data is canonical. View data derives from it and must not become another source of truth.
+- Apply external updates in services before notifying subscribers.
+- Never create or mutate application state during React rendering.
+- Treat “stable” as an update-frequency expectation, not an immutability guarantee.
+
 ## react component style guide
 - dialogs have buttons in the bottom right corner
 - use the `dialogService` to show errors, warnings,...
 - for styling, read and use this guide: `design\STYLE_GUIDE.md`
 - application states belong in services, not in components.
 - Root components own layout; leaf components bind to changing application data. Place subscriptions in the smallest component that renders their value.
+- Do not design components that pass feature-specific components or JSX through props. Render them in the component that owns their layout; pass data, services, or callbacks instead.
+- `children`/`ReactNode` props are only for generic layout components, providers, dialogs, and portals.
 
 ## Linting
 As an agent working on this codebase, you must:

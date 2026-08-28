@@ -7,7 +7,7 @@ import type {
 interface SearchResultsProps {
     mode: SearchMode
     onActionSelect: (action: ActionDefinition) => void
-    onSelect: (path: string) => void
+    onSelect: (match: SearchMatch) => void
     query: string
     results: SearchResultsData
 }
@@ -47,8 +47,8 @@ function renderHighlightedContext(context: string, query: string, mode: SearchMo
     )
 }
 
-function renderMatch(match: SearchMatch, onSelect: (path: string) => void, query: string, mode: SearchMode) {
-    const handleClick = () => onSelect(match.path)
+function renderMatch(match: SearchMatch, onSelect: (match: SearchMatch) => void, query: string, mode: SearchMode) {
+    const handleClick = () => onSelect(match)
     const context = renderHighlightedContext(match.context, query, mode)
 
     return (

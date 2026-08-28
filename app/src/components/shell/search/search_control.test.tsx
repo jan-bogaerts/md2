@@ -41,13 +41,37 @@ const snapshot: ProjectSnapshot = {
         makeCard('design/F-2-beta.md', '# Beta\n\nBody with secret keyword.', { id: 'F-2', title: 'Beta feature' }, true),
     ],
     backgroundCards: [
-        makeCard('design/history/note.md', '# Note\n\nHidden secret text.', { id: 'H-1', title: 'History note', status: 'archived' }, false),
+        makeCard(
+            'design/history/note.md',
+            '# Note\n\nHidden secret text.',
+            { id: 'H-1', internalId: 'released-note', title: 'History note', status: 'released' },
+            false,
+        ),
+        makeCard(
+            'design/archived/old.md',
+            '# Old\n\nArchived body text.',
+            { id: 'A-1', internalId: 'archived-note', title: 'Archived note', status: 'archived' },
+            false,
+        ),
+        makeCard(
+            'design/history/regular.md',
+            '# Regular\n\nOrdinary background body.',
+            { id: 'D-1', title: 'Regular document' },
+            false,
+        ),
+        makeCard(
+            'design/history-old/prefixed.md',
+            '# Prefixed\n\nSibling folder body.',
+            { id: 'D-2', internalId: 'prefixed-document', title: 'Prefixed document' },
+            false,
+        ),
     ],
     repositoryFiles: [],
     workingFolder: 'design',
 }
 
 vi.mock('../../hooks/use_project_state', () => ({ useProjectState: () => ({ project: null, runningAgents: [], snapshot }) }))
+vi.mock('../../hooks/use_project_config', () => ({useProjectConfig: () => ({ archivedFolder: 'design/archived', releasesFolder: 'design/history' })}))
 
 function focusSearch() {
     fireEvent.focus(screen.getByRole('textbox', { name: 'Search project' }))
@@ -207,7 +231,7 @@ describe('SearchControl', () => {
     it('searches background cards by header and groups them by folder', () => {
         render(<SearchControl />)
 
-        typeQuery('archived')
+        typeQuery('released')
 
         expect(screen.getByText('history')).toBeInTheDocument()
         expect(screen.getByRole('button', { name: /History note/ })).toBeInTheDocument()
@@ -288,9 +312,24 @@ describe('SearchControl', () => {
         expect(screen.getByRole('button', { name: /Alpha feature/ })).toBeInTheDocument()
     })
 
-    it('navigates to the selected result through the navigation service', () => {
+    it('requests active-card reveal from cards view', () => {
+        const listener = vi.fn()
+        workspaceNavigationService.addEventListener('revealCard', listener)
+        render(<SearchControl />)
+
+        typeQuery('Alpha')
+        fireEvent.click(screen.getByRole('button', { name: /Alpha feature/ }))
+
+        const event = listener.mock.calls[0][0] as CustomEvent<{ path: string }>
+        expect(event.detail.path).toBe('design/F-1-alpha.md')
+        expect(screen.queryByRole('dialog', { name: 'Search dropdown' })).not.toBeInTheDocument()
+        workspaceNavigationService.removeEventListener('revealCard', listener)
+    })
+
+    it('keeps existing navigation for active results outside cards view', () => {
         const listener = vi.fn()
         workspaceNavigationService.addEventListener('open', listener)
+        workspaceViewService.setViewMode('stats')
         render(<SearchControl />)
 
         typeQuery('Alpha')
@@ -299,6 +338,70 @@ describe('SearchControl', () => {
         const event = listener.mock.calls[0][0] as CustomEvent<{ path: string }>
         expect(event.detail.path).toBe('design/F-1-alpha.md')
         workspaceNavigationService.removeEventListener('open', listener)
+    })
+
+    it.each([
+        ['released', 'History note', 'H-1', '# Note\n\nHidden secret text.'],
+        ['archived', 'Archived note', 'A-1', '# Old\n\nArchived body text.'],
+    ])('opens a read-only preview for a %s card without workspace navigation', (_kind, title, id, body) => {
+        const openListener = vi.fn()
+        const revealListener = vi.fn()
+        workspaceNavigationService.addEventListener('open', openListener)
+        workspaceNavigationService.addEventListener('revealCard', revealListener)
+        render(<SearchControl />)
+
+        typeQuery(title)
+        fireEvent.click(screen.getByRole('button', { name: new RegExp(title, 'u') }))
+
+        const preview = screen.getByRole('dialog', { name: 'Card preview' })
+        expect(within(preview).getByText(id)).toBeInTheDocument()
+        expect(within(preview).getByText(title)).toBeInTheDocument()
+        expect(within(preview).getByRole('textbox')).toHaveValue(body)
+        expect(within(preview).getByRole('textbox')).toHaveAttribute('readonly')
+        expect(openListener).not.toHaveBeenCalled()
+        expect(revealListener).not.toHaveBeenCalled()
+
+        fireEvent.click(within(preview).getByRole('button', { name: 'Close' }))
+        expect(screen.queryByRole('dialog', { name: 'Card preview' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('dialog', { name: 'Search dropdown' })).not.toBeInTheDocument()
+        workspaceNavigationService.removeEventListener('open', openListener)
+        workspaceNavigationService.removeEventListener('revealCard', revealListener)
+    })
+
+    it.each(['Regular document', 'Prefixed document'])(
+        'keeps existing navigation for ordinary background result %s',
+        (title) => {
+            const listener = vi.fn()
+            workspaceNavigationService.addEventListener('open', listener)
+            render(<SearchControl />)
+
+            typeQuery(title)
+            fireEvent.click(screen.getByRole('button', { name: new RegExp(title, 'u') }))
+
+            expect(listener).toHaveBeenCalledTimes(1)
+            expect(screen.queryByRole('dialog', { name: 'Card preview' })).not.toBeInTheDocument()
+            workspaceNavigationService.removeEventListener('open', listener)
+        },
+    )
+
+    it('reports a result removed after search and does not navigate stale data', () => {
+        const originalActiveCards = snapshot.activeCards
+        const openListener = vi.fn()
+        const revealListener = vi.fn()
+        workspaceNavigationService.addEventListener('open', openListener)
+        workspaceNavigationService.addEventListener('revealCard', revealListener)
+        render(<><DialogDisplay /><SearchControl /></>)
+
+        typeQuery('Alpha')
+        snapshot.activeCards = snapshot.activeCards.filter(({ path }) => path !== 'design/F-1-alpha.md')
+        fireEvent.click(screen.getByRole('button', { name: /Alpha feature/ }))
+
+        expect(screen.getByText('Search result no longer exists: design/F-1-alpha.md')).toBeInTheDocument()
+        expect(openListener).not.toHaveBeenCalled()
+        expect(revealListener).not.toHaveBeenCalled()
+        snapshot.activeCards = originalActiveCards
+        workspaceNavigationService.removeEventListener('open', openListener)
+        workspaceNavigationService.removeEventListener('revealCard', revealListener)
     })
 
     it('populates the query from a successful agent request', async () => {

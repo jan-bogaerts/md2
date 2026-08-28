@@ -12,6 +12,7 @@ import { actionService } from '../services/actions/action_service'
 import { openFilesService } from '../services/open_files_service'
 import { telemetryService } from '../services/telemetry/telemetry_service'
 import { workspaceNavigationService } from '../services/project/workspace_navigation_service'
+import { mobileCardViewService } from '../services/project/mobile_card_view_service'
 import { workspaceViewService } from '../services/project/workspace_view_service'
 import { projectPersistenceService } from '../services/project/project_persistence_service'
 import { projectAccessService } from '../services/project/project_access_service'
@@ -249,6 +250,9 @@ describe('ProjectWorkspace', () => {
         delete window.md2Actions
         delete window.md2Data
         delete window.md2Lifecycle
+        mobileCardViewService.selectVisibleColumn([])
+        Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView')
+        vi.unstubAllGlobals()
         vi.restoreAllMocks()
     })
 
@@ -909,6 +913,79 @@ describe('ProjectWorkspace', () => {
         expect(trackEvent).toHaveBeenCalledWith('navigation')
 
         trackEvent.mockRestore()
+    })
+
+    it('selects and scrolls a revealed active card while preserving cards view', async () => {
+        const scrollIntoView = vi.fn()
+        let frameCallback: FrameRequestCallback | null = null
+        vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+            frameCallback = callback
+            return 1
+        })
+        Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', { configurable: true, value: scrollIntoView })
+        window.md2Data = createBridge()
+
+        renderProjectSurface()
+        await openLocalProject()
+        await findRootCard()
+
+        act(() => workspaceNavigationService.revealCard('design/F-1-root.md'))
+        act(() => frameCallback?.(0))
+
+        expect(scrollIntoView).toHaveBeenCalledWith({ block: 'nearest', inline: 'nearest' })
+        expect(workspaceViewService.getSnapshot()).toEqual({ selectedPath: 'design/F-1-root.md', viewMode: 'cards' })
+        expect(document.querySelector('[data-selected="true"]')).toHaveTextContent('Root')
+    })
+
+    it('selects the card status column before revealing on mobile', async () => {
+        const scrollIntoView = vi.fn()
+        let frameCallback: FrameRequestCallback | null = null
+        vi.spyOn(window, 'matchMedia').mockImplementation((query: string) => ({
+            addEventListener: () => {}, addListener: () => {}, dispatchEvent: () => false, matches: true,
+            media: query, onchange: null, removeEventListener: () => {}, removeListener: () => {},
+        }) as unknown as MediaQueryList)
+        vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+            frameCallback = callback
+            return 1
+        })
+        Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', { configurable: true, value: scrollIntoView })
+        window.md2Data = createBridge()
+
+        renderProjectSurface()
+        await openLocalProject()
+        await screen.findByText('Root')
+        act(() => mobileCardViewService.selectColumn('done'))
+
+        act(() => workspaceNavigationService.revealCard('design/F-1-root.md'))
+        act(() => frameCallback?.(0))
+
+        expect(mobileCardViewService.getSnapshot().selectedColumnStatus).toBe('active')
+        expect(workspaceViewService.getSnapshot()).toEqual({ selectedPath: 'design/F-1-root.md', viewMode: 'cards' })
+        expect(scrollIntoView).toHaveBeenCalledWith({ block: 'nearest', inline: 'nearest' })
+    })
+
+    it('reports reveal failure when active card or rendered element is missing', async () => {
+        let frameCallback: FrameRequestCallback | null = null
+        vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+            frameCallback = callback
+            return 1
+        })
+        Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', { configurable: true, value: vi.fn() })
+        window.md2Data = createBridge()
+
+        renderProjectSurface()
+        await openLocalProject()
+        await findRootCard()
+
+        act(() => workspaceNavigationService.revealCard('design/F-404-missing.md'))
+        expect(await screen.findByText('Active card no longer exists: design/F-404-missing.md')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+        await waitFor(() => expect(screen.queryByText('Active card no longer exists: design/F-404-missing.md')).toBeNull())
+
+        document.querySelector('[data-card-path="design/F-1-root.md"]')?.remove()
+        act(() => workspaceNavigationService.revealCard('design/F-1-root.md'))
+        act(() => frameCallback?.(0))
+        expect(await screen.findByText('Active card element was not found: design/F-1-root.md')).toBeInTheDocument()
     })
 
     it('deletes a selected card and clears the selected highlight', async () => {

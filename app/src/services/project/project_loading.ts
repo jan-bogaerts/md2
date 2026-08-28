@@ -82,7 +82,7 @@ function isProjectMarkdownPath(path: string, projectFolder: string) {
 }
 
 function reportMarkdownWatchConflict(path: string) {
-    reportWorkspaceError(`External change ignored for ${path} because the file has unsaved local edits.`)
+    dialogService.displayError(`External change ignored for ${path} because the file has unsaved local edits.`)
 }
 
 function reportActionLoadIssues() {

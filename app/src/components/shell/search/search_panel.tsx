@@ -14,7 +14,7 @@ import { useProjectState } from '../../hooks/use_project_state'
 import { dialogService } from '../../../services/dialog_service'
 import { InvalidSearchPatternError, defaultSearchRegexpAgent, searchActions, searchProject } from '../../../services/search/search_project'
 import { GLOBAL_SEARCH_SHORTCUT_BINDING } from '../../../services/search/search_open_service'
-import type { SearchMode, SearchRegexpAgent, SearchResults as SearchResultsData } from '../../../services/search/search_types'
+import type { SearchMatch, SearchMode, SearchRegexpAgent, SearchResults as SearchResultsData } from '../../../services/search/search_types'
 import { formatShortcut } from '../../../services/shortcuts/keyboard_platform'
 import { workspaceNavigationService } from '../../../services/project/workspace_navigation_service'
 import { useWorkspaceView } from '../../hooks/use_workspace_view'
@@ -22,6 +22,7 @@ import { NO_DRAG_REGION } from '../drag_region'
 import { ResizablePopper } from '../../resizable_popper'
 import { SearchResults } from './search_results'
 import { useProjectConfig } from '../../hooks/use_project_config'
+import { SearchCardPreviewDialog } from './search_card_preview_dialog'
 
 const RESULTS_MAX_HEIGHT = 420
 const RESULTS_WIDTH = 460
@@ -29,6 +30,13 @@ const RESULTS_SIZE_STORAGE_KEY = 'search-panel-results-size'
 const SEARCH_DROPDOWN_LABEL_ID = 'search-dropdown-label'
 const EMPTY_RESULTS: SearchResultsData = { active: [], actions: [], backgroundGroups: [] }
 const SEARCH_ACTION_CONTEXT: ActionContext = { folder: '', kind: 'folder' }
+
+function isPathInFolder(path: string, folder: string) {
+    const normalizedPath = path.replace(/\\/gu, '/').replace(/\/+$/u, '')
+    const normalizedFolder = folder.replace(/\\/gu, '/').replace(/\/+$/u, '')
+
+    return normalizedPath === normalizedFolder || normalizedPath.startsWith(`${normalizedFolder}/`)
+}
 
 interface SearchPanelProps {
     initialQuery: string
@@ -53,6 +61,7 @@ export function SearchPanel(props: SearchPanelProps) {
     const [isDismissed, setIsDismissed] = useState(false)
     const [isAgentBusy, setIsAgentBusy] = useState(false)
     const [actionPopupOpen, setActionPopupOpen] = useState(false)
+    const [previewMatch, setPreviewMatch] = useState<SearchMatch | null>(null)
     const [controlElement, setControlElement] = useState<HTMLDivElement | null>(null)
     const shortcutLabel = formatShortcut(GLOBAL_SEARCH_SHORTCUT_BINDING)
 
@@ -92,7 +101,7 @@ export function SearchPanel(props: SearchPanelProps) {
     const handleControlBlur = (event: FocusEvent<HTMLDivElement>) => {
         const nextFocusedElement = event.relatedTarget
         if (nextFocusedElement instanceof Node && event.currentTarget.contains(nextFocusedElement)) return
-        if (actionPopupOpen) return
+        if (actionPopupOpen || previewMatch) return
 
         onClose()
     }
@@ -145,10 +154,45 @@ export function SearchPanel(props: SearchPanelProps) {
         }
     }
 
-    const handleSelect = (path: string) => {
-        workspaceNavigationService.open(path)
-        setIsDismissed(true)
-        onClose()
+    const handleSelect = (match: SearchMatch) => {
+        try {
+            if (!snapshot) throw new Error(`Search result no longer exists: ${match.path}`)
+
+            const activeCard = snapshot.activeCards.find(({ path }) => path === match.path)
+            const resolvedCard = activeCard ?? snapshot.backgroundCards.find(({ path }) => path === match.path)
+            if (!resolvedCard) throw new Error(`Search result no longer exists: ${match.path}`)
+
+            if (viewMode !== 'cards') {
+                workspaceNavigationService.open(resolvedCard.path)
+                setIsDismissed(true)
+                onClose()
+                return
+            }
+
+            if (activeCard) {
+                workspaceNavigationService.revealCard(activeCard.path)
+                setIsDismissed(true)
+                onClose()
+                return
+            }
+
+            if (!projectConfig) throw new Error('Cannot classify search result without project configuration')
+
+            const { archivedFolder, releasesFolder } = projectConfig
+            const isFormerCard = !!resolvedCard.header.internalId
+                && (isPathInFolder(resolvedCard.path, archivedFolder) || isPathInFolder(resolvedCard.path, releasesFolder))
+            if (isFormerCard) {
+                setPreviewMatch({ ...match, card: resolvedCard, path: resolvedCard.path })
+                setIsDismissed(true)
+                return
+            }
+
+            workspaceNavigationService.open(resolvedCard.path)
+            setIsDismissed(true)
+            onClose()
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Search result could not be opened' })
+        }
     }
 
     const handleSelectAction = (action: ActionDefinition) => {
@@ -170,6 +214,11 @@ export function SearchPanel(props: SearchPanelProps) {
 
     const closeActionPopup = () => {
         setActionPopupOpen(false)
+        onClose()
+    }
+
+    const closeCardPreview = () => {
+        setPreviewMatch(null)
         onClose()
     }
 
@@ -307,6 +356,7 @@ export function SearchPanel(props: SearchPanelProps) {
                     onClose={closeActionPopup}
                 />
             ) : null}
+            <SearchCardPreviewDialog match={previewMatch} onClose={closeCardPreview} />
         </Box>
     )
 }

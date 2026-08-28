@@ -1,7 +1,9 @@
 import { Box, Stack, Typography } from '@mui/material'
-import { memo, useSyncExternalStore, type ReactNode } from 'react'
+import { memo, useSyncExternalStore } from 'react'
 import { useBoundRunId, useRunSelector } from '../../hooks/use_action_runs'
 import type { PopupRunStatus } from '../run/popup/action_popup_defaults'
+import { ActionUsageSummaryOwner } from '../run/popup/action_usage_summary_owner'
+import type { ActionUsageValuesService } from '../run/popup/action_usage_values_service'
 import { actionStatusLabel } from '../shared/action_status'
 import type { ActionConversationStore } from './action_conversation_store'
 import { ConversationContextUsage } from './conversation_context_usage'
@@ -10,13 +12,13 @@ import type { ActionRunBindingStore } from '../run/state/action_run_binding_stor
 
 interface ConversationMetaInfoProps {
     bindingStore: ActionRunBindingStore
-    metadataContent?: ReactNode
     store: ActionConversationStore
+    usageValuesService?: ActionUsageValuesService
 }
 
 /** Bottom metadata row that owns timer, status, and context-usage subscriptions. */
 export const ConversationMetaInfo = memo(function ConversationMetaInfo(
-    { bindingStore, metadataContent, store }: ConversationMetaInfoProps,
+    { bindingStore, store, usageValuesService }: ConversationMetaInfoProps,
 ) {
     const boundRunId = useBoundRunId(bindingStore)
     const liveConversationPath = useRunSelector(boundRunId, (run) => run?.conversation?.path ?? null)
@@ -30,7 +32,7 @@ export const ConversationMetaInfo = memo(function ConversationMetaInfo(
         ? selectedConversation.status === 'waitingForInput' ? 'waitingForInput' : 'idle'
         : runStatus
 
-    if (!conversationExists && status === 'idle' && !metadataContent) return null
+    if (!conversationExists && status === 'idle' && !usageValuesService) return null
 
     return (
         <Stack aria-label="Conversation metadata" direction="row" spacing={1}
@@ -41,8 +43,9 @@ export const ConversationMetaInfo = memo(function ConversationMetaInfo(
                 </Typography>
             ) : null}
             {conversationExists ? <ConversationTimer status={status} timer={timer} /> : null}
-            {metadataContent}
-            <Box sx={{ flex: 1 }} />
+            <Box sx={{ flex: 1, justifyContent: 'center', display: 'flex' }}>
+                {usageValuesService ? <ActionUsageSummaryOwner service={usageValuesService} /> : null}
+            </Box>
             <ConversationContextUsage bindingStore={bindingStore} store={store} />
         </Stack>
     )

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import type { ReservationGroupState } from './action_conversation_render_projection'
 import {
     createActionConversationReservationState,
     reservedActionConversationBlockCount,
+    type ReservationGroupState,
     updateActionConversationReservation,
 } from './action_conversation_reservation'
 

@@ -6,14 +6,14 @@ import type { AgentConversationEventEntry } from '../../../data/data_types'
 import { ActionConversationEventRow } from './action_conversation_event_row'
 import { CompletedToolCallGroup } from './completed_tool_call_group'
 import type { ActionConversationRenderGroup } from './action_conversation_render_groups'
-import type { ActionConversationRenderProjection } from './action_conversation_render_projection'
+import type { ActionConversationChatlogTracker } from './action_conversation_chatlog_tracker'
 
 interface SubAgentGroupProps {
     entry: AgentConversationEventEntry
     groupKey: string
     groups: ActionConversationRenderGroup[]
     label: string
-    projection: ActionConversationRenderProjection
+    tracker: ActionConversationChatlogTracker
     runningCount?: number
 }
 
@@ -28,16 +28,16 @@ function groupEntryCount(groups: ActionConversationRenderGroup[]): number {
 
 /** Shows one sub agent's text, thinking and tool calls under the `Agent` call that spawned it. */
 export const SubAgentGroup = memo(function SubAgentGroup(
-    { entry, groupKey, groups, label, projection, runningCount = 0 }: SubAgentGroupProps,
+    { entry, groupKey, groups, label, tracker, runningCount = 0 }: SubAgentGroupProps,
 ) {
     const subscribe = useCallback(
-        (listener: () => void) => projection.subscribeExpansion(groupKey, listener),
-        [groupKey, projection],
+        (listener: () => void) => tracker.subscribeExpansion(groupKey, listener),
+        [groupKey, tracker],
     )
-    const getSnapshot = useCallback(() => projection.groupIsExpanded(groupKey), [groupKey, projection])
+    const getSnapshot = useCallback(() => tracker.groupIsExpanded(groupKey), [groupKey, tracker])
     const expanded = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
     const toggleExpanded = () => {
-        projection.toggleExpansion(groupKey)
+        tracker.toggleExpansion(groupKey)
     }
 
     return (
@@ -66,7 +66,7 @@ export const SubAgentGroup = memo(function SubAgentGroup(
                             entries={group.entries}
                             groupKey={group.key}
                             key={group.key}
-                            projection={projection}
+                            tracker={tracker}
                         />
                     )
                 }
@@ -78,7 +78,7 @@ export const SubAgentGroup = memo(function SubAgentGroup(
                             groups={group.groups}
                             key={group.key}
                             label={group.label}
-                            projection={projection}
+                            tracker={tracker}
                             runningCount={group.runningCount}
                         />
                     )

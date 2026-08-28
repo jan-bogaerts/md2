@@ -77,6 +77,28 @@ describe('dialogService', () => {
         dialogService.removeEventListener(DIALOG_SERVICE_EVENT, listener)
     })
 
+    it('displays an error without reporting it', () => {
+        const listener = vi.fn()
+        const captureError = vi.spyOn(telemetryService, 'captureError').mockImplementation(() => undefined)
+        dialogService.addEventListener(DIALOG_SERVICE_EVENT, listener)
+
+        const message = dialogService.displayError('External change ignored')
+        const expectedDetail = expect.objectContaining({
+            message: 'External change ignored',
+            severity: 'error',
+        }) as DialogServiceMessage
+
+        expect(message).toEqual(expect.objectContaining({
+            message: 'External change ignored',
+            severity: 'error',
+            title: 'Error',
+        }))
+        expect(listener).toHaveBeenCalledWith(expect.objectContaining({ detail: expectedDetail }))
+        expect(captureError).not.toHaveBeenCalled()
+
+        dialogService.removeEventListener(DIALOG_SERVICE_EVENT, listener)
+    })
+
     it('includes optional snackbar action without changing text-only messages', () => {
         const callback = vi.fn()
         const actionable = dialogService.warning('Codex update required', {action: { callback, label: 'Update Codex' }})

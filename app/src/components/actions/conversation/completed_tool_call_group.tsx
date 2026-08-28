@@ -5,26 +5,26 @@ import { memo, useCallback, useSyncExternalStore } from 'react'
 import type { AgentConversationEventEntry } from '../../../data/data_types'
 import { ActionConversationEventRow } from './action_conversation_event_row'
 import { eventIdentity } from './event_display'
-import type { ActionConversationRenderProjection } from './action_conversation_render_projection'
+import type { ActionConversationChatlogTracker } from './action_conversation_chatlog_tracker'
 
 interface CompletedToolCallGroupProps {
     entries: AgentConversationEventEntry[]
     groupKey: string
-    projection: ActionConversationRenderProjection
+    tracker: ActionConversationChatlogTracker
 }
 
 /** Shows adjacent completed tool calls as one expandable summary. */
 export const CompletedToolCallGroup = memo(function CompletedToolCallGroup(
-    { entries, groupKey, projection }: CompletedToolCallGroupProps,
+    { entries, groupKey, tracker }: CompletedToolCallGroupProps,
 ) {
     const subscribe = useCallback(
-        (listener: () => void) => projection.subscribeExpansion(groupKey, listener),
-        [groupKey, projection],
+        (listener: () => void) => tracker.subscribeExpansion(groupKey, listener),
+        [groupKey, tracker],
     )
-    const getSnapshot = useCallback(() => projection.groupIsExpanded(groupKey), [groupKey, projection])
+    const getSnapshot = useCallback(() => tracker.groupIsExpanded(groupKey), [groupKey, tracker])
     const expanded = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
     const toggleExpanded = () => {
-        projection.toggleExpansion(groupKey)
+        tracker.toggleExpansion(groupKey)
     }
 
     return (

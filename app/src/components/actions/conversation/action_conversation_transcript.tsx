@@ -1,71 +1,42 @@
 import { Stack } from '@mui/material'
-import { memo, useCallback, useLayoutEffect, useRef, useState, type UIEvent } from 'react'
-import type { AgentConversation } from '../../../data/data_types'
-import type { ActionConversationChange } from '../../../services/actions/action_run_registry'
-import type { ActionQueuedPrompt } from '../../../data/action_run_types'
-import type { PopupRunStatus } from '../run/popup/action_popup_defaults'
-import { ActionConversationGroupList } from './action_conversation_group_list'
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type UIEvent } from 'react'
+import { dialogService } from '../../../services/dialog_service'
+import type { ActionRunBindingStore } from '../run/state/action_run_binding_store'
+import { ActionConversationChatlogTracker } from './action_conversation_chatlog_tracker'
+import { ActionConversationEvolvingGroups } from './action_conversation_evolving_groups'
 import { ActionConversationHistory } from './action_conversation_history'
-import { ActionConversationRenderProjection } from './action_conversation_render_projection'
-import {
-    createActionConversationReservationState,
-    reservedActionConversationBlockCount,
-    updateActionConversationReservation,
-} from './action_conversation_reservation'
-import { ActionConversationReservedBlock } from './action_conversation_reserved_block'
-import { ActionQueuedPromptRow } from './action_queued_prompt'
+import { ActionConversationQueuedPrompts } from './action_conversation_queued_prompts'
+import { ActionConversationReservedBlocks } from './action_conversation_reserved_blocks'
+import type { ActionConversationStore } from './action_conversation_store'
 
 const CHAT_END_TOLERANCE = 4
 const MIN_CHAT_HEIGHT = 96
 
-export type ConversationTranscript = Pick<AgentConversation, 'cardInternalId' | 'entries' | 'path' | 'providerSessions'> & {
-    change?: ActionConversationChange
-}
-
 interface ActionConversationTranscriptProps {
-    conversation: ConversationTranscript | null
-    queuedPrompts?: ActionQueuedPrompt[]
-    runId?: string | null
-    status: PopupRunStatus
+    bindingStore: ActionRunBindingStore
+    store: ActionConversationStore
 }
 
 function viewportIsAtEnd(viewport: HTMLDivElement) {
     return viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop <= CHAT_END_TOLERANCE
 }
 
-function runIsActive(status: PopupRunStatus) {
-    return status === 'queued' || status === 'running' || status === 'waitingForInput'
-}
-
-/** Renders only transcript data, isolated from conversation metadata updates. */
+/** Owns tracker lifecycle and renders subscribed transcript leaves. */
 export const ActionConversationTranscript = memo(function ActionConversationTranscript(
-    { conversation, queuedPrompts = [], runId = null, status }: ActionConversationTranscriptProps,
+    { bindingStore, store }: ActionConversationTranscriptProps,
 ) {
-    const [projection] = useState(() => new ActionConversationRenderProjection())
-    const projectionSnapshot = projection.update(conversation, runIsActive(status))
+    const [tracker, setTracker] = useState<ActionConversationChatlogTracker | null>(null)
     const viewportRef = useRef<HTMLDivElement>(null)
     const viewportHeightRef = useRef<number | null>(null)
-    const conversationPathRef = useRef<string | null | undefined>(undefined)
+    const conversationIdentityRef = useRef<string | null>(null)
     const stuckToEndRef = useRef(true)
-    const conversationPath = conversation?.path ?? null
-    const [reservationState, setReservationState] = useState(() => updateActionConversationReservation(
-        createActionConversationReservationState(),
-        conversationPath,
-        projectionSnapshot.reservationGroups,
-        projectionSnapshot.reservationSession,
-        projectionSnapshot.sealedGroupKeys,
-        status,
-    ))
-    const nextReservationState = updateActionConversationReservation(
-        reservationState,
-        conversationPath,
-        projectionSnapshot.reservationGroups,
-        projectionSnapshot.reservationSession,
-        projectionSnapshot.sealedGroupKeys,
-        status,
-    )
-    if (nextReservationState !== reservationState) setReservationState(nextReservationState)
-    const reservedBlockCount = reservedActionConversationBlockCount(nextReservationState)
+
+    const scrollToEnd = useCallback(() => {
+        const viewport = viewportRef.current
+        if (!viewport || !stuckToEndRef.current) return
+
+        viewport.scrollTop = viewport.scrollHeight
+    }, [])
 
     const handleScroll = (event: UIEvent<HTMLDivElement>) => {
         stuckToEndRef.current = viewportIsAtEnd(event.currentTarget)
@@ -78,23 +49,51 @@ export const ActionConversationTranscript = memo(function ActionConversationTran
         const previousViewportHeight = viewportHeightRef.current
         const viewportHeight = viewport.clientHeight
         viewportHeightRef.current = viewportHeight
-        if (previousViewportHeight === viewportHeight || !stuckToEndRef.current) return
+        if (previousViewportHeight === viewportHeight) return
 
-        viewport.scrollTop = viewport.scrollHeight
-    }, [])
+        scrollToEnd()
+    }, [scrollToEnd])
 
-    useLayoutEffect(() => {
-        const viewport = viewportRef.current
-        if (!viewport) return
+    useEffect(() => {
+        const nextTracker = new ActionConversationChatlogTracker(bindingStore, store)
+        setTracker(null)
+        try {
+            nextTracker.load()
+            setTracker(nextTracker)
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Could not load conversation chatlog' })
+        }
 
-        const currentConversationPath = conversation?.path ?? null
-        const conversationChanged = conversationPathRef.current !== currentConversationPath
-        conversationPathRef.current = currentConversationPath
-        if (conversationChanged) stuckToEndRef.current = true
-        if (!stuckToEndRef.current) return
+        return () => nextTracker.unload()
+    }, [bindingStore, store])
 
-        viewport.scrollTop = viewport.scrollHeight
-    })
+    useEffect(() => {
+        if (!tracker) return undefined
+
+        const handleContentChange = () => {
+            queueMicrotask(scrollToEnd)
+        }
+        const handleConversationChange = () => {
+            const conversationIdentity = tracker.getConversationIdentity()
+            if (conversationIdentityRef.current !== conversationIdentity) stuckToEndRef.current = true
+            conversationIdentityRef.current = conversationIdentity
+            handleContentChange()
+        }
+        conversationIdentityRef.current = tracker.getConversationIdentity()
+        const unsubscribers = [
+            tracker.subscribeStableGroups(handleContentChange),
+            tracker.subscribeEvolvingGroups(handleContentChange),
+            tracker.subscribeReservedBlockCount(handleContentChange),
+            tracker.subscribeQueuedPrompts(handleContentChange),
+            tracker.subscribeConversation(handleConversationChange),
+        ]
+
+        return () => {
+            for (const unsubscribe of unsubscribers) unsubscribe()
+        }
+    }, [scrollToEnd, tracker])
+
+    useLayoutEffect(scrollToEnd, [scrollToEnd, tracker])
 
     useLayoutEffect(() => {
         const viewport = viewportRef.current
@@ -110,22 +109,10 @@ export const ActionConversationTranscript = memo(function ActionConversationTran
     return (
         <Stack aria-label="Conversation chat" onScroll={handleScroll} ref={viewportRef} spacing={1}
             sx={{ flex: 1, minHeight: MIN_CHAT_HEIGHT, overflowX: 'hidden', overflowY: 'auto' }}>
-            <ActionConversationHistory
-                cardInternalId={conversation?.cardInternalId ?? null}
-                groups={projectionSnapshot.historyGroups}
-                projection={projection}
-            />
-            <ActionConversationGroupList
-                cardInternalId={conversation?.cardInternalId ?? null}
-                groups={projectionSnapshot.tailGroups}
-                projection={projection}
-            />
-            {Array.from({ length: reservedBlockCount }, (_, index) => (
-                <ActionConversationReservedBlock key={`reserved-block-${index}`} />
-            ))}
-            {runId ? queuedPrompts.map((entry) => (
-                <ActionQueuedPromptRow entry={entry} key={entry.id} runId={runId} />
-            )) : null}
+            {tracker ? <ActionConversationHistory tracker={tracker} /> : null}
+            {tracker ? <ActionConversationEvolvingGroups tracker={tracker} /> : null}
+            {tracker ? <ActionConversationReservedBlocks tracker={tracker} /> : null}
+            {tracker ? <ActionConversationQueuedPrompts tracker={tracker} /> : null}
         </Stack>
     )
 })

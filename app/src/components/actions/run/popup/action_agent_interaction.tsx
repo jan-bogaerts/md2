@@ -8,7 +8,6 @@ import { ActionAgentQuestionOwner } from '../../agent/action_agent_question_owne
 import { ActionConversationChat } from '../../conversation/action_conversation_chat'
 import { ActionLogErrorOwner } from '../../conversation/action_log_error_owner'
 import type { ActionPopupRuntime } from './action_popup_types'
-import { ActionUsageSummaryOwner } from './action_usage_summary_owner'
 
 interface ActionAgentInteractionProps {
     action: ActionDefinition
@@ -27,13 +26,11 @@ export function ActionAgentInteraction(props: ActionAgentInteractionProps) {
     const boundRunId = useBoundRunId(bindingStore)
     const activeActionType = useRunSelector(boundRunId, (run) => run?.activeActionType ?? null)
     const visible = action.type === 'agent' || activeActionType === 'agent'
-    const usageSummary = action.type === 'agent'
+    const displayedUsageValuesService = action.type === 'agent'
         && assignmentContext.kind === 'card'
         && !!assignmentContext.file
         && !!assignmentContext.cardInternalId
-        ? (
-            <ActionUsageSummaryOwner service={usageValuesService} />
-        )
+        ? usageValuesService
         : undefined
 
     return (
@@ -44,9 +41,9 @@ export function ActionAgentInteraction(props: ActionAgentInteractionProps) {
                     actionId={action.id}
                     bindingStore={bindingStore}
                     context={assignmentContext}
-                    metadataContent={usageSummary}
                     popupEntryId={popupEntryId}
                     store={conversationStore}
+                    usageValuesService={displayedUsageValuesService}
                 />
                 <ActionAgentPromptOwner
                     action={action}

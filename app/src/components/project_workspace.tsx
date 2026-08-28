@@ -17,7 +17,12 @@ import { openFilesService } from '../services/open_files_service'
 import type { OpenDocument } from '../services/open_files_service'
 import { telemetryService } from '../services/telemetry/telemetry_service'
 import { workspaceViewService } from '../services/project/workspace_view_service'
-import { workspaceNavigationService, type WorkspaceOpenRequest } from '../services/project/workspace_navigation_service'
+import {
+    workspaceNavigationService,
+    type WorkspaceOpenRequest,
+    type WorkspaceRevealCardRequest,
+} from '../services/project/workspace_navigation_service'
+import { mobileCardViewService } from '../services/project/mobile_card_view_service'
 import { projectPersistenceService } from '../services/project/project_persistence_service'
 import { CardView } from './card_view/card_view'
 import { MobileCardViewMenu } from './card_view/mobile_card_view_menu'
@@ -193,6 +198,49 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
 
         return () => workspaceNavigationService.removeEventListener('open', handleNavigationOpen)
     }, [])
+
+    useEffect(() => {
+        let pendingScrollFrame: number | null = null
+
+        const handleRevealCard = (event: Event) => {
+            const { path } = (event as CustomEvent<WorkspaceRevealCardRequest>).detail
+            const card = dataService.getState().snapshot?.activeCards.find((candidate) => candidate.path === path)
+            if (!card) {
+                dialogService.error(new Error(`Active card no longer exists: ${path}`), { fallbackMessage: 'Card could not be revealed' })
+                return
+            }
+            if (isMobile) {
+                const status = card.header.status
+                if (!status) {
+                    dialogService.error(new Error(`Active card has no status: ${path}`), { fallbackMessage: 'Card could not be revealed' })
+                    return
+                }
+                mobileCardViewService.selectColumn(status)
+            }
+
+            workspaceViewService.selectPath(path)
+            telemetryService.trackEvent('navigation')
+            if (pendingScrollFrame !== null) cancelAnimationFrame(pendingScrollFrame)
+            pendingScrollFrame = requestAnimationFrame(() => {
+                pendingScrollFrame = null
+                const cardElement = [...document.querySelectorAll<HTMLElement>('[data-card-path]')]
+                    .find((element) => element.dataset.cardPath === path)
+                if (!cardElement) {
+                    dialogService.error(new Error(`Active card element was not found: ${path}`), { fallbackMessage: 'Card could not be revealed' })
+                    return
+                }
+
+                cardElement.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+            })
+        }
+
+        workspaceNavigationService.addEventListener('revealCard', handleRevealCard)
+
+        return () => {
+            workspaceNavigationService.removeEventListener('revealCard', handleRevealCard)
+            if (pendingScrollFrame !== null) cancelAnimationFrame(pendingScrollFrame)
+        }
+    }, [isMobile])
 
     const fileTree = (
         <Box

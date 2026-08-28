@@ -1,6 +1,7 @@
 import type { AgentConversation, AgentConversationEntry } from '../../../data/data_types'
 import type { ActionConversationChange } from '../../../services/actions/action_run_registry'
 import { buildActionConversationRenderGroups, type ActionConversationRenderGroup } from './action_conversation_render_groups'
+import type { ReservationGroupState } from './action_conversation_reservation'
 import { reasoningDisplay } from './reasoning_display'
 
 export interface ConversationRenderInput {
@@ -9,11 +10,6 @@ export interface ConversationRenderInput {
     entries: AgentConversationEntry[]
     path: string | null
     providerSessions: AgentConversation['providerSessions']
-}
-
-export interface ReservationGroupState {
-    key: string
-    running: boolean
 }
 
 export interface ConversationRenderProjectionSnapshot {

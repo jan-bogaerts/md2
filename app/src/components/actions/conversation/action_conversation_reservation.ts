@@ -1,14 +1,18 @@
 import type { PopupRunStatus } from '../run/popup/action_popup_defaults'
-import type { ReservationGroupState } from './action_conversation_render_projection'
 
 const MIN_RESERVED_BLOCK_COUNT = 1
+
+export interface ReservationGroupState {
+    key: string
+    running: boolean
+}
 
 export interface ActionConversationReservationState {
     active: boolean
     conversationPath: string | null
     inputGroups: ReservationGroupState[]
     reservationSession: object | null
-    sealedGroupKeys: string[]
+    transitionedGroupKeys: string[]
     permanentKeys: Set<string>
     runningKeys: Set<string>
     slotCount: number
@@ -27,7 +31,7 @@ export function createActionConversationReservationState(): ActionConversationRe
         permanentKeys: new Set(),
         reservationSession: null,
         runningKeys: new Set(),
-        sealedGroupKeys: [],
+        transitionedGroupKeys: [],
         slotCount: 0,
     }
 }
@@ -38,7 +42,7 @@ export function updateActionConversationReservation(
     conversationPath: string | null,
     groups: ReservationGroupState[],
     reservationSession: object,
-    sealedGroupKeys: string[],
+    transitionedGroupKeys: string[],
     status: PopupRunStatus,
 ) {
     const active = runIsActive(status)
@@ -48,7 +52,7 @@ export function updateActionConversationReservation(
         && conversationPath === previous.conversationPath
         && groups === previous.inputGroups
         && reservationSession === previous.reservationSession
-        && sealedGroupKeys === previous.sealedGroupKeys
+        && transitionedGroupKeys === previous.transitionedGroupKeys
     ) return previous
     if (!active) return createActionConversationReservationState()
 
@@ -60,7 +64,7 @@ export function updateActionConversationReservation(
     const permanentKeys = new Set([
         ...retainedPermanentKeys,
         ...groups.filter(({ running }) => !running).map(({ key }) => key),
-        ...sealedGroupKeys,
+        ...transitionedGroupKeys,
     ])
     if (sessionChanged) {
         return {
@@ -70,7 +74,7 @@ export function updateActionConversationReservation(
             permanentKeys,
             reservationSession,
             runningKeys,
-            sealedGroupKeys,
+            transitionedGroupKeys,
             slotCount: Math.max(MIN_RESERVED_BLOCK_COUNT, runningKeys.size),
         }
     }
@@ -89,7 +93,7 @@ export function updateActionConversationReservation(
         permanentKeys,
         reservationSession,
         runningKeys,
-        sealedGroupKeys,
+        transitionedGroupKeys,
         slotCount,
     }
 }

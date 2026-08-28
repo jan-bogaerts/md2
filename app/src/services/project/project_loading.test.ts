@@ -1897,6 +1897,7 @@ describe('ProjectLoading', () => {
         const service = createDataService()
         service.init({ storage })
         const conflicts = recordDialogMessages('error')
+        const captureError = vi.spyOn(telemetryService, 'captureError').mockImplementation(() => undefined)
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
         try {
@@ -1905,6 +1906,7 @@ describe('ProjectLoading', () => {
             await vi.advanceTimersByTimeAsync(150)
 
             expect(conflicts.messages[0]).toContain('External change ignored for design/F-1-root.md')
+            expect(captureError).not.toHaveBeenCalled()
             const card = service.getState().snapshot?.activeCards.find((candidate) => candidate.path === 'design/F-1-root.md')
             expect(card?.content).toContain('Local draft')
         } finally {

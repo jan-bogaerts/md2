@@ -10,6 +10,7 @@ import { AppThemeProvider } from '../../../theme/theme_provider'
 import { ActionConversationChat } from './action_conversation_chat'
 import type { ActionConversationStore } from './action_conversation_store'
 import { ActionRunBindingStore } from '../run/state/action_run_binding_store'
+import type { ActionUsageValuesService } from '../run/popup/action_usage_values_service'
 
 const context = { cardInternalId: 'card-1', file: 'design/F-138.md', kind: 'card' as const }
 const snapshot = { conversations: [], loading: false, selectedConversation: null }
@@ -19,6 +20,21 @@ const store = {
 } as unknown as ActionConversationStore
 const bindingStore = new ActionRunBindingStore('run-1')
 const chatRenderProbe = vi.fn()
+const usageValuesSnapshot = {
+    actionCard: {
+        changes: null,
+        lines: { commits: [], deletions: 0, filesChanged: 0, insertions: 0 },
+        tokens: { cachedInputTokens: 0, inputTokens: 10, outputTokens: 0, reasoningTokens: 0, totalTokens: 10 },
+    },
+    activeScope: 'actionCard',
+    conversation: null,
+    conversationAvailable: false,
+} as const
+const usageValuesService = {
+    getSnapshot: () => usageValuesSnapshot,
+    subscribe: () => () => undefined,
+    toggleScope: vi.fn(),
+} as unknown as ActionUsageValuesService
 
 function ActionConversationChatRenderProbe(props: Parameters<typeof ActionConversationChat>[0]) {
     chatRenderProbe()
@@ -227,15 +243,15 @@ describe('ActionConversationChat integration', () => {
                     actionId="review"
                     bindingStore={bindingStore}
                     context={context}
-                    metadataContent={<button type="button">Usage summary</button>}
                     store={selectableStore}
+                    usageValuesService={usageValuesService}
                 />
             </AppThemeProvider>,
         )
         const viewport = screen.getByLabelText('Conversation chat')
         const metadata = screen.getByLabelText('Conversation metadata')
         const timer = screen.getByLabelText('Elapsed time')
-        const usage = screen.getByRole('button', { name: 'Usage summary' })
+        const usage = screen.getByRole('button', { name: 'Tokens, Action/card scope' })
         expect(viewport).not.toContainElement(metadata)
         expect(viewport.parentElement?.lastElementChild).toBe(metadata)
         expect(metadata).toHaveStyle({ containerType: 'inline-size' })
@@ -255,22 +271,22 @@ describe('ActionConversationChat integration', () => {
         expect(await screen.findByText('Context usage: 50%', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()
     })
 
-    it('keeps metadata content visible before a conversation exists', () => {
+    it('keeps usage summary visible before a conversation exists', () => {
         render(
             <AppThemeProvider>
                 <ActionConversationChat
                     actionId="review"
                     bindingStore={bindingStore}
                     context={context}
-                    metadataContent={<button type="button">Usage summary</button>}
                     store={store}
+                    usageValuesService={usageValuesService}
                 />
             </AppThemeProvider>,
         )
 
         const metadata = screen.getByLabelText('Conversation metadata')
         expect(metadata).toHaveStyle({ containerType: 'inline-size' })
-        expect(within(metadata).getByRole('button', { name: 'Usage summary' })).toBeInTheDocument()
+        expect(within(metadata).getByRole('button', { name: 'Tokens, Action/card scope' })).toBeInTheDocument()
         expect(within(metadata).queryByRole('status')).not.toBeInTheDocument()
         expect(within(metadata).queryByLabelText('Elapsed time')).not.toBeInTheDocument()
         expect(within(metadata).queryByRole('progressbar', { name: 'Context usage' })).not.toBeInTheDocument()
