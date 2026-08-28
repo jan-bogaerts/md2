@@ -7,6 +7,7 @@ status: ready for implementation
 owner: 
 affects:
 agents:
+  - design/activity/card__7dee6bc2-2c20-4336-99c8-2775f985089e.json
 policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 142420637
