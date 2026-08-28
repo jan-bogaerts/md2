@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 75804
+        "usedTokens": 88869
       },
       "entries": [
         {
@@ -450,24 +450,263 @@
           "role": "assistant",
           "sequence": 33,
           "timestamp": "2026-08-28T17:21:59.647Z"
+        },
+        {
+          "content": "Yes",
+          "id": "agent-turn-e57d23e5-1155-4830-b45e-870b70d0a3ea-user-33",
+          "kind": "message",
+          "role": "user",
+          "sequence": 34,
+          "timestamp": "2026-08-28T17:55:24.808Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-e57d23e5-1155-4830-b45e-870b70d0a3ea-event-35",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0b763254933a07e7016a91cb92849087d283ebe3c390b4cc91",
+          "sequence": 35,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T17:55:30.708Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Scope fixed: card-action rows become named and clickable. Non-card actions plus `Search RegExp` stay visible, keep current labels, and do nothing on click. Completing architecture/test review, then editing only feature file.\n\n",
+          "id": "agent-turn-e57d23e5-1155-4830-b45e-870b70d0a3ea-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 36,
+          "timestamp": "2026-08-28T17:55:32.094Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\architecture\\\\architectural_decisions.md'; rg -n -C 12 \\\"global active|Global active|getGlobalActiveSnapshot|subscribeGlobalActive\\\" 'app\\\\src\\\\services\\\\actions\\\\action_run_registry.node.test.ts' 'app\\\\src\\\\services\\\\actions\\\\action_run_registry.test.ts' 'app\\\\src\\\\services\\\\actions\\\\action_run_registry*.test.*'; rg -n \\\"initialActionId|CardActionPopupHostEntry|toggleAction\\\" app\\\\src\\\\components\\\\actions\\\\run\\\\popup --glob '*.test.*' app\\\\src\\\\services\\\\card_popup_service.test.ts\"",
+          "content": "rg: app\\src\\services\\actions\\action_run_registry.test.ts: The system cannot find the file specified. (os error 2)\nrg: app\\src\\services\\actions\\action_run_registry*.test.*: The filename, directory name, or volume label syntax is incorrect. (os error 123)\napp\\src\\services\\actions\\action_run_registry.node.test.ts-201-    })\napp\\src\\services\\actions\\action_run_registry.node.test.ts-202-\napp\\src\\services\\actions\\action_run_registry.node.test.ts-203-    it('keeps more than 100 simultaneous active runs without eviction', () => {\napp\\src\\services\\actions\\action_run_registry.node.test.ts-204-        const { bridge, emit } = bridgeWithEvents()\napp\\src\\services\\actions\\action_run_registry.node.test.ts-205-        setActionBridgeOverride(bridge)\napp\\src\\services\\actions\\action_run_registry.node.test.ts-206-        const service = new ActionRunRegistry()\napp\\src\\services\\actions\\action_run_registry.node.test.ts-207-        service.start()\napp\\src\\services\\actions\\action_run_registry.node.test.ts-208-\napp\\src\\services\\actions\\action_run_registry.node.test.ts-209-        for (let index = 0; index < 101; index++) {\napp\\src\\services\\actions\\action_run_registry.node.test.ts-210-            emit({ ...runEvent('running'), runId: `run-${index}` })\napp\\src\\services\\actions\\action_run_registry.node.test.ts-211-        }\napp\\src\\services\\actions\\action_run_registry.node.test.ts-212-\napp\\src\\services\\actions\\action_run_registry.node.test.ts:213:        expect(service.getGlobalActiveSnapshot()).toHaveLength(101)\napp\\src\\services\\actions\\action_run_registry.node.test.ts-214-        expect(service.getRunStore('run-0')).not.toBeNull()\napp\\src\\services\\actions\\action_run_registry.node.test.ts-215-        expect(service.getRunStore('run-100')).not.toBeNull()\napp\\src\\services\\actions\\action_run_registry.node.test.ts-216-        service.stop()\napp\\src\\services\\actions\\action_run_registry.node.test.ts-217-    })\napp\\src\\services\\actions\\action_run_registry.node.test.ts-218-\napp\\src\\services\\actions\\action_run_registry.node.test.ts-219-    it('retains concurrent stores for one action and removes only the terminal run', () => {\napp\\src\\services\\actions\\action_run_registry.node.test.ts-220-        const { bridge, emit } = bridgeWithEvents()\napp\\src\\services\\actions\\action_run_registry.node.test.ts-221-        setActionBridgeOverride(bridge)\napp\\src\\services\\actions\\action_run_registry.node.test.ts-222-        const service = new ActionRunRegistry()\napp\\src\\services\\actions\\action_run_registry.node.test.ts-223-        service.start()\napp\\src\\services\\actions\\action_run_registry.node.test.ts-224-\napp\\src\\services\\actions\\action_run_registry.node.test.ts-225-        emit(runEvent('running'))\n--\napp\\src\\services\\actions\\action_run_registry.node.test.ts-857-        emit({ actionId: 'build', context: runContext, runId: 'run-1', phase: 'main', rootActionId: 'build', status: 'running', type: 'run' })\napp\\src\\services\\actions\\action_run_registry.node.test.ts-858-        const reloadedContext = { ...runContext, state: 'ready', title: 'New title', worktree: '1' }\napp\\src\\services\\actions\\action_run_registry.node.test.ts-859-\napp\\src\\services\\actions\\action_run_registry.node.test.ts-860-        expect(service.getActionRunStore('build', reloadedContext)?.getSnapshot()).toMatchObject({ runId: 'run-1' })\napp\\src\\services\\actions\\action_run_registry.node.test.ts-861-        service.stop()\napp\\src\\services\\actions\\action_run_registry.node.test.ts-862-    })\napp\\src\\services\\actions\\action_run_registry.node.test.ts-863-\napp\\src\\services\\actions\\action_run_registry.node.test.ts-864-    it('does not notify running-only subscribers for output deltas', () => {\napp\\src\\services\\actions\\action_run_registry.node.test.ts-865-        const { bridge, emit } = bridgeWithEvents()\napp\\src\\services\\actions\\action_run_registry.node.test.ts-866-        setActionBridgeOverride(bridge)\napp\\src\\services\\actions\\action_run_registry.node.test.ts-867-        const service = new ActionRunRegistry()\napp\\src\\services\\actions\\action_run_registry.node.test.ts-868-        const activeChanged = vi.fn()\napp\\src\\services\\actions\\action_run_registry.node.test.ts:869:        service.subscribeGlobalActive(activeChanged)\napp\\src\\services\\actions\\action_run_registry.node.test.ts-870-        service.start()\napp\\src\\services\\actions\\action_run_registry.node.test.ts-871-\napp\\src\\services\\actions\\action_run_registry.node.test.ts-872-        emit(runEvent('running'))\napp\\src\\services\\actions\\action_run_registry.node.test.ts-873-        emit({\napp\\src\\services\\actions\\action_run_registry.node.test.ts-874-            actionId: 'build', context, runId: 'run-1', phase: 'main', rootActionId: 'build', status: 'running', type: 'update',\napp\\src\\services\\actions\\action_run_registry.node.test.ts-875-            update: { content: 'chunk', kind: 'output' },\napp\\src\\services\\actions\\action_run_registry.node.test.ts-876-        })\napp\\src\\services\\actions\\action_run_registry.node.test.ts-877-        emit(runEvent('completed'))\napp\\src\\services\\actions\\action_run_registry.node.test.ts-878-\napp\\src\\services\\actions\\action_run_registry.node.test.ts-879-        expect(activeChanged).toHaveBeenCalledTimes(2)\napp\\src\\services\\actions\\action_run_registry.node.test.ts-880-        service.stop()\napp\\src\\services\\actions\\action_run_registry.node.test.ts-881-    })\napp\\src\\services\\actions\\action_run_registry.node.test.ts-882-\napp\\src\\services\\actions\\action_run_registry.node.test.ts-883-    it('notifies active-only subscribers when a run starts waiting or resumes', () => {\napp\\src\\services\\actions\\action_run_registry.node.test.ts-884-        const { bridge, emit } = bridgeWithEvents()\napp\\src\\services\\actions\\action_run_registry.node.test.ts-885-        setActionBridgeOverride(bridge)\napp\\src\\services\\actions\\action_run_registry.node.test.ts-886-        const service = new ActionRunRegistry()\napp\\src\\services\\actions\\action_run_registry.node.test.ts-887-        const activeChanged = vi.fn()\napp\\src\\services\\actions\\action_run_registry.node.test.ts:888:        service.subscribeGlobalActive(activeChanged)\napp\\src\\services\\actions\\action_run_registry.node.test.ts-889-        service.start()\napp\\src\\services\\actions\\action_run_registry.node.test.ts-890-\napp\\src\\services\\actions\\action_run_registry.node.test.ts-891-        emit(runEvent('running'))\napp\\src\\services\\actions\\action_run_registry.node.test.ts-892-        emit({\napp\\src\\services\\actions\\action_run_registry.node.test.ts-893-            actionId: 'build', context, runId: 'run-1', phase: 'main', rootActionId: 'build',\napp\\src\\services\\actions\\action_run_registry.node.test.ts-894-            status: 'waitingForInput', type: 'agentState',\napp\\src\\services\\actions\\action_run_registry.node.test.ts-895-        })\napp\\src\\services\\actions\\action_run_registry.node.test.ts-896-        emit({\napp\\src\\services\\actions\\action_run_registry.node.test.ts-897-            actionId: 'build', context, runId: 'run-1', phase: 'main', rootActionId: 'build',\napp\\src\\services\\actions\\action_run_registry.node.test.ts-898-            status: 'running', type: 'agentState',\napp\\src\\services\\actions\\action_run_registry.node.test.ts-899-        })\napp\\src\\services\\actions\\action_run_registry.node.test.ts-900-\napp\\src\\services\\card_popup_service.test.ts:40:        service.toggleAction(actionContext('card-1'), anchor())\napp\\src\\services\\card_popup_service.test.ts:53:        service.toggleAction(actionContext('card-1'), anchor())\napp\\src\\services\\card_popup_service.test.ts:67:        service.toggleAction(actionContext('card-2'), anchor())\napp\\src\\services\\card_popup_service.test.ts:81:        service.toggleAction(actionContext('card-1'), anchor())\napp\\src\\services\\card_popup_service.test.ts:93:        service.toggleAction(actionContext('card-1'), anchor())\napp\\src\\services\\card_popup_service.test.ts:106:        service.toggleAction(actionContext('card-1'), anchor())\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:370:                <ActionPopup anchorElement={document.body} context={context} initialActionId=\"first\" onClose={vi.fn()} />\n",
+          "durationMs": 46,
+          "exitCode": 0,
+          "id": "agent-turn-e57d23e5-1155-4830-b45e-870b70d0a3ea-event-37",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\architecture\\\\architectural_decisions.md'; rg -n -C 12 \\\"global active|Global active|getGlobalActiveSnapshot|subscribeGlobalActive\\\" 'app\\\\src\\\\services\\\\actions\\\\action_run_registry.node.test.ts' 'app\\\\src\\\\services\\\\actions\\\\action_run_registry.test.ts' 'app\\\\src\\\\services\\\\actions\\\\action_run_registry*.test.*'; rg -n \\\"initialActionId|CardActionPopupHostEntry|toggleAction\\\" app\\\\src\\\\components\\\\actions\\\\run\\\\popup --glob '*.test.*' app\\\\src\\\\services\\\\card_popup_service.test.ts\"",
+          "providerItemId": "exec-d29d5bba-1fd8-4898-a649-0a6a73fdcbf3",
+          "sequence": 37,
+          "status": "completed",
+          "timestamp": "2026-08-28T17:55:35.308Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-e57d23e5-1155-4830-b45e-870b70d0a3ea-event-38",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0b763254933a07e7016a91cb9b190087d2b5decbee5cbb481a",
+          "sequence": 38,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T17:55:42.313Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"useCard.*Title|cardTitle|header\\\\.title\\\" app\\\\src\\\\components\\\\hooks app\\\\src\\\\services\\\\cards app\\\\src\\\\services\\\\data app\\\\src\\\\components\\\\card_view --glob '\"'!**/*.test.*'\"'\"",
+          "content": "rg: app\\src\\services\\cards: The system cannot find the file specified. (os error 2)\napp\\src\\services\\data\\markdown_parsing_service.ts:129:    if (header.title !== sourceHeader.title) fields.title = header.title\napp\\src\\services\\data\\markdown_parsing_service.ts:481:    if (!header.title) throw new Error('Cannot generate a card without a title')\napp\\src\\services\\data\\markdown_parsing_service.ts:493:    lines.push(`title: ${header.title}`)\napp\\src\\services\\data\\data_service.ts:122:    if (field === 'title') return previousHeader.title !== header.title\napp\\src\\services\\data\\card_rename_operations.ts:81:        const targetPath = cardPathForId(path, id, card.header.title, config.cardSeparator)\napp\\src\\components\\card_view\\use_project_card.ts:113:const selectTitle = (card: Card | null) => card?.header.title ?? null\napp\\src\\components\\card_view\\use_project_card.ts:120:export function useCardTitle(path: string | null, service: DataService = dataService) {\napp\\src\\components\\card_view\\use_project_card.ts:121:    return useCardField(path, 'title', selectTitle, service)\napp\\src\\components\\card_view\\use_project_card.ts:207:        && header.title === card.header.title\napp\\src\\components\\card_view\\card_body_popover.tsx:132:    const titleDraft = titleEdit.cardInternalId === cardInternalId ? titleEdit.title : card?.header.title ?? ''\napp\\src\\components\\card_view\\card_body_popover.tsx:235:            setTitleEdit({ cardInternalId, title: card.header.title })\napp\\src\\components\\card_view\\card_body_popover.tsx:238:        if (nextTitle !== card.header.title) dataSource.updateActiveCardTitle('board-card', nextTitle)\napp\\src\\components\\card_view\\card_body_popover.tsx:243:        if (event.key === 'Escape' && card) setTitleEdit({ cardInternalId, title: card.header.title })\napp\\src\\services\\data\\card_mutations.ts:18:        case 'title': card.header.title = value; break\napp\\src\\components\\card_view\\project_card_view.tsx:92:    const [titleDraft, setTitleDraft] = useState(card.header.title)\napp\\src\\components\\card_view\\project_card_view.tsx:110:        if (nextTitle.length > 0 && nextTitle !== card.header.title) onTitleChange(card.path, nextTitle)\napp\\src\\components\\card_view\\project_card_view.tsx:218:        setTitleDraft(card.header.title)\napp\\src\\components\\card_view\\project_card_view.tsx:310:                        {card.header.title}\napp\\src\\components\\card_view\\card_drag_overlay.tsx:91:                    {card.header.title}\n",
+          "durationMs": 0,
+          "exitCode": 1,
+          "id": "agent-turn-e57d23e5-1155-4830-b45e-870b70d0a3ea-event-39",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"useCard.*Title|cardTitle|header\\\\.title\\\" app\\\\src\\\\components\\\\hooks app\\\\src\\\\services\\\\cards app\\\\src\\\\services\\\\data app\\\\src\\\\components\\\\card_view --glob '\"'!**/*.test.*'\"'\"",
+          "providerItemId": "exec-d0f5a554-f431-4030-8640-a70c536aad12",
+          "sequence": 39,
+          "status": "failed",
+          "timestamp": "2026-08-28T17:55:44.429Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-e57d23e5-1155-4830-b45e-870b70d0a3ea-event-40",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0b763254933a07e7016a91cba41d7487d2b0af74ce47719bc1",
+          "sequence": 40,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T17:55:57.088Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-e57d23e5-1155-4830-b45e-870b70d0a3ea-event-41",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0b763254933a07e7016a91cbaef4dc87d2a67138149b89684a",
+          "sequence": 41,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T17:56:07.338Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-e57d23e5-1155-4830-b45e-870b70d0a3ea-event-42",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0b763254933a07e7016a91cbb9364487d2bc3a7d2a8ea75e4d",
+          "sequence": 42,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T17:56:09.761Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"useActionRunStores|ActionRunBindingStore|initialRun|selectedRun|runId\\\" app\\\\src\\\\components\\\\actions\\\\run\\\\popup app\\\\src\\\\components\\\\actions\\\\run\\\\state --glob '\"'!**/*.test.*'\"'\"",
+          "content": "app\\src\\components\\actions\\run\\state\\action_run_status_owner.tsx:6:import type { ActionRunBindingStore } from './action_run_binding_store'\napp\\src\\components\\actions\\run\\state\\action_run_status_owner.tsx:9:    bindingStore: ActionRunBindingStore\napp\\src\\components\\actions\\run\\state\\action_run_result_store.ts:6:    runId: string | null\napp\\src\\components\\actions\\run\\state\\action_run_result_store.ts:12:const INITIAL_SNAPSHOT: ActionRunResultSnapshot = { result: null, runId: null, status: 'idle' }\napp\\src\\components\\actions\\run\\state\\action_run_result_store.ts:28:        this.publish({ result: null, runId: null, status: 'running' })\napp\\src\\components\\actions\\run\\state\\action_run_result_store.ts:31:    setRunId(runId: string) {\napp\\src\\components\\actions\\run\\state\\action_run_result_store.ts:32:        this.publish({ ...this.snapshot, runId })\napp\\src\\components\\actions\\run\\state\\action_run_result_store.ts:36:        this.publish({ result, runId: null, status: result.status })\napp\\src\\components\\actions\\run\\state\\action_run_binding_store.ts:7:export class ActionRunBindingStore extends EventTarget {\napp\\src\\components\\actions\\run\\state\\action_run_binding_store.ts:13:    constructor(initialRunId: string | null) {\napp\\src\\components\\actions\\run\\state\\action_run_binding_store.ts:15:        this.boundRunId = initialRunId\napp\\src\\components\\actions\\run\\state\\action_run_binding_store.ts:16:        this.selectionConfigured = initialRunId !== null\napp\\src\\components\\actions\\run\\state\\action_run_binding_store.ts:17:        this.unsubscribeRun = initialRunId ? actionRunRegistry.subscribeRun(initialRunId, () => undefined) : null\napp\\src\\components\\actions\\run\\state\\action_run_binding_store.ts:28:    setRunId(runId: string | null) {\napp\\src\\components\\actions\\run\\state\\action_run_binding_store.ts:32:        if (this.boundRunId === runId) return\napp\\src\\components\\actions\\run\\state\\action_run_binding_store.ts:35:        this.boundRunId = runId\napp\\src\\components\\actions\\run\\state\\action_run_binding_store.ts:36:        this.unsubscribeRun = runId ? actionRunRegistry.subscribeRun(runId, () => undefined) : null\napp\\src\\components\\actions\\run\\state\\action_run_binding_store.ts:40:    adoptInitialRun(runId: string | null) {\napp\\src\\components\\actions\\run\\state\\action_run_binding_store.ts:41:        if (this.selectionConfigured || runId === null) return\napp\\src\\components\\actions\\run\\state\\action_run_binding_store.ts:46:        this.boundRunId = runId\napp\\src\\components\\actions\\run\\state\\action_run_binding_store.ts:47:        this.unsubscribeRun = actionRunRegistry.subscribeRun(runId, () => undefined)\napp\\src\\components\\actions\\run\\state\\action_run_binding_store.ts:55:            const runId = actionRunRegistry.getActionRunStore(actionId, context)?.getSnapshot().runId ?? null\napp\\src\\components\\actions\\run\\state\\action_run_binding_store.ts:56:            this.adoptInitialRun(runId)\napp\\src\\components\\actions\\run\\popup\\action_popup_operations.ts:27:import type { ActionRunBindingStore } from '../state/action_run_binding_store'\napp\\src\\components\\actions\\run\\popup\\action_popup_operations.ts:46:function restorePrompt(action: ActionDefinition, context: ActionContext, runId: string | null, prompt: string) {\napp\\src\\components\\actions\\run\\popup\\action_popup_operations.ts:47:    actionPromptDraftService.getDraft(action.id, context, runId, { prepare: false }).edit(prompt)\napp\\src\\components\\actions\\run\\popup\\action_popup_operations.ts:50:async function enqueueActionPrompt(runId: string, content: string) {\napp\\src\\components\\actions\\run\\popup\\action_popup_operations.ts:54:    return bridge.enqueueActionPrompt(runId, content)\napp\\src\\components\\actions\\run\\popup\\action_popup_operations.ts:59:    bindingStore: ActionRunBindingStore\napp\\src\\components\\actions\\run\\popup\\action_popup_operations.ts:70:export function currentActionRun(bindingStore: ActionRunBindingStore) {\napp\\src\\components\\actions\\run\\popup\\action_popup_operations.ts:71:    const runId = bindingStore.getSnapshot()\napp\\src\\components\\actions\\run\\popup\\action_popup_operations.ts:73:\n[1072 characters omitted]\nwait defaultCancelAction(run.runId)\napp\\src\\components\\actions\\run\\popup\\action_popup_operations.ts:277:    bindingStore: ActionRunBindingStore,\napp\\src\\components\\actions\\run\\popup\\action_popup_operations.ts:295:        await defaultFinishAction(run.runId)\napp\\src\\components\\actions\\run\\popup\\action_popup_bottom_row.tsx:35:import type { ActionRunBindingStore } from '../state/action_run_binding_store'\napp\\src\\components\\actions\\run\\popup\\action_popup_bottom_row.tsx:40:    bindingStore: ActionRunBindingStore\napp\\src\\components\\actions\\run\\popup\\action_popup_frame.tsx:12:import type { ActionRunBindingStore } from '../state/action_run_binding_store'\napp\\src\\components\\actions\\run\\popup\\action_popup_frame.tsx:21:    bindingStore: ActionRunBindingStore\napp\\src\\components\\actions\\run\\popup\\action_popup_defaults.ts:28:export type CancelAction = (runId: string) => Promise<void>\napp\\src\\components\\actions\\run\\popup\\action_popup_defaults.ts:33:export type SendMessage = (runId: string, content: string) => Promise<void>\napp\\src\\components\\actions\\run\\popup\\action_popup_defaults.ts:34:export type FinishAction = (runId: string) => Promise<void>\napp\\src\\components\\actions\\run\\popup\\action_popup_defaults.ts:36:    runId: string,\napp\\src\\components\\actions\\run\\popup\\action_popup_defaults.ts:41:    runId: string,\napp\\src\\components\\actions\\run\\popup\\action_popup_defaults.ts:54:    onStarted?: (runId: string) => void,\napp\\src\\components\\actions\\run\\popup\\action_popup_defaults.ts:62:    onStarted?: (runId: string) => void,\napp\\src\\components\\actions\\run\\popup\\action_popup_defaults.ts:72:    onStarted?: (runId: string) => void,\napp\\src\\components\\actions\\run\\popup\\action_popup_defaults.ts:120:export function defaultCancelAction(runId: string) {\napp\\src\\components\\actions\\run\\popup\\action_popup_defaults.ts:121:    return cancelElectronAction(runId)\napp\\src\\components\\actions\\run\\popup\\action_popup_defaults.ts:131:export function defaultSendMessage(runId: string, content: string) {\napp\\src\\components\\actions\\run\\popup\\action_popup_defaults.ts:132:    return sendActionMessage(runId, content)\napp\\src\\components\\actions\\run\\popup\\action_popup_defaults.ts:135:export function defaultFinishAction(runId: string) {\napp\\src\\components\\actions\\run\\popup\\action_popup_defaults.ts:136:    return finishActionRun(runId)\napp\\src\\components\\actions\\run\\popup\\action_popup_defaults.ts:140:    runId: string,\napp\\src\\components\\actions\\run\\popup\\action_popup_defaults.ts:144:    return answerActionQuestion(runId, requestId, answers)\napp\\src\\components\\actions\\run\\popup\\action_popup_defaults.ts:148:    runId: string,\napp\\src\\components\\actions\\run\\popup\\action_popup_defaults.ts:152:    return answerActionApproval(runId, requestId, decision)\napp\\src\\components\\actions\\run\\popup\\action_worktree_selector_owner.tsx:4:import type { ActionRunBindingStore } from '../state/action_run_binding_store'\napp\\src\\components\\actions\\run\\popup\\action_worktree_selector_owner.tsx:9:    bindingStore: ActionRunBindingStore\napp\\src\\components\\actions\\run\\popup\\action_popup_runtime.ts:8:import { ActionRunBindingStore } from '../state/action_run_binding_store'\napp\\src\\components\\actions\\run\\popup\\action_popup_runtime.ts:19:    const initialRunId = actionRunRegistry.getActionRunStore(action.id, context)?.getSnapshot().runId ?? null\napp\\src\\components\\actions\\run\\popup\\action_popup_runtime.ts:20:    const bindingStore = new ActionRunBindingStore(initialRunId)\napp\\src\\components\\actions\\run\\popup\\action_usage_values_service.ts:7:import type { ActionRunBindingStore } from '../state/action_run_binding_store'\napp\\src\\components\\actions\\run\\popup\\action_usage_values_service.ts:22:    bindingStore: ActionRunBindingStore\napp\\src\\components\\actions\\run\\popup\\action_usage_values_service.ts:78:    private readonly bindingStore: ActionRunBindingStore\napp\\src\\components\\actions\\run\\popup\\action_popup_types.ts:7:import type { ActionRunBindingStore } from '../state/action_run_binding_store'\napp\\src\\components\\actions\\run\\popup\\action_popup_types.ts:34:    bindingStore: ActionRunBindingStore\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-e57d23e5-1155-4830-b45e-870b70d0a3ea-event-43",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"useActionRunStores|ActionRunBindingStore|initialRun|selectedRun|runId\\\" app\\\\src\\\\components\\\\actions\\\\run\\\\popup app\\\\src\\\\components\\\\actions\\\\run\\\\state --glob '\"'!**/*.test.*'\"'\"",
+          "providerItemId": "exec-b8977938-651b-475e-a89f-6afb78d1660a",
+          "sequence": 43,
+          "status": "completed",
+          "timestamp": "2026-08-28T17:56:11.510Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-e57d23e5-1155-4830-b45e-870b70d0a3ea-event-44",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0b763254933a07e7016a91cbbebb4c87d2980aaba455393123",
+          "sequence": 44,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T17:56:14.402Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\run\\\\popup\\\\action_popup_runtime.ts'; rg -n -C 10 \\\"createActionPopupRuntime|ActionPopupRuntime\\\" 'app\\\\src\\\\components\\\\actions\\\\run\\\\popup\\\\action_popup_content.tsx'; Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\run\\\\state\\\\action_run_binding_store.ts'; rg -n -C 5 \\\"getActionRunStore\\\\(\\\" 'app\\\\src\\\\services\\\\actions\\\\action_run_registry.ts'\"",
+          "content": "import type { ActionContext } from '../../../../data/action_context'\nimport type { ActionDefinition } from '../../../../data/action_types'\nimport { actionRunRegistry } from '../../../../services/actions/action_run_registry'\nimport { worktreeService } from '../../../../services/project/worktree_service'\nimport { ActionConversationStore } from '../../conversation/action_conversation_store'\nimport { ActionScheduleStore } from '../schedule/action_schedule_store'\nimport { ActionHistoryStore } from '../state/action_history_store'\nimport { ActionRunBindingStore } from '../state/action_run_binding_store'\nimport { ActionRunInputStore } from '../state/action_run_input_store'\nimport { ActionRunResultStore } from '../state/action_run_result_store'\nimport { ActionUsageScopeStore } from './action_usage_scope_store'\nimport { ActionUsageValuesService } from './action_usage_values_service'\nimport type { ActionPopupRuntime } from './action_popup_types'\n\ntype ActionPopupBindings = Omit<ActionPopupRuntime, 'runValidationError' | 'settingsStore'>\n\n/** Creates the stores whose lifecycle follows one selected popup action and assignment context. */\nexport function createActionPopupBindings(action: ActionDefinition, context: ActionContext): ActionPopupBindings {\n    const initialRunId = actionRunRegistry.getActionRunStore(action.id, context)?.getSnapshot().runId ?? null\n    const bindingStore = new ActionRunBindingStore(initialRunId)\n    bindingStore.trackInitialRun(action.id, context)\n    const conversationStore = new ActionConversationStore(action.id, context, bindingStore)\n    const historyStore = new ActionHistoryStore(action, context)\n    const usageScopeStore = new ActionUsageScopeStore()\n    const usageValuesService = new ActionUsageValuesService({\n        action,\n        bindingStore,\n        context,\n        conversationStore,\n        historyStore,\n        scopeStore: usageScopeStore,\n    })\n\n    return {\n        bindingStore,\n        conversationStore,\n        historyStore,\n        inputStore: new ActionRunInputStore(),\n        resultStore: new ActionRunResultStore(),\n        scheduleStore: new ActionScheduleStore(),\n        usageValuesService,\n    }\n}\n\n/**\n * The message is rebuilt on every render but only reads the worktree list on the failing\n * path, so the popup never subscribes to worktree changes to keep a message it rarely shows.\n */\nexport function worktreeValidationMessage(action: ActionDefinition, context: ActionContext) {\n    const hasWorktreeAssignment = context.worktree !== undefined || !!context.worktreeError\n    if (!hasWorktreeAssignment && !action.needsWorkTree) return null\n    if (context.kind !== 'card' && context.kind !== 'project') {\n        const reason = action.needsWorkTree ? 'when needsWorkTree is set' : 'for a worktree run'\n        return `Action \"${action.label}\" requires card or project context ${reason}`\n    }\n    if (context.worktreeError) return context.worktreeError\n    if (context.worktree === undefined) return `Action \"${action.label}\" requires a worktree assignment`\n    if (!/^[1-9]\\d*$/u.test(context.worktree)) return `Invalid worktree index: ${context.worktree}`\n\n    const worktree = Number.parseInt(context.worktree, 10)\n    if (!Number.isSafeInteger(worktree)) return `Invalid worktree index: ${context.worktree}`\n    const record = worktreeService.getRecords()[worktree - 1]\n    if (!record) return `Configured worktree ${worktree} does not exist`\n    if (!record.valid) return `Configured worktree ${worktree} is invalid: ${record.error}`\n\n    return null\n}\n\r\n1-import { useEffect, useMemo } from 'react'\n2-import { actionContextIdentity } from '../../../../data/action_context'\n3-import {\n4-    actionRunSettingsService,\n5-} from '../../../../services/actions/action_run_settings_service'\n6-import { AgentAction } from './agent_action'\n7-import { ActionPopupFrame } from './action_popup_frame'\n8-import { CommandAction } from './command_action'\n9-import { createActionPopupBindings, worktreeValidationMessage } from './action_popup_runtime'\n10:import type { ActionPopupContentProps, ActionPopupRunt\n[199 characters omitted]\nent while preserving its runtime for the selected action. */\n15-export function ActionPopupContent(props: ActionPopupContentProps) {\n16-    const { action, assignmentContext } = props\n17-    const settingsContextIdentity = actionContextIdentity(assignmentContext)\n18-    const settingsStore = useMemo(\n19-        () => assignmentContext.cardInternalId\n20-            ? actionRunSettingsService.getCardStore(assignmentContext.cardInternalId, action.id)\n--\n26-        [action, assignmentContext],\n27-    )\n28-    useEffect(() => {\n29-        bindings.usageValuesService.start()\n30-\n31-        return () => {\n32-            bindings.usageValuesService.stop()\n33-            bindings.bindingStore.dispose()\n34-        }\n35-    }, [bindings])\n36:    const runtime: ActionPopupRuntime = {\n37-        ...bindings,\n38-        runValidationError: worktreeValidationMessage(action, assignmentContext),\n39-        settingsStore,\n40-    }\n41-\n42-    return (\n43-        <ActionPopupFrame\n44-            bindingStore={bindings.bindingStore}\n45-            contentProps={props}\n46-            conversationStore={bindings.conversationStore}\nimport { actionRunRegistry } from '../../../../services/actions/action_run_registry'\nimport type { ActionContext } from '../../../../data/action_context'\n\nconst BINDING_CHANGED_EVENT = 'bindingChanged'\n\n/** Owns run selected by one popup action/context runtime. Null selects New conversation. */\nexport class ActionRunBindingStore extends EventTarget {\n    private boundRunId: string | null\n    private selectionConfigured: boolean\n    private unsubscribeInitialRun: (() => void) | null = null\n    private unsubscribeRun: (() => void) | null\n\n    constructor(initialRunId: string | null) {\n        super()\n        this.boundRunId = initialRunId\n        this.selectionConfigured = initialRunId !== null\n        this.unsubscribeRun = initialRunId ? actionRunRegistry.subscribeRun(initialRunId, () => undefined) : null\n    }\n\n    readonly getSnapshot = () => this.boundRunId\n\n    readonly subscribe = (listener: () => void) => {\n        this.addEventListener(BINDING_CHANGED_EVENT, listener)\n\n        return () => this.removeEventListener(BINDING_CHANGED_EVENT, listener)\n    }\n\n    setRunId(runId: string | null) {\n        this.selectionConfigured = true\n        this.unsubscribeInitialRun?.()\n        this.unsubscribeInitialRun = null\n        if (this.boundRunId === runId) return\n\n        this.unsubscribeRun?.()\n        this.boundRunId = runId\n        this.unsubscribeRun = runId ? actionRunRegistry.subscribeRun(runId, () => undefined) : null\n        this.dispatchEvent(new Event(BINDING_CHANGED_EVENT))\n    }\n\n    adoptInitialRun(runId: string | null) {\n        if (this.selectionConfigured || runId === null) return\n\n        this.selectionConfigured = true\n        this.unsubscribeInitialRun?.()\n        this.unsubscribeInitialRun = null\n        this.boundRunId = runId\n        this.unsubscribeRun = actionRunRegistry.subscribeRun(runId, () => undefined)\n        this.dispatchEvent(new Event(BINDING_CHANGED_EVENT))\n    }\n\n    trackInitialRun(actionId: string, context: ActionContext) {\n        if (this.selectionConfigured || this.unsubscribeInitialRun) return\n\n        this.unsubscribeInitialRun = actionRunRegistry.subscribeActionRun(actionId, context, () => {\n            const runId = actionRunRegistry.getActionRunStore(actionId, context)?.getSnapshot().runId ?? null\n            this.adoptInitialRun(runId)\n        })\n    }\n\n    dispose() {\n        this.unsubscribeInitialRun?.()\n        this.unsubscribeInitialRun = null\n        this.unsubscribeRun?.()\n        this.unsubscribeRun = null\n    }\n}\n\r\n508-\n509-    getRunStore(runId: string) {\n510-        return this.runs.get(runId) ?? null\n511-    }\n512-\n513:    getActionRunStore(actionId: string, context: ActionContext) {\n514-        return this.getActionRunStoreByKey(actionId, contextKey(context))\n515-    }\n516-\n517-    getActionRunStoreByKey(actionId: string, contextIdentity: string) {\n518-        return this.actionContextStores.get(`${actionId}\\u0000${contextIdentity}`)?.at(-1) ?? null\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-e57d23e5-1155-4830-b45e-870b70d0a3ea-event-45",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\run\\\\popup\\\\action_popup_runtime.ts'; rg -n -C 10 \\\"createActionPopupRuntime|ActionPopupRuntime\\\" 'app\\\\src\\\\components\\\\actions\\\\run\\\\popup\\\\action_popup_content.tsx'; Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\run\\\\state\\\\action_run_binding_store.ts'; rg -n -C 5 \\\"getActionRunStore\\\\(\\\" 'app\\\\src\\\\services\\\\actions\\\\action_run_registry.ts'\"",
+          "providerItemId": "exec-4a5b30e0-d783-4370-9fcd-aec5dd31a7d1",
+          "sequence": 45,
+          "status": "completed",
+          "timestamp": "2026-08-28T17:56:17.775Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-e57d23e5-1155-4830-b45e-870b70d0a3ea-event-46",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0b763254933a07e7016a91cbcd44f087d29e4012472295d968",
+          "sequence": 46,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T17:56:32.672Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_230_running_agents_popup.md",
+          "deletions": 2,
+          "id": "agent-turn-e57d23e5-1155-4830-b45e-870b70d0a3ea-event-47",
+          "insertions": 31,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-76983722-1f00-41d0-9c71-fa014d762906",
+          "sequence": 47,
+          "status": "completed",
+          "timestamp": "2026-08-28T17:56:55.348Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-e57d23e5-1155-4830-b45e-870b70d0a3ea-event-48",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0b763254933a07e7016a91cbea974087d29b95824e54a3303d",
+          "sequence": 48,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T17:56:57.878Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\feature_descriptions\\\\F_230_running_agents_popup.md'\"",
+          "content": "---\nauthor: \nid: F_230\ninternalId: 06a8af54-38c9-4b9b-a9a4-bbdf563f036b\ntitle: running agents popup\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__06a8af54-38c9-4b9b-a9a4-bbdf563f036b.json\npolicy:\nafter: ae7bdbef-7d85-4837-ba58-6ab382b218b0\n---\n\nwhen user clicks on the 'running agents' button on the status bar, we show a popup containing a list of all agents currently running. it also includes an id, perhaps an internal id of the card it is running for.\n\nwe should improve this a little bit:&#x20;\n\n* show the action name and card title\n* when click on item in popup, open related action popup\n\n## Current state\n\n`RunningAgentsIndicator` combines two sources: direct background agents from `AgentConversationService`, currently `Search RegExp`, and active action runs from `ActionRunRegistry`. Direct agents already provide a label. Active-run summaries provide only `runId`, `rootActionId`, and status, so the indicator renders `Action <rootActionId>` and cannot identify the card in the list.\n\n`RunningAgentsDetails` renders every entry as plain text. No row has click behavior. `ActionRun` already owns the action context, including canonical `cardInternalId` and the card title captured when the run started, but its global active-run projection omits that context.\n\n`ActionPopup` can start with a requested action, while its runtime selects the latest run for that action and context. `CardPopupService` only exposes toggle behavior and does not carry a requested action or run. Therefore the running-agents popup cannot open the exact action run selected by the user.\n\n## implementation details\n\n* Extend `ActiveActionRun` with its `ActionContext`. Preserve `runId` as run identity, `rootActionId` as action identity, and `cardInternalId` as card identity. Do not use card path as identity.\n* Build card-action rows with action label as primary text and captured card title as secondary text. Resolve the action label from loaded action definitions; keep the action ID as deterministic fallback if the definition disappears during a run.\n* Keep non-card action runs and direct background agents visible with their current labels. They have no related card action popup, so render them as non-interactive list items.\n* Render card-action rows as accessible buttons. Clicking one closes the running-agents surface, then opens an action popup for that row's `cardInternalId`, `rootActionId`, and `runId`. Closing the surface first prevents the desktop popover or mobile dialog from covering the action popup.\n* Add a dedicated `CardPopupService` operation for opening a requested card action run. Store requested action ID and run ID in `CardActionPopupEntry`, pass both through `CardActionPopupHostEntry` and `ActionPopup`, and initialize `ActionRunBindingStore` with that exact run ID. If a popup for the same card context is already open, replace and reactivate it without cancelling the run.\n* Keep existing `toggleAction` behavior unchanged for `CardRunButton` and list-editor toolbar call sites. Ordinary action-popup opening may continue to select the latest run; only running-agent row navigation requires exact `runId` binding.\n* Retain current empty state, running count, active statuses, direct-agent lifecycle, desktop popover, and mobile dialog behavior.\n* Add focused tests for active-run context projection, action/card labels, exact run binding when concurrent runs share an action and card, existing-popup replacement, non-interactive direct and non-card rows, and desktop/mobile navigation.\n\n## acceptance criteria\n\n* Each running card-action row shows configured action name and card title captured for that run; opaque action or card IDs are not shown during normal loaded-project operation.\n* Clicking a card-action row closes running-agents details and opens related card action popup with that row's action selected and exact `runId` displayed, including when another run shares same action and card.\n* Opening selected row does not start, stop, restart, or cancel agent. Existing popup for same card is replaced and brought to front.\n* Project, file, folder, merge-conflict, and direct `Search RegExp` rows remain listed with current labels and have no click behavior.\n* Running-agent count, empty message, live start/close updates, desktop popover, and mobile dialog continue working.\n* Existing card action buttons and list-editor action button retain toggle behavior.\n* Focused running-agent indicator, action-run registry, card-popup service, action-popup runtime, and host tests pass; app lint passes.\n\r\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-e57d23e5-1155-4830-b45e-870b70d0a3ea-event-49",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\feature_descriptions\\\\F_230_running_agents_popup.md'\"",
+          "providerItemId": "exec-5ebf4b6d-15fc-4b71-af8d-4b578359293d",
+          "sequence": 49,
+          "status": "completed",
+          "timestamp": "2026-08-28T17:56:59.520Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-e57d23e5-1155-4830-b45e-870b70d0a3ea-event-50",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0b763254933a07e7016a91cbf0914087d2a2fbb899468abf65",
+          "sequence": 50,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T17:57:03.044Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Updated [F_230_running_agents_popup.md](C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/F_230_running_agents_popup.md).\n\nAdded requested sections and set `status: ready for implementation`. No staging, commit, or tests; documentation-only change.\n\n",
+          "id": "agent-turn-e57d23e5-1155-4830-b45e-870b70d0a3ea-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 51,
+          "timestamp": "2026-08-28T17:57:04.172Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-554eba34-426f-4e5a-9bde-d008eb6e4e90",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a04962-aabd-7261-8c2f-39cac8af3c38",
+          "createdAt": "2026-08-28T17:21:59.647Z",
+          "lastUsedAt": "2026-08-28T17:21:59.647Z",
+          "synchronizedThroughMessageId": "agent-turn-e57d23e5-1155-4830-b45e-870b70d0a3ea-turn-1-assistant-3"
+        }
+      ],
       "startedAt": "2026-08-28T17:19:57.563Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-28T17:19:57.563Z"
+        "elapsedMs": 122084,
+        "runningStartedAt": "2026-08-28T17:55:24.808Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 689408,
-        "inputTokens": 73113,
-        "outputTokens": 1936,
-        "reasoningTokens": 1885,
-        "totalTokens": 766342
+        "cachedInputTokens": 1252864,
+        "inputTokens": 92689,
+        "outputTokens": 3653,
+        "reasoningTokens": 3849,
+        "totalTokens": 1353055
       },
       "usageSchemaVersion": 1,
       "viewed": true
