@@ -3,7 +3,7 @@ author:
 id: B_181
 internalId: 7dee6bc2-2c20-4336-99c8-2775f985089e
 title: Error: Primary worktree cannot be added as a linked worktree
-status: new
+status: design
 owner: 
 affects:
 agents:
@@ -11,7 +11,6 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 142420637
 sentryOrganization: elastetic
-after: ebd9a3ff-1cae-46a9-b6f2-5527b8a0a21d
 ---
 ## Sentry issue
 
