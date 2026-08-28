@@ -15,7 +15,6 @@ changedFiles:
   - app/src/services/actions/action_prompt_draft_service.node.test.ts
   - app/src/services/actions/action_prompt_draft_service.ts
 ---
-
 I already had this several times and is ultra ultra annoying: I am typing in some text when the agent finishes (any state: waitingForInput, completed,..). this just cleans the entire input.
 
 it also appears to cause a reload of the entire popup which is overkill and wrong behaviour.&#x20;
@@ -48,27 +47,27 @@ The popup does not remount. `CardPopupService` freezes `{ ...context }` per entr
 
 ## implementation details
 
-- Key prompt drafts only by action id plus `actionContextIdentity(context)`. Remove `runPromptDraftKey` and the run/idle namespace split, so one draft serves one editor for the popup's whole life and no status change can swap the object bound to `MarkdownEditor`.
-- Strip delivery from `ActionPromptDraft`: remove `send()`, `bindRun`, the `run` field, and the `ActionPromptRunBinding` type. The draft keeps text, revision, `locallyEdited`, and preparation status only. `ActionPromptDraftService.getDraft` loses its `run` parameter.
-- Move enqueueing into `runPopupAction` (`action_popup_operations.ts`). It already holds `run`, `run.runId`, the empty-prompt and disabled-run checks, and `dialogService` error reporting. It calls `enqueueActionPrompt(run.runId, prompt)` and clears the draft only after the bridge resolves; a failed enqueue keeps the text and reports the error.
-- Clear a draft only when its content was consumed or the user asked for it. Consumed means the prompt was enqueued to a live agent and accepted, or a run started with it (`handleStarted` in `runWithPrompt`), or the user pressed an explicit clear. No status transition, conversation selection, or popup lifecycle event may clear user-edited text.
-- Replace `clearRunDraft` and `clearRunDrafts` in `ActionRunRegistry` (`action_run_registry.ts:638`, `:692`, `:709`) with a run-completion hook that discards a draft only when `hasLocalEdits()` is false, so an unused prepared default is dropped while typed text survives every transition, including `waitingForInput`.
-- `ActionConversationStore.load` (line 140) and `clearPromptDraftWhenIdle` (line 202) apply the same rule: auto-selecting the latest waiting conversation stays, but it may clear only an unedited prepared draft.
-- Gate the preparation effect in `ActionAgentPromptOwner` on the draft having no local edits, so a prepared default never overwrites user text once the single draft outlives the run. `ActionPromptDraft.prepare` already guards on `preparationRequired`, and `edit()` clears that flag.
-- Flush any pending `MarkdownEditor` debounce into the draft before a run-completion hook evaluates `hasLocalEdits()`, so text typed in the final moments of a run is not judged as unedited.
-- Remove the reload flicker: `ActionConversationStore.load` must not publish `loading: true` when a conversation list is already present and it is only reconciling after a finished run, so the picker and chat keep their rendered state and scroll position.
-- Because one draft now spans a whole run, a steering prompt typed but never sent stays in the editor after the run ends and can be sent as the opening prompt of a continuation. This is intended, and it replaces the per-run isolation that existed to stop stale text leaking between sessions.
-- Tests: rework `action_prompt_draft_service.node.test.ts` for single-key drafts and the removed `send`; extend `action_popup_operations` coverage for enqueue, clear-on-accept, and keep-on-failure; extend `action_run_registry.node.test.ts` for the `waitingForInput` and terminal paths preserving edited text; extend `action_conversation_store.node.test.ts` for no-clear and no-flicker after a finished run; extend popup tests for typed text surviving completion.
+* Key prompt drafts only by action id plus `actionContextIdentity(context)`. Remove `runPromptDraftKey` and the run/idle namespace split, so one draft serves one editor for the popup's whole life and no status change can swap the object bound to `MarkdownEditor`.
+* Strip delivery from `ActionPromptDraft`: remove `send()`, `bindRun`, the `run` field, and the `ActionPromptRunBinding` type. The draft keeps text, revision, `locallyEdited`, and preparation status only. `ActionPromptDraftService.getDraft` loses its `run` parameter.
+* Move enqueueing into `runPopupAction` (`action_popup_operations.ts`). It already holds `run`, `run.runId`, the empty-prompt and disabled-run checks, and `dialogService` error reporting. It calls `enqueueActionPrompt(run.runId, prompt)` and clears the draft only after the bridge resolves; a failed enqueue keeps the text and reports the error.
+* Clear a draft only when its content was consumed or the user asked for it. Consumed means the prompt was enqueued to a live agent and accepted, or a run started with it (`handleStarted` in `runWithPrompt`), or the user pressed an explicit clear. No status transition, conversation selection, or popup lifecycle event may clear user-edited text.
+* Replace `clearRunDraft` and `clearRunDrafts` in `ActionRunRegistry` (`action_run_registry.ts:638`, `:692`, `:709`) with a run-completion hook that discards a draft only when `hasLocalEdits()` is false, so an unused prepared default is dropped while typed text survives every transition, including `waitingForInput`.
+* `ActionConversationStore.load` (line 140) and `clearPromptDraftWhenIdle` (line 202) apply the same rule: auto-selecting the latest waiting conversation stays, but it may clear only an unedited prepared draft.
+* Gate the preparation effect in `ActionAgentPromptOwner` on the draft having no local edits, so a prepared default never overwrites user text once the single draft outlives the run. `ActionPromptDraft.prepare` already guards on `preparationRequired`, and `edit()` clears that flag.
+* Flush any pending `MarkdownEditor` debounce into the draft before a run-completion hook evaluates `hasLocalEdits()`, so text typed in the final moments of a run is not judged as unedited.
+* Remove the reload flicker: `ActionConversationStore.load` must not publish `loading: true` when a conversation list is already present and it is only reconciling after a finished run, so the picker and chat keep their rendered state and scroll position.
+* Because one draft now spans a whole run, a steering prompt typed but never sent stays in the editor after the run ends and can be sent as the opening prompt of a continuation. This is intended, and it replaces the per-run isolation that existed to stop stale text leaking between sessions.
+* Tests: rework `action_prompt_draft_service.node.test.ts` for single-key drafts and the removed `send`; extend `action_popup_operations` coverage for enqueue, clear-on-accept, and keep-on-failure; extend `action_run_registry.node.test.ts` for the `waitingForInput` and terminal paths preserving edited text; extend `action_conversation_store.node.test.ts` for no-clear and no-flicker after a finished run; extend popup tests for typed text surviving completion.
 
 ## acceptance criteria
 
-- Typing in the prompt editor while a run reaches `waitingForInput` leaves the text intact, including text still buffered by the editor debounce at the moment of transition. The user never retypes.
-- The same holds for every terminal status (`completed`, `failed`, `cancelled`) and for the `action` event that ends an agent step.
-- One prompt draft exists per action and context identity. No run status change, conversation selection, or agent-step boundary swaps the object bound to the editor.
-- Text retained after completion is editable and sendable: it starts a new run, or continues the selected conversation, without re-entry.
-- Sending a prompt to a live agent enqueues through `runPopupAction` and clears the editor only after the bridge accepts. A failed enqueue keeps the text on screen and reports the error through `dialogService`.
-- `ActionPromptDraft` exposes no delivery API: no `send`, no `bindRun`, no run binding. Sending a prompt still works from both the Send button and `Ctrl+Enter`.
-- A prepared default prompt the user never edited is still cleared or replaced exactly as today. A prepared default never overwrites user-edited text.
-- Finishing a run produces no visible popup reload: the conversation picker keeps its rendered list without a loading state and the chat keeps its scroll position, while the newest conversation is still selected.
-- Starting a run, Stop, Finish, and saving an edited action definition still clear the draft as before.
-- Closing and reopening the popup after completion shows the retained text for that action and card context.
+* Typing in the prompt editor while a run reaches `waitingForInput` leaves the text intact, including text still buffered by the editor debounce at the moment of transition. The user never retypes.
+* The same holds for every terminal status (`completed`, `failed`, `cancelled`) and for the `action` event that ends an agent step.
+* One prompt draft exists per action and context identity. No run status change, conversation selection, or agent-step boundary swaps the object bound to the editor.
+* Text retained after completion is editable and sendable: it starts a new run, or continues the selected conversation, without re-entry.
+* Sending a prompt to a live agent enqueues through `runPopupAction` and clears the editor only after the bridge accepts. A failed enqueue keeps the text on screen and reports the error through `dialogService`.
+* `ActionPromptDraft` exposes no delivery API: no `send`, no `bindRun`, no run binding. Sending a prompt still works from both the Send button and `Ctrl+Enter`.
+* A prepared default prompt the user never edited is still cleared or replaced exactly as today. A prepared default never overwrites user-edited text.
+* Finishing a run produces no visible popup reload: the conversation picker keeps its rendered list without a loading state and the chat keeps its scroll position, while the newest conversation is still selected.
+* Starting a run, Stop, Finish, and saving an edited action definition still clear the draft as before.
+* Closing and reopening the popup after completion shows the retained text for that action and card context.
