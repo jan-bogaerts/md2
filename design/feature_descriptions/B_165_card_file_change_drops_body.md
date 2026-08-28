@@ -11,7 +11,6 @@ agents:
 policy:
 branch: b_165_card_file_change_drops_body
 ---
-
 I was editing a card that already had a body. we changed the title which caused the entire body to disappear. The data doesn't seem to be lost, the card simply drops the body: after closing the card and opening it again, the body is there again. This caveat: nothing in the body was changed, so when the body disappeared, the card was closed and opened again.
 
 we recently did some major refactoring round the file watcher, when cards get reloaded and such. something went wrong, was skipped or brings it now to the surface.
@@ -28,18 +27,18 @@ Changing a card title through the card UI calls `CardMarkdownDataSource.updateAc
 
 ## Implementation details
 
-- Bind card-details editor lifetime to stable card `internalId`, not mutable file path. Title-driven path rename must renew existing document path without clearing board binding.
-- Change `CardBodyPopoverEntry` document-binding effect so `cardPath` change alone does not run `setBoardDocument(null)`, discard history, close document, or open another document. Resolve initial/current card by `internalId` if needed, because using old path after rename is invalid.
-- Keep existing cleanup when popup entry closes, project changes, or stable card identity changes. These events end document lifetime and must still release board membership and history.
-- Keep `CardPopupService` path update, `OpenFilesService` stable-identity renewal, title serialization, file move, watcher echo suppression, and unsaved-body preservation unchanged.
-- Add regression coverage at popup/document-binding boundary. Test must use clean card body, because reported failure occurs when body was not edited and no dirty draft protects binding.
+* Bind card-details editor lifetime to stable card `internalId`, not mutable file path. Title-driven path rename must renew existing document path without clearing board binding.
+* Change `CardBodyPopoverEntry` document-binding effect so `cardPath` change alone does not run `setBoardDocument(null)`, discard history, close document, or open another document. Resolve initial/current card by `internalId` if needed, because using old path after rename is invalid.
+* Keep existing cleanup when popup entry closes, project changes, or stable card identity changes. These events end document lifetime and must still release board membership and history.
+* Keep `CardPopupService` path update, `OpenFilesService` stable-identity renewal, title serialization, file move, watcher echo suppression, and unsaved-body preservation unchanged.
+* Add regression coverage at popup/document-binding boundary. Test must use clean card body, because reported failure occurs when body was not edited and no dirty draft protects binding.
 
 ## Acceptance criteria
 
-- Open card with existing clean body. Change title through card UI so filename changes. Popup stays open and body remains visible throughout rename.
-- Active `board-card` Markdown target never becomes `null` because only card path changed.
-- Same logical open card document remains bound across rename; its `path` changes to committed target path.
-- Title and first body heading use new title, while remainder of body stays unchanged in editor, loaded card, and committed file.
-- Closing and reopening card is not required to restore body.
-- Actual popup close, project change, or card identity change still clears binding and releases document.
-- Existing dirty-body rename behavior, card rename tests, watcher tests, and card popup tests pass. Add regression test that fails before fix.
+* Open card with existing clean body. Change title through card UI so filename changes. Popup stays open and body remains visible throughout rename.
+* Active `board-card` Markdown target never becomes `null` because only card path changed.
+* Same logical open card document remains bound across rename; its `path` changes to committed target path.
+* Title and first body heading use new title, while remainder of body stays unchanged in editor, loaded card, and committed file.
+* Closing and reopening card is not required to restore body.
+* Actual popup close, project change, or card identity change still clears binding and releases document.
+* Existing dirty-body rename behavior, card rename tests, watcher tests, and card popup tests pass. Add regression test that fails before fix.
