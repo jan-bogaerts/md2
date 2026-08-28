@@ -578,6 +578,1071 @@
       },
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
+      "cardInternalId": "db4400c0-0d7f-4265-8939-8b4e493c7208",
+      "cardPath": "design/feature_descriptions/F_240_action_popup_card_id_add_tooltip.md",
+      "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 1000000,
+        "usedTokens": 86998
+      },
+      "entries": [
+        {
+          "content": "Read and implement the feature/job described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/F_240_action_popup_card_id_add_tooltip.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests.\n5. After implementation is done, update the field `status` in the markdown feature description file to \\`ready\\`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/F_240_action_popup_card_id_add_tooltip.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria.&#x20;\n\nYou should only run the related tests, do not run the entire test suite, that will be done manually later on.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-08-28T16:07:38.966Z"
+        },
+        {
+          "agent": "claude",
+          "content": "I'll start by reading the feature description.",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 2,
+          "timestamp": "2026-08-28T16:07:42.224Z"
+        },
+        {
+          "command": "cat \"C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/F_240_action_popup_card_id_add_tooltip.md\"",
+          "content": "---\r\nauthor: \r\nid: F_240\r\ninternalId: db4400c0-0d7f-4265-8939-8b4e493c7208\r\ntitle: action popup card id add tooltip\r\nstatus: ready for implementation\r\nowner: \r\naffects:\r\nagents:\r\n  - design/activity/card__db4400c0-0d7f-4265-8939-8b4e493c7208.json\r\npolicy:\r\nbranch: f_240_action_popup_card_id_add_tooltip\r\nafter: 2bdcda91-18c2-42ea-8ebb-1208250a4d42\r\nworktree: 3\r\n---\r\non the action popup, in the upper left corner, we show the id of the card (if any). we should add a tooltip to that shows the title of the card.\n\nbe careful: I think the component currently doesn't capture mouse events cause it shows a drag icon to move the popup around\n\n## Current state\n\nThe card id badge lives in the action popup toolbar in `app/src/components/actions/run/popup/action_popup_frame.tsx`. It renders as a plain `Box component=\"span\"` holding `contentProps.target`, with no tooltip, no accessible name beyond its text, and no focusability.\n\n`target` is resolved in `app/src/components/actions/run/popup/action_popup.tsx` by `resolvePopupTarget`: for a `project` context it is the literal string `Project`; for a `card` context it looks up the card in `snapshot.activeCards` + `snapshot.backgroundCards` by `cardInternalId` and returns `header.id`; every other context kind yields `null`, so no badge is drawn.\n\nDrag concern from the description — checked, it does not block hover. The badge sits inside the `Box` carrying `data-drag-handle=\"true\"`, and `ResizablePopper.startDrag` (`app/src/components/resizable_popper.tsx:269`) reacts to **pointerdown** only: it walks up from the event target, ignores anything matching `INTERACTIVE_SELECTOR` (`button, input, select, textarea, a, label, [role=...], [contenteditable]`), then calls `event.preventDefault()` and attaches window pointermove/pointerup listeners. Tooltips open on `mouseenter`/`focus`, which drag start never intercepts or suppresses. Two consequences follow: a tooltip on the badge will open on hover as-is, and the badge must stay outside `INTERACTIVE_SELECTOR` (no `<button>`, no `role=\"button\"`) or dragging the popup by its upper-left corner stops working.\n\nThe same toolbar already renders MUI `Tooltip` on the expand/collapse and close buttons, so tooltip rendering inside the popper stack is proven to work.\n\nThe card title is available two ways: `contentProps.baseContext.title` (captured when the context was built, may be stale after a run edits its own card) and the live card header found by the same snapshot lookup `resolvePopupTarget` already performs.\n\n## Implementation details\n\n* In `action_popup.tsx`, extend the target resolution so it returns both the displayed id and the card title from the same snapshot lookup, e.g. `resolvePopupTarget` returning `{ id, title }` or a sibling `resolvePopupTargetTitle`. Use the live `header.title` from the snapshot so the tooltip follows a title changed mid-run; fall back to `context.title` when the card is not in the snapshot. Pass the title to `ActionPopupContent` as a new optional `targetTitle: string | null` field on `ActionPopupContentProps` (`action_popup_types.ts`), alongside the existing `target`.\n* In `action_popup_frame.tsx`, wrap the id badge in MUI `Tooltip` with `title={targetTitle}` when a title exists. MUI renders no tooltip for an empty title, so an absent title needs no branch beyond passing `''`/`null`.\n* Keep the badge element a `span`. Do not convert it to a button or add `role=\"button\"`; that would put it in `INTERACTIVE_SELECTOR` and break drag from the badge.\n* For keyboard and screen-reader reach, give the badge `tabIndex={0}`. `[tabindex]` is not part of `INTERACTIVE_SELECTOR`, so drag from the badge is preserved while `Tooltip` gains its focus trigger.\n* Project context: `target` is `Project` and there is no card, so `targetTitle` stays `null` and no tooltip appears.\n* No desktop bridge, service, or data-model change is required; this is renderer-only and derives from state already loaded.\n\n## Acceptance criteria\n\n* Hovering the id badge in the action popup toolbar shows a tooltip containing the title of that card.\n* The tooltip text matches the card's current title, including after a run has changed the title while the popup stayed open.\n* Focusing the badge with the keyboard shows the same tooltip.\n* Dragging the popup by pressing and moving on the id badge still moves the popup, exactly as before.\n* No tooltip is shown for the `Project` badge, and popups with no badge (`file`, `folder`, `merge-conflict` contexts) are unchanged.\n* A card whose title is empty or that is absent from the snapshot shows the badge with no tooltip rather than an empty tooltip box.\n* Existing toolbar tooltips (expand/collapse, close), the worktree selector, and the conversation picker are unaffected.\n\n## Testing\n\n* Cover the card case: render the popup for a card context, hover the badge, assert the tooltip shows the card title.\n* Cover the live-title case: change the card title in the snapshot while the popup is open, assert the tooltip follows.\n* Cover the drag case: pointerdown + pointermove on the badge still repositions the popper.\n* Cover the project case and the empty-title case: no tooltip.",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-3",
+          "kind": "event",
+          "label": "cat \"C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/F_240_action_popup_card_id_add_tooltip.md\"",
+          "providerItemId": "toolu_017GcCej4R3GfJy6PepyoHwQ",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:07:46.940Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-4",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeVSBVrHN54BEfWRa9tZ1:thinking:0",
+          "sequence": 4,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:07:48.689Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cat app/src/components/actions/run/popup/action_popup_types.ts && echo \"=====FRAME=====\" && cat app/src/components/actions/run/popup/action_popup_frame.tsx",
+          "content": "import type { ActionContext } from '../../../../data/action_context'\nimport type { ActionDefinition } from '../../../../data/action_types'\nimport type { ActionRunSettingsStore } from '../../../../services/actions/action_run_settings_service'\nimport type { ActionConversationStore } from '../../conversation/action_conversation_store'\nimport type { ActionScheduleStore } from '../schedule/action_schedule_store'\nimport type { ActionHistoryStore } from '../state/action_history_store'\nimport type { ActionRunBindingStore } from '../state/action_run_binding_store'\nimport type { ActionRunInputStore } from '../state/action_run_input_store'\nimport type { ActionRunResultStore } from '../state/action_run_result_store'\nimport type { ActionUsageValuesService } from './action_usage_values_service'\n\nexport interface ActionPopupContentProps {\n    action: ActionDefinition\n    actions: ActionDefinition[]\n    anchorElement: HTMLElement | null\n    assignmentContext: ActionContext\n    baseContext: ActionContext\n    draggable?: boolean\n    fullHeight: boolean\n    onActivate?: () => void\n    onClose: () => void\n    onSelectAction: (actionId: string) => void\n    onToggleFullHeight: () => void\n    open: boolean\n    popupEntryId?: string\n    primaryPath: string | null\n    readOnlyMessage: string | null\n    stackPosition?: number\n    target: string | null\n    titleId: string\n}\n\nexport interface ActionPopupRuntime {\n    bindingStore: ActionRunBindingStore\n    conversationStore: ActionConversationStore\n    historyStore: ActionHistoryStore\n    inputStore: ActionRunInputStore\n    resultStore: ActionRunResultStore\n    runValidationError: string | null\n    scheduleStore: ActionScheduleStore\n    settingsStore: ActionRunSettingsStore\n    usageValuesService: ActionUsageValuesService\n}\n=====FRAME=====\nimport { Box, IconButton, Tooltip, Typography, useMediaQuery, useTheme } from '@mui/material'\nimport ArrowCollapseVertical from 'mdi-material-ui/ArrowCollapseVertical'\nimport ArrowExpandVertical from 'mdi-material-ui/ArrowExpandVertical'\nimport Close from 'mdi-material-ui/Close'\nimport type { ReactNode } from 'react'\nimport type { ActionContext } from '../../../../data/action_context'\nimport { ResizablePopper } from '../../../resizable_popper'\nimport type { WorktreeAssignmentTarget } from '../../../worktree_selector'\nimport { MarkdownTypeaheadLayerProvider } from '../../../editor/markdown_typeahead_layer_provider'\nimport { ActionConversationPickerOwner } from '../../conversation/action_conversation_picker_owner'\nimport type { ActionConversationStore } from '../../conversation/action_conversation_store'\nimport type { ActionRunBindingStore } from '../state/action_run_binding_store'\nimport { ActionSelector } from './action_selector'\nimport type { ActionPopupContentProps } from './action_popup_types'\nimport { ActionWorktreeSelectorOwner } from './action_worktree_selector_owner'\n\nexport const CARD_RUN_POPUP_SIZE_STORAGE_KEY = 'md2.cardRunPopupSize'\nexport const PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY = 'md2.projectAgentPopupSize'\n\ninterface ActionPopupFrameProps {\n    bindingStore: ActionRunBindingStore\n    children: ReactNode\n    contentProps: ActionPopupContentProps\n    conversationStore: ActionConversationStore\n}\n\nfunction worktreeAssignmentTarget(context: ActionContext): WorktreeAssignmentTarget | null {\n    if (context.kind === 'project') return { kind: 'project' }\n    if ((context.kind === 'card' || context.kind === 'file') && context.file && context.cardInternalId) {\n        return { cardInternalId: context.cardInternalId, kind: 'card', path: context.file }\n    }\n\n    return null\n}\n\n/** Shared popup surface, toolbar, and action selector. */\nexport function ActionPopupFrame({ bindingStore, children, contentProps, conversationStore }: ActionPopupFrameProps) {\n    const {\n        action, actions, anchorElement, assignmentContext, baseContext, draggable, fullHeight, onActivate,\n        onClose, onSelectAction, onToggleFullHeight, open, primaryPath, readOnlyMessage, stackPosition,\n        target, titleId,\n    } = contentProps\n    const theme = useTheme()\n \n[2061 characters omitted]\nopup\"\n            stackPosition={stackPosition}\n            storageKey={isMobile ? undefined : sizeStorageKey}\n        >\n            <MarkdownTypeaheadLayerProvider stackPosition={stackPosition ?? 0}>\n                <Typography\n                    id={titleId}\n                    sx={{ clip: 'rect(0 0 0 0)', clipPath: 'inset(50%)', height: 1, overflow: 'hidden', position: 'absolute', whiteSpace: 'nowrap', width: 1 }}\n                >\n                    {target ? `Run actions for ${target}` : 'Run actions'}\n                </Typography>\n                <Box\n                    data-drag-handle={!isMobile && draggable ? 'true' : undefined}\n                    sx={{\n                        borderBottom: 1, borderColor: 'divider', cursor: !isMobile && draggable ? 'move' : undefined,\n                        display: 'flex', flexDirection: 'column', flexShrink: 0, gap: 1, px: 1.5, py: 1.5,\n                    }}\n                >\n                    <Box data-testid=\"action-popup-toolbar\" sx={{ alignItems: 'center', display: 'flex', gap: 1 }}>\n                        {target ? (\n                            <Box\n                                component=\"span\"\n                                sx={{\n                                    bgcolor: 'custom.primaryBg', borderRadius: '5px', color: 'primary.main', flexShrink: 0,\n                                    fontFamily: '\"Roboto Mono\", ui-monospace, monospace', fontSize: 11.5, fontWeight: 600,\n                                    px: 0.875, py: 0.25,\n                                }}\n                            >\n                                {target}\n                            </Box>\n                        ) : null}\n                        {assignmentTarget && !readOnlyMessage ? (\n                            <ActionWorktreeSelectorOwner\n                                assignment={worktreeAssignment}\n                                assignmentTarget={assignmentTarget}\n                                bindingStore={bindingStore}\n                                primaryPath={primaryPath}\n                            />\n                        ) : null}\n                        {action.type === 'agent' ? (\n                            <ActionConversationPickerOwner\n                                actionId={action.id}\n                                bindingStore={bindingStore}\n                                context={assignmentContext}\n                                store={conversationStore}\n                            />\n                        ) : null}\n                        <Box sx={{ flex: 1 }} />\n                        {!isMobile ? (\n                            <Tooltip title={fullHeight ? 'Collapse downward' : 'Expand upward'}>\n                                <IconButton\n                                    aria-label={fullHeight ? 'Collapse downward' : 'Expand upward'}\n                                    onClick={onToggleFullHeight}\n                                    size=\"small\"\n                                    sx={{ flexShrink: 0, height: 30, width: 30 }}\n                                >\n                                    {fullHeight\n                                        ? <ArrowCollapseVertical sx={{ fontSize: 18 }} />\n                                        : <ArrowExpandVertical sx={{ fontSize: 18 }} />}\n                                </IconButton>\n                            </Tooltip>\n                        ) : null}\n                        <IconButton aria-label=\"Close\" onClick={onClose} size=\"small\" sx={{ flexShrink: 0, height: 30, width: 30 }}>\n                            <Close sx={{ fontSize: 18 }} />\n                        </IconButton>\n                    </Box>\n                    <ActionSelector\n                        actions={actions}\n                        context={assignmentContext}\n                        onSelect={onSelectAction}\n                        selectedAction={action}\n                    />\n                </Box>\n                {children}\n            </MarkdownTypeaheadLayerProvider>\n        </ResizablePopper>\n    )\n}",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-5",
+          "kind": "event",
+          "label": "cat app/src/components/actions/run/popup/action_popup_types.ts && echo \"=====FRAME=====\" && cat app/src/components/actions/run/popup/action_popup_frame.tsx",
+          "providerItemId": "toolu_01LyY2zg9rPpdbp7o25VEdN6",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:07:49.795Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd app/src/components/actions/run/popup && grep -n \"resolvePopupTarget\" -r . && echo \"=====\" && sed -n '1,140p' action_popup.tsx",
+          "content": "./action_popup.tsx:16:function resolvePopupTarget(context: ActionContext, snapshot: ReturnType<typeof useProjectState>['snapshot']) {\n./action_popup.tsx:89:    const target = resolvePopupTarget(context, snapshot)\n=====\nimport { useId, useMemo, useState } from 'react'\nimport { displayActionsForContext, projectContextWithWorktree, type ActionContext } from '../../../../data/action_context'\nimport { dataService } from '../../../../services/data/data_service'\nimport { actionRunRegistry } from '../../../../services/actions/action_run_registry'\nimport { actionPromptDraftService } from '../../../../services/actions/action_prompt_draft_service'\nimport { cardAgentState } from '../../../../services/agents/card_agent_state'\nimport { isReleasedCardActionContext, RELEASED_CARD_RUN_MESSAGE } from '../../../../../../shared/released_card_actions.mjs'\nimport { useActions } from '../../../hooks/use_actions'\nimport { useProjectState } from '../../../hooks/use_project_state'\nimport { useProjectActionWorktree } from '../../../hooks/use_worktrees'\nimport { ActionPopupContent } from './action_popup_content'\nimport { resolveInitialActionId, type PersistedActionStates } from './action_popup_initial_action'\n\nexport { CARD_RUN_POPUP_SIZE_STORAGE_KEY, PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY } from './action_popup_content'\n\nfunction resolvePopupTarget(context: ActionContext, snapshot: ReturnType<typeof useProjectState>['snapshot']) {\n    if (context.kind === 'project') return 'Project'\n    if (context.kind !== 'card') return null\n\n    const cards = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]\n\n    return cards.find(({ header }) => header.internalId === context.cardInternalId)?.header.id ?? null\n}\n\nfunction resolveCardInternalId(context: ActionContext, snapshot: ReturnType<typeof useProjectState>['snapshot']) {\n    const cards = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]\n    const card = context.cardInternalId\n        ? cards.find(({ header }) => header.internalId === context.cardInternalId)\n        : cards.find(({ path }) => path === context.file)\n\n    return card?.header.internalId ?? context.cardInternalId ?? null\n}\n\nfunction persistedActionStates(\n    actions: ReturnType<typeof displayActionsForContext>,\n    context: ActionContext,\n    snapshot: ReturnType<typeof useProjectState>['snapshot'],\n) {\n    const cardInternalId = resolveCardInternalId(context, snapshot)\n    if (!cardInternalId) return {}\n\n    const conversations = dataService.agents.getAgentConversations(cardInternalId)\n\n    return Object.fromEntries(actions.map(({ id }) => [\n        id,\n        cardAgentState(conversations.filter((conversation) => conversation.actionId === id)),\n    ])) as PersistedActionStates\n}\n\ninterface ActionPopupProps {\n    anchorElement: HTMLElement | null\n    context: ActionContext\n    draggable?: boolean\n    initialActionId?: string\n    onActivate?: () => void\n    onClose: () => void\n    open?: boolean\n    popupEntryId?: string\n    stackPosition?: number\n}\n\n/** Universal action selector and run popup for the supplied context. */\nexport function ActionPopup(props: ActionPopupProps) {\n    const { anchorElement, context, initialActionId, onClose, open } = props\n    const { actions: loadedActions } = useActions()\n    const { project, snapshot } = useProjectState()\n    const projectActionWorktree = useProjectActionWorktree()\n    const effectiveContext = useMemo(\n        () => projectContextWithWorktree(context, projectActionWorktree),\n        [context, projectActionWorktree],\n    )\n    const actions = useMemo(() => displayActionsForContext(loadedActions, effectiveContext), [effectiveContext, loadedActions])\n    const [selectedActionId, setSelectedActionId] = useState<string | null>(() => resolveInitialActionId(\n        actions,\n        initialActionId,\n        actionRunRegistry.getContextActiveSnapshot(effectiveContext),\n        persistedActionStates(actions, effectiveContext, snapshot),\n    ))\n    const [fullHeight, setFullHeight] = useState(false)\n    const titleId = useId()\n    // A run that edits its own card changes the context (state, title, worktree), so the\n    // selected action can drop out of the filtered list mid-run. Keep it selectable instead\n    // of closing the popup or silently switching to another action.\n    const retainedAction = selectedActionId ? loadedActions.find(({ id }) => id === selectedActionId) ?? null : null\n    const selectedAction = actions.find(({ id }) => id === selectedActionId) ?? retainedAction ?? actions[0] ?? null\n    const selectableActions = selectedAction && !actions.some(({ id }) => id === selectedAction.id)\n        ? [...actions, selectedAction]\n        : actions\n    const target = resolvePopupTarget(context, snapshot)\n    const releasesFolder = dataService.getConfig()?.releasesFolder\n    const readOnlyMessage = releasesFolder && isReleasedCardActionContext(effectiveContext, releasesFolder)\n        ? RELEASED_CARD_RUN_MESSAGE\n        : null\n\n    const handleSelectAction = (actionId: string) => {\n        setSelectedActionId(actionId)\n    }\n\n    const handleClose = () => {\n        actionPromptDraftService.deleteEmptyDrafts()\n        onClose()\n    }\n\n    const handleToggleFullHeight = () => setFullHeight((current) => !current)\n\n    if (!selectedAction) return null\n\n    return (\n        <ActionPopupContent\n            {...props}\n            action={selectedAction}\n            actions={selectableActions}\n            assignmentContext={effectiveContext}\n            baseContext={context}\n            fullHeight={fullHeight}\n            onClose={handleClose}\n            onSelectAction={handleSelectAction}\n            onToggleFullHeight={handleToggleFullHeight}\n            open={open ?? !!anchorElement}\n            primaryPath={project?.rootPath ?? project?.id ?? null}\n            readOnlyMessage={readOnlyMessage}\n            target={target}\n            titleId={titleId}\n        />\n    )\n}",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-6",
+          "kind": "event",
+          "label": "cd app/src/components/actions/run/popup && grep -n \"resolvePopupTarget\" -r . && echo \"=====\" && sed -n '1,140p' action_popup.tsx",
+          "providerItemId": "toolu_01WNbr5CF7xhswSg3L7XhGgj",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:07:52.641Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-7",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeVSBvS98G5QuEztz7p2e:thinking:0",
+          "sequence": 7,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:07:54.443Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd app && ls src/components/actions/run/popup/ && echo \"==TESTS==\" && grep -rln \"action_popup_frame\\|ActionPopupFrame\\|action-popup-toolbar\" src test 2>/dev/null",
+          "content": "/usr/bin/bash: line 1: cd: app: No such file or directory",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-8",
+          "kind": "event",
+          "label": "cd app && ls src/components/actions/run/popup/ && echo \"==TESTS==\" && grep -rln \"action_popup_frame\\|ActionPopupFrame\\|action-popup-toolbar\" src test 2>/dev/null",
+          "providerItemId": "toolu_01VutFnenvyd5dqgC6vtPZYP",
+          "sequence": 8,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:07:55.464Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2_workers/dev3/app && ls src/components/actions/run/popup/ && echo \"==TESTS==\" && grep -rln \"action_popup_frame\\|ActionPopupFrame\\|action-popup-toolbar\" src test 2>/dev/null",
+          "content": "Exit code 2\naction_agent_interaction.tsx\naction_commit_dropdown.tsx\naction_popup.test.tsx\naction_popup.tsx\naction_popup_bottom_row.test.tsx\naction_popup_bottom_row.tsx\naction_popup_content.tsx\naction_popup_defaults.node.test.ts\naction_popup_defaults.ts\naction_popup_finish_button.tsx\naction_popup_frame.tsx\naction_popup_initial_action.node.test.ts\naction_popup_initial_action.ts\naction_popup_operations.node.test.ts\naction_popup_operations.ts\naction_popup_run_disabled.ts\naction_popup_runtime.ts\naction_popup_types.ts\naction_run_disabled_message.tsx\naction_selector.test.tsx\naction_selector.tsx\naction_selector_button.tsx\naction_usage_scope_store.node.test.ts\naction_usage_scope_store.ts\naction_usage_summary.test.tsx\naction_usage_summary.tsx\naction_usage_summary_data.node.test.ts\naction_usage_summary_data.ts\naction_usage_summary_owner.test.tsx\naction_usage_summary_owner.tsx\naction_usage_values_service.ts\naction_worktree_selector_owner.tsx\nagent_action.tsx\ncard_action_popup_host.tsx\ncard_action_popup_host_entry.tsx\ncommand_action.tsx\n==TESTS==\nsrc/components/actions/run/popup/action_popup.test.tsx\nsrc/components/actions/run/popup/action_popup_content.tsx\nsrc/components/actions/run/popup/action_popup_frame.tsx\nsrc/components/actions/run/trigger/card_run_button.test.tsx",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-9",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2_workers/dev3/app && ls src/components/actions/run/popup/ && echo \"==TESTS==\" && grep -rln \"action_popup_frame\\|ActionPopupFrame\\|action-popup-toolbar\" src test 2>/dev/null",
+          "providerItemId": "toolu_01Jxg58daoc2MQ6mx5ApzLMS",
+          "sequence": 9,
+          "status": "failed",
+          "timestamp": "2026-08-28T16:07:58.245Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2_workers/dev3/app && sed -n '1,120p' src/components/actions/run/popup/action_popup.test.tsx",
+          "content": "import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'\nimport userEvent from '@testing-library/user-event'\nimport { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'\nimport type { ActionContext } from '../../../../data/action_context'\nimport type { ActionRunEvent, ActionStartRequest } from '../../../../data/action_run_types'\nimport { CUSTOM_PROMPT_ACTION_ID, type ActionFile } from '../../../../data/action_types'\nimport type { AgentConversation, ProjectReference, StorageService, WorktreeRecord } from '../../../../data/data_types'\nimport type { AgentSelectionState } from '../../../../data/agent_selection'\nimport { actionService } from '../../../../services/actions/action_service'\nimport { actionRunRegistry } from '../../../../services/actions/action_run_registry'\nimport { actionRunSettingsService } from '../../../../services/actions/action_run_settings_service'\nimport { actionPromptDraftService } from '../../../../services/actions/action_prompt_draft_service'\nimport { agentCapabilitiesService } from '../../../../services/agents/agent_capabilities_service'\nimport { agentAcknowledgementService } from '../../../../services/agents/agent_acknowledgement_service'\nimport { dialogService } from '../../../../services/dialog_service'\nimport { dataService } from '../../../../services/data/data_service'\nimport { remoteConnectionService } from '../../../../services/data/remote_connection_service'\nimport { RemoteControlConnectionError, RemoteControlStorageService } from '../../../../services/data/remote_control_storage_service'\nimport { worktreeService } from '../../../../services/project/worktree_service'\nimport { projectPersistenceService } from '../../../../services/project/project_persistence_service'\nimport { openFilesService } from '../../../../services/open_files_service'\nimport { AppThemeProvider } from '../../../../theme/theme_provider'\nimport { ActionPopup, CARD_RUN_POPUP_SIZE_STORAGE_KEY, PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY } from './action_popup'\nimport { useMarkdownTypeaheadStackPosition } from '../../../editor/markdown_typeahead_layer_context'\nimport { configService } from '../../../../services/config/config_service'\nimport { BUILTIN_AGENT_PROFILES } from '../../../../data/agent_profiles'\n\nconst renderProbes = vi.hoisted(() => ({\n    agentPrompt: vi.fn(),\n    agentSelectors: vi.fn(),\n    chat: vi.fn(),\n    conversationPicker: vi.fn(),\n    content: vi.fn(),\n    logError: vi.fn(),\n    phraseButtons: vi.fn(),\n    popup: vi.fn(),\n    selector: vi.fn(),\n}))\n\nvi.mock('../../agent/action_agent_prompt', async (importOriginal) => {\n    const actual = await importOriginal<typeof import('../../agent/action_agent_prompt')>()\n\n    return {\n        ...actual,\n        ActionAgentPrompt: function ActionAgentPromptRenderProbe(props: Parameters<typeof actual.ActionAgentPrompt>[0]) {\n            renderProbes.agentPrompt(useMarkdownTypeaheadStackPosition())\n\n            return actual.ActionAgentPrompt(props)\n        },\n    }\n})\n\nvi.mock('../../agent/action_agent_selectors', async (importOriginal) => {\n    const actual = await importOriginal<typeof import('../../agent/action_agent_selectors')>()\n\n    return {\n        ...actual,\n        ActionAgentSelectors: function ActionAgentSelectorsRenderProbe(props: Parameters<typeof actual.ActionAgentSelectors>[0]) {\n            renderProbes.agentSelectors()\n\n            return actual.ActionAgentSelectors(props)\n        },\n    }\n})\n\nvi.mock('../../conversation/action_conversation_picker', async (importOriginal) => {\n    const actual = await importOriginal<typeof import('../../conversation/action_conversation_picker')>()\n\n    return {\n        ...actual,\n        ActionConversationPicker: function ActionConversationPickerRenderProbe(\n            props: Parameters<typeof actual.ActionConversationPicker>[0],\n        ) {\n            renderProbes.conversationPicker()\n\n            return actual.ActionConversationPicker(props)\n        },\n    }\n})\n\nvi.mock('../../conversation/action_log_error_display', async (importOriginal) => {\n    const actual = await importOriginal<typeof import('../../conversation/action_log_error_display')>()\n\n    return {\n        ...actual,\n        ActionLogErrorDisplay: function ActionLogErrorDisplayRenderProbe(props: Parameters<typeof actual.ActionLogErrorDisplay>[0]) {\n            renderProbes.logError()\n\n            return actual.ActionLogErrorDisplay(props)\n        },\n    }\n})\n\nvi.mock('../../editor/action_phrase_buttons', async (importOriginal) => {\n    const actual = await importOriginal<typeof import('../../editor/action_phrase_buttons')>()\n\n    return {\n        ...actual,\n        ActionPhraseButtons: function ActionPhraseButtonsRenderProbe(props: Parameters<typeof actual.ActionPhraseButtons>[0]) {\n            renderProbes.phraseButtons()\n\n            return actual.ActionPhraseButtons(props)\n        },\n    }\n})\n\nvi.mock('./action_popup_content', async (importOriginal) => {\n    const actual = await importOriginal<typeof import('./action_popup_content')>()\n\n    return {\n        ...actual,\n        ActionPopupContent: function ActionPopupContentRenderProbe(props: Parameters<typeof actual.ActionPopupContent>[0]) {\n            renderProbes.content()\n\n            return actual.ActionPopupContent(props)\n        },\n    }\n})\n\nvi.mock('./action_selector', async (importOriginal) => {",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-10",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2_workers/dev3/app && sed -n '1,120p' src/components/actions/run/popup/action_popup.test.tsx",
+          "providerItemId": "toolu_0141ySYq3tHZ8bjGVwSgVpxT",
+          "sequence": 10,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:08:00.539Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-11",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeVSCW5hepwbhGrSiYVzi:thinking:0",
+          "sequence": 11,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:08:02.980Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "grep -n \"activeCards\\|snapshot\\|cardContext\\|renderPopup\\|const context\\|C_1\\|header\" src/components/actions/run/popup/action_popup.test.tsx | head -80",
+          "content": "158:const context: ActionContext = { file: 'design/F-010.md', kind: 'card', state: 'design', type: 'feature' }\n233:function renderPopup(contextOverride: ActionContext = context, onClose = vi.fn(), stackPosition?: number) {\n289:            snapshotProvider: () => null,\n310:        renderPopup()\n337:        renderPopup()\n345:        const cardContext = { ...context, cardInternalId: 'card-1' }\n349:        renderPopup(cardContext)\n383:        renderPopup({ cardInternalId: 'card-10', file: 'design/releases/v1/F-010.md', kind: 'card' })\n399:        renderPopup(context, vi.fn(), stackPosition)\n407:        renderPopup()\n430:        renderPopup({ ...context, cardInternalId: 'card-1' })\n454:        renderPopup({ kind: 'project' })\n460:    it('shows Project in the project popup header and accessible title', () => {\n461:        renderPopup({ kind: 'project' })\n473:        renderPopup()\n502:        renderPopup()\n529:        renderPopup()\n545:        const cardContext = { ...context, cardInternalId: 'card-1' }\n555:        renderPopup(cardContext)\n577:        renderPopup()\n638:        renderPopup()\n658:        renderPopup()\n670:        renderPopup()\n698:        renderPopup()\n724:        renderPopup()\n771:        renderPopup()\n793:        renderPopup()\n841:        renderPopup()\n860:        renderPopup()\n896:        renderPopup()\n948:        renderPopup(projectContext)\n995:        renderPopup(streamingContext)\n1052:        renderPopup()\n1087:        renderPopup({ ...context, cardInternalId: 'card-1' })\n1112:        renderPopup({ ...context, cardInternalId: 'card-1' })\n1155:        renderPopup({ ...context, cardInternalId: 'card-1' })\n1205:        renderPopup(historicalContext)\n1243:        renderPopup(historicalContext)\n1277:        renderPopup()\n1308:        renderPopup()\n1314:    it('closes from the popup header and deletes only empty prompt drafts', () => {\n1318:        const { onClose } = renderPopup()\n1328:        renderPopup({ ...context, cardInternalId: 'card-1' })\n1340:        renderPopup({ ...context, cardInternalId: 'card-1' })\n1351:        renderPopup({ ...context, cardInternalId: 'card-1' })\n1367:        renderPopup({ kind: 'project' })\n1382:        renderPopup({ kind: 'project' })\n1405:        renderPopup()\n1452:        renderPopup()\n1502:        renderPopup(waitingContext)\n1552:        renderPopup(waitingContext)\n1587:        renderPopup(waitingContext)\n1629:        renderPopup(waitingContext)\n1657:                update: { kind: 'agentQuestion', questions: [{ header: 'Confirm', id: 'confirm', question: 'Proceed?' }], requestId: 7 },\n1709:        renderPopup()\n1758:        renderPopup()\n1808:        renderPopup()\n1852:        renderPopup()\n1940:        renderPopup(persistedContext)\n1990:        renderPopup(persistedContext)\n2024:        renderPopup(persistedContext)\n2047:        renderPopup()\n2077:        renderPopup()\n2170:        renderPopup(projectContext)\n2215:        const cardContext = { ...context, cardInternalId: 'card-1' }\n2235:        renderPopup(cardContext)\n2243:        const cardContext = { ...context, cardInternalId: 'card-1' }\n2267:        renderPopup(cardContext)\n2288:        renderPopup(cardContext)\n2293:        renderPopup(cardContext)\n2306:        renderPopup(fileContext)\n2312:        renderPopup(fileContext)\n2317:        renderPopup(fileContext)\n2322:        const cardContext = { ...context, cardInternalId: 'card-1' }\n2341:        renderPopup(cardContext)\n2359:        const cardContext = { ...context, cardInternalId: 'card-1' }\n2381:        renderPopup(cardContext)\n2415:        renderPopup()\n2455:        renderPopup()\n2502:        renderPopup(queuedContext)",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-12",
+          "kind": "event",
+          "label": "grep -n \"activeCards\\|snapshot\\|cardContext\\|renderPopup\\|const context\\|C_1\\|header\" src/components/actions/run/popup/action_popup.test.tsx | head -80",
+          "providerItemId": "toolu_01A5XP3VRQRfgXuuBDuhhhrq",
+          "sequence": 12,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:08:04.748Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "sed -n '150,300p' src/components/actions/run/popup/action_popup.test.tsx",
+          "content": "function commandDefinition(id: string, overrides: Record<string, unknown> = {}) {\n    return { command: 'run', description: `${id} description`, id, label: id, type: 'command', ...overrides }\n}\n\nfunction agentDefinition(id: string, overrides: Record<string, unknown> = {}) {\n    return { description: `${id} description`, id, label: id, prompt: 'Review project', type: 'agent', ...overrides }\n}\n\nconst context: ActionContext = { file: 'design/F-010.md', kind: 'card', state: 'design', type: 'feature' }\nconst project: ProjectReference = { branch: 'main', id: 'project', rootPath: 'C:\\\\project' }\nconst originalMatchMedia = window.matchMedia\nconst validWorktree: WorktreeRecord = {\n    branch: 'feature', error: null, parkingBranch: 'md2/parking/feature', path: 'C:\\\\feature',\n    status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false }, valid: true,\n}\n\nfunction agentConversation(overrides: Partial<AgentConversation> = {}): AgentConversation {\n    return {\n        actionId: 'respond',\n        cardInternalId: 'card-1',\n        cardPath: 'design/F-010.md',\n        completedAt: null,\n        entries: [],\n        hasExplicitTitle: true,\n        id: 'conversation-1',\n        path: 'conversation-1.json',\n        providerSessions: [],\n        startedAt: '2026-08-01T12:00:00.000Z',\n        status: 'waitingForInput',\n        title: 'Waiting response',\n        viewed: true,\n        ...overrides,\n    }\n}\n\nfunction deferredValue<T>() {\n    let resolveValue: (value: T) => void = () => undefined\n    const promise = new Promise<T>((resolve) => {\n        resolveValue = resolve\n    })\n\n    return { promise, resolve: resolveValue }\n}\n\nfunction rejectableDeferred<T>() {\n    let rejectValue: (error: unknown) => void = () => undefined\n    const promise = new Promise<T>((_resolve, reject) => {\n        rejectValue = reject\n    })\n\n    return { promise, reject: rejectValue }\n}\n\nfunction mockCodexAvailable() {\n    vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({\n        availability: { error: null, loading: false, values: { codex: { available: true, error: null } } },\n        models: { error: null, loading: false, values: [] },\n        thinkingLevels: { error: null, loading: false, values: [] },\n    })\n}\n\nfunction setMobileBreakpoint(matches: boolean) {\n    window.matchMedia = ((query: string) => ({\n        addEventListener: vi.fn(),\n        addListener: vi.fn(),\n        dispatchEvent: vi.fn(),\n        matches: matches && query.includes('max-width'),\n        media: query,\n        onchange: null,\n        removeEventListener: vi.fn(),\n        removeListener: vi.fn(),\n    })) as unknown as typeof window.matchMedia\n}\n\nfunction worktreeStorage(): StorageService {\n    return {\n        onWorktreesChanged: vi.fn((callback) => {\n            callback({ error: null, primaryStatus: null, project, records: [validWorktree] })\n            return vi.fn()\n        }),\n    } as unknown as StorageService\n}\n\nfunction renderPopup(contextOverride: ActionContext = context, onClose = vi.fn(), stackPosition?: number) {\n    function ActionPopupRenderProbe() {\n        renderProbes.popup()\n\n        return <ActionPopup anchorElement={document.body} context={contextOverride} onClose={onClose} stackPosition={stackPosition} />\n    }\n\n    render(\n        <AppThemeProvider>\n            <ActionPopupRenderProbe />\n        </AppThemeProvider>,\n    )\n\n    return { onClose }\n}\n\nfunction emitActionRunEvent(listener: ((event: ActionRunEvent) => void) | null, event: ActionRunEvent) {\n    if (!listener) throw new Error('Action run listener is not registered')\n\n    listener(event)\n}\n\nfunction selectPromptText(textbox: HTMLTextAreaElement, start: number, end: number) {\n    textbox.focus()\n    textbox.setSelectionRange(start, end)\n    fireEvent.select(textbox)\n}\n\ndescribe('ActionPopup', () => {\n    beforeEach(async () => {\n        projectPersistenceService.init({ actionService, dataService, openFilesService })\n        remoteConnectionService.disconnect()\n        configService.init({\n            desktopConfig: {\n                agentProfiles: BUILTIN_AGENT_PROFILES,\n                agentSelection: { activeAgent: 'codex', permissionMode: 'ask-for-approval', settingsByAgent: { codex: { model: 'gpt-5.5', thinkingLevel: 'none' } } },\n            },\n        })\n        setMobileBreakpoint(false)\n        Object.values(renderProbes).forEach((probe) => probe.mockClear())\n        window.md2Actions = {\n            onActionRun: vi.fn(() => vi.fn()),\n            prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),\n        } as unknown as typeof window.md2Actions\n        actionService.loadFromFiles([\n            file(commandDefinition('first', { label: 'First action' })),\n            file(commandDefinition('second', { label: 'Second action' })),\n        ])\n        const storage = worktreeStorage()\n        worktreeService.init({\n            assignCardWorktree: vi.fn(),\n            cardSeparatorProvider: () => '-',\n            clearCardBranch: vi.fn(),\n            flushPendingChanges: vi.fn(async () => undefined),\n            projectFolderProvider: () => 'design',\n            projectProvider: () => project,\n            snapshotProvider: () => null,\n            storageProvider: () => storage,\n            unassignCardWorktree: vi.fn(),\n        })\n    })\n\n    afterEach(() => {\n        remoteConnectionService.disconnect()\n        actionRunRegistry.stop()\n        actionRunSettingsService.clear()\n        delete window.md2Actions\n        configService.clear()",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-13",
+          "kind": "event",
+          "label": "sed -n '150,300p' src/components/actions/run/popup/action_popup.test.tsx",
+          "providerItemId": "toolu_01RDXase1jU1FDhKZNzMHXZx",
+          "sequence": 13,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:08:07.670Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-14",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeVSD2fxXwH48rBJJ4E2G:thinking:0",
+          "sequence": 14,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:08:10.064Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "grep -n \"useProjectState\\|projectState\\|setSnapshot\\|emitSnapshot\\|projectPersistenceService\" src/components/actions/run/popup/action_popup.test.tsx | head -30; echo \"===\"; sed -n '440,470p' src/components/actions/run/popup/action_popup.test.tsx",
+          "content": "20:import { projectPersistenceService } from '../../../../services/project/project_persistence_service'\n263:        projectPersistenceService.init({ actionService, dataService, openFilesService })\n===\n        expect(within(bottomRow).queryByRole('button', { name: /^Changes,/u })).not.toBeInTheDocument()\n        tokens.focus()\n        expect(tokens).toHaveFocus()\n        fireEvent.mouseOver(tokens)\n        expect(await screen.findByText('Tokens are cumulative provider token usage.', { selector: '.MuiTooltip-tooltip *' }))\n            .toBeInTheDocument()\n    })\n\n    it('keeps usage absent from project-scoped agent popups', () => {\n        actionService.loadFromFiles([file(agentDefinition('review', {\n            appliesTo: { kind: 'project' },\n            label: 'Review project',\n        }))])\n\n        renderPopup({ kind: 'project' })\n\n        expect(screen.queryByRole('button', { name: /^Tokens,/u })).not.toBeInTheDocument()\n        expect(screen.queryByRole('button', { name: /^Changes,/u })).not.toBeInTheDocument()\n    })\n\n    it('shows Project in the project popup header and accessible title', () => {\n        renderPopup({ kind: 'project' })\n\n        const dialog = within(screen.getByRole('dialog', { name: 'Run actions for Project' }))\n        expect(within(dialog.getByTestId('action-popup-toolbar')).getByText('Project')).toBeInTheDocument()\n    })\n\n    it('does not render popup content while typing or flushing a prompt', async () => {\n        window.md2Actions = {\n            onActionRun: vi.fn(() => vi.fn()),\n            prepareActionPrompt: vi.fn(async () => ({ prompt: 'Plan' })),",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-15",
+          "kind": "event",
+          "label": "grep -n \"useProjectState\\|projectState\\|setSnapshot\\|emitSnapshot\\|projectPersistenceService\" src/components/actions/run/popup/action_popup.test.tsx | head -30; echo \"===\"; sed -n '440,470p' src/components/actions/run/popup/action_popup.test.tsx",
+          "providerItemId": "toolu_01FsMontQvME1YjYXFWJ74k1",
+          "sequence": 15,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:08:11.728Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-16",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeVSDKs53K3WsqmDm5Hg6:thinking:0",
+          "sequence": 16,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:08:14.443Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cat src/components/hooks/use_project_state.ts 2>/dev/null || ls src/components/hooks/ | grep project",
+          "content": "import { useSyncExternalStore } from 'react'\nimport { dataService, type DataService, type DataServiceState } from '../../services/data/data_service'\n\nconst snapshots = new WeakMap<DataService, DataServiceState>()\n\nfunction isSameDataServiceState(first: DataServiceState, second: DataServiceState) {\n    return first.project === second.project\n        && first.runningAgents === second.runningAgents\n        && first.snapshot === second.snapshot\n}\n\nfunction getProjectStateSnapshot(service: DataService): DataServiceState {\n    const nextSnapshot = service.getState()\n    const currentSnapshot = snapshots.get(service)\n    if (currentSnapshot && isSameDataServiceState(currentSnapshot, nextSnapshot)) return currentSnapshot\n\n    snapshots.set(service, nextSnapshot)\n\n    return nextSnapshot\n}\n\nexport function useProjectState(service: DataService = dataService): DataServiceState {\n    return useSyncExternalStore(\n        (onStoreChange) => {\n            service.addEventListener('changed', onStoreChange)\n\n            return () => service.removeEventListener('changed', onStoreChange)\n        },\n        () => getProjectStateSnapshot(service),\n        () => getProjectStateSnapshot(service),\n    )\n}",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-17",
+          "kind": "event",
+          "label": "cat src/components/hooks/use_project_state.ts 2>/dev/null || ls src/components/hooks/ | grep project",
+          "providerItemId": "toolu_01EDEuVeKWcjAcq2foAHtdDn",
+          "sequence": 17,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:08:15.778Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "grep -rln \"dataService, 'getState'\\|spyOn(dataService, 'getState')\" src | head -10; echo \"===\"; grep -rn \"activeCards:\" src --include=*.test.tsx | head -10",
+          "content": "src/components/actions/conversation/action_conversation_chat.test.tsx\nsrc/components/actions/conversation/action_conversation_link_navigation.node.test.ts\nsrc/components/actions/run/trigger/action_entry_points.test.tsx\nsrc/components/card_view/affects_editor_dialog.test.tsx\nsrc/components/card_view/card_body_popover.real.test.tsx\nsrc/components/card_view/card_body_popover_commit.test.tsx\nsrc/components/card_view/card_body_popover_editor.test.tsx\nsrc/components/card_view/card_body_popover_state.test.tsx\nsrc/components/card_view/card_drag_overlay.test.tsx\nsrc/components/card_view/card_view.test.tsx\n===\nsrc/components/actions/conversation/action_conversation_chat.test.tsx:681:            snapshot: { activeCards: [], backgroundCards: [], repositoryFiles: [], workingFolder: 'design' },\nsrc/components/actions/conversation/action_conversation_chat.test.tsx:700:                activeCards: [],\nsrc/components/actions/run/trigger/action_entry_points.test.tsx:250:                activeCards: active,\nsrc/components/actions/run/trigger/action_entry_points.test.tsx:289:                activeCards: [card('F-1', 'todo', 'Alpha')],\nsrc/components/actions/run/trigger/card_run_button.test.tsx:94:        activeCards: [Card],\nsrc/components/actions/run/trigger/card_run_button.test.tsx:374:            activeCards: [card, secondCard],\nsrc/components/actions/run/trigger/card_run_button.test.tsx:465:            activeCards: [card, secondCard],\nsrc/components/card_view/affects_editor_dialog.test.tsx:53:                activeCards: [activeCard],\nsrc/components/card_view/card_body_popover.real.test.tsx:37:            snapshot: { activeCards: [card], backgroundCards: [], repositoryFiles: [], workingFolder: 'design' },\nsrc/components/card_view/card_body_popover_commit.test.tsx:81:        snapshot: { activeCards: [card], backgroundCards: [], repositoryFiles: [], workingFolder: 'design' },",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-18",
+          "kind": "event",
+          "label": "grep -rln \"dataService, 'getState'\\|spyOn(dataService, 'getState')\" src | head -10; echo \"===\"; grep -rn \"activeCards:\" src --include=*.test.tsx | head -10",
+          "providerItemId": "toolu_018fLagnDcCdXn7Thjfj29Pg",
+          "sequence": 18,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:08:18.177Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "sed -n '230,300p' src/components/actions/run/trigger/action_entry_points.test.tsx",
+          "content": "        expect(dialog.getByRole('button', { name: 'Run lint' })).toHaveAttribute('aria-pressed', 'true')\n        expect(screen.queryByText('Before')).not.toBeInTheDocument()\n        expect(screen.queryByText('After')).not.toBeInTheDocument()\n    })\n})\n\ndescribe('entry-point placement in the file tree', () => {\n    beforeEach(() => {\n        actionService.loadFromFiles([])\n    })\n\n    it('places an Actions menu on status, folder, and file rows', () => {\n        const active = [{ ...card('F-1', 'todo', 'Alpha'), path: 'design/active/F-1.md' }]\n        const background = [card('F-9', null, 'Old')]\n        background[0] = { ...background[0], path: 'design/history/F-9.md' }\n        vi.spyOn(dataService, 'getState').mockReturnValue({\n            project: null,\n            runningAgents: [],\n            snapshot: {\n                activeCards: active,\n                backgroundCards: background,\n                repositoryFiles: [],\n                workingFolder: 'design/active',\n            },\n        })\n        const createFolder = vi.fn(async () => undefined)\n        const createMarkdownFile = vi.fn(async () => undefined)\n\n        render(\n            <FileTreeView\n                actionsFolder=\"design/actions\"\n                cardTypes={DEFAULT_CARD_TYPES}\n                onCreateFolder={createFolder}\n                onCreateMarkdownFile={createMarkdownFile}\n                onDeleteFile={async () => undefined}\n                onDeleteFolder={async () => undefined}\n                onLeftPanelInteraction={() => {}}\n                projectFolder=\"design\"\n                statusColors={new Map([['todo', '#9c4dcc']])}\n                workingFolder=\"design/active\"\n            />,\n        )\n        fireEvent.click(screen.getByRole('button', { name: 'active 1' }))\n\n        const actionMenus = screen.getAllByRole('button', { name: 'Actions' })\n        expect(actionMenus.length).toBeGreaterThanOrEqual(3)\n        const todoRow = screen.getByRole('button', { name: 'todo 1' }).parentElement\n        expect(todoRow && within(todoRow).getByRole('button', { name: 'Actions' })).toBeInTheDocument()\n    })\n\n    it('mounts row action entry points only while their menu is open', () => {\n        actionService.loadFromFiles([\n            file(commandDefinition('review', { label: 'Review' })),\n        ])\n        vi.spyOn(dataService, 'getState').mockReturnValue({\n            project: null,\n            runningAgents: [],\n            snapshot: {\n                activeCards: [card('F-1', 'todo', 'Alpha')],\n                backgroundCards: [],\n                repositoryFiles: [],\n                workingFolder: 'design',\n            },\n        })\n\n        render(\n            <FileTreeView\n                actionsFolder=\"design/actions\"\n                cardTypes={DEFAULT_CARD_TYPES}\n                onCreateFolder={async () => undefined}",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-19",
+          "kind": "event",
+          "label": "sed -n '230,300p' src/components/actions/run/trigger/action_entry_points.test.tsx",
+          "providerItemId": "toolu_01BA3uv6RuneS8DD31mwBw2L",
+          "sequence": 19,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:08:20.296Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-20",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeVSDxZBmp63hygaSVL42:thinking:0",
+          "sequence": 20,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:08:23.458Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "grep -n \"function card\" -A 20 src/components/actions/run/trigger/action_entry_points.test.tsx | head -40",
+          "content": "29:function card(id: string, status: string | null, title = id): Card {\n30-    return {\n31-        agentConversationErrors: [],\n32-        agentConversations: [],\n33-        content: '',\n34-        header: {\n35-            affects: [], after: null, agentLogReferences: [], changedFiles: [], author: null, id, internalId: id.toLowerCase(), owner: null,\n36-            policy: {}, references: [], status, title,\n37-        },\n38-        hasFrontmatter:true,\n39-        isActive: true,\n40-        path: `design/${id}.md`,\n41-    }\n42-}\n43-\n44-const featureCard = card('F-010', 'design')\n45-\n46-afterEach(() => {\n47-    actionRunRegistry.stop()\n48-    delete window.md2Actions\n49-    cleanup()",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-21",
+          "kind": "event",
+          "label": "grep -n \"function card\" -A 20 src/components/actions/run/trigger/action_entry_points.test.tsx | head -40",
+          "providerItemId": "toolu_01EDshAxA1Q1KXx4pquN338J",
+          "sequence": 21,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:08:24.564Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-22",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeVSEGk5QeC4EvoLdghjk:thinking:0",
+          "sequence": 22,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:08:26.825Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "grep -n \"title\" src/data/action_context.ts | head -20; echo \"=== POPPER ===\"; sed -n '250,310p' src/components/resizable_popper.tsx",
+          "content": "Binary file src/data/action_context.ts matches\n=== POPPER ===\n        }\n        window.addEventListener('resize', handleViewportResize)\n\n        return () => window.removeEventListener('resize', handleViewportResize)\n    }, [draggable, fullHeight, size])\n\n    const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {\n        if (event.key !== 'Escape' || !closeOnEscape) return\n\n        resizeRef.current?.abort()\n        onClose?.()\n    }\n\n    const handlePaperClickCapture = () => {\n        if (fullHeight || !paperRef.current) return\n\n        anchoredLeftRef.current = paperRef.current.getBoundingClientRect().left\n    }\n\n    const startDrag = (event: ReactPointerEvent) => {\n        onActivate?.()\n\n        try {\n            if (!draggable || fullHeight) return\n\n            const target = event.target\n            if (!(target instanceof Element) || !target.closest('[data-drag-handle=\"true\"]')) return\n            if (target.closest(INTERACTIVE_SELECTOR)) return\n\n            event.preventDefault()\n            resizeRef.current?.abort()\n            if (!paperRef.current) throw new Error('Missing draggable popper paper element')\n\n            const controller = new AbortController()\n            const bounds = paperRef.current.getBoundingClientRect()\n            const start = { left: bounds.left, top: bounds.top, x: event.clientX, y: event.clientY }\n            resizeRef.current = controller\n\n            window.addEventListener('pointermove', (move: PointerEvent) => {\n                const width = size.width ?? bounds.width\n                const height = size.height ?? bounds.height\n                setPosition({\n                    left: clampDetachedLeft(start.left + move.clientX - start.x, width),\n                    top: clampDetachedTop(start.top + move.clientY - start.y, height),\n                })\n            }, { signal: controller.signal })\n            window.addEventListener('pointerup', () => controller.abort(), { signal: controller.signal })\n        } catch (error) {\n            resizeRef.current?.abort()\n            dialogService.error(error, { fallbackMessage: 'Popup drag could not be started' })\n        }\n    }\n\n    const startResize = (event: ReactPointerEvent) => {\n        try {\n            event.preventDefault()\n            resizeRef.current?.abort()\n\n            if (!paperRef.current) throw new Error('Missing resizable popper paper element')\n\n            const direction = event.currentTarget.getAttribute('data-direction') as ResizeDirection | null",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-23",
+          "kind": "event",
+          "label": "grep -n \"title\" src/data/action_context.ts | head -20; echo \"=== POPPER ===\"; sed -n '250,310p' src/components/resizable_popper.tsx",
+          "providerItemId": "toolu_01NKSVQnVpt2e2WiVt427jTe",
+          "sequence": 23,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:08:27.528Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "grep -an \"title\" src/data/action_context.ts | head -30",
+          "content": "28:    title?: string\n51: * execution and conversation history. Mutable header fields (title, state, worktree)\n92:    header: Pick<CardHeader, 'id' | 'internalId' | 'status' | 'title' | 'worktreeError' | 'worktreeValue'>\n96:    const context: ActionContext = { file: card.path, kind, title: card.header.title }",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-24",
+          "kind": "event",
+          "label": "grep -an \"title\" src/data/action_context.ts | head -30",
+          "providerItemId": "toolu_01Uq5mvXRBugknLX3BrMZkbR",
+          "sequence": 24,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:08:29.392Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-25",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeVSEdbT5wZs66owd4972:thinking:0",
+          "sequence": 25,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:08:33.409Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "grep -rn \"drag\" src/components/actions/run/popup/action_popup.test.tsx | head -20",
+          "content": "(Bash completed with no output)",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-26",
+          "kind": "event",
+          "label": "grep -rn \"drag\" src/components/actions/run/popup/action_popup.test.tsx | head -20",
+          "providerItemId": "toolu_01CbB7wV36jv53NkYUkLUiQK",
+          "sequence": 26,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:08:34.076Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-27",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeVSEyVGrw9aUTCCS8qAy:thinking:0",
+          "sequence": 27,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:08:39.176Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "grep -n \"clampDetachedLeft\\|clampDetachedTop\\|position\\b\\|setPosition\\|data-testid\" src/components/resizable_popper.tsx | head -40",
+          "content": "143:function clampDetachedLeft(left: number, width: number) {\n147:function clampDetachedTop(top: number, height: number) {\n156:        left: clampDetachedLeft((window.innerWidth - width) / 2, width),\n157:        top: clampDetachedTop((window.innerHeight - height) / 2, height),\n189:    const [position, setPosition] = useState<PopperPosition | null>(() => draggable && !anchorElement ? centeredPosition(size) : null)\n230:        setDetachedLeft((current) => clampDetachedLeft(enteredFullHeight ? anchoredLeft : current ?? anchoredLeft, width))\n236:            setDetachedLeft((current) => current === null ? current : clampDetachedLeft(current, size.width ?? MIN_WIDTH))\n246:            setPosition((current) => current ? {\n247:                left: clampDetachedLeft(current.left, size.width ?? MIN_WIDTH),\n248:                top: clampDetachedTop(current.top, size.height ?? MIN_HEIGHT),\n291:                setPosition({\n292:                    left: clampDetachedLeft(start.left + move.clientX - start.x, width),\n293:                    top: clampDetachedTop(start.top + move.clientY - start.y, height),\n364:                    setPosition({ left: clampDetachedLeft(left, width), top: clampDetachedTop(top, height) })\n380:        ? { height: '100vh', left: detachedLeft ?? 0, position: 'fixed', top: 0, width: size.width }\n381:        : position\n382:            ? { ...size, left: position.left, position: 'fixed', top: position.top }\n384:    const detached = position !== null || fullHeight\n416:                    position: 'relative',\n429:                        sx={{ ...directionPosition(direction), position: 'absolute', touchAction: 'none' }}\n438:                        sx={{ ...directionPosition(direction), position: 'absolute', touchAction: 'none' }}\n451:                            position: 'absolute',",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-28",
+          "kind": "event",
+          "label": "grep -n \"clampDetachedLeft\\|clampDetachedTop\\|position\\b\\|setPosition\\|data-testid\" src/components/resizable_popper.tsx | head -40",
+          "providerItemId": "toolu_017TMpzdBvdTghAtrN6WSsAo",
+          "sequence": 28,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:08:39.656Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-29",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeVSFPJk6LWkBYN7WSRvK:thinking:0",
+          "sequence": 29,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:08:43.427Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "sed -n '140,160p' src/components/resizable_popper.tsx",
+          "content": "    }\n}\n\nfunction clampDetachedLeft(left: number, width: number) {\n    return Math.min(Math.max(0, left), Math.max(0, window.innerWidth - width))\n}\n\nfunction clampDetachedTop(top: number, height: number) {\n    return Math.min(Math.max(0, top), Math.max(0, window.innerHeight - height))\n}\n\nfunction centeredPosition(size: PopperSize): PopperPosition {\n    const width = size.width ?? MIN_WIDTH\n    const height = size.height ?? MIN_HEIGHT\n\n    return {\n        left: clampDetachedLeft((window.innerWidth - width) / 2, width),\n        top: clampDetachedTop((window.innerHeight - height) / 2, height),\n    }\n}",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-30",
+          "kind": "event",
+          "label": "sed -n '140,160p' src/components/resizable_popper.tsx",
+          "providerItemId": "toolu_018tefV1yLwFS8XLL6TqGgCW",
+          "sequence": 30,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:08:43.778Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-31",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeVSFh6p7SbCGKBv78SuH:thinking:0",
+          "sequence": 31,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:08:50.521Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"query\":\"todo task list write\",\"max_results\":5}",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-32",
+          "kind": "event",
+          "label": "ToolSearch",
+          "output": "[{\"type\":\"tool_reference\",\"tool_name\":\"CronList\"},{\"type\":\"tool_reference\",\"tool_name\":\"TaskOutput\"},{\"type\":\"tool_reference\",\"tool_name\":\"TaskStop\"},{\"type\":\"tool_reference\",\"tool_name\":\"DesignSync\"},{\"type\":\"tool_reference\",\"tool_name\":\"EnterWorktree\"}]",
+          "providerItemId": "toolu_013SdryjJGxULYgQyBhSRPu6",
+          "sequence": 32,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:08:50.684Z",
+          "type": "tool.ToolSearch"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-33",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeVSGCf4hHxDGAEoD8w9H:thinking:0",
+          "sequence": 33,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:08:54.620Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\n**Change Plan — F_240: tooltip on action popup card id badge**\n\nFindings first:\n\n- Badge lives in `app/src/components/actions/run/popup/action_popup_frame.tsx`, a plain `Box component=\"span\"` rendering `contentProps.target`.\n- Drag is safe. `ResizablePopper.startDrag` (`app/src/components/resizable_popper.tsx:269`) only reacts to **pointerdown**, and bails when the event target matches `INTERACTIVE_SELECTOR`. A tooltip opens on `mouseenter`/`focus`, which drag never touches. So a `span` with `tabIndex={0}` keeps drag working; a `<button>` or `role=\"button\"` would break it.\n- No card-badge test and no drag test exist yet in `action_popup.test.tsx`, and that file never populates a snapshot. New tests must stub `dataService.getState` (pattern already used in `action_entry_points.test.tsx:246`) and render with `draggable`.\n\n**Blocks**\n\n| # | Block | Files | Content |\n|---|-------|-------|---------|\n| 1 | Resolve title alongside id | `action_popup.tsx`, `action_popup_types.ts` | `resolvePopupTarget` returns `{ id, title }` from one snapshot lookup: card `header.id` + live `header.title`; fall back to `context.title` when card absent from snapshot; project → `{ id: 'Project', title: null }`; other kinds → `{ id: null, title: null }`. Add optional `targetTitle: string \\| null` to `ActionPopupContentProps`; pass it from `ActionPopup`. |\n| 2 | Tooltip on badge | `action_popup_frame.tsx` | Wrap badge span in MUI `Tooltip title={targetTitle ?? ''}` (MUI renders nothing for empty title, so no branch needed) and add `tabIndex={0}`. Element stays a `span`, no `role`. |\n| 3 | Tests | `action_popup.test.tsx` | Card case: hover badge → tooltip shows title. Live-title case: mutate stubbed snapshot + dispatch `dataService` `changed` → tooltip follows. Drag case: pointerdown + pointermove on badge repositions the popper (assert paper `left`). Project case and empty-title/absent-card case: no tooltip node. |\n\nVerification: `npm run typecheck` plus `npx vitest run src/components/actions/run/popup/action_popup.test.tsx`. Then set `status: ready` in `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/F_240_action_popup_card_id_add_tooltip.md`.",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 34,
+          "timestamp": "2026-08-28T16:09:05.340Z"
+        },
+        {
+          "content": "{\"questions\":[{\"question\":\"Approve this 3-block plan and start implementing?\",\"header\":\"Approval\",\"multiSelect\":false,\"options\":[{\"label\":\"Approve, implement all 3\",\"description\":\"Implement blocks 1-3, run typecheck + the popup test file, then set status: ready in the feature doc.\"},{\"label\":\"Approve, no tabIndex\",\"description\":\"Same, but skip tabIndex={0} on the badge (drops the keyboard-focus acceptance criterion).\"}]}]}",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-35",
+          "kind": "event",
+          "label": "AskUserQuestion",
+          "output": "The user answered: \"Approve this 3-block plan and start implementing?\"=\"Approve, implement all 3\". Read the answers carefully — they may request clarification, changes, or that you not proceed — and follow what they actually say.",
+          "providerItemId": "toolu_01ViyZC3SSMaoAiy1sf3KpFq",
+          "sequence": 35,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:10:40.338Z",
+          "type": "tool.AskUserQuestion"
+        },
+        {
+          "content": "claude-question-0: Approve, implement all 3",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-answer-35",
+          "kind": "message",
+          "role": "user",
+          "sequence": 36,
+          "timestamp": "2026-08-28T16:10:40.332Z"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nApproved. Block 1:",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 37,
+          "timestamp": "2026-08-28T16:10:42.349Z"
+        },
+        {
+          "command": "python - <<'EOF'\nimport io\np='src/components/actions/run/popup/action_popup.tsx'\ns=io.open(p,encoding='utf-8').read()\nold=\"\"\"function resolvePopupTarget(context: ActionContext, snapshot: ReturnType<typeof useProjectState>['snapshot']) {\n    if (context.kind === 'project') return 'Project'\n    if (context.kind !== 'card') return null\n\n    const cards = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]\n\n    return cards.find(({ header }) => header.internalId === context.cardInternalId)?.header.id ?? null\n}\"\"\"\nnew=\"\"\"/**\n * Badge id plus the title shown in its tooltip. The title comes from the live snapshot so it\n * follows a card renamed while the popup stays open, and falls back to the title captured in the\n * context when the card is not in the snapshot.\n */\nfunction resolvePopupTarget(context: ActionContext, snapshot: ReturnType<typeof useProjectState>['snapshot']) {\n    if (context.kind === 'project') return { id: 'Project', title: null }\n    if (context.kind !== 'card') return { id: null, title: null }\n\n    const cards = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]\n    const card = cards.find(({ header }) => header.internalId === context.cardInternalId)\n\n    return { id: card?.header.id ?? null, title: card?.header.title ?? context.title ?? null }\n}\"\"\"\nassert old in s\ns=s.replace(old,new)\nold2=\"    const target = resolvePopupTarget(context, snapshot)\"\nnew2=\"    const { id: target, title: targetTitle } = resolvePopupTarget(context, snapshot)\"\nassert old2 in s\ns=s.replace(old2,new2)\nold3=\"            target={target}\\n            titleId={titleId}\"\nnew3=\"            target={target}\\n            targetTitle={targetTitle}\\n            titleId={titleId}\"\nassert old3 in s\ns=s.replace(old3,new3)\nio.open(p,'w',encoding='utf-8',newline='').write(s)\n\np2='src/components/actions/run/popup/action_popup_types.ts'\ns2=io.open(p2,encoding='utf-8').read()\nold4=\"    target: string | null\\n    titleId: string\"\nnew4=\"    target: string | null\\n    targetTitle?: string | null\\n    titleId: string\"\nassert old4 in s2\ns2=s2.replace(old4,new4)\nio.open(p2,'w',encoding='utf-8',newline='').write(s2)\nprint('ok')\nEOF",
+          "content": "ok",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-38",
+          "kind": "event",
+          "label": "python - <<'EOF'\nimport io\np='src/components/actions/run/popup/action_popup.tsx'\ns=io.open(p,encoding='utf-8').read()\nold=\"\"\"function resolvePopupTarget(context: ActionContext, snapshot: ReturnType<typeof useProjectState>['snapshot']) {\n    if (context.kind === 'project') return 'Project'\n    if (context.kind !== 'card') return null\n\n    const cards = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]\n\n    return cards.find(({ header }) => header.internalId === context.cardInternalId)?.header.id ?? null\n}\"\"\"\nnew=\"\"\"/**\n * Badge id plus the title shown in its tooltip. The title comes from the live snapshot so it\n * follows a card renamed while the popup stays open, and falls back to the title captured in the\n * context when the card is not in the snapshot.\n */\nfunction resolvePopupTarget(context: ActionContext, snapshot: ReturnType<typeof useProjectState>['snapshot']) {\n    if (context.kind === 'project') return { id: 'Project', title: null }\n    if (context.kind !== 'card') return { id: null, title: null }\n\n    const cards = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]\n    const card = cards.find(({ header }) => header.internalId === context.cardInternalId)\n\n    return { id: card?.header.id ?? null, title: card?.header.title ?? context.title ?? null }\n}\"\"\"\nassert old in s\ns=s.replace(old,new)\nold2=\"    const target = resolvePopupTarget(context, snapshot)\"\nnew2=\"    const { id: target, title: targetTitle } = resolvePopupTarget(context, snapshot)\"\nassert old2 in s\ns=s.replace(old2,new2)\nold3=\"            target={target}\\n            titleId={titleId}\"\nnew3=\"            target={target}\\n            targetTitle={targetTitle}\\n            titleId={titleId}\"\nassert old3 in s\ns=s.replace(old3,new3)\nio.open(p,'w',encoding='utf-8',newline='').write(s)\n\np2='src/components/actions/run/popup/action_popup_types.ts'\ns2=io.open(p2,encoding='utf-8').read()\nold4=\"    target: string | null\\n    titleId: string\"\nnew4=\"    target: string | null\\n    targetTitle?: string | null\\n    titleId: string\"\nassert old4 in s2\ns2=s2.replace(old4,new4)\nio.open(p2,'w',encoding='utf-8',newline='').write(s2)\nprint('ok')\nEOF",
+          "providerItemId": "toolu_01JW87oJAx3sx6vEcoXjHqmt",
+          "sequence": 38,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:10:52.542Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nBlock 2:",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-turn-1-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 39,
+          "timestamp": "2026-08-28T16:10:53.585Z"
+        },
+        {
+          "command": "python - <<'EOF'\nimport io\np='src/components/actions/run/popup/action_popup_frame.tsx'\ns=io.open(p,encoding='utf-8').read()\nold=\"\"\"        target, titleId,\n    } = contentProps\"\"\"\nnew=\"\"\"        target, targetTitle, titleId,\n    } = contentProps\"\"\"\nassert old in s; s=s.replace(old,new)\nold2=\"\"\"                        {target ? (\n                            <Box\n                                component=\"span\"\n                                sx={{\n                                    bgcolor: 'custom.primaryBg', borderRadius: '5px', color: 'primary.main', flexShrink: 0,\n                                    fontFamily: '\"Roboto Mono\", ui-monospace, monospace', fontSize: 11.5, fontWeight: 600,\n                                    px: 0.875, py: 0.25,\n                                }}\n                            >\n                                {target}\n                            </Box>\n                        ) : null}\"\"\"\nnew2=\"\"\"                        {target ? (\n                            <Tooltip title={targetTitle ?? ''}>\n                                {/* Stays a span with only tabIndex: a button or role would land in the popper's\n                                    INTERACTIVE_SELECTOR and stop the badge from dragging the popup. */}\n                                <Box\n                                    component=\"span\"\n                                    sx={{\n                                        bgcolor: 'custom.primaryBg', borderRadius: '5px', color: 'primary.main', flexShrink: 0,\n                                        fontFamily: '\"Roboto Mono\", ui-monospace, monospace', fontSize: 11.5, fontWeight: 600,\n                                        px: 0.875, py: 0.25,\n                                    }}\n                                    tabIndex={0}\n                                >\n                                    {target}\n                                </Box>\n                            </Tooltip>\n                        ) : null}\"\"\"\nassert old2 in s; s=s.replace(old2,new2)\nio.open(p,'w',encoding='utf-8',newline='').write(s)\nprint('ok')\nEOF",
+          "content": "ok",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-40",
+          "kind": "event",
+          "label": "python - <<'EOF'\nimport io\np='src/components/actions/run/popup/action_popup_frame.tsx'\ns=io.open(p,encoding='utf-8').read()\nold=\"\"\"        target, titleId,\n    } = contentProps\"\"\"\nnew=\"\"\"        target, targetTitle, titleId,\n    } = contentProps\"\"\"\nassert old in s; s=s.replace(old,new)\nold2=\"\"\"                        {target ? (\n                            <Box\n                                component=\"span\"\n                                sx={{\n                                    bgcolor: 'custom.primaryBg', borderRadius: '5px', color: 'primary.main', flexShrink: 0,\n                                    fontFamily: '\"Roboto Mono\", ui-monospace, monospace', fontSize: 11.5, fontWeight: 600,\n                                    px: 0.875, py: 0.25,\n                                }}\n                            >\n                                {target}\n                            </Box>\n                        ) : null}\"\"\"\nnew2=\"\"\"                        {target ? (\n                            <Tooltip title={targetTitle ?? ''}>\n                                {/* Stays a span with only tabIndex: a button or role would land in the popper's\n                                    INTERACTIVE_SELECTOR and stop the badge from dragging the popup. */}\n                                <Box\n                                    component=\"span\"\n                                    sx={{\n                                        bgcolor: 'custom.primaryBg', borderRadius: '5px', color: 'primary.main', flexShrink: 0,\n                                        fontFamily: '\"Roboto Mono\", ui-monospace, monospace', fontSize: 11.5, fontWeight: 600,\n                                        px: 0.875, py: 0.25,\n                                    }}\n                                    tabIndex={0}\n                                >\n                                    {target}\n                                </Box>\n                            </Tooltip>\n                        ) : null}\"\"\"\nassert old2 in s; s=s.replace(old2,new2)\nio.open(p,'w',encoding='utf-8',newline='').write(s)\nprint('ok')\nEOF",
+          "providerItemId": "toolu_01CFXbfiQjidmEb16NiA7zQZ",
+          "sequence": 40,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:11:01.640Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-41",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeVSRrZrv3L8B8cYaRRy9:thinking:0",
+          "sequence": 41,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:11:05.670Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "python - <<'EOF'\nimport io\np='src/components/actions/run/popup/action_popup_frame.tsx'\ns=io.open(p,encoding='utf-8').read()\nold=\"\"\"                            <Tooltip title={targetTitle ?? ''}>\n                                {/* Stays a span with only tabIndex: a button or role would land in the popper's\n                                    INTERACTIVE_SELECTOR and stop the badge from dragging the popup. */}\n                                <Box\"\"\"\nnew=\"\"\"                            // The badge stays a span with only tabIndex: a button or role would land in the\n                            // popper's INTERACTIVE_SELECTOR and stop the badge from dragging the popup.\n                            <Tooltip title={targetTitle ?? ''}>\n                                <Box\"\"\"\nassert old in s; s=s.replace(old,new)\nio.open(p,'w',encoding='utf-8',newline='').write(s)\nprint('ok')\nEOF",
+          "content": "ok",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-42",
+          "kind": "event",
+          "label": "python - <<'EOF'\nimport io\np='src/components/actions/run/popup/action_popup_frame.tsx'\ns=io.open(p,encoding='utf-8').read()\nold=\"\"\"                            <Tooltip title={targetTitle ?? ''}>\n                                {/* Stays a span with only tabIndex: a button or role would land in the popper's\n                                    INTERACTIVE_SELECTOR and stop the badge from dragging the popup. */}\n                                <Box\"\"\"\nnew=\"\"\"                            // The badge stays a span with only tabIndex: a button or role would land in the\n                            // popper's INTERACTIVE_SELECTOR and stop the badge from dragging the popup.\n                            <Tooltip title={targetTitle ?? ''}>\n                                <Box\"\"\"\nassert old in s; s=s.replace(old,new)\nio.open(p,'w',encoding='utf-8',newline='').write(s)\nprint('ok')\nEOF",
+          "providerItemId": "toolu_01F3MXfABxZRjm8YWV4E9BcE",
+          "sequence": 42,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:11:10.373Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-43",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeVSSWc6MyByT1A5Mh9du:thinking:0",
+          "sequence": 43,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:11:14.984Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "grep -n \"data_types'\" src/components/actions/run/popup/action_popup.test.tsx; echo \"===\"; tail -40 src/components/actions/run/popup/action_popup.test.tsx; echo \"=== imports in entry_points ===\"; sed -n '1,28p' src/components/actions/run/trigger/action_entry_points.test.tsx",
+          "content": "7:import type { AgentConversation, ProjectReference, StorageService, WorktreeRecord } from '../../../../data/data_types'\n===\n\n    it('keeps project conversation controls usable in the mobile layout', () => {\n        setMobileBreakpoint(true)\n        actionService.loadFromFiles([\n            file(agentDefinition('review', { appliesTo: { kind: 'project' }, label: 'Review project' })),\n        ])\n\n        renderPopup({ kind: 'project' })\n\n        expect(screen.getByRole('dialog')).toHaveStyle({ height: '100dvh', left: '0px', top: '0px', width: '100vw' })\n        expect(screen.getByRole('combobox', { name: 'Conversation history' })).toBeInTheDocument()\n        expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument()\n        expect(screen.queryByRole('separator', { name: /Resize action popup/u })).not.toBeInTheDocument()\n    })\n\n    it('expands upward and restores the anchored size after collapse', () => {\n        const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)\n        const { onClose } = renderPopup()\n        const dialog = screen.getByRole('dialog')\n\n        fireEvent.click(screen.getByRole('button', { name: 'Expand upward' }))\n        expect(dialog.style.height).toBe('100vh')\n        const leftResizeHandle = screen.getByRole('separator', { name: 'Resize action popup from left' })\n        const rightResizeHandle = screen.getByRole('separator', { name: 'Resize action popup from right' })\n        expect(leftResizeHandle).toHaveStyle({ cursor: 'ew-resize' })\n        expect(rightResizeHandle).toHaveStyle({ cursor: 'ew-resize' })\n        expect(screen.getAllByRole('separator', { name: /Resize action popup from/u })).toHaveLength(2)\n        expect(screen.queryByRole('separator', { name: 'Resize action popup from top' })).not.toBeInTheDocument()\n\n        fireEvent.click(screen.getByRole('button', { name: 'Collapse downward' }))\n        expect(dialog.style.height).toBe('450px')\n        expect(screen.getAllByRole('separator', { name: /Resize action popup from/u })).toHaveLength(8)\n\n        fireEvent.click(screen.getByRole('button', { name: 'Expand upward' }))\n        fireEvent.click(screen.getByRole('button', { name: 'Close' }))\n\n        expect(onClose).toHaveBeenCalledOnce()\n        expect(consoleError).not.toHaveBeenCalled()\n    })\n})\n=== imports in entry_points ===\nimport { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'\nimport { MenuList } from '@mui/material'\nimport { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'\nimport { ActionEntryPoints } from './action_entry_points'\nimport { FileTreeView } from '../../../text_view/file_tree_view'\nimport { actionService } from '../../../../services/actions/action_service'\nimport { dataService } from '../../../../services/data/data_service'\nimport type { ActionFile } from '../../../../data/action_types'\nimport { cardContext, folderContext } from '../../../../data/action_context'\nimport { DEFAULT_CARD_TYPES, type Card } from '../../../../data/data_types'\nimport type { ActionRunEvent } from '../../../../data/action_run_types'\nimport { actionRunRegistry } from '../../../../services/actions/action_run_registry'\nimport { AppThemeProvider } from '../../../../theme/theme_provider'\nimport { dialogService } from '../../../../services/dialog_service'\nimport { projectAccessService } from '../../../../services/project/project_access_service'\n\nfunction file(definition: { id: string }): ActionFile {\n    return { content: JSON.stringify(definition), path: `actions/${definition.id}.json` }\n}\n\nfunction agentDefinition(id: string, overrides: Record<string, unknown> = {}) {\n    return { description: id, id, label: id, prompt: 't', type: 'agent', ...overrides }\n}\n\nfunction commandDefinition(id: string, overrides: Record<string, unknown> = {}) {\n    return { command: 't', description: id, id, label: id, type: 'command', ...overrides }\n}",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-44",
+          "kind": "event",
+          "label": "grep -n \"data_types'\" src/components/actions/run/popup/action_popup.test.tsx; echo \"===\"; tail -40 src/components/actions/run/popup/action_popup.test.tsx; echo \"=== imports in entry_points ===\"; sed -n '1,28p' src/components/actions/run/trigger/action_entry_points.test.tsx",
+          "providerItemId": "toolu_0157VQdDB8dZVE7kBVeBSMgV",
+          "sequence": 44,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:11:16.411Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-45",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeVSSwjScBX79n2xJKXHm:thinking:0",
+          "sequence": 45,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:11:22.469Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "grep -n \"class DataService\\|dispatchEvent\\|extends EventTarget\" src/services/data/data_service.ts | head",
+          "content": "134:export class DataService extends EventTarget {\n377:                this.dispatchEvent(new Event(cardFieldChangedEvent(cardPath, 'conversation')))\n399:                this.dispatchEvent(new CustomEvent('repositoryChanged', { detail: event }))\n512:        this.dispatchEvent(new CustomEvent<DataServiceState>('changed', { detail: this.getState() }))\n516:        this.dispatchEvent(new CustomEvent<CardPathChangedEventDetail>(CARD_PATH_CHANGED_EVENT, { detail }))\n526:                this.dispatchEvent(new CustomEvent<CardRemovedEventDetail>(CARD_REMOVED_EVENT, { detail: { card: eventCard(card) } }))\n532:                this.dispatchEvent(new CustomEvent<CardAddedEventDetail>(CARD_ADDED_EVENT, { detail: { card: eventCard(card) } }))\n535:                this.dispatchEvent(new CustomEvent<CardChangedEventDetail>(CARD_CHANGED_EVENT, { detail }))\n538:                    this.dispatchEvent(new Event(cardFieldChangedEvent(card.path, field)))\n539:                    this.dispatchEvent(new Event(cardCollectionFieldChangedEvent(field)))",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-46",
+          "kind": "event",
+          "label": "grep -n \"class DataService\\|dispatchEvent\\|extends EventTarget\" src/services/data/data_service.ts | head",
+          "providerItemId": "toolu_018M86h4smqFQvj5E5EB47YF",
+          "sequence": 46,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:11:23.341Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNow block 3 — tests.",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-turn-1-assistant-5",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 47,
+          "timestamp": "2026-08-28T16:11:25.205Z"
+        },
+        {
+          "command": "python - <<'PYEOF'\nimport io\np='src/components/actions/run/popup/action_popup.test.tsx'\ns=io.open(p,encoding='utf-8').read()\nold=\"import type { AgentConversation, ProjectReference, StorageService, WorktreeRecord } from '../../../../data/data_types'\"\nnew=\"import type { AgentConversation, Card, ProjectReference, StorageService, WorktreeRecord } from '../../../../data/data_types'\"\nassert old in s; s=s.replace(old,new)\n\ntests = \"\"\"\ndescribe('ActionPopup card id badge tooltip', () => {\n    function snapshotCard(id: string, internalId: string, title: string): Card {\n        return {\n            agentConversationErrors: [],\n            agentConversations: [],\n            content: '',\n            header: {\n                affects: [], after: null, agentLogReferences: [], author: null, changedFiles: [], id, internalId,\n                owner: null, policy: {}, references: [], status: 'design', title,\n            },\n            hasFrontmatter: true,\n            isActive: true,\n            path: `design/${id}.md`,\n        }\n    }\n\n    function mockSnapshotCards(cards: Card[]) {\n        vi.spyOn(dataService, 'getState').mockReturnValue({\n            project,\n            runningAgents: [],\n            snapshot: { activeCards: cards, backgroundCards: [], repositoryFiles: [], workingFolder: 'design' },\n        })\n    }\n\n    function renderDraggablePopup(contextOverride: ActionContext) {\n        render(\n            <AppThemeProvider>\n                <ActionPopup anchorElement={document.body} context={contextOverride} draggable onClose={vi.fn()} />\n            </AppThemeProvider>,\n        )\n    }\n\n    function badge(id: string) {\n        return within(screen.getByTestId('action-popup-toolbar')).getByText(id)\n    }\n\n    it('shows the card title in a tooltip when the id badge is hovered', async () => {\n        mockSnapshotCards([snapshotCard('F-010', 'card-1', 'Improve the popup')])\n\n        renderPopup({ ...context, cardInternalId: 'card-1' })\n        fireEvent.mouseOver(badge('F-010'))\n\n        expect(await screen.findByText('Improve the popup', { selector: '.MuiTooltip-tooltip *' })).toBeInTheDocument()\n    })\n\n    it('shows the same tooltip when the badge is focused with the keyboard', async () => {\n        mockSnapshotCards([snapshotCard('F-010', 'card-1', 'Improve the popup')])\n\n        renderPopup({ ...context, cardInternalId: 'card-1' })\n        const element = badge('F-010')\n        act(() => element.focus())\n\n        expect(element).toHaveFocus()\n        expect(await screen.findByText('Improve the popup', { selector: '.MuiTooltip-tooltip *' })).toBeInTheDocument()\n    })\n\n    it('follows a title changed in the snapshot while the popup stays open', async () => {\n        mockSnapshotCards([snapshotCard('F-010', 'card-1', 'Original title')])\n\n        renderPopup({ ...context, cardInternalId: 'card-1' })\n        fireEvent.mouseOver(badge('F-010'))\n        expect(await screen.findByText('Original title', { selector: '.MuiTooltip-tooltip *' })).toBeInTheDocument()\n\n        mockSnapshotCards([snapshotCard('F-010', 'card-1', 'Renamed by the run')])\n        act(() => {\n            dataService.dispatchEvent(new CustomEvent('changed', { detail: dataService.getState() }))\n        })\n\n        expect(await screen.findByText('Renamed by the run', { selector: '.MuiTooltip-tooltip *' })).toBeInTheDocument()\n        expect(screen.queryByText('Original title', { selector: '.MuiTooltip-tooltip *' })).not.toBeInTheDocument()\n    })\n\n    it('still drags the popup when the pointer press starts on the id badge', () => {\n        mockSnapshotCards([snapshotCard('F-010', 'card-1', 'Improve the popup')])\n\n        renderDraggablePopup({ ...context, cardInternalId: 'card-1' })\n        const dialog = screen.getByRole('dialog')\n        expect(dialog.style.position).not.toBe('fixed')\n\n        fireEvent.pointerDown(badge('F-010'), { clientX: 100, clientY: 100 })\n        fireEvent.pointerMove(window, { clientX: 140, clientY: 130 })\n\n        expect(dialog.style.position).toBe('fixed')\n        expect(dialog.style.left).toBe('40px')\n        expect(dialog.style.top).toBe('30px')\n        fireEvent.pointerUp(window)\n    })\n\n    it('shows no tooltip for the Project badge', async () => {\n        renderPopup({ kind: 'project' })\n        fireEvent.mouseOver(badge('Project'))\n\n        await waitFor(() => expect(screen.queryByRole('tooltip')).not.toBeInTheDocument())\n    })\n\n    it('shows no tooltip for a card with an empty title or absent from the snapshot', async () => {\n        mockSnapshotCards([snapshotCard('F-010', 'card-1', '')])\n\n        renderPopup({ ...context, cardInternalId: 'card-1' })\n        fireEvent.mouseOver(badge('F-010'))\n        await waitFor(() => expect(screen.queryByRole('tooltip')).not.toBeInTheDocument())\n\n        cleanup()\n        mockSnapshotCards([snapshotCard('F-020', 'card-2', 'Another card')])\n        renderPopup({ ...context, cardInternalId: 'card-1' })\n\n        expect(within(screen.getByTestId('action-popup-toolbar')).queryByText('F-010')).not.toBeInTheDocument()\n    })\n})\n\"\"\"\nassert s.rstrip().endswith('})')\ns = s.rstrip('\\n') + '\\n' + tests\nio.open(p,'w',encoding='utf-8',newline='').write(s)\nprint('ok')\nPYEOF",
+          "content": "ok",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-48",
+          "kind": "event",
+          "label": "python - <<'PYEOF'\nimport io\np='src/components/actions/run/popup/action_popup.test.tsx'\ns=io.open(p,encoding='utf-8').read()\nold=\"import type { AgentConversation, ProjectReference, StorageService, WorktreeRecord } from '../../../../data/data_types'\"\nnew=\"import type { AgentConversation, Card, ProjectReference, StorageService, WorktreeRecord } from '../../../../data/data_types'\"\nassert old in s; s=s.replace(old,new)\n\ntests = \"\"\"\ndescribe('ActionPopup card id badge tooltip', () => {\n    function snapshotCard(id: string, internalId: string, title: string): Card {\n        return {\n            agentConversationErrors: [],\n            agentConversations: [],\n            content: '',\n            header: {\n                affects: [], after: null, agentLogReferences: [], author: null, changedFiles: [], id, internalId,\n                owner: null, policy: {}, references: [], status: 'design', title,\n            },\n            hasFrontmatter: true,\n            isActive: true,\n            path: `design/${id}.md`,\n        }\n    }\n\n    function mockSnapshotCards(cards: Card[]) {\n        vi.spyOn(dataService, 'getState').mockReturnValue({\n            project,\n            runningAgents: [],\n            snapshot: { activeCards: cards, backgroundCards: [], repositoryFiles: [], workingFolder: 'design' },\n        })\n    }\n\n    function renderDraggablePopup(contextOverride: ActionContext) {\n        render(\n            <AppThemeProvider>\n                <ActionPopup anchorElement={document.body} context={contextOverride} draggable onClose={vi.fn()} />\n            </AppThemeProvider>,\n        )\n    }\n\n    function badge(id: string) {\n        return within(screen.getByTestId('action-popup-toolbar')).getByText(id)\n    }\n\n    it('shows the card title in a tooltip when the id badge is hovered', async () => {\n        mockSnapshotCards([snapshotCard('F-010', 'card-1', 'Improve the popup')])\n\n        renderPopup({ ...context, cardInternalId: 'card-1' })\n        fireEvent.mouseOver(badge('F-010'))\n\n        expect(await screen.findByText('Improve the popup', { selector: '.MuiTooltip-tooltip *' })).toBeInTheDocument()\n    })\n\n    it('shows the same tooltip when the badge is focused with the keyboard', async () => {\n        mockSnapshotCards([snapshotCard('F-010', 'card-1', 'Improve the popup')])\n\n        renderPopup({ ...context, cardInternalId: 'card-1' })\n        const element = badge('F-010')\n        act(() => element.focus())\n\n        expect(element).toHaveFocus()\n        expect(await screen.findByText('Improve the popup', { selector: '.MuiTooltip-tooltip *' })).toBeInTheDocument()\n    })\n\n    it('follows a title changed in the snapshot while the popup stays open', async () => {\n        mockSnapshotCards([snapshotCard('F-010', 'card-1', 'Original title')])\n\n        renderPopup({ ...context, cardInternalId: 'card-1' })\n        fireEvent.mouseOver(badge('F-010'))\n        expect(await screen.findByText('Original title', { selector: '.MuiTooltip-tooltip *' })).toBeInTheDocument()\n\n        mockSnapshotCards([snapshotCard('F-010', 'card-1', 'Renamed by the run')])\n        act(() => {\n            dataService.dispatchEvent(new CustomEvent('changed', { detail: dataService.getState() }))\n        })\n\n        expect(await screen.findByText('Renamed by the run', { selector: '.MuiTooltip-tooltip *' })).toBeInTheDocument()\n        expect(screen.queryByText('Original title', { selector: '.MuiTooltip-tooltip *' })).not.toBeInTheDocument()\n    })\n\n    it('still drags the popup when the pointer press starts on the id badge', () => {\n        mockSnapshotCards([snapshotCard('F-010', 'card-1', 'Improve the popup')])\n\n        renderDraggablePopup({ ...context, cardInternalId: 'card-1' })\n        const dialog = screen.getByRole('dialog')\n        expect(dialog.style.position).not.toBe('fixed')\n\n        fireEvent.pointerDown(badge('F-010'), { clientX: 100, clientY: 100 })\n        fireEvent.pointerMove(window, { clientX: 140, clientY: 130 })\n\n        expect(dialog.style.position).toBe('fixed')\n        expect(dialog.style.left).toBe('40px')\n        expect(dialog.style.top).toBe('30px')\n        fireEvent.pointerUp(window)\n    })\n\n    it('shows no tooltip for the Project badge', async () => {\n        renderPopup({ kind: 'project' })\n        fireEvent.mouseOver(badge('Project'))\n\n        await waitFor(() => expect(screen.queryByRole('tooltip')).not.toBeInTheDocument())\n    })\n\n    it('shows no tooltip for a card with an empty title or absent from the snapshot', async () => {\n        mockSnapshotCards([snapshotCard('F-010', 'card-1', '')])\n\n        renderPopup({ ...context, cardInternalId: 'card-1' })\n        fireEvent.mouseOver(badge('F-010'))\n        await waitFor(() => expect(screen.queryByRole('tooltip')).not.toBeInTheDocument())\n\n        cleanup()\n        mockSnapshotCards([snapshotCard('F-020', 'card-2', 'Another card')])\n        renderPopup({ ...context, cardInternalId: 'card-1' })\n\n        expect(within(screen.getByTestId('action-popup-toolbar')).queryByText('F-010')).not.toBeInTheDocument()\n    })\n})\n\"\"\"\nassert s.rstrip().endswith('})')\ns = s.rstrip('\\n') + '\\n' + tests\nio.open(p,'w',encoding='utf-8',newline='').write(s)\nprint('ok')\nPYEOF",
+          "providerItemId": "toolu_01Apt97itD4TJBbENXoLWUfQ",
+          "sequence": 48,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:11:46.067Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-49",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeVSV8WtHowSX4hHAAAuZ:thinking:0",
+          "sequence": 49,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:11:49.976Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "python - <<'PYEOF'\nimport io,re\np='src/components/actions/run/popup/action_popup.test.tsx'\ns=io.open(p,encoding='utf-8').read()\nmarker=\"\\ndescribe('ActionPopup card id badge tooltip', () => {\"\ni=s.index(marker)\nblock=s[i:]\ns=s[:i].rstrip('\\n')+'\\n'\n# indent block by 4 and strip trailing newline\nlines=block.strip('\\n').split('\\n')\nindented='\\n'.join(('    '+l if l.strip() else '') for l in lines)\n# outer describe ends with final '})'\nassert s.rstrip().endswith('})')\ns=s.rstrip()\ns=s[:-2].rstrip('\\n')+'\\n\\n'+indented+'\\n})\\n'\nio.open(p,'w',encoding='utf-8',newline='').write(s)\nprint(s[-600:])\nPYEOF",
+          "content": "sync () => {\r\n            mockSnapshotCards([snapshotCard('F-010', 'card-1', '')])\r\n\r\n            renderPopup({ ...context, cardInternalId: 'card-1' })\r\n            fireEvent.mouseOver(badge('F-010'))\r\n            await waitFor(() => expect(screen.queryByRole('tooltip')).not.toBeInTheDocument())\r\n\r\n            cleanup()\r\n            mockSnapshotCards([snapshotCard('F-020', 'card-2', 'Another card')])\r\n            renderPopup({ ...context, cardInternalId: 'card-1' })\r\n\r\n            expect(within(screen.getByTestId('action-popup-toolbar')).queryByText('F-010')).not.toBeInTheDocument()\r\n        })\r\n    })\r\n})",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-50",
+          "kind": "event",
+          "label": "python - <<'PYEOF'\nimport io,re\np='src/components/actions/run/popup/action_popup.test.tsx'\ns=io.open(p,encoding='utf-8').read()\nmarker=\"\\ndescribe('ActionPopup card id badge tooltip', () => {\"\ni=s.index(marker)\nblock=s[i:]\ns=s[:i].rstrip('\\n')+'\\n'\n# indent block by 4 and strip trailing newline\nlines=block.strip('\\n').split('\\n')\nindented='\\n'.join(('    '+l if l.strip() else '') for l in lines)\n# outer describe ends with final '})'\nassert s.rstrip().endswith('})')\ns=s.rstrip()\ns=s[:-2].rstrip('\\n')+'\\n\\n'+indented+'\\n})\\n'\nio.open(p,'w',encoding='utf-8',newline='').write(s)\nprint(s[-600:])\nPYEOF",
+          "providerItemId": "toolu_014tRcFLnWq6Kzchf2rP5aYN",
+          "sequence": 50,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:11:54.601Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "npx vitest run src/components/actions/run/popup/action_popup.test.tsx -t \"badge tooltip\" 2>&1 | tail -60",
+          "content": " RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev3/app\n\n ❯ |ui| src/components/actions/run/popup/action_popup.test.tsx (0 test)\n\n⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯\n\n FAIL  |ui| src/components/actions/run/popup/action_popup.test.tsx [ src/components/actions/run/popup/action_popup.test.tsx ]\nError: Failed to resolve import \"@testing-library/user-event\" from \"src/components/actions/run/popup/action_popup.test.tsx\". Does the file exist?\n  Plugin: vite:import-analysis\n  File: C:/Users/janbo/Documents/dev/md2_workers/dev3/app/src/components/actions/run/popup/action_popup.test.tsx:2:0\n  91 |  });\n  92 |  const __vi_import_0__ = await import(\"@testing-library/react\");\n  93 |  const __vi_import_1__ = await import(\"@testing-library/user-event\");\n     |                                       ^\n  94 |  const __vi_import_2__ = await import(\"../../../../data/action_types\");\n  95 |  const __vi_import_3__ = await import(\"../../../../services/actions/action_service\");\n ❯ TransformPluginContext._formatLog node_modules/vite/dist/node/chunks/node.js:29960:39\n ❯ TransformPluginContext.error node_modules/vite/dist/node/chunks/node.js:29957:14\n ❯ normalizeUrl node_modules/vite/dist/node/chunks/node.js:26993:18\n ❯ node_modules/vite/dist/node/chunks/node.js:27056:30\n ❯ TransformPluginContext.transform node_modules/vite/dist/node/chunks/node.js:27024:4\n ❯ EnvironmentPluginContainer.transform node_modules/vite/dist/node/chunks/node.js:29745:14\n ❯ loadAndTransform node_modules/vite/dist/node/chunks/node.js:19729:26\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯\n\n\n Test Files  1 failed (1)\n      Tests  no tests\n   Start at  18:11:58\n   Duration  1.58s (transform 24ms, setup 162ms, import 0ms, tests 0ms, environment 1.18s)",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-51",
+          "kind": "event",
+          "label": "npx vitest run src/components/actions/run/popup/action_popup.test.tsx -t \"badge tooltip\" 2>&1 | tail -60",
+          "providerItemId": "toolu_01SfUfrGbGcKhfp6LgYJNsyW",
+          "sequence": 51,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:12:00.280Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-52",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeVSWBTXQNLu3kbbSBG47:thinking:0",
+          "sequence": 52,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:12:03.404Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "ls node_modules/@testing-library/ 2>&1; grep -n \"user-event\" package.json",
+          "content": "dom\njest-dom\nreact\n24:    \"@testing-library/user-event\": \"^14.6.4\",",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-53",
+          "kind": "event",
+          "label": "ls node_modules/@testing-library/ 2>&1; grep -n \"user-event\" package.json",
+          "providerItemId": "toolu_01QspqshCgEVF35tUQ1eoHCV",
+          "sequence": 53,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:12:04.126Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-54",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeVSWThKzjkRsuEPiouog:thinking:0",
+          "sequence": 54,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:12:05.957Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "npm install --no-save --no-audit --no-fund @testing-library/user-event@^14.6.4 2>&1 | tail -5",
+          "content": "added 7 packages, removed 3 packages, and changed 22 packages in 2s",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-55",
+          "kind": "event",
+          "label": "npm install --no-save --no-audit --no-fund @testing-library/user-event@^14.6.4 2>&1 | tail -5",
+          "providerItemId": "toolu_014uJy1ohuEYBzsLKLTt3Tr4",
+          "sequence": 55,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:12:10.742Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-56",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeVSWxBb8s68VQPWTzbwd:thinking:0",
+          "sequence": 56,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:12:12.771Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "npx vitest run src/components/actions/run/popup/action_popup.test.tsx -t \"badge tooltip\" 2>&1 | tail -60",
+          "content": "                \u001b[36m<path\u001b[39m\n                  \u001b[33md\u001b[39m=\u001b[32m\"M13,9V15H16L12,19L8,15H11V9H8L12,5L16,9H13M4,2H20V4H4V2M4,20H20V22H4V20Z\"\u001b[39m\n                \u001b[36m/>\u001b[39m\n              \u001b[36m</svg>\u001b[39m\n            \u001b[36m</button>\u001b[39m\n            \u001b[36m<button\u001b[39m\n              \u001b[33maria-label\u001b[39m=\u001b[32m\"Close\"\u001b[39m\n              \u001b[33mclass\u001b[39m=\u001b[32m\"MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeSmall css-16qaf1p-MuiButtonBase-root-MuiIconButton-root\"\u001b[39m\n              \u001b[33mtabindex\u001b[39m=\u001b[32m\"0\"\u001b[39m\n              \u001b[33mtype\u001b[39m=\u001b[32m\"button\"\u001b[39m\n            \u001b[36m>\u001b[39m\n              \u001b[36m<svg\u001b[39m\n                \u001b[33maria-hidden\u001b[39m=\u001b[32m\"true\"\u001b[39m\n                \u001b[33mclass\u001b[39m=\u001b[32m\"MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-qoeaxs-MuiSvgIcon-root\"\u001b[39m\n                \u001b[33mdata-testid\u001b[39m=\u001b[32m\"CloseIcon\"\u001b[39m\n                \u001b[33mfocusable\u001b[39m=\u001b[32m\"false\"\u001b[39m\n                \u001b[33mviewBox\u001b[39m=\u001b[32m\"0 0 24 24\"\u001b[39m\n              \u001b[36m>\u001b[39m\n                \u001b[36m<path\u001b[39m\n                  \u001b[33md\u001b[39m=\u001b[32m\"M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z\"\u001b[39m\n                \u001b[36m/>\u001b[39m\n              \u001b[36m</svg>\u001b[39m\n            \u001b[36m</button>\u001b[39m\n          \u001b[36m</div>\u001b[39m\n          \u001b[36m<div\u001b[39m\n            \u001b[33mclass\u001b[39m=\u001b[32m\"MuiBox-root css-14rfl77\"\u001b[39m\n          \u001b[36m>\u001b[39m\n            \u001b[36m<div\u001b[39m\n              \u001b[33mclass\u001b[39m=\u001b[32m\"MuiBox-root css-31l7gp\"\u001b[39m\n            \u001b[36m>\u001b[39m\n              \u001b[36m<div\u001b[39m\n                \u001b[33maria-label\u001b[39m=\u001b[32m\"Actions\"\u001b[39m\n                \u001b[33mclass\u001b[39m=\u001b[32m\"MuiToggleButtonGroup-root MuiToggleButtonGroup-horizontal css-1py6ldo-MuiToggleButtonGroup-root\"\u001b[39m\n                \u001b[33mrole\u001b[39m=\u001b[32m\"group\"\u001b[39m\n              \u001b[36m>\u001b[39m\n                \u001b[36m<button\u001b[39m\n                  \u001b[33maria-label\u001b[39m=\u001b[32m\"First action\"\u001b[39m\n                  \u001b[33maria-pressed\u001b[39m=\u001b[32m\"true\"\u001b[39m\n                  \u001b[33mclass\u001b[39m=\u001b[32m\"MuiButtonBase-root MuiToggleButtonGroup-grouped MuiToggleButton-root Mui-selected MuiToggleButton-sizeSmall MuiToggleButton-standard MuiToggleButtonGroup-firstButton css-pcs28x-MuiButtonBase-root-MuiToggleButton-root\"\u001b[39m\n                  \u001b[33mdata-mui-internal-clone-element\u001b[39m=\u001b[32m\"true\"\u001b[39m\n                  \u001b[33mtabindex\u001b[39m=\u001b[...\n ❯ src/components/actions/run/popup/action_popup.test.tsx:2775:75\n    2773|             renderPopup({ ...context, cardInternalId: 'card-1' })\n    2774|             fireEvent.mouseOver(badge('F-010'))\n    2775|             await waitFor(() => expect(screen.queryByRole('tooltip')).…\n       |                                                                           ^\n    2776|\n    2777|             cleanup()\n ❯ runWithExpensiveErrorDiagnosticsDisabled node_modules/@testing-library/dom/dist/config.js:47:12\n ❯ checkCallback node_modules/@testing-library/dom/dist/wait-for.js:124:77\n ❯ Timeout.checkRealTimersCallback node_modules/@testing-library/dom/dist/wait-for.js:118:16\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯\n\n\n Test Files  1 failed (1)\n      Tests  5 failed | 1 passed | 73 skipped (79)\n   Start at  18:12:14\n   Duration  9.49s (transform 1.12s, setup 94ms, import 2.95s, tests 5.55s, environment 769ms)",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-57",
+          "kind": "event",
+          "label": "npx vitest run src/components/actions/run/popup/action_popup.test.tsx -t \"badge tooltip\" 2>&1 | tail -60",
+          "providerItemId": "toolu_01APiQTYxnxdqLWN67weeNng",
+          "sequence": 57,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:12:24.235Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "npx vitest run src/components/actions/run/popup/action_popup.test.tsx -t \"badge tooltip\" 2>&1 | grep -E \"^ (✓|×|❯)|AssertionError|Error:|Unable to find|→\" | head -40",
+          "content": " ❯ |ui| src/components/actions/run/popup/action_popup.test.tsx (79 tests | 5 failed | 73 skipped) 5702ms\nTestingLibraryElementError: Unable to find an element with the text: Improve the popup, which matches selector '.MuiTooltip-tooltip *'. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.\n ❯ waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27\n ❯ node_modules/@testing-library/dom/dist/query-helpers.js:86:33\n ❯ src/components/actions/run/popup/action_popup.test.tsx:2717:33\nTestingLibraryElementError: Unable to find an element with the text: Improve the popup, which matches selector '.MuiTooltip-tooltip *'. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.\n ❯ waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27\n ❯ node_modules/@testing-library/dom/dist/query-helpers.js:86:33\n ❯ src/components/actions/run/popup/action_popup.test.tsx:2728:33\nTestingLibraryElementError: Unable to find an element with the text: Original title, which matches selector '.MuiTooltip-tooltip *'. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.\n ❯ waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27\n ❯ node_modules/@testing-library/dom/dist/query-helpers.js:86:33\n ❯ src/components/actions/run/popup/action_popup.test.tsx:2736:33\nError: \u001b[2mexpect(\u001b[22m\u001b[31melement\u001b[39m\u001b[2m).not.toBeInTheDocument()\u001b[22m\n ❯ src/components/actions/run/popup/action_popup.test.tsx:2767:75\n ❯ runWithExpensiveErrorDiagnosticsDisabled node_modules/@testing-library/dom/dist/config.js:47:12\n ❯ checkCallback node_modules/@testing-library/dom/dist/wait-for.js:124:77\n ❯ Timeout.checkRealTimersCallback node_modules/@testing-library/dom/dist/wait-for.js:118:16\nError: \u001b[2mexpect(\u001b[22m\u001b[31melement\u001b[39m\u001b[2m).not.toBeInTheDocument()\u001b[22m\n ❯ src/components/actions/run/popup/action_popup.test.tsx:2775:75\n ❯ runWithExpensiveErrorDiagnosticsDisabled node_modules/@testing-library/dom/dist/config.js:47:12\n ❯ checkCallback node_modules/@testing-library/dom/dist/wait-for.js:124:77\n ❯ Timeout.checkRealTimersCallback node_modules/@testing-library/dom/dist/wait-for.js:118:16",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-58",
+          "kind": "event",
+          "label": "npx vitest run src/components/actions/run/popup/action_popup.test.tsx -t \"badge tooltip\" 2>&1 | grep -E \"^ (✓|×|❯)|AssertionError|Error:|Unable to find|→\" | head -40",
+          "providerItemId": "toolu_012VHXGP2w9mDkWokBoiXjgj",
+          "sequence": 58,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:12:37.552Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-59",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeVSYvjaofDYpMJPfHU6A:thinking:0",
+          "sequence": 59,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:12:55.343Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "python - <<'PYEOF'\nimport io\np='src/components/actions/run/popup/action_popup_frame.tsx'\ns=io.open(p,encoding='utf-8').read()\nold=\"\"\"                        {target ? (\n                            // The badge stays a span with only tabIndex: a button or role would land in the\n                            // popper's INTERACTIVE_SELECTOR and stop the badge from dragging the popup.\n                            <Tooltip title={targetTitle ?? ''}>\n                                <Box\n                                    component=\"span\"\n                                    sx={{\n                                        bgcolor: 'custom.primaryBg', borderRadius: '5px', color: 'primary.main', flexShrink: 0,\n                                        fontFamily: '\"Roboto Mono\", ui-monospace, monospace', fontSize: 11.5, fontWeight: 600,\n                                        px: 0.875, py: 0.25,\n                                    }}\n                                    tabIndex={0}\n                                >\n                                    {target}\n                                </Box>\n                            </Tooltip>\n                        ) : null}\"\"\"\nnew=\"\"\"                        {targetBadge && targetTitle ? <Tooltip title={targetTitle}>{targetBadge}</Tooltip> : targetBadge}\"\"\"\nassert old in s; s=s.replace(old,new)\n\nanchor=\"\"\"    const assignmentTarget = baseContext.kind === 'card' || baseContext.kind === 'file' || baseContext.kind === 'project'\n        ? worktreeAssignmentTarget(baseContext)\n        : null\n\"\"\"\nbadge = anchor + \"\"\"    // The badge stays a span carrying only tabIndex: a button or a role attribute would match the\n    // popper's INTERACTIVE_SELECTOR, which would stop a pointer press on the badge from dragging the popup.\n    const targetBadge = target ? (\n        <Box\n            component=\"span\"\n            sx={{\n                bgcolor: 'custom.primaryBg', borderRadius: '5px', color: 'primary.main', flexShrink: 0,\n                fontFamily: '\"Roboto Mono\", ui-monospace, monospace', fontSize: 11.5, fontWeight: 600,\n                px: 0.875, py: 0.25,\n            }}\n            tabIndex={0}\n        >\n            {target}\n        </Box>\n    ) : null\n\"\"\"\nassert anchor in s; s=s.replace(anchor,badge)\nio.open(p,'w',encoding='utf-8',newline='').write(s)\n\np2='src/components/actions/run/popup/action_popup.test.tsx'\nt=io.open(p2,encoding='utf-8').read()\nn=t.count(\"{ selector: '.MuiTooltip-tooltip *' }\")\nt=t.replace(\"\"\"            expect(await screen.findByText('Improve the popup', { selector: '.MuiTooltip-tooltip *' })).toBeInTheDocument()\"\"\",\"\"\"            expect(await screen.findByText('Improve the popup', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()\"\"\")\nt=t.replace(\"\"\"            expect(await screen.findByText('Original title', { selector: '.MuiTooltip-tooltip *' })).toBeInTheDocument()\"\"\",\"\"\"            expect(await screen.findByText('Original title', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()\"\"\")\nt=t.replace(\"\"\"            expect(await screen.findByText('Renamed by the run', { selector: '.MuiTooltip-tooltip *' })).toBeInTheDocument()\n            expect(screen.queryByText('Original title', { selector: '.MuiTooltip-tooltip *' })).not.toBeInTheDocument()\"\"\",\"\"\"            expect(await screen.findByText('Renamed by the run', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()\n            expect(screen.queryByText('Original title', { selector: '.MuiTooltip-tooltip' })).not.toBeInTheDocument()\"\"\")\nio.open(p2,'w',encoding='utf-8',newline='').write(t)\nprint('ok')\nPYEOF",
+          "content": "ok",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-60",
+          "kind": "event",
+          "label": "python - <<'PYEOF'\nimport io\np='src/components/actions/run/popup/action_popup_frame.tsx'\ns=io.open(p,encoding='utf-8').read()\nold=\"\"\"                        {target ? (\n                            // The badge stays a span with only tabIndex: a button or role would land in the\n                            // popper's INTERACTIVE_SELECTOR and stop the badge from dragging the popup.\n                            <Tooltip title={targetTitle ?? ''}>\n                                <Box\n                                    component=\"span\"\n                                    sx={{\n                                        bgcolor: 'custom.primaryBg', borderRadius: '5px', color: 'primary.main', flexShrink: 0,\n                                        fontFamily: '\"Roboto Mono\", ui-monospace, monospace', fontSize: 11.5, fontWeight: 600,\n                                        px: 0.875, py: 0.25,\n                                    }}\n                                    tabIndex={0}\n                                >\n                                    {target}\n                                </Box>\n                            </Tooltip>\n                        ) : null}\"\"\"\nnew=\"\"\"                        {targetBadge && targetTitle ? <Tooltip title={targetTitle}>{targetBadge}</Tooltip> : targetBadge}\"\"\"\nassert old in s; s=s.replace(old,new)\n\nanchor=\"\"\"    const assignmentTarget = baseContext.kind === 'card' || baseContext.kind === 'file' || baseContext.kind === 'project'\n        ? worktreeAssignmentTarget(baseContext)\n        : null\n\"\"\"\nbadge = anchor + \"\"\"    // The badge stays a span carrying only tabIndex: a button or a role attribute would match the\n    // popper's INTERACTIVE_SELECTOR, which would stop a pointer press on the badge from dragging the popup.\n    const targetBadge = target ? (\n        <Box\n            component=\"span\"\n            sx={{\n                bgcolor: 'custom.primaryBg', borderRadius: '5px', color: 'primary.main', flexShrink: 0,\n                fontFamily: '\"Roboto Mono\", ui-monospace, monospace', fontSize: 11.5, fontWeight: 600,\n                px: 0.875, py: 0.25,\n            }}\n            tabIndex={0}\n        >\n            {target}\n        </Box>\n    ) : null\n\"\"\"\nassert anchor in s; s=s.replace(anchor,badge)\nio.open(p,'w',encoding='utf-8',newline='').write(s)\n\np2='src/components/actions/run/popup/action_popup.test.tsx'\nt=io.open(p2,encoding='utf-8').read()\nn=t.count(\"{ selector: '.MuiTooltip-tooltip *' }\")\nt=t.replace(\"\"\"            expect(await screen.findByText('Improve the popup', { selector: '.MuiTooltip-tooltip *' })).toBeInTheDocument()\"\"\",\"\"\"            expect(await screen.findByText('Improve the popup', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()\"\"\")\nt=t.replace(\"\"\"            expect(await screen.findByText('Original title', { selector: '.MuiTooltip-tooltip *' })).toBeInTheDocument()\"\"\",\"\"\"            expect(await screen.findByText('Original title', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()\"\"\")\nt=t.replace(\"\"\"            expect(await screen.findByText('Renamed by the run', { selector: '.MuiTooltip-tooltip *' })).toBeInTheDocument()\n            expect(screen.queryByText('Original title', { selector: '.MuiTooltip-tooltip *' })).not.toBeInTheDocument()\"\"\",\"\"\"            expect(await screen.findByText('Renamed by the run', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()\n            expect(screen.queryByText('Original title', { selector: '.MuiTooltip-tooltip' })).not.toBeInTheDocument()\"\"\")\nio.open(p2,'w',encoding='utf-8',newline='').write(t)\nprint('ok')\nPYEOF",
+          "providerItemId": "toolu_014aUoLyhMWJ58NU6LMyn9RG",
+          "sequence": 60,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:13:09.098Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "npx vitest run src/components/actions/run/popup/action_popup.test.tsx -t \"badge tooltip\" 2>&1 | grep -E \"Tests  |Unable to find|toBeInTheDocument|action_popup.test.tsx:2[0-9]+\" | head -30",
+          "content": "TestingLibraryElementError: Unable to find an element with the text: Improve the popup, which matches selector '.MuiTooltip-tooltip'. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.\n ❯ src/components/actions/run/popup/action_popup.test.tsx:2728:33\nError: \u001b[2mexpect(\u001b[22m\u001b[31melement\u001b[39m\u001b[2m).not.toBeInTheDocument()\u001b[22m\n ❯ src/components/actions/run/popup/action_popup.test.tsx:2767:75\nError: \u001b[2mexpect(\u001b[22m\u001b[31melement\u001b[39m\u001b[2m).not.toBeInTheDocument()\u001b[22m\n ❯ src/components/actions/run/popup/action_popup.test.tsx:2775:75\n      Tests  3 failed | 3 passed | 73 skipped (79)",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-61",
+          "kind": "event",
+          "label": "npx vitest run src/components/actions/run/popup/action_popup.test.tsx -t \"badge tooltip\" 2>&1 | grep -E \"Tests  |Unable to find|toBeInTheDocument|action_popup.test.tsx:2[0-9]+\" | head -30",
+          "providerItemId": "toolu_01PVyXsNCe3JBnzLkQDEBGkS",
+          "sequence": 61,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:13:20.403Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-62",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeVSc6UYosEjf7UZ56yUb:thinking:0",
+          "sequence": 62,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:13:31.774Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "python - <<'PYEOF'\nimport io\np='src/components/actions/run/popup/action_popup.test.tsx'\nt=io.open(p,encoding='utf-8').read()\nold=\"\"\"            await waitFor(() => expect(screen.queryByRole('tooltip')).not.toBeInTheDocument())\n\n            cleanup()\"\"\"\nnew=\"\"\"            await waitFor(() => expect(screen.queryAllByRole('tooltip').map((node) => node.textContent)).toEqual(['DEBUG']))\n\n            cleanup()\"\"\"\nt=t.replace(old,new)\nt=t.replace(\"\"\"            fireEvent.mouseOver(badge('Project'))\n\n            await waitFor(() => expect(screen.queryByRole('tooltip')).not.toBeInTheDocument())\"\"\",\"\"\"            fireEvent.mouseOver(badge('Project'))\n\n            await waitFor(() => expect(screen.queryAllByRole('tooltip').map((node) => node.textContent)).toEqual(['DEBUG']))\"\"\")\nio.open(p,'w',encoding='utf-8',newline='').write(t)\nPYEOF\nnpx vitest run src/components/actions/run/popup/action_popup.test.tsx -t \"no tooltip\" 2>&1 | grep -E \"^\\s*[-+]|Tests  \" | head -20",
+          "content": "- Expected\n+ Received\n-   \"DEBUG\",\n+   \"Run actions for ProjectProjectFirst actionSecond action+Run\",\n- Expected\n+ Received\n-   \"DEBUG\",\n+   \"Run actions for F-010F-010First actionSecond action+Could not load saved action settings: Loading card action settings requires ElectronRun\",\n      Tests  2 failed | 77 skipped (79)",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-63",
+          "kind": "event",
+          "label": "python - <<'PYEOF'\nimport io\np='src/components/actions/run/popup/action_popup.test.tsx'\nt=io.open(p,encoding='utf-8').read()\nold=\"\"\"            await waitFor(() => expect(screen.queryByRole('tooltip')).not.toBeInTheDocument())\n\n            cleanup()\"\"\"\nnew=\"\"\"            await waitFor(() => expect(screen.queryAllByRole('tooltip').map((node) => node.textContent)).toEqual(['DEBUG']))\n\n            cleanup()\"\"\"\nt=t.replace(old,new)\nt=t.replace(\"\"\"            fireEvent.mouseOver(badge('Project'))\n\n            await waitFor(() => expect(screen.queryByRole('tooltip')).not.toBeInTheDocument())\"\"\",\"\"\"            fireEvent.mouseOver(badge('Project'))\n\n            await waitFor(() => expect(screen.queryAllByRole('tooltip').map((node) => node.textContent)).toEqual(['DEBUG']))\"\"\")\nio.open(p,'w',encoding='utf-8',newline='').write(t)\nPYEOF\nnpx vitest run src/components/actions/run/popup/action_popup.test.tsx -t \"no tooltip\" 2>&1 | grep -E \"^\\s*[-+]|Tests  \" | head -20",
+          "providerItemId": "toolu_01DCJwwHUaG522pQa174e9e8",
+          "sequence": 63,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:13:44.836Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-64",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeVSdtCRPRPzBSmpGVR4M:thinking:0",
+          "sequence": 64,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:13:50.821Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "python - <<'PYEOF'\nimport io\np='src/components/actions/run/popup/action_popup.test.tsx'\nt=io.open(p,encoding='utf-8').read()\nt=t.replace(\"\"\"            await waitFor(() => expect(screen.queryAllByRole('tooltip').map((node) => node.textContent)).toEqual(['DEBUG']))\"\"\",\"\"\"            await waitFor(() => expect(document.querySelectorAll('.MuiTooltip-tooltip')).toHaveLength(0))\"\"\")\nold=\"\"\"            const element = badge('F-010')\n            act(() => element.focus())\n\n            expect(element).toHaveFocus()\"\"\"\nnew=\"\"\"            const element = badge('F-010')\n            act(() => element.focus())\n            fireEvent.focus(element)\n\n            expect(element).toHaveFocus()\"\"\"\nassert old in t; t=t.replace(old,new)\nio.open(p,'w',encoding='utf-8',newline='').write(t)\nprint('ok')\nPYEOF\nnpx vitest run src/components/actions/run/popup/action_popup.test.tsx -t \"badge tooltip\" 2>&1 | grep -E \"Tests  |Unable to find|toBeInTheDocument|toHaveLength|test.tsx:2[0-9]+\" | head -20",
+          "content": "ok\r\nTestingLibraryElementError: Unable to find an element with the text: Improve the popup, which matches selector '.MuiTooltip-tooltip'. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.\n ❯ src/components/actions/run/popup/action_popup.test.tsx:2729:33\n      Tests  1 failed | 5 passed | 73 skipped (79)",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-65",
+          "kind": "event",
+          "label": "python - <<'PYEOF'\nimport io\np='src/components/actions/run/popup/action_popup.test.tsx'\nt=io.open(p,encoding='utf-8').read()\nt=t.replace(\"\"\"            await waitFor(() => expect(screen.queryAllByRole('tooltip').map((node) => node.textContent)).toEqual(['DEBUG']))\"\"\",\"\"\"            await waitFor(() => expect(document.querySelectorAll('.MuiTooltip-tooltip')).toHaveLength(0))\"\"\")\nold=\"\"\"            const element = badge('F-010')\n            act(() => element.focus())\n\n            expect(element).toHaveFocus()\"\"\"\nnew=\"\"\"            const element = badge('F-010')\n            act(() => element.focus())\n            fireEvent.focus(element)\n\n            expect(element).toHaveFocus()\"\"\"\nassert old in t; t=t.replace(old,new)\nio.open(p,'w',encoding='utf-8',newline='').write(t)\nprint('ok')\nPYEOF\nnpx vitest run src/components/actions/run/popup/action_popup.test.tsx -t \"badge tooltip\" 2>&1 | grep -E \"Tests  |Unable to find|toBeInTheDocument|toHaveLength|test.tsx:2[0-9]+\" | head -20",
+          "providerItemId": "toolu_01Wu2tFfLRSRBvir29dN1B7u",
+          "sequence": 65,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:14:03.636Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-66",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeVSfGdaRV7PLTj8FvfmJ:thinking:0",
+          "sequence": 66,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:14:06.218Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "grep -n \"focus-visible\\|handleFocus\\|focusVisible\" node_modules/@mui/material/Tooltip/Tooltip.js | head -20",
+          "content": "386:  const handleFocus = event => {\n520:    childrenProps.onFocus = composeEventHandler(handleFocus, childrenProps.onFocus);\n523:      interactiveWrapperListeners.onFocus = handleFocus;\n657:   * Do not respond to focus-visible events.",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-67",
+          "kind": "event",
+          "label": "grep -n \"focus-visible\\|handleFocus\\|focusVisible\" node_modules/@mui/material/Tooltip/Tooltip.js | head -20",
+          "providerItemId": "toolu_0168TmcVa42swVM7xvNJmYoQ",
+          "sequence": 67,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:14:07.181Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "sed -n '380,400p' node_modules/@mui/material/Tooltip/Tooltip.js",
+          "content": "          value: target\n        });\n      }\n      handleMouseLeave(closeEvent);\n    }\n  };\n  const handleFocus = event => {\n    // Workaround for https://github.com/react/react/issues/7769\n    // The autoFocus of React might trigger the event before the componentDidMount.\n    // We need to account for this eventuality.\n    if (!childNode) {\n      setChildNode(event.currentTarget);\n    }\n    if ((0, _isFocusVisible.default)(event.target)) {\n      // Workaround for https://github.com/react/react/issues/9142.\n      // React does not fire blur when a focused element becomes disabled.\n      const handleNativeBlur = blurEvent => {\n        if (blurEvent.target.disabled) {\n          handleBlur(blurEvent);\n        }\n        blurEvent.target.removeEventListener('blur', handleNativeBlur);",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-68",
+          "kind": "event",
+          "label": "sed -n '380,400p' node_modules/@mui/material/Tooltip/Tooltip.js",
+          "providerItemId": "toolu_0117SnhmQWnGK6Fo2kBfhCfR",
+          "sequence": 68,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:14:09.656Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-69",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeVSfiPsDU2nDjQjRn1Dv:thinking:0",
+          "sequence": 69,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:14:11.974Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cat node_modules/@mui/utils/isFocusVisible/isFocusVisible.js",
+          "content": "\"use strict\";\n\nObject.defineProperty(exports, \"__esModule\", {\n  value: true\n});\nexports.default = isFocusVisible;\n/**\n * Returns a boolean indicating if the event's target has :focus-visible\n */\nfunction isFocusVisible(element) {\n  try {\n    return element.matches(':focus-visible');\n  } catch (error) {\n    // Do not warn on jsdom tests, otherwise all tests that rely on focus have to be skipped\n    // Tests that rely on `:focus-visible` will still have to be skipped in jsdom\n    if (process.env.NODE_ENV !== 'production' && !window.navigator.userAgent.includes('jsdom')) {\n      console.warn(['MUI: The `:focus-visible` pseudo class is not supported in this browser.', 'Some components rely on this feature to work properly.'].join('\\n'));\n    }\n  }\n  return false;\n}",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-70",
+          "kind": "event",
+          "label": "cat node_modules/@mui/utils/isFocusVisible/isFocusVisible.js",
+          "providerItemId": "toolu_01VRhTGK8cbwrVnoCVx3yUSo",
+          "sequence": 70,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:14:12.520Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-71",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeVSfvz9p1kTLhVWRM54B:thinking:0",
+          "sequence": 71,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:14:17.940Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cat > /tmp/fv.test.tsx <<'EOF'\nimport { describe, expect, it } from 'vitest'\n\ndescribe('jsdom focus-visible', () => {\n    it('reports support', () => {\n        const el = document.createElement('span')\n        el.tabIndex = 0\n        document.body.append(el)\n        el.focus()\n        let supported = true\n        let visible: boolean | string = false\n        try {\n            visible = el.matches(':focus-visible')\n        } catch (error) {\n            supported = false\n            visible = String(error)\n        }\n        expect({ supported, visible }).toEqual('probe')\n    })\n})\nEOF\ncp /tmp/fv.test.tsx src/components/__fv.test.tsx && npx vitest run src/components/__fv.test.tsx 2>&1 | grep -E \"\\+ |Received|supported|visible\" | head; rm src/components/__fv.test.tsx",
+          "content": " FAIL  |ui| src/components/__fv.test.tsx > jsdom focus-visible > reports support\nAssertionError: expected { supported: true, visible: false } to deeply equal 'probe'\n+ Received:\n  \"supported\": true,\n  \"visible\": false,\n     15|             visible = String(error)\n     17|         expect({ supported, visible }).toEqual('probe')",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-72",
+          "kind": "event",
+          "label": "cat > /tmp/fv.test.tsx <<'EOF'\nimport { describe, expect, it } from 'vitest'\n\ndescribe('jsdom focus-visible', () => {\n    it('reports support', () => {\n        const el = document.createElement('span')\n        el.tabIndex = 0\n        document.body.append(el)\n        el.focus()\n        let supported = true\n        let visible: boolean | string = false\n        try {\n            visible = el.matches(':focus-visible')\n        } catch (error) {\n            supported = false\n            visible = String(error)\n        }\n        expect({ supported, visible }).toEqual('probe')\n    })\n})\nEOF\ncp /tmp/fv.test.tsx src/components/__fv.test.tsx && npx vitest run src/components/__fv.test.tsx 2>&1 | grep -E \"\\+ |Received|supported|visible\" | head; rm src/components/__fv.test.tsx",
+          "providerItemId": "toolu_01BfYeLyCmrwBBoxGHogNGjf",
+          "sequence": 72,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:14:25.159Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-73",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeVSgrZmytcvxbW9ys13C:thinking:0",
+          "sequence": 73,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:14:33.438Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "python - <<'PYEOF'\nimport io\np='src/components/actions/run/popup/action_popup.test.tsx'\nt=io.open(p,encoding='utf-8').read()\nold=\"\"\"    it('shows the same tooltip when the badge is focused with the keyboard', async () => {\n            mockSnapshotCards([snapshotCard('F-010', 'card-1', 'Improve the popup')])\n\n            renderPopup({ ...context, cardInternalId: 'card-1' })\n            const element = badge('F-010')\n            act(() => element.focus())\n            fireEvent.focus(element)\n\n            expect(element).toHaveFocus()\n            expect(await screen.findByText('Improve the popup', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()\n        })\"\"\"\n# find actual indentation\nimport re\nm=re.search(r\"\\n(\\s*)it\\('shows the same tooltip when the badge is focused with the keyboard'.*?\\n\\s*\\}\\)\\n\", t, re.S)\nassert m, 'not found'\nindent=m.group(1)\nnew = f\"\"\"\n{indent}// jsdom never reports :focus-visible for a focused span, so MUI's focus trigger cannot open the\n{indent}// tooltip here. What is testable is the part this feature added: the badge is keyboard reachable\n{indent}// and carries the Tooltip's focus handler, which is what makes the tooltip open in a browser.\n{indent}it('makes the badge keyboard reachable so the tooltip has a focus trigger', async () => {{\n{indent}    mockSnapshotCards([snapshotCard('F-010', 'card-1', 'Improve the popup')])\n\n{indent}    renderPopup({{ ...context, cardInternalId: 'card-1' }})\n{indent}    const element = badge('F-010')\n{indent}    expect(element).toHaveAttribute('tabindex', '0')\n\n{indent}    await userEvent.tab()\n\n{indent}    expect(element).toHaveFocus()\n{indent}}})\n\"\"\"\nt = t[:m.start()] + new + t[m.end():]\nio.open(p,'w',encoding='utf-8',newline='').write(t)\nprint('ok')\nPYEOF\nnpx vitest run src/components/actions/run/popup/action_popup.test.tsx -t \"badge tooltip\" 2>&1 | grep -E \"Tests  |Unable|toHave|test.tsx:2[0-9]+\" | head -20",
+          "content": "ok\r\n      Tests  6 passed | 73 skipped (79)",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-74",
+          "kind": "event",
+          "label": "python - <<'PYEOF'\nimport io\np='src/components/actions/run/popup/action_popup.test.tsx'\nt=io.open(p,encoding='utf-8').read()\nold=\"\"\"    it('shows the same tooltip when the badge is focused with the keyboard', async () => {\n            mockSnapshotCards([snapshotCard('F-010', 'card-1', 'Improve the popup')])\n\n            renderPopup({ ...context, cardInternalId: 'card-1' })\n            const element = badge('F-010')\n            act(() => element.focus())\n            fireEvent.focus(element)\n\n            expect(element).toHaveFocus()\n            expect(await screen.findByText('Improve the popup', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()\n        })\"\"\"\n# find actual indentation\nimport re\nm=re.search(r\"\\n(\\s*)it\\('shows the same tooltip when the badge is focused with the keyboard'.*?\\n\\s*\\}\\)\\n\", t, re.S)\nassert m, 'not found'\nindent=m.group(1)\nnew = f\"\"\"\n{indent}// jsdom never reports :focus-visible for a focused span, so MUI's focus trigger cannot open the\n{indent}// tooltip here. What is testable is the part this feature added: the badge is keyboard reachable\n{indent}// and carries the Tooltip's focus handler, which is what makes the tooltip open in a browser.\n{indent}it('makes the badge keyboard reachable so the tooltip has a focus trigger', async () => {{\n{indent}    mockSnapshotCards([snapshotCard('F-010', 'card-1', 'Improve the popup')])\n\n{indent}    renderPopup({{ ...context, cardInternalId: 'card-1' }})\n{indent}    const element = badge('F-010')\n{indent}    expect(element).toHaveAttribute('tabindex', '0')\n\n{indent}    await userEvent.tab()\n\n{indent}    expect(element).toHaveFocus()\n{indent}}})\n\"\"\"\nt = t[:m.start()] + new + t[m.end():]\nio.open(p,'w',encoding='utf-8',newline='').write(t)\nprint('ok')\nPYEOF\nnpx vitest run src/components/actions/run/popup/action_popup.test.tsx -t \"badge tooltip\" 2>&1 | grep -E \"Tests  |Unable|toHave|test.tsx:2[0-9]+\" | head -20",
+          "providerItemId": "toolu_01EQCNcytTEPE3q9Zy8R3txF",
+          "sequence": 74,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:14:50.115Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNow the full popup test file plus typecheck:",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-turn-1-assistant-6",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 75,
+          "timestamp": "2026-08-28T16:14:52.125Z"
+        },
+        {
+          "command": "npx vitest run src/components/actions/run/popup/action_popup.test.tsx 2>&1 | grep -E \"Tests  |Test Files|FAIL|×\" | head -20",
+          "content": " Test Files  1 passed (1)\n      Tests  79 passed (79)",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-76",
+          "kind": "event",
+          "label": "npx vitest run src/components/actions/run/popup/action_popup.test.tsx 2>&1 | grep -E \"Tests  |Test Files|FAIL|×\" | head -20",
+          "providerItemId": "toolu_01YboDieqMtJQ97oNW4JLyQG",
+          "sequence": 76,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:15:08.251Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "npm run typecheck 2>&1 | tail -20",
+          "content": "> app@0.4.6 typecheck\n> tsc --noEmit",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-77",
+          "kind": "event",
+          "label": "npm run typecheck 2>&1 | tail -20",
+          "providerItemId": "toolu_01CvDQYeAbuJieVt12dgpz9Y",
+          "sequence": 77,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:15:24.565Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-78",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeVSmEzGiFMy3Sf2CgGQp:thinking:0",
+          "sequence": 78,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:15:27.264Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "npx vitest run src/components/actions/run/trigger/card_run_button.test.tsx src/components/actions/run/popup/action_popup_bottom_row.test.tsx 2>&1 | grep -E \"Tests  |Test Files|FAIL\" | head",
+          "content": " Test Files  2 passed (2)\n      Tests  38 passed (38)",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-79",
+          "kind": "event",
+          "label": "npx vitest run src/components/actions/run/trigger/card_run_button.test.tsx src/components/actions/run/popup/action_popup_bottom_row.test.tsx 2>&1 | grep -E \"Tests  |Test Files|FAIL\" | head",
+          "providerItemId": "toolu_014VW51ruoHiaEGjAbWztoqE",
+          "sequence": 79,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:15:38.792Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNow flip the status field in the spec:",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-turn-1-assistant-7",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 80,
+          "timestamp": "2026-08-28T16:15:40.490Z"
+        },
+        {
+          "command": "python - <<'PYEOF'\nimport io\np='C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/F_240_action_popup_card_id_add_tooltip.md'\ns=io.open(p,encoding='utf-8').read()\nold='status: ready for implementation'\nassert old in s\ns=s.replace(old,'status: ready',1)\nio.open(p,'w',encoding='utf-8',newline='').write(s)\nprint(s[:260])\nPYEOF",
+          "content": "---\r\nauthor: \r\nid: F_240\r\ninternalId: db4400c0-0d7f-4265-8939-8b4e493c7208\r\ntitle: action popup card id add tooltip\r\nstatus: ready\r\nowner: \r\naffects:\r\nagents:\r\n  - design/activity/card__db4400c0-0d7f-4265-8939-8b4e493c7208.json\r\npolicy:\r\nbranch: f_240_action_popup_card_i",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-event-81",
+          "kind": "event",
+          "label": "python - <<'PYEOF'\nimport io\np='C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/F_240_action_popup_card_id_add_tooltip.md'\ns=io.open(p,encoding='utf-8').read()\nold='status: ready for implementation'\nassert old in s\ns=s.replace(old,'status: ready',1)\nio.open(p,'w',encoding='utf-8',newline='').write(s)\nprint(s[:260])\nPYEOF",
+          "providerItemId": "toolu_01MKBSuiTJpGVAEk4UK3ZYvX",
+          "sequence": 81,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:15:43.890Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nDone. All three blocks landed.\n\n**What changed**\n\n- `app/src/components/actions/run/popup/action_popup.tsx` — `resolvePopupTarget` now returns `{ id, title }` from the single snapshot lookup. Card: `header.id` + live `header.title`, falling back to `context.title` when the card is absent from the snapshot. Project: `{ id: 'Project', title: null }`. Other kinds: both `null`. `ActionPopup` destructures both and passes `targetTitle`.\n- `app/src/components/actions/run/popup/action_popup_types.ts` — added `targetTitle?: string | null`.\n- `app/src/components/actions/run/popup/action_popup_frame.tsx` — badge extracted to `targetBadge`, still a `span` with `tabIndex={0}` and no `role`, wrapped in `Tooltip` only when a title exists.\n- `app/src/components/actions/run/popup/action_popup.test.tsx` — six new tests under `ActionPopup card id badge tooltip`.\n- Spec `status` set to `ready`.\n\n**Two deviations from the spec, both deliberate**\n\n1. The spec said MUI renders no tooltip for an empty title, so `title={targetTitle ?? ''}` needs no branch. That is wrong in the installed MUI: an empty-title Tooltip still mounts a popper on hover. I render the `Tooltip` wrapper only when `targetTitle` is non-empty, which is what actually satisfies the \"no empty tooltip box\" criterion.\n2. The keyboard criterion is asserted indirectly. jsdom never reports `:focus-visible` for a focused `span`, and MUI's focus trigger gates on exactly that, so no jsdom test can observe the tooltip opening on focus. That test instead asserts the badge carries `tabindex=\"0\"` and takes focus from `userEvent.tab()` — the two things this feature added that make the browser focus trigger work. A comment in the test states the limitation.\n\n**Environment note:** `@testing-library/user-event` was declared in `package.json` but missing from this worktree's `node_modules`, so the test file could not even load. I installed it with `npm install --no-save`; npm reported \"added 7, removed 3, changed 22 packages\", so this worktree's `node_modules` no longer exactly matches what it was.\n\n**Verification:** `npm run typecheck` clean. `action_popup.test.tsx` 79/79 pass, `card_run_button.test.tsx` + `action_popup_bottom_row.test.tsx` 38/38 pass. Full suite not run, per your instruction.",
+          "id": "agent-turn-d4ff2fb5-80fd-49c1-a76e-8a63b4f0a02c-turn-1-assistant-8",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 82,
+          "timestamp": "2026-08-28T16:15:55.908Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-1bba4825-9a60-46bd-a8f1-e2e41fd7bc5a",
+      "providerSessions": [],
+      "startedAt": "2026-08-28T16:07:38.966Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 88443,
+        "runningStartedAt": "2026-08-28T16:10:40.332Z"
+      },
+      "title": "implement",
+      "usage": {
+        "cachedInputTokens": 2808507,
+        "inputTokens": 92,
+        "outputTokens": 20694,
+        "reasoningTokens": 0,
+        "totalTokens": 2829293,
+        "costUsd": 2.6081250000000002
+      },
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
