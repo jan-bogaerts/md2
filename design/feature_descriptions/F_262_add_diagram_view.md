@@ -9,4 +9,13 @@ affects:
 agents:
 policy:
 ---
-
+* Add toggle to app menu bar, before stats-view toggle. When clicked, shows diagram view
+* Diagram view shows:
+  * Svg component, which shows the currently active, clickable svg. Initially empty
+  * Breadcrumb path for digging into the diagram and going back
+  * Action popup with diagram actions.
+* Initial diagram actions need to be of type ´root´.
+* for digging into a diagram, we show of type ´child´. This allows us to pass in a value for ´parent-node´ placeholder when ´child diagram actions´ are triggered
+* Action popup works as normal, so prompt prefilled.
+* After user has run action, it has created an svg file and the action can report where the file is.
+* We store a json in the design folder that keeps track, per root diagram action a list of svg files (perhaps extra props)&#x20;
