@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 57006
+        "usedTokens": 64977
       },
       "entries": [
         {
@@ -460,6 +460,329 @@
           "role": "assistant",
           "sequence": 33,
           "timestamp": "2026-08-28T16:06:44.252Z"
+        },
+        {
+          "content": "go",
+          "id": "agent-turn-ef0e19b7-e6cb-4579-9cf1-a56b32d3ac97-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 34,
+          "timestamp": "2026-08-28T16:08:32.140Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ef0e19b7-e6cb-4579-9cf1-a56b32d3ac97-event-35",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0134fc7b6329d483016a91b285c88487d2b855394bce12b98f",
+          "sequence": 35,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:08:36.952Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Approved. Implementing Block 1 first. Dedicated error preserves unexpected-error telemetry while classifying primary-folder choice as expected user input.\n\n",
+          "id": "agent-turn-ef0e19b7-e6cb-4579-9cf1-a56b32d3ac97-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 36,
+          "timestamp": "2026-08-28T16:08:37.877Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ef0e19b7-e6cb-4579-9cf1-a56b32d3ac97-event-37",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0134fc7b6329d483016a91b28c0c1087d295f83110c9106ccc",
+          "sequence": 37,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:08:44.275Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "add: C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\services\\project\\worktree_errors.ts\nupdate: C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\services\\project\\worktree_service.ts",
+          "deletions": 1,
+          "id": "agent-turn-ef0e19b7-e6cb-4579-9cf1-a56b32d3ac97-event-38",
+          "insertions": 9,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-b723e7b9-aba0-4611-b508-82cb463b0ddd",
+          "sequence": 38,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:08:50.926Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ef0e19b7-e6cb-4579-9cf1-a56b32d3ac97-event-39",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0134fc7b6329d483016a91b295f39887d28da19fd0f900e2f9",
+          "sequence": 39,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:08:52.863Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\components\\config\\worktree_config_list.tsx",
+          "deletions": 0,
+          "id": "agent-turn-ef0e19b7-e6cb-4579-9cf1-a56b32d3ac97-event-40",
+          "insertions": 5,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-a8afc870-a718-4202-ab9d-8e1e868a038b",
+          "sequence": 40,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:09:02.411Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ef0e19b7-e6cb-4579-9cf1-a56b32d3ac97-event-41",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0134fc7b6329d483016a91b2a1bf0487d2bf39450a2f493586",
+          "sequence": 41,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:09:08.023Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Block 2 done. Block 3 adds regression at service boundary and user interaction boundary. No desktop change: renderer rejects selection before Save; desktop guard remains defense for direct backend calls.\n\n",
+          "id": "agent-turn-ef0e19b7-e6cb-4579-9cf1-a56b32d3ac97-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 42,
+          "timestamp": "2026-08-28T16:09:09.482Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\components\\config\\worktree_config_list.test.tsx\nupdate: C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\services\\project\\worktree_service.node.test.ts",
+          "deletions": 3,
+          "id": "agent-turn-ef0e19b7-e6cb-4579-9cf1-a56b32d3ac97-event-43",
+          "insertions": 41,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-f08b90ce-d9c1-48ce-94a6-225eff27f4b8",
+          "sequence": 43,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:09:32.700Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ef0e19b7-e6cb-4579-9cf1-a56b32d3ac97-event-44",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0134fc7b6329d483016a91b2c02fe087d2a7e786fbd1e2fc45",
+          "sequence": 44,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:09:35.420Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Code and tests ready. Running only two affected test files, then required formatting/lint. Feature status changes only after all pass.\n\n",
+          "id": "agent-turn-ef0e19b7-e6cb-4579-9cf1-a56b32d3ac97-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 45,
+          "timestamp": "2026-08-28T16:09:41.475Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/services/project/worktree_service.node.test.ts src/components/config/worktree_config_list.test.tsx'",
+          "content": "\n> app@0.4.6 test\n> vitest run src/services/project/worktree_service.node.test.ts src/components/config/worktree_config_list.test.tsx\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2/app\n\n\n Test Files  2 passed (2)\n      Tests  22 passed (22)\n   Start at  18:09:44\n   Duration  4.32s (transform 959ms, setup 113ms, import 2.48s, tests 672ms, environment 760ms)\n\n",
+          "durationMs": 5084,
+          "exitCode": 0,
+          "id": "agent-turn-ef0e19b7-e6cb-4579-9cf1-a56b32d3ac97-event-46",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/services/project/worktree_service.node.test.ts src/components/config/worktree_config_list.test.tsx'",
+          "providerItemId": "exec-3cf22800-113b-4210-9e70-32b4d474e72c",
+          "sequence": 46,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:09:48.407Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2\\app"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ef0e19b7-e6cb-4579-9cf1-a56b32d3ac97-event-47",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0134fc7b6329d483016a91b2cfa0d087d28ca7e4336f7b86b0",
+          "sequence": 47,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:09:55.904Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npx eslint src/services/project/worktree_errors.ts src/services/project/worktree_service.ts src/services/project/worktree_service.node.test.ts src/components/config/worktree_config_list.tsx src/components/config/worktree_config_list.test.tsx --fix'",
+          "content": "",
+          "durationMs": 2205,
+          "exitCode": 0,
+          "id": "agent-turn-ef0e19b7-e6cb-4579-9cf1-a56b32d3ac97-event-48",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npx eslint src/services/project/worktree_errors.ts src/services/project/worktree_service.ts src/services/project/worktree_service.node.test.ts src/components/config/worktree_config_list.tsx src/components/config/worktree_config_list.test.tsx --fix'",
+          "providerItemId": "exec-423c883e-4708-4266-81ea-b5a3caa5d8b0",
+          "sequence": 48,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:09:59.452Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2\\app"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ef0e19b7-e6cb-4579-9cf1-a56b32d3ac97-event-49",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0134fc7b6329d483016a91b2db50ac87d285484dfe738a6ab2",
+          "sequence": 49,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:10:01.995Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
+          "content": "\n> app@0.4.6 lint\n> eslint .\n\n",
+          "durationMs": 17926,
+          "exitCode": 0,
+          "id": "agent-turn-ef0e19b7-e6cb-4579-9cf1-a56b32d3ac97-event-50",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
+          "providerItemId": "exec-20d89fbc-3795-446b-9141-e79d564e9a82",
+          "sequence": 50,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:10:21.141Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2\\app"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ef0e19b7-e6cb-4579-9cf1-a56b32d3ac97-event-51",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0134fc7b6329d483016a91b2f085a087d2acd128c81994ba2a",
+          "sequence": 51,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:10:27.531Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Two files, 22 tests passed. Targeted auto-fix and full app lint passed. Updating only feature `status` now, as required.\n\n",
+          "id": "agent-turn-ef0e19b7-e6cb-4579-9cf1-a56b32d3ac97-turn-1-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 52,
+          "timestamp": "2026-08-28T16:10:28.323Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_181_error_primary_worktree_cannot_be_added_as_a_linked_worktree.md",
+          "deletions": 2,
+          "id": "agent-turn-ef0e19b7-e6cb-4579-9cf1-a56b32d3ac97-event-53",
+          "insertions": 2,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-0e8317a3-affc-4e1c-884e-b91e427ab8bc",
+          "sequence": 53,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:10:30.192Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ef0e19b7-e6cb-4579-9cf1-a56b32d3ac97-event-54",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0134fc7b6329d483016a91b2f96fec87d2a058a794a2ce9ff4",
+          "sequence": 54,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:10:33.045Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"''^status:\" '\"'design\\\\feature_descriptions\\\\B_181_error_primary_worktree_cannot_be_added_as_a_linked_worktree.md'\"",
+          "content": "6:status: ready\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-ef0e19b7-e6cb-4579-9cf1-a56b32d3ac97-event-55",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"''^status:\" '\"'design\\\\feature_descriptions\\\\B_181_error_primary_worktree_cannot_be_added_as_a_linked_worktree.md'\"",
+          "providerItemId": "exec-2451851b-4520-49de-b0ee-cc0c278b1cf5",
+          "sequence": 55,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:10:36.972Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"PrimaryWorktreeSelectionError|Primary project folder|displayError|Linked worktree not added\\\" src\\\\services\\\\project\\\\worktree_errors.ts src\\\\services\\\\project\\\\worktree_service.ts src\\\\components\\\\config\\\\worktree_config_list.tsx src\\\\services\\\\project\\\\worktree_service.node.test.ts src\\\\components\\\\config\\\\worktree_config_list.test.tsx\"",
+          "content": "src\\components\\config\\worktree_config_list.tsx:7:import { PrimaryWorktreeSelectionError } from '../../services/project/worktree_errors'\nsrc\\components\\config\\worktree_config_list.tsx:23:            if (error instanceof PrimaryWorktreeSelectionError) {\nsrc\\components\\config\\worktree_config_list.tsx:24:                dialogService.displayError(error.message, { title: 'Linked worktree not added' })\nsrc\\components\\config\\worktree_config_list.test.tsx:104:        const displayError = vi.spyOn(dialogService, 'displayError')\nsrc\\components\\config\\worktree_config_list.test.tsx:112:        await waitFor(() => expect(displayError).toHaveBeenCalledWith(\nsrc\\components\\config\\worktree_config_list.test.tsx:113:            'Primary project folder is already the primary worktree. Choose a different folder for the linked worktree.',\nsrc\\components\\config\\worktree_config_list.test.tsx:114:            { title: 'Linked worktree not added' },\nsrc\\services\\project\\worktree_service.ts:14:import { PrimaryWorktreeSelectionError } from './worktree_errors'\nsrc\\services\\project\\worktree_service.ts:381:            if (pathKey === worktreePathKey(project.rootPath)) throw new PrimaryWorktreeSelectionError()\nsrc\\services\\project\\worktree_errors.ts:2:export class PrimaryWorktreeSelectionError extends Error {\nsrc\\services\\project\\worktree_errors.ts:4:        super('Primary project folder is already the primary worktree. Choose a different folder for the linked worktree.')\nsrc\\services\\project\\worktree_errors.ts:5:        this.name = 'PrimaryWorktreeSelectionError'\nsrc\\services\\project\\worktree_service.node.test.ts:5:import { PrimaryWorktreeSelectionError } from './worktree_errors'\nsrc\\services\\project\\worktree_service.node.test.ts:165:        await expect(service.selectDraftAddition()).rejects.toBeInstanceOf(PrimaryWorktreeSelectionError)\n",
+          "durationMs": 28,
+          "exitCode": 0,
+          "id": "agent-turn-ef0e19b7-e6cb-4579-9cf1-a56b32d3ac97-event-56",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"PrimaryWorktreeSelectionError|Primary project folder|displayError|Linked worktree not added\\\" src\\\\services\\\\project\\\\worktree_errors.ts src\\\\services\\\\project\\\\worktree_service.ts src\\\\components\\\\config\\\\worktree_config_list.tsx src\\\\services\\\\project\\\\worktree_service.node.test.ts src\\\\components\\\\config\\\\worktree_config_list.test.tsx\"",
+          "providerItemId": "exec-6eb3f819-3ebf-40b9-9ad3-4c70219819dc",
+          "sequence": 56,
+          "status": "completed",
+          "timestamp": "2026-08-28T16:10:37.111Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2\\app"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ef0e19b7-e6cb-4579-9cf1-a56b32d3ac97-event-57",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0134fc7b6329d483016a91b3013e7c87d2a39d1d111e2b72d3",
+          "sequence": 57,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:10:39.900Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ef0e19b7-e6cb-4579-9cf1-a56b32d3ac97-event-58",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0134fc7b6329d483016a91b3066c2c87d2866ac7c8fb64757e",
+          "sequence": 58,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-28T16:10:45.853Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Fixed B_181.\n\n- Primary-folder selection now uses typed expected error.\n- UI shows friendly dialog without Sentry reporting.\n- Unexpected failures still report normally.\n- Added service and component regression tests.\n- 22 related tests passed.\n- App lint passed.\n- Feature [status set to `ready`](C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/B_181_error_primary_worktree_cannot_be_added_as_a_linked_worktree.md:6).\n\n",
+          "id": "agent-turn-ef0e19b7-e6cb-4579-9cf1-a56b32d3ac97-turn-1-assistant-5",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 59,
+          "timestamp": "2026-08-28T16:10:47.692Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -474,21 +797,21 @@
         }
       ],
       "startedAt": "2026-08-28T15:10:29.399Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "elapsedMs": 102207,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-08-28T16:08:32.140Z"
       },
       "title": "fix bug",
       "usage": {
-        "cachedInputTokens": 317184,
-        "inputTokens": 49083,
-        "outputTokens": 1979,
-        "reasoningTokens": 1523,
-        "totalTokens": 369769
+        "cachedInputTokens": 1172736,
+        "inputTokens": 65143,
+        "outputTokens": 5165,
+        "reasoningTokens": 2481,
+        "totalTokens": 1245525
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -503,11 +826,11 @@
         "agent-1ac4161c-171a-4ea8-ad1c-cf4fa66421b4"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-62edccaf-28ef-449a-b976-aadd84b4c58d",
       "origin": {
@@ -516,9 +839,9 @@
       },
       "rootActionId": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
       "rootActionLabel": "fix bug",
-      "rootConversationId": "agent-1ac4161c-171a-4ea8-ad1c-cf4fa66421b4",
       "startedAt": "2026-08-28T15:10:29.398Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-1ac4161c-171a-4ea8-ad1c-cf4fa66421b4"
     }
   ],
   "version": 5
