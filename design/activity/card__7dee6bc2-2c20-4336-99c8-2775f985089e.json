@@ -495,6 +495,31 @@
     "cardInternalId": "7dee6bc2-2c20-4336-99c8-2775f985089e",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [],
+      "completedAt": "2026-08-28T16:06:44.490Z",
+      "conversationIds": [
+        "agent-1ac4161c-171a-4ea8-ad1c-cf4fa66421b4"
+      ],
+      "details": {
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-62edccaf-28ef-449a-b976-aadd84b4c58d",
+      "origin": {
+        "cardInternalId": "7dee6bc2-2c20-4336-99c8-2775f985089e",
+        "kind": "card"
+      },
+      "rootActionId": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
+      "rootActionLabel": "fix bug",
+      "rootConversationId": "agent-1ac4161c-171a-4ea8-ad1c-cf4fa66421b4",
+      "startedAt": "2026-08-28T15:10:29.398Z",
+      "status": "cancelled"
+    }
+  ],
   "version": 5
 }
