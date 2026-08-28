@@ -716,6 +716,43 @@
     "cardInternalId": "06a8af54-38c9-4b9b-a9a4-bbdf563f036b",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "3ff020a5bc99196eda8b7afa21aa6697d30bd1f7",
+          "committedAt": "2026-08-28T19:57:05+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/F_230_running_agents_popup.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 31
+        }
+      ],
+      "completedAt": "2026-08-28T17:57:05.491Z",
+      "conversationIds": [
+        "agent-554eba34-426f-4e5a-9bde-d008eb6e4e90"
+      ],
+      "details": {
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-b87b96b9-a223-4233-880d-f7e6cc8094b0",
+      "origin": {
+        "cardInternalId": "06a8af54-38c9-4b9b-a9a4-bbdf563f036b",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-554eba34-426f-4e5a-9bde-d008eb6e4e90",
+      "startedAt": "2026-08-28T17:19:57.560Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
