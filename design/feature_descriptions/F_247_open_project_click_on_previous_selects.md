@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 6ec1718f-1770-4446-92e5-c23a0c37da7d
 ---
 
 We have a list of previously opened projects in the `open project` dialog. When user clicks on a folder, it gets opened immediately. this is annoying. it should only select. user should still click on `open`
