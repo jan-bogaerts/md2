@@ -57,21 +57,21 @@ describe('action conversation reservation', () => {
         expect(reservedActionConversationBlockCount(permanent)).toBe(1)
     })
 
-    it('does not inspect group keys again when projection lifecycle inputs stay unchanged', () => {
+    it('does not inspect group keys again when lifecycle inputs stay unchanged', () => {
         const reservationSession = {}
         const firstTool = permanentMessageGroup('first-tool')
         const groups = [firstTool]
-        const sealedGroupKeys: string[] = []
+        const transitionedGroupKeys: string[] = []
         const initial = updateActionConversationReservation(
             createActionConversationReservationState(),
             'conversation.json',
             groups,
             reservationSession,
-            sealedGroupKeys,
+            transitionedGroupKeys,
             'running',
         )
         const updated = updateActionConversationReservation(
-            initial, 'conversation.json', groups, reservationSession, sealedGroupKeys, 'running',
+            initial, 'conversation.json', groups, reservationSession, transitionedGroupKeys, 'running',
         )
 
         expect(updated).toBe(initial)

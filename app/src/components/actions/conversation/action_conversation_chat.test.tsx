@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import type { ReactNode } from 'react'
+import { useLayoutEffect, useState, type ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type {
     AgentConversation,
@@ -15,7 +15,9 @@ import { dialogService } from '../../../services/dialog_service'
 import { AppThemeProvider } from '../../../theme/theme_provider'
 import { AppThemeContext } from '../../../theme/theme_context'
 import { useAppTheme } from '../../../theme/use_app_theme'
-import { ActionConversationTranscript as ActionConversationChat } from './action_conversation_transcript'
+import { ActionRunBindingStore } from '../run/state/action_run_binding_store'
+import type { ActionConversationStore } from './action_conversation_store'
+import { ActionConversationTranscript } from './action_conversation_transcript'
 
 let clientHeight = 100
 let scrollHeight = 300
@@ -119,6 +121,54 @@ function conversation(
         title: path,
         viewed: true,
     }
+}
+
+class TranscriptTestConversationStore extends EventTarget {
+    private selectedConversation: AgentConversation | null
+
+    constructor(selectedConversation: AgentConversation | null) {
+        super()
+        this.selectedConversation = selectedConversation
+    }
+
+    readonly getSnapshot = () => ({ conversations: [], loading: false, selectedConversation: this.selectedConversation })
+
+    readonly subscribe = (listener: () => void) => {
+        this.addEventListener('changed', listener)
+
+        return () => this.removeEventListener('changed', listener)
+    }
+
+    setConversation(selectedConversation: AgentConversation | null) {
+        this.selectedConversation = selectedConversation
+        this.dispatchEvent(new Event('changed'))
+    }
+}
+
+interface TranscriptTestProps {
+    conversation: AgentConversation | null
+    queuedPrompts?: never[]
+    runId?: string | null
+    status: PopupRunStatus
+}
+
+function ActionConversationChat({ conversation: value, status }: TranscriptTestProps) {
+    const displayedConversation = value ? {
+        ...value,
+        status: status === 'queued' || status === 'running' || status === 'waitingForInput'
+            ? 'waitingForInput' as const
+            : 'completed' as const,
+    } : null
+    const [bindingStore] = useState(() => new ActionRunBindingStore(null))
+    const [store] = useState(() => new TranscriptTestConversationStore(displayedConversation))
+    useLayoutEffect(() => {
+        store.setConversation(displayedConversation)
+    }, [displayedConversation, store])
+
+    return <ActionConversationTranscript
+        bindingStore={bindingStore}
+        store={store as unknown as ActionConversationStore}
+    />
 }
 
 function renderChat(value: AgentConversation | null, status: PopupRunStatus = 'idle') {

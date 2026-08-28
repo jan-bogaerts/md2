@@ -1985,3 +1985,4 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-08-28T15:01:17.299Z,account_usage,claude,default,weekly,10080,2026-08-30T17:00:00.000Z,,,,,,4,0
 2026-08-28T15:02:43.978Z,account_usage,codex,codex,primary,10080,2026-09-03T17:23:40.000Z,,,,,,12,1
 2026-08-28T15:02:43.985Z,token_usage,codex,,,,,57652,437248,2222,1710,498832,,
+2026-08-28T15:12:11.606Z,token_usage,codex,,,,,49083,317184,1979,1523,369769,,
