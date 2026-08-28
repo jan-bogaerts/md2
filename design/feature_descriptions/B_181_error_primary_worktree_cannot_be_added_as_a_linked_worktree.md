@@ -3,7 +3,7 @@ author:
 id: B_181
 internalId: 7dee6bc2-2c20-4336-99c8-2775f985089e
 title: Error: Primary worktree cannot be added as a linked worktree
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -13,6 +13,12 @@ sentryBaseUrl: https://sentry.io
 sentryIssueId: 142420637
 sentryOrganization: elastetic
 after: 4f01cff9-f2ba-40da-a98f-e72d31e60431
+changedFiles:
+  - app/src/components/config/worktree_config_list.test.tsx
+  - app/src/components/config/worktree_config_list.tsx
+  - app/src/services/project/worktree_errors.ts
+  - app/src/services/project/worktree_service.node.test.ts
+  - app/src/services/project/worktree_service.ts
 ---
 ## Sentry issue
 
