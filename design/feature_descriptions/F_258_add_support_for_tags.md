@@ -8,7 +8,7 @@ owner:
 affects:
 agents:
 policy:
-after: cf414589-c295-43a2-8edf-d2a25ffdd786
+after: 3f68e9c1-3f34-4aed-805b-72f341c74f3b
 ---
 
 * Tags can be assigned to a crad
