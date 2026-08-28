@@ -13,7 +13,6 @@ sentryIssueId: 142493077
 sentryOrganization: elastetic
 after: 001ff123-d073-4997-961d-3d061cc9fd76
 ---
-
 ## Sentry issue
 
 **Title:** Error: Error invoking remote method 'md2-local-bridge:invoke': Error: Linked worktree has no changes to commit
@@ -38,4 +37,4 @@ after: 001ff123-d073-4997-961d-3d061cc9fd76
 
 ### Application stack frames
 
-- No application stack frames provided.
+* No application stack frames provided.

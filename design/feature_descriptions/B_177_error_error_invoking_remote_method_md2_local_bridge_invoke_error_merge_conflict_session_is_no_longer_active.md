@@ -13,7 +13,6 @@ sentryIssueId: 142494781
 sentryOrganization: elastetic
 after: 22fa2af9-9b97-47c2-931f-ed5a5a62f89d
 ---
-
 ## Sentry issue
 
 **Title:** Error: Error invoking remote method 'md2-local-bridge:invoke': Error: Merge conflict session is no longer active
@@ -38,4 +37,4 @@ after: 22fa2af9-9b97-47c2-931f-ed5a5a62f89d
 
 ### Application stack frames
 
-- No application stack frames provided.
+* No application stack frames provided.
