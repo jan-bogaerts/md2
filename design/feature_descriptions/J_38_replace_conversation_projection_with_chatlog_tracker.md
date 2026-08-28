@@ -11,6 +11,7 @@ agents:
 policy:
 after: db4400c0-0d7f-4265-8939-8b4e493c7208
 changedFiles:
+  - agents.md
   - app/src/components/actions/conversation/action_conversation_chat.test.tsx
   - app/src/components/actions/conversation/action_conversation_chat.tsx
   - app/src/components/actions/conversation/action_conversation_chat_selectors.node.test.ts
@@ -27,9 +28,13 @@ changedFiles:
   - app/src/components/actions/conversation/action_conversation_reservation.node.test.ts
   - app/src/components/actions/conversation/action_conversation_reservation.ts
   - app/src/components/actions/conversation/action_conversation_reserved_blocks.tsx
+  - app/src/components/actions/conversation/action_conversation_store.node.test.ts
+  - app/src/components/actions/conversation/action_conversation_store.ts
   - app/src/components/actions/conversation/action_conversation_transcript.tsx
   - app/src/components/actions/conversation/completed_tool_call_group.tsx
   - app/src/components/actions/conversation/sub_agent_group.tsx
+  - app/src/components/actions/run/popup/action_popup_bottom_row.tsx
+  - app/src/components/actions/run/popup/action_popup_operations.node.test.ts
 ---
 
 The conversation chatlog currently mutates a render projection while React renders. That projection treats older entries as sealed and crashes when a valid later update targets one of them. Replace this design with one class instance per mounted chatlog. The instance receives conversation changes, owns the derived chatlog view data, and publishes read-only lists for React to render.
