@@ -10,8 +10,6 @@ agents:
   - design/activity/card__72668dda-9401-49ca-adf2-cd433393214d.json
 policy:
 after: 7dee6bc2-2c20-4336-99c8-2775f985089e
-branch: b_199_empty_command_action_gives_error
-worktree: 1
 changedFiles:
   - app/src/components/actions/run/popup/action_popup_run_disabled.ts
   - app/src/components/actions/run/popup/action_run_disabled_message.tsx
