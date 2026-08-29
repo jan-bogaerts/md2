@@ -60,6 +60,37 @@ describe('CardPopupService', () => {
         expect(service.getSnapshot()[1]).toMatchObject({ cardInternalId: 'card-2' })
     })
 
+    it('keeps toggle action entries without a requested action run', () => {
+        const { service } = createService()
+
+        service.toggleAction(actionContext('card-1'), anchor())
+
+        expect(service.getSnapshot()[0]).toMatchObject({
+            kind: 'action',
+            requestedActionId: null,
+            requestedRunId: null,
+        })
+    })
+
+    it('replaces and reactivates an existing card action popup for a requested run', () => {
+        const { service } = createService()
+        service.toggleAction(actionContext('card-1'), anchor())
+        const replacedEntry = service.getSnapshot()[0]
+        service.toggleAction(actionContext('card-2'), anchor())
+
+        service.openActionRun(actionContext('card-1'), 'review', 'run-7', anchor())
+
+        expect(replacedEntry.fallbackAnchorElement.isConnected).toBe(false)
+        expect(service.getSnapshot()).toHaveLength(2)
+        expect(service.getSnapshot().at(-1)).toMatchObject({
+            context: { cardInternalId: 'card-1' },
+            kind: 'action',
+            requestedActionId: 'review',
+            requestedRunId: 'run-7',
+        })
+        expect(service.getSnapshot().at(-1)?.id).not.toBe(replacedEntry.id)
+    })
+
     it('selects worktree diff and activates an existing card-details entry', () => {
         const { service } = createService()
         service.toggleCardDetails('card-1', anchor())

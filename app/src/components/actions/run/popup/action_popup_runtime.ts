@@ -15,8 +15,14 @@ import type { ActionPopupRuntime } from './action_popup_types'
 type ActionPopupBindings = Omit<ActionPopupRuntime, 'runValidationError' | 'settingsStore'>
 
 /** Creates the stores whose lifecycle follows one selected popup action and assignment context. */
-export function createActionPopupBindings(action: ActionDefinition, context: ActionContext): ActionPopupBindings {
-    const initialRunId = actionRunRegistry.getActionRunStore(action.id, context)?.getSnapshot().runId ?? null
+export function createActionPopupBindings(
+    action: ActionDefinition,
+    context: ActionContext,
+    requestedRunId?: string,
+): ActionPopupBindings {
+    const initialRunId = requestedRunId
+        ?? actionRunRegistry.getActionRunStore(action.id, context)?.getSnapshot().runId
+        ?? null
     const bindingStore = new ActionRunBindingStore(initialRunId)
     bindingStore.trackInitialRun(action.id, context)
     const conversationStore = new ActionConversationStore(action.id, context, bindingStore)

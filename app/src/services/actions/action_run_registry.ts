@@ -73,6 +73,7 @@ export interface LiveAgentQuestion {
 }
 
 export interface ActiveActionRun {
+    context: ActionContext
     rootActionId: string
     runId: string
     status: ActionRunStatus
@@ -405,12 +406,15 @@ function runEventType(runId: string) {
 }
 
 function activeRun(run: ActionRun): ActiveActionRun {
-    return { rootActionId: run.rootActionId, runId: run.runId, status: run.status }
+    return { context: run.context, rootActionId: run.rootActionId, runId: run.runId, status: run.status }
 }
 
 function sameActiveRuns(first: ActiveActionRun[], second: ActiveActionRun[]) {
-    return first.length === second.length && first.every(({ runId, status }, index) => (
-        second[index]?.runId === runId && second[index]?.status === status
+    return first.length === second.length && first.every(({ context, runId, status }, index) => (
+        second[index]?.runId === runId
+        && second[index]?.status === status
+        && Object.keys(context).length === Object.keys(second[index].context).length
+        && Object.entries(context).every(([key, value]) => second[index].context[key] === value)
     ))
 }
 

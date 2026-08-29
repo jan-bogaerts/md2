@@ -101,6 +101,29 @@ describe('ActionRunRegistry', () => {
         service.stop()
     })
 
+    it('projects captured card context in global active runs', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        service.start()
+        const cardRunContext = {
+            cardInternalId: 'card-internal-1',
+            file: 'design/F-1.md',
+            kind: 'card' as const,
+            title: 'Captured card title',
+        }
+
+        emit({ ...runEvent('running'), context: cardRunContext })
+
+        expect(service.getGlobalActiveSnapshot()[0]).toEqual({
+            context: cardRunContext,
+            rootActionId: 'build',
+            runId: 'run-1',
+            status: 'running',
+        })
+        service.stop()
+    })
+
     it('returns changed paths from terminal run data', async () => {
         const { bridge, emit } = bridgeWithEvents({ startAction: vi.fn(async () => 'run-1') })
         setActionBridgeOverride(bridge)

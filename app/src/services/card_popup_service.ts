@@ -17,6 +17,8 @@ interface CardPopupEntryBase {
 export interface CardActionPopupEntry extends CardPopupEntryBase {
     context: ActionContext
     kind: 'action'
+    requestedActionId: string | null
+    requestedRunId: string | null
 }
 
 export type CardDetailsDiffSelection =
@@ -91,9 +93,34 @@ export class CardPopupService extends EventTarget {
             fallbackAnchorElement: createFallbackAnchor(anchorElement),
             id: `card-action-popup-${this.nextId}`,
             kind: 'action',
+            requestedActionId: null,
+            requestedRunId: null,
         }
         this.nextId += 1
         this.setEntries([...this.entries, entry])
+    }
+
+    openActionRun(context: ActionContext, actionId: string, runId: string, anchorElement: HTMLElement) {
+        if (!context.cardInternalId) throw new Error('Cannot open a card action run without a card internal ID')
+        if (!actionId) throw new Error('Cannot open a card action run without an action ID')
+        if (!runId) throw new Error('Cannot open a card action run without a run ID')
+
+        const contextIdentity = actionContextIdentity(context)
+        const existing = this.entries.find((entry) => (
+            entry.kind === 'action' && actionContextIdentity(entry.context) === contextIdentity
+        ))
+        existing?.fallbackAnchorElement.remove()
+        const entry: CardActionPopupEntry = {
+            anchorElement,
+            context: { ...context },
+            fallbackAnchorElement: createFallbackAnchor(anchorElement),
+            id: `card-action-popup-${this.nextId}`,
+            kind: 'action',
+            requestedActionId: actionId,
+            requestedRunId: runId,
+        }
+        this.nextId += 1
+        this.setEntries([...this.entries.filter((candidate) => candidate.id !== existing?.id), entry])
     }
 
     toggleCardDetails(cardInternalId: string, anchorElement: HTMLElement) {

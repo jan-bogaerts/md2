@@ -9,7 +9,7 @@ function action(id: string): Pick<ActionDefinition, 'id'> {
 }
 
 function run(rootActionId: string, status: ActiveActionRun['status']): ActiveActionRun {
-    return { rootActionId, runId: `${rootActionId}-${status}`, status }
+    return { context: { kind: 'project' }, rootActionId, runId: `${rootActionId}-${status}`, status }
 }
 
 function states(overrides: PersistedActionStates = {}): Record<string, CardAgentState> {
