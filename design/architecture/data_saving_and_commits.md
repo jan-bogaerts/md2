@@ -11,7 +11,7 @@ Editors update application state immediately. `CommitBatcher` later coalesces re
 ```text
 Editor change
   → domain service updates in-memory state
-  → CommitBatcher replaces that file's pending change
+  → CommitBatcher replaces that domain object's pending change
   → configured delay or explicit flush
   → CardOperations marks affected paths as locally in flight
   → StorageService.commit creates one repository commit
@@ -19,7 +19,11 @@ Editor change
   → committed files and path changes are reconciled into application state
 ```
 
-`DataService.init` creates one batcher per project. The first change starts its `react.autoCommitDelayMs` timer (30 seconds by default); later changes do not restart it. Changes are keyed by persisted path, and repeated edits replace pending content. Edits arriving during a flush form the next batch; failed commits remain pending for retry.
+`DataService.init` creates one batcher per project. Every scheduled change restarts one global trailing `react.autoCommitDelayMs` timer (30 seconds by default). This timer policy is unchanged by action identity handling.
+
+Pending cards use `Card.header.internalId`; pending actions use `ActionDefinition.id`; generic files use their path. Keys include change kind, preventing card, action, and file identities from colliding. Card and action paths are mutable persistence metadata.
+
+When flushing starts, `CommitBatcher` synchronously transfers the complete pending collection into an isolated active batch and installs a new empty pending collection. Edits received during persistence enter only the new collection. Active success discards the active batch without object-reference comparison. A successful path change rebases only newer pending source-path metadata for the same identity. Active failure restores entries only when no newer entry for that identity exists.
 
 A single `CommitRequest` passes both ordinary writes (`files`) and path replacements (`moves`: old path, new path, and latest content) to `StorageService.commit`.
 
@@ -31,7 +35,7 @@ Card body, title, header, ordering, and policy edits update loaded files, then `
 
 ### Actions and filenames
 
-`ActionService` owns drafts, field and graph validation, serialization, and renderer publication. Each valid change is serialized and scheduled through `DataService.persistActionFile`; later keystrokes replace it. Invalid drafts stay only in memory.
+`ActionService` owns drafts by action ID, including current source path and desired target path. It also owns field and graph validation, serialization, and renderer publication. Each persistable change passes its action ID through `DataService.persistActionFile`; later committed edits replace pending content for that same ID. Non-persistable drafts stay in memory until repaired or discarded.
 
 An action's filename follows its label:
 
@@ -48,11 +52,11 @@ Filename and content changes share the batch:
 | Situation | Result |
 | --- | --- |
 | Persisted source | One path replacement containing the latest JSON. |
-| New action not yet stored | The pending creation is retargeted; only the final filename is created, with no move of a nonexistent file. |
+| New action not yet stored | One path change targets the final filename; storage writes the target even when the source is absent. |
 | Repeated label edits before flush | Only the final target path and content remain. |
 | Typing during an active rename | The next pending change is rebased from the committed target path. |
 
-Renaming keeps the action's stable `id`, so chains, schedules, execution requests, histories, and conversation logs do not change. After storage confirms the move, `ActionService` re-keys the file, definition, draft, and publication state. `OpenFilesService` changes the tab path but preserves its position and active state. Prompt history is keyed by project and action ID, preserving Markdown undo history.
+Renaming keeps the action's stable `id`, so chains, schedules, execution requests, histories, and conversation logs do not change. After storage confirms the move, `ActionService` re-keys path-indexed file, definition, and publication metadata. Draft and open-document ownership remains on action ID, preserving tab position, active state, and Markdown undo history.
 
 ## Flushing and state
 
@@ -90,9 +94,9 @@ All renderer workflows use `StorageService`:
 
 | Backend | Commit behavior |
 | --- | --- |
-| Local Electron | Sends `CommitRequest` through the preload bridge. `desktop/src/project/project_files.js` applies moves and writes, stages them, and creates one Git commit. |
-| GitHub | Creates content blobs, then one tree containing additions, updates, move targets, and null entries for move sources; it creates one pending commit from that tree. |
-| Remote control | Forwards the same request to the connected desktop host. |
+| Local Electron | Sends `CommitRequest` through the preload bridge. `desktop/src/project/project_files.js` moves an existing source or writes the target directly when source is absent. A tracked, already-absent source deletion is staged before one Git commit. |
+| GitHub | Creates content blobs, then one tree containing additions, updates, move targets, and null entries only for move sources present in the current tree. It creates one pending commit from that tree. |
+| Remote control | Forwards the same request to the connected desktop host, which applies local missing-source behavior. |
 
 `CardOperations` marks every write and both move paths as locally in flight, classifying their watcher events as local echoes rather than external conflicts.
 

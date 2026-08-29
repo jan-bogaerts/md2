@@ -28,16 +28,16 @@ export function ActionEditorContent(props: ActionEditorContentProps) {
     const [, setRevision] = useState(0)
     useEffect(() => {
         const handleChanged = (event: Event) => {
-            const { path } = (event as CustomEvent<ActionDraftChangedDetail>).detail
-            if (path === sourcePath) setRevision((current) => current + 1)
+            const { actionId } = (event as CustomEvent<ActionDraftChangedDetail>).detail
+            if (actionId === action.id) setRevision((current) => current + 1)
         }
         actionService.addEventListener(ACTION_DRAFT_CHANGED_EVENT, handleChanged)
 
         return () => actionService.removeEventListener(ACTION_DRAFT_CHANGED_EVENT, handleChanged)
-    }, [sourcePath])
-    const draft = actionService.draftStore.getDraft(sourcePath)
+    }, [action.id])
+    const draft = actionService.draftStore.getDraft(action.id)
     const { conflict, definition, deleted, error: saveError, saving, validation } = draft
-    const activeTab = (actionService.getActionByPath(sourcePath) ?? action).editorState?.selectedTab ?? ACTION_DEFINITION_TAB
+    const activeTab = (actionService.getActionById(action.id) ?? action).editorState?.selectedTab ?? ACTION_DEFINITION_TAB
     const openDocument = openFilesService.findDocument(action)
     const canRetry = !!saveError && validation.valid && !!openDocument?.dirty && !conflict && !saving
     const status = saveError ? 'Save failed. Retry to save changes.' : validation.valid ? null : 'Fix validation errors to save.'
@@ -47,17 +47,17 @@ export function ActionEditorContent(props: ActionEditorContentProps) {
     useEffect(() => {
         if (validation.error) dialogService.error(validation.error, { title: 'Invalid action' })
     }, [validation.error])
-    const handleRetry = () => actionService.draftStore.retryDraft(sourcePath)
-    const handleRecreateDeleted = () => actionService.draftStore.recreateDeletedDraft(sourcePath)
+    const handleRetry = () => actionService.draftStore.retryDraft(action.id)
+    const handleRecreateDeleted = () => actionService.draftStore.recreateDeletedDraft(action.id)
     const handleDiscardDeleted = () => {
-        actionService.draftStore.discardDeletedDraft(sourcePath)
+        actionService.draftStore.discardDeletedDraft(action.id)
         const document = openFilesService.getSnapshot().documents.find((candidate) => (
             candidate.kind === 'action' && candidate.getObject().id === action.id
         ))
         if (document) openFilesService.closeDocument(document)
     }
-    const handleKeepMine = () => actionService.draftStore.keepDraft(sourcePath)
-    const handleReloadExternal = () => actionService.draftStore.reloadDraft(sourcePath)
+    const handleKeepMine = () => actionService.draftStore.keepDraft(action.id)
+    const handleReloadExternal = () => actionService.draftStore.reloadDraft(action.id)
 
     return (
         <Box
@@ -102,6 +102,7 @@ export function ActionEditorContent(props: ActionEditorContentProps) {
             ) : null}
             {(definition.type !== 'agent' || activeTab === ACTION_DEFINITION_TAB) ? (
                 <ActionDefinitionFields
+                    actionId={action.id}
                     actions={actionService.getActions()}
                     cardTypes={cardTypes}
                     sourcePath={sourcePath}

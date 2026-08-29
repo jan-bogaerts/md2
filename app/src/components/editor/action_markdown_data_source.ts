@@ -80,7 +80,7 @@ export class ActionMarkdownDataSource extends MarkdownDataSourceBase {
         try {
             const definition = updatedDefinition(target, markdown)
             target.document.updateDraft(definition, binding)
-            this.requireService().draftStore.stageDraft(target.document.path, definition)
+            this.requireService().draftStore.stageDraft(target.document.getObject().id, definition)
         } catch (error) {
             dialogService.error(error, { fallbackMessage: `Action update failed: ${target.document.path}` })
         }
@@ -92,9 +92,9 @@ export class ActionMarkdownDataSource extends MarkdownDataSourceBase {
         try {
             const definition = updatedDefinition(target, markdown)
             target.document.updateDraft(definition, binding)
-            this.requireService().draftStore.stageDraft(target.document.path, definition)
+            this.requireService().draftStore.stageDraft(target.document.getObject().id, definition)
             if (target.section.kind === 'phrase') this.updatePhraseEditorState(target, definition)
-            this.requireService().draftStore.commitDraft(target.document.path)
+            this.requireService().draftStore.commitDraft(target.document.getObject().id)
             return true
         } catch (error) {
             dialogService.error(error, { fallbackMessage: `Action update failed: ${target.document.path}` })
@@ -118,7 +118,7 @@ export class ActionMarkdownDataSource extends MarkdownDataSourceBase {
                 index === phraseIndex ? { ...entry, phrase: phrases[index] } : entry
             )),
         }
-        this.requireService().setActionEditorState(target.document.path, nextEditorState)
+        this.requireService().setActionEditorState(action.id, nextEditorState)
     }
 
     private readonly handleDocumentChanged = (event: Event) => {

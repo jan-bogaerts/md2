@@ -63,7 +63,7 @@ describe('ActionMarkdownDataSource', () => {
 
         expect(document.getDraft().prompt).toBe('New prompt')
         expect(document.getDraft().phrases?.[0].text).toBe('New phrase')
-        expect(service.draftStore.commitDraft).toHaveBeenCalledWith(document.path)
+        expect(service.draftStore.commitDraft).toHaveBeenCalledWith(document.getObject().id)
     })
 
     it('keeps section identity in active target without public compound IDs', () => {

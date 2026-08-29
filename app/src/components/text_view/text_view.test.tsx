@@ -590,12 +590,12 @@ describe('TextView', () => {
         fireEvent.click(screen.getByRole('tab', { name: 'Prompt' }))
         fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Edited prompt' } })
         fireEvent.click(screen.getByRole('tab', { name: 'Tests' }))
-        expect(actionService.draftStore.getDraft('design/actions/review.json').definition.prompt).toBe('Edited prompt')
+        expect(actionService.draftStore.getDraft('review-action').definition.prompt).toBe('Edited prompt')
 
         const phraseEditor = within(screen.getAllByTestId('mdx-editor')[0]).getAllByRole('textbox')[1]
         fireEvent.change(phraseEditor, { target: { value: 'Edited phrase' } })
         fireEvent.click(screen.getByRole('tab', { name: 'Lint' }))
-        expect(actionService.draftStore.getDraft('design/actions/review.json').definition.phrases?.[0].text).toBe('Edited phrase')
+        expect(actionService.draftStore.getDraft('review-action').definition.phrases?.[0].text).toBe('Edited phrase')
     }, 10_000)
 
     it('closes a tab from the tab bar', () => {
@@ -730,9 +730,9 @@ describe('TextView', () => {
 
         await waitFor(() => expect(persistActionFile).toHaveBeenCalledWith(
             expect.objectContaining({path: 'design/actions/recovered.json'}),
+            'review-action',
             'design/actions/review.json',
             expect.any(Function),
-            false,
             expect.any(Object),
             expect.any(Function),
         ))

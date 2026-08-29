@@ -101,8 +101,7 @@ export class CardRenameOperations {
         const documentSaveReference = saveReference ?? this.context.findOpenCardDocument(path)?.createSaveReference()
         commitBatcher.schedulePathChange(
             project.branch,
-            path,
-            { cardInternalId, path, saveReference: documentSaveReference, targetPath },
+            { cardInternalId, kind: 'card', path, saveReference: documentSaveReference, targetPath },
             `Rename ${path} to ${targetPath}`,
             (fromPath, toPath) => this.reconcileCardPath(fromPath, toPath),
         )

@@ -250,7 +250,7 @@ export class OpenFilesService extends EventTarget {
         if (!object.sourcePath) throw new Error(`Action document requires a source path: ${object.id}`)
         if (!this.actionService) throw new Error('Open files service is not initialized')
 
-        return this.actionService.draftStore.getDraft(object.sourcePath).definition
+        return this.actionService.draftStore.getDraft(object.id).definition
     }
 
     private getOrCreateDocument(object: OpenDocumentObject): ManagedDocument {

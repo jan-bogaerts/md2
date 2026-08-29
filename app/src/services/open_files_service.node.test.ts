@@ -37,13 +37,13 @@ function owners(initialCards: Card[] = [], initialActions: ActionDefinition[] = 
         getActions: () => actions,
         draftStore: {
             getDeletedDraftActions: () => [],
-            getDraft: (path: string): ActionDraftState => {
-                const actionDefinition = actions.find((candidate) => candidate.sourcePath === path)
-                if (!actionDefinition) throw new Error(`Missing action: ${path}`)
+            getDraft: (actionId: string): ActionDraftState => {
+                const actionDefinition = actions.find((candidate) => candidate.id === actionId)
+                if (!actionDefinition?.sourcePath) throw new Error(`Missing action: ${actionId}`)
                 return {
                     conflict: null, definition: editableActionDefinition(actionDefinition), deleted: false, error: null,
                     revision: 0, savedRevision: 0,
-                    saving: false,
+                    saving: false, sourcePath: actionDefinition.sourcePath, targetPath: actionDefinition.sourcePath,
                     validation: { code: null, error: null, field: null, fieldPath: null, index: null, valid: true },
                 }
             },

@@ -211,7 +211,8 @@ export class CardOperationContext {
         if (existingFile.content === file.content) return existingFile
 
         this.replaceUpdatedFiles([file])
-        commitBatcher.schedule(project.branch, [attachSaveReference(file, saveReference)], `Update ${file.path}`)
+        const change = { ...attachSaveReference(file, saveReference), kind: 'file' as const }
+        commitBatcher.schedule(project.branch, [change], `Update ${file.path}`)
         this.dependencies.dispatchChanged()
 
         return file
@@ -231,7 +232,8 @@ export class CardOperationContext {
         if (!cardInternalId) throw new Error(`Cannot save a card without an internal ID: ${path}`)
         const documentSaveReference = saveReference ?? openDocument?.createSaveReference()
 
-        commitBatcher.schedule(project.branch, [{ cardInternalId, path: card.path, saveReference: documentSaveReference }], message)
+        const change = { cardInternalId, kind: 'card' as const, path: card.path, saveReference: documentSaveReference }
+        commitBatcher.schedule(project.branch, [change], message)
         this.dependencies.dispatchChanged()
 
         return card

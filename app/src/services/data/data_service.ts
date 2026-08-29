@@ -280,9 +280,9 @@ export class DataService extends EventTarget {
     }
     async persistActionFile(
         file: MarkdownFile,
+        actionId: string,
         sourcePath = file.path,
         onPathCommitted?: (fromPath: string, toPath: string) => void,
-        sourceExists = true,
         saveReference?: OpenDocumentSaveReference,
         onPersisted?: () => void,
     ) {
@@ -290,19 +290,18 @@ export class DataService extends EventTarget {
         const currentProject = this.projectState.project
         if (!currentProject) throw new Error('Cannot save an action before a project is open')
 
-        if (sourceExists && sourcePath === file.path) {
-            commitBatcher.schedule(currentProject.branch, [{ ...file, onPersisted, saveReference }], `Update ${file.path}`)
-        } else {
-            if (!onPathCommitted) throw new Error(`Missing action path callback for rename from ${sourcePath} to ${file.path}`)
-            commitBatcher.schedulePathChange(
-                currentProject.branch,
-                sourcePath,
-                { ...file, onPersisted, saveReference },
-                `Rename ${sourcePath} to ${file.path}`,
-                onPathCommitted,
-                sourceExists,
-            )
+        if (!onPathCommitted) throw new Error(`Missing action path callback for ${actionId}`)
+        const change = {
+            ...file,
+            actionId,
+            kind: 'action' as const,
+            onPathCommitted,
+            onPersisted,
+            saveReference,
+            sourcePath,
         }
+        const message = sourcePath === file.path ? `Update ${file.path}` : `Rename ${sourcePath} to ${file.path}`
+        commitBatcher.schedule(currentProject.branch, [change], message)
     }
 
     discardPendingFile(path: string) {

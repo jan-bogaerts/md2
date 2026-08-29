@@ -31,7 +31,7 @@ describe('CommitBatcher', () => {
         const acknowledgeCard = vi.spyOn(markdownParsingService, 'acknowledgeSerializedCard').mockImplementation(() => undefined)
         const commit = vi.fn<CommitCallback>(async () => undefined)
         const batcher = createBatcher(commit, undefined, undefined, () => card)
-        const change = { cardInternalId: 'card-1', path: card.path }
+        const change = { cardInternalId: 'card-1', kind: 'card' as const, path: card.path }
 
         batcher.schedule('main', [change], 'Update card')
         card.header.status = 'ready'
@@ -56,7 +56,7 @@ describe('CommitBatcher', () => {
         const commit = vi.fn<CommitCallback>(async () => undefined)
         const batcher = createBatcher(commit, undefined, undefined, () => currentCard)
 
-        batcher.schedule('main', [{ cardInternalId: 'card-1', path: originalCard.path }], 'Update card')
+        batcher.schedule('main', [{ cardInternalId: 'card-1', kind: 'card', path: originalCard.path }], 'Update card')
         await batcher.flush()
 
         expect(commit.mock.calls[0][0].files[0].content).toBe('status: ready')
@@ -70,12 +70,12 @@ describe('CommitBatcher', () => {
         const commit = vi.fn<CommitCallback>(async () => undefined)
         const batcher = createBatcher(commit, undefined, 100)
         const resumeAutomaticFlush = batcher.deferAutomaticFlush()
-        batcher.schedule('main', [{ content: 'moved', path: 'card.md' }], 'Move card')
+        batcher.schedule('main', [{ content: 'moved', kind: 'file', path: 'card.md' }], 'Move card')
 
         await vi.advanceTimersByTimeAsync(200)
         expect(commit).not.toHaveBeenCalled()
 
-        batcher.schedule('main', [{ content: 'moved and linked', path: 'card.md' }], 'Link activity')
+        batcher.schedule('main', [{ content: 'moved and linked', kind: 'file', path: 'card.md' }], 'Link activity')
         resumeAutomaticFlush()
         await batcher.flush()
 
@@ -88,7 +88,7 @@ describe('CommitBatcher', () => {
         const commit = vi.fn<CommitCallback>(async () => undefined)
         const batcher = createBatcher(commit)
         const saveReference = { acknowledge, document: {} } as never
-        batcher.schedule('main', [{ content: 'saved', path: 'card.md', saveReference }], 'Update card')
+        batcher.schedule('main', [{ content: 'saved', kind: 'file', path: 'card.md', saveReference }], 'Update card')
 
         await batcher.flush()
 
@@ -101,7 +101,7 @@ describe('CommitBatcher', () => {
         const afterCommit = vi.fn(async () => postCommit.promise)
         const batcher = createBatcher(vi.fn<CommitCallback>(async () => undefined), afterCommit)
         const saveReference = { acknowledge, document: {} } as never
-        batcher.schedule('main', [{ content: 'saved', path: 'card.md', saveReference }], 'Update card')
+        batcher.schedule('main', [{ content: 'saved', kind: 'file', path: 'card.md', saveReference }], 'Update card')
 
         const flush = batcher.flush()
         await vi.waitFor(() => expect(afterCommit).toHaveBeenCalledOnce())
@@ -119,7 +119,7 @@ describe('CommitBatcher', () => {
         const push = vi.fn(async () => { throw pushFailure })
         const batcher = createBatcher(vi.fn<CommitCallback>(async () => undefined), push)
         const saveReference = { acknowledge, document: {} } as never
-        batcher.schedule('main', [{ content: 'saved', path: 'card.md', saveReference }], 'Update card')
+        batcher.schedule('main', [{ content: 'saved', kind: 'file', path: 'card.md', saveReference }], 'Update card')
 
         await expect(batcher.flush()).rejects.toBe(pushFailure)
 
@@ -133,7 +133,7 @@ describe('CommitBatcher', () => {
         const commit = vi.fn<CommitCallback>(async () => { throw failure })
         const batcher = createBatcher(commit)
         const saveReference = { acknowledge, document: {} } as never
-        batcher.schedule('main', [{ content: 'unsaved', path: 'card.md', saveReference }], 'Update card')
+        batcher.schedule('main', [{ content: 'unsaved', kind: 'file', path: 'card.md', saveReference }], 'Update card')
 
         await expect(batcher.flush()).rejects.toBe(failure)
 
@@ -148,15 +148,15 @@ describe('CommitBatcher', () => {
         const batcher = createBatcher(commit)
         batcher.addEventListener(COMMIT_BATCHER_PENDING_CHANGED_EVENT, onPendingChange)
 
-        batcher.schedule('main', [{ content: 'one', path: 'design/F-1-root.md' }], 'Update root')
-        batcher.schedule('main', [{ content: 'two', path: 'design/F-1-root.md' }], 'Update root')
+        batcher.schedule('main', [{ content: 'one', kind: 'file', path: 'design/F-1-root.md' }], 'Update root')
+        batcher.schedule('main', [{ content: 'two', kind: 'file', path: 'design/F-1-root.md' }], 'Update root')
 
         expect(commit).not.toHaveBeenCalled()
         await vi.advanceTimersByTimeAsync(30000)
 
         expect(commit).toHaveBeenCalledTimes(1)
         expect(commit.mock.calls[0][0]).toMatchObject({ files: [{ content: 'two', path: 'design/F-1-root.md' }], message: 'Update root' })
-        expect(onPendingChange).toHaveBeenCalledTimes(3)
+        expect(onPendingChange).toHaveBeenCalledTimes(4)
         vi.useRealTimers()
     })
 
@@ -165,9 +165,9 @@ describe('CommitBatcher', () => {
         const commit = vi.fn<CommitCallback>(async () => undefined)
         const batcher = createBatcher(commit)
 
-        batcher.schedule('main', [{ content: 'one', path: 'design/F-1-root.md' }], 'Update root')
+        batcher.schedule('main', [{ content: 'one', kind: 'file', path: 'design/F-1-root.md' }], 'Update root')
         await vi.advanceTimersByTimeAsync(20000)
-        batcher.schedule('main', [{ content: 'two', path: 'design/F-1-root.md' }], 'Update root')
+        batcher.schedule('main', [{ content: 'two', kind: 'file', path: 'design/F-1-root.md' }], 'Update root')
         await vi.advanceTimersByTimeAsync(20000)
 
         expect(commit).not.toHaveBeenCalled()
@@ -183,7 +183,7 @@ describe('CommitBatcher', () => {
         const commit = vi.fn<CommitCallback>(async () => undefined)
         const batcher = createBatcher(commit)
 
-        batcher.schedule('main', [{ content: 'one', path: 'design/F-1-root.md' }], 'Update root')
+        batcher.schedule('main', [{ content: 'one', kind: 'file', path: 'design/F-1-root.md' }], 'Update root')
         expect(batcher.hasPending()).toBe(true)
 
         await batcher.flush()
@@ -205,7 +205,7 @@ describe('CommitBatcher', () => {
             onFlushError((event as CustomEvent<unknown>).detail)
         })
 
-        batcher.schedule('main', [{ content: 'one', path: 'design/F-1-root.md' }], 'Update root')
+        batcher.schedule('main', [{ content: 'one', kind: 'file', path: 'design/F-1-root.md' }], 'Update root')
         await vi.advanceTimersByTimeAsync(30000)
 
         expect(onFlushError).toHaveBeenCalledWith(error)
@@ -223,8 +223,8 @@ describe('CommitBatcher', () => {
         const commit = vi.fn<CommitCallback>(async () => undefined)
         const batcher = createBatcher(commit)
 
-        batcher.schedule('main', [{ content: 'one', path: 'design/F-1-root.md' }], 'Update design/F-1-root.md')
-        batcher.schedule('main', [{ content: 'two', path: 'design/F-2-child.md' }], 'Update design/F-2-child.md')
+        batcher.schedule('main', [{ content: 'one', kind: 'file', path: 'design/F-1-root.md' }], 'Update design/F-1-root.md')
+        batcher.schedule('main', [{ content: 'two', kind: 'file', path: 'design/F-2-child.md' }], 'Update design/F-2-child.md')
         await batcher.flush()
 
         expect(commit).toHaveBeenCalledTimes(1)
@@ -241,9 +241,9 @@ describe('CommitBatcher', () => {
         const commit = vi.fn<CommitCallback>(async () => undefined)
         const batcher = createBatcher(commit)
 
-        batcher.schedule('main', [{ content: 'one', path: 'design/F-1-root.md' }], 'Update design/F-1-root.md')
-        batcher.schedule('main', [{ content: 'two', path: 'design/F-1-root.md' }], 'Update design/F-1-root.md')
-        batcher.schedule('main', [{ content: 'three', path: 'design/F-2-child.md' }], 'Update design/F-2-child.md')
+        batcher.schedule('main', [{ content: 'one', kind: 'file', path: 'design/F-1-root.md' }], 'Update design/F-1-root.md')
+        batcher.schedule('main', [{ content: 'two', kind: 'file', path: 'design/F-1-root.md' }], 'Update design/F-1-root.md')
+        batcher.schedule('main', [{ content: 'three', kind: 'file', path: 'design/F-2-child.md' }], 'Update design/F-2-child.md')
         await batcher.flush()
 
         expect(commit).toHaveBeenCalledTimes(1)
@@ -262,10 +262,10 @@ describe('CommitBatcher', () => {
             .mockImplementationOnce(async () => firstCommit.promise)
             .mockImplementationOnce(async () => undefined)
         const batcher = createBatcher(commit)
-        batcher.schedule('main', [{ content: 'old', path: 'actions/review.json' }], 'Update action')
+        batcher.schedule('main', [{ actionId: 'review', content: 'old', kind: 'action', path: 'actions/review.json', sourcePath: 'actions/review.json' }], 'Update action')
 
         const pendingFlush = batcher.flush()
-        batcher.schedule('main', [{ content: 'new', path: 'actions/review.json' }], 'Update action')
+        batcher.schedule('main', [{ actionId: 'review', content: 'new', kind: 'action', path: 'actions/review.json', sourcePath: 'actions/review.json' }], 'Update action')
         firstCommit.resolve()
         await pendingFlush
 
@@ -281,14 +281,22 @@ describe('CommitBatcher', () => {
         const onCommitted = vi.fn()
         const batcher = createBatcher(commit)
 
-        batcher.schedulePathChange('main', 'actions/new-action.json', {
+        batcher.schedule('main', [{
+            actionId: 'review',
             content: 'first',
+            kind: 'action',
             path: 'actions/review-c.json',
-        }, 'Rename action', onCommitted)
-        batcher.schedulePathChange('main', 'actions/new-action.json', {
+            sourcePath: 'actions/new-action.json',
+            onPathCommitted: onCommitted,
+        }], 'Rename action')
+        batcher.schedule('main', [{
+            actionId: 'review',
             content: 'latest',
+            kind: 'action',
             path: 'actions/review-code.json',
-        }, 'Rename action', onCommitted)
+            sourcePath: 'actions/new-action.json',
+            onPathCommitted: onCommitted,
+        }], 'Rename action')
         await batcher.flush()
 
         expect(commit).toHaveBeenCalledOnce()
@@ -304,22 +312,37 @@ describe('CommitBatcher', () => {
         expect(onCommitted).toHaveBeenCalledWith('actions/new-action.json', 'actions/review-code.json')
     })
 
-    it('retargets an uncommitted creation without scheduling a move', async () => {
+    it('retargets an uncommitted creation as a recoverable move', async () => {
         const commit = vi.fn<CommitCallback>(async () => undefined)
         const onCommitted = vi.fn()
         const batcher = createBatcher(commit)
-        batcher.schedule('main', [{ content: 'initial', path: 'actions/new-action.json' }], 'Create action')
+        batcher.schedule('main', [{
+            actionId: 'review',
+            content: 'initial',
+            kind: 'action',
+            path: 'actions/new-action.json',
+            sourcePath: 'actions/new-action.json',
+        }], 'Create action')
 
-        batcher.schedulePathChange('main', 'actions/new-action.json', {
+        batcher.schedule('main', [{
+            actionId: 'review',
             content: 'latest',
+            kind: 'action',
+            onPathCommitted: onCommitted,
             path: 'actions/review-code.json',
-        }, 'Rename action', onCommitted, false)
+            sourcePath: 'actions/new-action.json',
+        }], 'Rename action')
         await batcher.flush()
 
         expect(commit.mock.calls[0][0]).toEqual({
             branch: 'main',
-            files: [{ content: 'latest', path: 'actions/review-code.json' }],
+            files: [],
             message: 'Update 1 files\n\n- Create action\n- Rename action',
+            moves: [{
+                content: 'latest',
+                fromPath: 'actions/new-action.json',
+                toPath: 'actions/review-code.json',
+            }],
         })
         expect(onCommitted).toHaveBeenCalledWith('actions/new-action.json', 'actions/review-code.json')
     })
@@ -332,16 +355,24 @@ describe('CommitBatcher', () => {
         const firstCommitted = vi.fn()
         const secondCommitted = vi.fn()
         const batcher = createBatcher(commit)
-        batcher.schedulePathChange('main', 'actions/new-action.json', {
+        batcher.schedule('main', [{
+            actionId: 'review',
             content: 'first',
+            kind: 'action',
+            onPathCommitted: firstCommitted,
             path: 'actions/review.json',
-        }, 'Rename action', firstCommitted)
+            sourcePath: 'actions/new-action.json',
+        }], 'Rename action')
 
         const pendingFlush = batcher.flush()
-        batcher.schedulePathChange('main', 'actions/new-action.json', {
+        batcher.schedule('main', [{
+            actionId: 'review',
             content: 'latest',
+            kind: 'action',
+            onPathCommitted: secondCommitted,
             path: 'actions/review-code.json',
-        }, 'Rename action', secondCommitted)
+            sourcePath: 'actions/new-action.json',
+        }], 'Rename action')
         firstCommit.resolve()
         await pendingFlush
         await batcher.flush()
@@ -355,11 +386,65 @@ describe('CommitBatcher', () => {
         expect(secondCommitted).toHaveBeenCalledWith('actions/review.json', 'actions/review-code.json')
     })
 
+    it('keeps a newer identity change when the active batch fails', async () => {
+        const firstCommit = createDeferred<void>()
+        const failure = new Error('commit failed')
+        const commit = vi.fn<CommitCallback>()
+            .mockImplementationOnce(async () => firstCommit.promise)
+            .mockImplementationOnce(async () => undefined)
+        const batcher = createBatcher(commit)
+        batcher.schedule('main', [{
+            actionId: 'review',
+            content: 'old',
+            kind: 'action',
+            path: 'actions/review.json',
+            sourcePath: 'actions/review.json',
+        }], 'Update action')
+
+        const pendingFlush = batcher.flush()
+        batcher.schedule('main', [{
+            actionId: 'review',
+            content: 'new',
+            kind: 'action',
+            path: 'actions/review.json',
+            sourcePath: 'actions/review.json',
+        }], 'Update action')
+        firstCommit.reject(failure)
+        await expect(pendingFlush).rejects.toBe(failure)
+
+        await batcher.flush()
+
+        expect(commit.mock.calls[1][0].files).toEqual([{ content: 'new', path: 'actions/review.json' }])
+    })
+
+    it('separates card, action, and generic file keys even when identity text and paths collide', async () => {
+        const card = { header: { status: 'ready' }, path: 'shared' } as Card
+        const serializeCard = vi.spyOn(markdownParsingService, 'serializeCard').mockReturnValue({ content: 'card', path: 'shared' })
+        const acknowledgeCard = vi.spyOn(markdownParsingService, 'acknowledgeSerializedCard').mockImplementation(() => undefined)
+        const commit = vi.fn<CommitCallback>(async () => undefined)
+        const batcher = createBatcher(commit, undefined, undefined, () => card)
+
+        batcher.schedule('main', [
+            { cardInternalId: 'shared', kind: 'card', path: 'shared' },
+            { actionId: 'shared', content: 'action', kind: 'action', path: 'shared', sourcePath: 'shared' },
+            { content: 'file', kind: 'file', path: 'shared' },
+        ], 'Update shared identities')
+        await batcher.flush()
+
+        expect(commit.mock.calls[0][0].files).toEqual([
+            { content: 'card', path: 'shared' },
+            { content: 'action', path: 'shared' },
+            { content: 'file', path: 'shared' },
+        ])
+        serializeCard.mockRestore()
+        acknowledgeCard.mockRestore()
+    })
+
     it('discards a pending file without committing it', async () => {
         vi.useFakeTimers()
         const commit = vi.fn<CommitCallback>(async () => undefined)
         const batcher = createBatcher(commit)
-        batcher.schedule('main', [{ content: 'draft', path: 'actions/review.json' }], 'Update action')
+        batcher.schedule('main', [{ content: 'draft', kind: 'file', path: 'actions/review.json' }], 'Update action')
 
         batcher.discardPendingFile('actions/review.json')
         await vi.advanceTimersByTimeAsync(30000)

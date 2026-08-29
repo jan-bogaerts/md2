@@ -28,11 +28,12 @@ function renderFields(definition: RawActionDefinition) {
         { content: JSON.stringify({ command: 'before', description: 'Before', id: 'before', label: 'Before', type: 'command' }), path: 'actions/before.json' },
         { content: JSON.stringify({ command: 'after', description: 'After', id: 'after', label: 'After', type: 'command' }), path: 'actions/after.json' },
     ])
-    actionService.draftStore.getDraft(SOURCE_PATH)
-    actionService.draftStore.stageDraft(SOURCE_PATH, definition)
+    actionService.draftStore.getDraft(definition.id)
+    actionService.draftStore.stageDraft(definition.id, definition)
     render(
         <AppThemeProvider>
             <ActionDefinitionFields
+                actionId={definition.id}
                 actions={[
                     { id: 'before', label: 'Before' },
                     { id: 'after', label: 'After' },
@@ -46,7 +47,7 @@ function renderFields(definition: RawActionDefinition) {
         </AppThemeProvider>,
     )
 
-    return () => actionService.draftStore.getDraft(SOURCE_PATH).definition
+    return () => actionService.draftStore.getDraft(definition.id).definition
 }
 
 function selectType(label: string) {

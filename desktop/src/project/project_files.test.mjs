@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createRequire } from 'node:module';
@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from 'vitest';
 const require = createRequire(import.meta.url);
 const { GitProcess } = require('../git/git_process');
 const {
+    commitNow,
     listRepositoryFiles,
     loadProject,
     loadProjectRoot,
@@ -14,6 +15,40 @@ const {
 } = require('./project_files');
 
 describe('project-files', () => {
+    it('writes move target and stages tracked source deletion when source is already absent', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-project-files-'));
+
+        try {
+            await mkdir(join(rootPath, '.git'));
+            const stagedChanges = Object.assign(new Error('staged changes'), { code: 1 });
+            const runGitProcess = vi.spyOn(GitProcess.prototype, 'run').mockImplementation(async function run() {
+                if (this.args[0] === 'diff') throw stagedChanges;
+
+                return { stderr: '', stdout: '' };
+            });
+
+            await commitNow({
+                branch: 'main',
+                files: [],
+                message: 'Rename action',
+                moves: [{
+                    content: '{"id":"review"}',
+                    fromPath: 'actions/new-action.json',
+                    toPath: 'actions/review.json',
+                }],
+            }, { branch: 'main', id: 'local', rootPath });
+
+            await expect(readFile(join(rootPath, 'actions', 'review.json'), 'utf8')).resolves.toBe('{"id":"review"}');
+            expect(runGitProcess.mock.instances.map(({ args }) => args)).toContainEqual([
+                'add', '-u', '--', 'actions/new-action.json',
+            ]);
+            expect(runGitProcess.mock.instances.map(({ args }) => args)).toContainEqual(['add', 'actions/review.json']);
+        } finally {
+            vi.restoreAllMocks();
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
     it('loads markdown files from the working folder and subfolders', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-project-files-'));
 

@@ -162,7 +162,7 @@ describe('ActionEditor', () => {
         fireEvent.change(labelInput(), { target: { value: 'Review updated' } })
 
         expect(labelInput()).toHaveValue('Review updated')
-        expect(actionService.draftStore.getDraft('actions/review.json').definition.label).toBe('Review updated')
+        expect(actionService.draftStore.getDraft('review-action').definition.label).toBe('Review updated')
         expect(useController).toHaveBeenCalledTimes(renderCount)
 
         fireEvent.blur(labelInput())
@@ -227,7 +227,7 @@ describe('ActionEditor', () => {
         const editorState = publishedAction?.editorState
         if (!editorState) throw new Error('Missing published editor state')
 
-        act(() => actionService.setActionEditorState('actions/review.json', {
+        act(() => actionService.setActionEditorState('review-action', {
             phrases: editorState.phrases,
             selectedTab: 'prompt',
         }))
@@ -414,7 +414,7 @@ describe('ActionEditor', () => {
         fireEvent.click(screen.getByRole('tab', { name: 'Tests' }))
 
         expect(markdownEditor).toHaveValue('Original phrase')
-        expect(actionService.draftStore.getDraft('actions/review.json').definition).toMatchObject({
+        expect(actionService.draftStore.getDraft('review-action').definition).toMatchObject({
             phrases: [{ text: 'Original phrase', title: 'Tests' }],
             prompt: 'Edited prompt',
         })
@@ -423,7 +423,7 @@ describe('ActionEditor', () => {
         fireEvent.click(screen.getByRole('tab', { name: 'Prompt' }))
 
         expect(markdownEditor).toHaveValue('Edited prompt')
-        expect(actionService.draftStore.getDraft('actions/review.json').definition).toMatchObject({
+        expect(actionService.draftStore.getDraft('review-action').definition).toMatchObject({
             phrases: [{ text: 'Edited phrase', title: 'Tests' }],
             prompt: 'Edited prompt',
         })
@@ -446,7 +446,7 @@ describe('ActionEditor', () => {
         const firstAction = actionService.getActionByPath('actions/review.json')
         const secondAction = actionService.getActionByPath('actions/second.json')
         if (!firstAction || !secondAction) throw new Error('Missing test actions')
-        actionService.setActionEditorState('actions/second.json', { phrases: [], selectedTab: 'prompt' })
+        actionService.setActionEditorState('second-action', { phrases: [], selectedTab: 'prompt' })
         renderEditor(firstAction)
         fireEvent.click(screen.getByRole('tab', { name: 'Prompt' }))
         const markdownEditor = within(screen.getByTestId('mdx-editor')).getByRole('textbox')
@@ -455,8 +455,8 @@ describe('ActionEditor', () => {
         act(() => openFilesService.openDocument(secondAction))
 
         expect(markdownEditor).toHaveValue('Second prompt')
-        expect(actionService.draftStore.getDraft('actions/review.json').definition.prompt).toBe('Edited first prompt')
-        expect(actionService.draftStore.getDraft('actions/second.json').definition.prompt).toBe('Second prompt')
+        expect(actionService.draftStore.getDraft('review-action').definition.prompt).toBe('Edited first prompt')
+        expect(actionService.draftStore.getDraft('second-action').definition.prompt).toBe('Second prompt')
     })
 
     it('shows prompt validation on the tab and through the dialog service', async () => {
@@ -566,7 +566,7 @@ describe('ActionEditor', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Delete this predefined phrase' }))
 
         expect(screen.getByRole('tab', { name: 'Prompt' })).toHaveAttribute('aria-selected', 'true')
-        expect(actionService.draftStore.getDraft('actions/review.json').definition.phrases).toEqual([])
+        expect(actionService.draftStore.getDraft('review-action').definition.phrases).toEqual([])
     })
 
     it('uses phrase titles or truncated first Markdown lines as tab labels', () => {
@@ -674,8 +674,8 @@ describe('ActionEditor', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Add filter' }))
 
         await act(async () => vi.advanceTimersByTime(600))
-        expect(actionService.draftStore.getDraft('actions/review.json').validation.valid).toBe(true)
-        expect(actionService.draftStore.getDraft('actions/review.json').definition.appliesTo).toBeUndefined()
+        expect(actionService.draftStore.getDraft('review-action').validation.valid).toBe(true)
+        expect(actionService.draftStore.getDraft('review-action').definition.appliesTo).toBeUndefined()
         expect(reportError).not.toHaveBeenCalled()
         expect(saveDefinition).not.toHaveBeenCalled()
     })
@@ -687,7 +687,7 @@ describe('ActionEditor', () => {
         fireEvent.mouseDown(screen.getByLabelText('Target kind'))
         fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: 'card' }))
 
-        expect(actionService.draftStore.getDraft('actions/review.json').definition.appliesTo).toEqual({ kind: 'card' })
+        expect(actionService.draftStore.getDraft('review-action').definition.appliesTo).toEqual({ kind: 'card' })
         expect(screen.getByRole('combobox', { name: 'Target kind' })).toHaveTextContent('card')
     })
 
@@ -695,7 +695,7 @@ describe('ActionEditor', () => {
         const reportError = vi.spyOn(dialogService, 'error')
         const action = loadAction()
         const invalidDefinition = { ...definition, unexpected: undefined } as RawActionDefinition
-        actionService.draftStore.updateDraft('actions/review.json', invalidDefinition)
+        actionService.draftStore.updateDraft('review-action', invalidDefinition)
         renderEditor(action)
 
         expect(screen.queryByRole('alert')).not.toBeInTheDocument()
@@ -752,9 +752,9 @@ describe('ActionEditor', () => {
                 content: expect.stringContaining('"label": "Published label"'),
                 path: 'actions/published-label.json',
             },
+            'review-action',
             'actions/review.json',
             expect.any(Function),
-            true,
             expect.any(Object),
             expect.any(Function),
         )

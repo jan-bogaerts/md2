@@ -61,7 +61,7 @@ describe('GithubStorageService', () => {
         ])
     })
 
-    it('includes a path replacement in the same commit batch', async () => {
+    it('writes path-change target without deleting a missing source', async () => {
         const fetchImplementation = vi.fn()
         queueProjectTree(fetchImplementation, [
             { path: 'actions', sha: 'actions-tree', type: 'tree' },
@@ -70,6 +70,7 @@ describe('GithubStorageService', () => {
         fetchImplementation
             .mockResolvedValueOnce(createResponse({ object: { sha: 'base-commit', type: 'commit' }, ref: 'refs/heads/main' }))
             .mockResolvedValueOnce(createResponse({ sha: 'base-commit', tree: { sha: 'base-tree' } }))
+            .mockResolvedValueOnce(createResponse({ tree: [], truncated: false }))
             .mockResolvedValueOnce(createResponse({ sha: 'action-blob' }))
             .mockResolvedValueOnce(createResponse({ sha: 'new-tree' }))
             .mockResolvedValueOnce(createResponse({ sha: 'pending-commit', tree: { sha: 'new-tree' } }))
@@ -95,7 +96,6 @@ describe('GithubStorageService', () => {
             base_tree: 'base-tree',
             tree: [
                 { mode: '100644', path: 'actions/review-code.json', sha: 'action-blob', type: 'blob' },
-                { mode: '100644', path: 'actions/new-action.json', sha: null, type: 'blob' },
             ],
         })
         expect(updatedFiles).toEqual([{

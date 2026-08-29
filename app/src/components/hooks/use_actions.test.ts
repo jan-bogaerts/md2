@@ -31,7 +31,7 @@ describe('useActions', () => {
         const initialSnapshot = result.current
 
         act(() => {
-            service.setActionEditorState('actions/action.json', { phrases: [], selectedTab: 'settings' })
+            service.setActionEditorState('do', { phrases: [], selectedTab: 'settings' })
         })
 
         expect(result.current).toBe(initialSnapshot)

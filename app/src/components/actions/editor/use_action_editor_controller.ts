@@ -25,18 +25,19 @@ export interface ActionEditorControllerOptions {
 /** Bridge ActionService-owned draft state into ActionEditor presentation. */
 export function useActionEditorController(options: ActionEditorControllerOptions) {
     const { action, actions, discardMarkdownTarget, openDocument, sourcePath } = options
+    const actionId = action.id
 
     const [, setEditorRevision] = useState(0)
     useEffect(() => {
-        let previousAction = actionService.getActionByPath(sourcePath)
-        let previousDraft = actionService.draftStore.getDraft(sourcePath)
+        let previousAction = actionService.getActionById(actionId)
+        let previousDraft = actionService.draftStore.getDraft(actionId)
         let previousEditorState = previousAction?.editorState
         const handleChanged = (event: Event) => {
-            const { path } = (event as CustomEvent<ActionDraftChangedDetail>).detail
-            if (path !== sourcePath) return
+            const { actionId: changedActionId } = (event as CustomEvent<ActionDraftChangedDetail>).detail
+            if (changedActionId !== actionId) return
 
-            const nextAction = actionService.getActionByPath(sourcePath)
-            const nextDraft = actionService.draftStore.getDraft(sourcePath)
+            const nextAction = actionService.getActionById(actionId)
+            const nextDraft = actionService.draftStore.getDraft(actionId)
             const nextEditorState = nextAction?.editorState
             if (nextAction === previousAction && nextDraft === previousDraft && nextEditorState === previousEditorState) return
 
@@ -48,24 +49,24 @@ export function useActionEditorController(options: ActionEditorControllerOptions
         actionService.addEventListener(ACTION_DRAFT_CHANGED_EVENT, handleChanged)
 
         return () => actionService.removeEventListener(ACTION_DRAFT_CHANGED_EVENT, handleChanged)
-    }, [sourcePath])
+    }, [actionId])
 
-    const draft = actionService.draftStore.getDraft(sourcePath)
+    const draft = actionService.draftStore.getDraft(actionId)
     const { conflict, definition, deleted, error: saveError, saving, validation } = draft
     useEffect(() => () => {
-        const actionExists = !!actionService.getActionByPath(sourcePath)
+        const actionExists = !!actionService.getActionById(actionId)
         const deletedDraftExists = actionService.draftStore.getDeletedDraftActions()
-            .some((candidate) => candidate.sourcePath === sourcePath)
-        if (actionExists || deletedDraftExists) actionService.draftStore.commitDraft(sourcePath)
-    }, [sourcePath])
+            .some((candidate) => candidate.id === actionId)
+        if (actionExists || deletedDraftExists) actionService.draftStore.commitDraft(actionId)
+    }, [actionId])
     const phrases = useMemo(() => definition.phrases ?? [], [definition.phrases])
-    const publishedAction = actionService.getActionByPath(sourcePath) ?? action
+    const publishedAction = actionService.getActionById(actionId) ?? action
     const editorState = reconcileActionPhraseEditorState(publishedAction.editorState, phrases)
     const { phrases: phraseEditorStates, selectedTab } = editorState
 
     useEffect(() => {
-        if (publishedAction.editorState !== editorState) actionService.setActionEditorState(sourcePath, editorState)
-    }, [editorState, publishedAction.editorState, sourcePath])
+        if (publishedAction.editorState !== editorState) actionService.setActionEditorState(actionId, editorState)
+    }, [actionId, editorState, publishedAction.editorState])
 
     const errors = useMemo(() => (
         validation.error && validation.field ? { [validation.field]: validation.error } : {}
@@ -84,11 +85,11 @@ export function useActionEditorController(options: ActionEditorControllerOptions
         [openDocument, sectionIdentity, selectedPhrase],
     )
     const storeEditorState = useCallback((nextEditorState: typeof editorState) => {
-        actionService.setActionEditorState(sourcePath, nextEditorState)
-    }, [sourcePath])
+        actionService.setActionEditorState(actionId, nextEditorState)
+    }, [actionId])
 
     const handleAddPhrase = () => {
-        const currentDefinition = actionService.draftStore.getDraft(sourcePath).definition
+        const currentDefinition = actionService.draftStore.getDraft(actionId).definition
         const currentPhrases = currentDefinition.phrases ?? []
         const syncedEditorState = {
             phrases: phraseEditorStates.map((entry, index) => ({ ...entry, phrase: currentPhrases[index] })),
@@ -98,7 +99,7 @@ export function useActionEditorController(options: ActionEditorControllerOptions
         const nextEditorState = reconcileActionPhraseEditorState(syncedEditorState, nextPhrases)
         const nextTab = nextEditorState.phrases[nextEditorState.phrases.length - 1].identity
         const nextDefinition = { ...currentDefinition, phrases: nextPhrases }
-        actionService.draftStore.updateDraft(sourcePath, nextDefinition)
+        actionService.draftStore.updateDraft(actionId, nextDefinition)
         storeEditorState({ ...nextEditorState, selectedTab: nextTab })
     }
 
@@ -107,8 +108,8 @@ export function useActionEditorController(options: ActionEditorControllerOptions
             handleAddPhrase()
             return
         }
-        if (activeTab === ACTION_DEFINITION_TAB) actionService.draftStore.commitDraft(sourcePath)
-        const currentPhrases = actionService.draftStore.getDraft(sourcePath).definition.phrases ?? []
+        if (activeTab === ACTION_DEFINITION_TAB) actionService.draftStore.commitDraft(actionId)
+        const currentPhrases = actionService.draftStore.getDraft(actionId).definition.phrases ?? []
         const syncedPhraseEditorStates = phraseEditorStates.map((entry, index) => ({
             ...entry,
             phrase: currentPhrases[index],
@@ -118,15 +119,15 @@ export function useActionEditorController(options: ActionEditorControllerOptions
 
     const handlePhraseTitleEdit = useCallback((title: string) => {
         if (selectedPhraseIndex < 0) return
-        const currentDefinition = actionService.draftStore.getDraft(sourcePath).definition
+        const currentDefinition = actionService.draftStore.getDraft(actionId).definition
         const currentPhrases = currentDefinition.phrases ?? []
         const nextPhrases = currentPhrases.map((phrase, index) => index === selectedPhraseIndex ? { ...phrase, title } : phrase)
-        actionService.draftStore.stageDraft(sourcePath, { ...currentDefinition, phrases: nextPhrases })
-    }, [selectedPhraseIndex, sourcePath])
+        actionService.draftStore.stageDraft(actionId, { ...currentDefinition, phrases: nextPhrases })
+    }, [actionId, selectedPhraseIndex])
 
     const handlePhraseTitleCommit = useCallback((title: string) => {
         handlePhraseTitleEdit(title)
-        const currentDefinition = actionService.draftStore.getDraft(sourcePath).definition
+        const currentDefinition = actionService.draftStore.getDraft(actionId).definition
         const currentPhrases = currentDefinition.phrases ?? []
         storeEditorState({
             ...editorState,
@@ -134,17 +135,17 @@ export function useActionEditorController(options: ActionEditorControllerOptions
                 index === selectedPhraseIndex ? { ...entry, phrase: currentPhrases[index] } : entry
             )),
         })
-        actionService.draftStore.commitDraft(sourcePath)
-    }, [editorState, handlePhraseTitleEdit, phraseEditorStates, selectedPhraseIndex, sourcePath, storeEditorState])
+        actionService.draftStore.commitDraft(actionId)
+    }, [actionId, editorState, handlePhraseTitleEdit, phraseEditorStates, selectedPhraseIndex, storeEditorState])
 
     const handleDeletePhrase = useCallback(() => {
         if (selectedPhraseIndex < 0) return
         discardMarkdownTarget(markdownTarget)
-        const currentDefinition = actionService.draftStore.getDraft(sourcePath).definition
+        const currentDefinition = actionService.draftStore.getDraft(actionId).definition
         const currentPhrases = currentDefinition.phrases ?? []
         const nextPhrases = currentPhrases.filter((_phrase, index) => index !== selectedPhraseIndex)
         const nextDefinition = { ...currentDefinition, phrases: nextPhrases }
-        actionService.draftStore.updateDraft(sourcePath, nextDefinition)
+        actionService.draftStore.updateDraft(actionId, nextDefinition)
         storeEditorState({
             phrases: phraseEditorStates.filter((_entry, index) => index !== selectedPhraseIndex),
             selectedTab: ACTION_PROMPT_TAB,
@@ -154,12 +155,12 @@ export function useActionEditorController(options: ActionEditorControllerOptions
         markdownTarget,
         phraseEditorStates,
         selectedPhraseIndex,
-        sourcePath,
+        actionId,
         storeEditorState,
     ])
 
     const handleDiscardDeleted = () => {
-        actionService.draftStore.discardDeletedDraft(sourcePath)
+        actionService.draftStore.discardDeletedDraft(actionId)
         const document = openFilesService.getSnapshot().documents.find((candidate) => (
             candidate.kind === 'action' && candidate.getObject().id === action.id
         ))
@@ -179,13 +180,13 @@ export function useActionEditorController(options: ActionEditorControllerOptions
         errors,
         handleDeletePhrase,
         handleDiscardDeleted,
-        handleKeepMine: () => actionService.draftStore.keepDraft(sourcePath),
+        handleKeepMine: () => actionService.draftStore.keepDraft(actionId),
         handlePhraseTitleCommit,
         handlePhraseTitleEdit,
-        handleRecreateDeleted: () => actionService.draftStore.recreateDeletedDraft(sourcePath),
-        handleReloadExternal: () => actionService.draftStore.reloadDraft(sourcePath),
+        handleRecreateDeleted: () => actionService.draftStore.recreateDeletedDraft(actionId),
+        handleReloadExternal: () => actionService.draftStore.reloadDraft(actionId),
         handleRetry: () => {
-            if (canRetry) actionService.draftStore.retryDraft(sourcePath)
+            if (canRetry) actionService.draftStore.retryDraft(actionId)
         },
         handleTabChange,
         markdownTarget,

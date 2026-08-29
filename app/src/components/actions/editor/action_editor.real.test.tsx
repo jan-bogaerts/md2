@@ -120,7 +120,7 @@ describe('ActionEditor with installed MDXEditor', () => {
     it('loads persisted Prompt selected before history attachment', async () => {
         const lifecycle: string[] = []
         const action = loadAction()
-        actionService.setActionEditorState('actions/review.json', {
+        actionService.setActionEditorState('review-action', {
             phrases: action.editorState?.phrases ?? [],
             selectedTab: 'prompt',
         })

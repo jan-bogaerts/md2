@@ -332,6 +332,7 @@ export class CardOperations {
 
             return {
                 cardInternalId,
+                kind: 'card' as const,
                 path: card.path,
                 saveReference: this.context.findOpenCardDocument(card.path)?.createSaveReference(),
             }

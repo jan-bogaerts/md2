@@ -23,6 +23,7 @@ const ICON_FILE_PATTERN = /\.(svg|png|jpe?g|gif|webp)$/iu
 const EMPTY_REPOSITORY_FILES: string[] = []
 
 interface ActionDefinitionFieldsProps {
+    actionId: string
     actions: ActionDefinition[]
     cardTypes: string[]
     sourcePath: string
@@ -33,19 +34,19 @@ interface ActionDefinitionFieldsProps {
 
 export const ActionDefinitionFields = memo(function ActionDefinitionFields(props: ActionDefinitionFieldsProps) {
     const {
-        actions, cardTypes, sourcePath,
+        actionId, actions, cardTypes, sourcePath,
         specialContextTypes, states, worktrees,
     } = props
     const { snapshot } = useProjectState()
     const repositoryFiles = snapshot?.repositoryFiles ?? EMPTY_REPOSITORY_FILES
     const [, setDraftRevision] = useState(0)
     useEffect(() => {
-        let previousDraft = actionService.draftStore.getDraft(sourcePath)
+        let previousDraft = actionService.draftStore.getDraft(actionId)
         const handleChanged = (event: Event) => {
-            const { path } = (event as CustomEvent<ActionDraftChangedDetail>).detail
-            if (path !== sourcePath) return
+            const { actionId: changedActionId } = (event as CustomEvent<ActionDraftChangedDetail>).detail
+            if (changedActionId !== actionId) return
 
-            const nextDraft = actionService.draftStore.getDraft(sourcePath)
+            const nextDraft = actionService.draftStore.getDraft(actionId)
             if (nextDraft === previousDraft) return
 
             previousDraft = nextDraft
@@ -54,22 +55,22 @@ export const ActionDefinitionFields = memo(function ActionDefinitionFields(props
         actionService.addEventListener(ACTION_DRAFT_CHANGED_EVENT, handleChanged)
 
         return () => actionService.removeEventListener(ACTION_DRAFT_CHANGED_EVENT, handleChanged)
-    }, [sourcePath])
-    const { definition, validation } = actionService.draftStore.getDraft(sourcePath)
+    }, [actionId])
+    const { definition, validation } = actionService.draftStore.getDraft(actionId)
     const errors = validation.error && validation.field ? { [validation.field]: validation.error } : {}
     const errorIndex = validation.index
     const selectableActions = actions.filter(({ id }) => id !== definition.id)
     // `stageDraft` deliberately fires no events, so controls that render straight from the
     // draft (selects, switches, list editors) need a local revision bump to show the new value.
     const handleDefinitionChange = (nextDefinition: RawActionDefinition) => {
-        actionService.draftStore.stageDraft(sourcePath, nextDefinition)
+        actionService.draftStore.stageDraft(actionId, nextDefinition)
         setDraftRevision((current) => current + 1)
     }
     /** Staging without a re-render, for fields that keep their own keystroke state. */
     const stageDefinition = (nextDefinition: RawActionDefinition) => {
-        actionService.draftStore.stageDraft(sourcePath, nextDefinition)
+        actionService.draftStore.stageDraft(actionId, nextDefinition)
     }
-    const handleDefinitionCommit = () => actionService.draftStore.commitDraft(sourcePath)
+    const handleDefinitionCommit = () => actionService.draftStore.commitDraft(actionId)
     const iconPaths = repositoryFiles.filter((path) => ICON_FILE_PATTERN.test(path))
     if (definition.icon && !iconPaths.includes(definition.icon)) iconPaths.unshift(definition.icon)
     const missingState = definition.onState && !states.includes(definition.onState) ? definition.onState : null

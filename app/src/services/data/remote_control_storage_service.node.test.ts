@@ -131,6 +131,30 @@ describe('RemoteControlStorageService', () => {
         await expect(result).resolves.toEqual({ files: [], workingFolder: 'design' })
     })
 
+    it('forwards a move whose source may already be absent for host-side recovery', async () => {
+        installWebSocket()
+        const service = createService()
+        const commitRequest = {
+            branch: 'main',
+            files: [],
+            message: 'Rename action',
+            moves: [{
+                content: '{"id":"review"}',
+                fromPath: 'actions/new-action.json',
+                toPath: 'actions/review.json',
+            }],
+        }
+        const result = service.commit(commitRequest)
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const request = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
+        expect(request).toMatchObject({ method: 'commit', params: [commitRequest] })
+        socket.receive({ id: request.id, result: [] })
+        await expect(result).resolves.toEqual([])
+    })
+
     it.each(persistentSubscriptionCases)('cleans retired $name subscriptions locally without reconnecting', async ({ method, subscribe }) => {
         installWebSocket()
         const service = createService()

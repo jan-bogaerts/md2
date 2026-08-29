@@ -58,6 +58,9 @@ export class GithubStorageWriter {
         }
 
         const moves = request.moves ?? []
+        const sourceEntries = moves.length > 0
+            ? await this.gitData.getRecursiveTreeEntries(branchHead.treeSha)
+            : null
         const moveBlobs = await mapWithConcurrency(moves, GITHUB_STORAGE_CONCURRENCY, async (move) => this.gitData.createBlob({
             content: move.content,
             encoding: move.encoding,
@@ -72,7 +75,7 @@ export class GithubStorageWriter {
                 sha: blob.sha,
             })
             treeChanges.push({ path: move.toPath, sha: blob.sha })
-            treeChanges.push({ path: move.fromPath, sha: null })
+            if (sourceEntries?.has(move.fromPath)) treeChanges.push({ path: move.fromPath, sha: null })
         }
 
         await this.createPendingCommit(request.branch, request.message, branchHead, treeChanges)
@@ -104,13 +107,15 @@ export class GithubStorageWriter {
     }
 
     async moveFiles(request: MoveFilesRequest) {
+        const branchHead = await this.gitData.getBranchHead(request.branch)
+        const entries = await this.gitData.getRecursiveTreeEntries(branchHead.treeSha)
         const sourceFiles: GithubTreeFile[] = []
         for (const move of request.moves) {
+            if (!entries.has(move.fromPath)) continue
             if (!move.sha) throw new Error(`Cannot delete GitHub file without sha: ${move.fromPath}`)
             sourceFiles.push({ path: move.fromPath, sha: move.sha })
         }
 
-        const branchHead = await this.gitData.getBranchHead(request.branch)
         await this.gitData.assertPathShasMatch(branchHead.treeSha, sourceFiles)
 
         const treeChanges: GithubTreeChange[] = []
@@ -123,7 +128,7 @@ export class GithubStorageWriter {
         for (const [index, move] of request.moves.entries()) {
             const blob = blobs[index]
             treeChanges.push({ path: move.toPath, sha: blob.sha })
-            treeChanges.push({ path: move.fromPath, sha: null })
+            if (entries.has(move.fromPath)) treeChanges.push({ path: move.fromPath, sha: null })
         }
 
         await this.createPendingCommit(request.branch, request.message, branchHead, treeChanges)

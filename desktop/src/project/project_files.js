@@ -238,11 +238,21 @@ async function commitNow(request, project) {
 
         const sourcePath = ensureInsideRoot(rootPath, path.join(rootPath, move.fromPath));
         const targetPath = ensureInsideRoot(rootPath, path.join(rootPath, move.toPath));
+        const targetRepositoryPath = normalizePath(path.relative(rootPath, targetPath));
+        const sourceRepositoryPath = normalizePath(path.relative(rootPath, sourcePath));
         const data = move.encoding === 'base64' ? Buffer.from(move.content, 'base64') : move.content;
         await fs.promises.mkdir(path.dirname(targetPath), { recursive: true });
-        await runGit(rootPath, ['mv', normalizePath(path.relative(rootPath, sourcePath)), normalizePath(path.relative(rootPath, targetPath))]);
+        if (await pathExists(sourcePath)) {
+            if (await isTrackedFile(rootPath, sourceRepositoryPath)) {
+                await runGit(rootPath, ['mv', sourceRepositoryPath, targetRepositoryPath]);
+            } else {
+                await fs.promises.rename(sourcePath, targetPath);
+            }
+        } else if (await isTrackedFile(rootPath, sourceRepositoryPath)) {
+            await runGit(rootPath, ['add', '-u', '--', sourceRepositoryPath]);
+        }
         await fs.promises.writeFile(targetPath, data);
-        await runGit(rootPath, ['add', move.toPath]);
+        await runGit(rootPath, ['add', targetRepositoryPath]);
     }
 
     for (const file of request.files) {
@@ -315,10 +325,14 @@ async function moveFilesNow(request, project) {
         const sourceRepositoryPath = normalizePath(path.relative(rootPath, sourcePath));
         const data = move.encoding === 'base64' ? Buffer.from(move.content, 'base64') : move.content;
         await fs.promises.mkdir(path.dirname(targetPath), { recursive: true });
-        if (await isTrackedFile(rootPath, sourceRepositoryPath)) {
-            await runGit(rootPath, ['mv', sourceRepositoryPath, targetRepositoryPath]);
-        } else {
-            await fs.promises.rename(sourcePath, targetPath);
+        if (await pathExists(sourcePath)) {
+            if (await isTrackedFile(rootPath, sourceRepositoryPath)) {
+                await runGit(rootPath, ['mv', sourceRepositoryPath, targetRepositoryPath]);
+            } else {
+                await fs.promises.rename(sourcePath, targetPath);
+            }
+        } else if (await isTrackedFile(rootPath, sourceRepositoryPath)) {
+            await runGit(rootPath, ['add', '-u', '--', sourceRepositoryPath]);
         }
         await fs.promises.writeFile(targetPath, data);
         await runGit(rootPath, ['add', targetRepositoryPath]);
@@ -431,6 +445,7 @@ function watchProject(project, onChange, onError) {
 
 module.exports = {
     commit,
+    commitNow,
     createProject,
     deleteFile,
     deleteFolder,

@@ -55,7 +55,7 @@ export class CardInternalIdOperations {
                 const cardInternalId = card.header.internalId
                 if (!cardInternalId) throw new Error(`Generated card identity was not applied: ${card.path}`)
 
-                return { cardInternalId, path: card.path }
+                return { cardInternalId, kind: 'card' as const, path: card.path }
             })
             commitBatcher.schedule(project.branch, changes, 'Add missing card internal IDs')
         }

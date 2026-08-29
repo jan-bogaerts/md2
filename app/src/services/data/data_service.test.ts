@@ -106,7 +106,7 @@ describe('DataService', () => {
         const dataChanged = vi.fn()
         service.addEventListener('changed', dataChanged)
 
-        await service.persistActionFile({ content: '{}', path: 'actions/review.json' })
+        await service.persistActionFile({ content: '{}', path: 'actions/review.json' }, 'review', undefined, vi.fn())
         expect(projectPersistenceService.getSnapshot().hasPendingSave).toBe(true)
         expect(storage.commit).not.toHaveBeenCalled()
 
@@ -133,7 +133,7 @@ describe('DataService', () => {
         service.addEventListener('changed', dataChanged)
         projectPersistenceService.addEventListener('changed', persistenceChanged)
 
-        actionService.setActionEditorState('actions/test.json', { phrases: [], selectedTab: 'settings' })
+        actionService.setActionEditorState('test', { phrases: [], selectedTab: 'settings' })
 
         expect(dataChanged).not.toHaveBeenCalled()
         expect(persistenceChanged).not.toHaveBeenCalled()
@@ -147,7 +147,12 @@ describe('DataService', () => {
         const service = createDataService()
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
-        await service.persistActionFile({ content: '{"label":"Draft"}', path: 'actions/review.json' })
+        await service.persistActionFile(
+            { content: '{"label":"Draft"}', path: 'actions/review.json' },
+            'review',
+            undefined,
+            vi.fn(),
+        )
 
         expect(service.hasPendingFile('actions/review.json')).toBe(true)
         service.discardPendingFile('actions/review.json')
@@ -184,11 +189,11 @@ describe('DataService', () => {
             },
         ])
 
-        const review = actionService.draftStore.getDraft('actions/review.json').definition
-        actionService.draftStore.updateDraft('actions/review.json', { ...review, label: 'Review code' })
-        actionService.draftStore.updateDraft('actions/review.json', { ...review, description: 'Review changed files', label: 'Review code' })
-        actionService.draftStore.updateDraft('actions/review.json', { ...review, description: 'Review changed files', label: 'Review code', prompt: 'Review carefully' })
-        actionService.draftStore.updateDraft('actions/review.json', {
+        const review = actionService.draftStore.getDraft('review').definition
+        actionService.draftStore.updateDraft('review', { ...review, label: 'Review code' })
+        actionService.draftStore.updateDraft('review', { ...review, description: 'Review changed files', label: 'Review code' })
+        actionService.draftStore.updateDraft('review', { ...review, description: 'Review changed files', label: 'Review code', prompt: 'Review carefully' })
+        actionService.draftStore.updateDraft('review', {
             ...review,
             appliesTo: { worktreeError: 'missing' },
             description: 'Review changed files',
@@ -197,8 +202,8 @@ describe('DataService', () => {
             phrases: [{ text: 'Run all tests', title: 'Tests' }],
             prompt: 'Review carefully',
         })
-        const command = actionService.draftStore.getDraft('actions/test.json').definition
-        actionService.draftStore.updateDraft('actions/test.json', { ...command, command: 'npm run test' })
+        const command = actionService.draftStore.getDraft('test').definition
+        actionService.draftStore.updateDraft('test', { ...command, command: 'npm run test' })
         await actionService.draftStore.flushDrafts()
 
         expect(storage.commit).not.toHaveBeenCalled()
@@ -217,8 +222,8 @@ describe('DataService', () => {
         expect(firstRequest.moves?.[0].content).toContain('"text": "Run all tests"')
         expect(firstRequest.files.find(({ path }) => path === 'actions/test.json')?.content).toContain('"command": "npm run test"')
 
-        const latestReview = actionService.draftStore.getDraft('actions/review-code.json').definition
-        actionService.draftStore.updateDraft('actions/review-code.json', { ...latestReview, prompt: 'Review after pause' })
+        const latestReview = actionService.draftStore.getDraft('review').definition
+        actionService.draftStore.updateDraft('review', { ...latestReview, prompt: 'Review after pause' })
         await actionService.draftStore.flushDrafts()
         await vi.advanceTimersByTimeAsync(2000)
 
@@ -259,7 +264,7 @@ describe('DataService', () => {
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
-        actionService.draftStore.updateDraft('actions/test-1.json', renamedDefinition)
+        actionService.draftStore.updateDraft('test-action', renamedDefinition)
         await actionService.draftStore.flushDrafts()
         await vi.advanceTimersByTimeAsync(2000)
         watchChange({ changeKind: 'removed', path: 'actions/test-1.json' })
@@ -269,8 +274,66 @@ describe('DataService', () => {
 
         await vi.waitFor(() => {
             expect(actionService.getActionByPath('actions/test-1b.json')?.label).toBe('Test 1b')
-            expect(actionService.draftStore.getDraft('actions/test-1b.json')).toMatchObject({ deleted: false })
+            expect(actionService.draftStore.getDraft('test-action')).toMatchObject({ deleted: false })
         })
+    })
+
+    it('keeps one action through incomplete repair and label change during initial persistence', async () => {
+        configService.init()
+        const firstCommit = createDeferred<never[]>()
+        const storage = createStorage({
+            commit: vi.fn()
+                .mockImplementationOnce(async () => firstCommit.promise)
+                .mockResolvedValueOnce([]),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const { definition, path } = actionService.createDefinition('actions')
+        await actionService.saveDefinition(path, definition)
+
+        const initialFlush = projectPersistenceService.flushPendingChanges()
+        await vi.waitFor(() => expect(storage.commit).toHaveBeenCalledOnce())
+        actionService.draftStore.updateDraft(definition.id, {
+            command: '',
+            description: definition.description,
+            id: definition.id,
+            label: definition.label,
+            type: 'command',
+        })
+        actionService.draftStore.updateDraft(definition.id, {
+            command: 'npm test',
+            description: definition.description,
+            id: definition.id,
+            label: 'Run tests',
+            type: 'command',
+        })
+        await actionService.draftStore.flushDrafts()
+
+        firstCommit.resolve([])
+        await expect(initialFlush).rejects.toThrow('Pending changes remain after flush')
+        await projectPersistenceService.flushPendingChanges()
+
+        const requests = vi.mocked(storage.commit).mock.calls.map(([request]) => request)
+        expect(requests[0].files).toEqual([expect.objectContaining({ path: 'actions/new-action.json' })])
+        expect(requests[1].moves).toEqual([expect.objectContaining({
+            fromPath: 'actions/new-action.json',
+            toPath: 'actions/run-tests.json',
+        })])
+        expect(requests[1].moves?.[0].content).toContain('"command": "npm test"')
+        expect(actionService.getActions().filter(({ id }) => id === definition.id)).toHaveLength(1)
+        expect(actionService.getActionById(definition.id)).toMatchObject({ label: 'Run tests', sourcePath: 'actions/run-tests.json' })
+
+        const persistedFile = { content: requests[1].moves?.[0].content as string, path: 'actions/run-tests.json' }
+        actionService.reloadFromFiles(
+            [persistedFile],
+            [{
+                origin: 'local',
+                path: persistedFile.path,
+                revision: actionService.getPublicationRevision(persistedFile.path),
+            }],
+        )
+        expect(actionService.getActions().filter(({ id }) => id === definition.id)).toHaveLength(1)
     })
 
     it('reloads project configuration when the watched config file changes', async () => {
