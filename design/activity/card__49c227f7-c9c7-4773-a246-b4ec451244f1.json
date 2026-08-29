@@ -49,7 +49,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 186194
+        "usedTokens": 193674
       },
       "entries": [
         {
@@ -2012,6 +2012,159 @@
           "role": "assistant",
           "sequence": 145,
           "timestamp": "2026-08-29T14:19:00.172Z"
+        },
+        {
+          "content": "`- keyed by its current persistence path.` i think this is the fundamental problem. can't we key it on id or internalId, depending on card or action? to the batch committer, it shouldn't really matter where that key comes from, it just needs a unique id to identify the object that needs to be saved. the code that batches a save in the commit-batcher should now which type it is handling, no?\n\n`After persistence succeeds, unchanged pending entries are removed. Newer replacements remain pending.` sounds like a dangerous operation. does it work like this: when persistence starts, the list of files to persist is passed into the function, we immediately set a new list ready so all next changes are in the new list and will be committed next time the timer goes off?\n\n`if the missing old path was tracked, its already-existing deletion must be staged; otherwise Git retains it in the commit. That is not another deletion attempt—just recording the filesystem state.` ok",
+          "id": "agent-turn-1546b439-6742-429d-9096-8ae7493fbc80-user-145",
+          "kind": "message",
+          "role": "user",
+          "sequence": 146,
+          "timestamp": "2026-08-29T14:25:43.367Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-1546b439-6742-429d-9096-8ae7493fbc80-event-147",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_06e45b64afdc4966016a92ebf0464c87d2986449647086f90d",
+          "sequence": 147,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-29T14:25:55.201Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Yes, that is likely the cleaner boundary. I’ll verify every `CommitBatcher` caller so we can distinguish domain-owned objects (card/action IDs) from generic files that genuinely only have paths, then I’ll explain precisely how the active snapshot and live pending map interact.\n\n",
+          "id": "agent-turn-1546b439-6742-429d-9096-8ae7493fbc80-turn-5-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 148,
+          "timestamp": "2026-08-29T14:25:57.102Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -S \\\"commitBatcher\\\\.schedule\\\\(|commitBatcher\\\\.schedulePathChange\\\\(\\\" app/src --glob '\"'!**/*.test.*'\"'\"",
+          "content": "",
+          "durationMs": 3,
+          "exitCode": 0,
+          "id": "agent-turn-1546b439-6742-429d-9096-8ae7493fbc80-event-149",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -S \\\"commitBatcher\\\\.schedule\\\\(|commitBatcher\\\\.schedulePathChange\\\\(\\\" app/src --glob '\"'!**/*.test.*'\"'\"",
+          "providerItemId": "exec-f2d1fab5-879d-4e0e-99d3-396c86ee66b1",
+          "sequence": 149,
+          "status": "completed",
+          "timestamp": "2026-08-29T14:26:03.108Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$files = @('\"'app/src/services/data/card_internal_id_operations.ts','app/src/services/data/card_operation_context.ts','app/src/services/data/card_rename_operations.ts','app/src/services/data/card_operations.ts','app/src/services/data/project_file_operations.ts','app/src/services/data/data_service.ts'); foreach (\"'$file in $files) { Write-Output \"FILE $file\"; Select-String -Path $file -Pattern '\"'commitBatcher\\\\.schedule|commitBatcher\\\\.schedulePathChange' -Context 7,9 }\"",
+          "content": "FILE app/src/services/data/card_internal_id_operations.ts\r\n\r\n  app\\src\\services\\data\\card_internal_id_operations.ts:53:        if (cardsToPersist.length > 0) {\r\n  app\\src\\services\\data\\card_internal_id_operations.ts:54:            const changes = cardsToPersist.map((card) => {\r\n  app\\src\\services\\data\\card_internal_id_operations.ts:55:                const cardInternalId = card.header.internalId\r\n  app\\src\\services\\data\\card_internal_id_operations.ts:56:                if (!cardInternalId) throw new \r\nError(`Generated card identity was not applied: ${card.path}`)\r\n  app\\src\\services\\data\\card_internal_id_operations.ts:57:\r\n  app\\src\\services\\data\\card_internal_id_operations.ts:58:                return { cardInternalId, path: card.path }\r\n  app\\src\\services\\data\\card_internal_id_operations.ts:59:            })\r\n> app\\src\\services\\data\\card_internal_id_operations.ts:60:            commitBatcher.schedule(project.branch, changes, \r\n'Add missing card internal IDs')\r\n  app\\src\\services\\data\\card_internal_id_operations.ts:61:        }\r\n  app\\src\\services\\data\\card_internal_id_operations.ts:62:        dependencies.dispatchChanged()\r\n  app\\src\\services\\data\\card_internal_id_operations.ts:63:\r\n  app\\src\\services\\data\\card_internal_id_operations.ts:64:        return cardsToPersist.length\r\n  app\\src\\services\\data\\card_internal_id_operations.ts:65:    }\r\n  app\\src\\services\\data\\card_internal_id_operations.ts:66:}\r\nFILE app/src/services/data/card_operation_context.ts\r\n  app\\src\\services\\data\\card_operation_context.ts:207:    /** Queues a local file change for the batched commit, \r\nkeeping the open document in sync. */\r\n  app\\src\\services\\data\\card_operation_context.ts:208:    saveFile(file: MarkdownFile, saveReference?: \r\nOpenDocumentSaveReference) {\r\n  app\\src\\services\\data\\card_operation_context.ts:209:        const { commitBatcher, project } = \r\nthis.requireProject('save a file')\r\n  app\\src\\services\\data\\card_operation_context.ts:210:        const existingFile = \r\nthis.dependencies.requireFile(file.path)\r\n  app\\src\\services\\data\\card_operation_context.ts:211:        if (existingFile.content === file.content) return \r\nexistingFile\r\n  app\\src\\services\\data\\card_operation_context.ts:212:\r\n  app\\src\\services\\data\\card_operation_context.ts:213:        this.replaceUpdatedFiles([file])\r\n> app\\src\\services\\data\\card_operation_context.ts:214:        commitBatcher.schedule(project.branch, \r\n[attachSaveReference(file, saveReference)], `Update ${file.path}`)\r\n  app\\src\\services\\data\\card_operation_context.ts:215:        this.dependencies.dispatchChanged()\r\n  app\\src\\services\\data\\card_operation_context.ts:216:\r\n  app\\src\\services\\data\\card_operation_context.ts:217:        return file\r\n  app\\src\\services\\data\\card_operation_context.ts:218:    }\r\n  app\\src\\services\\data\\card_operation_context.ts:219:\r\n  app\\src\\services\\data\\card_operation_context.ts:220:    /** Mutates one owned card and queues its reference for \r\nserialization at flush. */\r\n  app\\src\\services\\data\\card_operation_context.ts:221:    saveCardChange(\r\n  app\\src\\services\\data\\card_operation_context.ts:222:        path: string,\r\n  app\\src\\services\\data\\card_operation_context.ts:223:        mutation: (card: Card) => void,\r\n  app\\src\\services\\data\\card_operation_context.ts:227:        const { commitBatcher, config, project } = \r\nthis.requireProject('save a card')\r\n  app\\src\\services\\data\\card_operation_context.ts:228:        const openDocument = this.findOpenCardDocument(path)\r\n  app\\src\\services\\data\\card_operation_context.ts:229:        const card = this.mutateCardPreservingOpenBody(path, \r\nmutation, config.workingFolder)\r\n  app\\src\\services\\data\\card_operation_context.ts:230:        const cardInternalId = card.header.internalId\r\n  app\\src\\services\\data\\card_operation_context.ts:231:        if (!cardInternalId) throw new Error(`Cannot save a card \r\nwithout an internal ID: ${path}`)\r\n  app\\src\\services\\data\\card_operation_context.ts:232:        const documentSaveReference = saveReference ?? \r\nopenDocument?.createSaveReference()\r\n  app\\src\\services\\data\\card_operation_co\n[2139 characters omitted]\nnalId, path, saveReference: \r\ndocumentSaveReference, targetPath },\r\n  app\\src\\services\\data\\card_rename_operations.ts:106:            `Rename ${path} to ${targetPath}`,\r\n  app\\src\\services\\data\\card_rename_operations.ts:107:            (fromPath, toPath) => \r\nthis.reconcileCardPath(fromPath, toPath),\r\n  app\\src\\services\\data\\card_rename_operations.ts:108:        )\r\n  app\\src\\services\\data\\card_rename_operations.ts:109:        dependencies.dispatchChanged()\r\n  app\\src\\services\\data\\card_rename_operations.ts:110:        await this.context.flushPendingCommits()\r\n  app\\src\\services\\data\\card_rename_operations.ts:111:\r\nFILE app/src/services/data/card_operations.ts\r\n  app\\src\\services\\data\\card_operations.ts:332:\r\n  app\\src\\services\\data\\card_operations.ts:333:            return {\r\n  app\\src\\services\\data\\card_operations.ts:334:                cardInternalId,\r\n  app\\src\\services\\data\\card_operations.ts:335:                path: card.path,\r\n  app\\src\\services\\data\\card_operations.ts:336:                saveReference: \r\nthis.context.findOpenCardDocument(card.path)?.createSaveReference(),\r\n  app\\src\\services\\data\\card_operations.ts:337:            }\r\n  app\\src\\services\\data\\card_operations.ts:338:        })\r\n> app\\src\\services\\data\\card_operations.ts:339:        commitBatcher.schedule(project.branch, changes, `Move \r\n${cardPath}`)\r\n  app\\src\\services\\data\\card_operations.ts:340:        this.context.dependencies.dispatchPersistenceChanged()\r\n  app\\src\\services\\data\\card_operations.ts:341:    }\r\n  app\\src\\services\\data\\card_operations.ts:342:\r\n  app\\src\\services\\data\\card_operations.ts:343:    async deleteCard(path: string) {\r\n  app\\src\\services\\data\\card_operations.ts:344:        const card = \r\nthis.context.dependencies.snapshot()?.activeCards.find((currentCard) => currentCard.path === path)\r\n  app\\src\\services\\data\\card_operations.ts:345:        if (!card) throw new Error(`Cannot delete an active card that \r\nis not loaded: ${path}`)\r\n  app\\src\\services\\data\\card_operations.ts:346:\r\n  app\\src\\services\\data\\card_operations.ts:347:        return this.projectFiles.deleteProjectFile(path, true)\r\n  app\\src\\services\\data\\card_operations.ts:348:    }\r\nFILE app/src/services/data/project_file_operations.ts\r\nFILE app/src/services/data/data_service.ts\r\n  app\\src\\services\\data\\data_service.ts:287:        onPersisted?: () => void,\r\n  app\\src\\services\\data\\data_service.ts:288:    ) {\r\n  app\\src\\services\\data\\data_service.ts:289:        const { commitBatcher } = this.requireDependencies()\r\n  app\\src\\services\\data\\data_service.ts:290:        const currentProject = this.projectState.project\r\n  app\\src\\services\\data\\data_service.ts:291:        if (!currentProject) throw new Error('Cannot save an action before \r\na project is open')\r\n  app\\src\\services\\data\\data_service.ts:292:\r\n  app\\src\\services\\data\\data_service.ts:293:        if (sourceExists && sourcePath === file.path) {\r\n> app\\src\\services\\data\\data_service.ts:294:            commitBatcher.schedule(currentProject.branch, [{ ...file, \r\nonPersisted, saveReference }], `Update ${file.path}`)\r\n  app\\src\\services\\data\\data_service.ts:295:        } else {\r\n  app\\src\\services\\data\\data_service.ts:296:            if (!onPathCommitted) throw new Error(`Missing action path \r\ncallback for rename from ${sourcePath} to ${file.path}`)\r\n> app\\src\\services\\data\\data_service.ts:297:            commitBatcher.schedulePathChange(\r\n  app\\src\\services\\data\\data_service.ts:298:                currentProject.branch,\r\n  app\\src\\services\\data\\data_service.ts:299:                sourcePath,\r\n  app\\src\\services\\data\\data_service.ts:300:                { ...file, onPersisted, saveReference },\r\n  app\\src\\services\\data\\data_service.ts:301:                `Rename ${sourcePath} to ${file.path}`,\r\n  app\\src\\services\\data\\data_service.ts:302:                onPathCommitted,\r\n  app\\src\\services\\data\\data_service.ts:303:                sourceExists,\r\n  app\\src\\services\\data\\data_service.ts:304:            )\r\n  app\\src\\services\\data\\data_service.ts:305:        }\r\n  app\\src\\services\\data\\data_service.ts:306:    }\r\n\r\n\r\n",
+          "durationMs": 72,
+          "exitCode": 0,
+          "id": "agent-turn-1546b439-6742-429d-9096-8ae7493fbc80-event-150",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$files = @('\"'app/src/services/data/card_internal_id_operations.ts','app/src/services/data/card_operation_context.ts','app/src/services/data/card_rename_operations.ts','app/src/services/data/card_operations.ts','app/src/services/data/project_file_operations.ts','app/src/services/data/data_service.ts'); foreach (\"'$file in $files) { Write-Output \"FILE $file\"; Select-String -Path $file -Pattern '\"'commitBatcher\\\\.schedule|commitBatcher\\\\.schedulePathChange' -Context 7,9 }\"",
+          "providerItemId": "exec-2fc5baa9-f2e2-4542-b1e3-2d223597f2ef",
+          "sequence": 150,
+          "status": "completed",
+          "timestamp": "2026-08-29T14:26:03.263Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n -S \"interface CommitRequest|interface MarkdownFile|export interface Card|interface CommitFile|CommitCardChange|CommitChange\" app/src/data/data_types.ts app/src/data/commit_batcher.ts app/src/services/open_document.ts'",
+          "content": "app/src/services/open_document.ts:5:export interface CardBodyDraft {\napp/src/services/open_document.ts:37:export interface CardOpenDocument extends OpenDocumentBase<Card, CardBodyDraft> {\napp/src/data/commit_batcher.ts:19:    change: CommitChange\napp/src/data/commit_batcher.ts:27:export interface CommitFileChange extends MarkdownFile {\napp/src/data/commit_batcher.ts:32:export interface CommitCardChange {\napp/src/data/commit_batcher.ts:40:export type CommitChange = CommitFileChange | CommitCardChange\napp/src/data/commit_batcher.ts:42:function isCardChange(change: CommitChange): change is CommitCardChange {\napp/src/data/commit_batcher.ts:46:function changePath(change: CommitChange) {\napp/src/data/commit_batcher.ts:55:function serializeChange(change: CommitChange, cardOperations: CommitBatcherOperations): SerializedChange {\napp/src/data/commit_batcher.ts:95:    schedule(branch: string, changes: CommitChange[], message: string) {\napp/src/data/commit_batcher.ts:115:        change: CommitChange,\napp/src/data/data_types.ts:26:export interface CardTypeConfig {\napp/src/data/data_types.ts:57:export interface MarkdownFile {\napp/src/data/data_types.ts:71:export interface CardHeader {\napp/src/data/data_types.ts:94:export interface Card {\napp/src/data/data_types.ts:112:export interface CardDraft {\napp/src/data/data_types.ts:166:export interface CardWorktreeIntegrationRequest extends WorktreeOperationRequest {\napp/src/data/data_types.ts:212:export interface CommitRequest {\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-1546b439-6742-429d-9096-8ae7493fbc80-event-151",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n -S \"interface CommitRequest|interface MarkdownFile|export interface Card|interface CommitFile|CommitCardChange|CommitChange\" app/src/data/data_types.ts app/src/data/commit_batcher.ts app/src/services/open_document.ts'",
+          "providerItemId": "exec-8016a167-1ed4-4ae3-9525-3776de6ecc64",
+          "sequence": 151,
+          "status": "completed",
+          "timestamp": "2026-08-29T14:26:03.323Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-1546b439-6742-429d-9096-8ae7493fbc80-event-152",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_06e45b64afdc4966016a92ebff153487d2a7ba039ded6a40f9",
+          "sequence": 152,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-29T14:26:06.533Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$c=Get-Content '\"'app/src/data/data_types.ts'; \"'$c[50..115]; $c[200..235]; $c=Get-Content '\"'app/src/data/commit_batcher.ts'; \"'$c[90..135]; $c[185..270]'",
+          "content": "\r\n        this.pendingMessagesByPath.set(path, [...messages, message])\r\n    }\r\n\r\n    private async commitSnapshot(\r\n        request: CommitRequest,\r\n        changes: PendingFileChange[],\r\n        serializedChanges: Map<PendingFileChange, SerializedChange>,\r\n    ) {\r\n        await this.cardOperations.commitFiles(request)\r\n        for (const change of changes) {\r\n            const { fromPath, onCommitted, onPersisted, saveReference } = change\r\n            const { card, file } = serializedChanges.get(change) as SerializedChange\r\n            const current = this.pendingChanges.get(fromPath)\r\n            if (current === change) {\r\n                this.pendingChanges.delete(fromPath)\r\n                this.pendingMessagesByPath.delete(fromPath)\r\n            } else if (current && file.path !== fromPath) {\r\n                this.pendingChanges.delete(fromPath)\r\n                this.pendingChanges.set(file.path, { ...current, fromPath: file.path, moveSource: true })\r\n                const messages = this.pendingMessagesByPath.get(fromPath)\r\n                this.pendingMessagesByPath.delete(fromPath)\r\n                if (messages) this.pendingMessagesByPath.set(file.path, messages)\r\n            }\r\n            if (card) markdownParsingService.acknowledgeSerializedCard(card, file)\r\n            saveReference?.acknowledge()\r\n            onPersisted?.()\r\n            onCommitted?.(fromPath, file.path)\r\n        }\r\n        if (this.pendingChanges.size === 0) this.pendingBranch = null\r\n        this.dispatchEvent(new Event(COMMIT_BATCHER_PENDING_CHANGED_EVENT))\r\n        await this.cardOperations.pushCommittedFiles(request)\r\n    }\r\n\r\n    private createCommitMessage() {\r\n        const messages = [...this.pendingMessagesByPath.values()].flat()\r\n        const distinctMessages = [...new Set(messages)]\r\n        if (distinctMessages.length === 1) return distinctMessages[0]\r\n\r\n",
+          "durationMs": 13,
+          "exitCode": 0,
+          "id": "agent-turn-1546b439-6742-429d-9096-8ae7493fbc80-event-153",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$c=Get-Content '\"'app/src/data/data_types.ts'; \"'$c[50..115]; $c[200..235]; $c=Get-Content '\"'app/src/data/commit_batcher.ts'; \"'$c[90..135]; $c[185..270]'",
+          "providerItemId": "exec-510dbe16-01ae-44e3-a232-810b230de43c",
+          "sequence": 153,
+          "status": "completed",
+          "timestamp": "2026-08-29T14:26:10.537Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -S \\\"\\\\.saveFile\\\\(|saveFile\\\\(\\\" app/src/services app/src/components --glob '\"'!**/*.test.*'\"'\"",
+          "content": "app/src/services\\data\\card_operation_context.ts:208:    saveFile(file: MarkdownFile, saveReference?: OpenDocumentSaveReference) {\napp/src/services\\data\\card_operations.ts:365:    saveFile(file: MarkdownFile, saveReference?: OpenDocumentSaveReference) {\napp/src/services\\data\\card_operations.ts:366:        return this.context.saveFile(file, saveReference)\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-1546b439-6742-429d-9096-8ae7493fbc80-event-154",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -S \\\"\\\\.saveFile\\\\(|saveFile\\\\(\\\" app/src/services app/src/components --glob '\"'!**/*.test.*'\"'\"",
+          "providerItemId": "exec-551e5f10-5dab-4602-be3e-71cff74ebf2f",
+          "sequence": 154,
+          "status": "completed",
+          "timestamp": "2026-08-29T14:26:10.554Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-1546b439-6742-429d-9096-8ae7493fbc80-event-155",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_06e45b64afdc4966016a92ec068c6087d2a23c9b0777a9e0f1",
+          "sequence": 155,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-29T14:26:29.351Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-1546b439-6742-429d-9096-8ae7493fbc80-event-156",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_06e45b64afdc4966016a92ec16a7ec87d2b5b3bddc284caf1f",
+          "sequence": 156,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-29T14:26:44.760Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Yes. A stable domain key is the better design.\n\nThe batcher currently distinguishes only:\n\n- Cards: carry `cardInternalId`, although the pending map is still keyed by path.\n- Everything else: treated as a generic file, so actions lose their `id` before reaching the batcher.\n\nIt should instead receive a discriminated change:\n\n```ts\ntype CommitChange =\n    | { kind: 'card'; cardInternalId: string; ... }\n    | { kind: 'action'; actionId: string; ... }\n    | { kind: 'file'; path: string; ... }\n```\n\nThe pending key would then be:\n\n- `card:${cardInternalId}`\n- `action:${actionId}`\n- `file:${path}` for files without domain identity\n\nFor actions and cards, source and target paths remain mutable metadata on the pending entry. Changing an action label replaces the pending entry for the same action ID rather than introducing another path-keyed entry.\n\nA path change would be determined simply:\n\n- `sourcePath === targetPath`: write\n- `sourcePath !== targetPath`: move\n- Storage finds the source absent: skip moving and write the target\n\nThat also removes the `sourceExists`/`moveSource` state that caused the current race.\n\nRegarding active persistence: no, the current implementation does not swap in a fresh pending map.\n\nIt currently works like this:\n\n1. Copy the current map values into an array called `pendingChanges`.\n2. Leave those entries in the live map.\n3. Start persisting the copied array.\n4. New changes continue writing into the same map.\n5. After persistence, look up each copied entry in the live map.\n6. If the live value is the exact same object reference, delete it.\n7. If it is a different object, assume a newer change replaced it and retain/re-key it.\n\nSo this is a compare-and-remove mechanism based on object-reference equality and path keys. Your concern is justified: it is difficult to reason about, particularly when paths change.\n\nA clearer design is the one you described:\n\n1. Move the current pending map into `activeBatch`.\n2. Immediately replace it with a new empty pending map.\n3. Persist `activeBatch`.\n4. Every new change goes only into the new pending map.\n5. On success, discard `activeBatch`.\n6. On failure, merge its entries back, without replacing newer entries for the same domain ID.\n7. If an active operation changed a path, update the newer pending entry’s `sourcePath` to the successfully persisted path.\n\nThat final metadata update is still necessary when a label changes twice during an active rename:\n\n```text\naction:123  old.json → first-label.json    active\naction:123  old.json → second-label.json   newly pending\n```\n\nAfter the active move succeeds, the pending entry must become:\n\n```text\naction:123  first-label.json → second-label.json\n```\n\nThis is not changing or upgrading identity; it only records where the same action now exists.\n\nThis combination is substantially cleaner:\n\n- Stable domain ID keys.\n- Explicit change kinds.\n- Source and target paths as metadata.\n- Active and pending maps separated.\n- Missing move source means “write target”.\n- Newer changes win when a failed active batch is merged back.\n\n",
+          "id": "agent-turn-1546b439-6742-429d-9096-8ae7493fbc80-turn-5-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 157,
+          "timestamp": "2026-08-29T14:27:03.098Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -2021,23 +2174,23 @@
           "agent": "codex",
           "conversationId": "01a04da8-2751-7231-9b92-f59b85898112",
           "createdAt": "2026-08-29T13:20:38.270Z",
-          "lastUsedAt": "2026-08-29T13:54:07.234Z",
-          "synchronizedThroughMessageId": "agent-turn-1546b439-6742-429d-9096-8ae7493fbc80-turn-3-assistant-2"
+          "lastUsedAt": "2026-08-29T14:19:00.172Z",
+          "synchronizedThroughMessageId": "agent-turn-1546b439-6742-429d-9096-8ae7493fbc80-turn-4-assistant-1"
         }
       ],
       "startedAt": "2026-08-29T13:14:19.037Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 732109,
-        "runningStartedAt": "2026-08-29T14:18:27.772Z"
+        "elapsedMs": 764509,
+        "runningStartedAt": "2026-08-29T14:25:43.367Z"
       },
       "title": "+",
       "usage": {
-        "cachedInputTokens": 4772864,
-        "inputTokens": 261548,
-        "outputTokens": 11907,
-        "reasoningTokens": 13441,
-        "totalTokens": 5059760
+        "cachedInputTokens": 5333248,
+        "inputTokens": 269585,
+        "outputTokens": 13208,
+        "reasoningTokens": 14643,
+        "totalTokens": 5630684
       },
       "usageSchemaVersion": 1,
       "viewed": true
