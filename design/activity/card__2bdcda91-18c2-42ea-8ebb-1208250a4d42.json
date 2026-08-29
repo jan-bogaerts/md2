@@ -750,7 +750,7 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "2bdcda91-18c2-42ea-8ebb-1208250a4d42",
       "cardPath": "design/feature_descriptions/F_223_collaps_failed_tool_calls.md",
-      "completedAt": null,
+      "completedAt": "2026-08-29T12:43:42.633Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 83687
@@ -1787,7 +1787,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 81,
-          "timestamp": "2026-08-29T12:43:42.239Z"
+          "timestamp": "2026-08-29T12:43:42.633Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1797,15 +1797,15 @@
           "agent": "codex",
           "conversationId": "01a0447a-0b09-7b80-a858-588e0577112a",
           "createdAt": "2026-08-27T18:28:59.061Z",
-          "lastUsedAt": "2026-08-27T18:28:59.061Z",
-          "synchronizedThroughMessageId": "agent-turn-578728e5-cff9-4944-95fa-60ff2e8167cd-turn-1-assistant-4"
+          "lastUsedAt": "2026-08-29T12:43:42.633Z",
+          "synchronizedThroughMessageId": "agent-turn-6eb0cb9c-78a0-4c90-9e20-04855be2b8fd-turn-1-assistant-7"
         }
       ],
       "startedAt": "2026-08-27T18:27:23.347Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 95714,
-        "runningStartedAt": "2026-08-29T12:36:33.445Z"
+        "elapsedMs": 524902,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usage": {
