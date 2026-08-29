@@ -28,6 +28,7 @@ export interface ActionPopupContentProps {
     readOnlyMessage: string | null
     stackPosition?: number
     target: string | null
+    targetTitle?: string | null
     titleId: string
 }
 

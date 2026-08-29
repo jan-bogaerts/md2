@@ -13,13 +13,19 @@ import { resolveInitialActionId, type PersistedActionStates } from './action_pop
 
 export { CARD_RUN_POPUP_SIZE_STORAGE_KEY, PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY } from './action_popup_content'
 
+/**
+ * Badge id plus the title shown in its tooltip. The title comes from the live snapshot so it
+ * follows a card renamed while the popup stays open, and falls back to the title captured in the
+ * context when the card is not in the snapshot.
+ */
 function resolvePopupTarget(context: ActionContext, snapshot: ReturnType<typeof useProjectState>['snapshot']) {
-    if (context.kind === 'project') return 'Project'
-    if (context.kind !== 'card') return null
+    if (context.kind === 'project') return { id: 'Project', title: null }
+    if (context.kind !== 'card') return { id: null, title: null }
 
     const cards = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]
+    const card = cards.find(({ header }) => header.internalId === context.cardInternalId)
 
-    return cards.find(({ header }) => header.internalId === context.cardInternalId)?.header.id ?? null
+    return { id: card?.header.id ?? null, title: card?.header.title ?? context.title ?? null }
 }
 
 function resolveCardInternalId(context: ActionContext, snapshot: ReturnType<typeof useProjectState>['snapshot']) {
@@ -87,7 +93,7 @@ export function ActionPopup(props: ActionPopupProps) {
     const selectableActions = selectedAction && !actions.some(({ id }) => id === selectedAction.id)
         ? [...actions, selectedAction]
         : actions
-    const target = resolvePopupTarget(context, snapshot)
+    const { id: target, title: targetTitle } = resolvePopupTarget(context, snapshot)
     const releasesFolder = dataService.getConfig()?.releasesFolder
     const readOnlyMessage = releasesFolder && isReleasedCardActionContext(effectiveContext, releasesFolder)
         ? RELEASED_CARD_RUN_MESSAGE
@@ -122,6 +128,7 @@ export function ActionPopup(props: ActionPopupProps) {
             primaryPath={project?.rootPath ?? project?.id ?? null}
             readOnlyMessage={readOnlyMessage}
             target={target}
+            targetTitle={targetTitle}
             titleId={titleId}
         />
     )

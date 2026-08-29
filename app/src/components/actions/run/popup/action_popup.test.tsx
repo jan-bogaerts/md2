@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ActionContext } from '../../../../data/action_context'
 import type { ActionRunEvent, ActionStartRequest } from '../../../../data/action_run_types'
 import { CUSTOM_PROMPT_ACTION_ID, type ActionFile } from '../../../../data/action_types'
-import type { AgentConversation, ProjectReference, StorageService, WorktreeRecord } from '../../../../data/data_types'
+import type { AgentConversation, Card, ProjectReference, StorageService, WorktreeRecord } from '../../../../data/data_types'
 import type { AgentSelectionState } from '../../../../data/agent_selection'
 import { actionService } from '../../../../services/actions/action_service'
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
@@ -2670,5 +2670,129 @@ describe('ActionPopup', () => {
 
         expect(onClose).toHaveBeenCalledOnce()
         expect(consoleError).not.toHaveBeenCalled()
+    })
+
+    describe('ActionPopup card id badge tooltip', () => {
+        function snapshotCard(id: string, internalId: string, title: string): Card {
+            return {
+                agentConversationErrors: [],
+                agentConversations: [],
+                content: '',
+                header: {
+                    affects: [], after: null, agentLogReferences: [], author: null, changedFiles: [], id, internalId,
+                    owner: null, policy: {}, references: [], status: 'design', title,
+                },
+                hasFrontmatter: true,
+                isActive: true,
+                path: `design/${id}.md`,
+            }
+        }
+
+        function mockSnapshotCards(cards: Card[]) {
+            vi.spyOn(dataService, 'getState').mockReturnValue({
+                project,
+                runningAgents: [],
+                snapshot: { activeCards: cards, backgroundCards: [], repositoryFiles: [], workingFolder: 'design' },
+            })
+        }
+
+        function renderDraggablePopup(contextOverride: ActionContext) {
+            render(
+                <AppThemeProvider>
+                    <ActionPopup anchorElement={document.body} context={contextOverride} draggable onClose={vi.fn()} />
+                </AppThemeProvider>,
+            )
+        }
+
+        function badge(id: string) {
+            return within(screen.getByTestId('action-popup-toolbar')).getByText(id)
+        }
+
+        it('shows the card title in a tooltip when the id badge is hovered', async () => {
+            mockSnapshotCards([snapshotCard('F-010', 'card-1', 'Improve the popup')])
+
+            renderPopup({ ...context, cardInternalId: 'card-1' })
+            fireEvent.mouseOver(badge('F-010'))
+
+            expect(await screen.findByText('Improve the popup', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()
+        })
+
+        // jsdom never reports :focus-visible for a focused span, so MUI's focus trigger cannot open the
+
+        // tooltip here. What is testable is the part this feature added: the badge is keyboard reachable
+
+        // and carries the Tooltip's focus handler, which is what makes the tooltip open in a browser.
+
+        it('makes the badge keyboard reachable so the tooltip has a focus trigger', async () => {
+
+            mockSnapshotCards([snapshotCard('F-010', 'card-1', 'Improve the popup')])
+
+
+            renderPopup({ ...context, cardInternalId: 'card-1' })
+
+            const element = badge('F-010')
+
+            expect(element).toHaveAttribute('tabindex', '0')
+
+
+            await userEvent.tab()
+
+
+            expect(element).toHaveFocus()
+
+        })
+
+        it('follows a title changed in the snapshot while the popup stays open', async () => {
+            mockSnapshotCards([snapshotCard('F-010', 'card-1', 'Original title')])
+
+            renderPopup({ ...context, cardInternalId: 'card-1' })
+            fireEvent.mouseOver(badge('F-010'))
+            expect(await screen.findByText('Original title', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()
+
+            mockSnapshotCards([snapshotCard('F-010', 'card-1', 'Renamed by the run')])
+            act(() => {
+                dataService.dispatchEvent(new CustomEvent('changed', { detail: dataService.getState() }))
+            })
+
+            expect(await screen.findByText('Renamed by the run', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()
+            expect(screen.queryByText('Original title', { selector: '.MuiTooltip-tooltip' })).not.toBeInTheDocument()
+        })
+
+        it('still drags the popup when the pointer press starts on the id badge', () => {
+            mockSnapshotCards([snapshotCard('F-010', 'card-1', 'Improve the popup')])
+
+            renderDraggablePopup({ ...context, cardInternalId: 'card-1' })
+            const dialog = screen.getByRole('dialog')
+            expect(dialog.style.position).not.toBe('fixed')
+
+            fireEvent.pointerDown(badge('F-010'), { clientX: 100, clientY: 100 })
+            fireEvent.pointerMove(window, { clientX: 140, clientY: 130 })
+
+            expect(dialog.style.position).toBe('fixed')
+            expect(dialog.style.left).toBe('40px')
+            expect(dialog.style.top).toBe('30px')
+            fireEvent.pointerUp(window)
+        })
+
+        it('shows no tooltip for the Project badge', async () => {
+            renderPopup({ kind: 'project' })
+            fireEvent.mouseOver(badge('Project'))
+
+            await waitFor(() => expect(document.querySelectorAll('.MuiTooltip-tooltip')).toHaveLength(0))
+        })
+
+        it('shows no tooltip for a card with an empty title or absent from the snapshot', async () => {
+            mockSnapshotCards([snapshotCard('F-010', 'card-1', '')])
+
+            renderPopup({ ...context, cardInternalId: 'card-1' })
+            fireEvent.mouseOver(badge('F-010'))
+            await waitFor(() => expect(document.querySelectorAll('.MuiTooltip-tooltip')).toHaveLength(0))
+
+            cleanup()
+            mockSnapshotCards([snapshotCard('F-020', 'card-2', 'Another card')])
+            renderPopup({ ...context, cardInternalId: 'card-1' })
+
+            expect(within(screen.getByTestId('action-popup-toolbar')).queryByText('F-010')).not.toBeInTheDocument()
+        })
     })
 })
