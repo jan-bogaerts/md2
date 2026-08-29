@@ -27,5 +27,8 @@ policy:
 * Action popup is like project popup, with floating fab button
   * Closes automatically when diagram is ready.&#x20;
   * If existing diagram can be loaded in breadcrumb, by clicking on svg and upon load, action popup remains closed
-* when user clicks on a clickable array in the svg (an object or connection), a context menu opens containing all the child diagram-actions that can be run on this item and all the diagrams that have already been rendered for this label
-  when user clicks on a menu item, either the action popup opens with the selected diagram-action enabled or the diagram is shown & breadcrumb is added to breadcrumb path
+* when user clicks on a clickable array in the svg (an object or connection), a context menu opens:
+  * containing all the child diagram-actions that can be run on this item and all the diagrams that have already been rendered for this label
+  * when user clicks on a menu item:
+    * either the action popup opens with the selected diagram-action enabled and the input contains prompt where placeholders have been replaced.
+    * or the diagram is shown & breadcrumb is added to breadcrumb path.
