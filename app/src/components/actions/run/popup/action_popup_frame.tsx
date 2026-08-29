@@ -7,6 +7,7 @@ import type { ActionContext } from '../../../../data/action_context'
 import { ResizablePopper } from '../../../resizable_popper'
 import type { WorktreeAssignmentTarget } from '../../../worktree_selector'
 import { MarkdownTypeaheadLayerProvider } from '../../../editor/markdown_typeahead_layer_provider'
+import { NO_DRAG_REGION } from '../../../shell/drag_region'
 import { ActionConversationPickerOwner } from '../../conversation/action_conversation_picker_owner'
 import type { ActionConversationStore } from '../../conversation/action_conversation_store'
 import type { ActionRunBindingStore } from '../state/action_run_binding_store'
@@ -75,6 +76,7 @@ export function ActionPopupFrame({ bindingStore, children, contentProps, convers
     return (
         <ResizablePopper
             anchorElement={anchorElement}
+            bottomInset={0}
             draggable={isMobile ? false : draggable}
             fullHeight={isMobile || fullHeight}
             initialSize={{ height: 450, width: 400 }}
@@ -83,6 +85,7 @@ export function ActionPopupFrame({ bindingStore, children, contentProps, convers
             onClose={onClose}
             open={open}
             paperSx={{
+                ...NO_DRAG_REGION,
                 bgcolor: 'background.paper',
                 border: 1,
                 borderColor: 'divider',

@@ -35,6 +35,7 @@ import {
 import { MarkdownTypeaheadLayerProvider } from '../editor/markdown_typeahead_layer_provider'
 import { useProjectReadOnly } from '../hooks/use_project_read_only'
 import { CardStateSelector } from './card_state_selector'
+import { NO_DRAG_REGION } from '../shell/drag_region'
 
 const CARD_BODY_POPOVER_WIDTH = 760
 const CARD_BODY_POPOVER_HEIGHT = 620
@@ -261,12 +262,13 @@ function CardBodyPopoverEntry(props: CardBodyPopoverEntryProps) {
     const runningRun = useRunningActionForContext(actionContext)
     const statusLabel = runningRun ? 'Running' : 'Idle'
     const fullscreenSize = `calc(100vw - ${POPOVER_SIDE_MARGIN * 2}px)`
-    const fullscreenHeight = `calc(100vh - ${POPOVER_TOP_MARGIN + POPOVER_SIDE_MARGIN}px)`
+    const fullscreenHeight = `calc(100vh - ${POPOVER_TOP_MARGIN}px)`
 
     return (
         <>
             <ResizablePopper
                 anchorElement={anchorElement}
+                bottomInset={0}
                 constrainSizeToViewport
                 draggable={!isMobile && !isFullscreen}
                 fullHeight={isMobile}
@@ -276,6 +278,7 @@ function CardBodyPopoverEntry(props: CardBodyPopoverEntryProps) {
                 onClose={handlePopoverClose}
                 open={visible && !!card && !!anchorElement}
                 paperSx={{
+                    ...NO_DRAG_REGION,
                     backgroundColor: 'background.paper',
                     border: '1px solid',
                     borderColor: 'divider',

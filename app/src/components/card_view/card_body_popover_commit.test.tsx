@@ -44,7 +44,18 @@ vi.mock('./card_commit_diff_panel', () => ({
 }))
 
 vi.mock('./card_body_save_status', () => ({ CardBodySaveStatus: () => null }))
-vi.mock('./card_body_editor', () => ({ CardBodyEditor: () => <div aria-label="Live card editor" /> }))
+vi.mock('./card_body_editor', () => ({
+    CardBodyEditor: ({ isFullscreen, onToggleFullscreen }: { isFullscreen: boolean, onToggleFullscreen: () => void }) => (
+        <>
+            <div aria-label="Live card editor" />
+            <button onClick={onToggleFullscreen} type="button">{isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}</button>
+        </>
+    ),
+}))
+
+function appRegion(element: HTMLElement) {
+    return (element.style as unknown as Record<string, string>).WebkitAppRegion
+}
 
 const card: Card = {
     agentConversationErrors: [],
@@ -219,9 +230,36 @@ describe('CardBodyPopover commit diff', () => {
         )
         const dialog = screen.getByRole('dialog', { name: 'F-060 card details' })
 
-        expect(dialog).toHaveStyle({ height: '700px', width: '800px' })
+        expect(dialog).toHaveStyle({ height: '700px', maxHeight: 'calc(100vh - 16px)', width: '800px' })
+        expect(appRegion(dialog)).toBe('no-drag')
         expect(dialog.querySelector('[data-drag-handle="true"]')).not.toBeNull()
         expect(within(dialog).getAllByRole('separator', { name: /Resize card details popup from/u })).toHaveLength(8)
+    })
+
+    it('keeps its desktop top inset and reaches the bottom in fullscreen', () => {
+        const anchorElement = document.body.appendChild(document.createElement('button'))
+        cardPopupService.toggleCardDetails(card.header.internalId!, anchorElement)
+        render(
+            <AppThemeProvider>
+                <CardBodyPopover
+                    cardTypes={DEFAULT_CARD_TYPES}
+                    isMobile={false}
+                    onDeleteCard={vi.fn(async () => undefined)}
+                    onOpenAffects={vi.fn()}
+                    onOpenInFileMode={vi.fn()}
+                    states={states}
+                    statusColors={new Map()}
+                    visible
+                />
+            </AppThemeProvider>,
+        )
+        const dialog = screen.getByRole('dialog', { name: 'F-060 card details' })
+
+        fireEvent.click(within(dialog).getByRole('button', { name: 'Fullscreen' }))
+
+        expect(dialog).toHaveStyle({ height: 'calc(100vh - 60px)', top: '60px' })
+        expect(appRegion(dialog)).toBe('no-drag')
+        expect(within(dialog).getByRole('button', { name: 'Exit fullscreen' })).toBeInTheDocument()
     })
 
     it('keeps the board document bound when refreshed card data retains its identity', () => {

@@ -23,6 +23,7 @@ interface PopperPosition {
 
 interface ResizablePopperBaseProps {
     anchorElement: HTMLElement | null
+    bottomInset?: number
     children: ReactNode
     constrainSizeToViewport?: boolean
     draggable?: boolean
@@ -69,16 +70,26 @@ const ALL_RESIZE_DIRECTIONS = ['top', 'right', 'bottom', 'left', 'top-right', 'b
 type ResizeDirection = typeof ALL_RESIZE_DIRECTIONS[number]
 const FULL_HEIGHT_RESIZE_DIRECTIONS: ResizeDirection[] = ['left', 'right']
 
-const PREVENT_VIEWPORT_OVERFLOW_MODIFIER = { name: 'preventOverflow', options: { altAxis: true, padding: VIEWPORT_MARGIN, tether: false } } as const
-const VIEWPORT_MODIFIERS: NonNullable<PopperProps['modifiers']> = [
-    PREVENT_VIEWPORT_OVERFLOW_MODIFIER,
-    { name: 'flip', options: { padding: VIEWPORT_MARGIN } },
-]
-const FULL_HEIGHT_VIEWPORT_MODIFIERS: NonNullable<PopperProps['modifiers']> = [PREVENT_VIEWPORT_OVERFLOW_MODIFIER]
+const FLIP_VIEWPORT_MODIFIER = { name: 'flip', options: { padding: VIEWPORT_MARGIN } } as const
 const VIEWPORT_POPPER_OPTIONS: NonNullable<PopperProps['popperOptions']> = { strategy: 'fixed' }
 
-function clampSizeToViewport(size: PopperSize, minimumSize: MinimumPopperSize) {
-    const maximumHeight = Math.max(0, window.innerHeight - VIEWPORT_MARGIN * 2)
+function buildViewportModifiers(bottomInset: number) {
+    const preventViewportOverflowModifier = {
+        name: 'preventOverflow',
+        options: {
+            altAxis: true,
+            padding: { bottom: bottomInset, left: VIEWPORT_MARGIN, right: VIEWPORT_MARGIN, top: VIEWPORT_MARGIN },
+            tether: false,
+        },
+    } as const
+    const viewportModifiers: NonNullable<PopperProps['modifiers']> = [preventViewportOverflowModifier, FLIP_VIEWPORT_MODIFIER]
+    const fullHeightViewportModifiers: NonNullable<PopperProps['modifiers']> = [preventViewportOverflowModifier]
+
+    return { fullHeightViewportModifiers, viewportModifiers }
+}
+
+function clampSizeToViewport(size: PopperSize, minimumSize: MinimumPopperSize, bottomInset: number) {
+    const maximumHeight = Math.max(0, window.innerHeight - VIEWPORT_MARGIN - bottomInset)
     const maximumWidth = Math.max(0, window.innerWidth - VIEWPORT_MARGIN * 2)
     const minimumHeight = Math.min(minimumSize.height, maximumHeight)
     const minimumWidth = Math.min(minimumSize.width, maximumWidth)
@@ -93,6 +104,7 @@ function loadSize(
     initialSize: PopperSize,
     minimumSize: MinimumPopperSize,
     constrainSizeToViewport: boolean,
+    bottomInset: number,
     storageKey?: string,
 ): PopperSize {
     if (!storageKey) return initialSize
@@ -109,7 +121,7 @@ function loadSize(
             width: Math.max(minimumSize.width, storedSize.width as number),
         }
 
-        return constrainSizeToViewport ? clampSizeToViewport(size, minimumSize) : size
+        return constrainSizeToViewport ? clampSizeToViewport(size, minimumSize, bottomInset) : size
     } catch {
         return initialSize
     }
@@ -158,10 +170,20 @@ function centeredPosition(size: PopperSize): PopperPosition {
     }
 }
 
+function extractAppRegionStyle(paperSx?: SxProps<Theme>): CSSProperties {
+    if (!paperSx || typeof paperSx !== 'object' || Array.isArray(paperSx)) return {}
+
+    const webkitAppRegion = (paperSx as Record<string, unknown>).WebkitAppRegion
+    if (typeof webkitAppRegion !== 'string') return {}
+
+    return { WebkitAppRegion: webkitAppRegion } as CSSProperties
+}
+
 /** A non-modal anchored surface with configurable drag handles for resizing its content. */
 export function ResizablePopper(props: ResizablePopperProps) {
     const {
         anchorElement,
+        bottomInset = VIEWPORT_MARGIN,
         children,
         closeOnEscape = true,
         constrainSizeToViewport = false,
@@ -185,7 +207,7 @@ export function ResizablePopper(props: ResizablePopperProps) {
         storageKey,
     } = props
     const focusOnMount = focusOnMountProp ?? stackPosition !== undefined
-    const [size, setSize] = useState(() => loadSize(initialSize, minimumSize, constrainSizeToViewport, storageKey))
+    const [size, setSize] = useState(() => loadSize(initialSize, minimumSize, constrainSizeToViewport, bottomInset, storageKey))
     const [position, setPosition] = useState<PopperPosition | null>(() => draggable && !anchorElement ? centeredPosition(size) : null)
     const [detachedLeft, setDetachedLeft] = useState<number | null>(null)
     const anchoredLeftRef = useRef<number | null>(null)
@@ -194,6 +216,10 @@ export function ResizablePopper(props: ResizablePopperProps) {
     const paperRef = useRef<HTMLDivElement | null>(null)
     const resizeRef = useRef<AbortController | null>(null)
     const theme = useTheme()
+    const { fullHeightViewportModifiers, viewportModifiers } = useMemo(
+        () => buildViewportModifiers(bottomInset),
+        [bottomInset],
+    )
     const overlayTheme = useMemo<Theme>(() => ({
         ...theme,
         zIndex: {
@@ -353,7 +379,7 @@ export function ResizablePopper(props: ResizablePopperProps) {
                     ),
                 }
                 const { height, width } = constrainSizeToViewport
-                    ? clampSizeToViewport(nextSize, minimumSize)
+                    ? clampSizeToViewport(nextSize, minimumSize, bottomInset)
                     : nextSize
 
                 completedSize = { height, width }
@@ -376,17 +402,18 @@ export function ResizablePopper(props: ResizablePopperProps) {
         }
     }
 
+    const appRegionStyle = extractAppRegionStyle(paperSx)
     const paperStyle: CSSProperties = fullHeight
-        ? { height: '100vh', left: detachedLeft ?? 0, position: 'fixed', top: 0, width: size.width }
+        ? { ...appRegionStyle, height: '100vh', left: detachedLeft ?? 0, position: 'fixed', top: 0, width: size.width }
         : position
-            ? { ...size, left: position.left, position: 'fixed', top: position.top }
-            : size
+            ? { ...appRegionStyle, ...size, left: position.left, position: 'fixed', top: position.top }
+            : { ...appRegionStyle, ...size }
     const detached = position !== null || fullHeight
 
     return (
         <Popper
             anchorEl={anchorElement ?? (draggable ? document.body : null)}
-            modifiers={fullHeight ? FULL_HEIGHT_VIEWPORT_MODIFIERS : VIEWPORT_MODIFIERS}
+            modifiers={fullHeight ? fullHeightViewportModifiers : viewportModifiers}
             open={open}
             placement={placement}
             popperOptions={VIEWPORT_POPPER_OPTIONS}
@@ -410,7 +437,7 @@ export function ResizablePopper(props: ResizablePopperProps) {
                 tabIndex={stackPosition === undefined ? undefined : -1}
                 sx={[{
                     display: 'flex',
-                    maxHeight: fullHeight ? '100vh' : 'calc(100vh - 32px)',
+                    maxHeight: fullHeight ? '100vh' : `calc(100vh - ${VIEWPORT_MARGIN + bottomInset}px)`,
                     maxWidth: fullHeight ? '100vw' : 'calc(100vw - 32px)',
                     overflow: 'hidden',
                     position: 'relative',

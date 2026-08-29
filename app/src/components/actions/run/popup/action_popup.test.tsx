@@ -37,6 +37,10 @@ const renderProbes = vi.hoisted(() => ({
     selector: vi.fn(),
 }))
 
+function appRegion(element: HTMLElement) {
+    return (element.style as unknown as Record<string, string>).WebkitAppRegion
+}
+
 vi.mock('../../agent/action_agent_prompt', async (importOriginal) => {
     const actual = await importOriginal<typeof import('../../agent/action_agent_prompt')>()
 
@@ -2671,6 +2675,16 @@ describe('ActionPopup', () => {
         expect(screen.getByRole('dialog')).toHaveStyle({ height: '450px', width: '400px' })
     })
 
+    it('keeps desktop popup controls outside the window drag region and reaches the bottom edge', () => {
+        renderPopup()
+
+        const dialog = screen.getByRole('dialog')
+        expect(appRegion(dialog)).toBe('no-drag')
+        expect(dialog).toHaveStyle({ maxHeight: 'calc(100vh - 16px)' })
+        expect(screen.getByRole('button', { name: 'Expand upward' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument()
+    })
+
     it('uses a full-screen mobile card layout without desktop controls or size persistence', () => {
         setMobileBreakpoint(true)
         const storedSize = JSON.stringify({ height: 640, width: 720 })
@@ -2720,7 +2734,8 @@ describe('ActionPopup', () => {
         const dialog = screen.getByRole('dialog')
 
         fireEvent.click(screen.getByRole('button', { name: 'Expand upward' }))
-        expect(dialog.style.height).toBe('100vh')
+        expect(dialog).toHaveStyle({ height: '100vh', top: '0px' })
+        expect(appRegion(dialog)).toBe('no-drag')
         const leftResizeHandle = screen.getByRole('separator', { name: 'Resize action popup from left' })
         const rightResizeHandle = screen.getByRole('separator', { name: 'Resize action popup from right' })
         expect(leftResizeHandle).toHaveStyle({ cursor: 'ew-resize' })
