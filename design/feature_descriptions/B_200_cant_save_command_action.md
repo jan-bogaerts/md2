@@ -44,6 +44,7 @@ changedFiles:
   - app/src/services/project/project_loading.test.ts
   - design/architecture/data_saving_and_commits.md
   - design/feature_descriptions/B_201_commit_batcher_domain_identity_and_active_pending_batches.md
+  - design/feature_descriptions/B_201_expected_persistence_outcomes_for_watcher_echoes.md
   - desktop/src/project/project_files.js
   - desktop/src/project/project_files.test.mjs
 branch: b_200_cant_save_command_action
