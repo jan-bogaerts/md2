@@ -2665,6 +2665,44 @@
       "startedAt": "2026-08-29T12:36:40.489Z",
       "status": "completed",
       "rootConversationId": "agent-6e81914c-6159-4a60-a74e-321d3ac555dd"
+    },
+    {
+      "commits": [
+        {
+          "commit": "83b28e739139b3b8696b6fe730a81dd77ebf7401",
+          "committedAt": "2026-08-29T14:58:10+02:00",
+          "deletions": 23,
+          "filePaths": [
+            "app/src/components/actions/run/popup/action_popup.tsx",
+            "app/src/components/actions/run/popup/action_popup_content.tsx",
+            "app/src/components/actions/run/popup/action_popup_initial_action.node.test.ts",
+            "app/src/components/actions/run/popup/action_popup_runtime.node.test.ts",
+            "app/src/components/actions/run/popup/action_popup_runtime.ts",
+            "app/src/components/actions/run/popup/action_popup_types.ts",
+            "app/src/components/actions/run/popup/card_action_popup_host_entry.test.tsx",
+            "app/src/components/actions/run/popup/card_action_popup_host_entry.tsx",
+            "app/src/components/merge_conflict_dialog.test.tsx",
+            "app/src/components/shell/running_agent_details_row.tsx",
+            "app/src/components/shell/running_agents_details.tsx",
+            "app/src/components/shell/running_agents_indicator.test.tsx",
+            "app/src/components/shell/running_agents_indicator.tsx",
+            "app/src/services/actions/action_run_registry.node.test.ts",
+            "app/src/services/actions/action_run_registry.ts",
+            "app/src/services/card_popup_service.test.ts",
+            "app/src/services/card_popup_service.ts"
+          ],
+          "filesChanged": 17,
+          "insertions": 377,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-29T14:58:10+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "06a8af54-38c9-4b9b-a9a4-bbdf563f036b",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
