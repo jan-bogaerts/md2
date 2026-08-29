@@ -3,7 +3,7 @@ author:
 id: B_184
 internalId: 8a886351-0de3-4d2e-bcab-9865c8fdeced
 title: Error: Error invoking remote method 'md2-local-bridge:invoke': Error: Working folder is missing: design/feature_descriptions
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -15,12 +15,36 @@ sentryOrganization: elastetic
 branch: b_184_error_error_invoking_remote_method_md2_local_bridge_invoke_error_working_folder_is_missing_design_feature_descriptions
 worktree: 2
 changedFiles:
+  - app/src/App.test.tsx
+  - app/src/app.tsx
+  - app/src/app/use_app_bootstrap.test.ts
+  - app/src/components/project_workspace.test.tsx
+  - app/src/components/shell/main_window.test.tsx
+  - app/src/components/shell/main_window.tsx
+  - app/src/components/shell/menu/app_menu.test.tsx
+  - app/src/components/shell/menu/app_menu.tsx
+  - app/src/components/shell/project/project_dialogs.test.tsx
+  - app/src/components/shell/project/project_folder_setup_fields.tsx
   - app/src/components/shell/project/project_folder_setup_form.tsx
+  - app/src/components/shell/project/project_open_dialog.tsx
+  - app/src/components/shell/project/use_project_toolbar_menu_actions.ts
   - app/src/data/bridge_error_rehydration.node.test.ts
   - app/src/data/bridge_error_rehydration.ts
+  - app/src/data/data_types.ts
+  - app/src/data/electron_data_bridge.ts
+  - app/src/data/repository_relative_path.node.test.ts
   - app/src/data/repository_relative_path.ts
+  - app/src/services/application_startup_service.ts
+  - app/src/services/github/github_storage_writer.ts
+  - app/src/services/project/project_loading.ts
+  - app/src/services/project/project_session_service.test.ts
+  - app/src/services/project/project_session_service.ts
+  - desktop/src/project/project_files.js
+  - desktop/src/project/project_folder_creation.js
+  - desktop/src/project/project_folder_creation.test.mjs
   - desktop/src/shell/bridge_invoke.js
   - desktop/src/shell/bridge_invoke.test.mjs
+  - desktop/src/shell/local_bridge_dispatch.test.mjs
   - shared/bridge_errors.d.mts
   - shared/bridge_errors.mjs
   - tmp_block4.py
