@@ -3,7 +3,7 @@ author:
 id: B_184
 internalId: 8a886351-0de3-4d2e-bcab-9865c8fdeced
 title: Error: Error invoking remote method 'md2-local-bridge:invoke': Error: Working folder is missing: design/feature_descriptions
-status: new
+status: design
 owner: 
 affects:
 agents:
@@ -11,7 +11,6 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 142417859
 sentryOrganization: elastetic
-after: 1fbd0445-1242-4578-b231-6b4eab1fab01
 ---
 ## Sentry issue
 
