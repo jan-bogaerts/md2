@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 3509c194-adbf-4e1c-ad64-6aa9560354b4
 ---
 * Add toggle to app menu bar, before stats-view toggle. When clicked, shows diagram view
 * Diagram view shows:
