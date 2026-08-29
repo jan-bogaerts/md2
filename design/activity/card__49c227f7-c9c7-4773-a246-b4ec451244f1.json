@@ -8543,11 +8543,11 @@
         "agent-3d734bb5-f97f-407e-a90d-c83672f8478b"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-5629c801-59e9-4e07-9d81-34a67e4173dd",
       "origin": {
@@ -8556,9 +8556,65 @@
       },
       "rootActionId": "32eceaf6-37d1-48b4-9bc1-c3f051eb7d8e",
       "rootActionLabel": "review",
-      "rootConversationId": "agent-3d734bb5-f97f-407e-a90d-c83672f8478b",
       "startedAt": "2026-08-29T15:44:33.413Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-3d734bb5-f97f-407e-a90d-c83672f8478b"
+    },
+    {
+      "commits": [
+        {
+          "commit": "63ad3db008c58ca2f7b6e642e93ed74c2c5902db",
+          "committedAt": "2026-08-29T17:48:25+02:00",
+          "deletions": 603,
+          "filePaths": [
+            "app/src/components/actions/editor/action_definition_fields.test.tsx",
+            "app/src/components/actions/editor/action_definition_fields.tsx",
+            "app/src/components/actions/editor/action_editor.real.test.tsx",
+            "app/src/components/actions/editor/action_editor.test.tsx",
+            "app/src/components/actions/editor/action_editor_content.tsx",
+            "app/src/components/actions/editor/use_action_editor_controller.test.ts",
+            "app/src/components/actions/editor/use_action_editor_controller.ts",
+            "app/src/components/editor/action_markdown_data_source.node.test.ts",
+            "app/src/components/editor/action_markdown_data_source.ts",
+            "app/src/components/hooks/use_actions.test.ts",
+            "app/src/components/project_workspace.test.tsx",
+            "app/src/components/text_view/text_view.test.tsx",
+            "app/src/data/commit_batcher.test.ts",
+            "app/src/data/commit_batcher.ts",
+            "app/src/services/actions/action_draft_store.ts",
+            "app/src/services/actions/action_service.node.test.ts",
+            "app/src/services/actions/action_service.ts",
+            "app/src/services/actions/action_service_events.ts",
+            "app/src/services/actions/action_service_helpers.ts",
+            "app/src/services/data/card_internal_id_operations.ts",
+            "app/src/services/data/card_operation_context.ts",
+            "app/src/services/data/card_operations.ts",
+            "app/src/services/data/card_rename_operations.ts",
+            "app/src/services/data/data_service.test.ts",
+            "app/src/services/data/data_service.ts",
+            "app/src/services/data/remote_control_storage_service.node.test.ts",
+            "app/src/services/github/github_storage_write_operations.test.ts",
+            "app/src/services/github/github_storage_writer.ts",
+            "app/src/services/open_files_service.node.test.ts",
+            "app/src/services/open_files_service.ts",
+            "app/src/services/project/project_loading.test.ts",
+            "design/architecture/data_saving_and_commits.md",
+            "design/feature_descriptions/B_201_expected_persistence_outcomes_for_watcher_echoes.md",
+            "desktop/src/project/project_files.js",
+            "desktop/src/project/project_files.test.mjs"
+          ],
+          "filesChanged": 35,
+          "insertions": 957,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-29T17:48:25+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "49c227f7-c9c7-4773-a246-b4ec451244f1",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
