@@ -12,6 +12,8 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 142417859
 sentryOrganization: elastetic
+branch: b_184_error_error_invoking_remote_method_md2_local_bridge_invoke_error_working_folder_is_missing_design_feature_descriptions
+worktree: 2
 ---
 ## Sentry issue
 
