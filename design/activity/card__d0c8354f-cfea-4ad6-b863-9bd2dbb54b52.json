@@ -1,5 +1,20 @@
 {
-  "actionSettings": {},
+  "actionSettings": {
+    "47dafdc7-0be7-4d56-bb5a-07c813906416": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
+    }
+  },
   "conversations": [
     {
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
@@ -704,7 +719,194 @@
         "totalTokens": 862693
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
+    },
+    {
+      "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
+      "cardInternalId": "d0c8354f-cfea-4ad6-b863-9bd2dbb54b52",
+      "cardPath": "design/feature_descriptions/F_247_open_project_click_on_previous_selects.md",
+      "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 1000000,
+        "usedTokens": 39149
+      },
+      "entries": [
+        {
+          "content": "Read and implement the feature/job described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/F_247_open_project_click_on_previous_selects.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests.\n5. After implementation is done, update the field `status` in the markdown feature description file to \\`ready\\`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/F_247_open_project_click_on_previous_selects.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria.&#x20;\n\nYou should only run the related tests, do not run the entire test suite, that will be done manually later on.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill",
+          "id": "agent-turn-a42c4452-0dc9-4017-a961-78cb97f49903-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-08-29T14:27:27.517Z"
+        },
+        {
+          "agent": "claude",
+          "content": "I'll start by reading the feature description.",
+          "id": "agent-turn-a42c4452-0dc9-4017-a961-78cb97f49903-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 2,
+          "timestamp": "2026-08-29T14:27:31.089Z"
+        },
+        {
+          "command": "cat \"C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/F_247_open_project_click_on_previous_selects.md\"",
+          "content": "---\nauthor: \nid: F_247\ninternalId: d0c8354f-cfea-4ad6-b863-9bd2dbb54b52\ntitle: open project click on previous selects\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__d0c8354f-cfea-4ad6-b863-9bd2dbb54b52.json\npolicy:\nafter: 6ec1718f-1770-4446-92e5-c23a0c37da7d\n---\nWe have a list of previously opened projects in the `open project` dialog. When user clicks on a folder, it gets opened immediately. this is annoying. it should only select. user should still click on `open`\n\n## Current state\n\nIn desktop mode, local `Open project` shows up to five recent repository folders. `ProjectOpenDialog` stores chosen or typed path in `localRootPath` and renders it in `Local repository folder`.\n\nClicking recent-folder row currently sets `localRootPath` and immediately calls `onOpenLocal`. `useProjectToolbarMenuActions.openLocalProject` then trims path, resolves project through Electron bridge, and starts project-open flow. This bypasses explicit `Open Local` confirmation.\n\n`Open Local` already opens current `localRootPath`. Button stays disabled while path is empty or project load is active. Folder-picker behavior is separate and remains unchanged.\n\nHere, **select** means copying recent folder path into `Local repository folder`; it does not start project loading.\n\n## Implementation details\n\n* Change recent-folder click handler in `app/src/components/shell/project/project_open_dialog.tsx` to set `localRootPath` only. Remove direct `onOpenLocal` call from this handler.\n* Keep `Open Local` handler as sole submit path for typed or recent-folder values. Do not change path trimming, Electron resolution, project-open error handling, or successful-project history recording in `use_project_toolbar_menu_actions.ts`.\n* Keep missing `data-root-path` failure explicit. Do not add alternate path state or compatibility behavior.\n* Update existing local-folder dialog test in `project_dialogs.test.tsx`: recent-folder click fills input and does not call `onOpenLocal`; subsequent `Open Local` click calls it with selected path.\n\n## Acceptance criteria\n\n* Clicking recent folder copies its exact path into `Local repository folder` without resolving or opening project.\n* After recent folder is selected, `Open Local` is enabled when no load is active.\n* Clicking `Open Local` after selection calls local-open flow once with selected path.\n* Selecting recent folder does not reorder or persist recent-project history; history changes only after successful open.\n* Typed-path opening, folder picker, loading-state disabling, project setup resolutions, and local-open error reporting keep current behavior.",
+          "id": "agent-turn-a42c4452-0dc9-4017-a961-78cb97f49903-event-3",
+          "kind": "event",
+          "label": "cat \"C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/F_247_open_project_click_on_previous_selects.md\"",
+          "providerItemId": "toolu_01L4Tay3HTXLJBgJN98DKLwD",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-08-29T14:27:32.571Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -n \"onOpenLocal\\|localRootPath\\|data-root-path\\|recent\" app/src/components/shell/project/project_open_dialog.tsx",
+          "content": "52:    recentLocalRepositories: string[]\n64:    onOpenLocal: (rootPath: string) => Promise<void>\n115:        onOpenLocal,\n123:        recentLocalRepositories,\n128:    const [localRootPath, setLocalRootPath] = useState('')\n163:    const isLocalRootPathEmpty = localRootPath.trim().length === 0\n255:        void onOpenLocal(localRootPath)\n263:        void onOpenLocal(rootPath)\n413:                                value={localRootPath}\n415:                            {recentLocalRepositories.length > 0 ? (\n419:                                        {recentLocalRepositories.map((rootPath) => (\n421:                                                data-root-path={rootPath}\n481:                    <Button disabled={localRootPath.trim().length === 0 || isLoading} onClick={handleOpenLocalClick} variant=\"contained\">",
+          "id": "agent-turn-a42c4452-0dc9-4017-a961-78cb97f49903-event-4",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -n \"onOpenLocal\\|localRootPath\\|data-root-path\\|recent\" app/src/components/shell/project/project_open_dialog.tsx",
+          "providerItemId": "toolu_013qhB7ok5NkLCXssuCXjkod",
+          "sequence": 4,
+          "status": "completed",
+          "timestamp": "2026-08-29T14:27:34.923Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n 245,275p app/src/components/shell/project/project_open_dialog.tsx && echo ---- && sed -n 405,440p app/src/components/shell/project/project_open_dialog.tsx",
+          "content": "    const handleOpenGithubClick = () => {\n        void onOpenGithub(githubOwner, githubRepository, selectedBranch, source === 'public')\n    }\n\n    const handleChooseLocalFolderClick = () => {\n        void onChooseLocalFolder()\n    }\n\n    const handleOpenLocalClick = () => {\n        void onOpenLocal(localRootPath)\n    }\n\n    const handleRecentLocalRepositoryClick = (event: MouseEvent<HTMLDivElement>) => {\n        const rootPath = event.currentTarget.dataset.rootPath\n        if (!rootPath) throw new Error('Recent local repository path is missing')\n\n        setLocalRootPath(rootPath)\n        void onOpenLocal(rootPath)\n    }\n\n    const handleOpenRemoteClick = () => {\n        if (remoteEndpoint.length === 0 || remoteRootPath.length === 0) return\n\n        const project = onCreateRemoteProject(remoteRootPath, selectedBranch || 'main')\n        if (!project) return\n        void onOpenRemote(remoteEndpoint, project)\n    }\n\n    const handleProjectFolderChange = (value: string) => {\n        setProjectFolder(value)\n----\n                                }}\n                                sx={isLocalRootPathEmpty ? {\n                                    '& .MuiOutlinedInput-root': {\n                                        boxShadow: (theme) => `0 0 0 3px ${theme.palette.custom.primaryBg}`,\n                                        '& .MuiOutlinedInput-notchedOutline': { borderColor: 'primary.main' },\n                                        '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'primary.main' },\n                                    },\n                                } : undefined}\n                                value={localRootPath}\n                            />\n                            {recentLocalRepositories.length > 0 ? (\n                                <>\n                                    <Typography variant=\"subtitle2\">Recent folders</Typography>\n                                    <List dense disablePadding>\n                                        {recentLocalRepositories.map((rootPath) => (\n                                            <ListItemButton\n                                                data-root-path={rootPath}\n                                                key={rootPath.toLowerCase()}\n                                                onClick={handleRecentLocalRepositoryClick}\n                                            >\n                                                <ListItemText primary={rootPath} />\n                                            </ListItemButton>\n                                        ))}\n                                    </List>\n                                </>\n                            ) : null}\n                        </>\n                    ) : null}\n                    {!projectOpenResolution && (source === 'personal' || source === 'public') ? (\n                        branches.length > 0 ? (\n                            <FormControl size=\"small\">\n                                <InputLabel id=\"open-branch-label\">Branch</InputLabel>\n                                <Select label=\"Branch\" labelId=\"open-branch-label\" onChange={handleBranchChange} value={branchSelectValue}>\n                                    {branches.map(({ name }) => <MenuItem key={name} value={name}>{name}</MenuItem>)}\n                                </Select>\n                            </FormControl>",
+          "id": "agent-turn-a42c4452-0dc9-4017-a961-78cb97f49903-event-5",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n 245,275p app/src/components/shell/project/project_open_dialog.tsx && echo ---- && sed -n 405,440p app/src/components/shell/project/project_open_dialog.tsx",
+          "providerItemId": "toolu_013swzqAAERd9os9eW76RBU6",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-08-29T14:27:37.496Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && find . -name \"project_dialogs.test.tsx\" -not -path \"*/node_modules/*\" && grep -rn \"Recent folders\\|recentLocalRepositories\\|Open Local\" --include=*.tsx --include=*.ts app/src | grep -i test",
+          "content": "./app/src/components/shell/project/project_dialogs.test.tsx\napp/src/components/project_workspace.test.tsx:268:        expect(screen.queryByRole('button', { name: 'Open Local' })).toBeNull()\napp/src/components/shell/project/project_dialogs.test.tsx:56:        recentLocalRepositories: [],\napp/src/components/shell/project/project_dialogs.test.tsx:132:                recentLocalRepositories={[]}\napp/src/components/shell/project/project_dialogs.test.tsx:166:                recentLocalRepositories={[]}\napp/src/components/shell/project/project_dialogs.test.tsx:211:                recentLocalRepositories={[]}\napp/src/components/shell/project/project_dialogs.test.tsx:312:                recentLocalRepositories={['C:/recent']}\napp/src/components/shell/project/project_dialogs.test.tsx:325:        expect(screen.getByRole('button', { name: 'Open Local' })).toBeDisabled()\napp/src/components/shell/project/project_dialogs.test.tsx:332:        fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))\napp/src/components/shell/project/project_dialogs.test.tsx:364:                recentLocalRepositories={[]}\napp/src/components/shell/project/project_dialogs.test.tsx:372:        expect(screen.getByRole('button', { name: 'Open Local' })).toBeDisabled()\napp/src/components/shell/project/project_dialogs.test.tsx:402:                recentLocalRepositories={[]}\napp/src/components/shell/project/project_dialogs.test.tsx:444:                recentLocalRepositories={[]}\napp/src/components/shell/project/project_dialogs.test.tsx:485:                recentLocalRepositories={[]}\napp/src/components/shell/project/project_dialogs.test.tsx:522:                recentLocalRepositories={[]}\napp/src/components/shell/project/project_dialogs.test.tsx:582:                recentLocalRepositories={[]}\napp/src/components/shell/project/project_dialogs.test.tsx:624:                recentLocalRepositories={[]}\napp/src/services/storage/application_storage.test.ts:117:            'md2.recentLocalRepositories': '[\"C:/first\"]',\napp/src/services/storage/application_storage.test.ts:124:        await expect(storage.readCurrentItem('md2.recentLocalRepositories')).resolves.toBe('[\"C:/second\",\"C:/first\"]')\napp/src/services/storage/application_storage.test.ts:125:        expect(storage.getItem('md2.recentLocalRepositories')).toBe('[\"C:/second\",\"C:/first\"]')",
+          "id": "agent-turn-a42c4452-0dc9-4017-a961-78cb97f49903-event-6",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && find . -name \"project_dialogs.test.tsx\" -not -path \"*/node_modules/*\" && grep -rn \"Recent folders\\|recentLocalRepositories\\|Open Local\" --include=*.tsx --include=*.ts app/src | grep -i test",
+          "providerItemId": "toolu_01QAwDvBR5RcKWBEBkWmGonS",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-08-29T14:27:41.457Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n 290,345p app/src/components/shell/project/project_dialogs.test.tsx",
+          "content": "                branches={[]}\n                isDesktopMode\n                isGithubAuthenticated={false}\n                isLoading={false}\n                onBranchChange={vi.fn()}\n                onChooseLocalFolder={chooseLocalFolder}\n                onClose={vi.fn()}\n                onCreateProjectFolders={vi.fn()}\n                onCreateRemoteProject={vi.fn()}\n                onCreateWorkingFolder={vi.fn()}\n                onDiscardGithubPendingCommits={vi.fn()}\n                onLoadManualBranches={vi.fn(async () => null)}\n                onLoadRemoteBranches={vi.fn(async () => [])}\n                onOpenGithub={vi.fn()}\n                onOpenLocal={openLocal}\n                onOpenRemote={vi.fn()}\n                onRepositoryChange={vi.fn(async () => [])}\n                onSourceChange={vi.fn()}\n                onUseWorkingFolder={vi.fn()}\n                open\n                pendingGithubConflictProject={null}\n                projectOpenResolution={null}\n                recentLocalRepositories={['C:/recent']}\n                repositories={[]}\n            />,\n            { wrapper: AppThemeProvider },\n        )\n\n        fireEvent.click(screen.getByRole('button', { name: 'Repository' }))\n        expect(screen.queryByLabelText('Local repository folder')).toBeNull()\n        fireEvent.click(screen.getByRole('button', { name: 'Folder' }))\n\n        const localFolderInput = screen.getByLabelText('Local repository folder')\n        expect(localFolderInput).toHaveAttribute('placeholder', 'Choose or enter a local folder')\n        expect(screen.getByText('Local repository folder')).toHaveAttribute('data-shrink', 'true')\n        expect(screen.getByRole('button', { name: 'Open Local' })).toBeDisabled()\n        fireEvent.click(screen.getByRole('button', { name: 'Choose local repository folder' }))\n        expect(chooseLocalFolder).toHaveBeenCalledOnce()\n        expect(localFolderInput).toHaveValue('')\n        expect(screen.getByRole('dialog', { name: 'Open project' })).toBeInTheDocument()\n\n        fireEvent.change(localFolderInput, { target: { value: 'C:/typed' } })\n        fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))\n        expect(openLocal).toHaveBeenCalledWith('C:/typed')\n        fireEvent.click(screen.getByText('C:/recent'))\n        expect(openLocal).toHaveBeenLastCalledWith('C:/recent')\n    })\n\n    it('disables local open and folder picker while loading', () => {\n        render(\n            <ProjectOpenDialog\n                branches={[]}\n                initialSource=\"local\"\n                isDesktopMode\n                isGithubAuthenticated={false}\n                isLoading",
+          "id": "agent-turn-a42c4452-0dc9-4017-a961-78cb97f49903-event-7",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n 290,345p app/src/components/shell/project/project_dialogs.test.tsx",
+          "providerItemId": "toolu_01AE1rbG6V8QJexi8DShkax1",
+          "sequence": 7,
+          "status": "completed",
+          "timestamp": "2026-08-29T14:27:44.050Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-a42c4452-0dc9-4017-a961-78cb97f49903-event-8",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeXCMu8QyT93P8WyP3abo:thinking:0",
+          "sequence": 8,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-29T14:27:47.073Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"query\":\"todo task list write\",\"max_results\":5}",
+          "id": "agent-turn-a42c4452-0dc9-4017-a961-78cb97f49903-event-9",
+          "kind": "event",
+          "label": "ToolSearch",
+          "output": "[{\"type\":\"tool_reference\",\"tool_name\":\"CronList\"},{\"type\":\"tool_reference\",\"tool_name\":\"TaskOutput\"},{\"type\":\"tool_reference\",\"tool_name\":\"TaskStop\"},{\"type\":\"tool_reference\",\"tool_name\":\"DesignSync\"},{\"type\":\"tool_reference\",\"tool_name\":\"EnterWorktree\"}]",
+          "providerItemId": "toolu_01CpdtuoHsfsKS75QJLWNiJC",
+          "sequence": 9,
+          "status": "completed",
+          "timestamp": "2026-08-29T14:27:47.121Z",
+          "type": "tool.ToolSearch"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-a42c4452-0dc9-4017-a961-78cb97f49903-event-10",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeXCN8PPHdZpTVRC5gKxF:thinking:0",
+          "sequence": 10,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-29T14:27:49.647Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"query\":\"select:TodoWrite\",\"max_results\":3}",
+          "id": "agent-turn-a42c4452-0dc9-4017-a961-78cb97f49903-event-11",
+          "kind": "event",
+          "label": "ToolSearch",
+          "output": "No matching deferred tools found",
+          "providerItemId": "toolu_01UxQYVmHc9zLBPbAKAkBSUd",
+          "sequence": 11,
+          "status": "completed",
+          "timestamp": "2026-08-29T14:27:49.763Z",
+          "type": "tool.ToolSearch"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-a42c4452-0dc9-4017-a961-78cb97f49903-event-12",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeXCNKUdEQCLgBwgZJvBB:thinking:0",
+          "sequence": 12,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-29T14:27:52.211Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNo TodoWrite tool in this session, so blocks listed here as tasks.\n\n## Change Plan — F_247\n\n**Scope:** recent-folder row in `Open project` dialog must only fill the `Local repository folder` field. Opening happens only when user clicks `Open Local`.\n\n**Task 1 — Block A: dialog click handler**\nFile: `app/src/components/shell/project/project_open_dialog.tsx:257-263`\n`handleRecentLocalRepositoryClick` currently does two things: reads `event.currentTarget.dataset.rootPath`, calls `setLocalRootPath(rootPath)`, then calls `void onOpenLocal(rootPath)`. Remove the `onOpenLocal` call. Keep the `if (!rootPath) throw new Error(...)` guard — spec wants missing `data-root-path` to stay an explicit failure, not a silent no-op. Everything else (`Open Local` button handler at line 254, its disabled condition at line 481, folder picker, typed-path flow) untouched.\n\nCausal chain after change: click row → `setLocalRootPath` → React re-render → input `value={localRootPath}` shows path → button `disabled={localRootPath.trim().length === 0 || isLoading}` becomes false → user clicks `Open Local` → `handleOpenLocalClick` calls `onOpenLocal(localRootPath)` once.\n\n**Task 2 — Block B: test update**\nFile: `app/src/components/shell/project/project_dialogs.test.tsx`, test \"opens local folder...\" (~line 280-335). Current tail asserts click on `C:/recent` triggers `openLocal`. Replace with: click `C:/recent` row → input has value `C:/recent`, `openLocal` call count unchanged (still 1 from the typed-path step) → click `Open Local` → `openLocal` last called with `C:/recent`, total 2 calls. This covers acceptance criteria 1-3. Criterion 4 (no history reorder on select) holds by construction: history writes live in `use_project_toolbar_menu_actions.ts` behind `onOpenLocal`, which the row no longer calls — no separate test needed, and no production file outside the dialog changes.\n\n**Task 3 — Block C: verify + status**\nRun only `project_dialogs.test.tsx` plus `npm run typecheck`. Then set `status: ready` in `design/feature_descriptions/F_247_open_project_click_on_previous_selects.md`.\n\n**No changes** to `use_project_toolbar_menu_actions.ts`, storage, or any other file.\n\nApprove and I implement all three blocks.",
+          "id": "agent-turn-a42c4452-0dc9-4017-a961-78cb97f49903-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 13,
+          "timestamp": "2026-08-29T14:28:03.450Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-a033e212-d80b-4ad8-a652-67530d1d948a",
+      "providerSessions": [],
+      "startedAt": "2026-08-29T14:27:27.517Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-08-29T14:27:27.517Z"
+      },
+      "title": "implement",
+      "usage": {
+        "cachedInputTokens": 260444,
+        "inputTokens": 16,
+        "outputTokens": 2026,
+        "reasoningTokens": 0,
+        "totalTokens": 262486,
+        "costUsd": 0.412448
+      },
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
@@ -731,11 +933,11 @@
         "agent-371f5b25-9ab1-4418-9ee7-33c364affd10"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-8f1af358-9600-4966-a8b8-6abf2e4687cb",
       "origin": {
@@ -744,9 +946,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-371f5b25-9ab1-4418-9ee7-33c364affd10",
       "startedAt": "2026-08-28T17:54:35.036Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-371f5b25-9ab1-4418-9ee7-33c364affd10"
     }
   ],
   "version": 5
