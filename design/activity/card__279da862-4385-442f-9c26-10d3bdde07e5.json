@@ -357,7 +357,7 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "279da862-4385-442f-9c26-10d3bdde07e5",
       "cardPath": "design/feature_descriptions/B_201_expected_persistence_outcomes_for_watcher_echoes.md",
-      "completedAt": null,
+      "completedAt": "2026-08-29T16:25:07.461Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 156242
@@ -3495,7 +3495,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 232,
-          "timestamp": "2026-08-29T16:25:06.909Z"
+          "timestamp": "2026-08-29T16:25:07.461Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -3505,15 +3505,15 @@
           "agent": "codex",
           "conversationId": "01a04e3f-40d1-7c80-8ac4-1f992a872646",
           "createdAt": "2026-08-29T16:01:49.325Z",
-          "lastUsedAt": "2026-08-29T16:01:49.325Z",
-          "synchronizedThroughMessageId": "agent-turn-d6b25705-de5f-4f6f-8cf8-df16fd6ed8d1-turn-1-assistant-5"
+          "lastUsedAt": "2026-08-29T16:25:07.461Z",
+          "synchronizedThroughMessageId": "agent-turn-d6b25705-de5f-4f6f-8cf8-df16fd6ed8d1-turn-2-assistant-7"
         }
       ],
       "startedAt": "2026-08-29T15:59:23.168Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 146157,
-        "runningStartedAt": "2026-08-29T16:03:42.362Z"
+        "elapsedMs": 1431256,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usage": {
