@@ -6292,11 +6292,11 @@
         "agent-9c3337be-e770-4ed3-87d8-a340f527dc9d"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-8cf0edd6-d7bd-4e72-b5c1-a539b1ae1234",
       "origin": {
@@ -6305,9 +6305,76 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-9c3337be-e770-4ed3-87d8-a340f527dc9d",
       "startedAt": "2026-08-29T16:29:13.796Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-9c3337be-e770-4ed3-87d8-a340f527dc9d"
+    },
+    {
+      "commits": [
+        {
+          "commit": "0a92e10904c1674b3a93bc570599e588bf799c9f",
+          "committedAt": "2026-08-29T18:55:29+02:00",
+          "deletions": 2054,
+          "filePaths": [
+            "app/src/App.test.tsx",
+            "app/src/app.tsx",
+            "app/src/app/use_app_bootstrap.test.ts",
+            "app/src/components/project_workspace.test.tsx",
+            "app/src/components/shell/main_window.test.tsx",
+            "app/src/components/shell/main_window.tsx",
+            "app/src/components/shell/menu/app_menu.test.tsx",
+            "app/src/components/shell/menu/app_menu.tsx",
+            "app/src/components/shell/project/project_dialogs.test.tsx",
+            "app/src/components/shell/project/project_folder_setup_fields.tsx",
+            "app/src/components/shell/project/project_folder_setup_form.tsx",
+            "app/src/components/shell/project/project_open_dialog.tsx",
+            "app/src/components/shell/project/use_project_toolbar_menu_actions.ts",
+            "app/src/components/shell/project/working_folder_chooser_dialog.tsx",
+            "app/src/components/shell/project_toolbar_menu.tsx",
+            "app/src/components/shell/remote_connect_button.test.tsx",
+            "app/src/data/bridge_error_rehydration.node.test.ts",
+            "app/src/data/bridge_error_rehydration.ts",
+            "app/src/data/data_types.ts",
+            "app/src/data/electron_data_bridge.ts",
+            "app/src/data/repository_relative_path.node.test.ts",
+            "app/src/data/repository_relative_path.ts",
+            "app/src/services/application_startup_service.ts",
+            "app/src/services/data/local_git_storage_service.ts",
+            "app/src/services/data/remote_control_storage_service.node.test.ts",
+            "app/src/services/data/remote_control_storage_service.ts",
+            "app/src/services/github/github_storage_read_only.test.ts",
+            "app/src/services/github/github_storage_service.ts",
+            "app/src/services/github/github_storage_write_operations.test.ts",
+            "app/src/services/github/github_storage_writer.ts",
+            "app/src/services/project/project_loading.ts",
+            "app/src/services/project/project_session_service.test.ts",
+            "app/src/services/project/project_session_service.ts",
+            "desktop/main.js",
+            "desktop/src/integrations/remote_control_service.js",
+            "desktop/src/integrations/remote_control_service.test.mjs",
+            "desktop/src/project/project_files.js",
+            "desktop/src/project/project_folder_creation.js",
+            "desktop/src/project/project_folder_creation.test.mjs",
+            "desktop/src/shell/bridge_invoke.js",
+            "desktop/src/shell/bridge_invoke.test.mjs",
+            "desktop/src/shell/local_bridge_dispatch.js",
+            "desktop/src/shell/local_bridge_dispatch.test.mjs",
+            "desktop/src/shell/preload.js",
+            "shared/bridge_errors.d.mts",
+            "shared/bridge_errors.mjs"
+          ],
+          "filesChanged": 46,
+          "insertions": 3067,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-29T18:55:29+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "8a886351-0de3-4d2e-bcab-9865c8fdeced",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
