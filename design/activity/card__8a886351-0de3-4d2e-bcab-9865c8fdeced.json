@@ -20,7 +20,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "8a886351-0de3-4d2e-bcab-9865c8fdeced",
       "cardPath": "design/feature_descriptions/B_184_error_error_invoking_remote_method_md2_local_bridge_invoke_error_working_folder_is_missing_design_feature_descriptions.md",
-      "completedAt": null,
+      "completedAt": "2026-08-29T15:51:21.105Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 111399
@@ -993,17 +993,25 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 77,
-          "timestamp": "2026-08-29T15:51:20.200Z"
+          "timestamp": "2026-08-29T15:51:21.105Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-f6cfa68a-0a03-4d59-a9c0-6a83ad4889e4",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "claude",
+          "conversationId": "76334615-0ec7-4a58-9dcb-78e950ed4c68",
+          "createdAt": "2026-08-29T15:51:21.105Z",
+          "lastUsedAt": "2026-08-29T15:51:21.105Z",
+          "synchronizedThroughMessageId": "agent-turn-33cefe26-000e-45cd-9029-6ab0ab11b6f9-turn-1-assistant-6"
+        }
+      ],
       "startedAt": "2026-08-29T15:33:27.631Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 166912,
-        "runningStartedAt": "2026-08-29T15:48:01.360Z"
+        "elapsedMs": 366657,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
