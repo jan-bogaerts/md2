@@ -47,8 +47,6 @@ changedFiles:
   - design/feature_descriptions/B_201_expected_persistence_outcomes_for_watcher_echoes.md
   - desktop/src/project/project_files.js
   - desktop/src/project/project_files.test.mjs
-branch: b_200_cant_save_command_action
-worktree: 1
 ---
 Saving a newly created action can leave the application unable to continue. The failure occurs when the action is edited again while its first persistence operation is active, especially when a label change also changes the action filename.
 
