@@ -3,7 +3,7 @@ author:
 id: B_201
 internalId: 279da862-4385-442f-9c26-10d3bdde07e5
 title: expected persistence outcomes for watcher echoes
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -13,7 +13,13 @@ after: 49c227f7-c9c7-4773-a246-b4ec451244f1
 changedFiles:
   - app/src/services/data/card_operation_context.ts
   - app/src/services/data/data_service.ts
+  - app/src/services/project/expected_persistence_outcomes.test.ts
+  - app/src/services/project/expected_persistence_outcomes.ts
+  - app/src/services/project/expected_persistence_storage.test.ts
+  - app/src/services/project/expected_persistence_storage.ts
+  - app/src/services/project/project_loading.test.ts
   - app/src/services/project/project_loading.ts
+  - app/src/services/project/project_state.node.test.ts
   - app/src/services/project/project_state.ts
   - design/architecture/data_saving_and_commits.md
 branch: b_201_expected_persistence_outcomes_for_watcher_echoes
