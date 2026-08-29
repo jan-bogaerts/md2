@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__72668dda-9401-49ca-adf2-cd433393214d.json
 policy:
+after: 49c227f7-c9c7-4773-a246-b4ec451244f1
 ---
 create new action, switch to command, user gets error 'missing action field command in xxxx'
 

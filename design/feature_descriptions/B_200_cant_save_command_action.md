@@ -3,7 +3,7 @@ author:
 id: B_200
 internalId: 49c227f7-c9c7-4773-a246-b4ec451244f1
 title: cant save command action
-status: new
+status: design
 owner: 
 affects:
 agents:
