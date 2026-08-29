@@ -49,6 +49,7 @@ export function App({ startupService }: AppProps = {}) {
             ) : (
                 <MainWindow
                     auth={auth}
+                    initialProjectOpenResolution={bootstrap.projectOpenResolution}
                     toolbarAction={(
                         <RemoteControlButton />
                     )}

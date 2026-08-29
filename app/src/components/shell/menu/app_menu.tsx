@@ -33,7 +33,11 @@ import {
 } from '../../../data/agent_selection'
 import { configService } from '../../../services/config/config_service'
 import { writeDesktopConfigToBridge } from '../../../services/config/config_persistence'
-import { projectSessionService } from '../../../services/project/project_session_service'
+import {
+    projectSessionService,
+    type ProjectFolderValues,
+    type ProjectOpenResolution,
+} from '../../../services/project/project_session_service'
 import { workspaceViewService, type WorkspaceViewMode } from '../../../services/project/workspace_view_service'
 import { workspaceNavigationService } from '../../../services/project/workspace_navigation_service'
 import { actionService } from '../../../services/actions/action_service'
@@ -72,6 +76,7 @@ interface AppMenuProps {
     accessToken: string | null
     auth: UseGithubAuthResult
     extraActions: ReactNode
+    initialProjectOpenResolution: ProjectOpenResolution | null
     isGithubAuthenticated: boolean
     isMobile: boolean
     onOpenConfig: () => void
@@ -106,14 +111,24 @@ function persistDesktopConfig() {
 
 /** Tabbed app menu hosting project, account and agent actions. */
 export function AppMenu(props: AppMenuProps) {
-    const { accessToken, auth, extraActions, isGithubAuthenticated, isMobile, onOpenConfig, onOpenMobileMenu, search } = props
+    const {
+        accessToken,
+        auth,
+        extraActions,
+        initialProjectOpenResolution,
+        isGithubAuthenticated,
+        isMobile,
+        onOpenConfig,
+        onOpenMobileMenu,
+        search,
+    } = props
     const { project } = useProjectState()
     const { hasPendingPush, hasPendingSave } = useProjectPersistence()
     const primaryWorktreeStatus = usePrimaryWorktreeStatus()
     const projectConfig = useProjectConfig()
     const { viewMode } = useWorkspaceView()
     const [currentTab, setCurrentTab] = useState<AppMenuTab>('home')
-    const [dialogMode, setDialogMode] = useState<ProjectDialogMode | null>(null)
+    const [dialogMode, setDialogMode] = useState<ProjectDialogMode | null>(initialProjectOpenResolution ? 'open' : null)
     const agentProfiles = mergeAgentProfiles(useConfigValue('desktop.agentProfiles'))
     const agentSelection = useConfigValue('desktop.agentSelection')
     const selectedAgent = agentSelection.activeAgent
@@ -147,6 +162,7 @@ export function AppMenu(props: AppMenuProps) {
 
     const actions = useProjectToolbarMenuActions({
         accessToken,
+        initialProjectOpenResolution,
         isGithubAuthenticated,
         onCloseDialog: closeDialog,
         onOpenDialog: openDialog,
@@ -163,8 +179,8 @@ export function AppMenu(props: AppMenuProps) {
         actions.openProjectDialog()
     }
 
-    const handleCreateProjectFolders = (projectFolder: string) => {
-        void actions.createProjectFolders(projectFolder)
+    const handleConfirmProjectFolderSetup = (values: ProjectFolderValues) => {
+        void actions.confirmProjectFolderSetup(values)
     }
 
     const handleLoadBranches = () => {
@@ -522,13 +538,13 @@ export function AppMenu(props: AppMenuProps) {
                 isDesktopMode={actions.isDesktopMode}
                 isGithubAuthenticated={isGithubAuthenticated}
                 isLoading={actions.isLoading}
+                onBrowseProjectSubFolder={actions.isDesktopMode ? actions.browseProjectSubFolder : null}
                 onChooseLocalFolder={actions.chooseLocalProjectFolder}
-                onCreateProjectFolders={handleCreateProjectFolders}
+                onConfirmProjectFolderSetup={handleConfirmProjectFolderSetup}
                 projectOpenResolution={actions.projectOpenResolution}
                 onBranchChange={() => undefined}
                 onClose={actions.closeDialog}
                 onCreateRemoteProject={actions.createRemoteProject}
-                onCreateWorkingFolder={() => void actions.createWorkingFolder()}
                 onDiscardGithubPendingCommits={handleDiscardGithubPendingCommits}
                 onLoadManualBranches={actions.loadManualBranches}
                 onLoadRemoteBranches={actions.loadRemoteBranches}
@@ -537,7 +553,6 @@ export function AppMenu(props: AppMenuProps) {
                 onOpenRemote={actions.openRemoteProject}
                 onRepositoryChange={actions.loadRepositoryBranches}
                 onSourceChange={actions.clearOpenDialogState}
-                onUseWorkingFolder={(folder) => void actions.openWorkingFolder(folder)}
                 open={dialogMode === 'open'}
                 pendingGithubConflictProject={actions.pendingGithubConflictProject}
                 recentLocalRepositories={actions.recentLocalRepositories}

@@ -209,6 +209,14 @@ export class MissingWorkingFolderError extends Error {
     }
 }
 
+export function isMissingWorkingFolderError(error: unknown): error is MissingWorkingFolderError {
+    if (!error || typeof error !== 'object') return false
+
+    const storageError = error as { code?: unknown; workingFolder?: unknown }
+
+    return storageError.code === MISSING_WORKING_FOLDER_ERROR && typeof storageError.workingFolder === 'string'
+}
+
 export interface CommitRequest {
     branch: string
     files: MarkdownFile[]
@@ -393,7 +401,7 @@ export interface StorageService {
     checkoutBranch(project: ProjectReference, branch: string): Promise<ProjectReference>
     commit(request: CommitRequest): Promise<CommitResult>
     commitWorktree?(request: CommitWorktreeRequest): Promise<void>
-    createProject(project: ProjectReference, workingFolder: string): Promise<ProjectReference>
+    createProject(project: ProjectReference, folders: string[]): Promise<ProjectReference>
     deleteFile(request: DeleteFileRequest): Promise<void>
     deleteFolder(request: DeleteFolderRequest): Promise<void>
     deleteLocalBranch?(project: ProjectReference, branchName: string): Promise<void>

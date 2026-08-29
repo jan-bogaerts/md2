@@ -60,6 +60,9 @@ import type {
     WorktreeOperationRequest,
     WorktreeState,
 } from '../../data/data_types'
+import { MissingWorkingFolderError } from '../../data/data_types'
+import type { BridgeErrorPayload } from '../../../../shared/bridge_errors.mjs'
+import { rehydrateBridgeError } from '../../data/bridge_error_rehydration'
 import { readRemoteControlConnection, type RemoteControlConnectionSettings } from '../../data/remote_control_connection'
 import type {
     MergeConflictPathRequest,
@@ -77,7 +80,7 @@ interface RemoteControlRequest {
 }
 
 interface RemoteControlResponse {
-    error?: { message: string }
+    error?: BridgeErrorPayload
     id: string
     result?: unknown
 }
@@ -282,8 +285,8 @@ export class RemoteControlStorageService implements
         return result
     }
 
-    async createProject(project: ProjectReference, workingFolder: string): Promise<ProjectReference> {
-        return this.request<ProjectReference>('createProject', [project, workingFolder])
+    async createProject(project: ProjectReference, folders: string[]): Promise<ProjectReference> {
+        return this.request<ProjectReference>('createProject', [project, folders])
     }
 
     async deleteFile(request: DeleteFileRequest): Promise<void> {
@@ -859,8 +862,13 @@ export class RemoteControlStorageService implements
 
         this.pending.delete(response.id)
         if (response.error) {
-            const cause = new Error(response.error.message)
-            pending.reject(new Error(`Remote method ${pending.method} failed: ${response.error.message}`, { cause }))
+            // Rebuild the typed error first, so a marked failure such as a missing working folder
+            // stays recognisable instead of arriving as a plain message.
+            const cause = rehydrateBridgeError(response.error)
+            const failure = new Error(`Remote method ${pending.method} failed: ${response.error.message}`, { cause }) as Error & { code?: string }
+            if (response.error.code !== undefined) failure.code = response.error.code
+            Object.assign(failure, response.error.fields ?? {})
+            pending.reject(cause instanceof MissingWorkingFolderError ? cause : failure)
             return
         }
 

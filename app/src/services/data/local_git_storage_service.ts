@@ -22,6 +22,7 @@ import type {
     WorktreeOperationRequest,
     WorktreeState,
 } from '../../data/data_types'
+import { withBridgeErrorRehydration } from '../../data/bridge_error_rehydration'
 import { getElectronDataBridge, type ElectronDataBridge } from '../../data/electron_data_bridge'
 import type {
     MergeConflictPathRequest,
@@ -53,9 +54,12 @@ export class LocalGitStorageService implements StorageService {
     }
 
     init(dependencies: LocalGitStorageDependencies = {}) {
-        const bridge = dependencies.bridge ?? getElectronDataBridge()
+        const providedBridge = dependencies.bridge ?? getElectronDataBridge()
 
-        if (!bridge) throw new Error('Electron local Git bridge is not available')
+        if (!providedBridge) throw new Error('Electron local Git bridge is not available')
+
+        // Failures cross Electron IPC as an envelope; rehydrate them here so marked errors stay typed.
+        const bridge = withBridgeErrorRehydration(providedBridge)
 
         this.bridge = bridge
         this.calculateActivityStats = bridge.calculateActivityStats
@@ -74,8 +78,8 @@ export class LocalGitStorageService implements StorageService {
         return this.requireBridge().resolveProject(project)
     }
 
-    async createProject(project: ProjectReference, workingFolder: string): Promise<ProjectReference> {
-        return this.requireBridge().createProject(project, workingFolder)
+    async createProject(project: ProjectReference, folders: string[]): Promise<ProjectReference> {
+        return this.requireBridge().createProject(project, folders)
     }
 
     async loadProject(

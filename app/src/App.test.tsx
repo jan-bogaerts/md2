@@ -29,7 +29,7 @@ function createStartupService(overrides: Partial<ApplicationStartupDependencies>
         initializeAgentCapabilities: vi.fn(async () => {}),
         initializeServices: vi.fn(),
         restoreGithubSession: vi.fn(async () => {}),
-        restoreLastProject: vi.fn(async () => {}),
+        restoreLastProject: vi.fn(async () => null),
         ...overrides,
     }
 
@@ -37,7 +37,7 @@ function createStartupService(overrides: Partial<ApplicationStartupDependencies>
 }
 
 function createPendingStartupService() {
-    const pendingRestore = createDeferred<void>()
+    const pendingRestore = createDeferred<null>()
 
     return createStartupService({ restoreLastProject: vi.fn(() => pendingRestore.promise) })
 }
@@ -141,6 +141,32 @@ describe('App', () => {
         render(<App startupService={startupService} />)
 
         expect(await screen.findByRole('heading', { name: 'No project open' })).toBeInTheDocument()
+        expect(screen.queryByText(/Could not restore last project/)).toBeNull()
+    })
+
+    it('opens folder setup after startup restores a project with a missing working folder', async () => {
+        const resolution = {
+            existingFolderPaths: ['design'],
+            folders: [{ name: 'design', path: 'design' }],
+            hasProjectConfig: true,
+            kind: 'project-folder-setup' as const,
+            project: { branch: 'main', id: 'local', rootPath: 'C:/repo' },
+            storageType: 'local' as const,
+            values: {
+                actionsFolder: 'actions',
+                archivedFolder: 'archived',
+                projectFolder: 'design',
+                releasesFolder: 'history',
+                workingFolder: 'feature_descriptions',
+            },
+        }
+        const startupService = createStartupService({ restoreLastProject: vi.fn(async () => resolution) })
+        void startupService.start()
+
+        render(<App startupService={startupService} />)
+
+        expect(await screen.findByRole('dialog', { name: 'Project folders' })).toBeInTheDocument()
+        expect(screen.getByLabelText('Working folder')).toHaveValue('feature_descriptions')
         expect(screen.queryByText(/Could not restore last project/)).toBeNull()
     })
 })

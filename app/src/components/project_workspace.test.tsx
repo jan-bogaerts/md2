@@ -397,17 +397,20 @@ describe('ProjectWorkspace', () => {
         renderProjectSurface(false)
         await requestLocalProject()
 
-        expect(await screen.findByRole('dialog', { name: 'Create project' })).toBeInTheDocument()
+        expect(await screen.findByRole('dialog', { name: 'Project folders' })).toBeInTheDocument()
         expect(screen.getByLabelText('Project folder')).toHaveValue('design')
         fireEvent.change(screen.getByLabelText('Project folder'), { target: { value: 'docs' } })
         fireEvent.click(screen.getByRole('button', { name: 'Create' }))
 
-        await waitFor(() => expect(bridge.createProject).toHaveBeenCalledWith(expect.any(Object), 'docs/active'))
+        await waitFor(() => expect(bridge.createProject).toHaveBeenCalledWith(
+            expect.any(Object),
+            ['docs/active', 'docs/archived', 'docs/actions', 'docs/history'],
+        ))
         await waitFor(() => expect(bridge.saveProjectConfig).toHaveBeenCalledWith(expect.any(Object), expect.objectContaining({
             projectFolder: 'docs',
             workingFolder: 'active',
         })))
-        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Create project' })).toBeNull())
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Project folders' })).toBeNull())
     })
 
     it('keeps the workspace fixed while the card surface scrolls without a header', async () => {
@@ -575,14 +578,22 @@ describe('ProjectWorkspace', () => {
 
     it('asks for a folder and persists an existing choice when the configured working folder is missing', async () => {
         const bridge = createBridge()
+        const captureError = vi.spyOn(telemetryService, 'captureError')
         let savedConfig: ProjectConfig | null = null
-        bridge.listTopLevelFolders = vi.fn(async () => [
-            { name: 'docs', path: 'docs' },
-            { name: 'notes', path: 'notes' },
+        bridge.listRepositoryFiles = vi.fn(async () => [
+            'design/actions/README.md',
+            'design/archived/README.md',
+            'design/docs/F-1-root.md',
+            'design/history/README.md',
         ])
-        bridge.loadProjectConfig = vi.fn(async () => savedConfig ?? { backgroundShade: 'blue' as const, projectFolder: '', workingFolder: 'missing' })
+        bridge.listTopLevelFolders = vi.fn(async () => [{ name: 'design', path: 'design' }])
+        bridge.loadProjectConfig = vi.fn(async () => savedConfig ?? {
+            backgroundShade: 'blue' as const,
+            projectFolder: 'design',
+            workingFolder: 'missing',
+        })
         const loadProject = vi.fn(async (_project, workingFolder) => {
-            if (workingFolder === 'missing') throw new MissingWorkingFolderError(workingFolder)
+            if (workingFolder === 'design/missing') throw new MissingWorkingFolderError(workingFolder)
 
             return {
                 files: [{ content: '---\nid: F-1\ntitle: Root\nstatus: active\naffects:\n---\n\n# Root', path: `${workingFolder}/F-1-root.md` }],
@@ -599,11 +610,14 @@ describe('ProjectWorkspace', () => {
         renderProjectSurface()
         await requestLocalProject()
 
-        expect(await screen.findByText('Working folder is missing: missing')).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'Use folder docs' })).toBeInTheDocument()
+        expect(await screen.findByRole('dialog', { name: 'Project folders' })).toBeInTheDocument()
+        expect(screen.getByLabelText('Working folder')).toHaveValue('missing')
+        expect(screen.queryByRole('alert')).toBeNull()
+        expect(captureError).not.toHaveBeenCalled()
         expect(bridge.createProject).not.toHaveBeenCalled()
 
-        fireEvent.click(screen.getByRole('button', { name: 'Use folder docs' }))
+        fireEvent.change(screen.getByLabelText('Working folder'), { target: { value: 'docs' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Save and open' }))
 
         await waitFor(() => expect(bridge.saveProjectConfig).toHaveBeenCalledWith(expect.any(Object), expect.objectContaining({
             states: expect.arrayContaining([
@@ -616,15 +630,24 @@ describe('ProjectWorkspace', () => {
             ]),
             workingFolder: 'docs',
         })))
-        expect(bridge.createProject).not.toHaveBeenCalled()
+        expect(bridge.createProject).toHaveBeenCalledWith(expect.any(Object), [])
         expect(await findRootCard()).toBeInTheDocument()
     })
 
     it('creates the configured folder only after the explicit create action', async () => {
         const bridge = createBridge()
         let isCreated = false
-        bridge.listTopLevelFolders = vi.fn(async () => [{ name: 'docs', path: 'docs' }])
-        bridge.loadProjectConfig = vi.fn(async () => ({ backgroundShade: 'blue' as const, projectFolder: '', workingFolder: 'missing' }))
+        bridge.listRepositoryFiles = vi.fn(async () => [
+            'design/actions/README.md',
+            'design/archived/README.md',
+            'design/history/README.md',
+        ])
+        bridge.listTopLevelFolders = vi.fn(async () => [{ name: 'design', path: 'design' }])
+        bridge.loadProjectConfig = vi.fn(async () => ({
+            backgroundShade: 'blue' as const,
+            projectFolder: 'design',
+            workingFolder: 'missing',
+        }))
         const loadProject = vi.fn(async (_project, workingFolder) => {
             if (!isCreated) throw new MissingWorkingFolderError(workingFolder)
 
@@ -645,12 +668,12 @@ describe('ProjectWorkspace', () => {
         renderProjectSurface()
         await requestLocalProject()
 
-        await screen.findByText('Working folder is missing: missing')
+        await screen.findByRole('dialog', { name: 'Project folders' })
         expect(bridge.createProject).not.toHaveBeenCalled()
 
-        fireEvent.click(screen.getByRole('button', { name: "Create 'missing' from template" }))
+        fireEvent.click(screen.getByRole('button', { name: 'Save and open' }))
 
-        await waitFor(() => expect(bridge.createProject).toHaveBeenCalledWith(expect.any(Object), 'missing'))
+        await waitFor(() => expect(bridge.createProject).toHaveBeenCalledWith(expect.any(Object), ['design/missing']))
         await waitFor(() => expect(bridge.saveProjectConfig).toHaveBeenCalledWith(expect.any(Object), expect.objectContaining({ workingFolder: 'missing' })))
         expect(await findRootCard()).toBeInTheDocument()
     })

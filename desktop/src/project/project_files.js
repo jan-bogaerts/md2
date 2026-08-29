@@ -13,6 +13,7 @@ const {
 } = require('../git/git_commands');
 const { withGitIndexMutation } = require('../git/git_index_coordinator');
 const { normalizePath } = require('../../../shared/path_utils.mjs');
+const { createMissingProjectFolders, PROJECT_README_TEMPLATE } = require('./project_folder_creation');
 
 const MARKDOWN_EXTENSION = '.md';
 const JSON_EXTENSION = '.json';
@@ -26,7 +27,6 @@ const WATCHER_BACKEND_BY_PLATFORM = {
     win32: 'windows',
 };
 const WATCHER_BACKEND = WATCHER_BACKEND_BY_PLATFORM[process.platform];
-const PROJECT_README_TEMPLATE = '# MD²\n\nProject design folder created by MD².\n';
 const PROJECT_ASSET_CONTENT_TYPES = {
     '.gif': 'image/gif',
     '.jpeg': 'image/jpeg',
@@ -105,25 +105,32 @@ function createMissingWorkingFolderError(workingFolder) {
     return error;
 }
 
-async function createProjectNow(project, workingFolder) {
+/**
+ * Creates every requested folder that is still missing, in one commit.
+ *
+ * Git cannot represent an empty directory, so each created folder gets a placeholder README.
+ * Folders that already exist are left untouched.
+ */
+async function createProjectNow(project, folders) {
     const rootPath = requireRootPath(project);
     await assertGitRoot(rootPath);
-    const workingFolderPath = ensureInsideRoot(rootPath, path.join(rootPath, workingFolder));
+    const createdFolders = await createMissingProjectFolders(rootPath, folders);
 
-    if (!await pathExists(workingFolderPath)) {
-        await fs.promises.mkdir(workingFolderPath, { recursive: true });
-        await fs.promises.writeFile(path.join(workingFolderPath, 'README.md'), PROJECT_README_TEMPLATE);
-        await runGit(rootPath, ['add', workingFolder]);
-        await commitStagedChanges(rootPath, `Create ${workingFolder} workspace`);
+    if (createdFolders.length > 0) {
+        await runGit(rootPath, ['add', '--', ...createdFolders]);
+        await commitStagedChanges(rootPath, `Create ${createdFolders.join(', ')} workspace`);
     }
 
     return project;
 }
 
-function createProject(project, workingFolder) {
+function createProject(project, folders) {
+    if (!Array.isArray(folders)) throw new Error('Project folders must be an array');
+    if (folders.length === 0) return Promise.resolve(project);
+
     const rootPath = requireRootPath(project);
 
-    return withGitIndexMutation(rootPath, () => createProjectNow(project, workingFolder));
+    return withGitIndexMutation(rootPath, () => createProjectNow(project, folders));
 }
 
 async function loadProject(project, workingFolder, excludedRootFolder) {

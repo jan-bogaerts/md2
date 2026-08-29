@@ -41,10 +41,10 @@ export class GithubStorageService implements StorageService {
         this.context.init(dependencies)
     }
 
-    async createProject(project: ProjectReference, workingFolder: string) {
+    async createProject(project: ProjectReference, folders: string[]) {
         this.requireWritable()
 
-        return this.writer.createProject(project, workingFolder)
+        return this.writer.createProject(project, folders)
     }
 
     async loadProject(project: ProjectReference, workingFolder: string, excludedRootFolder?: string) {

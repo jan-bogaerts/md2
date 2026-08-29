@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { RemoteControlStorageService } from './remote_control_storage_service'
+import { MissingWorkingFolderError } from '../../data/data_types'
 
 class MockWebSocket extends EventTarget {
     static instances: MockWebSocket[] = []
@@ -1208,5 +1209,44 @@ describe('RemoteControlStorageService', () => {
         await expect(request).resolves.toBe('action-1')
         expect(socket.url).toBe('ws://127.0.0.1:1234')
         expect(socket.protocol).toBeUndefined()
+    })
+    it('rebuilds a missing working folder error from the remote response marker', async () => {
+        installWebSocket()
+        const service = createService()
+        const request = service.loadProject({ branch: 'main', id: 'local', rootPath: 'C:/repo' }, 'design/feature_descriptions')
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const sentRequest = JSON.parse(socket.sent[0]) as { id: string }
+        socket.receive({
+            error: {
+                code: 'missing-working-folder',
+                fields: { workingFolder: 'design/feature_descriptions' },
+                message: 'Working folder is missing: design/feature_descriptions',
+                name: 'Error',
+            },
+            id: sentRequest.id,
+        })
+
+        const error = await request.catch((failure: unknown) => failure) as MissingWorkingFolderError
+
+        expect(error).toBeInstanceOf(MissingWorkingFolderError)
+        expect(error.code).toBe('missing-working-folder')
+        expect(error.workingFolder).toBe('design/feature_descriptions')
+    })
+
+    it('keeps reporting unmarked remote failures with the remote method prefix', async () => {
+        installWebSocket()
+        const service = createService()
+        const request = service.startAction(actionStartRequest())
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const sentRequest = JSON.parse(socket.sent[0]) as { id: string }
+        socket.receive({ error: { message: 'Action failed' }, id: sentRequest.id })
+
+        await expect(request).rejects.toThrow('Remote method startAction failed: Action failed')
     })
 })

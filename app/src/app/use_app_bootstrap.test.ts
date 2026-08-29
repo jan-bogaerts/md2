@@ -19,7 +19,7 @@ function createDependencies(overrides: Partial<ApplicationStartupDependencies> =
         initializeAgentCapabilities: vi.fn(async () => {}),
         initializeServices: vi.fn(),
         restoreGithubSession: vi.fn(async () => {}),
-        restoreLastProject: vi.fn(async () => {}),
+        restoreLastProject: vi.fn(async () => null),
         ...overrides,
     }
 }
@@ -34,7 +34,7 @@ describe('useAppBootstrap', () => {
             await Promise.all([service.start(), service.start()])
         })
 
-        expect(result.current).toEqual({ error: null, phase: 'ready' })
+        expect(result.current).toEqual({ error: null, phase: 'ready', projectOpenResolution: null })
         expect(dependencies.initializeServices).toHaveBeenCalledOnce()
         expect(dependencies.restoreGithubSession).toHaveBeenCalledOnce()
         expect(dependencies.initializeAgentCapabilities).toHaveBeenCalledOnce()
@@ -50,6 +50,30 @@ describe('useAppBootstrap', () => {
         expect(dependencies.restoreLastProject).toHaveBeenCalledWith('token-1')
     })
 
+    it('opens folder setup for a recoverable restore and still settles startup', async () => {
+        const resolution = {
+            existingFolderPaths: ['design'],
+            folders: [{ name: 'design', path: 'design' }],
+            hasProjectConfig: true,
+            kind: 'project-folder-setup' as const,
+            project: { branch: 'main', id: 'local', rootPath: 'C:/repo' },
+            storageType: 'local' as const,
+            values: {
+                actionsFolder: 'actions',
+                archivedFolder: 'archived',
+                projectFolder: 'design',
+                releasesFolder: 'history',
+                workingFolder: 'active',
+            },
+        }
+        const dependencies = createDependencies({ restoreLastProject: vi.fn(async () => resolution) })
+        const service = new ApplicationStartupService(dependencies)
+
+        await service.start()
+
+        expect(service.getSnapshot()).toEqual({ error: null, phase: 'ready', projectOpenResolution: resolution })
+    })
+
     it('publishes startup failures and still settles startup', async () => {
         const dependencies = createDependencies({
             restoreLastProject: vi.fn(async () => {
@@ -60,6 +84,10 @@ describe('useAppBootstrap', () => {
 
         await service.start()
 
-        expect(service.getSnapshot()).toEqual({ error: 'Stored project is unavailable', phase: 'ready' })
+        expect(service.getSnapshot()).toEqual({
+            error: 'Stored project is unavailable',
+            phase: 'ready',
+            projectOpenResolution: null,
+        })
     })
 })

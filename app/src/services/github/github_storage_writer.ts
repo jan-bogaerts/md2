@@ -20,15 +20,22 @@ export class GithubStorageWriter {
         this.gitData = gitData
     }
 
-    async createProject(project: ProjectReference, workingFolder: string) {
+    /** Creates every requested folder in one commit; Git needs a placeholder file per folder. */
+    async createProject(project: ProjectReference, folders: string[]) {
         this.context.requireGithubProject(project)
+        if (!Array.isArray(folders)) throw new Error('Project folders must be an array')
+        if (folders.length === 0) return project
+        if (folders.some((folder) => folder.length === 0)) throw new Error('Project folder path is required')
+
+        const uniqueFolders = [...new Set(folders)]
+
         await this.commit({
             branch: project.branch,
-            files: [{
+            files: uniqueFolders.map((folder) => ({
                 content: PROJECT_README_TEMPLATE,
-                path: `${workingFolder}/README.md`,
-            }],
-            message: `Create ${workingFolder} workspace`,
+                path: `${folder}/README.md`,
+            })),
+            message: `Create ${uniqueFolders.join(', ')} workspace`,
         })
 
         return project

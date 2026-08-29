@@ -87,4 +87,23 @@ describe('RemoteControlService push protocol', () => {
             expect(cleanups.get(method)).toHaveBeenCalledOnce();
         }
     });
+    it('sends the error code and marker fields so remote clients can recover', async () => {
+        const missingWorkingFolder = new Error('Working folder is missing: design/feature_descriptions');
+        missingWorkingFolder.code = 'missing-working-folder';
+        missingWorkingFolder.workingFolder = 'design/feature_descriptions';
+        const service = new RemoteControlService({ invoke: vi.fn(() => { throw missingWorkingFolder; }) });
+        const client = createClient();
+
+        await service.handleMessage(client, JSON.stringify({ id: 'request-1', method: 'loadProject', params: [] }));
+
+        expect(JSON.parse(client.send.mock.calls[0][0])).toEqual({
+            error: {
+                code: 'missing-working-folder',
+                fields: { workingFolder: 'design/feature_descriptions' },
+                message: 'Working folder is missing: design/feature_descriptions',
+                name: 'Error',
+            },
+            id: 'request-1',
+        });
+    });
 });

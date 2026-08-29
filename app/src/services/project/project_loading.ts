@@ -1,7 +1,7 @@
 import { ACTION_SCHEDULES_FILE } from '../../data/action_schedule_types'
 import { deriveStatesFromCards, mergeStatesWithDefaults } from '../../data/card_ordering'
 import type { CardSeparator } from '../../data/card_identifiers'
-import { resolveProjectConfigPaths, type MarkdownFile, type ProjectAsset, type ProjectConfig, type ProjectReference, type ProjectSnapshot, type ProjectWatchEvent, type StorageService } from '../../data/data_types'
+import { isMissingWorkingFolderError, resolveProjectConfigPaths, type MarkdownFile, type ProjectAsset, type ProjectConfig, type ProjectReference, type ProjectSnapshot, type ProjectWatchEvent, type StorageService } from '../../data/data_types'
 import { actionService, type ActionReloadChange } from '../actions/action_service'
 import { configService } from '../config/config_service'
 import {
@@ -183,7 +183,7 @@ export class ProjectLoading {
         projectAccessService.requireWritable()
         const { config, storage } = this.dependencies.requireDependencies()
         const rawConfig = { ...configService.getProjectConfig(), backgroundShade: createRandomProjectBackgroundShade() }
-        this.dependencies.replaceProject(await storage.createProject(project, config.workingFolder))
+        this.dependencies.replaceProject(await storage.createProject(project, [config.workingFolder]))
         const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot create a project without a project reference')
 
@@ -251,6 +251,8 @@ export class ProjectLoading {
             return currentSnapshot
         } catch (error) {
             this.clearFailedProjectLoad()
+            if (isMissingWorkingFolderError(error)) throw error
+
             dialogService.error(error, { fallbackMessage: 'Project could not be loaded', title: 'Project load failed' })
             markProjectLoadErrorReported(error)
             throw error

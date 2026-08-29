@@ -8,14 +8,18 @@ import {
     type PushMode,
     type ReleaseBranchCandidate,
     type RepositoryReference,
-    type TopLevelFolderReference,
 } from '../../../data/data_types'
 import { getElectronDataBridge } from '../../../data/electron_data_bridge'
 import { readRecentLocalRepositories, recordRecentLocalRepository } from '../../../data/recent_local_repositories'
+import { toProjectFolderRelativePath, toRepositoryRelativePath } from '../../../data/repository_relative_path'
 import type { StorageType } from '../../../data/project_session'
 import { dialogService } from '../../../services/dialog_service'
 import { configService } from '../../../services/config/config_service'
-import { projectSessionService, type ProjectOpenResolution } from '../../../services/project/project_session_service'
+import {
+    projectSessionService,
+    type ProjectFolderValues,
+    type ProjectOpenResolution,
+} from '../../../services/project/project_session_service'
 import { useProjectConfig } from '../../hooks/use_project_config'
 import { useConfigValueOrFallback } from '../../hooks/use_config_value'
 import { useProjectSession } from '../../hooks/use_project_session'
@@ -36,6 +40,7 @@ const EMPTY_REPOSITORIES: RepositoryReference[] = []
 
 interface UseProjectToolbarMenuActionsArgs {
     accessToken: string | null
+    initialProjectOpenResolution?: ProjectOpenResolution | null
     isGithubAuthenticated: boolean
     onCloseDialog: () => void
     onOpenDialog: (mode: ProjectDialogMode) => void
@@ -53,16 +58,20 @@ function branchValue(branches: BranchReference[], preferredBranch: string) {
 
 /** Owns project menu service calls and non-dialog session state. */
 export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsArgs) {
-    const { accessToken, isGithubAuthenticated, onCloseDialog, onOpenDialog } = args
+    const { accessToken, initialProjectOpenResolution = null, isGithubAuthenticated, onCloseDialog, onOpenDialog } = args
     const { project, snapshot } = useProjectState()
     const projectSession = useProjectSession()
     const projectConfig = useProjectConfig()
     const electronBridge = useMemo(() => getElectronDataBridge(), [])
     const [branches, setBranches] = useState<BranchReference[]>(EMPTY_BRANCHES)
     const [isReleaseCompleting, setIsReleaseCompleting] = useState(false)
-    const [projectOpenResolution, setProjectOpenResolution] = useState<ProjectOpenResolution | null>(null)
-    const [initialProjectSource, setInitialProjectSource] = useState<ProjectDialogSource | null>(null)
-    const [initialRemoteProject, setInitialRemoteProject] = useState<ProjectReference | null>(null)
+    const [projectOpenResolution, setProjectOpenResolution] = useState<ProjectOpenResolution | null>(initialProjectOpenResolution)
+    const [initialProjectSource, setInitialProjectSource] = useState<ProjectDialogSource | null>(
+        initialProjectOpenResolution?.storageType === 'remote' ? 'remote' : null,
+    )
+    const [initialRemoteProject, setInitialRemoteProject] = useState<ProjectReference | null>(
+        initialProjectOpenResolution?.storageType === 'remote' ? initialProjectOpenResolution.project : null,
+    )
     const [newCardInitialStatus, setNewCardInitialStatus] = useState('')
     const [pendingLocalRootPath, setPendingLocalRootPath] = useState<string | null>(null)
     const [recentLocalRepositories, setRecentLocalRepositories] = useState(() => readRecentLocalRepositories())
@@ -293,11 +302,11 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         await openProject('remote', nextProject)
     }
 
-    const openWorkingFolder = async (folder: TopLevelFolderReference) => {
-        if (projectOpenResolution?.kind !== 'missing-working-folder') return
+    const confirmProjectFolderSetup = async (values: ProjectFolderValues) => {
+        if (!projectOpenResolution) return
 
         try {
-            await projectSessionService.openWorkingFolder(projectOpenResolution, folder, accessToken)
+            await projectSessionService.confirmProjectFolderSetup(projectOpenResolution, values, accessToken)
             if (pendingLocalRootPath) await recordOpenedLocalProject(pendingLocalRootPath)
             closeDialog()
         } catch {
@@ -305,28 +314,34 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         }
     }
 
-    const createWorkingFolder = async () => {
-        if (projectOpenResolution?.kind !== 'missing-working-folder') return
+    /**
+     * Opens the OS directory dialog for one folder field and returns the picked folder relative to
+     * the repository root, or relative to the project folder for the four sub-folders. A pick
+     * outside the repository is a user mistake, so it is shown and not reported.
+     */
+    const browseProjectSubFolder = async (_currentValue: string, projectFolder: string, isProjectFolder: boolean) => {
+        const rootPath = projectOpenResolution?.project.rootPath
+        if (!electronBridge?.selectProjectSubFolder || !rootPath) return null
 
-        try {
-            await projectSessionService.createWorkingFolder(projectOpenResolution, accessToken)
-            if (pendingLocalRootPath) await recordOpenedLocalProject(pendingLocalRootPath)
-            closeDialog()
-        } catch {
-            // ProjectSessionService emits the user-visible error.
+        const picked = await electronBridge.selectProjectSubFolder(rootPath)
+        if (picked === null) return null
+
+        const repositoryRelativePath = toRepositoryRelativePath(rootPath, picked)
+        if (repositoryRelativePath === null || repositoryRelativePath.length === 0) {
+            dialogService.displayError('Choose a folder inside the repository.')
+
+            return null
         }
-    }
+        if (isProjectFolder) return repositoryRelativePath
 
-    const createProjectFolders = async (projectFolder: string) => {
-        if (projectOpenResolution?.kind !== 'project-folder-setup') return
+        const projectFolderRelativePath = toProjectFolderRelativePath(projectFolder, repositoryRelativePath)
+        if (projectFolderRelativePath === null || projectFolderRelativePath.length === 0) {
+            dialogService.displayError(`Choose a folder inside '${projectFolder}'.`)
 
-        try {
-            await projectSessionService.createProjectFolders(projectOpenResolution, projectFolder, accessToken)
-            if (pendingLocalRootPath) await recordOpenedLocalProject(pendingLocalRootPath)
-            closeDialog()
-        } catch {
-            // ProjectSessionService emits the user-visible error.
+            return null
         }
+
+        return projectFolderRelativePath
     }
 
     const switchProjectBranch = async (branch: string) => {
@@ -380,10 +395,10 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         initialProjectSource,
         initialRemoteProject,
         newCardInitialStatus,
+        browseProjectSubFolder,
+        confirmProjectFolderSetup,
         createCard,
-        createProjectFolders,
         createRemoteProject,
-        createWorkingFolder,
         isLoading: projectSession.isLoading,
         isDesktopMode: !!electronBridge,
         isProjectOpen: !!project,
@@ -397,7 +412,6 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         openGithubProject,
         openLocalProject,
         openNewCardDialog,
-        openWorkingFolder,
         openProjectDialog,
         openRemoteProject,
         openReleaseDialog,

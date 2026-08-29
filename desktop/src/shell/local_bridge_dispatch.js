@@ -59,6 +59,7 @@ function createLocalBridgeDispatch(dependencies) {
         localGitService,
         mergeConflictService,
         openProjectFolder,
+        openProjectSubFolder,
         openWorktreeFolder,
         projectStatsWorkerService,
         readDesktopConfig,
@@ -133,8 +134,8 @@ function createLocalBridgeDispatch(dependencies) {
 
             return [];
         },
-        createProject: async (project, workingFolder) => {
-            const createdProject = await localGitService.createProject(project, workingFolder);
+        createProject: async (project, folders) => {
+            const createdProject = await localGitService.createProject(project, folders);
             await activateProject(createdProject);
 
             return currentLocalProject;
@@ -285,6 +286,12 @@ function createLocalBridgeDispatch(dependencies) {
         saveActionSchedules: (project, actionsFolder, schedules) => localGitService.saveActionSchedules(project, actionsFolder, schedules),
         saveProjectConfig: (project, config) => localGitService.saveProjectConfig(project, config),
         saveDesktopConfig: (values) => saveDesktopConfig(desktopConfigStore, values),
+        selectProjectSubFolder: (rootPath) => {
+            if (!openProjectSubFolder) throw new Error('Project folder picker is not available');
+            if (typeof rootPath !== 'string' || rootPath.length === 0) throw new Error('Missing repository root path');
+
+            return openProjectSubFolder(rootPath);
+        },
         selectWorktreeFolder: () => {
             if (!openWorktreeFolder) throw new Error('Worktree folder picker is not available');
 

@@ -1,6 +1,7 @@
 import {
     DEFAULT_PROJECT_CONFIG,
-    MISSING_WORKING_FOLDER_ERROR,
+    type ProjectConfig,
+    isMissingWorkingFolderError,
     resolveProjectConfigPaths,
     type BranchReference,
     type CardDraft,
@@ -28,23 +29,31 @@ import { projectPersistenceService } from './project_persistence_service'
 import { projectAccessService } from './project_access_service'
 import { createDefaultActionFiles } from '../../project_template/project_template'
 
-export interface MissingWorkingFolderResolution {
-    kind: 'missing-working-folder'
-    configuredWorkingFolder: string
-    folders: TopLevelFolderReference[]
-    project: ProjectReference
-    resolvedWorkingFolder: string
-    storageType: StorageType
+/** The five configurable folders, as the setup dialog edits them: sub-folders are relative to `projectFolder`. */
+export interface ProjectFolderValues {
+    actionsFolder: string
+    archivedFolder: string
+    projectFolder: string
+    releasesFolder: string
+    workingFolder: string
 }
 
+/**
+ * Everything the folder-setup dialog needs, for both situations it covers: a project without an
+ * `md2.config.json` at all, and a configured project whose working folder is missing on disk.
+ * The two differ only in which values are pre-filled and whether an existing config is amended.
+ */
 export interface ProjectFolderSetupResolution {
+    existingFolderPaths: string[]
     folders: TopLevelFolderReference[]
+    hasProjectConfig: boolean
     kind: 'project-folder-setup'
     project: ProjectReference
-    storageType: 'github' | 'local'
+    storageType: StorageType
+    values: ProjectFolderValues
 }
 
-export type ProjectOpenResolution = MissingWorkingFolderResolution | ProjectFolderSetupResolution
+export type ProjectOpenResolution = ProjectFolderSetupResolution
 
 export interface ProjectSessionState {
     errorMessage: string | null
@@ -61,14 +70,6 @@ export interface CardCreationState {
 
 const EMPTY_TOP_LEVEL_FOLDERS: TopLevelFolderReference[] = []
 
-function isMissingWorkingFolderError(error: unknown): error is { workingFolder: string } {
-    if (!error || typeof error !== 'object') return false
-
-    const storageError = error as { code?: unknown; workingFolder?: unknown }
-
-    return storageError.code === MISSING_WORKING_FOLDER_ERROR && typeof storageError.workingFolder === 'string'
-}
-
 function createGithubStorage(accessToken: string | null, isReadOnly = false) {
     const storage = new GithubStorageService(isReadOnly)
     storage.init({ accessToken: accessToken ?? '' })
@@ -76,29 +77,102 @@ function createGithubStorage(accessToken: string | null, isReadOnly = false) {
     return storage
 }
 
-async function persistWorkingFolder(storage: StorageService, project: ProjectReference, workingFolder: string) {
-    const projectConfig = await storage.loadProjectConfig(project)
-    configService.loadProjectConfig(projectConfig)
-    let nextConfig = { ...configService.getProjectConfig(), workingFolder }
-    if (projectConfig?.states === undefined) {
-        const resolvedConfig = resolveProjectConfigPaths(nextConfig)
-        const projectFiles = await storage.loadProjectRoot(project, resolvedConfig.workingFolder)
-        const { activeCards } = markdownParsingService.splitCards(projectFiles.files, resolvedConfig.workingFolder)
-        const derivedStates = deriveStatesFromCards(activeCards)
-        nextConfig = { ...nextConfig, states: mergeStatesWithDefaults(derivedStates) }
-    }
-    configService.loadProjectConfig(nextConfig)
-    await storage.saveProjectConfig(project, nextConfig)
+/** Derives card states from the working folder when the stored config never declared any. */
+async function withDerivedStates(storage: StorageService, project: ProjectReference, config: ProjectConfig, hasStoredStates: boolean) {
+    if (hasStoredStates) return config
+
+    const resolvedConfig = resolveProjectConfigPaths(config)
+    const projectFiles = await storage.loadProjectRoot(project, resolvedConfig.workingFolder)
+    const { activeCards } = markdownParsingService.splitCards(projectFiles.files, resolvedConfig.workingFolder)
+
+    return { ...config, states: mergeStatesWithDefaults(deriveStatesFromCards(activeCards)) }
 }
 
-function requireProjectFolder(projectFolder: string) {
-    const normalizedFolder = projectFolder.trim().replace(/\\/gu, '/')
+function normalizeFolderValue(folderPath: string) {
+    return folderPath.trim().replace(/\\/gu, '/').replace(/^\/+|\/+$/gu, '')
+}
+
+function isAbsoluteFolderValue(folderPath: string) {
+    const normalizedFolder = folderPath.trim().replace(/\\/gu, '/')
+
+    return normalizedFolder.startsWith('/') || /^[A-Za-z]:/u.test(normalizedFolder)
+}
+
+export function requireProjectFolder(projectFolder: string) {
+    if (isAbsoluteFolderValue(projectFolder)) throw new Error('Project folder must be a root folder name')
+
+    const normalizedFolder = normalizeFolderValue(projectFolder)
     if (normalizedFolder.length === 0) throw new Error('Project folder is required')
     if (normalizedFolder === '.' || normalizedFolder === '..' || normalizedFolder.includes('/')) {
         throw new Error('Project folder must be a root folder name')
     }
 
     return normalizedFolder
+}
+
+/** Rejects empty sub-folder values and any path that would escape the repository root. */
+export function requireSubFolder(label: string, folderPath: string) {
+    if (isAbsoluteFolderValue(folderPath)) throw new Error(`${label} must stay inside the project folder`)
+
+    const normalizedFolder = normalizeFolderValue(folderPath)
+    if (normalizedFolder.length === 0) throw new Error(`${label} is required`)
+    if (normalizedFolder.split('/').some((segment) => segment === '.' || segment === '..' || segment.length === 0)) {
+        throw new Error(`${label} must stay inside the project folder`)
+    }
+
+    return normalizedFolder
+}
+
+/** Validates all five folder values together, as the setup dialog submits them. */
+export function requireProjectFolderValues(values: ProjectFolderValues): ProjectFolderValues {
+    return {
+        actionsFolder: requireSubFolder('Actions folder', values.actionsFolder),
+        archivedFolder: requireSubFolder('Archived folder', values.archivedFolder),
+        projectFolder: requireProjectFolder(values.projectFolder),
+        releasesFolder: requireSubFolder('Releases folder', values.releasesFolder),
+        workingFolder: requireSubFolder('Working folder', values.workingFolder),
+    }
+}
+
+/** The four resolved sub-folder paths, in the order the setup dialog lists them. */
+export function resolvedSetupFolders(config: ProjectConfig) {
+    const resolvedConfig = resolveProjectConfigPaths(config)
+
+    return [resolvedConfig.workingFolder, resolvedConfig.archivedFolder, resolvedConfig.actionsFolder, resolvedConfig.releasesFolder]
+}
+
+/** Folder paths represented by repository files. */
+function folderPathsOf(files: string[]) {
+    const folderPaths = new Set<string>()
+    for (const filePath of files) {
+        const segments = filePath.split('/')
+        segments.pop()
+        let currentPath = ''
+        for (const segment of segments) {
+            currentPath = currentPath.length === 0 ? segment : `${currentPath}/${segment}`
+            folderPaths.add(currentPath)
+        }
+    }
+
+    return [...folderPaths].sort((left, right) => left.localeCompare(right))
+}
+
+async function listExistingFolderPaths(storage: StorageService, project: ProjectReference) {
+    try {
+        return folderPathsOf(await storage.listRepositoryFiles(project))
+    } catch {
+        return []
+    }
+}
+
+export function folderValuesOf(config: ProjectConfig): ProjectFolderValues {
+    return {
+        actionsFolder: config.actionsFolder,
+        archivedFolder: config.archivedFolder,
+        projectFolder: config.projectFolder,
+        releasesFolder: config.releasesFolder,
+        workingFolder: config.workingFolder,
+    }
 }
 
 async function listTopLevelFolders(storage: StorageService, project: ProjectReference) {
@@ -109,22 +183,25 @@ async function listTopLevelFolders(storage: StorageService, project: ProjectRefe
     }
 }
 
-async function createMissingWorkingFolderResolution(
+async function createFolderSetupResolution(
     storage: StorageService,
     storageType: StorageType,
     project: ProjectReference,
-): Promise<MissingWorkingFolderResolution> {
-    const config = configService.getProjectConfig()
-    const resolvedConfig = resolveProjectConfigPaths(config)
-    const folders = await listTopLevelFolders(storage, project)
+    hasProjectConfig: boolean,
+): Promise<ProjectFolderSetupResolution> {
+    const [folders, existingFolderPaths] = await Promise.all([
+        listTopLevelFolders(storage, project),
+        listExistingFolderPaths(storage, project),
+    ])
 
     return {
-        configuredWorkingFolder: config.workingFolder,
+        existingFolderPaths,
         folders,
-        kind: 'missing-working-folder',
+        hasProjectConfig,
+        kind: 'project-folder-setup',
         project,
-        resolvedWorkingFolder: resolvedConfig.workingFolder,
         storageType,
+        values: folderValuesOf(hasProjectConfig ? configService.getProjectConfig() : DEFAULT_PROJECT_CONFIG),
     }
 }
 
@@ -142,7 +219,7 @@ async function loadProjectSession(
     } catch (error) {
         if (!isMissingWorkingFolderError(error)) throw error
 
-        return createMissingWorkingFolderResolution(storage, storageType, project)
+        return createFolderSetupResolution(storage, storageType, project, true)
     }
 }
 
@@ -289,16 +366,20 @@ export class ProjectSessionService extends EventTarget {
         this.dispatchChanged()
     }
 
-    /** Restore last project through same service-owned loading path used by explicit project opens. */
-    async restoreLastProject(accessToken: string | null) {
+    /**
+     * Restore last project through the same resolution-returning path used by explicit project
+     * opens, so a missing folder opens the folder-setup dialog instead of failing startup.
+     */
+    async restoreLastProject(accessToken: string | null): Promise<ProjectOpenResolution | null> {
         this.setError(null)
         const lastProject = readLastProject()
-        if (!lastProject) return
-        if ((lastProject.storageType === 'github' || lastProject.storageType === 'github-readonly') && !accessToken) return
+        if (!lastProject) return null
+        if ((lastProject.storageType === 'github' || lastProject.storageType === 'github-readonly') && !accessToken) return null
 
         const storage = createStorageService(lastProject.storageType, accessToken)
         const project = await resolveRestoredProject(lastProject.storageType, storage, lastProject.project)
-        await activateProjectSession(storage, lastProject.storageType, project)
+
+        return this.openProject(lastProject.storageType, project, accessToken, storage)
     }
 
     async listRepositories(accessToken: string | null): Promise<RepositoryReference[]> {
@@ -336,67 +417,68 @@ export class ProjectSessionService extends EventTarget {
     ): Promise<ProjectOpenResolution | null> {
         return this.withLoading('Project load failed', async () => {
             const storage = existingStorage ?? createStorageService(storageType, accessToken)
-            if (storageType === 'github' || storageType === 'github-readonly' || storageType === 'local') {
+            if (storageType === 'github-readonly') {
+                return loadProjectSession(storage, storageType, project, () => this.setReadOnly(true))
+            }
+            if (storageType === 'github' || storageType === 'local') {
                 const projectConfig = await storage.loadProjectConfig(project)
-                if (storageType === 'github-readonly' || projectConfig !== null) {
+                if (projectConfig !== null) {
                     return loadProjectSession(
                         storage,
                         storageType,
                         project,
-                        () => this.setReadOnly(storageType === 'github-readonly'),
+                        () => this.setReadOnly(false),
                     )
                 }
 
                 this.setReadOnly(false)
-                const folders = await listTopLevelFolders(storage, project)
 
-                return { folders, kind: 'project-folder-setup', project, storageType }
+                return createFolderSetupResolution(storage, storageType, project, false)
             }
 
             return loadProjectSession(storage, storageType, project, () => this.setReadOnly(false))
         })
     }
 
-    async openWorkingFolder(resolution: MissingWorkingFolderResolution, folder: TopLevelFolderReference, accessToken: string | null) {
+    /**
+     * Single confirm path for the folder-setup dialog: creates every folder that is still missing,
+     * seeds the default action files, writes the five values to the project config and opens the
+     * project. Folders that already exist are left untouched.
+     */
+    async confirmProjectFolderSetup(
+        resolution: ProjectFolderSetupResolution,
+        values: ProjectFolderValues,
+        accessToken: string | null,
+    ) {
         projectAccessService.requireWritable()
-        await this.withLoading('Working folder selection failed', async () => {
+        await this.withLoading('Project folder setup failed', async () => {
             const storage = createStorageService(resolution.storageType, accessToken)
-            await persistWorkingFolder(storage, resolution.project, folder.path)
-            await activateProjectSession(storage, resolution.storageType, resolution.project)
-            this.setReadOnly(false)
-        })
-    }
-
-    async createWorkingFolder(resolution: MissingWorkingFolderResolution, accessToken: string | null) {
-        projectAccessService.requireWritable()
-        await this.withLoading('Working folder creation failed', async () => {
-            const storage = createStorageService(resolution.storageType, accessToken)
-            const project = await storage.createProject(resolution.project, resolution.resolvedWorkingFolder)
-            await persistWorkingFolder(storage, project, resolution.configuredWorkingFolder)
-            await activateProjectSession(storage, resolution.storageType, project)
-            this.setReadOnly(false)
-        })
-    }
-
-    async createProjectFolders(resolution: ProjectFolderSetupResolution, projectFolder: string, accessToken: string | null) {
-        projectAccessService.requireWritable()
-        await this.withLoading('Project folder creation failed', async () => {
-            const storage = createStorageService(resolution.storageType, accessToken)
-            const normalizedProjectFolder = requireProjectFolder(projectFolder)
-            const projectConfig = {
+            const folderValues = requireProjectFolderValues(values)
+            const storedConfig = resolution.hasProjectConfig ? await storage.loadProjectConfig(resolution.project) : null
+            const baseConfig = {
                 ...DEFAULT_PROJECT_CONFIG,
-                backgroundShade: createRandomProjectBackgroundShade(),
-                projectFolder: normalizedProjectFolder,
+                ...(storedConfig ?? { backgroundShade: createRandomProjectBackgroundShade() }),
             }
+            const projectConfig: ProjectConfig = { ...baseConfig, ...folderValues }
             const resolvedConfig = resolveProjectConfigPaths(projectConfig)
-            const project = await storage.createProject(resolution.project, resolvedConfig.workingFolder)
-            await storage.commit({
-                branch: project.branch,
-                files: createDefaultActionFiles(resolvedConfig.actionsFolder),
-                message: 'Add default MD² actions',
-            })
-            await storage.saveProjectConfig(project, projectConfig)
-            configService.loadProjectConfig(projectConfig)
+            const existingFilePaths = new Set(await storage.listRepositoryFiles(resolution.project))
+            const existingFolders = new Set(folderPathsOf([...existingFilePaths]))
+            const missingFolders = resolvedSetupFolders(projectConfig).filter((folder) => !existingFolders.has(folder))
+            const project = await storage.createProject(resolution.project, missingFolders)
+            const defaultActionFiles = createDefaultActionFiles(resolvedConfig.actionsFolder)
+                .filter(({ path }) => !existingFilePaths.has(path))
+
+            if (defaultActionFiles.length > 0) {
+                await storage.commit({
+                    branch: project.branch,
+                    files: defaultActionFiles,
+                    message: 'Add default MD² actions',
+                })
+            }
+
+            const nextConfig = await withDerivedStates(storage, project, projectConfig, storedConfig?.states !== undefined)
+            configService.loadProjectConfig(nextConfig)
+            await storage.saveProjectConfig(project, nextConfig)
             await activateProjectSession(storage, resolution.storageType, project)
             this.setReadOnly(false)
         })

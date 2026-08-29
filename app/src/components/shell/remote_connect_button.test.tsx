@@ -173,12 +173,19 @@ describe('RemoteConnectButton', () => {
         const activeProject = { branch: 'main', id: '/repo', rootPath: '/repo' }
         MockWebSocket.activeProject = activeProject
         const resolution = {
-            configuredWorkingFolder: 'working',
+            existingFolderPaths: [],
             folders: [],
-            kind: 'missing-working-folder' as const,
+            hasProjectConfig: true,
+            kind: 'project-folder-setup' as const,
             project: activeProject,
-            resolvedWorkingFolder: 'working',
             storageType: 'remote' as const,
+            values: {
+                actionsFolder: 'actions',
+                archivedFolder: 'archived',
+                projectFolder: 'design',
+                releasesFolder: 'history',
+                workingFolder: 'working',
+            },
         }
         vi.spyOn(projectSessionService, 'openProject').mockResolvedValue(resolution)
         const openProjectListener = vi.fn()

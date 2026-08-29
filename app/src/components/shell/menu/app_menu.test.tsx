@@ -98,6 +98,7 @@ function renderMenu(isMobile = false) {
                 accessToken="token"
                 auth={auth}
                 extraActions={null}
+                initialProjectOpenResolution={null}
                 isGithubAuthenticated={false}
                 isMobile={isMobile}
                 onOpenConfig={vi.fn()}

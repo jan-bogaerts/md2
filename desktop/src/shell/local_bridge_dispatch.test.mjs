@@ -166,6 +166,7 @@ function createDispatch(options = {}) {
         localGitService,
         mergeConflictService,
         openProjectFolder: options.openProjectFolder,
+        openProjectSubFolder: options.openProjectSubFolder,
         openWorktreeFolder: options.openWorktreeFolder,
         projectStatsWorkerService,
         readDesktopConfig: () => desktopConfig,
@@ -311,11 +312,11 @@ describe('createLocalBridgeDispatch', () => {
         const { dispatch, localGitService } = createDispatch();
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
 
-        await dispatch.dataBridge.createProject(project, 'design/active');
+        await dispatch.dataBridge.createProject(project, ['design/active', 'design/history']);
         localGitService.commit.mockResolvedValueOnce(undefined);
         const result = await dispatch.dataBridge.commit({ branch: 'main', files: [], message: 'Add defaults' });
 
-        expect(localGitService.createProject).toHaveBeenCalledWith(project, 'design/active');
+        expect(localGitService.createProject).toHaveBeenCalledWith(project, ['design/active', 'design/history']);
         expect(localGitService.commit).toHaveBeenCalledWith(expect.any(Object), project);
         expect(result).toEqual([]);
     });
@@ -331,6 +332,14 @@ describe('createLocalBridgeDispatch', () => {
         expect(project).toEqual({ branch: 'topic', id: 'C:/repo', rootPath: 'C:/repo' });
         expect(actionSchedulerService.startProject).toHaveBeenCalledWith(project);
         expect(localGitService.commit).toHaveBeenCalledWith(expect.any(Object), project);
+    });
+
+    it('opens the project sub-folder picker at the repository root', async () => {
+        const openProjectSubFolder = vi.fn(async () => 'C:/repo/design/active');
+        const { dispatch } = createDispatch({ openProjectSubFolder });
+
+        await expect(dispatch.dataBridge.selectProjectSubFolder('C:/repo')).resolves.toBe('C:/repo/design/active');
+        expect(openProjectSubFolder).toHaveBeenCalledWith('C:/repo');
     });
 
     it('leaves the current project unchanged when folder selection is cancelled', async () => {

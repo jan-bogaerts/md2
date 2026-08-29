@@ -21,7 +21,6 @@ import { BranchSwitchDialog } from './branch_switch_dialog'
 import { CompleteReleaseDialog } from './complete_release_dialog'
 import { NewCardDialog } from './new_card_dialog'
 import { ProjectOpenDialog } from './project_open_dialog'
-import { WorkingFolderChooserDialog } from './working_folder_chooser_dialog'
 
 const BRANCHES: BranchReference[] = [{ name: 'main' }]
 const PROJECT: ProjectReference = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
@@ -37,10 +36,10 @@ function projectOpenDialogProps(overrides: Partial<ProjectOpenDialogProps>): Pro
         isLoading: false,
         onBranchChange: vi.fn(),
         onChooseLocalFolder: vi.fn(async () => undefined),
+        onBrowseProjectSubFolder: null,
         onClose: vi.fn(),
-        onCreateProjectFolders: vi.fn(),
+        onConfirmProjectFolderSetup: vi.fn(),
         onCreateRemoteProject: vi.fn(),
-        onCreateWorkingFolder: vi.fn(),
         onDiscardGithubPendingCommits: vi.fn(),
         onLoadManualBranches: vi.fn(async () => null),
         onLoadRemoteBranches: vi.fn(async () => []),
@@ -49,7 +48,6 @@ function projectOpenDialogProps(overrides: Partial<ProjectOpenDialogProps>): Pro
         onOpenRemote: vi.fn(async () => undefined),
         onRepositoryChange: vi.fn(async () => []),
         onSourceChange: vi.fn(),
-        onUseWorkingFolder: vi.fn(),
         open: true,
         pendingGithubConflictProject: null,
         projectOpenResolution: null,
@@ -115,9 +113,9 @@ describe('project dialog components', () => {
                 projectOpenResolution={null}
                 onBranchChange={vi.fn()}
                 onClose={vi.fn()}
-                onCreateProjectFolders={vi.fn()}
+                onBrowseProjectSubFolder={null}
+                onConfirmProjectFolderSetup={vi.fn()}
                 onCreateRemoteProject={vi.fn((rootPath, branch) => ({ branch, id: rootPath, rootPath }))}
-                onCreateWorkingFolder={vi.fn()}
                 onDiscardGithubPendingCommits={vi.fn()}
                 onLoadManualBranches={vi.fn(async () => ({ branches: BRANCHES, repository: REPOSITORIES[0] }))}
                 onLoadRemoteBranches={vi.fn(async () => BRANCHES)}
@@ -126,7 +124,6 @@ describe('project dialog components', () => {
                 onOpenRemote={vi.fn()}
                 onRepositoryChange={vi.fn(async () => BRANCHES)}
                 onSourceChange={vi.fn()}
-                onUseWorkingFolder={vi.fn()}
                 open
                 pendingGithubConflictProject={null}
                 recentLocalRepositories={[]}
@@ -148,9 +145,9 @@ describe('project dialog components', () => {
                 onBranchChange={vi.fn()}
                 onChooseLocalFolder={vi.fn(async () => undefined)}
                 onClose={vi.fn()}
-                onCreateProjectFolders={vi.fn()}
+                onBrowseProjectSubFolder={null}
+                onConfirmProjectFolderSetup={vi.fn()}
                 onCreateRemoteProject={vi.fn()}
-                onCreateWorkingFolder={vi.fn()}
                 onDiscardGithubPendingCommits={vi.fn()}
                 onLoadManualBranches={vi.fn(async () => null)}
                 onLoadRemoteBranches={vi.fn(async () => [])}
@@ -159,7 +156,6 @@ describe('project dialog components', () => {
                 onOpenRemote={vi.fn()}
                 onRepositoryChange={vi.fn(async () => [])}
                 onSourceChange={vi.fn()}
-                onUseWorkingFolder={vi.fn()}
                 open
                 pendingGithubConflictProject={null}
                 projectOpenResolution={null}
@@ -193,9 +189,9 @@ describe('project dialog components', () => {
                 onBranchChange={vi.fn()}
                 onChooseLocalFolder={vi.fn(async () => undefined)}
                 onClose={vi.fn()}
-                onCreateProjectFolders={vi.fn()}
+                onBrowseProjectSubFolder={null}
+                onConfirmProjectFolderSetup={vi.fn()}
                 onCreateRemoteProject={vi.fn()}
-                onCreateWorkingFolder={vi.fn()}
                 onDiscardGithubPendingCommits={vi.fn()}
                 onLoadManualBranches={vi.fn(async () => null)}
                 onLoadRemoteBranches={vi.fn(async () => [])}
@@ -204,7 +200,6 @@ describe('project dialog components', () => {
                 onOpenRemote={openRemote}
                 onRepositoryChange={vi.fn(async () => BRANCHES)}
                 onSourceChange={onSourceChange}
-                onUseWorkingFolder={vi.fn()}
                 open
                 pendingGithubConflictProject={null}
                 projectOpenResolution={null}
@@ -294,9 +289,9 @@ describe('project dialog components', () => {
                 onBranchChange={vi.fn()}
                 onChooseLocalFolder={chooseLocalFolder}
                 onClose={vi.fn()}
-                onCreateProjectFolders={vi.fn()}
+                onBrowseProjectSubFolder={null}
+                onConfirmProjectFolderSetup={vi.fn()}
                 onCreateRemoteProject={vi.fn()}
-                onCreateWorkingFolder={vi.fn()}
                 onDiscardGithubPendingCommits={vi.fn()}
                 onLoadManualBranches={vi.fn(async () => null)}
                 onLoadRemoteBranches={vi.fn(async () => [])}
@@ -305,7 +300,6 @@ describe('project dialog components', () => {
                 onOpenRemote={vi.fn()}
                 onRepositoryChange={vi.fn(async () => [])}
                 onSourceChange={vi.fn()}
-                onUseWorkingFolder={vi.fn()}
                 open
                 pendingGithubConflictProject={null}
                 projectOpenResolution={null}
@@ -354,9 +348,9 @@ describe('project dialog components', () => {
                 onBranchChange={vi.fn()}
                 onChooseLocalFolder={vi.fn(async () => undefined)}
                 onClose={vi.fn()}
-                onCreateProjectFolders={vi.fn()}
+                onBrowseProjectSubFolder={null}
+                onConfirmProjectFolderSetup={vi.fn()}
                 onCreateRemoteProject={vi.fn()}
-                onCreateWorkingFolder={vi.fn()}
                 onDiscardGithubPendingCommits={vi.fn()}
                 onLoadManualBranches={vi.fn(async () => null)}
                 onLoadRemoteBranches={vi.fn(async () => [])}
@@ -365,7 +359,6 @@ describe('project dialog components', () => {
                 onOpenRemote={vi.fn()}
                 onRepositoryChange={vi.fn(async () => [])}
                 onSourceChange={vi.fn()}
-                onUseWorkingFolder={vi.fn()}
                 open
                 pendingGithubConflictProject={null}
                 projectOpenResolution={null}
@@ -392,9 +385,9 @@ describe('project dialog components', () => {
                 onBranchChange={vi.fn()}
                 onChooseLocalFolder={vi.fn(async () => undefined)}
                 onClose={vi.fn()}
-                onCreateProjectFolders={vi.fn()}
+                onBrowseProjectSubFolder={null}
+                onConfirmProjectFolderSetup={vi.fn()}
                 onCreateRemoteProject={vi.fn()}
-                onCreateWorkingFolder={vi.fn()}
                 onDiscardGithubPendingCommits={vi.fn()}
                 onLoadManualBranches={loadManualBranches}
                 onLoadRemoteBranches={vi.fn(async () => [])}
@@ -403,7 +396,6 @@ describe('project dialog components', () => {
                 onOpenRemote={vi.fn()}
                 onRepositoryChange={vi.fn(async () => [])}
                 onSourceChange={vi.fn()}
-                onUseWorkingFolder={vi.fn()}
                 open
                 pendingGithubConflictProject={null}
                 projectOpenResolution={null}
@@ -435,9 +427,9 @@ describe('project dialog components', () => {
                 projectOpenResolution={null}
                 onBranchChange={vi.fn()}
                 onClose={vi.fn()}
-                onCreateProjectFolders={vi.fn()}
+                onBrowseProjectSubFolder={null}
+                onConfirmProjectFolderSetup={vi.fn()}
                 onCreateRemoteProject={vi.fn((rootPath, branch) => ({ branch, id: rootPath, rootPath }))}
-                onCreateWorkingFolder={vi.fn()}
                 onDiscardGithubPendingCommits={vi.fn()}
                 onLoadManualBranches={vi.fn(async () => ({ branches: BRANCHES, repository: REPOSITORIES[0] }))}
                 onLoadRemoteBranches={vi.fn(async () => BRANCHES)}
@@ -446,7 +438,6 @@ describe('project dialog components', () => {
                 onOpenRemote={vi.fn()}
                 onRepositoryChange={vi.fn(async () => BRANCHES)}
                 onSourceChange={vi.fn()}
-                onUseWorkingFolder={vi.fn()}
                 open
                 pendingGithubConflictProject={null}
                 recentLocalRepositories={[]}
@@ -476,9 +467,9 @@ describe('project dialog components', () => {
                 projectOpenResolution={null}
                 onBranchChange={vi.fn()}
                 onClose={vi.fn()}
-                onCreateProjectFolders={vi.fn()}
+                onBrowseProjectSubFolder={null}
+                onConfirmProjectFolderSetup={vi.fn()}
                 onCreateRemoteProject={vi.fn((rootPath, branch) => ({ branch, id: rootPath, rootPath }))}
-                onCreateWorkingFolder={vi.fn()}
                 onDiscardGithubPendingCommits={vi.fn()}
                 onLoadManualBranches={vi.fn(async () => ({ branches: BRANCHES, repository: REPOSITORIES[0] }))}
                 onLoadRemoteBranches={vi.fn(async () => BRANCHES)}
@@ -487,7 +478,6 @@ describe('project dialog components', () => {
                 onOpenRemote={vi.fn()}
                 onRepositoryChange={vi.fn(async () => BRANCHES)}
                 onSourceChange={vi.fn()}
-                onUseWorkingFolder={vi.fn()}
                 open
                 pendingGithubConflictProject={null}
                 recentLocalRepositories={[]}
@@ -513,9 +503,9 @@ describe('project dialog components', () => {
                 projectOpenResolution={null}
                 onBranchChange={vi.fn()}
                 onClose={vi.fn()}
-                onCreateProjectFolders={vi.fn()}
+                onBrowseProjectSubFolder={null}
+                onConfirmProjectFolderSetup={vi.fn()}
                 onCreateRemoteProject={vi.fn((rootPath, branch) => ({ branch, id: rootPath, rootPath }))}
-                onCreateWorkingFolder={vi.fn()}
                 onDiscardGithubPendingCommits={vi.fn()}
                 onLoadManualBranches={vi.fn(async () => ({ branches: BRANCHES, repository: REPOSITORIES[0] }))}
                 onLoadRemoteBranches={vi.fn(async () => BRANCHES)}
@@ -524,7 +514,6 @@ describe('project dialog components', () => {
                 onOpenRemote={vi.fn()}
                 onRepositoryChange={vi.fn(async () => BRANCHES)}
                 onSourceChange={vi.fn()}
-                onUseWorkingFolder={vi.fn()}
                 open
                 pendingGithubConflictProject={null}
                 recentLocalRepositories={[]}
@@ -536,112 +525,204 @@ describe('project dialog components', () => {
         expect(screen.queryByLabelText('Token')).not.toBeInTheDocument()
     })
 
-    it('renders the working folder chooser without mounting the menu', () => {
-        render(
-            <WorkingFolderChooserDialog
-                isLoading={false}
-                onCreateWorkingFolder={vi.fn()}
-                onUseWorkingFolder={vi.fn()}
-                resolution={{
-                    configuredWorkingFolder: 'missing',
-                    folders: [{ name: 'docs', path: 'docs' }],
-                    project: PROJECT,
-                    storageType: 'local',
-                }}
-            />,
-        )
 
-        expect(screen.getByText('Working folder is missing: missing')).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'Use folder docs' })).toBeInTheDocument()
-    })
-
-    it('shows only working-folder recovery when Electron project loading needs a folder choice', () => {
+    it('shows the folder setup fields when project loading needs a folder choice', () => {
         render(
             <ProjectOpenDialog
-                branches={[]}
-                isDesktopMode
-                isGithubAuthenticated={false}
-                isLoading={false}
-                onChooseLocalFolder={vi.fn(async () => undefined)}
-                projectOpenResolution={{
-                    configuredWorkingFolder: 'missing',
-                    folders: [{ name: 'docs', path: 'docs' }],
-                    kind: 'missing-working-folder',
-                    project: PROJECT,
-                    resolvedWorkingFolder: 'missing',
-                    storageType: 'local',
-                }}
-                onBranchChange={vi.fn()}
-                onClose={vi.fn()}
-                onCreateProjectFolders={vi.fn()}
-                onCreateRemoteProject={vi.fn((rootPath, branch) => ({ branch, id: rootPath, rootPath }))}
-                onCreateWorkingFolder={vi.fn()}
-                onDiscardGithubPendingCommits={vi.fn()}
-                onLoadManualBranches={vi.fn(async () => ({ branches: BRANCHES, repository: REPOSITORIES[0] }))}
-                onLoadRemoteBranches={vi.fn(async () => BRANCHES)}
-                onOpenGithub={vi.fn()}
-                onOpenLocal={vi.fn(async () => undefined)}
-                onOpenRemote={vi.fn()}
-                onRepositoryChange={vi.fn(async () => BRANCHES)}
-                onSourceChange={vi.fn()}
-                onUseWorkingFolder={vi.fn()}
-                open
-                pendingGithubConflictProject={null}
-                recentLocalRepositories={[]}
-                repositories={REPOSITORIES}
+                {...projectOpenDialogProps({
+                    isDesktopMode: true,
+                    projectOpenResolution: {
+                        existingFolderPaths: ['design', 'design/archived'],
+                        folders: [{ name: 'design', path: 'design' }],
+                        hasProjectConfig: true,
+                        kind: 'project-folder-setup',
+                        project: PROJECT,
+                        storageType: 'local',
+                        values: {
+                            actionsFolder: 'actions',
+                            archivedFolder: 'archived',
+                            projectFolder: 'design',
+                            releasesFolder: 'history',
+                            workingFolder: 'feature_descriptions',
+                        },
+                    },
+                })}
             />,
         )
 
-        expect(screen.getByText('Working folder is missing: missing')).toBeInTheDocument()
+        expect(screen.getByLabelText('Working folder')).toHaveValue('feature_descriptions')
+        expect(screen.getByLabelText('Archived folder')).toHaveValue('archived')
+        expect(screen.getByText('Active cards, inside the project folder. Will be created.')).toBeInTheDocument()
+        expect(screen.getByText('Archived cards, inside the project folder.')).toBeInTheDocument()
         expect(screen.queryByRole('group', { name: 'Project kind' })).toBeNull()
-        expect(screen.queryByRole('button', { name: 'Open GitHub' })).toBeNull()
         expect(screen.queryByRole('button', { name: 'Open Remote' })).toBeNull()
     })
 
-    it('creates a missing-config project from a selected or entered root folder', async () => {
-        const createProjectFolders = vi.fn()
+    it('confirms all five folder values for a project without md2.config.json', async () => {
+        const confirmProjectFolderSetup = vi.fn()
         render(
             <ProjectOpenDialog
-                branches={[]}
-                isDesktopMode
-                isGithubAuthenticated={false}
-                isLoading={false}
-                onChooseLocalFolder={vi.fn(async () => undefined)}
-                onBranchChange={vi.fn()}
-                onClose={vi.fn()}
-                onCreateProjectFolders={createProjectFolders}
-                onCreateRemoteProject={vi.fn((rootPath, branch) => ({ branch, id: rootPath, rootPath }))}
-                onCreateWorkingFolder={vi.fn()}
-                onDiscardGithubPendingCommits={vi.fn()}
-                onLoadManualBranches={vi.fn(async () => ({ branches: BRANCHES, repository: REPOSITORIES[0] }))}
-                onLoadRemoteBranches={vi.fn(async () => BRANCHES)}
-                onOpenGithub={vi.fn()}
-                onOpenLocal={vi.fn(async () => undefined)}
-                onOpenRemote={vi.fn()}
-                onRepositoryChange={vi.fn(async () => BRANCHES)}
-                onSourceChange={vi.fn()}
-                onUseWorkingFolder={vi.fn()}
-                open
-                pendingGithubConflictProject={null}
-                projectOpenResolution={{
-                    folders: [{ name: 'docs', path: 'docs' }],
-                    kind: 'project-folder-setup',
-                    project: PROJECT,
-                    storageType: 'local',
-                }}
-                recentLocalRepositories={[]}
-                repositories={[]}
+                {...projectOpenDialogProps({
+                    isDesktopMode: true,
+                    onConfirmProjectFolderSetup: confirmProjectFolderSetup,
+                    projectOpenResolution: {
+                        existingFolderPaths: [],
+                        folders: [{ name: 'docs', path: 'docs' }],
+                        hasProjectConfig: false,
+                        kind: 'project-folder-setup',
+                        project: PROJECT,
+                        storageType: 'local',
+                        values: {
+                            actionsFolder: 'actions',
+                            archivedFolder: 'archived',
+                            projectFolder: 'design',
+                            releasesFolder: 'history',
+                            workingFolder: 'active',
+                        },
+                    },
+                })}
             />,
         )
 
-        expect(screen.getByRole('dialog', { name: 'Create project' })).toBeInTheDocument()
+        expect(screen.getByRole('dialog', { name: 'Project folders' })).toBeInTheDocument()
         expect(screen.getByLabelText('Project folder')).toHaveValue('design')
         expect(screen.queryByRole('group', { name: 'Project kind' })).toBeNull()
 
         fireEvent.change(screen.getByLabelText('Project folder'), { target: { value: 'docs' } })
+        fireEvent.change(screen.getByLabelText('Working folder'), { target: { value: 'cards' } })
         fireEvent.click(screen.getByRole('button', { name: 'Create' }))
 
-        await waitFor(() => expect(createProjectFolders).toHaveBeenCalledWith('docs'))
+        await waitFor(() => expect(confirmProjectFolderSetup).toHaveBeenCalledWith({
+            actionsFolder: 'actions',
+            archivedFolder: 'archived',
+            projectFolder: 'docs',
+            releasesFolder: 'history',
+            workingFolder: 'cards',
+        }))
+    })
+
+    it('disables confirm while a folder value is empty', () => {
+        render(
+            <ProjectOpenDialog
+                {...projectOpenDialogProps({
+                    projectOpenResolution: {
+                        existingFolderPaths: [],
+                        folders: [],
+                        hasProjectConfig: false,
+                        kind: 'project-folder-setup',
+                        project: PROJECT,
+                        storageType: 'local',
+                        values: {
+                            actionsFolder: 'actions',
+                            archivedFolder: 'archived',
+                            projectFolder: 'design',
+                            releasesFolder: 'history',
+                            workingFolder: 'active',
+                        },
+                    },
+                })}
+            />,
+        )
+
+        fireEvent.change(screen.getByLabelText('Working folder'), { target: { value: '' } })
+
+        expect(screen.getByRole('button', { name: 'Create' })).toBeDisabled()
+        expect(screen.getByText('Working folder is required')).toBeInTheDocument()
+    })
+
+    it('does not offer folder setup for a read-only project', () => {
+        render(
+            <ProjectOpenDialog
+                {...projectOpenDialogProps({
+                    projectOpenResolution: {
+                        existingFolderPaths: [],
+                        folders: [],
+                        hasProjectConfig: true,
+                        kind: 'project-folder-setup',
+                        project: PROJECT,
+                        storageType: 'github-readonly',
+                        values: {
+                            actionsFolder: 'actions',
+                            archivedFolder: 'archived',
+                            projectFolder: 'design',
+                            releasesFolder: 'history',
+                            workingFolder: 'active',
+                        },
+                    },
+                })}
+            />,
+        )
+
+        expect(screen.queryByLabelText('Project folder')).toBeNull()
+        expect(screen.queryByRole('button', { name: 'Save and open' })).toBeNull()
+    })
+
+    it('rejects a folder value that escapes the project folder', () => {
+        render(
+            <ProjectOpenDialog
+                {...projectOpenDialogProps({
+                    projectOpenResolution: {
+                        existingFolderPaths: [],
+                        folders: [],
+                        hasProjectConfig: false,
+                        kind: 'project-folder-setup',
+                        project: PROJECT,
+                        storageType: 'local',
+                        values: {
+                            actionsFolder: 'actions',
+                            archivedFolder: 'archived',
+                            projectFolder: 'design',
+                            releasesFolder: 'history',
+                            workingFolder: 'active',
+                        },
+                    },
+                })}
+            />,
+        )
+
+        fireEvent.change(screen.getByLabelText('Working folder'), { target: { value: '../outside' } })
+
+        expect(screen.getByRole('button', { name: 'Create' })).toBeDisabled()
+        expect(screen.getByText('Working folder must stay inside the project folder')).toBeInTheDocument()
+    })
+
+    it('offers a browse button per folder on the desktop only', () => {
+        const browseProjectSubFolder = vi.fn(async () => 'chosen')
+        const resolution = {
+            existingFolderPaths: [],
+            folders: [],
+            hasProjectConfig: false,
+            kind: 'project-folder-setup' as const,
+            project: PROJECT,
+            storageType: 'local' as const,
+            values: {
+                actionsFolder: 'actions',
+                archivedFolder: 'archived',
+                projectFolder: 'design',
+                releasesFolder: 'history',
+                workingFolder: 'active',
+            },
+        }
+        const { unmount } = render(
+            <ProjectOpenDialog {...projectOpenDialogProps({ projectOpenResolution: resolution })} />,
+        )
+
+        expect(screen.queryByRole('button', { name: 'Choose working folder' })).toBeNull()
+        unmount()
+
+        render(
+            <ProjectOpenDialog
+                {...projectOpenDialogProps({
+                    isDesktopMode: true,
+                    onBrowseProjectSubFolder: browseProjectSubFolder,
+                    projectOpenResolution: resolution,
+                })}
+            />,
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: 'Choose working folder' }))
+
+        expect(browseProjectSubFolder).toHaveBeenCalledWith('active', 'design', false)
     })
 
     it('opens the new card dialog with empty focused title-first fields and dynamic type pills', async () => {

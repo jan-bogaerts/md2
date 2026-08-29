@@ -14,7 +14,7 @@ import { githubAuthService, initDefaultGithubAuthService } from './github/github
 import { openFilesService } from './open_files_service'
 import { isProjectLoadErrorReported } from './project/project_loading'
 import { projectPersistenceService } from './project/project_persistence_service'
-import { projectSessionService } from './project/project_session_service'
+import { projectSessionService, type ProjectOpenResolution } from './project/project_session_service'
 import { register } from './service_injector'
 import { initDefaultSentryConnectionService, sentryConnectionService } from './sentry/sentry_connection_service'
 import { sentryImportService } from './sentry/sentry_import_service'
@@ -24,6 +24,7 @@ export type ApplicationStartupPhase = 'ready' | 'starting'
 export interface ApplicationStartupSnapshot {
     error: string | null
     phase: ApplicationStartupPhase
+    projectOpenResolution: ProjectOpenResolution | null
 }
 
 export interface ApplicationStartupDependencies {
@@ -31,10 +32,10 @@ export interface ApplicationStartupDependencies {
     initializeAgentCapabilities(): Promise<void>
     initializeServices(): void
     restoreGithubSession(): Promise<void>
-    restoreLastProject(accessToken: string | null): Promise<void>
+    restoreLastProject(accessToken: string | null): Promise<ProjectOpenResolution | null>
 }
 
-const INITIAL_SNAPSHOT: ApplicationStartupSnapshot = { error: null, phase: 'starting' }
+const INITIAL_SNAPSHOT: ApplicationStartupSnapshot = { error: null, phase: 'starting', projectOpenResolution: null }
 
 function initializeServices() {
     const desktopConfig = readDesktopConfigFromBridge()
@@ -90,13 +91,13 @@ export class ApplicationStartupService extends EventTarget {
                 this.dependencies.restoreGithubSession(),
                 this.dependencies.initializeAgentCapabilities(),
             ])
-            await this.dependencies.restoreLastProject(this.dependencies.getGithubAccessToken())
-            this.setSnapshot({ error: null, phase: 'ready' })
+            const resolution = await this.dependencies.restoreLastProject(this.dependencies.getGithubAccessToken())
+            this.setSnapshot({ error: null, phase: 'ready', projectOpenResolution: resolution })
         } catch (error) {
             const message = isProjectLoadErrorReported(error)
                 ? null
                 : error instanceof Error ? error.message : 'Startup failed'
-            this.setSnapshot({ error: message, phase: 'ready' })
+            this.setSnapshot({ error: message, phase: 'ready', projectOpenResolution: null })
         }
     }
 

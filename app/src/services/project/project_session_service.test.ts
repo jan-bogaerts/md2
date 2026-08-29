@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ElectronDataBridge } from '../../data/electron_data_bridge'
+import { DEFAULT_PROJECT_CONFIG, MissingWorkingFolderError } from '../../data/data_types'
 import { beforeEach } from 'vitest'
 import { getElectronActionBridge, setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge'
 import { getElectronClaudeRuntimeBridge, setClaudeRuntimeBridgeOverride } from '../../data/electron_claude_runtime_bridge'
@@ -10,13 +11,30 @@ import { remoteConnectionService } from '../data/remote_connection_service'
 import { configService } from '../config/config_service'
 import { actionService } from '../actions/action_service'
 import { dataService } from '../data/data_service'
-import { ProjectSessionService } from './project_session_service'
+import { ProjectSessionService, requireProjectFolderValues } from './project_session_service'
 import { projectPersistenceService } from './project_persistence_service'
 import { openFilesService } from '../open_files_service'
 import { createDeferred } from '../test_support/data_service_test_support'
 import { agentCapabilitiesService } from '../agents/agent_capabilities_service'
 import { claudeRateLimitService } from '../agents/claude_rate_limit_service'
 import { projectAccessService, READ_ONLY_PROJECT_ERROR } from './project_access_service'
+
+const DEFAULT_FOLDER_VALUES = {
+    actionsFolder: 'actions',
+    archivedFolder: 'archived',
+    projectFolder: 'design',
+    releasesFolder: 'history',
+    workingFolder: 'active',
+}
+
+describe('project folder validation', () => {
+    it('rejects absolute project and sub-folder values', () => {
+        expect(() => requireProjectFolderValues({ ...DEFAULT_FOLDER_VALUES, projectFolder: 'C:\\repo\\design' }))
+            .toThrow('Project folder must be a root folder name')
+        expect(() => requireProjectFolderValues({ ...DEFAULT_FOLDER_VALUES, workingFolder: '/outside' }))
+            .toThrow('Working folder must stay inside the project folder')
+    })
+})
 
 function createActionBridge(): ElectronActionBridge {
     return {
@@ -240,6 +258,34 @@ describe('ProjectSessionService storage activation', () => {
         expect(configService.getDesktopValues()).toEqual(desktopConfig)
     })
 
+    it('returns folder setup when restored local project has a missing working folder', async () => {
+        vi.spyOn(dataService, 'init').mockImplementation(() => undefined)
+        vi.spyOn(dataService.projectLoading, 'openProject').mockImplementation(async () => {
+            configService.loadProjectConfig({ ...DEFAULT_PROJECT_CONFIG, workingFolder: 'feature_descriptions' })
+            throw new MissingWorkingFolderError('design/feature_descriptions')
+        })
+        const bridge = createDataBridge()
+        vi.mocked(bridge.loadProjectConfig).mockResolvedValue({
+            ...DEFAULT_PROJECT_CONFIG,
+            workingFolder: 'feature_descriptions',
+        })
+        vi.mocked(bridge.listRepositoryFiles).mockResolvedValue(['design/archived/README.md'])
+        vi.mocked(bridge.listTopLevelFolders).mockResolvedValue([{ name: 'design', path: 'design' }])
+        window.md2Data = bridge
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+        window.localStorage.setItem(LAST_PROJECT_STORAGE_KEY, JSON.stringify({ project, storageType: 'local' }))
+        const service = new ProjectSessionService()
+
+        await expect(service.restoreLastProject(null)).resolves.toMatchObject({
+            existingFolderPaths: ['design', 'design/archived'],
+            hasProjectConfig: true,
+            kind: 'project-folder-setup',
+            project,
+            storageType: 'local',
+            values: { projectFolder: 'design', workingFolder: 'feature_descriptions' },
+        })
+    })
+
     it('restores the desktop active project instead of a stale stored remote project', async () => {
         mockProjectOpen()
         configureRemoteControlConnection({ endpoint: 'ws://127.0.0.1:1234' })
@@ -438,10 +484,19 @@ describe('ProjectSessionService storage activation', () => {
         const service = new ProjectSessionService()
 
         await expect(service.openProject('local', { branch: 'main', id: 'local', rootPath: 'C:/repo' }, null)).resolves.toEqual({
+            existingFolderPaths: [],
             folders: [{ name: 'docs', path: 'docs' }],
+            hasProjectConfig: false,
             kind: 'project-folder-setup',
             project: { branch: 'main', id: 'local', rootPath: 'C:/repo' },
             storageType: 'local',
+            values: {
+                actionsFolder: 'actions',
+                archivedFolder: 'archived',
+                projectFolder: 'design',
+                releasesFolder: 'history',
+                workingFolder: 'active',
+            },
         })
     })
 
@@ -464,10 +519,19 @@ describe('ProjectSessionService storage activation', () => {
         const project = { branch: 'main', id: 'octo/demo', owner: 'octo', repository: 'demo' }
 
         await expect(service.openProject('github', project, 'token-1')).resolves.toEqual({
+            existingFolderPaths: [],
             folders: [{ name: 'docs', path: 'docs' }],
+            hasProjectConfig: false,
             kind: 'project-folder-setup',
             project,
             storageType: 'github',
+            values: {
+                actionsFolder: 'actions',
+                archivedFolder: 'archived',
+                projectFolder: 'design',
+                releasesFolder: 'history',
+                workingFolder: 'active',
+            },
         })
     })
 
@@ -479,9 +543,24 @@ describe('ProjectSessionService storage activation', () => {
         const service = new ProjectSessionService()
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
 
-        await service.createProjectFolders({ folders: [], kind: 'project-folder-setup', project, storageType: 'local' }, 'design', null)
+        await service.confirmProjectFolderSetup(
+            {
+                existingFolderPaths: [],
+                folders: [],
+                hasProjectConfig: false,
+                kind: 'project-folder-setup',
+                project,
+                storageType: 'local',
+                values: DEFAULT_FOLDER_VALUES,
+            },
+            DEFAULT_FOLDER_VALUES,
+            null,
+        )
 
-        expect(bridge.createProject).toHaveBeenCalledWith(project, 'design/active')
+        expect(bridge.createProject).toHaveBeenCalledWith(
+            project,
+            ['design/active', 'design/archived', 'design/actions', 'design/history'],
+        )
         expect(bridge.commit).toHaveBeenCalledWith({
             branch: 'main',
             files: expect.arrayContaining([
@@ -499,6 +578,40 @@ describe('ProjectSessionService storage activation', () => {
             workingFolder: 'active',
         }))
         expect(dataService.projectLoading.openProject).toHaveBeenCalledWith(project)
+    })
+
+    it('seeds only missing default actions and leaves existing folders untouched', async () => {
+        mockProjectOpen()
+        configService.init()
+        const bridge = createDataBridge()
+        vi.mocked(bridge.listRepositoryFiles).mockResolvedValue([
+            'design/actions/complete.json',
+            'design/active/README.md',
+            'design/archived/README.md',
+            'design/history/README.md',
+        ])
+        window.md2Data = bridge
+        const service = new ProjectSessionService()
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+
+        await service.confirmProjectFolderSetup(
+            {
+                existingFolderPaths: ['design', 'design/actions', 'design/active', 'design/archived', 'design/history'],
+                folders: [{ name: 'design', path: 'design' }],
+                hasProjectConfig: false,
+                kind: 'project-folder-setup',
+                project,
+                storageType: 'local',
+                values: DEFAULT_FOLDER_VALUES,
+            },
+            DEFAULT_FOLDER_VALUES,
+            null,
+        )
+
+        expect(bridge.createProject).toHaveBeenCalledWith(project, [])
+        const commitRequest = vi.mocked(bridge.commit).mock.calls[0][0]
+        expect(commitRequest.files.some(({ path }) => path === 'design/actions/complete.json')).toBe(false)
+        expect(commitRequest.files).toContainEqual(expect.objectContaining({ path: 'design/actions/implement.json' }))
     })
 
     it('waits for an in-flight draft image save before cancellation deletes the asset', async () => {

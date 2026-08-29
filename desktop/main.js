@@ -25,6 +25,7 @@ const { ActionSchedulerService } = require('./src/actions/action/action_schedule
 const { ActionRunnerService } = require('./src/actions/action/action_runner_service');
 const diffService = require('./src/git/diff_service');
 const { createLocalBridgeDispatch } = require('./src/shell/local_bridge_dispatch');
+const { invokeWithErrorEnvelope } = require('./src/shell/bridge_invoke');
 const localGitService = require('./src/git/local_git_service');
 const { RemoteControlService } = require('./src/integrations/remote_control_service');
 const remarkableService = require('./src/integrations/remarkable_service');
@@ -129,6 +130,7 @@ const localBridgeDispatch = createLocalBridgeDispatch({
     localGitService,
     mergeConflictService,
     openProjectFolder: () => openProjectFolder(BrowserWindow.getFocusedWindow()),
+    openProjectSubFolder: (rootPath) => openProjectSubFolder(BrowserWindow.getFocusedWindow(), rootPath),
     openWorktreeFolder: () => openWorktreeFolder(BrowserWindow.getFocusedWindow()),
     projectStatsWorkerService,
     readDesktopConfig,
@@ -153,6 +155,18 @@ async function openProjectFolder(window) {
     const result = await dialog.showOpenDialog(window, {
         properties: ['openDirectory'],
         title: 'Open local Git project',
+    });
+
+    if (result.canceled || result.filePaths.length === 0) return null;
+
+    return result.filePaths[0];
+}
+
+async function openProjectSubFolder(window, rootPath) {
+    const result = await dialog.showOpenDialog(window, {
+        defaultPath: rootPath,
+        properties: ['openDirectory', 'createDirectory'],
+        title: 'Choose project folder',
     });
 
     if (result.canceled || result.filePaths.length === 0) return null;
@@ -187,12 +201,15 @@ function removeSubscription(webContents, subscriptionId) {
 function registerLocalBridge() {
     ipcMain.handle(LOCAL_BRIDGE_INVOKE_CHANNEL, (event, request) => {
         const { eventId, method, params } = request;
-        if (!EVENT_METHODS.has(method)) return localBridgeDispatch.invoke(method, params);
 
-        return localBridgeDispatch.invoke(method, [
-            ...params,
-            (payload) => event.sender.send(LOCAL_BRIDGE_EVENT_CHANNEL, { eventId, payload }),
-        ]);
+        return invokeWithErrorEnvelope(() => {
+            if (!EVENT_METHODS.has(method)) return localBridgeDispatch.invoke(method, params);
+
+            return localBridgeDispatch.invoke(method, [
+                ...params,
+                (payload) => event.sender.send(LOCAL_BRIDGE_EVENT_CHANNEL, { eventId, payload }),
+            ]);
+        });
     });
 
     ipcMain.on(LOCAL_BRIDGE_SUBSCRIBE_CHANNEL, (event, request) => {

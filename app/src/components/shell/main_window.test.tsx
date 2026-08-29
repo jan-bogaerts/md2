@@ -32,6 +32,7 @@ function mainWindowElement(overrides?: Partial<Parameters<typeof MainWindow>[0]>
             <DialogDisplay />
             <MainWindow
                 auth={auth}
+                initialProjectOpenResolution={null}
                 toolbarAction={<button type="button">Action</button>}
                 {...overrides}
             />
@@ -229,7 +230,7 @@ describe('MainWindow', () => {
         render(
             <AppThemeProvider>
                 <input aria-label="Other field" />
-                <MainWindow auth={auth} toolbarAction={<button type="button">Action</button>} />
+                <MainWindow auth={auth} initialProjectOpenResolution={null} toolbarAction={<button type="button">Action</button>} />
             </AppThemeProvider>,
         )
         const otherInput = screen.getByLabelText('Other field')
