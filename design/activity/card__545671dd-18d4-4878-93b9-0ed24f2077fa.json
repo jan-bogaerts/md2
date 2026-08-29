@@ -1711,6 +1711,35 @@
       "startedAt": "2026-08-29T12:36:50.517Z",
       "status": "completed",
       "rootConversationId": "agent-675bf02b-f2db-4fb5-a8e4-5829879d3e46"
+    },
+    {
+      "commits": [
+        {
+          "commit": "b006a244335de307e3f676c1708badd8d9a32a1a",
+          "committedAt": "2026-08-29T15:36:02+02:00",
+          "deletions": 10,
+          "filePaths": [
+            "app/src/components/actions/run/popup/action_popup.test.tsx",
+            "app/src/components/actions/run/popup/action_popup.tsx",
+            "app/src/components/actions/run/popup/action_popup_initial_action.node.test.ts",
+            "app/src/components/actions/run/popup/action_popup_initial_action.ts",
+            "app/src/data/data_types.ts",
+            "app/src/services/config/config_entries.ts",
+            "app/src/services/config/config_service.test.ts",
+            "app/src/services/config/config_service.ts"
+          ],
+          "filesChanged": 8,
+          "insertions": 113,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-29T15:36:02+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "545671dd-18d4-4878-93b9-0ed24f2077fa",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
