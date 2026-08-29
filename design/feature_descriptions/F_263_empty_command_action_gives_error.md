@@ -1,0 +1,15 @@
+---
+author: 
+id: F_263
+internalId: 72668dda-9401-49ca-adf2-cd433393214d
+title: empty command action gives error
+status: new
+owner: 
+affects:
+agents:
+policy:
+---
+
+create new action, switch to command, user gets error 'missing action field command in xxxx'
+
+this is not good, should not show an error just after creation
