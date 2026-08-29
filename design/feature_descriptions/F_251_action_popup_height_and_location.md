@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__67aa408b-6038-40b7-a82d-76678ca7b201.json
 policy:
-branch: f_251_action_popup_height_and_location
-worktree: 2
 changedFiles:
   - app/src/components/actions/run/popup/action_popup.test.tsx
   - app/src/components/actions/run/popup/action_popup_frame.tsx
