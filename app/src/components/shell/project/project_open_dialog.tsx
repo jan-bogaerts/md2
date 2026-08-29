@@ -260,7 +260,6 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
         if (!rootPath) throw new Error('Recent local repository path is missing')
 
         setLocalRootPath(rootPath)
-        void onOpenLocal(rootPath)
     }
 
     const handleOpenRemoteClick = () => {

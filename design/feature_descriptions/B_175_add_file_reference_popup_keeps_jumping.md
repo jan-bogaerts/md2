@@ -3,7 +3,7 @@ author:
 id: B_175
 internalId: 22fa2af9-9b97-47c2-931f-ed5a5a62f89d
 title: add file reference popup keeps jumping
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

@@ -331,8 +331,16 @@ describe('project dialog components', () => {
         fireEvent.change(localFolderInput, { target: { value: 'C:/typed' } })
         fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))
         expect(openLocal).toHaveBeenCalledWith('C:/typed')
+        expect(openLocal).toHaveBeenCalledOnce()
+
         fireEvent.click(screen.getByText('C:/recent'))
+        expect(localFolderInput).toHaveValue('C:/recent')
+        expect(openLocal).toHaveBeenCalledOnce()
+
+        expect(screen.getByRole('button', { name: 'Open Local' })).toBeEnabled()
+        fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))
         expect(openLocal).toHaveBeenLastCalledWith('C:/recent')
+        expect(openLocal).toHaveBeenCalledTimes(2)
     })
 
     it('disables local open and folder picker while loading', () => {

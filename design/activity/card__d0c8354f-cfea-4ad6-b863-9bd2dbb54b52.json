@@ -1168,11 +1168,11 @@
         "agent-a033e212-d80b-4ad8-a652-67530d1d948a"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-394e88ae-66e0-4e25-9213-2da17194e4a8",
       "origin": {
@@ -1181,9 +1181,9 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-a033e212-d80b-4ad8-a652-67530d1d948a",
       "startedAt": "2026-08-29T14:27:27.515Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-a033e212-d80b-4ad8-a652-67530d1d948a"
     }
   ],
   "version": 5

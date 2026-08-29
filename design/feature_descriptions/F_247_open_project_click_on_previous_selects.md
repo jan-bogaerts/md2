@@ -3,7 +3,7 @@ author:
 id: F_247
 internalId: d0c8354f-cfea-4ad6-b863-9bd2dbb54b52
 title: open project click on previous selects
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
