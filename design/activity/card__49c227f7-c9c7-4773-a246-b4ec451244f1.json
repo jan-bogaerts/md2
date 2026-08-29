@@ -6871,10 +6871,10 @@
       "actionId": "32eceaf6-37d1-48b4-9bc1-c3f051eb7d8e",
       "cardInternalId": "49c227f7-c9c7-4773-a246-b4ec451244f1",
       "cardPath": "design/feature_descriptions/B_200_cant_save_command_action.md",
-      "completedAt": "2026-08-29T15:38:42.418Z",
+      "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 114975
+        "usedTokens": 150566
       },
       "entries": [
         {
@@ -8222,6 +8222,188 @@
           "status": "failed",
           "timestamp": "2026-08-29T15:38:42.139Z",
           "type": "system"
+        },
+        {
+          "content": "continue",
+          "id": "agent-turn-f3525ccd-30de-4f09-9339-55abff79973f-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 105,
+          "timestamp": "2026-08-29T15:44:33.423Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f3525ccd-30de-4f09-9339-55abff79973f-event-106",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bb3083c3cb90dbb016a92fe67404087d2b3d8ed02e484a194",
+          "sequence": 106,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-29T15:44:55.330Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f3525ccd-30de-4f09-9339-55abff79973f-event-107",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bb3083c3cb90dbb016a92fe78d93487d2b16584aa4c8be088",
+          "sequence": 107,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-29T15:45:13.319Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f3525ccd-30de-4f09-9339-55abff79973f-event-108",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bb3083c3cb90dbb016a92fe8ad06487d29736ec461d5fe319",
+          "sequence": 108,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-29T15:45:30.519Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f3525ccd-30de-4f09-9339-55abff79973f-event-109",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bb3083c3cb90dbb016a92fe9c08dc87d2a79d6c0b85c1704f",
+          "sequence": 109,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-29T15:45:36.267Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ve finished the call-graph review. The job will replace timing-based origin detection rather than merely extending its timeout: watcher events are deferred while an affected local operation is unresolved, then classified by the actual persisted path state against the latest expected outcome. Local persistence remains reconciled directly, so watcher delivery is never required for saves to complete.\n\n",
+          "id": "agent-turn-f3525ccd-30de-4f09-9339-55abff79973f-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 110,
+          "timestamp": "2026-08-29T15:45:38.986Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app/src/services/project/save_state_service.ts'; rg -n \\\"storage\\\\.(commit|moveFiles|deleteFile|deleteFolder|saveProjectConfig)\\\\(\\\" app/src/services -g \\\"*.ts\\\" | Sort-Object; rg -n \\\"status: ready for implementation|id: B_\\\" design/feature_descriptions/B_*.md | Select-Object -Last 20\"",
+          "content": "app/src/services\\agents\\project_agent_token_usage_service.ts:195:        await storage.commit({\r\napp/src/services\\data\\card_attachment_operations.ts:143:        await storage.deleteFile({\r\napp/src/services\\data\\card_image_operations.ts:109:        await storage.deleteFile({\r\napp/src/services\\data\\card_operation_context.ts:142:            const committedFiles = await storage.commit(request)\r\napp/src/services\\data\\project_file_operations.ts:23:        await storage.commit({\r\napp/src/services\\data\\project_file_operations.ts:71:        await storage.deleteFolder({ branch: project.branch, message: `Delete ${path}`, path })\r\napp/src/services\\data\\project_file_operations.ts:91:            committedRepairFiles = await storage.commit({\r\napp/src/services\\data\\project_file_operations.ts:98:        await storage.deleteFile({\r\napp/src/services\\github\\github_storage_read_only.test.ts:61:            () => storage.commit({ branch: 'main', files: [], message: 'write' }),\r\napp/src/services\\github\\github_storage_read_only.test.ts:62:            () => storage.deleteFile({ branch: 'main', message: 'delete', path: 'file.md' }),\r\napp/src/services\\github\\github_storage_read_only.test.ts:63:            () => storage.deleteFolder({ branch: 'main', message: 'delete', path: 'folder' }),\r\napp/src/services\\github\\github_storage_read_only.test.ts:64:            () => storage.moveFiles({ branch: 'main', message: 'move', moves: [] }),\r\napp/src/services\\github\\github_storage_read_only.test.ts:65:            () => storage.saveProjectConfig(project, DEFAULT_PROJECT_CONFIG),\r\napp/src/services\\project\\project_loading.ts:190:        await storage.commit({\r\napp/src/services\\project\\project_loading.ts:198:        await storage.saveProjectConfig(currentProject, rawConfig)\r\napp/src/services\\project\\project_loading.ts:266:        await storage.saveProjectConfig(currentProject, configService.getProjectConfig())\r\napp/src/services\\project\\project_loading.ts:291:                    await storage.moveFiles({\r\napp/src/services\\project\\project_loading.ts:430:            await storage.saveProjectConfig(project, configService.getProjectConfig())\r\napp/src/services\\project\\project_loading.ts:518:            await storage.moveFiles({\r\napp/src/services\\project\\project_session_service.ts:393:            await storage.commit({\r\napp/src/services\\project\\project_session_service.ts:398:            await storage.saveProjectConfig(project, projectConfig)\r\napp/src/services\\project\\project_session_service.ts:91:    await storage.saveProjectConfig(project, nextConfig)\r\napp/src/services\\project\\save_state_service.node.test.ts:24:        const result = storage.commit({ branch: 'main', files: [], message: 'Save action' })\r\napp/src/services\\project\\save_state_service.node.test.ts:32:        await expect(storage.commit({ branch: 'main', files: [], message: 'Retry action' })).rejects.toThrow('disk unavailable')\r\napp/src/services\\release_operations.ts:210:            await storage.commit({\r\napp/src/services\\release_operations.ts:247:                    const committedFiles = await storage.commit({\r\napp/src/services\\stats\\project_stats_loader.ts:159:                await binding.storage.commit({ branch: binding.project.branch, files: [file], message: RELEASE_STATS_COMMIT_MESSAGE });\r\nrg: design/feature_descriptions/B_*.md: IO error for operation on design/feature_descriptions/B_*.md: The filename, directory name, or volume label syntax is incorrect. (os error 123)\n",
+          "durationMs": 26,
+          "exitCode": 1,
+          "id": "agent-turn-f3525ccd-30de-4f09-9339-55abff79973f-event-111",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app/src/services/project/save_state_service.ts'; rg -n \\\"storage\\\\.(commit|moveFiles|deleteFile|deleteFolder|saveProjectConfig)\\\\(\\\" app/src/services -g \\\"*.ts\\\" | Sort-Object; rg -n \\\"status: ready for implementation|id: B_\\\" design/feature_descriptions/B_*.md | Select-Object -Last 20\"",
+          "providerItemId": "exec-651d4e68-568e-4ebb-b54b-086fa02ae4b2",
+          "sequence": 111,
+          "status": "failed",
+          "timestamp": "2026-08-29T15:45:42.321Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f3525ccd-30de-4f09-9339-55abff79973f-event-112",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bb3083c3cb90dbb016a92fea9629487d2a0b48f8f47435517",
+          "sequence": 112,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-29T15:46:00.282Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f3525ccd-30de-4f09-9339-55abff79973f-event-113",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bb3083c3cb90dbb016a92feb9cc4c87d2ad544647bbc36d8b",
+          "sequence": 113,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-29T15:46:18.092Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "add: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\design\\feature_descriptions\\B_201_expected_persistence_outcomes_for_watcher_echoes.md",
+          "deletions": 0,
+          "id": "agent-turn-f3525ccd-30de-4f09-9339-55abff79973f-event-114",
+          "insertions": 93,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-9df31c5f-0ae3-4986-8f7e-7b91930ccd19",
+          "sequence": 114,
+          "status": "completed",
+          "timestamp": "2026-08-29T15:47:15.407Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f3525ccd-30de-4f09-9339-55abff79973f-event-115",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bb3083c3cb90dbb016a92ff07861087d2abd3288331334899",
+          "sequence": 115,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-29T15:47:23.468Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "The technical-writer workflow shaped this into an implementation job with explicit invariants, affected call sites, failure handling, and acceptance criteria. I kept protocol changes out of scope unless renderer-side outcome matching proves insufficient.\n\n",
+          "id": "agent-turn-f3525ccd-30de-4f09-9339-55abff79973f-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 116,
+          "timestamp": "2026-08-29T15:47:24.911Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff --check -- 'design/feature_descriptions/B_201_expected_persistence_outcomes_for_watcher_echoes.md'; git status --short -- 'design/feature_descriptions/B_201_expected_persistence_outcomes_for_watcher_echoes.md'; Get-Content -Raw 'design/feature_descriptions/B_201_expected_persistence_outcomes_for_watcher_echoes.md'\"",
+          "content": "warning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\nwarning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\n?? design/feature_descriptions/B_201_expected_persistence_outcomes_for_watcher_echoes.md\n---\nauthor: \nid: B_201\ninternalId: 279da862-4385-442f-9c26-10d3bdde07e5\ntitle: expected persistence outcomes for watcher echoes\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__279da862-4385-442f-9c26-10d3bdde07e5.json\npolicy:\nafter: 49c227f7-c9c7-4773-a246-b4ec451244f1\nchangedFiles:\n  - app/src/services/data/card_operation_context.ts\n  - app/src/services/data/data_service.ts\n  - app/src/services/project/project_loading.ts\n  - app/src/services/project/project_state.ts\n  - design/architecture/data_saving_and_commits.md\n---\nWatcher notifications from local persistence can arrive after the storage call finishes and be misclassified as external changes. This can reload stale content, create false conflicts, or undo in-memory path reconciliation.\n\n## Current state\n\n`ProjectState.commitPathsInFlight` is a set of paths. Persistence code adds affected paths immediately before a storage call and removes them in `finally` as soon as the returned promise settles. `ProjectLoading` treats watcher events for paths in that set as local echoes.\n\nThe desktop watcher independently settles filesystem activity for 75 ms. Its notifications can therefore arrive before, during, or after the storage promise. Filesystem watchers may also coalesce several writes, represent a rename as separate removal and addition events, or miss events while the watcher is interrupted. Storage-call lifetime is consequently not a reliable event-origin boundary.\n\nThis affects more than batched action saves. The same path set is used by ordinary commits, card-separator moves, external-card imports, Markdown reload suppression, and action reload classification. Local and remote-control storage both ultimately receive the same path-only `ProjectWatchEvent` shape.\n\nThe application already knows what each local operation intends to persist. `CommitRequest.files` describes expected file content, moves describe an absent source and a target with known content, and delete requests describe expected absence. Successful operations also reconcile application state directly. Watcher delivery is not required to complete a save and must not become such a requirement.\n\n## Required behavior\n\n* Replace storage-call-lifetime origin detection with expected persistence outcomes.\n* An expected present outcome contains the normalized repository path and exact expected content. An expected absent outcome contains the normalized repository path.\n* Register outcomes before starting the storage mutation, so notifications emitted during the mutation can be recognized.\n* Keep the latest outcome for a path and defer classification while a newer local operation affecting that path is unresolved.\n* After affected local operations settle, compare the path's actual persisted state with its latest expected outcome.\n* A matching outcome is a local persistence echo. It may update repository-path bookkeeping, but it must not reload domain state or create a conflict.\n* A non-matching outcome is an external change and follows the existing reload and conflict behavior.\n* Consume a matching outcome only after the actual persisted state has been observed. Do not consume it merely because the storage promise resolved.\n* Do not wait for a fixed number of watcher events. Local persistence must finish even if notifications are coalesced or never arrive.\n* Do not expire outcomes solely by elapsed time. Project reset and verified full resynchronization clear obsolete outcomes. If retained state reaches a defined bound, trigger verification/resynchronization before removing it.\n* A failed mutation retains enough outcome state to recognize filesystem effects that occurred before failure. Retry, discard, or verified resynchronization resolves that state.\n* Consecutive writes and moves to the same path use the latest outc\n[1720 characters omitted]\nching action outcome, update repository-file bookkeeping but skip `ActionService.reloadFromFiles`; `ActionService` and the commit callback already publish and reconcile the local action by `ActionDefinition.id`.\n8. For a matching Markdown outcome, skip the reload/conflict path. Keep `ProjectState` content and open-document state from the direct local persistence flow.\n9. For a mismatch, remove the contradicted expectation and run the existing external action or Markdown reload path. Dirty drafts and open documents retain their current conflict protection.\n10. On watcher restoration, use the existing full project resynchronization to compare retained outcomes with repository state before clearing them. Reset all outcome state when the project or branch scope is replaced.\n11. Remove `ProjectState.commitPathsInFlight` and its dependency plumbing after every call site uses expected outcomes.\n12. Update `design/architecture/data_saving_and_commits.md` to state that local writes reconcile directly and watcher origin is determined from observed persistence outcomes, not timing.\n\n## Edge cases\n\n* A rename may emit removal, addition, change, or one coalesced notification; classification uses source absence and target content.\n* A newly created action renamed before its first write has an absent source and one expected final target.\n* Several commits may affect the same path before one watcher notification. Classification waits for the unresolved operations and compares against the latest outcome.\n* A commit may write files and then fail during Git commit or push. Matching filesystem effects remain local, while the existing save or push failure remains visible for retry.\n* An external process may modify a path during local persistence. Content or existence that contradicts the expected outcome remains external and must not be suppressed.\n* Watcher disconnect and restoration may lose notifications. Full resynchronization resolves retained outcomes without inventing events.\n* Project and branch changes must not carry outcomes into the next project scope.\n\n## Acceptance criteria\n\n* A watcher notification arriving after `storage.commit` resolves is still recognized as a local echo when persisted state matches the expected outcome.\n* Action creation and label-driven renames do not reload stale definitions or produce conflicts when removal and addition notifications arrive late, separately, or coalesced.\n* Repeated action renames during sequential commits leave one latest definition at one path and do not depend on watcher event count or order.\n* Matching Markdown write notifications do not overwrite local state or report false conflicts after the storage promise settles.\n* A watcher event whose actual content differs from the expected local content follows existing external-change conflict behavior.\n* Missing watcher notifications do not block save completion, explicit flush, project switching, or window close.\n* Failed or partially applied storage operations remain retryable and do not cause their own filesystem effects to be reported as external edits.\n* Card-separator migration and external-card import no longer manipulate `commitPathsInFlight` directly.\n* Watcher restoration and project reset clear only outcomes resolved by verification or discarded with the old project scope.\n* Local and remote-control watcher behavior is equivalent.\n* Focused tests cover late events, events during persistence, missing and coalesced events, sequential outcomes for one path, rename source/target events, mismatches, failure and retry, watcher restoration, and project-scope reset.\n\n## Out of scope\n\n* Changing the desktop watcher's 75 ms settling delay.\n* Requiring one watcher event for every local filesystem mutation.\n* Using watcher delivery to acknowledge saves or advance action draft revisions.\n* Changing automatic-commit delay, batching, push policy, or external-conflict presentation.\n* Adding causal IDs to the desktop or remote-control watcher protocol unless implementation proves outcome matching cannot meet these requirements.\n\r\n",
+          "durationMs": 66,
+          "exitCode": 0,
+          "id": "agent-turn-f3525ccd-30de-4f09-9339-55abff79973f-event-117",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff --check -- 'design/feature_descriptions/B_201_expected_persistence_outcomes_for_watcher_echoes.md'; git status --short -- 'design/feature_descriptions/B_201_expected_persistence_outcomes_for_watcher_echoes.md'; Get-Content -Raw 'design/feature_descriptions/B_201_expected_persistence_outcomes_for_watcher_echoes.md'\"",
+          "providerItemId": "exec-fbb32d3f-a662-4953-8597-778a395144f5",
+          "sequence": 117,
+          "status": "completed",
+          "timestamp": "2026-08-29T15:47:27.170Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f3525ccd-30de-4f09-9339-55abff79973f-event-118",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bb3083c3cb90dbb016a92ff1488d087d2a52e373b5cd2e0fa",
+          "sequence": 118,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-29T15:47:31.786Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Created [B_201_expected_persistence_outcomes_for_watcher_echoes.md](C:/Users/janbo/Documents/dev/md2_workers/dev1/design/feature_descriptions/B_201_expected_persistence_outcomes_for_watcher_echoes.md).\n\nIt covers expected outcomes, delayed/coalesced/missing events, failures, retries, remote control, resynchronization, affected call sites, and acceptance criteria. No code was changed.\n\n",
+          "id": "agent-turn-f3525ccd-30de-4f09-9339-55abff79973f-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 119,
+          "timestamp": "2026-08-29T15:47:33.418Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -8236,18 +8418,18 @@
         }
       ],
       "startedAt": "2026-08-29T15:17:19.594Z",
-      "status": "failed",
+      "status": "running",
       "timer": {
         "elapsedMs": 637799,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-08-29T15:44:33.423Z"
       },
       "title": "review",
       "usage": {
-        "cachedInputTokens": 2574336,
-        "inputTokens": 120960,
-        "outputTokens": 6651,
-        "reasoningTokens": 7208,
-        "totalTokens": 2709155
+        "cachedInputTokens": 3137536,
+        "inputTokens": 143555,
+        "outputTokens": 9184,
+        "reasoningTokens": 10101,
+        "totalTokens": 3300376
       },
       "usageSchemaVersion": 1,
       "viewed": true
@@ -8337,11 +8519,11 @@
         "agent-3d734bb5-f97f-407e-a90d-c83672f8478b"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-6e770423-a6c0-47f1-8207-e5c12655ef65",
       "origin": {
@@ -8350,9 +8532,9 @@
       },
       "rootActionId": "32eceaf6-37d1-48b4-9bc1-c3f051eb7d8e",
       "rootActionLabel": "review",
-      "rootConversationId": "agent-3d734bb5-f97f-407e-a90d-c83672f8478b",
       "startedAt": "2026-08-29T15:17:19.592Z",
-      "status": "failed"
+      "status": "failed",
+      "rootConversationId": "agent-3d734bb5-f97f-407e-a90d-c83672f8478b"
     }
   ],
   "version": 5
