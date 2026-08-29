@@ -6874,7 +6874,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 108757
+        "usedTokens": 112818
       },
       "entries": [
         {
@@ -7792,6 +7792,138 @@
           "role": "assistant",
           "sequence": 69,
           "timestamp": "2026-08-29T15:30:34.339Z"
+        },
+        {
+          "content": "i said agreed, fix it",
+          "id": "agent-turn-c36154d9-6768-4f3d-ad1e-2d63bbd322d9-user-69",
+          "kind": "message",
+          "role": "user",
+          "sequence": 70,
+          "timestamp": "2026-08-29T15:30:46.148Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-c36154d9-6768-4f3d-ad1e-2d63bbd322d9-event-71",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_071e5be8faf6b92c016a92fb29304c87d2a4591eb37ae99070",
+          "sequence": 71,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-29T15:30:50.813Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Understood. I’ll change editor-state preservation from path-keyed to action-ID-keyed. The shared helper has two call sites, both in `ActionService`; both should receive ID-based behavior because they reconcile the same action graph across saves and reloads.\n\n",
+          "id": "agent-turn-c36154d9-6768-4f3d-ad1e-2d63bbd322d9-turn-4-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 72,
+          "timestamp": "2026-08-29T15:30:52.354Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"preserveActionEditorStates\\\\(\\\" app/src -g \\\"*.ts\\\" -g \\\"*.tsx\\\"; rg -n \\\"editor state|editorState|rename\\\" app/src/services/actions/action_service.node.test.ts | Select-Object -First 80; \"'$line=0; Get-Content '\"'app/src/services/actions/action_service.node.test.ts' | ForEach-Object { \"'$line++; if ($line -ge 330 -and $line -le 455) { '\"'{0,4}: {1}' -f \"'$line, $_ } }'",
+          "content": "50:    it('keeps temporary editor state on the action object across reloads and saves', async () => {\r\n60:        const editorState = {\r\n67:        service.setActionEditorState(VALID.id, editorState)\r\n68:        expect(service.getActionByPath('actions/action.json')?.editorState).toEqual(editorState)\r\n76:        expect(service.getActionByPath('actions/action.json')?.editorState).toEqual(editorState)\r\n81:        expect(service.getActionByPath('actions/action.json')?.editorState).toEqual(editorState)\r\n84:        expect(persistedFiles[0].content).not.toContain('editorState')\r\n85:        expect(persistedFiles[0].content).not.toContain(editorState.phrases[0].identity)\r\n107:    it('keeps editor state with each owning action', () => {\r\n119:        expect(service.getActionByPath('actions/action.json')?.editorState).toBe(firstState)\r\n120:        expect(service.getActionByPath('actions/other.json')?.editorState).toBe(otherState)\r\n123:    it('discards editor state when loading another project', () => {\r\n130:        expect(service.getActionByPath('actions/action.json')?.editorState).toBeUndefined()\r\n368:    it('reconciles a committed rename after the watcher has already loaded the target path', async () => {\r\n384:        const renamedDefinition = { ...service.draftStore.getDraft(VALID.id).definition, label: 'Test 1b' }\r\n386:        service.draftStore.updateDraft(VALID.id, renamedDefinition)\r\n389:            [fileAt('actions/test-1b.json', renamedDefinition)],\r\n401:        expect(service.draftStore.getDraft(VALID.id)).toMatchObject({ deleted: false, definition: renamedDefinition })\r\n404:    it('keeps a newer staged value separate while reconciling an earlier committed rename', async () => {\r\n419:        const renamedDefinition = { ...service.draftStore.getDraft(VALID.id).definition, label: 'Test 1b' }\r\n421:        service.draftStore.updateDraft(VALID.id, renamedDefinition)\r\n423:        service.draftStore.stageDraft(VALID.id, { ...renamedDefinition, label: '' })\r\n425:            [fileAt('actions/test-1b.json', renamedDefinition)],\r\n 330: \r\n 331:     it('queues a label-derived path and re-keys the action after the move commits', async () => {\r\n 332:         let completeMove: ((fromPath: string, toPath: string) => void) | undefined\r\n 333:         const persistActionFile = vi.fn(async (\r\n 334:             _actionFile: ActionFile,\r\n 335:             _actionId: string,\r\n 336:             _sourcePath?: string,\r\n 337:             onPathCommitted?: (fromPath: string, toPath: string) => void,\r\n 338:         ) => {\r\n 339:             completeMove = onPathCommitted\r\n 340:         })\r\n 341:         const service = new ActionService(() => ({ persistActionFile }))\r\n 342:         service.loadFromFiles([fileAt('actions/new-action.json', { ...VALID, label: 'New action' })])\r\n 343:         const draft = service.draftStore.getDraft(VALID.id).definition\r\n 344: \r\n 345:         service.draftStore.updateDraft(VALID.id, { ...draft, label: 'Review Code!' })\r\n 346:         await service.draftStore.flushDrafts()\r\n 347:         const changedActionIds: string[] = []\r\n 348:         service.addEventListener(ACTION_DRAFT_CHANGED_EVENT, (event) => {\r\n 349:             const { actionId } = (event as CustomEvent<{ actionId: string }>).detail\r\n 350:             changedActionIds.push(actionId)\r\n 351:             service.draftStore.getDraft(actionId)\r\n 352:         })\r\n 353: \r\n 354:         expect(persistActionFile.mock.calls.at(-1)?.slice(0, 4)).toEqual([\r\n 355:             expect.objectContaining({ path: 'actions/review-code.json' }),\r\n 356:             VALID.id,\r\n 357:             'actions/new-action.json',\r\n 358:             expect.any(Function),\r\n 359:         ])\r\n 360:         expect(service.getActionByPath('actions/new-action.json')?.label).toBe('Review Code!')\r\n 361:         completeMove?.('actions/new-action.json', 'actions/review-code.json')\r\n 362:         expect(service.getActionByPath('actions/new-action.json')).toBeNull()\r\n 363:         expect(service.getActionByPath('actions/review-code.json')?.label).toBe('Review Code!')\r\n 364:         expect(se\n[1326 characters omitted]\nAt('actions/test-1b.json', renamedDefinition)],\r\n 390:             [\r\n 391:                 { origin: 'local', path: 'actions/test-1.json', revision: service.getPublicationRevision('actions/test-1.json') },\r\n 392:                 { origin: 'local', path: 'actions/test-1b.json', revision: service.getPublicationRevision('actions/test-1b.json') },\r\n 393:             ],\r\n 394:         )\r\n 395:         pending = false\r\n 396: \r\n 397:         expect(() => completeMove?.('actions/test-1.json', 'actions/test-1b.json')).not.toThrow()\r\n 398:         expect(() => completeMove?.('actions/test-1.json', 'actions/test-1b.json')).not.toThrow()\r\n 399:         expect(service.getActionByPath('actions/test-1.json')).toBeNull()\r\n 400:         expect(service.getActionByPath('actions/test-1b.json')?.label).toBe('Test 1b')\r\n 401:         expect(service.draftStore.getDraft(VALID.id)).toMatchObject({ deleted: false, definition: renamedDefinition })\r\n 402:     })\r\n 403: \r\n 404:     it('keeps a newer staged value separate while reconciling an earlier committed rename', async () => {\r\n 405:         let completeMove: ((fromPath: string, toPath: string) => void) | undefined\r\n 406:         const persistActionFile = vi.fn(async (\r\n 407:             _actionFile: ActionFile,\r\n 408:             _actionId: string,\r\n 409:             _sourcePath?: string,\r\n 410:             onPathCommitted?: (fromPath: string, toPath: string) => void,\r\n 411:         ) => {\r\n 412:             completeMove = onPathCommitted\r\n 413:         })\r\n 414:         const service = new ActionService(() => ({\r\n 415:             hasPendingFile: () => true,\r\n 416:             persistActionFile,\r\n 417:         }))\r\n 418:         service.loadFromFiles([fileAt('actions/test-1.json', { ...VALID, label: 'Test 1' })])\r\n 419:         const renamedDefinition = { ...service.draftStore.getDraft(VALID.id).definition, label: 'Test 1b' }\r\n 420: \r\n 421:         service.draftStore.updateDraft(VALID.id, renamedDefinition)\r\n 422:         await service.draftStore.flushDrafts()\r\n 423:         service.draftStore.stageDraft(VALID.id, { ...renamedDefinition, label: '' })\r\n 424:         service.reloadFromFiles(\r\n 425:             [fileAt('actions/test-1b.json', renamedDefinition)],\r\n 426:             [\r\n 427:                 { origin: 'local', path: 'actions/test-1.json', revision: service.getPublicationRevision('actions/test-1.json') },\r\n 428:                 { origin: 'local', path: 'actions/test-1b.json', revision: service.getPublicationRevision('actions/test-1b.json') },\r\n 429:             ],\r\n 430:         )\r\n 431: \r\n 432:         expect(() => completeMove?.('actions/test-1.json', 'actions/test-1b.json')).not.toThrow()\r\n 433:         expect(service.getActionByPath('actions/test-1b.json')?.label).toBe('Test 1b')\r\n 434:         expect(service.draftStore.getDraft(VALID.id).definition.label).toBe('')\r\n 435:     })\r\n 436: \r\n 437:     it('adds a suffix when a label-derived action path is already occupied', async () => {\r\n 438:         const persistedFiles: ActionFile[] = []\r\n 439:         const persistActionFile = vi.fn(async (actionFile: ActionFile) => { persistedFiles.push(actionFile) })\r\n 440:         const service = new ActionService(() => ({ persistActionFile }))\r\n 441:         service.loadFromFiles([\r\n 442:             fileAt('actions/new-action.json', { ...VALID, label: 'New action' }),\r\n 443:             fileAt('actions/review.json', { ...VALID, id: 'action-review', label: 'Review' }),\r\n 444:         ])\r\n 445:         const draft = service.draftStore.getDraft(VALID.id).definition\r\n 446: \r\n 447:         service.draftStore.updateDraft(VALID.id, { ...draft, label: 'Review' })\r\n 448:         await service.draftStore.flushDrafts()\r\n 449: \r\n 450:         expect(persistedFiles.at(-1)?.path).toBe('actions/review-2.json')\r\n 451:     })\r\n 452: \r\n 453:     it('retargets a newly created action before its first batch commits', async () => {\r\n 454:         const persistenceCalls: unknown[][] = []\r\n 455:         const persistActionFile = vi.fn(async (...args: unknown[]) => { persistenceCalls.push(args) })\r\n",
+          "durationMs": 92,
+          "exitCode": 0,
+          "id": "agent-turn-c36154d9-6768-4f3d-ad1e-2d63bbd322d9-event-73",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"preserveActionEditorStates\\\\(\\\" app/src -g \\\"*.ts\\\" -g \\\"*.tsx\\\"; rg -n \\\"editor state|editorState|rename\\\" app/src/services/actions/action_service.node.test.ts | Select-Object -First 80; \"'$line=0; Get-Content '\"'app/src/services/actions/action_service.node.test.ts' | ForEach-Object { \"'$line++; if ($line -ge 330 -and $line -le 455) { '\"'{0,4}: {1}' -f \"'$line, $_ } }'",
+          "providerItemId": "exec-57a5bffd-a092-42d7-9789-0c1a65428d43",
+          "sequence": 73,
+          "status": "completed",
+          "timestamp": "2026-08-29T15:30:55.389Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-c36154d9-6768-4f3d-ad1e-2d63bbd322d9-event-74",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_071e5be8faf6b92c016a92fb33fe4c87d294b6faf877e5fa9e",
+          "sequence": 74,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-29T15:31:01.374Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Correction: there are three call sites, all in `ActionService`: reload reconciliation, save publication, and committed-rename reconciliation. All three should use action identity, so the helper can change directly without a compatibility mode.\n\n",
+          "id": "agent-turn-c36154d9-6768-4f3d-ad1e-2d63bbd322d9-turn-4-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 75,
+          "timestamp": "2026-08-29T15:31:02.760Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\services\\actions\\action_service.node.test.ts\nupdate: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\services\\actions\\action_service_helpers.ts",
+          "deletions": 6,
+          "id": "agent-turn-c36154d9-6768-4f3d-ad1e-2d63bbd322d9-event-76",
+          "insertions": 11,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-2d828eaa-a3a9-4f96-a556-6058ccfd0195",
+          "sequence": 76,
+          "status": "completed",
+          "timestamp": "2026-08-29T15:31:11.398Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-c36154d9-6768-4f3d-ad1e-2d63bbd322d9-event-77",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_071e5be8faf6b92c016a92fb4208f887d286605f367b99f603",
+          "sequence": 77,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-29T15:31:13.123Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/services/actions/action_service.node.test.ts'",
+          "content": "\n> app@0.4.7 test\n> vitest run src/services/actions/action_service.node.test.ts\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev1/app\n\n\n Test Files  1 passed (1)\n      Tests  47 passed (47)\n   Start at  17:31:15\n   Duration  464ms (transform 150ms, setup 15ms, import 184ms, tests 158ms, environment 0ms)\n\n",
+          "durationMs": 1010,
+          "exitCode": 0,
+          "id": "agent-turn-c36154d9-6768-4f3d-ad1e-2d63bbd322d9-event-78",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/services/actions/action_service.node.test.ts'",
+          "providerItemId": "exec-1475cd1c-c9a2-4b0b-a291-a0c300fc08dc",
+          "sequence": 78,
+          "status": "completed",
+          "timestamp": "2026-08-29T15:31:15.532Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
+          "content": "\n> app@0.4.7 lint\n> eslint .\n\n",
+          "durationMs": 15343,
+          "exitCode": 0,
+          "id": "agent-turn-c36154d9-6768-4f3d-ad1e-2d63bbd322d9-event-79",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
+          "providerItemId": "exec-a4364b73-a4d0-4ba4-af28-1ffeb6e11546",
+          "sequence": 79,
+          "status": "completed",
+          "timestamp": "2026-08-29T15:31:33.631Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app"
+        },
+        {
+          "agent": "codex",
+          "content": "Item 2 is now fixed. Editor state is preserved by `ActionDefinition.id` instead of path in [action_service_helpers.ts](C:/Users/janbo/Documents/dev/md2_workers/dev1/app/src/services/actions/action_service_helpers.ts:39).\n\nI also added regression coverage for preserving editor state when a watcher loads a renamed path before the commit callback.\n\nValidation passed: 47 focused tests and app lint.\n\n",
+          "id": "agent-turn-c36154d9-6768-4f3d-ad1e-2d63bbd322d9-turn-4-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 80,
+          "timestamp": "2026-08-29T15:31:37.567Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -7801,23 +7933,23 @@
           "agent": "codex",
           "conversationId": "01a04e18-bf43-7b40-a52b-749f49448949",
           "createdAt": "2026-08-29T15:22:45.317Z",
-          "lastUsedAt": "2026-08-29T15:30:01.571Z",
-          "synchronizedThroughMessageId": "agent-turn-c36154d9-6768-4f3d-ad1e-2d63bbd322d9-turn-2-assistant-2"
+          "lastUsedAt": "2026-08-29T15:30:34.339Z",
+          "synchronizedThroughMessageId": "agent-turn-c36154d9-6768-4f3d-ad1e-2d63bbd322d9-turn-3-assistant-1"
         }
       ],
       "startedAt": "2026-08-29T15:17:19.594Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 385898,
-        "runningStartedAt": "2026-08-29T15:30:30.296Z"
+        "elapsedMs": 389941,
+        "runningStartedAt": "2026-08-29T15:30:46.148Z"
       },
       "title": "review",
       "usage": {
-        "cachedInputTokens": 1910272,
-        "inputTokens": 114090,
-        "outputTokens": 5349,
-        "reasoningTokens": 5172,
-        "totalTokens": 2034883
+        "cachedInputTokens": 2461952,
+        "inputTokens": 120499,
+        "outputTokens": 6370,
+        "reasoningTokens": 5359,
+        "totalTokens": 2594180
       },
       "usageSchemaVersion": 1,
       "viewed": true
