@@ -11,7 +11,6 @@ agents:
 policy:
 after: 6ec1718f-1770-4446-92e5-c23a0c37da7d
 ---
-
 We have a list of previously opened projects in the `open project` dialog. When user clicks on a folder, it gets opened immediately. this is annoying. it should only select. user should still click on `open`
 
 ## Current state
@@ -26,15 +25,15 @@ Here, **select** means copying recent folder path into `Local repository folder`
 
 ## Implementation details
 
-- Change recent-folder click handler in `app/src/components/shell/project/project_open_dialog.tsx` to set `localRootPath` only. Remove direct `onOpenLocal` call from this handler.
-- Keep `Open Local` handler as sole submit path for typed or recent-folder values. Do not change path trimming, Electron resolution, project-open error handling, or successful-project history recording in `use_project_toolbar_menu_actions.ts`.
-- Keep missing `data-root-path` failure explicit. Do not add alternate path state or compatibility behavior.
-- Update existing local-folder dialog test in `project_dialogs.test.tsx`: recent-folder click fills input and does not call `onOpenLocal`; subsequent `Open Local` click calls it with selected path.
+* Change recent-folder click handler in `app/src/components/shell/project/project_open_dialog.tsx` to set `localRootPath` only. Remove direct `onOpenLocal` call from this handler.
+* Keep `Open Local` handler as sole submit path for typed or recent-folder values. Do not change path trimming, Electron resolution, project-open error handling, or successful-project history recording in `use_project_toolbar_menu_actions.ts`.
+* Keep missing `data-root-path` failure explicit. Do not add alternate path state or compatibility behavior.
+* Update existing local-folder dialog test in `project_dialogs.test.tsx`: recent-folder click fills input and does not call `onOpenLocal`; subsequent `Open Local` click calls it with selected path.
 
 ## Acceptance criteria
 
-- Clicking recent folder copies its exact path into `Local repository folder` without resolving or opening project.
-- After recent folder is selected, `Open Local` is enabled when no load is active.
-- Clicking `Open Local` after selection calls local-open flow once with selected path.
-- Selecting recent folder does not reorder or persist recent-project history; history changes only after successful open.
-- Typed-path opening, folder picker, loading-state disabling, project setup resolutions, and local-open error reporting keep current behavior.
+* Clicking recent folder copies its exact path into `Local repository folder` without resolving or opening project.
+* After recent folder is selected, `Open Local` is enabled when no load is active.
+* Clicking `Open Local` after selection calls local-open flow once with selected path.
+* Selecting recent folder does not reorder or persist recent-project history; history changes only after successful open.
+* Typed-path opening, folder picker, loading-state disabling, project setup resolutions, and local-open error reporting keep current behavior.
