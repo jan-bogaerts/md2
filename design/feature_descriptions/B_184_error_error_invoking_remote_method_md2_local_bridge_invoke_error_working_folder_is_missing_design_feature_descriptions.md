@@ -14,6 +14,24 @@ sentryIssueId: 142417859
 sentryOrganization: elastetic
 branch: b_184_error_error_invoking_remote_method_md2_local_bridge_invoke_error_working_folder_is_missing_design_feature_descriptions
 worktree: 2
+changedFiles:
+  - app/src/components/shell/project/project_folder_setup_form.tsx
+  - app/src/data/bridge_error_rehydration.node.test.ts
+  - app/src/data/bridge_error_rehydration.ts
+  - app/src/data/repository_relative_path.ts
+  - desktop/src/shell/bridge_invoke.js
+  - desktop/src/shell/bridge_invoke.test.mjs
+  - shared/bridge_errors.d.mts
+  - shared/bridge_errors.mjs
+  - tmp_block4.py
+  - tmp_block4b.py
+  - tmp_block6a.py
+  - tmp_block6b.py
+  - tmp_block6c.py
+  - tmp_block7.py
+  - tmp_tests1.py
+  - tmp_tests2.py
+  - tmp_tests3.py
 ---
 ## Sentry issue
 
