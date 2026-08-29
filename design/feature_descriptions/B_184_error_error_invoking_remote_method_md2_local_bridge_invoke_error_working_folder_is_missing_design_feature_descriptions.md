@@ -38,10 +38,6 @@ sentryOrganization: elastetic
 
 * No application stack frames provided.
 
-
-
-
-
 Most likely, the user opened a project which was not yet initialized. none of the folders were present. but this should not generate any errors. instead, we should open a dialog that asks the user to specify the values for the special folders the app needs, with defaults filled in. User can select folders with the 'open folder' dialog. when user presses 'ok', the folders that do not exist, are created.
 
 I though that dialog already existed?
