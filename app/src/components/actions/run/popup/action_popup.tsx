@@ -37,6 +37,12 @@ function resolveCardInternalId(context: ActionContext, snapshot: ReturnType<type
     return card?.header.internalId ?? context.cardInternalId ?? null
 }
 
+function resolveColumnDefaultActionId(context: ActionContext) {
+    if (context.kind !== 'card' || !context.state) return undefined
+
+    return dataService.getConfig()?.states.find(({ state }) => state === context.state)?.defaultActionId
+}
+
 function persistedActionStates(
     actions: ReturnType<typeof displayActionsForContext>,
     context: ActionContext,
@@ -82,6 +88,7 @@ export function ActionPopup(props: ActionPopupProps) {
         initialActionId,
         actionRunRegistry.getContextActiveSnapshot(effectiveContext),
         persistedActionStates(actions, effectiveContext, snapshot),
+        resolveColumnDefaultActionId(effectiveContext),
     ))
     const [fullHeight, setFullHeight] = useState(false)
     const titleId = useId()

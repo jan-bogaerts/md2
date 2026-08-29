@@ -260,7 +260,7 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
     },
     {
         defaultValue: DEFAULT_STATES,
-        description: 'Board columns in display order. Fields: state, alwaysVisible, color.',
+        description: 'Board columns in display order. Fields: state, alwaysVisible, color, optional defaultActionId.',
         editable: true,
         key: 'project.states',
         label: 'Columns',

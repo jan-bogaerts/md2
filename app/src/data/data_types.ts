@@ -33,6 +33,7 @@ export interface CardTypeConfig {
 export interface StateConfig {
     alwaysVisible: boolean
     color?: string
+    defaultActionId?: string
     state: string
 }
 

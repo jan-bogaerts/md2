@@ -198,7 +198,7 @@ describe('ConfigService', () => {
     it('loads project states in their configured order', () => {
         service.init()
         const states = [
-            { alwaysVisible: true, color: '#123456', state: 'backlog' },
+            { alwaysVisible: true, color: '#123456', defaultActionId: 'refine', state: 'backlog' },
             { alwaysVisible: false, state: 'shipped' },
         ]
 
@@ -208,6 +208,20 @@ describe('ConfigService', () => {
             states[0],
             { ...states[1], color: defaultColumnAccent(1) },
         ])
+    })
+
+    it('omits absent default action ids from project states', () => {
+        service.init()
+        service.loadProjectConfig({ states: [{ alwaysVisible: true, state: 'backlog' }] })
+
+        expect(service.getProjectConfig().states[0]).not.toHaveProperty('defaultActionId')
+    })
+
+    it.each([null, '', 7])('rejects invalid project state default action id %j', (defaultActionId) => {
+        service.init()
+        const states = [{ alwaysVisible: true, defaultActionId, state: 'backlog' }]
+
+        expect(() => service.loadProjectConfig({ states } as never)).toThrow('project.states[0].defaultActionId')
     })
 
     it('keeps active values unchanged when a draft is discarded', () => {

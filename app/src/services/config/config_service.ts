@@ -129,6 +129,9 @@ function validateStates(value: unknown): StateConfig[] {
         return {
             alwaysVisible: requireBoolean(item.alwaysVisible, `project.states[${index}].alwaysVisible`),
             color,
+            ...(item.defaultActionId === undefined
+                ? {}
+                : { defaultActionId: requireString(item.defaultActionId, `project.states[${index}].defaultActionId`) }),
             state: requireString(item.state, `project.states[${index}].state`),
         }
     })

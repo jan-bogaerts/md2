@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ActionContext } from '../../../../data/action_context'
 import type { ActionRunEvent, ActionStartRequest } from '../../../../data/action_run_types'
 import { CUSTOM_PROMPT_ACTION_ID, type ActionFile } from '../../../../data/action_types'
-import type { AgentConversation, Card, ProjectReference, StorageService, WorktreeRecord } from '../../../../data/data_types'
+import type { AgentConversation, Card, ProjectReference, StateConfig, StorageService, WorktreeRecord } from '../../../../data/data_types'
 import type { AgentSelectionState } from '../../../../data/agent_selection'
 import { actionService } from '../../../../services/actions/action_service'
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
@@ -246,6 +246,11 @@ function renderPopup(contextOverride: ActionContext = context, onClose = vi.fn()
     return { onClose }
 }
 
+function setProjectStates(states: StateConfig[]) {
+    configService.loadProjectConfig({ states })
+    vi.spyOn(dataService, 'getConfig').mockImplementation(() => configService.getProjectConfig())
+}
+
 function emitActionRunEvent(listener: ((event: ActionRunEvent) => void) | null, event: ActionRunEvent) {
     if (!listener) throw new Error('Action run listener is not registered')
 
@@ -318,6 +323,68 @@ describe('ActionPopup', () => {
         expect(dialog.getByRole('button', { name: 'Run' })).toBeInTheDocument()
         expect(bottomRow).not.toHaveAttribute('data-embedded')
         expect(scrollBody.nextElementSibling).toBe(bottomRow)
+    })
+
+    it('opens card popup on matching column default action', () => {
+        setProjectStates([{ alwaysVisible: true, defaultActionId: 'second', state: 'design' }])
+
+        renderPopup()
+
+        const actionGroup = within(screen.getByRole('group', { name: 'Actions' }))
+        expect(actionGroup.getByRole('button', { name: 'First action' })).toHaveAttribute('aria-pressed', 'false')
+        expect(actionGroup.getByRole('button', { name: 'Second action' })).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    it('falls back to first applicable action when column default is context-inapplicable', () => {
+        setProjectStates([{ alwaysVisible: true, defaultActionId: 'second', state: 'design' }])
+        actionService.loadFromFiles([
+            file(commandDefinition('first', { label: 'First action' })),
+            file(commandDefinition('second', { appliesTo: { kind: 'project' }, label: 'Second action' })),
+        ])
+
+        renderPopup()
+
+        const actionGroup = within(screen.getByRole('group', { name: 'Actions' }))
+        expect(actionGroup.getByRole('button', { name: 'First action' })).toHaveAttribute('aria-pressed', 'true')
+        expect(actionGroup.queryByRole('button', { name: 'Second action' })).not.toBeInTheDocument()
+    })
+
+    it.each([
+        { file: 'README.md', kind: 'file', state: 'design' },
+        { folder: 'design', kind: 'folder' },
+        { kind: 'merge-conflict' },
+        { kind: 'project' },
+    ] as ActionContext[])('ignores column default for $kind popup', (popupContext) => {
+        setProjectStates([{ alwaysVisible: true, defaultActionId: 'second', state: 'design' }])
+
+        renderPopup(popupContext)
+
+        const actionGroup = within(screen.getByRole('group', { name: 'Actions' }))
+        expect(actionGroup.getByRole('button', { name: 'First action' })).toHaveAttribute('aria-pressed', 'true')
+        expect(actionGroup.getByRole('button', { name: 'Second action' })).toHaveAttribute('aria-pressed', 'false')
+    })
+
+    it('keeps column-default selection when card state and config change after open', () => {
+        setProjectStates([
+            { alwaysVisible: true, defaultActionId: 'second', state: 'design' },
+            { alwaysVisible: true, defaultActionId: 'first', state: 'ready' },
+        ])
+        const { rerender } = render(
+            <AppThemeProvider>
+                <ActionPopup anchorElement={document.body} context={context} onClose={vi.fn()} />
+            </AppThemeProvider>,
+        )
+
+        configService.loadProjectConfig({ states: [{ alwaysVisible: true, defaultActionId: 'first', state: 'ready' }] })
+        rerender(
+            <AppThemeProvider>
+                <ActionPopup anchorElement={document.body} context={{ ...context, state: 'ready' }} onClose={vi.fn()} />
+            </AppThemeProvider>,
+        )
+
+        const actionGroup = within(screen.getByRole('group', { name: 'Actions' }))
+        expect(actionGroup.getByRole('button', { name: 'First action' })).toHaveAttribute('aria-pressed', 'false')
+        expect(actionGroup.getByRole('button', { name: 'Second action' })).toHaveAttribute('aria-pressed', 'true')
     })
 
     it.each(['queued', 'running'] as const)('opens on first %s action in selector order', (status) => {
