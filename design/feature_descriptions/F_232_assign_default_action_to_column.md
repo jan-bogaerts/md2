@@ -3,7 +3,7 @@ author:
 id: F_232
 internalId: 545671dd-18d4-4878-93b9-0ed24f2077fa
 title: assign default action to column
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,15 @@ policy:
 after: 06a8af54-38c9-4b9b-a9a4-bbdf563f036b
 branch: f_232_assign_default_action_to_column
 worktree: 2
+changedFiles:
+  - app/src/components/actions/run/popup/action_popup.test.tsx
+  - app/src/components/actions/run/popup/action_popup.tsx
+  - app/src/components/actions/run/popup/action_popup_initial_action.node.test.ts
+  - app/src/components/actions/run/popup/action_popup_initial_action.ts
+  - app/src/data/data_types.ts
+  - app/src/services/config/config_entries.ts
+  - app/src/services/config/config_service.test.ts
+  - app/src/services/config/config_service.ts
 ---
 
 in the project config we are currently already able to define the  columns (or card states) used in the board view. Add option to provide an action id that would be presented as the default action when a card is in that column
