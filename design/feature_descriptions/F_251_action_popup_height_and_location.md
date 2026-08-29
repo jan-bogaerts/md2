@@ -3,7 +3,7 @@ author:
 id: F_251
 internalId: 67aa408b-6038-40b7-a82d-76678ca7b201
 title: action popup height and location
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,13 @@ agents:
 policy:
 branch: f_251_action_popup_height_and_location
 worktree: 2
+changedFiles:
+  - app/src/components/actions/run/popup/action_popup.test.tsx
+  - app/src/components/actions/run/popup/action_popup_frame.tsx
+  - app/src/components/card_view/card_body_popover.tsx
+  - app/src/components/card_view/card_body_popover_commit.test.tsx
+  - app/src/components/resizable_popper.test.tsx
+  - app/src/components/resizable_popper.tsx
 ---
 when the height of the action popup wants to be bigger than the height of the app, it sort of shows up as max height, but the popup tries to leave some room at the bottom of the popup and perhaps also a little bit at the top.&#x20;
 
