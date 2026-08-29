@@ -3,7 +3,7 @@ author:
 id: B_200
 internalId: 49c227f7-c9c7-4773-a246-b4ec451244f1
 title: cant save command action
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,7 +11,40 @@ agents:
 policy:
 after: 22fa2af9-9b97-47c2-931f-ed5a5a62f89d
 changedFiles:
+  - app/src/components/actions/editor/action_definition_fields.test.tsx
+  - app/src/components/actions/editor/action_definition_fields.tsx
+  - app/src/components/actions/editor/action_editor.real.test.tsx
+  - app/src/components/actions/editor/action_editor.test.tsx
+  - app/src/components/actions/editor/action_editor_content.tsx
+  - app/src/components/actions/editor/use_action_editor_controller.test.ts
+  - app/src/components/actions/editor/use_action_editor_controller.ts
+  - app/src/components/editor/action_markdown_data_source.node.test.ts
+  - app/src/components/editor/action_markdown_data_source.ts
+  - app/src/components/hooks/use_actions.test.ts
+  - app/src/components/project_workspace.test.tsx
+  - app/src/components/text_view/text_view.test.tsx
+  - app/src/data/commit_batcher.test.ts
+  - app/src/data/commit_batcher.ts
+  - app/src/services/actions/action_draft_store.ts
+  - app/src/services/actions/action_service.node.test.ts
+  - app/src/services/actions/action_service.ts
+  - app/src/services/actions/action_service_events.ts
+  - app/src/services/data/card_internal_id_operations.ts
+  - app/src/services/data/card_operation_context.ts
+  - app/src/services/data/card_operations.ts
+  - app/src/services/data/card_rename_operations.ts
+  - app/src/services/data/data_service.test.ts
+  - app/src/services/data/data_service.ts
+  - app/src/services/data/remote_control_storage_service.node.test.ts
+  - app/src/services/github/github_storage_write_operations.test.ts
+  - app/src/services/github/github_storage_writer.ts
+  - app/src/services/open_files_service.node.test.ts
+  - app/src/services/open_files_service.ts
+  - app/src/services/project/project_loading.test.ts
+  - design/architecture/data_saving_and_commits.md
   - design/feature_descriptions/B_201_commit_batcher_domain_identity_and_active_pending_batches.md
+  - desktop/src/project/project_files.js
+  - desktop/src/project/project_files.test.mjs
 branch: b_200_cant_save_command_action
 worktree: 1
 ---
