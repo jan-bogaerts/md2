@@ -10,6 +10,8 @@ agents:
   - design/activity/card__49c227f7-c9c7-4773-a246-b4ec451244f1.json
 policy:
 after: 22fa2af9-9b97-47c2-931f-ed5a5a62f89d
+changedFiles:
+  - design/feature_descriptions/B_201_commit_batcher_domain_identity_and_active_pending_batches.md
 ---
 
 see this trace [Trace-20260829T151109.json](file:///C:/Users/janbo/Documents/dev/Trace-20260829T151109.json)
