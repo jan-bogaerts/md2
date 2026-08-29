@@ -3,7 +3,7 @@ author:
 id: B_200
 internalId: 49c227f7-c9c7-4773-a246-b4ec451244f1
 title: cant save command action
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
@@ -12,6 +12,8 @@ policy:
 after: 22fa2af9-9b97-47c2-931f-ed5a5a62f89d
 changedFiles:
   - design/feature_descriptions/B_201_commit_batcher_domain_identity_and_active_pending_batches.md
+branch: b_200_cant_save_command_action
+worktree: 1
 ---
 Saving a newly created action can leave the application unable to continue. The failure occurs when the action is edited again while its first persistence operation is active, especially when a label change also changes the action filename.
 
