@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__72668dda-9401-49ca-adf2-cd433393214d.json
 policy:
 ---
 create new action, switch to command, user gets error 'missing action field command in xxxx'
