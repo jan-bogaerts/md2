@@ -13,7 +13,6 @@ sentryIssueId: 143052396
 sentryOrganization: elastetic
 after: 4684225b-0d21-4c57-8691-3f2844f76ca6
 ---
-
 ## Sentry issue
 
 **Title:** TypeError: Cannot read properties of undefined (reading 'writeText')
@@ -32,19 +31,19 @@ after: 4684225b-0d21-4c57-8691-3f2844f76ca6
 
 **Environment:** production
 
-**Culprit:** Q_t(assets/index-BvRGAM4z)
+**Culprit:** Q\_t(assets/index-BvRGAM4z)
 
 **Event ID:** 51ba86a1379346c2a1beb2d5a39c558e
 
 ### Application stack frames
 
-- `/assets/index-BvRGAM4z.js:25:6717` — HTMLBodyElement.r
-- `/assets/index-BvRGAM4z.js:11:28320` — $f
-- `/assets/index-BvRGAM4z.js:11:28498` — tp
-- `/assets/index-BvRGAM4z.js:10:127764` — _d
-- `/assets/index-BvRGAM4z.js:10:15078` — nn
-- `/assets/index-BvRGAM4z.js:10:131531` — unknown function
-- `/assets/index-BvRGAM4z.js:10:126535` — dd
-- `/assets/index-BvRGAM4z.js:226:27769` — o
-- `/assets/index-BvRGAM4z.js:630:91419` — onClick
-- `/assets/index-BvRGAM4z.js:630:91051` — Q_t
+* `/assets/index-BvRGAM4z.js:25:6717` — HTMLBodyElement.r
+* `/assets/index-BvRGAM4z.js:11:28320` — $f
+* `/assets/index-BvRGAM4z.js:11:28498` — tp
+* `/assets/index-BvRGAM4z.js:10:127764` — \_d
+* `/assets/index-BvRGAM4z.js:10:15078` — nn
+* `/assets/index-BvRGAM4z.js:10:131531` — unknown function
+* `/assets/index-BvRGAM4z.js:10:126535` — dd
+* `/assets/index-BvRGAM4z.js:226:27769` — o
+* `/assets/index-BvRGAM4z.js:630:91419` — onClick
+* `/assets/index-BvRGAM4z.js:630:91051` — Q\_t
