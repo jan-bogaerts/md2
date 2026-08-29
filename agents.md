@@ -92,6 +92,7 @@ Keep analysis and documentation **short, precise, and to the point**. Avoid verb
   - the name captures non-obvious domain semantics that the inline code would hide poorly.
 - Verify actual field types before normalizing. Do not add coercion defensively. Only normalize when the inspected code path shows mixed types are real, and prefer doing it at the input boundary rather than at arbitrary comparison sites.
 - avoid magic numbers, use named constants instead
+- Never use unbounded loops or recursive drain/retry patterns (`while (true)`, `for (;;)`, or equivalent recursion). Every iteration must have an explicit, provable termination bound.
 - use ; at end of statements
 - avoid multiple inheritance
 - do not do CRLF rewrites

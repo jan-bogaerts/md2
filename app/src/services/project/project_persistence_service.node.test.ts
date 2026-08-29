@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { CardOpenDocument, OpenDocument, OpenFilesService } from '../open_files_service'
+import type { CardOpenDocument, OpenDocument, OpenDocumentSaveReference, OpenFilesService } from '../open_files_service'
 import type { ActionService } from '../actions/action_service'
 import type { DataPersistenceSnapshot, DataService } from '../data/data_service'
 import { ProjectPersistenceService } from './project_persistence_service'
@@ -9,7 +9,7 @@ import { registerMarkdownEditorStage } from './markdown_editor_staging'
 class TestActionService extends EventTarget {
     pendingDrafts = false
     readonly draftStore = {
-        flushDrafts: vi.fn(async () => undefined),
+        flushDrafts: vi.fn(async () => { this.pendingDrafts = false }),
         hasPendingDrafts: () => this.pendingDrafts,
     }
     publishChange() { this.dispatchEvent(new Event(ACTION_PERSISTENCE_CHANGED_EVENT)) }
@@ -21,7 +21,9 @@ class TestDataService extends EventTarget {
         flushPendingCommits: vi.fn(async () => {
             this.snapshot = { ...this.snapshot, hasPendingFileCommit: false }
         }),
-        updateCardBody: vi.fn(),
+        updateCardBody: vi.fn((_path: string, _content: string, saveReference?: OpenDocumentSaveReference) => {
+            saveReference?.acknowledge()
+        }),
     }
     readonly drainPendingStorageWrites = vi.fn(async () => {
         this.snapshot = { ...this.snapshot, isSaving: false }
@@ -52,11 +54,15 @@ function initService(
 
 function dirtyCardDocument(): CardOpenDocument {
     const card = { content: 'Draft' }
-    return Object.assign(new EventTarget(), {
-        createSaveReference: vi.fn(() => ({ acknowledge: vi.fn() })), dirty: true,
+    let dirty = true
+    const document = Object.assign(new EventTarget(), {
+        createSaveReference: vi.fn(() => ({ document, acknowledge: () => { dirty = false } })),
         getDraft: () => card, getObject: () => card, kind: 'card' as const,
         path: 'design/card.md', replaceDraft: vi.fn(), updateDraft: vi.fn(),
     }) as unknown as CardOpenDocument
+    Object.defineProperty(document, 'dirty', { get: () => dirty })
+
+    return document
 }
 
 describe('ProjectPersistenceService', () => {
@@ -93,8 +99,14 @@ describe('ProjectPersistenceService', () => {
         actionService.pendingDrafts = true
         openFilesService.documents = [dirtyCardDocument()]
         dataService.snapshot = { ...dataService.snapshot, hasPendingFileCommit: true }
-        actionService.draftStore.flushDrafts.mockImplementation(async () => { calls.push('actions') })
-        dataService.cards.updateCardBody.mockImplementation(() => { calls.push('card-draft') })
+        actionService.draftStore.flushDrafts.mockImplementation(async () => {
+            calls.push('actions')
+            actionService.pendingDrafts = false
+        })
+        dataService.cards.updateCardBody.mockImplementation((_path, _content, saveReference) => {
+            calls.push('card-draft')
+            saveReference?.acknowledge()
+        })
         dataService.cards.flushPendingCommits.mockImplementation(async () => {
             calls.push('batch')
             dataService.snapshot = { ...dataService.snapshot, hasPendingFileCommit: false }
@@ -103,6 +115,32 @@ describe('ProjectPersistenceService', () => {
         await service.flushPendingChanges()
 
         expect(calls).toEqual(['actions', 'card-draft', 'batch'])
+    })
+
+    it('reconciles live dependencies after a flush without relying on dependency events', async () => {
+        const { actionService, dataService, openFilesService, service } = initService()
+        actionService.pendingDrafts = true
+        openFilesService.documents = [dirtyCardDocument()]
+        dataService.snapshot = { ...dataService.snapshot, hasPendingFileCommit: true }
+        actionService.publishChange()
+
+        expect(service.getSnapshot().localSaveState).toBe('dirty')
+
+        await service.flushPendingChanges()
+
+        expect(service.getSnapshot()).toEqual({ hasPendingPush: false, hasPendingSave: false, localSaveState: 'saved' })
+    })
+
+    it('rejects once with the unresolved blockers when a flush cannot become clean', async () => {
+        const { openFilesService, service } = initService()
+        const document = dirtyCardDocument()
+        document.createSaveReference = vi.fn(() => ({ document, acknowledge: vi.fn() }))
+        openFilesService.documents = [document]
+        openFilesService.publishDocumentChange()
+
+        await expect(service.flushPendingChanges()).rejects.toThrow(
+            'Pending changes remain after flush: card document design/card.md',
+        )
     })
 
     it('drains storage writes before reporting success', async () => {

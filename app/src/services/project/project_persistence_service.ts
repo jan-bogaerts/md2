@@ -56,17 +56,20 @@ export class ProjectPersistenceService extends EventTarget {
 
     async flushPendingChanges() {
         const { actionService, dataService, openFilesService } = this.requireDependencies()
-        while (true) {
-            if (!stageMarkdownEditors()) throw new Error('A Markdown editor could not stage its pending changes')
-            if (actionService.draftStore.hasPendingDrafts()) await actionService.draftStore.flushDrafts()
-            for (const document of openFilesService.getRegisteredDocuments()) {
-                if (document.kind === 'card' && document.dirty) {
-                    dataService.cards.updateCardBody(document.path, document.getDraft().content, document.createSaveReference())
-                }
+        if (!stageMarkdownEditors()) throw new Error('A Markdown editor could not stage its pending changes')
+        if (actionService.draftStore.hasPendingDrafts()) await actionService.draftStore.flushDrafts()
+        for (const document of openFilesService.getRegisteredDocuments()) {
+            if (document.kind === 'card' && document.dirty) {
+                dataService.cards.updateCardBody(document.path, document.getDraft().content, document.createSaveReference())
             }
-            if (dataService.getPersistenceSnapshot().hasPendingFileCommit) await dataService.cards.flushPendingCommits()
-            await dataService.drainPendingStorageWrites()
-            if (!this.getSnapshot().hasPendingSave) return
+        }
+        if (dataService.getPersistenceSnapshot().hasPendingFileCommit) await dataService.cards.flushPendingCommits()
+        await dataService.drainPendingStorageWrites()
+        this.reconcileSnapshot()
+
+        const pendingSaveBlockers = this.getPendingSaveBlockers()
+        if (pendingSaveBlockers.length > 0) {
+            throw new Error(`Pending changes remain after flush: ${pendingSaveBlockers.join(', ')}`)
         }
     }
 
@@ -97,6 +100,20 @@ export class ProjectPersistenceService extends EventTarget {
         this.dependencies.dataService.removeEventListener('persistenceChanged', this.handleDependencyChanged)
         this.dependencies.openFilesService.removeEventListener('documentChanged', this.handleDependencyChanged)
         this.dependencies.openFilesService.removeEventListener('removed', this.handleDependencyChanged)
+    }
+
+    private getPendingSaveBlockers() {
+        const { actionService, dataService, openFilesService } = this.requireDependencies()
+        const { hasPendingFileCommit, isSaving } = dataService.getPersistenceSnapshot()
+        const dirtyDocuments = openFilesService.getRegisteredDocuments()
+            .filter(({ dirty }) => dirty)
+            .map(({ kind, path }) => `${kind} document ${path}`)
+        const blockers = [...dirtyDocuments]
+        if (actionService.draftStore.hasPendingDrafts()) blockers.push('action drafts')
+        if (hasPendingFileCommit) blockers.push('file commit batch')
+        if (isSaving) blockers.push('storage writes')
+
+        return blockers
     }
 
     private requireDependencies() {

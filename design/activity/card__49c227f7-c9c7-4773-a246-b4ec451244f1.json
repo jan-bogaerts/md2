@@ -41,6 +41,34 @@
       "title": "complete",
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "49c227f7-c9c7-4773-a246-b4ec451244f1",
+      "cardPath": "design/feature_descriptions/B_200_cant_save_command_action.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_200_cant_save_command_action.md, can you see what is wrong?",
+          "id": "agent-turn-1546b439-6742-429d-9096-8ae7493fbc80-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-08-29T13:14:19.037Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-f7a88d6f-49a7-4edb-b559-a7b9d0c536f7",
+      "providerSessions": [],
+      "startedAt": "2026-08-29T13:14:19.037Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-08-29T13:14:19.037Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
@@ -55,11 +83,11 @@
         "agent-1bedc841-5ea1-4ee4-8013-ee7caf4f2b33"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-0cac3b17-cc54-491b-8741-cff378aff0ab",
       "origin": {
@@ -68,9 +96,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-1bedc841-5ea1-4ee4-8013-ee7caf4f2b33",
       "startedAt": "2026-08-29T13:13:54.276Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-1bedc841-5ea1-4ee4-8013-ee7caf4f2b33"
     }
   ],
   "version": 5
