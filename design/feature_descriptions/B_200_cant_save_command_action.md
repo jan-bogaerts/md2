@@ -29,6 +29,7 @@ changedFiles:
   - app/src/services/actions/action_service.node.test.ts
   - app/src/services/actions/action_service.ts
   - app/src/services/actions/action_service_events.ts
+  - app/src/services/actions/action_service_helpers.ts
   - app/src/services/data/card_internal_id_operations.ts
   - app/src/services/data/card_operation_context.ts
   - app/src/services/data/card_operations.ts
