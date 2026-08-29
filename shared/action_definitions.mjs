@@ -255,7 +255,7 @@ function validateTypeSpecificFields(value, type, source) {
         return
     }
 
-    requireExecutableText(value.command, 'command', source)
+    if (typeof value.command !== 'string') throw fail(`Missing action field command in ${source}`, 'missing-field', source, 'command')
     if (value.prompt !== undefined) throw fail(`Prompt action field is not valid for command action in ${source}`, 'field-not-allowed', source, 'prompt')
     if (value.trackFileChanges !== undefined) throw fail(`Agent action field trackFileChanges is not valid for command action in ${source}`, 'field-not-allowed', source, 'trackFileChanges')
     if (value.streaming !== undefined) throw fail(`Agent action field streaming is not valid for command action in ${source}`, 'field-not-allowed', source, 'streaming')

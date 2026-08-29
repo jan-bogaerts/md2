@@ -591,6 +591,41 @@ describe('ActionService', () => {
         ])
     })
 
+    it.each(['', ' \t\r\n\u2003'])(
+        'persists, publishes, and reloads incomplete command text %j',
+        async (command) => {
+            const persistedFiles: ActionFile[] = []
+            const persistActionFile = vi.fn(async (persistedFile: ActionFile) => { persistedFiles.push(persistedFile) })
+            const service = new ActionService(() => ({ persistActionFile }))
+            const agentDefinition: RawActionDefinition = {description: 'Do it', id: VALID.id, label: 'Action', prompt: 'Run it', type: 'agent'}
+            service.loadFromFiles([file(agentDefinition)])
+            service.draftStore.stageDraft('actions/action.json', {
+                command,
+                description: agentDefinition.description,
+                id: agentDefinition.id,
+                label: agentDefinition.label,
+                type: 'command',
+            })
+
+            service.draftStore.commitDraft('actions/action.json')
+            await service.draftStore.flushDrafts()
+
+            expect(service.draftStore.getDraft('actions/action.json').validation.valid).toBe(true)
+            expect(service.getActionByPath('actions/action.json')).toMatchObject({ command, type: 'command' })
+            const persistedFile = persistedFiles[0]
+            if (!persistedFile) throw new Error('Missing persisted incomplete command action')
+            expect(JSON.parse(persistedFile.content).command).toBe(command)
+
+            service.reloadFromFiles(
+                [persistedFile],
+                [{ origin: 'external', path: 'actions/action.json' }],
+            )
+
+            expect(service.getActionByPath('actions/action.json')).toMatchObject({ command, type: 'command' })
+            expect(service.draftStore.getDraft('actions/action.json').definition.command).toBe(command)
+        },
+    )
+
     it('commits staged editor changes before flushing pending work', async () => {
         const persistActionFile = vi.fn(async () => undefined)
         const service = new ActionService(() => ({ persistActionFile }))

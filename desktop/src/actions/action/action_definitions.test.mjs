@@ -228,11 +228,31 @@ describe('loadActionDefinitions', () => {
         ['label', { ...IMPLEMENT, label: ' \t' }],
         ['description', { ...IMPLEMENT, description: '\r\n\u3000' }],
         ['prompt', { ...IMPLEMENT, prompt: ' \t\r\n\u00a0' }],
-        ['command', { ...LINT, command: '\r\n\u2003' }],
     ])('rejects ASCII and Unicode whitespace-only %s', (field, definition) => {
         const error = validationError([file('invalid', definition)]);
 
         expect(error).toMatchObject({ code: 'missing-field', field });
+    });
+
+    it.each(['', '\r\n\u2003'])(
+        'accepts and preserves incomplete command text %j',
+        (command) => {
+            const action = loadActionDefinitions([file('lint', { ...LINT, command })])
+                .find(({ id }) => id === LINT.id);
+
+            expect(action.command).toBe(command);
+        },
+    );
+
+    it.each([
+        ['missing', undefined],
+        ['non-string', 5],
+    ])('rejects %s command fields', (_label, command) => {
+        const definition = { ...LINT, command };
+        if (command === undefined) delete definition.command;
+        const error = validationError([file('lint', definition)]);
+
+        expect(error).toMatchObject({ code: 'missing-field', field: 'command' });
     });
 
     it('rejects surrounding whitespace in action identities and linked ids', () => {

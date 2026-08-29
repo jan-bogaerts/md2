@@ -97,6 +97,31 @@ function createRun(rootAction, overrides = {}) {
 }
 
 describe('ActionRun', () => {
+    it.each(['', '   '])('rejects incomplete root command %j before worktree resolution or process start', async (command) => {
+        const rootAction = action('main', { command });
+        const { actionWorktreeRunService, commandRunner, run } = createRun(rootAction);
+
+        await expect(run.completion).resolves.toMatchObject({
+            failure: 'Command text is required for action "main"',
+            status: 'failed',
+        });
+        expect(actionWorktreeRunService.execute).not.toHaveBeenCalled();
+        expect(commandRunner).not.toHaveBeenCalled();
+    });
+
+    it('rejects incomplete linked command before root or linked process start', async () => {
+        const linkedAction = action('linked', { command: ' ' });
+        const rootAction = action('main', { onBefore: [linkedAction] });
+        const { actionWorktreeRunService, commandRunner, run } = createRun(rootAction);
+
+        await expect(run.completion).resolves.toMatchObject({
+            failure: 'Command text is required for action "linked"',
+            status: 'failed',
+        });
+        expect(actionWorktreeRunService.execute).not.toHaveBeenCalled();
+        expect(commandRunner).not.toHaveBeenCalled();
+    });
+
     it('runs before, main, every matching on rule, and after in declaration order', async () => {
         const before = action('before');
         const firstMatch = action('first-match');

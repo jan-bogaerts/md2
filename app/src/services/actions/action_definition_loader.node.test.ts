@@ -259,6 +259,17 @@ describe('loadTolerantActionDefinitionGraph', () => {
         ]))
     })
 
+    it.each(['', ' \t\r\n\u2003'])(
+        'preserves explicit incomplete command text %j without inserting fallback text',
+        (command) => {
+            const result = loadTolerantActionDefinitionGraph([file('lint', { ...LINT, command })])
+
+            expect(result.actions.find(({ id }) => id === LINT.id)?.command).toBe(command)
+            expect(result.definitions[0]?.definition.command).toBe(command)
+            expect(result.issues).toEqual([])
+        },
+    )
+
     it('loads valid actions when another file is invalid and drops unavailable links', () => {
         const result = loadTolerantActionDefinitionGraph([
             file('implement', { ...IMPLEMENT, onBefore: ['action-bad'] }),

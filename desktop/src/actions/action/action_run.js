@@ -312,6 +312,9 @@ class ActionRun {
 
     async runAction(action, phase, isRoot = false, rootPhase = phase) {
         this.throwIfCancelled();
+        if (action.type === 'command' && action.command.trim().length === 0) {
+            throw new Error(`Command text is required for action "${action.label}"`);
+        }
         for (const beforeAction of action.onBefore) {
             await this.runAction(beforeAction, 'before', false, isRoot ? 'before' : rootPhase);
         }

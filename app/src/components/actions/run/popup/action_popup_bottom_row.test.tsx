@@ -306,7 +306,7 @@ describe('ActionPopupBottomRow', () => {
 
     it.each([false, true])('keeps command attachment absent and provides Run tooltip when mobile is %s', async (mobile) => {
         setMobileBreakpoint(mobile)
-        const commandAction = { ...action, id: 'command', label: 'Command', type: 'command' as const }
+        const commandAction = { ...action, command: 'npm test', id: 'command', label: 'Command', type: 'command' as const }
         renderBottomRow(commandAction)
         const run = screen.getByRole('button', { name: 'Run' })
 
@@ -315,6 +315,20 @@ describe('ActionPopupBottomRow', () => {
 
         fireEvent.mouseOver(run)
         expect(await screen.findByText('Run', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()
+    })
+
+    it.each(['', '   '])('disables Run when command text is %j', (command) => {
+        const commandAction = { ...action, command, id: 'command', label: 'Command', type: 'command' as const }
+        renderBottomRow(commandAction)
+
+        expect(screen.getByRole('button', { name: 'Run' })).toBeDisabled()
+    })
+
+    it('enables Run when command text contains non-whitespace text', () => {
+        const commandAction = { ...action, command: ' npm test ', id: 'command', label: 'Command', type: 'command' as const }
+        renderBottomRow(commandAction)
+
+        expect(screen.getByRole('button', { name: 'Run' })).toBeEnabled()
     })
 
     it('offers Run and Stop when a bound command has no conversation', () => {
@@ -329,7 +343,7 @@ describe('ActionPopupBottomRow', () => {
         actionRunRegistry.start()
         if (!listener) throw new Error('Missing action run listener')
         const emit = listener as (event: ActionRunEvent) => void
-        const commandAction = { ...action, id: 'command', label: 'Command', type: 'command' as const }
+        const commandAction = { ...action, command: 'npm test', id: 'command', label: 'Command', type: 'command' as const }
         emit({
             actionId: commandAction.id,
             actionType: 'command',
