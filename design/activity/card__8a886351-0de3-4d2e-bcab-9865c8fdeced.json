@@ -1043,7 +1043,7 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "8a886351-0de3-4d2e-bcab-9865c8fdeced",
       "cardPath": "design/feature_descriptions/B_184_error_error_invoking_remote_method_md2_local_bridge_invoke_error_working_folder_is_missing_design_feature_descriptions.md",
-      "completedAt": null,
+      "completedAt": "2026-08-29T16:55:14.606Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 203866
@@ -6224,17 +6224,25 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 398,
-          "timestamp": "2026-08-29T16:55:14.152Z"
+          "timestamp": "2026-08-29T16:55:14.606Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-9c3337be-e770-4ed3-87d8-a340f527dc9d",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a04e5a-95e3-7811-8f8b-8ec835f64419",
+          "createdAt": "2026-08-29T16:55:14.606Z",
+          "lastUsedAt": "2026-08-29T16:55:14.606Z",
+          "synchronizedThroughMessageId": "agent-turn-e3c58196-eae3-4b58-8b89-b833106b7a0c-turn-1-assistant-8"
+        }
+      ],
       "startedAt": "2026-08-29T16:00:20.104Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 984368,
-        "runningStartedAt": "2026-08-29T16:29:13.803Z"
+        "elapsedMs": 2545171,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usage": {
