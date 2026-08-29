@@ -18,6 +18,7 @@ changedFiles:
   - app/src/services/stats/stats_usage_comparison_dataset.ts
   - design/feature_descriptions/F_224_add_subscription_costs.md
   - design/feature_descriptions/F_242_stats_improvements.md
+after: 545671dd-18d4-4878-93b9-0ed24f2077fa
 ---
 * agent/model performance:
   * we currently have metrics: measured duration, tokens and toolcalls.

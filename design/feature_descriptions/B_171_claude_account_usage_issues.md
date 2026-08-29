@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__f790586e-149f-4338-8f8e-ad90bcdc1b12.json
 policy:
+after: 4aff5203-e00a-42bb-9c0c-55d2a77c2e57
 ---
 
 We have a polling system that retrieves the claude account usage from the cli. this sort of works.

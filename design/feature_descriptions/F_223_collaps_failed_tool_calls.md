@@ -11,6 +11,7 @@ agents:
 policy:
 changedFiles:
   - app/src/components/actions/conversation/action_conversation_chat.test.tsx
+after: e04c89e9-d394-435f-8f13-7d4bb9e942ff
 ---
 
 We currently keep failed tool calls out of the tool call group. Lets skip this, so simplify grouping, group all, no matter if failed or not. Keep red color though for failed ones and add an 'errors' count in the toolcallsgroup header, if any, behind total count

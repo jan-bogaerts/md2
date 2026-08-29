@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__93f10274-10fd-48a2-9c07-bf50b9f970c8.json
 policy:
-after: 97733177-b4c8-47c3-af3d-64c31d4eca93
+after: a992c823-0635-450a-9f89-af756fdac964
 branch: f_224_add_subscription_costs
 ---
 Allow the user to enter agent subscription costs so we can calculate:

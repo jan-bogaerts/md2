@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__49c227f7-c9c7-4773-a246-b4ec451244f1.json
 policy:
-after: 6ec1718f-1770-4446-92e5-c23a0c37da7d
+after: 22fa2af9-9b97-47c2-931f-ed5a5a62f89d
 ---
 
 see this trace [Trace-20260829T151109.json](file:///C:/Users/janbo/Documents/dev/Trace-20260829T151109.json)

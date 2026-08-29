@@ -48,6 +48,7 @@ changedFiles:
   - desktop/src/actions/agent/agent_runner_service.js
   - desktop/src/actions/agent/agent_runner_state.test.mjs
   - desktop/src/actions/agent/agent_streaming_event_handlers.js
+after: df937269-dfea-443f-b5e4-ef60704df3b5
 ---
 The action popup performs work proportional to the complete conversation for each streamed update, although previous turns and completed groups are immutable. Keep every provider update immediate. Reduce the work per update so it depends on the entries that can still change, not the length of the chat history.
 

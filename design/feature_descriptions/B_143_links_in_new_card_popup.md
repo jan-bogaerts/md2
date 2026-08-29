@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__389dd95e-e4b1-460c-8171-db15ce961115.json
 policy:
-after: cd2dca75-15df-4f60-b640-8a8a91aba68e
+after: 6ec1718f-1770-4446-92e5-c23a0c37da7d
 ---
 when in the 'new card popup', and the cursor is on a link, we show a popup that allows the user to follow that link. but it is hidden behind the main popup which is annoying.
 

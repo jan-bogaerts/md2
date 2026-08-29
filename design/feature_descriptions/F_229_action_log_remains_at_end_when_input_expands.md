@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__de77178e-987f-437c-9af3-81b704eca3d4.json
 policy:
+after: 1c141485-6431-438a-a4ca-9443f75443e2
 ---
 
 In the action popup, when the user enters some text in the input editor, we expand the editor so there is more room for entering text. this all works fine.

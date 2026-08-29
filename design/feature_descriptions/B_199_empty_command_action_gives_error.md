@@ -3,15 +3,19 @@ author:
 id: B_199
 internalId: 72668dda-9401-49ca-adf2-cd433393214d
 title: empty command action gives error
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__72668dda-9401-49ca-adf2-cd433393214d.json
 policy:
-after: 49c227f7-c9c7-4773-a246-b4ec451244f1
+after: 7dee6bc2-2c20-4336-99c8-2775f985089e
 branch: b_199_empty_command_action_gives_error
 worktree: 1
+changedFiles:
+  - app/src/components/actions/run/popup/action_popup_run_disabled.ts
+  - app/src/components/actions/run/popup/action_run_disabled_message.tsx
+  - shared/action_definitions.mjs
 ---
 create new action, switch to command, user gets error 'missing action field command in xxxx'
 

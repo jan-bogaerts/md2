@@ -24,6 +24,7 @@ changedFiles:
   - app/src/services/actions/action_run_registry.node.test.ts
   - app/src/services/actions/action_run_registry.ts
   - app/src/services/markdown/markdown_draft.ts
+after: feaf009d-ccf1-489b-bc6f-b3eca1746831
 ---
 it appears we restrict the number of actions that can run on a card. if 1 action is running and we try to start another one, it will even try to queue the message.
 
