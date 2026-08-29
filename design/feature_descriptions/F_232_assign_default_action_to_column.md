@@ -10,8 +10,6 @@ agents:
   - design/activity/card__545671dd-18d4-4878-93b9-0ed24f2077fa.json
 policy:
 after: 06a8af54-38c9-4b9b-a9a4-bbdf563f036b
-branch: f_232_assign_default_action_to_column
-worktree: 2
 changedFiles:
   - app/src/components/actions/run/popup/action_popup.test.tsx
   - app/src/components/actions/run/popup/action_popup.tsx
